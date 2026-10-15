@@ -3008,8 +3008,8 @@ impl Consumer {
         let _ = self.conns.remove(&node);
     }
 
-    async fn connect_node(&mut self, node: i32) -> Result<()> {
-        self.connect_node_inner(node, true).await
+    async fn connect_node(&mut self, node: i32, deadline: Instant) -> Result<()> {
+        self.connect_node_inner(node, true, deadline).await
     }
 
     /// Connection that speaks to `node`: the dedicated socket, or the bootstrap
@@ -3066,7 +3066,12 @@ impl Consumer {
         }
     }
 
-    async fn connect_node_inner(&mut self, node: i32, reuse_bootstrap: bool) -> Result<()> {
+    async fn connect_node_inner(
+        &mut self,
+        node: i32,
+        reuse_bootstrap: bool,
+        deadline: Instant,
+    ) -> Result<()> {
         if self
             .conns
             .get(&node)
@@ -3088,7 +3093,6 @@ impl Consumer {
             .get(&node)
             .cloned()
             .ok_or_else(|| Error::protocol(format!("unknown broker {node}")))?;
-        let deadline = Instant::now() + self.cfg.request_timeout;
         // The one-node leader is the bootstrap socket, which is not stored in
         // `conns`. Resetting its fetch session on every poll forces a full
         // partition list. Keep the session while that socket stays live.
@@ -3176,7 +3180,7 @@ impl Consumer {
     }
 
     /// One dial for a rack replica. A refusal must leave time to fetch from the leader.
-    async fn connect_preferred_once(&mut self, node: i32) -> Result<()> {
+    async fn connect_preferred_once(&mut self, node: i32, deadline: Instant) -> Result<()> {
         if self
             .conns
             .get(&node)
@@ -3201,7 +3205,9 @@ impl Consumer {
         if let Some(session) = self.fetch_sessions.get_mut(&node) {
             session.reset();
         }
-        let deadline = Instant::now() + self.cfg.request_timeout;
+        if Instant::now() >= deadline {
+            return Err(Error::Timeout);
+        }
         match self.open_node_conn_until(&addr, deadline).await {
             Ok((conn, versions)) => {
                 let _ = self.reconnect_fails.remove(&node);
@@ -3377,15 +3383,10 @@ impl Consumer {
                 let Some(parts) = by_leader.remove(&node) else {
                     continue;
                 };
-                let rest = remaining_offset_timeout(deadline, Instant::now());
-                if rest.is_zero() {
+                if Instant::now() >= deadline {
                     return Err(Error::Timeout);
                 }
-                match tokio::time::timeout(rest, self.connect_node(node)).await {
-                    Ok(Ok(())) => {}
-                    Ok(Err(error)) => return Err(error),
-                    Err(_) => return Err(Error::Timeout),
-                }
+                self.connect_node(node, deadline).await?;
                 let version = self.offset_for_leader_epoch_version(node)?;
                 let topics = offset_for_leader_epoch_topics(
                     &self.cluster,
@@ -4396,38 +4397,31 @@ impl Consumer {
             let preferred_only =
                 is_preferred_only_target(&self.preferred, &self.cluster, node, &by_leader);
             let connected_ok = if preferred_only {
-                match tokio::time::timeout(rest, self.connect_preferred_once(node)).await {
-                    Ok(Ok(())) => true,
-                    Ok(Err(_)) => {
+                match self.connect_preferred_once(node, deadline).await {
+                    Ok(()) => true,
+                    Err(error) => {
                         if !reroute_unreachable_preferred(
                             &mut self.preferred,
                             &self.cluster,
                             node,
                             &mut by_leader,
                         ) {
+                            if matches!(error, Error::Timeout) {
+                                return self.ready_fetches_or_timeout();
+                            }
                             return Err(Error::Timeout);
-                        }
-                        false
-                    }
-                    Err(_) => {
-                        if !reroute_unreachable_preferred(
-                            &mut self.preferred,
-                            &self.cluster,
-                            node,
-                            &mut by_leader,
-                        ) {
-                            return self.ready_fetches_or_timeout();
                         }
                         false
                     }
                 }
             } else {
-                match tokio::time::timeout(rest, self.connect_node_inner(node, !collect_parallel))
+                match self
+                    .connect_node_inner(node, !collect_parallel, deadline)
                     .await
                 {
-                    Ok(Ok(())) => true,
-                    Ok(Err(error)) => return Err(error),
-                    Err(_) => return self.ready_fetches_or_timeout(),
+                    Ok(()) => true,
+                    Err(Error::Timeout) => return self.ready_fetches_or_timeout(),
+                    Err(error) => return Err(error),
                 }
             };
             if connected_ok {
@@ -5422,24 +5416,30 @@ impl Consumer {
         let deadline = Instant::now()
             .checked_add(timeout)
             .ok_or_else(|| Error::protocol("ListOffsets deadline overflow"))?;
-        tokio::time::timeout_at(tokio::time::Instant::from_std(deadline), async {
-            loop {
-                if self.cluster.leader(topic, partition).is_err() {
-                    let topics = [topic.to_string()];
-                    self.refresh_metadata_timeout(Some(&topics), timeout)
-                        .await?;
-                }
-                let (node, _) = self.cluster.leader(topic, partition)?;
-                self.connect_node(node).await?;
-                let isolation = self.cfg.isolation_level.as_i8();
-                let minimum = crate::protocol::offsets::minimum_version_for_timestamp(timestamp, isolation);
-                let uses_bootstrap = !self.conns.contains_key(&node)
-                    && self
-                        .cluster
-                        .brokers
-                        .get(&node)
-                        .is_some_and(|addr| addr == self.conn.addr());
-                let version = if uses_bootstrap {
+        loop {
+            if Instant::now() >= deadline {
+                return Err(Error::Timeout);
+            }
+            if self.cluster.leader(topic, partition).is_err() {
+                let topics = [topic.to_string()];
+                self.refresh_metadata_timeout(
+                    Some(&topics),
+                    deadline.saturating_duration_since(Instant::now()),
+                )
+                .await?;
+            }
+            let (node, _) = self.cluster.leader(topic, partition)?;
+            self.connect_node(node, deadline).await?;
+            let isolation = self.cfg.isolation_level.as_i8();
+            let minimum =
+                crate::protocol::offsets::minimum_version_for_timestamp(timestamp, isolation);
+            let uses_bootstrap = !self.conns.contains_key(&node)
+                && self
+                    .cluster
+                    .brokers
+                    .get(&node)
+                    .is_some_and(|addr| addr == self.conn.addr());
+            let version = if uses_bootstrap {
                     self.versions.get(&LIST_OFFSETS).and_then(|v| {
                         pick_version(v.min_version, v.max_version, minimum, 11)
                     })
@@ -5457,84 +5457,101 @@ impl Consumer {
                         "broker does not support requested ListOffsets selector/isolation (requires v{minimum}+)"
                     ))
                 })?;
-                let timeout = deadline.saturating_duration_since(Instant::now());
-                let current_leader_epoch = self.cluster.leader_epoch(topic, partition);
-                let body = {
-                    let conn = self.broker_conn_mut(node)?;
-                    conn.roundtrip(
-                        LIST_OFFSETS,
-                        version,
-                        |buf| {
-                            encode_list_offsets_request(
-                                buf,
-                                version,
-                                isolation,
-                                topic,
-                                partition,
-                                current_leader_epoch,
-                                timestamp,
-                                duration_millis_i32(timeout),
-                            )
-                        },
-                        timeout,
-                    )
-                    .await
-                };
-                let body = match body {
-                    Ok(b) => b,
-                    Err(e) if e.is_retriable() => {
-                        self.drop_broker_conn(node);
-                        if Instant::now() >= deadline {
-                            return Err(Error::Timeout);
-                        }
-                        continue;
-                    }
-                    Err(e) => return Err(e),
-                };
-                let decoded = (|| {
-                    let mut cursor = body.as_ref();
-                    let (topics, _) = decode_list_offsets_topics_response(&mut cursor, version)?;
-                    if !cursor.is_empty() { return Err(Error::protocol("trailing ListOffsets response bytes")); }
-                    let mut matching = topics.into_iter().filter(|t| t.name == topic)
-                        .flat_map(|t| t.partitions).filter(|p| p.partition_index == partition);
-                    let result = matching.next().ok_or_else(|| Error::protocol("ListOffsets missing requested partition"))?;
-                    if matching.next().is_some() { return Err(Error::protocol("duplicate ListOffsets result")); }
-                    if result.error_code != 0 { return Err(Error::broker(result.error_code, "ListOffsets")); }
-                    Ok(result)
-                })();
-                match decoded {
-                    Ok(got) => return Ok((got.offset, got.timestamp, got.leader_epoch)),
-                    Err(e)
-                        if matches!(
-                            &e,
-                            Error::Broker {
-                                code: error::FENCED_LEADER_EPOCH | error::UNKNOWN_LEADER_EPOCH,
-                                ..
-                            }
-                        ) =>
-                    {
-                        self.recover_leader_epoch(topic, partition, deadline).await?;
-                        if Instant::now() >= deadline {
-                            return Err(Error::Timeout);
-                        }
-                        continue;
-                    }
-                    Err(e) if e.is_retriable() => {
-                        // NOT_LEADER_OR_FOLLOWER (6) and friends: Metadata, then the new leader.
-                        self.cluster.invalidate_topic(topic);
-                        self.drop_broker_conn(node);
-                        if Instant::now() >= deadline {
-                            return Err(Error::Timeout);
-                        }
-                        let topics = [topic.to_string()];
-                        self.refresh_metadata_timeout(Some(&topics), timeout)
-                            .await?;
-                        continue;
-                    }
-                    Err(e) => return Err(e),
-                }
+            let timeout = deadline.saturating_duration_since(Instant::now());
+            if timeout.is_zero() {
+                return Err(Error::Timeout);
             }
-            }).await.map_err(|_| Error::Timeout)?
+            let current_leader_epoch = self.cluster.leader_epoch(topic, partition);
+            let body = {
+                let conn = self.broker_conn_mut(node)?;
+                conn.roundtrip(
+                    LIST_OFFSETS,
+                    version,
+                    |buf| {
+                        encode_list_offsets_request(
+                            buf,
+                            version,
+                            isolation,
+                            topic,
+                            partition,
+                            current_leader_epoch,
+                            timestamp,
+                            duration_millis_i32(timeout),
+                        )
+                    },
+                    timeout,
+                )
+                .await
+            };
+            let body = match body {
+                Ok(b) => b,
+                Err(e) if e.is_retriable() => {
+                    self.drop_broker_conn(node);
+                    if Instant::now() >= deadline {
+                        return Err(Error::Timeout);
+                    }
+                    continue;
+                }
+                Err(e) => return Err(e),
+            };
+            let decoded = (|| {
+                let mut cursor = body.as_ref();
+                let (topics, _) = decode_list_offsets_topics_response(&mut cursor, version)?;
+                if !cursor.is_empty() {
+                    return Err(Error::protocol("trailing ListOffsets response bytes"));
+                }
+                let mut matching = topics
+                    .into_iter()
+                    .filter(|t| t.name == topic)
+                    .flat_map(|t| t.partitions)
+                    .filter(|p| p.partition_index == partition);
+                let result = matching
+                    .next()
+                    .ok_or_else(|| Error::protocol("ListOffsets missing requested partition"))?;
+                if matching.next().is_some() {
+                    return Err(Error::protocol("duplicate ListOffsets result"));
+                }
+                if result.error_code != 0 {
+                    return Err(Error::broker(result.error_code, "ListOffsets"));
+                }
+                Ok(result)
+            })();
+            match decoded {
+                Ok(got) => return Ok((got.offset, got.timestamp, got.leader_epoch)),
+                Err(e)
+                    if matches!(
+                        &e,
+                        Error::Broker {
+                            code: error::FENCED_LEADER_EPOCH | error::UNKNOWN_LEADER_EPOCH,
+                            ..
+                        }
+                    ) =>
+                {
+                    self.recover_leader_epoch(topic, partition, deadline)
+                        .await?;
+                    if Instant::now() >= deadline {
+                        return Err(Error::Timeout);
+                    }
+                    continue;
+                }
+                Err(e) if e.is_retriable() => {
+                    // NOT_LEADER_OR_FOLLOWER (6) and friends: Metadata, then the new leader.
+                    self.cluster.invalidate_topic(topic);
+                    self.drop_broker_conn(node);
+                    if Instant::now() >= deadline {
+                        return Err(Error::Timeout);
+                    }
+                    let topics = [topic.to_string()];
+                    self.refresh_metadata_timeout(
+                        Some(&topics),
+                        deadline.saturating_duration_since(Instant::now()),
+                    )
+                    .await?;
+                    continue;
+                }
+                Err(e) => return Err(e),
+            }
+        }
     }
 
     /// Set the next fetch offset for an assigned partition (Java
