@@ -3593,24 +3593,41 @@ fn nested_topic_id(map: &DeliveredTopicIds, topic: &str, partition: i32) -> Opti
     map.get(topic)?.get(&partition).copied()
 }
 
+fn insert_committed(
+    parts: &mut HashMap<i32, OffsetAndMetadata>,
+    topic: &FetchedOffsetTopic,
+) -> Result<()> {
+    for partition in &topic.partitions {
+        if partition.has_error() {
+            return Err(Error::broker(
+                partition.error_code,
+                format!("OffsetFetch {}-{}", topic.topic, partition.partition),
+            ));
+        }
+        let _ = parts.insert(
+            partition.partition,
+            OffsetAndMetadata::from_wire(
+                partition.offset,
+                partition.leader_epoch,
+                partition.metadata.clone(),
+            ),
+        );
+    }
+    Ok(())
+}
+
 pub(crate) fn committed_offset_map(
     fetched: &[FetchedOffsetTopic],
 ) -> Result<HashMap<String, HashMap<i32, OffsetAndMetadata>>> {
     let mut map: HashMap<String, HashMap<i32, OffsetAndMetadata>> = HashMap::new();
-    for t in fetched {
-        let parts = map.entry(t.topic.clone()).or_default();
-        for p in &t.partitions {
-            if p.has_error() {
-                return Err(Error::broker(
-                    p.error_code,
-                    format!("OffsetFetch {}-{}", t.topic, p.partition),
-                ));
-            }
-            let _ = parts.insert(
-                p.partition,
-                OffsetAndMetadata::from_wire(p.offset, p.leader_epoch, p.metadata.clone()),
-            );
+    for topic in fetched {
+        if let Some(parts) = map.get_mut(topic.topic.as_str()) {
+            insert_committed(parts, topic)?;
+            continue;
         }
+        let mut parts = HashMap::new();
+        insert_committed(&mut parts, topic)?;
+        let _ = map.insert(topic.topic.clone(), parts);
     }
     Ok(map)
 }
@@ -4793,6 +4810,35 @@ mod tests {
         b.sort();
         assert_eq!(a, vec![("orders".into(), 0), ("orders".into(), 1)]);
         assert_eq!(b, vec![("payments".into(), 0), ("payments".into(), 1)]);
+    }
+
+    #[test]
+    fn committed_offsets_reuse_a_repeated_topic() {
+        let fetched = [
+            FetchedOffsetTopic {
+                topic: "orders".into(),
+                partitions: vec![FetchedOffset::new(0, 4, 0)],
+            },
+            FetchedOffsetTopic {
+                topic: "orders".into(),
+                partitions: vec![FetchedOffset::new(1, 9, 0), FetchedOffset::new(0, 8, 0)],
+            },
+        ];
+        let map = committed_offset_map(&fetched).unwrap();
+        assert_eq!(map.len(), 1);
+        assert_eq!(
+            committed_offset(&map, "orders", 1).map(|md| md.offset),
+            Some(9)
+        );
+        assert_eq!(
+            committed_offset(&map, "orders", 0).map(|md| md.offset),
+            Some(8)
+        );
+        let failed = [FetchedOffsetTopic {
+            topic: "orders".into(),
+            partitions: vec![FetchedOffset::new(0, 4, 1)],
+        }];
+        assert!(committed_offset_map(&failed).is_err());
     }
 
     #[test]
