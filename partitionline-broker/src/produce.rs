@@ -17,6 +17,7 @@ use crate::{
 };
 use std::{
     borrow::Cow,
+    collections::HashMap,
     fs::{self, File},
     path::{Path, PathBuf},
     time::{Duration, Instant},
@@ -225,6 +226,8 @@ fn open_partition(path: &Path, config: &Config) -> Result<partition::Partition, 
 pub(crate) struct Store {
     config: Config,
     slots: Vec<Slot>,
+    /// Open log position in `slots`, keyed by topic identity and partition.
+    located: HashMap<(TopicId, i32), usize>,
     changed: bool,
     retention: Option<retention::Config>,
     compaction: Option<compaction::Policy>,
@@ -253,6 +256,7 @@ impl Store {
         slots
             .try_reserve_exact(config.max_stores)
             .map_err(|_| Error::ResourceLimit)?;
+        let mut located = HashMap::new();
         for entry in fs::read_dir(&config.directory)? {
             if slots.len() >= config.max_stores {
                 return Err(Error::ResourceLimit);
@@ -271,9 +275,7 @@ impl Store {
                 name.to_str().ok_or(Error::InvalidStore)?,
                 config.segment_limits.is_some(),
             )?;
-            if slots
-                .iter()
-                .any(|slot: &Slot| slot.id == id && slot.index == index)
+            if located.contains_key(&(id, index))
                 || (!catalog.is_tombstoned(id) && catalog.by_id(id).is_none())
                 || catalog
                     .by_id(id)
@@ -282,6 +284,7 @@ impl Store {
                 return Err(Error::InvalidStore);
             }
             let partition = open_partition(&entry.path(), &config)?;
+            let _ = located.insert((id, index), slots.len());
             slots.push(Slot {
                 id,
                 index,
@@ -291,6 +294,7 @@ impl Store {
         Ok(Self {
             config,
             slots,
+            located,
             changed: false,
             retention: None,
             compaction: None,
@@ -408,21 +412,16 @@ impl Store {
         result.map_err(storage_error)
     }
     fn abort_staged(&mut self, id: TopicId, index: i32) {
-        if let Some(position) = self
-            .slots
-            .iter()
-            .position(|slot| slot.id == id && slot.index == index)
-        {
-            self.slots[position].partition.abort_staged();
+        let Some(position) = self.located.get(&(id, index)).copied() else {
+            return;
+        };
+        if let Some(slot) = self.slots.get_mut(position) {
+            slot.partition.abort_staged();
             self.changed = true;
         }
     }
     fn slot(&mut self, id: TopicId, index: i32) -> Result<usize, i16> {
-        if let Some(position) = self
-            .slots
-            .iter()
-            .position(|slot| slot.id == id && slot.index == index)
-        {
+        if let Some(position) = self.located.get(&(id, index)).copied() {
             return Ok(position);
         }
         if self.slots.len() >= self.config.max_stores {
@@ -434,12 +433,14 @@ impl Store {
             self.config.segment_limits.is_some(),
         ));
         let partition = open_partition(&path, &self.config).map_err(|_| 56i16)?;
+        let position = self.slots.len();
         self.slots.push(Slot {
             id,
             index,
             partition,
         });
-        Ok(self.slots.len() - 1)
+        let _ = self.located.insert((id, index), position);
+        Ok(position)
     }
     pub(crate) fn take_changed(&mut self) -> bool {
         std::mem::take(&mut self.changed)
@@ -452,9 +453,9 @@ impl Store {
     }
     pub(crate) fn watermark(&self, id: TopicId, index: i32) -> Result<i64, i16> {
         match self
-            .slots
-            .iter()
-            .find(|slot| slot.id == id && slot.index == index)
+            .located
+            .get(&(id, index))
+            .and_then(|position| self.slots.get(*position))
         {
             None => Ok(0),
             Some(slot) if slot.partition.is_poisoned() => Err(56),
@@ -463,9 +464,9 @@ impl Store {
     }
     pub(crate) fn log_start(&self, id: TopicId, index: i32) -> Result<i64, i16> {
         match self
-            .slots
-            .iter()
-            .find(|slot| slot.id == id && slot.index == index)
+            .located
+            .get(&(id, index))
+            .and_then(|position| self.slots.get(*position))
         {
             None => Ok(0),
             Some(slot) if slot.partition.is_poisoned() => Err(56),
