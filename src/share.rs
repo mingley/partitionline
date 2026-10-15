@@ -753,7 +753,7 @@ pub enum ShareAcquireMode {
 /// topic id that was not in this piggyback ShareFetch is skipped the
 /// same way and does not deliver those records. A piggybacked
 /// `FENCED_LEADER_EPOCH` / `NOT_LEADER_OR_FOLLOWER` /
-/// `UNKNOWN_TOPIC_OR_PARTITION`
+/// `UNKNOWN_TOPIC_OR_PARTITION` / `UNKNOWN_TOPIC_ID`
 /// `AcknowledgeErrorCode` with a usable
 /// CurrentLeader does not update the next ShareFetch target (Java
 /// `handleShareFetchSuccess` applies CurrentLeader only for fetch
