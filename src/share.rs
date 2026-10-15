@@ -4005,7 +4005,10 @@ impl ShareGroup {
     /// change, leftover acknowledgements whose acquisition node is no
     /// longer the Metadata leader complete `NOT_LEADER_OR_FOLLOWER` and
     /// close still sends the still-led partitions (Java
-    /// `testLeadershipChangeAfterFetchBeforeCloseMove`). The
+    /// `testLeadershipChangeAfterFetchBeforeCloseMove`). When every
+    /// leftover partition has moved, all of those acknowledgements
+    /// complete `NOT_LEADER_OR_FOLLOWER` and close still proceeds
+    /// (Java `testLeadershipChangeAfterFetchMoveBeforeCloseMove`). The
     /// acknowledgement commit callback is invoked once per partition
     /// with that partition's exception (`None` on the still-led ACCEPT).
     pub async fn leave(mut self) -> Result<()> {

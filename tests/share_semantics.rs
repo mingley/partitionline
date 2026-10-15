@@ -1349,6 +1349,66 @@ async fn explicit_leave_after_leader_change_fires_partition_callbacks() {
 }
 
 #[tokio::test]
+async fn explicit_leave_after_both_leaders_move_fails_all_acks() {
+    let mock = common::Mock::start_two_node().await;
+    v2(&mock);
+    mock.set_topic_partitions("t", 2);
+    mock.set_partition_leader("t", 0, 1);
+    mock.set_partition_leader("t", 1, 2);
+    produce(&mock, &[(0, b"left"), (1, b"right")]).await;
+    let mut group = ShareGroup::join(config(&mock), "close-swap", "t")
+        .await
+        .unwrap();
+    let acquired = group.poll().await.unwrap();
+    assert_eq!(acquired.len(), 2);
+    mock.set_partition_leader("t", 0, 2);
+    mock.set_partition_leader("t", 1, 1);
+    let _ = group.list_topics().await.unwrap();
+    group.accept(&acquired).await.unwrap();
+    let seen = Arc::new(Mutex::new(Vec::new()));
+    let seen_cb = seen.clone();
+    group.set_acknowledgement_commit_callback(move |offsets, exception| {
+        seen_cb.lock().push((
+            offsets
+                .iter()
+                .map(|(tp, _)| (tp.topic().to_string(), tp.partition()))
+                .collect::<Vec<_>>(),
+            exception
+                .as_ref()
+                .and_then(AcknowledgementCommitError::code),
+        ));
+    });
+    let history_before = mock.share_ack_history();
+    group.leave().await.unwrap();
+    let got = seen.lock().clone();
+    assert_eq!(
+        got.len(),
+        2,
+        "Java testLeadershipChangeAfterFetchMoveBeforeCloseMove invokes once per partition, got {got:?}"
+    );
+    assert!(
+        got.iter().all(|(offsets, code)| {
+            offsets.len() == 1 && *code == Some(error::NOT_LEADER_OR_FOLLOWER)
+        }),
+        "both leftover acks complete NOT_LEADER, got {got:?}"
+    );
+    assert!(
+        !mock.share_accepted("close-swap", "t", 0, 0)
+            && !mock.share_accepted("close-swap", "t", 1, 0),
+        "Java MoveBeforeCloseMove must not ACCEPT either moved partition"
+    );
+    let extra: Vec<(i32, i32)> = mock
+        .share_ack_history()
+        .into_iter()
+        .skip(history_before.len())
+        .collect();
+    assert!(
+        extra.iter().all(|(_, epoch)| *epoch < 0),
+        "moved leftover acks must not send a non-FINAL ACCEPT, got {extra:?}"
+    );
+}
+
+#[tokio::test]
 async fn implicit_commit_sync_returns_empty_optional() {
     let mock = common::Mock::start().await;
     produce(&mock, &[(0, b"first")]).await;

@@ -45,7 +45,9 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   change: leftover acknowledgements whose acquisition node is no longer
   the Metadata leader finish as `NOT_LEADER_OR_FOLLOWER`, and ACCEPT is
   sent only for partitions still on that node (`commit()` stays
-  first-error `Err`). The acknowledgement commit callback fires once
+  first-error `Err`). When every leftover partition has moved, all of
+  those acknowledgements complete `NOT_LEADER_OR_FOLLOWER` and close
+  still proceeds. The acknowledgement commit callback fires once
   per partition with that partition's exception.
 
 - ShareAcknowledge partition `NOT_LEADER_OR_FOLLOWER` /
