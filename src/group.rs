@@ -2169,7 +2169,7 @@ impl ConsumerGroup {
     }
 
     async fn rejoin_once(&mut self) -> Result<Vec<(String, i32)>> {
-        let timeout = self.cfg.request_timeout;
+        let deadline = Instant::now() + self.cfg.request_timeout;
         let entries = self.join_protocol_entries()?;
         let protocols: Vec<JoinGroupProtocol<'_>> = entries
             .iter()
@@ -2177,6 +2177,10 @@ impl ConsumerGroup {
             .collect();
         let reason = self.rebalance_reason.take();
         let (error, generation, protocol, leader, assigned_id, skip_assignment, members, ..) = loop {
+            let timeout = deadline.saturating_duration_since(Instant::now());
+            if timeout.is_zero() {
+                return Err(Error::Timeout);
+            }
             let (version, body) = coord_roundtrip(
                 &mut self.coord,
                 &self.cfg,
@@ -2249,7 +2253,13 @@ impl ConsumerGroup {
             owned_claims.push((m.member_id.clone(), sub.owned_partitions, sub.generation_id));
         }
         let owned_prev = resolve_sticky_owned_partitions(&owned_claims);
-        self.consumer.refresh_topics(&topic_set).await?;
+        let timeout = deadline.saturating_duration_since(Instant::now());
+        if timeout.is_zero() {
+            return Err(Error::Timeout);
+        }
+        self.consumer
+            .refresh_metadata_timeout(Some(&topic_set), timeout)
+            .await?;
         let mut by_topic = Vec::with_capacity(topic_set.len());
         for topic in &topic_set {
             by_topic.push((topic.clone(), self.consumer.partition_ids(topic).await?));
@@ -2270,6 +2280,10 @@ impl ConsumerGroup {
             } else {
                 Vec::new()
             };
+        let timeout = deadline.saturating_duration_since(Instant::now());
+        if timeout.is_zero() {
+            return Err(Error::Timeout);
+        }
         let (version, body) = coord_roundtrip(
             &mut self.coord,
             &self.cfg,
@@ -2306,7 +2320,7 @@ impl ConsumerGroup {
             .into_iter()
             .flat_map(|(t, ps)| ps.into_iter().map(move |p| (t.clone(), p)))
             .collect();
-        let revoked = self.assign_committed(&wanted).await?;
+        let revoked = self.assign_committed(&wanted, deadline).await?;
         self.hb_generation
             .store(self.generation_id, Ordering::SeqCst);
         self.hb_err.store(0, Ordering::SeqCst);
@@ -2314,8 +2328,18 @@ impl ConsumerGroup {
     }
 
     async fn heartbeat_join(&mut self) -> Result<()> {
-        let timeout = self.cfg.request_timeout;
-        self.consumer.refresh_topics(&self.topics).await?;
+        let deadline = Instant::now() + self.cfg.request_timeout;
+        let timeout = deadline.saturating_duration_since(Instant::now());
+        if timeout.is_zero() {
+            return Err(Error::Timeout);
+        }
+        self.consumer
+            .refresh_metadata_timeout(Some(&self.topics), timeout)
+            .await?;
+        let timeout = deadline.saturating_duration_since(Instant::now());
+        if timeout.is_zero() {
+            return Err(Error::Timeout);
+        }
         let version = spoken_consumer_group_heartbeat(self.coord.consumer_group_heartbeat_version)?;
         if version >= ConsumerGroupHeartbeatRequest::CONSUMER_GENERATED_MEMBER_ID_REQUIRED_VERSION
             && self.member_id.is_empty()
@@ -2387,7 +2411,7 @@ impl ConsumerGroup {
             ));
         }
         let wanted = wanted_from_kip848(&self.topics, &names, &assignment);
-        let _ = self.assign_committed(&wanted).await?;
+        let _ = self.assign_committed(&wanted, deadline).await?;
         *self.hb_ack.lock() = Some(assignment);
         self.hb_generation
             .store(self.generation_id, Ordering::SeqCst);
@@ -2452,7 +2476,14 @@ impl ConsumerGroup {
             };
             assignment.clone()
         };
-        self.consumer.refresh_topics(&self.topics).await?;
+        let deadline = Instant::now() + self.cfg.request_timeout;
+        let timeout = deadline.saturating_duration_since(Instant::now());
+        if timeout.is_zero() {
+            return Err(Error::Timeout);
+        }
+        self.consumer
+            .refresh_metadata_timeout(Some(&self.topics), timeout)
+            .await?;
         let names = self.consumer.topic_id_names();
         if (self.coord.offset_commit_version == 10 || self.coord.offset_fetch_version == 10)
             && assignment
@@ -2467,7 +2498,7 @@ impl ConsumerGroup {
         if !kip848_assignment_can_apply(&wanted, &assignment) {
             return Ok(());
         }
-        let _revoked = self.assign_committed(&wanted).await?;
+        let _revoked = self.assign_committed(&wanted, deadline).await?;
         {
             let mut pending = self.hb_assignment.lock();
             if pending.as_ref() == Some(&assignment) {
@@ -2508,7 +2539,11 @@ impl ConsumerGroup {
         })
     }
 
-    async fn assign_committed(&mut self, wanted: &[(String, i32)]) -> Result<Vec<(String, i32)>> {
+    async fn assign_committed(
+        &mut self,
+        wanted: &[(String, i32)],
+        deadline: Instant,
+    ) -> Result<Vec<(String, i32)>> {
         let identities = self.consumer.topic_name_ids();
         let all_current = self.consumer.assigned_offsets().to_vec();
         let current: HashMap<(String, i32), i64> = self
@@ -2557,7 +2592,10 @@ impl ConsumerGroup {
                 })
                 .collect();
             if !to_commit.is_empty() {
-                let timeout = self.cfg.request_timeout;
+                let timeout = deadline.saturating_duration_since(Instant::now());
+                if timeout.is_zero() {
+                    return Err(Error::Timeout);
+                }
                 self.commit_metadata_offsets(to_commit, timeout).await?;
             }
         }
@@ -2575,12 +2613,15 @@ impl ConsumerGroup {
             Vec::new()
         } else {
             let topics = group_offset_fetch_topics(&added);
-            let timeout = self.cfg.request_timeout;
+            let timeout = deadline.saturating_duration_since(Instant::now());
+            if timeout.is_zero() {
+                return Err(Error::Timeout);
+            }
             self.offset_fetch(&topics, timeout).await?
         };
         let map = committed_offset_map(&fetched)?;
         let reset = self.cfg.auto_offset_reset;
-        let reset_deadline = crate::consumer::offset_lookup_deadline(self.cfg.request_timeout)?;
+        let reset_deadline = deadline;
         let mut starts: Vec<(String, i32, i64)> = Vec::with_capacity(wanted.len());
         for (topic, part) in wanted {
             let key = (topic.clone(), *part);
