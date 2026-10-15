@@ -892,7 +892,7 @@ const FAST_ROUTE_TOPICS: usize = 8;
 
 struct FastRoute {
     np: i32,
-    handles: Vec<WorkerHandle>,
+    handles: Vec<Arc<WorkerHandle>>,
     tracker: Arc<crate::metrics::ProduceTopicTracker>,
     /// Metadata time captured when this route was built.
     fetched_at: Option<Instant>,
@@ -1985,7 +1985,7 @@ impl Producer {
             self.ensure_ready(&mut rec, block_deadline).await?;
             let handle = self.worker_for(&rec).ok_or(Error::Closed)?;
             self.remember_fast(&rec);
-            (handle, None)
+            (Arc::new(handle), None)
         };
         self.wait_buffer(bytes, block_deadline).await?;
         let mut reservation = BufferReservation {
@@ -2268,7 +2268,11 @@ impl Producer {
     fn fast_route(
         &self,
         rec: &ProduceRecord,
-    ) -> Option<(i32, WorkerHandle, Arc<crate::metrics::ProduceTopicTracker>)> {
+    ) -> Option<(
+        i32,
+        Arc<WorkerHandle>,
+        Arc<crate::metrics::ProduceTopicTracker>,
+    )> {
         let fast = self.inner.shared.fast.lock();
         let f = fast.routes.get(rec.topic.as_ref())?;
         if f.handles.is_empty() || f.np <= 0 {
@@ -2282,7 +2286,7 @@ impl Producer {
             return None;
         }
         let i = usize::try_from(p).ok()?;
-        let w = f.handles.get(i)?.clone();
+        let w = Arc::clone(f.handles.get(i)?);
         Some((p, w, Arc::clone(&f.tracker)))
     }
 
@@ -2293,7 +2297,11 @@ impl Producer {
     fn fresh_fast_route(
         &self,
         rec: &ProduceRecord,
-    ) -> Option<(i32, WorkerHandle, Arc<crate::metrics::ProduceTopicTracker>)> {
+    ) -> Option<(
+        i32,
+        Arc<WorkerHandle>,
+        Arc<crate::metrics::ProduceTopicTracker>,
+    )> {
         if peek_meta_err(&self.inner.shared).is_some() {
             return None;
         }
@@ -2317,7 +2325,7 @@ impl Producer {
             return None;
         }
         let i = usize::try_from(p).ok()?;
-        let w = f.handles.get(i)?.clone();
+        let w = Arc::clone(f.handles.get(i)?);
         Some((p, w, Arc::clone(&f.tracker)))
     }
 
@@ -2370,7 +2378,7 @@ impl Producer {
                 else {
                     return;
                 };
-                handles.push(handle);
+                handles.push(Arc::new(handle));
             }
         }
         if !complete {
@@ -2472,7 +2480,7 @@ impl Producer {
                 return Err(Error::QueueFull);
             };
             self.remember_fast(&rec);
-            (w, None)
+            (Arc::new(w), None)
         };
         let now = Instant::now();
         let deadline = now + self.inner.shared.cfg.delivery_timeout;
