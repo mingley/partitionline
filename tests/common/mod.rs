@@ -627,6 +627,7 @@ struct State {
     share_ack_history: Vec<(i32, i32)>,
     share_reply_delays: HashMap<i16, VecDeque<std::time::Duration>>,
     share_fetch_raw_once: Option<Vec<u8>>,
+    share_ack_raw_once: Option<Vec<u8>>,
     share_ack_attempts: Vec<(String, i32, i64, i64)>,
     share_fetch_versions_by_node: HashMap<i32, i16>,
     share_fetch_history: Vec<(i32, i32)>,
@@ -1108,6 +1109,7 @@ fn new_state(
         share_ack_history: Vec::new(),
         share_reply_delays: HashMap::new(),
         share_fetch_raw_once: None,
+        share_ack_raw_once: None,
         share_ack_attempts: Vec::new(),
         share_fetch_versions_by_node: HashMap::new(),
         share_fetch_history: Vec::new(),
@@ -2259,6 +2261,10 @@ impl Mock {
 
     pub fn inject_share_fetch_response_once(&self, bytes: &[u8]) {
         self.state.lock().share_fetch_raw_once = Some(bytes.to_vec());
+    }
+
+    pub fn inject_share_ack_response_once(&self, bytes: &[u8]) {
+        self.state.lock().share_ack_raw_once = Some(bytes.to_vec());
     }
 
     pub fn share_ack_attempts(&self) -> Vec<(String, i32, i64, i64)> {
@@ -7867,6 +7873,8 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     .and_then(VecDeque::pop_front)
                 {
                     encode_share_acknowledge_response(&mut body, version, code).unwrap();
+                } else if let Some(raw) = st.share_ack_raw_once.take() {
+                    body.extend_from_slice(&raw);
                 } else {
                     let mut response_topics: Vec<ShareAcknowledgeResponseTopic> = Vec::new();
                     for (tid, partition, batches) in acks {

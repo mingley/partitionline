@@ -55,7 +55,9 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `UNKNOWN_TOPIC_ID` / `INCONSISTENT_TOPIC_ID` complete without retry
   (`commit_sync` map; Java `testFatalErrorsAcknowledgementResponse` plus
   ownership-lost topic-id codes). Metadata is requested when that error
-  has no usable CurrentLeader.
+  has no usable CurrentLeader. A successful ShareAcknowledge that omits
+  a requested partition completes that partition with
+  `INVALID_RECORD_STATE` (Java `testShareAcknowledgeInvalidResponse`).
 
 - ShareFetch partition `INCONSISTENT_TOPIC_ID` / `UNKNOWN_TOPIC_OR_PARTITION`
   / `UNKNOWN_TOPIC_ID` / `REPLICA_NOT_AVAILABLE` / `OFFSET_NOT_AVAILABLE`
