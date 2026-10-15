@@ -1860,6 +1860,22 @@ impl InflightFetches {
     }
 }
 
+/// Take fetch replies that have already finished. Does not wait.
+fn reap_fetch_replies(
+    set: &mut tokio::task::JoinSet<(FetchReply, BrokerConn)>,
+    conns: &mut HashMap<i32, BrokerConn>,
+) -> Result<Vec<FetchReply>> {
+    let mut ready = Vec::new();
+    while let Some(joined) = set.try_join_next() {
+        let (reply, conn) =
+            joined.map_err(|error| Error::protocol(format!("fetch task: {error}")))?;
+        let _ = conns.insert(reply.node, conn);
+        ready.push(reply);
+    }
+    ready.sort_by_key(|reply| reply.node);
+    Ok(ready)
+}
+
 struct FetchBody {
     /// Partition metadata; `records` stay empty (see `batches`).
     topics: Vec<FetchedTopic>,
@@ -3896,17 +3912,18 @@ impl Consumer {
                 .any(|t| !self.cluster.topic_fresh(t, self.cfg.metadata_max_age))
             {
                 if Instant::now() >= deadline {
-                    return if !out.is_empty() {
-                        Ok(self.finish_fetch(out))
-                    } else {
-                        Err(Error::Timeout)
-                    };
+                    return self.fetched_or_timeout(out, Error::Timeout);
                 }
-                self.refresh_metadata_timeout(
-                    Some(&topics),
-                    remaining_offset_timeout(deadline, Instant::now()),
-                )
-                .await?;
+                if let Err(error) = self
+                    .refresh_metadata_timeout(
+                        Some(&topics),
+                        remaining_offset_timeout(deadline, Instant::now()),
+                    )
+                    .await
+                {
+                    // A later metadata refresh must not drop records already read.
+                    return self.fetched_or_timeout(out, error);
+                }
             }
             let mut by_leader: HashMap<i32, HashMap<&str, Vec<FetchPartition>>> = HashMap::new();
             let mut missing_leader = false;
@@ -3980,11 +3997,15 @@ impl Consumer {
                     self.cluster.invalidate_topic(t);
                 }
                 let topics: Vec<String> = self.assigned.iter().map(|(t, _, _)| t.clone()).collect();
-                self.refresh_metadata_timeout(
-                    Some(&topics),
-                    remaining_offset_timeout(deadline, Instant::now()),
-                )
-                .await?;
+                if let Err(error) = self
+                    .refresh_metadata_timeout(
+                        Some(&topics),
+                        remaining_offset_timeout(deadline, Instant::now()),
+                    )
+                    .await
+                {
+                    return self.fetched_or_timeout(out, error);
+                }
                 continue;
             }
             let retired = self
@@ -4040,7 +4061,12 @@ impl Consumer {
             let wait = max_wait_ms.min(duration_millis_i32(
                 poll_deadline.saturating_duration_since(Instant::now()),
             ));
-            let bodies = self.fetch_from_leaders(by_leader, deadline, wait).await?;
+            let bodies = match self.fetch_from_leaders(by_leader, deadline, wait).await {
+                Ok(bodies) => bodies,
+                // Dialing or waiting out the deadline must not roll back records
+                // this poll already took from an earlier leader.
+                Err(error) => return self.fetched_or_timeout(out, error),
+            };
             // ThrottleTimeMs is the first INT32 on every negotiated Fetch
             // version. Observe every completed response's header before the
             // record budget can discard another peer's body. Normal decoding
@@ -4194,16 +4220,65 @@ impl Consumer {
                     if retry == FetchRetry::Backoff {
                         let topics: Vec<String> =
                             self.assigned.iter().map(|(t, _, _)| t.clone()).collect();
-                        self.refresh_metadata_timeout(
-                            Some(&topics),
-                            remaining_offset_timeout(deadline, Instant::now()),
-                        )
-                        .await?;
+                        if let Err(error) = self
+                            .refresh_metadata_timeout(
+                                Some(&topics),
+                                remaining_offset_timeout(deadline, Instant::now()),
+                            )
+                            .await
+                        {
+                            return self.fetched_or_timeout(out, error);
+                        }
                     }
                 }
                 continue;
             }
             return Ok(self.finish_fetch(out));
+        }
+    }
+
+    /// Deliver records already taken when a later step times out.
+    ///
+    /// Any other error still fails the fetch, and the caller rolls the cursors
+    /// back. A timeout with nothing in hand is a timeout.
+    fn fetched_or_timeout(
+        &mut self,
+        out: Vec<FetchedRecord>,
+        error: Error,
+    ) -> Result<Vec<FetchedRecord>> {
+        if matches!(error, Error::Timeout) && !out.is_empty() {
+            Ok(self.finish_fetch(out))
+        } else {
+            Err(error)
+        }
+    }
+
+    /// Replies that finished while this poll was dialing or out of time.
+    ///
+    /// Brokers that are still running stay parked. Nothing ready is a timeout.
+    fn ready_fetches_or_timeout(&mut self) -> Result<Vec<FetchReply>> {
+        let Some(mut set) = self.inflight_fetches.take() else {
+            return Err(Error::Timeout);
+        };
+        let ready = match reap_fetch_replies(&mut set, &mut self.conns) {
+            Ok(ready) => ready,
+            Err(error) => {
+                self.inflight_fetches = Some(set);
+                return Err(error);
+            }
+        };
+        for reply in &ready {
+            let _ = self.inflight_nodes.remove(&reply.node);
+        }
+        if set.is_empty() {
+            self.inflight_nodes.clear();
+        } else {
+            self.inflight_fetches = Some(set);
+        }
+        if ready.is_empty() {
+            Err(Error::Timeout)
+        } else {
+            Ok(ready)
         }
     }
 
@@ -4255,7 +4330,7 @@ impl Consumer {
         };
         let isolation_level = self.cfg.isolation_level.as_i8();
         if deadline.saturating_duration_since(Instant::now()).is_zero() {
-            return Err(Error::Timeout);
+            return self.ready_fetches_or_timeout();
         }
         let rack = self.cfg.rack.clone();
         let mut name_ids = self.topic_name_ids();
@@ -4290,14 +4365,14 @@ impl Consumer {
             }
             let rest = deadline.saturating_duration_since(Instant::now());
             if rest.is_zero() {
-                return Err(Error::Timeout);
+                return self.ready_fetches_or_timeout();
             }
             let preferred_only =
                 is_preferred_only_target(&self.preferred, &self.cluster, node, &by_leader);
             let connected_ok = if preferred_only {
                 match tokio::time::timeout(rest, self.connect_preferred_once(node)).await {
                     Ok(Ok(())) => true,
-                    Ok(Err(_)) | Err(_) => {
+                    Ok(Err(_)) => {
                         if !reroute_unreachable_preferred(
                             &mut self.preferred,
                             &self.cluster,
@@ -4308,6 +4383,17 @@ impl Consumer {
                         }
                         false
                     }
+                    Err(_) => {
+                        if !reroute_unreachable_preferred(
+                            &mut self.preferred,
+                            &self.cluster,
+                            node,
+                            &mut by_leader,
+                        ) {
+                            return self.ready_fetches_or_timeout();
+                        }
+                        false
+                    }
                 }
             } else {
                 match tokio::time::timeout(rest, self.connect_node_inner(node, !collect_parallel))
@@ -4315,7 +4401,7 @@ impl Consumer {
                 {
                     Ok(Ok(())) => true,
                     Ok(Err(error)) => return Err(error),
-                    Err(_) => return Err(Error::Timeout),
+                    Err(_) => return self.ready_fetches_or_timeout(),
                 }
             };
             if connected_ok {
@@ -4334,7 +4420,7 @@ impl Consumer {
         // the first connection.
         let timeout = deadline.saturating_duration_since(Instant::now());
         if timeout.is_zero() {
-            return Err(Error::Timeout);
+            return self.ready_fetches_or_timeout();
         }
         let max_wait = max_wait.min(duration_millis_i32(timeout));
         if !collect_parallel {
@@ -4342,11 +4428,10 @@ impl Consumer {
             for node in nodes {
                 let timeout = deadline.saturating_duration_since(Instant::now());
                 if timeout.is_zero() {
-                    return if out.is_empty() {
-                        Err(Error::Timeout)
-                    } else {
-                        Ok(out)
-                    };
+                    if !out.is_empty() {
+                        return Ok(out);
+                    }
+                    return self.ready_fetches_or_timeout();
                 }
                 let max_wait = max_wait.min(duration_millis_i32(timeout));
                 let Some(by_topic) = by_leader.remove(&node) else {
@@ -4533,6 +4618,25 @@ impl Consumer {
                 first_reply = Some(reply.received_at);
             }
             out.push(reply);
+        }
+        // A reply can land in the instant the deadline ends the wait. Take it
+        // before parking the brokers that are still running.
+        let reaped = if let Some(set) = inflight.set.as_mut() {
+            reap_fetch_replies(set, &mut self.conns)
+        } else {
+            Ok(Vec::new())
+        };
+        match reaped {
+            Ok(ready) => {
+                for reply in &ready {
+                    let _ = inflight.pending.remove(&reply.node);
+                }
+                out.extend(ready);
+            }
+            Err(error) => {
+                inflight.park(self);
+                return Err(error);
+            }
         }
         inflight.park(self);
         if out.is_empty() && Instant::now() >= deadline {
