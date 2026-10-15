@@ -718,22 +718,27 @@ pub(crate) fn snapshot_produce_topics(
     topics
 }
 
-pub(crate) fn snapshot_fetch_topics(
-    map: &HashMap<String, FetchTopicTracker>,
-) -> Vec<TopicFetchMetrics> {
+pub(crate) fn snapshot_fetch_topics<K>(
+    map: &HashMap<K, FetchTopicTracker>,
+) -> Vec<TopicFetchMetrics>
+where
+    K: AsRef<str>,
+{
     let mut topics: Vec<TopicFetchMetrics> = map
         .iter()
-        .map(|(name, t)| t.snapshot(name.clone()))
+        .map(|(name, t)| t.snapshot(name.as_ref().to_owned()))
         .collect();
     topics.sort_by(|a, b| a.topic.cmp(&b.topic));
     topics
 }
 
-pub(crate) fn accumulate_fetch_topics<'a>(
-    map: &mut HashMap<String, FetchTopicTracker>,
+pub(crate) fn accumulate_fetch_topics<'a, K>(
+    map: &mut HashMap<K, FetchTopicTracker>,
     recs: impl IntoIterator<Item = (&'a str, u64)>,
     latency: Duration,
-) {
+) where
+    K: std::hash::Hash + Eq + std::borrow::Borrow<str> + for<'b> From<&'b str>,
+{
     let mut acc: HashMap<&'a str, (u64, u64)> = HashMap::new();
     for (topic, bytes) in recs {
         let e = acc.entry(topic).or_insert((0, 0));
@@ -741,7 +746,7 @@ pub(crate) fn accumulate_fetch_topics<'a>(
         e.1 = e.1.saturating_add(bytes);
     }
     for (topic, (n, bytes)) in acc {
-        map.entry(topic.to_string())
+        map.entry(K::from(topic))
             .or_insert_with(FetchTopicTracker::new)
             .note_fetched(n, bytes, latency);
     }
@@ -898,7 +903,7 @@ mod tests {
 
     #[test]
     fn fetch_topics_sorted_and_grouped() {
-        let mut map = HashMap::new();
+        let mut map: HashMap<String, FetchTopicTracker> = HashMap::new();
         accumulate_fetch_topics(
             &mut map,
             [("z", 2u64), ("a", 3), ("z", 1)],

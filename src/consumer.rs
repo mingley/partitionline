@@ -1800,12 +1800,12 @@ pub struct Consumer {
     telemetry_version: Option<i16>,
     client_instance_id: Option<[u8; 16]>,
     m_fetch_latency: crate::metrics::LatencyTracker,
-    topic_metrics: HashMap<String, crate::metrics::FetchTopicTracker>,
+    topic_metrics: HashMap<Arc<str>, crate::metrics::FetchTopicTracker>,
     /// Key/value bytes already summed for records currently in `out`, by topic.
     ///
     /// Used when `fetch` returns that vector unchanged, so metrics do not walk
     /// every record again. Cleared when a later filter returns a subset.
-    fetch_return_totals: HashMap<String, (u64, u64)>,
+    fetch_return_totals: HashMap<Arc<str>, (u64, u64)>,
     reconnect_fails: HashMap<i32, u32>,
     /// Leaders whose Fetch was sent and not yet applied. A multi-leader round
     /// returns after [`MULTI_LEADER_COLLECTION_WINDOW`] once any peer has
@@ -3892,10 +3892,13 @@ impl Consumer {
                     let mut bytes = 0u64;
                     for (topic, (n, topic_bytes)) in staged {
                         bytes = bytes.saturating_add(topic_bytes);
-                        self.topic_metrics
-                            .entry(topic)
-                            .or_insert_with(crate::metrics::FetchTopicTracker::new)
-                            .note_fetched(n, topic_bytes, elapsed);
+                        if let Some(tracker) = self.topic_metrics.get_mut(topic.as_ref()) {
+                            tracker.note_fetched(n, topic_bytes, elapsed);
+                        } else {
+                            let tracker = crate::metrics::FetchTopicTracker::new();
+                            tracker.note_fetched(n, topic_bytes, elapsed);
+                            let _ = self.topic_metrics.insert(topic, tracker);
+                        }
                     }
                     bytes
                 } else {
@@ -5473,9 +5476,10 @@ impl Consumer {
                                     totals.0 = totals.0.saturating_add(added_records);
                                     totals.1 = totals.1.saturating_add(added_bytes);
                                 } else {
-                                    let _previous = self
-                                        .fetch_return_totals
-                                        .insert(name.clone(), (added_records, added_bytes));
+                                    let _previous = self.fetch_return_totals.insert(
+                                        Arc::clone(&seen_name),
+                                        (added_records, added_bytes),
+                                    );
                                 }
                             }
                             let batch_next = fetch_end_after(header_end, last_record_off)?;
@@ -5651,7 +5655,7 @@ impl Consumer {
                         } else {
                             let _previous = self
                                 .fetch_return_totals
-                                .insert(name.clone(), (batch_records, batch_bytes));
+                                .insert(Arc::clone(&seen_name), (batch_records, batch_bytes));
                         }
                     }
                     if reached_lso {
