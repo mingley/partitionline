@@ -2253,6 +2253,7 @@ impl ConsumerGroup {
         let mut member_subs: Vec<(String, Vec<String>)> = Vec::with_capacity(members.len());
         let mut owned_claims: Vec<StickyOwnedClaim> = Vec::with_capacity(members.len());
         let mut topic_set = self.topics.clone();
+        let mut seen_topics: HashSet<String> = topic_set.iter().cloned().collect();
         for m in &members {
             let sub = match ConsumerProtocol::deserialize_subscription(&m.metadata) {
                 Ok(s) if !s.topics.is_empty() => s,
@@ -2265,7 +2266,7 @@ impl ConsumerGroup {
                 Err(_) => ConsumerProtocolSubscription::new(self.topics.clone()),
             };
             for t in &sub.topics {
-                if !topic_set.iter().any(|x| x == t) {
+                if seen_topics.insert(t.clone()) {
                     topic_set.push(t.clone());
                 }
             }
@@ -3350,10 +3351,11 @@ pub(crate) fn collect_topics(
     topics: impl IntoIterator<Item = impl Into<String>>,
 ) -> Result<Vec<String>> {
     let mut out = Vec::new();
+    let mut seen = HashSet::new();
     for topic in topics {
         let topic = topic.into();
         Topic::validate(&topic)?;
-        if !out.iter().any(|t| t == &topic) {
+        if seen.insert(topic.clone()) {
             out.push(topic);
         }
     }
@@ -3367,7 +3369,7 @@ pub(crate) fn filter_matching_topics(
     topics: impl IntoIterator<Item = impl AsRef<str>>,
     pred: impl Fn(&str) -> bool,
 ) -> Vec<String> {
-    let mut names = Vec::new();
+    let mut names = HashSet::new();
     for topic in topics {
         let topic = topic.as_ref();
         // Pattern subscription only keeps names this client can assign.
@@ -3376,10 +3378,11 @@ pub(crate) fn filter_matching_topics(
         if topic.is_empty() || topic.starts_with("__") || Topic::validate(topic).is_err() {
             continue;
         }
-        if pred(topic) && !names.iter().any(|n| n == topic) {
-            names.push(topic.to_string());
+        if pred(topic) {
+            let _ = names.insert(topic.to_string());
         }
     }
+    let mut names: Vec<String> = names.into_iter().collect();
     names.sort();
     names
 }
@@ -4690,6 +4693,13 @@ mod tests {
         assert!(committed_starts(&wanted, &fetched, AutoOffsetReset::None).is_err());
         assert!(committed_starts(&wanted, &fetched, AutoOffsetReset::Earliest).is_err());
         assert!(committed_starts(&wanted, &fetched, AutoOffsetReset::Latest).is_err());
+    }
+
+    #[test]
+    fn collect_topics_keeps_the_first_copy() {
+        let topics = collect_topics(["orders", "payments", "orders"]).unwrap();
+        assert_eq!(topics, vec!["orders".to_string(), "payments".to_string()]);
+        assert!(collect_topics(Vec::<String>::new()).is_err());
     }
 
     #[test]
