@@ -34,7 +34,7 @@ use crate::protocol::group::Topic;
 use crate::protocol::offsets::{decode_list_offsets_topics_response, encode_list_offsets_request};
 use crate::protocol::records::{
     split_record_batches, write_java_optional, write_java_optional_bytes,
-    write_java_record_headers, BatchList, EncodedBatch, Header, TimestampType,
+    write_java_record_headers, BatchList, EncodedBatch, Header, SlotList, TimestampType,
 };
 use crate::protocol::sasl;
 
@@ -2078,7 +2078,7 @@ struct FetchBody {
     topics: Vec<FetchedTopic>,
     /// Framed, CRC-checked batches per `[topic][partition]`, decoded only
     /// when applied so batches past the buffer budget are never inflated.
-    batches: Vec<Vec<BatchList>>,
+    batches: SlotList<SlotList<BatchList>>,
     endpoints: Vec<crate::protocol::api::NodeEndpoint>,
 }
 
@@ -5837,15 +5837,14 @@ impl Consumer {
             }
             let (topics, raw, endpoints, _, _, throttle) =
                 decode_fetch_response_raw(&mut bytes, reply.version)?;
-            let batches = raw
-                .into_iter()
-                .map(|partitions| {
-                    partitions
-                        .into_iter()
-                        .map(split_record_batches)
-                        .collect::<Result<Vec<_>>>()
-                })
-                .collect::<Result<Vec<_>>>()?;
+            let mut batches = SlotList::Empty;
+            for partitions in raw {
+                let mut split = SlotList::Empty;
+                for bytes in partitions {
+                    split.push(split_record_batches(bytes)?);
+                }
+                batches.push(split);
+            }
             if reply.version >= 7 {
                 if let Some(session) = session.as_mut() {
                     // Apache treats an empty throttled full response as a
@@ -7220,7 +7219,7 @@ impl Consumer {
         }
         let mut drained = std::mem::replace(&mut self.retained, PartitionMap::new());
         let mut topics = Vec::new();
-        let mut all_batches = Vec::new();
+        let mut all_batches = SlotList::Empty;
         let mut parked = Vec::new();
         for (topic, partitions) in drained.topics.drain() {
             if partitions
@@ -7231,7 +7230,7 @@ impl Consumer {
                 continue;
             }
             let mut parts = Vec::new();
-            let mut topic_batches = Vec::new();
+            let mut topic_batches = SlotList::Empty;
             let mut keep = HashMap::new();
             for (partition, held) in partitions {
                 if self.paused.contains(&topic, partition) {

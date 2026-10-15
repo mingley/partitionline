@@ -8,7 +8,7 @@ use bytes::{Buf, BufMut, Bytes, BytesMut};
 use super::api::MetadataResponse;
 use super::buf;
 use super::epoch::EpochEndOffset;
-use super::records::{self, RecordBatch};
+use super::records::{self, RecordBatch, SlotList};
 use crate::error::{Error, Result};
 
 /// Java `FetchRequest.CONSUMER_REPLICA_ID`. ReplicaId is request-level
@@ -2244,7 +2244,7 @@ pub(crate) fn decode_fetch_response_raw<B: Buf>(
     version: i16,
 ) -> Result<(
     Vec<FetchedTopic>,
-    Vec<Vec<Bytes>>,
+    SlotList<SlotList<Bytes>>,
     Vec<super::api::NodeEndpoint>,
     i16,
     i32,
@@ -2260,12 +2260,12 @@ pub(crate) fn decode_fetch_response_raw<B: Buf>(
     };
     let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut topics = Vec::with_capacity(n);
-    let mut raw_records = Vec::with_capacity(n);
+    let mut raw_records = SlotList::Empty;
     for _ in 0..n {
         let (topic, topic_id) = get_fetch_topic_identity(buf, version, flexible)?;
         let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
         let mut partitions = Vec::with_capacity(pn);
-        let mut raw_partitions = Vec::with_capacity(pn);
+        let mut raw_partitions = SlotList::Empty;
         for _ in 0..pn {
             let partition = buf::get_i32(buf)?;
             let error_code = buf::get_i16(buf)?;

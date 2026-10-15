@@ -2885,6 +2885,97 @@ impl EncodedBatch {
     }
 }
 
+/// A short list that keeps its first item inline.
+pub(crate) enum SlotList<T> {
+    /// The list has no items.
+    Empty,
+    /// The list has one item.
+    One(T),
+    /// The list has more than one item.
+    Many(Vec<T>),
+}
+
+impl<T> SlotList<T> {
+    /// Append one item. The second item moves the list into a vector.
+    pub(crate) fn push(&mut self, item: T) {
+        match std::mem::replace(self, Self::Empty) {
+            Self::Empty => *self = Self::One(item),
+            Self::One(first) => *self = Self::Many(vec![first, item]),
+            Self::Many(mut items) => {
+                items.push(item);
+                *self = Self::Many(items);
+            }
+        }
+    }
+}
+
+impl<T> std::ops::Deref for SlotList<T> {
+    type Target = [T];
+
+    fn deref(&self) -> &Self::Target {
+        match self {
+            Self::Empty => &[],
+            Self::One(item) => std::slice::from_ref(item),
+            Self::Many(items) => items,
+        }
+    }
+}
+
+impl<'a, T> IntoIterator for &'a SlotList<T> {
+    type Item = &'a T;
+    type IntoIter = std::slice::Iter<'a, T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+
+impl<T> IntoIterator for SlotList<T> {
+    type Item = T;
+    type IntoIter = SlotListIntoIter<T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        match self {
+            Self::Empty => SlotListIntoIter {
+                one: None,
+                many: Vec::new().into_iter(),
+            },
+            Self::One(item) => SlotListIntoIter {
+                one: Some(item),
+                many: Vec::new().into_iter(),
+            },
+            Self::Many(items) => SlotListIntoIter {
+                one: None,
+                many: items.into_iter(),
+            },
+        }
+    }
+}
+
+impl<T> FromIterator<T> for SlotList<T> {
+    fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
+        let mut list = Self::Empty;
+        for item in iter {
+            list.push(item);
+        }
+        list
+    }
+}
+
+/// Owned walk of a [`SlotList`].
+pub(crate) struct SlotListIntoIter<T> {
+    one: Option<T>,
+    many: std::vec::IntoIter<T>,
+}
+
+impl<T> Iterator for SlotListIntoIter<T> {
+    type Item = T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.one.take().or_else(|| self.many.next())
+    }
+}
+
 /// Framed batches from one partition.
 ///
 /// No batches and one batch stay inline. Several batches own a vector.
@@ -4177,6 +4268,13 @@ mod tests {
         let split = split_record_batches(two.freeze()).unwrap();
         assert!(matches!(split, BatchList::Many(_)));
         assert_eq!(split.len(), 2);
+        let mut slots = SlotList::Empty;
+        assert!(slots.is_empty());
+        slots.push(1);
+        assert!(matches!(slots, SlotList::One(1)));
+        slots.push(2);
+        assert!(matches!(slots, SlotList::Many(_)));
+        assert_eq!(&*slots, &[1, 2]);
     }
 
     #[test]
