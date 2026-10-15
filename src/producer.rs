@@ -5266,43 +5266,24 @@ impl Worker {
                     }
                 } else {
                     let cluster = self.shared.cluster.lock();
-                    let mut identities = Vec::new();
-                    let mut missing = None;
-                    for (topic, _, pendings) in &groups {
-                        if identities
-                            .iter()
-                            .any(|(name, _): &(Arc<str>, [u8; 16])| name.as_ref() == topic.as_ref())
-                        {
-                            continue;
-                        }
+                    let resolved = groups.iter().map(|(topic, _, pendings)| {
                         let admitted_id = pendings
                             .first()
-                            .and_then(|p| p.sticky)
+                            .and_then(|pending| pending.sticky)
                             .and_then(|tag| tag.identity);
-                        match admitted_id.or_else(|| {
+                        let id = admitted_id.or_else(|| {
                             cluster
                                 .topic_ids
                                 .get(topic.as_ref())
                                 .copied()
                                 .filter(|id| *id != [0; 16])
-                        }) {
-                            Some(id) => {
-                                if identities.iter().any(|(_, previous)| *previous == id) {
-                                    missing = Some(format!("{topic} (ambiguous UUID)"));
-                                    break;
-                                }
-                                identities.push((Arc::clone(topic), id));
-                            }
-                            None => {
-                                missing = Some(topic.to_string());
-                                break;
-                            }
-                        }
-                    }
-                    missing.map_or(Ok(identities), |topic| {
-                        Err(Error::Unsupported(format!(
+                        });
+                        (topic, id)
+                    });
+                    collect_produce_topic_ids(resolved).map_err(|topic| {
+                        Error::Unsupported(format!(
                             "Produce v13 missing nonzero Metadata topic ID for {topic}"
-                        )))
+                        ))
                     })
                 }
             };
@@ -6451,6 +6432,34 @@ fn rollback_sequences(
     }
 }
 
+type ProduceTopicId = (Arc<str>, [u8; 16]);
+
+/// First id for each topic name. A repeated name keeps that first id. A
+/// later topic that reuses an id already kept is an ambiguous UUID. `None`
+/// is a missing id and stops the walk. A provided all-zero id is kept: only
+/// the metadata lookup treats zero as absent.
+fn collect_produce_topic_ids<'a, I>(topics: I) -> std::result::Result<Vec<ProduceTopicId>, String>
+where
+    I: IntoIterator<Item = (&'a Arc<str>, Option<[u8; 16]>)>,
+{
+    let mut identities: Vec<ProduceTopicId> = Vec::new();
+    let mut seen_names: HashSet<&str> = HashSet::new();
+    let mut seen_ids: HashSet<[u8; 16]> = HashSet::new();
+    for (topic, id) in topics {
+        if !seen_names.insert(topic.as_ref()) {
+            continue;
+        }
+        let Some(id) = id else {
+            return Err(topic.to_string());
+        };
+        if !seen_ids.insert(id) {
+            return Err(format!("{topic} (ambiguous UUID)"));
+        }
+        identities.push((Arc::clone(topic), id));
+    }
+    Ok(identities)
+}
+
 /// First topic id for each name. A later copy of the same name is ignored,
 /// including when the first id is all zeros.
 fn index_topic_ids(ids: &[(Arc<str>, [u8; 16])]) -> HashMap<&str, &[u8; 16]> {
@@ -7083,6 +7092,53 @@ mod tests {
             skip_meta_refresh: false,
             retry_after: now,
         }
+    }
+
+    #[test]
+    fn produce_topic_ids_keep_the_first_name_and_reject_a_shared_uuid() {
+        let orders = Arc::<str>::from("orders");
+        let orders_again = Arc::<str>::from("orders");
+        let payments = Arc::<str>::from("payments");
+        let id_a = [1u8; 16];
+        let id_b = [2u8; 16];
+        let kept = collect_produce_topic_ids([
+            (&orders, Some(id_a)),
+            (&orders_again, Some(id_b)),
+            (&payments, Some(id_b)),
+        ]);
+        assert_eq!(kept.as_ref().map(Vec::len), Ok(2));
+        assert_eq!(
+            kept.as_ref()
+                .ok()
+                .and_then(|ids| ids.first())
+                .map(|(topic, id)| (topic.as_ref(), *id)),
+            Some(("orders", id_a))
+        );
+        assert_eq!(
+            kept.as_ref()
+                .ok()
+                .and_then(|ids| ids.get(1))
+                .map(|(topic, id)| (topic.as_ref(), *id)),
+            Some(("payments", id_b))
+        );
+        assert_eq!(
+            collect_produce_topic_ids([(&orders, Some(id_a)), (&payments, Some(id_a))])
+                .as_ref()
+                .map_err(String::as_str),
+            Err("payments (ambiguous UUID)")
+        );
+        assert_eq!(
+            collect_produce_topic_ids([(&payments, None)])
+                .as_ref()
+                .map_err(String::as_str),
+            Err("payments")
+        );
+        assert_eq!(
+            collect_produce_topic_ids([(&orders, Some([0; 16]))])
+                .as_ref()
+                .map(Vec::len),
+            Ok(1)
+        );
     }
 
     #[test]
