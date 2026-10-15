@@ -95,7 +95,8 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   the next ShareFetch target (Java `handleShareFetchSuccess` applies
   CurrentLeader only for fetch `errorCode`). A piggybacked
   `FENCED_LEADER_EPOCH` / `NOT_LEADER_OR_FOLLOWER` /
-  `UNKNOWN_TOPIC_OR_PARTITION` / `UNKNOWN_TOPIC_ID`
+  `UNKNOWN_TOPIC_OR_PARTITION` / `UNKNOWN_TOPIC_ID` /
+  `INCONSISTENT_TOPIC_ID`
   `AcknowledgeErrorCode` with a usable
   CurrentLeader on one partition does not update the next ShareFetch
   target for a sibling whose `AcknowledgeErrorCode` is none.
