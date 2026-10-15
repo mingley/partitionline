@@ -1418,16 +1418,6 @@ impl ShareGroup {
         self.pending_delivery.drain(..count).collect()
     }
 
-    async fn node_share_version(&mut self, node: i32, api: i16) -> Result<i16> {
-        let budget = self
-            .cfg
-            .connect_timeout
-            .saturating_add(self.cfg.request_timeout)
-            .saturating_add(self.cfg.request_timeout);
-        self.node_share_version_until(node, api, Instant::now() + budget)
-            .await
-    }
-
     async fn node_share_version_until(
         &mut self,
         node: i32,
@@ -2135,8 +2125,9 @@ impl ShareGroup {
         self.hb_stop.send(true).unwrap_or(());
         *self.hb_deadline.lock() = None;
         self.hb_interval_ms.store(0, Ordering::SeqCst);
-        let close = self.close_share_session().await;
-        let leave = self.leave_coordinator().await;
+        let deadline = Instant::now() + self.cfg.request_timeout;
+        let close = self.close_share_session(deadline).await;
+        let leave = self.leave_coordinator(deadline).await;
         self.assigned.clear();
         self.topics.clear();
         self.publish_hb_topics();
@@ -2192,7 +2183,8 @@ impl ShareGroup {
         }
         let rejoining = !self.member_id.is_empty();
         if rejoining {
-            self.close_share_session().await?;
+            let deadline = Instant::now() + self.cfg.request_timeout;
+            self.close_share_session(deadline).await?;
             self.assigned.clear();
             self.topic_ids.clear();
             self.share_epochs.clear();
@@ -2520,7 +2512,7 @@ impl ShareGroup {
         first_error.map_or(Ok(()), Err)
     }
 
-    async fn close_share_session(&mut self) -> Result<()> {
+    async fn close_share_session(&mut self, deadline: Instant) -> Result<()> {
         self.abort_inflight_share_fetches();
         let open: Vec<_> = self
             .share_epochs
@@ -2530,7 +2522,14 @@ impl ShareGroup {
             .collect();
         let mut last = Ok(());
         for node in open {
-            let version = match self.node_share_version(node, SHARE_ACKNOWLEDGE).await {
+            if deadline.saturating_duration_since(Instant::now()).is_zero() {
+                last = Err(Error::Timeout);
+                break;
+            }
+            let version = match self
+                .node_share_version_until(node, SHARE_ACKNOWLEDGE, deadline)
+                .await
+            {
                 Ok(version) => version,
                 Err(error) => {
                     last = Err(error);
@@ -2551,14 +2550,13 @@ impl ShareGroup {
                 last = Err(error);
                 continue;
             }
+            let timeout = deadline.saturating_duration_since(Instant::now());
+            if timeout.is_zero() {
+                last = Err(Error::Timeout);
+                break;
+            }
             let code = match self
-                .share_roundtrip(
-                    node,
-                    SHARE_ACKNOWLEDGE,
-                    version,
-                    &request,
-                    self.cfg.request_timeout,
-                )
+                .share_roundtrip(node, SHARE_ACKNOWLEDGE, version, &request, timeout)
                 .await
             {
                 Ok(mut body) => match decode_share_acknowledge_response(&mut body, version) {
@@ -2586,7 +2584,12 @@ impl ShareGroup {
     }
 
     /// Leave the share group ([`ShareGroupHeartbeatRequest::LEAVE_GROUP_MEMBER_EPOCH`]).
-    pub async fn leave(mut self) -> Result<()> {
+    pub async fn leave(self) -> Result<()> {
+        let deadline = Instant::now() + self.cfg.request_timeout;
+        self.leave_within(deadline).await
+    }
+
+    async fn leave_within(mut self, deadline: Instant) -> Result<()> {
         if self.member_id.is_empty() {
             self.hb_stop.send(true).unwrap_or(());
             *self.hb_deadline.lock() = None;
@@ -2595,15 +2598,18 @@ impl ShareGroup {
         }
         self.hb_stop.send(true).unwrap_or(());
         *self.hb_deadline.lock() = None;
-        let close = self.close_share_session().await;
-        let out = self.leave_coordinator().await;
+        let close = self.close_share_session(deadline).await;
+        let out = self.leave_coordinator(deadline).await;
         self.consumer.close_interceptors();
         close.and(out)
     }
 
-    async fn leave_coordinator(&mut self) -> Result<()> {
+    async fn leave_coordinator(&mut self, deadline: Instant) -> Result<()> {
         self.adopt_share_member_id();
-        let timeout = self.cfg.request_timeout;
+        let timeout = deadline.saturating_duration_since(Instant::now());
+        if timeout.is_zero() {
+            return Err(Error::Timeout);
+        }
         let req = ShareGroupHeartbeatRequest {
             group_id: self.group_id.clone(),
             member_id: self.member_id.clone(),
@@ -2641,10 +2647,10 @@ impl ShareGroup {
     /// shorter `timeout` returns [`Error::Timeout`] if leave does not finish
     /// in time.
     pub async fn close_timeout(self, timeout: Duration) -> Result<()> {
-        match tokio::time::timeout(timeout, self.leave()).await {
-            Ok(out) => out,
-            Err(_) => Err(Error::Timeout),
-        }
+        let deadline = Instant::now()
+            .checked_add(timeout)
+            .ok_or_else(|| Error::protocol("close deadline overflow"))?;
+        self.leave_within(deadline).await
     }
 
     fn spawn_heartbeat(&self, mut stop: watch::Receiver<bool>) {
