@@ -1741,7 +1741,9 @@ impl ShareGroup {
     /// A successful ShareAcknowledge that omits a requested partition
     /// completes that partition with `INVALID_RECORD_STATE` (Java
     /// `testShareAcknowledgeInvalidResponse`). Unrequested response
-    /// partitions are skipped (Java `lookupTopicId`).
+    /// partitions are skipped (Java `lookupTopicId`). A non-empty
+    /// partition `ErrorMessage` is preferred over the crate fallback
+    /// (Java `Errors.exception(errorMessage)`).
     pub async fn commit_sync(&mut self) -> Result<AcknowledgementCommitResults> {
         if !self.has_pending_acknowledgements() {
             return Ok(Vec::new());
