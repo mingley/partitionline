@@ -297,14 +297,14 @@ impl EpochLog {
             }
             KIND_TRUNCATE => {
                 let offset = decode_i64(rest)?;
-                if offset < 0 || offset < self.high_watermark || offset > self.log_end_offset() {
+                if offset < 0 || offset < self.high_watermark || offset >= self.log_end_offset() {
                     return Err(Error::InvalidRecord);
                 }
                 self.records.retain(|record| record.offset < offset);
             }
             KIND_WATERMARK => {
                 let offset = decode_i64(rest)?;
-                if offset < self.high_watermark || offset > self.log_end_offset() {
+                if offset <= self.high_watermark || offset > self.log_end_offset() {
                     return Err(Error::InvalidRecord);
                 }
                 self.high_watermark = offset;
@@ -443,6 +443,13 @@ mod tests {
         let encoded = encode_record(&record).unwrap_or_else(|error| panic!("{error:?}"));
         assert!(matches!(log.apply(&encoded), Err(Error::InvalidRecord)));
         assert_eq!(log.log_end_offset(), 0);
+        log.append(1, 7).unwrap_or_else(|error| panic!("{error:?}"));
+        let watermark = encode_watermark(0).unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(log.apply(&watermark), Err(Error::InvalidRecord)));
+        let truncate = encode_truncate(1).unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(log.apply(&truncate), Err(Error::InvalidRecord)));
+        assert_eq!(log.log_end_offset(), 1);
+        assert_eq!(log.high_watermark(), 0);
     }
 
     #[test]

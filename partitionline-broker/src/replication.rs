@@ -339,7 +339,7 @@ impl Log {
             }
             KIND_TRUNCATE => {
                 let offset = decode_truncate(rest)?;
-                if offset < 0 {
+                if offset < 0 || !self.records.iter().any(|record| record.offset >= offset) {
                     return Err(Error::InvalidRecord);
                 }
                 self.records.retain(|record| record.offset < offset);
@@ -491,6 +491,12 @@ mod tests {
         let encoded = encode_record(&record).unwrap_or_else(|error| panic!("{error:?}"));
         assert!(matches!(log.apply(&encoded), Err(Error::InvalidRecord)));
         assert_eq!(log.next_offset(), 0);
+        log.append(1, b"kept")
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let truncate = encode_truncate(1).unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(log.apply(&truncate), Err(Error::InvalidRecord)));
+        assert_eq!(log.next_offset(), 1);
+        assert_eq!(log.records()[0].bytes, b"kept");
     }
 
     #[test]
