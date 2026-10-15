@@ -1023,6 +1023,9 @@ struct Shared {
     connect_task: parking_lot::Mutex<Option<tokio::task::JoinHandle<()>>>,
     retry_task: parking_lot::Mutex<Option<tokio::task::JoinHandle<()>>>,
     last_meta_err: parking_lot::Mutex<Option<Error>>,
+    /// Set when [`Self::last_meta_err`] holds an error. The produce fast path
+    /// loads this before taking the mutex.
+    meta_err_set: AtomicBool,
     nodes: parking_lot::Mutex<HashMap<i32, Vec<Option<WorkerHandle>>>>,
     broker_throttles: parking_lot::Mutex<HashMap<i32, Arc<BrokerThrottle>>>,
     throttle_metrics: crate::metrics::ThrottleTracker,
@@ -1723,6 +1726,7 @@ impl Producer {
             connect_task: parking_lot::Mutex::new(None),
             retry_task: parking_lot::Mutex::new(None),
             last_meta_err: parking_lot::Mutex::new(None),
+            meta_err_set: AtomicBool::new(false),
             nodes: parking_lot::Mutex::new(HashMap::new()),
             broker_throttles: parking_lot::Mutex::new(HashMap::new()),
             throttle_metrics: crate::metrics::ThrottleTracker::default(),
@@ -1763,12 +1767,8 @@ impl Producer {
                     continue;
                 }
                 match partitions_for(&shared, &topic).await {
-                    Ok(_) => {
-                        *shared.last_meta_err.lock() = None;
-                    }
-                    Err(e) => {
-                        *shared.last_meta_err.lock() = Some(clone_err(&e));
-                    }
+                    Ok(_) => publish_meta_err(&shared, None),
+                    Err(e) => publish_meta_err(&shared, Some(clone_err(&e))),
                 }
                 shared.cache_nudge.notify_waiters();
             }
@@ -4165,7 +4165,7 @@ fn finish_slot_connect(
                     *s = Some(handle);
                 }
             }
-            *shared.last_meta_err.lock() = None;
+            publish_meta_err(shared, None);
             shared.cache_nudge.notify_waiters();
         }
         Err(e) => {
@@ -4191,7 +4191,7 @@ fn finish_slot_connect(
                 }));
             } else {
                 let _ = shared.reconnect_busy.lock().remove(&(node, slot));
-                *shared.last_meta_err.lock() = Some(clone_err(&e));
+                publish_meta_err(shared, Some(clone_err(&e)));
                 shared.cache_nudge.notify_waiters();
             }
         }
@@ -6931,7 +6931,17 @@ fn pick_part(rec: &ProduceRecord, np: i32, partitioner: &dyn Partitioner) -> i32
     }
 }
 
+fn publish_meta_err(shared: &Shared, err: Option<Error>) {
+    let mut slot = shared.last_meta_err.lock();
+    let present = err.is_some();
+    *slot = err;
+    shared.meta_err_set.store(present, Ordering::Release);
+}
+
 fn peek_meta_err(shared: &Shared) -> Option<Error> {
+    if !shared.meta_err_set.load(Ordering::Acquire) {
+        return None;
+    }
     shared.last_meta_err.lock().as_ref().map(clone_err)
 }
 
