@@ -6139,6 +6139,19 @@ fn index_produce_groups(
     for parts in &mut scratch.parts {
         parts.clear();
     }
+    // Steady-state batches share one topic allocation, so the name map is unused.
+    if let Some((first, _, _)) = groups.first() {
+        if groups.iter().all(|(topic, _, _)| Arc::ptr_eq(topic, first)) {
+            scratch.topics.push(0);
+            if scratch.parts.is_empty() {
+                scratch.parts.push(Vec::new());
+            }
+            if let Some(parts) = scratch.parts.first_mut() {
+                parts.extend(0..groups.len());
+            }
+            return;
+        }
+    }
     let mut slot_of: HashMap<&str, usize> = HashMap::new();
     for (index, (topic, _, _)) in groups.iter().enumerate() {
         if let Some(&slot) = slot_of.get(topic.as_ref()) {
@@ -6694,6 +6707,38 @@ mod tests {
         );
         assert!(Arc::ptr_eq(&groups[2].0, &payments));
         assert!(buckets.is_empty());
+
+        let mut indexed = ProduceGroupScratch {
+            buckets: ProduceBuckets::default(),
+            topics: Vec::new(),
+            parts: Vec::new(),
+        };
+        index_produce_groups(&groups, &mut indexed);
+        assert_eq!(indexed.topics, vec![0, 2]);
+        assert_eq!(indexed.parts.first().map(Vec::as_slice), Some(&[0, 1][..]));
+        assert_eq!(indexed.parts.get(1).map(Vec::as_slice), Some(&[2][..]));
+
+        let shared = vec![
+            (Arc::clone(&orders), 1, Vec::new()),
+            (Arc::clone(&orders), 0, Vec::new()),
+            (Arc::clone(&orders), 2, Vec::new()),
+        ];
+        index_produce_groups(&shared, &mut indexed);
+        assert_eq!(indexed.topics, vec![0]);
+        assert_eq!(
+            indexed.parts.first().map(Vec::as_slice),
+            Some(&[0, 1, 2][..])
+        );
+
+        let alias = Arc::<str>::from("orders");
+        let aliased = vec![(Arc::clone(&orders), 0, Vec::new()), (alias, 3, Vec::new())];
+        index_produce_groups(&aliased, &mut indexed);
+        assert_eq!(indexed.topics, vec![0]);
+        assert_eq!(indexed.parts.first().map(Vec::as_slice), Some(&[0, 1][..]));
+
+        index_produce_groups(&[], &mut indexed);
+        assert!(indexed.topics.is_empty());
+        assert_eq!(indexed.parts.first().map(Vec::len), Some(0));
 
         let again = group_pending(
             vec![queued("payments", Some(1)), queued("orders", Some(0))],
