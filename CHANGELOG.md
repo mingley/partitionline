@@ -41,6 +41,12 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `TOPIC_AUTHORIZATION_FAILED`; ShareFetch collect uses the partition
   topic, not ErrorMessage).
 
+- `ShareGroup::leave` / `close` still complete after a metadata leader
+  change: leftover acknowledgements whose acquisition node is no longer
+  the Metadata leader finish as `NOT_LEADER_OR_FOLLOWER`, and ACCEPT is
+  sent only for partitions still on that node (`commit()` stays
+  first-error `Err`).
+
 - `ShareGroup::set_acknowledgement_commit_callback` is Java
   `ShareConsumer.setAcknowledgementCommitCallback`
   (`AcknowledgementCommitCallback.onComplete`).
