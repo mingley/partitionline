@@ -3157,7 +3157,7 @@ impl ConsumerGroup {
     }
 }
 
-fn copy_member_id(dest: &mut String, source: &str) {
+pub(crate) fn copy_member_id(dest: &mut String, source: &str) {
     if dest.as_str() != source {
         dest.clear();
         dest.push_str(source);

@@ -3020,6 +3020,14 @@ impl ShareGroup {
                 }
                 d
             };
+            let mut member_id = hb_member_id.lock().clone();
+            let mut heartbeat = ShareGroupHeartbeatRequest {
+                group_id: group_id.clone(),
+                member_id: member_id.clone(),
+                member_epoch: 0,
+                rack_id: cfg.rack.clone(),
+                subscribed_topic_names: None,
+            };
             loop {
                 if *stop.borrow() {
                     break;
@@ -3093,22 +3101,18 @@ impl ShareGroup {
                             if !update_share_heartbeat_deadline(&hb_deadline, &stop, next_hb_deadline) { break; }
                             continue;
                         }
-                        let member_id = hb_member_id.lock().clone();
-                        let req = ShareGroupHeartbeatRequest {
-                            group_id: group_id.clone(),
-                            member_id: member_id.clone(),
-                            member_epoch: epoch,
-                            rack_id: cfg.rack.clone(),
-                            subscribed_topic_names: share_heartbeat_subscription(
-                                epoch,
-                                &hb_topics.lock(),
-                            ),
-                        };
+                        crate::group::copy_member_id(&mut member_id, &hb_member_id.lock());
+                        crate::group::copy_member_id(&mut heartbeat.member_id, &member_id);
+                        heartbeat.member_epoch = epoch;
+                        heartbeat.subscribed_topic_names =
+                            share_heartbeat_subscription(epoch, &hb_topics.lock());
                         let res = c
                             .roundtrip(
                                 SHARE_GROUP_HEARTBEAT,
                                 version,
-                                |buf| encode_share_group_heartbeat_request(buf, version, &req),
+                                |buf| {
+                                    encode_share_group_heartbeat_request(buf, version, &heartbeat)
+                                },
                                 timeout,
                             )
                             .await;
@@ -3127,8 +3131,13 @@ impl ShareGroup {
                                     } else {
                                         hb_err.store(resp.error_code, Ordering::SeqCst);
                                         if let Some(id) = resp.member_id.as_deref() {
-                                            if !id.is_empty() {
-                                                *hb_member_id.lock() = id.to_string();
+                                            if !id.is_empty() && id != member_id {
+                                                crate::group::copy_member_id(&mut member_id, id);
+                                                crate::group::copy_member_id(
+                                                    &mut heartbeat.member_id,
+                                                    id,
+                                                );
+                                                *hb_member_id.lock() = member_id.clone();
                                             }
                                         }
                                         hb_epoch.store(
