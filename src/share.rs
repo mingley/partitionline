@@ -749,9 +749,9 @@ pub enum ShareAcquireMode {
 /// usable CurrentLeader on one partition does not update the next
 /// ShareFetch target for a sibling whose error is none. A
 /// ShareAcknowledge partition `FENCED_LEADER_EPOCH` /
-/// `UNKNOWN_TOPIC_OR_PARTITION` with a usable CurrentLeader plus
-/// NodeEndpoints updates the next ShareFetch target without a
-/// Metadata refresh.
+/// `UNKNOWN_TOPIC_OR_PARTITION` / `UNKNOWN_TOPIC_ID` with a usable
+/// CurrentLeader plus NodeEndpoints updates the next ShareFetch
+/// target without a Metadata refresh.
 /// [`ShareAcquireMode::RecordLimit`] fetches records from one leader
 /// per poll; other leaders send a zero-limit session/ack ShareFetch
 /// (Java `canSkipIfRequestEmpty`). An unrequested ShareFetch topic id
@@ -1812,9 +1812,10 @@ impl ShareGroup {
     /// partition `INCONSISTENT_TOPIC_ID` with a usable CurrentLeader on
     /// one partition does not update the next ShareFetch target for a
     /// sibling whose error is none. A ShareAcknowledge partition
-    /// `FENCED_LEADER_EPOCH` / `UNKNOWN_TOPIC_OR_PARTITION` with a
-    /// usable CurrentLeader plus NodeEndpoints updates the next
-    /// ShareFetch target without a Metadata refresh.
+    /// `FENCED_LEADER_EPOCH` / `UNKNOWN_TOPIC_OR_PARTITION` /
+    /// `UNKNOWN_TOPIC_ID` with a usable CurrentLeader plus
+    /// NodeEndpoints updates the next ShareFetch target without a
+    /// Metadata refresh.
     /// A successful ShareAcknowledge that omits a requested partition
     /// completes that partition with `INVALID_RECORD_STATE` (Java
     /// `testShareAcknowledgeInvalidResponse`). An omitted ShareAcknowledge
