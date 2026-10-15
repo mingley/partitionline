@@ -3859,6 +3859,45 @@ async fn share_fetch_unknown_server_error_skips_without_metadata() {
 }
 
 #[tokio::test]
+async fn share_fetch_unknown_server_error_delivers_sibling() {
+    let mock = common::Mock::start().await;
+    v2(&mock);
+    mock.set_topic_partitions("t", 2);
+    mock.set_partition_leader("t", 0, 1);
+    mock.set_partition_leader("t", 1, 1);
+    produce(&mock, &[(1, b"later")]).await;
+    let mut group = ShareGroup::join(config(&mock), "unk-srv-sib", "t")
+        .await
+        .unwrap();
+    let version = mock.last_share_fetch_version().unwrap_or(2);
+    let failed = ShareFetchedPartition::partition_response(1, error::UNKNOWN_SERVER_ERROR);
+    let topics = vec![ShareFetchedTopic {
+        topic_id: mock.topic_id("t"),
+        partitions: vec![injected_share_success(b"keep"), failed],
+    }];
+    let mut injected = BytesMut::new();
+    encode_share_fetch_response(&mut injected, version, &topics).unwrap();
+    mock.inject_share_fetch_response_once(&injected);
+    let first = group.poll().await.unwrap();
+    assert_eq!(first.len(), 1);
+    assert_eq!(first[0].partition, 0);
+    assert_eq!(first[0].value.as_deref(), Some(&b"keep"[..]));
+    group.accept(&first).await.unwrap();
+    let after_skip = mock.metadata_calls();
+    let second = group.poll().await.unwrap();
+    assert_eq!(second.len(), 1);
+    assert_eq!(second[0].partition, 1);
+    assert_eq!(second[0].value.as_deref(), Some(&b"later"[..]));
+    assert_eq!(
+        mock.metadata_calls(),
+        after_skip,
+        "Java handleInitializeErrors does not request Metadata for sibling UNKNOWN_SERVER_ERROR"
+    );
+    group.accept(&second).await.unwrap();
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn share_fetch_top_level_error_message_reaches_poll() {
     let mock = common::Mock::start().await;
     v2(&mock);
