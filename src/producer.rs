@@ -4435,8 +4435,10 @@ struct Worker {
 #[derive(Default)]
 struct ProduceGroupScratch {
     buckets: HashMap<(Arc<str>, i32), Vec<Pending>>,
+    /// First group index of each topic, in first-seen order.
     topics: Vec<usize>,
-    parts: Vec<usize>,
+    /// Group indexes for each topic, parallel to `topics`.
+    parts: Vec<Vec<usize>>,
 }
 
 struct InFlight {
@@ -6049,6 +6051,34 @@ fn rollback_sequences(
     }
 }
 
+fn index_produce_groups(
+    groups: &[(Arc<str>, i32, Vec<Pending>)],
+    scratch: &mut ProduceGroupScratch,
+) {
+    scratch.topics.clear();
+    for parts in &mut scratch.parts {
+        parts.clear();
+    }
+    let mut slot_of: HashMap<&str, usize> = HashMap::new();
+    for (index, (topic, _, _)) in groups.iter().enumerate() {
+        if let Some(&slot) = slot_of.get(topic.as_ref()) {
+            if let Some(parts) = scratch.parts.get_mut(slot) {
+                parts.push(index);
+            }
+            continue;
+        }
+        let slot = scratch.topics.len();
+        scratch.topics.push(index);
+        if scratch.parts.len() == slot {
+            scratch.parts.push(Vec::new());
+        }
+        if let Some(parts) = scratch.parts.get_mut(slot) {
+            parts.push(index);
+        }
+        let _ = slot_of.insert(topic.as_ref(), slot);
+    }
+}
+
 #[expect(
     clippy::too_many_arguments,
     reason = "produce body needs pid, epoch, seq, and batch knobs together"
@@ -6084,17 +6114,7 @@ fn encode_produce_body(
     }
     buf.put_i16(acks);
     buf.put_i32(timeout_ms);
-    groups_scratch.topics.clear();
-    for (index, (topic, _, _)) in groups.iter().enumerate() {
-        let seen = groups_scratch.topics.iter().any(|prev| {
-            groups
-                .get(*prev)
-                .is_some_and(|(name, _, _)| name.as_ref() == topic.as_ref())
-        });
-        if !seen {
-            groups_scratch.topics.push(index);
-        }
-    }
+    index_produce_groups(groups, groups_scratch);
     crate::protocol::buf::put_array_len(buf, flexible, Some(groups_scratch.topics.len()))?;
     let topic_count = groups_scratch.topics.len();
     for topic_slot in 0..topic_count {
@@ -6117,16 +6137,19 @@ fn encode_produce_body(
         } else {
             crate::protocol::buf::put_string(buf, flexible, Some(topic.as_ref()))?;
         }
-        groups_scratch.parts.clear();
-        for (index, (name, _, _)) in groups.iter().enumerate() {
-            if name.as_ref() == topic.as_ref() {
-                groups_scratch.parts.push(index);
-            }
-        }
-        crate::protocol::buf::put_array_len(buf, flexible, Some(groups_scratch.parts.len()))?;
-        let part_count = groups_scratch.parts.len();
+        let part_count = groups_scratch
+            .parts
+            .get(topic_slot)
+            .map(Vec::len)
+            .unwrap_or(0);
+        crate::protocol::buf::put_array_len(buf, flexible, Some(part_count))?;
         for part_slot in 0..part_count {
-            let Some(i) = groups_scratch.parts.get(part_slot).copied() else {
+            let Some(i) = groups_scratch
+                .parts
+                .get(topic_slot)
+                .and_then(|parts| parts.get(part_slot))
+                .copied()
+            else {
                 continue;
             };
             let Some((_, partition, pendings)) = groups.get(i) else {
