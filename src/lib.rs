@@ -2095,7 +2095,9 @@
 //! `testCommitAsyncWithSubscriptionChange`).
 //! [`ShareGroup::leave`] / [`ShareGroup::close`] flush those leftover
 //! acks without sending another ShareFetch (Java
-//! `testCloseWithSubscriptionChange`).
+//! `testCloseWithSubscriptionChange`). Close after a multi-leader poll
+//! sends one ShareAcknowledge to each fetch node (Java
+//! `testShareFetchAndCloseMultipleNodes`).
 //! [`ShareGroup::commit`] / [`ShareGroup::commit_timeout`] flush
 //! pending acknowledgements (`Result<()>`). [`ShareGroup::commit_async`]
 //! is Java `ShareConsumer.commitAsync` (implicit last-poll ACCEPT is

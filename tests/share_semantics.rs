@@ -553,6 +553,53 @@ async fn share_close_after_subscription_change_sends_old_acks_without_fetch() {
 }
 
 #[tokio::test]
+async fn share_close_sends_acks_to_each_partition_leader() {
+    let mock = common::Mock::start_two_node().await;
+    v2(&mock);
+    mock.set_topic_partitions("t", 2);
+    mock.set_partition_leader("t", 0, 1);
+    mock.set_partition_leader("t", 1, 2);
+    produce(&mock, &[(0, b"left"), (1, b"right")]).await;
+    let mut group = ShareGroup::join(config(&mock), "close-nodes", "t")
+        .await
+        .unwrap();
+    let acquired = group.poll().await.unwrap();
+    assert_eq!(acquired.len(), 2);
+    let fetches = mock.share_fetch_calls();
+    let acks = mock.share_ack_calls();
+    let history_before = mock.share_ack_history();
+    group.accept(&acquired).await.unwrap();
+    group.leave().await.unwrap();
+    assert!(
+        mock.share_accepted("close-nodes", "t", 0, 0),
+        "Java testShareFetchAndCloseMultipleNodes acknowledges the first leader"
+    );
+    assert!(
+        mock.share_accepted("close-nodes", "t", 1, 0),
+        "Java testShareFetchAndCloseMultipleNodes acknowledges the second leader"
+    );
+    assert!(
+        mock.share_ack_calls() >= acks + 2,
+        "Java testShareFetchAndCloseMultipleNodes sends ShareAcknowledge to each leader"
+    );
+    let extra: Vec<(i32, i32)> = mock
+        .share_ack_history()
+        .into_iter()
+        .skip(history_before.len())
+        .collect();
+    assert!(
+        extra.iter().any(|(node, epoch)| *node == 1 && *epoch >= 0)
+            && extra.iter().any(|(node, epoch)| *node == 2 && *epoch >= 0),
+        "leftover close acks must land on both leaders before FINAL, got {extra:?}"
+    );
+    assert_eq!(
+        mock.share_fetch_calls(),
+        fetches,
+        "Java close must not send another ShareFetch"
+    );
+}
+
+#[tokio::test]
 async fn share_fetch_subscription_change_sends_old_acks_to_previous_leader() {
     let mock = common::Mock::start_two_node().await;
     v2(&mock);

@@ -3850,7 +3850,10 @@ impl ShareGroup {
     /// never committed are released without ACCEPT (Java `close`).
     /// Leftover acknowledgements for a previous topic still flush after
     /// [`Self::subscribe`] and no further ShareFetch is sent
-    /// (Java `testCloseWithSubscriptionChange`).
+    /// (Java `testCloseWithSubscriptionChange`). When the last poll
+    /// acquired partitions on more than one leader, close sends one
+    /// ShareAcknowledge to each of those nodes (Java
+    /// `testShareFetchAndCloseMultipleNodes`).
     pub async fn leave(mut self) -> Result<()> {
         if self.member_id.is_empty() {
             self.hb_stop.send(true).unwrap_or(());
