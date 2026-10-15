@@ -358,7 +358,7 @@ impl Store {
         id: TopicId,
         index: i32,
         bytes: &mut [u8],
-    ) -> Result<(partition::Stage, Option<i64>), i16> {
+    ) -> Result<(partition::Stage, Option<i64>, usize), i16> {
         self.stage_in_place_inner(id, index, bytes, false)
     }
     fn stage_in_place_grouped(
@@ -366,7 +366,7 @@ impl Store {
         id: TopicId,
         index: i32,
         bytes: &mut [u8],
-    ) -> Result<(partition::Stage, Option<i64>), i16> {
+    ) -> Result<(partition::Stage, Option<i64>, usize), i16> {
         self.stage_in_place_inner(id, index, bytes, true)
     }
     fn stage_in_place_inner(
@@ -375,7 +375,7 @@ impl Store {
         index: i32,
         bytes: &mut [u8],
         grouped: bool,
-    ) -> Result<(partition::Stage, Option<i64>), i16> {
+    ) -> Result<(partition::Stage, Option<i64>, usize), i16> {
         let position = self.slot(id, index)?;
         let partition = &mut self.slots[position].partition;
         let poisoned = partition.is_poisoned();
@@ -387,30 +387,55 @@ impl Store {
         self.changed |= result.is_ok() || poisoned != partition.is_poisoned();
         let staged = result.map_err(storage_error)?;
         let log_start = (!partition.is_poisoned()).then(|| partition.log_start_offset());
-        Ok((staged, log_start))
+        Ok((staged, log_start, position))
+    }
+    fn staged_position(&mut self, position: usize, id: TopicId, index: i32) -> Result<usize, i16> {
+        if self
+            .slots
+            .get(position)
+            .is_some_and(|slot| slot.id == id && slot.index == index)
+        {
+            Ok(position)
+        } else {
+            self.slot(id, index)
+        }
     }
     fn commit_staged(
         &mut self,
+        position: usize,
         id: TopicId,
         index: i32,
         batch_count: usize,
     ) -> Result<partition::Append, i16> {
-        let position = self.slot(id, index)?;
-        let partition = &mut self.slots[position].partition;
-        let result = partition.commit_staged(batch_count);
+        let position = self.staged_position(position, id, index)?;
+        let Some(slot) = self.slots.get_mut(position) else {
+            return Err(56);
+        };
+        let result = slot.partition.commit_staged(batch_count);
         self.changed = true;
         result.map_err(storage_error)
     }
-    fn unstage_last(&mut self, id: TopicId, index: i32) -> Result<(), i16> {
-        let position = self.slot(id, index)?;
-        let partition = &mut self.slots[position].partition;
-        let poisoned = partition.is_poisoned();
-        let result = partition.unstage_last();
-        self.changed |= result.is_err() || poisoned != partition.is_poisoned();
+    fn unstage_last(&mut self, position: usize, id: TopicId, index: i32) -> Result<(), i16> {
+        let position = self.staged_position(position, id, index)?;
+        let Some(slot) = self.slots.get_mut(position) else {
+            return Err(56);
+        };
+        let poisoned = slot.partition.is_poisoned();
+        let result = slot.partition.unstage_last();
+        self.changed |= result.is_err() || poisoned != slot.partition.is_poisoned();
         result.map_err(storage_error)
     }
-    fn abort_staged(&mut self, id: TopicId, index: i32) {
-        let Some(position) = self.located.get(&(id, index)).copied() else {
+    fn abort_staged(&mut self, position: usize, id: TopicId, index: i32) {
+        let position = if self
+            .slots
+            .get(position)
+            .is_some_and(|slot| slot.id == id && slot.index == index)
+        {
+            Some(position)
+        } else {
+            self.located.get(&(id, index)).copied()
+        };
+        let Some(position) = position else {
             return;
         };
         if let Some(slot) = self.slots.get_mut(position) {
@@ -1060,6 +1085,8 @@ struct PendingSync {
     /// Log start read while the partition was staged. `None` means the log
     /// was poisoned and the append must not be acknowledged.
     log_start: Option<i64>,
+    /// Open-log slot captured with the staged append.
+    position: usize,
 }
 fn note_append(part: &mut ResultPart, result: partition::Append, log_start: Option<i64>) {
     // The request timer is checked before mutation. A finished single-node
@@ -1261,16 +1288,16 @@ fn finish_captured(
             .get_mut(sync.topic_at)
             .and_then(|topic| topic.parts.get_mut(sync.part_at))
         else {
-            store.abort_staged(sync.id, sync.index);
+            store.abort_staged(sync.position, sync.id, sync.index);
             continue;
         };
         if sync.failed {
-            store.abort_staged(sync.id, sync.index);
+            store.abort_staged(sync.position, sync.id, sync.index);
             part.error = 56;
             part.base = -1;
             continue;
         }
-        match store.commit_staged(sync.id, sync.index, sync.batch_count) {
+        match store.commit_staged(sync.position, sync.id, sync.index, sync.batch_count) {
             Ok(result) => note_append(part, result, sync.log_start),
             Err(error) => {
                 part.error = error;
@@ -1524,11 +1551,11 @@ fn process_inner(
                         Err(87)
                     };
                     match staged {
-                        Ok((partition::Stage::Done(result), log_start)) => {
+                        Ok((partition::Stage::Done(result), log_start, _)) => {
                             note_append(part, result, log_start);
                         }
-                        Ok((partition::Stage::Sync(staged), log_start)) => {
-                            pending_sync.push(PendingSync {
+                        Ok((partition::Stage::Sync(staged), log_start, position)) => pending_sync
+                            .push(PendingSync {
                                 topic_at,
                                 part_at,
                                 id,
@@ -1537,8 +1564,8 @@ fn process_inner(
                                 batch_count: staged.batch_count,
                                 failed: false,
                                 log_start,
-                            })
-                        }
+                                position,
+                            }),
                         Err(error) => part.error = error,
                     }
                 } else {
@@ -1564,16 +1591,16 @@ fn process_inner(
             .get_mut(item.topic_at)
             .and_then(|topic| topic.parts.get_mut(item.part_at))
         else {
-            store.abort_staged(item.id, item.index);
+            store.abort_staged(item.position, item.id, item.index);
             continue;
         };
         if item.failed {
-            store.abort_staged(item.id, item.index);
+            store.abort_staged(item.position, item.id, item.index);
             part.error = 56;
             part.base = -1;
             continue;
         }
-        match store.commit_staged(item.id, item.index, item.batch_count) {
+        match store.commit_staged(item.position, item.id, item.index, item.batch_count) {
             Ok(result) => note_append(part, result, item.log_start),
             Err(error) => {
                 part.error = error;
@@ -1656,8 +1683,11 @@ fn write_produce_response(
 
 fn rollback_pending(store: &mut Store, pending: &mut Vec<PendingSync>) {
     while let Some(sync) = pending.pop() {
-        if store.unstage_last(sync.id, sync.index).is_err() {
-            store.abort_staged(sync.id, sync.index);
+        if store
+            .unstage_last(sync.position, sync.id, sync.index)
+            .is_err()
+        {
+            store.abort_staged(sync.position, sync.id, sync.index);
         }
     }
 }
