@@ -1531,8 +1531,8 @@ impl ShareGroup {
     /// `UNKNOWN_LEADER_EPOCH` skips without Metadata; partition
     /// `INCONSISTENT_TOPIC_ID` / `UNKNOWN_TOPIC_OR_PARTITION` /
     /// `UNKNOWN_TOPIC_ID` / `REPLICA_NOT_AVAILABLE` /
-    /// `OFFSET_NOT_AVAILABLE` skip and request Metadata; siblings still
-    /// deliver (Java `handleInitializeErrors`).
+    /// `OFFSET_NOT_AVAILABLE` / `KAFKA_STORAGE_ERROR` skip and request
+    /// Metadata; siblings still deliver (Java `handleInitializeErrors`).
     /// Top-level `UNKNOWN_TOPIC_ID` still fails that poll. A sole
     /// partition `NOT_LEADER_OR_FOLLOWER` collects empty (Java
     /// `testFetchError`). A ShareFetch topic id that is
