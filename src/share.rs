@@ -1764,34 +1764,6 @@ impl ShareGroup {
         }
     }
 
-    async fn share_roundtrip(
-        &mut self,
-        node: i32,
-        api: i16,
-        version: i16,
-        body: &BytesMut,
-        timeout: Duration,
-    ) -> Result<Bytes> {
-        if timeout.is_zero() {
-            return Err(Error::Timeout);
-        }
-        let peer = self
-            .share_conns
-            .get_mut(&node)
-            .ok_or_else(|| Error::protocol("missing share connection"))?;
-        peer.conn
-            .roundtrip(
-                api,
-                version,
-                |buf| {
-                    buf.extend_from_slice(body);
-                    Ok(())
-                },
-                timeout,
-            )
-            .await
-    }
-
     fn session_epoch(&self, node: i32) -> i32 {
         self.share_epochs
             .get(&node)
@@ -2651,23 +2623,42 @@ impl ShareGroup {
                     }),
                 }
             }
-            let mut request = BytesMut::new();
-            encode_share_acknowledge_topics(
-                &mut request,
-                version,
-                &self.group_id,
-                &self.member_id,
-                epoch,
-                &topics,
-            )?;
             let timeout = deadline.saturating_duration_since(Instant::now());
             if timeout.is_zero() {
                 return Err(Error::Timeout);
             }
-            let mut body = match self
-                .share_roundtrip(node, SHARE_ACKNOWLEDGE, version, &request, timeout)
-                .await
-            {
+            let Some(mut peer) = self.share_conns.remove(&node) else {
+                self.reset_node_session(node);
+                return Err(Error::protocol("missing share connection"));
+            };
+            let mut encode_failed = false;
+            let sent = peer
+                .conn
+                .roundtrip(
+                    SHARE_ACKNOWLEDGE,
+                    version,
+                    |buf| {
+                        encode_share_acknowledge_topics(
+                            buf,
+                            version,
+                            &self.group_id,
+                            &self.member_id,
+                            epoch,
+                            &topics,
+                        )
+                        .inspect_err(|_| encode_failed = true)
+                    },
+                    timeout,
+                )
+                .await;
+            let _ = self.share_conns.insert(node, peer);
+            if encode_failed {
+                return match sent {
+                    Err(error) => Err(error),
+                    Ok(_) => Err(Error::protocol("share acknowledge encode")),
+                };
+            }
+            let mut body = match sent {
                 Ok(body) => body,
                 Err(error) => {
                     self.reset_node_session(node);
@@ -2858,29 +2849,45 @@ impl ShareGroup {
                     continue;
                 }
             };
-            let mut request = BytesMut::new();
-            let encoded = encode_share_acknowledge_request(
-                &mut request,
-                version,
-                &self.group_id,
-                &self.member_id,
-                ShareRequestMetadata::FINAL_EPOCH,
-                [0; 16],
-                &[],
-            );
-            if let Err(error) = encoded {
-                last = Err(error);
-                continue;
-            }
             let timeout = deadline.saturating_duration_since(Instant::now());
             if timeout.is_zero() {
                 last = Err(Error::Timeout);
                 break;
             }
-            let code = match self
-                .share_roundtrip(node, SHARE_ACKNOWLEDGE, version, &request, timeout)
-                .await
-            {
+            let Some(mut peer) = self.share_conns.remove(&node) else {
+                last = Err(Error::protocol("missing share connection"));
+                continue;
+            };
+            let mut encode_failed = false;
+            let sent = peer
+                .conn
+                .roundtrip(
+                    SHARE_ACKNOWLEDGE,
+                    version,
+                    |buf| {
+                        encode_share_acknowledge_request(
+                            buf,
+                            version,
+                            &self.group_id,
+                            &self.member_id,
+                            ShareRequestMetadata::FINAL_EPOCH,
+                            [0; 16],
+                            &[],
+                        )
+                        .inspect_err(|_| encode_failed = true)
+                    },
+                    timeout,
+                )
+                .await;
+            let _ = self.share_conns.insert(node, peer);
+            if encode_failed {
+                last = match sent {
+                    Err(error) => Err(error),
+                    Ok(_) => Err(Error::protocol("share acknowledge encode")),
+                };
+                continue;
+            }
+            let code = match sent {
                 Ok(mut body) => match decode_share_acknowledge_response(&mut body, version) {
                     Ok(code) if body.is_empty() => code,
                     Ok(_) => {
