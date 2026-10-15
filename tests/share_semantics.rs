@@ -1795,6 +1795,72 @@ async fn share_fetch_current_leader_overrides_cached_metadata() {
 }
 
 #[tokio::test]
+async fn share_acknowledge_current_leader_overrides_cached_metadata() {
+    let mock = common::Mock::start_two_node().await;
+    v2(&mock);
+    mock.set_topic_partitions("t", 2);
+    mock.set_partition_leader("t", 0, 1);
+    mock.set_partition_leader("t", 1, 2);
+    produce(&mock, &[(0, b"moved"), (1, b"stay")]).await;
+    let mut group = ShareGroup::join(config(&mock), "ack-cur-leader", "t")
+        .await
+        .unwrap();
+    let acquired = group.poll().await.unwrap();
+    assert_eq!(acquired.len(), 2);
+    let mut fetch_nodes: Vec<i32> = mock
+        .share_fetch_history()
+        .into_iter()
+        .map(|(node, _)| node)
+        .collect();
+    fetch_nodes.sort_unstable();
+    fetch_nodes.dedup();
+    assert_eq!(fetch_nodes, vec![1, 2], "both leaders must be cached");
+    mock.set_partition_leader("t", 0, 2);
+    let after_fetch = mock.metadata_calls();
+    group.accept(&acquired).await.unwrap();
+    let results = group.commit_sync().await.unwrap();
+    let by_part: Vec<(i32, Option<i16>)> = results
+        .iter()
+        .map(|(tp, error)| (tp.partition(), error.as_ref().and_then(|e| e.code())))
+        .collect();
+    assert!(
+        by_part.contains(&(1, None)),
+        "unmoved partition still acknowledges: {by_part:?}"
+    );
+    assert!(
+        by_part.contains(&(0, Some(error::NOT_LEADER_OR_FOLLOWER))),
+        "stale-metadata ShareAcknowledge is NOT_LEADER: {by_part:?}"
+    );
+    assert_eq!(
+        mock.metadata_calls(),
+        after_fetch,
+        "ShareAcknowledge CurrentLeader must not request Metadata"
+    );
+    let moved = group.poll().await.unwrap();
+    assert_eq!(moved.len(), 1);
+    assert_eq!(
+        (
+            moved[0].partition,
+            moved[0].offset,
+            moved[0].value.as_deref()
+        ),
+        (0, 0, Some(&b"moved"[..]))
+    );
+    assert_eq!(
+        mock.last_share_fetch_node(),
+        Some(2),
+        "ack CurrentLeader must fetch the hinted leader"
+    );
+    assert_eq!(
+        mock.metadata_calls(),
+        after_fetch,
+        "usable ShareAcknowledge CurrentLeader must skip Metadata"
+    );
+    group.accept(&moved).await.unwrap();
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn share_fetch_partition_error_message_reaches_poll() {
     let mock = common::Mock::start().await;
     v2(&mock);

@@ -695,7 +695,12 @@ pub enum ShareAcquireMode {
 /// `isLeaderKnownToHaveChanged` /
 /// `testLeadershipChangeAfterFetchBeforeCommitSync`). Acquisition
 /// locks are released on the previous broker; those acknowledgements
-/// are not sent to the new leader.
+/// are not sent to the new leader. A ShareAcknowledge partition
+/// `NOT_LEADER_OR_FOLLOWER` / `FENCED_LEADER_EPOCH` /
+/// `UNKNOWN_TOPIC_OR_PARTITION` / `UNKNOWN_TOPIC_ID` with a usable
+/// CurrentLeader (`leaderId != -1 && leaderEpoch != -1`) plus
+/// NodeEndpoints updates the next ShareFetch target (Java
+/// `updateLeaderInfoMap` / KIP-951).
 /// [`ShareAcquireMode::RecordLimit`] fetches records from one leader
 /// per poll; other leaders send a zero-limit session/ack ShareFetch
 /// (Java `canSkipIfRequestEmpty`). An unrequested ShareFetch topic id
@@ -1762,19 +1767,8 @@ impl ShareGroup {
             // Cancelled or failed roundtrips instead invalidate ambiguous locks.
             let _ = self.share_conns.remove(&node);
         }
-        if let std::collections::hash_map::Entry::Vacant(entry) = self.share_conns.entry(node) {
-            let addr = self
-                .assigned
-                .iter()
-                .find_map(|(topic, part)| {
-                    self.consumer
-                        .leader_of(topic, *part)
-                        .ok()
-                        .filter(|(id, _)| *id == node)
-                        .map(|(_, addr)| addr)
-                })
-                .or_else(|| self.share_addresses.get(&node).cloned())
-                .ok_or_else(|| Error::protocol(format!("unknown share broker {node}")))?;
+        if !self.share_conns.contains_key(&node) {
+            let addr = self.share_broker_addr(node).await?;
             let mut conn = BrokerConn::connect_tls(
                 &addr,
                 &self.cfg.client_id,
@@ -1821,11 +1815,14 @@ impl ShareGroup {
             // share_roundtrip is BrokerConn::roundtrip, so session lifetimes
             // are honored before Fetch/Acknowledge (KL06-12).
             let _ = self.share_addresses.insert(node, addr);
-            let _ = entry.insert(ShareNodeConnection {
-                conn,
-                fetch_version,
-                acknowledge_version,
-            });
+            let _ = self.share_conns.insert(
+                node,
+                ShareNodeConnection {
+                    conn,
+                    fetch_version,
+                    acknowledge_version,
+                },
+            );
         }
         let peer = self
             .share_conns
@@ -1929,6 +1926,37 @@ impl ShareGroup {
                 format!("{}:{}", endpoint.host, endpoint.port),
             );
         }
+    }
+
+    fn lookup_share_broker_addr(&self, node: i32) -> Option<String> {
+        self.assigned
+            .iter()
+            .find_map(|(topic, part)| {
+                self.consumer
+                    .leader_of(topic, *part)
+                    .ok()
+                    .filter(|(id, _)| *id == node)
+                    .map(|(_, addr)| addr)
+            })
+            .or_else(|| self.share_addresses.get(&node).cloned())
+    }
+
+    /// Resolve a share broker address. A KIP-951 CurrentLeader may name a
+    /// node we have not fetched from; refresh Metadata without dropping
+    /// overrides so `leader_of` can supply the cached cluster address
+    /// (Java `updatePartitionLeadership` uses brokers already in the
+    /// cluster snapshot).
+    async fn share_broker_addr(&mut self, node: i32) -> Result<String> {
+        if let Some(addr) = self.lookup_share_broker_addr(node) {
+            return Ok(addr);
+        }
+        let topics = self.topics.clone();
+        for topic in &topics {
+            self.consumer.invalidate_topic(topic);
+        }
+        self.consumer.refresh_topics(&topics).await?;
+        self.lookup_share_broker_addr(node)
+            .ok_or_else(|| Error::protocol(format!("unknown share broker {node}")))
     }
 
     /// Java `handleShareFetchSuccess`: apply CurrentLeader when the
@@ -3402,7 +3430,7 @@ impl ShareGroup {
                     return Err(error);
                 }
             };
-            let (code, responses, _, _, error_message, lock_timeout) =
+            let (code, responses, endpoints, _, error_message, lock_timeout) =
                 match decode_share_acknowledge_topics_response_with_lock_timeout(&mut body, version)
                 {
                     Ok(reply) => reply,
@@ -3415,6 +3443,7 @@ impl ShareGroup {
                 self.reset_node_session(node);
                 return Err(Error::protocol("trailing ShareAcknowledge response bytes"));
             }
+            self.remember_share_endpoints(&endpoints);
             if code != 0 {
                 let error = share_partition_broker_error(
                     code,
@@ -3514,6 +3543,18 @@ impl ShareGroup {
                         }
                         partitions.retain(|(t, p, _)| t != &name || *p != part.partition);
                     } else {
+                        if share_ack_current_leader_usable(part.error_code) {
+                            // Java updateLeaderInfoMap: apply CurrentLeader
+                            // for NOT_LEADER / FENCED / UNKNOWN_TOPIC_OR_PARTITION
+                            // / UNKNOWN_TOPIC_ID when leaderId and leaderEpoch
+                            // are both set.
+                            let _ = self.apply_share_current_leader(
+                                &name,
+                                part.partition,
+                                part.current_leader_id,
+                                part.current_leader_epoch,
+                            );
+                        }
                         if part.error_code == error::INVALID_RECORD_STATE
                             || share_ack_ownership_lost(part.error_code)
                         {
@@ -4068,6 +4109,18 @@ fn share_fetch_current_leader_usable(code: i16) -> bool {
     )
 }
 
+/// Java `handlePartitionError` / `updateLeaderInfoMap` applies
+/// CurrentLeader for these ShareAcknowledge partition codes.
+fn share_ack_current_leader_usable(code: i16) -> bool {
+    matches!(
+        code,
+        error::NOT_LEADER_OR_FOLLOWER
+            | error::FENCED_LEADER_EPOCH
+            | error::UNKNOWN_TOPIC_OR_PARTITION
+            | error::UNKNOWN_TOPIC_ID
+    )
+}
+
 fn share_ack_retriable(error: &Error) -> bool {
     error.broker_code().is_some_and(|code| {
         !share_ack_ownership_lost(code)
@@ -4371,6 +4424,20 @@ mod tests {
         ));
         assert!(!share_fetch_current_leader_usable(
             error::REPLICA_NOT_AVAILABLE
+        ));
+        assert!(share_ack_current_leader_usable(
+            error::NOT_LEADER_OR_FOLLOWER
+        ));
+        assert!(share_ack_current_leader_usable(error::FENCED_LEADER_EPOCH));
+        assert!(share_ack_current_leader_usable(
+            error::UNKNOWN_TOPIC_OR_PARTITION
+        ));
+        assert!(share_ack_current_leader_usable(error::UNKNOWN_TOPIC_ID));
+        assert!(!share_ack_current_leader_usable(
+            error::UNKNOWN_LEADER_EPOCH
+        ));
+        assert!(!share_ack_current_leader_usable(
+            error::UNKNOWN_SERVER_ERROR
         ));
     }
 
