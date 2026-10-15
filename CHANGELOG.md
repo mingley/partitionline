@@ -93,7 +93,10 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `UNKNOWN_TOPIC_ID` / `INCONSISTENT_TOPIC_ID`
   `AcknowledgeErrorCode` with a usable CurrentLeader does not update
   the next ShareFetch target (Java `handleShareFetchSuccess` applies
-  CurrentLeader only for fetch `errorCode`).
+  CurrentLeader only for fetch `errorCode`). A piggybacked
+  `FENCED_LEADER_EPOCH` `AcknowledgeErrorCode` with a usable
+  CurrentLeader on one partition does not update the next ShareFetch
+  target for a sibling whose `AcknowledgeErrorCode` is none.
   ShareAcknowledge top-level `SHARE_SESSION_LIMIT_REACHED` completes
   without retry and advances the share session epoch (Java
   `handleResponse` `nextEpoch`), including when `ErrorMessage` is

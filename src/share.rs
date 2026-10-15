@@ -758,7 +758,10 @@ pub enum ShareAcquireMode {
 /// `AcknowledgeErrorCode` with a usable
 /// CurrentLeader does not update the next ShareFetch target (Java
 /// `handleShareFetchSuccess` applies CurrentLeader only for fetch
-/// `errorCode`). A partition-level
+/// `errorCode`). A piggybacked `FENCED_LEADER_EPOCH`
+/// `AcknowledgeErrorCode` with a usable CurrentLeader on one
+/// partition does not update the next ShareFetch target for a sibling
+/// whose `AcknowledgeErrorCode` is none. A partition-level
 /// ShareFetch error does not discard sibling partitions in the same
 /// response (Java `testMultipleTopicsFetch` / `testMultipleTopicsFetchError` /
 /// `ShareFetchCollector.collect`). Partition `NOT_LEADER_OR_FOLLOWER`
