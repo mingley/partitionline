@@ -3533,9 +3533,10 @@ pub(crate) async fn discover_coord(
     group_id: &str,
     key_type: i8,
 ) -> Result<BrokerConn> {
-    discover_coord_with_versions(cfg, group_id, key_type)
-        .await
-        .map(|(conn, _)| conn)
+    let deadline = Instant::now()
+        .checked_add(cfg.request_timeout)
+        .ok_or(Error::Timeout)?;
+    discover_coord_within(cfg, group_id, key_type, deadline).await
 }
 
 /// Find a coordinator using only the time still left on `deadline`.
@@ -3545,45 +3546,31 @@ pub(crate) async fn discover_coord_within(
     key_type: i8,
     deadline: Instant,
 ) -> Result<BrokerConn> {
-    let remaining = deadline.saturating_duration_since(Instant::now());
-    if remaining.is_zero() {
-        return Err(Error::Timeout);
-    }
-    let mut bounded = cfg.clone();
-    bounded.request_timeout = remaining;
-    bounded.connect_timeout = cfg.connect_timeout.min(remaining);
-    discover_coord(&bounded, group_id, key_type).await
+    discover_coord_with_versions(cfg, group_id, key_type, deadline)
+        .await
+        .map(|(conn, _)| conn)
 }
 
 async fn discover_coord_with_versions(
     cfg: &ConsumerConfig,
     group_id: &str,
     key_type: i8,
+    deadline: Instant,
 ) -> Result<(BrokerConn, crate::protocol::api::ApiVersionsResponse)> {
     if cfg.bootstrap.len() > 16 || group_id.len() > i16::MAX as usize {
         return Err(Error::protocol(
             "bootstrap/group key exceeds discovery limit",
         ));
     }
-    let deadline = Instant::now() + cfg.request_timeout;
     let mut attempt = 0u32;
     loop {
         if attempt >= 8 {
             return Err(Error::protocol("coordinator discovery retry limit"));
         }
-        let remaining = deadline.saturating_duration_since(Instant::now());
-        if remaining.is_zero() {
+        if Instant::now() >= deadline {
             return Err(Error::Timeout);
         }
-        let mut attempt_cfg = cfg.clone();
-        attempt_cfg.request_timeout = remaining;
-        attempt_cfg.connect_timeout = cfg.connect_timeout.min(remaining);
-        let result = tokio::time::timeout_at(
-            deadline.into(),
-            discover_coord_once(&attempt_cfg, group_id, key_type),
-        )
-        .await
-        .map_err(|_| Error::Timeout)?;
+        let result = discover_coord_once(cfg, group_id, key_type, deadline).await;
         match result {
             Err(error)
                 if matches!(error, Error::Io(_) | Error::Timeout)
@@ -3609,12 +3596,9 @@ async fn discover_coord_once(
     cfg: &ConsumerConfig,
     group_id: &str,
     key_type: i8,
+    deadline: Instant,
 ) -> Result<(BrokerConn, crate::protocol::api::ApiVersionsResponse)> {
-    let deadline = crate::net::Deadline::from_std(
-        Instant::now()
-            .checked_add(cfg.request_timeout)
-            .ok_or(Error::Timeout)?,
-    );
+    let deadline = crate::net::Deadline::from_std(deadline);
     let mut last = Error::protocol("find coordinator failed");
     for addr in &cfg.bootstrap {
         let bounded = bounded_coord_config(cfg, deadline)?;
@@ -3685,7 +3669,10 @@ pub(super) async fn discover_coord_supporting(
     api_key: i16,
     version: i16,
 ) -> Result<BrokerConn> {
-    let (conn, versions) = discover_coord_with_versions(cfg, group_id, key_type).await?;
+    let deadline = Instant::now()
+        .checked_add(cfg.request_timeout)
+        .ok_or(Error::Timeout)?;
+    let (conn, versions) = discover_coord_with_versions(cfg, group_id, key_type, deadline).await?;
     version_supported(&versions, api_key, version)?;
     Ok(conn)
 }

@@ -16,7 +16,7 @@ use tokio::sync::{watch, Notify};
 use crate::consumer::{Consumer, ConsumerConfig};
 use crate::error::{self, Error, Result};
 use crate::group::{
-    collect_topics, coord_roundtrip, discover_coord, filter_matching_topics, TopicMatch,
+    collect_topics, coord_roundtrip, discover_coord_within, filter_matching_topics, TopicMatch,
 };
 use crate::net::BrokerConn;
 use crate::protocol::api_keys::{
@@ -776,19 +776,11 @@ impl ShareGroup {
             .min(cfg.retry_backoff_max)
             .max(Duration::from_millis(1));
         let coord = loop {
-            let remaining = discovery_deadline.saturating_duration_since(Instant::now());
-            if remaining.is_zero() {
+            if Instant::now() >= discovery_deadline {
                 return Err(Error::Timeout);
             }
-            let mut attempt_cfg = cfg.clone();
-            attempt_cfg.request_timeout = remaining;
-            attempt_cfg.connect_timeout = cfg.connect_timeout.min(remaining);
-            let result = tokio::time::timeout_at(
-                discovery_deadline.into(),
-                discover_coord(&attempt_cfg, &group_id, COORDINATOR_GROUP),
-            )
-            .await
-            .map_err(|_| Error::Timeout)?;
+            let result =
+                discover_coord_within(&cfg, &group_id, COORDINATOR_GROUP, discovery_deadline).await;
             match result {
                 Ok(coord) => break coord,
                 Err(error)
