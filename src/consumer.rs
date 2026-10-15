@@ -7563,21 +7563,44 @@ fn session_response_is_unique(
             .first()
             .is_none_or(|topic| partitions_strictly_increase(&topic.partitions));
     }
-    let mut names = HashSet::new();
-    for topic in topics {
-        let name = if version >= 13 {
-            let Some(name) = ids.get(&topic.topic_id).copied() else {
+    if topics.len() <= 16 {
+        for (index, topic) in topics.iter().enumerate() {
+            if !partitions_strictly_increase(&topic.partitions) {
+                return false;
+            }
+            let Some(name) = session_topic_name(topic, version, ids) else {
                 return false;
             };
-            name
-        } else {
-            topic.topic.as_str()
+            for earlier in topics.iter().take(index) {
+                if session_topic_name(earlier, version, ids) == Some(name) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+    let mut names = HashSet::new();
+    for topic in topics {
+        let Some(name) = session_topic_name(topic, version, ids) else {
+            return false;
         };
         if !names.insert(name) || !partitions_strictly_increase(&topic.partitions) {
             return false;
         }
     }
     true
+}
+
+fn session_topic_name<'a>(
+    topic: &'a FetchedTopic,
+    version: i16,
+    ids: &HashMap<[u8; 16], &'a str>,
+) -> Option<&'a str> {
+    if version >= 13 {
+        ids.get(&topic.topic_id).copied()
+    } else {
+        Some(topic.topic.as_str())
+    }
 }
 
 fn partitions_strictly_increase(parts: &[crate::protocol::fetch::FetchedPartition]) -> bool {
