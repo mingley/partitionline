@@ -1726,6 +1726,42 @@ async fn share_fetch_partition_error_message_reaches_poll() {
 }
 
 #[tokio::test]
+async fn share_fetch_unknown_server_error_skips_without_metadata() {
+    let mock = common::Mock::start().await;
+    v2(&mock);
+    produce(&mock, &[(0, b"keep")]).await;
+    let mut group = ShareGroup::join(config(&mock), "skip-meta", "t")
+        .await
+        .unwrap();
+    let version = mock.last_share_fetch_version().unwrap_or(2);
+    let topics = vec![ShareFetchedTopic {
+        topic_id: mock.topic_id("t"),
+        partitions: vec![ShareFetchedPartition::partition_response(
+            0,
+            error::UNKNOWN_SERVER_ERROR,
+        )],
+    }];
+    let mut injected = BytesMut::new();
+    encode_share_fetch_response(&mut injected, version, &topics).unwrap();
+    mock.inject_share_fetch_response_once(&injected);
+    assert!(
+        group.poll().await.unwrap().is_empty(),
+        "Java handleInitializeErrors skips UNKNOWN_SERVER_ERROR without throwing"
+    );
+    let after_skip = mock.metadata_calls();
+    let got = group.poll().await.unwrap();
+    assert_eq!(got.len(), 1);
+    assert_eq!(got[0].value.as_deref(), Some(&b"keep"[..]));
+    assert_eq!(
+        mock.metadata_calls(),
+        after_skip,
+        "UNKNOWN_SERVER_ERROR must skip without Metadata refresh"
+    );
+    group.accept(&got).await.unwrap();
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn delayed_share_replies_after_outer_timeout_cannot_satisfy_new_requests() {
     let mock = common::Mock::start().await;
     v2(&mock);
