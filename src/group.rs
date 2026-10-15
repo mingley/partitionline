@@ -1285,7 +1285,8 @@ impl ConsumerGroup {
                 return Err(Error::broker(code, "Heartbeat"));
             }
         }
-        self.flush_async_commits().await;
+        let flush_deadline = Instant::now() + self.cfg.request_timeout;
+        self.flush_async_commits(flush_deadline).await;
         self.maybe_auto_commit_interval().await?;
         let recs = match wait {
             Some(t) => self.consumer.fetch_allow_unassigned_timeout(t).await?,
@@ -1769,14 +1770,19 @@ impl ConsumerGroup {
             .collect()
     }
 
-    async fn flush_async_commits(&mut self) {
+    async fn flush_async_commits(&mut self, deadline: Instant) {
         let pending = std::mem::take(&mut self.pending_async_commits);
         for (offsets, callback, ids) in pending {
+            let timeout = deadline.saturating_duration_since(Instant::now());
+            if timeout.is_zero() {
+                if let Some(callback) = callback {
+                    callback(Err(Error::Timeout));
+                }
+                continue;
+            }
             let metadata_ids = self.consumer.topic_name_ids();
             let send = if self.coord.offset_commit_version == 10 {
-                let sent = self
-                    .commit_offsets_v10(&offsets, self.cfg.request_timeout, Some(&ids))
-                    .await;
+                let sent = self.commit_offsets_v10(&offsets, timeout, Some(&ids)).await;
                 self.note_commit(sent.is_ok());
                 sent
             } else if offsets.iter().any(|(tp, _)| {
@@ -1792,8 +1798,7 @@ impl ConsumerGroup {
                     "queued offset identity differs from the current assignment",
                 ))
             } else {
-                self.commit_metadata_offsets(offsets.clone(), self.cfg.request_timeout)
-                    .await
+                self.commit_metadata_offsets(offsets.clone(), timeout).await
             };
             if let Some(callback) = callback {
                 callback(send.map(|()| offsets));
@@ -1875,13 +1880,14 @@ impl ConsumerGroup {
             self.consumer.clear_assignment();
             return Ok(());
         }
-        self.flush_async_commits().await;
+        let deadline = Instant::now() + self.cfg.request_timeout;
+        self.flush_async_commits(deadline).await;
         // KL-02: do not auto-commit on unsubscribe — poll-interval auto-commit
         // and explicit commit* are the only OffsetCommit paths for positions.
         self.hb_stop.send(true).unwrap_or(());
         *self.hb_deadline.lock() = None;
         let revoked = self.assignment();
-        self.leave_coordinator(LEAVE_GROUP_REASON_UNSUBSCRIBED)
+        self.leave_coordinator(LEAVE_GROUP_REASON_UNSUBSCRIBED, deadline)
             .await?;
         if !revoked.is_empty() {
             self.cfg.rebalance.call(&revoked, &[]);
@@ -2012,25 +2018,31 @@ impl ConsumerGroup {
     /// positions even when [`ConsumerConfig::enable_auto_commit`] is on (KL-02:
     /// close must not commit polled-but-unprocessed records). Use poll-interval
     /// auto-commit or an explicit `commit*` before leave if you want stored offsets.
-    pub async fn leave(mut self) -> Result<()> {
-        let started = Instant::now();
+    pub async fn leave(self) -> Result<()> {
+        let deadline = Instant::now() + self.cfg.request_timeout;
+        self.leave_within(deadline).await
+    }
+
+    async fn leave_within(mut self, deadline: Instant) -> Result<()> {
         if self.member_id.is_empty() {
             self.hb_stop.send(true).unwrap_or(());
             *self.hb_deadline.lock() = None;
             self.consumer.close_interceptors();
             self.consumer
-                .close_fetch_sessions(self.cfg.request_timeout)
+                .close_fetch_sessions(deadline.saturating_duration_since(Instant::now()))
                 .await;
             return Ok(());
         }
-        self.flush_async_commits().await;
+        self.flush_async_commits(deadline).await;
         // KL-02: never auto-commit positions on leave/close.
         self.hb_stop.send(true).unwrap_or(());
         *self.hb_deadline.lock() = None;
-        let out = self.leave_coordinator(LEAVE_GROUP_REASON_CLOSED).await;
+        let out = self
+            .leave_coordinator(LEAVE_GROUP_REASON_CLOSED, deadline)
+            .await;
         self.consumer.close_interceptors();
         self.consumer
-            .close_fetch_sessions(self.cfg.request_timeout.saturating_sub(started.elapsed()))
+            .close_fetch_sessions(deadline.saturating_duration_since(Instant::now()))
             .await;
         out
     }
@@ -2046,14 +2058,17 @@ impl ConsumerGroup {
     /// [`ConsumerConfig::request_timeout`] for the coordinator. A shorter
     /// `timeout` returns [`Error::Timeout`] if leave does not finish in time.
     pub async fn close_timeout(self, timeout: Duration) -> Result<()> {
-        match tokio::time::timeout(timeout, self.leave()).await {
-            Ok(out) => out,
-            Err(_) => Err(Error::Timeout),
-        }
+        let deadline = Instant::now()
+            .checked_add(timeout)
+            .ok_or_else(|| Error::protocol("close deadline overflow"))?;
+        self.leave_within(deadline).await
     }
 
-    async fn leave_coordinator(&mut self, reason: &str) -> Result<()> {
-        let timeout = self.cfg.request_timeout;
+    async fn leave_coordinator(&mut self, reason: &str, deadline: Instant) -> Result<()> {
+        let timeout = deadline.saturating_duration_since(Instant::now());
+        if timeout.is_zero() {
+            return Err(Error::Timeout);
+        }
         if self.kip848 {
             self.adopt_kip848_member_id();
             let req = ConsumerGroupHeartbeatRequest {
