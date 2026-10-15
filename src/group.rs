@@ -2573,29 +2573,36 @@ impl ConsumerGroup {
     ) -> Result<Vec<(String, i32)>> {
         let identities = self.consumer.topic_name_ids().clone();
         let all_current = self.consumer.assigned_offsets().to_vec();
-        let current: HashMap<(String, i32), i64> = self
-            .consumer
-            .assigned_offsets()
-            .iter()
-            .filter(|(t, p, _)| {
-                self.consumer.assigned_topic_id(t.as_ref(), *p)
-                    == identities
-                        .get(t.as_ref())
-                        .copied()
-                        .filter(|id| *id != [0; 16])
-            })
-            .map(|(t, p, o)| ((t.as_ref().to_owned(), *p), *o))
-            .collect();
-        let prev: HashSet<(String, i32)> = all_current
-            .iter()
-            .map(|(topic, partition, _)| (topic.as_ref().to_owned(), *partition))
-            .collect();
-        let next: HashSet<(String, i32)> = wanted.iter().cloned().collect();
-        let revoked: Vec<(String, i32)> = prev
-            .iter()
-            .filter(|key| !next.contains(*key) || !current.contains_key(*key))
-            .cloned()
-            .collect();
+        let mut current: HashMap<String, HashMap<i32, i64>> = HashMap::new();
+        for (topic, partition, offset) in &all_current {
+            if self.consumer.assigned_topic_id(topic.as_ref(), *partition)
+                != identities
+                    .get(topic.as_ref())
+                    .copied()
+                    .filter(|id| *id != [0; 16])
+            {
+                continue;
+            }
+            remember_i64(&mut current, topic.as_ref(), *partition, *offset);
+        }
+        let mut prev: HashMap<String, HashSet<i32>> = HashMap::new();
+        for (topic, partition, _) in &all_current {
+            remember_partition(&mut prev, topic.as_ref(), *partition);
+        }
+        let mut next: HashMap<String, HashSet<i32>> = HashMap::new();
+        for (topic, partition) in wanted {
+            remember_partition(&mut next, topic, *partition);
+        }
+        let mut revoked = Vec::new();
+        for (topic, parts) in &prev {
+            for partition in parts {
+                let still_wanted = next.get(topic).is_some_and(|kept| kept.contains(partition));
+                let same_identity = nested_i64(&current, topic, *partition).is_some();
+                if !still_wanted || !same_identity {
+                    revoked.push((topic.clone(), *partition));
+                }
+            }
+        }
         // KL03-14: with auto-commit on, commit the revoked partitions'
         // delivered positions before the new assignment drops their pending
         // records, so the next owner resumes after delivered work instead of
@@ -2629,14 +2636,21 @@ impl ConsumerGroup {
                 self.commit_metadata_offsets(to_commit, timeout).await?;
             }
         }
-        let kept_epochs: HashMap<(String, i32), i32> = wanted
-            .iter()
-            .filter(|(t, p)| current.contains_key(&(t.clone(), *p)))
-            .map(|(t, p)| ((t.clone(), *p), self.consumer.last_fetched_epoch(t, *p)))
-            .collect();
+        let mut kept_epochs: HashMap<String, HashMap<i32, i32>> = HashMap::new();
+        for (topic, partition) in wanted {
+            if nested_i64(&current, topic, *partition).is_none() {
+                continue;
+            }
+            remember_i32(
+                &mut kept_epochs,
+                topic,
+                *partition,
+                self.consumer.last_fetched_epoch(topic, *partition),
+            );
+        }
         let added: Vec<(String, i32)> = wanted
             .iter()
-            .filter(|(t, p)| !current.contains_key(&(t.clone(), *p)))
+            .filter(|(topic, partition)| nested_i64(&current, topic, *partition).is_none())
             .cloned()
             .collect();
         let fetched = if added.is_empty() {
@@ -2654,9 +2668,8 @@ impl ConsumerGroup {
         let reset_deadline = deadline;
         let mut starts: Vec<(String, i32, i64)> = Vec::with_capacity(wanted.len());
         for (topic, part) in wanted {
-            let key = (topic.clone(), *part);
-            if let Some(o) = current.get(&key) {
-                starts.push((topic.clone(), *part, *o));
+            if let Some(offset) = nested_i64(&current, topic, *part) {
+                starts.push((topic.clone(), *part, offset));
                 continue;
             }
             let committed = committed_offset(&map, topic, *part)
@@ -2704,9 +2717,8 @@ impl ConsumerGroup {
             ));
         }
         for (topic, part) in wanted {
-            let key = (topic.clone(), *part);
-            if let Some(epoch) = kept_epochs.get(&key) {
-                self.consumer.set_last_fetched_epoch(topic, *part, *epoch);
+            if let Some(epoch) = nested_i32(&kept_epochs, topic, *part) {
+                self.consumer.set_last_fetched_epoch(topic, *part, epoch);
             } else if let Some(md) = committed_offset(&map, topic, *part) {
                 self.consumer
                     .set_last_fetched_epoch(topic, *part, md.wire_epoch());
@@ -2714,8 +2726,12 @@ impl ConsumerGroup {
         }
         let added_tps: Vec<(String, i32)> = next
             .iter()
-            .filter(|key| !current.contains_key(*key))
-            .cloned()
+            .flat_map(|(topic, parts)| {
+                parts
+                    .iter()
+                    .filter(|partition| nested_i64(&current, topic, **partition).is_none())
+                    .map(|partition| (topic.clone(), *partition))
+            })
             .collect();
         if !revoked.is_empty() || !added_tps.is_empty() {
             self.cfg.rebalance.call(
@@ -3438,6 +3454,62 @@ pub(crate) fn group_offset_fetch_topics(wanted: &[(String, i32)]) -> Vec<OffsetF
         .into_iter()
         .map(|(topic, (_, partitions))| OffsetFetchTopic { topic, partitions })
         .collect()
+}
+
+fn remember_partition(map: &mut HashMap<String, HashSet<i32>>, topic: &str, partition: i32) {
+    if let Some(parts) = map.get_mut(topic) {
+        let _ = parts.insert(partition);
+        return;
+    }
+    let mut parts = HashSet::new();
+    let _ = parts.insert(partition);
+    let _ = map.insert(topic.to_owned(), parts);
+}
+
+fn remember_i64(
+    map: &mut HashMap<String, HashMap<i32, i64>>,
+    topic: &str,
+    partition: i32,
+    value: i64,
+) {
+    if let Some(parts) = map.get_mut(topic) {
+        let _ = parts.insert(partition, value);
+        return;
+    }
+    let mut parts = HashMap::new();
+    let _ = parts.insert(partition, value);
+    let _ = map.insert(topic.to_owned(), parts);
+}
+
+fn remember_i32(
+    map: &mut HashMap<String, HashMap<i32, i32>>,
+    topic: &str,
+    partition: i32,
+    value: i32,
+) {
+    if let Some(parts) = map.get_mut(topic) {
+        let _ = parts.insert(partition, value);
+        return;
+    }
+    let mut parts = HashMap::new();
+    let _ = parts.insert(partition, value);
+    let _ = map.insert(topic.to_owned(), parts);
+}
+
+fn nested_i64(
+    map: &HashMap<String, HashMap<i32, i64>>,
+    topic: &str,
+    partition: i32,
+) -> Option<i64> {
+    map.get(topic)?.get(&partition).copied()
+}
+
+fn nested_i32(
+    map: &HashMap<String, HashMap<i32, i32>>,
+    topic: &str,
+    partition: i32,
+) -> Option<i32> {
+    map.get(topic)?.get(&partition).copied()
 }
 
 pub(crate) fn committed_offset_map(
