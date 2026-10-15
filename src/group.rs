@@ -48,8 +48,9 @@ type AsyncOffsetCommitCallback =
 type PendingAsyncCommit = (
     Vec<(TopicPartition, OffsetAndMetadata)>,
     Option<AsyncOffsetCommitCallback>,
-    HashMap<(String, i32), [u8; 16]>,
+    DeliveredTopicIds,
 );
+type DeliveredTopicIds = HashMap<String, HashMap<i32, [u8; 16]>>;
 
 /// Java default JoinGroup `Reason` for [`ConsumerGroup::enforce_rebalance`] (KIP-800).
 pub const DEFAULT_ENFORCE_REBALANCE_REASON: &str = "rebalance enforced by user";
@@ -523,7 +524,7 @@ pub struct ConsumerGroup {
     hb_stop: watch::Sender<bool>,
     last_auto_commit: Instant,
     last_delivered_positions: Option<Vec<(TopicPartition, i64)>>,
-    last_delivered_topic_ids: HashMap<(String, i32), [u8; 16]>,
+    last_delivered_topic_ids: DeliveredTopicIds,
     last_poll: Arc<parking_lot::Mutex<Option<Instant>>>,
     /// Heartbeat thread left the group after `max.poll.interval.ms`.
     left_max_poll: Arc<AtomicBool>,
@@ -1776,7 +1777,7 @@ impl ConsumerGroup {
                 self.note_commit(sent.is_ok());
                 sent
             } else if offsets.iter().any(|(tp, _)| {
-                ids.get(&(tp.topic.clone(), tp.partition)).copied()
+                nested_topic_id(&ids, &tp.topic, tp.partition)
                     != self
                         .consumer
                         .assigned_topic_id(&tp.topic, tp.partition)
@@ -1815,7 +1816,8 @@ impl ConsumerGroup {
                         && assigned.contains(tp)
                         && self
                             .last_delivered_topic_ids
-                            .get(&(tp.topic.clone(), tp.partition))
+                            .get(tp.topic.as_str())
+                            .and_then(|parts| parts.get(&tp.partition))
                             .copied()
                             == self.consumer.assigned_topic_id(&tp.topic, tp.partition)
                 })
@@ -3512,6 +3514,20 @@ fn nested_i32(
     topic: &str,
     partition: i32,
 ) -> Option<i32> {
+    map.get(topic)?.get(&partition).copied()
+}
+
+fn remember_topic_id(map: &mut DeliveredTopicIds, topic: &str, partition: i32, id: [u8; 16]) {
+    if let Some(parts) = map.get_mut(topic) {
+        let _ = parts.insert(partition, id);
+        return;
+    }
+    let mut parts = HashMap::new();
+    let _ = parts.insert(partition, id);
+    let _ = map.insert(topic.to_owned(), parts);
+}
+
+fn nested_topic_id(map: &DeliveredTopicIds, topic: &str, partition: i32) -> Option<[u8; 16]> {
     map.get(topic)?.get(&partition).copied()
 }
 

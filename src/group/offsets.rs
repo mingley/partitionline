@@ -10,14 +10,13 @@ use std::time::Duration;
 
 impl ConsumerGroup {
     pub(super) fn record_delivered_positions(&mut self, positions: Vec<(TopicPartition, i64)>) {
-        self.last_delivered_topic_ids = positions
-            .iter()
-            .filter_map(|(tp, _)| {
-                self.consumer
-                    .assigned_topic_id(&tp.topic, tp.partition)
-                    .map(|id| ((tp.topic.clone(), tp.partition), id))
-            })
-            .collect();
+        let mut ids = HashMap::new();
+        for (tp, _) in &positions {
+            if let Some(id) = self.consumer.assigned_topic_id(&tp.topic, tp.partition) {
+                super::remember_topic_id(&mut ids, &tp.topic, tp.partition, id);
+            }
+        }
+        self.last_delivered_topic_ids = ids;
         self.last_delivered_positions = Some(positions);
     }
 
@@ -27,16 +26,17 @@ impl ConsumerGroup {
         callback: Option<super::AsyncOffsetCommitCallback>,
     ) {
         let metadata = self.consumer.topic_name_ids();
-        let ids = offsets
-            .iter()
-            .filter_map(|(tp, _)| {
-                self.consumer
-                    .assigned_topic_id(&tp.topic, tp.partition)
-                    .or_else(|| metadata.get(&tp.topic).copied())
-                    .filter(|id| *id != [0; 16])
-                    .map(|id| ((tp.topic.clone(), tp.partition), id))
-            })
-            .collect();
+        let mut ids = HashMap::new();
+        for (tp, _) in &offsets {
+            if let Some(id) = self
+                .consumer
+                .assigned_topic_id(&tp.topic, tp.partition)
+                .or_else(|| metadata.get(&tp.topic).copied())
+                .filter(|id| *id != [0; 16])
+            {
+                super::remember_topic_id(&mut ids, &tp.topic, tp.partition, id);
+            }
+        }
         self.pending_async_commits.push((offsets, callback, ids));
     }
 
@@ -121,13 +121,13 @@ impl ConsumerGroup {
         &mut self,
         offsets: &[(TopicPartition, OffsetAndMetadata)],
         timeout: Duration,
-        snapshot: Option<&HashMap<(String, i32), [u8; 16]>>,
+        snapshot: Option<&super::DeliveredTopicIds>,
     ) -> Result<()> {
         let metadata = self.consumer.topic_name_ids();
         let mut topics = BTreeMap::<[u8; 16], Vec<OffsetCommitPartitionData>>::new();
         for (tp, md) in offsets {
             let id = match snapshot {
-                Some(ids) => ids.get(&(tp.topic.clone(), tp.partition)).copied(),
+                Some(ids) => super::nested_topic_id(ids, &tp.topic, tp.partition),
                 None => self
                     .consumer
                     .assigned_topic_id(&tp.topic, tp.partition)
