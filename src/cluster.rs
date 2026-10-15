@@ -31,7 +31,9 @@ pub(crate) fn dial_address(host: &str, port: i32) -> Option<String> {
         None => host,
     };
     if host.is_empty()
-        || host.chars().any(|c| c.is_whitespace())
+        || host
+            .chars()
+            .any(|c| c.is_whitespace() || c == '[' || c == ']')
         || !(1..=i32::from(u16::MAX)).contains(&port)
     {
         None
@@ -543,6 +545,8 @@ mod tests {
         assert!(dial_address("bad host", 9092).is_none());
         assert!(dial_address("broker\n.example", 9092).is_none());
         assert!(dial_address("[::1\n]", 9092).is_none());
+        assert!(dial_address("[[::1]]", 9092).is_none());
+        assert!(dial_address("[::1", 9092).is_none());
         cluster.apply(&metadata(vec![broker(1, "bad host", 9092)]), 13);
         assert_eq!(
             cluster.brokers.get(&1).map(String::as_str),
