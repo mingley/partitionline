@@ -537,7 +537,7 @@ async fn retained_topic_text_and_idle_eviction_stay_within_hard_caps() {
             .send(ProduceRecord::to(topic).value(&b"payload"[..]))
             .await
             .unwrap();
-        assert_eq!(metadata.topic, topic);
+        assert_eq!(metadata.topic.as_ref(), topic);
         assert_eq!(metadata.partition, 0);
         assert!(metadata.offset >= 0);
         let state = producer.__test_sticky_state().unwrap();
