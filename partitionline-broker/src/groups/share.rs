@@ -200,6 +200,8 @@ pub struct Groups {
     journal: Journal,
     stored: usize,
     poisoned: bool,
+    /// Reused journal image. Cleared and rewritten on each commit.
+    encoded: Vec<u8>,
 }
 
 impl Groups {
@@ -216,6 +218,7 @@ impl Groups {
             journal,
             stored: 0,
             poisoned: false,
+            encoded: Vec::new(),
         };
         let mut cursor = groups.journal.base_offset();
         loop {
@@ -555,11 +558,11 @@ impl Groups {
     }
 
     fn commit_current(&mut self) -> Result<(), Error> {
-        let payload = encode(&self.state)?;
-        if payload.len() > self.limits.journal.max_entry_bytes() {
-            return Err(Error::InvalidLimits);
-        }
-        self.persist(&payload)
+        let mut encoded = std::mem::take(&mut self.encoded);
+        let encoded_result = encode_into(&self.state, &mut encoded);
+        self.encoded = encoded;
+        encoded_result?;
+        self.persist_encoded()
     }
 
     fn restore_member(&mut self, group_id: &str, member_id: &str, saved: (u64, i32, bool)) {
@@ -575,13 +578,20 @@ impl Groups {
     }
 
     fn commit(&mut self, state: State) -> Result<(), Error> {
-        let payload = encode(&state)?;
-        if payload.len() > self.limits.journal.max_entry_bytes() {
-            return Err(Error::InvalidLimits);
-        }
-        self.persist(&payload)?;
+        encode_into(&state, &mut self.encoded)?;
+        self.persist_encoded()?;
         self.state = state;
         Ok(())
+    }
+
+    fn persist_encoded(&mut self) -> Result<(), Error> {
+        if self.encoded.len() > self.limits.journal.max_entry_bytes() {
+            return Err(Error::InvalidLimits);
+        }
+        let payload = std::mem::take(&mut self.encoded);
+        let result = self.persist(&payload);
+        self.encoded = payload;
+        result
     }
 
     fn ready(&self) -> Result<(), Error> {
@@ -846,52 +856,59 @@ fn valid_topic(topic: &str) -> bool {
     crate::catalog::validate_topic_name(topic).is_ok()
 }
 
+#[cfg(test)]
 fn encode(state: &State) -> Result<Vec<u8>, Error> {
     let mut bytes = Vec::new();
+    encode_into(state, &mut bytes)?;
+    Ok(bytes)
+}
+
+fn encode_into(state: &State, bytes: &mut Vec<u8>) -> Result<(), Error> {
+    bytes.clear();
     bytes.extend_from_slice(RECORD_MAGIC);
     bytes.extend_from_slice(&state.next_member.to_be_bytes());
     put_u32(
-        &mut bytes,
+        bytes,
         u32::try_from(state.topics.len()).map_err(|_| Error::InvalidRequest)?,
     )?;
     for (topic, partitions) in &state.topics {
-        put_str(&mut bytes, topic)?;
+        put_str(bytes, topic)?;
         bytes.extend_from_slice(&partitions.to_be_bytes());
     }
     put_u32(
-        &mut bytes,
+        bytes,
         u32::try_from(state.groups.len()).map_err(|_| Error::InvalidRequest)?,
     )?;
     for (name, group) in &state.groups {
-        put_str(&mut bytes, name)?;
+        put_str(bytes, name)?;
         bytes.extend_from_slice(&group.epoch.to_be_bytes());
         bytes.extend_from_slice(&group.assignment_epoch.to_be_bytes());
         bytes.extend_from_slice(&group.version.to_be_bytes());
         put_u32(
-            &mut bytes,
+            bytes,
             u32::try_from(group.members.len()).map_err(|_| Error::InvalidRequest)?,
         )?;
         for (member_id, member) in &group.members {
-            put_str(&mut bytes, member_id)?;
+            put_str(bytes, member_id)?;
             bytes.extend_from_slice(&member.epoch.to_be_bytes());
             bytes.extend_from_slice(&member.last_seen_ms.to_be_bytes());
             bytes.push(u8::from(member.acked));
             bytes.extend_from_slice(&member.version.to_be_bytes());
             put_u32(
-                &mut bytes,
+                bytes,
                 u32::try_from(member.topics.len()).map_err(|_| Error::InvalidRequest)?,
             )?;
             for topic in &member.topics {
-                put_str(&mut bytes, topic)?;
+                put_str(bytes, topic)?;
             }
             put_u32(
-                &mut bytes,
+                bytes,
                 u32::try_from(member.assignment.len()).map_err(|_| Error::InvalidRequest)?,
             )?;
             for (topic, partitions) in member.assignment.iter() {
-                put_str(&mut bytes, topic)?;
+                put_str(bytes, topic)?;
                 put_u32(
-                    &mut bytes,
+                    bytes,
                     u32::try_from(partitions.len()).map_err(|_| Error::InvalidRequest)?,
                 )?;
                 for partition in partitions {
@@ -900,7 +917,7 @@ fn encode(state: &State) -> Result<Vec<u8>, Error> {
             }
         }
     }
-    Ok(bytes)
+    Ok(())
 }
 
 fn decode(mut bytes: &[u8]) -> Result<State, Error> {
@@ -1376,6 +1393,8 @@ mod tests {
             .as_ref()
             .unwrap_or_else(|| panic!("assignment"));
         assert!(Arc::ptr_eq(shared, &stored.assignment));
+        let encoded_capacity = groups.encoded.capacity();
+        assert!(encoded_capacity > 0);
         let steady = groups
             .heartbeat(Heartbeat {
                 version: 1,
@@ -1388,6 +1407,7 @@ mod tests {
             .unwrap_or_else(|error| panic!("{error:?}"));
         assert_eq!(steady.member_epoch, alice.member_epoch);
         assert!(steady.assignment.is_none());
+        assert!(groups.encoded.capacity() >= encoded_capacity);
         assert!(matches!(
             groups.heartbeat(Heartbeat {
                 version: 1,
