@@ -52,6 +52,44 @@ fn usable_broker_address(node_id: i32, host: &str, port: i32) -> Option<String> 
     }
 }
 
+/// True when `current` is already the dial address [`dial_address`] would build.
+fn stored_address_matches(current: &str, host: &str, port: i32) -> bool {
+    if host.chars().any(|c| c.is_control()) {
+        return false;
+    }
+    let host = host.trim();
+    let host = match host
+        .strip_prefix('[')
+        .and_then(|rest| rest.strip_suffix(']'))
+    {
+        Some(inner) => inner.trim(),
+        None => host,
+    };
+    if host.is_empty()
+        || host
+            .chars()
+            .any(|c| c.is_whitespace() || c == '[' || c == ']')
+        || !(1..=i32::from(u16::MAX)).contains(&port)
+    {
+        return false;
+    }
+    let (stored_host, stored_port) = if host.contains(':') {
+        let Some(rest) = current.strip_prefix('[') else {
+            return false;
+        };
+        let Some((stored_host, stored_port)) = rest.rsplit_once("]:") else {
+            return false;
+        };
+        (stored_host, stored_port)
+    } else {
+        let Some((stored_host, stored_port)) = current.rsplit_once(':') else {
+            return false;
+        };
+        (stored_host, stored_port)
+    };
+    stored_host == host && stored_port.parse::<i32>().ok() == Some(port)
+}
+
 /// Snapshot of brokers and partition leaders from Metadata.
 #[derive(Debug, Clone, Default)]
 pub(crate) struct Cluster {
@@ -81,6 +119,13 @@ impl Cluster {
     pub(crate) fn apply(&mut self, md: &MetadataResponse, version: i16) {
         self.controller_id = (md.controller_id >= 0).then_some(md.controller_id);
         for b in &md.brokers {
+            if self
+                .brokers
+                .get(&b.node_id)
+                .is_some_and(|current| stored_address_matches(current, &b.host, b.port))
+            {
+                continue;
+            }
             if let Some(address) = usable_broker_address(b.node_id, &b.host, b.port) {
                 let _prev = self.brokers.insert(b.node_id, address);
             }
@@ -396,6 +441,13 @@ impl Cluster {
     /// CurrentLeader id can patch the partition cache (KIP-951).
     pub(crate) fn apply_node_endpoints(&mut self, endpoints: &[NodeEndpoint]) {
         for e in endpoints {
+            if self
+                .brokers
+                .get(&e.node_id)
+                .is_some_and(|current| stored_address_matches(current, &e.host, e.port))
+            {
+                continue;
+            }
             if let Some(address) = usable_broker_address(e.node_id, &e.host, e.port) {
                 let _prev = self.brokers.insert(e.node_id, address);
             }
@@ -564,6 +616,18 @@ mod tests {
             cluster.brokers.get(&1).map(String::as_str),
             Some("127.0.0.1:9092")
         );
+        let kept = cluster
+            .brokers
+            .get(&1)
+            .map(|address| address.as_ptr())
+            .unwrap_or(std::ptr::null());
+        cluster.apply(&metadata(vec![broker(1, "127.0.0.1", 9092)]), 13);
+        cluster.apply(&metadata(vec![broker(1, "[127.0.0.1]", 9092)]), 13);
+        cluster.apply(&metadata(vec![broker(1, " 127.0.0.1 ", 9092)]), 13);
+        assert_eq!(
+            cluster.brokers.get(&1).map(|address| address.as_ptr()),
+            Some(kept)
+        );
         assert!(!cluster.brokers.contains_key(&-1));
         cluster.apply_node_endpoints(&[
             NodeEndpoint::new(-1, "127.0.0.1", 9092, None),
@@ -583,6 +647,17 @@ mod tests {
         assert_eq!(
             cluster.brokers.get(&4).map(String::as_str),
             Some("[::1]:9092")
+        );
+        let ipv6 = cluster
+            .brokers
+            .get(&4)
+            .map(|address| address.as_ptr())
+            .unwrap_or(std::ptr::null());
+        cluster.apply(&metadata(vec![broker(4, "::1", 9092)]), 13);
+        cluster.apply_node_endpoints(&[NodeEndpoint::new(4, "[::1]", 9092, None)]);
+        assert_eq!(
+            cluster.brokers.get(&4).map(|address| address.as_ptr()),
+            Some(ipv6)
         );
         cluster.apply_node_endpoints(&[NodeEndpoint::new(5, "[2001:db8::1]", 9092, None)]);
         assert_eq!(
