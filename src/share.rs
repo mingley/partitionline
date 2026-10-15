@@ -700,7 +700,9 @@ pub enum ShareAcquireMode {
 /// && `leaderEpoch != -1`) plus NodeEndpoints updates the next ShareFetch
 /// target without a Metadata refresh (Java `handleShareFetchSuccess` /
 /// KIP-951). `UNKNOWN_LEADER_EPOCH` / `UNKNOWN_SERVER_ERROR` skip without
-/// requesting metadata (Java `handleInitializeErrors`).
+/// requesting metadata (Java `handleInitializeErrors`). A throwable
+/// partition `ErrorMessage` is the broker exception text (Java
+/// `Errors.forCode.exception(errorMessage)`).
 /// [`Self::accept`] / [`Self::release`] / [`Self::reject`] are Java
 /// `acknowledge` (local until the next poll, commit, or leave).
 /// Explicit mode requires those acknowledgements before the next
@@ -2377,8 +2379,9 @@ impl ShareGroup {
                         {
                             self.invalidate_share_topic(&name);
                         }
-                        let error = Error::broker(
+                        let error = share_partition_broker_error(
                             part.error_code,
+                            part.error_message.as_deref(),
                             format!("ShareFetch {name}-{}", part.partition),
                         );
                         if share_session_reset(&error) {
@@ -3450,8 +3453,9 @@ impl ShareGroup {
                                     }))
                             });
                         }
-                        let error = Error::broker(
+                        let error = share_partition_broker_error(
                             part.error_code,
+                            part.error_message.as_deref(),
                             format!("ShareAcknowledge {name}-{}", part.partition),
                         );
                         let _ =
@@ -3983,6 +3987,20 @@ fn share_fetch_partition_metadata_refresh(code: i16) -> bool {
     )
 }
 
+/// Java `Errors.forCode(code).exception(errorMessage)`: prefer the
+/// broker's partition ErrorMessage when it is non-empty.
+fn share_partition_broker_error(
+    code: i16,
+    broker_message: Option<&str>,
+    fallback: impl Into<String>,
+) -> Error {
+    let detail = broker_message
+        .filter(|msg| !msg.is_empty())
+        .map(str::to_owned)
+        .unwrap_or_else(|| fallback.into());
+    Error::broker(code, detail)
+}
+
 /// Java `handleShareFetchSuccess` applies CurrentLeader only for these.
 fn share_fetch_current_leader_usable(code: i16) -> bool {
     matches!(
@@ -4295,6 +4313,35 @@ mod tests {
         assert!(!share_fetch_current_leader_usable(
             error::REPLICA_NOT_AVAILABLE
         ));
+    }
+
+    #[test]
+    fn share_partition_broker_error_prefers_nonempty_message() {
+        match share_partition_broker_error(
+            error::TOPIC_AUTHORIZATION_FAILED,
+            Some("not authorized for t"),
+            "ShareFetch t-0",
+        ) {
+            Error::Broker { code, message } => {
+                assert_eq!(code, error::TOPIC_AUTHORIZATION_FAILED);
+                assert_eq!(message, "not authorized for t");
+            }
+            other => panic!("{other:?}"),
+        }
+        match share_partition_broker_error(error::CORRUPT_MESSAGE, Some(""), "ShareFetch t-0") {
+            Error::Broker { code, message } => {
+                assert_eq!(code, error::CORRUPT_MESSAGE);
+                assert_eq!(message, "ShareFetch t-0");
+            }
+            other => panic!("{other:?}"),
+        }
+        match share_partition_broker_error(error::CORRUPT_MESSAGE, None, "ShareFetch t-0") {
+            Error::Broker { code, message } => {
+                assert_eq!(code, error::CORRUPT_MESSAGE);
+                assert_eq!(message, "ShareFetch t-0");
+            }
+            other => panic!("{other:?}"),
+        }
     }
 
     #[test]

@@ -1699,6 +1699,33 @@ async fn share_fetch_current_leader_overrides_cached_metadata() {
 }
 
 #[tokio::test]
+async fn share_fetch_partition_error_message_reaches_poll() {
+    let mock = common::Mock::start().await;
+    v2(&mock);
+    let mut group = ShareGroup::join(config(&mock), "part-msg", "t")
+        .await
+        .unwrap();
+    let version = mock.last_share_fetch_version().unwrap_or(2);
+    let mut part = ShareFetchedPartition::partition_response(0, error::TOPIC_AUTHORIZATION_FAILED);
+    part.error_message = Some("not authorized for share topic t".into());
+    let topics = vec![ShareFetchedTopic {
+        topic_id: mock.topic_id("t"),
+        partitions: vec![part],
+    }];
+    let mut injected = BytesMut::new();
+    encode_share_fetch_response(&mut injected, version, &topics).unwrap();
+    mock.inject_share_fetch_response_once(&injected);
+    match group.poll().await.unwrap_err() {
+        Error::Broker { code, message } => {
+            assert_eq!(code, error::TOPIC_AUTHORIZATION_FAILED);
+            assert_eq!(message, "not authorized for share topic t");
+        }
+        other => panic!("{other:?}"),
+    }
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn delayed_share_replies_after_outer_timeout_cannot_satisfy_new_requests() {
     let mock = common::Mock::start().await;
     v2(&mock);
