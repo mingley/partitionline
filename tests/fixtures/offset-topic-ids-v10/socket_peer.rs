@@ -210,8 +210,10 @@ fn empty_fetch() -> Vec<u8> {
     out.push(2);
     out.extend_from_slice(&0i32.to_be_bytes());
     out.extend_from_slice(&0i16.to_be_bytes());
+    // Unknown log boundaries. Zero would claim the log ends at offset 0 and
+    // reset a committed position that this empty response does not describe.
     for _ in 0..3 {
-        out.extend_from_slice(&0i64.to_be_bytes());
+        out.extend_from_slice(&(-1i64).to_be_bytes());
     }
     out.push(0); // nullable aborted transactions
     out.extend_from_slice(&(-1i32).to_be_bytes());
