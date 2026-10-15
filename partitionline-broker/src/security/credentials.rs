@@ -419,6 +419,8 @@ struct Actor {
     limits: Limits,
     service: Service,
     status: Arc<Status>,
+    /// Reused journal record. Cleared and rewritten on each credential change.
+    encoded: Vec<u8>,
     #[cfg(test)]
     commit: Option<CommitHook>,
 }
@@ -465,6 +467,7 @@ impl Actor {
                 limits,
                 service,
                 status,
+                encoded: Vec::new(),
                 #[cfg(test)]
                 commit: hook,
             },
@@ -556,18 +559,18 @@ impl Actor {
         if next.len() > self.limits.sasl.credentials {
             return Err(Error::Budget);
         }
-        let payload = encode(&user, stored);
+        write(&mut self.encoded, &user, &stored);
         let replay_bytes = self
             .replay_bytes
-            .checked_add(payload.len())
+            .checked_add(self.encoded.len())
             .filter(|n| *n <= self.limits.replay_bytes)
             .ok_or(Error::Budget)?;
         let result = self.service.publish_after(export(&next), || {
             #[cfg(test)]
             if let Some(commit) = self.commit.as_mut() {
-                return commit(&mut self.journal, &payload).map(|_| ());
+                return commit(&mut self.journal, &self.encoded).map(|_| ());
             }
-            self.journal.append(1, &payload).map(|_| ())
+            self.journal.append(1, &self.encoded).map(|_| ())
         });
         match result {
             Ok(generation) => {
@@ -623,24 +626,31 @@ fn algorithm(code: u8) -> Result<Algorithm, Error> {
         _ => Err(Error::Corrupt),
     }
 }
+#[cfg(test)]
 fn encode(user: &str, changes: Vec<(Algorithm, Option<CredentialForm>)>) -> Vec<u8> {
-    let mut output = Vec::with_capacity(RECORD_BYTES);
-    output.extend_from_slice(MAGIC);
-    output.extend_from_slice(&(user.len() as u16).to_be_bytes());
-    output.extend_from_slice(user.as_bytes());
-    output.push(changes.len() as u8);
+    let mut output = Vec::new();
+    write(&mut output, user, &changes);
+    output
+}
+
+fn write(bytes: &mut Vec<u8>, user: &str, changes: &[(Algorithm, Option<CredentialForm>)]) {
+    bytes.clear();
+    let _ = bytes.try_reserve(RECORD_BYTES);
+    bytes.extend_from_slice(MAGIC);
+    bytes.extend_from_slice(&(user.len() as u16).to_be_bytes());
+    bytes.extend_from_slice(user.as_bytes());
+    bytes.push(changes.len() as u8);
     for (algorithm, form) in changes {
-        output.push(code(algorithm));
-        output.push(u8::from(form.is_some()));
+        bytes.push(code(*algorithm));
+        bytes.push(u8::from(form.is_some()));
         if let Some(form) = form {
-            output.extend_from_slice(&(form.salt.len() as u16).to_be_bytes());
-            output.extend_from_slice(&form.salt);
-            output.extend_from_slice(&form.iterations.to_be_bytes());
-            output.extend_from_slice(&form.stored_key);
-            output.extend_from_slice(&form.server_key);
+            bytes.extend_from_slice(&(form.salt.len() as u16).to_be_bytes());
+            bytes.extend_from_slice(&form.salt);
+            bytes.extend_from_slice(&form.iterations.to_be_bytes());
+            bytes.extend_from_slice(&form.stored_key);
+            bytes.extend_from_slice(&form.server_key);
         }
     }
-    output
 }
 struct Decoder<'a> {
     bytes: &'a [u8],
@@ -950,6 +960,22 @@ mod tests {
         )
         .unwrap();
         let valid = encode("user", vec![(Algorithm::Sha256, Some(credential.form()))]);
+        let mut reused = Vec::new();
+        write(
+            &mut reused,
+            "user",
+            &[(Algorithm::Sha256, Some(credential.form()))],
+        );
+        let encoded_capacity = reused.capacity();
+        assert!(encoded_capacity > 0);
+        assert_eq!(reused, valid);
+        write(
+            &mut reused,
+            "user",
+            &[(Algorithm::Sha256, Some(credential.form()))],
+        );
+        assert!(reused.capacity() >= encoded_capacity);
+        assert_eq!(reused, valid);
         for length in 0..valid.len() {
             assert!(decode_apply(&valid[..length], &mut Records::new(), limits).is_err());
         }
