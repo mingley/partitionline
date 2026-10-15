@@ -33,6 +33,7 @@ use crate::{
     transport::Handler,
 };
 use std::{
+    collections::HashSet,
     path::PathBuf,
     sync::{
         atomic::{AtomicBool, Ordering},
@@ -1514,19 +1515,21 @@ fn collect_metadata_topics<'a>(
     targets: &'a [Target<'a>],
     results: &mut Vec<MetadataTopic<'a>>,
 ) -> Result<(), Error> {
+    // One target cannot repeat. A larger request remembers names and ids already emitted.
+    let track = !semantic_error && targets.len() > 1;
+    let mut seen_names: HashSet<Option<&str>> = HashSet::new();
+    let mut seen_ids: HashSet<[u8; 16]> = HashSet::new();
     for target in targets {
         // Each topic is resolved on its own. A non-zero id is an id lookup.
         // A zero id is a name lookup, including when the same request also
         // names other topics by id.
         let by_id = !semantic_error && target.id != ZERO;
-        if !semantic_error
-            && results.iter().any(|result| {
-                if by_id {
-                    result.id == target.id
-                } else {
-                    result.name == target.name
-                }
-            })
+        if track
+            && if by_id {
+                seen_ids.contains(&target.id)
+            } else {
+                seen_names.contains(&target.name)
+            }
         {
             continue;
         }
@@ -1546,13 +1549,13 @@ fn collect_metadata_topics<'a>(
         } else {
             target.name.and_then(|name| catalog.by_name(name))
         };
-        if let Some(topic) = topic {
-            results.push(MetadataTopic {
+        let pushed = if let Some(topic) = topic {
+            MetadataTopic {
                 name: Some(topic.name()),
                 id: topic.id().bytes(),
                 error: 0,
                 topic: Some(topic),
-            });
+            }
         } else {
             let error = if by_id {
                 100
@@ -1564,13 +1567,20 @@ fn collect_metadata_topics<'a>(
             } else {
                 3
             };
-            results.push(MetadataTopic {
+            MetadataTopic {
                 name: if by_id { None } else { target.name },
                 id: if by_id { target.id } else { ZERO },
                 error,
                 topic: None,
-            });
+            }
+        };
+        if track {
+            if pushed.id != ZERO {
+                let _ = seen_ids.insert(pushed.id);
+            }
+            let _ = seen_names.insert(pushed.name);
         }
+        results.push(pushed);
     }
     Ok(())
 }
@@ -2221,6 +2231,22 @@ mod tests {
             Target {
                 name: None,
                 id: [9u8; 16],
+            },
+            Target {
+                name: None,
+                id: alpha.bytes(),
+            },
+            Target {
+                name: Some("beta"),
+                id: ZERO,
+            },
+            Target {
+                name: Some("alpha"),
+                id: ZERO,
+            },
+            Target {
+                name: None,
+                id: beta.bytes(),
             },
         ];
         let mut results = Vec::new();
