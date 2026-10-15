@@ -589,9 +589,10 @@ impl Projection {
     /// A deleted identity stays reserved within the bounded history.
     pub fn is_tombstoned(&self, id: TopicId) -> bool {
         self.state
-            .records
-            .iter()
-            .any(|r| !r.live && r.topic.id == id)
+            .by_id
+            .get(&id)
+            .and_then(|index| self.state.records.get(*index))
+            .is_some_and(|record| !record.live)
     }
     /// Borrow live topics in deterministic creation order.
     pub fn topics(&self) -> impl Iterator<Item = &Topic> {
