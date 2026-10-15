@@ -5855,8 +5855,7 @@ async fn implicit_piggyback_not_leader_sibling_current_leader_does_not_override(
     let version = mock.last_share_fetch_version().unwrap_or(2);
     let mut failed = ShareFetchedPartition::partition_response(0, 0);
     failed.acknowledge_error_code = error::NOT_LEADER_OR_FOLLOWER;
-    failed.acknowledge_error_message =
-        Some("piggyback sibling not leader current leader".into());
+    failed.acknowledge_error_message = Some("piggyback sibling not leader current leader".into());
     failed.current_leader_id = 2;
     failed.current_leader_epoch = 1;
     let ok = ShareFetchedPartition::partition_response(1, 0);
