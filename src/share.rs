@@ -772,7 +772,10 @@ pub enum ShareAcquireMode {
 /// and still requests Metadata. A ShareAcknowledge partition
 /// `UNKNOWN_TOPIC_OR_PARTITION` with CurrentLeader `leaderId == -1`
 /// and `leaderEpoch != -1` does not update the next ShareFetch target
-/// and still requests Metadata. A
+/// and still requests Metadata. A ShareAcknowledge partition
+/// `UNKNOWN_TOPIC_ID` with CurrentLeader `leaderId == -1` and
+/// `leaderEpoch != -1` does not update the next ShareFetch target and
+/// still requests Metadata. A
 /// ShareAcknowledge partition
 /// `FENCED_LEADER_EPOCH` / `UNKNOWN_TOPIC_OR_PARTITION` /
 /// `UNKNOWN_TOPIC_ID` with a usable CurrentLeader on one partition
@@ -1997,6 +2000,9 @@ impl ShareGroup {
     /// `leaderId != -1` and `leaderEpoch == -1` does not update the
     /// next ShareFetch target and still requests Metadata. A
     /// ShareAcknowledge partition `UNKNOWN_TOPIC_OR_PARTITION` with
+    /// CurrentLeader `leaderId == -1` and `leaderEpoch != -1` does
+    /// not update the next ShareFetch target and still requests
+    /// Metadata. A ShareAcknowledge partition `UNKNOWN_TOPIC_ID` with
     /// CurrentLeader `leaderId == -1` and `leaderEpoch != -1` does
     /// not update the next ShareFetch target and still requests
     /// Metadata. A ShareAcknowledge partition
