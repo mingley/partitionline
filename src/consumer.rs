@@ -4398,14 +4398,10 @@ impl Consumer {
                 let _ = self.m_fetch_rounds.fetch_add(1, Ordering::Relaxed);
                 let n = u64::try_from(recs.len()).unwrap_or(u64::MAX);
                 let _ = self.m_records.fetch_add(n, Ordering::Relaxed);
-                let staged = std::mem::take(&mut self.fetch_return_totals);
-                let staged_records = staged
-                    .values()
-                    .fold(0u64, |n, (count, _)| n.saturating_add(*count));
-                let bytes = if staged_records == u64::try_from(recs.len()).unwrap_or(u64::MAX) {
-                    let mut bytes = 0u64;
-                    for (topic, (n, topic_bytes)) in staged {
-                        bytes = bytes.saturating_add(topic_bytes);
+                let (accounted, mut staged) =
+                    stage_returned_totals(&mut self.fetch_return_totals, recs.len());
+                let bytes = if let Some(bytes) = accounted {
+                    for (topic, (n, topic_bytes)) in staged.drain() {
                         if let Some(tracker) = self.topic_metrics.get_mut(topic.as_ref()) {
                             tracker.note_fetched(n, topic_bytes, elapsed);
                         } else {
@@ -4424,6 +4420,7 @@ impl Consumer {
                     );
                     bytes
                 };
+                self.fetch_return_totals = staged;
                 let _ = self.m_bytes.fetch_add(bytes, Ordering::Relaxed);
                 let recs = if intercept {
                     self.cfg.interceptors.on_consume(recs)
@@ -7272,6 +7269,56 @@ fn batch_fetch_end(batch: &crate::RecordBatch) -> Result<i64> {
         .ok()
         .and_then(|count| batch.base_offset.checked_add(count));
     fetch_end_after(count_end, batch.records.last().map(|record| record.offset))
+}
+
+type FetchTotals = HashMap<Arc<str>, (u64, u64)>;
+
+/// Take per-topic fetch totals when they count the same records about to be returned.
+///
+/// The map's allocation comes back with the staged entries removed, so the next
+/// poll reuses it. A count that does not match the returned records is discarded
+/// the same way and the caller sums the records instead.
+fn stage_returned_totals(
+    totals: &mut FetchTotals,
+    record_count: usize,
+) -> (Option<u64>, FetchTotals) {
+    let mut staged = std::mem::take(totals);
+    let mut staged_records = 0u64;
+    let mut staged_bytes = 0u64;
+    for (count, topic_bytes) in staged.values() {
+        staged_records = staged_records.saturating_add(*count);
+        staged_bytes = staged_bytes.saturating_add(*topic_bytes);
+    }
+    if staged_records == u64::try_from(record_count).unwrap_or(u64::MAX) {
+        (Some(staged_bytes), staged)
+    } else {
+        staged.clear();
+        (None, staged)
+    }
+}
+
+#[test]
+fn fetch_totals_keep_their_buckets() {
+    let mut totals = HashMap::new();
+    let orders: Arc<str> = Arc::from("orders");
+    let payments: Arc<str> = Arc::from("payments");
+    let _ = totals.insert(Arc::clone(&orders), (2, 8));
+    let _ = totals.insert(Arc::clone(&payments), (1, 4));
+    let capacity = totals.capacity();
+    let (bytes, mut staged) = stage_returned_totals(&mut totals, 3);
+    assert_eq!(bytes, Some(12));
+    assert!(totals.is_empty());
+    assert_eq!(staged.drain().count(), 2);
+    totals = staged;
+    assert!(totals.capacity() >= capacity);
+    let _ = totals.insert(orders, (1, 1));
+    let _ = totals.insert(payments, (1, 1));
+    assert!(totals.capacity() >= capacity);
+    let kept = totals.capacity();
+    let (bytes, staged) = stage_returned_totals(&mut totals, 0);
+    assert_eq!(bytes, None);
+    assert!(staged.is_empty());
+    assert!(staged.capacity() >= kept);
 }
 
 /// Do not advance a fetch cursor to or past a known high watermark.
