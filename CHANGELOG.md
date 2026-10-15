@@ -72,6 +72,9 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `updateLeaderInfoMap` requires both). A ShareAcknowledge partition
   `NOT_LEADER_OR_FOLLOWER` with CurrentLeader `leaderId != -1` and
   `leaderEpoch == -1` does not update the next ShareFetch target and
+  still requests Metadata. A ShareAcknowledge partition
+  `FENCED_LEADER_EPOCH` with CurrentLeader `leaderId == -1` and
+  `leaderEpoch != -1` does not update the next ShareFetch target and
   still requests Metadata.
   A ShareAcknowledge partition `FENCED_LEADER_EPOCH` /
   `UNKNOWN_TOPIC_OR_PARTITION` / `UNKNOWN_TOPIC_ID` with a usable
