@@ -5774,9 +5774,9 @@ impl Consumer {
                 {
                     continue;
                 }
-                if self.cursor_at(&name, part.partition).is_none() {
+                let Some(req_offset) = self.cursor_at(&name, part.partition) else {
                     continue;
-                }
+                };
                 if *budget_reached {
                     if part.error_code == 0 {
                         self.retain_held(
@@ -5860,7 +5860,6 @@ impl Consumer {
                     retry = retry.merge(FetchRetry::Redirect);
                     continue;
                 }
-                let req_offset = self.cursor_at(&name, part.partition).unwrap_or(0);
                 if position_past_high_watermark(req_offset, part.high_watermark)
                     || position_before_log_start(req_offset, part.log_start_offset)
                 {
