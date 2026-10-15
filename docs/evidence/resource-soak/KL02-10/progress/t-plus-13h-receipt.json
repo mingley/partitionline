@@ -1,0 +1,130 @@
+{
+  "captured_utc": "2026-10-15T00:16:01.832887+00:00",
+  "driver_pid": 901849,
+  "child_pid": 901851,
+  "attempt_status": "running",
+  "kafka_listen": "127.0.0.1:9092",
+  "first_hour_median_rss_bytes": 11759616,
+  "first_hour_samples": 69861,
+  "second_hour": {
+    "complete": true,
+    "samples": 69859,
+    "min_rss_bytes": 7569408,
+    "median_rss_bytes": 10891264,
+    "max_rss_bytes": 11812864
+  },
+  "third_hour": {
+    "complete": true,
+    "samples": 69836,
+    "min_rss_bytes": 7036928,
+    "median_rss_bytes": 7237632,
+    "max_rss_bytes": 7630848
+  },
+  "fourth_hour": {
+    "complete": true,
+    "samples": 69863,
+    "min_rss_bytes": 7016448,
+    "median_rss_bytes": 7020544,
+    "max_rss_bytes": 7102464
+  },
+  "fifth_hour": {
+    "complete": true,
+    "samples": 69931,
+    "min_rss_bytes": 7020544,
+    "median_rss_bytes": 7020544,
+    "max_rss_bytes": 7020544
+  },
+  "sixth_hour": {
+    "complete": true,
+    "samples": 69861,
+    "min_rss_bytes": 7020544,
+    "median_rss_bytes": 7020544,
+    "max_rss_bytes": 8437760
+  },
+  "seventh_hour": {
+    "complete": true,
+    "samples": 69816,
+    "min_rss_bytes": 6815744,
+    "median_rss_bytes": 6889472,
+    "max_rss_bytes": 8437760
+  },
+  "eighth_hour": {
+    "complete": true,
+    "samples": 69850,
+    "min_rss_bytes": 6586368,
+    "median_rss_bytes": 6844416,
+    "max_rss_bytes": 7282688
+  },
+  "ninth_hour": {
+    "complete": true,
+    "samples": 69877,
+    "min_rss_bytes": 6782976,
+    "median_rss_bytes": 6787072,
+    "max_rss_bytes": 7282688
+  },
+  "tenth_hour": {
+    "complete": true,
+    "samples": 69857,
+    "min_rss_bytes": 6787072,
+    "median_rss_bytes": 6787072,
+    "max_rss_bytes": 6787072
+  },
+  "eleventh_hour": {
+    "complete": true,
+    "samples": 69904,
+    "min_rss_bytes": 6787072,
+    "median_rss_bytes": 6787072,
+    "max_rss_bytes": 6787072
+  },
+  "twelfth_hour": {
+    "complete": true,
+    "samples": 69923,
+    "min_rss_bytes": 6787072,
+    "median_rss_bytes": 6787072,
+    "max_rss_bytes": 6787072
+  },
+  "thirteenth_hour": {
+    "complete": true,
+    "samples": 69939,
+    "min_rss_bytes": 6787072,
+    "median_rss_bytes": 6787072,
+    "max_rss_bytes": 6787072
+  },
+  "rss_bytes": {
+    "min": 6586368,
+    "median": 7020544,
+    "max": 11812864,
+    "latest": 6787072
+  },
+  "last_sample": {
+    "kind": "sample",
+    "utc_ms": 1792023361793,
+    "elapsed_ms": 47032191,
+    "offered": 75251505,
+    "accepted": 17127785,
+    "completed": 17127769,
+    "failed": 58123720,
+    "ambiguous": 16,
+    "pending": 0,
+    "producer_queue_bytes": 0,
+    "consumer_buffered_bytes": 1792,
+    "application_decoded_bytes": 256,
+    "delivered": 1793988,
+    "delivered_bytes": 459260928,
+    "fetch_errors": 0,
+    "runtime_tasks": 5,
+    "peer_connections": 0,
+    "final": false
+  },
+  "last_host": {
+    "utc": "2026-10-15T00:15:58.521708+00:00",
+    "monotonic_ns": 90613776495178,
+    "pid": 901851,
+    "rss_bytes": 6787072,
+    "threads": 3,
+    "socket_fds": 7
+  },
+  "production_qualification": false,
+  "performance_claims_valid": false,
+  "launched_job_is_not_a_pass": true
+}
