@@ -3411,6 +3411,51 @@ async fn gzip_produce_fetch() {
 }
 
 #[tokio::test]
+async fn multi_leader_fetch_dials_overlap() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_topic_partitions("t", 2);
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    let producer = Producer::new(pcfg).await.unwrap();
+    producer
+        .send(ProduceRecord::to("t").partition(0).value(&b"fast-a"[..]))
+        .await
+        .unwrap();
+    producer
+        .send(ProduceRecord::to("t").partition(1).value(&b"fast-b"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    ccfg.request_timeout = Duration::from_secs(3);
+    let mut consumer = Consumer::new(ccfg).await.unwrap();
+    consumer
+        .assign_many([(("t", 0), 0i64), (("t", 1), 0)])
+        .await
+        .unwrap();
+    let before = mock.api_versions_versions().len();
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let started = Instant::now();
+    let recs = consumer
+        .fetch_timeout(Duration::from_secs(3))
+        .await
+        .unwrap();
+    let elapsed = started.elapsed();
+    assert!(
+        elapsed < Duration::from_millis(400),
+        "leader dials ran one after another: {elapsed:?}"
+    );
+    assert!(
+        mock.api_versions_versions().len() >= before + 2,
+        "both leaders should negotiate, saw {}",
+        mock.api_versions_versions().len() - before
+    );
+    assert_eq!(recs.len(), 2, "{recs:?}");
+    consumer.close().await.unwrap();
+}
+
+#[tokio::test]
 async fn snappy_produce_fetch() {
     let mock = common::Mock::start().await;
     let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);

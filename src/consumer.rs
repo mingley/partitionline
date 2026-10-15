@@ -3144,11 +3144,45 @@ impl Consumer {
         addr: &str,
         deadline: Instant,
     ) -> Result<(BrokerConn, ApiVersionsResponse)> {
-        let mut conn = BrokerConn::connect_tls(
+        Self::open_fetch_conn(
             addr,
             &self.cfg.client_id,
-            self.cfg.connect_timeout.min(startup_remaining(deadline)?),
+            self.cfg.connect_timeout,
             self.cfg.tls.as_ref(),
+            self.cfg.sasl_plain.as_ref(),
+            self.cfg.sasl_scram.as_ref(),
+            self.cfg.sasl_scram_sha512.as_ref(),
+            self.cfg.sasl_oauthbearer.as_deref(),
+            self.cfg.sasl_oauthbearer_oidc.as_ref(),
+            deadline,
+        )
+        .await
+    }
+
+    /// How many leader handshakes a multi-broker fetch may open at once.
+    const FETCH_DIAL_PARALLELISM: usize = 8;
+
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "a leader dial carries the shared SASL and TLS settings"
+    )]
+    async fn open_fetch_conn(
+        addr: &str,
+        client_id: &str,
+        connect_timeout: Duration,
+        tls: Option<&crate::net::TlsConfig>,
+        sasl_plain: Option<&(String, String)>,
+        sasl_scram: Option<&(String, String)>,
+        sasl_scram_sha512: Option<&(String, String)>,
+        sasl_oauthbearer: Option<&str>,
+        sasl_oauthbearer_oidc: Option<&crate::OidcConfig>,
+        deadline: Instant,
+    ) -> Result<(BrokerConn, ApiVersionsResponse)> {
+        let mut conn = BrokerConn::connect_tls(
+            addr,
+            client_id,
+            connect_timeout.min(startup_remaining(deadline)?),
+            tls,
         )
         .await?;
         let versions_resp =
@@ -3163,15 +3197,196 @@ impl Consumer {
         sasl::apply_api_keys(&mut conn, &versions_resp.api_keys);
         sasl::authenticate(
             &mut conn,
-            self.cfg.sasl_plain.as_ref(),
-            self.cfg.sasl_scram.as_ref(),
-            self.cfg.sasl_scram_sha512.as_ref(),
-            self.cfg.sasl_oauthbearer.as_deref(),
-            self.cfg.sasl_oauthbearer_oidc.as_ref(),
+            sasl_plain,
+            sasl_scram,
+            sasl_scram_sha512,
+            sasl_oauthbearer,
+            sasl_oauthbearer_oidc,
             startup_remaining(deadline)?,
         )
         .await?;
         Ok((conn, versions_resp))
+    }
+
+    async fn connect_parallel_fetch_nodes(
+        &mut self,
+        nodes: Vec<i32>,
+        by_leader: &mut HashMap<i32, HashMap<String, Vec<FetchPartition>>>,
+        deadline: Instant,
+    ) -> Result<Vec<i32>> {
+        let mut queue = nodes;
+        let mut connected = Vec::new();
+        let mut dials = Vec::new();
+        while let Some(node) = queue.pop() {
+            if connected.contains(&node) || dials.iter().any(|(id, _)| *id == node) {
+                continue;
+            }
+            if Instant::now() >= deadline {
+                break;
+            }
+            if is_preferred_only_target(&self.preferred, &self.cluster, node, by_leader) {
+                match self.connect_preferred_once(node, deadline).await {
+                    Ok(()) => connected.push(node),
+                    Err(error) => {
+                        if !reroute_unreachable_preferred(
+                            &mut self.preferred,
+                            &self.cluster,
+                            node,
+                            by_leader,
+                        ) {
+                            if matches!(error, Error::Timeout) {
+                                break;
+                            }
+                            return Err(Error::Timeout);
+                        }
+                        for leader in by_leader.keys().copied() {
+                            if !connected.contains(&leader)
+                                && !queue.contains(&leader)
+                                && dials.iter().all(|(id, _)| *id != leader)
+                            {
+                                queue.push(leader);
+                            }
+                        }
+                    }
+                }
+                continue;
+            }
+            if self
+                .conns
+                .get(&node)
+                .is_some_and(|conn| conn.idle_expired(self.cfg.connections_max_idle))
+            {
+                let _ = self.conns.remove(&node);
+                let _ = self.list_offsets_ranges.remove(&node);
+                let _ = self.leader_epoch_ranges.remove(&node);
+                if let Some(session) = self.fetch_sessions.get_mut(&node) {
+                    session.reset();
+                }
+            }
+            if self.conns.contains_key(&node) {
+                connected.push(node);
+                continue;
+            }
+            let Some(addr) = self.cluster.brokers.get(&node).cloned() else {
+                return Err(Error::protocol(format!("unknown broker {node}")));
+            };
+            if let Some(session) = self.fetch_sessions.get_mut(&node) {
+                session.reset();
+            }
+            dials.push((node, addr));
+        }
+        if dials.is_empty() {
+            if connected.is_empty() {
+                return Err(Error::Timeout);
+            }
+            return Ok(connected);
+        }
+        let client_id = self.cfg.client_id.clone();
+        let connect_timeout = self.cfg.connect_timeout;
+        let tls = self.cfg.tls.clone();
+        let sasl_plain = self.cfg.sasl_plain.clone();
+        let sasl_scram = self.cfg.sasl_scram.clone();
+        let sasl_scram_sha512 = self.cfg.sasl_scram_sha512.clone();
+        let sasl_oauthbearer = self.cfg.sasl_oauthbearer.clone();
+        let sasl_oauthbearer_oidc = self.cfg.sasl_oauthbearer_oidc.clone();
+        let mut waiting = dials.into_iter();
+        let mut inflight = tokio::task::JoinSet::new();
+        let spawn = |inflight: &mut tokio::task::JoinSet<(
+            i32,
+            Result<(BrokerConn, ApiVersionsResponse)>,
+        )>,
+                     node: i32,
+                     addr: String| {
+            let client_id = client_id.clone();
+            let tls = tls.clone();
+            let sasl_plain = sasl_plain.clone();
+            let sasl_scram = sasl_scram.clone();
+            let sasl_scram_sha512 = sasl_scram_sha512.clone();
+            let sasl_oauthbearer = sasl_oauthbearer.clone();
+            let sasl_oauthbearer_oidc = sasl_oauthbearer_oidc.clone();
+            let _ = inflight.spawn(async move {
+                let result = Consumer::open_fetch_conn(
+                    &addr,
+                    &client_id,
+                    connect_timeout,
+                    tls.as_ref(),
+                    sasl_plain.as_ref(),
+                    sasl_scram.as_ref(),
+                    sasl_scram_sha512.as_ref(),
+                    sasl_oauthbearer.as_deref(),
+                    sasl_oauthbearer_oidc.as_ref(),
+                    deadline,
+                )
+                .await;
+                (node, result)
+            });
+        };
+        while inflight.len() < Self::FETCH_DIAL_PARALLELISM {
+            let Some((node, addr)) = waiting.next() else {
+                break;
+            };
+            spawn(&mut inflight, node, addr);
+        }
+        let mut retry = Vec::new();
+        while !inflight.is_empty() {
+            if self.woken() {
+                inflight.abort_all();
+                return Err(Error::Wakeup);
+            }
+            if Instant::now() >= deadline {
+                inflight.abort_all();
+                break;
+            }
+            let rest = deadline.saturating_duration_since(Instant::now());
+            let joined = tokio::select! {
+                joined = inflight.join_next() => joined,
+                _ = tokio::time::sleep(rest) => {
+                    inflight.abort_all();
+                    break;
+                }
+            };
+            let Some(joined) = joined else {
+                break;
+            };
+            let (node, result) =
+                joined.map_err(|error| Error::protocol(format!("fetch dial task: {error}")))?;
+            match result {
+                Ok((conn, versions)) => {
+                    let _ = self.reconnect_fails.remove(&node);
+                    self.remember_opened_conn(node, conn, &versions);
+                    connected.push(node);
+                }
+                Err(error) if error.is_retriable() || matches!(error, Error::Timeout) => {
+                    self.note_reconnect_failure(node);
+                    retry.push(node);
+                }
+                Err(error) => {
+                    inflight.abort_all();
+                    return Err(error);
+                }
+            }
+            while inflight.len() < Self::FETCH_DIAL_PARALLELISM {
+                let Some((node, addr)) = waiting.next() else {
+                    break;
+                };
+                spawn(&mut inflight, node, addr);
+            }
+        }
+        for node in retry {
+            if Instant::now() >= deadline {
+                break;
+            }
+            match self.connect_node_inner(node, false, deadline).await {
+                Ok(()) => connected.push(node),
+                Err(Error::Timeout) => break,
+                Err(error) if error.is_retriable() => {}
+                Err(error) => return Err(error),
+            }
+        }
+        if connected.is_empty() {
+            return Err(Error::Timeout);
+        }
+        Ok(connected)
     }
 
     /// One dial for a rack replica. A refusal must leave time to fetch from the leader.
@@ -4381,51 +4596,70 @@ impl Consumer {
         let collect_parallel = nodes.len() > 1 || self.inflight_fetches.is_some();
         let mut queue = nodes;
         let mut connected = Vec::new();
-        while let Some(node) = queue.pop() {
-            if connected.contains(&node) {
-                continue;
-            }
-            let rest = deadline.saturating_duration_since(Instant::now());
-            if rest.is_zero() {
-                return self.ready_fetches_or_timeout();
-            }
-            let preferred_only =
-                is_preferred_only_target(&self.preferred, &self.cluster, node, &by_leader);
-            let connected_ok = if preferred_only {
-                match self.connect_preferred_once(node, deadline).await {
-                    Ok(()) => true,
-                    Err(error) => {
-                        if !reroute_unreachable_preferred(
-                            &mut self.preferred,
-                            &self.cluster,
-                            node,
-                            &mut by_leader,
-                        ) {
-                            if matches!(error, Error::Timeout) {
+        if collect_parallel {
+            connected = match self
+                .connect_parallel_fetch_nodes(queue, &mut by_leader, deadline)
+                .await
+            {
+                Ok(nodes) => nodes,
+                Err(Error::Timeout) => return self.ready_fetches_or_timeout(),
+                Err(error) => return Err(error),
+            };
+        } else {
+            while let Some(node) = queue.pop() {
+                if connected.contains(&node) {
+                    continue;
+                }
+                let rest = deadline.saturating_duration_since(Instant::now());
+                if rest.is_zero() {
+                    if connected.is_empty() {
+                        return self.ready_fetches_or_timeout();
+                    }
+                    break;
+                }
+                let preferred_only =
+                    is_preferred_only_target(&self.preferred, &self.cluster, node, &by_leader);
+                let connected_ok = if preferred_only {
+                    match self.connect_preferred_once(node, deadline).await {
+                        Ok(()) => true,
+                        Err(error) => {
+                            if !reroute_unreachable_preferred(
+                                &mut self.preferred,
+                                &self.cluster,
+                                node,
+                                &mut by_leader,
+                            ) {
+                                if matches!(error, Error::Timeout) {
+                                    return self.ready_fetches_or_timeout();
+                                }
+                                return Err(Error::Timeout);
+                            }
+                            false
+                        }
+                    }
+                } else {
+                    match self
+                        .connect_node_inner(node, !collect_parallel, deadline)
+                        .await
+                    {
+                        Ok(()) => true,
+                        Err(Error::Timeout) => {
+                            if connected.is_empty() {
                                 return self.ready_fetches_or_timeout();
                             }
-                            return Err(Error::Timeout);
+                            break;
                         }
-                        false
+                        Err(error) => return Err(error),
                     }
+                };
+                if connected_ok {
+                    connected.push(node);
+                    continue;
                 }
-            } else {
-                match self
-                    .connect_node_inner(node, !collect_parallel, deadline)
-                    .await
-                {
-                    Ok(()) => true,
-                    Err(Error::Timeout) => return self.ready_fetches_or_timeout(),
-                    Err(error) => return Err(error),
-                }
-            };
-            if connected_ok {
-                connected.push(node);
-                continue;
-            }
-            for leader in by_leader.keys().copied() {
-                if !connected.contains(&leader) && !queue.contains(&leader) {
-                    queue.push(leader);
+                for leader in by_leader.keys().copied() {
+                    if !connected.contains(&leader) && !queue.contains(&leader) {
+                        queue.push(leader);
+                    }
                 }
             }
         }
