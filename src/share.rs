@@ -1529,8 +1529,10 @@ impl ShareGroup {
     /// next ShareFetch without Metadata (Java
     /// `testWhenFetchResponseReturnsWithALeadershipChangeErrorAndNewLeaderInformation`).
     /// `UNKNOWN_LEADER_EPOCH` skips without Metadata; partition
-    /// `INCONSISTENT_TOPIC_ID` / `UNKNOWN_TOPIC_OR_PARTITION` skip and
-    /// request Metadata (Java `testHandleFetchResponseError`). A sole
+    /// `INCONSISTENT_TOPIC_ID` / `UNKNOWN_TOPIC_OR_PARTITION` /
+    /// `UNKNOWN_TOPIC_ID` skip and request Metadata (Java
+    /// `testHandleFetchResponseError` / `handleInitializeErrors`).
+    /// Top-level `UNKNOWN_TOPIC_ID` still fails that poll. A sole
     /// partition `NOT_LEADER_OR_FOLLOWER` collects empty (Java
     /// `testFetchError`). A ShareFetch topic id that is
     /// not in this request — including a real cluster topic that is

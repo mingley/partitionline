@@ -57,8 +57,9 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   that error has no usable CurrentLeader.
 
 - ShareFetch partition `INCONSISTENT_TOPIC_ID` / `UNKNOWN_TOPIC_OR_PARTITION`
-  skip without throwing and request Metadata on the next poll (Java
-  `testHandleFetchResponseError`). A sole partition `NOT_LEADER_OR_FOLLOWER`
+  / `UNKNOWN_TOPIC_ID` skip without throwing and request Metadata on the
+  next poll (Java `handleInitializeErrors`). Top-level `UNKNOWN_TOPIC_ID`
+  still fails that poll. A sole partition `NOT_LEADER_OR_FOLLOWER`
   collects empty on that poll (Java `testFetchError`).
   `UNKNOWN_LEADER_EPOCH` still skips without Metadata.
 
