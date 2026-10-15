@@ -3169,6 +3169,20 @@ fn listed_group_offsets(
     }
 }
 
+fn remember_topic_group<T>(
+    order: &mut Vec<String>,
+    by_topic: &mut HashMap<String, Vec<T>>,
+    topic: &str,
+    value: T,
+) {
+    if let Some(parts) = by_topic.get_mut(topic) {
+        parts.push(value);
+        return;
+    }
+    order.push(topic.to_string());
+    let _ = by_topic.insert(topic.to_string(), vec![value]);
+}
+
 fn delete_records_topics(
     records: &[(crate::TopicPartition, i64)],
     idxs: &[usize],
@@ -3179,21 +3193,15 @@ fn delete_records_topics(
         let Some((tp, offset)) = records.get(i) else {
             continue;
         };
-        match by_topic.entry(tp.topic.clone()) {
-            std::collections::hash_map::Entry::Vacant(slot) => {
-                order.push(tp.topic.clone());
-                let _ = slot.insert(vec![DeleteRecordsPartition {
-                    partition: tp.partition,
-                    offset: *offset,
-                }]);
-            }
-            std::collections::hash_map::Entry::Occupied(mut slot) => {
-                slot.get_mut().push(DeleteRecordsPartition {
-                    partition: tp.partition,
-                    offset: *offset,
-                });
-            }
-        }
+        remember_topic_group(
+            &mut order,
+            &mut by_topic,
+            &tp.topic,
+            DeleteRecordsPartition {
+                partition: tp.partition,
+                offset: *offset,
+            },
+        );
     }
     order
         .into_iter()
@@ -3215,15 +3223,7 @@ fn describe_producers_topics(
         let Some(tp) = partitions.get(i) else {
             continue;
         };
-        match by_topic.entry(tp.topic.clone()) {
-            std::collections::hash_map::Entry::Vacant(slot) => {
-                order.push(tp.topic.clone());
-                let _ = slot.insert(vec![tp.partition]);
-            }
-            std::collections::hash_map::Entry::Occupied(mut slot) => {
-                slot.get_mut().push(tp.partition);
-            }
-        }
+        remember_topic_group(&mut order, &mut by_topic, &tp.topic, tp.partition);
     }
     order
         .into_iter()
@@ -14177,19 +14177,12 @@ fn group_reassignments(assignments: &[PartitionReassignment]) -> Vec<Reassignabl
     let mut by_topic: HashMap<String, Vec<ReassignablePartition>> = HashMap::new();
     let mut order: Vec<String> = Vec::new();
     for a in assignments {
-        match by_topic.entry(a.topic.clone()) {
-            std::collections::hash_map::Entry::Vacant(slot) => {
-                order.push(a.topic.clone());
-                let _ = slot.insert(vec![ReassignablePartition::new(
-                    a.partition,
-                    a.replicas.clone(),
-                )]);
-            }
-            std::collections::hash_map::Entry::Occupied(mut slot) => {
-                slot.get_mut()
-                    .push(ReassignablePartition::new(a.partition, a.replicas.clone()));
-            }
-        }
+        remember_topic_group(
+            &mut order,
+            &mut by_topic,
+            &a.topic,
+            ReassignablePartition::new(a.partition, a.replicas.clone()),
+        );
     }
     order
         .into_iter()
@@ -14204,15 +14197,7 @@ fn group_list_reassignments(partitions: &[crate::TopicPartition]) -> Vec<ListRea
     let mut by_topic: HashMap<String, Vec<i32>> = HashMap::new();
     let mut order: Vec<String> = Vec::new();
     for tp in partitions {
-        match by_topic.entry(tp.topic.clone()) {
-            std::collections::hash_map::Entry::Vacant(slot) => {
-                order.push(tp.topic.clone());
-                let _ = slot.insert(vec![tp.partition]);
-            }
-            std::collections::hash_map::Entry::Occupied(mut slot) => {
-                slot.get_mut().push(tp.partition);
-            }
-        }
+        remember_topic_group(&mut order, &mut by_topic, &tp.topic, tp.partition);
     }
     order
         .into_iter()
@@ -14262,15 +14247,7 @@ fn offset_delete_topics(partitions: &[(String, i32)]) -> Vec<OffsetDeleteTopic> 
     let mut by_topic: HashMap<String, Vec<i32>> = HashMap::new();
     let mut order: Vec<String> = Vec::new();
     for (topic, part) in partitions {
-        match by_topic.entry(topic.clone()) {
-            std::collections::hash_map::Entry::Vacant(slot) => {
-                order.push(topic.clone());
-                let _ = slot.insert(vec![*part]);
-            }
-            std::collections::hash_map::Entry::Occupied(mut slot) => {
-                slot.get_mut().push(*part);
-            }
-        }
+        remember_topic_group(&mut order, &mut by_topic, topic, *part);
     }
     order
         .into_iter()
@@ -14395,15 +14372,7 @@ fn list_offset_topic_requests(
             current_leader_epoch: cluster.leader_epoch(&tp.topic, tp.partition),
             timestamp: *ts,
         };
-        match by_topic.entry(tp.topic.clone()) {
-            std::collections::hash_map::Entry::Vacant(slot) => {
-                order.push(tp.topic.clone());
-                let _ = slot.insert(vec![part]);
-            }
-            std::collections::hash_map::Entry::Occupied(mut slot) => {
-                slot.get_mut().push(part);
-            }
-        }
+        remember_topic_group(&mut order, &mut by_topic, &tp.topic, part);
     }
     order
         .into_iter()
@@ -14520,16 +14489,13 @@ fn describable_topics_for_broker(
         if r.broker_id != broker_id {
             continue;
         }
-        match by_topic.entry(r.topic.clone()) {
-            std::collections::hash_map::Entry::Vacant(slot) => {
-                order.push(r.topic.clone());
-                let _ = slot.insert(vec![r.partition]);
+        if let Some(parts) = by_topic.get_mut(r.topic.as_str()) {
+            if !parts.contains(&r.partition) {
+                parts.push(r.partition);
             }
-            std::collections::hash_map::Entry::Occupied(mut slot) => {
-                if !slot.get().contains(&r.partition) {
-                    slot.get_mut().push(r.partition);
-                }
-            }
+        } else {
+            order.push(r.topic.clone());
+            let _ = by_topic.insert(r.topic.clone(), vec![r.partition]);
         }
     }
     order
