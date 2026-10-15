@@ -1966,6 +1966,22 @@ fn remember_forgotten(
     let _ = forgotten.insert(topic, ids);
 }
 
+/// Fetch plan carried into session preparation without copying the topic name.
+#[derive(Clone)]
+struct PlannedFetch {
+    topic: Arc<str>,
+    topic_id: [u8; 16],
+    partitions: Vec<FetchPartition>,
+}
+
+fn planned_fetch_topic(planned: PlannedFetch) -> FetchTopic {
+    FetchTopic {
+        topic: planned.topic.as_ref().to_owned(),
+        topic_id: planned.topic_id,
+        partitions: planned.partitions,
+    }
+}
+
 impl BrokerFetchSession {
     fn reset(&mut self) {
         self.metadata = self.metadata.next_close_existing_attempt_new();
@@ -2013,12 +2029,12 @@ impl BrokerFetchSession {
         Ok(())
     }
 
-    fn prepare(&mut self, topics: Vec<FetchTopic>, version: i16) -> SessionFetchRequest {
+    fn prepare(&mut self, topics: Vec<PlannedFetch>, version: i16) -> SessionFetchRequest {
         if version < 7 {
             *self = Self::default();
             return SessionFetchRequest {
                 metadata: FetchMetadata::LEGACY,
-                topics,
+                topics: topics.into_iter().map(planned_fetch_topic).collect(),
                 forgotten: Vec::new(),
             };
         }
@@ -2040,17 +2056,17 @@ impl BrokerFetchSession {
         let full = self.metadata.is_full();
         let mut replaced: Vec<(Arc<str>, [u8; 16], i32)> = Vec::new();
         for topic in &topics {
-            if !self.partitions.contains_key(topic.topic.as_str()) {
+            if !self.partitions.contains_key(topic.topic.as_ref()) {
                 let _ = self
                     .partitions
-                    .insert(Arc::<str>::from(topic.topic.as_str()), SessionParts::new());
+                    .insert(Arc::clone(&topic.topic), SessionParts::new());
             }
-            if let Some(entry) = self.changed.get_mut(topic.topic.as_str()) {
+            if let Some(entry) = self.changed.get_mut(topic.topic.as_ref()) {
                 entry.0 = topic.topic_id;
             }
             let mut changed_indexes = Vec::new();
             let mut replaced_here: Vec<([u8; 16], i32)> = Vec::new();
-            let Some(slot) = self.partitions.get_mut(topic.topic.as_str()) else {
+            let Some(slot) = self.partitions.get_mut(topic.topic.as_ref()) else {
                 continue;
             };
             for (index, partition) in topic.partitions.iter().enumerate() {
@@ -2085,17 +2101,17 @@ impl BrokerFetchSession {
                 let Some(partition) = topic.partitions.get(index) else {
                     continue;
                 };
-                if let Some((_, parts)) = self.changed.get_mut(topic.topic.as_str()) {
+                if let Some((_, parts)) = self.changed.get_mut(topic.topic.as_ref()) {
                     parts.push(partition.clone());
                 } else {
                     let _ = self.changed.insert(
-                        topic.topic.clone(),
+                        topic.topic.as_ref().to_owned(),
                         (topic.topic_id, vec![partition.clone()]),
                     );
                 }
             }
             if !replaced_here.is_empty() {
-                if let Some((name, _)) = self.partitions.get_key_value(topic.topic.as_str()) {
+                if let Some((name, _)) = self.partitions.get_key_value(topic.topic.as_ref()) {
                     for (id, partition) in replaced_here {
                         replaced.push((Arc::clone(name), id, partition));
                     }
@@ -2122,7 +2138,7 @@ impl BrokerFetchSession {
             }
         }
         let topics = if full {
-            topics
+            topics.into_iter().map(planned_fetch_topic).collect()
         } else {
             self.changed
                 .drain()
@@ -6665,19 +6681,18 @@ fn is_abort_marker(batch: &crate::protocol::records::RecordBatch) -> bool {
         })
 }
 
-fn fetch_topics<T, I>(
-    by_topic: HashMap<T, Vec<FetchPartition>>,
+fn fetch_topics<I>(
+    by_topic: HashMap<Arc<str>, Vec<FetchPartition>>,
     name_ids: &HashMap<I, [u8; 16]>,
-) -> Vec<FetchTopic>
+) -> Vec<PlannedFetch>
 where
-    T: std::hash::Hash + Eq + AsRef<str>,
     I: std::hash::Hash + Eq + std::borrow::Borrow<str>,
 {
     by_topic
         .into_iter()
-        .map(|(topic, partitions)| FetchTopic {
+        .map(|(topic, partitions)| PlannedFetch {
             topic_id: name_ids.get(topic.as_ref()).copied().unwrap_or([0u8; 16]),
-            topic: topic.as_ref().to_owned(),
+            topic,
             partitions,
         })
         .collect()
@@ -7295,9 +7310,9 @@ pub(crate) fn partition_infos_from(
 mod tests {
     use super::*;
 
-    fn session_topic(id: [u8; 16], offset: i64) -> FetchTopic {
-        FetchTopic {
-            topic: "t".into(),
+    fn session_topic(id: [u8; 16], offset: i64) -> PlannedFetch {
+        PlannedFetch {
+            topic: Arc::from("t"),
             topic_id: id,
             partitions: vec![FetchPartition {
                 partition: 0,
