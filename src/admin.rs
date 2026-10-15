@@ -3294,6 +3294,47 @@ fn startup_remaining(deadline: Instant) -> Result<Duration> {
     }
 }
 
+async fn dial_admin_socket(
+    addr: &str,
+    cfg: &AdminConfig,
+    stats: &Arc<crate::metrics::AdminTracker>,
+    deadline: Instant,
+) -> Result<AdminOffsetConn> {
+    let rest = deadline.saturating_duration_since(Instant::now());
+    if rest.is_zero() {
+        return Err(Error::Timeout);
+    }
+    let mut conn = BrokerConn::connect_tls(
+        addr,
+        &cfg.client_id,
+        cfg.connect_timeout.min(rest),
+        cfg.tls.as_ref(),
+    )
+    .await?;
+    conn.set_stats(Arc::clone(stats));
+    let rest = deadline.saturating_duration_since(Instant::now());
+    if rest.is_zero() {
+        return Err(Error::Timeout);
+    }
+    let versions_resp = crate::protocol::api::negotiate_api_versions(&mut conn, rest).await?;
+    sasl::apply_api_keys(&mut conn, &versions_resp.api_keys);
+    let rest = deadline.saturating_duration_since(Instant::now());
+    if rest.is_zero() {
+        return Err(Error::Timeout);
+    }
+    sasl::authenticate(
+        &mut conn,
+        cfg.sasl_plain.as_ref(),
+        cfg.sasl_scram.as_ref(),
+        cfg.sasl_scram_sha512.as_ref(),
+        cfg.sasl_oauthbearer.as_deref(),
+        cfg.sasl_oauthbearer_oidc.as_ref(),
+        rest,
+    )
+    .await?;
+    Ok(AdminOffsetConn::new(conn, &versions_resp))
+}
+
 impl Admin {
     /// Add a metadata-quorum voter (KIP-853), using AddRaftVoter v0 or v1.
     ///
@@ -8135,39 +8176,7 @@ impl Admin {
 
     /// Dial, negotiate, and authenticate inside `deadline`.
     async fn open_node_conn_until(&self, addr: &str, deadline: Instant) -> Result<AdminOffsetConn> {
-        let rest = deadline.saturating_duration_since(Instant::now());
-        if rest.is_zero() {
-            return Err(Error::Timeout);
-        }
-        let mut conn = BrokerConn::connect_tls(
-            addr,
-            &self.cfg.client_id,
-            self.cfg.connect_timeout.min(rest),
-            self.cfg.tls.as_ref(),
-        )
-        .await?;
-        conn.set_stats(Arc::clone(&self.stats));
-        let rest = deadline.saturating_duration_since(Instant::now());
-        if rest.is_zero() {
-            return Err(Error::Timeout);
-        }
-        let versions_resp = crate::protocol::api::negotiate_api_versions(&mut conn, rest).await?;
-        sasl::apply_api_keys(&mut conn, &versions_resp.api_keys);
-        let rest = deadline.saturating_duration_since(Instant::now());
-        if rest.is_zero() {
-            return Err(Error::Timeout);
-        }
-        sasl::authenticate(
-            &mut conn,
-            self.cfg.sasl_plain.as_ref(),
-            self.cfg.sasl_scram.as_ref(),
-            self.cfg.sasl_scram_sha512.as_ref(),
-            self.cfg.sasl_oauthbearer.as_deref(),
-            self.cfg.sasl_oauthbearer_oidc.as_ref(),
-            rest,
-        )
-        .await?;
-        Ok(AdminOffsetConn::new(conn, &versions_resp))
+        dial_admin_socket(addr, &self.cfg, &self.stats, deadline).await
     }
 
     /// Delete records before `offset` (`DeleteRecords`).
@@ -8519,11 +8528,12 @@ impl Admin {
     /// [`crate::EARLIEST_PENDING_UPLOAD_TIMESTAMP`] (`-6`, requires v11), or milliseconds since
     /// the Unix epoch. One ListOffsets
     /// RPC per Metadata partition leader (duplicate partitions keep
-    /// separate timestamps). `NOT_LEADER_OR_FOLLOWER` refreshes
+    /// separate timestamps). Distinct leaders are queried together.
+    /// `NOT_LEADER_OR_FOLLOWER` refreshes
     /// Metadata and retries.
     /// [`crate::OffsetAndTimestamp::leader_epoch`] is ListOffsets v4+.
-    /// v1–v5 are classic; v6–v11 are flexible. Each selected leader is
-    /// queried for its current range (one extra ApiVersions RPC per attempt);
+    /// v1–v5 are classic; v6–v11 are flexible. The leader socket reuses
+    /// the ApiVersions learned when it connected;
     /// unsupported selector/isolation combinations return `Error::Unsupported`.
     /// Metadata, connect, negotiation and retries share the caller budget; v10+
     /// `TimeoutMs` carries its remainder. For a one-shot timeout, use
@@ -8614,25 +8624,32 @@ impl Admin {
                 }
             }
             let mut still = Vec::new();
-            for node in nodes {
-                let idxs = by_node.remove(&node).unwrap_or_default();
-                match self
-                    .list_offsets_on_node(node, isolation, &queries, &idxs, deadline)
-                    .await
-                {
-                    Ok((done, retry)) => {
-                        for (i, ot) in done {
-                            if let Some(slot) = out.get_mut(i) {
-                                *slot = Some(ot);
+            if nodes.len() > 1 {
+                self.list_offsets_nodes_parallel(
+                    &nodes, &by_node, isolation, &queries, deadline, &mut out, &mut still,
+                )
+                .await?;
+            } else {
+                for node in nodes {
+                    let idxs = by_node.remove(&node).unwrap_or_default();
+                    match self
+                        .list_offsets_on_node(node, isolation, &queries, &idxs, deadline)
+                        .await
+                    {
+                        Ok((done, retry)) => {
+                            for (i, ot) in done {
+                                if let Some(slot) = out.get_mut(i) {
+                                    *slot = Some(ot);
+                                }
                             }
+                            still.extend(retry);
                         }
-                        still.extend(retry);
+                        Err(e) if e.is_retriable() => {
+                            let _ = self.conns.remove(&node);
+                            still.extend(idxs);
+                        }
+                        Err(e) => return Err(e),
                     }
-                    Err(e) if e.is_retriable() => {
-                        let _ = self.conns.remove(&node);
-                        still.extend(idxs);
-                    }
-                    Err(e) => return Err(e),
                 }
             }
             pending = still;
@@ -8667,6 +8684,197 @@ impl Admin {
                     .ok_or_else(|| Error::protocol("ListOffsets missing result"))
             })
             .collect()
+    }
+
+    /// Dial and list offsets on every leader at once. One slow handshake
+    /// does not hold the other leaders. Results are applied in leader order.
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "one shared deadline fans a prepared leader set into the caller's result slots"
+    )]
+    async fn list_offsets_nodes_parallel(
+        &mut self,
+        nodes: &[i32],
+        by_node: &HashMap<i32, Vec<usize>>,
+        isolation: i8,
+        queries: &[(crate::TopicPartition, i64)],
+        deadline: Instant,
+        out: &mut [Option<crate::OffsetAndTimestamp>],
+        still: &mut Vec<usize>,
+    ) -> Result<()> {
+        const PARALLELISM: usize = 8;
+        type Dial = (i32, Result<AdminOffsetConn>);
+        type Rpc = (i32, i16, AdminOffsetConn, Result<Bytes>);
+        let mut waiting_dial = VecDeque::new();
+        let mut waiting_rpc = VecDeque::new();
+        for &node in nodes {
+            if self
+                .conns
+                .get(&node)
+                .is_some_and(|conn| conn.idle_expired(self.cfg.connections_max_idle))
+            {
+                let _ = self.conns.remove(&node);
+            }
+            if self.conns.contains_key(&node) {
+                waiting_rpc.push_back(node);
+            } else {
+                waiting_dial.push_back(node);
+            }
+        }
+        let mut dialing: tokio::task::JoinSet<Dial> = tokio::task::JoinSet::new();
+        let mut rpcing: tokio::task::JoinSet<Rpc> = tokio::task::JoinSet::new();
+        let mut held: HashMap<i32, AdminOffsetConn> = HashMap::new();
+        let mut finished: HashMap<i32, (i16, Result<Bytes>)> = HashMap::new();
+        loop {
+            if Instant::now() >= deadline {
+                dialing.abort_all();
+                rpcing.abort_all();
+                break;
+            }
+            while dialing.len() < PARALLELISM {
+                let Some(node) = waiting_dial.pop_front() else {
+                    break;
+                };
+                let Some(addr) = self.cluster.brokers.get(&node).cloned() else {
+                    let _prev = finished.insert(
+                        node,
+                        (0, Err(Error::protocol(format!("unknown broker {node}")))),
+                    );
+                    continue;
+                };
+                let cfg = self.cfg.clone();
+                let stats = Arc::clone(&self.stats);
+                let _ = dialing.spawn(async move {
+                    let result = dial_admin_socket(&addr, &cfg, &stats, deadline).await;
+                    (node, result)
+                });
+            }
+            while rpcing.len() < PARALLELISM {
+                let Some(node) = waiting_rpc.pop_front() else {
+                    break;
+                };
+                let Some(conn) = held.remove(&node).or_else(|| self.conns.remove(&node)) else {
+                    let _prev = finished
+                        .insert(node, (0, Err(Error::protocol("missing list_offsets conn"))));
+                    continue;
+                };
+                let idxs = by_node.get(&node).map(Vec::as_slice).unwrap_or(&[]);
+                let mut minimum = 1;
+                for &index in idxs {
+                    let Some((_, timestamp)) = queries.get(index) else {
+                        continue;
+                    };
+                    minimum = minimum.max(crate::protocol::offsets::minimum_version_for_timestamp(
+                        *timestamp, isolation,
+                    ));
+                }
+                let Some(version) = conn.negotiated(LIST_OFFSETS, minimum, 11) else {
+                    let _prev = held.insert(node, conn);
+                    let _prev = finished.insert(
+                        node,
+                        (
+                            0,
+                            Err(Error::Unsupported(format!(
+                                "broker does not support requested ListOffsets selector/isolation (requires v{minimum}+)"
+                            ))),
+                        ),
+                    );
+                    continue;
+                };
+                let topics = list_offset_topic_requests(queries, idxs, &self.cluster);
+                let timeout = deadline.saturating_duration_since(Instant::now());
+                if timeout.is_zero() {
+                    let _prev = held.insert(node, conn);
+                    let _prev = finished.insert(node, (version, Err(Error::Timeout)));
+                    continue;
+                }
+                let timeout_ms = crate::consumer::duration_millis_i32(timeout);
+                let _ = rpcing.spawn(async move {
+                    let mut conn = conn;
+                    let body = conn
+                        .roundtrip(
+                            LIST_OFFSETS,
+                            version,
+                            |buf| {
+                                encode_list_offsets_topics_request(
+                                    buf, version, isolation, &topics, timeout_ms,
+                                )
+                            },
+                            timeout,
+                        )
+                        .await;
+                    (node, version, conn, body)
+                });
+            }
+            if dialing.is_empty() && rpcing.is_empty() {
+                break;
+            }
+            let rest = deadline.saturating_duration_since(Instant::now());
+            if rest.is_zero() {
+                dialing.abort_all();
+                rpcing.abort_all();
+                break;
+            }
+            tokio::select! {
+                joined = dialing.join_next(), if !dialing.is_empty() => {
+                    match joined {
+                        Some(Ok((node, Ok(conn)))) => {
+                            let _ = self.reconnect_fails.remove(&node);
+                            let _prev = held.insert(node, conn);
+                            waiting_rpc.push_back(node);
+                        }
+                        Some(Ok((node, Err(error)))) => {
+                            let _fails = crate::config::bump_reconnect_fails(
+                                &mut self.reconnect_fails,
+                                node,
+                            );
+                            let _prev = finished.insert(node, (0, Err(error)));
+                        }
+                        Some(Err(_)) | None => {}
+                    }
+                }
+                joined = rpcing.join_next(), if !rpcing.is_empty() => {
+                    if let Some(Ok((node, version, conn, body))) = joined {
+                        let _prev = held.insert(node, conn);
+                        let _prev = finished.insert(node, (version, body));
+                    }
+                }
+                () = tokio::time::sleep(rest) => {
+                    dialing.abort_all();
+                    rpcing.abort_all();
+                    break;
+                }
+            }
+        }
+        for (node, conn) in held {
+            let _prev = self.conns.insert(node, conn);
+        }
+        for &node in nodes {
+            let idxs = by_node.get(&node).cloned().unwrap_or_default();
+            let Some((version, body)) = finished.remove(&node) else {
+                let _ = self.conns.remove(&node);
+                still.extend(idxs);
+                continue;
+            };
+            match body {
+                Err(error) if error.is_retriable() => {
+                    let _ = self.conns.remove(&node);
+                    still.extend(idxs);
+                }
+                Err(error) => return Err(error),
+                Ok(body) => {
+                    let (done, retry) =
+                        self.apply_list_offsets_body(node, version, queries, &idxs, body)?;
+                    for (i, offset) in done {
+                        if let Some(slot) = out.get_mut(i) {
+                            *slot = Some(offset);
+                        }
+                    }
+                    still.extend(retry);
+                }
+            }
+        }
+        Ok(())
     }
 
     async fn list_offsets_on_node(
@@ -8719,6 +8927,21 @@ impl Admin {
             )
             .await
         }?;
+        self.apply_list_offsets_body(node, version, queries, idxs, body)
+    }
+
+    #[expect(
+        clippy::type_complexity,
+        reason = "indexed offsets plus the partitions that must be retried"
+    )]
+    fn apply_list_offsets_body(
+        &mut self,
+        node: i32,
+        version: i16,
+        queries: &[(crate::TopicPartition, i64)],
+        idxs: &[usize],
+        body: Bytes,
+    ) -> Result<(Vec<(usize, crate::OffsetAndTimestamp)>, Vec<usize>)> {
         let mut cursor = body.as_ref();
         let (resp, ..) = decode_list_offsets_topics_response(&mut cursor, version)?;
         if !cursor.is_empty() {

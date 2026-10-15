@@ -2,8 +2,8 @@
 mod common;
 
 use partitionline::{
-    error, Admin, AdminConfig, Consumer, ConsumerConfig, ConsumerGroup, Error, Producer,
-    ProducerConfig,
+    error, Admin, AdminConfig, Consumer, ConsumerConfig, ConsumerGroup, Error, OffsetSpec,
+    Producer, ProducerConfig,
 };
 use std::time::{Duration, Instant};
 
@@ -141,4 +141,38 @@ async fn startup_reaches_a_bootstrap_past_the_eighth() {
         .await
         .unwrap();
     group.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn list_offsets_leader_dials_overlap() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_topic_partitions("t", 2);
+    let mut cfg = AdminConfig::bootstrap([mock.addr.clone()]);
+    cfg.request_timeout = Duration::from_secs(3);
+    cfg.connect_timeout = Duration::from_millis(200);
+    let mut admin = Admin::new(cfg).await.unwrap();
+    let before = mock.api_versions_versions().len();
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let started = Instant::now();
+    let listed = admin
+        .list_offsets_timeout(
+            [
+                (("t", 0), OffsetSpec::latest()),
+                (("t", 1), OffsetSpec::latest()),
+            ],
+            Duration::from_secs(3),
+        )
+        .await
+        .unwrap();
+    let elapsed = started.elapsed();
+    assert!(
+        elapsed < Duration::from_millis(400),
+        "leader dials ran one after another: {elapsed:?}"
+    );
+    assert!(
+        mock.api_versions_versions().len() >= before + 2,
+        "both leaders should negotiate, saw {}",
+        mock.api_versions_versions().len() - before
+    );
+    assert_eq!(listed.len(), 2, "{listed:?}");
 }
