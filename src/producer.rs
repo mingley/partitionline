@@ -942,6 +942,10 @@ struct CoordinatorConnection {
     init_producer_id_version: Option<i16>,
 }
 
+/// Idempotent sequence numbers, keyed by topic so a steady partition does not
+/// copy the topic name on every batch.
+type SequenceMap = HashMap<Arc<str>, HashMap<i32, i32>>;
+
 struct Shared {
     cfg: ProducerConfig,
     cluster: parking_lot::Mutex<Cluster>,
@@ -991,7 +995,7 @@ struct Shared {
     /// `begin`/`commit`/`send_offsets` fail with it while set; `abort` fails
     /// with it only when [`Self::txn_fatal`] is set.
     txn_error: parking_lot::Mutex<Option<Error>>,
-    seqs: parking_lot::Mutex<HashMap<(Arc<str>, i32), i32>>,
+    seqs: parking_lot::Mutex<SequenceMap>,
     cache_nudge: Notify,
     buffer_nudge: Notify,
     meta_tx: mpsc::Sender<Arc<str>>,
@@ -5873,9 +5877,9 @@ fn take_count(pending: &[Pending], rec_limit: usize, byte_limit: usize) -> usize
     }
     let mut n = 0;
     let mut bytes = 0usize;
-    let mut batch_bases: HashMap<(Arc<str>, i32), Option<i32>> = HashMap::new();
+    let mut batch_bases: HashMap<(&str, i32), Option<i32>> = HashMap::new();
     for p in pending.iter().take(rec_limit) {
-        let key = (p.rec.topic.clone(), p.rec.partition.unwrap_or(0));
+        let key = (p.rec.topic.as_ref(), p.rec.partition.unwrap_or(0));
         let new_group = match batch_bases.get(&key) {
             Some(&expected_base) => {
                 if p.batch_base_seq != expected_base {
@@ -5926,7 +5930,7 @@ fn estimate(p: &Pending) -> usize {
 fn assign_sequences(
     groups: &mut [(Arc<str>, i32, Vec<Pending>)],
     producer_id: i64,
-    seqs: &parking_lot::Mutex<HashMap<(Arc<str>, i32), i32>>,
+    seqs: &parking_lot::Mutex<SequenceMap>,
     epoch_gen: u64,
 ) {
     if producer_id <= RecordBatch::NO_PRODUCER_ID {
@@ -5966,7 +5970,7 @@ fn assign_sequences(
 fn rollback_sequences(
     groups: &[(Arc<str>, i32, Vec<Pending>)],
     producer_id: i64,
-    seqs: &parking_lot::Mutex<HashMap<(Arc<str>, i32), i32>>,
+    seqs: &parking_lot::Mutex<SequenceMap>,
 ) {
     if producer_id <= RecordBatch::NO_PRODUCER_ID {
         return;
@@ -5980,7 +5984,10 @@ fn rollback_sequences(
             continue;
         };
         let count = i32::try_from(pendings.len()).unwrap_or(0);
-        if let Some(curr) = g.get_mut(&(topic.clone(), *partition)) {
+        if let Some(curr) = g
+            .get_mut(topic.as_ref())
+            .and_then(|parts| parts.get_mut(partition))
+        {
             if *curr == base.saturating_add(count) {
                 *curr = base;
             }
@@ -6248,7 +6255,7 @@ fn pending_batch_header(
 }
 
 fn next_sequence(
-    seqs: &parking_lot::Mutex<HashMap<(Arc<str>, i32), i32>>,
+    seqs: &parking_lot::Mutex<SequenceMap>,
     producer_id: i64,
     topic: &Arc<str>,
     partition: i32,
@@ -6257,11 +6264,21 @@ fn next_sequence(
     if producer_id <= RecordBatch::NO_PRODUCER_ID {
         return RecordBatch::NO_SEQUENCE;
     }
+    let added = i32::try_from(count).unwrap_or(i32::MAX);
     let mut g = seqs.lock();
-    let e = g.entry((topic.clone(), partition)).or_insert(0);
-    let base = *e;
-    *e = e.saturating_add(i32::try_from(count).unwrap_or(i32::MAX));
-    base
+    if let Some(parts) = g.get_mut(topic.as_ref()) {
+        if let Some(slot) = parts.get_mut(&partition) {
+            let base = *slot;
+            *slot = slot.saturating_add(added);
+            return base;
+        }
+        let _ = parts.insert(partition, added);
+        return 0;
+    }
+    let mut parts = HashMap::new();
+    let _ = parts.insert(partition, added);
+    let _ = g.insert(Arc::clone(topic), parts);
+    0
 }
 
 #[expect(
