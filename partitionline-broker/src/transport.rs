@@ -24,7 +24,13 @@
 //! behavior. Application authorization, application storage, broker readiness and
 //! broader production qualification have separate contracts.
 
-use std::{future::Future, io, net::SocketAddr, sync::Arc, time::Duration};
+use std::{
+    future::Future,
+    io::{self, IoSlice},
+    net::SocketAddr,
+    sync::Arc,
+    time::Duration,
+};
 use tokio::{
     io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt},
     net::{TcpListener, TcpStream},
@@ -890,21 +896,22 @@ async fn exchange<H: Handler, S: AsyncRead + AsyncWrite + Unpin>(
         #[cfg(not(feature = "sasl"))]
         let write_authority = preauth_deadline;
         let deadline = operation_deadline(write_authority, config.write_timeout);
+        // One vectored write so a deadline that lands between the length and
+        // the body cannot commit a prefix and then drop the payload.
         let write = async {
+            if Instant::now() >= deadline {
+                return Err(Exit::WriteDeadline);
+            }
+            let prefix = length.to_be_bytes();
             timeout_at(deadline, async {
-                if Instant::now() >= deadline {
-                    return Err(Exit::WriteDeadline);
-                }
-                socket
-                    .write_all(&length.to_be_bytes())
-                    .await
-                    .map_err(|_| Exit::Io)?;
-                if Instant::now() >= deadline {
-                    return Err(Exit::WriteDeadline);
-                }
-                socket.write_all(&response).await.map_err(|_| Exit::Io)?;
-                if Instant::now() >= deadline {
-                    return Err(Exit::WriteDeadline);
+                let mut slices = [IoSlice::new(&prefix), IoSlice::new(&response)];
+                let mut bufs: &mut [IoSlice<'_>] = &mut slices;
+                while !bufs.is_empty() {
+                    let wrote = socket.write_vectored(bufs).await.map_err(|_| Exit::Io)?;
+                    if wrote == 0 {
+                        return Err(Exit::Io);
+                    }
+                    IoSlice::advance_slices(&mut bufs, wrote);
                 }
                 Ok(())
             })
