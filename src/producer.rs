@@ -1541,21 +1541,16 @@ impl Producer {
         let mut init_producer_id_version = 0i16;
         // Coordinator discovery and producer-ID allocation continue the
         // startup deadline. Rediscovery and backoff cannot renew it.
-        let initialization_deadline = tokio::time::Instant::from_std(deadline);
         let mut txn = if let Some(tid) = cfg.transactional_id.as_deref() {
-            let startup_cfg = bounded_producer_config(&cfg, deadline)?;
             Some(
-                tokio::time::timeout_at(
-                    initialization_deadline,
-                    discover_typed_coord(
-                        &startup_cfg,
-                        tid,
-                        COORDINATOR_TRANSACTION,
-                        required_find_coordinator(find_coord_version)?,
-                    ),
+                discover_within(
+                    &cfg,
+                    tid,
+                    COORDINATOR_TRANSACTION,
+                    required_find_coordinator(find_coord_version)?,
+                    deadline,
                 )
-                .await
-                .map_err(|_| Error::Timeout)??,
+                .await?,
             )
         } else {
             None
@@ -3122,23 +3117,14 @@ async fn discover_typed_coord(
     key: &str,
     key_type: i8,
     version: i16,
+    deadline: Instant,
 ) -> Result<CoordinatorConnection> {
-    let deadline = Instant::now() + cfg.request_timeout;
     let mut attempt = 0u32;
     loop {
-        let remaining = deadline.saturating_duration_since(Instant::now());
-        if remaining.is_zero() {
+        if Instant::now() >= deadline {
             return Err(Error::Timeout);
         }
-        let mut attempt_cfg = cfg.clone();
-        attempt_cfg.request_timeout = remaining;
-        attempt_cfg.connect_timeout = cfg.connect_timeout.min(remaining);
-        let result = tokio::time::timeout_at(
-            deadline.into(),
-            discover_typed_coord_once(&attempt_cfg, key, key_type, version),
-        )
-        .await
-        .map_err(|_| Error::Timeout)?;
+        let result = discover_typed_coord_once(cfg, key, key_type, version, deadline).await;
         match result {
             Err(error)
                 if error
@@ -3164,10 +3150,8 @@ async fn discover_typed_coord_once(
     key: &str,
     key_type: i8,
     version: i16,
+    deadline: Instant,
 ) -> Result<CoordinatorConnection> {
-    let deadline = Instant::now()
-        .checked_add(cfg.request_timeout)
-        .ok_or(Error::Timeout)?;
     let mut last = Error::protocol("find coordinator failed");
     for addr in &cfg.bootstrap {
         let bounded = bounded_producer_config(cfg, deadline)?;
@@ -3452,8 +3436,7 @@ async fn discover_within(
     version: i16,
     deadline: Instant,
 ) -> Result<CoordinatorConnection> {
-    let bounded = bounded_producer_config(cfg, deadline)?;
-    discover_typed_coord(&bounded, key, key_type, version).await
+    discover_typed_coord(cfg, key, key_type, version, deadline).await
 }
 
 async fn txn_roundtrip(
