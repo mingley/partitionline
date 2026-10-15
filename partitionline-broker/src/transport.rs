@@ -707,8 +707,16 @@ fn dispatch_frame(mut frame: Frame) -> Vec<u8> {
     }
 }
 
-async fn read_frame<S: AsyncRead + Unpin>(socket: &mut S, config: Config) -> Result<Frame, Exit> {
-    let deadline = Instant::now() + config.read_timeout;
+async fn read_frame<S: AsyncRead + Unpin>(
+    socket: &mut S,
+    config: Config,
+    deadline: Instant,
+) -> Result<Frame, Exit> {
+    if Instant::now() >= deadline {
+        return Err(Exit::ReadDeadline);
+    }
+    // One deadline covers the length prefix and the body. A slow prefix must
+    // not grant the body a fresh read timeout.
     timeout_at(deadline, async {
         let mut prefix = [0; 4];
         let _ = socket.read_exact(&mut prefix).await.map_err(read_error)?;
@@ -777,11 +785,7 @@ async fn exchange<H: Handler, S: AsyncRead + AsyncWrite + Unpin>(
             frame_config.max_request_bytes = auth.frame_limit(config.max_request_bytes);
         }
         let read_deadline = operation_deadline(preauth_deadline, config.read_timeout);
-        let read = async {
-            timeout_at(read_deadline, read_frame(&mut socket, frame_config))
-                .await
-                .map_err(|_| Exit::ReadDeadline)?
-        };
+        let read = read_frame(&mut socket, frame_config, read_deadline);
         #[cfg(feature = "oidc")]
         let read = authorized(auth.as_ref().and_then(|a| a.lease()), read);
         let request = match read.await {
