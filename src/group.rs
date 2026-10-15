@@ -2552,13 +2552,14 @@ impl ConsumerGroup {
             .await?;
         let offset = self
             .consumer
-            .list_offsets_timeout(
-                topic.to_owned(),
+            .list_offset_at(
+                topic,
                 part,
                 timestamp,
                 crate::consumer::remaining_offset_timeout(deadline, Instant::now()),
             )
-            .await?;
+            .await?
+            .0;
         crate::consumer::reset_position(offset).ok_or_else(|| {
             Error::protocol(format!(
                 "ListOffsets returned no reset offset for {topic}-{part}"

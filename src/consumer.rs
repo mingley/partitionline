@@ -5014,13 +5014,14 @@ impl Consumer {
             if !need_offsets.is_empty() {
                 for (topic, partition, timestamp) in need_offsets {
                     let offset = match self
-                        .list_offsets_timeout(
-                            topic.clone(),
+                        .list_offset_at(
+                            &topic,
                             partition,
                             timestamp,
                             remaining_offset_timeout(deadline, Instant::now()),
                         )
                         .await
+                        .map(|found| found.0)
                     {
                         Ok(offset) => offset,
                         // Records already fetched stay delivered. Partitions
@@ -6288,7 +6289,7 @@ impl Consumer {
             .await
     }
 
-    async fn list_offset_at(
+    pub(crate) async fn list_offset_at(
         &mut self,
         topic: &str,
         partition: i32,
@@ -6569,13 +6570,14 @@ impl Consumer {
         let deadline = offset_lookup_deadline(self.cfg.request_timeout)?;
         for (topic, partition) in partitions {
             let offset = self
-                .list_offsets_timeout(
-                    topic.clone(),
+                .list_offset_at(
+                    &topic,
                     partition,
                     timestamp,
                     remaining_offset_timeout(deadline, Instant::now()),
                 )
-                .await?;
+                .await?
+                .0;
             self.seek(&topic, partition, offset)?;
         }
         Ok(())
@@ -6709,13 +6711,9 @@ impl Consumer {
             .ok_or_else(|| reject_java_no_current_assignment(&tp.topic, tp.partition))?;
         let pos = self.delivered_position(&tp.topic, tp.partition, fetch_cursor);
         let hw = self
-            .list_offsets_timeout(
-                tp.topic.clone(),
-                tp.partition,
-                crate::LATEST_TIMESTAMP,
-                timeout,
-            )
-            .await?;
+            .list_offset_at(&tp.topic, tp.partition, crate::LATEST_TIMESTAMP, timeout)
+            .await?
+            .0;
         Ok(partition_lag(hw, pos))
     }
 
@@ -6801,13 +6799,14 @@ impl Consumer {
         let mut out = Vec::new();
         for tp in partitions {
             let offset = self
-                .list_offsets_timeout(
-                    tp.topic.clone(),
+                .list_offset_at(
+                    &tp.topic,
                     tp.partition,
                     timestamp,
                     remaining_offset_timeout(deadline, Instant::now()),
                 )
-                .await?;
+                .await?
+                .0;
             out.push((tp, offset));
         }
         Ok(out)
