@@ -3934,8 +3934,10 @@ fn vote_offset_epoch_illegal(body: &VoteBody) -> bool {
 
 /// Decide a pre-vote without changing `persistent`.
 ///
-/// The stable term and vote stay with the caller. Wire versions above the
-/// advertised Vote v0 profile are not selected by [`negotiate`].
+/// The stable term and vote stay with the caller. A pre-vote may name the
+/// same log epoch as the candidate epoch, and it may not name a newer one.
+/// An empty log is only `(0, 0)`. Wire versions above the advertised Vote v0
+/// profile are not selected by [`negotiate`].
 pub fn evaluate_prevote(
     persistent: &election::PersistentState,
     expected_directory: [u8; 16],
@@ -3946,6 +3948,9 @@ pub fn evaluate_prevote(
     }
     if request.term < persistent.term {
         return Err(PreVoteRefusal::StaleTerm);
+    }
+    if (request.log.term == 0) != (request.log.index == 0) || request.log.term > request.term {
+        return Err(PreVoteRefusal::IllegalEpoch);
     }
     if request.log < persistent.log {
         return Err(PreVoteRefusal::StaleLog);
@@ -4049,6 +4054,45 @@ mod prevote_tests {
         );
         assert_eq!(persistent.voted_for, Some(7));
         assert_eq!(persistent.term, 4);
+        let same_epoch = evaluate_prevote(
+            &persistent,
+            directory,
+            DirectoryPreVote {
+                term: 5,
+                candidate: 3,
+                directory,
+                log: election::LogPosition { term: 5, index: 2 },
+            },
+        )
+        .unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(same_epoch);
+        assert_eq!(
+            evaluate_prevote(
+                &persistent,
+                directory,
+                DirectoryPreVote {
+                    term: 5,
+                    candidate: 3,
+                    directory,
+                    log: election::LogPosition { term: 6, index: 2 },
+                },
+            ),
+            Err(PreVoteRefusal::IllegalEpoch)
+        );
+        assert_eq!(
+            evaluate_prevote(
+                &persistent,
+                directory,
+                DirectoryPreVote {
+                    term: 5,
+                    candidate: 3,
+                    directory,
+                    log: election::LogPosition { term: 0, index: 2 },
+                },
+            ),
+            Err(PreVoteRefusal::IllegalEpoch)
+        );
+        assert_eq!(persistent, state(4));
     }
 
     fn sample_body(version: i16, replica: [u8; 16], voter: [u8; 16], pre_vote: bool) -> VoteBody {
