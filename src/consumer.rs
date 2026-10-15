@@ -1993,6 +1993,8 @@ pub struct Consumer {
     last_fetch_records: usize,
     /// Empty fetch-reply list returned after a poll. The next sequential fetch refills it.
     spare_replies: Vec<FetchReply>,
+    /// Empty decoded-reply list returned after a poll. The next poll refills it.
+    spare_decoded: Vec<DecodedFetchReply>,
     reconnect_fails: HashMap<i32, u32>,
     /// Leaders whose Fetch was sent and not yet applied. A multi-leader round
     /// returns after [`MULTI_LEADER_COLLECTION_WINDOW`] once any peer has
@@ -2771,6 +2773,7 @@ impl Consumer {
             fetch_completed: PartitionMap::new(),
             last_fetch_records: 0,
             spare_replies: Vec::new(),
+            spare_decoded: Vec::new(),
             reconnect_fails: HashMap::new(),
             inflight_fetches: None,
             inflight_nodes: HashSet::new(),
@@ -5169,7 +5172,7 @@ impl Consumer {
                 .fetch_from_leaders(&mut by_leader, deadline, wait)
                 .await;
             self.fetch_plan = by_leader;
-            let bodies = match fetched {
+            let mut bodies = match fetched {
                 Ok(bodies) => bodies,
                 // Dialing or waiting out the deadline must not roll back records
                 // this poll already took from an earlier leader.
@@ -5191,18 +5194,14 @@ impl Consumer {
             }
             // Decode each envelope once, before any record application. Validate
             // every session even when the record budget will discard its body.
-            let mut bodies = bodies;
-            let decoded: Vec<_> = bodies
-                .drain(..)
-                .map(|reply| self.decode_fetch_reply(reply))
-                .collect();
+            let mut decoded = self.take_decoded(bodies.len());
+            decoded.extend(bodies.drain(..).map(|reply| self.decode_fetch_reply(reply)));
             self.park_replies(bodies);
-            let bodies = decoded;
             let mut retry = FetchRetry::None;
             let mut fenced = Vec::new();
             let mut need_offsets = Vec::new();
             let mut budget_reached = false;
-            for reply in bodies {
+            for reply in decoded.drain(..) {
                 let node = reply.node;
                 let body = match reply.body {
                     Ok(b) => b,
@@ -5248,6 +5247,7 @@ impl Consumer {
                     break;
                 }
             }
+            self.park_decoded(decoded);
             if !need_offsets.is_empty() {
                 for (topic, partition, timestamp) in need_offsets {
                     let offset = match self
@@ -7271,11 +7271,19 @@ impl Consumer {
     }
 
     fn take_replies(&mut self, hint: usize) -> Vec<FetchReply> {
-        take_replies(&mut self.spare_replies, hint)
+        take_spare(&mut self.spare_replies, hint)
     }
 
     fn park_replies(&mut self, replies: Vec<FetchReply>) {
-        park_replies(&mut self.spare_replies, replies);
+        park_spare(&mut self.spare_replies, replies);
+    }
+
+    fn take_decoded(&mut self, hint: usize) -> Vec<DecodedFetchReply> {
+        take_spare(&mut self.spare_decoded, hint)
+    }
+
+    fn park_decoded(&mut self, replies: Vec<DecodedFetchReply>) {
+        park_spare(&mut self.spare_decoded, replies);
     }
 
     fn finish_fetch(&mut self, recs: Vec<FetchedRecord>) -> Vec<FetchedRecord> {
@@ -7487,7 +7495,7 @@ fn fetch_totals_keep_their_buckets() {
 #[test]
 fn a_fetch_reply_list_keeps_its_capacity() {
     let mut spare = Vec::new();
-    let mut taken = take_replies(&mut spare, 1);
+    let mut taken = take_spare(&mut spare, 1);
     taken.push(FetchReply {
         node: 1,
         version: 4,
@@ -7496,9 +7504,9 @@ fn a_fetch_reply_list_keeps_its_capacity() {
     });
     let capacity = taken.capacity();
     assert!(capacity > 0);
-    park_replies(&mut spare, taken);
+    park_spare(&mut spare, taken);
     assert!(spare.capacity() >= capacity);
-    let again = take_replies(&mut spare, 1);
+    let again = take_spare(&mut spare, 1);
     assert!(again.capacity() >= capacity);
     assert!(again.is_empty());
     assert!(spare.is_empty());
@@ -7573,7 +7581,7 @@ fn retained_topics_keep_their_table_when_a_paused_partition_stays() {
 }
 
 /// Reserve a fetch buffer from the previous poll's record count.
-fn take_replies(spare: &mut Vec<FetchReply>, hint: usize) -> Vec<FetchReply> {
+fn take_spare<T>(spare: &mut Vec<T>, hint: usize) -> Vec<T> {
     let mut out = std::mem::take(spare);
     out.clear();
     if out.capacity() < hint {
@@ -7582,10 +7590,10 @@ fn take_replies(spare: &mut Vec<FetchReply>, hint: usize) -> Vec<FetchReply> {
     out
 }
 
-fn park_replies(spare: &mut Vec<FetchReply>, mut replies: Vec<FetchReply>) {
-    replies.clear();
-    if replies.capacity() > spare.capacity() {
-        *spare = replies;
+fn park_spare<T>(spare: &mut Vec<T>, mut values: Vec<T>) {
+    values.clear();
+    if values.capacity() > spare.capacity() {
+        *spare = values;
     }
 }
 
