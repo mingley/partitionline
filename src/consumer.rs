@@ -3824,15 +3824,15 @@ impl Consumer {
                 if completed.contains(topic, *part) || self.retained.contains(topic, *part) {
                     continue;
                 }
-                let node = if self.cfg.rack.is_some() {
+                let preferred = if self.cfg.rack.is_some() {
                     self.preferred.get(topic, *part).copied()
                 } else {
                     None
                 };
-                let node = match node {
-                    Some(n) => Some(n),
-                    None => self.cluster.leader(topic, *part).ok().map(|(n, _)| n),
-                };
+                let leader = self.cluster.leader(topic, *part).ok().map(|(n, _)| n);
+                let preferred_known =
+                    preferred.is_some_and(|node| self.cluster.brokers.contains_key(&node));
+                let node = fetch_target(preferred, preferred_known, leader);
                 match node {
                     Some(node) => {
                         by_leader
@@ -6165,6 +6165,18 @@ fn epoch_at(epochs: &HashMap<String, Vec<i32>>, topic: &str, partition: i32) -> 
         .unwrap_or(crate::RecordBatch::NO_PARTITION_LEADER_EPOCH)
 }
 
+/// Use a rack-local replica only when its address is already cached.
+///
+/// Fetch can name a preferred replica before Metadata or NodeEndpoints have
+/// supplied a dialable host. That id stays remembered, and this fetch uses the
+/// leader until the address arrives.
+fn fetch_target(preferred: Option<i32>, preferred_known: bool, leader: Option<i32>) -> Option<i32> {
+    match preferred {
+        Some(node) if preferred_known => Some(node),
+        _ => leader,
+    }
+}
+
 /// Preferred replicas belong to a leader epoch. Drop one when that epoch changes.
 fn preferred_partitions_to_drop(
     preferred: &[(String, i32)],
@@ -6540,6 +6552,14 @@ mod tests {
         assert_eq!(topics[0].partitions[1].partition, 1);
         assert_eq!(topics[0].partitions[1].current_leader_epoch, 6);
         assert_eq!(topics[0].partitions[1].leader_epoch, 6);
+    }
+
+    #[test]
+    fn an_unknown_preferred_replica_uses_the_leader() {
+        assert_eq!(fetch_target(Some(7), false, Some(1)), Some(1));
+        assert_eq!(fetch_target(Some(7), true, Some(1)), Some(7));
+        assert_eq!(fetch_target(None, false, Some(1)), Some(1));
+        assert_eq!(fetch_target(Some(7), false, None), None);
     }
 
     #[test]
