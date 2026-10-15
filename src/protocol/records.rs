@@ -2885,11 +2885,103 @@ impl EncodedBatch {
     }
 }
 
+/// Framed batches from one partition.
+///
+/// No batches and one batch stay inline. Several batches own a vector.
+pub(crate) enum BatchList {
+    /// The partition returned no record batches.
+    Empty,
+    /// The partition returned one record batch.
+    One(EncodedBatch),
+    /// The partition returned more than one record batch.
+    Many(Vec<EncodedBatch>),
+}
+
+impl BatchList {
+    fn push(&mut self, item: EncodedBatch) {
+        match std::mem::replace(self, Self::Empty) {
+            Self::Empty => *self = Self::One(item),
+            Self::One(first) => *self = Self::Many(vec![first, item]),
+            Self::Many(mut items) => {
+                items.push(item);
+                *self = Self::Many(items);
+            }
+        }
+    }
+}
+
+impl std::ops::Deref for BatchList {
+    type Target = [EncodedBatch];
+
+    fn deref(&self) -> &Self::Target {
+        match self {
+            Self::Empty => &[],
+            Self::One(batch) => std::slice::from_ref(batch),
+            Self::Many(batches) => batches,
+        }
+    }
+}
+
+impl<'a> IntoIterator for &'a BatchList {
+    type Item = &'a EncodedBatch;
+    type IntoIter = std::slice::Iter<'a, EncodedBatch>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+
+impl IntoIterator for BatchList {
+    type Item = EncodedBatch;
+    type IntoIter = BatchListIntoIter;
+
+    fn into_iter(self) -> Self::IntoIter {
+        match self {
+            Self::Empty => BatchListIntoIter {
+                one: None,
+                many: Vec::new().into_iter(),
+            },
+            Self::One(batch) => BatchListIntoIter {
+                one: Some(batch),
+                many: Vec::new().into_iter(),
+            },
+            Self::Many(batches) => BatchListIntoIter {
+                one: None,
+                many: batches.into_iter(),
+            },
+        }
+    }
+}
+
+impl FromIterator<EncodedBatch> for BatchList {
+    fn from_iter<I: IntoIterator<Item = EncodedBatch>>(iter: I) -> Self {
+        let mut list = Self::Empty;
+        for batch in iter {
+            list.push(batch);
+        }
+        list
+    }
+}
+
+/// Owned walk of a [`BatchList`].
+pub(crate) struct BatchListIntoIter {
+    one: Option<EncodedBatch>,
+    many: std::vec::IntoIter<EncodedBatch>,
+}
+
+impl Iterator for BatchListIntoIter {
+    type Item = EncodedBatch;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.one.take().or_else(|| self.many.next())
+    }
+}
+
 /// Split consecutive magic-v2 batches like [`decode_record_batches`] (a
 /// trailing partial batch is ignored), checking framing, magic, CRC32-C and
 /// codec without decompressing anything.
-pub(crate) fn split_record_batches(mut buf: Bytes) -> Result<Vec<EncodedBatch>> {
-    let mut out = Vec::new();
+pub(crate) fn split_record_batches(mut buf: Bytes) -> Result<BatchList> {
+    let mut out = BatchList::Empty;
     while buf.remaining() >= 12 {
         let len_bytes = buf
             .get(8..12)
@@ -4065,11 +4157,26 @@ mod tests {
             headers: vec![],
         };
         let mut buf = BytesMut::new();
-        encode_record_batch(&mut buf, &RecordBatch::from_records(vec![rec.clone(), rec])).unwrap();
+        encode_record_batch(
+            &mut buf,
+            &RecordBatch::from_records(vec![rec.clone(), rec.clone()]),
+        )
+        .unwrap();
         let batches = split_record_batches(buf.freeze()).unwrap();
+        assert!(matches!(batches, BatchList::One(_)));
         assert_eq!(batches.len(), 1);
-        assert_eq!(batches[0].declared_count(), 2);
-        assert_eq!(batches[0].reserve_hint(), 2);
+        assert_eq!(batches.first().map(EncodedBatch::declared_count), Some(2));
+        assert_eq!(batches.first().map(EncodedBatch::reserve_hint), Some(2));
+        assert!(matches!(
+            split_record_batches(Bytes::new()).unwrap(),
+            BatchList::Empty
+        ));
+        let mut two = BytesMut::new();
+        encode_record_batch(&mut two, &RecordBatch::from_records(vec![rec.clone()])).unwrap();
+        encode_record_batch(&mut two, &RecordBatch::from_records(vec![rec])).unwrap();
+        let split = split_record_batches(two.freeze()).unwrap();
+        assert!(matches!(split, BatchList::Many(_)));
+        assert_eq!(split.len(), 2);
     }
 
     #[test]

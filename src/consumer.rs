@@ -34,7 +34,7 @@ use crate::protocol::group::Topic;
 use crate::protocol::offsets::{decode_list_offsets_topics_response, encode_list_offsets_request};
 use crate::protocol::records::{
     split_record_batches, write_java_optional, write_java_optional_bytes,
-    write_java_record_headers, EncodedBatch, Header, TimestampType,
+    write_java_record_headers, BatchList, EncodedBatch, Header, TimestampType,
 };
 use crate::protocol::sasl;
 
@@ -2078,7 +2078,7 @@ struct FetchBody {
     topics: Vec<FetchedTopic>,
     /// Framed, CRC-checked batches per `[topic][partition]`, decoded only
     /// when applied so batches past the buffer budget are never inflated.
-    batches: Vec<Vec<Vec<EncodedBatch>>>,
+    batches: Vec<Vec<BatchList>>,
     endpoints: Vec<crate::protocol::api::NodeEndpoint>,
 }
 
