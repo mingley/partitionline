@@ -3165,6 +3165,20 @@ fn listed_group_offsets(
     }
 }
 
+fn unique_names<'a, I>(names: I) -> Vec<String>
+where
+    I: IntoIterator<Item = &'a str>,
+{
+    let mut seen: HashSet<&str> = HashSet::new();
+    let mut topics = Vec::new();
+    for name in names {
+        if seen.insert(name) {
+            topics.push(name.to_owned());
+        }
+    }
+    topics
+}
+
 fn remember_topic_group<T>(
     order: &mut Vec<String>,
     by_topic: &mut HashMap<String, Vec<T>>,
@@ -8477,17 +8491,11 @@ impl Admin {
                     self.cluster.invalidate_topic(&tp.topic);
                 }
             }
-            let topics: Vec<String> = {
-                let mut t = Vec::new();
-                for &i in &pending {
-                    if let Some((tp, _)) = records.get(i) {
-                        if !t.iter().any(|n| n == &tp.topic) {
-                            t.push(tp.topic.clone());
-                        }
-                    }
-                }
-                t
-            };
+            let topics = unique_names(
+                pending
+                    .iter()
+                    .filter_map(|&i| records.get(i).map(|(tp, _)| tp.topic.as_str())),
+            );
             if !topics.is_empty() {
                 self.refresh_metadata_until(Some(&topics), deadline).await?;
             }
@@ -8789,17 +8797,11 @@ impl Admin {
                     self.cluster.invalidate_topic(&tp.topic);
                 }
             }
-            let topics: Vec<String> = {
-                let mut t = Vec::new();
-                for &i in &pending {
-                    if let Some((tp, _)) = queries.get(i) {
-                        if !t.iter().any(|n| n == &tp.topic) {
-                            t.push(tp.topic.clone());
-                        }
-                    }
-                }
-                t
-            };
+            let topics = unique_names(
+                pending
+                    .iter()
+                    .filter_map(|&i| queries.get(i).map(|(tp, _)| tp.topic.as_str())),
+            );
             if !topics.is_empty() {
                 self.refresh_metadata_until(Some(&topics), deadline).await?;
             }
@@ -9423,17 +9425,11 @@ impl Admin {
                     self.cluster.invalidate_topic(&tp.topic);
                 }
             }
-            let topics: Vec<String> = {
-                let mut t = Vec::new();
-                for &i in &pending {
-                    if let Some(tp) = partitions.get(i) {
-                        if !t.iter().any(|n| n == &tp.topic) {
-                            t.push(tp.topic.clone());
-                        }
-                    }
-                }
-                t
-            };
+            let topics = unique_names(
+                pending
+                    .iter()
+                    .filter_map(|&i| partitions.get(i).map(|tp| tp.topic.as_str())),
+            );
             if !topics.is_empty() {
                 self.refresh_metadata_until(Some(&topics), deadline).await?;
             }
@@ -14437,14 +14433,6 @@ fn alter_replica_dirs_for_broker(
         if replica.broker_id != broker_id {
             continue;
         }
-        if let Some(topics) = topics_by_path.get_mut(path.as_str()) {
-            if !topics.iter().any(|name| name == &replica.topic) {
-                topics.push(replica.topic.clone());
-            }
-        } else {
-            path_order.push(path.clone());
-            let _ = topics_by_path.insert(path.clone(), vec![replica.topic.clone()]);
-        }
         if let Some(by_topic) = partitions_by_path.get_mut(path.as_str()) {
             if let Some(parts) = by_topic.get_mut(replica.topic.as_str()) {
                 if !parts.contains(&replica.partition) {
@@ -14452,8 +14440,13 @@ fn alter_replica_dirs_for_broker(
                 }
             } else {
                 let _ = by_topic.insert(replica.topic.clone(), vec![replica.partition]);
+                if let Some(topics) = topics_by_path.get_mut(path.as_str()) {
+                    topics.push(replica.topic.clone());
+                }
             }
         } else {
+            path_order.push(path.clone());
+            let _ = topics_by_path.insert(path.clone(), vec![replica.topic.clone()]);
             let mut by_topic = HashMap::new();
             let _ = by_topic.insert(replica.topic.clone(), vec![replica.partition]);
             let _ = partitions_by_path.insert(path.clone(), by_topic);
@@ -14560,6 +14553,45 @@ mod tests {
         CreatedTopicConfig, ListConfigResourcesResponse,
     };
     use bytes::BytesMut;
+
+    #[test]
+    fn unique_topic_names_keep_the_first_copy() {
+        assert_eq!(
+            unique_names(["orders", "payments", "orders"]),
+            ["orders".to_owned(), "payments".to_owned()]
+        );
+        assert!(unique_names(std::iter::empty()).is_empty());
+    }
+
+    #[test]
+    fn alter_replica_dirs_keep_first_seen_topics() {
+        let assignment = [
+            (TopicPartitionReplica::new("orders", 1, 2), "/a".to_owned()),
+            (
+                TopicPartitionReplica::new("payments", 0, 2),
+                "/a".to_owned(),
+            ),
+            (TopicPartitionReplica::new("orders", 0, 2), "/a".to_owned()),
+            (TopicPartitionReplica::new("orders", 1, 2), "/a".to_owned()),
+            (TopicPartitionReplica::new("orders", 0, 1), "/b".to_owned()),
+        ];
+        let grouped = alter_replica_dirs_for_broker(&assignment, 2);
+        assert_eq!(grouped.first().map(|dir| dir.path.as_str()), Some("/a"));
+        assert_eq!(grouped.len(), 1);
+        let topics = grouped.first().map(|dir| dir.topics.as_slice());
+        assert_eq!(
+            topics
+                .and_then(|topics| topics.first())
+                .map(|topic| { (topic.name.as_str(), topic.partitions.as_slice()) }),
+            Some(("orders", &[1, 0][..]))
+        );
+        assert_eq!(
+            topics
+                .and_then(|topics| topics.get(1))
+                .map(|topic| { (topic.name.as_str(), topic.partitions.as_slice()) }),
+            Some(("payments", &[0][..]))
+        );
+    }
 
     #[test]
     fn records_to_delete_before_offset_converts_to_i64() {
