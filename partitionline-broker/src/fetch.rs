@@ -672,15 +672,19 @@ pub(crate) fn process(
         out.i32(0)?;
     }
     out.count(request.topics.len())?;
+    // One topic cannot be repeated, so the name map is only for a multi-topic request.
+    let one_topic = request.topics.len() <= 1;
     let mut topic_copies: HashMap<&str, usize> = HashMap::new();
-    for topic in &request.topics {
-        let count = topic_copies.entry(topic.name).or_insert(0);
-        *count = count.saturating_add(1);
+    if !one_topic {
+        for topic in &request.topics {
+            let count = topic_copies.entry(topic.name).or_insert(0);
+            *count = count.saturating_add(1);
+        }
     }
     for topic in &request.topics {
         out.string(topic.name)?;
         out.count(topic.parts.len())?;
-        let sole_topic = topic_copies.get(topic.name).copied() == Some(1);
+        let sole_topic = one_topic || topic_copies.get(topic.name).copied() == Some(1);
         let repeated_partitions = if key == 2 {
             HashSet::new()
         } else {
