@@ -380,6 +380,21 @@ fn replay_payload(log: &mut MarkerLog, payload: &[u8]) -> Result<(), Error> {
     if entry_offset(&decoded) != expected {
         return Err(Error::InvalidRequest);
     }
+    if let Entry::Marker {
+        producer_id,
+        epoch,
+        commit,
+        ..
+    } = &decoded
+    {
+        if let Some((_, stored)) = log.trailing_marker(*producer_id, *epoch) {
+            return Err(if stored == *commit {
+                Error::InvalidRequest
+            } else {
+                Error::ConflictingMarker
+            });
+        }
+    }
     log.entries.push(decoded);
     Ok(())
 }
@@ -457,6 +472,22 @@ mod tests {
             Err(Error::InvalidRequest)
         ));
         assert_eq!(log.log_end_offset(), 0);
+        log.append_data(7, 0, 1)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        log.append_marker(7, 0, true)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let repeated = Entry::Marker {
+            offset: log.log_end_offset(),
+            producer_id: 7,
+            epoch: 0,
+            commit: false,
+        };
+        let encoded = encode(&repeated).unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(
+            replay_payload(&mut log, &encoded),
+            Err(Error::ConflictingMarker)
+        ));
+        assert_eq!(log.read_committed(0), vec![1]);
     }
 
     #[test]
