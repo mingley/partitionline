@@ -1794,15 +1794,28 @@ impl Log {
         }
         let result = (|| {
             if offset >= self.manifest.active_base {
-                let entry = self.active_mut()?.fetch(offset, 1, maximum)?.pop();
-                let work = entry.as_ref().map_or(Work::default(), |e| Work {
-                    bytes: e.payload.len(),
-                    entries: 1,
-                });
-                if work.bytes > scan_bytes || work.entries > scan_entries {
+                let mut payload = Vec::new();
+                let Some(view) =
+                    self.active_mut()?
+                        .fetch_one_into(offset, maximum, &mut payload)?
+                else {
+                    return Ok((None, Work::default()));
+                };
+                if payload.len() > scan_bytes || scan_entries == 0 {
                     return Err(Error::ScanBudget);
                 }
-                return Ok((entry, work));
+                let work = Work {
+                    bytes: payload.len(),
+                    entries: 1,
+                };
+                return Ok((
+                    Some(journal::Entry {
+                        first_offset: view.first_offset,
+                        record_count: view.record_count,
+                        payload,
+                    }),
+                    work,
+                ));
             }
             let segment = self
                 .sealed
