@@ -170,6 +170,8 @@ pub struct Store {
     journal: Journal,
     stored: usize,
     poisoned: bool,
+    /// Reused journal image. Cleared and rewritten on each commit.
+    encoded: Vec<u8>,
 }
 
 impl Store {
@@ -182,6 +184,7 @@ impl Store {
             journal,
             stored: 0,
             poisoned: false,
+            encoded: Vec::new(),
         };
         let mut cursor = store.journal.base_offset();
         loop {
@@ -339,11 +342,14 @@ impl Store {
     }
 
     fn commit(&mut self, partitions: BTreeMap<Key, Partition>) -> Result<(), Error> {
-        let payload = encode(&partitions)?;
-        if payload.len() > self.limits.journal.max_entry_bytes() {
+        encode_into(&partitions, &mut self.encoded)?;
+        if self.encoded.len() > self.limits.journal.max_entry_bytes() {
             return Err(Error::InvalidLimits);
         }
-        self.persist(&payload)?;
+        let payload = std::mem::take(&mut self.encoded);
+        let result = self.persist(&payload);
+        self.encoded = payload;
+        result?;
         self.partitions = partitions;
         Ok(())
     }
@@ -499,22 +505,29 @@ fn acknowledged_offset(batches: &[Batch]) -> Option<i64> {
         .max()
 }
 
+#[cfg(test)]
 fn encode(partitions: &BTreeMap<Key, Partition>) -> Result<Vec<u8>, Error> {
     let mut bytes = Vec::new();
+    encode_into(partitions, &mut bytes)?;
+    Ok(bytes)
+}
+
+fn encode_into(partitions: &BTreeMap<Key, Partition>, bytes: &mut Vec<u8>) -> Result<(), Error> {
+    bytes.clear();
     bytes.extend_from_slice(RECORD_MAGIC);
     put_u32(
-        &mut bytes,
+        bytes,
         u32::try_from(partitions.len()).map_err(|_| Error::InvalidRequest)?,
     )?;
     for (key, partition) in partitions {
-        put_str(&mut bytes, &key.group)?;
-        put_str(&mut bytes, &key.topic)?;
+        put_str(bytes, &key.group)?;
+        put_str(bytes, &key.topic)?;
         bytes.extend_from_slice(&key.partition.to_be_bytes());
         bytes.extend_from_slice(&partition.state_epoch.to_be_bytes());
         bytes.extend_from_slice(&partition.leader_epoch.to_be_bytes());
         bytes.extend_from_slice(&partition.start_offset.to_be_bytes());
         put_u32(
-            &mut bytes,
+            bytes,
             u32::try_from(partition.batches.len()).map_err(|_| Error::InvalidRequest)?,
         )?;
         for batch in &partition.batches {
@@ -529,7 +542,7 @@ fn encode(partitions: &BTreeMap<Key, Partition>) -> Result<Vec<u8>, Error> {
             });
         }
     }
-    Ok(bytes)
+    Ok(())
 }
 
 fn decode(mut bytes: &[u8], max_batches: usize) -> Result<BTreeMap<Key, Partition>, Error> {
@@ -706,6 +719,8 @@ mod tests {
                 .len(),
             0
         );
+        let encoded_capacity = store.encoded.capacity();
+        assert!(encoded_capacity > 0);
         let written = store
             .write(
                 "share",
@@ -733,6 +748,7 @@ mod tests {
             )
             .unwrap_or_else(|error| panic!("{error:?}"));
         assert_eq!(written.state_epoch, 1);
+        assert!(store.encoded.capacity() >= encoded_capacity);
         assert!(matches!(
             store.write(
                 "share",
