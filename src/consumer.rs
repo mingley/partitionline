@@ -4268,20 +4268,23 @@ impl Consumer {
                     return Ok(self.finish_fetch(out));
                 }
             }
-            let mut topics = Vec::new();
-            let mut seen = HashSet::new();
-            for (t, p, _) in &self.assigned {
-                if completed.contains(t, *p) {
-                    continue;
+            let metadata_stale = self.assigned.iter().any(|(t, p, _)| {
+                !completed.contains(t, *p)
+                    && !self
+                        .cluster
+                        .topic_fresh(t.as_ref(), self.cfg.metadata_max_age)
+            });
+            if metadata_stale {
+                let mut topics = Vec::new();
+                let mut seen = HashSet::new();
+                for (t, p, _) in &self.assigned {
+                    if completed.contains(t, *p) {
+                        continue;
+                    }
+                    if seen.insert(t.as_ref()) {
+                        topics.push(t.as_ref().to_owned());
+                    }
                 }
-                if seen.insert(t.as_ref()) {
-                    topics.push(t.as_ref().to_owned());
-                }
-            }
-            if topics
-                .iter()
-                .any(|t| !self.cluster.topic_fresh(t, self.cfg.metadata_max_age))
-            {
                 if Instant::now() >= deadline {
                     return self.fetched_or_timeout(out, Error::Timeout);
                 }
