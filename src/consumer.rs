@@ -4104,14 +4104,23 @@ impl Consumer {
             }
             if !need_offsets.is_empty() {
                 for (topic, partition, timestamp) in need_offsets {
-                    let offset = self
+                    let offset = match self
                         .list_offsets_timeout(
                             topic.clone(),
                             partition,
                             timestamp,
                             remaining_offset_timeout(deadline, Instant::now()),
                         )
-                        .await?;
+                        .await
+                    {
+                        Ok(offset) => offset,
+                        // Records already fetched stay delivered. Partitions
+                        // still out of range are placed on the next poll.
+                        Err(Error::Timeout) if !out.is_empty() => {
+                            return Ok(self.finish_fetch(out));
+                        }
+                        Err(error) => return Err(error),
+                    };
                     let Some(offset) = reset_position(offset) else {
                         return Err(Error::protocol(format!(
                             "ListOffsets returned no reset offset for {topic}-{partition}"
