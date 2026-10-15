@@ -184,7 +184,9 @@ impl TxnOffsets {
                 if entry.record_count != 1 {
                     return Err(Error::InvalidRequest);
                 }
-                log.rows.push(decode(&entry.payload)?);
+                let row = decode(&entry.payload)?;
+                log.accept_recovered(&row)?;
+                log.rows.push(row);
                 log.stored = log.stored.saturating_add(1);
                 cursor = entry
                     .first_offset
@@ -423,6 +425,45 @@ impl TxnOffsets {
             Err(Error::ProducerFenced)
         } else {
             Ok(())
+        }
+    }
+
+    fn accept_recovered(&self, row: &Row) -> Result<(), Error> {
+        let (producer_id, epoch) = match row {
+            Row::Data {
+                producer_id, epoch, ..
+            }
+            | Row::Offset {
+                producer_id, epoch, ..
+            }
+            | Row::Marker {
+                producer_id, epoch, ..
+            } => (*producer_id, *epoch),
+        };
+        self.check_epoch(producer_id, epoch)?;
+        match row {
+            Row::Data { .. } => Ok(()),
+            Row::Offset {
+                group, generation, ..
+            } => {
+                if self
+                    .generation_for(group)
+                    .is_some_and(|existing| *generation < existing)
+                {
+                    Err(Error::IllegalGeneration)
+                } else {
+                    Ok(())
+                }
+            }
+            Row::Marker {
+                producer_id,
+                epoch,
+                commit,
+            } => match self.trailing_marker(*producer_id, *epoch) {
+                Some(stored) if stored != *commit => Err(Error::ConflictingMarker),
+                Some(_) => Err(Error::InvalidRequest),
+                None => Ok(()),
+            },
         }
     }
 
@@ -692,6 +733,34 @@ mod tests {
         let path = std::env::temp_dir().join(format!("pl-txno-{name}-{nanos}"));
         let log = TxnOffsets::open(&path, limits()).unwrap_or_else(|error| panic!("{error:?}"));
         (log, path)
+    }
+
+    #[test]
+    fn an_older_epoch_or_repeated_marker_is_not_recovered() {
+        let (mut log, _) = open("replay-fence");
+        log.append_data(4, 1, 10)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        log.marker(4, 1, true)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let older = Row::Data {
+            producer_id: 4,
+            epoch: 0,
+            id: 11,
+        };
+        assert!(matches!(
+            log.accept_recovered(&older),
+            Err(Error::ProducerFenced)
+        ));
+        let repeated = Row::Marker {
+            producer_id: 4,
+            epoch: 1,
+            commit: true,
+        };
+        assert!(matches!(
+            log.accept_recovered(&repeated),
+            Err(Error::InvalidRequest)
+        ));
+        assert_eq!(log.rows.len(), 2);
     }
 
     #[test]
