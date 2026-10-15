@@ -2498,19 +2498,32 @@ fn put_nullable(buf: &mut BytesMut, bytes: Option<&[u8]>, prefix: &NullablePrefi
     }
 }
 
-fn headers_wire_len(headers: &[Header]) -> Result<usize> {
+struct HeaderWire {
+    key_bits: u32,
+    key_width: usize,
+    value: NullablePrefix,
+}
+
+fn header_wires(headers: &[Header]) -> Result<(usize, Vec<HeaderWire>)> {
+    let mut wires = Vec::with_capacity(headers.len());
     let mut size = 0usize;
-    for h in headers {
-        let key_bits = buf::zigzag_bits_i32(buf::utf8_length(&h.key));
-        let value = nullable_prefix(h.value.as_deref())?;
+    for header in headers {
+        let key_bits = buf::zigzag_bits_i32(buf::utf8_length(&header.key));
+        let key_width = buf::unsigned_varint_size(key_bits);
+        let value = nullable_prefix(header.value.as_deref())?;
         size = size
-            .checked_add(buf::unsigned_varint_size(key_bits))
-            .and_then(|n| n.checked_add(h.key.len()))
+            .checked_add(key_width)
+            .and_then(|n| n.checked_add(header.key.len()))
             .and_then(|n| n.checked_add(value.width))
             .and_then(|n| n.checked_add(value.payload))
             .ok_or_else(|| Error::protocol("header size overflow"))?;
+        wires.push(HeaderWire {
+            key_bits,
+            key_width,
+            value,
+        });
     }
-    Ok(size)
+    Ok((size, wires))
 }
 
 /// KL09-33: saturating input for [`estimate_compressed_size_in_bytes`];
@@ -2611,7 +2624,7 @@ fn encode_record(
     let header_count = buf::i32_from_usize(rec.headers.len())?;
     let header_bits = buf::zigzag_bits_i32(header_count);
     let header_width = buf::unsigned_varint_size(header_bits);
-    let headers_len = headers_wire_len(rec.headers)?;
+    let (headers_len, header_wires) = header_wires(rec.headers)?;
     let body = 1usize
         .checked_add(ts_width)
         .and_then(|n| n.checked_add(offset_width))
@@ -2632,13 +2645,10 @@ fn encode_record(
     put_nullable(buf, rec.key, &key);
     put_nullable(buf, rec.value, &value);
     buf::put_unsigned_varint_width(buf, header_bits, header_width);
-    for h in rec.headers {
-        let key_len = buf::utf8_length(&h.key);
-        let key_bits = buf::zigzag_bits_i32(key_len);
-        buf::put_unsigned_varint_width(buf, key_bits, buf::unsigned_varint_size(key_bits));
-        buf.extend_from_slice(h.key.as_bytes());
-        let value_prefix = nullable_prefix(h.value.as_deref())?;
-        put_nullable(buf, h.value.as_deref(), &value_prefix);
+    for (header, wire) in rec.headers.iter().zip(&header_wires) {
+        buf::put_unsigned_varint_width(buf, wire.key_bits, wire.key_width);
+        buf.extend_from_slice(header.key.as_bytes());
+        put_nullable(buf, header.value.as_deref(), &wire.value);
     }
     Ok(())
 }
