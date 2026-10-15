@@ -4468,6 +4468,33 @@ async fn share_fetch_partition_error_message_reaches_poll() {
 }
 
 #[tokio::test]
+async fn share_fetch_empty_error_message_uses_fallback() {
+    let mock = common::Mock::start().await;
+    v2(&mock);
+    let mut group = ShareGroup::join(config(&mock), "fetch-part-empty", "t")
+        .await
+        .unwrap();
+    let version = mock.last_share_fetch_version().unwrap_or(2);
+    let mut part = ShareFetchedPartition::partition_response(0, error::CORRUPT_MESSAGE);
+    part.error_message = Some(String::new());
+    let topics = vec![ShareFetchedTopic {
+        topic_id: mock.topic_id("t"),
+        partitions: vec![part],
+    }];
+    let mut injected = BytesMut::new();
+    encode_share_fetch_response(&mut injected, version, &topics).unwrap();
+    mock.inject_share_fetch_response_once(&injected);
+    match group.poll().await.unwrap_err() {
+        Error::Broker { code, message } => {
+            assert_eq!(code, error::CORRUPT_MESSAGE);
+            assert_eq!(message, "ShareFetch t-0");
+        }
+        other => panic!("{other:?}"),
+    }
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn share_fetch_corrupt_message_throws_without_delivering_records() {
     let mock = common::Mock::start().await;
     v2(&mock);

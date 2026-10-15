@@ -736,7 +736,8 @@ pub enum ShareAcquireMode {
 /// KIP-951). `UNKNOWN_LEADER_EPOCH` / `UNKNOWN_SERVER_ERROR` skip without
 /// requesting metadata (Java `handleInitializeErrors`). A throwable
 /// partition `ErrorMessage` is the broker exception text (Java
-/// `Errors.forCode.exception(errorMessage)`). A top-level ShareFetch
+/// `Errors.forCode.exception(errorMessage)`); empty uses
+/// `ShareFetch {topic}-{partition}`. A top-level ShareFetch
 /// `ErrorMessage` is used the same way; empty uses `ShareFetch`.
 /// [`Self::accept`] / [`Self::release`] / [`Self::reject`] are Java
 /// `acknowledge` (local until the next poll, commit, or leave).
