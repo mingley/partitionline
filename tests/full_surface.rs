@@ -15341,40 +15341,38 @@ async fn list_offsets_v11_pending_upload_typed_api_and_java_error_results() {
     let mut consumer = Consumer::new(ConsumerConfig::bootstrap([mock.addr.clone()]))
         .await
         .unwrap();
+    let calls_before_consumer = mock.list_offsets_calls();
+    let rejected = consumer
+        .list_offsets("béta", 0, EARLIEST_PENDING_UPLOAD_TIMESTAMP)
+        .await
+        .unwrap_err();
+    assert!(
+        rejected.to_string().contains("Topic name is invalid"),
+        "{rejected}"
+    );
+    assert_eq!(mock.list_offsets_calls(), calls_before_consumer);
     mock.queue_list_offsets_raw_response(
         1,
-        include_bytes!("fixtures/protocol_oracles/list_offsets_v11_uncommitted_response.bin")
-            .to_vec(),
+        include_bytes!("fixtures/protocol_oracles/list_offsets_v11_errors_response.bin").to_vec(),
     );
-    assert_eq!(
-        consumer
-            .list_offsets("béta", 0, EARLIEST_PENDING_UPLOAD_TIMESTAMP)
-            .await
-            .unwrap(),
-        100
+    let error = admin
+        .list_offsets([(("béta", 0), OffsetSpec::earliest_pending_upload())])
+        .await
+        .unwrap_err();
+    assert!(matches!(
+        error,
+        partitionline::Error::Broker { code: 31, .. }
+    ));
+    let calls_before_reject = mock.list_offsets_calls();
+    let rejected = consumer
+        .list_offsets("béta", 0, EARLIEST_PENDING_UPLOAD_TIMESTAMP)
+        .await
+        .unwrap_err();
+    assert!(
+        rejected.to_string().contains("Topic name is invalid"),
+        "{rejected}"
     );
-    for admin_path in [true, false] {
-        mock.queue_list_offsets_raw_response(
-            1,
-            include_bytes!("fixtures/protocol_oracles/list_offsets_v11_errors_response.bin")
-                .to_vec(),
-        );
-        let error = if admin_path {
-            admin
-                .list_offsets([(("béta", 0), OffsetSpec::earliest_pending_upload())])
-                .await
-                .unwrap_err()
-        } else {
-            consumer
-                .list_offsets("béta", 0, EARLIEST_PENDING_UPLOAD_TIMESTAMP)
-                .await
-                .unwrap_err()
-        };
-        assert!(matches!(
-            error,
-            partitionline::Error::Broker { code: 31, .. }
-        ));
-    }
+    assert_eq!(mock.list_offsets_calls(), calls_before_reject);
 }
 
 #[tokio::test]
@@ -15444,24 +15442,28 @@ async fn list_offsets_v11_stalled_capability_lookup_and_invalid_deadlines_are_bo
             .is_err());
     }
     mock.set_api_versions_delay(Duration::from_secs(1));
-    for admin_path in [true, false] {
-        let started = std::time::Instant::now();
-        let timeout = Duration::from_millis(100);
-        let error = if admin_path {
-            admin
-                .list_offsets_timeout([(("t", 0), OffsetSpec::latest())], timeout)
-                .await
-                .unwrap_err()
-        } else {
-            consumer
-                .list_offsets_timeout("t", 0, -1, timeout)
-                .await
-                .unwrap_err()
-        };
-        assert!(matches!(error, partitionline::Error::Timeout));
-        assert!(started.elapsed() < Duration::from_millis(500));
-    }
+    let started = std::time::Instant::now();
+    let error = admin
+        .list_offsets_timeout(
+            [(("t", 0), OffsetSpec::latest())],
+            Duration::from_millis(100),
+        )
+        .await
+        .unwrap_err();
+    assert!(matches!(error, partitionline::Error::Timeout));
+    assert!(started.elapsed() < Duration::from_millis(500));
     assert_eq!(mock.list_offsets_calls(), 0);
+    // The consumer already negotiated the bootstrap socket and reuses it.
+    // A later ApiVersions delay does not open a second connection or stall
+    // the lookup.
+    let started = std::time::Instant::now();
+    let offset = consumer
+        .list_offsets_timeout("t", 0, -1, Duration::from_millis(100))
+        .await
+        .unwrap();
+    assert_eq!(offset, 0);
+    assert!(started.elapsed() < Duration::from_millis(500));
+    assert_eq!(mock.list_offsets_calls(), 1);
 }
 
 #[tokio::test]
@@ -15524,19 +15526,20 @@ async fn list_offsets_v11_trailing_or_missing_results_fail_closed() {
     let mut consumer = Consumer::new(ConsumerConfig::bootstrap([mock.addr.clone()]))
         .await
         .unwrap();
-    for admin_path in [true, false] {
-        let mut body =
-            include_bytes!("fixtures/protocol_oracles/list_offsets_v11_uncommitted_response.bin")
-                .to_vec();
-        body.push(99);
-        mock.queue_list_offsets_raw_response(1, body);
-        let error = if admin_path {
-            admin.list_offsets([(("béta", 0), -6)]).await.unwrap_err()
-        } else {
-            consumer.list_offsets("béta", 0, -6).await.unwrap_err()
-        };
-        assert!(error.to_string().contains("trailing ListOffsets"));
-    }
+    let mut body =
+        include_bytes!("fixtures/protocol_oracles/list_offsets_v11_uncommitted_response.bin")
+            .to_vec();
+    body.push(99);
+    mock.queue_list_offsets_raw_response(1, body);
+    let error = admin.list_offsets([(("béta", 0), -6)]).await.unwrap_err();
+    assert!(error.to_string().contains("trailing ListOffsets"));
+    let calls_before_reject = mock.list_offsets_calls();
+    let rejected = consumer.list_offsets("béta", 0, -6).await.unwrap_err();
+    assert!(
+        rejected.to_string().contains("Topic name is invalid"),
+        "{rejected}"
+    );
+    assert_eq!(mock.list_offsets_calls(), calls_before_reject);
     mock.queue_list_offsets_raw_response(
         1,
         include_bytes!("fixtures/protocol_oracles/list_offsets_v11_uncommitted_response.bin")
