@@ -122,6 +122,8 @@ pub struct Lifecycle {
     journal: Journal,
     stored: usize,
     poisoned: bool,
+    /// Reused journal image. Cleared and rewritten on each commit.
+    encoded: Vec<u8>,
 }
 
 impl Lifecycle {
@@ -134,6 +136,7 @@ impl Lifecycle {
             journal,
             stored: 0,
             poisoned: false,
+            encoded: Vec::new(),
         };
         let mut offset = life.journal.base_offset();
         loop {
@@ -371,8 +374,12 @@ impl Lifecycle {
         if self.stored >= self.limits.max_records {
             return Err(Error::InvalidLimits);
         }
-        let payload = encode(&self.members)?;
-        match self.journal.append(1, &payload) {
+        let mut encoded = std::mem::take(&mut self.encoded);
+        let encoded_result = encode_into(&self.members, &mut encoded);
+        self.encoded = encoded;
+        encoded_result?;
+        let payload = std::mem::take(&mut self.encoded);
+        let result = match self.journal.append(1, &payload) {
             Ok(_) => {
                 self.stored = self.stored.saturating_add(1);
                 Ok(())
@@ -381,7 +388,9 @@ impl Lifecycle {
                 self.poisoned = true;
                 Err(error.into())
             }
-        }
+        };
+        self.encoded = payload;
+        result
     }
 }
 
@@ -507,17 +516,24 @@ fn validate_name(name: &str) -> Result<(), Error> {
     }
 }
 
+#[cfg(test)]
 fn encode(members: &BTreeMap<String, Member>) -> Result<Vec<u8>, Error> {
     let mut bytes = Vec::new();
+    encode_into(members, &mut bytes)?;
+    Ok(bytes)
+}
+
+fn encode_into(members: &BTreeMap<String, Member>, bytes: &mut Vec<u8>) -> Result<(), Error> {
+    bytes.clear();
     bytes.extend_from_slice(RECORD_MAGIC);
     let count = u16::try_from(members.len()).map_err(|_| Error::InvalidRequest)?;
     bytes.extend_from_slice(&count.to_be_bytes());
     for (id, member) in members {
-        put_str(&mut bytes, id)?;
+        put_str(bytes, id)?;
         match &member.instance_id {
             Some(instance) => {
                 bytes.push(1);
-                put_str(&mut bytes, instance)?;
+                put_str(bytes, instance)?;
             }
             None => bytes.push(0),
         }
@@ -529,10 +545,10 @@ fn encode(members: &BTreeMap<String, Member>) -> Result<Vec<u8>, Error> {
             }
             None => bytes.push(0),
         }
-        put_set(&mut bytes, &member.owned)?;
-        put_set(&mut bytes, &member.delivered)?;
+        put_set(bytes, &member.owned)?;
+        put_set(bytes, &member.delivered)?;
     }
-    Ok(bytes)
+    Ok(())
 }
 
 fn decode(mut bytes: &[u8]) -> Result<BTreeMap<String, Member>, Error> {
@@ -761,8 +777,11 @@ mod tests {
             .unwrap_or_else(|error| panic!("{error:?}"));
         life.heartbeat("a", 500)
             .unwrap_or_else(|error| panic!("{error:?}"));
+        let encoded_capacity = life.encoded.capacity();
+        assert!(encoded_capacity > 0);
         life.heartbeat("b", 500)
             .unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(life.encoded.capacity() >= encoded_capacity);
         life.heartbeat("a", 0)
             .unwrap_or_else(|error| panic!("{error:?}"));
         assert!(life
