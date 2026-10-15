@@ -1443,6 +1443,151 @@ impl ShareGroup {
         self.pending_delivery.drain(..count).collect()
     }
 
+    /// Open missing share-leader sockets together. Failures stay for the
+    /// per-node lookup, which reports them on the same deadline.
+    async fn warm_share_leaders(&mut self, nodes: &[i32], deadline: Instant) {
+        let mut dials = Vec::new();
+        for &node in nodes {
+            if self
+                .share_conns
+                .get(&node)
+                .is_some_and(|peer| peer.conn.is_closed())
+            {
+                self.reset_node_session(node);
+            } else if self
+                .share_conns
+                .get(&node)
+                .is_some_and(|peer| peer.conn.idle_expired(self.cfg.connections_max_idle))
+            {
+                let _ = self.share_conns.remove(&node);
+            }
+            if self.share_conns.contains_key(&node) {
+                continue;
+            }
+            let Some(addr) = self
+                .assigned
+                .iter()
+                .find_map(|(topic, part)| {
+                    self.consumer
+                        .leader_of(topic, *part)
+                        .ok()
+                        .filter(|(id, _)| *id == node)
+                        .map(|(_, addr)| addr)
+                })
+                .or_else(|| self.share_addresses.get(&node).cloned())
+            else {
+                continue;
+            };
+            dials.push((node, addr));
+        }
+        if dials.is_empty() || Instant::now() >= deadline {
+            return;
+        }
+        let client_id = self.cfg.client_id.clone();
+        let connect_timeout = self.cfg.connect_timeout;
+        let tls = self.cfg.tls.clone();
+        let sasl_plain = self.cfg.sasl_plain.clone();
+        let sasl_scram = self.cfg.sasl_scram.clone();
+        let sasl_scram_sha512 = self.cfg.sasl_scram_sha512.clone();
+        let sasl_oauthbearer = self.cfg.sasl_oauthbearer.clone();
+        let sasl_oauthbearer_oidc = self.cfg.sasl_oauthbearer_oidc.clone();
+        let mut waiting = dials.into_iter();
+        type ShareDial = (
+            i32,
+            String,
+            Result<(BrokerConn, crate::protocol::api::ApiVersionsResponse)>,
+        );
+        let mut inflight = tokio::task::JoinSet::<ShareDial>::new();
+        let spawn = |inflight: &mut tokio::task::JoinSet<ShareDial>, node: i32, addr: String| {
+            let client_id = client_id.clone();
+            let tls = tls.clone();
+            let sasl_plain = sasl_plain.clone();
+            let sasl_scram = sasl_scram.clone();
+            let sasl_scram_sha512 = sasl_scram_sha512.clone();
+            let sasl_oauthbearer = sasl_oauthbearer.clone();
+            let sasl_oauthbearer_oidc = sasl_oauthbearer_oidc.clone();
+            let addr_for_task = addr.clone();
+            let _ = inflight.spawn(async move {
+                let result = Consumer::open_fetch_conn(
+                    &addr_for_task,
+                    &client_id,
+                    connect_timeout,
+                    tls.as_ref(),
+                    sasl_plain.as_ref(),
+                    sasl_scram.as_ref(),
+                    sasl_scram_sha512.as_ref(),
+                    sasl_oauthbearer.as_deref(),
+                    sasl_oauthbearer_oidc.as_ref(),
+                    deadline,
+                )
+                .await;
+                (node, addr, result)
+            });
+        };
+        while inflight.len() < 8 {
+            let Some((node, addr)) = waiting.next() else {
+                break;
+            };
+            spawn(&mut inflight, node, addr);
+        }
+        while !inflight.is_empty() {
+            if Instant::now() >= deadline {
+                inflight.abort_all();
+                break;
+            }
+            let rest = deadline.saturating_duration_since(Instant::now());
+            let joined = tokio::select! {
+                joined = inflight.join_next() => joined,
+                _ = tokio::time::sleep(rest) => {
+                    inflight.abort_all();
+                    break;
+                }
+            };
+            let Some(Ok((node, addr, result))) = joined else {
+                break;
+            };
+            if let Ok((conn, versions)) = result {
+                let fetch_version = versions
+                    .api_version(SHARE_FETCH)
+                    .and_then(|version| {
+                        pick_version(
+                            version.min_version,
+                            version.max_version,
+                            0,
+                            SHARE_FETCH_RUNTIME_MAX_VERSION,
+                        )
+                    })
+                    .unwrap_or(-1);
+                let acknowledge_version = versions
+                    .api_version(SHARE_ACKNOWLEDGE)
+                    .and_then(|version| {
+                        pick_version(
+                            version.min_version,
+                            version.max_version,
+                            0,
+                            SHARE_ACKNOWLEDGE_RUNTIME_MAX_VERSION,
+                        )
+                    })
+                    .unwrap_or(-1);
+                let _ = self.share_addresses.insert(node, addr);
+                let _ = self.share_conns.insert(
+                    node,
+                    ShareNodeConnection {
+                        conn,
+                        fetch_version,
+                        acknowledge_version,
+                    },
+                );
+            }
+            while inflight.len() < 8 {
+                let Some((node, addr)) = waiting.next() else {
+                    break;
+                };
+                spawn(&mut inflight, node, addr);
+            }
+        }
+    }
+
     async fn node_share_version_until(
         &mut self,
         node: i32,
@@ -1797,6 +1942,10 @@ impl ShareGroup {
             .decoded_byte_limit()
             .checked_sub(metadata_bytes)
             .ok_or_else(|| Error::protocol("ShareFetch acquisition metadata budget exceeded"))?;
+        if nodes.len() > 1 {
+            let ids: Vec<i32> = nodes.iter().map(|(node, _)| *node).collect();
+            self.warm_share_leaders(&ids, deadline).await;
+        }
         let mut prepared = Vec::new();
         for (node, tps) in nodes {
             if self.inflight_share_nodes.contains_key(&node) {

@@ -3166,7 +3166,7 @@ impl Consumer {
         clippy::too_many_arguments,
         reason = "a leader dial carries the shared SASL and TLS settings"
     )]
-    async fn open_fetch_conn(
+    pub(crate) async fn open_fetch_conn(
         addr: &str,
         client_id: &str,
         connect_timeout: Duration,
