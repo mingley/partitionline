@@ -1471,6 +1471,10 @@ impl ShareGroup {
     /// acknowledgement. A ShareFetch `AcknowledgeErrorCode` completes the
     /// piggybacked acknowledgements (commit callback) and still delivers
     /// this fetch; [`Self::poll`] does not return that error.
+    /// After [`Self::subscribe`] replaces the topic list, leftover
+    /// acknowledgements for a previous topic still piggyback on that
+    /// topic's leader while the new assignment is fetched (Java
+    /// `testShareFetchWithSubscriptionChangeMultipleNodes`).
     /// A partition-level error (Java `ShareFetchCollector.collect` /
     /// `testMultipleTopicsFetch`) leaves successful sibling partitions
     /// deliverable. The error is returned on this poll when it is first
@@ -2840,7 +2844,10 @@ impl ShareGroup {
     /// `ShareSessionHandler`). Leftover acknowledgements for a previous
     /// topic still flush on the next [`Self::poll`], [`Self::commit`],
     /// or [`Self::leave`] (Java `testShareFetchWithSubscriptionChange` /
-    /// `testCommitAsyncWithSubscriptionChange`). After
+    /// `testCommitAsyncWithSubscriptionChange`). When the new topic is
+    /// led by a different broker, that poll piggybacks leftover acks on
+    /// the previous leader and ShareFetches the new topic on its leader
+    /// (Java `testShareFetchWithSubscriptionChangeMultipleNodes`). After
     /// [`Self::unsubscribe`], this starts a new heartbeat loop.
     pub async fn subscribe(
         &mut self,
