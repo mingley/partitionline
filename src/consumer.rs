@@ -1923,6 +1923,8 @@ impl AbortedIntervals {
 /// Manual-assignment fetch client.
 pub struct Consumer {
     cfg: ConsumerConfig,
+    /// Rack copied once from the config. Fetch requests clone the pointer.
+    rack_id: Option<Arc<str>>,
     conn: BrokerConn,
     versions: HashMap<i16, ApiVersion>,
     metadata_version: i16,
@@ -2714,6 +2716,7 @@ impl Consumer {
             ));
         }
         cfg.bootstrap = crate::net::parse_and_validate_addresses(&cfg.bootstrap)?;
+        let rack_id = cfg.rack.as_deref().map(Arc::<str>::from);
         let (mut conn, resp) = Self::open_bootstrap(&cfg, deadline).await?;
         let mut versions = HashMap::new();
         for api in resp.api_keys {
@@ -2782,6 +2785,7 @@ impl Consumer {
             spare_decoded: Vec::new(),
             spare_leaders: Vec::new(),
             spare_connected: Vec::new(),
+            rack_id,
             spare_fetch_topics: Vec::new(),
             reconnect_fails: HashMap::new(),
             inflight_fetches: None,
@@ -5453,7 +5457,7 @@ impl Consumer {
         if deadline.saturating_duration_since(Instant::now()).is_zero() {
             return self.ready_fetches_or_timeout();
         }
-        let rack = self.cfg.rack.clone();
+        let rack = self.rack_id.clone();
         let mut name_ids: HashMap<Arc<str>, [u8; 16]> = HashMap::new();
         for by_topic in by_leader.values() {
             for (topic, partitions) in by_topic {
