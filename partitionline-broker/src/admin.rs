@@ -609,7 +609,10 @@ fn decode(mut bytes: &[u8]) -> Result<State, Error> {
     let dir_count = take_u32(&mut bytes)?;
     let mut dirs = BTreeSet::new();
     for _ in 0..dir_count {
-        dirs.insert(take_str(&mut bytes)?);
+        let directory = take_str(&mut bytes)?;
+        if !valid_name(&directory) || !dirs.insert(directory) {
+            return Err(Error::InvalidRequest);
+        }
     }
     let replica_count = take_u32(&mut bytes)?;
     let mut replicas = BTreeMap::new();
@@ -623,36 +626,66 @@ fn decode(mut bytes: &[u8]) -> Result<State, Error> {
         }
         let leader = take_i32(&mut bytes)?;
         let log_dir = take_str(&mut bytes)?;
-        replicas.insert(
-            TopicPartition { topic, partition },
-            Replica {
-                replicas: brokers,
-                leader,
-                log_dir,
-            },
-        );
+        if replicas
+            .insert(
+                TopicPartition { topic, partition },
+                Replica {
+                    replicas: brokers,
+                    leader,
+                    log_dir,
+                },
+            )
+            .is_some()
+        {
+            return Err(Error::InvalidRequest);
+        }
     }
     let feature_count = take_u32(&mut bytes)?;
     let mut features = BTreeMap::new();
     for _ in 0..feature_count {
-        features.insert(take_str(&mut bytes)?, take_i16(&mut bytes)?);
+        let name = take_str(&mut bytes)?;
+        let level = take_i16(&mut bytes)?;
+        if !valid_name(&name) || level < 0 || features.insert(name, level).is_some() {
+            return Err(Error::InvalidRequest);
+        }
     }
     let voter_count = take_u32(&mut bytes)?;
     let mut voters = BTreeSet::new();
     for _ in 0..voter_count {
-        voters.insert(take_i32(&mut bytes)?);
+        let voter = take_i32(&mut bytes)?;
+        if voter <= 0 || !voters.insert(voter) {
+            return Err(Error::InvalidRequest);
+        }
     }
     if !bytes.is_empty() {
         return Err(Error::InvalidRequest);
     }
-    Ok(State {
+    let state = State {
         cluster_id,
         controller_epoch,
         dirs,
         replicas,
         features,
         voters,
-    })
+    };
+    validate_recovered(&state)?;
+    Ok(state)
+}
+
+fn validate_recovered(state: &State) -> Result<(), Error> {
+    if !valid_name(&state.cluster_id) || state.controller_epoch < 0 || state.voters.is_empty() {
+        return Err(Error::InvalidRequest);
+    }
+    for (key, replica) in &state.replicas {
+        if !valid_name(&key.topic)
+            || key.partition < 0
+            || !state.dirs.contains(&replica.log_dir)
+            || !valid_replicas(&replica.replicas, replica.leader)
+        {
+            return Err(Error::InvalidRequest);
+        }
+    }
+    Ok(())
 }
 
 fn put_str(bytes: &mut Vec<u8>, value: &str) -> Result<(), Error> {
@@ -729,6 +762,36 @@ mod tests {
         let admin = Admin::open(&path, limits(), "cluster-1", 1)
             .unwrap_or_else(|error| panic!("{error:?}"));
         (admin, path)
+    }
+
+    #[test]
+    fn a_leader_outside_the_replica_set_is_not_recovered() {
+        let mut dirs = BTreeSet::new();
+        dirs.insert("data".to_owned());
+        let mut replicas = BTreeMap::new();
+        replicas.insert(
+            TopicPartition {
+                topic: "orders".to_owned(),
+                partition: 0,
+            },
+            Replica {
+                replicas: vec![1],
+                leader: 2,
+                log_dir: "data".to_owned(),
+            },
+        );
+        let mut voters = BTreeSet::new();
+        voters.insert(1);
+        let state = State {
+            cluster_id: "cluster-1".to_owned(),
+            controller_epoch: 0,
+            dirs,
+            replicas,
+            features: BTreeMap::new(),
+            voters,
+        };
+        let encoded = encode(&state).unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(decode(&encoded), Err(Error::InvalidRequest)));
     }
 
     #[test]
