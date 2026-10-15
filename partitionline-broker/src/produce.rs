@@ -485,20 +485,39 @@ impl Store {
     pub(crate) fn max_partitions(&self) -> usize {
         self.config.max_partitions
     }
+    /// Log start, high watermark, and the open handle from one lookup.
+    ///
+    /// A missing partition is an empty log. The handle is present only when
+    /// that slot still names this partition. A poisoned partition is error 56.
+    pub(crate) fn open_bounds(
+        &self,
+        id: TopicId,
+        index: i32,
+    ) -> Result<(Option<OpenLog>, i64, i64), i16> {
+        let Some(position) = self.located.get(&(id, index)).copied() else {
+            return Ok((None, 0, 0));
+        };
+        let Some(slot) = self.slots.get(position) else {
+            return Ok((None, 0, 0));
+        };
+        if slot.partition.is_poisoned() {
+            return Err(56);
+        }
+        let log = (slot.id == id && slot.index == index).then_some(OpenLog {
+            position,
+            id,
+            index,
+        });
+        Ok((
+            log,
+            slot.partition.log_start_offset(),
+            slot.partition.next_offset(),
+        ))
+    }
     /// Log start and high watermark from one open-partition lookup.
     pub(crate) fn log_bounds(&self, id: TopicId, index: i32) -> Result<(i64, i64), i16> {
-        match self
-            .located
-            .get(&(id, index))
-            .and_then(|position| self.slots.get(*position))
-        {
-            None => Ok((0, 0)),
-            Some(slot) if slot.partition.is_poisoned() => Err(56),
-            Some(slot) => Ok((
-                slot.partition.log_start_offset(),
-                slot.partition.next_offset(),
-            )),
-        }
+        self.open_bounds(id, index)
+            .map(|(_, log_start, watermark)| (log_start, watermark))
     }
     pub(crate) fn watermark(&self, id: TopicId, index: i32) -> Result<i64, i16> {
         self.log_bounds(id, index).map(|(_, watermark)| watermark)
@@ -590,16 +609,6 @@ impl Store {
             slot.partition.invalidate_length_observation();
         }
     }
-    pub(crate) fn partition_position(&self, id: TopicId, index: i32) -> Option<OpenLog> {
-        let position = self.located.get(&(id, index)).copied()?;
-        self.slots.get(position).and_then(|slot| {
-            (slot.id == id && slot.index == index).then_some(OpenLog {
-                position,
-                id,
-                index,
-            })
-        })
-    }
     pub(crate) fn read_entry_at(
         &mut self,
         log: Option<OpenLog>,
@@ -638,13 +647,18 @@ impl Store {
     }
     pub(crate) fn timestamp_start(
         &mut self,
-        id: TopicId,
-        index: i32,
+        log: Option<OpenLog>,
         wanted: i64,
     ) -> Result<i64, partition::Error> {
-        let Some(slot) = self.located_slot_mut(id, index) else {
+        let Some(log) = log else {
             return Ok(0);
         };
+        let Some(slot) = self.slots.get_mut(log.position) else {
+            return Ok(0);
+        };
+        if slot.id != log.id || slot.index != log.index {
+            return Ok(0);
+        }
         let poisoned = slot.partition.is_poisoned();
         let result = slot.partition.timestamp_start(wanted);
         self.changed |= poisoned != slot.partition.is_poisoned();

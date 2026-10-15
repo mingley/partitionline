@@ -732,11 +732,13 @@ pub(crate) fn process(
                 invalid,
                 key,
             );
-            let (id, log_start, watermark, error) = match target {
-                Err(error) => (None, -1, -1, error),
-                Ok(target) => match store.log_bounds(target.id(), part.index) {
-                    Ok((log_start, watermark)) => (Some(target.id()), log_start, watermark, 0),
-                    Err(error) => (None, -1, -1, storage_code(error, key, version)),
+            let (id, position, log_start, watermark, error) = match target {
+                Err(error) => (None, None, -1, -1, error),
+                Ok(target) => match store.open_bounds(target.id(), part.index) {
+                    Ok((position, log_start, watermark)) => {
+                        (Some(target.id()), position, log_start, watermark, 0)
+                    }
+                    Err(error) => (None, None, -1, -1, storage_code(error, key, version)),
                 },
             };
             let mut error = stored_log_error(error, log_start, watermark);
@@ -753,31 +755,25 @@ pub(crate) fn process(
                         offset = log_start;
                     } else if query == ListQuery::Latest {
                         offset = watermark;
-                    } else if query != ListQuery::TieredEnd {
-                        if let Some(id) = id {
-                            let position = store.partition_position(id, part.index);
-                            let want_max = query == ListQuery::MaxTimestamp;
-                            let mut best = None;
-                            let mut cursor = if want_max {
-                                log_start
-                            } else {
-                                match store.timestamp_start(id, part.index, part.offset) {
-                                    Ok(offset) => offset.max(log_start),
-                                    Err(_) => {
-                                        error = 56;
-                                        watermark
-                                    }
+                    } else if query != ListQuery::TieredEnd && id.is_some() {
+                        let want_max = query == ListQuery::MaxTimestamp;
+                        let mut best = None;
+                        let mut cursor = if want_max {
+                            log_start
+                        } else {
+                            match store.timestamp_start(position, part.offset) {
+                                Ok(offset) => offset.max(log_start),
+                                Err(_) => {
+                                    error = 56;
+                                    watermark
                                 }
-                            };
-                            'scan: while cursor < watermark {
-                                active()?;
-                                scan_buf.clear();
-                                let loaded = match budget.read_into(
-                                    store,
-                                    position,
-                                    cursor,
-                                    &mut scan_buf,
-                                )? {
+                            }
+                        };
+                        'scan: while cursor < watermark {
+                            active()?;
+                            scan_buf.clear();
+                            let loaded =
+                                match budget.read_into(store, position, cursor, &mut scan_buf)? {
                                     Err(code) => {
                                         error = code;
                                         break;
@@ -788,46 +784,41 @@ pub(crate) fn process(
                                         break;
                                     }
                                 };
-                                let payload =
-                                    scan_buf.get(..loaded.len).ok_or(Error::StoredRecords)?;
-                                let (checked, next) = stored_records(
-                                    payload,
-                                    loaded.first_offset,
-                                    loaded.record_count,
-                                )?;
-                                for batch in checked.batches() {
-                                    active()?;
-                                    let batch = batch.map_err(|_| Error::StoredRecords)?;
-                                    if want_max {
-                                        if let Some(found) =
-                                            observe_max(batch, log_start, watermark, &active)?
-                                        {
-                                            best = Some(match best {
-                                                Some(current) if found <= current => current,
-                                                _ => found,
-                                            });
-                                        }
-                                    } else if let Some(found) = first_timestamp(
-                                        batch,
-                                        part.offset,
-                                        log_start,
-                                        watermark,
-                                        &active,
-                                    )? {
-                                        (timestamp, offset) = found;
-                                        break 'scan;
+                            let payload = scan_buf.get(..loaded.len).ok_or(Error::StoredRecords)?;
+                            let (checked, next) =
+                                stored_records(payload, loaded.first_offset, loaded.record_count)?;
+                            for batch in checked.batches() {
+                                active()?;
+                                let batch = batch.map_err(|_| Error::StoredRecords)?;
+                                if want_max {
+                                    if let Some(found) =
+                                        observe_max(batch, log_start, watermark, &active)?
+                                    {
+                                        best = Some(match best {
+                                            Some(current) if found <= current => current,
+                                            _ => found,
+                                        });
                                     }
+                                } else if let Some(found) = first_timestamp(
+                                    batch,
+                                    part.offset,
+                                    log_start,
+                                    watermark,
+                                    &active,
+                                )? {
+                                    (timestamp, offset) = found;
+                                    break 'scan;
                                 }
-                                if next <= cursor {
-                                    return Err(Error::StoredRecords);
-                                }
-                                cursor = next;
                             }
-                            if want_max && error == 0 {
-                                if let Some((found_timestamp, found_offset)) = best {
-                                    timestamp = found_timestamp;
-                                    offset = found_offset;
-                                }
+                            if next <= cursor {
+                                return Err(Error::StoredRecords);
+                            }
+                            cursor = next;
+                        }
+                        if want_max && error == 0 {
+                            if let Some((found_timestamp, found_offset)) = best {
+                                timestamp = found_timestamp;
+                                offset = found_offset;
                             }
                         }
                     }
@@ -861,137 +852,131 @@ pub(crate) fn process(
             let length_at = out.bytes.len();
             out.i32(0)?;
             let data_at = out.bytes.len();
-            if error == 0 {
-                if let Some(id) = id {
-                    let position = store.partition_position(id, part.index);
-                    let mut cursor = part.offset;
-                    let part_maximum =
-                        usize::try_from(part.maximum).map_err(|_| Error::StoredRecords)?;
-                    let mut part_bytes = 0usize;
-                    'read: while cursor < watermark {
-                        active()?;
-                        if record_bytes != 0
-                            && (record_bytes >= maximum || part_bytes >= part_maximum)
-                        {
+            if error == 0 && id.is_some() {
+                let mut cursor = part.offset;
+                let part_maximum =
+                    usize::try_from(part.maximum).map_err(|_| Error::StoredRecords)?;
+                let mut part_bytes = 0usize;
+                'read: while cursor < watermark {
+                    active()?;
+                    if record_bytes != 0 && (record_bytes >= maximum || part_bytes >= part_maximum)
+                    {
+                        break;
+                    }
+                    let start = cursor;
+                    let payload_at = out.bytes.len();
+                    let loaded = match budget.read_into(store, position, cursor, &mut out.bytes)? {
+                        Err(code) => {
+                            error = storage_code(code, key, version);
                             break;
                         }
-                        let start = cursor;
-                        let payload_at = out.bytes.len();
-                        let loaded =
-                            match budget.read_into(store, position, cursor, &mut out.bytes)? {
-                                Err(code) => {
-                                    error = storage_code(code, key, version);
-                                    break;
-                                }
-                                Ok(Some(view)) => view,
-                                Ok(None) => {
-                                    error = storage_code(56, key, version);
+                        Ok(Some(view)) => view,
+                        Ok(None) => {
+                            error = storage_code(56, key, version);
+                            break;
+                        }
+                    };
+                    let payload_end = out.bytes.len();
+                    let mut keep_from = None;
+                    let mut keep_to = payload_at;
+                    let mut stop = false;
+                    let entry_next;
+                    let mut failed = None;
+                    {
+                        let payload = out
+                            .bytes
+                            .get(payload_at..payload_end)
+                            .ok_or(Error::StoredRecords)?;
+                        let (checked, next) =
+                            stored_records(payload, loaded.first_offset, loaded.record_count)?;
+                        entry_next = next;
+                        let mut at = 0usize;
+                        for batch in checked.batches() {
+                            active()?;
+                            let batch = match batch {
+                                Ok(batch) => batch,
+                                Err(_) => {
+                                    failed = Some(Error::StoredRecords);
                                     break;
                                 }
                             };
-                        let payload_end = out.bytes.len();
-                        let mut keep_from = None;
-                        let mut keep_to = payload_at;
-                        let mut stop = false;
-                        let entry_next;
-                        let mut failed = None;
-                        {
-                            let payload = out
-                                .bytes
-                                .get(payload_at..payload_end)
-                                .ok_or(Error::StoredRecords)?;
-                            let (checked, next) =
-                                stored_records(payload, loaded.first_offset, loaded.record_count)?;
-                            entry_next = next;
-                            let mut at = 0usize;
-                            for batch in checked.batches() {
-                                active()?;
-                                let batch = match batch {
-                                    Ok(batch) => batch,
-                                    Err(_) => {
-                                        failed = Some(Error::StoredRecords);
-                                        break;
-                                    }
-                                };
-                                let end = match at.checked_add(batch.bytes.len()) {
-                                    Some(end) => end,
-                                    None => {
-                                        failed = Some(Error::StoredRecords);
-                                        break;
-                                    }
-                                };
-                                if batch.next_offset <= cursor {
-                                    at = end;
-                                    continue;
-                                }
-                                if batch_crosses_watermark(
-                                    batch.base_offset,
-                                    batch.next_offset,
-                                    watermark,
-                                ) {
-                                    stop = true;
+                            let end = match at.checked_add(batch.bytes.len()) {
+                                Some(end) => end,
+                                None => {
+                                    failed = Some(Error::StoredRecords);
                                     break;
                                 }
-                                let next_part = match part_bytes.checked_add(batch.bytes.len()) {
-                                    Some(next_part) => next_part,
-                                    None => {
-                                        failed = Some(Error::ResponseLimit);
-                                        break;
-                                    }
-                                };
-                                let next_total = match record_bytes.checked_add(batch.bytes.len()) {
-                                    Some(next_total) => next_total,
-                                    None => {
-                                        failed = Some(Error::ResponseLimit);
-                                        break;
-                                    }
-                                };
-                                if record_bytes != 0
-                                    && (next_part > part_maximum || next_total > maximum)
-                                {
-                                    stop = true;
-                                    break;
-                                }
-                                if fixed
-                                    .checked_add(next_total)
-                                    .is_none_or(|n| n > common.max_response_bytes)
-                                {
+                            };
+                            if batch.next_offset <= cursor {
+                                at = end;
+                                continue;
+                            }
+                            if batch_crosses_watermark(
+                                batch.base_offset,
+                                batch.next_offset,
+                                watermark,
+                            ) {
+                                stop = true;
+                                break;
+                            }
+                            let next_part = match part_bytes.checked_add(batch.bytes.len()) {
+                                Some(next_part) => next_part,
+                                None => {
                                     failed = Some(Error::ResponseLimit);
                                     break;
                                 }
-                                if keep_from.is_none() {
-                                    keep_from = Some(payload_at.saturating_add(at));
+                            };
+                            let next_total = match record_bytes.checked_add(batch.bytes.len()) {
+                                Some(next_total) => next_total,
+                                None => {
+                                    failed = Some(Error::ResponseLimit);
+                                    break;
                                 }
-                                keep_to = payload_at.saturating_add(end);
-                                part_bytes = next_part;
-                                record_bytes = next_total;
-                                cursor = batch.next_offset;
-                                at = end;
+                            };
+                            if record_bytes != 0
+                                && (next_part > part_maximum || next_total > maximum)
+                            {
+                                stop = true;
+                                break;
                             }
-                        }
-                        match keep_from {
-                            Some(from) => {
-                                if from != payload_at {
-                                    out.bytes.copy_within(from..keep_to, payload_at);
-                                }
-                                out.bytes.truncate(
-                                    payload_at.saturating_add(keep_to.saturating_sub(from)),
-                                );
+                            if fixed
+                                .checked_add(next_total)
+                                .is_none_or(|n| n > common.max_response_bytes)
+                            {
+                                failed = Some(Error::ResponseLimit);
+                                break;
                             }
-                            None => out.bytes.truncate(payload_at),
-                        }
-                        if let Some(error) = failed {
-                            return Err(error);
-                        }
-                        if stop {
-                            break 'read;
-                        }
-                        if cursor < watermark {
-                            if entry_next <= start {
-                                return Err(Error::StoredRecords);
+                            if keep_from.is_none() {
+                                keep_from = Some(payload_at.saturating_add(at));
                             }
-                            cursor = entry_next;
+                            keep_to = payload_at.saturating_add(end);
+                            part_bytes = next_part;
+                            record_bytes = next_total;
+                            cursor = batch.next_offset;
+                            at = end;
                         }
+                    }
+                    match keep_from {
+                        Some(from) => {
+                            if from != payload_at {
+                                out.bytes.copy_within(from..keep_to, payload_at);
+                            }
+                            out.bytes
+                                .truncate(payload_at.saturating_add(keep_to.saturating_sub(from)));
+                        }
+                        None => out.bytes.truncate(payload_at),
+                    }
+                    if let Some(error) = failed {
+                        return Err(error);
+                    }
+                    if stop {
+                        break 'read;
+                    }
+                    if cursor < watermark {
+                        if entry_next <= start {
+                            return Err(Error::StoredRecords);
+                        }
+                        cursor = entry_next;
                     }
                 }
             }
