@@ -1995,6 +1995,10 @@ pub struct Consumer {
     spare_replies: Vec<FetchReply>,
     /// Empty decoded-reply list returned after a poll. The next poll refills it.
     spare_decoded: Vec<DecodedFetchReply>,
+    /// Empty leader-id list. The next fetch refills it.
+    spare_leaders: Vec<i32>,
+    /// Empty connected-leader list for a one-broker fetch.
+    spare_connected: Vec<i32>,
     reconnect_fails: HashMap<i32, u32>,
     /// Leaders whose Fetch was sent and not yet applied. A multi-leader round
     /// returns after [`MULTI_LEADER_COLLECTION_WINDOW`] once any peer has
@@ -2774,6 +2778,8 @@ impl Consumer {
             last_fetch_records: 0,
             spare_replies: Vec::new(),
             spare_decoded: Vec::new(),
+            spare_leaders: Vec::new(),
+            spare_connected: Vec::new(),
             reconnect_fails: HashMap::new(),
             inflight_fetches: None,
             inflight_nodes: HashSet::new(),
@@ -5423,7 +5429,8 @@ impl Consumer {
         deadline: Instant,
         max_wait: i32,
     ) -> Result<Vec<FetchReply>> {
-        let mut nodes: Vec<i32> = by_leader.keys().copied().collect();
+        let mut nodes = self.take_leaders(by_leader.len());
+        nodes.extend(by_leader.keys().copied());
         nodes.sort_unstable();
         let min_bytes = self.cfg.min_bytes;
         let max_bytes = if self.cfg.buffer_memory > 0 {
@@ -5476,7 +5483,11 @@ impl Consumer {
         }
         let collect_parallel = nodes.len() > 1 || self.inflight_fetches.is_some();
         let mut queue = nodes;
-        let mut connected = Vec::new();
+        let mut connected = if collect_parallel {
+            Vec::new()
+        } else {
+            self.take_connected(queue.len())
+        };
         if collect_parallel {
             connected = match self
                 .connect_parallel_fetch_nodes(queue, by_leader, deadline)
@@ -5543,6 +5554,7 @@ impl Consumer {
                     }
                 }
             }
+            self.park_leaders(queue);
         }
         let nodes: Vec<i32> = connected;
         // Dialing spent part of the deadline. The broker wait and the RPC
@@ -5550,18 +5562,23 @@ impl Consumer {
         // the first connection.
         let timeout = deadline.saturating_duration_since(Instant::now());
         if timeout.is_zero() {
+            self.park_connected(nodes);
             return self.ready_fetches_or_timeout();
         }
         let max_wait = max_wait.min(duration_millis_i32(timeout));
         if !collect_parallel {
             let mut out = self.take_replies(nodes.len());
-            for node in nodes {
+            let mut node_at = 0usize;
+            while let Some(node) = nodes.get(node_at).copied() {
+                node_at = node_at.saturating_add(1);
                 let timeout = deadline.saturating_duration_since(Instant::now());
                 if timeout.is_zero() {
                     if !out.is_empty() {
+                        self.park_connected(nodes);
                         return Ok(out);
                     }
                     self.park_replies(out);
+                    self.park_connected(nodes);
                     return self.ready_fetches_or_timeout();
                 }
                 let max_wait = max_wait.min(duration_millis_i32(timeout));
@@ -5591,6 +5608,7 @@ impl Consumer {
                     };
                     if fetch_version < 0 {
                         self.park_replies(out);
+                        self.park_connected(nodes);
                         return Err(Error::Unsupported(format!(
                             "broker at {} does not support Fetch v4-17",
                             if reuse_bootstrap {
@@ -5639,6 +5657,7 @@ impl Consumer {
                     body,
                 });
             }
+            self.park_connected(nodes);
             return Ok(out);
         }
         let mut inflight = InflightFetches {
@@ -7284,6 +7303,22 @@ impl Consumer {
 
     fn park_decoded(&mut self, replies: Vec<DecodedFetchReply>) {
         park_spare(&mut self.spare_decoded, replies);
+    }
+
+    fn take_leaders(&mut self, hint: usize) -> Vec<i32> {
+        take_spare(&mut self.spare_leaders, hint)
+    }
+
+    fn park_leaders(&mut self, nodes: Vec<i32>) {
+        park_spare(&mut self.spare_leaders, nodes);
+    }
+
+    fn take_connected(&mut self, hint: usize) -> Vec<i32> {
+        take_spare(&mut self.spare_connected, hint)
+    }
+
+    fn park_connected(&mut self, nodes: Vec<i32>) {
+        park_spare(&mut self.spare_connected, nodes);
     }
 
     fn finish_fetch(&mut self, recs: Vec<FetchedRecord>) -> Vec<FetchedRecord> {
