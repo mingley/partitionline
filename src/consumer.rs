@@ -2148,6 +2148,15 @@ async fn send_fetch_session_close(
     }
 }
 
+fn startup_remaining(deadline: Instant) -> Result<Duration> {
+    let remaining = deadline.saturating_duration_since(Instant::now());
+    if remaining.is_zero() {
+        Err(Error::Timeout)
+    } else {
+        Ok(remaining)
+    }
+}
+
 impl Consumer {
     /// Connect with default config to one bootstrap server.
     pub async fn connect(bootstrap: impl Into<String>) -> Result<Self> {
@@ -2156,11 +2165,15 @@ impl Consumer {
 
     /// Connect using `cfg`. Negotiates ApiVersions and optional SASL/TLS.
     pub async fn new(cfg: ConsumerConfig) -> Result<Self> {
-        let deadline = crate::net::Deadline::from_timeout(cfg.request_timeout);
-        deadline.run(Self::new_until(cfg)).await
+        let deadline = Instant::now()
+            .checked_add(cfg.request_timeout)
+            .ok_or(Error::Timeout)?;
+        crate::net::Deadline::from_std(deadline)
+            .run(Self::new_until(cfg, deadline))
+            .await
     }
 
-    async fn new_until(cfg: ConsumerConfig) -> Result<Self> {
+    async fn new_until(cfg: ConsumerConfig, deadline: Instant) -> Result<Self> {
         if cfg.bootstrap.len() > 16 || cfg.client_id.len() > i16::MAX as usize {
             return Err(Error::protocol(
                 "bootstrap/client ID exceeds discovery limit",
@@ -2200,15 +2213,17 @@ impl Consumer {
             ));
         }
         cfg.bootstrap = crate::net::parse_and_validate_addresses(&cfg.bootstrap)?;
+        let connect_timeout = cfg.connect_timeout.min(startup_remaining(deadline)?);
         let mut conn = BrokerConn::connect_tls_any(
             &cfg.bootstrap,
             &cfg.client_id,
-            cfg.connect_timeout,
+            connect_timeout,
             cfg.tls.as_ref(),
         )
         .await?;
         let resp =
-            crate::protocol::api::negotiate_api_versions(&mut conn, cfg.request_timeout).await?;
+            crate::protocol::api::negotiate_api_versions(&mut conn, startup_remaining(deadline)?)
+                .await?;
         sasl::apply_api_keys(&mut conn, &resp.api_keys);
         let mut versions = HashMap::new();
         for api in resp.api_keys {
@@ -2221,7 +2236,7 @@ impl Consumer {
             cfg.sasl_scram_sha512.as_ref(),
             cfg.sasl_oauthbearer.as_deref(),
             cfg.sasl_oauthbearer_oidc.as_ref(),
-            cfg.request_timeout,
+            startup_remaining(deadline)?,
         )
         .await?;
         // Best-effort: each leader connection negotiates its own Fetch

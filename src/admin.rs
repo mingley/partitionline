@@ -3285,6 +3285,15 @@ fn partitions_from_new(topics: &[NewPartitions]) -> Vec<CreatePartitionsTopic> {
         .collect()
 }
 
+fn startup_remaining(deadline: Instant) -> Result<Duration> {
+    let remaining = deadline.saturating_duration_since(Instant::now());
+    if remaining.is_zero() {
+        Err(Error::Timeout)
+    } else {
+        Ok(remaining)
+    }
+}
+
 impl Admin {
     /// Add a metadata-quorum voter (KIP-853), using AddRaftVoter v0 or v1.
     ///
@@ -3981,11 +3990,15 @@ impl Admin {
     /// are optional at connect. Missing APIs fail on the method with
     /// [`Error::Unsupported`].
     pub async fn new(cfg: AdminConfig) -> Result<Self> {
-        let deadline = crate::net::Deadline::from_timeout(cfg.request_timeout);
-        deadline.run(Self::new_until(cfg)).await
+        let deadline = Instant::now()
+            .checked_add(cfg.request_timeout)
+            .ok_or(Error::Timeout)?;
+        crate::net::Deadline::from_std(deadline)
+            .run(Self::new_until(cfg, deadline))
+            .await
     }
 
-    async fn new_until(cfg: AdminConfig) -> Result<Self> {
+    async fn new_until(cfg: AdminConfig, deadline: Instant) -> Result<Self> {
         if cfg.bootstrap.len() > 16 || cfg.client_id.len() > i16::MAX as usize {
             return Err(Error::protocol(
                 "bootstrap/client ID exceeds discovery limit",
@@ -3994,16 +4007,18 @@ impl Admin {
         let mut cfg = cfg;
         cfg.bootstrap = crate::net::parse_and_validate_addresses(&cfg.bootstrap)?;
         let stats = Arc::new(crate::metrics::AdminTracker::default());
+        let connect_timeout = cfg.connect_timeout.min(startup_remaining(deadline)?);
         let mut conn = BrokerConn::connect_tls_any(
             &cfg.bootstrap,
             &cfg.client_id,
-            cfg.connect_timeout,
+            connect_timeout,
             cfg.tls.as_ref(),
         )
         .await?;
         conn.set_stats(Arc::clone(&stats));
         let resp =
-            crate::protocol::api::negotiate_api_versions(&mut conn, cfg.request_timeout).await?;
+            crate::protocol::api::negotiate_api_versions(&mut conn, startup_remaining(deadline)?)
+                .await?;
         sasl::apply_api_keys(&mut conn, &resp.api_keys);
         let mut versions = HashMap::new();
         for api in resp.api_keys {
@@ -4016,7 +4031,7 @@ impl Admin {
             cfg.sasl_scram_sha512.as_ref(),
             cfg.sasl_oauthbearer.as_deref(),
             cfg.sasl_oauthbearer_oidc.as_ref(),
-            cfg.request_timeout,
+            startup_remaining(deadline)?,
         )
         .await?;
         let create_version = versions
