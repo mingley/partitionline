@@ -2071,7 +2071,11 @@
 //! refresh topic metadata (Java `metadata.requestUpdate`). Partition
 //! `INCONSISTENT_TOPIC_ID` skips without throwing and requests Metadata;
 //! `UNKNOWN_LEADER_EPOCH` skips without Metadata (Java
-//! `testHandleFetchResponseError`). Implicit
+//! `testHandleFetchResponseError`). Partition `FENCED_LEADER_EPOCH`
+//! without a usable CurrentLeader skips that partition, still delivers
+//! siblings, and requests Metadata (Java
+//! `testWhenShareFetchResponseReturnsALeadershipChangeErrorButNoNewLeaderInformation`).
+//! Implicit
 //! [`ShareGroup::leave`] / [`ShareGroup::close`] release the last poll
 //! without ACCEPT (Java `close`). [`ShareGroup::poll`] returns
 //! [`Error::MaxPollInterval`] when [`ConsumerConfig::max_poll_interval`]

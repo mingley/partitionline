@@ -1523,7 +1523,8 @@ impl ShareGroup {
     /// a usable CurrentLeader (`leaderId == -1` or `leaderEpoch == -1`)
     /// skips that partition, still delivers siblings, and requests
     /// Metadata (Java
-    /// `testWhenShareFetchResponseReturnsALeadershipChangeErrorButNoNewLeaderInformation`).
+    /// `testWhenShareFetchResponseReturnsALeadershipChangeErrorButNoNewLeaderInformation`,
+    /// including `FENCED_LEADER_EPOCH`).
     /// `UNKNOWN_LEADER_EPOCH` skips without Metadata; partition
     /// `INCONSISTENT_TOPIC_ID` skips and requests Metadata (Java
     /// `testHandleFetchResponseError`). A ShareFetch topic id that is

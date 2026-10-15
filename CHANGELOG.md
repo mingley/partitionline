@@ -61,6 +61,11 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `testHandleFetchResponseError`). `UNKNOWN_LEADER_EPOCH` still skips
   without Metadata.
 
+- ShareFetch partition `FENCED_LEADER_EPOCH` without a usable
+  CurrentLeader skips that partition, still delivers siblings, and
+  requests Metadata (Java
+  `testWhenShareFetchResponseReturnsALeadershipChangeErrorButNoNewLeaderInformation`).
+
 - `ShareGroup::set_acknowledgement_commit_callback` is Java
   `ShareConsumer.setAcknowledgementCommitCallback`
   (`AcknowledgementCommitCallback.onComplete`). `commit_async` /
