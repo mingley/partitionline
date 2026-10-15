@@ -3131,6 +3131,45 @@ impl Consumer {
         Ok((conn, versions_resp))
     }
 
+    /// One dial for a rack replica. A refusal must leave time to fetch from the leader.
+    async fn connect_preferred_once(&mut self, node: i32) -> Result<()> {
+        if self
+            .conns
+            .get(&node)
+            .is_some_and(|conn| conn.idle_expired(self.cfg.connections_max_idle))
+        {
+            let _ = self.conns.remove(&node);
+            let _ = self.list_offsets_ranges.remove(&node);
+            let _ = self.leader_epoch_ranges.remove(&node);
+            if let Some(session) = self.fetch_sessions.get_mut(&node) {
+                session.reset();
+            }
+        }
+        if self.conns.contains_key(&node) {
+            return Ok(());
+        }
+        let addr = self
+            .cluster
+            .brokers
+            .get(&node)
+            .cloned()
+            .ok_or_else(|| Error::protocol(format!("unknown broker {node}")))?;
+        if let Some(session) = self.fetch_sessions.get_mut(&node) {
+            session.reset();
+        }
+        match self.open_node_conn(&addr).await {
+            Ok((conn, versions)) => {
+                let _ = self.reconnect_fails.remove(&node);
+                self.remember_opened_conn(node, conn, &versions);
+                Ok(())
+            }
+            Err(error) => {
+                self.note_reconnect_failure(node);
+                Err(error)
+            }
+        }
+    }
+
     fn remember_opened_conn(
         &mut self,
         node: i32,
@@ -4169,23 +4208,12 @@ impl Consumer {
             if rest.is_zero() {
                 return Err(Error::Timeout);
             }
-            let connected_ok =
-                match tokio::time::timeout(rest, self.connect_node_inner(node, !collect_parallel))
-                    .await
-                {
+            let preferred_only =
+                is_preferred_only_target(&self.preferred, &self.cluster, node, &by_leader);
+            let connected_ok = if preferred_only {
+                match tokio::time::timeout(rest, self.connect_preferred_once(node)).await {
                     Ok(Ok(())) => true,
-                    Ok(Err(error)) => {
-                        if !reroute_unreachable_preferred(
-                            &mut self.preferred,
-                            &self.cluster,
-                            node,
-                            &mut by_leader,
-                        ) {
-                            return Err(error);
-                        }
-                        false
-                    }
-                    Err(_) => {
+                    Ok(Err(_)) | Err(_) => {
                         if !reroute_unreachable_preferred(
                             &mut self.preferred,
                             &self.cluster,
@@ -4196,7 +4224,16 @@ impl Consumer {
                         }
                         false
                     }
-                };
+                }
+            } else {
+                match tokio::time::timeout(rest, self.connect_node_inner(node, !collect_parallel))
+                    .await
+                {
+                    Ok(Ok(())) => true,
+                    Ok(Err(error)) => return Err(error),
+                    Err(_) => return Err(Error::Timeout),
+                }
+            };
             if connected_ok {
                 connected.push(node);
                 continue;
@@ -6205,6 +6242,32 @@ fn epoch_at(epochs: &HashMap<String, Vec<i32>>, topic: &str, partition: i32) -> 
         .unwrap_or(crate::RecordBatch::NO_PARTITION_LEADER_EPOCH)
 }
 
+/// True when every partition on `node` is a rack hint for a different leader.
+fn is_preferred_only_target(
+    preferred: &PartitionMap<i32>,
+    cluster: &Cluster,
+    node: i32,
+    by_leader: &HashMap<i32, HashMap<String, Vec<FetchPartition>>>,
+) -> bool {
+    let Some(by_topic) = by_leader.get(&node) else {
+        return false;
+    };
+    let mut saw_partition = false;
+    for (topic, parts) in by_topic {
+        for part in parts {
+            saw_partition = true;
+            if preferred.get(topic, part.partition).copied() != Some(node) {
+                return false;
+            }
+            match cluster.leader(topic, part.partition) {
+                Ok((leader, _)) if leader != node => {}
+                _ => return false,
+            }
+        }
+    }
+    saw_partition
+}
+
 /// Move partitions off a preferred replica that could not be dialed.
 ///
 /// The hint is dropped and the partitions return to their metadata leaders.
@@ -6216,36 +6279,28 @@ fn reroute_unreachable_preferred(
     node: i32,
     by_leader: &mut HashMap<i32, HashMap<String, Vec<FetchPartition>>>,
 ) -> bool {
-    let Some(by_topic) = by_leader.get(&node) else {
+    if !is_preferred_only_target(preferred, cluster, node, by_leader) {
+        return false;
+    }
+    let Some(by_topic) = by_leader.remove(&node) else {
         return false;
     };
-    let mut moves = Vec::new();
     for (topic, parts) in by_topic {
         for part in parts {
-            if preferred.get(topic, part.partition).copied() != Some(node) {
-                return false;
+            let leader = cluster
+                .leader(&topic, part.partition)
+                .map(|(leader, _)| leader)
+                .unwrap_or(node);
+            if leader != node {
+                let _removed = preferred.remove(&topic, part.partition);
             }
-            let Ok((leader, _)) = cluster.leader(topic, part.partition) else {
-                return false;
-            };
-            if leader == node {
-                return false;
-            }
-            moves.push((topic.clone(), part.clone(), leader));
+            by_leader
+                .entry(leader)
+                .or_default()
+                .entry(topic.clone())
+                .or_default()
+                .push(part);
         }
-    }
-    if moves.is_empty() {
-        return false;
-    }
-    let _removed = by_leader.remove(&node);
-    for (topic, part, leader) in moves {
-        let _removed = preferred.remove(&topic, part.partition);
-        by_leader
-            .entry(leader)
-            .or_default()
-            .entry(topic)
-            .or_default()
-            .push(part);
     }
     true
 }
@@ -6666,6 +6721,9 @@ mod tests {
             .entry("t".to_owned())
             .or_default()
             .push(part.clone());
+        assert!(is_preferred_only_target(
+            &preferred, &cluster, 7, &by_leader
+        ));
         assert!(reroute_unreachable_preferred(
             &mut preferred,
             &cluster,
@@ -6689,6 +6747,9 @@ mod tests {
             .or_default()
             .push(part);
         let _ = preferred.insert("t", 0, 1);
+        assert!(!is_preferred_only_target(
+            &preferred, &cluster, 1, &by_leader
+        ));
         assert!(!reroute_unreachable_preferred(
             &mut preferred,
             &cluster,
