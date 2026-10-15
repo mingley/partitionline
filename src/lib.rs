@@ -2081,7 +2081,9 @@
 //! `lookupTopicId`). [`ShareGroup::subscribe`] keeps open share
 //! sessions and heartbeats the new topic list. Leftover acknowledgements
 //! for a previous topic still flush after that subscribe (Java
-//! `testShareFetchWithSubscriptionChange`).
+//! `testShareFetchWithSubscriptionChange`). [`ShareGroup::leave`] /
+//! [`ShareGroup::close`] flush those leftover acks without sending
+//! another ShareFetch (Java `testCloseWithSubscriptionChange`).
 //! [`ShareGroup::commit`] / [`ShareGroup::commit_timeout`] flush
 //! pending acknowledgements (`Result<()>`). [`ShareGroup::commit_async`]
 //! is Java `ShareConsumer.commitAsync` (implicit last-poll ACCEPT is

@@ -3813,6 +3813,9 @@ impl ShareGroup {
     /// Flushes queued acknowledgements (including a prior
     /// [`Self::commit_async`]). Implicit last-poll records that were
     /// never committed are released without ACCEPT (Java `close`).
+    /// Leftover acknowledgements for a previous topic still flush after
+    /// [`Self::subscribe`] and no further ShareFetch is sent
+    /// (Java `testCloseWithSubscriptionChange`).
     pub async fn leave(mut self) -> Result<()> {
         if self.member_id.is_empty() {
             self.hb_stop.send(true).unwrap_or(());

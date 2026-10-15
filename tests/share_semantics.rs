@@ -483,6 +483,76 @@ async fn share_fetch_subscription_change_still_sends_old_acks() {
 }
 
 #[tokio::test]
+async fn share_close_after_subscription_change_sends_old_acks_without_fetch() {
+    let mock = common::Mock::start_two_node().await;
+    v2(&mock);
+    mock.set_partition_leader("t", 0, 1);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let created = admin
+        .create_topics(&[NewTopic::new("u", 1, 1)], 10_000, false)
+        .await
+        .unwrap();
+    for result in &created {
+        assert!(
+            result.error_code == 0
+                || result.error_code == partitionline::error::TOPIC_ALREADY_EXISTS,
+            "{}: {} {:?}",
+            result.name,
+            result.error_code,
+            result.error_message
+        );
+    }
+    admin.close().await.unwrap();
+    mock.set_partition_leader("u", 0, 2);
+    produce(&mock, &[(0, b"old")]).await;
+    produce_topic(&mock, "u", &[(0, b"new")]).await;
+    let mut group = ShareGroup::join(config(&mock), "close-sub", "t")
+        .await
+        .unwrap();
+    let first = group.poll().await.unwrap();
+    assert_eq!(first[0].topic, "t");
+    let first_off = first[0].offset;
+    group.accept(&first).await.unwrap();
+    let fetches = mock.share_fetch_calls();
+    let acks = mock.share_ack_calls();
+    group.subscribe(["u"]).await.unwrap();
+    assert!(
+        group.assignment().iter().all(|tp| tp.topic == "u"),
+        "subscribe must assign u, got {:?}",
+        group.assignment()
+    );
+    assert_eq!(
+        mock.share_ack_calls(),
+        acks,
+        "subscribe must not send leftover acks"
+    );
+    assert_eq!(
+        mock.share_fetch_calls(),
+        fetches,
+        "subscribe must not ShareFetch the new topic"
+    );
+    group.leave().await.unwrap();
+    assert!(
+        mock.share_accepted("close-sub", "t", 0, first_off),
+        "Java testCloseWithSubscriptionChange still acknowledges the previous topic"
+    );
+    assert_eq!(
+        mock.last_share_ack_node(),
+        Some(1),
+        "leftover acks must land on the previous topic leader"
+    );
+    assert_eq!(
+        mock.share_fetch_calls(),
+        fetches,
+        "Java close after subscribe must not send another ShareFetch"
+    );
+    assert!(
+        !mock.share_accepted("close-sub", "u", 0, 0),
+        "close must not fetch or accept the newly subscribed topic"
+    );
+}
+
+#[tokio::test]
 async fn implicit_commit_flushes_without_waiting_for_next_poll() {
     let mock = common::Mock::start().await;
     produce(&mock, &[(0, b"first"), (0, b"second")]).await;
