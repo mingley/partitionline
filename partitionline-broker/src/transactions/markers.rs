@@ -96,6 +96,8 @@ pub struct MarkerLog {
     limits: Limits,
     entries: Vec<Entry>,
     journal: Journal,
+    /// Reused journal record. Cleared and rewritten on each append.
+    encoded: Vec<u8>,
     stored: usize,
     poisoned: bool,
 }
@@ -108,6 +110,7 @@ impl MarkerLog {
             limits,
             entries: Vec::new(),
             journal,
+            encoded: Vec::new(),
             stored: 0,
             poisoned: false,
         };
@@ -197,7 +200,7 @@ impl MarkerLog {
             epoch,
             id,
         };
-        self.persist(&encode(&entry)?)?;
+        self.append_encoded(|bytes| write(bytes, &entry))?;
         self.entries.push(entry);
         Ok(offset)
     }
@@ -234,7 +237,7 @@ impl MarkerLog {
             epoch,
             commit,
         };
-        self.persist(&encode(&entry)?)?;
+        self.append_encoded(|bytes| write(bytes, &entry))?;
         self.entries.push(entry);
         Ok(offset)
     }
@@ -289,6 +292,18 @@ impl MarkerLog {
         }
     }
 
+    fn append_encoded(
+        &mut self,
+        write: impl FnOnce(&mut Vec<u8>) -> Result<(), Error>,
+    ) -> Result<(), Error> {
+        self.encoded.clear();
+        write(&mut self.encoded)?;
+        let payload = std::mem::take(&mut self.encoded);
+        let result = self.persist(&payload);
+        self.encoded = payload;
+        result
+    }
+
     fn persist(&mut self, payload: &[u8]) -> Result<(), Error> {
         if self.stored >= self.limits.max_records {
             return Err(Error::InvalidLimits);
@@ -306,8 +321,15 @@ impl MarkerLog {
     }
 }
 
+#[cfg(test)]
 fn encode(entry: &Entry) -> Result<Vec<u8>, Error> {
     let mut bytes = Vec::with_capacity(32);
+    write(&mut bytes, entry)?;
+    Ok(bytes)
+}
+
+fn write(bytes: &mut Vec<u8>, entry: &Entry) -> Result<(), Error> {
+    bytes.clear();
     bytes.extend_from_slice(RECORD_MAGIC);
     match entry {
         Entry::Data {
@@ -335,7 +357,7 @@ fn encode(entry: &Entry) -> Result<Vec<u8>, Error> {
             bytes.push(u8::from(*commit));
         }
     }
-    Ok(bytes)
+    Ok(())
 }
 
 fn decode(mut bytes: &[u8]) -> Result<Entry, Error> {
@@ -495,8 +517,11 @@ mod tests {
         let (mut log, path) = open("visible");
         log.append_data(7, 0, 1)
             .unwrap_or_else(|error| panic!("{error:?}"));
+        let encoded_capacity = log.encoded.capacity();
+        assert!(encoded_capacity > 0);
         log.append_data(7, 0, 2)
             .unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(log.encoded.capacity() >= encoded_capacity);
         let abort = log
             .append_marker(7, 0, false)
             .unwrap_or_else(|error| panic!("{error:?}"));
