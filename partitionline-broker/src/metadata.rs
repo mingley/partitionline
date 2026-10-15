@@ -1832,13 +1832,9 @@ fn create_validation(
                 "A manual partition assignment was specified, but numPartitions was not set to -1.",
             ));
         }
-        for (position, assignment) in topic.assignments.iter().enumerate() {
-            if assignment.index < 0
-                || assignment.index as usize >= topic.assignments.len()
-                || topic.assignments[..position]
-                    .iter()
-                    .any(|other| other.index == assignment.index)
-            {
+        let mut seen = vec![false; topic.assignments.len()];
+        for assignment in &topic.assignments {
+            if !claim_assignment_index(&mut seen, assignment.index) {
                 return Err(api_error(
                     39,
                     "partitions should be a consecutive 0-based integer sequence",
@@ -1973,6 +1969,26 @@ enum DeleteKey<'a> {
     Id([u8; 16]),
 }
 
+fn claim_assignment_index(seen: &mut [bool], index: i32) -> bool {
+    let Some(slot) = usize::try_from(index)
+        .ok()
+        .and_then(|index| seen.get_mut(index))
+    else {
+        return false;
+    };
+    if *slot {
+        return false;
+    }
+    *slot = true;
+    true
+}
+
+fn topic_collision_key(name: &str) -> Vec<u8> {
+    name.bytes()
+        .map(|byte| if byte == b'.' { b'_' } else { byte })
+        .collect()
+}
+
 fn topic_names_collide(left: &str, right: &str) -> bool {
     let fold = |byte: u8| if byte == b'.' { b'_' } else { byte };
     left.len() == right.len()
@@ -2024,6 +2040,8 @@ fn create(
         return Err(Error::ResponseLimit);
     }
     let copies = mark_first_copies(&request.topics, |topic| Some(topic.name));
+    let mut folded_names: HashSet<Vec<u8>> = HashSet::new();
+    let track_folded = request.topics.len() > 1;
     for (position, topic) in request.topics.iter().enumerate() {
         check_active(reply, stopping)?;
         if copies
@@ -2035,12 +2053,13 @@ fn create(
         let duplicate = copies
             .as_ref()
             .is_some_and(|(_, duplicated)| duplicated.get(position).copied().unwrap_or(false));
+        let folded = track_folded.then(|| topic_collision_key(topic.name));
+        let collides = folded
+            .as_ref()
+            .is_some_and(|key| folded_names.contains(key));
         let error = if duplicate {
             api_error(42, "Duplicate topic name.")
-        } else if request.topics[..position]
-            .iter()
-            .any(|other| topic_names_collide(other.name, topic.name))
-        {
+        } else if collides {
             // Validate-only does not store the earlier name, so the catalog
             // check cannot see a sibling that differs only by '.' and '_'.
             api_error(17, "Topic name collides with an existing topic.")
@@ -2068,6 +2087,9 @@ fn create(
                 },
             }
         };
+        if let Some(key) = folded {
+            let _ = folded_names.insert(key);
+        }
         results.push((topic.name, error));
         if catalog.is_poisoned() {
             return Err(Error::StoragePoisoned);
@@ -2260,6 +2282,19 @@ mod tests {
 
     #[test]
     fn a_create_request_collides_when_dot_and_underscore_differ() {
+        assert_eq!(
+            topic_collision_key("foo.bar"),
+            topic_collision_key("foo_bar")
+        );
+        assert_ne!(
+            topic_collision_key("foo.bar"),
+            topic_collision_key("foo.baz")
+        );
+        let mut seen = vec![false; 2];
+        assert!(claim_assignment_index(&mut seen, 1));
+        assert!(claim_assignment_index(&mut seen, 0));
+        assert!(!claim_assignment_index(&mut seen, 0));
+        assert!(!claim_assignment_index(&mut vec![false], -1));
         assert!(topic_names_collide("foo.bar", "foo_bar"));
         assert!(topic_names_collide("foo.bar", "foo.bar"));
         assert!(!topic_names_collide("foo.bar", "foo.baz"));
