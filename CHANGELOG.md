@@ -63,7 +63,8 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `lookupTopicId` / `handleAcknowledgeErrorCode`). A non-empty
   ShareAcknowledge partition `ErrorMessage` is preferred over the
   crate fallback; an empty or missing `ErrorMessage` uses
-  `ShareAcknowledge {topic}-{partition}`. A piggybacked ShareFetch
+  `ShareAcknowledge {topic}-{partition}`. A top-level ShareAcknowledge
+  `ErrorMessage` is preferred the same way. A piggybacked ShareFetch
   `AcknowledgeErrorMessage` that is empty uses
   `ShareFetch acknowledgement {topic}-{partition}`.
 

@@ -25,10 +25,11 @@ use partitionline::protocol::records::{
 };
 use partitionline::protocol::share::{
     decode_share_fetch_response, decode_share_fetch_response_with_limit,
-    encode_share_acknowledge_topics_response, encode_share_fetch_error_with_message,
-    encode_share_fetch_response, encode_share_fetch_response_with_endpoints, AcquiredRange,
-    ShareAcknowledgeResponsePartition, ShareAcknowledgeResponseTopic, ShareFetchedPartition,
-    ShareFetchedTopic,
+    encode_share_acknowledge_topics_response,
+    encode_share_acknowledge_topics_response_with_error_message,
+    encode_share_fetch_error_with_message, encode_share_fetch_response,
+    encode_share_fetch_response_with_endpoints, AcquiredRange, ShareAcknowledgeResponsePartition,
+    ShareAcknowledgeResponseTopic, ShareFetchedPartition, ShareFetchedTopic,
 };
 use partitionline::share::ShareAcquireMode;
 use partitionline::{
@@ -1998,6 +1999,55 @@ async fn share_acknowledge_empty_error_message_uses_fallback() {
         ))]
     );
     assert!(group.commit_sync().await.unwrap().is_empty());
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn share_acknowledge_top_level_error_message_reaches_commit_sync() {
+    let mock = common::Mock::start().await;
+    v2(&mock);
+    produce(&mock, &[(0, b"held")]).await;
+    let mut group = ShareGroup::join(config(&mock), "ack-top-msg", "t")
+        .await
+        .unwrap();
+    let recs = group.poll().await.unwrap();
+    assert_eq!(recs.len(), 1);
+    let seen = Arc::new(Mutex::new(Vec::new()));
+    let seen_cb = seen.clone();
+    group.set_acknowledgement_commit_callback(move |_, exception| {
+        seen_cb.lock().push(
+            exception
+                .as_ref()
+                .map(|error| (error.code(), error.message().to_owned())),
+        );
+    });
+    group.accept(&recs).await.unwrap();
+    let version = mock.last_share_fetch_version().unwrap_or(2);
+    let mut injected = BytesMut::new();
+    encode_share_acknowledge_topics_response_with_error_message(
+        &mut injected,
+        version,
+        error::UNKNOWN_SERVER_ERROR,
+        &[],
+        Some("share acknowledge overloaded"),
+    )
+    .unwrap();
+    mock.inject_share_ack_response_once(&injected);
+    let results = group.commit_sync().await.unwrap();
+    assert_eq!(results.len(), 1);
+    let err = results[0]
+        .1
+        .as_ref()
+        .expect("Java Errors.exception(errorMessage) completes the map");
+    assert_eq!(err.code(), Some(error::UNKNOWN_SERVER_ERROR));
+    assert_eq!(err.message(), "share acknowledge overloaded");
+    assert_eq!(
+        *seen.lock(),
+        vec![Some((
+            Some(error::UNKNOWN_SERVER_ERROR),
+            "share acknowledge overloaded".into()
+        ))]
+    );
     group.leave().await.unwrap();
 }
 

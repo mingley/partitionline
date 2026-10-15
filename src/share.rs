@@ -1750,7 +1750,8 @@ impl ShareGroup {
     /// `handleAcknowledgeErrorCode`). A non-empty partition
     /// `ErrorMessage` is preferred over the crate fallback; an empty
     /// or missing `ErrorMessage` uses `ShareAcknowledge {topic}-{partition}`
-    /// (Java `Errors.exception(errorMessage)`).
+    /// (Java `Errors.exception(errorMessage)`). A top-level ShareAcknowledge
+    /// `ErrorMessage` is preferred the same way.
     pub async fn commit_sync(&mut self) -> Result<AcknowledgementCommitResults> {
         if !self.has_pending_acknowledgements() {
             return Ok(Vec::new());
