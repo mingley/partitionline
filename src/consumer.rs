@@ -3238,8 +3238,13 @@ impl Consumer {
         }
     }
 
-    async fn recover_leader_epoch(&mut self, topic: &str, partition: i32) -> Result<()> {
-        self.recover_leader_epochs(&[(topic.to_string(), partition)])
+    async fn recover_leader_epoch(
+        &mut self,
+        topic: &str,
+        partition: i32,
+        deadline: Instant,
+    ) -> Result<()> {
+        self.recover_leader_epochs(&[(topic.to_string(), partition)], deadline)
             .await
     }
 
@@ -3265,7 +3270,11 @@ impl Consumer {
         })
     }
 
-    async fn recover_leader_epochs(&mut self, coords: &[(String, i32)]) -> Result<()> {
+    async fn recover_leader_epochs(
+        &mut self,
+        coords: &[(String, i32)],
+        deadline: Instant,
+    ) -> Result<()> {
         if coords.is_empty() {
             return Ok(());
         }
@@ -3274,11 +3283,14 @@ impl Consumer {
         for (topic, partition) in coords {
             let _ = self.preferred.remove(topic, *partition);
         }
-        let deadline = Instant::now() + self.cfg.request_timeout;
         let mut names: Vec<String> = coords.iter().map(|(t, _)| t.clone()).collect();
         names.sort();
         names.dedup();
-        self.refresh_metadata(Some(&names)).await?;
+        self.refresh_metadata_timeout(
+            Some(&names),
+            remaining_offset_timeout(deadline, Instant::now()),
+        )
+        .await?;
         let mut remaining: Vec<(String, i32)> = coords.to_vec();
         remaining.sort();
         remaining.dedup();
@@ -3294,7 +3306,14 @@ impl Consumer {
                 }
             }
             if missing_leader {
-                self.refresh_metadata(Some(&names)).await?;
+                if Instant::now() >= deadline {
+                    return Err(Error::Timeout);
+                }
+                self.refresh_metadata_timeout(
+                    Some(&names),
+                    remaining_offset_timeout(deadline, Instant::now()),
+                )
+                .await?;
             }
             let mut by_leader: HashMap<i32, Vec<(String, i32)>> = HashMap::new();
             let mut retry = Vec::new();
@@ -3310,6 +3329,9 @@ impl Consumer {
                 let Some(parts) = by_leader.remove(&node) else {
                     continue;
                 };
+                if Instant::now() >= deadline {
+                    return Err(Error::Timeout);
+                }
                 self.connect_node(node).await?;
                 let version = self.offset_for_leader_epoch_version(node)?;
                 let topics = offset_for_leader_epoch_topics(
@@ -3317,7 +3339,7 @@ impl Consumer {
                     &self.last_fetched_epochs,
                     &parts,
                 );
-                let timeout = self.cfg.request_timeout;
+                let timeout = remaining_offset_timeout(deadline, Instant::now());
                 let body = {
                     let conn = self.broker_conn_mut(node)?;
                     conn.roundtrip(
@@ -3364,7 +3386,11 @@ impl Consumer {
             let mut retry_names: Vec<String> = remaining.iter().map(|(t, _)| t.clone()).collect();
             retry_names.sort();
             retry_names.dedup();
-            self.refresh_metadata(Some(&retry_names)).await?;
+            self.refresh_metadata_timeout(
+                Some(&retry_names),
+                remaining_offset_timeout(deadline, Instant::now()),
+            )
+            .await?;
         }
     }
 
@@ -4081,7 +4107,7 @@ impl Consumer {
             if !fenced.is_empty() {
                 fenced.sort();
                 fenced.dedup();
-                self.recover_leader_epochs(&fenced).await?;
+                self.recover_leader_epochs(&fenced, deadline).await?;
                 for (topic, partition) in &fenced {
                     if let Ok(cursor) = self.fetch_cursor(topic, *partition) {
                         drop_records_at_or_after(&mut out, topic, *partition, cursor);
@@ -5273,7 +5299,7 @@ impl Consumer {
                             }
                         ) =>
                     {
-                        self.recover_leader_epoch(topic, partition).await?;
+                        self.recover_leader_epoch(topic, partition, deadline).await?;
                         if Instant::now() >= deadline {
                             return Err(Error::Timeout);
                         }
