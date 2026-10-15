@@ -2144,54 +2144,48 @@ impl BrokerFetchSession {
                     .partitions
                     .insert(Arc::clone(topic.topic), SessionParts::new());
             }
-            if let Some(entry) = self.changed.get_mut(topic.topic.as_ref()) {
-                entry.0 = topic.topic_id;
-            }
-            let mut changed_indexes = Vec::new();
+            let mut changed_parts = Vec::new();
             let mut replaced_here: Vec<([u8; 16], i32)> = Vec::new();
-            let Some(slot) = self.partitions.get_mut(topic.topic.as_ref()) else {
-                continue;
-            };
-            for (index, partition) in topic.partitions.iter().enumerate() {
-                let (unchanged, previous_id) = {
-                    let stored = slot.get(&partition.partition);
-                    let from_before = stored.filter(|stored| stored.stamp != stamp);
-                    let unchanged = from_before.is_some_and(|stored| {
-                        stored.id == topic.topic_id && stored.data == *partition
-                    });
-                    (unchanged, from_before.map(|stored| stored.id))
-                };
-                if !full && !unchanged {
-                    changed_indexes.push(index);
-                }
-                if !full {
-                    if let Some(previous_id) = previous_id {
-                        if previous_id != topic.topic_id {
-                            replaced_here.push((previous_id, partition.partition));
+            if let Some(slot) = self.partitions.get_mut(topic.topic.as_ref()) {
+                for partition in topic.partitions {
+                    if let Some(stored) = slot.get_mut(&partition.partition) {
+                        let from_before = stored.stamp != stamp;
+                        if from_before && stored.id == topic.topic_id && stored.data == *partition {
+                            stored.stamp = stamp;
+                            continue;
                         }
+                        if !full {
+                            if from_before && stored.id != topic.topic_id {
+                                replaced_here.push((stored.id, partition.partition));
+                            }
+                            changed_parts.push(partition.clone());
+                        }
+                        stored.id = topic.topic_id;
+                        stored.data = partition.clone();
+                        stored.stamp = stamp;
+                    } else {
+                        if !full {
+                            changed_parts.push(partition.clone());
+                        }
+                        let _ = slot.insert(
+                            partition.partition,
+                            SessionPartition {
+                                id: topic.topic_id,
+                                data: partition.clone(),
+                                stamp,
+                            },
+                        );
                     }
                 }
-                let _ = slot.insert(
-                    partition.partition,
-                    SessionPartition {
-                        id: topic.topic_id,
-                        data: partition.clone(),
-                        stamp,
-                    },
-                );
             }
-            for index in changed_indexes {
-                let Some(partition) = topic.partitions.get(index) else {
-                    continue;
-                };
-                if let Some((_, parts)) = self.changed.get_mut(topic.topic.as_ref()) {
-                    parts.push(partition.clone());
-                } else {
-                    let _ = self.changed.insert(
-                        topic.topic.as_ref().to_owned(),
-                        (topic.topic_id, vec![partition.clone()]),
-                    );
-                }
+            if let Some(entry) = self.changed.get_mut(topic.topic.as_ref()) {
+                entry.0 = topic.topic_id;
+                entry.1.append(&mut changed_parts);
+            } else if !changed_parts.is_empty() {
+                let _ = self.changed.insert(
+                    topic.topic.as_ref().to_owned(),
+                    (topic.topic_id, changed_parts),
+                );
             }
             if !replaced_here.is_empty() {
                 if let Some((name, _)) = self.partitions.get_key_value(topic.topic.as_ref()) {
