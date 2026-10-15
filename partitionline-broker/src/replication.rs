@@ -318,9 +318,30 @@ impl Log {
     fn apply(&mut self, bytes: &[u8]) -> Result<(), Error> {
         let (kind, rest) = split_kind(bytes)?;
         match kind {
-            KIND_RECORD => self.records.push(decode_record(rest)?),
+            KIND_RECORD => {
+                let record = decode_record(rest)?;
+                if record.bytes.len() > self.limits.max_payload_bytes {
+                    return Err(Error::InvalidRecord);
+                }
+                let expected = match self.records.last() {
+                    Some(last) => {
+                        if record.leader_epoch < last.leader_epoch {
+                            return Err(Error::InvalidRecord);
+                        }
+                        last.offset.checked_add(1).ok_or(Error::InvalidRecord)?
+                    }
+                    None => 0,
+                };
+                if record.offset != expected {
+                    return Err(Error::InvalidRecord);
+                }
+                self.records.push(record);
+            }
             KIND_TRUNCATE => {
                 let offset = decode_truncate(rest)?;
+                if offset < 0 {
+                    return Err(Error::InvalidRecord);
+                }
                 self.records.retain(|record| record.offset < offset);
             }
             _ => return Err(Error::InvalidRecord),
@@ -457,6 +478,19 @@ mod tests {
             max_bytes: 1024,
             max_records,
         }
+    }
+
+    #[test]
+    fn a_gapped_replica_record_is_not_recovered() {
+        let (mut log, _) = log("gap");
+        let record = Record {
+            offset: 4,
+            leader_epoch: 1,
+            bytes: b"gap".to_vec(),
+        };
+        let encoded = encode_record(&record).unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(log.apply(&encoded), Err(Error::InvalidRecord)));
+        assert_eq!(log.next_offset(), 0);
     }
 
     #[test]

@@ -279,9 +279,27 @@ impl EpochLog {
     fn apply(&mut self, bytes: &[u8]) -> Result<(), Error> {
         let (kind, rest) = split_kind(bytes)?;
         match kind {
-            KIND_RECORD => self.records.push(decode_record(rest)?),
+            KIND_RECORD => {
+                let record = decode_record(rest)?;
+                let expected = match self.records.last() {
+                    Some(last) => {
+                        if record.leader_epoch < last.leader_epoch {
+                            return Err(Error::InvalidRecord);
+                        }
+                        last.offset.checked_add(1).ok_or(Error::InvalidRecord)?
+                    }
+                    None => 0,
+                };
+                if record.offset != expected {
+                    return Err(Error::InvalidRecord);
+                }
+                self.records.push(record);
+            }
             KIND_TRUNCATE => {
                 let offset = decode_i64(rest)?;
+                if offset < 0 || offset < self.high_watermark || offset > self.log_end_offset() {
+                    return Err(Error::InvalidRecord);
+                }
                 self.records.retain(|record| record.offset < offset);
             }
             KIND_WATERMARK => {
@@ -412,6 +430,19 @@ mod tests {
         let path = std::env::temp_dir().join(format!("pl-recovery-{name}-{nanos}"));
         let log = EpochLog::open(&path, limits()).unwrap_or_else(|error| panic!("{error:?}"));
         (log, path)
+    }
+
+    #[test]
+    fn a_gapped_recovered_record_is_refused() {
+        let (mut log, _) = log("gap");
+        let record = Record {
+            offset: 3,
+            leader_epoch: 1,
+            id: 9,
+        };
+        let encoded = encode_record(&record).unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(log.apply(&encoded), Err(Error::InvalidRecord)));
+        assert_eq!(log.log_end_offset(), 0);
     }
 
     #[test]
