@@ -2114,7 +2114,7 @@ impl ShareGroup {
                 None
             };
             let mut incoming = Vec::new();
-            let mut incoming_keys = HashSet::new();
+            let mut incoming_keys: HashMap<[u8; 16], HashSet<(i32, i64)>> = HashMap::new();
             for topic in fetched {
                 let requested = by_id.get(&topic.topic_id).ok_or_else(|| {
                     Error::protocol("ShareFetch returned an unrequested topic id")
@@ -2196,8 +2196,11 @@ impl ShareGroup {
                             else {
                                 continue;
                             };
-                            let key = (topic_name.clone(), part.partition, record.offset);
-                            if incoming_keys.contains(&key) {
+                            if !incoming_keys
+                                .entry(topic.topic_id)
+                                .or_default()
+                                .insert((part.partition, record.offset))
+                            {
                                 return Err(Error::protocol("duplicate ShareFetch record offset"));
                             }
                             if let Some(previous) = acquisition_at(
@@ -2212,11 +2215,9 @@ impl ShareGroup {
                                     ));
                                 }
                                 if delivery_count == previous.delivery_count {
-                                    let _ = incoming_keys.insert(key);
                                     continue;
                                 }
                             }
-                            let _ = incoming_keys.insert(key);
                             incoming.push(ShareRecord {
                                 topic: topic_name.clone(),
                                 partition: part.partition,
