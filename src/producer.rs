@@ -4651,11 +4651,14 @@ impl Worker {
                 return count >= first.batch_len;
             }
         }
-        batch_ready(
-            &self.pending,
-            self.shared.cfg.batch_records,
-            self.shared.cfg.produce_batch_bytes(),
-        ) || self.linger_expired(linger_start)
+        // Zero linger is ready as soon as a record is queued. Checking it
+        // first skips a size scan of the whole pending queue.
+        self.linger_expired(linger_start)
+            || batch_ready(
+                &self.pending,
+                self.shared.cfg.batch_records,
+                self.shared.cfg.produce_batch_bytes(),
+            )
     }
 
     async fn run(mut self) {
