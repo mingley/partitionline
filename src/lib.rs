@@ -2051,7 +2051,8 @@
 //! ShareFetch (Java `ShareConsumeRequestManager`). A piggybacked
 //! acknowledgement error fires the commit callback and does not fail
 //! that poll; [`AcknowledgementCommitError::message`] is the broker
-//! `AcknowledgeErrorMessage` when present (Java
+//! `AcknowledgeErrorMessage` when it is non-empty, otherwise
+//! `ShareFetch acknowledgement {topic}-{partition}` (Java
 //! `Errors.exception(acknowledgeErrorMessage)`). A top-level ShareFetch
 //! error completes in-flight piggybacked acknowledgements (Java
 //! `ShareSessionHandler.handleResponse` false); the initial share

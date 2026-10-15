@@ -109,8 +109,9 @@ impl fmt::Display for ShareAcknowledgementMode {
 ///
 /// `code` is the Kafka `error_code` when the failure is a broker error.
 /// [`Self::message`] is Java `Exception.getMessage`: the broker
-/// `AcknowledgeErrorMessage` when ShareFetch/ShareAcknowledge supplies
-/// one, otherwise the [`Error`] display text.
+/// `AcknowledgeErrorMessage` / partition `ErrorMessage` when
+/// ShareFetch/ShareAcknowledge supplies a non-empty one, otherwise
+/// the crate fallback or [`Error`] display text.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AcknowledgementCommitError {
     /// Kafka `error_code`, or `None` for timeout / client-side RPC failure.
@@ -677,7 +678,8 @@ pub enum ShareAcquireMode {
 /// A piggybacked ShareFetch acknowledgement error fires the commit
 /// callback and does not fail [`Self::poll`] (Java
 /// `ShareConsumeRequestManager`); the callback message is
-/// `AcknowledgeErrorMessage` when the broker sends one. A top-level
+/// `AcknowledgeErrorMessage` when the broker sends a non-empty one,
+/// otherwise `ShareFetch acknowledgement {topic}-{partition}`. A top-level
 /// ShareFetch error completes in-flight piggybacked acknowledgements
 /// with that code (Java `handleResponse` false). A ShareFetch
 /// transport / timeout / decode failure completes those acknowledgements
