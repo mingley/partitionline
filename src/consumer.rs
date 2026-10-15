@@ -2912,20 +2912,18 @@ impl Consumer {
 
     /// A topic id change means the name was deleted and created again.
     ///
-    /// The stored id is replaced and the fetch position is cleared. The next
-    /// fetch is out of range, so [`Self::reset_fetched_offset`] places it in
-    /// the new log. ListOffsets is not called here: that lookup refreshes
-    /// metadata and would recurse.
+    /// The captured assignment id and delivered position stay in place so a
+    /// commit still names the log the application read. Buffered records from
+    /// the deleted topic are dropped. Fetch refuses the mismatched id, and the
+    /// next group assignment resolves the new log. ListOffsets is not called
+    /// here: that lookup refreshes metadata and would recurse.
     fn adopt_recreated_topics(&mut self) {
         let changed = recreated_topic_partitions(
             &self.assigned,
             &self.assigned_topic_ids,
             &self.topic_name_ids(),
         );
-        for (topic, partition, id) in changed {
-            let _previous = self
-                .assigned_topic_ids
-                .insert((topic.clone(), partition), id);
+        for (topic, partition, _) in changed {
             self.drop_pending_for(&topic, partition);
             let _removed = self.preferred.remove(&topic, partition);
             self.set_last_fetched_epoch(
@@ -2933,7 +2931,6 @@ impl Consumer {
                 partition,
                 crate::RecordBatch::NO_PARTITION_LEADER_EPOCH,
             );
-            self.advance(&topic, partition, -1);
         }
     }
 
