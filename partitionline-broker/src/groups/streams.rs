@@ -244,7 +244,9 @@ impl Groups {
                 if entry.record_count != 1 {
                     return Err(Error::InvalidRequest);
                 }
-                groups.state = decode(&entry.payload)?;
+                let decoded = decode(&entry.payload)?;
+                accept_streams_state(&groups.state, &decoded)?;
+                groups.state = decoded;
                 groups.stored = groups.stored.saturating_add(1);
                 cursor = entry
                     .first_offset
@@ -574,6 +576,63 @@ fn valid_name(text: &str) -> bool {
     !text.is_empty() && text.len() <= 249 && !text.chars().any(char::is_control)
 }
 
+fn within_steps(previous: i32, next: i32, steps: u32) -> bool {
+    let mut current = previous;
+    for _ in 0..=steps {
+        if current == next {
+            return true;
+        }
+        match current.checked_add(1) {
+            Some(advanced) => current = advanced,
+            None => return false,
+        }
+    }
+    false
+}
+
+fn accept_streams_state(previous: &State, next: &State) -> Result<(), Error> {
+    for (id, group) in &next.groups {
+        match previous.groups.get(id) {
+            None => {
+                if group.epoch != 0
+                    || !within_steps(-1, group.assignment_epoch, 1)
+                    || group.members.len() != 1
+                    || group.members.values().any(|member| member.epoch != 0)
+                {
+                    return Err(Error::InvalidRequest);
+                }
+            }
+            Some(stored) => {
+                if !within_steps(stored.epoch, group.epoch, 1)
+                    || !within_steps(stored.assignment_epoch, group.assignment_epoch, 1)
+                    || group.topology_epoch != stored.topology_epoch
+                    || group.task_count != stored.task_count
+                {
+                    return Err(Error::InvalidRequest);
+                }
+                let mut added = 0usize;
+                for (member_id, member) in &group.members {
+                    if let Some(stored_member) = stored.members.get(member_id) {
+                        if !within_steps(stored_member.epoch, member.epoch, 1)
+                            || member.endpoint_epoch < stored_member.endpoint_epoch
+                        {
+                            return Err(Error::InvalidRequest);
+                        }
+                    } else if member.epoch != 0 {
+                        return Err(Error::InvalidRequest);
+                    } else {
+                        added += 1;
+                    }
+                }
+                if added > 1 || (group.epoch == stored.epoch && added != 0) {
+                    return Err(Error::InvalidRequest);
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
 fn advance_epoch(epoch: i32) -> Result<i32, Error> {
     epoch.checked_add(1).ok_or(Error::InvalidRequest)
 }
@@ -891,6 +950,40 @@ mod tests {
             topology_epoch: Some(3),
             task_count: Some(4),
         }
+    }
+
+    #[test]
+    fn a_streams_epoch_jump_is_not_recovered() {
+        let (groups, _) = open("jump");
+        let mut members = std::collections::BTreeMap::new();
+        members.insert(
+            "a".to_owned(),
+            Member {
+                epoch: 0,
+                last_seen_ms: 0,
+                acked: true,
+                instance: None,
+                endpoint_epoch: 1,
+                active: vec![0],
+                standby: Vec::new(),
+            },
+        );
+        let mut stored = std::collections::BTreeMap::new();
+        stored.insert(
+            "app".to_owned(),
+            Group {
+                epoch: 4,
+                assignment_epoch: 0,
+                topology_epoch: 3,
+                task_count: 1,
+                members,
+            },
+        );
+        assert!(matches!(
+            accept_streams_state(&groups.state, &State { groups: stored }),
+            Err(Error::InvalidRequest)
+        ));
+        assert!(groups.state.groups.is_empty());
     }
 
     #[test]
