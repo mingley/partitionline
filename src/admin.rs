@@ -3804,7 +3804,7 @@ impl Admin {
                 self.refresh_metadata(None).await?;
             }
             let node = self.cluster.controller()?;
-            self.connect_node(node).await?;
+            self.connect_node_until(node, deadline).await?;
             let conn = self
                 .conns
                 .get_mut(&node)
@@ -4376,7 +4376,7 @@ impl Admin {
                 self.refresh_metadata(None).await?;
             }
             let node = self.cluster.controller()?;
-            self.connect_node(node).await?;
+            self.connect_node_until(node, deadline).await?;
             let body = {
                 let conn = self
                     .conns
@@ -4386,7 +4386,7 @@ impl Admin {
                     CREATE_TOPICS,
                     version,
                     |buf| encode_create_topics_request(buf, version, &req),
-                    timeout,
+                    deadline.saturating_duration_since(Instant::now()),
                 )
                 .await
             };
@@ -4719,7 +4719,7 @@ impl Admin {
                 self.refresh_metadata(None).await?;
             }
             let node = self.cluster.controller()?;
-            self.connect_node(node).await?;
+            self.connect_node_until(node, deadline).await?;
             let body = {
                 let conn = self
                     .conns
@@ -4729,7 +4729,7 @@ impl Admin {
                     DELETE_TOPICS,
                     version,
                     |buf| encode_delete_topics_states_request(buf, version, &pending, timeout_ms),
-                    timeout,
+                    deadline.saturating_duration_since(Instant::now()),
                 )
                 .await
             };
@@ -5318,7 +5318,7 @@ impl Admin {
                 self.refresh_metadata(None).await?;
             }
             let node = self.cluster.controller()?;
-            self.connect_node(node).await?;
+            self.connect_node_until(node, deadline).await?;
             let body = {
                 let conn = self
                     .conns
@@ -5336,7 +5336,7 @@ impl Admin {
                             validate_only,
                         )
                     },
-                    timeout,
+                    deadline.saturating_duration_since(Instant::now()),
                 )
                 .await
             };
@@ -5492,7 +5492,7 @@ impl Admin {
                 self.refresh_metadata(None).await?;
             }
             let node = self.cluster.controller()?;
-            self.connect_node(node).await?;
+            self.connect_node_until(node, deadline).await?;
             let body = {
                 let conn = self
                     .conns
@@ -5509,7 +5509,7 @@ impl Admin {
                             validate_only,
                         )
                     },
-                    timeout,
+                    deadline.saturating_duration_since(Instant::now()),
                 )
                 .await
             };
@@ -5580,7 +5580,7 @@ impl Admin {
                 self.refresh_metadata(None).await?;
             }
             let node = self.cluster.controller()?;
-            self.connect_node(node).await?;
+            self.connect_node_until(node, deadline).await?;
             let body = {
                 let conn = self
                     .conns
@@ -5590,7 +5590,7 @@ impl Admin {
                     CREATE_ACLS,
                     version,
                     |buf| encode_create_acls_request(buf, version, &acls),
-                    timeout,
+                    deadline.saturating_duration_since(Instant::now()),
                 )
                 .await
             };
@@ -5776,7 +5776,7 @@ impl Admin {
                 if self.conns.get(&node).is_some_and(|conn| conn.is_closed()) {
                     let _removed = self.conns.remove(&node);
                 }
-                self.connect_node(node).await?;
+                self.connect_node_until(node, deadline).await?;
                 let conn = self.conns.get_mut(&node)
                     .ok_or_else(|| Error::protocol("missing reassignment controller connection"))?;
                 let capabilities = crate::protocol::api::negotiate_api_versions(
@@ -5918,7 +5918,7 @@ impl Admin {
                 self.refresh_metadata(None).await?;
             }
             let node = self.cluster.controller()?;
-            self.connect_node(node).await?;
+            self.connect_node_until(node, deadline).await?;
             let body = {
                 let conn = self
                     .conns
@@ -5934,7 +5934,7 @@ impl Admin {
                             topics.as_deref(),
                         )
                     },
-                    timeout,
+                    deadline.saturating_duration_since(Instant::now()),
                 )
                 .await
             };
@@ -6086,7 +6086,7 @@ impl Admin {
                     self.refresh_metadata(None).await?;
                 }
                 let node = self.cluster.controller()?;
-                self.connect_node(node).await?;
+                self.connect_node_until(node, deadline).await?;
                 let remaining = deadline.saturating_duration_since(Instant::now());
                 if remaining.is_zero() {
                     return Err(Error::Timeout);
@@ -6327,7 +6327,7 @@ impl Admin {
                 self.refresh_metadata(None).await?;
             }
             let node = self.cluster.controller()?;
-            self.connect_node(node).await?;
+            self.connect_node_until(node, deadline).await?;
             let body = {
                 let conn = self
                     .conns
@@ -6337,7 +6337,7 @@ impl Admin {
                     ALTER_USER_SCRAM_CREDENTIALS,
                     version,
                     |buf| encode_alter_user_scram_credentials_request(buf, &deletions, &upsertions),
-                    timeout,
+                    deadline.saturating_duration_since(Instant::now()),
                 )
                 .await
             };
@@ -6422,7 +6422,7 @@ impl Admin {
                 self.refresh_metadata(None).await?;
             }
             let node = self.cluster.controller()?;
-            self.connect_node(node).await?;
+            self.connect_node_until(node, deadline).await?;
             let body = {
                 let conn = self.conns.get_mut(&node).ok_or_else(|| {
                     Error::protocol("missing describe_user_scram_credentials conn")
@@ -6431,7 +6431,7 @@ impl Admin {
                     DESCRIBE_USER_SCRAM_CREDENTIALS,
                     version,
                     |buf| encode_describe_user_scram_credentials_request(buf, users_wire),
-                    timeout,
+                    deadline.saturating_duration_since(Instant::now()),
                 )
                 .await
             };
@@ -6522,7 +6522,7 @@ impl Admin {
                 self.refresh_metadata(None).await?;
             }
             let node = self.cluster.controller()?;
-            self.connect_node(node).await?;
+            self.connect_node_until(node, deadline).await?;
             let body = {
                 let conn = self
                     .conns
@@ -6532,7 +6532,7 @@ impl Admin {
                     UNREGISTER_BROKER,
                     version,
                     |buf| encode_unregister_broker_request(buf, broker_id),
-                    timeout,
+                    deadline.saturating_duration_since(Instant::now()),
                 )
                 .await
             };
@@ -6704,7 +6704,7 @@ impl Admin {
                 self.refresh_metadata(None).await?;
             }
             let node = self.cluster.controller()?;
-            self.connect_node(node).await?;
+            self.connect_node_until(node, deadline).await?;
             let body = {
                 let conn = self
                     .conns
@@ -6714,7 +6714,7 @@ impl Admin {
                     ALTER_CLIENT_QUOTAS,
                     version,
                     |buf| encode_alter_client_quotas_request(buf, version, &entries, validate_only),
-                    timeout,
+                    deadline.saturating_duration_since(Instant::now()),
                 )
                 .await
             };
@@ -6783,7 +6783,7 @@ impl Admin {
                 self.refresh_metadata(None).await?;
             }
             let node = self.cluster.controller()?;
-            self.connect_node(node).await?;
+            self.connect_node_until(node, deadline).await?;
             let body = {
                 let conn = self
                     .conns
@@ -6793,7 +6793,7 @@ impl Admin {
                     ALLOCATE_PRODUCER_IDS,
                     version,
                     |buf| encode_allocate_producer_ids_request(buf, broker_id, broker_epoch),
-                    timeout,
+                    deadline.saturating_duration_since(Instant::now()),
                 )
                 .await
             };
@@ -6924,7 +6924,7 @@ impl Admin {
                 .as_ref()
                 .map(|(_, n)| *n)
                 .ok_or_else(|| Error::protocol("missing transaction coordinator"))?;
-            self.connect_node(node).await?;
+            self.connect_node_until(node, deadline).await?;
             let body = {
                 let conn = self
                     .conns
@@ -6943,7 +6943,7 @@ impl Admin {
                             crate::RecordBatch::NO_PRODUCER_EPOCH,
                         )
                     },
-                    timeout,
+                    deadline.saturating_duration_since(Instant::now()),
                 )
                 .await
             };
@@ -7025,7 +7025,7 @@ impl Admin {
                     self.refresh_metadata(Some(&topics)).await?;
                 }
                 let (node, _) = self.cluster.leader(&spec.topic, spec.partition)?;
-                self.connect_node(node).await?;
+                self.connect_node_until(node, deadline).await?;
                 let body = {
                     let conn = self
                         .conns
@@ -8068,7 +8068,7 @@ impl Admin {
             .await
     }
 
-    async fn connect_node(&mut self, node: i32) -> Result<()> {
+    async fn connect_node_until(&mut self, node: i32, deadline: Instant) -> Result<()> {
         if self
             .conns
             .get(&node)
@@ -8085,7 +8085,6 @@ impl Admin {
             .get(&node)
             .cloned()
             .ok_or_else(|| Error::protocol(format!("unknown broker {node}")))?;
-        let deadline = Instant::now() + self.cfg.request_timeout;
         loop {
             let fails = self.reconnect_fails.get(&node).copied().unwrap_or(0);
             let delay = crate::config::reconnect_backoff_delay(
@@ -8403,7 +8402,8 @@ impl Admin {
         timeout: Duration,
     ) -> Result<(Vec<(usize, i64, i16)>, Vec<usize>)> {
         let topics = delete_records_topics(records, idxs);
-        self.connect_node(node).await?;
+        self.connect_node_until(node, Instant::now() + timeout)
+            .await?;
         let body = {
             let conn = self
                 .conns
@@ -8677,7 +8677,7 @@ impl Admin {
         deadline: Instant,
     ) -> Result<(Vec<(usize, crate::OffsetAndTimestamp)>, Vec<usize>)> {
         let topics = list_offset_topic_requests(queries, idxs, &self.cluster);
-        self.connect_node(node).await?;
+        self.connect_node_until(node, deadline).await?;
         let mut minimum = 1;
         for &index in idxs {
             let (_, timestamp) = queries
@@ -9021,7 +9021,8 @@ impl Admin {
         pin_broker: bool,
     ) -> Result<DescribeProducersNodeOutcome> {
         let topics = describe_producers_topics(partitions, idxs);
-        self.connect_node(node).await?;
+        self.connect_node_until(node, Instant::now() + timeout)
+            .await?;
         let body = {
             let conn = self
                 .conns
@@ -9293,7 +9294,7 @@ impl Admin {
                 .as_ref()
                 .map(|(_, n)| *n)
                 .ok_or_else(|| Error::protocol("missing group coordinator"))?;
-            self.connect_node(node).await?;
+            self.connect_node_until(node, deadline).await?;
             let body = {
                 let conn = self
                     .conns
@@ -9303,7 +9304,7 @@ impl Admin {
                     OFFSET_DELETE,
                     version,
                     |buf| encode_offset_delete_request(buf, &group_id, &topics),
-                    timeout,
+                    deadline.saturating_duration_since(Instant::now()),
                 )
                 .await
             };
@@ -9659,7 +9660,7 @@ impl Admin {
                                     offset_fetch_topics_for_spec(&job.1),
                                 ));
                             }
-                            self.connect_node(node).await?;
+                            self.connect_node_until(node, deadline).await?;
                             let version = self
                                 .conns
                                 .get(&node)
@@ -9845,7 +9846,7 @@ impl Admin {
                         .as_ref()
                         .map(|(_, n)| *n)
                         .ok_or_else(|| Error::protocol("missing group coordinator"))?;
-                    self.connect_node(node).await?;
+                    self.connect_node_until(node, deadline).await?;
                     let version = self
                         .conns
                         .get(&node)
@@ -9972,7 +9973,7 @@ impl Admin {
                         .as_ref()
                         .map(|(_, n)| *n)
                         .ok_or_else(|| Error::protocol("missing group coordinator"))?;
-                    self.connect_node(node).await?;
+                    self.connect_node_until(node, deadline).await?;
                     let version = self
                         .conns
                         .get(&node)
@@ -10924,7 +10925,7 @@ impl Admin {
                 .as_ref()
                 .map(|(_, n)| *n)
                 .ok_or_else(|| Error::protocol("missing group coordinator"))?;
-            self.connect_node(node).await?;
+            self.connect_node_until(node, deadline).await?;
             let body = {
                 let conn = self.conns.get_mut(&node).ok_or_else(|| {
                     Error::protocol("missing remove_members_from_consumer_group conn")
@@ -10933,7 +10934,7 @@ impl Admin {
                     LEAVE_GROUP,
                     version,
                     |buf| encode_leave_group_request_members(buf, version, &group_id, &members),
-                    timeout,
+                    deadline.saturating_duration_since(Instant::now()),
                 )
                 .await
             };
@@ -11349,7 +11350,7 @@ impl Admin {
                 .as_ref()
                 .map(|(_, n)| *n)
                 .ok_or_else(|| Error::protocol("missing group coordinator"))?;
-            self.connect_node(node).await?;
+            self.connect_node_until(node, deadline).await?;
             let body = {
                 let conn = self
                     .conns
@@ -11359,7 +11360,7 @@ impl Admin {
                     ALTER_SHARE_GROUP_OFFSETS,
                     version,
                     |buf| encode_alter_share_group_offsets_request(buf, group_id, topics),
-                    timeout,
+                    deadline.saturating_duration_since(Instant::now()),
                 )
                 .await
             };
@@ -11448,7 +11449,7 @@ impl Admin {
                 .as_ref()
                 .map(|(_, n)| *n)
                 .ok_or_else(|| Error::protocol("missing group coordinator"))?;
-            self.connect_node(node).await?;
+            self.connect_node_until(node, deadline).await?;
             let body = {
                 let conn = self
                     .conns
@@ -11458,7 +11459,7 @@ impl Admin {
                     DELETE_SHARE_GROUP_OFFSETS,
                     version,
                     |buf| encode_delete_share_group_offsets_request(buf, group_id, topics),
-                    timeout,
+                    deadline.saturating_duration_since(Instant::now()),
                 )
                 .await
             };
@@ -11881,7 +11882,7 @@ impl Admin {
                 self.refresh_metadata(None).await?;
             }
             let node = self.cluster.controller()?;
-            self.connect_node(node).await?;
+            self.connect_node_until(node, deadline).await?;
             let body = {
                 let conn = self
                     .conns
@@ -11891,7 +11892,7 @@ impl Admin {
                     ASSIGN_REPLICAS_TO_DIRS,
                     version,
                     |buf| encode_assign_replicas_to_dirs_request(buf, &req),
-                    timeout,
+                    deadline.saturating_duration_since(Instant::now()),
                 )
                 .await
             };
@@ -12242,7 +12243,7 @@ impl Admin {
             loop {
                 let result = async {
                     if let Some(node) = node {
-                        self.connect_node(node).await?;
+                        self.connect_node_until(node, deadline).await?;
                     } else {
                         self.ensure_bootstrap().await?;
                     }
@@ -12312,7 +12313,7 @@ impl Admin {
         let mut attempt = 0u32;
         let req = AlterReplicaLogDirsRequest::new(dirs);
         loop {
-            self.connect_node(node).await?;
+            self.connect_node_until(node, deadline).await?;
             let body = {
                 let conn = self
                     .conns
@@ -12322,7 +12323,7 @@ impl Admin {
                     ALTER_REPLICA_LOG_DIRS,
                     version,
                     |buf| encode_alter_replica_log_dirs_request(buf, version, &req),
-                    timeout,
+                    deadline.saturating_duration_since(Instant::now()),
                 )
                 .await
             };
@@ -12728,7 +12729,7 @@ impl Admin {
                             COORDINATOR_GROUP,
                         )
                     },
-                    timeout,
+                    deadline.saturating_duration_since(Instant::now()),
                 )
                 .await;
             let body = match body {
@@ -12828,7 +12829,7 @@ impl Admin {
                     FIND_COORDINATOR,
                     version,
                     |buf| encode_find_coordinator_request_keys(buf, version, &key_refs, key_type),
-                    timeout,
+                    deadline.saturating_duration_since(Instant::now()),
                 )
                 .await;
             let body = match body {
@@ -12965,7 +12966,8 @@ impl Admin {
         timeout: Duration,
     ) -> Result<Vec<(usize, DescribedGroup)>> {
         let subset: Vec<String> = idxs.iter().filter_map(|&i| ids.get(i).cloned()).collect();
-        self.connect_node(node).await?;
+        self.connect_node_until(node, Instant::now() + timeout)
+            .await?;
         let body = {
             let conn = self
                 .conns
@@ -13014,7 +13016,8 @@ impl Admin {
         timeout: Duration,
     ) -> Result<Vec<(usize, DeletableGroupResult)>> {
         let subset: Vec<String> = idxs.iter().filter_map(|&i| ids.get(i).cloned()).collect();
-        self.connect_node(node).await?;
+        self.connect_node_until(node, Instant::now() + timeout)
+            .await?;
         let body = {
             let conn = self
                 .conns
@@ -13057,7 +13060,8 @@ impl Admin {
         timeout: Duration,
     ) -> Result<Vec<(usize, DescribedConsumerGroup)>> {
         let subset: Vec<String> = idxs.iter().filter_map(|&i| ids.get(i).cloned()).collect();
-        self.connect_node(node).await?;
+        self.connect_node_until(node, Instant::now() + timeout)
+            .await?;
         let body = {
             let conn = self
                 .conns
@@ -13107,7 +13111,8 @@ impl Admin {
         timeout: Duration,
     ) -> Result<Vec<(usize, DescribedShareGroup)>> {
         let subset: Vec<String> = idxs.iter().filter_map(|&i| ids.get(i).cloned()).collect();
-        self.connect_node(node).await?;
+        self.connect_node_until(node, Instant::now() + timeout)
+            .await?;
         let body = {
             let conn = self
                 .conns
@@ -13159,7 +13164,8 @@ impl Admin {
             .iter()
             .filter_map(|&i| groups.get(i).cloned())
             .collect();
-        self.connect_node(node).await?;
+        self.connect_node_until(node, Instant::now() + timeout)
+            .await?;
         let body = {
             let conn = self
                 .conns
@@ -13212,7 +13218,8 @@ impl Admin {
         timeout: Duration,
     ) -> Result<Vec<(usize, TransactionState)>> {
         let subset: Vec<String> = idxs.iter().filter_map(|&i| ids.get(i).cloned()).collect();
-        self.connect_node(node).await?;
+        self.connect_node_until(node, Instant::now() + timeout)
+            .await?;
         let body = {
             let conn = self
                 .conns
@@ -13276,7 +13283,7 @@ impl Admin {
                             COORDINATOR_TRANSACTION,
                         )
                     },
-                    timeout,
+                    deadline.saturating_duration_since(Instant::now()),
                 )
                 .await;
             let body = match body {
