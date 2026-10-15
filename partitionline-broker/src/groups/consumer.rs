@@ -731,7 +731,13 @@ fn decode(mut bytes: &[u8]) -> Result<State, Error> {
     let topic_count = take_u32(&mut bytes)?;
     for _ in 0..topic_count {
         let topic = take_str(&mut bytes)?;
-        state.topics.insert(topic, take_i32(&mut bytes)?);
+        let count = take_i32(&mut bytes)?;
+        if !valid_topic(&topic)
+            || !(1..=1024).contains(&count)
+            || state.topics.insert(topic, count).is_some()
+        {
+            return Err(Error::InvalidRequest);
+        }
     }
     let group_count = take_u32(&mut bytes)?;
     for _ in 0..group_count {
@@ -744,9 +750,13 @@ fn decode(mut bytes: &[u8]) -> Result<State, Error> {
             let member_id = take_str(&mut bytes)?;
             let member_epoch = take_i32(&mut bytes)?;
             let last_seen_ms = take_u64(&mut bytes)?;
-            let acked = take_u8(&mut bytes)? == 1;
+            let acked_byte = take_u8(&mut bytes)?;
             let member_version = take_i16(&mut bytes)?;
-            let instance = if take_u8(&mut bytes)? == 1 {
+            let instance_flag = take_u8(&mut bytes)?;
+            if acked_byte > 1 || instance_flag > 1 {
+                return Err(Error::InvalidRequest);
+            }
+            let instance = if instance_flag == 1 {
                 Some(take_str(&mut bytes)?)
             } else {
                 None
@@ -765,34 +775,89 @@ fn decode(mut bytes: &[u8]) -> Result<State, Error> {
                 for _ in 0..partition_count {
                     partitions.push(take_i32(&mut bytes)?);
                 }
-                assignment.insert(topic, partitions);
+                if assignment.insert(topic, partitions).is_some() {
+                    return Err(Error::InvalidRequest);
+                }
             }
-            members.insert(
-                member_id,
-                Member {
-                    epoch: member_epoch,
-                    last_seen_ms,
-                    acked,
-                    instance,
-                    version: member_version,
-                    topics,
-                    assignment,
-                },
-            );
+            if members
+                .insert(
+                    member_id,
+                    Member {
+                        epoch: member_epoch,
+                        last_seen_ms,
+                        acked: acked_byte == 1,
+                        instance,
+                        version: member_version,
+                        topics,
+                        assignment,
+                    },
+                )
+                .is_some()
+            {
+                return Err(Error::InvalidRequest);
+            }
         }
-        state.groups.insert(
-            name,
-            Group {
-                epoch,
-                version,
-                members,
-            },
-        );
+        if state
+            .groups
+            .insert(
+                name,
+                Group {
+                    epoch,
+                    version,
+                    members,
+                },
+            )
+            .is_some()
+        {
+            return Err(Error::InvalidRequest);
+        }
     }
     if !bytes.is_empty() {
         return Err(Error::InvalidRequest);
     }
+    validate_decoded(&state)?;
     Ok(state)
+}
+
+fn validate_decoded(state: &State) -> Result<(), Error> {
+    for (name, group) in &state.groups {
+        if !valid_name(name) || group.members.is_empty() || !(0..=1).contains(&group.version) {
+            return Err(Error::InvalidRequest);
+        }
+        let mut seen = BTreeSet::new();
+        for (member_id, member) in &group.members {
+            if !valid_name(member_id) || !(0..=1).contains(&member.version) {
+                return Err(Error::InvalidRequest);
+            }
+            if member.instance.as_ref().is_some_and(|id| !valid_name(id)) {
+                return Err(Error::InvalidRequest);
+            }
+            for topic in &member.topics {
+                if !state.topics.contains_key(topic) {
+                    return Err(Error::InvalidRequest);
+                }
+            }
+            for (topic, partitions) in &member.assignment {
+                let Some(count) = member
+                    .topics
+                    .contains(topic)
+                    .then(|| state.topics.get(topic).copied())
+                    .flatten()
+                else {
+                    return Err(Error::InvalidRequest);
+                };
+                for partition in partitions {
+                    if *partition < 0
+                        || *partition >= count
+                        || !seen.insert((topic.clone(), *partition))
+                    {
+                        return Err(Error::InvalidRequest);
+                    }
+                }
+            }
+        }
+    }
+    Ok(())
 }
 
 fn put_str(bytes: &mut Vec<u8>, value: &str) -> Result<(), Error> {
@@ -915,6 +980,46 @@ mod tests {
             }
         }
         owned
+    }
+
+    #[test]
+    fn a_negative_assignment_is_not_recovered() {
+        let mut topics = BTreeSet::new();
+        topics.insert("orders".to_owned());
+        let mut assignment = BTreeMap::new();
+        assignment.insert("orders".to_owned(), vec![-1]);
+        let mut members = BTreeMap::new();
+        members.insert(
+            "m-1".to_owned(),
+            Member {
+                epoch: 0,
+                last_seen_ms: 0,
+                acked: true,
+                instance: None,
+                version: 0,
+                topics,
+                assignment,
+            },
+        );
+        let mut groups = BTreeMap::new();
+        groups.insert(
+            "g".to_owned(),
+            Group {
+                epoch: 0,
+                version: 0,
+                members,
+            },
+        );
+        let mut topic_counts = BTreeMap::new();
+        topic_counts.insert("orders".to_owned(), 1);
+        let state = State {
+            coordinator_epoch: 0,
+            next_member: 2,
+            topics: topic_counts,
+            groups,
+        };
+        let encoded = encode(&state).unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(decode(&encoded), Err(Error::InvalidRequest)));
     }
 
     #[test]
