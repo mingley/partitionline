@@ -71,7 +71,8 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `AcknowledgeErrorMessage` that is empty uses
   `ShareFetch acknowledgement {topic}-{partition}`. A piggybacked
   `FENCED_LEADER_EPOCH` / `NOT_LEADER_OR_FOLLOWER` /
-  `UNKNOWN_TOPIC_OR_PARTITION` / `UNKNOWN_TOPIC_ID` still completes
+  `UNKNOWN_TOPIC_OR_PARTITION` / `UNKNOWN_TOPIC_ID` /
+  `INCONSISTENT_TOPIC_ID` still completes
   without retry, including when `AcknowledgeErrorMessage` is set or
   empty.
   ShareAcknowledge top-level `SHARE_SESSION_LIMIT_REACHED` completes
