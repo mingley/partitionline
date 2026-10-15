@@ -6307,15 +6307,18 @@ impl Consumer {
             if Instant::now() >= deadline {
                 return Err(Error::Timeout);
             }
-            if self.cluster.leader_id(topic, partition).is_err() {
-                let topics = [topic.to_string()];
-                self.refresh_metadata_timeout(
-                    Some(&topics),
-                    deadline.saturating_duration_since(Instant::now()),
-                )
-                .await?;
-            }
-            let node = self.cluster.leader_id(topic, partition)?;
+            let node = match self.cluster.leader_id(topic, partition) {
+                Ok(node) => node,
+                Err(_) => {
+                    let topics = [topic.to_string()];
+                    self.refresh_metadata_timeout(
+                        Some(&topics),
+                        deadline.saturating_duration_since(Instant::now()),
+                    )
+                    .await?;
+                    self.cluster.leader_id(topic, partition)?
+                }
+            };
             self.connect_node(node, deadline).await?;
             let isolation = self.cfg.isolation_level.as_i8();
             let minimum =
@@ -7585,6 +7588,7 @@ where
     let Some(by_topic) = by_leader.get(&node) else {
         return false;
     };
+    let mut leaders = crate::cluster::LeaderList::new();
     let mut saw_partition = false;
     for (topic, parts) in by_topic {
         for part in parts {
@@ -7592,7 +7596,7 @@ where
             if preferred.get(topic.as_ref(), part.partition).copied() != Some(node) {
                 return false;
             }
-            match cluster.leader_id(topic.as_ref(), part.partition) {
+            match leaders.node(cluster, topic.as_ref(), part.partition) {
                 Ok(leader) if leader != node => {}
                 _ => return false,
             }
@@ -7621,10 +7625,11 @@ where
     let Some(by_topic) = by_leader.remove(&node) else {
         return false;
     };
+    let mut leaders = crate::cluster::LeaderList::new();
     for (topic, parts) in by_topic {
         for part in parts {
-            let leader = cluster
-                .leader_id(topic.as_ref(), part.partition)
+            let leader = leaders
+                .node(cluster, topic.as_ref(), part.partition)
                 .unwrap_or(node);
             if leader != node {
                 let _removed = preferred.remove(topic.as_ref(), part.partition);
