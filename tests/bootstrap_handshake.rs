@@ -224,3 +224,22 @@ async fn delete_records_leader_dials_overlap() {
     assert!(mock.api_versions_versions().len() >= before + 2);
     assert_eq!(deleted.len(), 2, "{deleted:?}");
 }
+
+#[tokio::test]
+async fn describe_groups_coordinator_dials_overlap() {
+    let (mock, mut admin) = two_leader_admin().await;
+    mock.set_group_coordinator("ga", 1);
+    mock.set_group_coordinator("gb", 2);
+    let before = mock.api_versions_versions().len();
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let started = Instant::now();
+    let described = admin.describe_groups(&["ga", "gb"], false).await.unwrap();
+    let elapsed = started.elapsed();
+    assert!(
+        elapsed < Duration::from_millis(400),
+        "coordinator dials ran one after another: {elapsed:?}"
+    );
+    assert!(mock.api_versions_versions().len() >= before + 2);
+    assert_eq!(described.len(), 2, "{described:?}");
+    assert!(described.iter().all(|group| group.error_code == 0));
+}

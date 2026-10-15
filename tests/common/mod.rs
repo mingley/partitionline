@@ -683,6 +683,7 @@ struct State {
     accepts: u32,
     coord_node: i32,
     txn_coord_node: i32,
+    group_coord_overrides: HashMap<String, i32>,
     find_coordinator_key_types: Vec<i8>,
     last_find_coordinator_version: Option<i16>,
     last_find_coordinator_key_count: usize,
@@ -1160,6 +1161,7 @@ fn new_state(
         accepts: 0,
         coord_node: 1,
         txn_coord_node: 1,
+        group_coord_overrides: HashMap::new(),
         find_coordinator_key_types: Vec::new(),
         last_find_coordinator_version: None,
         last_find_coordinator_key_count: 0,
@@ -3740,6 +3742,14 @@ impl Mock {
 
     pub fn set_txn_coordinator(&self, node_id: i32) {
         self.state.lock().txn_coord_node = node_id;
+    }
+
+    /// Place one group on a coordinator. Other groups keep [`Self::move_coordinator`].
+    pub fn set_group_coordinator(&self, group: &str, node_id: i32) {
+        self.state
+            .lock()
+            .group_coord_overrides
+            .insert(group.to_string(), node_id);
     }
 
     pub fn stale_txn_find_once(&self) {
@@ -7567,7 +7577,8 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 st.last_find_coordinator_version = Some(header.api_version);
                 st.last_find_coordinator_key_count = keys.len();
                 st.find_coordinator_calls = st.find_coordinator_calls.saturating_add(1);
-                let coord = if key_type == COORDINATOR_TRANSACTION {
+                let injected = st.find_coordinator_faults.pop_front().unwrap_or(0);
+                let txn_coord = if key_type == COORDINATOR_TRANSACTION {
                     if st.stale_txn_finds > 0 {
                         st.stale_txn_finds = st.stale_txn_finds.saturating_sub(1);
                         st.brokers
@@ -7581,17 +7592,26 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 } else {
                     st.coord_node
                 };
-                let (host, port) = broker_host_port(&st, coord);
-                let injected = st.find_coordinator_faults.pop_front().unwrap_or(0);
                 let out: Vec<CoordinatorResult> = keys
                     .into_iter()
-                    .map(|key| CoordinatorResult {
-                        key,
-                        node_id: coord,
-                        host: host.clone(),
-                        port,
-                        error_code: injected,
-                        error_message: None,
+                    .map(|key| {
+                        let coord = if key_type == COORDINATOR_TRANSACTION {
+                            txn_coord
+                        } else {
+                            st.group_coord_overrides
+                                .get(&key)
+                                .copied()
+                                .unwrap_or(txn_coord)
+                        };
+                        let (host, port) = broker_host_port(&st, coord);
+                        CoordinatorResult {
+                            key,
+                            node_id: coord,
+                            host,
+                            port,
+                            error_code: injected,
+                            error_message: None,
+                        }
                     })
                     .collect();
                 encode_find_coordinator_response_coordinators(&mut body, header.api_version, &out)
@@ -8403,40 +8423,42 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 st.last_describe_groups_include = Some(include);
                 st.last_describe_groups_n = ids.len();
                 st.describe_groups_calls = st.describe_groups_calls.saturating_add(1);
-                if st.coord_node != node_id {
-                    st.describe_groups_not_coordinator =
-                        st.describe_groups_not_coordinator.saturating_add(1);
-                    // Per-group 16 only. Do not invent a member store,
-                    // a 41 path, or a 6 path.
-                    let results: Vec<DescribedGroup> = ids
-                        .into_iter()
-                        .map(|group_id| DescribedGroup::new(group_id, error::NOT_COORDINATOR))
-                        .collect();
-                    encode_describe_groups_response(&mut body, version, &results).unwrap();
-                } else {
-                    st.last_describe_groups_node = Some(node_id);
-                    let results: Vec<DescribedGroup> = ids
-                        .into_iter()
-                        .map(|group_id| {
-                            let mut g = DescribedGroup::new(group_id.clone(), 0);
-                            g.group_state = "Stable".into();
-                            g.protocol_type = "consumer".into();
-                            if let Some(reg) = st.groups.get(&group_id) {
-                                g.members = reg
-                                    .members
-                                    .keys()
-                                    .map(|id| {
-                                        let mut m = DescribedGroupMember::new(id, "", "");
-                                        m.group_instance_id = reg.instances.get(id).cloned();
-                                        m
-                                    })
-                                    .collect();
+                let mut saw_foreign = false;
+                let results: Vec<DescribedGroup> = ids
+                    .into_iter()
+                    .map(|group_id| {
+                        let owner = st
+                            .group_coord_overrides
+                            .get(&group_id)
+                            .copied()
+                            .unwrap_or(st.coord_node);
+                        if owner != node_id {
+                            if !saw_foreign {
+                                st.describe_groups_not_coordinator =
+                                    st.describe_groups_not_coordinator.saturating_add(1);
+                                saw_foreign = true;
                             }
-                            g
-                        })
-                        .collect();
-                    encode_describe_groups_response(&mut body, version, &results).unwrap();
-                }
+                            return DescribedGroup::new(group_id, error::NOT_COORDINATOR);
+                        }
+                        st.last_describe_groups_node = Some(node_id);
+                        let mut g = DescribedGroup::new(group_id.clone(), 0);
+                        g.group_state = "Stable".into();
+                        g.protocol_type = "consumer".into();
+                        if let Some(reg) = st.groups.get(&group_id) {
+                            g.members = reg
+                                .members
+                                .keys()
+                                .map(|id| {
+                                    let mut m = DescribedGroupMember::new(id, "", "");
+                                    m.group_instance_id = reg.instances.get(id).cloned();
+                                    m
+                                })
+                                .collect();
+                        }
+                        g
+                    })
+                    .collect();
+                encode_describe_groups_response(&mut body, version, &results).unwrap();
             }
             LIST_GROUPS => {
                 let version = header.api_version;
