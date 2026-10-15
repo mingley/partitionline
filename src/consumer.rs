@@ -3331,12 +3331,21 @@ impl Consumer {
         }
     }
 
-    fn response_topic_name(
-        &self,
-        response_name: &str,
-        topic_id: [u8; 16],
-    ) -> Result<Option<String>> {
-        fetch_topic_name(response_name, topic_id, &self.id_to_name)
+    /// Assignment name for a fetch topic, sharing the stored allocation when the
+    /// topic is already assigned.
+    fn fetch_topic_arc(&self, response_name: &str, topic_id: [u8; 16]) -> Result<Option<Arc<str>>> {
+        let Some(resolved) = resolved_fetch_topic(response_name, topic_id, &self.id_to_name)?
+        else {
+            return Ok(None);
+        };
+        if let Some((key, _)) = self
+            .cursor_index
+            .as_ref()
+            .and_then(|index| index.get_key_value(resolved))
+        {
+            return Ok(Some(Arc::clone(key)));
+        }
+        Ok(Some(Arc::<str>::from(resolved)))
     }
 
     pub(crate) fn leader_of(&self, topic: &str, partition: i32) -> Result<(i32, String)> {
@@ -5490,15 +5499,21 @@ impl Consumer {
         self.ensure_cursor_index();
         let mut retry = FetchRetry::None;
         // A partition listed twice must not rewind the cursor or deliver twice.
+        // One topic with one partition cannot repeat, so that fetch skips the set.
+        let sole_partition = fetched.len() <= 1
+            && fetched
+                .first()
+                .is_none_or(|topic| topic.partitions.len() <= 1);
         let mut seen_partitions: HashMap<Arc<str>, HashSet<i32>> = HashMap::new();
         for (topic, topic_batches) in fetched.into_iter().zip(batches) {
             if *budget_reached {
-                let Some(name) = self.response_topic_name(&topic.topic, topic.topic_id)? else {
+                let Some(name) = self.fetch_topic_arc(&topic.topic, topic.topic_id)? else {
                     continue;
                 };
-                let seen_name = Arc::<str>::from(name.as_str());
                 for (part, part_batches) in topic.partitions.into_iter().zip(topic_batches) {
-                    if !take_fetch_partition(&mut seen_partitions, &seen_name, part.partition) {
+                    if !sole_partition
+                        && !take_fetch_partition(&mut seen_partitions, &name, part.partition)
+                    {
                         continue;
                     }
                     if self.cursor_at(&name, part.partition).is_none() {
@@ -5515,13 +5530,14 @@ impl Consumer {
                 }
                 continue;
             }
-            let Some(name) = self.response_topic_name(&topic.topic, topic.topic_id)? else {
+            let Some(name) = self.fetch_topic_arc(&topic.topic, topic.topic_id)? else {
                 continue;
             };
-            let seen_name = Arc::<str>::from(name.as_str());
-            let topic_name = TopicName::from(name.as_str());
+            let topic_name = TopicName::from(name.as_ref());
             for (part, part_batches) in topic.partitions.into_iter().zip(topic_batches) {
-                if !take_fetch_partition(&mut seen_partitions, &seen_name, part.partition) {
+                if !sole_partition
+                    && !take_fetch_partition(&mut seen_partitions, &name, part.partition)
+                {
                     continue;
                 }
                 if self.cursor_at(&name, part.partition).is_none() {
@@ -5568,7 +5584,7 @@ impl Consumer {
                 if part.error_code == error::FENCED_LEADER_EPOCH
                     || part.error_code == error::UNKNOWN_LEADER_EPOCH
                 {
-                    fenced.push((name.clone(), part.partition));
+                    fenced.push((name.as_ref().to_owned(), part.partition));
                     continue;
                 }
                 if part.error_code != 0 {
@@ -5753,15 +5769,14 @@ impl Consumer {
                             if added_records > 0 {
                                 let added_bytes = u64::try_from(added).unwrap_or(u64::MAX);
                                 if let Some(totals) =
-                                    self.fetch_return_totals.get_mut(name.as_str())
+                                    self.fetch_return_totals.get_mut(name.as_ref())
                                 {
                                     totals.0 = totals.0.saturating_add(added_records);
                                     totals.1 = totals.1.saturating_add(added_bytes);
                                 } else {
-                                    let _previous = self.fetch_return_totals.insert(
-                                        Arc::clone(&seen_name),
-                                        (added_records, added_bytes),
-                                    );
+                                    let _previous = self
+                                        .fetch_return_totals
+                                        .insert(Arc::clone(&name), (added_records, added_bytes));
                                 }
                             }
                             let batch_next = fetch_end_after(header_end, last_record_off)?;
@@ -5931,13 +5946,13 @@ impl Consumer {
                         });
                     }
                     if batch_records > 0 {
-                        if let Some(totals) = self.fetch_return_totals.get_mut(name.as_str()) {
+                        if let Some(totals) = self.fetch_return_totals.get_mut(name.as_ref()) {
                             totals.0 = totals.0.saturating_add(batch_records);
                             totals.1 = totals.1.saturating_add(batch_bytes);
                         } else {
                             let _previous = self
                                 .fetch_return_totals
-                                .insert(Arc::clone(&seen_name), (batch_records, batch_bytes));
+                                .insert(Arc::clone(&name), (batch_records, batch_bytes));
                         }
                     }
                     if reached_lso {
@@ -6959,11 +6974,11 @@ fn resolved_topic_identities<'a>(
 /// A non-zero topic id selects the subscribed name. A response name that
 /// disagrees with that id is rejected. An unknown id does not borrow another
 /// topic's name; an empty response name is then skipped.
-fn fetch_topic_name(
-    response_name: &str,
+fn resolved_fetch_topic<'a>(
+    response_name: &'a str,
     topic_id: [u8; 16],
-    id_names: &HashMap<[u8; 16], String>,
-) -> Result<Option<String>> {
+    id_names: &'a HashMap<[u8; 16], String>,
+) -> Result<Option<&'a str>> {
     if topic_id != [0; 16] {
         if let Some(mapped) = id_names.get(&topic_id) {
             if !response_name.is_empty() && response_name != mapped.as_str() {
@@ -6971,14 +6986,23 @@ fn fetch_topic_name(
                     "fetch topic id does not match the topic name",
                 ));
             }
-            return Ok(Some(mapped.clone()));
+            return Ok(Some(mapped.as_str()));
         }
     }
     if response_name.is_empty() {
         Ok(None)
     } else {
-        Ok(Some(response_name.to_owned()))
+        Ok(Some(response_name))
     }
+}
+
+#[cfg(test)]
+fn fetch_topic_name(
+    response_name: &str,
+    topic_id: [u8; 16],
+    id_names: &HashMap<[u8; 16], String>,
+) -> Result<Option<String>> {
+    resolved_fetch_topic(response_name, topic_id, id_names).map(|name| name.map(str::to_owned))
 }
 
 /// First copy of a fetch partition wins. A later copy is ignored.
