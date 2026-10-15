@@ -1174,14 +1174,11 @@ impl BrokerConn {
         }
         let started = Instant::now();
         let mut guard = CloseOnDrop::new(self.closed.clone());
-        let result = deadline
-            .run(async {
-                let correlation = self
-                    .send_deadline(api_key, api_version, encode_body, deadline)
-                    .await?;
-                self.read_response_deadline(api_key, api_version, correlation, deadline)
-                    .await
-            })
+        let correlation = self
+            .send_deadline(api_key, api_version, encode_body, deadline)
+            .await?;
+        let result = self
+            .read_response_deadline(api_key, api_version, correlation, deadline)
             .await;
         if let Some(stats) = &self.stats {
             stats.record(started.elapsed(), result.is_ok());
@@ -1251,19 +1248,10 @@ impl BrokerConn {
         let started = Instant::now();
         let mut guard = CloseOnDrop::new(self.closed.clone());
         let correlation = self.next_sasl_correlation();
-        let result = deadline
-            .run(async {
-                self.write_request_deadline(
-                    api_key,
-                    api_version,
-                    correlation,
-                    encode_body,
-                    deadline,
-                )
-                .await?;
-                self.read_response_deadline(api_key, api_version, correlation, deadline)
-                    .await
-            })
+        self.write_request_deadline(api_key, api_version, correlation, encode_body, deadline)
+            .await?;
+        let result = self
+            .read_response_deadline(api_key, api_version, correlation, deadline)
             .await;
         if let Some(stats) = &self.stats {
             stats.record(started.elapsed(), result.is_ok());
