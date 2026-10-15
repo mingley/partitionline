@@ -47,6 +47,11 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   sent only for partitions still on that node (`commit()` stays
   first-error `Err`).
 
+- ShareAcknowledge partition `NOT_LEADER_OR_FOLLOWER` /
+  `FENCED_LEADER_EPOCH` / `UNKNOWN_TOPIC_OR_PARTITION` complete without
+  retry and request Metadata (`commit_sync` map; Java
+  `testFatalErrorsAcknowledgementResponse`).
+
 - `ShareGroup::set_acknowledgement_commit_callback` is Java
   `ShareConsumer.setAcknowledgementCommitCallback`
   (`AcknowledgementCommitCallback.onComplete`).

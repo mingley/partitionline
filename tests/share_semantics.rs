@@ -1371,6 +1371,53 @@ async fn commit_sync_maps_broker_error() {
 }
 
 #[tokio::test]
+async fn share_acknowledge_fatal_leadership_error_does_not_retry() {
+    let mock = common::Mock::start().await;
+    v2(&mock);
+    produce(&mock, &[(0, b"held")]).await;
+    let mut group = ShareGroup::join(config(&mock), "ack-fatal", "t")
+        .await
+        .unwrap();
+    let recs = group.poll().await.unwrap();
+    assert_eq!(recs.len(), 1);
+    let seen = Arc::new(Mutex::new(Vec::new()));
+    let seen_cb = seen.clone();
+    group.set_acknowledgement_commit_callback(move |_, exception| {
+        seen_cb
+            .lock()
+            .push(exception.as_ref().and_then(|error| error.code()));
+    });
+    mock.fail_share_ack_once("t", 0, error::FENCED_LEADER_EPOCH);
+    group.accept(&recs).await.unwrap();
+    let calls = mock.share_ack_calls();
+    let after_accept = mock.metadata_calls();
+    let results = group.commit_sync().await.unwrap();
+    assert_eq!(results.len(), 1);
+    assert_eq!(
+        results[0].1.as_ref().and_then(|error| error.code()),
+        Some(error::FENCED_LEADER_EPOCH),
+        "Java testFatalErrorsAcknowledgementResponse completes the map"
+    );
+    assert_eq!(
+        mock.share_ack_calls(),
+        calls + 1,
+        "fatal leadership ack errors must not retry"
+    );
+    assert_eq!(*seen.lock(), vec![Some(error::FENCED_LEADER_EPOCH)]);
+    let _ = group.list_topics().await.unwrap();
+    assert!(
+        mock.metadata_calls() > after_accept,
+        "Java treats those errors as fatal and requests Metadata"
+    );
+    let empty = group.commit_sync().await.unwrap();
+    assert!(
+        empty.is_empty(),
+        "completed fatal acks must not stay pending"
+    );
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn commit_restores_pending_after_broker_error() {
     let mock = common::Mock::start().await;
     produce(&mock, &[(0, b"held")]).await;

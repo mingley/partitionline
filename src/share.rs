@@ -1711,6 +1711,11 @@ impl ShareGroup {
     /// is completed for partitions that received a response.
     /// A prior [`Self::commit_async`] that has not been polled yet is
     /// flushed here (Java `testPendingCommitAsyncBeforeCommitSync`).
+    /// A ShareAcknowledge partition `NOT_LEADER_OR_FOLLOWER` /
+    /// `FENCED_LEADER_EPOCH` / `UNKNOWN_TOPIC_OR_PARTITION` is not
+    /// retried even when those codes are otherwise retriable; the map
+    /// completes and Metadata is requested (Java
+    /// `testFatalErrorsAcknowledgementResponse`).
     pub async fn commit_sync(&mut self) -> Result<AcknowledgementCommitResults> {
         if !self.has_pending_acknowledgements() {
             return Ok(Vec::new());
@@ -3834,6 +3839,12 @@ impl ShareGroup {
                                 .find(|(topic, p, _)| topic == &name && *p == part.partition)
                             {
                                 self.drop_acknowledged_acquisitions(&name, part.partition, batches);
+                            }
+                            // Java testFatalErrorsAcknowledgementResponse:
+                            // NOT_LEADER / FENCED / UNKNOWN_TOPIC_OR_PARTITION
+                            // complete without retry and request Metadata.
+                            if share_ack_ownership_lost(part.error_code) {
+                                self.invalidate_share_topic(&name);
                             }
                         }
                         let error = share_partition_broker_error(
