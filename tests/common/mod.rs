@@ -684,6 +684,7 @@ struct State {
     coord_node: i32,
     txn_coord_node: i32,
     group_coord_overrides: HashMap<String, i32>,
+    txn_coord_overrides: HashMap<String, i32>,
     find_coordinator_key_types: Vec<i8>,
     last_find_coordinator_version: Option<i16>,
     last_find_coordinator_key_count: usize,
@@ -1162,6 +1163,7 @@ fn new_state(
         coord_node: 1,
         txn_coord_node: 1,
         group_coord_overrides: HashMap::new(),
+        txn_coord_overrides: HashMap::new(),
         find_coordinator_key_types: Vec::new(),
         last_find_coordinator_version: None,
         last_find_coordinator_key_count: 0,
@@ -3752,6 +3754,14 @@ impl Mock {
             .insert(group.to_string(), node_id);
     }
 
+    /// Place one transactional id on a coordinator. Other ids keep [`Self::set_txn_coordinator`].
+    pub fn set_txn_id_coordinator(&self, transactional_id: &str, node_id: i32) {
+        self.state
+            .lock()
+            .txn_coord_overrides
+            .insert(transactional_id.to_string(), node_id);
+    }
+
     pub fn stale_txn_find_once(&self) {
         self.state.lock().stale_txn_finds = 1;
     }
@@ -6067,47 +6077,49 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 let mut st = state.lock();
                 st.last_describe_transactions_n = ids.len();
                 st.describe_transactions_calls = st.describe_transactions_calls.saturating_add(1);
-                if st.txn_coord_node != node_id {
-                    st.describe_transactions_not_coordinator =
-                        st.describe_transactions_not_coordinator.saturating_add(1);
-                    // 16 only. Do not disclose fixture txn state on the wrong node.
-                    let results: Vec<TransactionState> = ids
-                        .into_iter()
-                        .map(|transactional_id| TransactionState {
-                            error_code: error::NOT_COORDINATOR,
-                            transactional_id,
-                            transaction_state: String::new(),
-                            transaction_timeout_ms: 0,
-                            transaction_start_time_ms: 0,
-                            producer_id: 0,
-                            producer_epoch: 0,
-                            topics: Vec::new(),
-                        })
-                        .collect();
-                    encode_describe_transactions_response(&mut body, &results).unwrap();
-                } else {
-                    st.last_describe_transactions_node = Some(node_id);
-                    // Fixture transactional ids only.
-                    const TRANSACTIONAL_ID_NOT_FOUND: i16 = 152;
-                    let results: Vec<TransactionState> = ids
-                        .into_iter()
-                        .map(|transactional_id| {
-                            st.txn_fixtures.get(&transactional_id).cloned().unwrap_or(
-                                TransactionState {
-                                    error_code: TRANSACTIONAL_ID_NOT_FOUND,
-                                    transactional_id,
-                                    transaction_state: String::new(),
-                                    transaction_timeout_ms: 0,
-                                    transaction_start_time_ms: 0,
-                                    producer_id: 0,
-                                    producer_epoch: 0,
-                                    topics: Vec::new(),
-                                },
-                            )
-                        })
-                        .collect();
-                    encode_describe_transactions_response(&mut body, &results).unwrap();
-                }
+                const TRANSACTIONAL_ID_NOT_FOUND: i16 = 152;
+                let mut saw_foreign = false;
+                let results: Vec<TransactionState> = ids
+                    .into_iter()
+                    .map(|transactional_id| {
+                        let owner = st
+                            .txn_coord_overrides
+                            .get(&transactional_id)
+                            .copied()
+                            .unwrap_or(st.txn_coord_node);
+                        if owner != node_id {
+                            if !saw_foreign {
+                                st.describe_transactions_not_coordinator =
+                                    st.describe_transactions_not_coordinator.saturating_add(1);
+                                saw_foreign = true;
+                            }
+                            return TransactionState {
+                                error_code: error::NOT_COORDINATOR,
+                                transactional_id,
+                                transaction_state: String::new(),
+                                transaction_timeout_ms: 0,
+                                transaction_start_time_ms: 0,
+                                producer_id: 0,
+                                producer_epoch: 0,
+                                topics: Vec::new(),
+                            };
+                        }
+                        st.last_describe_transactions_node = Some(node_id);
+                        st.txn_fixtures.get(&transactional_id).cloned().unwrap_or(
+                            TransactionState {
+                                error_code: TRANSACTIONAL_ID_NOT_FOUND,
+                                transactional_id,
+                                transaction_state: String::new(),
+                                transaction_timeout_ms: 0,
+                                transaction_start_time_ms: 0,
+                                producer_id: 0,
+                                producer_epoch: 0,
+                                topics: Vec::new(),
+                            },
+                        )
+                    })
+                    .collect();
+                encode_describe_transactions_response(&mut body, &results).unwrap();
             }
             LIST_TRANSACTIONS => {
                 let version = header.api_version;
@@ -7596,7 +7608,10 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     .into_iter()
                     .map(|key| {
                         let coord = if key_type == COORDINATOR_TRANSACTION {
-                            txn_coord
+                            st.txn_coord_overrides
+                                .get(&key)
+                                .copied()
+                                .unwrap_or(txn_coord)
                         } else {
                             st.group_coord_overrides
                                 .get(&key)

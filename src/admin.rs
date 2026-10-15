@@ -7211,7 +7211,8 @@ impl Admin {
     /// coordinator and retry. This is not `NOT_CONTROLLER` (41).
     /// FindCoordinator v4+ CoordinatorKeys array of N (KIP-699): one
     /// FindCoordinator per retry for uncached transactional ids.
-    /// DescribeTransactions is one RPC per coordinator. Brokers that
+    /// DescribeTransactions is one RPC per coordinator, and those RPCs run
+    /// together. Brokers that
     /// only speak FindCoordinator v1–v3 get one FindCoordinator per
     /// uncached id. Empty input is a no-op. Optional at [`Self::new`]
     /// (Kafka 2.5+ / KIP-573); a broker that omits api 65 returns
@@ -7253,27 +7254,70 @@ impl Admin {
             let mut nodes: Vec<i32> = by_node.keys().copied().collect();
             nodes.sort_unstable();
             let mut still = Vec::new();
-            for node in nodes {
-                let idxs = by_node.get(&node).cloned().unwrap_or_default();
-                match self
-                    .describe_transactions_on_node(node, &ids, &idxs, version, deadline)
-                    .await
-                {
-                    Ok(done) => {
-                        for (i, t) in done {
-                            if error::coordinator_retriable(t.error_code) {
-                                self.invalidate_txn_coord_idxs(&ids, &[i], node);
-                                still.push(i);
-                            } else if let Some(slot) = out.get_mut(i) {
-                                *slot = Some(t);
+            if nodes.len() > 1 {
+                let mut finished = self
+                    .exchange_leaders(&nodes, deadline, |_admin, node, _conn, _timeout| {
+                        let idxs = by_node.get(&node).map(Vec::as_slice).unwrap_or(&[]);
+                        let subset: Vec<String> =
+                            idxs.iter().filter_map(|&i| ids.get(i).cloned()).collect();
+                        let mut payload = BytesMut::new();
+                        encode_describe_transactions_request(&mut payload, &subset)?;
+                        Ok(LeaderFrame {
+                            api_key: DESCRIBE_TRANSACTIONS,
+                            version,
+                            body: payload.freeze(),
+                        })
+                    })
+                    .await;
+                for node in &nodes {
+                    let idxs = by_node.get(node).cloned().unwrap_or_default();
+                    let Some((_spoken, body)) = finished.remove(node) else {
+                        self.invalidate_txn_coord_idxs(&ids, &idxs, *node);
+                        still.extend(idxs);
+                        continue;
+                    };
+                    match body {
+                        Err(error) if error.is_retriable() => {
+                            self.invalidate_txn_coord_idxs(&ids, &idxs, *node);
+                            still.extend(idxs);
+                        }
+                        Err(error) => return Err(error),
+                        Ok(body) => {
+                            let done = Self::apply_describe_transactions_body(&ids, &idxs, body)?;
+                            for (i, t) in done {
+                                if error::coordinator_retriable(t.error_code) {
+                                    self.invalidate_txn_coord_idxs(&ids, &[i], *node);
+                                    still.push(i);
+                                } else if let Some(slot) = out.get_mut(i) {
+                                    *slot = Some(t);
+                                }
                             }
                         }
                     }
-                    Err(e) if e.is_retriable() => {
-                        self.invalidate_txn_coord_idxs(&ids, &idxs, node);
-                        still.extend(idxs);
+                }
+            } else {
+                for node in nodes {
+                    let idxs = by_node.get(&node).cloned().unwrap_or_default();
+                    match self
+                        .describe_transactions_on_node(node, &ids, &idxs, version, deadline)
+                        .await
+                    {
+                        Ok(done) => {
+                            for (i, t) in done {
+                                if error::coordinator_retriable(t.error_code) {
+                                    self.invalidate_txn_coord_idxs(&ids, &[i], node);
+                                    still.push(i);
+                                } else if let Some(slot) = out.get_mut(i) {
+                                    *slot = Some(t);
+                                }
+                            }
+                        }
+                        Err(e) if e.is_retriable() => {
+                            self.invalidate_txn_coord_idxs(&ids, &idxs, node);
+                            still.extend(idxs);
+                        }
+                        Err(e) => return Err(e),
                     }
-                    Err(e) => return Err(e),
                 }
             }
             pending = still;
@@ -13904,6 +13948,14 @@ impl Admin {
             )
             .await
         }?;
+        Self::apply_describe_transactions_body(ids, idxs, body)
+    }
+
+    fn apply_describe_transactions_body(
+        ids: &[String],
+        idxs: &[usize],
+        body: Bytes,
+    ) -> Result<Vec<(usize, TransactionState)>> {
         let (results, ..) = decode_describe_transactions_response(&mut body.clone())?;
         let mut by_id: HashMap<String, VecDeque<TransactionState>> = HashMap::new();
         for t in results {
