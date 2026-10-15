@@ -55,7 +55,11 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 - `ShareGroup::set_acknowledgement_commit_callback` is Java
   `ShareConsumer.setAcknowledgementCommitCallback`
-  (`AcknowledgementCommitCallback.onComplete`).
+  (`AcknowledgementCommitCallback.onComplete`). `commit_async` /
+  ShareAcknowledge completion invokes the callback once per
+  topic-partition (Java
+  `testAcknowledgementCommitCallbackMultiplePartitionCommitAsync`);
+  mixed per-partition outcomes keep that partition's exception.
 
 - `examples/share.rs` accepts a comma-separated `KAFKA_TOPIC` list via
   `ShareGroup::join_topics`. `tests/share_live.rs` is the live Kafka 4.1+

@@ -383,7 +383,8 @@ and flushes without waiting for the next poll.
 `ShareGroup::group_metadata` is Java `groupMetadata()`
 (`generationId` is the share member epoch).
 `ShareGroup::set_acknowledgement_commit_callback` is Java
-`setAcknowledgementCommitCallback`. Live smoke:
+`setAcknowledgementCommitCallback` (one invocation per topic-partition
+on `commit_async` flush). Live smoke:
 `tests/share_live.rs` (`RUN_LIVE=1` on a 4.1+ broker) covers join-then-produce,
 `group_metadata`, `join_topics`, `join_matching`, live `release`/`reject`,
 implicit `commit` / `commit_sync`, and two members acquiring distinct offsets on one

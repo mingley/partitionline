@@ -2118,7 +2118,8 @@
 //! [`ShareGroup::group_metadata`] is Java `ShareConsumer.groupMetadata()`
 //! ([`ConsumerGroupMetadata`]; `generationId` is the share member epoch).
 //! [`ShareGroup::set_acknowledgement_commit_callback`] is Java
-//! `ShareConsumer.setAcknowledgementCommitCallback` (closures).
+//! `ShareConsumer.setAcknowledgementCommitCallback` (closures;
+//! one invocation per topic-partition on `commit_async` flush).
 //! [`ShareGroup::set_acknowledgement_commit_handler`] takes a named
 //! [`AcknowledgementCommitCallback`]; [`AcknowledgementCommitError`] is
 //! the owned `Exception` argument.

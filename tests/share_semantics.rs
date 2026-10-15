@@ -1573,6 +1573,78 @@ async fn acknowledgement_commit_callback_fires_on_accept() {
 }
 
 #[tokio::test]
+async fn acknowledgement_commit_callback_fires_per_partition_on_commit_async() {
+    let mock = common::Mock::start().await;
+    v2(&mock);
+    mock.set_topic_partitions("t", 2);
+    produce(&mock, &[(0, b"p0"), (1, b"p1")]).await;
+    let mut group = ShareGroup::join(config(&mock), "cb-multi", "t")
+        .await
+        .unwrap();
+    let recs = group.poll().await.unwrap();
+    assert_eq!(recs.len(), 2);
+    let seen = Arc::new(Mutex::new(Vec::new()));
+    let seen_cb = seen.clone();
+    group.set_acknowledgement_commit_callback(move |offsets, exception| {
+        seen_cb.lock().push((
+            offsets
+                .iter()
+                .map(|(tp, offs)| {
+                    (
+                        tp.topic().to_string(),
+                        tp.partition(),
+                        offs.iter().map(|o| o.offset).collect::<Vec<_>>(),
+                    )
+                })
+                .collect::<Vec<_>>(),
+            exception.is_some(),
+        ));
+    });
+    group.accept(&recs).await.unwrap();
+    assert!(
+        seen.lock().is_empty(),
+        "local accept must not fire the callback until commit or poll"
+    );
+    group.commit_async();
+    assert!(
+        seen.lock().is_empty(),
+        "commit_async stays local until commit_sync / poll"
+    );
+    let results = group.commit_sync().await.unwrap();
+    assert_eq!(results.len(), 2);
+    assert!(
+        results.iter().all(|(_, error)| error.is_none()),
+        "both partitions must succeed, got {results:?}"
+    );
+    assert_eq!(
+        mock.share_fetch_calls(),
+        1,
+        "Java testPendingCommitAsyncBeforeCommitSync sends without ShareFetch"
+    );
+    let got = seen.lock();
+    assert_eq!(
+        got.len(),
+        2,
+        "Java testAcknowledgementCommitCallbackMultiplePartitionCommitAsync invokes once per partition, got {got:?}"
+    );
+    assert!(
+        got.iter().all(|(_, failed)| !*failed),
+        "successful partitions must pass a null exception, got {got:?}"
+    );
+    assert!(
+        got.iter().all(|(offsets, _)| offsets.len() == 1),
+        "each invocation is one topic-partition, got {got:?}"
+    );
+    let partitions: Vec<i32> = got.iter().map(|(offsets, _)| offsets[0].1).collect();
+    assert!(
+        partitions.contains(&0) && partitions.contains(&1),
+        "callback must cover both partitions, got {got:?}"
+    );
+    drop(got);
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn acknowledgement_commit_callback_skips_before_poll() {
     let mock = common::Mock::start().await;
     let mut group = ShareGroup::join(config(&mock), "cb-pre", "t")

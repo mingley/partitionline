@@ -154,10 +154,13 @@ impl fmt::Display for AcknowledgementCommitError {
 ///
 /// `onComplete(Map<TopicIdPartition, Set<OffsetAndMetadata>>, Exception)`.
 /// Closures that match [`Self::on_complete`] implement this trait.
+/// Each invocation is one topic-partition (Java `COMMIT_ASYNC`
+/// `ResultHandler.complete`).
 pub trait AcknowledgementCommitCallback: Send {
     /// Java `AcknowledgementCommitCallback.onComplete`.
     ///
-    /// `exception` is `None` when the ShareAcknowledge RPC succeeded.
+    /// `exception` is `None` when that partition's ShareAcknowledge
+    /// succeeded.
     fn on_complete(
         &mut self,
         offsets: Vec<(crate::TopicIdPartition, Vec<crate::OffsetAndMetadata>)>,
@@ -1040,10 +1043,14 @@ impl ShareGroup {
     /// Java `ShareConsumer.setAcknowledgementCommitCallback`.
     ///
     /// Invoked after a ShareAcknowledge RPC completes (success or error).
-    /// Client-side rejects before a request is sent (`Acknowledge called
-    /// before poll.`, empty input) do not invoke the callback. Pass a new
-    /// callback to replace; use [`Self::clear_acknowledgement_commit_callback`]
-    /// for Java `null`.
+    /// Each call covers one topic-partition (Java
+    /// `testAcknowledgementCommitCallbackMultiplePartitionCommitAsync`
+    /// / `ResultHandler.complete` for `COMMIT_ASYNC`). Mixed per-partition
+    /// outcomes use that partition's exception, not the first error for
+    /// every offset. Client-side rejects before a request is sent
+    /// (`Acknowledge called before poll.`, empty input) do not invoke
+    /// the callback. Pass a new callback to replace; use
+    /// [`Self::clear_acknowledgement_commit_callback`] for Java `null`.
     pub fn set_acknowledgement_commit_callback<F>(&mut self, callback: F)
     where
         F: FnMut(
@@ -1765,8 +1772,10 @@ impl ShareGroup {
     /// acknowledgements (Java `testAcknowledgeOnCloseWithPendingCommitAsync`).
     /// Implicit last-poll records that were never committed are released
     /// without ACCEPT on leave. Same callback as
-    /// [`Self::set_acknowledgement_commit_callback`]. Does not spawn a
-    /// task.
+    /// [`Self::set_acknowledgement_commit_callback`], invoked once per
+    /// topic-partition when the snapshot is flushed (Java
+    /// `testAcknowledgementCommitCallbackMultiplePartitionCommitAsync`).
+    /// Does not spawn a task.
     pub fn commit_async(&mut self) {
         self.snapshot_implicit_acknowledgements();
         self.async_commit = true;
@@ -3114,25 +3123,6 @@ impl ShareGroup {
             .unwrap_or_default()
     }
 
-    fn acknowledgement_commit_offsets(
-        &self,
-        recs: &[ShareRecord],
-    ) -> Vec<(crate::TopicIdPartition, Vec<crate::OffsetAndMetadata>)> {
-        let mut grouped: BTreeMap<(String, i32), Vec<crate::OffsetAndMetadata>> = BTreeMap::new();
-        for rec in recs {
-            grouped
-                .entry((rec.topic.clone(), rec.partition))
-                .or_default()
-                .push(crate::OffsetAndMetadata::new(rec.offset));
-        }
-        grouped
-            .into_iter()
-            .map(|((topic, partition), offsets)| {
-                (self.topic_id_partition(topic, partition), offsets)
-            })
-            .collect()
-    }
-
     fn topic_id_partition(
         &self,
         topic: impl Into<String>,
@@ -3179,13 +3169,51 @@ impl ShareGroup {
         recs: &[ShareRecord],
         exception: Option<&Error>,
     ) {
-        if self.ack_commit_callback.is_none() {
+        self.fire_acknowledgement_commit_outcomes(recs, &BTreeMap::new(), exception);
+    }
+
+    /// Java `ResultHandler.complete` for `COMMIT_ASYNC`: one
+    /// `ShareAcknowledgementEvent` per topic-partition. Per-partition
+    /// outcomes keep that partition's exception (a sibling success is
+    /// not rewritten as the first error).
+    fn fire_acknowledgement_commit_outcomes(
+        &mut self,
+        recs: &[ShareRecord],
+        outcomes: &BTreeMap<(String, i32), Option<Error>>,
+        fallback: Option<&Error>,
+    ) {
+        if self.ack_commit_callback.is_none() || recs.is_empty() {
             return;
         }
-        let offsets = self.acknowledgement_commit_offsets(recs);
-        let exception = exception.map(AcknowledgementCommitError::from_error);
+        let mut grouped: BTreeMap<(String, i32), Vec<i64>> = BTreeMap::new();
+        for rec in recs {
+            grouped
+                .entry((rec.topic.clone(), rec.partition))
+                .or_default()
+                .push(rec.offset);
+        }
+        let payloads: Vec<_> = grouped
+            .into_iter()
+            .map(|((topic, partition), offsets)| {
+                let exception = match outcomes.get(&(topic.clone(), partition)) {
+                    Some(None) => None,
+                    Some(Some(error)) => Some(AcknowledgementCommitError::from_error(error)),
+                    None => fallback.map(AcknowledgementCommitError::from_error),
+                };
+                let offsets = offsets
+                    .into_iter()
+                    .map(crate::OffsetAndMetadata::new)
+                    .collect();
+                (
+                    vec![(self.topic_id_partition(topic, partition), offsets)],
+                    exception,
+                )
+            })
+            .collect();
         if let Some(callback) = self.ack_commit_callback.as_mut() {
-            callback(offsets, exception);
+            for (offsets, exception) in payloads {
+                callback(offsets, exception);
+            }
         }
     }
 
@@ -3582,33 +3610,37 @@ impl ShareGroup {
             .await;
             match outcome.unwrap_or(Err(Error::Timeout)) {
                 Ok(()) => {
-                    self.fire_acknowledgement_commit_callback(&records, None);
                     for rec in &records {
                         let _ = outcomes
                             .entry((rec.topic.clone(), rec.partition))
                             .or_insert(None);
                     }
+                    self.fire_acknowledgement_commit_outcomes(&records, &outcomes, None);
                     return Ok(outcomes);
                 }
                 Err(error) if share_ack_retriable(&error) && !partitions.is_empty() => {
                     if Instant::now() >= deadline {
-                        self.fire_acknowledgement_commit_callback(&records, Some(&Error::Timeout));
+                        self.fire_acknowledgement_commit_outcomes(
+                            &records,
+                            &outcomes,
+                            Some(&Error::Timeout),
+                        );
                         return Err(Error::Timeout);
                     }
                     self.consumer.sleep_retry_backoff(attempt, deadline).await?;
                     attempt = attempt.saturating_add(1);
                 }
                 Err(error) if ack_outcome_is_fatal(&error) => {
-                    self.fire_acknowledgement_commit_callback(&records, Some(&error));
+                    self.fire_acknowledgement_commit_outcomes(&records, &outcomes, Some(&error));
                     return Err(error);
                 }
                 Err(error) => {
-                    self.fire_acknowledgement_commit_callback(&records, Some(&error));
                     for rec in &records {
                         let _ = outcomes
                             .entry((rec.topic.clone(), rec.partition))
                             .or_insert_with(|| Some(error.clone()));
                     }
+                    self.fire_acknowledgement_commit_outcomes(&records, &outcomes, Some(&error));
                     return Ok(outcomes);
                 }
             }
