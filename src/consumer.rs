@@ -2951,13 +2951,6 @@ impl Consumer {
         self.refresh_metadata_timeout(Some(&topics), timeout).await
     }
 
-    pub(crate) async fn refresh_topics(&mut self, topics: &[String]) -> Result<()> {
-        if topics.is_empty() {
-            return Ok(());
-        }
-        self.refresh_metadata(Some(topics)).await
-    }
-
     pub(crate) fn topic_id_names(&self) -> HashMap<[u8; 16], String> {
         self.topic_identities().1
     }

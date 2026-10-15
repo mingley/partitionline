@@ -860,12 +860,12 @@ impl ShareGroup {
             inflight_share_nodes: HashMap::new(),
         };
         if g.topic_match.is_some() {
-            g.topics = g.matching_topic_names().await?;
+            g.topics = g.matching_topic_names_within(discovery_deadline).await?;
             g.last_match_refresh = Instant::now();
             g.publish_hb_topics();
         }
 
-        g.heartbeat_join().await?;
+        g.heartbeat_join_within(discovery_deadline).await?;
 
         g.spawn_heartbeat(hb_rx);
         Ok(g)
@@ -1023,13 +1023,22 @@ impl ShareGroup {
     }
 
     async fn heartbeat_join(&mut self) -> Result<()> {
-        let timeout = self.cfg.request_timeout;
-        let deadline = Instant::now() + timeout;
-        self.consumer.refresh_topics(&self.topics).await?;
+        let deadline = Instant::now()
+            .checked_add(self.cfg.request_timeout)
+            .ok_or(Error::Timeout)?;
+        self.heartbeat_join_within(deadline).await
+    }
+
+    async fn heartbeat_join_within(&mut self, deadline: Instant) -> Result<()> {
+        self.refresh_share_topics_within(deadline).await?;
         let version = spoken_share_group_heartbeat(self.coord.share_group_heartbeat_version)?;
 
         let mut first = true;
         loop {
+            let timeout = deadline.saturating_duration_since(Instant::now());
+            if timeout.is_zero() {
+                return if first { Err(Error::Timeout) } else { Ok(()) };
+            }
             let req = ShareGroupHeartbeatRequest {
                 group_id: self.group_id.clone(),
                 member_id: self.member_id.clone(),
@@ -1083,17 +1092,32 @@ impl ShareGroup {
             if !self.assigned.is_empty() {
                 return Ok(());
             }
-            if Instant::now() >= deadline {
-                // Join succeeded; poll waits for assignment (Java ShareConsumer).
+            // Join succeeded; poll waits for assignment (Java ShareConsumer).
+            let nap =
+                Duration::from_millis(50).min(deadline.saturating_duration_since(Instant::now()));
+            if nap.is_zero() {
                 return Ok(());
             }
             first = false;
-            tokio::time::sleep(Duration::from_millis(50)).await;
-            if Instant::now() >= deadline {
+            tokio::time::sleep(nap).await;
+            if deadline.saturating_duration_since(Instant::now()).is_zero() {
                 return Ok(());
             }
-            self.consumer.refresh_topics(&self.topics).await?;
+            self.refresh_share_topics_within(deadline).await?;
         }
+    }
+
+    async fn refresh_share_topics_within(&mut self, deadline: Instant) -> Result<()> {
+        if self.topics.is_empty() {
+            return Ok(());
+        }
+        let timeout = deadline.saturating_duration_since(Instant::now());
+        if timeout.is_zero() {
+            return Err(Error::Timeout);
+        }
+        self.consumer
+            .refresh_metadata_timeout(Some(&self.topics), timeout)
+            .await
     }
 
     fn apply_share_assignment(&mut self, assignment: Option<&[ShareTopicPartitions]>) {
@@ -1162,9 +1186,9 @@ impl ShareGroup {
         if !self.assigned.is_empty() {
             return Ok(());
         }
-        let timeout = self.cfg.request_timeout;
         while self.assigned.is_empty() {
-            if Instant::now() >= deadline {
+            let timeout = deadline.saturating_duration_since(Instant::now());
+            if timeout.is_zero() {
                 return Err(Error::Timeout);
             }
             let hb = self.hb_err.load(Ordering::SeqCst);
@@ -1175,7 +1199,11 @@ impl ShareGroup {
             if !self.assigned.is_empty() {
                 return Ok(());
             }
-            self.consumer.refresh_topics(&self.topics).await?;
+            self.refresh_share_topics_within(deadline).await?;
+            let timeout = deadline.saturating_duration_since(Instant::now());
+            if timeout.is_zero() {
+                return Err(Error::Timeout);
+            }
             let req = ShareGroupHeartbeatRequest {
                 group_id: self.group_id.clone(),
                 member_id: self.member_id.clone(),
@@ -1221,7 +1249,12 @@ impl ShareGroup {
             if !self.assigned.is_empty() {
                 return Ok(());
             }
-            tokio::time::sleep(Duration::from_millis(50)).await;
+            let nap =
+                Duration::from_millis(50).min(deadline.saturating_duration_since(Instant::now()));
+            if nap.is_zero() {
+                return Err(Error::Timeout);
+            }
+            tokio::time::sleep(nap).await;
         }
         Ok(())
     }
@@ -1262,13 +1295,10 @@ impl ShareGroup {
             return Err(Error::broker(hb, "ShareGroupHeartbeat"));
         }
         let started = Instant::now();
-        let deadline = started + self.cfg.request_timeout;
-        tokio::time::timeout_at(
-            tokio::time::Instant::from_std(deadline),
-            self.ensure_assignment(deadline),
-        )
-        .await
-        .map_err(|_| Error::Timeout)??;
+        let deadline = started
+            .checked_add(self.cfg.request_timeout)
+            .ok_or(Error::Timeout)?;
+        self.ensure_assignment(deadline).await?;
         let mut attempt = 0u32;
         loop {
             let recs = match self.poll_leaders(deadline).await {
@@ -2167,13 +2197,23 @@ impl ShareGroup {
         &mut self,
         matches: impl Fn(&str) -> bool + Send + Sync + 'static,
     ) -> Result<()> {
+        let deadline = Instant::now()
+            .checked_add(self.cfg.request_timeout)
+            .ok_or(Error::Timeout)?;
         self.topic_match = Some(Arc::new(matches));
-        let topics = self.matching_topic_names().await?;
+        let topics = self.matching_topic_names_within(deadline).await?;
         self.last_match_refresh = Instant::now();
-        self.apply_topics(topics).await
+        self.apply_topics_within(topics, deadline).await
     }
 
     async fn apply_topics(&mut self, topics: Vec<String>) -> Result<()> {
+        let deadline = Instant::now()
+            .checked_add(self.cfg.request_timeout)
+            .ok_or(Error::Timeout)?;
+        self.apply_topics_within(topics, deadline).await
+    }
+
+    async fn apply_topics_within(&mut self, topics: Vec<String>, deadline: Instant) -> Result<()> {
         if self.consumer.take_wakeup() {
             return Err(Error::Wakeup);
         }
@@ -2182,7 +2222,6 @@ impl ShareGroup {
         }
         let rejoining = !self.member_id.is_empty();
         if rejoining {
-            let deadline = Instant::now() + self.cfg.request_timeout;
             self.close_share_session(deadline).await?;
             self.assigned.clear();
             self.topic_ids.clear();
@@ -2191,23 +2230,27 @@ impl ShareGroup {
         self.topics = topics;
         self.publish_hb_topics();
         if rejoining {
-            self.heartbeat_join().await?;
+            self.heartbeat_join_within(deadline).await?;
             return Ok(());
         }
         self.member_id = Uuid::random_uuid().to_string();
         *self.hb_member_id.lock() = self.member_id.clone();
         let (hb_stop, hb_rx) = watch::channel(false);
         self.hb_stop = hb_stop;
-        self.heartbeat_join().await?;
+        self.heartbeat_join_within(deadline).await?;
         self.spawn_heartbeat(hb_rx);
         Ok(())
     }
 
-    async fn matching_topic_names(&mut self) -> Result<Vec<String>> {
+    async fn matching_topic_names_within(&mut self, deadline: Instant) -> Result<Vec<String>> {
         let Some(pred) = self.topic_match.clone() else {
             return Ok(self.topics.clone());
         };
-        let infos = self.consumer.list_topics().await?;
+        let timeout = deadline.saturating_duration_since(Instant::now());
+        if timeout.is_zero() {
+            return Err(Error::Timeout);
+        }
+        let infos = self.consumer.list_topics_timeout(timeout).await?;
         Ok(filter_matching_topics(
             infos.iter().map(|i| i.topic.as_str()),
             |n| pred(n),
@@ -2222,9 +2265,12 @@ impl ShareGroup {
         if !age.is_zero() && self.last_match_refresh.elapsed() < age {
             return Ok(());
         }
-        let topics = self.matching_topic_names().await?;
+        let deadline = Instant::now()
+            .checked_add(self.cfg.request_timeout)
+            .ok_or(Error::Timeout)?;
+        let topics = self.matching_topic_names_within(deadline).await?;
         self.last_match_refresh = Instant::now();
-        self.apply_topics(topics).await
+        self.apply_topics_within(topics, deadline).await
     }
 
     fn name_for_topic_id(&self, id: [u8; 16]) -> Result<String> {
