@@ -1487,7 +1487,8 @@ impl Log {
             if used.checked_add(cost).is_none_or(|n| n > bytes) {
                 break;
             }
-            out.try_reserve_exact(1).map_err(|_| Error::Allocation)?;
+            // Geometric growth: a catch-up fetch copies one record at a time.
+            out.try_reserve(1).map_err(|_| Error::Allocation)?;
             let mut payload = reserve(record.payload.len())?;
             payload.extend_from_slice(&record.payload);
             out.push(Record {
