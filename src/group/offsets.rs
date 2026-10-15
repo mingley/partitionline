@@ -295,42 +295,38 @@ pub(super) async fn coord_offsets_legacy(
         .checked_add(timeout)
         .ok_or(Error::Timeout)?;
     let deadline = Deadline::from_std(target);
-    deadline
-        .run(async {
-            if coord.idle_expired(cfg.connections_max_idle) {
+    {
+        if coord.idle_expired(cfg.connections_max_idle) {
+            let bounded = bounded_consumer_config(cfg, deadline)?;
+            *coord = super::open_coord_supporting(&bounded, coord.addr(), api, version).await?;
+        }
+        let body = match coord
+            .roundtrip_deadline(api, version, |buf| encode(buf), deadline)
+            .await
+        {
+            Ok(body) => body,
+            Err(Error::Io(_) | Error::Timeout) => {
                 let bounded = bounded_consumer_config(cfg, deadline)?;
                 *coord = super::open_coord_supporting(&bounded, coord.addr(), api, version).await?;
-            }
-            let body = match coord
-                .roundtrip_deadline(api, version, |buf| encode(buf), deadline)
-                .await
-            {
-                Ok(body) => body,
-                Err(Error::Io(_) | Error::Timeout) => {
-                    let bounded = bounded_consumer_config(cfg, deadline)?;
-                    *coord =
-                        super::open_coord_supporting(&bounded, coord.addr(), api, version).await?;
-                    coord
-                        .roundtrip_deadline(api, version, |buf| encode(buf), deadline)
-                        .await?
-                }
-                Err(err) => return Err(err),
-            };
-            if super::coordinator_error(api, version, &body)
-                .is_some_and(crate::error::coordinator_retriable)
-            {
-                let bounded = bounded_consumer_config(cfg, deadline)?;
-                *coord =
-                    super::discover_coord_supporting(&bounded, group_id, key_type, api, version)
-                        .await?;
                 coord
                     .roundtrip_deadline(api, version, |buf| encode(buf), deadline)
-                    .await
-            } else {
-                Ok(body)
+                    .await?
             }
-        })
-        .await
+            Err(err) => return Err(err),
+        };
+        if super::coordinator_error(api, version, &body)
+            .is_some_and(crate::error::coordinator_retriable)
+        {
+            let bounded = bounded_consumer_config(cfg, deadline)?;
+            *coord = super::discover_coord_supporting(&bounded, group_id, key_type, api, version)
+                .await?;
+            coord
+                .roundtrip_deadline(api, version, |buf| encode(buf), deadline)
+                .await
+        } else {
+            Ok(body)
+        }
+    }
 }
 
 fn bounded_consumer_config(

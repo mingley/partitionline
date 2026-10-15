@@ -659,15 +659,8 @@ impl ConsumerGroup {
         let started = Instant::now()
             .checked_add(cfg.request_timeout)
             .ok_or(Error::Timeout)?;
-        let deadline = crate::net::Deadline::from_std(started);
-        let (consumer, coord) = deadline
-            .run(async {
-                let consumer = Consumer::connect_within(cfg.clone(), started).await?;
-                let coord =
-                    discover_coord_within(&cfg, &group_id, COORDINATOR_GROUP, started).await?;
-                Ok((consumer, coord))
-            })
-            .await?;
+        let consumer = Consumer::connect_within(cfg.clone(), started).await?;
+        let coord = discover_coord_within(&cfg, &group_id, COORDINATOR_GROUP, started).await?;
 
         let hb_err = Arc::new(AtomicI16::new(0));
         let hb_generation = Arc::new(AtomicI32::new(0));
@@ -821,15 +814,8 @@ impl ConsumerGroup {
         let started = Instant::now()
             .checked_add(cfg.request_timeout)
             .ok_or(Error::Timeout)?;
-        let deadline = crate::net::Deadline::from_std(started);
-        let (consumer, coord) = deadline
-            .run(async {
-                let consumer = Consumer::connect_within(cfg.clone(), started).await?;
-                let coord =
-                    discover_coord_within(&cfg, &group_id, COORDINATOR_GROUP, started).await?;
-                Ok((consumer, coord))
-            })
-            .await?;
+        let consumer = Consumer::connect_within(cfg.clone(), started).await?;
+        let coord = discover_coord_within(&cfg, &group_id, COORDINATOR_GROUP, started).await?;
         let hb_err = Arc::new(AtomicI16::new(0));
         let hb_generation = Arc::new(AtomicI32::new(
             ConsumerGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH,
