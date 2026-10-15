@@ -695,7 +695,12 @@ pub enum ShareAcquireMode {
 /// `testShareFetchInvalidResponse`). A partition-level ShareFetch
 /// error does not discard sibling partitions in the same response
 /// (Java `testMultipleTopicsFetch` / `testMultipleTopicsFetchError` /
-/// `ShareFetchCollector.collect`).
+/// `ShareFetchCollector.collect`). Partition `NOT_LEADER_OR_FOLLOWER`
+/// / `FENCED_LEADER_EPOCH` with a usable CurrentLeader (`leaderId != -1`
+/// && `leaderEpoch != -1`) plus NodeEndpoints updates the next ShareFetch
+/// target without a Metadata refresh (Java `handleShareFetchSuccess` /
+/// KIP-951). `UNKNOWN_LEADER_EPOCH` / `UNKNOWN_SERVER_ERROR` skip without
+/// requesting metadata (Java `handleInitializeErrors`).
 /// [`Self::accept`] / [`Self::release`] / [`Self::reject`] are Java
 /// `acknowledge` (local until the next poll, commit, or leave).
 /// Explicit mode requires those acknowledgements before the next
@@ -721,6 +726,9 @@ pub struct ShareGroup {
     session_partitions: HashMap<i32, HashSet<([u8; 16], i32)>>,
     share_conns: HashMap<i32, ShareNodeConnection>,
     share_addresses: HashMap<i32, String>,
+    /// KIP-951 CurrentLeader overrides from ShareFetch (Java
+    /// `handleShareFetchSuccess`). Preferred over cached Metadata.
+    share_leader_overrides: HashMap<(String, i32), i32>,
     acquisitions: HashMap<AcquisitionKey, Acquisition>,
     /// Java `ShareFetchBuffer`: successful partitions and collectable
     /// partition errors, in ShareFetch response order.
@@ -929,6 +937,7 @@ impl ShareGroup {
             session_partitions: HashMap::new(),
             share_conns: HashMap::new(),
             share_addresses: HashMap::new(),
+            share_leader_overrides: HashMap::new(),
             acquisitions: HashMap::new(),
             pending_completed: VecDeque::new(),
             acquire_mode: ShareAcquireMode::BatchOptimized,
@@ -1881,9 +1890,56 @@ impl ShareGroup {
     async fn refresh_assigned_metadata(&mut self) -> Result<()> {
         let topics = self.topics.clone();
         for t in &topics {
-            self.consumer.invalidate_topic(t);
+            self.invalidate_share_topic(t);
         }
         self.consumer.refresh_topics(&topics).await
+    }
+
+    fn invalidate_share_topic(&mut self, topic: &str) {
+        self.share_leader_overrides
+            .retain(|(name, _), _| name != topic);
+        self.consumer.invalidate_topic(topic);
+    }
+
+    fn remember_share_endpoints(&mut self, endpoints: &[crate::protocol::api::NodeEndpoint]) {
+        for endpoint in endpoints {
+            if endpoint.node_id < 0 || endpoint.host.is_empty() || endpoint.port <= 0 {
+                continue;
+            }
+            let _ = self.share_addresses.insert(
+                endpoint.node_id,
+                format!("{}:{}", endpoint.host, endpoint.port),
+            );
+        }
+    }
+
+    /// Java `handleShareFetchSuccess`: apply CurrentLeader when the
+    /// partition error is `NOT_LEADER_OR_FOLLOWER` / `FENCED_LEADER_EPOCH`
+    /// and `leaderId != -1 && leaderEpoch != -1`.
+    fn apply_share_current_leader(
+        &mut self,
+        topic: &str,
+        partition: i32,
+        leader_id: i32,
+        leader_epoch: i32,
+    ) -> bool {
+        if leader_id == -1 || leader_epoch == -1 {
+            return false;
+        }
+        let _ = self
+            .share_leader_overrides
+            .insert((topic.to_string(), partition), leader_id);
+        true
+    }
+
+    fn share_leader_node(&self, topic: &str, partition: i32) -> Result<i32> {
+        if let Some(node) = self
+            .share_leader_overrides
+            .get(&(topic.to_string(), partition))
+        {
+            return Ok(*node);
+        }
+        Ok(self.consumer.leader_of(topic, partition)?.0)
     }
 
     async fn leaders_of(
@@ -1904,7 +1960,7 @@ impl ShareGroup {
         }
         let mut by_leader: HashMap<i32, Vec<(String, i32)>> = HashMap::new();
         for (topic, p) in tps {
-            let (node, _) = self.consumer.leader_of(topic, *p)?;
+            let node = self.share_leader_node(topic, *p)?;
             by_leader.entry(node).or_default().push((topic.clone(), *p));
         }
         Ok(by_leader)
@@ -1922,7 +1978,7 @@ impl ShareGroup {
         let present: HashSet<i32> = nodes.iter().map(|(node, _)| *node).collect();
         let assigned = self.assigned.clone();
         for (topic, part) in assigned {
-            let Ok((node, _)) = self.consumer.leader_of(&topic, part) else {
+            let Ok(node) = self.share_leader_node(&topic, part) else {
                 continue;
             };
             if !present.contains(&node) {
@@ -2215,7 +2271,7 @@ impl ShareGroup {
                 }
             };
             let mut body = body;
-            let ((fetched, _, _, _, lock_timeout, error_code), decoded_bytes) =
+            let ((fetched, endpoints, _, _, lock_timeout, error_code), decoded_bytes) =
                 match decode_share_fetch_response_with_budget(&mut body, version, remaining_bytes) {
                     Ok(reply) => reply,
                     Err(error) => {
@@ -2223,6 +2279,7 @@ impl ShareGroup {
                         return Err(error);
                     }
                 };
+            self.remember_share_endpoints(&endpoints);
             if !body.is_empty() {
                 self.reset_node_session(node);
                 return Err(Error::protocol("trailing ShareFetch response bytes"));
@@ -2246,7 +2303,7 @@ impl ShareGroup {
                     let mut seen = HashSet::new();
                     for (topic, _) in &failed {
                         if seen.insert(topic.clone()) {
-                            self.consumer.invalidate_topic(topic);
+                            self.invalidate_share_topic(topic);
                         }
                     }
                 }
@@ -2303,10 +2360,22 @@ impl ShareGroup {
                     }
                     let _ = seen_ack_tps.insert((name.clone(), part.partition));
                     if part.error_code != 0 {
-                        if share_ack_ownership_lost(part.error_code)
-                            || share_fetch_partition_skipped(part.error_code)
+                        let applied_leader = share_fetch_current_leader_usable(part.error_code)
+                            && self.apply_share_current_leader(
+                                &name,
+                                part.partition,
+                                part.current_leader_id,
+                                part.current_leader_epoch,
+                            );
+                        // Java handleInitializeErrors: skip-with-metadata
+                        // codes request UpdateMetadata. A usable KIP-951
+                        // CurrentLeader is applied instead (Java
+                        // handleShareFetchSuccess). UNKNOWN_LEADER_EPOCH
+                        // / UNKNOWN_SERVER_ERROR skip with no metadata.
+                        if share_fetch_partition_metadata_refresh(part.error_code)
+                            && !applied_leader
                         {
-                            self.consumer.invalidate_topic(&name);
+                            self.invalidate_share_topic(&name);
                         }
                         let error = Error::broker(
                             part.error_code,
@@ -2495,6 +2564,7 @@ impl ShareGroup {
             self.share_epochs.clear();
             self.session_partitions.clear();
             self.share_conns.clear();
+            self.share_leader_overrides.clear();
             self.acquisitions.clear();
             self.pending_completed.clear();
             self.last_poll_unacked.clear();
@@ -3487,6 +3557,7 @@ impl ShareGroup {
         self.share_epochs.clear();
         self.session_partitions.clear();
         self.share_conns.clear();
+        self.share_leader_overrides.clear();
         self.acquisitions.clear();
         self.pending_completed.clear();
         self.pending_acknowledgements.clear();
@@ -3883,6 +3954,16 @@ fn share_ack_ownership_lost(code: i16) -> bool {
 /// Java `ShareFetchCollector.handleInitializeErrors` codes that request
 /// a metadata update (or are logged) and do not throw from `collect`.
 fn share_fetch_partition_skipped(code: i16) -> bool {
+    share_fetch_partition_metadata_refresh(code)
+        || matches!(
+            code,
+            error::UNKNOWN_LEADER_EPOCH | error::UNKNOWN_SERVER_ERROR
+        )
+}
+
+/// Java `handleInitializeErrors` codes that call `metadata.requestUpdate`.
+/// `UNKNOWN_LEADER_EPOCH` / `UNKNOWN_SERVER_ERROR` skip with no update.
+fn share_fetch_partition_metadata_refresh(code: i16) -> bool {
     matches!(
         code,
         error::NOT_LEADER_OR_FOLLOWER
@@ -3893,8 +3974,14 @@ fn share_fetch_partition_skipped(code: i16) -> bool {
             | error::UNKNOWN_TOPIC_OR_PARTITION
             | error::UNKNOWN_TOPIC_ID
             | error::INCONSISTENT_TOPIC_ID
-            | error::UNKNOWN_LEADER_EPOCH
-            | error::UNKNOWN_SERVER_ERROR
+    )
+}
+
+/// Java `handleShareFetchSuccess` applies CurrentLeader only for these.
+fn share_fetch_current_leader_usable(code: i16) -> bool {
+    matches!(
+        code,
+        error::NOT_LEADER_OR_FOLLOWER | error::FENCED_LEADER_EPOCH
     )
 }
 
@@ -4168,6 +4255,40 @@ mod tests {
         ));
         assert!(!share_fetch_partition_skipped(error::CORRUPT_MESSAGE));
         assert!(!share_fetch_partition_skipped(error::INVALID_RECORD_STATE));
+    }
+
+    #[test]
+    fn share_fetch_partition_metadata_refresh_matches_java() {
+        assert!(share_fetch_partition_metadata_refresh(
+            error::NOT_LEADER_OR_FOLLOWER
+        ));
+        assert!(share_fetch_partition_metadata_refresh(
+            error::FENCED_LEADER_EPOCH
+        ));
+        assert!(share_fetch_partition_metadata_refresh(
+            error::UNKNOWN_TOPIC_ID
+        ));
+        assert!(!share_fetch_partition_metadata_refresh(
+            error::UNKNOWN_LEADER_EPOCH
+        ));
+        assert!(!share_fetch_partition_metadata_refresh(
+            error::UNKNOWN_SERVER_ERROR
+        ));
+        assert!(!share_fetch_partition_metadata_refresh(
+            error::TOPIC_AUTHORIZATION_FAILED
+        ));
+        assert!(share_fetch_current_leader_usable(
+            error::NOT_LEADER_OR_FOLLOWER
+        ));
+        assert!(share_fetch_current_leader_usable(
+            error::FENCED_LEADER_EPOCH
+        ));
+        assert!(!share_fetch_current_leader_usable(
+            error::UNKNOWN_LEADER_EPOCH
+        ));
+        assert!(!share_fetch_current_leader_usable(
+            error::REPLICA_NOT_AVAILABLE
+        ));
     }
 
     #[test]

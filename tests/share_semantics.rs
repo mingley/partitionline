@@ -18,12 +18,14 @@ use std::time::{Duration, Instant};
 use parking_lot::Mutex;
 
 use bytes::{Bytes, BytesMut};
+use partitionline::protocol::api::NodeEndpoint;
 use partitionline::protocol::api_keys::{SHARE_ACKNOWLEDGE, SHARE_FETCH};
 use partitionline::protocol::records::{Record, RecordBatch};
 use partitionline::protocol::share::{
     decode_share_fetch_response, decode_share_fetch_response_with_limit,
     encode_share_fetch_response, encode_share_fetch_response_with_acquisition_lock_timeout,
-    AcquiredRange, ShareFetchedPartition, ShareFetchedTopic,
+    encode_share_fetch_response_with_endpoints, AcquiredRange, ShareFetchedPartition,
+    ShareFetchedTopic,
 };
 use partitionline::share::ShareAcquireMode;
 use partitionline::{
@@ -1640,6 +1642,59 @@ async fn share_fetch_sibling_partition_error_before_records() {
     assert_eq!(got.len(), 1);
     assert_eq!(got[0].topic, "t");
     assert_eq!(got[0].value.as_deref(), Some(&b"keep"[..]));
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn share_fetch_current_leader_overrides_cached_metadata() {
+    let mock = common::Mock::start_two_node().await;
+    v2(&mock);
+    mock.set_partition_leader("t", 0, 1);
+    produce(&mock, &[(0, b"moved")]).await;
+    let mut group = ShareGroup::join(config(&mock), "cur-leader", "t")
+        .await
+        .unwrap();
+    let version = mock.last_share_fetch_version().unwrap_or(2);
+    let mut part = ShareFetchedPartition::partition_response(0, error::NOT_LEADER_OR_FOLLOWER);
+    part.current_leader_id = 2;
+    part.current_leader_epoch = 1;
+    let topics = vec![ShareFetchedTopic {
+        topic_id: mock.topic_id("t"),
+        partitions: vec![part],
+    }];
+    let addr = mock.broker_addr(2).expect("node 2 listening");
+    let (host, port) = addr.rsplit_once(':').expect("host:port");
+    let endpoints = vec![NodeEndpoint::new(
+        2,
+        host,
+        port.parse().expect("port"),
+        None,
+    )];
+    let mut injected = BytesMut::new();
+    encode_share_fetch_response_with_endpoints(&mut injected, version, &topics, &endpoints)
+        .unwrap();
+    mock.inject_share_fetch_response_once(&injected);
+    assert_broker(
+        group.poll().await.unwrap_err(),
+        error::NOT_LEADER_OR_FOLLOWER,
+    );
+    assert_eq!(mock.last_share_fetch_node(), Some(1));
+    let after_err = mock.metadata_calls();
+    mock.set_partition_leader("t", 0, 2);
+    let got = group.poll().await.unwrap();
+    assert_eq!(got.len(), 1);
+    assert_eq!(got[0].value.as_deref(), Some(&b"moved"[..]));
+    assert_eq!(
+        mock.last_share_fetch_node(),
+        Some(2),
+        "CurrentLeader plus NodeEndpoints must fetch the hinted leader"
+    );
+    assert_eq!(
+        mock.metadata_calls(),
+        after_err,
+        "usable CurrentLeader must skip Metadata"
+    );
+    group.accept(&got).await.unwrap();
     group.leave().await.unwrap();
 }
 
