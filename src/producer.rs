@@ -6268,6 +6268,21 @@ fn assign_sequences(
     }
 }
 
+fn rewind_sequence(parts: &mut HashMap<i32, i32>, partition: i32, pendings: &[Pending]) {
+    let Some(first) = pendings.first() else {
+        return;
+    };
+    let Some(base) = first.seq else {
+        return;
+    };
+    let count = i32::try_from(pendings.len()).unwrap_or(0);
+    if let Some(curr) = parts.get_mut(&partition) {
+        if *curr == base.saturating_add(count) {
+            *curr = base;
+        }
+    }
+}
+
 fn rollback_sequences(
     groups: &[(Arc<str>, i32, Vec<Pending>)],
     producer_id: i64,
@@ -6277,22 +6292,27 @@ fn rollback_sequences(
         return;
     }
     let mut g = seqs.lock();
-    for (topic, partition, pendings) in groups {
-        let Some(first) = pendings.first() else {
-            continue;
+    // A produce batch is one topic. Load that partition map once.
+    let one_topic = groups
+        .first()
+        .is_some_and(|(topic, _, _)| groups.iter().all(|(name, _, _)| Arc::ptr_eq(name, topic)));
+    if one_topic {
+        let Some(topic) = groups.first().map(|(topic, _, _)| topic.as_ref()) else {
+            return;
         };
-        let Some(base) = first.seq else {
-            continue;
+        let Some(parts) = g.get_mut(topic) else {
+            return;
         };
-        let count = i32::try_from(pendings.len()).unwrap_or(0);
-        if let Some(curr) = g
-            .get_mut(topic.as_ref())
-            .and_then(|parts| parts.get_mut(partition))
-        {
-            if *curr == base.saturating_add(count) {
-                *curr = base;
-            }
+        for (_, partition, pendings) in groups {
+            rewind_sequence(parts, *partition, pendings);
         }
+        return;
+    }
+    for (topic, partition, pendings) in groups {
+        let Some(parts) = g.get_mut(topic.as_ref()) else {
+            continue;
+        };
+        rewind_sequence(parts, *partition, pendings);
     }
 }
 
