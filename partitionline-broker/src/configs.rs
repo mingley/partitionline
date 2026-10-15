@@ -271,6 +271,7 @@ impl ConfigStore {
 
     fn apply(&mut self, bytes: &[u8]) -> Result<(), Error> {
         let (kind, name, resource) = decode_resource(bytes)?;
+        validate_stored(kind, &name, &resource)?;
         self.resources.insert((kind, name), resource);
         Ok(())
     }
@@ -492,6 +493,23 @@ fn check_value(spec: &Spec, value: &str) -> Result<(), Error> {
     Ok(())
 }
 
+fn validate_stored(kind: ResourceKind, name: &str, resource: &Resource) -> Result<(), Error> {
+    validate_name(kind, name)?;
+    if resource.values.len() > 64 {
+        return Err(Error::InvalidConfig);
+    }
+    for (key, value) in &resource.values {
+        let Some(spec) = schema(kind).iter().find(|spec| spec.name == key) else {
+            return Err(Error::InvalidConfig);
+        };
+        if spec.read_only || spec.sensitive {
+            return Err(Error::InvalidConfig);
+        }
+        check_value(spec, value)?;
+    }
+    Ok(())
+}
+
 fn validate_name(kind: ResourceKind, name: &str) -> Result<(), Error> {
     match kind {
         ResourceKind::Topic => {
@@ -540,7 +558,12 @@ fn decode_resource(mut bytes: &[u8]) -> Result<(ResourceKind, String, Resource),
     ));
     let mut values = BTreeMap::new();
     for _ in 0..count {
-        values.insert(take_str(&mut bytes)?, take_str(&mut bytes)?);
+        if values
+            .insert(take_str(&mut bytes)?, take_str(&mut bytes)?)
+            .is_some()
+        {
+            return Err(Error::InvalidConfig);
+        }
     }
     if !bytes.is_empty() {
         return Err(Error::InvalidConfig);
@@ -579,6 +602,7 @@ fn take_str(input: &mut &[u8]) -> Result<String, Error> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::BTreeMap;
     use std::time::{SystemTime, UNIX_EPOCH};
 
     fn limits() -> Limits {
@@ -595,6 +619,20 @@ mod tests {
         let path = std::env::temp_dir().join(format!("pl-cfg-{name}-{nanos}"));
         let store = ConfigStore::open(&path, limits()).unwrap_or_else(|error| panic!("{error:?}"));
         (store, path)
+    }
+
+    #[test]
+    fn a_zero_retention_is_not_recovered() {
+        let (mut store, _) = store("bad-replay");
+        let mut values = BTreeMap::new();
+        values.insert("retention.ms".to_owned(), "0".to_owned());
+        let encoded = encode_resource(ResourceKind::Topic, "orders", &Resource { values })
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(store.apply(&encoded), Err(Error::InvalidConfig)));
+        let described = store
+            .describe(ResourceKind::Topic, "orders")
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(described.iter().all(|entry| !entry.dynamic));
     }
 
     #[test]
