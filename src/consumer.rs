@@ -1578,9 +1578,11 @@ fn write_broker_id_list(f: &mut fmt::Formatter<'_>, ids: &[i32]) -> fmt::Result 
 
 /// Partition state indexed by borrowed topic names. A topic is owned only when
 /// its first partition is inserted, and empty topic buckets are removed.
+///
+/// Short names stay inside the map entry. Longer names share one allocation.
 #[derive(Clone)]
 struct PartitionMap<V> {
-    topics: HashMap<String, HashMap<i32, V>>,
+    topics: HashMap<TopicName, HashMap<i32, V>>,
 }
 
 impl<V> PartitionMap<V> {
@@ -1612,7 +1614,7 @@ impl<V> PartitionMap<V> {
         }
         let mut partitions = HashMap::new();
         let previous = partitions.insert(partition, value);
-        let _previous_topic = self.topics.insert(topic.to_owned(), partitions);
+        let _previous_topic = self.topics.insert(TopicName::from(topic), partitions);
         previous
     }
 
@@ -1624,7 +1626,7 @@ impl<V> PartitionMap<V> {
             slot.extend(parts);
             return;
         }
-        let _previous = self.topics.insert(topic.to_owned(), parts);
+        let _previous = self.topics.insert(TopicName::from(topic), parts);
     }
 
     fn remove(&mut self, topic: &str, partition: i32) -> Option<V> {
@@ -1646,7 +1648,7 @@ impl<V> PartitionMap<V> {
         for (topic, partitions) in &self.topics {
             let mut indexes = Vec::with_capacity(partitions.len());
             indexes.extend(partitions.keys().copied());
-            out.push((topic.clone(), indexes));
+            out.push((topic.as_str().to_owned(), indexes));
         }
         out
     }
@@ -1928,6 +1930,9 @@ pub struct Consumer {
     /// Used when `fetch` returns that vector unchanged, so metrics do not walk
     /// every record again. Cleared when a later filter returns a subset.
     fetch_return_totals: HashMap<Arc<str>, (u64, u64)>,
+    /// Partitions finished in the current poll. Cleared and reused so the next
+    /// poll does not allocate a new topic table.
+    fetch_completed: PartitionMap<()>,
     reconnect_fails: HashMap<i32, u32>,
     /// Leaders whose Fetch was sent and not yet applied. A multi-leader round
     /// returns after [`MULTI_LEADER_COLLECTION_WINDOW`] once any peer has
@@ -2645,6 +2650,7 @@ impl Consumer {
             m_fetch_latency: crate::metrics::LatencyTracker::new(),
             topic_metrics: HashMap::new(),
             fetch_return_totals: HashMap::new(),
+            fetch_completed: PartitionMap::new(),
             reconnect_fails: HashMap::new(),
             inflight_fetches: None,
             inflight_nodes: HashSet::new(),
@@ -4791,10 +4797,25 @@ impl Consumer {
         poll_deadline: Instant,
         max_wait_ms: i32,
     ) -> Result<Vec<FetchedRecord>> {
+        let mut completed = std::mem::replace(&mut self.fetch_completed, PartitionMap::new());
+        completed.clear();
+        let result = self
+            .fetch_assigned_loop(&mut completed, deadline, poll_deadline, max_wait_ms)
+            .await;
+        self.fetch_completed = completed;
+        result
+    }
+
+    async fn fetch_assigned_loop(
+        &mut self,
+        completed: &mut PartitionMap<()>,
+        deadline: Instant,
+        poll_deadline: Instant,
+        max_wait_ms: i32,
+    ) -> Result<Vec<FetchedRecord>> {
         let mut attempt = 0u32;
         let mut out = Vec::new();
         let mut out_bytes = 0usize;
-        let mut completed = PartitionMap::new();
         self.fetch_return_totals.clear();
         loop {
             if self.woken() {
@@ -4811,7 +4832,7 @@ impl Consumer {
                     &mut out_bytes,
                     &mut fenced,
                     &mut need_offsets,
-                    &mut completed,
+                    completed,
                     &mut budget_reached,
                 )?;
                 if budget_reached {
@@ -4820,7 +4841,7 @@ impl Consumer {
             }
             let metadata_stale = assignment_metadata_stale(
                 &self.assigned,
-                &completed,
+                completed,
                 &self.cluster,
                 self.cfg.metadata_max_age,
             );
@@ -5091,7 +5112,7 @@ impl Consumer {
                     &mut out_bytes,
                     &mut fenced,
                     &mut need_offsets,
-                    &mut completed,
+                    completed,
                     &mut budget_reached,
                 );
                 if applied.is_err() {
@@ -7084,7 +7105,7 @@ impl Consumer {
             }
             if !parts.is_empty() {
                 topics.push(crate::protocol::fetch::FetchedTopic {
-                    topic,
+                    topic: String::from(topic),
                     topic_id: [0; 16],
                     partitions: parts,
                 });
@@ -7319,6 +7340,23 @@ fn fetch_totals_keep_their_buckets() {
     assert_eq!(bytes, None);
     assert!(staged.is_empty());
     assert!(staged.capacity() >= kept);
+}
+
+#[test]
+fn a_fetch_completion_map_keeps_its_buckets() {
+    let mut slot = PartitionMap::new();
+    let _ = slot.insert("orders", 0, ());
+    let _ = slot.insert("payments", 1, ());
+    let capacity = slot.topics.capacity();
+    let mut completed = std::mem::replace(&mut slot, PartitionMap::new());
+    completed.clear();
+    assert!(completed.is_empty());
+    assert!(completed.topics.capacity() >= capacity);
+    let _ = completed.insert("orders", 0, ());
+    let _ = completed.insert("payments", 3, ());
+    assert!(completed.topics.capacity() >= capacity);
+    slot = completed;
+    assert!(slot.topics.capacity() >= capacity);
 }
 
 /// Do not advance a fetch cursor to or past a known high watermark.
