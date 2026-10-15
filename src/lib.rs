@@ -2073,9 +2073,8 @@
 //! `UNKNOWN_TOPIC_ID` skip without throwing and request Metadata;
 //! `UNKNOWN_LEADER_EPOCH` skips without Metadata (Java
 //! `handleInitializeErrors`). Top-level `UNKNOWN_TOPIC_ID` still fails
-//! that poll. A sole partition
-//! `NOT_LEADER_OR_FOLLOWER` collects empty (Java `testFetchError`).
-//! Partition `FENCED_LEADER_EPOCH`
+//! that poll. A sole partition `NOT_LEADER_OR_FOLLOWER` collects empty
+//! (Java `testFetchError`). Partition `FENCED_LEADER_EPOCH`
 //! without a usable CurrentLeader skips that partition, still delivers
 //! siblings, and requests Metadata (Java
 //! `testWhenShareFetchResponseReturnsALeadershipChangeErrorButNoNewLeaderInformation`).
