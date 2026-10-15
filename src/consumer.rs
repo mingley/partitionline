@@ -4159,15 +4159,55 @@ impl Consumer {
             }
         }
         let collect_parallel = nodes.len() > 1 || self.inflight_fetches.is_some();
-        for node in &nodes {
+        let mut queue = nodes;
+        let mut connected = Vec::new();
+        while let Some(node) = queue.pop() {
+            if connected.contains(&node) {
+                continue;
+            }
             let rest = deadline.saturating_duration_since(Instant::now());
             if rest.is_zero() {
                 return Err(Error::Timeout);
             }
-            tokio::time::timeout(rest, self.connect_node_inner(*node, !collect_parallel))
-                .await
-                .map_err(|_| Error::Timeout)??;
+            let connected_ok =
+                match tokio::time::timeout(rest, self.connect_node_inner(node, !collect_parallel))
+                    .await
+                {
+                    Ok(Ok(())) => true,
+                    Ok(Err(error)) => {
+                        if !reroute_unreachable_preferred(
+                            &mut self.preferred,
+                            &self.cluster,
+                            node,
+                            &mut by_leader,
+                        ) {
+                            return Err(error);
+                        }
+                        false
+                    }
+                    Err(_) => {
+                        if !reroute_unreachable_preferred(
+                            &mut self.preferred,
+                            &self.cluster,
+                            node,
+                            &mut by_leader,
+                        ) {
+                            return Err(Error::Timeout);
+                        }
+                        false
+                    }
+                };
+            if connected_ok {
+                connected.push(node);
+                continue;
+            }
+            for leader in by_leader.keys().copied() {
+                if !connected.contains(&leader) && !queue.contains(&leader) {
+                    queue.push(leader);
+                }
+            }
         }
+        let nodes: Vec<i32> = connected;
         if !collect_parallel {
             let mut out = Vec::with_capacity(nodes.len());
             for node in nodes {
@@ -6165,6 +6205,51 @@ fn epoch_at(epochs: &HashMap<String, Vec<i32>>, topic: &str, partition: i32) -> 
         .unwrap_or(crate::RecordBatch::NO_PARTITION_LEADER_EPOCH)
 }
 
+/// Move partitions off a preferred replica that could not be dialed.
+///
+/// The hint is dropped and the partitions return to their metadata leaders.
+/// A node that is itself the leader is left unchanged so the caller reports
+/// the connection failure.
+fn reroute_unreachable_preferred(
+    preferred: &mut PartitionMap<i32>,
+    cluster: &Cluster,
+    node: i32,
+    by_leader: &mut HashMap<i32, HashMap<String, Vec<FetchPartition>>>,
+) -> bool {
+    let Some(by_topic) = by_leader.get(&node) else {
+        return false;
+    };
+    let mut moves = Vec::new();
+    for (topic, parts) in by_topic {
+        for part in parts {
+            if preferred.get(topic, part.partition).copied() != Some(node) {
+                return false;
+            }
+            let Ok((leader, _)) = cluster.leader(topic, part.partition) else {
+                return false;
+            };
+            if leader == node {
+                return false;
+            }
+            moves.push((topic.clone(), part.clone(), leader));
+        }
+    }
+    if moves.is_empty() {
+        return false;
+    }
+    let _removed = by_leader.remove(&node);
+    for (topic, part, leader) in moves {
+        let _removed = preferred.remove(&topic, part.partition);
+        by_leader
+            .entry(leader)
+            .or_default()
+            .entry(topic)
+            .or_default()
+            .push(part);
+    }
+    true
+}
+
 /// Use a rack-local replica only when its address is already cached.
 ///
 /// Fetch can name a preferred replica before Metadata or NodeEndpoints have
@@ -6552,6 +6637,65 @@ mod tests {
         assert_eq!(topics[0].partitions[1].partition, 1);
         assert_eq!(topics[0].partitions[1].current_leader_epoch, 6);
         assert_eq!(topics[0].partitions[1].leader_epoch, 6);
+    }
+
+    #[test]
+    fn an_unreachable_preferred_replica_returns_to_the_leader() {
+        use crate::protocol::api::NodeEndpoint;
+        let mut cluster = Cluster::default();
+        cluster.apply_node_endpoints(&[
+            NodeEndpoint::new(1, "10.0.0.1", 9092, None),
+            NodeEndpoint::new(7, "10.0.0.7", 9092, None),
+        ]);
+        assert!(cluster.apply_current_leader("t", 0, 1, 4));
+        let mut preferred = PartitionMap::new();
+        let _ = preferred.insert("t", 0, 7);
+        let part = FetchPartition {
+            partition: 0,
+            current_leader_epoch: 4,
+            fetch_offset: 3,
+            last_fetched_epoch: -1,
+            log_start_offset: INVALID_LOG_START_OFFSET,
+            partition_max_bytes: 1,
+            replica_directory_id: [0; 16],
+        };
+        let mut by_leader: HashMap<i32, HashMap<String, Vec<FetchPartition>>> = HashMap::new();
+        by_leader
+            .entry(7)
+            .or_default()
+            .entry("t".to_owned())
+            .or_default()
+            .push(part.clone());
+        assert!(reroute_unreachable_preferred(
+            &mut preferred,
+            &cluster,
+            7,
+            &mut by_leader
+        ));
+        assert!(preferred.get("t", 0).is_none());
+        assert!(by_leader.get(&7).is_none());
+        assert_eq!(
+            by_leader
+                .get(&1)
+                .and_then(|topics| topics.get("t"))
+                .and_then(|parts| parts.first())
+                .map(|part| part.fetch_offset),
+            Some(3)
+        );
+        by_leader
+            .entry(1)
+            .or_default()
+            .entry("t".to_owned())
+            .or_default()
+            .push(part);
+        let _ = preferred.insert("t", 0, 1);
+        assert!(!reroute_unreachable_preferred(
+            &mut preferred,
+            &cluster,
+            1,
+            &mut by_leader
+        ));
+        assert_eq!(preferred.get("t", 0).copied(), Some(1));
     }
 
     #[test]
