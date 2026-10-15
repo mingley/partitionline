@@ -539,6 +539,9 @@ pub struct ShareGroup {
     share_epochs: HashMap<i32, i32>,
     share_conns: HashMap<i32, ShareNodeConnection>,
     share_addresses: HashMap<i32, String>,
+    /// CurrentLeader values from the latest share response. A metadata refresh
+    /// drops cached leaders, and these patches are put back afterward.
+    leader_patches: Vec<ShareLeaderPatch>,
     acquisitions: HashMap<AcquisitionKey, Acquisition>,
     pending_delivery: VecDeque<ShareRecord>,
     acquire_mode: ShareAcquireMode,
@@ -789,6 +792,7 @@ impl ShareGroup {
             share_epochs: HashMap::new(),
             share_conns: HashMap::new(),
             share_addresses: HashMap::new(),
+            leader_patches: Vec::new(),
             acquisitions: HashMap::new(),
             pending_delivery: VecDeque::new(),
             acquire_mode: ShareAcquireMode::BatchOptimized,
@@ -1257,7 +1261,16 @@ impl ShareGroup {
                         return Err(Error::Timeout);
                     }
                     if share_leader_retriable(&e) {
-                        self.refresh_assigned_metadata().await?;
+                        let patches = std::mem::take(&mut self.leader_patches);
+                        let refreshed = self.refresh_assigned_metadata().await;
+                        reapply_share_leader_patches(&mut self.consumer, &patches);
+                        if let Err(error) = refreshed {
+                            if patches.is_empty() {
+                                return Err(error);
+                            }
+                        }
+                    } else {
+                        self.leader_patches.clear();
                     }
                 }
                 Err(e) => {
@@ -1669,7 +1682,7 @@ impl ShareGroup {
                 }
             };
             let mut body = body;
-            let ((fetched, _, _, _, lock_timeout, error_code), decoded_bytes) =
+            let ((fetched, endpoints, _, _, lock_timeout, error_code), decoded_bytes) =
                 match decode_share_fetch_response_with_budget(&mut body, version, remaining_bytes) {
                     Ok(reply) => reply,
                     Err(error) => {
@@ -1677,6 +1690,7 @@ impl ShareGroup {
                         return Err(error);
                     }
                 };
+            self.consumer.apply_node_endpoints(&endpoints);
             if !body.is_empty() {
                 self.reset_node_session(node);
                 return Err(Error::protocol("trailing ShareFetch response bytes"));
@@ -1729,8 +1743,29 @@ impl ShareGroup {
                         ));
                     }
                     if part.error_code != 0 {
-                        if share_ack_ownership_lost(part.error_code) {
+                        let leader_moved = share_leader_moved(part.error_code);
+                        let patched = leader_moved
+                            && !name.is_empty()
+                            && self.consumer.apply_share_leader(
+                                &name,
+                                part.partition,
+                                part.current_leader_id,
+                                part.current_leader_epoch,
+                            );
+                        if let Some(patch) = share_leader_patch(
+                            patched,
+                            &name,
+                            part.partition,
+                            part.error_code,
+                            part.current_leader_id,
+                            part.current_leader_epoch,
+                        ) {
+                            remember_share_leader_patch(&mut self.leader_patches, patch);
+                        } else if share_ack_ownership_lost(part.error_code) {
                             self.consumer.invalidate_topic(&name);
+                            self.leader_patches.retain(|patch| {
+                                patch.topic != name || patch.partition != part.partition
+                            });
                         }
                         let error = Error::broker(
                             part.error_code,
@@ -2111,7 +2146,7 @@ impl ShareGroup {
                     return Err(error);
                 }
             };
-            let (code, responses, _, _, _, lock_timeout) =
+            let (code, responses, endpoints, _, _, lock_timeout) =
                 match decode_share_acknowledge_topics_response_with_lock_timeout(&mut body, version)
                 {
                     Ok(reply) => reply,
@@ -2120,6 +2155,7 @@ impl ShareGroup {
                         return Err(error);
                     }
                 };
+            self.consumer.apply_node_endpoints(&endpoints);
             if !body.is_empty() {
                 self.reset_node_session(node);
                 return Err(Error::protocol("trailing ShareAcknowledge response bytes"));
@@ -2161,6 +2197,27 @@ impl ShareGroup {
             for topic in responses {
                 let name = self.name_for_topic_id(topic.topic_id);
                 for part in topic.partitions {
+                    if part.error_code != 0
+                        && !name.is_empty()
+                        && share_leader_moved(part.error_code)
+                    {
+                        let patched = self.consumer.apply_share_leader(
+                            &name,
+                            part.partition,
+                            part.current_leader_id,
+                            part.current_leader_epoch,
+                        );
+                        if let Some(patch) = share_leader_patch(
+                            patched,
+                            &name,
+                            part.partition,
+                            part.error_code,
+                            part.current_leader_id,
+                            part.current_leader_epoch,
+                        ) {
+                            remember_share_leader_patch(&mut self.leader_patches, patch);
+                        }
+                    }
                     if part.error_code == 0 {
                         let count = self
                             .acquisitions
@@ -2642,6 +2699,78 @@ fn update_share_heartbeat_deadline(
     true
 }
 
+/// One KIP-951 CurrentLeader learned from a share fetch or acknowledge.
+struct ShareLeaderPatch {
+    topic: String,
+    partition: i32,
+    leader_id: i32,
+    leader_epoch: i32,
+}
+
+/// Broker errors that can name the partition's new leader.
+fn share_leader_moved(code: i16) -> bool {
+    share_ack_ownership_lost(code) || code == error::LEADER_NOT_AVAILABLE
+}
+
+fn share_leader_patch(
+    applied: bool,
+    topic: &str,
+    partition: i32,
+    error_code: i16,
+    leader_id: i32,
+    leader_epoch: i32,
+) -> Option<ShareLeaderPatch> {
+    if applied && share_leader_moved(error_code) {
+        Some(ShareLeaderPatch {
+            topic: topic.to_owned(),
+            partition,
+            leader_id,
+            leader_epoch,
+        })
+    } else {
+        None
+    }
+}
+
+fn remember_share_leader_patch(patches: &mut Vec<ShareLeaderPatch>, patch: ShareLeaderPatch) {
+    if let Some(existing) = patches
+        .iter_mut()
+        .find(|saved| saved.topic == patch.topic && saved.partition == patch.partition)
+    {
+        if patch.leader_epoch >= existing.leader_epoch {
+            *existing = patch;
+        }
+    } else {
+        patches.push(patch);
+    }
+}
+
+fn reapply_share_leader_patches(consumer: &mut Consumer, patches: &[ShareLeaderPatch]) {
+    for patch in patches {
+        let _applied = consumer.apply_share_leader(
+            &patch.topic,
+            patch.partition,
+            patch.leader_id,
+            patch.leader_epoch,
+        );
+    }
+}
+
+#[cfg(test)]
+fn reapply_share_leader_patches_on(
+    cluster: &mut crate::cluster::Cluster,
+    patches: &[ShareLeaderPatch],
+) {
+    for patch in patches {
+        let _applied = cluster.apply_current_leader(
+            &patch.topic,
+            patch.partition,
+            patch.leader_id,
+            patch.leader_epoch,
+        );
+    }
+}
+
 fn share_leader_retriable(e: &Error) -> bool {
     match e {
         Error::NoLeader { .. } => true,
@@ -3119,5 +3248,48 @@ mod tests {
             first.to_string(),
             "ConsumerRecord(topic = t, partition = 0, leaderEpoch = null, offset = 1, CreateTime = 0, deliveryCount = 1, serialized key size = -1, serialized value size = -1, headers = RecordHeaders(headers = [], isReadOnly = true), key = null, value = null)"
         );
+    }
+
+    #[test]
+    fn share_current_leader_survives_a_metadata_refresh() {
+        use crate::protocol::api::NodeEndpoint;
+        let mut cluster = crate::cluster::Cluster::default();
+        cluster.apply_node_endpoints(&[NodeEndpoint::new(1, "10.0.0.1", 9092, None)]);
+        assert!(cluster.apply_current_leader("orders", 0, 1, 2));
+        cluster.apply_node_endpoints(&[
+            NodeEndpoint::new(2, "[2001:db8::9]", 9092, None),
+            NodeEndpoint::new(3, "[[::1]]", 9092, None),
+        ]);
+        let moved = cluster.apply_current_leader("orders", 0, 2, 5);
+        let patch = share_leader_patch(moved, "orders", 0, error::NOT_LEADER_OR_FOLLOWER, 2, 5);
+        assert!(patch.is_some());
+        assert!(share_leader_patch(true, "orders", 0, error::INVALID_RECORD_STATE, 2, 5).is_none());
+        assert!(!cluster.apply_current_leader("orders", 0, 3, 6));
+        let mut patches = Vec::new();
+        if let Some(patch) = patch {
+            remember_share_leader_patch(&mut patches, patch);
+        }
+        if let Some(older) =
+            share_leader_patch(true, "orders", 0, error::NOT_LEADER_OR_FOLLOWER, 2, 4)
+        {
+            remember_share_leader_patch(&mut patches, older);
+        }
+        assert_eq!(patches.first().map(|patch| patch.leader_epoch), Some(5));
+        if let Some(newer) =
+            share_leader_patch(true, "orders", 0, error::LEADER_NOT_AVAILABLE, 2, 8)
+        {
+            remember_share_leader_patch(&mut patches, newer);
+        }
+        assert_eq!(patches.len(), 1);
+        assert_eq!(patches.first().map(|patch| patch.leader_epoch), Some(8));
+        cluster.invalidate_topic("orders");
+        assert!(cluster.leader("orders", 0).is_err());
+        reapply_share_leader_patches_on(&mut cluster, &patches);
+        let restored = cluster.leader("orders", 0);
+        assert!(restored.is_ok());
+        if let Ok((node, address)) = restored {
+            assert_eq!(node, 2);
+            assert_eq!(address, "[2001:db8::9]:9092");
+        }
     }
 }

@@ -2938,6 +2938,29 @@ impl Consumer {
         self.cluster.leader(topic, partition)
     }
 
+    /// Store Produce/Fetch/Share NodeEndpoints before a CurrentLeader patch.
+    pub(crate) fn apply_node_endpoints(
+        &mut self,
+        endpoints: &[crate::protocol::api::NodeEndpoint],
+    ) {
+        self.cluster.apply_node_endpoints(endpoints);
+    }
+
+    /// Patch one partition leader from a share response. A negative id and an
+    /// epoch older than the cached leader epoch leave the cache unchanged.
+    pub(crate) fn apply_share_leader(
+        &mut self,
+        topic: &str,
+        partition: i32,
+        leader_id: i32,
+        leader_epoch: i32,
+    ) -> bool {
+        leader_id >= 0
+            && self
+                .cluster
+                .apply_current_leader(topic, partition, leader_id, leader_epoch)
+    }
+
     pub(crate) fn invalidate_topic(&mut self, topic: &str) {
         self.cluster.invalidate_topic(topic);
     }
