@@ -3368,7 +3368,7 @@ impl Admin {
             let result = async {
                 if reconnect {
                     let addr = self.conn.addr().to_owned();
-                    self.conn = self.open_node_conn(&addr).await?.inner;
+                    self.conn = self.open_node_conn_until(&addr, deadline).await?.inner;
                     reconnect = false;
                 }
                 self.ensure_bootstrap().await?;
@@ -3402,7 +3402,7 @@ impl Admin {
                         }
                     })?;
                 if refresh {
-                    self.refresh_metadata(None).await?;
+                    self.refresh_metadata_until(None, deadline).await?;
                     refresh = false;
                 }
                 let remaining = deadline.saturating_duration_since(Instant::now());
@@ -3520,7 +3520,7 @@ impl Admin {
             let result = async {
                 if reconnect {
                     let addr = self.conn.addr().to_owned();
-                    self.conn = self.open_node_conn(&addr).await?.inner;
+                    self.conn = self.open_node_conn_until(&addr, deadline).await?.inner;
                     reconnect = false;
                 }
                 self.ensure_bootstrap().await?;
@@ -3539,7 +3539,7 @@ impl Admin {
                         Error::Unsupported("broker does not support RemoveRaftVoter v0".into())
                     })?;
                 if refresh {
-                    self.refresh_metadata(None).await?;
+                    self.refresh_metadata_until(None, deadline).await?;
                     refresh = false;
                 }
                 let remaining = deadline.saturating_duration_since(Instant::now());
@@ -3630,7 +3630,7 @@ impl Admin {
             let result = async {
                 if reconnect {
                     let addr = self.conn.addr().to_owned();
-                    self.conn = self.open_node_conn(&addr).await?.inner;
+                    self.conn = self.open_node_conn_until(&addr, deadline).await?.inner;
                     reconnect = false;
                 }
                 self.ensure_bootstrap().await?;
@@ -3649,7 +3649,7 @@ impl Admin {
                         Error::Unsupported("broker does not support DescribeQuorum v0-2".into())
                     })?;
                 if refresh {
-                    self.refresh_metadata(None).await?;
+                    self.refresh_metadata_until(None, deadline).await?;
                     refresh = false;
                 }
                 let remaining = deadline.saturating_duration_since(Instant::now());
@@ -3801,7 +3801,7 @@ impl Admin {
         let mut attempt = 0;
         loop {
             if self.cluster.controller().is_err() {
-                self.refresh_metadata(None).await?;
+                self.refresh_metadata_until(None, deadline).await?;
             }
             let node = self.cluster.controller()?;
             self.connect_node_until(node, deadline).await?;
@@ -4373,7 +4373,7 @@ impl Admin {
                 validate_only,
             };
             if self.cluster.controller().is_err() {
-                self.refresh_metadata(None).await?;
+                self.refresh_metadata_until(None, deadline).await?;
             }
             let node = self.cluster.controller()?;
             self.connect_node_until(node, deadline).await?;
@@ -4409,7 +4409,7 @@ impl Admin {
                 self.cluster.invalidate_controller();
                 let _ = self.conns.remove(&node);
                 self.wait_retry(&mut attempt, deadline).await?;
-                self.refresh_metadata(None).await?;
+                self.refresh_metadata_until(None, deadline).await?;
                 continue;
             }
             let mut next_pending = Vec::new();
@@ -4716,7 +4716,7 @@ impl Admin {
         let mut attempt = 0u32;
         loop {
             if self.cluster.controller().is_err() {
-                self.refresh_metadata(None).await?;
+                self.refresh_metadata_until(None, deadline).await?;
             }
             let node = self.cluster.controller()?;
             self.connect_node_until(node, deadline).await?;
@@ -4752,7 +4752,7 @@ impl Admin {
                 self.cluster.invalidate_controller();
                 let _ = self.conns.remove(&node);
                 self.wait_retry(&mut attempt, deadline).await?;
-                self.refresh_metadata(None).await?;
+                self.refresh_metadata_until(None, deadline).await?;
                 continue;
             }
             let mut next_pending = Vec::new();
@@ -5315,7 +5315,7 @@ impl Admin {
         loop {
             let encoded = partitions_from_new(&pending);
             if self.cluster.controller().is_err() {
-                self.refresh_metadata(None).await?;
+                self.refresh_metadata_until(None, deadline).await?;
             }
             let node = self.cluster.controller()?;
             self.connect_node_until(node, deadline).await?;
@@ -5359,7 +5359,7 @@ impl Admin {
                 self.cluster.invalidate_controller();
                 let _ = self.conns.remove(&node);
                 self.wait_retry(&mut attempt, deadline).await?;
-                self.refresh_metadata(None).await?;
+                self.refresh_metadata_until(None, deadline).await?;
                 continue;
             }
             let mut next_pending = Vec::new();
@@ -5489,7 +5489,7 @@ impl Admin {
         let mut attempt = 0u32;
         loop {
             if self.cluster.controller().is_err() {
-                self.refresh_metadata(None).await?;
+                self.refresh_metadata_until(None, deadline).await?;
             }
             let node = self.cluster.controller()?;
             self.connect_node_until(node, deadline).await?;
@@ -5532,7 +5532,7 @@ impl Admin {
                 self.cluster.invalidate_controller();
                 let _ = self.conns.remove(&node);
                 self.wait_retry(&mut attempt, deadline).await?;
-                self.refresh_metadata(None).await?;
+                self.refresh_metadata_until(None, deadline).await?;
                 continue;
             }
             return Ok(results);
@@ -5577,7 +5577,7 @@ impl Admin {
         let acls = acls.to_vec();
         loop {
             if self.cluster.controller().is_err() {
-                self.refresh_metadata(None).await?;
+                self.refresh_metadata_until(None, deadline).await?;
             }
             let node = self.cluster.controller()?;
             self.connect_node_until(node, deadline).await?;
@@ -5613,7 +5613,7 @@ impl Admin {
                 self.cluster.invalidate_controller();
                 let _ = self.conns.remove(&node);
                 self.wait_retry(&mut attempt, deadline).await?;
-                self.refresh_metadata(None).await?;
+                self.refresh_metadata_until(None, deadline).await?;
                 continue;
             }
             return Ok(results);
@@ -5768,9 +5768,9 @@ impl Admin {
                 if self.cluster.controller().is_err() {
                     if self.conn.is_closed() {
                         let addr = self.conn.addr().to_owned();
-                        self.conn = self.open_node_conn(&addr).await?.inner;
+                        self.conn = self.open_node_conn_until(&addr, deadline).await?.inner;
                     }
-                    self.refresh_metadata(None).await?;
+                    self.refresh_metadata_until(None, deadline).await?;
                 }
                 let node = self.cluster.controller()?;
                 if self.conns.get(&node).is_some_and(|conn| conn.is_closed()) {
@@ -5915,7 +5915,7 @@ impl Admin {
         let mut attempt = 0u32;
         loop {
             if self.cluster.controller().is_err() {
-                self.refresh_metadata(None).await?;
+                self.refresh_metadata_until(None, deadline).await?;
             }
             let node = self.cluster.controller()?;
             self.connect_node_until(node, deadline).await?;
@@ -5954,7 +5954,7 @@ impl Admin {
                 self.cluster.invalidate_controller();
                 let _ = self.conns.remove(&node);
                 self.wait_retry(&mut attempt, deadline).await?;
-                self.refresh_metadata(None).await?;
+                self.refresh_metadata_until(None, deadline).await?;
                 continue;
             }
             if resp.error_code != 0 {
@@ -6083,7 +6083,7 @@ impl Admin {
             let mut attempt = 0u32;
             loop {
                 if self.cluster.controller().is_err() {
-                    self.refresh_metadata(None).await?;
+                    self.refresh_metadata_until(None, deadline).await?;
                 }
                 let node = self.cluster.controller()?;
                 self.connect_node_until(node, deadline).await?;
@@ -6133,7 +6133,7 @@ impl Admin {
                     self.cluster.invalidate_controller();
                     let _ = self.conns.remove(&node);
                     self.wait_retry(&mut attempt, deadline).await?;
-                    self.refresh_metadata(None).await?;
+                    self.refresh_metadata_until(None, deadline).await?;
                     continue;
                 }
                 if resp.error_code != 0 {
@@ -6324,7 +6324,7 @@ impl Admin {
         let mut attempt = 0u32;
         loop {
             if self.cluster.controller().is_err() {
-                self.refresh_metadata(None).await?;
+                self.refresh_metadata_until(None, deadline).await?;
             }
             let node = self.cluster.controller()?;
             self.connect_node_until(node, deadline).await?;
@@ -6360,7 +6360,7 @@ impl Admin {
                 self.cluster.invalidate_controller();
                 let _ = self.conns.remove(&node);
                 self.wait_retry(&mut attempt, deadline).await?;
-                self.refresh_metadata(None).await?;
+                self.refresh_metadata_until(None, deadline).await?;
                 continue;
             }
             return Ok(results
@@ -6419,7 +6419,7 @@ impl Admin {
         let mut attempt = 0u32;
         loop {
             if self.cluster.controller().is_err() {
-                self.refresh_metadata(None).await?;
+                self.refresh_metadata_until(None, deadline).await?;
             }
             let node = self.cluster.controller()?;
             self.connect_node_until(node, deadline).await?;
@@ -6451,7 +6451,7 @@ impl Admin {
                 self.cluster.invalidate_controller();
                 let _ = self.conns.remove(&node);
                 self.wait_retry(&mut attempt, deadline).await?;
-                self.refresh_metadata(None).await?;
+                self.refresh_metadata_until(None, deadline).await?;
                 continue;
             }
             if resp.error_code != 0 {
@@ -6519,7 +6519,7 @@ impl Admin {
         let mut attempt = 0u32;
         loop {
             if self.cluster.controller().is_err() {
-                self.refresh_metadata(None).await?;
+                self.refresh_metadata_until(None, deadline).await?;
             }
             let node = self.cluster.controller()?;
             self.connect_node_until(node, deadline).await?;
@@ -6552,7 +6552,7 @@ impl Admin {
                 self.cluster.invalidate_controller();
                 let _ = self.conns.remove(&node);
                 self.wait_retry(&mut attempt, deadline).await?;
-                self.refresh_metadata(None).await?;
+                self.refresh_metadata_until(None, deadline).await?;
                 continue;
             }
             if resp.error_code != 0 {
@@ -6701,7 +6701,7 @@ impl Admin {
         let mut attempt = 0u32;
         loop {
             if self.cluster.controller().is_err() {
-                self.refresh_metadata(None).await?;
+                self.refresh_metadata_until(None, deadline).await?;
             }
             let node = self.cluster.controller()?;
             self.connect_node_until(node, deadline).await?;
@@ -6737,7 +6737,7 @@ impl Admin {
                 self.cluster.invalidate_controller();
                 let _ = self.conns.remove(&node);
                 self.wait_retry(&mut attempt, deadline).await?;
-                self.refresh_metadata(None).await?;
+                self.refresh_metadata_until(None, deadline).await?;
                 continue;
             }
             return Ok(results);
@@ -6780,7 +6780,7 @@ impl Admin {
         let mut attempt = 0u32;
         loop {
             if self.cluster.controller().is_err() {
-                self.refresh_metadata(None).await?;
+                self.refresh_metadata_until(None, deadline).await?;
             }
             let node = self.cluster.controller()?;
             self.connect_node_until(node, deadline).await?;
@@ -6813,7 +6813,7 @@ impl Admin {
                 self.cluster.invalidate_controller();
                 let _ = self.conns.remove(&node);
                 self.wait_retry(&mut attempt, deadline).await?;
-                self.refresh_metadata(None).await?;
+                self.refresh_metadata_until(None, deadline).await?;
                 continue;
             }
             if resp.error_code != 0 {
@@ -7022,7 +7022,7 @@ impl Admin {
             loop {
                 if self.cluster.leader(&spec.topic, spec.partition).is_err() {
                     let topics = [spec.topic.clone()];
-                    self.refresh_metadata(Some(&topics)).await?;
+                    self.refresh_metadata_until(Some(&topics), deadline).await?;
                 }
                 let (node, _) = self.cluster.leader(&spec.topic, spec.partition)?;
                 self.connect_node_until(node, deadline).await?;
@@ -7104,7 +7104,7 @@ impl Admin {
                     let _ = self.conns.remove(&node);
                     self.wait_retry(&mut attempt, deadline).await?;
                     let topics = [spec.topic.clone()];
-                    self.refresh_metadata(Some(&topics)).await?;
+                    self.refresh_metadata_until(Some(&topics), deadline).await?;
                     continue;
                 }
                 return Err(e);
@@ -7928,32 +7928,6 @@ impl Admin {
         Ok(results)
     }
 
-    async fn fetch_metadata(&mut self, topics: Option<&[String]>) -> Result<MetadataResponse> {
-        self.fetch_metadata_with(topics, false).await
-    }
-
-    async fn fetch_metadata_with(
-        &mut self,
-        topics: Option<&[String]>,
-        include_topic_authorized_operations: bool,
-    ) -> Result<MetadataResponse> {
-        if self.metadata_version == 0 && topics.is_some() {
-            return Err(Error::Unsupported(
-                "Metadata v0 cannot represent this Admin topic selection or disable topic creation"
-                    .into(),
-            ));
-        }
-        let owned =
-            topics.map(|names| MetadataRequestTopic::convert_from_names(names.iter().cloned()));
-        let timeout = self.cfg.request_timeout;
-        self.fetch_metadata_request_with(
-            owned.as_deref(),
-            include_topic_authorized_operations,
-            timeout,
-        )
-        .await
-    }
-
     async fn fetch_metadata_request_with(
         &mut self,
         topics: Option<&[MetadataRequestTopic]>,
@@ -8018,7 +7992,25 @@ impl Admin {
     }
 
     async fn refresh_metadata(&mut self, topics: Option<&[String]>) -> Result<()> {
-        self.fetch_metadata(topics).await.map(|_| ())
+        let deadline = Instant::now() + self.cfg.request_timeout;
+        self.refresh_metadata_until(topics, deadline).await
+    }
+
+    /// Refresh metadata using only the time still left on `deadline`.
+    async fn refresh_metadata_until(
+        &mut self,
+        topics: Option<&[String]>,
+        deadline: Instant,
+    ) -> Result<()> {
+        let timeout = deadline.saturating_duration_since(Instant::now());
+        if timeout.is_zero() {
+            return Err(Error::Timeout);
+        }
+        let owned =
+            topics.map(|names| MetadataRequestTopic::convert_from_names(names.iter().cloned()));
+        self.fetch_metadata_request_with(owned.as_deref(), false, timeout)
+            .await
+            .map(|_| ())
     }
 
     /// Wait [`AdminConfig::retry_backoff`] (exponential) or [`Error::Timeout`].
@@ -8317,7 +8309,7 @@ impl Admin {
                 }
             }
             if !need.is_empty() {
-                self.refresh_metadata(Some(&need)).await?;
+                self.refresh_metadata_until(Some(&need), deadline).await?;
             }
             let mut by_node: HashMap<i32, Vec<usize>> = HashMap::new();
             let mut nodes: Vec<i32> = Vec::new();
@@ -8380,7 +8372,7 @@ impl Admin {
                 t
             };
             if !topics.is_empty() {
-                self.refresh_metadata(Some(&topics)).await?;
+                self.refresh_metadata_until(Some(&topics), deadline).await?;
             }
         }
         out.into_iter()
@@ -8590,7 +8582,7 @@ impl Admin {
                     }
                 }
                 if !need.is_empty() {
-                    self.refresh_metadata(Some(&need)).await?;
+                    self.refresh_metadata_until(Some(&need), deadline).await?;
                 }
                 let mut by_node: HashMap<i32, Vec<usize>> = HashMap::new();
                 let mut nodes: Vec<i32> = Vec::new();
@@ -8653,7 +8645,7 @@ impl Admin {
                     t
                 };
                 if !topics.is_empty() {
-                    self.refresh_metadata(Some(&topics)).await?;
+                    self.refresh_metadata_until(Some(&topics), deadline).await?;
                 }
             }
             out.into_iter()
@@ -8918,7 +8910,7 @@ impl Admin {
                     }
                 }
                 if !need.is_empty() {
-                    self.refresh_metadata(Some(&need)).await?;
+                    self.refresh_metadata_until(Some(&need), deadline).await?;
                 }
             }
             let mut by_node: HashMap<i32, Vec<usize>> = HashMap::new();
@@ -8997,7 +8989,7 @@ impl Admin {
                 t
             };
             if !topics.is_empty() {
-                self.refresh_metadata(Some(&topics)).await?;
+                self.refresh_metadata_until(Some(&topics), deadline).await?;
             }
         }
         let mut grouped: Vec<DescribeProducersTopic> = Vec::new();
@@ -11879,7 +11871,7 @@ impl Admin {
         let req = AssignReplicasToDirsRequest::new(broker_id, broker_epoch, directories);
         loop {
             if self.cluster.controller().is_err() {
-                self.refresh_metadata(None).await?;
+                self.refresh_metadata_until(None, deadline).await?;
             }
             let node = self.cluster.controller()?;
             self.connect_node_until(node, deadline).await?;
@@ -11912,7 +11904,7 @@ impl Admin {
                 self.cluster.invalidate_controller();
                 let _ = self.conns.remove(&node);
                 self.wait_retry(&mut attempt, deadline).await?;
-                self.refresh_metadata(None).await?;
+                self.refresh_metadata_until(None, deadline).await?;
                 continue;
             }
             if resp.error_code != 0 {
@@ -12760,7 +12752,7 @@ impl Admin {
                     return Ok(node);
                 }
                 if !self.cluster.brokers.contains_key(&node) {
-                    self.refresh_metadata(None).await?;
+                    self.refresh_metadata_until(None, deadline).await?;
                 }
                 return Ok(node);
             }
@@ -12855,7 +12847,7 @@ impl Admin {
                     .ok_or_else(|| Error::protocol(format!("FindCoordinator missing {k}")))?;
                 if err == 0 {
                     if !self.cluster.brokers.contains_key(&node) {
-                        self.refresh_metadata(None).await?;
+                        self.refresh_metadata_until(None, deadline).await?;
                     }
                     let _prev = out.insert(k.clone(), node);
                     continue;
@@ -13298,7 +13290,7 @@ impl Admin {
                 decode_find_coordinator_response(&mut body.clone(), version)?;
             if err == 0 {
                 if !self.cluster.brokers.contains_key(&node) {
-                    self.refresh_metadata(None).await?;
+                    self.refresh_metadata_until(None, deadline).await?;
                 }
                 return Ok(node);
             }
