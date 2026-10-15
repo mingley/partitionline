@@ -1743,7 +1743,12 @@ impl ShareGroup {
     /// topic and the following ShareFetch is only the new assignment
     /// (Java `testCommitAsyncWithSubscriptionChange`).
     /// [`Self::commit_sync`] flushes that snapshot without waiting for
-    /// poll (Java `testPendingCommitAsyncBeforeCommitSync`). [`Self::leave`],
+    /// poll (Java `testPendingCommitAsyncBeforeCommitSync`). After a
+    /// metadata leader change, that flush fails leftover acknowledgements
+    /// whose acquisition node is no longer the Metadata leader
+    /// (`NOT_LEADER_OR_FOLLOWER`) and sends only partitions that are
+    /// still on that node (Java
+    /// `testLeadershipChangeAfterFetchBeforeCommitAsync`). [`Self::leave`],
     /// [`Self::close`], and [`Self::unsubscribe`] also flush those queued
     /// acknowledgements (Java `testAcknowledgeOnCloseWithPendingCommitAsync`).
     /// Implicit last-poll records that were never committed are released

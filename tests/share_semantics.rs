@@ -1195,6 +1195,60 @@ async fn explicit_commit_async_then_commit_sync_sends_without_poll() {
 }
 
 #[tokio::test]
+async fn explicit_commit_async_then_commit_sync_fails_moved_leader() {
+    let mock = common::Mock::start_two_node().await;
+    v2(&mock);
+    mock.set_topic_partitions("t", 2);
+    mock.set_partition_leader("t", 0, 1);
+    mock.set_partition_leader("t", 1, 1);
+    produce(&mock, &[(0, b"keep-success"), (1, b"move-lock")]).await;
+    let mut group = ShareGroup::join(config(&mock), "async-leader", "t")
+        .await
+        .unwrap();
+    let acquired = group.poll().await.unwrap();
+    assert_eq!(acquired.len(), 2);
+    mock.set_partition_leader("t", 1, 2);
+    let _ = group.list_topics().await.unwrap();
+    group.accept(&acquired).await.unwrap();
+    let calls = mock.share_ack_calls();
+    let fetches = mock.share_fetch_calls();
+    group.commit_async();
+    assert_eq!(
+        mock.share_ack_calls(),
+        calls,
+        "commit_async stays local until commit_sync"
+    );
+    let results = group.commit_sync().await.unwrap();
+    let by_part: Vec<(i32, Option<i16>)> = results
+        .iter()
+        .map(|(tp, error)| (tp.partition(), error.as_ref().and_then(|e| e.code())))
+        .collect();
+    assert!(
+        by_part.contains(&(0, None)),
+        "unmoved partition still acknowledges: {by_part:?}"
+    );
+    assert!(
+        by_part.contains(&(1, Some(error::NOT_LEADER_OR_FOLLOWER))),
+        "Java testLeadershipChangeAfterFetchBeforeCommitAsync completes with NOT_LEADER: {by_part:?}"
+    );
+    assert_eq!(
+        mock.share_ack_calls(),
+        calls + 1,
+        "only the still-led partition is sent"
+    );
+    assert_eq!(mock.last_share_ack_partitions(), 1);
+    assert_eq!(mock.last_share_ack_node(), Some(1));
+    assert!(mock.share_accepted("async-leader", "t", 0, 0));
+    assert!(!mock.share_accepted("async-leader", "t", 1, 0));
+    assert_eq!(
+        mock.share_fetch_calls(),
+        fetches,
+        "commit_sync must not ShareFetch"
+    );
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn implicit_commit_sync_returns_empty_optional() {
     let mock = common::Mock::start().await;
     produce(&mock, &[(0, b"first")]).await;
