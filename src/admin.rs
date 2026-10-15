@@ -3285,6 +3285,67 @@ fn creatable_from_new(topics: &[NewTopic]) -> Vec<CreatableTopic> {
         .collect()
 }
 
+fn first_name_index<'a>(names: impl IntoIterator<Item = &'a str>) -> HashMap<&'a str, usize> {
+    let mut slots = HashMap::new();
+    for (index, name) in names.into_iter().enumerate() {
+        if let std::collections::hash_map::Entry::Vacant(slot) = slots.entry(name) {
+            let _ = slot.insert(index);
+        }
+    }
+    slots
+}
+
+struct DeletePendingIndex<'a> {
+    by_name: HashMap<&'a str, usize>,
+    by_id: HashMap<[u8; 16], usize>,
+}
+
+fn index_delete_pending(pending: &[DeleteTopicState]) -> DeletePendingIndex<'_> {
+    let mut by_name = HashMap::new();
+    let mut by_id = HashMap::new();
+    for (index, topic) in pending.iter().enumerate() {
+        match topic.name.as_deref() {
+            Some(name) => {
+                if let std::collections::hash_map::Entry::Vacant(slot) = by_name.entry(name) {
+                    let _ = slot.insert(index);
+                }
+            }
+            None if topic.topic_id != [0; 16] => {
+                if let std::collections::hash_map::Entry::Vacant(slot) = by_id.entry(topic.topic_id)
+                {
+                    let _ = slot.insert(index);
+                }
+            }
+            None => {}
+        }
+    }
+    DeletePendingIndex { by_name, by_id }
+}
+
+fn delete_pending_slot(index: &DeletePendingIndex<'_>, result: &TopicResult) -> Option<usize> {
+    let by_name = index.by_name.get(result.name.as_str()).copied();
+    let by_id = (result.topic_id != [0; 16])
+        .then(|| index.by_id.get(&result.topic_id).copied())
+        .flatten();
+    match (by_name, by_id) {
+        (Some(name), Some(id)) => Some(name.min(id)),
+        (Some(name), None) => Some(name),
+        (None, Some(id)) => Some(id),
+        (None, None) => None,
+    }
+}
+
+fn matched_delete_pending<'a>(
+    pending: &'a [DeleteTopicState],
+    index: &DeletePendingIndex<'_>,
+    result: &TopicResult,
+) -> Option<&'a DeleteTopicState> {
+    let slot = delete_pending_slot(index, result)?;
+    pending
+        .get(slot)
+        .filter(|topic| delete_state_matches(topic, result))
+}
+
 fn delete_state_matches(topic: &DeleteTopicState, result: &TopicResult) -> bool {
     match &topic.name {
         Some(name) => name == &result.name,
@@ -4515,11 +4576,15 @@ impl Admin {
                 self.refresh_metadata_until(None, deadline).await?;
                 continue;
             }
+            let slots = first_name_index(pending.iter().map(|topic| topic.name.as_str()));
             let mut next_pending = Vec::new();
             for r in results {
                 if retry_on_quota_violation && r.error_code == error::THROTTLING_QUOTA_EXCEEDED {
-                    if let Some(t) = pending.iter().find(|t| t.name == r.name) {
-                        next_pending.push(t.clone());
+                    if let Some(topic) = slots
+                        .get(r.name.as_str())
+                        .and_then(|index| pending.get(*index))
+                    {
+                        next_pending.push(topic.clone());
                     }
                 } else {
                     let name = r.name.clone();
@@ -4858,9 +4923,10 @@ impl Admin {
                 self.refresh_metadata_until(None, deadline).await?;
                 continue;
             }
+            let slots = index_delete_pending(&pending);
             let mut next_pending = Vec::new();
             for r in results {
-                let matched = pending.iter().find(|t| delete_state_matches(t, &r));
+                let matched = matched_delete_pending(&pending, &slots, &r);
                 if retry_on_quota_violation && r.error_code == error::THROTTLING_QUOTA_EXCEEDED {
                     if let Some(t) = matched {
                         next_pending.push(t.clone());
@@ -5465,11 +5531,15 @@ impl Admin {
                 self.refresh_metadata_until(None, deadline).await?;
                 continue;
             }
+            let slots = first_name_index(pending.iter().map(|topic| topic.name.as_str()));
             let mut next_pending = Vec::new();
             for r in results {
                 if retry_on_quota_violation && r.error_code == error::THROTTLING_QUOTA_EXCEEDED {
-                    if let Some(t) = pending.iter().find(|t| t.name == r.name) {
-                        next_pending.push(t.clone());
+                    if let Some(topic) = slots
+                        .get(r.name.as_str())
+                        .and_then(|index| pending.get(*index))
+                    {
+                        next_pending.push(topic.clone());
                     }
                 } else {
                     let name = r.name.clone();
@@ -14553,6 +14623,40 @@ mod tests {
         CreatedTopicConfig, ListConfigResourcesResponse,
     };
     use bytes::BytesMut;
+
+    #[test]
+    fn the_first_pending_topic_is_the_one_a_result_finds() {
+        let slots = first_name_index(["orders", "payments", "orders"]);
+        assert_eq!(slots.get("orders").copied(), Some(0));
+        assert_eq!(slots.get("payments").copied(), Some(1));
+        assert_eq!(slots.get("other"), None);
+        let pending = [
+            DeleteTopicState::by_id([9; 16]),
+            DeleteTopicState::by_name("orders"),
+            DeleteTopicState::by_name("orders"),
+        ];
+        let index = index_delete_pending(&pending);
+        let both = TopicResult::error(0, Some("orders"), [9; 16]);
+        assert_eq!(delete_pending_slot(&index, &both), Some(0));
+        assert!(pending
+            .get(0)
+            .is_some_and(|topic| delete_state_matches(topic, &both)));
+        assert!(pending
+            .get(1)
+            .is_some_and(|topic| delete_state_matches(topic, &both)));
+        assert_eq!(
+            delete_pending_slot(&index, &TopicResult::error(0, Some("orders"), [0; 16])),
+            Some(1)
+        );
+        assert_eq!(
+            delete_pending_slot(&index, &TopicResult::error(0, None, [9; 16])),
+            Some(0)
+        );
+        assert_eq!(
+            delete_pending_slot(&index, &TopicResult::error(0, Some("other"), [1; 16])),
+            None
+        );
+    }
 
     #[test]
     fn unique_topic_names_keep_the_first_copy() {
