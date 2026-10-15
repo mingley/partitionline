@@ -4539,9 +4539,16 @@ struct ProduceGroupScratch {
     topics: Vec<usize>,
     /// Group indexes for each topic, parallel to `topics`.
     parts: Vec<Vec<usize>>,
+    /// Partition slots for a one-topic batch. Cleared on each use.
+    partition_slots: HashMap<i32, usize>,
 }
 
-type ProduceBuckets = HashMap<Arc<str>, Vec<(i32, Vec<Pending>)>>;
+struct PendingParts {
+    order: Vec<(i32, Vec<Pending>)>,
+    slots: HashMap<i32, usize>,
+}
+
+type ProduceBuckets = HashMap<Arc<str>, PendingParts>;
 
 #[derive(Default)]
 struct AckIndex {
@@ -5212,7 +5219,7 @@ impl Worker {
             .min()
             .unwrap_or_else(|| Instant::now() + self.shared.cfg.delivery_timeout);
         let now = now_ms();
-        let mut groups = group_pending(batch, &mut self.group_scratch.buckets);
+        let mut groups = group_pending(batch, &mut self.group_scratch);
         if groups.is_empty() {
             return Ok(());
         }
@@ -6086,7 +6093,7 @@ fn group_txn_offsets(
 
 fn group_pending(
     batch: Vec<Pending>,
-    buckets: &mut ProduceBuckets,
+    scratch: &mut ProduceGroupScratch,
 ) -> Vec<(Arc<str>, i32, Vec<Pending>)> {
     if batch.is_empty() {
         return Vec::new();
@@ -6109,36 +6116,49 @@ fn group_pending(
     }
     if batch.iter().all(|p| same_topic(&p.rec.topic)) {
         let mut order: Vec<(i32, Vec<Pending>)> = Vec::new();
-        let mut slot_of: HashMap<i32, usize> = HashMap::new();
+        scratch.partition_slots.clear();
         for p in batch {
             let partition = p.rec.partition.unwrap_or(RecordMetadata::UNKNOWN_PARTITION);
-            if let Some(&slot) = slot_of.get(&partition) {
+            if let Some(&slot) = scratch.partition_slots.get(&partition) {
                 if let Some((_, pending)) = order.get_mut(slot) {
                     pending.push(p);
+                    continue;
                 }
-            } else {
-                let slot = order.len();
-                let _ = slot_of.insert(partition, slot);
-                order.push((partition, vec![p]));
             }
+            let slot = order.len();
+            let _ = scratch.partition_slots.insert(partition, slot);
+            order.push((partition, vec![p]));
         }
         return order
             .into_iter()
             .map(|(partition, pending)| (Arc::clone(&topic0), partition, pending))
             .collect();
     }
+    let buckets = &mut scratch.buckets;
     let mut order: Vec<Arc<str>> = Vec::new();
     for p in batch {
         let partition = p.rec.partition.unwrap_or(RecordMetadata::UNKNOWN_PARTITION);
         if let Some(groups) = buckets.get_mut(p.rec.topic.as_ref()) {
-            if let Some((_, pending)) = groups.iter_mut().find(|(part, _)| *part == partition) {
-                pending.push(p);
-            } else {
-                groups.push((partition, vec![p]));
+            if let Some(&slot) = groups.slots.get(&partition) {
+                if let Some((_, pending)) = groups.order.get_mut(slot) {
+                    pending.push(p);
+                    continue;
+                }
             }
+            let slot = groups.order.len();
+            let _ = groups.slots.insert(partition, slot);
+            groups.order.push((partition, vec![p]));
         } else {
             order.push(Arc::clone(&p.rec.topic));
-            let _ = buckets.insert(Arc::clone(&p.rec.topic), vec![(partition, vec![p])]);
+            let mut slots = HashMap::new();
+            let _ = slots.insert(partition, 0);
+            let _ = buckets.insert(
+                Arc::clone(&p.rec.topic),
+                PendingParts {
+                    order: vec![(partition, vec![p])],
+                    slots,
+                },
+            );
         }
     }
     let mut out = Vec::new();
@@ -6146,7 +6166,7 @@ fn group_pending(
         let Some(groups) = buckets.remove(topic.as_ref()) else {
             continue;
         };
-        for (partition, pending) in groups {
+        for (partition, pending) in groups.order {
             out.push((Arc::clone(&topic), partition, pending));
         }
     }
@@ -6921,7 +6941,7 @@ mod tests {
 
     #[test]
     fn one_topic_produce_groups_share_its_allocation() {
-        let mut buckets = ProduceBuckets::default();
+        let mut scratch = ProduceGroupScratch::default();
         let mut batch = vec![
             queued("orders", Some(1)),
             queued("orders", Some(0)),
@@ -6930,19 +6950,19 @@ mod tests {
         let orders = Arc::clone(&batch[0].rec.topic);
         batch[1].rec.topic = Arc::clone(&orders);
         batch[2].rec.topic = Arc::<str>::from("orders");
-        let groups = group_pending(batch, &mut buckets);
+        let groups = group_pending(batch, &mut scratch);
         assert_eq!(groups.len(), 2);
         assert_eq!((groups[0].1, groups[0].2.len()), (1, 2));
         assert_eq!((groups[1].1, groups[1].2.len()), (0, 1));
         assert!(groups
             .iter()
             .all(|(topic, _, _)| Arc::ptr_eq(topic, &orders)));
-        assert!(buckets.is_empty());
+        assert!(scratch.buckets.is_empty());
     }
 
     #[test]
     fn mixed_produce_groups_share_the_first_topic_name() {
-        let mut buckets = ProduceBuckets::default();
+        let mut scratch = ProduceGroupScratch::default();
         let mut batch = vec![
             queued("orders", Some(1)),
             queued("orders", Some(0)),
@@ -6952,7 +6972,7 @@ mod tests {
         let orders = Arc::clone(&batch[0].rec.topic);
         batch[2].rec.topic = Arc::clone(&orders);
         let payments = Arc::clone(&batch[3].rec.topic);
-        let groups = group_pending(batch, &mut buckets);
+        let groups = group_pending(batch, &mut scratch);
         assert_eq!(groups.len(), 3);
         assert_eq!(
             (groups[0].0.as_ref(), groups[0].1, groups[0].2.len()),
@@ -6969,13 +6989,9 @@ mod tests {
             ("payments", 0, 1)
         );
         assert!(Arc::ptr_eq(&groups[2].0, &payments));
-        assert!(buckets.is_empty());
+        assert!(scratch.buckets.is_empty());
 
-        let mut indexed = ProduceGroupScratch {
-            buckets: ProduceBuckets::default(),
-            topics: Vec::new(),
-            parts: Vec::new(),
-        };
+        let mut indexed = ProduceGroupScratch::default();
         index_produce_groups(&groups, &mut indexed);
         assert_eq!(indexed.topics, vec![0, 2]);
         assert_eq!(indexed.parts.first().map(Vec::as_slice), Some(&[0, 1][..]));
@@ -7005,7 +7021,7 @@ mod tests {
 
         let again = group_pending(
             vec![queued("payments", Some(1)), queued("orders", Some(0))],
-            &mut buckets,
+            &mut scratch,
         );
         assert_eq!(again.len(), 2);
         assert_eq!((again[0].0.as_ref(), again[0].1), ("payments", 1));
