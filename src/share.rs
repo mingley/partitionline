@@ -2832,8 +2832,11 @@ impl ShareGroup {
     ///
     /// An already-joined member keeps its share sessions. The next
     /// ShareFetch forgets partitions that left the assignment (Java
-    /// `ShareSessionHandler`). After [`Self::unsubscribe`], this starts a
-    /// new heartbeat loop.
+    /// `ShareSessionHandler`). Leftover acknowledgements for a previous
+    /// topic still flush on the next [`Self::poll`], [`Self::commit`],
+    /// or [`Self::leave`] (Java `testShareFetchWithSubscriptionChange` /
+    /// `testCommitAsyncWithSubscriptionChange`). After
+    /// [`Self::unsubscribe`], this starts a new heartbeat loop.
     pub async fn subscribe(
         &mut self,
         topics: impl IntoIterator<Item = impl Into<String>>,

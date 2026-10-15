@@ -2079,7 +2079,9 @@
 //! records from one leader per poll (Java `canSkipIfRequestEmpty`).
 //! An unrequested ShareFetch topic id or partition is skipped (Java
 //! `lookupTopicId`). [`ShareGroup::subscribe`] keeps open share
-//! sessions and heartbeats the new topic list.
+//! sessions and heartbeats the new topic list. Leftover acknowledgements
+//! for a previous topic still flush after that subscribe (Java
+//! `testShareFetchWithSubscriptionChange`).
 //! [`ShareGroup::commit`] / [`ShareGroup::commit_timeout`] flush
 //! pending acknowledgements (`Result<()>`). [`ShareGroup::commit_async`]
 //! is Java `ShareConsumer.commitAsync` (implicit last-poll ACCEPT is

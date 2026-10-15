@@ -426,6 +426,63 @@ async fn subscribe_shrink_keeps_share_session() {
 }
 
 #[tokio::test]
+async fn share_fetch_subscription_change_still_sends_old_acks() {
+    let mock = common::Mock::start().await;
+    v2(&mock);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let created = admin
+        .create_topics(&[NewTopic::new("u", 1, 1)], 10_000, false)
+        .await
+        .unwrap();
+    for result in &created {
+        assert!(
+            result.error_code == 0
+                || result.error_code == partitionline::error::TOPIC_ALREADY_EXISTS,
+            "{}: {} {:?}",
+            result.name,
+            result.error_code,
+            result.error_message
+        );
+    }
+    admin.close().await.unwrap();
+    produce(&mock, &[(0, b"old")]).await;
+    produce_topic(&mock, "u", &[(0, b"new")]).await;
+    let mut group = ShareGroup::join(config(&mock), "sub-change", "t")
+        .await
+        .unwrap();
+    let first = group.poll().await.unwrap();
+    assert_eq!(first[0].topic, "t");
+    let first_off = first[0].offset;
+    group.accept(&first).await.unwrap();
+    let acks = mock.share_ack_calls();
+    group.subscribe(["u"]).await.unwrap();
+    assert!(
+        group.assignment().iter().all(|tp| tp.topic == "u"),
+        "subscribe must assign u, got {:?}",
+        group.assignment()
+    );
+    assert_eq!(
+        mock.share_ack_calls(),
+        acks,
+        "Java subscription change does not send leftover acks until the next poll"
+    );
+    assert_ne!(
+        mock.last_share_ack_epoch(),
+        Some(-1),
+        "subscribe must not close the share session with FINAL epoch"
+    );
+    let second = group.poll().await.unwrap();
+    assert!(
+        mock.share_accepted("sub-change", "t", 0, first_off),
+        "Java testShareFetchWithSubscriptionChange still acknowledges the previous topic"
+    );
+    assert_eq!(second[0].topic, "u");
+    assert_eq!(second[0].value.as_deref(), Some(&b"new"[..]));
+    group.accept(&second).await.unwrap();
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn implicit_commit_flushes_without_waiting_for_next_poll() {
     let mock = common::Mock::start().await;
     produce(&mock, &[(0, b"first"), (0, b"second")]).await;
