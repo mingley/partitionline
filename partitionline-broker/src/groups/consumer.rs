@@ -652,10 +652,10 @@ fn apply_topics(group: &mut Group, topics: &BTreeMap<String, i32>) {
     let previous: BTreeMap<String, AssignmentMap> = group
         .members
         .iter()
-        .map(|(id, member)| (id.clone(), member.assignment.clone()))
+        .map(|(id, member)| (id.clone(), Arc::clone(&member.assignment)))
         .collect();
     for member in group.members.values_mut() {
-        Arc::make_mut(&mut member.assignment).clear();
+        member.assignment = Arc::new(BTreeMap::new());
     }
     let names: BTreeSet<String> = group
         .members
@@ -675,7 +675,12 @@ fn apply_topics(group: &mut Group, topics: &BTreeMap<String, i32>) {
         assign_topic(group, &topic, count, &subscribers);
     }
     for (id, member) in &mut group.members {
-        if previous.get(id) != Some(&member.assignment) {
+        if let Some(prior) = previous
+            .get(id)
+            .filter(|prior| *prior == &member.assignment)
+        {
+            member.assignment = Arc::clone(prior);
+        } else {
             member.acked = false;
         }
     }
@@ -1401,7 +1406,7 @@ mod tests {
             })
             .unwrap_or_else(|error| panic!("{error:?}"));
         assert_eq!(steady.member_epoch, acked.member_epoch);
-        assert_eq!(steady.assignment, acked.assignment);
+        assert!(Arc::ptr_eq(&steady.assignment, &acked.assignment));
         let repeated = groups
             .heartbeat(beat(
                 "orders-g",
@@ -1412,7 +1417,21 @@ mod tests {
             ))
             .unwrap_or_else(|error| panic!("{error:?}"));
         assert_eq!(repeated.member_epoch, steady.member_epoch);
-        assert_eq!(repeated.assignment, steady.assignment);
+        assert!(Arc::ptr_eq(&repeated.assignment, &steady.assignment));
+        let same_split = groups
+            .heartbeat(beat(
+                "orders-g",
+                &joined.member_id,
+                repeated.member_epoch,
+                0,
+                &["orders"],
+            ))
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(
+            same_split.assignment.get("orders").map(Vec::as_slice),
+            Some(&[0, 1][..])
+        );
+        assert!(Arc::ptr_eq(&same_split.assignment, &repeated.assignment));
         let cleared = groups
             .heartbeat(beat(
                 "orders-g",
