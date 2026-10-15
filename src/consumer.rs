@@ -1805,7 +1805,12 @@ impl PendingRecords {
         cap: usize,
         buffered_bytes: &mut usize,
     ) -> Vec<FetchedRecord> {
-        let mut out = Vec::new();
+        let available = self
+            .order
+            .iter()
+            .filter(|run| !paused.contains(&run.topic, run.partition))
+            .fold(0usize, |sum, run| sum.saturating_add(run.count));
+        let mut out = Vec::with_capacity(available.min(cap));
         let mut index = 0;
         while out.len() < cap {
             let Some(run) = self.order.get_mut(index) else {
@@ -8386,6 +8391,17 @@ mod tests {
                 .collect::<Vec<_>>(),
             vec![(0, 0), (1, 3), (0, 1), (1, 4)]
         );
+        assert!(drained.capacity() >= 4);
+        let mut pending = PendingRecords::new();
+        pending.extend(vec![
+            fetched_at("t", 0, 1),
+            fetched_at("t", 0, 2),
+            fetched_at("t", 0, 3),
+        ]);
+        let mut bytes = 0usize;
+        let limited = pending.drain(&PartitionMap::new(), 2, &mut bytes);
+        assert_eq!(limited.len(), 2);
+        assert!(limited.capacity() >= 2);
     }
 
     #[test]
