@@ -278,6 +278,7 @@ impl Registry {
                     return Err(Error::InvalidRegistration);
                 }
                 let (id, session) = decode_session(&entry.payload, &cluster_id)?;
+                accept_recovered_session(sessions.get(&id), &session)?;
                 sessions.insert(id, session);
                 records = records.saturating_add(1);
                 offset = entry
@@ -670,8 +671,8 @@ fn decode_session(bytes: &[u8], expected_cluster: &str) -> Result<(i32, Session)
     );
     let mut incarnation_id = [0u8; 16];
     incarnation_id.copy_from_slice(take(&mut input, 16)?);
-    let fenced = take(&mut input, 1)?[0] == 1;
-    let shutdown = take(&mut input, 1)?[0] == 1;
+    let fenced = take_flag(&mut input)?;
+    let shutdown = take_flag(&mut input)?;
     let last_heartbeat_ms = u64::from_be_bytes(
         take(&mut input, 8)?
             .try_into()
@@ -691,7 +692,7 @@ fn decode_session(bytes: &[u8], expected_cluster: &str) -> Result<(i32, Session)
     if cluster_id != expected_cluster {
         return Err(Error::InconsistentCluster);
     }
-    let rack = if take(&mut input, 1)?[0] == 1 {
+    let rack = if take_flag(&mut input)? {
         Some(take_str(&mut input)?)
     } else {
         None
@@ -738,27 +739,144 @@ fn decode_session(bytes: &[u8], expected_cluster: &str) -> Result<(i32, Session)
         id.copy_from_slice(take(&mut input, 16)?);
         log_dirs.push(id);
     }
-    let migrating_zk = take(&mut input, 1)?[0] == 1;
+    let migrating_zk = take_flag(&mut input)?;
     if !input.is_empty() {
         return Err(Error::InvalidRegistration);
     }
-    Ok((
-        broker_id,
-        Session {
-            incarnation_id,
-            epoch,
-            listeners,
-            features,
-            rack,
-            migrating_zk,
-            log_dirs,
-            fenced,
-            shutdown,
-            last_heartbeat_ms,
-            metadata_offset,
-            last_transaction_timestamp_ms,
-        },
-    ))
+    if broker_id < 0 {
+        return Err(Error::InvalidRegistration);
+    }
+    let session = Session {
+        incarnation_id,
+        epoch,
+        listeners,
+        features,
+        rack,
+        migrating_zk,
+        log_dirs,
+        fenced,
+        shutdown,
+        last_heartbeat_ms,
+        metadata_offset,
+        last_transaction_timestamp_ms,
+    };
+    validate_session(&session)?;
+    Ok((broker_id, session))
+}
+
+fn take_flag(input: &mut &[u8]) -> Result<bool, Error> {
+    match take(input, 1)?[0] {
+        0 => Ok(false),
+        1 => Ok(true),
+        _ => Err(Error::InvalidRegistration),
+    }
+}
+
+fn validate_session(session: &Session) -> Result<(), Error> {
+    if session.epoch < 0 || session.incarnation_id == [0; 16] {
+        return Err(Error::InvalidRegistration);
+    }
+    if session.listeners.is_empty() || session.listeners.len() > MAX_LISTENERS {
+        return Err(Error::InvalidRegistration);
+    }
+    let mut names = BTreeMap::<&str, ()>::new();
+    for listener in &session.listeners {
+        if listener.name.is_empty()
+            || listener.host.is_empty()
+            || listener.port == 0
+            || !(0..=3).contains(&listener.security_protocol)
+            || listener.name.len() > MAX_TEXT
+            || listener.host.len() > MAX_TEXT
+            || listener.name.chars().any(|c| c.is_control())
+            || listener.host.chars().any(|c| c.is_control())
+            || names.insert(listener.name.as_str(), ()).is_some()
+        {
+            return Err(Error::InvalidRegistration);
+        }
+    }
+    if session.features.len() > MAX_FEATURES || session.log_dirs.len() > MAX_LOG_DIRS {
+        return Err(Error::InvalidRegistration);
+    }
+    let mut features = BTreeMap::<&str, ()>::new();
+    for feature in &session.features {
+        if feature.name.is_empty()
+            || feature.name.len() > MAX_TEXT
+            || feature.min_version < 0
+            || feature.max_version < feature.min_version
+            || features.insert(feature.name.as_str(), ()).is_some()
+        {
+            return Err(Error::InvalidRegistration);
+        }
+    }
+    if session.log_dirs.iter().any(|id| {
+        *id == [0; 16] || session.log_dirs.iter().filter(|other| *other == id).count() > 1
+    }) {
+        return Err(Error::InvalidRegistration);
+    }
+    match &session.rack {
+        Some(rack)
+            if rack.is_empty() || rack.len() > MAX_TEXT || rack.chars().any(|c| c.is_control()) =>
+        {
+            Err(Error::InvalidRegistration)
+        }
+        _ => Ok(()),
+    }
+}
+
+/// A recovered session is the epoch-0 registration, a later registration at the
+/// next epoch, or a heartbeat/fence that keeps the same contact. Fence and
+/// shutdown only turn on, and a fenced session does not move its clock backward.
+fn accept_recovered_session(current: Option<&Session>, session: &Session) -> Result<(), Error> {
+    validate_session(session)?;
+    let Some(current) = current else {
+        return if fresh_registration(session) && session.epoch == 0 {
+            Ok(())
+        } else {
+            Err(Error::InvalidRegistration)
+        };
+    };
+    if current == session {
+        return Ok(());
+    }
+    let next_epoch = current
+        .epoch
+        .checked_add(1)
+        .ok_or(Error::InvalidRegistration)?;
+    if session.epoch == next_epoch {
+        return if fresh_registration(session) {
+            Ok(())
+        } else {
+            Err(Error::InvalidRegistration)
+        };
+    }
+    if session.epoch != current.epoch
+        || session.incarnation_id != current.incarnation_id
+        || session.listeners != current.listeners
+        || session.features != current.features
+        || session.rack != current.rack
+        || session.migrating_zk != current.migrating_zk
+        || session.log_dirs != current.log_dirs
+    {
+        return Err(Error::InvalidRegistration);
+    }
+    if (current.fenced && !session.fenced) || (current.shutdown && !session.shutdown) {
+        return Err(Error::InvalidRegistration);
+    }
+    if current.fenced {
+        if session.last_heartbeat_ms != current.last_heartbeat_ms {
+            return Err(Error::InvalidRegistration);
+        }
+    } else if session.last_heartbeat_ms < current.last_heartbeat_ms {
+        return Err(Error::InvalidRegistration);
+    }
+    Ok(())
+}
+
+fn fresh_registration(session: &Session) -> bool {
+    !session.fenced
+        && !session.shutdown
+        && session.metadata_offset == 0
+        && session.last_transaction_timestamp_ms == -1
 }
 
 fn put_str(bytes: &mut Vec<u8>, value: &str) -> Result<(), Error> {
@@ -980,5 +1098,95 @@ mod tests {
         assert_eq!(registry.is_fenced(3), Some(false));
         assert_eq!(registry.expire(6_001).unwrap_or(99), 1);
         assert_eq!(registry.is_fenced(3), Some(true));
+    }
+
+    fn session() -> Session {
+        Session {
+            incarnation_id: [2; 16],
+            epoch: 0,
+            listeners: vec![Listener {
+                name: "PLAINTEXT".into(),
+                host: "127.0.0.1".into(),
+                port: 9092,
+                security_protocol: 0,
+            }],
+            features: vec![],
+            rack: None,
+            migrating_zk: false,
+            log_dirs: vec![],
+            fenced: false,
+            shutdown: false,
+            last_heartbeat_ms: 0,
+            metadata_offset: 0,
+            last_transaction_timestamp_ms: -1,
+        }
+    }
+
+    #[test]
+    fn a_recovered_registration_must_match_a_live_session() {
+        let base = session();
+        let encoded =
+            encode_session("cluster-410", -1, &base).unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(
+            decode_session(&encoded, "cluster-410"),
+            Err(Error::InvalidRegistration)
+        ));
+        let mut encoded =
+            encode_session("cluster-410", 3, &base).unwrap_or_else(|error| panic!("{error:?}"));
+        encoded[36] = 2;
+        assert!(matches!(
+            decode_session(&encoded, "cluster-410"),
+            Err(Error::InvalidRegistration)
+        ));
+        let jumped = Session {
+            epoch: 4,
+            ..base.clone()
+        };
+        assert!(matches!(
+            accept_recovered_session(None, &jumped),
+            Err(Error::InvalidRegistration)
+        ));
+        accept_recovered_session(None, &base).unwrap_or_else(|error| panic!("{error:?}"));
+        let later = Session {
+            last_heartbeat_ms: 50,
+            metadata_offset: 3,
+            ..base.clone()
+        };
+        accept_recovered_session(Some(&base), &later).unwrap_or_else(|error| panic!("{error:?}"));
+        let earlier = Session {
+            last_heartbeat_ms: 10,
+            ..later.clone()
+        };
+        assert!(matches!(
+            accept_recovered_session(Some(&later), &earlier),
+            Err(Error::InvalidRegistration)
+        ));
+        let unfenced = Session {
+            fenced: false,
+            ..later.clone()
+        };
+        let fenced = Session {
+            fenced: true,
+            ..later.clone()
+        };
+        assert!(matches!(
+            accept_recovered_session(Some(&fenced), &unfenced),
+            Err(Error::InvalidRegistration)
+        ));
+        let skipped = Session {
+            epoch: 2,
+            ..base.clone()
+        };
+        assert!(matches!(
+            accept_recovered_session(Some(&later), &skipped),
+            Err(Error::InvalidRegistration)
+        ));
+        let replaced = Session {
+            epoch: 1,
+            incarnation_id: [9; 16],
+            ..base
+        };
+        accept_recovered_session(Some(&fenced), &replaced)
+            .unwrap_or_else(|error| panic!("{error:?}"));
     }
 }
