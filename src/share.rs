@@ -685,6 +685,9 @@ pub enum ShareAcquireMode {
 /// subscribe, leftover acknowledgements whose leader has no share
 /// session complete the same way and that leader is not fetched (Java
 /// `testPiggybackAcknowledgementsOnInitialShareSessionErrorSubscriptionChange`).
+/// Leftover acknowledgements whose metadata leader has changed complete
+/// the same way and are not piggybacked on the new leader (Java
+/// `testWhenLeadershipChangeBetweenShareFetchRequests`).
 /// A successful ShareFetch that omits a piggybacked partition completes
 /// those acknowledgements with `INVALID_RECORD_STATE` (Java
 /// `InvalidRecordStateException` / `INVALID_RESPONSE`). A successful
@@ -1493,6 +1496,9 @@ impl ShareGroup {
     /// no share session complete the same way and that leader is not
     /// fetched (Java
     /// `testPiggybackAcknowledgementsOnInitialShareSessionErrorSubscriptionChange`).
+    /// Leftover acknowledgements whose metadata leader has changed
+    /// complete the same way and are not piggybacked on the new leader
+    /// (Java `testWhenLeadershipChangeBetweenShareFetchRequests`).
     /// A partition-level error (Java `ShareFetchCollector.collect` /
     /// `testMultipleTopicsFetch`) leaves successful sibling partitions
     /// deliverable. The error is returned on this poll when it is first
@@ -2187,6 +2193,29 @@ impl ShareGroup {
         }
         let assigned = self.assigned.clone();
         let mut fetch_tps = assigned.clone();
+        // Java isLeaderKnownToHaveChanged: leftover acks follow the
+        // acquisition node. A metadata leader change fails them with
+        // NOT_LEADER_OR_FOLLOWER and they are not piggybacked on the
+        // new leader (testWhenLeadershipChangeBetweenShareFetchRequests).
+        let mut changed = Vec::new();
+        let mut seen_changed = HashSet::new();
+        for rec in self.pending_ack_records() {
+            let tp = (rec.topic.clone(), rec.partition);
+            if seen_changed.insert(tp.clone()) && self.share_ack_leader_changed(&tp.0, tp.1) {
+                changed.push(tp);
+            }
+        }
+        if !changed.is_empty() {
+            let error = Error::broker(
+                error::NOT_LEADER_OR_FOLLOWER,
+                "cannot acknowledge on a different share leader",
+            );
+            self.fail_node_share_fetch_acknowledgements(&changed, &error);
+            for (topic, part) in &changed {
+                self.acquisitions
+                    .retain(|(name, partition, _), _| !(name == topic && *partition == *part));
+            }
+        }
         for rec in self.pending_ack_records() {
             if !fetch_tps
                 .iter()

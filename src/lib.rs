@@ -2061,6 +2061,9 @@
 //! subscribe, leftover acknowledgements whose leader has no share
 //! session complete the same way and that leader is not fetched (Java
 //! `testPiggybackAcknowledgementsOnInitialShareSessionErrorSubscriptionChange`).
+//! Leftover acknowledgements whose metadata leader has changed complete
+//! the same way and are not piggybacked on the new leader (Java
+//! `testWhenLeadershipChangeBetweenShareFetchRequests`).
 //! A successful ShareFetch that omits a piggybacked partition completes
 //! those acknowledgements with `INVALID_RECORD_STATE` (Java
 //! `InvalidRecordStateException` / `INVALID_RESPONSE`).

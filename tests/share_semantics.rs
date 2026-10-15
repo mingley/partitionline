@@ -2056,6 +2056,71 @@ async fn share_acknowledge_fails_when_metadata_leader_changed() {
 }
 
 #[tokio::test]
+async fn share_fetch_fails_acks_when_leader_changes_between_fetches() {
+    let mock = common::Mock::start_two_node().await;
+    v2(&mock);
+    mock.set_topic_partitions("t", 2);
+    mock.set_partition_leader("t", 0, 1);
+    mock.set_partition_leader("t", 1, 2);
+    produce(&mock, &[(0, b"held")]).await;
+    let mut group = ShareGroup::join(config(&mock), "between-fetch", "t")
+        .await
+        .unwrap();
+    let first = group.poll().await.unwrap();
+    assert_eq!(first.len(), 1);
+    assert_eq!(first[0].partition, 0);
+    let first_off = first[0].offset;
+    group.accept(&first).await.unwrap();
+    mock.set_partition_leader("t", 0, 2);
+    let _ = group.list_topics().await.unwrap();
+    let fetches = mock.share_fetch_calls();
+    let acks = mock.share_ack_calls();
+    let history_before = mock.share_fetch_history();
+    let seen = Arc::new(Mutex::new(Vec::new()));
+    let seen_cb = seen.clone();
+    group.set_acknowledgement_commit_callback(move |_, exception| {
+        seen_cb
+            .lock()
+            .push(exception.as_ref().and_then(|error| error.code()));
+    });
+    let second = group.poll().await.unwrap();
+    assert_eq!(
+        *seen.lock(),
+        vec![Some(error::NOT_LEADER_OR_FOLLOWER)],
+        "Java testWhenLeadershipChangeBetweenShareFetchRequests fails leftover acks with NOT_LEADER"
+    );
+    let extra: Vec<(i32, i32)> = mock
+        .share_fetch_history()
+        .into_iter()
+        .skip(history_before.len())
+        .collect();
+    assert!(
+        extra.iter().all(|(node, epoch)| *node == 2 && *epoch > 0) && !extra.is_empty(),
+        "moved leftover acks must not fetch the previous leader or an initial session, got {extra:?}"
+    );
+    assert_eq!(
+        mock.last_share_fetch_node(),
+        Some(2),
+        "the new leader is still fetched without those leftover acks"
+    );
+    drop(second);
+    assert_eq!(
+        mock.share_ack_calls(),
+        acks,
+        "leader-changed leftover acks must not send ShareAcknowledge"
+    );
+    assert!(
+        mock.share_fetch_calls() > fetches,
+        "the new assignment is still ShareFetched"
+    );
+    assert!(
+        !mock.share_accepted("between-fetch", "t", 0, first_off),
+        "leftover acks must not ACCEPT on the new leader"
+    );
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn session_reset_restarts_initial_epoch_and_repeated_failure_is_bounded() {
     let mock = common::Mock::start().await;
     v2(&mock);
