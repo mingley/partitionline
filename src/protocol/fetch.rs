@@ -673,18 +673,19 @@ fn add_to_forgotten_topic_map<'a, I>(
     I: IntoIterator<Item = ([u8; 16], &'a str, i32)>,
 {
     for (topic_id, topic, partition) in to_forget {
-        by_name
-            .entry(topic.to_string())
-            .or_insert_with(|| {
-                order.push(topic.to_string());
-                ForgottenTopic {
-                    topic: topic.to_string(),
-                    topic_id,
-                    partitions: Vec::new(),
-                }
-            })
-            .partitions
-            .push(partition);
+        if let Some(existing) = by_name.get_mut(topic) {
+            existing.partitions.push(partition);
+            continue;
+        }
+        order.push(topic.to_string());
+        let _ = by_name.insert(
+            topic.to_string(),
+            ForgottenTopic {
+                topic: topic.to_string(),
+                topic_id,
+                partitions: vec![partition],
+            },
+        );
     }
 }
 

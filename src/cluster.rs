@@ -428,8 +428,10 @@ impl Cluster {
         let Ok(idx) = usize::try_from(partition) else {
             return false;
         };
-        {
-            let leaders = self.leaders.entry(topic.to_string()).or_default();
+        if !self.leaders.contains_key(topic) {
+            let _ = self.leaders.insert(topic.to_string(), Vec::new());
+        }
+        if let Some(leaders) = self.leaders.get_mut(topic) {
             if leaders.len() <= idx {
                 leaders.resize(idx.saturating_add(1), MetadataResponse::NO_LEADER_ID);
             }
@@ -438,9 +440,13 @@ impl Cluster {
             }
         }
         self.set_leader_epoch(topic, partition, leader_epoch);
-        let _prev = self
-            .topic_fetched_at
-            .insert(topic.to_string(), Instant::now());
+        if let Some(fetched_at) = self.topic_fetched_at.get_mut(topic) {
+            *fetched_at = Instant::now();
+        } else {
+            let _prev = self
+                .topic_fetched_at
+                .insert(topic.to_string(), Instant::now());
+        }
         true
     }
 

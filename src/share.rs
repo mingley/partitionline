@@ -3460,42 +3460,48 @@ fn acknowledgement_batches(
     recs: &[ShareRecord],
     ack: i8,
 ) -> Vec<(String, i32, Vec<AcknowledgementBatch>)> {
-    let mut by_part: BTreeMap<(crate::consumer::TopicName, i32), Vec<i64>> = BTreeMap::new();
+    let mut by_part: BTreeMap<crate::consumer::TopicName, BTreeMap<i32, Vec<i64>>> =
+        BTreeMap::new();
     for rec in recs {
-        by_part
-            .entry((rec.topic.clone(), rec.partition))
-            .or_default()
-            .push(rec.offset);
+        if let Some(parts) = by_part.get_mut(&rec.topic) {
+            parts.entry(rec.partition).or_default().push(rec.offset);
+        } else {
+            let mut parts = BTreeMap::new();
+            let _ = parts.insert(rec.partition, vec![rec.offset]);
+            let _ = by_part.insert(rec.topic.clone(), parts);
+        }
     }
-    let mut out = Vec::with_capacity(by_part.len());
-    for ((topic, partition), mut offs) in by_part {
-        offs.sort_unstable();
-        offs.dedup();
-        let mut batches = Vec::new();
-        let mut range: Option<(i64, i64)> = None;
-        for off in offs {
-            range = match range {
-                None => Some((off, off)),
-                Some((s, p)) if off == p.saturating_add(1) => Some((s, off)),
-                Some((s, p)) => {
-                    batches.push(AcknowledgementBatch {
-                        first_offset: s,
-                        last_offset: p,
-                        types: vec![ack],
-                    });
-                    Some((off, off))
-                }
-            };
-        }
-        if let Some((s, p)) = range {
-            batches.push(AcknowledgementBatch {
-                first_offset: s,
-                last_offset: p,
-                types: vec![ack],
-            });
-        }
-        if !batches.is_empty() {
-            out.push((topic.into(), partition, batches));
+    let mut out = Vec::new();
+    for (topic, parts) in by_part {
+        for (partition, mut offs) in parts {
+            offs.sort_unstable();
+            offs.dedup();
+            let mut batches = Vec::new();
+            let mut range: Option<(i64, i64)> = None;
+            for off in offs {
+                range = match range {
+                    None => Some((off, off)),
+                    Some((s, p)) if off == p.saturating_add(1) => Some((s, off)),
+                    Some((s, p)) => {
+                        batches.push(AcknowledgementBatch {
+                            first_offset: s,
+                            last_offset: p,
+                            types: vec![ack],
+                        });
+                        Some((off, off))
+                    }
+                };
+            }
+            if let Some((s, p)) = range {
+                batches.push(AcknowledgementBatch {
+                    first_offset: s,
+                    last_offset: p,
+                    types: vec![ack],
+                });
+            }
+            if !batches.is_empty() {
+                out.push((topic.as_str().to_owned(), partition, batches));
+            }
         }
     }
     out
