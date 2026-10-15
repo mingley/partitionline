@@ -3679,79 +3679,126 @@ async fn connect_loop(
     mut rx: mpsc::Receiver<(i32, usize)>,
     cap: usize,
 ) {
-    while let Some((node, slot)) = rx.recv().await {
-        let Some(shared) = weak.upgrade() else {
-            break;
-        };
-        if shared.closed.load(Ordering::SeqCst) {
+    let mut inflight = tokio::task::JoinSet::<(i32, usize, Result<WorkerHandle>)>::new();
+    let mut rx_open = true;
+    loop {
+        if !rx_open && inflight.is_empty() {
             break;
         }
-        let n_conn = shared.cfg.connections.max(1);
-        if slot >= n_conn {
-            continue;
+        tokio::select! {
+            biased;
+            joined = inflight.join_next(), if !inflight.is_empty() => {
+                let Some(joined) = joined else {
+                    continue;
+                };
+                let Ok((node, slot, result)) = joined else {
+                    continue;
+                };
+                let Some(shared) = weak.upgrade() else {
+                    inflight.abort_all();
+                    break;
+                };
+                finish_slot_connect(&shared, &weak, node, slot, result);
+            }
+            incoming = rx.recv(), if rx_open && inflight.len() < 8 => {
+                let Some((node, slot)) = incoming else {
+                    rx_open = false;
+                    continue;
+                };
+                let Some(shared) = weak.upgrade() else {
+                    inflight.abort_all();
+                    break;
+                };
+                if shared.closed.load(Ordering::SeqCst) {
+                    inflight.abort_all();
+                    break;
+                }
+                let Some(addr) = prepare_slot_dial(&shared, node, slot) else {
+                    continue;
+                };
+                let shared = Arc::clone(&shared);
+                let _ = inflight.spawn(async move {
+                    let result = spawn_slot_worker(&shared, node, &addr, cap).await;
+                    (node, slot, result)
+                });
+            }
         }
-        if shared
-            .nodes
-            .lock()
-            .get(&node)
-            .and_then(|s| s.get(slot))
-            .is_some_and(|s| s.is_some())
-        {
+    }
+}
+
+fn prepare_slot_dial(shared: &Shared, node: i32, slot: usize) -> Option<String> {
+    let n_conn = shared.cfg.connections.max(1);
+    if slot >= n_conn {
+        return None;
+    }
+    if shared
+        .nodes
+        .lock()
+        .get(&node)
+        .and_then(|slots| slots.get(slot))
+        .is_some_and(|slot| slot.is_some())
+    {
+        shared.cache_nudge.notify_waiters();
+        return None;
+    }
+    let addr = shared.cluster.lock().brokers.get(&node).cloned()?;
+    {
+        let mut busy = shared.reconnect_busy.lock();
+        if !busy.insert((node, slot)) {
+            return None;
+        }
+    }
+    {
+        let mut nodes = shared.nodes.lock();
+        let _ = nodes.entry(node).or_insert_with(|| vec![None; n_conn]);
+    }
+    Some(addr)
+}
+
+fn finish_slot_connect(
+    shared: &Shared,
+    weak: &std::sync::Weak<Shared>,
+    node: i32,
+    slot: usize,
+    result: Result<WorkerHandle>,
+) {
+    match result {
+        Ok(handle) => {
+            let _ = shared.reconnect_busy.lock().remove(&(node, slot));
+            let _ = shared.reconnect_fails.lock().remove(&node);
+            if let Some(slots) = shared.nodes.lock().get_mut(&node) {
+                if let Some(s) = slots.get_mut(slot) {
+                    *s = Some(handle);
+                }
+            }
+            *shared.last_meta_err.lock() = None;
             shared.cache_nudge.notify_waiters();
-            continue;
         }
-        let addr = shared.cluster.lock().brokers.get(&node).cloned();
-        let Some(addr) = addr else {
-            continue;
-        };
-        {
-            let mut busy = shared.reconnect_busy.lock();
-            if !busy.insert((node, slot)) {
-                continue;
-            }
-        }
-        {
-            let mut nodes = shared.nodes.lock();
-            let _ = nodes.entry(node).or_insert_with(|| vec![None; n_conn]);
-        }
-        match spawn_slot_worker(&shared, node, &addr, cap).await {
-            Ok(handle) => {
-                let _ = shared.reconnect_busy.lock().remove(&(node, slot));
-                let _ = shared.reconnect_fails.lock().remove(&node);
-                if let Some(slots) = shared.nodes.lock().get_mut(&node) {
-                    if let Some(s) = slots.get_mut(slot) {
-                        *s = Some(handle);
+        Err(e) => {
+            // KL09-25: the entry stays (other slots may be live); only
+            // this slot remains vacant until the backoff re-nudge.
+            let fails =
+                crate::config::bump_reconnect_fails(&mut shared.reconnect_fails.lock(), node);
+            if e.is_retriable() {
+                let delay = crate::config::reconnect_backoff_delay(
+                    shared.cfg.reconnect_backoff,
+                    shared.cfg.reconnect_backoff_max,
+                    fails,
+                );
+                let weak = weak.clone();
+                drop(tokio::spawn(async move {
+                    if !delay.is_zero() {
+                        tokio::time::sleep(delay).await;
                     }
-                }
-                *shared.last_meta_err.lock() = None;
+                    if let Some(shared) = weak.upgrade() {
+                        let _ = shared.reconnect_busy.lock().remove(&(node, slot));
+                        try_nudge_slot(&shared.connect_tx, node, slot);
+                    }
+                }));
+            } else {
+                let _ = shared.reconnect_busy.lock().remove(&(node, slot));
+                *shared.last_meta_err.lock() = Some(clone_err(&e));
                 shared.cache_nudge.notify_waiters();
-            }
-            Err(e) => {
-                // KL09-25: the entry stays (other slots may be live); only
-                // this slot remains vacant until the backoff re-nudge.
-                let fails =
-                    crate::config::bump_reconnect_fails(&mut shared.reconnect_fails.lock(), node);
-                if e.is_retriable() {
-                    let delay = crate::config::reconnect_backoff_delay(
-                        shared.cfg.reconnect_backoff,
-                        shared.cfg.reconnect_backoff_max,
-                        fails,
-                    );
-                    let weak = weak.clone();
-                    drop(tokio::spawn(async move {
-                        if !delay.is_zero() {
-                            tokio::time::sleep(delay).await;
-                        }
-                        if let Some(shared) = weak.upgrade() {
-                            let _ = shared.reconnect_busy.lock().remove(&(node, slot));
-                            try_nudge_slot(&shared.connect_tx, node, slot);
-                        }
-                    }));
-                } else {
-                    let _ = shared.reconnect_busy.lock().remove(&(node, slot));
-                    *shared.last_meta_err.lock() = Some(clone_err(&e));
-                    shared.cache_nudge.notify_waiters();
-                }
             }
         }
     }

@@ -52,12 +52,45 @@ async fn ack_completes_while_the_next_batch_lingers() {
         "in-flight ack waited out linger: {:?}",
         acked_at.elapsed()
     );
-    assert_eq!((left.offset, right.offset), (0, 1));
+    let mut offsets = [left.offset, right.offset];
+    offsets.sort_unstable();
+    assert_eq!(offsets, [0, 1]);
     let third = tokio::time::timeout(Duration::from_secs(2), third)
         .await
         .expect("lingering record")
         .unwrap();
     assert_eq!(third.offset, 2);
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn multi_broker_produce_dials_overlap() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_topic_partitions("t", 2);
+    let mut cfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    cfg.linger = Duration::ZERO;
+    let producer = Producer::new(cfg).await.unwrap();
+    let _parts = producer.partitions_for("t").await.unwrap();
+    let before = mock.api_versions_versions().len();
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let left = producer.clone();
+    let right = producer.clone();
+    let started = Instant::now();
+    let (a, b) = tokio::join!(
+        left.send(ProduceRecord::to("t").partition(0).value(&b"a"[..])),
+        right.send(ProduceRecord::to("t").partition(1).value(&b"b"[..])),
+    );
+    let elapsed = started.elapsed();
+    let (a, b) = (a.unwrap(), b.unwrap());
+    assert_eq!((a.partition, b.partition), (0, 1));
+    assert!(
+        mock.api_versions_versions().len() >= before + 2,
+        "both leaders should negotiate"
+    );
+    assert!(
+        elapsed < Duration::from_millis(400),
+        "produce leader dials ran one after another: {elapsed:?}"
+    );
     producer.close().await.unwrap();
 }
 
