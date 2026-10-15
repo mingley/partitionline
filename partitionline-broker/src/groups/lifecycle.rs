@@ -432,29 +432,57 @@ fn decode(mut bytes: &[u8]) -> Result<BTreeMap<String, Member>, Error> {
     let mut members = BTreeMap::new();
     for _ in 0..count {
         let id = take_str(&mut bytes)?;
-        let instance_id = if take(&mut bytes, 1)?[0] == 1 {
+        validate_name(&id)?;
+        let instance_flag = take(&mut bytes, 1)?[0];
+        if instance_flag > 1 {
+            return Err(Error::InvalidRequest);
+        }
+        let instance_id = if instance_flag == 1 {
             Some(take_str(&mut bytes)?)
         } else {
             None
         };
+        if let Some(instance) = &instance_id {
+            validate_name(instance)?;
+        }
         let last_heartbeat_ms = take_u64(&mut bytes)?;
-        let rebalance_deadline_ms = if take(&mut bytes, 1)?[0] == 1 {
+        let deadline_flag = take(&mut bytes, 1)?[0];
+        if deadline_flag > 1 {
+            return Err(Error::InvalidRequest);
+        }
+        let rebalance_deadline_ms = if deadline_flag == 1 {
             Some(take_u64(&mut bytes)?)
         } else {
             None
         };
         let owned = take_set(&mut bytes)?;
         let delivered = take_set(&mut bytes)?;
-        members.insert(
-            id,
-            Member {
-                instance_id,
-                owned,
-                delivered,
-                last_heartbeat_ms,
-                rebalance_deadline_ms,
-            },
-        );
+        if delivered.iter().any(|partition| !owned.contains(partition)) {
+            return Err(Error::InvalidRequest);
+        }
+        if members
+            .insert(
+                id,
+                Member {
+                    instance_id,
+                    owned,
+                    delivered,
+                    last_heartbeat_ms,
+                    rebalance_deadline_ms,
+                },
+            )
+            .is_some()
+        {
+            return Err(Error::InvalidRequest);
+        }
+    }
+    let mut seen = BTreeSet::new();
+    for member in members.values() {
+        for partition in &member.owned {
+            if !seen.insert(*partition) {
+                return Err(Error::InvalidRequest);
+            }
+        }
     }
     if !bytes.is_empty() {
         return Err(Error::InvalidRequest);
@@ -515,7 +543,10 @@ fn take_set(input: &mut &[u8]) -> Result<BTreeSet<i32>, Error> {
     for _ in 0..len {
         let mut raw = [0u8; 4];
         raw.copy_from_slice(take(input, 4)?);
-        values.insert(i32::from_be_bytes(raw));
+        let value = i32::from_be_bytes(raw);
+        if value < 0 || !values.insert(value) {
+            return Err(Error::InvalidRequest);
+        }
     }
     Ok(values)
 }
@@ -523,6 +554,7 @@ fn take_set(input: &mut &[u8]) -> Result<BTreeSet<i32>, Error> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::BTreeSet;
     use std::time::{SystemTime, UNIX_EPOCH};
 
     fn limits() -> Limits {
@@ -539,6 +571,36 @@ mod tests {
         let path = std::env::temp_dir().join(format!("pl-life-{name}-{nanos}"));
         let life = Lifecycle::open(&path, limits()).unwrap_or_else(|error| panic!("{error:?}"));
         (life, path)
+    }
+
+    #[test]
+    fn a_delivered_partition_that_is_not_owned_is_not_recovered() {
+        let mut members = BTreeMap::new();
+        members.insert(
+            "m-1".to_owned(),
+            Member {
+                instance_id: None,
+                owned: BTreeSet::from([0]),
+                delivered: BTreeSet::from([1]),
+                last_heartbeat_ms: 0,
+                rebalance_deadline_ms: None,
+            },
+        );
+        let encoded = encode(&members).unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(decode(&encoded), Err(Error::InvalidRequest)));
+        let mut members = BTreeMap::new();
+        members.insert(
+            "m-1".to_owned(),
+            Member {
+                instance_id: None,
+                owned: BTreeSet::from([-1]),
+                delivered: BTreeSet::new(),
+                last_heartbeat_ms: 0,
+                rebalance_deadline_ms: None,
+            },
+        );
+        let encoded = encode(&members).unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(decode(&encoded), Err(Error::InvalidRequest)));
     }
 
     #[test]
@@ -651,10 +713,7 @@ mod tests {
             life.join("other", Some("instance-a"), &[], 5),
             Err(Error::InvalidRequest)
         ));
-        assert_eq!(
-            life.owned("other").map(|set| set.contains(&2)),
-            Some(true)
-        );
+        assert_eq!(life.owned("other").map(|set| set.contains(&2)), Some(true));
         assert!(life.owned("old").is_some());
         life.mark_delivered("old", 0)
             .unwrap_or_else(|error| panic!("{error:?}"));
