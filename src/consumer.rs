@@ -4131,9 +4131,10 @@ impl Consumer {
             if remaining.is_empty() {
                 return Ok(());
             }
+            let mut leaders = crate::cluster::LeaderList::new();
             let mut missing_leader = false;
             for (topic, partition) in &remaining {
-                if self.cluster.leader_id(topic, *partition).is_err() {
+                if leaders.node(&self.cluster, topic, *partition).is_err() {
                     missing_leader = true;
                     break;
                 }
@@ -4147,11 +4148,12 @@ impl Consumer {
                     remaining_offset_timeout(deadline, Instant::now()),
                 )
                 .await?;
+                leaders = crate::cluster::LeaderList::new();
             }
             let mut by_leader: HashMap<i32, Vec<(String, i32)>> = HashMap::new();
             let mut retry = Vec::new();
             for (topic, partition) in remaining {
-                match self.cluster.leader_id(&topic, partition) {
+                match leaders.node(&self.cluster, &topic, partition) {
                     Ok(node) => by_leader.entry(node).or_default().push((topic, partition)),
                     Err(_) => retry.push((topic, partition)),
                 }

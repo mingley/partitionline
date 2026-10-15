@@ -17,7 +17,7 @@ pub use streams::{DescribeStreamsGroupsOptions, StreamsGroupDescription};
 
 use bytes::{Bytes, BytesMut};
 
-use crate::cluster::Cluster;
+use crate::cluster::{Cluster, LeaderList};
 use crate::error::{self, Error, Result};
 use crate::net::{BrokerConn, TlsConfig};
 use crate::protocol::acl::{
@@ -3341,59 +3341,6 @@ async fn dial_admin_socket(
     )
     .await?;
     Ok(AdminOffsetConn::new(conn, &versions_resp))
-}
-
-struct LeaderList {
-    topic: String,
-    leaders: Vec<i32>,
-    present: bool,
-}
-
-impl LeaderList {
-    fn new() -> Self {
-        Self {
-            topic: String::new(),
-            leaders: Vec::new(),
-            present: false,
-        }
-    }
-
-    fn node(&mut self, cluster: &Cluster, topic: &str, partition: i32) -> Result<i32> {
-        if self.topic != topic {
-            self.leaders.clear();
-            self.present = false;
-            if let Some(leaders) = cluster.leaders.get(topic) {
-                self.leaders.clone_from(leaders);
-                self.present = true;
-            }
-            self.topic.clear();
-            self.topic.push_str(topic);
-        }
-        if !self.present {
-            return Err(Error::UnknownTopic(topic.to_string()));
-        }
-        let idx = usize::try_from(partition).map_err(|_| Error::NoLeader {
-            topic: topic.to_string(),
-            partition,
-        })?;
-        let node = self
-            .leaders
-            .get(idx)
-            .copied()
-            .filter(|&id| id >= 0)
-            .ok_or_else(|| Error::NoLeader {
-                topic: topic.to_string(),
-                partition,
-            })?;
-        if cluster.brokers.contains_key(&node) {
-            Ok(node)
-        } else {
-            Err(Error::NoLeader {
-                topic: topic.to_string(),
-                partition,
-            })
-        }
-    }
 }
 
 impl Admin {

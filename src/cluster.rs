@@ -573,6 +573,64 @@ pub(crate) fn partition_epoch(epochs: &[i32], partition: i32) -> i32 {
         .unwrap_or(RecordBatch::NO_PARTITION_LEADER_EPOCH)
 }
 
+/// Leader node ids for the topic currently being routed.
+///
+/// A run of partitions for one topic copies that leader list once. The next
+/// topic replaces it. Unknown topics, negative leaders, and leaders with no
+/// cached address match [`Cluster::leader_id`].
+pub(crate) struct LeaderList {
+    topic: String,
+    leaders: Vec<i32>,
+    present: bool,
+}
+
+impl LeaderList {
+    pub(crate) fn new() -> Self {
+        Self {
+            topic: String::new(),
+            leaders: Vec::new(),
+            present: false,
+        }
+    }
+
+    pub(crate) fn node(&mut self, cluster: &Cluster, topic: &str, partition: i32) -> Result<i32> {
+        if self.topic != topic {
+            self.leaders.clear();
+            self.present = false;
+            if let Some(leaders) = cluster.leaders.get(topic) {
+                self.leaders.clone_from(leaders);
+                self.present = true;
+            }
+            self.topic.clear();
+            self.topic.push_str(topic);
+        }
+        if !self.present {
+            return Err(Error::UnknownTopic(topic.to_string()));
+        }
+        let idx = usize::try_from(partition).map_err(|_| Error::NoLeader {
+            topic: topic.to_string(),
+            partition,
+        })?;
+        let node = self
+            .leaders
+            .get(idx)
+            .copied()
+            .filter(|&id| id >= 0)
+            .ok_or_else(|| Error::NoLeader {
+                topic: topic.to_string(),
+                partition,
+            })?;
+        if cluster.brokers.contains_key(&node) {
+            Ok(node)
+        } else {
+            Err(Error::NoLeader {
+                topic: topic.to_string(),
+                partition,
+            })
+        }
+    }
+}
+
 /// Leader epochs for the topic currently being read.
 ///
 /// A run of partitions for one topic copies that epoch list once. The next
@@ -607,6 +665,66 @@ mod tests {
     use super::*;
     use crate::error;
     use crate::protocol::api::{Broker, MetadataResponse};
+
+    #[test]
+    fn a_leader_list_matches_a_direct_lookup() {
+        use crate::protocol::api::{PartitionMetadata, TopicMetadata};
+
+        let topic = |name: &str, leader: i32| TopicMetadata {
+            error_code: 0,
+            name: Some(name.into()),
+            topic_id: [0u8; 16],
+            is_internal: false,
+            partitions: vec![
+                PartitionMetadata {
+                    error_code: 0,
+                    partition_index: 0,
+                    leader_id: leader,
+                    leader_epoch: 1,
+                    replica_nodes: vec![leader],
+                    isr_nodes: vec![leader],
+                    offline_replicas: Vec::new(),
+                },
+                PartitionMetadata {
+                    error_code: 0,
+                    partition_index: 1,
+                    leader_id: leader,
+                    leader_epoch: 1,
+                    replica_nodes: vec![leader],
+                    isr_nodes: vec![leader],
+                    offline_replicas: Vec::new(),
+                },
+            ],
+            topic_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+        };
+        let mut cluster = Cluster::default();
+        cluster.apply(
+            &MetadataResponse {
+                throttle_time_ms: 0,
+                brokers: vec![Broker {
+                    node_id: 1,
+                    host: "127.0.0.1".into(),
+                    port: 9092,
+                    rack: None,
+                }],
+                cluster_id: Some("mock".into()),
+                controller_id: 1,
+                topics: vec![topic("orders", 1), topic("payments", 1)],
+                cluster_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+                error_code: 0,
+            },
+            13,
+        );
+        let mut leaders = LeaderList::new();
+        assert_eq!(leaders.node(&cluster, "orders", 0).unwrap(), 1);
+        assert_eq!(
+            leaders.node(&cluster, "orders", 1).unwrap(),
+            cluster.leader_id("orders", 1).unwrap()
+        );
+        assert_eq!(leaders.node(&cluster, "payments", 0).unwrap(), 1);
+        assert!(leaders.node(&cluster, "missing", 0).is_err());
+        assert!(cluster.leader_id("missing", 0).is_err());
+    }
 
     #[test]
     fn an_epoch_list_loads_each_topic_once() {
