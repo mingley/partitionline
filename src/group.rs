@@ -3566,10 +3566,16 @@ async fn discover_coord_once(
     group_id: &str,
     key_type: i8,
 ) -> Result<(BrokerConn, crate::protocol::api::ApiVersionsResponse)> {
-    let timeout = cfg.request_timeout;
+    let deadline = crate::net::Deadline::from_std(
+        Instant::now()
+            .checked_add(cfg.request_timeout)
+            .ok_or(Error::Timeout)?,
+    );
     let mut last = Error::protocol("find coordinator failed");
     for addr in &cfg.bootstrap {
-        let (mut hop, version, versions) = match open_coord_with_find_version(cfg, addr).await {
+        let bounded = bounded_coord_config(cfg, deadline)?;
+        let (mut hop, version, versions) = match open_coord_with_find_version(&bounded, addr).await
+        {
             Ok(v) => v,
             Err(e) => {
                 last = e;
@@ -3581,7 +3587,7 @@ async fn discover_coord_once(
                 FIND_COORDINATOR,
                 version,
                 |buf| encode_find_coordinator_request_typed(buf, version, group_id, key_type),
-                timeout,
+                deadline.remaining()?,
             )
             .await
         {
@@ -3606,7 +3612,8 @@ async fn discover_coord_once(
         if coord_addr == hop.addr() {
             return Ok((hop, versions));
         }
-        let (conn, _, versions) = open_coord_with_find_version(cfg, &coord_addr).await?;
+        let bounded = bounded_coord_config(cfg, deadline)?;
+        let (conn, _, versions) = open_coord_with_find_version(&bounded, &coord_addr).await?;
         return Ok((conn, versions));
     }
     Err(last)

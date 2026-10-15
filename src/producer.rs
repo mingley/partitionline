@@ -3169,10 +3169,13 @@ async fn discover_typed_coord_once(
     key_type: i8,
     version: i16,
 ) -> Result<CoordinatorConnection> {
-    let timeout = cfg.request_timeout;
+    let deadline = Instant::now()
+        .checked_add(cfg.request_timeout)
+        .ok_or(Error::Timeout)?;
     let mut last = Error::protocol("find coordinator failed");
     for addr in &cfg.bootstrap {
-        let (mut hop, hop_versions) = match open_conn_with_versions(addr, cfg, false).await {
+        let bounded = bounded_producer_config(cfg, deadline)?;
+        let (mut hop, hop_versions) = match open_conn_with_versions(addr, &bounded, false).await {
             Ok(c) => c,
             Err(e) => {
                 last = e;
@@ -3184,7 +3187,7 @@ async fn discover_typed_coord_once(
                 FIND_COORDINATOR,
                 version,
                 |buf| encode_find_coordinator_request_typed(buf, version, key, key_type),
-                timeout,
+                timeout_remaining(deadline)?,
             )
             .await
         {
@@ -3207,7 +3210,8 @@ async fn discover_typed_coord_once(
         if coord_addr == hop.addr() {
             return Ok(coordinator_connection(hop, &hop_versions));
         }
-        let (conn, versions) = open_conn_with_versions(&coord_addr, cfg, false).await?;
+        let bounded = bounded_producer_config(cfg, deadline)?;
+        let (conn, versions) = open_conn_with_versions(&coord_addr, &bounded, false).await?;
         return Ok(coordinator_connection(conn, &versions));
     }
     Err(last)
