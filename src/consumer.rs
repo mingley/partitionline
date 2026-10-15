@@ -1639,12 +1639,13 @@ impl<V> PartitionMap<V> {
         self.topics.clear();
     }
 
-    fn entries(&self) -> Vec<(String, i32)> {
-        let mut out = Vec::new();
+    /// One owned name for each topic, with that topic's partition indexes.
+    fn topic_groups(&self) -> Vec<(String, Vec<i32>)> {
+        let mut out = Vec::with_capacity(self.topics.len());
         for (topic, partitions) in &self.topics {
-            for partition in partitions.keys() {
-                out.push((topic.clone(), *partition));
-            }
+            let mut indexes = Vec::with_capacity(partitions.len());
+            indexes.extend(partitions.keys().copied());
+            out.push((topic.clone(), indexes));
         }
         out
     }
@@ -3411,19 +3412,27 @@ impl Consumer {
         if self.preferred.is_empty() {
             self.cluster.apply(&md, version);
         } else {
-            let watched: Vec<(String, i32, i32)> = self
+            let watched: Vec<(String, Vec<(i32, i32)>)> = self
                 .preferred
-                .entries()
+                .topic_groups()
                 .into_iter()
-                .map(|(topic, partition)| {
-                    let epoch = self.cluster.leader_epoch(&topic, partition);
-                    (topic, partition, epoch)
+                .map(|(topic, partitions)| {
+                    let rows = partitions
+                        .into_iter()
+                        .map(|partition| {
+                            let epoch = self.cluster.leader_epoch(&topic, partition);
+                            (partition, epoch)
+                        })
+                        .collect();
+                    (topic, rows)
                 })
                 .collect();
             self.cluster.apply(&md, version);
-            for (topic, partition, previous) in watched {
-                if self.cluster.leader_epoch(&topic, partition) != previous {
-                    let _ = self.preferred.remove(&topic, partition);
+            for (topic, rows) in watched {
+                for (partition, previous) in rows {
+                    if self.cluster.leader_epoch(&topic, partition) != previous {
+                        let _ = self.preferred.remove(&topic, partition);
+                    }
                 }
             }
         }
