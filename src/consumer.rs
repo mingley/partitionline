@@ -2114,7 +2114,9 @@ impl BrokerFetchSession {
                 }
             }
         }
+        let unique = session_response_is_unique(topics, version, &ids);
         let mut seen = HashSet::new();
+        let mut count = 0usize;
         for topic in topics {
             let name = if version >= 13 {
                 ids.get(&topic.topic_id).copied().ok_or_else(|| {
@@ -2126,10 +2128,13 @@ impl BrokerFetchSession {
             let stored = self.partitions.get(name);
             for partition in &topic.partitions {
                 let known = stored.is_some_and(|parts| parts.contains_key(&partition.partition));
-                if !known || !seen.insert((name, partition.partition)) {
+                if !known || (!unique && !seen.insert((name, partition.partition))) {
                     return Err(Error::protocol(
                         "Fetch session response has an extra or duplicate partition",
                     ));
+                }
+                if unique {
+                    count = count.saturating_add(1);
                 }
             }
         }
@@ -2138,7 +2143,8 @@ impl BrokerFetchSession {
             for parts in self.partitions.values() {
                 expected = expected.saturating_add(parts.len());
             }
-            if seen.len() != expected {
+            let response = if unique { count } else { seen.len() };
+            if response != expected {
                 return Err(Error::protocol(
                     "Fetch full session response is missing partitions",
                 ));
@@ -7547,6 +7553,33 @@ fn drop_records_at_or_after(
     removed
 }
 
+fn session_response_is_unique(
+    topics: &[FetchedTopic],
+    version: i16,
+    ids: &HashMap<[u8; 16], &str>,
+) -> bool {
+    if topics.len() <= 1 {
+        return topics
+            .first()
+            .is_none_or(|topic| partitions_strictly_increase(&topic.partitions));
+    }
+    let mut names = HashSet::new();
+    for topic in topics {
+        let name = if version >= 13 {
+            let Some(name) = ids.get(&topic.topic_id).copied() else {
+                return false;
+            };
+            name
+        } else {
+            topic.topic.as_str()
+        };
+        if !names.insert(name) || !partitions_strictly_increase(&topic.partitions) {
+            return false;
+        }
+    }
+    true
+}
+
 fn partitions_strictly_increase(parts: &[crate::protocol::fetch::FetchedPartition]) -> bool {
     let mut previous = None;
     for part in parts {
@@ -8380,6 +8413,48 @@ mod tests {
             FetchedPartition::partition_response(1, 0),
         ];
         assert!(!partitions_strictly_increase(&backwards));
+        let orders = FetchedTopic {
+            topic: "orders".to_owned(),
+            topic_id: [0; 16],
+            partitions: vec![
+                FetchedPartition::partition_response(0, 0),
+                FetchedPartition::partition_response(1, 0),
+            ],
+        };
+        let payments = FetchedTopic {
+            topic: "payments".to_owned(),
+            topic_id: [0; 16],
+            partitions: vec![FetchedPartition::partition_response(0, 0)],
+        };
+        let ids = HashMap::new();
+        assert!(session_response_is_unique(
+            std::slice::from_ref(&orders),
+            11,
+            &ids
+        ));
+        assert!(session_response_is_unique(
+            &[orders.clone(), payments.clone()],
+            11,
+            &ids
+        ));
+        assert!(!session_response_is_unique(
+            &[orders.clone(), orders],
+            11,
+            &ids
+        ));
+        let backwards = FetchedTopic {
+            topic: "payments".to_owned(),
+            topic_id: [0; 16],
+            partitions: vec![
+                FetchedPartition::partition_response(1, 0),
+                FetchedPartition::partition_response(0, 0),
+            ],
+        };
+        assert!(!session_response_is_unique(
+            &[payments, backwards],
+            11,
+            &ids
+        ));
     }
 
     #[test]
