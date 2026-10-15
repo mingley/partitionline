@@ -3299,29 +3299,21 @@ async fn admin_list_offsets_batches_by_leader() {
     assert_eq!(listed[0].1.timestamp(), listed[0].1.timestamp);
     assert_eq!(listed[1].0, TopicPartition::new("u", 0));
     assert_eq!(listed[2].0, TopicPartition::new("u", 1));
+    let requests = mock.list_offsets_requests();
     assert_eq!(
-        mock.list_offsets_calls(),
+        requests.len(),
         2,
         "t-0 is on node 2; u-0 and u-1 share node 1"
     );
-    assert_eq!(
-        mock.last_list_offsets_n(),
-        Some(2),
-        "last ListOffsets must carry both u partitions"
-    );
-    assert_eq!(
-        mock.last_list_offsets_node(),
-        Some(1),
-        "u partitions must land on the default leader, not t's leader"
-    );
-    assert_eq!(
-        mock.last_list_offsets_isolation(),
-        Some(0),
-        "list_offsets defaults to read-uncommitted"
+    assert!(
+        requests.iter().any(|(node, n, _, _)| *node == 2 && *n == 1),
+        "t-0 must be a one-partition ListOffsets on its leader, got {requests:?}"
     );
     assert!(
-        matches!(mock.last_list_offsets_timeout(), Some(1..=30_000)),
-        "ListOffsets wire TimeoutMs must be positive and within the remaining caller budget"
+        requests.iter().any(|(node, n, isolation, timeout)| {
+            *node == 1 && *n == 2 && *isolation == 0 && matches!(timeout, Some(1..=30_000))
+        }),
+        "both u partitions must share one read-uncommitted ListOffsets on node 1, got {requests:?}"
     );
 
     let committed = admin

@@ -357,6 +357,8 @@ struct State {
     last_list_offsets_isolation: Option<i8>,
     last_list_offsets_timeout: Option<i32>,
     list_offsets_calls: u32,
+    /// One entry per ListOffsets request: node, partition count, isolation, timeout.
+    list_offsets_requests: Vec<(i32, usize, i8, Option<i32>)>,
     list_offsets_not_leader: u32,
     last_list_offsets_version: Option<i16>,
     list_offsets_queries: Vec<(i32, i16, String, i32, i64)>,
@@ -837,6 +839,7 @@ fn new_state(
         last_list_offsets_isolation: None,
         last_list_offsets_timeout: None,
         list_offsets_calls: 0,
+        list_offsets_requests: Vec::new(),
         list_offsets_not_leader: 0,
         last_list_offsets_version: None,
         list_offsets_queries: Vec::new(),
@@ -2544,6 +2547,11 @@ impl Mock {
 
     pub fn list_offsets_calls(&self) -> u32 {
         self.state.lock().list_offsets_calls
+    }
+
+    /// ListOffsets requests in arrival order: node, partition count, isolation, timeout.
+    pub fn list_offsets_requests(&self) -> Vec<(i32, usize, i8, Option<i32>)> {
+        self.state.lock().list_offsets_requests.clone()
     }
 
     pub fn list_offsets_not_leader(&self) -> u32 {
@@ -6235,6 +6243,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     if any_leader {
                         st.last_list_offsets_node = Some(node_id);
                     }
+                    st.list_offsets_requests.push((node_id, n, iso, timeout_ms));
                     encode_list_offsets_topics_response(
                         &mut body,
                         header.api_version,
