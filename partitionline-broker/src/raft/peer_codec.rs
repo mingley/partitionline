@@ -181,8 +181,9 @@ impl Writer {
         if size > self.limit {
             return Err(Error::Bounds);
         }
+        // Geometric growth: raft frames append many small fields.
         self.bytes
-            .try_reserve_exact(bytes.len())
+            .try_reserve(bytes.len())
             .map_err(|_| Error::Allocation)?;
         self.bytes.extend_from_slice(bytes);
         Ok(())
@@ -791,6 +792,18 @@ pub(super) fn decode(bytes: &[u8], limit: usize, max_records: usize) -> Result<F
 mod tests {
     use super::*;
     type Result = std::result::Result<(), Box<dyn std::error::Error>>;
+
+    #[test]
+    fn writer_keeps_earlier_bytes_as_it_grows() {
+        let mut writer = Writer::new(256).unwrap();
+        for value in 0..20u32 {
+            writer.put(&value.to_be_bytes()).unwrap();
+        }
+        assert_eq!(writer.bytes.len(), 80);
+        assert_eq!(&writer.bytes[..4], &0u32.to_be_bytes());
+        assert_eq!(&writer.bytes[76..], &19u32.to_be_bytes());
+    }
+
     fn sample() -> Frame {
         Frame {
             rpc: 9,
