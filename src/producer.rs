@@ -2965,22 +2965,35 @@ impl Producer {
             .collect();
         let mut rxs = Vec::with_capacity(workers.len());
         for w in &workers {
+            if deadline.is_some_and(|deadline| Instant::now() >= deadline) {
+                break;
+            }
             let (tx, rx) = oneshot::channel();
-            drop(w.ctrl.send(Ctrl::Close(tx)).await);
-            rxs.push(rx);
+            let send = w.ctrl.send(Ctrl::Close(tx));
+            let sent = if let Some(deadline) = deadline {
+                let rest = deadline.saturating_duration_since(Instant::now());
+                if rest.is_zero() {
+                    break;
+                }
+                tokio::time::timeout(rest, send).await.ok()
+            } else {
+                Some(send.await)
+            };
+            if sent.is_some() {
+                rxs.push(rx);
+            }
         }
 
-        let wait_drain = async {
-            for rx in rxs {
+        for rx in rxs {
+            if let Some(deadline) = deadline {
+                let rest = deadline.saturating_duration_since(Instant::now());
+                if rest.is_zero() {
+                    break;
+                }
+                drop(tokio::time::timeout(rest, rx).await);
+            } else {
                 drop(rx.await);
             }
-        };
-
-        if let Some(d) = deadline {
-            let rest = d.saturating_duration_since(Instant::now());
-            drop(tokio::time::timeout(rest, wait_drain).await);
-        } else {
-            wait_drain.await;
         }
 
         for w in &workers {
