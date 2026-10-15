@@ -119,7 +119,7 @@ SOURCE_PATHS = {
     "metadata_source": "partitionline-broker/src/metadata.rs",
     "metadata_test_source": "partitionline-broker/tests/metadata.rs",
 }
-METADATA_MANIFEST_SHA256 = {'4.1.2': '721dfc5e54a5f45cbb1dff288a1b64e49db28e864ba3d20691a5ee140d9e2d06', '4.2.1': '445ae5bfeebc59f8fbabb932cdf122bc7326139ffcad6be945db99db6f01f1ab', '4.3.1': 'e5d76d70e20d32fc7b132b08dec86b5d57a439cb0b35d2ed485125b02e25bd9b'}
+METADATA_MANIFEST_SHA256 = {'4.1.2': 'ea6d40b0eca2660bfe672efc5d7e8e5a1c2d79b239b2e339727ee677cbfeabc8', '4.2.1': 'cdfd39ad3fe0c2ff6e71b1030128354a9475a9832bd2d173a526b1f22480daf0', '4.3.1': '48c4cce2a80c8b2c2caebc57271c4abf4c2eec71ca66c3a13f303189b546f08e'}
 SCHEMA_ONLY_MANIFEST_SHA256 = {'4.1.2': '2dab8a229f45dd0e627004f2cbfb3bd368b360a252d25a732f81135baeeddfe8', '4.2.1': '9cf6ba0c67ab68a7e13cda4974c4d7ffb183af3f65d414a73f1385c47b64cc39', '4.3.1': '3174c0e93ce395178cdfe1c8740c346a6a5c546cd7250b286ed206a9adb13390'}
 
 REVIEWED_TRAILING_REJECTIONS = {
