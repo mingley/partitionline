@@ -426,6 +426,35 @@ fn parts_increase(parts: &[Part]) -> bool {
     true
 }
 
+fn short_repeated_partitions(parts: &[Part]) -> [bool; 16] {
+    let mut repeated = [false; 16];
+    let mut indexes = [0i32; 16];
+    let mut filled = [false; 16];
+    for (index, part) in parts.iter().enumerate().take(16) {
+        for prior in 0..index {
+            let same = filled.get(prior).copied().unwrap_or(false)
+                && indexes.get(prior).copied() == Some(part.index);
+            if !same {
+                continue;
+            }
+            if let Some(flag) = repeated.get_mut(index) {
+                *flag = true;
+            }
+            if let Some(flag) = repeated.get_mut(prior) {
+                *flag = true;
+            }
+        }
+        if let Some(slot) = indexes.get_mut(index) {
+            *slot = part.index;
+        }
+        if let Some(flag) = filled.get_mut(index) {
+            *flag = true;
+        }
+    }
+    repeated
+}
+
+#[cfg(test)]
 fn index_repeats(parts: &[Part], index: i32) -> bool {
     let mut seen = false;
     for part in parts {
@@ -616,6 +645,15 @@ mod tests {
         assert!(!super::index_repeats(&[part(1), part(0)], 1));
         assert!(super::index_repeats(&[part(1), part(0), part(1)], 1));
         assert!(!super::index_repeats(&[part(1), part(0), part(1)], 0));
+        let flags = super::short_repeated_partitions(&[part(1), part(0), part(1)]);
+        assert_eq!(
+            (
+                flags.first().copied(),
+                flags.get(1).copied(),
+                flags.get(2).copied()
+            ),
+            (Some(true), Some(false), Some(true))
+        );
         assert!(super::parts_increase(&[part(0), part(2)]));
         assert!(!super::parts_increase(&[part(2), part(0)]));
     }
@@ -812,17 +850,22 @@ pub(crate) fn process(
         };
         let short_parts = key != 2 && topic.parts.len() <= 16;
         let increasing = short_parts && parts_increase(&topic.parts);
+        let repeated_flags = if short_parts && !increasing {
+            short_repeated_partitions(&topic.parts)
+        } else {
+            [false; 16]
+        };
         let repeated_partitions = if key == 2 || short_parts {
             HashSet::new()
         } else {
             repeated_partition_indexes(&topic.parts)
         };
-        for part in &topic.parts {
+        for (part_index, part) in topic.parts.iter().enumerate() {
             active()?;
             let repeated = if key == 2 || increasing {
                 false
             } else if short_parts {
-                index_repeats(&topic.parts, part.index)
+                repeated_flags.get(part_index).copied().unwrap_or(true)
             } else {
                 repeated_partitions.contains(&part.index)
             };
