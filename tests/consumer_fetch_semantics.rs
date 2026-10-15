@@ -1748,6 +1748,144 @@ async fn gapped_batch_below_fetch_offset_records_leader_epoch() {
     broker.shutdown().await;
 }
 
+/// Compaction deletes the tail of a batch and leaves `lastOffsetDelta` at the
+/// original end. The next fetch offset is that header end, so a position
+/// after the last remaining record does not read the same batch again.
+#[tokio::test]
+async fn preserved_batch_end_advances_past_the_last_remaining_record() {
+    let (dense, preserved) = preserved_tail_batch();
+    let decoded = decode_record_batch(&mut preserved.as_slice()).expect("preserved batch decodes");
+    assert_eq!(
+        decoded
+            .records
+            .iter()
+            .map(|record| record.offset)
+            .collect::<Vec<_>>(),
+        vec![0, 1]
+    );
+    assert_eq!(
+        partitionline::RecordBatch::encoded_next_offset(&preserved).expect("header end"),
+        11
+    );
+
+    let patched = Arc::new(AtomicUsize::new(0));
+    let patched_slot = Arc::clone(&patched);
+    let dense_bytes = dense.clone();
+    let preserved_bytes = preserved.clone();
+    let mut broker = fetch_fixture::FixtureBroker::start_with_handler_patch(
+        "t",
+        1,
+        move |_topics, _attempt| preserved_fetch_topic(),
+        move |response| {
+            if let Some(start) = response
+                .windows(dense_bytes.len())
+                .position(|window| window == dense_bytes.as_slice())
+            {
+                let end = start + preserved_bytes.len();
+                response
+                    .get_mut(start..end)
+                    .expect("patch range")
+                    .copy_from_slice(&preserved_bytes);
+                let _ = patched_slot.fetch_add(1, Ordering::SeqCst);
+            }
+        },
+    )
+    .await;
+
+    let mut consumer = Consumer::new(broker.config())
+        .await
+        .expect("consumer starts successfully");
+    consumer
+        .assign("t", 0, 2)
+        .await
+        .expect("assign after the last remaining record");
+    let skipped = consumer.fetch().await.expect("fetch the preserved tail");
+    assert!(
+        skipped.is_empty(),
+        "records below offset 2 must not be delivered"
+    );
+    assert!(
+        patched.load(Ordering::SeqCst) >= 1,
+        "fetch response must carry the preserved batch end"
+    );
+    assert_eq!(
+        consumer.positions(),
+        vec![(TopicPartition::new("t", 0), 11)],
+        "cursor must adopt the header end, not the last remaining record"
+    );
+
+    consumer.seek("t", 0, 0).expect("seek to the batch base");
+    let records = consumer.fetch().await.expect("fetch from offset 0");
+    assert_eq!(
+        records
+            .iter()
+            .map(|record| record.offset)
+            .collect::<Vec<_>>(),
+        vec![0, 1]
+    );
+    assert_eq!(
+        consumer.positions(),
+        vec![(TopicPartition::new("t", 0), 11)],
+        "delivered records still leave the cursor at the preserved batch end"
+    );
+
+    consumer.close().await.expect("consumer closes cleanly");
+    broker.shutdown().await;
+}
+
+fn preserved_fetch_topic() -> Vec<FetchedTopic> {
+    let mut batch = RecordBatch::from_records(vec![
+        Record {
+            offset: 0,
+            timestamp: 1,
+            key: Some(Bytes::from_static(b"k0")),
+            value: Some(Bytes::from_static(b"v0")),
+            headers: Vec::new(),
+        },
+        Record {
+            offset: 0,
+            timestamp: 2,
+            key: Some(Bytes::from_static(b"k1")),
+            value: Some(Bytes::from_static(b"v1")),
+            headers: Vec::new(),
+        },
+    ]);
+    batch.partition_leader_epoch = 4;
+    vec![FetchedTopic {
+        topic: "t".to_string(),
+        topic_id: [0u8; 16],
+        partitions: vec![{
+            let mut part = FetchedPartition::partition_response(0, 0);
+            part.high_watermark = 11;
+            part.last_stable_offset = 11;
+            part.records = vec![batch];
+            part
+        }],
+    }]
+}
+
+fn preserved_tail_batch() -> (Vec<u8>, Vec<u8>) {
+    let mut dense = BytesMut::new();
+    let batch = preserved_fetch_topic()
+        .pop()
+        .expect("topic")
+        .partitions
+        .pop()
+        .expect("partition")
+        .records
+        .pop()
+        .expect("batch");
+    encode_record_batch(&mut dense, &batch).expect("encode dense batch");
+    let mut preserved = dense.to_vec();
+    preserved[23..27].copy_from_slice(&10i32.to_be_bytes());
+    let crc = crc32c::crc32c(preserved.get(21..).expect("crc input"));
+    preserved
+        .get_mut(17..21)
+        .expect("crc field")
+        .copy_from_slice(&crc.to_be_bytes());
+    (dense.to_vec(), preserved)
+}
+
 fn gapped_fetch_topic() -> Vec<FetchedTopic> {
     let mut batch = RecordBatch::from_records(vec![
         Record {

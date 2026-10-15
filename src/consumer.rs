@@ -4772,6 +4772,7 @@ impl Consumer {
 
                 let mut encoded_iter = part_batches.into_iter();
                 while let Some(encoded) = encoded_iter.next() {
+                    let header_end = encoded.header_exclusive_end();
                     let is_control = encoded.is_control_batch();
                     let is_first_batch = out.is_empty() && self.pending.is_empty();
                     let budget = self.cfg.buffer_memory;
@@ -4882,8 +4883,7 @@ impl Consumer {
                                         .insert(name.clone(), (added_records, added_bytes));
                                 }
                             }
-                            let batch_next =
-                                fetch_end_after(meta.base_offset, meta.count, last_record_off)?;
+                            let batch_next = fetch_end_after(header_end, last_record_off)?;
                             if let Some(advanced) = included_next {
                                 let advanced = cap_fetch_cursor(advanced, part.high_watermark);
                                 next = Some(next.map_or(advanced, |c| c.max(advanced)));
@@ -4925,7 +4925,10 @@ impl Consumer {
                     }
 
                     let batch_last = batch.last_offset();
-                    let batch_next = batch_fetch_end(&batch)?;
+                    let batch_next = fetch_end_after(
+                        header_end,
+                        batch.records.last().map(|record| record.offset),
+                    )?;
 
                     if let Some(state) = aborted.as_deref_mut() {
                         state.advance(batch_last);
@@ -5923,11 +5926,13 @@ fn exclusive_fetch_offset(offset: i64) -> Option<i64> {
 
 /// Fetch cursor after a batch.
 ///
-/// The end is the later of the last record's exclusive offset and
-/// `base + count` when that sum fits. A count that does not fit must not
-/// fail the fetch or jump the cursor to [`i64::MAX`] when the last record
-/// still has an end.
-fn fetch_end_after(base: i64, count: usize, last_record: Option<i64>) -> Result<i64> {
+/// The end is the later of the last record's exclusive offset and the
+/// header's exclusive end (`baseOffset + lastOffsetDelta + 1`). Compaction
+/// keeps that header end after it deletes the tail, so a cursor that stopped
+/// on the last remaining record would fetch the same batch again. A header
+/// end that does not fit must not fail the fetch when the last record still
+/// has an end.
+fn fetch_end_after(header_end: Option<i64>, last_record: Option<i64>) -> Result<i64> {
     let from_record = match last_record {
         Some(offset) => Some(
             exclusive_fetch_offset(offset)
@@ -5935,24 +5940,24 @@ fn fetch_end_after(base: i64, count: usize, last_record: Option<i64>) -> Result<
         ),
         None => None,
     };
-    let from_count = i64::try_from(count)
-        .ok()
-        .and_then(|count| base.checked_add(count));
-    match (from_record, from_count) {
-        (Some(record_end), Some(count_end)) => Ok(record_end.max(count_end)),
+    match (from_record, header_end) {
+        (Some(record_end), Some(header_end)) => Ok(record_end.max(header_end)),
         (Some(record_end), None) => Ok(record_end),
-        (None, Some(count_end)) => Ok(count_end),
+        (None, Some(header_end)) => Ok(header_end),
         (None, None) => Err(Error::protocol("fetch cursor overflow")),
     }
 }
 
-/// Fetch cursor after a decoded batch.
+/// Fetch cursor after a decoded batch that has no header `lastOffsetDelta`.
+///
+/// The count end stands in for that header. The live fetch path reads the
+/// header end from the framed batch instead.
+#[cfg(test)]
 fn batch_fetch_end(batch: &crate::RecordBatch) -> Result<i64> {
-    fetch_end_after(
-        batch.base_offset,
-        batch.records.len(),
-        batch.records.last().map(|record| record.offset),
-    )
+    let count_end = i64::try_from(batch.records.len())
+        .ok()
+        .and_then(|count| batch.base_offset.checked_add(count));
+    fetch_end_after(count_end, batch.records.last().map(|record| record.offset))
 }
 
 fn partition_is_assigned(assigned: &[(String, i32, i64)], topic: &str, partition: i32) -> bool {
@@ -7057,9 +7062,11 @@ mod tests {
         }
         assert_eq!(batch_fetch_end(&batch).unwrap(), i64::MAX - 1);
         assert_eq!(
-            fetch_end_after(i64::MAX - 1, 3, Some(i64::MAX - 2)).unwrap(),
+            fetch_end_after(None, Some(i64::MAX - 2)).unwrap(),
             i64::MAX - 1
         );
+        assert_eq!(fetch_end_after(Some(11), Some(1)).unwrap(), 11);
+        assert_eq!(fetch_end_after(Some(2), Some(5)).unwrap(), 6);
         let mut normal = crate::RecordBatch::from_records(vec![record(0), record(0)]);
         normal.records[0].offset = 0;
         normal.records[1].offset = 4;

@@ -2716,10 +2716,22 @@ impl EncodedBatch {
         Ok(Some(ShortKeyBatch {
             partition_leader_epoch,
             attributes,
-            base_offset: self.base_offset,
             max_timestamp,
-            count: count_usize,
         }))
+    }
+
+    /// Offset after this batch, from the header `lastOffsetDelta`.
+    ///
+    /// Compaction deletes tail records and still writes the original batch end
+    /// into that field. `None` when the header is short or the sum does not fit
+    /// in `i64`.
+    pub(crate) fn header_exclusive_end(&self) -> Option<i64> {
+        let raw = self.body.get(11..15)?;
+        let bytes = <[u8; 4]>::try_from(raw).ok()?;
+        let delta = i32::from_be_bytes(bytes);
+        self.base_offset
+            .checked_add(i64::from(delta))
+            .and_then(|last| last.checked_add(1))
     }
 
     /// Offset prefix plus the framed body. Used to cap retained fetch bytes.
@@ -3078,9 +3090,7 @@ pub(crate) struct ShortKeyRecord {
 pub(crate) struct ShortKeyBatch {
     pub(crate) partition_leader_epoch: i32,
     pub(crate) attributes: i16,
-    pub(crate) base_offset: i64,
     pub(crate) max_timestamp: i64,
-    pub(crate) count: usize,
 }
 
 fn try_plain_short_key(
@@ -4613,6 +4623,37 @@ mod tests {
             .unwrap_err()
             .to_string();
         assert!(short.contains("need 4 bytes"), "{short}");
+    }
+
+    #[test]
+    fn header_exclusive_end_keeps_a_compacted_batch_tail() {
+        let mut encoded = BytesMut::new();
+        encode_record_batch(
+            &mut encoded,
+            &RecordBatch::from_records(vec![
+                Record {
+                    offset: 0,
+                    timestamp: 1,
+                    key: None,
+                    value: Some(Bytes::from_static(b"a")),
+                    headers: Vec::new(),
+                },
+                Record {
+                    offset: 0,
+                    timestamp: 2,
+                    key: None,
+                    value: Some(Bytes::from_static(b"b")),
+                    headers: Vec::new(),
+                },
+            ]),
+        )
+        .unwrap();
+        encoded[23..27].copy_from_slice(&10i32.to_be_bytes());
+        let crc = crc32c::crc32c(&encoded[21..]);
+        encoded[17..21].copy_from_slice(&crc.to_be_bytes());
+        let batches = split_record_batches(Bytes::from(encoded)).unwrap();
+        let end = batches.first().and_then(EncodedBatch::header_exclusive_end);
+        assert_eq!(end, Some(11));
     }
 
     #[test]
