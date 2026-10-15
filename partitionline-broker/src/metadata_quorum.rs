@@ -420,8 +420,15 @@ fn init(identity: &Identity, limits: Limits) -> Result<Vec<u8>, Error> {
     bytes.extend_from_slice(&identity.genesis);
     Ok(bytes)
 }
+#[cfg(test)]
 fn encode_receipt(record: &Record) -> Result<Vec<u8>, Error> {
     let mut bytes = Vec::new();
+    write_receipt(&mut bytes, record)?;
+    Ok(bytes)
+}
+
+fn write_receipt(bytes: &mut Vec<u8>, record: &Record) -> Result<(), Error> {
+    bytes.clear();
     bytes
         .try_reserve_exact(APPLY_HEADER + record.payload.len())
         .map_err(|_| Error::Allocation)?;
@@ -436,7 +443,7 @@ fn encode_receipt(record: &Record) -> Result<Vec<u8>, Error> {
     };
     bytes[28..32].copy_from_slice(&(record.payload.len() as u32).to_be_bytes());
     bytes.extend_from_slice(&record.payload);
-    Ok(bytes)
+    Ok(())
 }
 struct Decision {
     request: RequestId,
@@ -461,6 +468,8 @@ struct Application {
     poisoned: bool,
     decisions: Vec<Decision>,
     recovery: journal::Recovery,
+    /// Reused application receipt. Cleared and rewritten on each apply.
+    encoded: Vec<u8>,
 }
 impl Application {
     fn open(path: impl AsRef<Path>, identity: &Identity, limits: Limits) -> Result<Self, Error> {
@@ -500,6 +509,7 @@ impl Application {
             poisoned: false,
             decisions,
             recovery,
+            encoded: Vec::new(),
         })
     }
     fn alive(&self) -> Result<(), Error> {
@@ -593,7 +603,7 @@ impl Application {
             .checked_add(record.payload.len())
             .filter(|n| *n <= self.limits.source_bytes)
             .ok_or(Error::Budget)?;
-        let bytes = encode_receipt(record)?;
+        write_receipt(&mut self.encoded, record)?;
         if record.index <= self.persisted {
             let entries =
                 self.journal
@@ -601,7 +611,7 @@ impl Application {
             if entries.len() != 1
                 || entries[0].first_offset != record.index
                 || entries[0].record_count != 1
-                || entries[0].payload != bytes
+                || entries[0].payload != self.encoded
             {
                 self.poisoned = true;
                 self.ready = false;
@@ -611,7 +621,7 @@ impl Application {
         // All command validation and fallible state allocation precede append.
         let prepared = self.prepare(record)?;
         if record.index > self.persisted {
-            if let Err(error) = self.journal.append(1, &bytes) {
+            if let Err(error) = self.journal.append(1, &self.encoded) {
                 self.poisoned = true;
                 return Err(Error::Journal(error));
             }
@@ -1089,7 +1099,10 @@ mod tests {
         assert_eq!(app.recovery.truncated_bytes, 8);
         assert!(matches!(app.confirmed_view(), Err(Error::Recovering)));
         app.apply(&barrier(1)?)?;
+        let encoded_capacity = app.encoded.capacity();
+        assert!(encoded_capacity > 0);
         app.apply(&data(2, &c))?;
+        assert!(app.encoded.capacity() >= encoded_capacity);
         assert_eq!(app.confirmed_view()?.operation_count(), 1);
         assert_eq!(
             app.lookup(c.bytes())?.ok_or("receipt")?.outcome,
