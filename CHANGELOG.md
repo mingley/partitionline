@@ -85,6 +85,8 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   is set. Partition `INCONSISTENT_TOPIC_ID` /
   `UNKNOWN_TOPIC_OR_PARTITION` / `UNKNOWN_TOPIC_ID` still skip and
   still request Metadata when `ErrorMessage` is set.
+  `FENCED_LEADER_EPOCH` without CurrentLeader still skips and still
+  requests Metadata when `ErrorMessage` is set.
 
 - ShareFetch partition `FENCED_LEADER_EPOCH` without a usable
   CurrentLeader skips that partition, still delivers siblings, and
