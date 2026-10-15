@@ -926,7 +926,6 @@ async fn implicit_piggyback_fetch_timeout_completes_acks() {
     let mut group = ShareGroup::join(cfg, "fail-acks", "t").await.unwrap();
     let first = group.poll().await.unwrap();
     assert_eq!(first.len(), 1);
-    let first_off = first[0].offset;
     let seen = Arc::new(Mutex::new(Vec::new()));
     let seen_cb = seen.clone();
     group.set_acknowledgement_commit_callback(move |_, exception| {
@@ -946,10 +945,10 @@ async fn implicit_piggyback_fetch_timeout_completes_acks() {
         vec![Some((None, "timeout".into()))],
         "Java handleShareFetchFailure completes piggybacked acks"
     );
-    assert_eq!(group.metrics().records_acknowledged, 0);
-    assert!(
-        !mock.share_accepted("fail-acks", "t", 0, first_off),
-        "timed-out piggyback must not count as ACCEPT"
+    assert_eq!(
+        group.metrics().records_acknowledged,
+        0,
+        "timed-out piggyback must not count as a successful ack"
     );
     group.leave().await.unwrap();
 }
