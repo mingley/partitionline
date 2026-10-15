@@ -110,6 +110,10 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   with CurrentLeader `leaderId != -1` and `leaderEpoch == -1` on one
   partition does not update the next ShareFetch target for a sibling
   whose error is none and still requests Metadata. A ShareAcknowledge
+  partition `FENCED_LEADER_EPOCH` with CurrentLeader `leaderId == -1`
+  and `leaderEpoch != -1` on one partition does not update the next
+  ShareFetch target for a sibling whose error is none and still
+  requests Metadata. A ShareAcknowledge
   partition `INVALID_RECORD_STATE` with a usable CurrentLeader does
   not update the next ShareFetch target
   (Java `updateLeaderInfoMap` omits that code). A ShareAcknowledge
