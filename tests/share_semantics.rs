@@ -2064,6 +2064,64 @@ async fn share_acknowledge_unknown_topic_id_empty_message_does_not_retry() {
 }
 
 #[tokio::test]
+async fn share_acknowledge_unknown_topic_id_message_does_not_retry() {
+    let mock = common::Mock::start().await;
+    v2(&mock);
+    produce(&mock, &[(0, b"held")]).await;
+    let mut group = ShareGroup::join(config(&mock), "ack-unk-tid-msg", "t")
+        .await
+        .unwrap();
+    let recs = group.poll().await.unwrap();
+    assert_eq!(recs.len(), 1);
+    let seen = Arc::new(Mutex::new(Vec::new()));
+    let seen_cb = seen.clone();
+    group.set_acknowledgement_commit_callback(move |_, exception| {
+        seen_cb.lock().push(
+            exception
+                .as_ref()
+                .map(|error| (error.code(), error.message().to_owned())),
+        );
+    });
+    group.accept(&recs).await.unwrap();
+    let version = mock.last_share_fetch_version().unwrap_or(2);
+    let mut part =
+        ShareAcknowledgeResponsePartition::partition_response(0, error::UNKNOWN_TOPIC_ID);
+    part.error_message = Some("unknown topic id".into());
+    let topics = vec![ShareAcknowledgeResponseTopic {
+        topic_id: mock.topic_id("t"),
+        partitions: vec![part],
+    }];
+    let mut injected = BytesMut::new();
+    encode_share_acknowledge_topics_response(&mut injected, version, 0, &topics).unwrap();
+    mock.inject_share_ack_response_once(&injected);
+    let results = group.commit_sync().await.unwrap();
+    assert_eq!(results.len(), 1);
+    let err = results[0]
+        .1
+        .as_ref()
+        .expect("non-empty ErrorMessage is preferred over the crate fallback");
+    assert_eq!(err.code(), Some(error::UNKNOWN_TOPIC_ID));
+    assert_eq!(err.message(), "unknown topic id");
+    assert_eq!(
+        mock.share_ack_calls(),
+        1,
+        "non-empty ErrorMessage must not retry UNKNOWN_TOPIC_ID"
+    );
+    assert_eq!(
+        *seen.lock(),
+        vec![Some((
+            Some(error::UNKNOWN_TOPIC_ID),
+            "unknown topic id".into()
+        ))]
+    );
+    assert!(
+        group.commit_sync().await.unwrap().is_empty(),
+        "completed fatal acks must not stay pending"
+    );
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn share_acknowledge_inconsistent_topic_id_does_not_retry() {
     let mock = common::Mock::start().await;
     v2(&mock);
