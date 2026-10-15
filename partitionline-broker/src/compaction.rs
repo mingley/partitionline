@@ -932,13 +932,7 @@ impl Cleaner {
     fn replay(&mut self, payload: &[u8]) -> Result<(), CleanError> {
         match decode_kind(payload)? {
             CleanRecord::Append(record) => {
-                if self
-                    .source
-                    .last()
-                    .is_some_and(|last| record.offset <= last.offset)
-                {
-                    return Err(CleanError::InvalidRecord);
-                }
+                accepted_record(self.source.last(), &record)?;
                 self.source.push(record);
             }
             CleanRecord::Decide {
@@ -946,6 +940,9 @@ impl Cleaner {
                 epoch,
                 commit,
             } => {
+                if producer_id <= 0 || epoch < 0 {
+                    return Err(CleanError::InvalidRecord);
+                }
                 if let Some(stored) = self.trailing_commit(producer_id, epoch) {
                     if stored != commit {
                         return Err(CleanError::InvalidRecord);
@@ -963,6 +960,11 @@ impl Cleaner {
                 generation,
                 records,
             } => {
+                let mut previous = None;
+                for record in &records {
+                    accepted_record(previous, record)?;
+                    previous = Some(record);
+                }
                 self.pending = Some((generation, records));
                 self.next_generation = self.next_generation.max(generation.saturating_add(1));
             }
@@ -1142,16 +1144,7 @@ fn validate_input(source: &[Retained], input: Input<'_>) -> Result<Retained, Cle
     {
         return Err(CleanError::InvalidRecord);
     }
-    let producer_ok = match input.role {
-        Role::Ordinary => {
-            (input.producer_id == 0 && input.epoch == -1)
-                || (input.producer_id > 0 && input.epoch >= 0)
-        }
-        Role::TransactionData | Role::ControlCommit | Role::ControlAbort => {
-            input.producer_id > 0 && input.epoch >= 0
-        }
-    };
-    if !producer_ok {
+    if !producer_role_ok(input.role, input.producer_id, input.epoch) {
         return Err(CleanError::InvalidRecord);
     }
     Ok(Retained {
@@ -1163,6 +1156,25 @@ fn validate_input(source: &[Retained], input: Input<'_>) -> Result<Retained, Cle
         key: field_owned(input.key)?,
         value: field_owned(input.value)?,
     })
+}
+
+fn accepted_record(previous: Option<&Retained>, record: &Retained) -> Result<(), CleanError> {
+    if record.offset < 0
+        || previous.is_some_and(|last| record.offset <= last.offset)
+        || !producer_role_ok(record.role, record.producer_id, record.epoch)
+    {
+        return Err(CleanError::InvalidRecord);
+    }
+    Ok(())
+}
+
+fn producer_role_ok(role: Role, producer_id: i64, epoch: i16) -> bool {
+    match role {
+        Role::Ordinary => (producer_id == 0 && epoch == -1) || (producer_id > 0 && epoch >= 0),
+        Role::TransactionData | Role::ControlCommit | Role::ControlAbort => {
+            producer_id > 0 && epoch >= 0
+        }
+    }
 }
 
 fn field_owned(field: Option<&[u8]>) -> Result<Option<Vec<u8>>, CleanError> {
@@ -1266,7 +1278,11 @@ fn decode_kind(mut bytes: &[u8]) -> Result<CleanRecord, CleanError> {
         CLEAN_DECIDE => CleanRecord::Decide {
             producer_id: take_i64(&mut bytes)?,
             epoch: take_i16(&mut bytes)?,
-            commit: take_u8(&mut bytes)? == 1,
+            commit: match take_u8(&mut bytes)? {
+                0 => false,
+                1 => true,
+                _ => return Err(CleanError::InvalidRecord),
+            },
         },
         CLEAN_PLAN => {
             let generation = take_u64(&mut bytes)?;
@@ -1406,6 +1422,31 @@ mod cleaner_tests {
             key,
             value,
         }
+    }
+
+    #[test]
+    fn a_transactional_record_without_a_producer_is_not_replayed() {
+        let (mut cleaner, _) = open_cleaner("bad-producer", 5_000, 4096);
+        let bad = Retained {
+            offset: 0,
+            timestamp: 0,
+            producer_id: 0,
+            epoch: -1,
+            role: Role::TransactionData,
+            key: None,
+            value: Some(b"x".to_vec()),
+        };
+        let encoded = encode_append(&bad).unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(
+            cleaner.replay(&encoded),
+            Err(CleanError::InvalidRecord)
+        ));
+        assert!(cleaner.retained().is_empty());
+        let decided = encode_decide(0, 0, true).unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(
+            cleaner.replay(&decided),
+            Err(CleanError::InvalidRecord)
+        ));
     }
 
     #[test]
