@@ -1897,7 +1897,8 @@ struct DecodedFetchReply {
 struct BrokerFetchSession {
     version: Option<i16>,
     metadata: FetchMetadata,
-    partitions: HashMap<(String, i32), ([u8; 16], FetchPartition)>,
+    /// Topic names are shared across the partitions of one topic.
+    partitions: HashMap<(Arc<str>, i32), ([u8; 16], FetchPartition)>,
     awaiting_response: bool,
 }
 
@@ -1928,12 +1929,12 @@ impl BrokerFetchSession {
         let expected: HashSet<_> = self
             .partitions
             .keys()
-            .map(|(name, partition)| (name.as_str(), *partition))
+            .map(|(name, partition)| (name.as_ref(), *partition))
             .collect();
         let ids: HashMap<_, _> = self
             .partitions
             .iter()
-            .map(|((name, _), (id, _))| (*id, name.as_str()))
+            .map(|((name, _), (id, _))| (*id, name.as_ref()))
             .collect();
         let mut seen = HashSet::new();
         for topic in topics {
@@ -1978,28 +1979,30 @@ impl BrokerFetchSession {
         let mut changed: HashMap<String, Vec<FetchPartition>> = HashMap::new();
         let mut ids = HashMap::new();
         for topic in &topics {
+            let name = Arc::<str>::from(topic.topic.as_str());
             let _ = ids.insert(topic.topic.clone(), topic.topic_id);
             for partition in &topic.partitions {
-                let key = (topic.topic.clone(), partition.partition);
+                let key = (Arc::clone(&name), partition.partition);
                 let value = (topic.topic_id, partition.clone());
                 if !self.metadata.is_full() && self.partitions.get(&key) != Some(&value) {
-                    changed
-                        .entry(topic.topic.clone())
-                        .or_default()
-                        .push(partition.clone());
+                    if let Some(slot) = changed.get_mut(topic.topic.as_str()) {
+                        slot.push(partition.clone());
+                    } else {
+                        let _ = changed.insert(topic.topic.clone(), vec![partition.clone()]);
+                    }
                 }
                 let _ = next.insert(key, value);
             }
         }
-        let mut forgotten: HashMap<(String, [u8; 16]), Vec<i32>> = HashMap::new();
+        let mut forgotten: HashMap<(Arc<str>, [u8; 16]), Vec<i32>> = HashMap::new();
         if !self.metadata.is_full() {
             for ((topic, partition), (id, _)) in &self.partitions {
                 if next
-                    .get(&(topic.clone(), *partition))
+                    .get(&(Arc::clone(topic), *partition))
                     .is_none_or(|(next_id, _)| next_id != id)
                 {
                     forgotten
-                        .entry((topic.clone(), *id))
+                        .entry((Arc::clone(topic), *id))
                         .or_default()
                         .push(*partition);
                 }
@@ -2017,7 +2020,7 @@ impl BrokerFetchSession {
             .map(|((topic, topic_id), mut partitions)| {
                 partitions.sort_unstable();
                 ForgottenTopic {
-                    topic,
+                    topic: topic.to_string(),
                     topic_id,
                     partitions,
                 }
