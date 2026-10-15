@@ -702,6 +702,21 @@ fn next_share_assignment(
     })
 }
 
+fn share_partition_leader(topic: &str, partition: i32, leaders: &[i32]) -> Result<i32> {
+    let idx = usize::try_from(partition).map_err(|_| Error::NoLeader {
+        topic: topic.to_string(),
+        partition,
+    })?;
+    leaders
+        .get(idx)
+        .copied()
+        .filter(|&id| id >= 0)
+        .ok_or_else(|| Error::NoLeader {
+            topic: topic.to_string(),
+            partition,
+        })
+}
+
 impl ShareGroup {
     /// Join a share group. One topic.
     ///
@@ -1778,8 +1793,21 @@ impl ShareGroup {
                 .await?;
         }
         let mut by_leader: HashMap<i32, HashMap<String, Vec<i32>>> = HashMap::new();
+        let mut cached_topic = String::new();
+        let mut leaders = Vec::new();
         for (topic, p) in tps {
-            let node = self.consumer.leader_id(topic, *p)?;
+            if cached_topic != topic.as_str() {
+                leaders = self.consumer.leader_id_list(topic)?;
+                cached_topic.clear();
+                cached_topic.push_str(topic);
+            }
+            let node = share_partition_leader(topic, *p, &leaders)?;
+            if !self.consumer.broker_known(node) {
+                return Err(Error::NoLeader {
+                    topic: topic.clone(),
+                    partition: *p,
+                });
+            }
             let topics = by_leader.entry(node).or_default();
             if let Some(parts) = topics.get_mut(topic.as_str()) {
                 parts.push(*p);

@@ -3521,8 +3521,16 @@ impl Consumer {
         Ok(Some(Arc::<str>::from(resolved)))
     }
 
-    pub(crate) fn leader_id(&self, topic: &str, partition: i32) -> Result<i32> {
-        self.cluster.leader_id(topic, partition)
+    pub(crate) fn leader_id_list(&self, topic: &str) -> Result<Vec<i32>> {
+        self.cluster
+            .leaders
+            .get(topic)
+            .cloned()
+            .ok_or_else(|| Error::UnknownTopic(topic.to_string()))
+    }
+
+    pub(crate) fn broker_known(&self, node: i32) -> bool {
+        self.cluster.brokers.contains_key(&node)
     }
 
     pub(crate) fn leader_of(&self, topic: &str, partition: i32) -> Result<(i32, String)> {
