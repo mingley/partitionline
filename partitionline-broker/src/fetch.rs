@@ -407,6 +407,19 @@ fn repeated_partition_indexes(parts: &[Part]) -> HashSet<i32> {
     if parts.len() < 2 {
         return HashSet::new();
     }
+    // A strictly increasing list cannot repeat, which is the ordinary fetch.
+    let mut previous = None;
+    let mut ascending = true;
+    for part in parts {
+        if previous.is_some_and(|earlier| part.index <= earlier) {
+            ascending = false;
+            break;
+        }
+        previous = Some(part.index);
+    }
+    if ascending {
+        return HashSet::new();
+    }
     let mut counts: HashMap<i32, usize> = HashMap::new();
     let mut repeated = HashSet::new();
     for part in parts {
@@ -546,6 +559,26 @@ fn first_timestamp(
 mod tests {
     use super::list_query;
     use super::ListQuery;
+
+    fn part(index: i32) -> super::Part {
+        super::Part {
+            index,
+            offset: 0,
+            maximum: 0,
+        }
+    }
+
+    #[test]
+    fn repeated_partitions_are_only_tracked_when_the_list_is_not_increasing() {
+        assert!(super::repeated_partition_indexes(&[part(0), part(1), part(4)]).is_empty());
+        assert!(super::repeated_partition_indexes(&[part(2), part(0), part(1)]).is_empty());
+        assert!(super::repeated_partition_indexes(&[part(3)]).is_empty());
+        let adjacent = super::repeated_partition_indexes(&[part(1), part(1)]);
+        assert!(adjacent.contains(&1));
+        let later = super::repeated_partition_indexes(&[part(1), part(0), part(1)]);
+        assert!(later.contains(&1));
+        assert!(!later.contains(&0));
+    }
 
     #[test]
     fn response_bytes_keep_earlier_fields_as_the_buffer_grows() {
