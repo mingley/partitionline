@@ -4179,6 +4179,7 @@ async fn spawn_slot_worker(
         compress_scratch: CompressScratch::with_caps(batch_cap, batch_cap),
         group_scratch: ProduceGroupScratch::default(),
         ack_index: AckIndex::default(),
+        ack_slots: Vec::new(),
     };
     let handle = tokio::spawn(worker.run());
     Ok(WorkerHandle {
@@ -4463,6 +4464,8 @@ struct Worker {
     group_scratch: ProduceGroupScratch,
     /// Reused partition index for the next Produce acknowledgement.
     ack_index: AckIndex,
+    /// Reused response-slot list for the next Produce acknowledgement.
+    ack_slots: Vec<Option<usize>>,
 }
 
 #[derive(Default)]
@@ -5459,7 +5462,8 @@ impl Worker {
         };
         self.shared.cluster.lock().apply_node_endpoints(&endpoints);
         self.ack_index.fill(&inf.groups);
-        let mut slots = Vec::new();
+        let mut slots = std::mem::take(&mut self.ack_slots);
+        slots.clear();
         slots.resize_with(inf.groups.len(), || None);
         for (ack_at, ack) in responses.iter().enumerate() {
             let topic = if version >= 13 {
@@ -5473,6 +5477,7 @@ impl Worker {
             let Some(topic) = topic else {
                 if version < 13 {
                     let e = Error::protocol("produce response topic is not utf-8");
+                    self.ack_slots = slots;
                     fail_groups(&self.shared, inf.groups, clone_err(&e));
                     return Err(e);
                 }
@@ -5488,7 +5493,7 @@ impl Worker {
             }
         }
         let mut first_err: Option<Error> = None;
-        for (found_at, (topic, part, pendings)) in slots.into_iter().zip(inf.groups) {
+        for (found_at, (topic, part, pendings)) in slots.drain(..).zip(inf.groups) {
             let found = found_at.and_then(|at| responses.get(at));
             match found {
                 None => {
@@ -5652,6 +5657,7 @@ impl Worker {
                 }
             }
         }
+        self.ack_slots = slots;
         match first_err {
             Some(e) => Err(e),
             None => Ok(()),
