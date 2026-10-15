@@ -3240,6 +3240,14 @@ fn describe_producers_topics(
 
 type DescribeProducersNodeOutcome = (Vec<(usize, DescribeProducersPartition)>, Vec<usize>);
 
+struct LeaderFrame {
+    api_key: i16,
+    version: i16,
+    body: Bytes,
+}
+
+type LeaderExchange = HashMap<i32, (i16, Result<Bytes>)>;
+
 fn creatable_from_new(topics: &[NewTopic]) -> Vec<CreatableTopic> {
     topics
         .iter()
@@ -8230,7 +8238,7 @@ impl Admin {
     ///
     /// Each item is a [`crate::TopicPartition`] and an offset
     /// ([`RecordsToDelete`] or INT64). One DeleteRecords RPC per
-    /// Metadata partition leader. Empty input is a no-op. Returns
+    /// Metadata partition leader, sent together. Empty input is a no-op. Returns
     /// [`DeletedRecords`] per partition. TimeoutMs and
     /// the RPC deadline are [`AdminConfig::request_timeout`]. For a
     /// one-shot timeout, use [`Self::delete_records_for_timeout`].
@@ -8345,25 +8353,73 @@ impl Admin {
                 }
             }
             let mut still = Vec::new();
-            for node in nodes {
-                let idxs = by_node.remove(&node).unwrap_or_default();
-                match self
-                    .delete_records_on_node(node, version, timeout_ms, &records, &idxs, deadline)
-                    .await
-                {
-                    Ok((done, retry)) => {
-                        for (i, low, err) in done {
-                            if let Some(slot) = out.get_mut(i) {
-                                *slot = Some((low, err));
-                            }
-                        }
-                        still.extend(retry);
-                    }
-                    Err(e) if e.is_retriable() => {
-                        let _ = self.conns.remove(&node);
+            if nodes.len() > 1 {
+                let mut finished = self
+                    .exchange_leaders(&nodes, deadline, |_admin, node, _conn, _timeout| {
+                        let idxs = by_node.get(&node).map(Vec::as_slice).unwrap_or(&[]);
+                        let topics = delete_records_topics(&records, idxs);
+                        let mut payload = BytesMut::new();
+                        encode_delete_records_topics_request(
+                            &mut payload,
+                            version,
+                            &topics,
+                            timeout_ms,
+                        )?;
+                        Ok(LeaderFrame {
+                            api_key: DELETE_RECORDS,
+                            version,
+                            body: payload.freeze(),
+                        })
+                    })
+                    .await;
+                for node in &nodes {
+                    let idxs = by_node.get(node).cloned().unwrap_or_default();
+                    let Some((spoken, body)) = finished.remove(node) else {
+                        let _ = self.conns.remove(node);
                         still.extend(idxs);
+                        continue;
+                    };
+                    match body {
+                        Err(error) if error.is_retriable() => {
+                            let _ = self.conns.remove(node);
+                            still.extend(idxs);
+                        }
+                        Err(error) => return Err(error),
+                        Ok(body) => {
+                            let (done, retry) = self
+                                .apply_delete_records_body(*node, spoken, &records, &idxs, body)?;
+                            for (i, low, err) in done {
+                                if let Some(slot) = out.get_mut(i) {
+                                    *slot = Some((low, err));
+                                }
+                            }
+                            still.extend(retry);
+                        }
                     }
-                    Err(e) => return Err(e),
+                }
+            } else {
+                for node in nodes {
+                    let idxs = by_node.remove(&node).unwrap_or_default();
+                    match self
+                        .delete_records_on_node(
+                            node, version, timeout_ms, &records, &idxs, deadline,
+                        )
+                        .await
+                    {
+                        Ok((done, retry)) => {
+                            for (i, low, err) in done {
+                                if let Some(slot) = out.get_mut(i) {
+                                    *slot = Some((low, err));
+                                }
+                            }
+                            still.extend(retry);
+                        }
+                        Err(e) if e.is_retriable() => {
+                            let _ = self.conns.remove(&node);
+                            still.extend(idxs);
+                        }
+                        Err(e) => return Err(e),
+                    }
                 }
             }
             pending = still;
@@ -8428,6 +8484,21 @@ impl Admin {
             )
             .await
         }?;
+        self.apply_delete_records_body(node, version, records, idxs, body)
+    }
+
+    #[expect(
+        clippy::type_complexity,
+        reason = "indexed low watermarks plus the partitions that must be retried"
+    )]
+    fn apply_delete_records_body(
+        &mut self,
+        node: i32,
+        version: i16,
+        records: &[(crate::TopicPartition, i64)],
+        idxs: &[usize],
+        body: Bytes,
+    ) -> Result<(Vec<(usize, i64, i16)>, Vec<usize>)> {
         let (resp, ..) = decode_delete_records_topics_response(&mut body.clone(), version)?;
         let mut by_key: HashMap<(String, i32), VecDeque<(i64, i16)>> = HashMap::new();
         for t in resp {
@@ -8686,22 +8757,18 @@ impl Admin {
             .collect()
     }
 
-    /// Dial and list offsets on every leader at once. One slow handshake
-    /// does not hold the other leaders. Results are applied in leader order.
-    #[expect(
-        clippy::too_many_arguments,
-        reason = "one shared deadline fans a prepared leader set into the caller's result slots"
-    )]
-    async fn list_offsets_nodes_parallel(
+    /// Dial every leader together, then run one prepared RPC on each socket.
+    /// A slow handshake does not hold the other leaders. Missing entries
+    /// did not finish before `deadline`.
+    async fn exchange_leaders<F>(
         &mut self,
         nodes: &[i32],
-        by_node: &HashMap<i32, Vec<usize>>,
-        isolation: i8,
-        queries: &[(crate::TopicPartition, i64)],
         deadline: Instant,
-        out: &mut [Option<crate::OffsetAndTimestamp>],
-        still: &mut Vec<usize>,
-    ) -> Result<()> {
+        mut prepare: F,
+    ) -> LeaderExchange
+    where
+        F: FnMut(&mut Self, i32, &AdminOffsetConn, Duration) -> Result<LeaderFrame>,
+    {
         const PARALLELISM: usize = 8;
         type Dial = (i32, Result<AdminOffsetConn>);
         type Rpc = (i32, i16, AdminOffsetConn, Result<Bytes>);
@@ -8724,7 +8791,7 @@ impl Admin {
         let mut dialing: tokio::task::JoinSet<Dial> = tokio::task::JoinSet::new();
         let mut rpcing: tokio::task::JoinSet<Rpc> = tokio::task::JoinSet::new();
         let mut held: HashMap<i32, AdminOffsetConn> = HashMap::new();
-        let mut finished: HashMap<i32, (i16, Result<Bytes>)> = HashMap::new();
+        let mut finished = LeaderExchange::new();
         loop {
             if Instant::now() >= deadline {
                 dialing.abort_all();
@@ -8755,50 +8822,37 @@ impl Admin {
                 };
                 let Some(conn) = held.remove(&node).or_else(|| self.conns.remove(&node)) else {
                     let _prev = finished
-                        .insert(node, (0, Err(Error::protocol("missing list_offsets conn"))));
+                        .insert(node, (0, Err(Error::protocol("missing leader connection"))));
                     continue;
                 };
-                let idxs = by_node.get(&node).map(Vec::as_slice).unwrap_or(&[]);
-                let mut minimum = 1;
-                for &index in idxs {
-                    let Some((_, timestamp)) = queries.get(index) else {
-                        continue;
-                    };
-                    minimum = minimum.max(crate::protocol::offsets::minimum_version_for_timestamp(
-                        *timestamp, isolation,
-                    ));
-                }
-                let Some(version) = conn.negotiated(LIST_OFFSETS, minimum, 11) else {
-                    let _prev = held.insert(node, conn);
-                    let _prev = finished.insert(
-                        node,
-                        (
-                            0,
-                            Err(Error::Unsupported(format!(
-                                "broker does not support requested ListOffsets selector/isolation (requires v{minimum}+)"
-                            ))),
-                        ),
-                    );
-                    continue;
-                };
-                let topics = list_offset_topic_requests(queries, idxs, &self.cluster);
                 let timeout = deadline.saturating_duration_since(Instant::now());
                 if timeout.is_zero() {
                     let _prev = held.insert(node, conn);
-                    let _prev = finished.insert(node, (version, Err(Error::Timeout)));
+                    let _prev = finished.insert(node, (0, Err(Error::Timeout)));
                     continue;
                 }
-                let timeout_ms = crate::consumer::duration_millis_i32(timeout);
+                let frame = match prepare(self, node, &conn, timeout) {
+                    Ok(frame) => frame,
+                    Err(error) => {
+                        let _prev = held.insert(node, conn);
+                        let _prev = finished.insert(node, (0, Err(error)));
+                        continue;
+                    }
+                };
+                let LeaderFrame {
+                    api_key,
+                    version,
+                    body: payload,
+                } = frame;
                 let _ = rpcing.spawn(async move {
                     let mut conn = conn;
                     let body = conn
                         .roundtrip(
-                            LIST_OFFSETS,
+                            api_key,
                             version,
                             |buf| {
-                                encode_list_offsets_topics_request(
-                                    buf, version, isolation, &topics, timeout_ms,
-                                )
+                                buf.extend_from_slice(&payload);
+                                Ok(())
                             },
                             timeout,
                         )
@@ -8849,6 +8903,57 @@ impl Admin {
         for (node, conn) in held {
             let _prev = self.conns.insert(node, conn);
         }
+        finished
+    }
+
+    /// Dial and list offsets on every leader at once. One slow handshake
+    /// does not hold the other leaders. Results are applied in leader order.
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "one shared deadline fans a prepared leader set into the caller's result slots"
+    )]
+    async fn list_offsets_nodes_parallel(
+        &mut self,
+        nodes: &[i32],
+        by_node: &HashMap<i32, Vec<usize>>,
+        isolation: i8,
+        queries: &[(crate::TopicPartition, i64)],
+        deadline: Instant,
+        out: &mut [Option<crate::OffsetAndTimestamp>],
+        still: &mut Vec<usize>,
+    ) -> Result<()> {
+        let mut finished = self.exchange_leaders(nodes, deadline, |admin, node, conn, timeout| {
+            let idxs = by_node.get(&node).map(Vec::as_slice).unwrap_or(&[]);
+            let mut minimum = 1;
+            for &index in idxs {
+                let Some((_, timestamp)) = queries.get(index) else {
+                    continue;
+                };
+                minimum = minimum.max(crate::protocol::offsets::minimum_version_for_timestamp(
+                    *timestamp, isolation,
+                ));
+            }
+            let version = conn.negotiated(LIST_OFFSETS, minimum, 11).ok_or_else(|| {
+                Error::Unsupported(format!(
+                    "broker does not support requested ListOffsets selector/isolation (requires v{minimum}+)"
+                ))
+            })?;
+            let topics = list_offset_topic_requests(queries, idxs, &admin.cluster);
+            let mut payload = BytesMut::new();
+            encode_list_offsets_topics_request(
+                &mut payload,
+                version,
+                isolation,
+                &topics,
+                crate::consumer::duration_millis_i32(timeout),
+            )?;
+            Ok(LeaderFrame {
+                api_key: LIST_OFFSETS,
+                version,
+                body: payload.freeze(),
+            })
+        })
+        .await;
         for &node in nodes {
             let idxs = by_node.get(&node).cloned().unwrap_or_default();
             let Some((version, body)) = finished.remove(&node) else {
@@ -9044,7 +9149,7 @@ impl Admin {
     /// [`Self::describe_producers`] for several partitions (Java
     /// `describeProducers(Collection)`; DescribeProducers Topics of N).
     ///
-    /// Groups by Metadata leader and sends one RPC per leader. Empty
+    /// Groups by Metadata leader and sends those RPCs together. Empty
     /// `partitions` is a no-op. To pin every partition to one broker
     /// (Java `DescribeProducersOptions.brokerId`), use
     /// [`Self::describe_producers_for_on_broker`]. DescribeProducers has
@@ -9167,32 +9272,77 @@ impl Admin {
                 }
             }
             let mut still = Vec::new();
-            for node in nodes {
-                let idxs = by_node.remove(&node).unwrap_or_default();
-                match self
-                    .describe_producers_on_node(
-                        node,
-                        version,
-                        &partitions,
-                        &idxs,
-                        deadline,
-                        pin_broker,
-                    )
-                    .await
-                {
-                    Ok((done, retry)) => {
-                        for (i, part) in done {
-                            if let Some(slot) = out.get_mut(i) {
-                                *slot = Some(part);
-                            }
-                        }
-                        still.extend(retry);
-                    }
-                    Err(e) if e.is_retriable() => {
-                        let _ = self.conns.remove(&node);
+            if nodes.len() > 1 {
+                let mut finished = self
+                    .exchange_leaders(&nodes, deadline, |_admin, node, _conn, _timeout| {
+                        let idxs = by_node.get(&node).map(Vec::as_slice).unwrap_or(&[]);
+                        let topics = describe_producers_topics(&partitions, idxs);
+                        let mut payload = BytesMut::new();
+                        encode_describe_producers_topics_request(&mut payload, &topics)?;
+                        Ok(LeaderFrame {
+                            api_key: DESCRIBE_PRODUCERS,
+                            version,
+                            body: payload.freeze(),
+                        })
+                    })
+                    .await;
+                for node in &nodes {
+                    let idxs = by_node.get(node).cloned().unwrap_or_default();
+                    let Some((_version, body)) = finished.remove(node) else {
+                        let _ = self.conns.remove(node);
                         still.extend(idxs);
+                        continue;
+                    };
+                    match body {
+                        Err(error) if error.is_retriable() => {
+                            let _ = self.conns.remove(node);
+                            still.extend(idxs);
+                        }
+                        Err(error) => return Err(error),
+                        Ok(body) => {
+                            let (done, retry) = self.apply_describe_producers_body(
+                                &partitions,
+                                &idxs,
+                                body,
+                                pin_broker,
+                            )?;
+                            for (i, part) in done {
+                                if let Some(slot) = out.get_mut(i) {
+                                    *slot = Some(part);
+                                }
+                            }
+                            still.extend(retry);
+                        }
                     }
-                    Err(e) => return Err(e),
+                }
+            } else {
+                for node in nodes {
+                    let idxs = by_node.remove(&node).unwrap_or_default();
+                    match self
+                        .describe_producers_on_node(
+                            node,
+                            version,
+                            &partitions,
+                            &idxs,
+                            deadline,
+                            pin_broker,
+                        )
+                        .await
+                    {
+                        Ok((done, retry)) => {
+                            for (i, part) in done {
+                                if let Some(slot) = out.get_mut(i) {
+                                    *slot = Some(part);
+                                }
+                            }
+                            still.extend(retry);
+                        }
+                        Err(e) if e.is_retriable() => {
+                            let _ = self.conns.remove(&node);
+                            still.extend(idxs);
+                        }
+                        Err(e) => return Err(e),
+                    }
                 }
             }
             pending = still;
@@ -9262,6 +9412,16 @@ impl Admin {
             )
             .await
         }?;
+        self.apply_describe_producers_body(partitions, idxs, body, pin_broker)
+    }
+
+    fn apply_describe_producers_body(
+        &mut self,
+        partitions: &[crate::TopicPartition],
+        idxs: &[usize],
+        body: Bytes,
+        pin_broker: bool,
+    ) -> Result<DescribeProducersNodeOutcome> {
         let resp = decode_describe_producers_response(&mut body.clone())?;
         let mut by_tp: HashMap<(String, i32), DescribeProducersPartition> = HashMap::new();
         for topic in resp.topics {

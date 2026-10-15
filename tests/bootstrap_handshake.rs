@@ -176,3 +176,51 @@ async fn list_offsets_leader_dials_overlap() {
     );
     assert_eq!(listed.len(), 2, "{listed:?}");
 }
+
+async fn two_leader_admin() -> (common::Mock, Admin) {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_topic_partitions("t", 2);
+    let mut cfg = AdminConfig::bootstrap([mock.addr.clone()]);
+    cfg.request_timeout = Duration::from_secs(3);
+    cfg.connect_timeout = Duration::from_millis(200);
+    let admin = Admin::new(cfg).await.unwrap();
+    (mock, admin)
+}
+
+#[tokio::test]
+async fn describe_producers_leader_dials_overlap() {
+    let (mock, mut admin) = two_leader_admin().await;
+    let before = mock.api_versions_versions().len();
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let started = Instant::now();
+    let described = admin
+        .describe_producers_for([("t", 0), ("t", 1)])
+        .await
+        .unwrap();
+    let elapsed = started.elapsed();
+    assert!(
+        elapsed < Duration::from_millis(400),
+        "leader dials ran one after another: {elapsed:?}"
+    );
+    assert!(mock.api_versions_versions().len() >= before + 2);
+    assert!(!described.is_empty(), "{described:?}");
+}
+
+#[tokio::test]
+async fn delete_records_leader_dials_overlap() {
+    let (mock, mut admin) = two_leader_admin().await;
+    let before = mock.api_versions_versions().len();
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let started = Instant::now();
+    let deleted = admin
+        .delete_records_for([(("t", 0), 1i64), (("t", 1), 1i64)])
+        .await
+        .unwrap();
+    let elapsed = started.elapsed();
+    assert!(
+        elapsed < Duration::from_millis(400),
+        "leader dials ran one after another: {elapsed:?}"
+    );
+    assert!(mock.api_versions_versions().len() >= before + 2);
+    assert_eq!(deleted.len(), 2, "{deleted:?}");
+}
