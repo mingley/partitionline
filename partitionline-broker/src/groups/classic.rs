@@ -144,6 +144,8 @@ pub struct Groups {
     journal: Journal,
     stored: usize,
     poisoned: bool,
+    /// Reused journal image. Cleared and rewritten on each commit.
+    encoded: Vec<u8>,
 }
 
 impl Groups {
@@ -158,6 +160,7 @@ impl Groups {
             journal,
             stored: 0,
             poisoned: false,
+            encoded: Vec::new(),
         };
         let mut offset = groups.journal.base_offset();
         loop {
@@ -520,11 +523,15 @@ impl Groups {
     }
 
     fn persist_all(&mut self) -> Result<(), Error> {
-        let payload = encode(self.epoch, self.next_member, &self.groups)?;
+        let mut encoded = std::mem::take(&mut self.encoded);
+        let encoded_result = encode_into(self.epoch, self.next_member, &self.groups, &mut encoded);
+        self.encoded = encoded;
+        encoded_result?;
         if self.stored >= self.limits.max_records {
             return Err(Error::InvalidLimits);
         }
-        match self.journal.append(1, &payload) {
+        let payload = std::mem::take(&mut self.encoded);
+        let result = match self.journal.append(1, &payload) {
             Ok(_) => {
                 self.stored = self.stored.saturating_add(1);
                 Ok(())
@@ -533,7 +540,9 @@ impl Groups {
                 self.poisoned = true;
                 Err(error.into())
             }
-        }
+        };
+        self.encoded = payload;
+        result
     }
 
     fn apply(&mut self, bytes: &[u8]) -> Result<(), Error> {
@@ -640,35 +649,47 @@ fn validate_assignment(
     Ok(())
 }
 
+#[cfg(test)]
 fn encode(
     epoch: i64,
     next_member: u64,
     groups: &BTreeMap<String, Group>,
 ) -> Result<Vec<u8>, Error> {
     let mut bytes = Vec::new();
+    encode_into(epoch, next_member, groups, &mut bytes)?;
+    Ok(bytes)
+}
+
+fn encode_into(
+    epoch: i64,
+    next_member: u64,
+    groups: &BTreeMap<String, Group>,
+    bytes: &mut Vec<u8>,
+) -> Result<(), Error> {
+    bytes.clear();
     bytes.extend_from_slice(RECORD_MAGIC);
     bytes.extend_from_slice(&epoch.to_be_bytes());
     bytes.extend_from_slice(&next_member.to_be_bytes());
-    put_u16(&mut bytes, groups.len())?;
+    put_u16(bytes, groups.len())?;
     for (id, group) in groups {
-        put_str(&mut bytes, id)?;
-        put_str(&mut bytes, &group.protocol)?;
+        put_str(bytes, id)?;
+        put_str(bytes, &group.protocol)?;
         bytes.extend_from_slice(&group.generation.to_be_bytes());
         bytes.extend_from_slice(&group.generation_started_ms.to_be_bytes());
-        put_str(&mut bytes, &group.leader)?;
-        put_u16(&mut bytes, group.members.len())?;
+        put_str(bytes, &group.leader)?;
+        put_u16(bytes, group.members.len())?;
         for (member_id, member) in &group.members {
-            put_str(&mut bytes, member_id)?;
+            put_str(bytes, member_id)?;
             bytes.extend_from_slice(&member.joined_generation.to_be_bytes());
             bytes.extend_from_slice(&member.last_seen_ms.to_be_bytes());
             bytes.push(u8::from(member.synced));
-            put_u16(&mut bytes, member.assignment.len())?;
+            put_u16(bytes, member.assignment.len())?;
             for partition in &member.assignment {
                 bytes.extend_from_slice(&partition.to_be_bytes());
             }
         }
     }
-    Ok(bytes)
+    Ok(())
 }
 
 fn decode(mut bytes: &[u8]) -> Result<(i64, u64, BTreeMap<String, Group>), Error> {
@@ -1154,9 +1175,12 @@ mod tests {
         let leader = groups
             .join("orders", "", "range", 0, 0)
             .unwrap_or_else(|error| panic!("{error:?}"));
+        let encoded_capacity = groups.encoded.capacity();
+        assert!(encoded_capacity > 0);
         groups
             .heartbeat("orders", &leader.member_id, leader.generation, 0, 1_000)
             .unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(groups.encoded.capacity() >= encoded_capacity);
         assert_eq!(groups.expire(1_001).unwrap_or(99), 0);
         assert!(matches!(
             groups.heartbeat("orders", &leader.member_id, leader.generation + 1, 0, 1_500),
