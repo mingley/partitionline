@@ -1776,6 +1776,8 @@ pub struct Consumer {
     fetch_sessions: HashMap<i32, BrokerFetchSession>,
     throttle_metrics: crate::metrics::ThrottleTracker,
     assigned: Vec<(Arc<str>, i32, i64)>,
+    /// Positions in `assigned`. Cleared when membership changes.
+    cursor_index: Option<CursorIndex>,
     /// Topic identity captured when each partition was assigned. Metadata
     /// refreshes must not bind delivered offsets to a recreated topic.
     assigned_topic_ids: HashMap<Arc<str>, HashMap<i32, [u8; 16]>>,
@@ -2342,6 +2344,7 @@ impl Consumer {
             fetch_sessions: HashMap::new(),
             throttle_metrics: crate::metrics::ThrottleTracker::default(),
             assigned: Vec::new(),
+            cursor_index: None,
             assigned_topic_ids: HashMap::new(),
             last_fetched_epochs: PartitionMap::new(),
             preferred: PartitionMap::new(),
@@ -2396,6 +2399,7 @@ impl Consumer {
         );
         let topic: Arc<str> = Arc::from(topic_name);
         self.assigned.push((Arc::clone(&topic), partition, offset));
+        self.cursor_index = None;
         if let Some(parts) = self.assigned_topic_ids.get_mut(topic.as_ref()) {
             let _previous = parts.remove(&partition);
         }
@@ -2517,6 +2521,7 @@ impl Consumer {
             self.set_last_fetched_epoch(&topic, p, crate::RecordBatch::NO_PARTITION_LEADER_EPOCH);
             self.assigned.push((Arc::clone(&name), p, offset));
         }
+        self.cursor_index = None;
         self.capture_assigned_topic_ids();
         Ok(())
     }
@@ -2703,6 +2708,7 @@ impl Consumer {
     pub(crate) fn clear_assignment(&mut self) {
         self.abort_inflight_fetches();
         self.assigned.clear();
+        self.cursor_index = None;
         self.assigned_topic_ids.clear();
         self.pending.clear();
         self.retained.clear();
@@ -2737,6 +2743,7 @@ impl Consumer {
             let _previous = old_assigned.insert(topic, *partition, *offset);
         }
         let previous_assigned = std::mem::take(&mut self.assigned);
+        self.cursor_index = None;
         let previous_epochs = std::mem::replace(&mut self.last_fetched_epochs, PartitionMap::new());
         let previous_aborted = std::mem::replace(&mut self.aborted, PartitionMap::new());
         if starts.is_empty() {
@@ -2864,38 +2871,49 @@ impl Consumer {
         }
     }
 
-    fn cursor_index(&self) -> CursorIndex {
+    fn ensure_cursor_index(&mut self) {
+        if self.cursor_index.is_some() {
+            return;
+        }
         let mut index: CursorIndex = HashMap::new();
         for (slot, (topic, partition, _)) in self.assigned.iter().enumerate() {
-            let _ = index
-                .entry(Arc::clone(topic))
-                .or_default()
-                .insert(*partition, slot);
+            if let Some(parts) = index.get_mut(topic.as_ref()) {
+                let _ = parts.insert(*partition, slot);
+            } else {
+                let mut parts = HashMap::new();
+                let _ = parts.insert(*partition, slot);
+                let _ = index.insert(Arc::clone(topic), parts);
+            }
         }
-        index
+        self.cursor_index = Some(index);
     }
 
-    fn cursor_at(&self, index: &CursorIndex, topic: &str, partition: i32) -> Option<i64> {
-        let slot = index.get(topic)?.get(&partition)?;
-        self.assigned.get(*slot).map(|(_, _, offset)| *offset)
+    fn cursor_at(&self, topic: &str, partition: i32) -> Option<i64> {
+        let slot = self
+            .cursor_index
+            .as_ref()?
+            .get(topic)?
+            .get(&partition)
+            .copied()?;
+        self.assigned.get(slot).and_then(|(name, part, offset)| {
+            (name.as_ref() == topic && *part == partition).then_some(*offset)
+        })
     }
 
-    fn advance_indexed(
-        &mut self,
-        index: &CursorIndex,
-        topic: &str,
-        partition: i32,
-        next_offset: i64,
-    ) {
-        let Some(slot) = index
-            .get(topic)
-            .and_then(|parts| parts.get(&partition))
-            .copied()
-        else {
+    fn advance_indexed(&mut self, topic: &str, partition: i32, next_offset: i64) {
+        let slot = self.cursor_index.as_ref().and_then(|index| {
+            index
+                .get(topic)
+                .and_then(|parts| parts.get(&partition))
+                .copied()
+        });
+        let Some(slot) = slot else {
             return;
         };
         if let Some(entry) = self.assigned.get_mut(slot) {
-            entry.2 = next_offset;
+            if entry.0.as_ref() == topic && entry.1 == partition {
+                entry.2 = next_offset;
+            }
         }
     }
 
@@ -5114,10 +5132,6 @@ impl Consumer {
         }
     }
 
-    #[expect(
-        clippy::too_many_arguments,
-        reason = "offset reset updates the indexed cursor, completion set, and follow-up lookups together"
-    )]
     fn reset_fetched_offset(
         &mut self,
         name: &str,
@@ -5126,7 +5140,6 @@ impl Consumer {
         high_watermark: i64,
         completed: &mut PartitionMap<()>,
         need_offsets: &mut Vec<(String, i32, i64)>,
-        cursors: &CursorIndex,
     ) -> Result<()> {
         if log_boundary_conflict(log_start, high_watermark) {
             return Err(Error::protocol(format!(
@@ -5140,7 +5153,7 @@ impl Consumer {
             )),
             crate::AutoOffsetReset::Earliest => {
                 if log_start >= 0 {
-                    self.advance_indexed(cursors, name, partition, log_start);
+                    self.advance_indexed(name, partition, log_start);
                     self.set_last_fetched_epoch(
                         name,
                         partition,
@@ -5155,7 +5168,7 @@ impl Consumer {
             }
             crate::AutoOffsetReset::Latest => {
                 if high_watermark >= 0 {
-                    self.advance_indexed(cursors, name, partition, high_watermark);
+                    self.advance_indexed(name, partition, high_watermark);
                     self.set_last_fetched_epoch(
                         name,
                         partition,
@@ -5201,7 +5214,7 @@ impl Consumer {
         out.reserve(declared);
         self.cluster.apply_node_endpoints(&endpoints);
         let id_names = self.topic_id_names();
-        let cursors = self.cursor_index();
+        self.ensure_cursor_index();
         let mut retry = FetchRetry::None;
         // A partition listed twice must not rewind the cursor or deliver twice.
         let mut seen_partitions: HashMap<Arc<str>, HashSet<i32>> = HashMap::new();
@@ -5215,7 +5228,7 @@ impl Consumer {
                     if !take_fetch_partition(&mut seen_partitions, &seen_name, part.partition) {
                         continue;
                     }
-                    if self.cursor_at(&cursors, &name, part.partition).is_none() {
+                    if self.cursor_at(&name, part.partition).is_none() {
                         continue;
                     }
                     if part.error_code == 0 {
@@ -5238,7 +5251,7 @@ impl Consumer {
                 if !take_fetch_partition(&mut seen_partitions, &seen_name, part.partition) {
                     continue;
                 }
-                if self.cursor_at(&cursors, &name, part.partition).is_none() {
+                if self.cursor_at(&name, part.partition).is_none() {
                     continue;
                 }
                 if *budget_reached {
@@ -5276,7 +5289,6 @@ impl Consumer {
                         part.high_watermark,
                         completed,
                         need_offsets,
-                        &cursors,
                     )?;
                     continue;
                 }
@@ -5312,18 +5324,13 @@ impl Consumer {
                     return Err(e);
                 }
                 if part.is_diverging_epoch() && part.diverging_end_offset >= 0 {
-                    self.advance_indexed(
-                        &cursors,
-                        &name,
-                        part.partition,
-                        part.diverging_end_offset,
-                    );
+                    self.advance_indexed(&name, part.partition, part.diverging_end_offset);
                     self.set_last_fetched_epoch(&name, part.partition, part.diverging_epoch);
                     self.drop_pending_for(&name, part.partition);
                     retry = retry.merge(FetchRetry::Redirect);
                     continue;
                 }
-                let req_offset = self.cursor_at(&cursors, &name, part.partition).unwrap_or(0);
+                let req_offset = self.cursor_at(&name, part.partition).unwrap_or(0);
                 if position_past_high_watermark(req_offset, part.high_watermark)
                     || position_before_log_start(req_offset, part.log_start_offset)
                 {
@@ -5341,7 +5348,6 @@ impl Consumer {
                         part.high_watermark,
                         completed,
                         need_offsets,
-                        &cursors,
                     )?;
                     continue;
                 }
@@ -5674,7 +5680,7 @@ impl Consumer {
                     }
                 }
                 if let Some(n) = next {
-                    self.advance_indexed(&cursors, &name, part.partition, n);
+                    self.advance_indexed(&name, part.partition, n);
                     self.set_last_fetched_epoch(&name, part.partition, last_epoch);
                     let _ = completed.insert(&name, part.partition, ());
                 } else if !*budget_reached {
