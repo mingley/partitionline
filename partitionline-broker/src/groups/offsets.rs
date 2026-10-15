@@ -156,7 +156,9 @@ impl Offsets {
                 if entry.record_count != 1 {
                     return Err(Error::InvalidRequest);
                 }
-                offsets.groups = decode(&entry.payload)?;
+                let decoded = decode(&entry.payload)?;
+                accept_offset_groups(&offsets.groups, &decoded, offsets.limits)?;
+                offsets.groups = decoded;
                 offsets.stored = offsets.stored.saturating_add(1);
                 cursor = entry
                     .first_offset
@@ -335,6 +337,80 @@ impl Offsets {
     }
 }
 
+fn accept_offset_groups(
+    previous: &BTreeMap<String, Group>,
+    next: &BTreeMap<String, Group>,
+    limits: Limits,
+) -> Result<(), Error> {
+    if next.len() > limits.max_groups
+        || next
+            .values()
+            .any(|group| group.offsets.len() > limits.max_offsets)
+    {
+        return Err(Error::InvalidLimits);
+    }
+    for group in next.values() {
+        if group
+            .offsets
+            .values()
+            .any(|committed| committed.generation != group.generation)
+        {
+            return Err(Error::InvalidRequest);
+        }
+    }
+    let mut added = None;
+    let mut removed = 0usize;
+    let mut changed = None;
+    let mut extra = false;
+    let mut left = previous.iter();
+    let mut right = next.iter();
+    let mut previous_item = left.next();
+    let mut next_item = right.next();
+    while previous_item.is_some() || next_item.is_some() {
+        match (previous_item, next_item) {
+            (Some((left_id, old)), Some((right_id, new))) if left_id == right_id => {
+                if old != new {
+                    if changed.is_some() {
+                        extra = true;
+                    }
+                    changed = Some((old, new));
+                }
+                previous_item = left.next();
+                next_item = right.next();
+            }
+            (Some((left_id, _)), Some((right_id, new))) if left_id > right_id => {
+                if added.is_some() {
+                    extra = true;
+                }
+                added = Some(new);
+                next_item = right.next();
+            }
+            (Some(_), _) => {
+                removed += 1;
+                previous_item = left.next();
+            }
+            (None, Some((_, new))) => {
+                if added.is_some() {
+                    extra = true;
+                }
+                added = Some(new);
+                next_item = right.next();
+            }
+            (None, None) => break,
+        }
+    }
+    if extra {
+        return Err(Error::InvalidRequest);
+    }
+    match (added, removed, changed) {
+        (None, 0, None) => Ok(()),
+        (Some(group), 0, None) if !group.offsets.is_empty() => Ok(()),
+        (None, 1, None) => Ok(()),
+        (None, 0, Some((old, new))) if old.generation == new.generation => Ok(()),
+        _ => Err(Error::InvalidRequest),
+    }
+}
+
 fn validate_group(group: &str) -> Result<(), Error> {
     if group.is_empty() || group.len() > 249 || group.chars().any(|c| c.is_control()) {
         Err(Error::InvalidRequest)
@@ -489,6 +565,70 @@ mod tests {
         let path = std::env::temp_dir().join(format!("pl-goff-{name}-{nanos}"));
         let offsets = Offsets::open(&path, limits()).unwrap_or_else(|error| panic!("{error:?}"));
         (offsets, path)
+    }
+
+    #[test]
+    fn an_offset_generation_jump_is_not_recovered() {
+        let (offsets, _) = open("jump");
+        let mut rows = BTreeMap::new();
+        rows.insert(
+            ("orders".to_owned(), 0),
+            Committed {
+                offset: 4,
+                metadata: String::new(),
+                generation: 9,
+            },
+        );
+        let mut groups = BTreeMap::new();
+        groups.insert(
+            "orders".to_owned(),
+            Group {
+                generation: 1,
+                offsets: rows,
+            },
+        );
+        assert!(matches!(
+            accept_offset_groups(&offsets.groups, &groups, offsets.limits),
+            Err(Error::InvalidRequest)
+        ));
+        let mut payments = BTreeMap::new();
+        payments.insert(
+            ("paid".to_owned(), 0),
+            Committed {
+                offset: 1,
+                metadata: String::new(),
+                generation: 1,
+            },
+        );
+        let mut orders = BTreeMap::new();
+        orders.insert(
+            ("orders".to_owned(), 0),
+            Committed {
+                offset: 1,
+                metadata: String::new(),
+                generation: 1,
+            },
+        );
+        let mut both = BTreeMap::new();
+        both.insert(
+            "orders".to_owned(),
+            Group {
+                generation: 1,
+                offsets: orders,
+            },
+        );
+        both.insert(
+            "payments".to_owned(),
+            Group {
+                generation: 1,
+                offsets: payments,
+            },
+        );
+        assert!(matches!(
+            accept_offset_groups(&offsets.groups, &both, offsets.limits),
+            Err(Error::InvalidRequest)
+        ));
+        assert!(offsets.groups.is_empty());
     }
 
     #[test]
