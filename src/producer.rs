@@ -5591,9 +5591,12 @@ fn encode_produce_body(
                 },
             );
             if flexible {
-                let mut recs = BytesMut::new();
-                encode_pendings(
-                    &mut recs,
+                // Encode into the request, then shrink the reserved compact
+                // length to its canonical width. A failed batch leaves no bytes.
+                let mark = buf.len();
+                buf.resize(mark + COMPACT_BYTES_WIDTH, 0);
+                if let Err(error) = encode_pendings(
+                    buf,
                     pendings,
                     compression,
                     now,
@@ -5602,8 +5605,14 @@ fn encode_produce_body(
                     base_sequence,
                     transactional,
                     scratch,
-                )?;
-                crate::protocol::buf::put_bytes(buf, true, Some(&recs))?;
+                ) {
+                    buf.truncate(mark);
+                    return Err(error);
+                }
+                if let Err(error) = patch_compact_bytes(buf, mark) {
+                    buf.truncate(mark);
+                    return Err(error);
+                }
                 crate::protocol::buf::put_empty_tagged_fields(buf);
             } else {
                 let len_pos = buf.len();
@@ -5631,6 +5640,38 @@ fn encode_produce_body(
     if flexible {
         crate::protocol::buf::put_empty_tagged_fields(buf);
     }
+    Ok(())
+}
+
+/// Widest unsigned varint. The compact length is rewritten to the real width.
+const COMPACT_BYTES_WIDTH: usize = 5;
+
+fn patch_compact_bytes(buf: &mut BytesMut, mark: usize) -> Result<()> {
+    let payload = buf.len().saturating_sub(mark + COMPACT_BYTES_WIDTH);
+    let n = crate::protocol::buf::u32_from_usize(payload)?
+        .checked_add(1)
+        .ok_or_else(|| Error::protocol("compact bytes overflow"))?;
+    let width = crate::protocol::buf::unsigned_varint_size(n);
+    let shift = COMPACT_BYTES_WIDTH.saturating_sub(width);
+    if shift != 0 {
+        buf.copy_within(mark + COMPACT_BYTES_WIDTH.., mark + width);
+        buf.truncate(buf.len() - shift);
+    }
+    let mut encoded = [0u8; COMPACT_BYTES_WIDTH];
+    let mut value = n;
+    for slot in encoded.iter_mut().take(width) {
+        let more = value >= 0x80;
+        let low = u8::try_from(value & 0x7f).unwrap_or(0);
+        *slot = low | if more { 0x80 } else { 0 };
+        value >>= 7;
+    }
+    let Some(encoded) = encoded.get(..width) else {
+        return Err(Error::protocol("compact bytes length slot"));
+    };
+    let Some(dest) = buf.get_mut(mark..mark + width) else {
+        return Err(Error::protocol("compact bytes length slot"));
+    };
+    dest.copy_from_slice(encoded);
     Ok(())
 }
 
