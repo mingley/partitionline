@@ -49,6 +49,44 @@ const MAX_ATTEMPTS: u32 = 8;
 const MAX_NODES: usize = 256;
 const MAX_CONTROL_BYTES: usize = 1024 * 1024;
 
+async fn open_streams_describe_socket(
+    cfg: &AdminConfig,
+    stats: &Arc<crate::metrics::AdminTracker>,
+    address: &str,
+    deadline: Deadline,
+) -> Result<(BrokerConn, ApiVersionsResponse)> {
+    let mut conn = BrokerConn::connect_tls(
+        address,
+        &cfg.client_id,
+        cfg.connect_timeout.min(deadline.remaining()?),
+        cfg.tls.as_ref(),
+    )
+    .await?;
+    conn.set_stats(Arc::clone(stats));
+    let versions = negotiate_api_versions(&mut conn, deadline.remaining()?).await?;
+    if versions
+        .api_version(STREAMS_GROUP_DESCRIBE)
+        .and_then(|api| pick_version(api.min_version, api.max_version, 0, 0))
+        .is_none()
+    {
+        return Err(Error::Unsupported(
+            "broker does not support StreamsGroupDescribe v0".into(),
+        ));
+    }
+    sasl::apply_api_keys(&mut conn, &versions.api_keys);
+    sasl::authenticate(
+        &mut conn,
+        cfg.sasl_plain.as_ref(),
+        cfg.sasl_scram.as_ref(),
+        cfg.sasl_scram_sha512.as_ref(),
+        cfg.sasl_oauthbearer.as_deref(),
+        cfg.sasl_oauthbearer_oidc.as_ref(),
+        deadline.remaining()?,
+    )
+    .await?;
+    Ok((conn, versions))
+}
+
 fn streams_retryable(err: &Error) -> bool {
     matches!(err, Error::Io(_) | Error::Timeout)
         || err.broker_code().is_some_and(error::coordinator_retriable)
@@ -141,37 +179,7 @@ impl Admin {
         address: &str,
         deadline: Deadline,
     ) -> Result<(BrokerConn, ApiVersionsResponse)> {
-        let cfg = &self.cfg;
-        let mut conn = BrokerConn::connect_tls(
-            address,
-            &cfg.client_id,
-            cfg.connect_timeout.min(deadline.remaining()?),
-            cfg.tls.as_ref(),
-        )
-        .await?;
-        conn.set_stats(Arc::clone(&self.stats));
-        let versions = negotiate_api_versions(&mut conn, deadline.remaining()?).await?;
-        if versions
-            .api_version(STREAMS_GROUP_DESCRIBE)
-            .and_then(|api| pick_version(api.min_version, api.max_version, 0, 0))
-            .is_none()
-        {
-            return Err(Error::Unsupported(
-                "broker does not support StreamsGroupDescribe v0".into(),
-            ));
-        }
-        sasl::apply_api_keys(&mut conn, &versions.api_keys);
-        sasl::authenticate(
-            &mut conn,
-            cfg.sasl_plain.as_ref(),
-            cfg.sasl_scram.as_ref(),
-            cfg.sasl_scram_sha512.as_ref(),
-            cfg.sasl_oauthbearer.as_deref(),
-            cfg.sasl_oauthbearer_oidc.as_ref(),
-            deadline.remaining()?,
-        )
-        .await?;
-        Ok((conn, versions))
+        open_streams_describe_socket(&self.cfg, &self.stats, address, deadline).await
     }
 
     async fn streams_bootstrap(
@@ -181,12 +189,35 @@ impl Admin {
         if self.cfg.bootstrap.len() > 16 {
             return Err(Error::protocol("too many Streams bootstrap servers"));
         }
-        let mut last = Error::Timeout;
+        if self.cfg.bootstrap.len() <= 1 {
+            let mut last = Error::Timeout;
+            for address in &self.cfg.bootstrap {
+                match self.open_streams_describe(address, deadline).await {
+                    Ok(opened) => return Ok(opened),
+                    Err(err) if streams_retryable(&err) => last = err,
+                    Err(err) => return Err(err),
+                }
+            }
+            return Err(last);
+        }
+        let mut inflight = tokio::task::JoinSet::new();
         for address in &self.cfg.bootstrap {
-            match self.open_streams_describe(address, deadline).await {
-                Ok(opened) => return Ok(opened),
-                Err(err) if streams_retryable(&err) => last = err,
-                Err(err) => return Err(err),
+            let cfg = self.cfg.clone();
+            let stats = Arc::clone(&self.stats);
+            let address = address.clone();
+            let _ = inflight.spawn(async move {
+                open_streams_describe_socket(&cfg, &stats, &address, deadline).await
+            });
+        }
+        let mut last = Error::protocol("all bootstrap servers failed");
+        while let Some(joined) = inflight.join_next().await {
+            match joined {
+                Ok(Ok(opened)) => {
+                    inflight.abort_all();
+                    return Ok(opened);
+                }
+                Ok(Err(error)) => last = error,
+                Err(error) => last = Error::protocol(format!("streams bootstrap: {error}")),
             }
         }
         Err(last)

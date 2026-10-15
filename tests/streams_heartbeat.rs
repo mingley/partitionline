@@ -112,6 +112,41 @@ async fn unavailable_bootstrap_api_refuses_discovery_and_dispatch() {
 }
 
 #[tokio::test]
+async fn a_stalled_bootstrap_does_not_hold_streams_heartbeat() {
+    let peer = Peer::start().await;
+    peer.script(1, [Reply::Body(response(0))]).await;
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let stall = listener.local_addr().unwrap();
+    drop(tokio::spawn(async move {
+        loop {
+            let Ok((socket, _)) = listener.accept().await else {
+                break;
+            };
+            tokio::time::sleep(Duration::from_secs(30)).await;
+            drop(socket);
+        }
+    }));
+    let mut cfg = peer.config();
+    cfg.connection.bootstrap.insert(0, stall.to_string());
+    cfg.connection.connect_timeout = Duration::from_millis(200);
+    cfg.connection.request_timeout = Duration::from_secs(2);
+    let mut client = StreamsClient::new(cfg).unwrap();
+    let started = Instant::now();
+    let beat = client
+        .heartbeat_timeout(&request(), Duration::from_secs(2))
+        .await
+        .unwrap();
+    assert_eq!(beat.error_code, 0);
+    assert!(
+        started.elapsed() < Duration::from_millis(500),
+        "streams heartbeat waited for the stalled bootstrap: {:?}",
+        started.elapsed()
+    );
+    client.close();
+    drop(peer);
+}
+
+#[tokio::test]
 async fn coordinator_capability_is_negotiated_before_heartbeat() {
     let peer = Peer::start().await;
     peer.state.lock().await.ranges[1] = None;

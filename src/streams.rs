@@ -17,6 +17,42 @@ pub use crate::protocol::streams::{
 };
 
 const MAX_BOOTSTRAP_SERVERS: usize = 16;
+
+async fn open_streams_heartbeat(
+    cfg: &AdminConfig,
+    address: &str,
+    deadline: Deadline,
+) -> Result<(BrokerConn, ApiVersionsResponse)> {
+    let mut conn = BrokerConn::connect_tls(
+        address,
+        &cfg.client_id,
+        cfg.connect_timeout.min(deadline.remaining()?),
+        cfg.tls.as_ref(),
+    )
+    .await?;
+    let versions = negotiate_api_versions(&mut conn, deadline.remaining()?).await?;
+    if versions
+        .api_version(STREAMS_GROUP_HEARTBEAT)
+        .and_then(|api| pick_version(api.min_version, api.max_version, 0, 0))
+        .is_none()
+    {
+        return Err(Error::Unsupported(
+            "broker does not support StreamsGroupHeartbeat v0".into(),
+        ));
+    }
+    sasl::apply_api_keys(&mut conn, &versions.api_keys);
+    sasl::authenticate(
+        &mut conn,
+        cfg.sasl_plain.as_ref(),
+        cfg.sasl_scram.as_ref(),
+        cfg.sasl_scram_sha512.as_ref(),
+        cfg.sasl_oauthbearer.as_deref(),
+        cfg.sasl_oauthbearer_oidc.as_ref(),
+        deadline.remaining()?,
+    )
+    .await?;
+    Ok((conn, versions))
+}
 const MAX_ATTEMPTS: u32 = 8;
 const MAX_COORDINATOR_BODY: usize = 64 * 1024;
 
@@ -173,36 +209,41 @@ impl StreamsClient {
         address: &str,
         deadline: Deadline,
     ) -> Result<(BrokerConn, ApiVersionsResponse)> {
-        let cfg = &self.cfg.connection;
-        let mut conn = BrokerConn::connect_tls(
-            address,
-            &cfg.client_id,
-            cfg.connect_timeout.min(deadline.remaining()?),
-            cfg.tls.as_ref(),
-        )
-        .await?;
-        let versions = negotiate_api_versions(&mut conn, deadline.remaining()?).await?;
-        if versions
-            .api_version(STREAMS_GROUP_HEARTBEAT)
-            .and_then(|api| pick_version(api.min_version, api.max_version, 0, 0))
-            .is_none()
-        {
-            return Err(Error::Unsupported(
-                "broker does not support StreamsGroupHeartbeat v0".into(),
-            ));
+        open_streams_heartbeat(&self.cfg.connection, address, deadline).await
+    }
+
+    async fn open_any(&self, deadline: Deadline) -> Result<(BrokerConn, ApiVersionsResponse)> {
+        let addresses = &self.cfg.connection.bootstrap;
+        if addresses.len() <= 1 {
+            let mut last = Error::Timeout;
+            for address in addresses {
+                match self.open(address, deadline).await {
+                    Ok(opened) => return Ok(opened),
+                    Err(err) if err.is_retriable() => last = err,
+                    Err(err) => return Err(err),
+                }
+            }
+            return Err(last);
         }
-        sasl::apply_api_keys(&mut conn, &versions.api_keys);
-        sasl::authenticate(
-            &mut conn,
-            cfg.sasl_plain.as_ref(),
-            cfg.sasl_scram.as_ref(),
-            cfg.sasl_scram_sha512.as_ref(),
-            cfg.sasl_oauthbearer.as_deref(),
-            cfg.sasl_oauthbearer_oidc.as_ref(),
-            deadline.remaining()?,
-        )
-        .await?;
-        Ok((conn, versions))
+        let mut inflight = tokio::task::JoinSet::new();
+        for address in addresses {
+            let cfg = self.cfg.connection.clone();
+            let address = address.clone();
+            let _ = inflight
+                .spawn(async move { open_streams_heartbeat(&cfg, &address, deadline).await });
+        }
+        let mut last = Error::protocol("all bootstrap servers failed");
+        while let Some(joined) = inflight.join_next().await {
+            match joined {
+                Ok(Ok(opened)) => {
+                    inflight.abort_all();
+                    return Ok(opened);
+                }
+                Ok(Err(error)) => last = error,
+                Err(error) => last = Error::protocol(format!("streams bootstrap: {error}")),
+            }
+        }
+        Err(last)
     }
 
     async fn discover(
@@ -210,20 +251,7 @@ impl StreamsClient {
         request: &StreamsGroupHeartbeatRequest,
         deadline: Deadline,
     ) -> Result<BrokerConn> {
-        let cfg = &self.cfg.connection;
-        let mut opened = None;
-        let mut last = Error::Timeout;
-        for address in &cfg.bootstrap {
-            match self.open(address, deadline).await {
-                Ok(conn) => {
-                    opened = Some(conn);
-                    break;
-                }
-                Err(err) if err.is_retriable() => last = err,
-                Err(err) => return Err(err),
-            }
-        }
-        let (mut bootstrap, versions) = opened.ok_or(last)?;
+        let (mut bootstrap, versions) = self.open_any(deadline).await?;
         let version = versions
             .api_version(FIND_COORDINATOR)
             .and_then(|api| pick_version(api.min_version, api.max_version, 1, 6))
