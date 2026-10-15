@@ -137,6 +137,8 @@ pub struct Offsets {
     journal: Journal,
     stored: usize,
     poisoned: bool,
+    /// Reused journal image. Cleared and rewritten on each commit.
+    encoded: Vec<u8>,
 }
 
 impl Offsets {
@@ -149,6 +151,7 @@ impl Offsets {
             journal,
             stored: 0,
             poisoned: false,
+            encoded: Vec::new(),
         };
         let mut cursor = offsets.journal.base_offset();
         loop {
@@ -379,8 +382,12 @@ impl Offsets {
         if self.stored >= self.limits.max_records {
             return Err(Error::InvalidLimits);
         }
-        let payload = encode(&self.groups)?;
-        match self.journal.append(1, &payload) {
+        let mut encoded = std::mem::take(&mut self.encoded);
+        let encoded_result = encode_into(&self.groups, &mut encoded);
+        self.encoded = encoded;
+        encoded_result?;
+        let payload = std::mem::take(&mut self.encoded);
+        let result = match self.journal.append(1, &payload) {
             Ok(_) => {
                 self.stored = self.stored.saturating_add(1);
                 Ok(())
@@ -389,7 +396,9 @@ impl Offsets {
                 self.poisoned = true;
                 Err(error.into())
             }
-        }
+        };
+        self.encoded = payload;
+        result
     }
 }
 
@@ -476,25 +485,32 @@ fn validate_group(group: &str) -> Result<(), Error> {
     }
 }
 
+#[cfg(test)]
 fn encode(groups: &BTreeMap<String, Group>) -> Result<Vec<u8>, Error> {
     let mut bytes = Vec::new();
+    encode_into(groups, &mut bytes)?;
+    Ok(bytes)
+}
+
+fn encode_into(groups: &BTreeMap<String, Group>, bytes: &mut Vec<u8>) -> Result<(), Error> {
+    bytes.clear();
     bytes.extend_from_slice(RECORD_MAGIC);
-    put_u16(&mut bytes, groups.len())?;
+    put_u16(bytes, groups.len())?;
     for (id, group) in groups {
-        put_str(&mut bytes, id)?;
+        put_str(bytes, id)?;
         bytes.extend_from_slice(&group.generation.to_be_bytes());
-        put_u16(&mut bytes, offset_count(&group.offsets))?;
+        put_u16(bytes, offset_count(&group.offsets))?;
         for (topic, parts) in &group.offsets {
             for (partition, committed) in parts {
-                put_str(&mut bytes, topic)?;
+                put_str(bytes, topic)?;
                 bytes.extend_from_slice(&partition.to_be_bytes());
                 bytes.extend_from_slice(&committed.offset.to_be_bytes());
                 bytes.extend_from_slice(&committed.generation.to_be_bytes());
-                put_str(&mut bytes, &committed.metadata)?;
+                put_str(bytes, &committed.metadata)?;
             }
         }
     }
-    Ok(bytes)
+    Ok(())
 }
 
 fn decode(mut bytes: &[u8]) -> Result<BTreeMap<String, Group>, Error> {
@@ -709,6 +725,12 @@ mod tests {
         assert_eq!(results[1].error_code, 42);
         assert!(Arc::ptr_eq(&results[0].topic, &results[1].topic));
         assert_eq!(results[0].topic.as_ref(), "orders");
+        let encoded_capacity = offsets.encoded.capacity();
+        assert!(encoded_capacity > 0);
+        let _again = offsets
+            .commit("orders", "m-1", 1, &[("orders", 0, 4, "first")])
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(offsets.encoded.capacity() >= encoded_capacity);
         assert_eq!(
             offsets
                 .fetch("orders", "orders", 0)
