@@ -5767,6 +5767,7 @@ impl Worker {
                     let mut lat_sum = 0u64;
                     let mut lat_min = u64::MAX;
                     let mut lat_max = 0u64;
+                    let mut stamped = None;
                     for (i, p) in pendings.into_iter().enumerate() {
                         let ns = ack_latency_ns(ack, p.queued_at);
                         lat_n += 1;
@@ -5779,6 +5780,7 @@ impl Worker {
                             continue;
                         }
                         let batch_index = i32::try_from(i).unwrap_or(i32::MAX);
+                        let now = *stamped.get_or_insert_with(now_ms);
                         let md = record_metadata(
                             &topic,
                             part,
@@ -5786,6 +5788,7 @@ impl Worker {
                             batch_index,
                             &p.rec,
                             r.log_append_time_ms,
+                            now,
                         );
                         self.shared.interceptors.on_ack(&md);
                         if let Some(tx) = p.tx {
@@ -6726,6 +6729,7 @@ fn complete_acks0(shared: &Shared, groups: Vec<(Arc<str>, i32, Vec<Pending>)>) {
         let mut lat_sum = 0u64;
         let mut lat_min = u64::MAX;
         let mut lat_max = 0u64;
+        let mut stamped = None;
         for p in pendings {
             let ns = ack_latency_ns(ack, p.queued_at);
             lat_n += 1;
@@ -6737,6 +6741,7 @@ fn complete_acks0(shared: &Shared, groups: Vec<(Arc<str>, i32, Vec<Pending>)>) {
             if p.tx.is_none() && shared.interceptors.is_empty() {
                 continue;
             }
+            let now = *stamped.get_or_insert_with(now_ms);
             let md = record_metadata(
                 &topic,
                 part,
@@ -6744,6 +6749,7 @@ fn complete_acks0(shared: &Shared, groups: Vec<(Arc<str>, i32, Vec<Pending>)>) {
                 0,
                 &p.rec,
                 RecordBatch::NO_TIMESTAMP,
+                now,
             );
             shared.interceptors.on_ack(&md);
             if let Some(tx) = p.tx {
@@ -6843,11 +6849,12 @@ fn record_metadata(
     batch_index: i32,
     rec: &ProduceRecord,
     log_append_time_ms: i64,
+    now_ms: i64,
 ) -> RecordMetadata {
     let timestamp = if log_append_time_ms >= 0 {
         log_append_time_ms
     } else {
-        rec.timestamp.unwrap_or_else(now_ms)
+        rec.timestamp.unwrap_or(now_ms)
     };
     let offset = if base_offset == RecordMetadata::INVALID_OFFSET {
         base_offset
@@ -7097,7 +7104,7 @@ mod tests {
     #[test]
     fn record_metadata_shares_the_produce_topic() {
         let rec = ProduceRecord::to("events");
-        let md = record_metadata(&rec.topic, 1, 4, 2, &rec, -1);
+        let md = record_metadata(&rec.topic, 1, 4, 2, &rec, -1, 5);
         assert!(Arc::ptr_eq(&md.topic, &rec.topic));
         assert_eq!(md.offset(), 6);
         assert_eq!(md.topic(), "events");
