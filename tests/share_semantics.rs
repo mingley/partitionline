@@ -1846,6 +1846,56 @@ async fn share_acknowledge_unrequested_topic_id_is_skipped() {
 }
 
 #[tokio::test]
+async fn share_acknowledge_unrequested_known_topic_id_is_skipped() {
+    let mock = common::Mock::start().await;
+    v2(&mock);
+    mock.set_topic_partitions("u", 1);
+    produce(&mock, &[(0, b"held")]).await;
+    let mut group = ShareGroup::join(config(&mock), "ack-known-tid", "t")
+        .await
+        .unwrap();
+    let recs = group.poll().await.unwrap();
+    assert_eq!(recs.len(), 1);
+    let seen = Arc::new(Mutex::new(Vec::new()));
+    let seen_cb = seen.clone();
+    group.set_acknowledgement_commit_callback(move |_, exception| {
+        seen_cb
+            .lock()
+            .push(exception.as_ref().and_then(|error| error.code()));
+    });
+    group.accept(&recs).await.unwrap();
+    let version = mock.last_share_fetch_version().unwrap_or(2);
+    let topics = vec![
+        ShareAcknowledgeResponseTopic {
+            topic_id: mock.topic_id("t"),
+            partitions: vec![ShareAcknowledgeResponsePartition::partition_response(0, 0)],
+        },
+        ShareAcknowledgeResponseTopic {
+            topic_id: mock.topic_id("u"),
+            partitions: vec![ShareAcknowledgeResponsePartition::partition_response(
+                0,
+                error::NOT_LEADER_OR_FOLLOWER,
+            )],
+        },
+    ];
+    let mut injected = BytesMut::new();
+    encode_share_acknowledge_topics_response(&mut injected, version, 0, &topics).unwrap();
+    mock.inject_share_ack_response_once(&injected);
+    let results = group.commit_sync().await.unwrap();
+    assert_eq!(results.len(), 1);
+    assert!(
+        results[0].1.is_none(),
+        "Java handleAcknowledgeErrorCode skips a known topic id that was not in this ShareAcknowledge"
+    );
+    assert_eq!(
+        *seen.lock(),
+        vec![None],
+        "unrequested known topic-id error must not fail the requested ack"
+    );
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn share_acknowledge_error_message_reaches_commit_sync() {
     let mock = common::Mock::start().await;
     v2(&mock);

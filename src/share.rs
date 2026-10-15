@@ -697,7 +697,9 @@ pub enum ShareAcquireMode {
 /// ShareAcknowledge that omits a requested partition completes that
 /// partition the same way (Java `processingComplete` /
 /// `testShareAcknowledgeInvalidResponse`). Unrequested ShareAcknowledge
-/// partitions and unknown topic ids are skipped (Java `lookupTopicId`).
+/// partitions, unknown topic ids, and known topic ids that were not
+/// in the request are skipped (Java `lookupTopicId` /
+/// `handleAcknowledgeErrorCode`).
 /// Top-level ShareFetch `UNKNOWN_TOPIC_ID` / `INCONSISTENT_TOPIC_ID`
 /// invalidate topic metadata so the next poll uses the refreshed id
 /// (Java `metadata.requestUpdate`). Incremental ShareFetch sends Java
@@ -1741,9 +1743,10 @@ impl ShareGroup {
     /// A successful ShareAcknowledge that omits a requested partition
     /// completes that partition with `INVALID_RECORD_STATE` (Java
     /// `testShareAcknowledgeInvalidResponse`). Unrequested response
-    /// partitions and unknown topic ids are skipped (Java
-    /// `lookupTopicId`). A non-empty partition `ErrorMessage` is
-    /// preferred over the crate fallback (Java
+    /// partitions, unknown topic ids, and known topic ids that were
+    /// not in the request are skipped (Java `lookupTopicId` /
+    /// `handleAcknowledgeErrorCode`). A non-empty partition
+    /// `ErrorMessage` is preferred over the crate fallback (Java
     /// `Errors.exception(errorMessage)`).
     pub async fn commit_sync(&mut self) -> Result<AcknowledgementCommitResults> {
         if !self.has_pending_acknowledgements() {
