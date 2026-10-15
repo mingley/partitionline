@@ -1927,6 +1927,38 @@ where
     Some((first, duplicated))
 }
 
+fn delete_alias_sets<'a>(
+    topics: &'a [Target<'a>],
+    catalog: &Catalog,
+) -> (HashSet<[u8; 16]>, HashSet<[u8; 16]>) {
+    let mut requested_ids = HashSet::new();
+    let mut unique_name_ids = HashSet::new();
+    if topics.len() <= 1 {
+        return (requested_ids, unique_name_ids);
+    }
+    let mut name_counts: HashMap<&str, usize> = HashMap::new();
+    for target in topics {
+        match delete_identity(target) {
+            Some(DeleteKey::Id(id)) => {
+                let _ = requested_ids.insert(id);
+            }
+            Some(DeleteKey::Name(name)) => {
+                let count = name_counts.entry(name).or_insert(0);
+                *count = count.saturating_add(1);
+            }
+            None => {}
+        }
+    }
+    for (name, count) in &name_counts {
+        if *count == 1 {
+            if let Some(live) = catalog.by_name(name) {
+                let _ = unique_name_ids.insert(live.id().bytes());
+            }
+        }
+    }
+    (requested_ids, unique_name_ids)
+}
+
 fn delete_identity<'a>(target: &Target<'a>) -> Option<DeleteKey<'a>> {
     match (target.name, target.id == ZERO) {
         (Some(name), true) => Some(DeleteKey::Name(name)),
@@ -2095,6 +2127,7 @@ fn delete(
         return Err(Error::ResponseLimit);
     }
     let copies = mark_first_copies(&request.topics, delete_identity);
+    let (requested_ids, unique_name_ids) = delete_alias_sets(&request.topics, catalog);
     for (position, target) in request.topics.iter().enumerate() {
         check_active(reply, stopping)?;
         let neither = target.name.is_none() && target.id == ZERO;
@@ -2158,24 +2191,14 @@ fn delete(
         };
         let id = topic.id();
         let bytes = id.bytes();
-        let alias = request.topics.iter().any(|other| {
-            if target.name.is_some() {
-                other.name.is_none() && other.id == bytes
-            } else {
-                other.id == ZERO
-                    && other.name.is_some_and(|name| {
-                        request
-                            .topics
-                            .iter()
-                            .filter(|candidate| {
-                                candidate.id == ZERO && candidate.name == Some(name)
-                            })
-                            .count()
-                            == 1
-                            && catalog.by_name(name).is_some_and(|live| live.id() == id)
-                    })
-            }
-        });
+        // A name and an id for the same topic are one delete. The sets were
+        // taken before any tombstone, which matches the old scan: a name is
+        // not removed when its id is also in the request.
+        let alias = if target.name.is_some() {
+            requested_ids.contains(&bytes)
+        } else {
+            unique_name_ids.contains(&bytes)
+        };
         if alias {
             if target.name.is_some() {
                 results.push(DeleteResult {
@@ -2280,6 +2303,53 @@ mod tests {
         });
         assert_eq!(copies.0, vec![true, false, false, true, false]);
         assert_eq!(copies.1, vec![true, false, false, true, false]);
+        let path = std::env::temp_dir().join(format!(
+            "partitionline-delete-alias-{}-{}",
+            std::process::id(),
+            NEXT.fetch_add(1, Ordering::Relaxed)
+        ));
+        let (mut catalog, _) = Catalog::open(&path, catalog::Limits::default())
+            .unwrap_or_else(|error| panic!("{error}"));
+        let mut id_bytes = [0; 16];
+        id_bytes[15] = 4;
+        let id = TopicId::new(id_bytes).unwrap_or_else(|error| panic!("{error}"));
+        catalog
+            .create("orders", id, 1)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let paired = [
+            Target {
+                name: Some("orders"),
+                id: ZERO,
+            },
+            Target {
+                name: None,
+                id: id.bytes(),
+            },
+        ];
+        let (requested, unique) = delete_alias_sets(&paired, &catalog);
+        assert!(requested.contains(&id.bytes()));
+        assert!(unique.contains(&id.bytes()));
+        let repeated = [
+            Target {
+                name: Some("orders"),
+                id: ZERO,
+            },
+            Target {
+                name: Some("orders"),
+                id: ZERO,
+            },
+            Target {
+                name: None,
+                id: id.bytes(),
+            },
+        ];
+        let (requested, unique) = delete_alias_sets(&repeated, &catalog);
+        assert!(requested.contains(&id.bytes()));
+        assert!(
+            !unique.contains(&id.bytes()),
+            "a repeated name is not a single alias of the id"
+        );
+        let _ = std::fs::remove_file(&path);
     }
 
     #[test]
