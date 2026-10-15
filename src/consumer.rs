@@ -4338,20 +4338,21 @@ impl Consumer {
                 let node = fetch_target(preferred, preferred_known, leader);
                 match node {
                     Some(node) => {
-                        by_leader
-                            .entry(node)
-                            .or_default()
-                            .entry(Arc::clone(topic))
-                            .or_default()
-                            .push(FetchPartition {
-                                partition: *part,
-                                current_leader_epoch: self.cluster.leader_epoch(topic, *part),
-                                fetch_offset: *offset,
-                                last_fetched_epoch: self.last_fetched_epoch(topic, *part),
-                                log_start_offset: INVALID_LOG_START_OFFSET,
-                                partition_max_bytes: self.cfg.max_partition_fetch_bytes,
-                                replica_directory_id: [0; 16],
-                            });
+                        let planned = FetchPartition {
+                            partition: *part,
+                            current_leader_epoch: self.cluster.leader_epoch(topic, *part),
+                            fetch_offset: *offset,
+                            last_fetched_epoch: self.last_fetched_epoch(topic, *part),
+                            log_start_offset: INVALID_LOG_START_OFFSET,
+                            partition_max_bytes: self.cfg.max_partition_fetch_bytes,
+                            replica_directory_id: [0; 16],
+                        };
+                        let topics = by_leader.entry(node).or_default();
+                        if let Some(parts) = topics.get_mut(topic.as_ref()) {
+                            parts.push(planned);
+                        } else {
+                            let _ = topics.insert(Arc::clone(topic), vec![planned]);
+                        }
                     }
                     None => {
                         missing_leader = true;
