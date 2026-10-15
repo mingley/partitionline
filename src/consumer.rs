@@ -4899,8 +4899,9 @@ impl Consumer {
                         bound = Some(id);
                     }
                 }
-                if let Some(id) = bound.filter(|_| current.is_none()).or(current) {
-                    if id != [0; 16] {
+                // Metadata already carries this id. Remember only an assigned id it lacks.
+                if current.is_none() {
+                    if let Some(id) = bound.filter(|id| *id != [0; 16]) {
                         let _previous = name_ids.insert(Arc::clone(topic), id);
                     }
                 }
@@ -4999,7 +5000,7 @@ impl Consumer {
                 let Some(by_topic) = by_leader.remove(&node) else {
                     continue;
                 };
-                let topics = fetch_topics(by_topic, &name_ids);
+                let topics = fetch_topics(by_topic, &name_ids, &self.name_to_id);
                 let reuse_bootstrap = !self.conns.contains_key(&node)
                     && self
                         .cluster
@@ -5082,7 +5083,7 @@ impl Consumer {
             let Some(by_topic) = by_leader.remove(&node) else {
                 continue;
             };
-            let topics = fetch_topics(by_topic, &name_ids);
+            let topics = fetch_topics(by_topic, &name_ids, &self.name_to_id);
             let fetch_version = {
                 let conn = self
                     .conns
@@ -6681,17 +6682,20 @@ fn is_abort_marker(batch: &crate::protocol::records::RecordBatch) -> bool {
         })
 }
 
-fn fetch_topics<I>(
+fn fetch_topics(
     by_topic: HashMap<Arc<str>, Vec<FetchPartition>>,
-    name_ids: &HashMap<I, [u8; 16]>,
-) -> Vec<PlannedFetch>
-where
-    I: std::hash::Hash + Eq + std::borrow::Borrow<str>,
-{
+    overrides: &HashMap<Arc<str>, [u8; 16]>,
+    known_ids: &HashMap<String, [u8; 16]>,
+) -> Vec<PlannedFetch> {
     by_topic
         .into_iter()
         .map(|(topic, partitions)| PlannedFetch {
-            topic_id: name_ids.get(topic.as_ref()).copied().unwrap_or([0u8; 16]),
+            topic_id: overrides
+                .get(topic.as_ref())
+                .or_else(|| known_ids.get(topic.as_ref()))
+                .copied()
+                .filter(|id| *id != [0; 16])
+                .unwrap_or([0; 16]),
             topic,
             partitions,
         })
@@ -7324,6 +7328,32 @@ mod tests {
                 replica_directory_id: [0; 16],
             }],
         }
+    }
+
+    #[test]
+    fn fetch_topics_use_metadata_ids_and_prefer_an_assigned_override() {
+        let topic = Arc::<str>::from("orders");
+        let partitions = session_topic([0; 16], 0).partitions;
+        let mut known = HashMap::new();
+        let _ = known.insert("orders".to_owned(), [1; 16]);
+        let mut planned = HashMap::new();
+        let _ = planned.insert(Arc::clone(&topic), partitions.clone());
+        let resolved = fetch_topics(planned, &HashMap::new(), &known);
+        assert_eq!(resolved.first().map(|topic| topic.topic_id), Some([1; 16]));
+
+        let mut overrides = HashMap::new();
+        let _ = overrides.insert(Arc::clone(&topic), [2; 16]);
+        let mut planned = HashMap::new();
+        let _ = planned.insert(Arc::clone(&topic), partitions.clone());
+        let resolved = fetch_topics(planned, &overrides, &known);
+        assert_eq!(resolved.first().map(|topic| topic.topic_id), Some([2; 16]));
+
+        let mut zeros = HashMap::new();
+        let _ = zeros.insert("orders".to_owned(), [0; 16]);
+        let mut planned = HashMap::new();
+        let _ = planned.insert(topic, partitions);
+        let resolved = fetch_topics(planned, &HashMap::new(), &zeros);
+        assert_eq!(resolved.first().map(|topic| topic.topic_id), Some([0; 16]));
     }
 
     #[test]
