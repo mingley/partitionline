@@ -14424,45 +14424,42 @@ fn alter_replica_dirs_for_broker(
 ) -> Vec<AlterReplicaLogDirsDirectory> {
     let mut path_order: Vec<String> = Vec::new();
     let mut topics_by_path: HashMap<String, Vec<String>> = HashMap::new();
-    let mut partitions_by_path_topic: HashMap<(String, String), Vec<i32>> = HashMap::new();
+    let mut partitions_by_path: HashMap<String, HashMap<String, Vec<i32>>> = HashMap::new();
     for (replica, path) in assignment {
         if replica.broker_id != broker_id {
             continue;
         }
-        if !path_order.contains(path) {
+        if let Some(topics) = topics_by_path.get_mut(path.as_str()) {
+            if !topics.iter().any(|name| name == &replica.topic) {
+                topics.push(replica.topic.clone());
+            }
+        } else {
             path_order.push(path.clone());
+            let _ = topics_by_path.insert(path.clone(), vec![replica.topic.clone()]);
         }
-        match topics_by_path.entry(path.clone()) {
-            std::collections::hash_map::Entry::Vacant(slot) => {
-                let _ = slot.insert(vec![replica.topic.clone()]);
-            }
-            std::collections::hash_map::Entry::Occupied(mut slot) => {
-                if !slot.get().contains(&replica.topic) {
-                    slot.get_mut().push(replica.topic.clone());
+        if let Some(by_topic) = partitions_by_path.get_mut(path.as_str()) {
+            if let Some(parts) = by_topic.get_mut(replica.topic.as_str()) {
+                if !parts.contains(&replica.partition) {
+                    parts.push(replica.partition);
                 }
+            } else {
+                let _ = by_topic.insert(replica.topic.clone(), vec![replica.partition]);
             }
-        }
-        match partitions_by_path_topic.entry((path.clone(), replica.topic.clone())) {
-            std::collections::hash_map::Entry::Vacant(slot) => {
-                let _ = slot.insert(vec![replica.partition]);
-            }
-            std::collections::hash_map::Entry::Occupied(mut slot) => {
-                if !slot.get().contains(&replica.partition) {
-                    slot.get_mut().push(replica.partition);
-                }
-            }
+        } else {
+            let mut by_topic = HashMap::new();
+            let _ = by_topic.insert(replica.topic.clone(), vec![replica.partition]);
+            let _ = partitions_by_path.insert(path.clone(), by_topic);
         }
     }
     path_order
         .into_iter()
         .map(|path| {
             let topics = topics_by_path.remove(&path).unwrap_or_default();
+            let mut by_topic = partitions_by_path.remove(&path).unwrap_or_default();
             let topics = topics
                 .into_iter()
                 .map(|name| {
-                    let partitions = partitions_by_path_topic
-                        .remove(&(path.clone(), name.clone()))
-                        .unwrap_or_default();
+                    let partitions = by_topic.remove(&name).unwrap_or_default();
                     AlterReplicaLogDirsTopic { name, partitions }
                 })
                 .collect();
