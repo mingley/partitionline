@@ -3445,6 +3445,20 @@ impl Consumer {
         }
     }
 
+    fn add_fetch_totals(&mut self, topic: &Arc<str>, records: u64, bytes: u64) {
+        if records == 0 {
+            return;
+        }
+        if let Some(totals) = self.fetch_return_totals.get_mut(topic.as_ref()) {
+            totals.0 = totals.0.saturating_add(records);
+            totals.1 = totals.1.saturating_add(bytes);
+        } else {
+            let _previous = self
+                .fetch_return_totals
+                .insert(Arc::clone(topic), (records, bytes));
+        }
+    }
+
     /// Assignment name for a fetch topic, sharing the stored allocation when the
     /// topic is already assigned.
     fn fetch_topic_arc(&self, response_name: &str, topic_id: [u8; 16]) -> Result<Option<Arc<str>>> {
@@ -5641,6 +5655,8 @@ impl Consumer {
                 Some(seen_partitions.remove(name.as_ref()).unwrap_or_default())
             };
             let mut topic_completed: HashMap<i32, ()> = HashMap::new();
+            let mut topic_records = 0u64;
+            let mut topic_bytes = 0u64;
             if *budget_reached {
                 for (part, part_batches) in topic.partitions.into_iter().zip(topic_batches) {
                     if topic_seen
@@ -5662,6 +5678,7 @@ impl Consumer {
                     }
                 }
                 completed.extend_topic(name.as_ref(), topic_completed);
+                self.add_fetch_totals(&name, topic_records, topic_bytes);
                 if let Some(parts) = topic_seen {
                     if !parts.is_empty() {
                         let _ = seen_partitions.insert(Arc::clone(&name), parts);
@@ -5904,17 +5921,9 @@ impl Consumer {
                             }
                             *out_bytes = mark_bytes.saturating_add(added);
                             if added_records > 0 {
-                                let added_bytes = u64::try_from(added).unwrap_or(u64::MAX);
-                                if let Some(totals) =
-                                    self.fetch_return_totals.get_mut(name.as_ref())
-                                {
-                                    totals.0 = totals.0.saturating_add(added_records);
-                                    totals.1 = totals.1.saturating_add(added_bytes);
-                                } else {
-                                    let _previous = self
-                                        .fetch_return_totals
-                                        .insert(Arc::clone(&name), (added_records, added_bytes));
-                                }
+                                topic_records = topic_records.saturating_add(added_records);
+                                topic_bytes = topic_bytes
+                                    .saturating_add(u64::try_from(added).unwrap_or(u64::MAX));
                             }
                             let batch_next = fetch_end_after(header_end, last_record_off)?;
                             if let Some(advanced) = included_next {
@@ -6083,14 +6092,8 @@ impl Consumer {
                         });
                     }
                     if batch_records > 0 {
-                        if let Some(totals) = self.fetch_return_totals.get_mut(name.as_ref()) {
-                            totals.0 = totals.0.saturating_add(batch_records);
-                            totals.1 = totals.1.saturating_add(batch_bytes);
-                        } else {
-                            let _previous = self
-                                .fetch_return_totals
-                                .insert(Arc::clone(&name), (batch_records, batch_bytes));
-                        }
+                        topic_records = topic_records.saturating_add(batch_records);
+                        topic_bytes = topic_bytes.saturating_add(batch_bytes);
                     }
                     if reached_lso {
                         break;
@@ -6116,6 +6119,7 @@ impl Consumer {
                 }
             }
             completed.extend_topic(name.as_ref(), topic_completed);
+            self.add_fetch_totals(&name, topic_records, topic_bytes);
             if let Some(parts) = topic_seen {
                 if !parts.is_empty() {
                     let _ = seen_partitions.insert(name, parts);
