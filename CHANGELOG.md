@@ -91,8 +91,9 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `ErrorMessage` is set.   A sibling `INCONSISTENT_TOPIC_ID` /
   `UNKNOWN_TOPIC_OR_PARTITION` / partition `UNKNOWN_TOPIC_ID` /
   `FENCED_LEADER_EPOCH` without CurrentLeader /
-  `REPLICA_NOT_AVAILABLE` with `ErrorMessage` still delivers the
-  successful partition and still requests Metadata.
+  `REPLICA_NOT_AVAILABLE` / `OFFSET_NOT_AVAILABLE` with
+  `ErrorMessage` still delivers the successful partition and still
+  requests Metadata.
 
 - ShareFetch partition `FENCED_LEADER_EPOCH` without a usable
   CurrentLeader skips that partition, still delivers siblings, and
