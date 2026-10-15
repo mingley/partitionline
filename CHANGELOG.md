@@ -56,6 +56,11 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `testFatalErrorsAcknowledgementResponse`). Metadata is requested when
   that error has no usable CurrentLeader.
 
+- ShareFetch partition `INCONSISTENT_TOPIC_ID` skips without throwing
+  and requests Metadata on the next poll (Java
+  `testHandleFetchResponseError`). `UNKNOWN_LEADER_EPOCH` still skips
+  without Metadata.
+
 - `ShareGroup::set_acknowledgement_commit_callback` is Java
   `ShareConsumer.setAcknowledgementCommitCallback`
   (`AcknowledgementCommitCallback.onComplete`). `commit_async` /
