@@ -2040,7 +2040,9 @@
 //! disjoint or odd acquired ranges) are skipped and are not `ACK_GAP`.
 //! [`ShareRecord::last_header`] is Java `Headers.lastHeader` (last-wins).
 //! Committed transactional data batches are delivered; control batches
-//! stay GAP holes (Java `testCommittedTransactionRecordsIncluded`).
+//! at the start or end of an acquired range stay GAP holes
+//! (Java `testCommittedTransactionRecordsIncluded` /
+//! `testGapsWithControlRecordsAtBeginningAndEnd`).
 //! Overlapping ShareFetch `AcquiredRecords` keep the first occurrence
 //! (Java `testOverlappingAcquiredRecordsLogsErrorAndRetainsFirstOccurrence`).
 //! [`ShareAcknowledgementMode`] is Java `share.acknowledgement.mode`

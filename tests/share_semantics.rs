@@ -2857,6 +2857,64 @@ async fn share_fetch_compacted_last_record_missing() {
 }
 
 #[tokio::test]
+async fn share_fetch_control_records_at_beginning_and_end_are_gaps() {
+    let mock = common::Mock::start().await;
+    v2(&mock);
+    let mut group = ShareGroup::join(config(&mock), "gap-ctrl-ends", "t")
+        .await
+        .unwrap();
+    let version = mock.last_share_fetch_version().unwrap_or(2);
+    let marker = EndTransactionMarker::new(ControlRecordType::Commit, 0).unwrap();
+    let start = RecordBatch::with_end_transaction_marker(0, 0, -1, 1, 0, &marker).unwrap();
+    let data: Vec<Record> = (0..5)
+        .map(|_| Record {
+            offset: 0,
+            timestamp: 0,
+            key: Some(Bytes::from_static(b"key")),
+            value: Some(Bytes::from_static(b"value")),
+            headers: Vec::new(),
+        })
+        .collect();
+    let mut middle = RecordBatch::from_records(data).with_transactional(true);
+    middle.base_offset = 1;
+    for rec in &mut middle.records {
+        rec.offset += 1;
+    }
+    middle.producer_id = 1;
+    middle.producer_epoch = 0;
+    middle.base_sequence = 0;
+    let end = RecordBatch::with_end_transaction_marker(6, 0, -1, 1, 0, &marker).unwrap();
+    let mut part = ShareFetchedPartition::partition_response(0, 0);
+    part.records = vec![start, middle, end];
+    part.acquired = vec![acquired_range(0, 6)];
+    inject_share_partition(&mock, version, part);
+    let got = group.poll().await.unwrap();
+    assert_eq!(
+        got.iter().map(|rec| rec.offset).collect::<Vec<_>>(),
+        vec![1, 2, 3, 4, 5],
+        "Java testGapsWithControlRecordsAtBeginningAndEnd delivers data 1-5"
+    );
+    assert_eq!(group.acquired_record_count(), 7);
+    group.commit().await.unwrap();
+    let attempts = mock.share_ack_attempts();
+    assert!(
+        attempts
+            .iter()
+            .any(|attempt| attempt == &("t".into(), 0, 0, 0)),
+        "control offset 0 must be GAP-acknowledged: {attempts:?}"
+    );
+    assert!(
+        attempts
+            .iter()
+            .any(|attempt| attempt == &("t".into(), 0, 6, 6)),
+        "control offset 6 must be GAP-acknowledged: {attempts:?}"
+    );
+    assert!(!mock.share_accepted("gap-ctrl-ends", "t", 0, 0));
+    assert!(!mock.share_accepted("gap-ctrl-ends", "t", 0, 6));
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn share_fetch_empty_partition_delivers_nothing() {
     let mock = common::Mock::start().await;
     v2(&mock);
