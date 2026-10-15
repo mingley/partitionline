@@ -3660,10 +3660,18 @@ async fn open_coord_with_find_version(
     cfg: &ConsumerConfig,
     addr: &str,
 ) -> Result<(BrokerConn, i16, crate::protocol::api::ApiVersionsResponse)> {
-    let mut conn =
-        BrokerConn::connect_tls(addr, &cfg.client_id, cfg.connect_timeout, cfg.tls.as_ref())
-            .await?;
-    let resp = crate::protocol::api::negotiate_api_versions(&mut conn, cfg.request_timeout).await?;
+    let deadline = Instant::now()
+        .checked_add(cfg.request_timeout)
+        .ok_or(Error::Timeout)?;
+    let bound = crate::net::Deadline::from_std(deadline);
+    let mut conn = BrokerConn::connect_tls(
+        addr,
+        &cfg.client_id,
+        cfg.connect_timeout.min(bound.remaining()?),
+        cfg.tls.as_ref(),
+    )
+    .await?;
+    let resp = crate::protocol::api::negotiate_api_versions(&mut conn, bound.remaining()?).await?;
     let version = resp
         .api_version(FIND_COORDINATOR)
         .and_then(|v| pick_version(v.min_version, v.max_version, 0, 6))
@@ -3708,7 +3716,7 @@ async fn open_coord_with_find_version(
         cfg.sasl_scram_sha512.as_ref(),
         cfg.sasl_oauthbearer.as_deref(),
         cfg.sasl_oauthbearer_oidc.as_ref(),
-        cfg.request_timeout,
+        bound.remaining()?,
     )
     .await?;
     Ok((conn, version, resp))

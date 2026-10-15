@@ -3069,11 +3069,19 @@ async fn open_conn_with_versions(
     cfg: &ProducerConfig,
     transaction_v2: bool,
 ) -> Result<(BrokerConn, ApiVersionsResponse)> {
-    let mut conn =
-        BrokerConn::connect_tls(addr, &cfg.client_id, cfg.connect_timeout, cfg.tls.as_ref())
-            .await?;
+    let deadline = Instant::now()
+        .checked_add(cfg.request_timeout)
+        .ok_or(Error::Timeout)?;
+    let mut conn = BrokerConn::connect_tls(
+        addr,
+        &cfg.client_id,
+        cfg.connect_timeout.min(timeout_remaining(deadline)?),
+        cfg.tls.as_ref(),
+    )
+    .await?;
     let versions_resp =
-        crate::protocol::api::negotiate_api_versions(&mut conn, cfg.request_timeout).await?;
+        crate::protocol::api::negotiate_api_versions(&mut conn, timeout_remaining(deadline)?)
+            .await?;
     // Topic identity requires Metadata10+, and transactionV1 must retain the
     // v11 ceiling: v12/13 imply transactionV2 on the partition leader.
     // A supported EndTxn range alone does not enable the finalized feature.
@@ -3107,7 +3115,7 @@ async fn open_conn_with_versions(
         cfg.sasl_scram_sha512.as_ref(),
         cfg.sasl_oauthbearer.as_deref(),
         cfg.sasl_oauthbearer_oidc.as_ref(),
-        cfg.request_timeout,
+        timeout_remaining(deadline)?,
     )
     .await?;
     Ok((conn, versions_resp))
