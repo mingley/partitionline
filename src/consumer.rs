@@ -1656,6 +1656,20 @@ impl<V> PartitionMap<V> {
     fn is_empty(&self) -> bool {
         self.topics.is_empty()
     }
+
+    /// Put a drained map back, then the partitions that stayed held.
+    ///
+    /// `drained` keeps the topic-table allocation. Parked inner maps move back
+    /// with their topic names.
+    fn restore_drained(&mut self, drained: Self, parked: Vec<(TopicName, HashMap<i32, V>)>) {
+        *self = drained;
+        for (topic, parts) in parked {
+            if parts.is_empty() {
+                continue;
+            }
+            let _ = self.topics.insert(topic, parts);
+        }
+    }
 }
 
 /// Framed batches from one fetch response that the memory budget did not decode.
@@ -7077,15 +7091,24 @@ impl Consumer {
         if self.retained.is_empty() {
             return None;
         }
-        let taken = std::mem::replace(&mut self.retained, PartitionMap::new());
+        let mut drained = std::mem::replace(&mut self.retained, PartitionMap::new());
         let mut topics = Vec::new();
         let mut all_batches = Vec::new();
-        for (topic, partitions) in taken.topics {
+        let mut parked = Vec::new();
+        for (topic, partitions) in drained.topics.drain() {
+            if partitions
+                .keys()
+                .all(|partition| self.paused.contains(&topic, *partition))
+            {
+                parked.push((topic, partitions));
+                continue;
+            }
             let mut parts = Vec::new();
             let mut topic_batches = Vec::new();
+            let mut keep = HashMap::new();
             for (partition, held) in partitions {
                 if self.paused.contains(&topic, partition) {
-                    let _previous = self.retained.insert(&topic, partition, held);
+                    let _ = keep.insert(partition, held);
                     continue;
                 }
                 if held.batches.is_empty() {
@@ -7105,13 +7128,17 @@ impl Consumer {
             }
             if !parts.is_empty() {
                 topics.push(crate::protocol::fetch::FetchedTopic {
-                    topic: String::from(topic),
+                    topic: topic.as_str().to_owned(),
                     topic_id: [0; 16],
                     partitions: parts,
                 });
                 all_batches.push(topic_batches);
             }
+            if !keep.is_empty() {
+                parked.push((topic, keep));
+            }
         }
+        self.retained.restore_drained(drained, parked);
         if topics.is_empty() {
             None
         } else {
@@ -7357,6 +7384,46 @@ fn a_fetch_completion_map_keeps_its_buckets() {
     assert!(completed.topics.capacity() >= capacity);
     slot = completed;
     assert!(slot.topics.capacity() >= capacity);
+}
+
+#[test]
+fn retained_topics_keep_their_table_when_a_paused_partition_stays() {
+    let mut retained = PartitionMap::new();
+    let mut paused = PartitionMap::new();
+    let _ = retained.insert("orders", 0, 1u8);
+    let _ = retained.insert("orders", 1, 2u8);
+    let _ = retained.insert("payments", 0, 3u8);
+    let _ = paused.insert("orders", 1, ());
+    let capacity = retained.topics.capacity();
+    let mut drained = std::mem::replace(&mut retained, PartitionMap::new());
+    let mut parked = Vec::new();
+    let mut delivered = Vec::new();
+    for (topic, partitions) in drained.topics.drain() {
+        if partitions
+            .keys()
+            .all(|partition| paused.contains(&topic, *partition))
+        {
+            parked.push((topic, partitions));
+            continue;
+        }
+        let mut keep = HashMap::new();
+        for (partition, value) in partitions {
+            if paused.contains(&topic, partition) {
+                let _ = keep.insert(partition, value);
+            } else {
+                delivered.push((topic.as_str().to_owned(), partition, value));
+            }
+        }
+        if !keep.is_empty() {
+            parked.push((topic, keep));
+        }
+    }
+    retained.restore_drained(drained, parked);
+    assert_eq!(retained.get("orders", 1), Some(&2));
+    assert!(retained.get("orders", 0).is_none());
+    assert!(retained.get("payments", 0).is_none());
+    assert_eq!(delivered.len(), 2);
+    assert!(retained.topics.capacity() >= capacity);
 }
 
 /// Do not advance a fetch cursor to or past a known high watermark.
