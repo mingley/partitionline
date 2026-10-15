@@ -1897,7 +1897,15 @@ struct DecodedFetchReply {
     recovery: Option<FetchRetry>,
 }
 
-type SessionParts = HashMap<i32, ([u8; 16], FetchPartition)>;
+struct SessionPartition {
+    id: [u8; 16],
+    data: FetchPartition,
+    /// Prepare generation that last listed this partition.
+    stamp: u64,
+}
+
+type SessionParts = HashMap<i32, SessionPartition>;
+type ChangedFetch = HashMap<String, ([u8; 16], Vec<FetchPartition>)>;
 
 /// Position of each assigned partition in [`Consumer::assigned`].
 type CursorIndex = HashMap<Arc<str>, HashMap<i32, usize>>;
@@ -1911,6 +1919,11 @@ struct BrokerFetchSession {
     /// One topic name is shared by every partition of that topic.
     partitions: HashMap<Arc<str>, SessionParts>,
     awaiting_response: bool,
+    /// Bumps on each prepare. A stored partition from an older generation was
+    /// not in this request.
+    stamp: u64,
+    /// Reused incremental-request scratch. Drained into the request.
+    changed: ChangedFetch,
 }
 
 impl Default for BrokerFetchSession {
@@ -1920,6 +1933,8 @@ impl Default for BrokerFetchSession {
             metadata: FetchMetadata::INITIAL,
             partitions: HashMap::new(),
             awaiting_response: false,
+            stamp: 0,
+            changed: HashMap::new(),
         }
     }
 }
@@ -1928,6 +1943,25 @@ struct SessionFetchRequest {
     metadata: FetchMetadata,
     topics: Vec<FetchTopic>,
     forgotten: Vec<ForgottenTopic>,
+}
+
+fn remember_forgotten(
+    forgotten: &mut HashMap<Arc<str>, HashMap<[u8; 16], Vec<i32>>>,
+    topic: Arc<str>,
+    id: [u8; 16],
+    partition: i32,
+) {
+    if let Some(ids) = forgotten.get_mut(topic.as_ref()) {
+        if let Some(parts) = ids.get_mut(&id) {
+            parts.push(partition);
+        } else {
+            let _ = ids.insert(id, vec![partition]);
+        }
+        return;
+    }
+    let mut ids = HashMap::new();
+    let _ = ids.insert(id, vec![partition]);
+    let _ = forgotten.insert(topic, ids);
 }
 
 impl BrokerFetchSession {
@@ -1949,7 +1983,7 @@ impl BrokerFetchSession {
         let ids: HashMap<_, _> = self
             .partitions
             .iter()
-            .flat_map(|(name, parts)| parts.values().map(move |(id, _)| (*id, name.as_ref())))
+            .flat_map(|(name, parts)| parts.values().map(move |stored| (stored.id, name.as_ref())))
             .collect();
         let mut seen = HashSet::new();
         for topic in topics {
@@ -1990,67 +2024,125 @@ impl BrokerFetchSession {
             self.reset();
         }
         self.version = Some(version);
-        let mut next: HashMap<Arc<str>, SessionParts> = HashMap::new();
-        let mut changed: HashMap<String, Vec<FetchPartition>> = HashMap::new();
-        let mut ids: HashMap<Arc<str>, [u8; 16]> = HashMap::new();
+        self.changed.clear();
+        self.stamp = self.stamp.wrapping_add(1);
+        if self.stamp == 0 {
+            for parts in self.partitions.values_mut() {
+                for stored in parts.values_mut() {
+                    stored.stamp = 0;
+                }
+            }
+            self.stamp = 1;
+        }
+        let stamp = self.stamp;
+        let full = self.metadata.is_full();
+        let mut replaced: Vec<(Arc<str>, [u8; 16], i32)> = Vec::new();
         for topic in &topics {
-            let name = next
-                .get_key_value(topic.topic.as_str())
-                .or_else(|| self.partitions.get_key_value(topic.topic.as_str()))
-                .map(|(existing, _)| Arc::clone(existing))
-                .unwrap_or_else(|| Arc::<str>::from(topic.topic.as_str()));
-            let _ = ids.insert(Arc::clone(&name), topic.topic_id);
-            let slot = next.entry(name).or_default();
-            for partition in &topic.partitions {
-                let value = (topic.topic_id, partition.clone());
-                let unchanged = self
+            if !self.partitions.contains_key(topic.topic.as_str()) {
+                let _ = self
                     .partitions
-                    .get(topic.topic.as_str())
-                    .and_then(|parts| parts.get(&partition.partition))
-                    == Some(&value);
-                if !self.metadata.is_full() && !unchanged {
-                    if let Some(changed_slot) = changed.get_mut(topic.topic.as_str()) {
-                        changed_slot.push(partition.clone());
-                    } else {
-                        let _ = changed.insert(topic.topic.clone(), vec![partition.clone()]);
+                    .insert(Arc::<str>::from(topic.topic.as_str()), SessionParts::new());
+            }
+            if let Some(entry) = self.changed.get_mut(topic.topic.as_str()) {
+                entry.0 = topic.topic_id;
+            }
+            let mut changed_indexes = Vec::new();
+            let mut replaced_here: Vec<([u8; 16], i32)> = Vec::new();
+            let Some(slot) = self.partitions.get_mut(topic.topic.as_str()) else {
+                continue;
+            };
+            for (index, partition) in topic.partitions.iter().enumerate() {
+                let (unchanged, previous_id) = {
+                    let stored = slot.get(&partition.partition);
+                    let from_before = stored.filter(|stored| stored.stamp != stamp);
+                    let unchanged = from_before.is_some_and(|stored| {
+                        stored.id == topic.topic_id && stored.data == *partition
+                    });
+                    (unchanged, from_before.map(|stored| stored.id))
+                };
+                if !full && !unchanged {
+                    changed_indexes.push(index);
+                }
+                if !full {
+                    if let Some(previous_id) = previous_id {
+                        if previous_id != topic.topic_id {
+                            replaced_here.push((previous_id, partition.partition));
+                        }
                     }
                 }
-                let _ = slot.insert(partition.partition, value);
+                let _ = slot.insert(
+                    partition.partition,
+                    SessionPartition {
+                        id: topic.topic_id,
+                        data: partition.clone(),
+                        stamp,
+                    },
+                );
             }
-        }
-        let mut forgotten: HashMap<(Arc<str>, [u8; 16]), Vec<i32>> = HashMap::new();
-        if !self.metadata.is_full() {
-            for (topic, parts) in &self.partitions {
-                for (partition, (id, _)) in parts {
-                    if next
-                        .get(topic.as_ref())
-                        .and_then(|stored| stored.get(partition))
-                        .is_none_or(|(next_id, _)| next_id != id)
-                    {
-                        forgotten
-                            .entry((Arc::clone(topic), *id))
-                            .or_default()
-                            .push(*partition);
+            for index in changed_indexes {
+                let Some(partition) = topic.partitions.get(index) else {
+                    continue;
+                };
+                if let Some((_, parts)) = self.changed.get_mut(topic.topic.as_str()) {
+                    parts.push(partition.clone());
+                } else {
+                    let _ = self.changed.insert(
+                        topic.topic.clone(),
+                        (topic.topic_id, vec![partition.clone()]),
+                    );
+                }
+            }
+            if !replaced_here.is_empty() {
+                if let Some((name, _)) = self.partitions.get_key_value(topic.topic.as_str()) {
+                    for (id, partition) in replaced_here {
+                        replaced.push((Arc::clone(name), id, partition));
                     }
                 }
             }
         }
-        let topics = if self.metadata.is_full() {
+        let mut dropped: Vec<(Arc<str>, [u8; 16], i32)> = Vec::new();
+        self.partitions.retain(|topic, parts| {
+            parts.retain(|partition, stored| {
+                if stored.stamp == stamp {
+                    return true;
+                }
+                if !full {
+                    dropped.push((Arc::clone(topic), stored.id, *partition));
+                }
+                false
+            });
+            !parts.is_empty()
+        });
+        let mut forgotten: HashMap<Arc<str>, HashMap<[u8; 16], Vec<i32>>> = HashMap::new();
+        if !full {
+            for (topic, id, partition) in replaced.into_iter().chain(dropped) {
+                remember_forgotten(&mut forgotten, topic, id, partition);
+            }
+        }
+        let topics = if full {
             topics
         } else {
-            fetch_topics(changed, &ids)
+            self.changed
+                .drain()
+                .map(|(topic, (topic_id, partitions))| FetchTopic {
+                    topic,
+                    topic_id,
+                    partitions,
+                })
+                .collect()
         };
-        self.partitions = next;
         self.awaiting_response = true;
         let mut forgotten: Vec<_> = forgotten
             .into_iter()
-            .map(|((topic, topic_id), mut partitions)| {
-                partitions.sort_unstable();
-                ForgottenTopic {
-                    topic: topic.to_string(),
-                    topic_id,
-                    partitions,
-                }
+            .flat_map(|(topic, ids)| {
+                ids.into_iter().map(move |(topic_id, mut partitions)| {
+                    partitions.sort_unstable();
+                    ForgottenTopic {
+                        topic: topic.as_ref().to_owned(),
+                        topic_id,
+                        partitions,
+                    }
+                })
             })
             .collect();
         forgotten.sort_by(|a, b| (&a.topic, a.topic_id).cmp(&(&b.topic, b.topic_id)));
