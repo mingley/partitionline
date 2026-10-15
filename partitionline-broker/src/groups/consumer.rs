@@ -11,7 +11,7 @@
 //! is not pinned to Apache response bytes.
 
 use crate::journal::{self, Journal};
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::path::Path;
 
 const RECORD_MAGIC: &[u8; 8] = b"PLCNS001";
@@ -782,6 +782,20 @@ fn later_seen(current: u64, now_ms: u64) -> u64 {
     current.max(now_ms)
 }
 
+fn claim_partition<'a>(
+    seen: &mut HashMap<&'a str, HashSet<i32>>,
+    topic: &'a str,
+    partition: i32,
+) -> bool {
+    if let Some(parts) = seen.get_mut(topic) {
+        return parts.insert(partition);
+    }
+    let mut parts = HashSet::new();
+    let _ = parts.insert(partition);
+    let _ = seen.insert(topic, parts);
+    true
+}
+
 fn same_topic_list(names: &[&str], owned: &BTreeSet<String>) -> bool {
     if names.len() != owned.len() {
         return false;
@@ -1010,7 +1024,7 @@ fn validate_decoded(state: &State) -> Result<(), Error> {
         if !valid_name(name) || group.members.is_empty() || !(0..=1).contains(&group.version) {
             return Err(Error::InvalidRequest);
         }
-        let mut seen = BTreeSet::new();
+        let mut seen: HashMap<&str, HashSet<i32>> = HashMap::new();
         for (member_id, member) in &group.members {
             if !valid_name(member_id) || !(0..=1).contains(&member.version) {
                 return Err(Error::InvalidRequest);
@@ -1035,7 +1049,7 @@ fn validate_decoded(state: &State) -> Result<(), Error> {
                 for partition in partitions {
                     if *partition < 0
                         || *partition >= count
-                        || !seen.insert((topic.clone(), *partition))
+                        || !claim_partition(&mut seen, topic, *partition)
                     {
                         return Err(Error::InvalidRequest);
                     }
@@ -1166,6 +1180,15 @@ mod tests {
             }
         }
         owned
+    }
+
+    #[test]
+    fn a_partition_claim_is_once_per_topic_name() {
+        let mut seen = HashMap::new();
+        assert!(claim_partition(&mut seen, "orders", 0));
+        assert!(claim_partition(&mut seen, "orders", 1));
+        assert!(!claim_partition(&mut seen, "orders", 0));
+        assert!(claim_partition(&mut seen, "payments", 0));
     }
 
     #[test]
