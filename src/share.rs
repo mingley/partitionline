@@ -1732,10 +1732,10 @@ impl ShareGroup {
     /// flushed here (Java `testPendingCommitAsyncBeforeCommitSync`).
     /// A ShareAcknowledge partition `NOT_LEADER_OR_FOLLOWER` /
     /// `FENCED_LEADER_EPOCH` / `UNKNOWN_TOPIC_OR_PARTITION` /
-    /// `UNKNOWN_TOPIC_ID` is not retried even when those codes are
-    /// otherwise retriable; the map completes (Java
+    /// `UNKNOWN_TOPIC_ID` / `INCONSISTENT_TOPIC_ID` is not retried even
+    /// when those codes are otherwise retriable; the map completes (Java
     /// `testFatalErrorsAcknowledgementResponse` plus ownership-lost
-    /// `UNKNOWN_TOPIC_ID`).
+    /// topic-id codes).
     /// Metadata is requested when that error has no usable CurrentLeader.
     pub async fn commit_sync(&mut self) -> Result<AcknowledgementCommitResults> {
         if !self.has_pending_acknowledgements() {
