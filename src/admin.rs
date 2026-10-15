@@ -3380,7 +3380,7 @@ impl Admin {
                     self.conn = self.open_node_conn_until(&addr, deadline).await?.inner;
                     reconnect = false;
                 }
-                self.ensure_bootstrap().await?;
+                self.ensure_bootstrap(deadline).await?;
                 let remaining = deadline.saturating_duration_since(Instant::now());
                 if remaining.is_zero() {
                     return Err(Error::Timeout);
@@ -3532,7 +3532,7 @@ impl Admin {
                     self.conn = self.open_node_conn_until(&addr, deadline).await?.inner;
                     reconnect = false;
                 }
-                self.ensure_bootstrap().await?;
+                self.ensure_bootstrap(deadline).await?;
                 let remaining = deadline.saturating_duration_since(Instant::now());
                 if remaining.is_zero() {
                     return Err(Error::Timeout);
@@ -3642,7 +3642,7 @@ impl Admin {
                     self.conn = self.open_node_conn_until(&addr, deadline).await?.inner;
                     reconnect = false;
                 }
-                self.ensure_bootstrap().await?;
+                self.ensure_bootstrap(deadline).await?;
                 let remaining = deadline.saturating_duration_since(Instant::now());
                 if remaining.is_zero() {
                     return Err(Error::Timeout);
@@ -4276,11 +4276,18 @@ impl Admin {
         if let Some(id) = self.cached_client_instance_id {
             return Ok(Uuid::from_bytes(id));
         }
-        self.ensure_bootstrap().await?;
+        let deadline = Instant::now().checked_add(timeout).ok_or(Error::Timeout)?;
+        self.ensure_bootstrap(deadline).await?;
         let version = self.get_telemetry_subscriptions_version.ok_or_else(|| {
             Error::Unsupported("broker does not support GetTelemetrySubscriptions".into())
         })?;
-        let id = fetch_client_instance_id(&mut self.conn, version, timeout, [0; 16]).await?;
+        let id = fetch_client_instance_id(
+            &mut self.conn,
+            version,
+            startup_remaining(deadline)?,
+            [0; 16],
+        )
+        .await?;
         self.cached_client_instance_id = Some(id);
         Ok(Uuid::from_bytes(id))
     }
@@ -7949,12 +7956,12 @@ impl Admin {
         include_topic_authorized_operations: bool,
         timeout: Duration,
     ) -> Result<MetadataResponse> {
-        let deadline = crate::net::Deadline::from_timeout(timeout);
-        deadline
+        let deadline = Instant::now().checked_add(timeout).ok_or(Error::Timeout)?;
+        crate::net::Deadline::from_std(deadline)
             .run(self.fetch_metadata_request_until(
                 topics,
                 include_topic_authorized_operations,
-                timeout,
+                deadline,
             ))
             .await
     }
@@ -7963,7 +7970,7 @@ impl Admin {
         &mut self,
         topics: Option<&[MetadataRequestTopic]>,
         include_topic_authorized_operations: bool,
-        timeout: Duration,
+        deadline: Instant,
     ) -> Result<MetadataResponse> {
         let version = self.metadata_version;
         if version == 0 && topics.is_some() {
@@ -7977,7 +7984,7 @@ impl Admin {
                 "Metadata v0 has no authorization fields".into(),
             ));
         }
-        self.ensure_bootstrap().await?;
+        self.ensure_bootstrap(deadline).await?;
         let version = self.metadata_version;
         if version == 0 && (topics.is_some() || include_topic_authorized_operations) {
             return Err(Error::Unsupported(
@@ -7997,7 +8004,7 @@ impl Admin {
                         include_topic_authorized_operations,
                     )
                 },
-                timeout,
+                startup_remaining(deadline)?,
             )
             .await?;
         let md = decode_metadata_response(&mut body.clone(), version)?;
@@ -8047,12 +8054,12 @@ impl Admin {
         Ok(())
     }
 
-    async fn ensure_bootstrap(&mut self) -> Result<()> {
+    async fn ensure_bootstrap(&mut self, deadline: Instant) -> Result<()> {
         if !self.conn.is_closed() && !self.conn.idle_expired(self.cfg.connections_max_idle) {
             return Ok(());
         }
         let addr = self.conn.addr().to_string();
-        let replacement = self.open_node_conn(&addr).await?;
+        let replacement = self.open_node_conn_until(&addr, deadline).await?;
         self.metadata_version = replacement
             .metadata
             .ok_or_else(|| Error::Unsupported("broker does not support Metadata".into()))?;
@@ -8069,9 +8076,15 @@ impl Admin {
         encode_body: impl FnOnce(&mut BytesMut) -> Result<()>,
         timeout: Duration,
     ) -> Result<Bytes> {
-        self.ensure_bootstrap().await?;
+        let deadline = Instant::now().checked_add(timeout).ok_or(Error::Timeout)?;
+        self.ensure_bootstrap(deadline).await?;
         self.conn
-            .roundtrip(api_key, api_version, encode_body, timeout)
+            .roundtrip(
+                api_key,
+                api_version,
+                encode_body,
+                startup_remaining(deadline)?,
+            )
             .await
     }
 
@@ -8129,16 +8142,6 @@ impl Admin {
                 }
             }
         }
-    }
-
-    async fn open_node_conn(&self, addr: &str) -> Result<AdminOffsetConn> {
-        let deadline = Instant::now()
-            + self
-                .cfg
-                .connect_timeout
-                .saturating_add(self.cfg.request_timeout)
-                .saturating_add(self.cfg.request_timeout);
-        self.open_node_conn_until(addr, deadline).await
     }
 
     /// Dial, negotiate, and authenticate inside `deadline`.
@@ -12252,7 +12255,7 @@ impl Admin {
                     if let Some(node) = node {
                         self.connect_node_until(node, deadline).await?;
                     } else {
-                        self.ensure_bootstrap().await?;
+                        self.ensure_bootstrap(deadline).await?;
                     }
                     let conn = if let Some(node) = node {
                         self.conns
@@ -12720,7 +12723,7 @@ impl Admin {
             if attempt >= 8 {
                 return Err(Error::protocol("FindCoordinator retry limit"));
             }
-            self.ensure_bootstrap().await?;
+            self.ensure_bootstrap(deadline).await?;
             let version = self.find_coord_version.ok_or_else(|| {
                 Error::Unsupported("broker does not support FindCoordinator v0-6".into())
             })?;
