@@ -1288,20 +1288,38 @@ impl Shared {
         self.topic_tracker(topic).note_queued(n, bytes);
     }
 
-    fn note_acked(&self, topic: &Arc<str>, n: u64) {
-        let _ = self.m_acked.fetch_add(n, Ordering::Relaxed);
-        self.topic_tracker(topic).note_acked(n);
+    fn topic_tracker_cached(
+        &self,
+        cache: &mut Option<(Arc<str>, Arc<crate::metrics::ProduceTopicTracker>)>,
+        topic: &Arc<str>,
+    ) -> Arc<crate::metrics::ProduceTopicTracker> {
+        if let Some((cached, tracker)) = cache.as_ref() {
+            if Arc::ptr_eq(cached, topic) {
+                return Arc::clone(tracker);
+            }
+        }
+        let tracker = self.topic_tracker(topic);
+        *cache = Some((Arc::clone(topic), Arc::clone(&tracker)));
+        tracker
     }
 
-    /// Batch ack-latency accounting: one locked tracker lookup per
-    /// batch (not per record); see [`crate::metrics::BatchLatency`].
-    /// No-op for empty batches.
-    fn note_ack_latency_batch(&self, topic: &Arc<str>, b: crate::metrics::BatchLatency) {
+    fn note_acked_on(&self, tracker: &crate::metrics::ProduceTopicTracker, n: u64) {
+        let _ = self.m_acked.fetch_add(n, Ordering::Relaxed);
+        tracker.note_acked(n);
+    }
+
+    /// Batch ack-latency accounting for a tracker already resolved.
+    /// No-op for empty batches. One sample is recorded per call.
+    fn note_ack_latency_on(
+        &self,
+        tracker: &crate::metrics::ProduceTopicTracker,
+        b: crate::metrics::BatchLatency,
+    ) {
         if b.n == 0 {
             return;
         }
         self.ack_latency.record_batch(b);
-        self.topic_tracker(topic).note_ack_latency_batch(b);
+        tracker.note_ack_latency_batch(b);
     }
 
     fn note_errors(&self, topic: &Arc<str>, n: u64) {
@@ -5586,6 +5604,7 @@ impl Worker {
             }
         }
         let mut first_err: Option<Error> = None;
+        let mut ack_tracker = None;
         for (found_at, (topic, part, pendings)) in slots.drain(..).zip(inf.groups) {
             let found = found_at.and_then(|at| responses.get(at));
             match found {
@@ -5700,7 +5719,8 @@ impl Worker {
                     let n = u64::try_from(pendings.len()).unwrap_or(u64::MAX);
                     self.shared.retire_sticky(&pendings, false);
                     self.shared.release_buffer(pendings_bytes(&pendings));
-                    self.shared.note_acked(&topic, n);
+                    let tracker = self.shared.topic_tracker_cached(&mut ack_tracker, &topic);
+                    self.shared.note_acked_on(&tracker, n);
                     // KL09-18: one clock read per batch; per-record
                     // latencies fold locally (no atomics, no lookups).
                     let ack = Instant::now();
@@ -5737,8 +5757,8 @@ impl Worker {
                             drop(tx.send(Ok(md)));
                         }
                     }
-                    self.shared.note_ack_latency_batch(
-                        &topic,
+                    self.shared.note_ack_latency_on(
+                        &tracker,
                         crate::metrics::BatchLatency {
                             n: lat_n,
                             sum_nanos: lat_sum,
@@ -6632,11 +6652,13 @@ fn encode_pendings(
 }
 
 fn complete_acks0(shared: &Shared, groups: Vec<(Arc<str>, i32, Vec<Pending>)>) {
+    let mut ack_tracker = None;
     for (topic, part, pendings) in groups {
         shared.retire_sticky(&pendings, false);
         shared.release_buffer(pendings_bytes(&pendings));
         let n = u64::try_from(pendings.len()).unwrap_or(u64::MAX);
-        shared.note_acked(&topic, n);
+        let tracker = shared.topic_tracker_cached(&mut ack_tracker, &topic);
+        shared.note_acked_on(&tracker, n);
         // KL09-18: one clock read per batch; per-record latencies
         // fold locally (no atomics, no lookups).
         let ack = Instant::now();
@@ -6672,8 +6694,8 @@ fn complete_acks0(shared: &Shared, groups: Vec<(Arc<str>, i32, Vec<Pending>)>) {
                 drop(tx.send(Ok(md)));
             }
         }
-        shared.note_ack_latency_batch(
-            &topic,
+        shared.note_ack_latency_on(
+            &tracker,
             crate::metrics::BatchLatency {
                 n: lat_n,
                 sum_nanos: lat_sum,
