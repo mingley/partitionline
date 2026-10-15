@@ -1,9 +1,11 @@
 //! A bootstrap that accepts TCP and then stalls must not hold startup.
 mod common;
 
+use partitionline::protocol::api_keys::OFFSET_FETCH;
 use partitionline::{
     error, Admin, AdminConfig, Consumer, ConsumerConfig, ConsumerGroup,
-    DescribeShareGroupOffsetsGroup, Error, OffsetSpec, Producer, ProducerConfig,
+    DescribeShareGroupOffsetsGroup, Error, ListConsumerGroupOffsetsSpec, OffsetSpec, Producer,
+    ProducerConfig,
 };
 use std::time::{Duration, Instant};
 
@@ -351,4 +353,33 @@ async fn describe_transactions_coordinator_dials_overlap() {
     );
     assert!(mock.api_versions_versions().len() >= before + 2);
     assert_eq!(described.len(), 2, "{described:?}");
+}
+
+#[tokio::test]
+async fn list_group_offsets_coordinator_dials_overlap() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_api_max(OFFSET_FETCH, 9);
+    mock.set_group_coordinator("ga", 1);
+    mock.set_group_coordinator("gb", 2);
+    let mut cfg = AdminConfig::bootstrap([mock.addr.clone()]);
+    cfg.request_timeout = Duration::from_secs(3);
+    cfg.connect_timeout = Duration::from_millis(200);
+    let mut admin = Admin::new(cfg).await.unwrap();
+    let before = mock.api_versions_versions().len();
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let started = Instant::now();
+    let listed = admin
+        .list_consumer_group_offsets_for_groups([
+            ("ga", ListConsumerGroupOffsetsSpec::all()),
+            ("gb", ListConsumerGroupOffsetsSpec::all()),
+        ])
+        .await
+        .unwrap();
+    let elapsed = started.elapsed();
+    assert!(
+        elapsed < Duration::from_millis(400),
+        "coordinator dials ran one after another: {elapsed:?}"
+    );
+    assert!(mock.api_versions_versions().len() >= before + 2);
+    assert_eq!(listed.len(), 2, "{listed:?}");
 }

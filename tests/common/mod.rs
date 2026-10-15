@@ -4749,7 +4749,6 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 | HEARTBEAT
                 | LEAVE_GROUP
                 | OFFSET_COMMIT
-                | OFFSET_FETCH
                 | OFFSET_DELETE
                 | CONSUMER_GROUP_HEARTBEAT
                 | SHARE_GROUP_HEARTBEAT
@@ -8359,10 +8358,19 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                             out
                         }
                     };
+                    let owner = st
+                        .group_coord_overrides
+                        .get(&g.group_id)
+                        .copied()
+                        .unwrap_or(st.coord_node);
                     results.push(OffsetFetchGroupResult {
                         group_id: g.group_id,
                         topics: out,
-                        error_code: 0,
+                        error_code: if owner == node_id {
+                            0
+                        } else {
+                            error::NOT_COORDINATOR
+                        },
                     });
                 }
                 st.last_offset_fetch_partitions = nparts;
