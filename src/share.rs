@@ -2274,12 +2274,10 @@ impl ShareGroup {
         let deadline = Instant::now() + self.cfg.request_timeout;
         let mut attempt = 0u32;
         loop {
-            let outcome = tokio::time::timeout_at(
-                tokio::time::Instant::from_std(deadline),
-                self.acknowledge_leaders(&mut partitions, ack),
-            )
-            .await;
-            match outcome.unwrap_or(Err(Error::Timeout)) {
+            match self
+                .acknowledge_leaders(&mut partitions, ack, deadline)
+                .await
+            {
                 Ok(()) => return Ok(()),
                 Err(error) if share_ack_retriable(&error) && !partitions.is_empty() => {
                     if Instant::now() >= deadline {
@@ -2287,6 +2285,9 @@ impl ShareGroup {
                     }
                     self.consumer.sleep_retry_backoff(attempt, deadline).await?;
                     attempt = attempt.saturating_add(1);
+                    if Instant::now() >= deadline {
+                        return Err(Error::Timeout);
+                    }
                 }
                 Err(error) => return Err(error),
             }
@@ -2297,6 +2298,7 @@ impl ShareGroup {
         &mut self,
         partitions: &mut Vec<(String, i32, Vec<AcknowledgementBatch>)>,
         ack: i8,
+        deadline: Instant,
     ) -> Result<()> {
         let grouped = group_acks_by_acquisition_node(
             |topic, partition, offset| {
@@ -2315,7 +2317,14 @@ impl ShareGroup {
         let nodes: Vec<_> = grouped.into_iter().collect();
         let mut first_error = None;
         for (node, node_tps) in nodes {
-            let version = self.node_share_version(node, SHARE_ACKNOWLEDGE).await?;
+            if deadline.saturating_duration_since(Instant::now()).is_zero() {
+                // Brokers already acknowledged stay acknowledged. The ones not
+                // sent remain in `partitions` for the caller.
+                return Err(Error::Timeout);
+            }
+            let version = self
+                .node_share_version_until(node, SHARE_ACKNOWLEDGE, deadline)
+                .await?;
             if ack == ACK_RENEW && version < 2 {
                 return Err(Error::Unsupported(format!(
                     "share broker {node} does not support Renew"
@@ -2355,14 +2364,12 @@ impl ShareGroup {
                 epoch,
                 &topics,
             )?;
+            let timeout = deadline.saturating_duration_since(Instant::now());
+            if timeout.is_zero() {
+                return Err(Error::Timeout);
+            }
             let mut body = match self
-                .share_roundtrip(
-                    node,
-                    SHARE_ACKNOWLEDGE,
-                    version,
-                    &request,
-                    self.cfg.request_timeout,
-                )
+                .share_roundtrip(node, SHARE_ACKNOWLEDGE, version, &request, timeout)
                 .await
             {
                 Ok(body) => body,
