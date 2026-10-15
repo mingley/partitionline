@@ -1725,7 +1725,8 @@ impl ShareGroup {
     /// A ShareAcknowledge partition `NOT_LEADER_OR_FOLLOWER` /
     /// `FENCED_LEADER_EPOCH` / `UNKNOWN_TOPIC_OR_PARTITION` is not
     /// retried even when those codes are otherwise retriable; the map
-    /// completes (Java `testFatalErrorsAcknowledgementResponse`).
+    /// completes (Java `testFatalErrorsAcknowledgementResponse`,
+    /// including `UNKNOWN_TOPIC_OR_PARTITION`).
     /// Metadata is requested when that error has no usable CurrentLeader.
     pub async fn commit_sync(&mut self) -> Result<AcknowledgementCommitResults> {
         if !self.has_pending_acknowledgements() {
