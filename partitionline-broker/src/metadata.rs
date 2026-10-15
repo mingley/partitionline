@@ -1800,14 +1800,10 @@ fn create_validation(
     if catalog.by_name(topic.name).is_some() {
         return Err(api_error(36, "Topic already exists."));
     }
-    if catalog.topics().any(|live| {
-        live.name().len() == topic.name.len()
-            && live
-                .name()
-                .bytes()
-                .zip(topic.name.bytes())
-                .all(|(a, b)| if a == b'.' { b'_' } else { a } == if b == b'.' { b'_' } else { b })
-    }) {
+    if catalog
+        .topics()
+        .any(|live| topic_names_collide(live.name(), topic.name))
+    {
         return Err(api_error(17, "Topic name collides with an existing topic."));
     }
     if topic.config_count != 0 {
@@ -1886,6 +1882,15 @@ fn create_validation(
     }
     Ok(partitions)
 }
+fn topic_names_collide(left: &str, right: &str) -> bool {
+    let fold = |byte: u8| if byte == b'.' { b'_' } else { byte };
+    left.len() == right.len()
+        && left
+            .bytes()
+            .zip(right.bytes())
+            .all(|(left, right)| fold(left) == fold(right))
+}
+
 fn fresh_id(catalog: &Catalog) -> Result<TopicId, ApiError> {
     for _ in 0..32 {
         let mut bytes = [0; 16];
@@ -1940,6 +1945,13 @@ fn create(
             .any(|other| other.name == topic.name);
         let error = if duplicate {
             api_error(42, "Duplicate topic name.")
+        } else if request.topics[..position]
+            .iter()
+            .any(|other| topic_names_collide(other.name, topic.name))
+        {
+            // Validate-only does not store the earlier name, so the catalog
+            // check cannot see a sibling that differs only by '.' and '_'.
+            api_error(17, "Topic name collides with an existing topic.")
         } else {
             match create_validation(catalog, config, header.api_version, topic) {
                 Err(error) => error,
@@ -2170,6 +2182,15 @@ fn delete(
 mod tests {
     use super::*;
     use std::{error::Error as StdError, sync::atomic::AtomicU64};
+
+    #[test]
+    fn a_create_request_collides_when_dot_and_underscore_differ() {
+        assert!(topic_names_collide("foo.bar", "foo_bar"));
+        assert!(topic_names_collide("foo.bar", "foo.bar"));
+        assert!(!topic_names_collide("foo.bar", "foo.baz"));
+        assert!(!topic_names_collide("a.b", "ab"));
+        assert!(!topic_names_collide("foo.bar", "foo.bars"));
+    }
 
     #[test]
     fn a_metadata_request_resolves_each_topic_by_its_own_id_or_name() {
