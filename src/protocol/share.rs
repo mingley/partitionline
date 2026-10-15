@@ -11,7 +11,7 @@ use bytes::{Buf, BufMut, Bytes, BytesMut};
 
 use super::api::NodeEndpoint;
 use super::buf;
-use super::records::{self, RecordBatch};
+use super::records::{self, RecordBatch, ShareFetchRecordBatch};
 use crate::error::{Error, Result};
 
 /// Gap in an acknowledgement batch.
@@ -456,6 +456,16 @@ pub struct AcquiredRange {
     pub last_offset: i64,
     /// Delivery count for this range.
     pub delivery_count: i16,
+}
+
+/// CRC-failed ShareFetch record batch kept so collect can REJECT acquired
+/// offsets and continue later batches (Java `ShareCompletedFetch`).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct ShareCorruptBatch {
+    pub topic_id: [u8; 16],
+    pub partition: i32,
+    pub first_offset: i64,
+    pub last_offset: i64,
 }
 
 /// One partition in a ShareFetch response.
@@ -1778,6 +1788,16 @@ pub fn decode_share_fetch_response_with_limit<B: Buf>(
     Ok(reply)
 }
 
+/// ShareFetch decode that skips CRC-failed batches so later batches stay
+/// collectable. Public [`decode_share_fetch_response`] still fails closed.
+pub(crate) fn decode_share_fetch_response_skipping_corrupt_batches<B: Buf>(
+    buf: &mut B,
+    version: i16,
+    max_decode_bytes: usize,
+) -> Result<(ShareFetchDecoded, usize, Vec<ShareCorruptBatch>)> {
+    decode_share_fetch_response_with_budget_inner(buf, version, max_decode_bytes, true)
+}
+
 type ShareFetchDecoded = (
     Vec<ShareFetchedTopic>,
     Vec<NodeEndpoint>,
@@ -1793,6 +1813,17 @@ pub(crate) fn decode_share_fetch_response_with_budget<B: Buf>(
     version: i16,
     max_decode_bytes: usize,
 ) -> Result<(ShareFetchDecoded, usize)> {
+    let (reply, used, _) =
+        decode_share_fetch_response_with_budget_inner(buf, version, max_decode_bytes, false)?;
+    Ok((reply, used))
+}
+
+fn decode_share_fetch_response_with_budget_inner<B: Buf>(
+    buf: &mut B,
+    version: i16,
+    max_decode_bytes: usize,
+    skip_corrupt_batches: bool,
+) -> Result<(ShareFetchDecoded, usize, Vec<ShareCorruptBatch>)> {
     let mut remaining_decode_bytes =
         max_decode_bytes.min(records::DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES);
     let flexible = share_fetch_flexible(version)?;
@@ -1807,6 +1838,7 @@ pub(crate) fn decode_share_fetch_response_with_budget<B: Buf>(
         std::mem::size_of::<ShareFetchedTopic>(),
     )?;
     let mut topics = Vec::with_capacity(n);
+    let mut corrupt_batches = Vec::new();
     for _ in 0..n {
         let topic_id = buf::get_uuid(buf)?;
         let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
@@ -1843,53 +1875,68 @@ pub(crate) fn decode_share_fetch_response_with_budget<B: Buf>(
                 let mut rec_buf = rec_bytes;
                 let mut batches = Vec::new();
                 while rec_buf.has_remaining() {
-                    let count_bytes = rec_buf
-                        .get(57..61)
-                        .ok_or_else(|| Error::protocol("truncated ShareFetch record batch"))?;
-                    let count = i32::from_be_bytes(
-                        count_bytes
-                            .try_into()
-                            .map_err(|_| Error::protocol("short record count"))?,
-                    );
-                    let count = usize::try_from(count)
-                        .map_err(|_| Error::protocol("negative record count"))?;
-                    if count
-                        > remaining_decode_bytes / std::mem::size_of::<records::Record>().max(1)
-                    {
-                        return Err(Error::protocol("ShareFetch decoded-record budget exceeded"));
-                    }
-                    let batch = records::decode_record_batch_with_limit(
+                    match records::decode_share_fetch_record_batch(
                         &mut rec_buf,
                         remaining_decode_bytes,
-                    )?;
-                    let mut logical_bytes = 61usize;
-                    for record in &batch.records {
-                        let offset_delta =
-                            i32::try_from(record.offset.saturating_sub(batch.base_offset))
-                                .map_err(|_| {
-                                    Error::protocol("ShareFetch record offset delta exceeds int32")
+                        skip_corrupt_batches,
+                    )? {
+                        ShareFetchRecordBatch::Corrupt {
+                            first_offset,
+                            last_offset,
+                        } => {
+                            remaining_decode_bytes =
+                                remaining_decode_bytes.checked_sub(61).ok_or_else(|| {
+                                    Error::protocol("ShareFetch decoded-record budget exceeded")
                                 })?;
-                        let encoded = usize::try_from(record.size_in_bytes(
-                            offset_delta,
-                            record.timestamp.saturating_sub(batch.base_timestamp),
-                        )?)
-                        .map_err(|_| Error::protocol("negative decoded record size"))?;
-                        let header_storage = record
-                            .headers
-                            .len()
-                            .saturating_mul(std::mem::size_of::<records::Header>());
-                        logical_bytes = logical_bytes.saturating_add(
-                            encoded
-                                .max(std::mem::size_of::<records::Record>())
-                                .saturating_add(header_storage),
-                        );
+                            corrupt_batches.push(ShareCorruptBatch {
+                                topic_id,
+                                partition,
+                                first_offset,
+                                last_offset,
+                            });
+                        }
+                        ShareFetchRecordBatch::Batch(batch) => {
+                            let count = batch.records.len();
+                            if count
+                                > remaining_decode_bytes
+                                    / std::mem::size_of::<records::Record>().max(1)
+                            {
+                                return Err(Error::protocol(
+                                    "ShareFetch decoded-record budget exceeded",
+                                ));
+                            }
+                            let mut logical_bytes = 61usize;
+                            for record in &batch.records {
+                                let offset_delta =
+                                    i32::try_from(record.offset.saturating_sub(batch.base_offset))
+                                        .map_err(|_| {
+                                            Error::protocol(
+                                                "ShareFetch record offset delta exceeds int32",
+                                            )
+                                        })?;
+                                let encoded = usize::try_from(record.size_in_bytes(
+                                    offset_delta,
+                                    record.timestamp.saturating_sub(batch.base_timestamp),
+                                )?)
+                                .map_err(|_| Error::protocol("negative decoded record size"))?;
+                                let header_storage = record
+                                    .headers
+                                    .len()
+                                    .saturating_mul(std::mem::size_of::<records::Header>());
+                                logical_bytes = logical_bytes.saturating_add(
+                                    encoded
+                                        .max(std::mem::size_of::<records::Record>())
+                                        .saturating_add(header_storage),
+                                );
+                            }
+                            remaining_decode_bytes = remaining_decode_bytes
+                                .checked_sub(logical_bytes)
+                                .ok_or_else(|| {
+                                    Error::protocol("ShareFetch decoded-record budget exceeded")
+                                })?;
+                            batches.push(batch);
+                        }
                     }
-                    remaining_decode_bytes = remaining_decode_bytes
-                        .checked_sub(logical_bytes)
-                        .ok_or_else(|| {
-                            Error::protocol("ShareFetch decoded-record budget exceeded")
-                        })?;
-                    batches.push(batch);
                 }
                 batches
             };
@@ -1951,6 +1998,7 @@ pub(crate) fn decode_share_fetch_response_with_budget<B: Buf>(
         ),
         max_decode_bytes.min(records::DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES)
             - remaining_decode_bytes,
+        corrupt_batches,
     ))
 }
 

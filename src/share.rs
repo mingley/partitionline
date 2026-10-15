@@ -24,12 +24,12 @@ use crate::protocol::api_keys::{
 };
 use crate::protocol::group::COORDINATOR_GROUP;
 use crate::protocol::records::{
-    write_java_optional, write_java_optional_bytes, write_java_record_headers, Header,
+    write_java_optional, write_java_optional_bytes, write_java_record_headers, Header, RecordBatch,
     TimestampType,
 };
 use crate::protocol::share::{
     decode_share_acknowledge_response, decode_share_acknowledge_topics_response_with_lock_timeout,
-    decode_share_fetch_response_with_budget, decode_share_group_heartbeat_response,
+    decode_share_fetch_response_skipping_corrupt_batches, decode_share_group_heartbeat_response,
     encode_share_acknowledge_request, encode_share_acknowledge_topics,
     encode_share_fetch_request_with_options, encode_share_group_heartbeat_request,
     AcknowledgementBatch, AcquiredRange, ShareAckTopic, ShareFetchPartition, ShareFetchRequest,
@@ -760,6 +760,9 @@ pub struct ShareGroup {
     /// this ShareFetch. Promoted after piggyback completion so they are
     /// not marked sent on the fetch that discovered them.
     collected_gap_acknowledgements: Vec<ShareRecord>,
+    /// Java `ShareCompletedFetch` REJECT acknowledgements for CRC-failed
+    /// batches. Promoted after piggyback like GAP acks.
+    collected_reject_acknowledgements: Vec<ShareRecord>,
     /// Offsets already counted in [`Self::records_acknowledged`] at queue time.
     counted_acknowledgements: HashSet<(String, i32, i64)>,
     /// Java `ShareAcknowledgeAsyncEvent`: flush on the next poll / leave.
@@ -967,6 +970,7 @@ impl ShareGroup {
             last_poll_unacked: Vec::new(),
             pending_acknowledgements: BTreeMap::new(),
             collected_gap_acknowledgements: Vec::new(),
+            collected_reject_acknowledgements: Vec::new(),
             counted_acknowledgements: HashSet::new(),
             async_commit: false,
             ack_commit_callback: None,
@@ -1321,6 +1325,7 @@ impl ShareGroup {
             self.pending_completed.clear();
             self.pending_acknowledgements.clear();
             self.collected_gap_acknowledgements.clear();
+            self.collected_reject_acknowledgements.clear();
             self.counted_acknowledgements.clear();
             return;
         }
@@ -1532,6 +1537,7 @@ impl ShareGroup {
                     );
                     self.complete_poll_piggyback(&recs);
                     self.promote_collected_gap_acknowledgements();
+                    self.promote_collected_reject_acknowledgements();
                     return Ok(ShareRecords::from(recs));
                 }
                 Err(e) if share_leader_retriable(&e) || share_fetch_session_reset(&e) => {
@@ -2372,14 +2378,21 @@ impl ShareGroup {
                 }
             };
             let mut body = body;
-            let ((fetched, endpoints, _, error_message, lock_timeout, error_code), decoded_bytes) =
-                match decode_share_fetch_response_with_budget(&mut body, version, remaining_bytes) {
-                    Ok(reply) => reply,
-                    Err(error) => {
-                        self.fail_share_fetch_request(node, &ack_tps, &error);
-                        return Err(error);
-                    }
-                };
+            let (
+                (fetched, endpoints, _, error_message, lock_timeout, error_code),
+                decoded_bytes,
+                corrupt_batches,
+            ) = match decode_share_fetch_response_skipping_corrupt_batches(
+                &mut body,
+                version,
+                remaining_bytes,
+            ) {
+                Ok(reply) => reply,
+                Err(error) => {
+                    self.fail_share_fetch_request(node, &ack_tps, &error);
+                    return Err(error);
+                }
+            };
             self.remember_share_endpoints(&endpoints);
             if !body.is_empty() {
                 let error = Error::protocol("trailing ShareFetch response bytes");
@@ -2530,51 +2543,122 @@ impl ShareGroup {
                     // keeps the first occurrence (testOverlappingAcquiredRecords).
                     let acquired = acquired::keep_first_acquired(&part.acquired)?;
                     let mut range_lookup = acquired::AcquisitionRanges::new(&acquired);
-                    let mut part_records = Vec::new();
                     let mut present_offsets = HashSet::new();
+                    let mut events: Vec<(i64, ShareFetchPartEvent)> = corrupt_batches
+                        .iter()
+                        .filter(|batch| {
+                            batch.topic_id == topic.topic_id && batch.partition == part.partition
+                        })
+                        .map(|batch| {
+                            (
+                                batch.first_offset,
+                                ShareFetchPartEvent::Corrupt {
+                                    first: batch.first_offset,
+                                    last: batch.last_offset,
+                                },
+                            )
+                        })
+                        .collect();
                     for batch in part.records {
-                        // Java ShareCompletedFetch filters control records
-                        // and acknowledges their acquired offsets as GAP.
-                        if batch.is_control_batch() {
-                            continue;
-                        }
-                        let timestamp_type = batch.timestamp_type();
-                        let leader_epoch = (batch.partition_leader_epoch >= 0)
-                            .then_some(batch.partition_leader_epoch);
-                        for record in batch.records {
-                            let Some(delivery_count) = range_lookup.delivery_count(record.offset)
-                            else {
-                                continue;
-                            };
-                            let key = (name.clone(), part.partition, record.offset);
-                            if !incoming_keys.insert(key.clone()) {
-                                return Err(Error::protocol("duplicate ShareFetch record offset"));
+                        events.push((batch.base_offset, ShareFetchPartEvent::Batch(batch)));
+                    }
+                    events.sort_by_key(|(offset, _)| *offset);
+                    let mut part_records = Vec::new();
+                    let flush_part_records =
+                        |completed: &mut Vec<ShareCompletedFetch>, recs: &mut Vec<ShareRecord>| {
+                            if !recs.is_empty() {
+                                completed.push(ShareCompletedFetch::Records(
+                                    std::mem::take(recs).into(),
+                                ));
                             }
-                            let _ = present_offsets.insert(record.offset);
-                            if let Some(previous) = self.acquisitions.get(&key) {
-                                if delivery_count < previous.delivery_count {
-                                    return Err(Error::protocol(
-                                        "ShareFetch delivery count regressed",
-                                    ));
+                        };
+                    for (_, event) in events {
+                        match event {
+                            ShareFetchPartEvent::Corrupt { first, last } => {
+                                flush_part_records(&mut completed, &mut part_records);
+                                for (offset, delivery_count) in
+                                    share_fetch_acquired_in_range(&acquired, first, last)?
+                                {
+                                    let key = (name.clone(), part.partition, offset);
+                                    if !incoming_keys.insert(key.clone()) {
+                                        continue;
+                                    }
+                                    let _ = present_offsets.insert(offset);
+                                    if let Some(previous) = self.acquisitions.get(&key) {
+                                        if delivery_count < previous.delivery_count {
+                                            return Err(Error::protocol(
+                                                "ShareFetch delivery count regressed",
+                                            ));
+                                        }
+                                        if delivery_count == previous.delivery_count {
+                                            continue;
+                                        }
+                                    }
+                                    let rec = share_gap_record(
+                                        name.clone(),
+                                        part.partition,
+                                        offset,
+                                        delivery_count,
+                                    );
+                                    incoming.push(rec.clone());
+                                    self.collected_reject_acknowledgements.push(rec);
                                 }
-                                if delivery_count == previous.delivery_count {
+                                completed.push(ShareCompletedFetch::Error(Error::protocol(
+                                    "Record is corrupt",
+                                )));
+                            }
+                            ShareFetchPartEvent::Batch(batch) => {
+                                // Java ShareCompletedFetch filters control
+                                // records and acknowledges their acquired
+                                // offsets as GAP.
+                                if batch.is_control_batch() {
                                     continue;
                                 }
+                                let timestamp_type = batch.timestamp_type();
+                                let leader_epoch = (batch.partition_leader_epoch >= 0)
+                                    .then_some(batch.partition_leader_epoch);
+                                for record in batch.records {
+                                    let Some(delivery_count) =
+                                        range_lookup.delivery_count(record.offset)
+                                    else {
+                                        continue;
+                                    };
+                                    let key = (name.clone(), part.partition, record.offset);
+                                    if !incoming_keys.insert(key.clone()) {
+                                        return Err(Error::protocol(
+                                            "duplicate ShareFetch record offset",
+                                        ));
+                                    }
+                                    let _ = present_offsets.insert(record.offset);
+                                    if let Some(previous) = self.acquisitions.get(&key) {
+                                        if delivery_count < previous.delivery_count {
+                                            return Err(Error::protocol(
+                                                "ShareFetch delivery count regressed",
+                                            ));
+                                        }
+                                        if delivery_count == previous.delivery_count {
+                                            continue;
+                                        }
+                                    }
+                                    let rec = ShareRecord {
+                                        topic: name.clone(),
+                                        partition: part.partition,
+                                        offset: record.offset,
+                                        timestamp: record.timestamp,
+                                        timestamp_type,
+                                        key: record.key,
+                                        value: record.value,
+                                        headers: record.headers,
+                                        delivery_count,
+                                        leader_epoch,
+                                    };
+                                    incoming.push(rec.clone());
+                                    part_records.push(rec);
+                                }
                             }
-                            part_records.push(ShareRecord {
-                                topic: name.clone(),
-                                partition: part.partition,
-                                offset: record.offset,
-                                timestamp: record.timestamp,
-                                timestamp_type,
-                                key: record.key,
-                                value: record.value,
-                                headers: record.headers,
-                                delivery_count,
-                                leader_epoch,
-                            });
                         }
                     }
+                    flush_part_records(&mut completed, &mut part_records);
                     // Java ShareCompletedFetch: acquired offsets with no
                     // record (compaction / control holes) become ACK_GAP.
                     for (offset, delivery_count) in
@@ -2596,10 +2680,6 @@ impl ShareGroup {
                             share_gap_record(name.clone(), part.partition, offset, delivery_count);
                         incoming.push(rec.clone());
                         self.collected_gap_acknowledgements.push(rec);
-                    }
-                    incoming.extend(part_records.iter().cloned());
-                    if !part_records.is_empty() {
-                        completed.push(ShareCompletedFetch::Records(part_records.into()));
                     }
                 }
             }
@@ -2698,6 +2778,7 @@ impl ShareGroup {
             self.last_poll_unacked.clear();
             self.pending_acknowledgements.clear();
             self.collected_gap_acknowledgements.clear();
+            self.collected_reject_acknowledgements.clear();
             self.counted_acknowledgements.clear();
             self.async_commit = false;
             *self.hb_assignment.lock() = None;
@@ -2734,6 +2815,7 @@ impl ShareGroup {
         self.last_poll_unacked.clear();
         self.pending_acknowledgements.clear();
         self.collected_gap_acknowledgements.clear();
+        self.collected_reject_acknowledgements.clear();
         self.counted_acknowledgements.clear();
         self.async_commit = false;
         *self.last_poll.lock() = None;
@@ -3066,6 +3148,17 @@ impl ShareGroup {
                 .pending_acknowledgements
                 .entry(key)
                 .or_insert((rec, ACK_GAP));
+        }
+    }
+
+    fn promote_collected_reject_acknowledgements(&mut self) {
+        let rejected = std::mem::take(&mut self.collected_reject_acknowledgements);
+        for rec in rejected {
+            let key = (rec.topic.clone(), rec.partition, rec.offset);
+            let _ = self
+                .pending_acknowledgements
+                .entry(key)
+                .or_insert((rec, ACK_REJECT));
         }
     }
 
@@ -3701,6 +3794,7 @@ impl ShareGroup {
         self.pending_completed.clear();
         self.pending_acknowledgements.clear();
         self.collected_gap_acknowledgements.clear();
+        self.collected_reject_acknowledgements.clear();
         self.counted_acknowledgements.clear();
         self.async_commit = false;
         last
@@ -4358,6 +4452,48 @@ fn share_fetch_missing_acquired(
     Ok(missing)
 }
 
+/// Acquired offsets that fall inside a CRC-failed batch (Java REJECT).
+fn share_fetch_acquired_in_range(
+    acquired: &[AcquiredRange],
+    first: i64,
+    last: i64,
+) -> Result<Vec<(i64, i16)>> {
+    const MAX_REJECTS: usize = 1_048_576;
+    if last < first {
+        return Err(Error::protocol("invalid ShareFetch corrupt-batch range"));
+    }
+    let mut rejected = Vec::new();
+    for range in acquired {
+        let start = range.first_offset.max(first);
+        let end = range.last_offset.min(last);
+        if end < start {
+            continue;
+        }
+        let width = end
+            .checked_sub(start)
+            .and_then(|delta| usize::try_from(delta).ok())
+            .and_then(|delta| delta.checked_add(1))
+            .ok_or_else(|| Error::protocol("invalid ShareFetch acquired range"))?;
+        if width > MAX_REJECTS || rejected.len().saturating_add(width) > MAX_REJECTS {
+            return Err(Error::protocol("ShareFetch acquired range too large"));
+        }
+        let mut offset = start;
+        loop {
+            rejected.push((offset, range.delivery_count));
+            if offset == end {
+                break;
+            }
+            offset += 1;
+        }
+    }
+    Ok(rejected)
+}
+
+enum ShareFetchPartEvent {
+    Corrupt { first: i64, last: i64 },
+    Batch(RecordBatch),
+}
+
 fn pending_typed(
     implicit: &[ShareRecord],
     explicit: &[(ShareRecord, i8)],
@@ -4885,6 +5021,25 @@ mod tests {
         let present = HashSet::from([0, 1, 2, 3, 4]);
         let missing = share_fetch_missing_acquired(&acquired, &present).unwrap();
         assert_eq!(missing, vec![(10, 2), (11, 2), (12, 2), (13, 2), (14, 2)]);
+    }
+
+    #[test]
+    fn share_fetch_acquired_in_range_intersects_first_batch() {
+        let acquired = [AcquiredRange {
+            first_offset: 0,
+            last_offset: 29,
+            delivery_count: 1,
+        }];
+        let rejected = share_fetch_acquired_in_range(&acquired, 0, 9).unwrap();
+        assert_eq!(
+            rejected,
+            (0..10).map(|offset| (offset, 1)).collect::<Vec<_>>()
+        );
+        let unaligned = share_fetch_acquired_in_range(&acquired, 10, 19).unwrap();
+        assert_eq!(
+            unaligned,
+            (10..20).map(|offset| (offset, 1)).collect::<Vec<_>>()
+        );
     }
 
     #[test]

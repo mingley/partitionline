@@ -21,12 +21,13 @@ use bytes::{Bytes, BytesMut};
 use partitionline::protocol::api::NodeEndpoint;
 use partitionline::protocol::api_keys::{SHARE_ACKNOWLEDGE, SHARE_FETCH};
 use partitionline::protocol::records::{
-    ControlRecordType, EndTransactionMarker, Record, RecordBatch,
+    encode_record_batch, ControlRecordType, EndTransactionMarker, Record, RecordBatch,
 };
 use partitionline::protocol::share::{
-    decode_share_fetch_response_with_limit, encode_share_fetch_error_with_message,
-    encode_share_fetch_response, encode_share_fetch_response_with_endpoints, AcquiredRange,
-    ShareFetchedPartition, ShareFetchedTopic,
+    decode_share_fetch_response, decode_share_fetch_response_with_limit,
+    encode_share_fetch_error_with_message, encode_share_fetch_response,
+    encode_share_fetch_response_with_endpoints, AcquiredRange, ShareFetchedPartition,
+    ShareFetchedTopic,
 };
 use partitionline::share::ShareAcquireMode;
 use partitionline::{
@@ -2340,6 +2341,88 @@ async fn share_fetch_overlapping_acquired_keeps_first() {
     // Injected records are not in the mock lock table; ACCEPT would be
     // INVALID_RECORD_STATE. Java only asserts fetchRecords here.
     group.leave().await.unwrap();
+}
+
+fn share_batch_at(base: i64, n: usize) -> RecordBatch {
+    let recs: Vec<Record> = (0..n)
+        .map(|_| Record {
+            offset: 0,
+            timestamp: 0,
+            key: None,
+            value: Some(Bytes::from_static(b"x")),
+            headers: Vec::new(),
+        })
+        .collect();
+    let mut batch = RecordBatch::from_records(recs);
+    batch.base_offset = base;
+    for rec in &mut batch.records {
+        rec.offset += base;
+    }
+    batch
+}
+
+#[tokio::test]
+async fn share_fetch_crc_failure_on_first_batch_then_subsequent() {
+    let mock = common::Mock::start().await;
+    v2(&mock);
+    let mut cfg = config(&mock);
+    cfg.max_poll_records = Some(10);
+    let mut group = ShareGroup::join(cfg, "crc-cont", "t").await.unwrap();
+    let version = mock.last_share_fetch_version().unwrap_or(2);
+    let batches = vec![
+        share_batch_at(0, 10),
+        share_batch_at(10, 10),
+        share_batch_at(20, 10),
+    ];
+    let mut recs = BytesMut::new();
+    for batch in &batches {
+        encode_record_batch(&mut recs, batch).unwrap();
+    }
+    let mut part = ShareFetchedPartition::partition_response(0, 0);
+    part.records = batches;
+    part.acquired = vec![AcquiredRange {
+        first_offset: 0,
+        last_offset: 29,
+        delivery_count: 1,
+    }];
+    let topics = vec![ShareFetchedTopic {
+        topic_id: mock.topic_id("t"),
+        partitions: vec![part],
+    }];
+    let mut injected = BytesMut::new();
+    encode_share_fetch_response(&mut injected, version, &topics).unwrap();
+    let pos = injected
+        .windows(recs.len())
+        .position(|window| window == recs.as_ref())
+        .expect("ShareFetch records blob");
+    injected[pos + usize::try_from(RecordBatch::CRC_OFFSET).unwrap()] ^= 0xff;
+    let mut public = injected.clone();
+    assert!(
+        decode_share_fetch_response(&mut public, version).is_err(),
+        "public ShareFetch decode stays fail-closed on CRC"
+    );
+    mock.inject_share_fetch_response_once(&injected);
+    let err = group.poll().await.unwrap_err().to_string();
+    assert!(
+        err.contains("Record is corrupt"),
+        "Java first fetchRecords is CorruptRecordException, got {err}"
+    );
+    let second = group.poll().await.unwrap();
+    assert_eq!(
+        second.iter().map(|rec| rec.offset).collect::<Vec<_>>(),
+        (10..20).collect::<Vec<_>>()
+    );
+    let third = group.poll().await.unwrap();
+    assert_eq!(
+        third.iter().map(|rec| rec.offset).collect::<Vec<_>>(),
+        (20..30).collect::<Vec<_>>()
+    );
+    // Injected REJECT offsets are not in the mock lock table.
+    match group.leave().await {
+        Ok(()) => {}
+        Err(Error::Broker { code, .. }) => assert_eq!(code, error::INVALID_RECORD_STATE),
+        other => panic!("{other:?}"),
+    }
 }
 
 #[tokio::test]

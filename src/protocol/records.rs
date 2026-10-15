@@ -2736,6 +2736,80 @@ fn take_checked_batch<B: Buf>(buf: &mut B) -> Result<(i64, Bytes)> {
     Ok((base_offset, body))
 }
 
+/// One framed ShareFetch records batch. A CRC mismatch can skip the batch
+/// so later batches stay collectable (Java `ShareCompletedFetch`).
+pub(crate) enum ShareFetchRecordBatch {
+    Batch(RecordBatch),
+    Corrupt { first_offset: i64, last_offset: i64 },
+}
+
+/// Java `DefaultRecordBatch.lastOffset` from a framed body (`baseOffset +
+/// lastOffsetDelta`) even when CRC failed.
+fn last_offset_from_framed_body(base_offset: i64, body: &[u8]) -> Result<i64> {
+    let delta_bytes = body
+        .get(11..15)
+        .ok_or_else(|| Error::protocol("truncated last offset delta"))?;
+    let delta = i32::from_be_bytes(
+        delta_bytes
+            .try_into()
+            .map_err(|_| Error::protocol("short last offset delta"))?,
+    );
+    Ok(base_offset.saturating_add(i64::from(delta)))
+}
+
+/// Frame one magic-v2 batch for ShareFetch. CRC failure is
+/// [`ShareFetchRecordBatch::Corrupt`] when `skip_corrupt` is set.
+pub(crate) fn decode_share_fetch_record_batch<B: Buf>(
+    buf: &mut B,
+    max_decode_bytes: usize,
+    skip_corrupt: bool,
+) -> Result<ShareFetchRecordBatch> {
+    let base_offset = buf::get_i64(buf)?;
+    let batch_len = buf::get_i32(buf)?;
+    let size_in_bytes = Records::LOG_OVERHEAD.wrapping_add(batch_len);
+    if size_in_bytes < RecordBatch::RECORD_BATCH_OVERHEAD {
+        return Err(Error::protocol(format!(
+            "Record batch is corrupt (the size {size_in_bytes} is smaller than the minimum allowed overhead {})",
+            RecordBatch::RECORD_BATCH_OVERHEAD
+        )));
+    }
+    let batch_len_usize = buf::usize_from_i32(batch_len)?;
+    buf::need(buf, batch_len_usize)?;
+    let body = buf.copy_to_bytes(batch_len_usize);
+    let mut head: &[u8] = &body;
+    let _partition_leader_epoch = buf::get_i32(&mut head)?;
+    let magic = buf::get_i8(&mut head)?;
+    if magic != MAGIC_V2 {
+        return Err(Error::protocol(format!("unsupported record magic {magic}")));
+    }
+    let crc = buf::get_u32(&mut head)?;
+    let computed = crc32c::crc32c(head);
+    if computed != crc {
+        let error = Error::protocol(format!(
+            "Record is corrupt (stored crc = {crc}, computed crc = {computed})"
+        ));
+        if !skip_corrupt {
+            return Err(error);
+        }
+        let last_offset = last_offset_from_framed_body(base_offset, &body)?;
+        if last_offset < base_offset {
+            return Err(Error::protocol(
+                "invalid ShareFetch corrupt-batch last offset",
+            ));
+        }
+        return Ok(ShareFetchRecordBatch::Corrupt {
+            first_offset: base_offset,
+            last_offset,
+        });
+    }
+    let _codec = Compression::from_attributes(buf::get_i16(&mut head)?)?;
+    Ok(ShareFetchRecordBatch::Batch(decode_checked_batch(
+        base_offset,
+        body,
+        max_decode_bytes,
+    )?))
+}
+
 /// Decode a body that [`take_checked_batch`] already framed and checked.
 fn decode_checked_batch(
     base_offset: i64,
