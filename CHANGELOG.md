@@ -74,7 +74,8 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `UNKNOWN_TOPIC_OR_PARTITION` / `UNKNOWN_TOPIC_ID` /
   `INCONSISTENT_TOPIC_ID` still completes
   without retry, including when `AcknowledgeErrorMessage` is set or
-  empty.
+  empty. A piggybacked `FENCED_LEADER_EPOCH` on one partition does
+  not fail a sibling partition whose `AcknowledgeErrorCode` is none.
   ShareAcknowledge top-level `SHARE_SESSION_LIMIT_REACHED` completes
   without retry and advances the share session epoch (Java
   `handleResponse` `nextEpoch`), including when `ErrorMessage` is
