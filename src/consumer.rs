@@ -5602,10 +5602,16 @@ impl Consumer {
                 .iter()
                 .map(|(tp, _)| (tp.topic.as_str(), tp.partition)),
         )?;
+        let deadline = offset_lookup_deadline(timeout)?;
         let mut out = Vec::new();
         for (tp, timestamp) in queries {
             let (offset, ts, epoch) = self
-                .list_offset_at(&tp.topic, tp.partition, timestamp, timeout)
+                .list_offset_at(
+                    &tp.topic,
+                    tp.partition,
+                    timestamp,
+                    remaining_offset_timeout(deadline, Instant::now()),
+                )
                 .await?;
             let found = if offset < 0 {
                 None
@@ -5633,10 +5639,16 @@ impl Consumer {
                 .iter()
                 .map(|tp| (tp.topic.as_str(), tp.partition)),
         )?;
+        let deadline = offset_lookup_deadline(timeout)?;
         let mut out = Vec::new();
         for tp in partitions {
             let offset = self
-                .list_offsets_timeout(tp.topic.clone(), tp.partition, timestamp, timeout)
+                .list_offsets_timeout(
+                    tp.topic.clone(),
+                    tp.partition,
+                    timestamp,
+                    remaining_offset_timeout(deadline, Instant::now()),
+                )
                 .await?;
             out.push((tp, offset));
         }
@@ -6161,6 +6173,20 @@ fn require_fetch_offset(offset: i64) -> Result<()> {
     } else {
         Ok(())
     }
+}
+
+/// One deadline for every partition in a ListOffsets batch.
+///
+/// Java `beginningOffsets`, `endOffsets`, and `offsetsForTimes` spend the
+/// caller timeout once. A later partition sees only the time still left.
+fn offset_lookup_deadline(timeout: Duration) -> Result<Instant> {
+    Instant::now()
+        .checked_add(timeout)
+        .ok_or_else(|| Error::protocol("ListOffsets deadline overflow"))
+}
+
+fn remaining_offset_timeout(deadline: Instant, now: Instant) -> Duration {
+    deadline.saturating_duration_since(now)
 }
 
 /// A ListOffsets reset position. Offset `-1` means the broker has no offset.
@@ -7024,6 +7050,28 @@ mod tests {
                 ),
                 (TopicPartition::new("b", 0), OffsetAndMetadata::new(5)),
             ]
+        );
+    }
+
+    #[test]
+    fn a_shared_list_offsets_deadline_keeps_only_the_time_left() {
+        let start = Instant::now();
+        let deadline = start + Duration::from_millis(100);
+        assert_eq!(
+            remaining_offset_timeout(deadline, start),
+            Duration::from_millis(100)
+        );
+        assert_eq!(
+            remaining_offset_timeout(deadline, start + Duration::from_millis(40)),
+            Duration::from_millis(60)
+        );
+        assert_eq!(
+            remaining_offset_timeout(deadline, start + Duration::from_millis(100)),
+            Duration::ZERO
+        );
+        assert_eq!(
+            remaining_offset_timeout(deadline, start + Duration::from_millis(150)),
+            Duration::ZERO
         );
     }
 
