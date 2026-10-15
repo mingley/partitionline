@@ -348,18 +348,16 @@ impl CheckedCursor {
             dest.truncate(mark);
             return Err(error);
         }
-        let checksum_ok = dest
-            .get(mark..)
-            .is_some_and(|payload| crc32c::crc32c(payload) == index.checksum);
-        if !checksum_ok {
+        let Some(payload_crc) = dest.get(mark..).map(crc32c::crc32c) else {
+            dest.truncate(mark);
+            return Err(corrupt(position, Corruption::PayloadChecksum));
+        };
+        if payload_crc != index.checksum {
             dest.truncate(mark);
             return Err(corrupt(position, Corruption::PayloadChecksum));
         }
-        let payload = dest
-            .get(mark..)
-            .ok_or_else(|| corrupt(position, Corruption::PayloadChecksum))?;
-        self.fingerprint = crc32c::crc32c_append(self.fingerprint, &header);
-        self.fingerprint = crc32c::crc32c_append(self.fingerprint, payload);
+        let payload_len = dest.len().saturating_sub(mark);
+        self.fingerprint = extend_fingerprint(self.fingerprint, &header, payload_crc, payload_len);
         self.position = end;
         self.next_offset = index.next_offset;
         Ok(Some((
@@ -628,6 +626,20 @@ struct Engine<S> {
     /// `byte_len` matched `file_bytes` since the last mutation or explicit
     /// invalidation. Later reads in that interval skip the stat.
     length_ok: bool,
+}
+
+/// Running file fingerprint after `header` and a payload whose CRC is known.
+///
+/// `payload_crc` is `crc32c` of that payload and `payload_len` is its length.
+/// The result matches hashing the payload a second time.
+pub(crate) fn extend_fingerprint(
+    fingerprint: u32,
+    header: &[u8],
+    payload_crc: u32,
+    payload_len: usize,
+) -> u32 {
+    let with_header = crc32c::crc32c_append(fingerprint, header);
+    crc32c::crc32c_combine(with_header, payload_crc, payload_len)
 }
 
 /// Journal checksum of `payload`.
@@ -1371,6 +1383,18 @@ mod tests {
     use std::cell::Cell;
     use std::io::Cursor;
     use std::rc::Rc;
+
+    #[test]
+    fn a_known_payload_crc_extends_the_fingerprint() {
+        let header = [1u8, 2, 3, 4, 5, 6, 7, 8];
+        let payload = b"records-in-the-log-entry";
+        let start = 0xabcd_u32;
+        let direct = crc32c::crc32c_append(crc32c::crc32c_append(start, &header), payload);
+        let combined = extend_fingerprint(start, &header, crc32c::crc32c(payload), payload.len());
+        assert_eq!(combined, direct);
+        let empty = extend_fingerprint(start, &header, crc32c::crc32c(&[]), 0);
+        assert_eq!(empty, crc32c::crc32c_append(start, &header));
+    }
 
     #[test]
     fn repeated_reads_append_without_dropping_earlier_bytes() {

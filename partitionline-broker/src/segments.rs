@@ -818,16 +818,17 @@ impl SparseCursor {
             return Err(error);
         }
         let stored = count(&header, 24)?;
-        let checksum_ok = dest
-            .get(mark..)
-            .is_some_and(|payload| crc32c::crc32c(payload) == stored);
-        if !checksum_ok {
+        let Some(payload_crc) = dest.get(mark..).map(crc32c::crc32c) else {
+            dest.truncate(mark);
+            return Err(Error::CorruptData);
+        };
+        if payload_crc != stored {
             dest.truncate(mark);
             return Err(Error::CorruptData);
         }
-        let payload = dest.get(mark..).ok_or(Error::CorruptData)?;
-        self.fingerprint = crc32c::crc32c_append(self.fingerprint, &header);
-        self.fingerprint = crc32c::crc32c_append(self.fingerprint, payload);
+        let payload_len = dest.len().saturating_sub(mark);
+        self.fingerprint =
+            journal::extend_fingerprint(self.fingerprint, &header, payload_crc, payload_len);
         self.position = position + 32 + length as u64;
         self.next = end;
         Ok(Some((
