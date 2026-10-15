@@ -344,9 +344,13 @@ impl Producers {
         match kind {
             KIND_ALLOC => {
                 let id = take_i64(&mut rest)?;
-                if !rest.is_empty() {
+                if !rest.is_empty() || id != self.next_id {
                     return Err(Error::InvalidRequest);
                 }
+                if self.producers.len() >= self.limits.max_producers {
+                    return Err(Error::InvalidLimits);
+                }
+                let next = self.next_id.checked_add(1).ok_or(Error::InvalidRequest)?;
                 self.producers.insert(
                     id,
                     Producer {
@@ -354,7 +358,7 @@ impl Producers {
                         partitions: BTreeMap::new(),
                     },
                 );
-                self.next_id = self.next_id.max(id.saturating_add(1));
+                self.next_id = next;
             }
             KIND_BUMP => {
                 let id = take_i64(&mut rest)?;
@@ -363,6 +367,9 @@ impl Producers {
                     return Err(Error::InvalidRequest);
                 }
                 let producer = self.producers.get_mut(&id).ok_or(Error::UnknownProducer)?;
+                if producer.epoch.checked_add(1) != Some(epoch) {
+                    return Err(Error::InvalidRequest);
+                }
                 producer.epoch = epoch;
                 producer.partitions.clear();
             }
@@ -390,7 +397,6 @@ impl Producers {
                         if existing.count != count || existing.offset != offset {
                             return Err(Error::InvalidRequest);
                         }
-                        self.log_end = self.log_end.max(end);
                         return Ok(());
                     }
                     if sequence != state.next {
@@ -399,9 +405,12 @@ impl Producers {
                 } else if sequence != 0 {
                     return Err(Error::InvalidRequest);
                 }
+                if offset != self.log_end {
+                    return Err(Error::InvalidRequest);
+                }
                 let _ = sequence.checked_add(count).ok_or(Error::InvalidRequest)?;
                 self.note(id, partition, sequence, count, offset)?;
-                self.log_end = self.log_end.max(end);
+                self.log_end = end;
             }
             _ => return Err(Error::InvalidRequest),
         }
@@ -516,6 +525,30 @@ mod tests {
         let producers =
             Producers::open(&path, limits()).unwrap_or_else(|error| panic!("{error:?}"));
         (producers, path)
+    }
+
+    #[test]
+    fn a_replayed_producer_cannot_skip_the_id_sequence() {
+        let (mut producers, _) = open("replay-id");
+        let skipped = encode_alloc(9).unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(
+            producers.apply(&skipped),
+            Err(Error::InvalidRequest)
+        ));
+        let (id, epoch) = producers
+            .allocate()
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let jumped =
+            encode_bump(id, epoch.saturating_add(2)).unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(
+            producers.apply(&jumped),
+            Err(Error::InvalidRequest)
+        ));
+        let hole =
+            encode_append(id, epoch, 0, 0, 1, 10).unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(producers.apply(&hole), Err(Error::InvalidRequest)));
+        assert_eq!(producers.epoch(id), Some(0));
+        assert_eq!(producers.log_end(), 0);
     }
 
     #[test]
