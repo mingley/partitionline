@@ -3142,6 +3142,22 @@ pub fn encode_produce_response_with_topic_ids(
     encode_produce_response_id_fields(buf, 13, parts, endpoints, throttle_time_ms, Some(topic_ids))
 }
 
+fn produce_response_groups(
+    parts: &[ProducePartitionResponse],
+) -> (Vec<&str>, HashMap<&str, Vec<usize>>) {
+    let mut order = Vec::new();
+    let mut slots: HashMap<&str, Vec<usize>> = HashMap::new();
+    for (index, part) in parts.iter().enumerate() {
+        if let Some(group) = slots.get_mut(part.topic.as_str()) {
+            group.push(index);
+            continue;
+        }
+        let _ = slots.insert(part.topic.as_str(), vec![index]);
+        order.push(part.topic.as_str());
+    }
+    (order, slots)
+}
+
 fn encode_produce_response_id_fields(
     buf: &mut BytesMut,
     version: i16,
@@ -3150,33 +3166,36 @@ fn encode_produce_response_id_fields(
     throttle_time_ms: i32,
     topic_ids: Option<&[(String, [u8; 16])]>,
 ) -> Result<()> {
+    // Group by topic, preserving first-seen order. The name stays borrowed
+    // from the partition list. v13 checks each name once before any byte
+    // is written.
+    let (order, slots) = produce_response_groups(parts);
+    let mut checked_ids: HashMap<&str, [u8; 16]> = HashMap::new();
     if version == 13 {
         let identities = topic_ids
             .ok_or_else(|| Error::Unsupported("Produce v13 requires explicit topic IDs".into()))?;
-        for part in parts {
-            let _ = produce_topic_id(&part.topic, identities)?;
+        for topic in &order {
+            let id = produce_topic_id(topic, identities)?;
+            let _ = checked_ids.insert(topic, id);
         }
     }
     let flexible = produce_flexible(version)?;
-    // Group by topic, preserving first-seen order.
-    let mut order: Vec<String> = Vec::new();
-    for p in parts {
-        if !order.iter().any(|t| t == &p.topic) {
-            order.push(p.topic.clone());
-        }
-    }
     buf::put_array_len(buf, flexible, Some(order.len()))?;
     for topic in &order {
         if version <= 12 {
             buf::put_string(buf, flexible, Some(topic))?;
+        } else if let Some(id) = checked_ids.get(topic) {
+            buf.extend_from_slice(id);
         } else {
             let id = produce_topic_id(topic, topic_ids.unwrap_or(&[]))?;
             buf.extend_from_slice(&id);
         }
-        let grouped: Vec<&ProducePartitionResponse> =
-            parts.iter().filter(|p| &p.topic == topic).collect();
+        let grouped = slots.get(topic).map(Vec::as_slice).unwrap_or(&[]);
         buf::put_array_len(buf, flexible, Some(grouped.len()))?;
-        for p in grouped {
+        for index in grouped {
+            let Some(p) = parts.get(*index) else {
+                continue;
+            };
             buf.put_i32(p.partition);
             buf.put_i16(p.error_code);
             buf.put_i64(p.base_offset);
@@ -3923,6 +3942,32 @@ mod tests {
         assert_eq!(
             ProduceRequest::partition_sizes(&decoded).unwrap(),
             ProduceRequest::partition_sizes(&dup).unwrap()
+        );
+    }
+
+    #[test]
+    fn produce_response_groups_interleaved_partitions_by_first_topic() {
+        let parts = [
+            ProducePartitionResponse::partition_response("orders", 1, 0),
+            ProducePartitionResponse::partition_response("payments", 0, 0),
+            ProducePartitionResponse::partition_response("orders", 0, 0),
+        ];
+        let (order, slots) = produce_response_groups(&parts);
+        assert_eq!(order.first().copied(), Some("orders"));
+        assert_eq!(order.get(1).copied(), Some("payments"));
+        assert_eq!(slots.get("orders").map(Vec::as_slice), Some(&[0, 2][..]));
+        assert_eq!(slots.get("payments").map(Vec::as_slice), Some(&[1][..]));
+        let mut buf = BytesMut::new();
+        encode_produce_response(&mut buf, 3, &parts).unwrap();
+        let decoded = decode_produce_response(&mut buf.freeze(), 3)
+            .ok()
+            .map(|(parts, _, _)| parts);
+        assert_eq!(
+            decoded.as_ref().map(|parts| parts
+                .iter()
+                .map(|part| (part.topic.as_str(), part.partition))
+                .collect::<Vec<_>>()),
+            Some(vec![("orders", 1), ("orders", 0), ("payments", 0)])
         );
     }
 
