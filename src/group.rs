@@ -247,9 +247,13 @@ pub fn assign_range_subscribed(
     for (m, _) in member_subs {
         let _ = out.insert(m.clone(), Vec::new());
     }
+    let members_by_topic = members_by_topic(member_subs);
     for (topic, parts) in topics {
-        let members = members_for_topic(member_subs, topic);
-        for (member, ps) in assign_range(&members, parts) {
+        let members = members_by_topic
+            .get(topic.as_str())
+            .map(Vec::as_slice)
+            .unwrap_or(&[]);
+        for (member, ps) in assign_range(members, parts) {
             if let Some(slot) = out.get_mut(&member) {
                 for p in ps {
                     slot.push((topic.clone(), p));
@@ -328,21 +332,15 @@ pub fn assign_sticky_subscribed(
     for (m, _) in member_subs {
         let _ = out.insert(m.clone(), Vec::new());
     }
+    let members_by_topic = members_by_topic(member_subs);
+    let previous = previous_partitions_by_topic(prev);
     for (topic, parts) in topics {
-        let members = members_for_topic(member_subs, topic);
-        let prev_for_topic: HashMap<String, Vec<i32>> = prev
-            .iter()
-            .map(|(m, tps)| {
-                (
-                    m.clone(),
-                    tps.iter()
-                        .filter(|(t, _)| t == topic)
-                        .map(|(_, p)| *p)
-                        .collect(),
-                )
-            })
-            .collect();
-        for (member, ps) in assign_sticky(&members, parts, &prev_for_topic) {
+        let members = members_by_topic
+            .get(topic.as_str())
+            .map(Vec::as_slice)
+            .unwrap_or(&[]);
+        let prev_for_topic = owned_previous_partitions(previous.get(topic.as_str()));
+        for (member, ps) in assign_sticky(members, parts, &prev_for_topic) {
             if let Some(slot) = out.get_mut(&member) {
                 for p in ps {
                     slot.push((topic.clone(), p));
@@ -362,12 +360,53 @@ pub fn assign_cooperative_sticky_subscribed(
     cooperative_filter(assign_sticky_subscribed(member_subs, topics, prev), prev)
 }
 
-fn members_for_topic(member_subs: &[(String, Vec<String>)], topic: &str) -> Vec<String> {
-    member_subs
-        .iter()
-        .filter(|(_, subs)| subs.iter().any(|t| t == topic))
-        .map(|(id, _)| id.clone())
-        .collect()
+fn members_by_topic(member_subs: &[(String, Vec<String>)]) -> HashMap<&str, Vec<String>> {
+    let mut out: HashMap<&str, Vec<String>> = HashMap::new();
+    for (id, subs) in member_subs {
+        let mut seen = HashSet::new();
+        for topic in subs {
+            if !seen.insert(topic.as_str()) {
+                continue;
+            }
+            if let Some(members) = out.get_mut(topic.as_str()) {
+                members.push(id.clone());
+            } else {
+                let _ = out.insert(topic.as_str(), vec![id.clone()]);
+            }
+        }
+    }
+    out
+}
+
+fn previous_partitions_by_topic(
+    prev: &HashMap<String, Vec<(String, i32)>>,
+) -> HashMap<&str, HashMap<&str, Vec<i32>>> {
+    let mut out: HashMap<&str, HashMap<&str, Vec<i32>>> = HashMap::new();
+    for (member, owned) in prev {
+        for (topic, partition) in owned {
+            if let Some(owners) = out.get_mut(topic.as_str()) {
+                owners.entry(member.as_str()).or_default().push(*partition);
+            } else {
+                let mut owners = HashMap::new();
+                let _ = owners.insert(member.as_str(), vec![*partition]);
+                let _ = out.insert(topic.as_str(), owners);
+            }
+        }
+    }
+    out
+}
+
+fn owned_previous_partitions(
+    owners: Option<&HashMap<&str, Vec<i32>>>,
+) -> HashMap<String, Vec<i32>> {
+    owners
+        .map(|owners| {
+            owners
+                .iter()
+                .map(|(member, parts)| ((*member).to_owned(), parts.clone()))
+                .collect()
+        })
+        .unwrap_or_default()
 }
 
 /// This member's identity in a consumer group (Java `ConsumerGroupMetadata`).
@@ -4715,6 +4754,26 @@ mod tests {
                 ("payments".into(), 0),
             ]
         );
+    }
+
+    #[test]
+    fn sticky_subscribed_keeps_a_previous_owner_and_one_subscription() {
+        let subs = vec![
+            ("a".into(), vec!["orders".into(), "orders".into()]),
+            ("b".into(), vec!["orders".into(), "payments".into()]),
+        ];
+        let topics = vec![("orders".into(), vec![0, 1]), ("payments".into(), vec![0])];
+        let mut prev = HashMap::new();
+        let _ = prev.insert("a".into(), vec![("orders".into(), 1)]);
+        let map = assign_sticky_subscribed(&subs, &topics, &prev);
+        let mut a = map.get("a").cloned().unwrap_or_default();
+        let mut b = map.get("b").cloned().unwrap_or_default();
+        a.sort();
+        b.sort();
+        assert!(a.contains(&("orders".into(), 1)));
+        assert_eq!(a.len() + b.len(), 3);
+        assert!(b.iter().any(|owned| owned.0 == "payments"));
+        assert!(!a.iter().any(|owned| owned.0 == "payments"));
     }
 
     #[test]
