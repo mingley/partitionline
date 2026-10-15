@@ -4139,13 +4139,21 @@ impl Consumer {
             if !fenced.is_empty() {
                 fenced.sort();
                 fenced.dedup();
-                self.recover_leader_epochs(&fenced, deadline).await?;
+                let recovery = self.recover_leader_epochs(&fenced, deadline).await;
                 for (topic, partition) in &fenced {
                     if let Ok(cursor) = self.fetch_cursor(topic, *partition) {
                         drop_records_at_or_after(&mut out, topic, *partition, cursor);
                     }
                 }
-                retry = retry.merge(FetchRetry::Backoff);
+                match recovery {
+                    Ok(()) => retry = retry.merge(FetchRetry::Backoff),
+                    // Keep records that are still below the recovered cursor.
+                    // A timeout must not roll the successful fetches back.
+                    Err(Error::Timeout) if !out.is_empty() => {
+                        return Ok(self.finish_fetch(out));
+                    }
+                    Err(error) => return Err(error),
+                }
             }
             if budget_reached {
                 return Ok(self.finish_fetch(out));
