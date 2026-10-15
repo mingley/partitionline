@@ -999,10 +999,7 @@ impl<S: Storage> Engine<S> {
             if available < total {
                 let tail_len = (available - ENTRY_HEADER as u64) as usize;
                 let mut tail = Vec::new();
-                tail.try_reserve_exact(tail_len)
-                    .map_err(|_| Error::AllocationFailed)?;
-                tail.resize(tail_len, 0);
-                require_read(&mut engine.storage, &mut tail)?;
+                read_exact_into(&mut engine.storage, &mut tail, tail_len)?;
                 if has_later_header(&tail, index.next_offset, limits) {
                     return Err(corrupt(position, Corruption::InteriorTail));
                 }
