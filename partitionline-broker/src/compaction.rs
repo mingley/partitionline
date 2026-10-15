@@ -960,27 +960,24 @@ impl Cleaner {
                 generation,
                 records,
             } => {
-                let mut previous = None;
-                for record in &records {
-                    accepted_record(previous, record)?;
-                    previous = Some(record);
+                if generation != self.next_generation {
+                    return Err(CleanError::InvalidRecord);
                 }
+                plan_matches_source(&self.source, &self.decisions, self.policy, &records)?;
+                let next = generation.checked_add(1).ok_or(CleanError::InvalidRecord)?;
                 self.pending = Some((generation, records));
-                self.next_generation = self.next_generation.max(generation.saturating_add(1));
+                self.next_generation = next;
             }
             CleanRecord::Commit { generation } => {
-                if self
-                    .pending
-                    .as_ref()
-                    .is_some_and(|(pending, _)| *pending == generation)
-                {
-                    let records = self.pending.take().map(|(_, records)| records);
-                    if let Some(records) = records {
-                        self.published = Some(records);
-                        self.published_generation = Some(generation);
-                    }
+                let Some((pending, retained)) = self.pending.take() else {
+                    return Err(CleanError::InvalidRecord);
+                };
+                if pending != generation {
+                    self.pending = Some((pending, retained));
+                    return Err(CleanError::InvalidRecord);
                 }
-                self.next_generation = self.next_generation.max(generation.saturating_add(1));
+                self.published = Some(retained);
+                self.published_generation = Some(generation);
             }
         }
         Ok(())
@@ -1022,6 +1019,69 @@ enum CleanRecord {
     Commit {
         generation: u64,
     },
+}
+
+/// A stored plan is the subsequence [`plan`] emits: every undecided suffix
+/// record, every latest non-tombstone key, and only those latest tombstones
+/// whose horizon fits in `i64`. Tombstones may be absent because the staging
+/// clock is not stored.
+fn plan_matches_source(
+    source: &[Retained],
+    decisions: &[EpochDecision],
+    policy: Policy,
+    records: &[Retained],
+) -> Result<(), CleanError> {
+    let lso = source
+        .iter()
+        .enumerate()
+        .position(|(index, record)| {
+            transactional(record) && decision(decisions, record, index).is_none()
+        })
+        .unwrap_or(source.len());
+    let mut last = std::collections::BTreeMap::<&[u8], i64>::new();
+    for (index, record) in source.iter().enumerate().take(lso) {
+        if record.role != Role::Ordinary && record.role != Role::TransactionData {
+            continue;
+        }
+        if decision(decisions, record, index) == Some(false) {
+            continue;
+        }
+        if let Some(key) = record.key.as_deref() {
+            last.insert(key, record.offset);
+        }
+    }
+    let mut planned = records.iter();
+    let mut next = planned.next();
+    for (index, record) in source.iter().enumerate() {
+        let latest = record
+            .key
+            .as_deref()
+            .is_some_and(|key| last.get(key) == Some(&record.offset))
+            && (record.role == Role::Ordinary || record.role == Role::TransactionData)
+            && decision(decisions, record, index) != Some(false);
+        if index >= lso || (latest && record.value.is_some()) {
+            if next != Some(record) {
+                return Err(CleanError::InvalidRecord);
+            }
+            next = planned.next();
+        } else if latest {
+            let retention =
+                i64::try_from(policy.delete_retention_ms).map_err(|_| CleanError::InvalidClock)?;
+            record
+                .timestamp
+                .checked_add(retention)
+                .ok_or(CleanError::InvalidClock)?;
+            if next == Some(record) {
+                next = planned.next();
+            }
+        } else if next == Some(record) {
+            return Err(CleanError::InvalidRecord);
+        }
+    }
+    if next.is_some() {
+        return Err(CleanError::InvalidRecord);
+    }
+    Ok(())
 }
 
 fn plan(
@@ -1422,6 +1482,40 @@ mod cleaner_tests {
             key,
             value,
         }
+    }
+
+    #[test]
+    fn a_plan_that_is_not_the_cleaned_source_is_not_recovered() {
+        let (mut cleaner, _) = open_cleaner("bad-plan", 5_000, 4096);
+        cleaner
+            .append(record(0, 0, 0, -1, Role::Ordinary, Some(b"a"), Some(b"v")))
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let foreign = Retained {
+            offset: 9,
+            timestamp: 0,
+            producer_id: 0,
+            epoch: -1,
+            role: Role::Ordinary,
+            key: Some(b"z".to_vec()),
+            value: Some(b"nope".to_vec()),
+        };
+        let encoded = encode_plan(1, &[foreign]).unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(
+            cleaner.replay(&encoded),
+            Err(CleanError::InvalidRecord)
+        ));
+        let dropped = encode_plan(1, &[]).unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(
+            cleaner.replay(&dropped),
+            Err(CleanError::InvalidRecord)
+        ));
+        let commit = encode_commit(1).unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(
+            cleaner.replay(&commit),
+            Err(CleanError::InvalidRecord)
+        ));
+        assert_eq!(cleaner.retained().len(), 1);
+        assert_eq!(cleaner.retained()[0].offset, 0);
     }
 
     #[test]
