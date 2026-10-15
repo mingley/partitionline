@@ -1766,6 +1766,9 @@ pub struct Consumer {
     versions: HashMap<i16, ApiVersion>,
     metadata_version: i16,
     metadata: Option<MetadataResponse>,
+    /// Name and id maps for `metadata`. Rebuilt when metadata is replaced.
+    name_to_id: HashMap<String, [u8; 16]>,
+    id_to_name: HashMap<[u8; 16], String>,
     cluster: Cluster,
     conns: HashMap<i32, BrokerConn>,
     /// ListOffsets min/max negotiated for each dedicated leader socket.
@@ -2428,6 +2431,8 @@ impl Consumer {
             versions,
             metadata_version,
             metadata: None,
+            name_to_id: HashMap::new(),
+            id_to_name: HashMap::new(),
             cluster: Cluster::default(),
             conns: HashMap::new(),
             list_offsets_ranges: HashMap::new(),
@@ -2859,7 +2864,6 @@ impl Consumer {
             self.aborted = previous_aborted;
             return Err(error);
         }
-        let new_ids = self.topic_name_ids();
         let mut names: HashMap<&str, Arc<str>> = HashMap::new();
         self.assigned
             .extend(starts.iter().map(|(topic, part, offset)| {
@@ -2873,12 +2877,14 @@ impl Consumer {
                 (name, *part, *offset)
             }));
         for (topic, part, offset) in starts {
+            let metadata_id = self.name_to_id.get(topic.as_str()).copied();
             if let Some(&old_offset) = old_assigned.get(topic, *part) {
                 if old_offset != *offset
                     || old_ids
                         .get(topic.as_str())
                         .and_then(|parts| parts.get(part))
-                        != new_ids.get(topic.as_str())
+                        .copied()
+                        != metadata_id
                 {
                     self.drop_pending_for(topic, *part);
                 }
@@ -2892,7 +2898,6 @@ impl Consumer {
     }
 
     fn capture_assigned_topic_ids(&mut self) {
-        let ids = self.topic_name_ids();
         self.assigned_topic_ids.retain(|topic, parts| {
             parts.retain(|partition, _| {
                 self.assigned.iter().any(|(assigned, part, _)| {
@@ -2905,15 +2910,24 @@ impl Consumer {
                     .iter()
                     .any(|(assigned, _, _)| assigned.as_ref() == topic.as_ref())
         });
-        for (topic, partition, _) in &self.assigned {
-            if let Some(id) = ids.get(topic.as_ref()).filter(|id| **id != [0; 16]) {
-                let _previous = self
-                    .assigned_topic_ids
-                    .entry(Arc::clone(topic))
-                    .or_default()
-                    .entry(*partition)
-                    .or_insert(*id);
-            }
+        let captured: Vec<(Arc<str>, i32, [u8; 16])> = self
+            .assigned
+            .iter()
+            .filter_map(|(topic, partition, _)| {
+                self.name_to_id
+                    .get(topic.as_ref())
+                    .copied()
+                    .filter(|id| *id != [0; 16])
+                    .map(|id| (Arc::clone(topic), *partition, id))
+            })
+            .collect();
+        for (topic, partition, id) in captured {
+            let _previous = self
+                .assigned_topic_ids
+                .entry(topic)
+                .or_default()
+                .entry(partition)
+                .or_insert(id);
         }
     }
 
@@ -3145,6 +3159,7 @@ impl Consumer {
             let _ = self.preferred.remove(&topic, partition);
         }
         self.metadata = Some(md);
+        self.refresh_topic_identities();
         self.adopt_recreated_topics();
         Ok(())
     }
@@ -3160,7 +3175,7 @@ impl Consumer {
         let changed = recreated_topic_partitions(
             &self.assigned,
             &self.assigned_topic_ids,
-            &self.topic_name_ids(),
+            self.topic_name_ids(),
         );
         for (topic, partition, _) in changed {
             self.drop_pending_for(&topic, partition);
@@ -3185,26 +3200,35 @@ impl Consumer {
         self.refresh_metadata_timeout(Some(&topics), timeout).await
     }
 
-    pub(crate) fn topic_id_names(&self) -> HashMap<[u8; 16], String> {
-        self.topic_identities().1
+    pub(crate) fn topic_id_names(&self) -> &HashMap<[u8; 16], String> {
+        &self.id_to_name
     }
 
-    pub(crate) fn topic_name_ids(&self) -> HashMap<String, [u8; 16]> {
-        self.topic_identities().0
+    pub(crate) fn topic_name_ids(&self) -> &HashMap<String, [u8; 16]> {
+        &self.name_to_id
     }
 
-    /// Topic ids after Metadata merge. A cached id wins over a later zero id
-    /// in the same response, matching [`Cluster::apply`].
-    fn topic_identities(&self) -> (HashMap<String, [u8; 16]>, HashMap<[u8; 16], String>) {
-        let Some(md) = &self.metadata else {
-            return (HashMap::new(), HashMap::new());
+    fn refresh_topic_identities(&mut self) {
+        let (by_name, by_id) = if let Some(md) = self.metadata.as_ref() {
+            resolved_topic_identities(
+                md.topics
+                    .iter()
+                    .filter_map(|topic| topic.name.as_deref().map(|name| (name, topic.topic_id))),
+                &self.cluster.topic_ids,
+            )
+        } else {
+            (HashMap::new(), HashMap::new())
         };
-        resolved_topic_identities(
-            md.topics
-                .iter()
-                .filter_map(|topic| topic.name.as_deref().map(|name| (name, topic.topic_id))),
-            &self.cluster.topic_ids,
-        )
+        self.name_to_id = by_name;
+        self.id_to_name = by_id;
+    }
+
+    fn response_topic_name(
+        &self,
+        response_name: &str,
+        topic_id: [u8; 16],
+    ) -> Result<Option<String>> {
+        fetch_topic_name(response_name, topic_id, &self.id_to_name)
     }
 
     pub(crate) fn leader_of(&self, topic: &str, partition: i32) -> Result<(i32, String)> {
@@ -4816,10 +4840,10 @@ impl Consumer {
             return self.ready_fetches_or_timeout();
         }
         let rack = self.cfg.rack.clone();
-        let mut name_ids = self.topic_name_ids();
+        let mut name_ids: HashMap<Arc<str>, [u8; 16]> = HashMap::new();
         for by_topic in by_leader.values() {
             for (topic, partitions) in by_topic {
-                let current = name_ids.get(topic.as_ref()).copied();
+                let current = self.name_to_id.get(topic.as_ref()).copied();
                 let mut bound = None;
                 for partition in partitions {
                     if let Some(id) = self.assigned_topic_id(topic.as_ref(), partition.partition) {
@@ -4834,8 +4858,10 @@ impl Consumer {
                         bound = Some(id);
                     }
                 }
-                if let Some(id) = bound.filter(|_| current.is_none()) {
-                    let _previous = name_ids.insert(topic.to_string(), id);
+                if let Some(id) = bound.filter(|_| current.is_none()).or(current) {
+                    if id != [0; 16] {
+                        let _previous = name_ids.insert(Arc::clone(topic), id);
+                    }
                 }
             }
         }
@@ -5306,14 +5332,13 @@ impl Consumer {
             });
         out.reserve(declared);
         self.cluster.apply_node_endpoints(&endpoints);
-        let id_names = self.topic_id_names();
         self.ensure_cursor_index();
         let mut retry = FetchRetry::None;
         // A partition listed twice must not rewind the cursor or deliver twice.
         let mut seen_partitions: HashMap<Arc<str>, HashSet<i32>> = HashMap::new();
         for (topic, topic_batches) in fetched.into_iter().zip(batches) {
             if *budget_reached {
-                let Some(name) = fetch_topic_name(&topic.topic, topic.topic_id, &id_names)? else {
+                let Some(name) = self.response_topic_name(&topic.topic, topic.topic_id)? else {
                     continue;
                 };
                 let seen_name = Arc::<str>::from(name.as_str());
@@ -5335,7 +5360,7 @@ impl Consumer {
                 }
                 continue;
             }
-            let Some(name) = fetch_topic_name(&topic.topic, topic.topic_id, &id_names)? else {
+            let Some(name) = self.response_topic_name(&topic.topic, topic.topic_id)? else {
                 continue;
             };
             let seen_name = Arc::<str>::from(name.as_str());

@@ -1118,7 +1118,7 @@ impl ShareGroup {
         };
         let id_to_name = self.consumer.topic_id_names();
         let name_to_id = self.consumer.topic_name_ids();
-        let Some(update) = next_share_assignment(assigned, &id_to_name, &name_to_id, &self.topics)
+        let Some(update) = next_share_assignment(assigned, id_to_name, name_to_id, &self.topics)
         else {
             return;
         };

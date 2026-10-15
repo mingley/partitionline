@@ -2440,7 +2440,7 @@ impl ConsumerGroup {
                 "group assignment contains an unknown topic UUID",
             ));
         }
-        let wanted = wanted_from_kip848(&self.topics, &names, &assignment);
+        let wanted = wanted_from_kip848(&self.topics, names, &assignment);
         let _ = self.assign_committed(&wanted, deadline).await?;
         *self.hb_ack.lock() = Some(assignment);
         self.hb_generation
@@ -2524,7 +2524,7 @@ impl ConsumerGroup {
                 "group assignment contains an unknown topic UUID",
             ));
         }
-        let wanted = wanted_from_kip848(&self.topics, &names, &assignment);
+        let wanted = wanted_from_kip848(&self.topics, names, &assignment);
         if !kip848_assignment_can_apply(&wanted, &assignment) {
             return Ok(());
         }
@@ -2574,7 +2574,7 @@ impl ConsumerGroup {
         wanted: &[(String, i32)],
         deadline: Instant,
     ) -> Result<Vec<(String, i32)>> {
-        let identities = self.consumer.topic_name_ids();
+        let identities = self.consumer.topic_name_ids().clone();
         let all_current = self.consumer.assigned_offsets().to_vec();
         let current: HashMap<(String, i32), i64> = self
             .consumer
