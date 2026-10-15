@@ -330,6 +330,7 @@ impl Election {
             journal,
             membership: membership.clone(),
             dynamic: None,
+            encoded: Vec::new(),
         };
         if store.journal.entry_count() == 0 {
             store.persist(persistent)?;
@@ -461,6 +462,8 @@ struct DurableStore {
     journal: Journal,
     membership: Membership,
     dynamic: Option<DynamicStore>,
+    /// Reused journal image. Cleared and rewritten on each persist.
+    encoded: Vec<u8>,
 }
 impl Store for DurableStore {
     fn validate_transition(
@@ -497,15 +500,21 @@ impl Store for DurableStore {
         }
     }
     fn persist(&mut self, state: PersistentState) -> Result<(), Error> {
-        if let Some(dynamic) = &mut self.dynamic {
-            let (payload, vote) = dynamic.encode_state(state, None)?;
-            self.journal.append(1, &payload)?;
-            dynamic.state = state;
-            dynamic.vote = vote;
-            return Ok(());
+        let mut encoded = std::mem::take(&mut self.encoded);
+        let stored_vote = if let Some(dynamic) = &mut self.dynamic {
+            dynamic.encode_state(state, None, &mut encoded).map(Some)
+        } else {
+            write_state(&mut encoded, state, &self.membership).map(|()| None)
+        };
+        self.encoded = encoded;
+        let vote = stored_vote?;
+        self.journal.append(1, &self.encoded)?;
+        if let Some(vote) = vote {
+            if let Some(dynamic) = &mut self.dynamic {
+                dynamic.state = state;
+                dynamic.vote = vote;
+            }
         }
-        let payload = encode(state, &self.membership)?;
-        self.journal.append(1, &payload)?;
         Ok(())
     }
     fn persist_reconciled(
@@ -514,22 +523,23 @@ impl Store for DurableStore {
         expected: LogPosition,
         floor: u64,
     ) -> Result<(), Error> {
-        if let Some(dynamic) = &mut self.dynamic {
-            let (payload, vote) = dynamic.encode_state(state, Some((expected, floor)))?;
-            self.journal.append(1, &payload)?;
-            dynamic.state = state;
-            dynamic.vote = vote;
-            return Ok(());
+        let mut encoded = std::mem::take(&mut self.encoded);
+        let stored_vote = if let Some(dynamic) = &mut self.dynamic {
+            dynamic
+                .encode_state(state, Some((expected, floor)), &mut encoded)
+                .map(Some)
+        } else {
+            write_reconciled(&mut encoded, state, &self.membership, expected, floor).map(|()| None)
+        };
+        self.encoded = encoded;
+        let vote = stored_vote?;
+        self.journal.append(1, &self.encoded)?;
+        if let Some(vote) = vote {
+            if let Some(dynamic) = &mut self.dynamic {
+                dynamic.state = state;
+                dynamic.vote = vote;
+            }
         }
-        let mut payload = encode(state, &self.membership)?;
-        payload
-            .try_reserve_exact(RECONCILE_BYTES)
-            .map_err(|_| Error::AllocationFailed)?;
-        payload[..8].copy_from_slice(RECONCILE_MAGIC);
-        payload.extend_from_slice(&expected.term.to_be_bytes());
-        payload.extend_from_slice(&expected.index.to_be_bytes());
-        payload.extend_from_slice(&floor.to_be_bytes());
-        self.journal.append(1, &payload)?;
         Ok(())
     }
 }
@@ -984,9 +994,20 @@ fn decode_record(
     ))
 }
 
+#[cfg(test)]
 fn encode(state: PersistentState, membership: &Membership) -> Result<Vec<u8>, Error> {
-    let length = HEADER + membership.voters.len() * 4;
     let mut bytes = Vec::new();
+    write_state(&mut bytes, state, membership)?;
+    Ok(bytes)
+}
+
+fn write_state(
+    bytes: &mut Vec<u8>,
+    state: PersistentState,
+    membership: &Membership,
+) -> Result<(), Error> {
+    let length = HEADER + membership.voters.len() * 4;
+    bytes.clear();
     bytes
         .try_reserve_exact(length)
         .map_err(|_| Error::AllocationFailed)?;
@@ -1003,7 +1024,25 @@ fn encode(state: PersistentState, membership: &Membership) -> Result<Vec<u8>, Er
     for voter in &membership.voters {
         bytes.extend_from_slice(&voter.to_be_bytes());
     }
-    Ok(bytes)
+    Ok(())
+}
+
+fn write_reconciled(
+    bytes: &mut Vec<u8>,
+    state: PersistentState,
+    membership: &Membership,
+    expected: LogPosition,
+    floor: u64,
+) -> Result<(), Error> {
+    write_state(bytes, state, membership)?;
+    bytes
+        .try_reserve_exact(RECONCILE_BYTES)
+        .map_err(|_| Error::AllocationFailed)?;
+    bytes[..8].copy_from_slice(RECONCILE_MAGIC);
+    bytes.extend_from_slice(&expected.term.to_be_bytes());
+    bytes.extend_from_slice(&expected.index.to_be_bytes());
+    bytes.extend_from_slice(&floor.to_be_bytes());
+    Ok(())
 }
 
 fn decode(bytes: &[u8], membership: &Membership) -> Result<PersistentState, Error> {
@@ -1054,16 +1093,27 @@ const DYNAMIC_HEADER: usize = 96;
 struct DynamicStore {
     local: Key,
     view: Voters,
+    /// Encoded `view`. Rebuilt only when that configuration changes.
+    config: Vec<u8>,
     source_operation: u64,
     state: PersistentState,
     vote: Option<Key>,
 }
 impl DynamicStore {
+    fn install_view(&mut self, view: Voters) -> Result<(), Error> {
+        if self.config.is_empty() || view != self.view {
+            self.config = view.encode().map_err(|_| Error::CorruptState)?;
+        }
+        self.view = view;
+        Ok(())
+    }
+
     fn encode_state(
         &self,
         state: PersistentState,
         reconciliation: Option<(LogPosition, u64)>,
-    ) -> Result<(Vec<u8>, Option<Key>), Error> {
+        bytes: &mut Vec<u8>,
+    ) -> Result<Option<Key>, Error> {
         let vote = match state.voted_for {
             None => None,
             Some(id)
@@ -1082,12 +1132,13 @@ impl DynamicStore {
         } else {
             DYNAMIC_STATE
         };
-        let mut bytes = encode_dynamic(
+        write_dynamic(
+            bytes,
             magic,
             self.local,
             state,
             vote,
-            &self.view,
+            &self.config,
             self.source_operation,
         )?;
         if let Some((expected, floor)) = reconciliation {
@@ -1098,19 +1149,19 @@ impl DynamicStore {
             bytes.extend_from_slice(&expected.index.to_be_bytes());
             bytes.extend_from_slice(&floor.to_be_bytes());
         }
-        Ok((bytes, vote))
+        Ok(vote)
     }
 }
-fn encode_dynamic(
+fn write_dynamic(
+    bytes: &mut Vec<u8>,
     magic: &[u8; 8],
     local: Key,
     state: PersistentState,
     vote: Option<Key>,
-    view: &Voters,
+    config: &[u8],
     source_operation: u64,
-) -> Result<Vec<u8>, Error> {
-    let config = view.encode().map_err(|_| Error::CorruptState)?;
-    let mut bytes = Vec::new();
+) -> Result<(), Error> {
+    bytes.clear();
     bytes
         .try_reserve_exact(DYNAMIC_HEADER + config.len())
         .map_err(|_| Error::AllocationFailed)?;
@@ -1127,8 +1178,8 @@ fn encode_dynamic(
     bytes.extend_from_slice(&source_operation.to_be_bytes());
     bytes.extend_from_slice(&(config.len() as u32).to_be_bytes());
     bytes.extend_from_slice(&[0; 8]);
-    bytes.extend_from_slice(&config);
-    Ok(bytes)
+    bytes.extend_from_slice(config);
+    Ok(())
 }
 fn dynamic_initial(local: Key, genesis: &Voters, group: &[u8]) -> Result<Vec<u8>, Error> {
     if genesis.epoch() != 0
@@ -1324,9 +1375,11 @@ impl Election {
         if journal.entry_count() == 0 {
             journal.append(1, &initial)?;
         }
+        let config = genesis.encode().map_err(|_| Error::InvalidMembership)?;
         let mut dynamic = DynamicStore {
             local,
             view: genesis,
+            config,
             source_operation: 0,
             state: PersistentState::default(),
             vote: None,
@@ -1400,7 +1453,7 @@ impl Election {
                     }
                 }
             }
-            dynamic.view = next.view;
+            dynamic.install_view(next.view)?;
             dynamic.source_operation = next.source_operation;
             dynamic.state = next.state;
             dynamic.vote = next.vote;
@@ -1411,6 +1464,7 @@ impl Election {
             journal,
             membership: membership.clone(),
             dynamic: Some(dynamic),
+            encoded: Vec::new(),
         };
         let machine = Machine::new(store, membership, persistent, timeouts, seed, now_ms)?;
         Ok(Self { machine, recovery })
@@ -1479,19 +1533,33 @@ impl Election {
         let removed_leader = old_leader.filter(|id| membership.position(*id).is_err());
         let deadline = self.machine.draw_deadline(now_ms)?;
         if &replacement != expected {
-            let mut bytes = encode_dynamic(
+            let config = replacement.encode().map_err(|_| Error::CorruptState)?;
+            let persistent = self.machine.persistent;
+            let mut encoded = std::mem::take(&mut self.machine.store.encoded);
+            let prepared = write_dynamic(
+                &mut encoded,
                 DYNAMIC_CONFIG,
                 local,
-                self.machine.persistent,
+                persistent,
                 vote,
-                &replacement,
+                &config,
                 source_operation,
-            )?;
-            bytes
-                .try_reserve_exact(8)
-                .map_err(|_| Error::AllocationFailed)?;
-            bytes.extend_from_slice(&committed_configuration_index.to_be_bytes());
-            if let Err(error) = self.machine.store.journal.append(1, &bytes) {
+            )
+            .and_then(|()| {
+                encoded
+                    .try_reserve_exact(8)
+                    .map_err(|_| Error::AllocationFailed)?;
+                encoded.extend_from_slice(&committed_configuration_index.to_be_bytes());
+                Ok(())
+            });
+            self.machine.store.encoded = encoded;
+            prepared?;
+            if let Err(error) = self
+                .machine
+                .store
+                .journal
+                .append(1, &self.machine.store.encoded)
+            {
                 self.machine.poisoned = true;
                 self.machine.follower(self.machine.deadline_ms);
                 self.machine.retained_leader = None;
@@ -1503,6 +1571,7 @@ impl Election {
                 .dynamic
                 .as_mut()
                 .ok_or(Error::MembershipChanged)?;
+            dynamic.config = config;
             dynamic.view = replacement;
             dynamic.source_operation = source_operation;
         }
@@ -1837,5 +1906,81 @@ mod tests {
         changed[32..40].fill(0);
         assert!(decode(&changed, &members).is_err());
         assert!(decode(&bytes[..bytes.len() - 1], &members).is_err());
+    }
+
+    #[test]
+    fn a_second_election_record_reuses_the_journal_image() {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_nanos();
+        let path = std::env::temp_dir().join(format!("pl-elect-{nanos}"));
+        let members = Membership::new(1, vec![1, 2, 3]).unwrap();
+        let mut election =
+            Election::open(&path, members, Timeouts::new(5, 5).unwrap(), 16, 7, 0).unwrap();
+        let encoded_capacity = election.machine.store.encoded.capacity();
+        assert!(encoded_capacity > 0);
+        let granted = election
+            .request_vote(
+                VoteRequest {
+                    term: 1,
+                    candidate: 2,
+                    log: LogPosition::default(),
+                },
+                1,
+            )
+            .unwrap();
+        assert!(granted.granted);
+        assert!(election.machine.store.encoded.capacity() >= encoded_capacity);
+        drop(election);
+        let _ = std::fs::remove_file(path);
+    }
+
+    #[test]
+    fn a_steady_term_keeps_the_encoded_voter_configuration() {
+        use super::super::membership::{Endpoint, Key, Voter, Voters};
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_nanos();
+        let path = std::env::temp_dir().join(format!("pl-elect-dyn-{nanos}"));
+        let key = Key::new(1, [1; 16]).unwrap();
+        let endpoint = Endpoint::new("CONTROLLER".into(), "127.0.0.1".into(), 1).unwrap();
+        let voter = Voter::new(key, vec![endpoint], 0, 1).unwrap();
+        let genesis = Voters::new(0, LogPosition::default(), 1, vec![voter]).unwrap();
+        let mut election = Election::open_dynamic(
+            &path,
+            DynamicConfig {
+                local: key,
+                genesis,
+                group: b"orders".to_vec(),
+                timeouts: Timeouts::new(5, 5).unwrap(),
+                max_states: 8,
+                seed: 7,
+            },
+            0,
+            |_, _| Ok(()),
+        )
+        .unwrap();
+        let (config_ptr, config_cap) = {
+            let dynamic = election.machine.store.dynamic.as_ref().unwrap();
+            (dynamic.config.as_ptr(), dynamic.config.capacity())
+        };
+        assert!(config_cap > 0);
+        assert!(election.adopt_term(1, 1).unwrap());
+        let encoded_capacity = election.machine.store.encoded.capacity();
+        assert!(encoded_capacity > 0);
+        {
+            let dynamic = election.machine.store.dynamic.as_ref().unwrap();
+            assert_eq!(dynamic.config.as_ptr(), config_ptr);
+            assert_eq!(dynamic.config.capacity(), config_cap);
+        }
+        assert!(election.adopt_term(2, 2).unwrap());
+        assert!(election.machine.store.encoded.capacity() >= encoded_capacity);
+        let dynamic = election.machine.store.dynamic.as_ref().unwrap();
+        assert_eq!(dynamic.config.as_ptr(), config_ptr);
+        assert_eq!(dynamic.config.capacity(), config_cap);
+        drop(election);
+        let _ = std::fs::remove_file(path);
     }
 }
