@@ -1564,20 +1564,16 @@ impl Producer {
             let ipid_version = pick(&versions, INIT_PRODUCER_ID, 0, 6).ok_or_else(|| {
                 Error::Unsupported("broker does not support InitProducerId".into())
             })?;
-            let startup_cfg = bounded_producer_config(&cfg, deadline)?;
-            let (body, ipid_version) = tokio::time::timeout_at(
-                initialization_deadline,
-                init_producer_id_roundtrip(
-                    &startup_cfg,
-                    &mut txn,
-                    Some(&mut meta),
-                    ipid_version,
-                    find_coord_version,
-                    (RecordBatch::NO_PRODUCER_ID, RecordBatch::NO_PRODUCER_EPOCH),
-                ),
+            let (body, ipid_version) = init_producer_id_roundtrip(
+                &cfg,
+                &mut txn,
+                Some(&mut meta),
+                ipid_version,
+                find_coord_version,
+                (RecordBatch::NO_PRODUCER_ID, RecordBatch::NO_PRODUCER_EPOCH),
+                deadline,
             )
-            .await
-            .map_err(|_| Error::Timeout)??;
+            .await?;
             init_producer_id_version = ipid_version;
             let (err, pid, epoch, ..) =
                 decode_init_producer_id_response(&mut body.clone(), ipid_version)?;
@@ -3243,9 +3239,9 @@ async fn init_producer_id_roundtrip(
     version: i16,
     find_coord_version: Option<i16>,
     identity: (i64, i16),
+    deadline: Instant,
 ) -> Result<(Bytes, i16)> {
     let txn_id = cfg.transactional_id.clone();
-    let deadline = Instant::now() + cfg.request_timeout;
     let txn_timeout_ms = i32::try_from(cfg.transaction_timeout.as_millis())
         .unwrap_or(i32::MAX)
         .max(0);
@@ -3254,34 +3250,21 @@ async fn init_producer_id_roundtrip(
     let mut rediscover = false;
     let mut transport_retry_used = false;
     loop {
-        let remaining = deadline.saturating_duration_since(Instant::now());
-        if remaining.is_zero() {
-            return Err(Error::Timeout);
-        }
         if rediscover {
-            let mut attempt_cfg = cfg.clone();
-            attempt_cfg.request_timeout = remaining;
-            attempt_cfg.connect_timeout = cfg.connect_timeout.min(remaining);
             let tid = txn_id
                 .as_deref()
                 .ok_or_else(|| Error::protocol("no transactional id"))?;
-            let new = tokio::time::timeout_at(
-                deadline.into(),
-                discover_typed_coord(
-                    &attempt_cfg,
-                    tid,
-                    COORDINATOR_TRANSACTION,
-                    required_find_coordinator(find_coord_version)?,
-                ),
+            let new = discover_within(
+                cfg,
+                tid,
+                COORDINATOR_TRANSACTION,
+                required_find_coordinator(find_coord_version)?,
+                deadline,
             )
-            .await
-            .map_err(|_| Error::Timeout)??;
+            .await?;
             *txn = Some(new);
         }
-        let timeout = deadline.saturating_duration_since(Instant::now());
-        if timeout.is_zero() {
-            return Err(Error::Timeout);
-        }
+        let timeout = timeout_remaining(deadline)?;
         let (conn, version) = match txn.as_mut() {
             Some(coord) => (
                 &mut coord.conn,
@@ -3300,9 +3283,8 @@ async fn init_producer_id_roundtrip(
                 "coordinator does not support InitProducerId epoch recovery v3+".into(),
             ));
         }
-        let result = tokio::time::timeout_at(
-            deadline.into(),
-            conn.roundtrip(
+        let result = conn
+            .roundtrip(
                 INIT_PRODUCER_ID,
                 version,
                 |buf| {
@@ -3316,10 +3298,8 @@ async fn init_producer_id_roundtrip(
                     )
                 },
                 timeout,
-            ),
-        )
-        .await
-        .map_err(|_| Error::Timeout)?;
+            )
+            .await;
         match result {
             Ok(body) => {
                 let err = decode_init_producer_id_response(&mut body.clone(), version)?.0;
@@ -3367,21 +3347,20 @@ async fn bump_producer_epoch(shared: &Shared) -> Result<()> {
     if pid < 0 {
         return Ok(());
     }
-    let deadline = tokio::time::Instant::now() + shared.cfg.request_timeout;
-    let (body, version) = tokio::time::timeout_at(deadline, async {
-        let mut txn = shared.txn.lock().await;
-        init_producer_id_roundtrip(
-            &shared.cfg,
-            &mut txn,
-            None,
-            version,
-            shared.find_coord_version,
-            (pid, epoch),
-        )
-        .await
-    })
-    .await
-    .map_err(|_| Error::Timeout)??;
+    let deadline = Instant::now()
+        .checked_add(shared.cfg.request_timeout)
+        .ok_or(Error::Timeout)?;
+    let mut txn = shared.txn.lock().await;
+    let (body, version) = init_producer_id_roundtrip(
+        &shared.cfg,
+        &mut txn,
+        None,
+        version,
+        shared.find_coord_version,
+        (pid, epoch),
+        deadline,
+    )
+    .await?;
     let (err, new_pid, new_epoch, ..) =
         decode_init_producer_id_response(&mut body.clone(), version)?;
     if err != 0 {
@@ -3406,22 +3385,21 @@ async fn bump_producer_epoch(shared: &Shared) -> Result<()> {
 /// the transactional KIP-360 bump above is a separate path and is untouched.
 async fn renew_nontransactional_identity(shared: &Shared) -> Result<()> {
     let version = shared.init_producer_id_version;
-    let deadline = tokio::time::Instant::now() + shared.cfg.request_timeout;
-    let (body, version) = tokio::time::timeout_at(deadline, async {
-        let mut txn: Option<CoordinatorConnection> = None;
-        let mut meta = shared.meta.lock().await;
-        init_producer_id_roundtrip(
-            &shared.cfg,
-            &mut txn,
-            Some(&mut meta),
-            version,
-            shared.find_coord_version,
-            (RecordBatch::NO_PRODUCER_ID, RecordBatch::NO_PRODUCER_EPOCH),
-        )
-        .await
-    })
-    .await
-    .map_err(|_| Error::Timeout)??;
+    let deadline = Instant::now()
+        .checked_add(shared.cfg.request_timeout)
+        .ok_or(Error::Timeout)?;
+    let mut txn: Option<CoordinatorConnection> = None;
+    let mut meta = shared.meta.lock().await;
+    let (body, version) = init_producer_id_roundtrip(
+        &shared.cfg,
+        &mut txn,
+        Some(&mut meta),
+        version,
+        shared.find_coord_version,
+        (RecordBatch::NO_PRODUCER_ID, RecordBatch::NO_PRODUCER_EPOCH),
+        deadline,
+    )
+    .await?;
     let (err, new_pid, new_epoch, ..) =
         decode_init_producer_id_response(&mut body.clone(), version)?;
     if err != 0 {
