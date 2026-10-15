@@ -1618,17 +1618,6 @@ impl<V> PartitionMap<V> {
         previous
     }
 
-    fn extend_topic(&mut self, topic: &str, parts: HashMap<i32, V>) {
-        if parts.is_empty() {
-            return;
-        }
-        if let Some(slot) = self.topics.get_mut(topic) {
-            slot.extend(parts);
-            return;
-        }
-        let _previous = self.topics.insert(TopicName::from(topic), parts);
-    }
-
     fn remove(&mut self, topic: &str, partition: i32) -> Option<V> {
         let partitions = self.topics.get_mut(topic)?;
         let removed = partitions.remove(&partition);
@@ -5931,7 +5920,6 @@ impl Consumer {
             } else {
                 Some(seen_partitions.remove(name.as_ref()).unwrap_or_default())
             };
-            let mut topic_completed: HashMap<i32, ()> = HashMap::new();
             let mut topic_records = 0u64;
             let mut topic_bytes = 0u64;
             if *budget_reached {
@@ -5954,7 +5942,6 @@ impl Consumer {
                         );
                     }
                 }
-                completed.extend_topic(name.as_ref(), topic_completed);
                 self.add_fetch_totals(&name, topic_records, topic_bytes);
                 if let Some(parts) = topic_seen {
                     if !parts.is_empty() {
@@ -6402,15 +6389,14 @@ impl Consumer {
                 if let Some(n) = next {
                     self.advance_indexed(&name, part.partition, n);
                     self.set_last_fetched_epoch(&name, part.partition, last_epoch);
-                    let _ = topic_completed.insert(part.partition, ());
+                    let _ = completed.insert(name.as_ref(), part.partition, ());
                 } else if !*budget_reached {
-                    let _ = topic_completed.insert(part.partition, ());
+                    let _ = completed.insert(name.as_ref(), part.partition, ());
                 }
                 if *budget_reached {
                     break;
                 }
             }
-            completed.extend_topic(name.as_ref(), topic_completed);
             self.add_fetch_totals(&name, topic_records, topic_bytes);
             if let Some(parts) = topic_seen {
                 if !parts.is_empty() {
