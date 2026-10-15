@@ -2336,7 +2336,9 @@ async fn share_fetch_overlapping_acquired_keeps_first() {
         "Java keeps the first overlapping occurrence"
     );
     assert_eq!(got[10].delivery_count, 2);
-    group.accept(&got).await.unwrap();
+    assert_eq!(group.acquired_record_count(), 15);
+    // Injected records are not in the mock lock table; ACCEPT would be
+    // INVALID_RECORD_STATE. Java only asserts fetchRecords here.
     group.leave().await.unwrap();
 }
 
