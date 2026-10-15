@@ -2776,6 +2776,139 @@ async fn share_acknowledge_fenced_sibling_current_leader_unusable_epoch_does_not
 }
 
 #[tokio::test]
+async fn share_acknowledge_not_leader_sibling_current_leader_unusable_epoch_does_not_override() {
+    let mock = common::Mock::start_two_node().await;
+    v2(&mock);
+    mock.set_topic_partitions("t", 2);
+    mock.set_partition_leader("t", 0, 1);
+    mock.set_partition_leader("t", 1, 1);
+    produce(&mock, &[(0, b"p0"), (1, b"p1")]).await;
+    let mut group = ShareGroup::join(config(&mock), "ack-nl-sib-unusable-cur", "t")
+        .await
+        .unwrap();
+    let first = group.poll().await.unwrap();
+    assert_eq!(first.len(), 2);
+    assert!(
+        first.iter().any(|rec| rec.partition == 0),
+        "first poll must acquire partition 0"
+    );
+    assert!(
+        first.iter().any(|rec| rec.partition == 1),
+        "first poll must acquire partition 1"
+    );
+    assert_eq!(mock.last_share_fetch_node(), Some(1));
+    produce(&mock, &[(1, b"later")]).await;
+    let after_produce = mock.metadata_calls();
+    let seen = Arc::new(Mutex::new(Vec::new()));
+    let seen_cb = seen.clone();
+    group.set_acknowledgement_commit_callback(move |offsets, exception| {
+        let partition = offsets[0].0.partition();
+        seen_cb.lock().push((
+            partition,
+            exception
+                .as_ref()
+                .map(|error| (error.code(), error.message().to_owned())),
+        ));
+    });
+    group.accept(&first).await.unwrap();
+    let version = mock.last_share_fetch_version().unwrap_or(2);
+    let mut failed =
+        ShareAcknowledgeResponsePartition::partition_response(0, error::NOT_LEADER_OR_FOLLOWER);
+    failed.error_message = Some("ack sibling not-leader unusable epoch".into());
+    failed.current_leader_id = 2;
+    failed.current_leader_epoch = -1;
+    let topics = vec![ShareAcknowledgeResponseTopic {
+        topic_id: mock.topic_id("t"),
+        partitions: vec![
+            failed,
+            ShareAcknowledgeResponsePartition::partition_response(1, 0),
+        ],
+    }];
+    let addr = mock.broker_addr(2).expect("node 2 listening");
+    let (host, port) = addr.rsplit_once(':').expect("host:port");
+    let endpoints = vec![NodeEndpoint::new(
+        2,
+        host,
+        port.parse().expect("port"),
+        None,
+    )];
+    let mut injected = BytesMut::new();
+    encode_share_acknowledge_topics_response_with_endpoints(
+        &mut injected,
+        version,
+        0,
+        &topics,
+        &endpoints,
+    )
+    .unwrap();
+    mock.inject_share_ack_response_once(&injected);
+    let mut results = group.commit_sync().await.unwrap();
+    results.sort_by_key(|(tp, _)| tp.partition());
+    assert_eq!(results.len(), 2);
+    assert_eq!(results[0].0.partition(), 0);
+    let err = results[0]
+        .1
+        .as_ref()
+        .expect("non-empty ErrorMessage is preferred over the crate fallback");
+    assert_eq!(err.code(), Some(error::NOT_LEADER_OR_FOLLOWER));
+    assert_eq!(err.message(), "ack sibling not-leader unusable epoch");
+    assert_eq!(results[1].0.partition(), 1);
+    assert!(
+        results[1].1.is_none(),
+        "present sibling ShareAcknowledge must succeed"
+    );
+    assert_eq!(
+        mock.share_ack_calls(),
+        1,
+        "sibling NOT_LEADER_OR_FOLLOWER CurrentLeader must not retry ShareAcknowledge"
+    );
+    let mut got = seen.lock().clone();
+    got.sort_by_key(|(partition, _)| *partition);
+    assert_eq!(
+        got,
+        vec![
+            (
+                0,
+                Some((
+                    Some(error::NOT_LEADER_OR_FOLLOWER),
+                    "ack sibling not-leader unusable epoch".into()
+                ))
+            ),
+            (1, None),
+        ]
+    );
+    assert!(
+        group.commit_sync().await.unwrap().is_empty(),
+        "completed mixed fatal/success acks must not stay pending"
+    );
+    let history_before = mock.share_fetch_history();
+    let later = group.poll().await.unwrap();
+    assert_eq!(later.len(), 1);
+    assert_eq!(later[0].partition, 1);
+    assert_eq!(later[0].value.as_deref(), Some(&b"later"[..]));
+    let extra: Vec<i32> = mock
+        .share_fetch_history()
+        .into_iter()
+        .skip(history_before.len())
+        .map(|(node, _)| node)
+        .collect();
+    assert!(
+        !extra.contains(&2),
+        "Java updateLeaderInfoMap requires leaderEpoch != -1: {extra:?}"
+    );
+    assert_eq!(
+        mock.last_share_fetch_node(),
+        Some(1),
+        "unusable NOT_LEADER CurrentLeader must not retarget a sibling"
+    );
+    assert!(
+        mock.metadata_calls() > after_produce,
+        "sibling NOT_LEADER CurrentLeader with leaderEpoch -1 must still request Metadata"
+    );
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn share_acknowledge_unknown_topic_or_partition_does_not_retry() {
     let mock = common::Mock::start().await;
     v2(&mock);
