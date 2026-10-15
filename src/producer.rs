@@ -4660,6 +4660,9 @@ impl Worker {
 
     async fn run(mut self) {
         let mut linger_start: Option<Instant> = None;
+        // One timer for linger and delivery deadlines. Resetting it avoids a
+        // new sleep registration on every wait.
+        let mut linger_timer = std::pin::pin!(tokio::time::sleep(Duration::ZERO));
         loop {
             if self.shared.closed.load(Ordering::SeqCst)
                 && self.pending.is_empty()
@@ -4731,6 +4734,11 @@ impl Worker {
             };
 
             let wake_shared = Arc::clone(&self.shared);
+            if let Some(delay) = next_wake {
+                linger_timer
+                    .as_mut()
+                    .reset(tokio::time::Instant::now() + delay);
+            }
             tokio::select! {
                 biased;
                 _ = wake_shared.cache_nudge.notified(), if wake_shared.sticky.is_some() => {}
@@ -4768,9 +4776,7 @@ impl Worker {
                         }
                     }
                 }
-                _ = tokio::time::sleep(
-                    next_wake.unwrap_or(Duration::from_secs(86400)),
-                ), if next_wake.is_some() => {
+                _ = linger_timer.as_mut(), if next_wake.is_some() => {
                     self.purge_expired_pending();
                 }
                 ready = self.conn.inbound_ready(), if !self.in_flight.is_empty() && !self.conn.is_closed() => {
