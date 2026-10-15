@@ -571,6 +571,25 @@ fn later_seen(current: u64, now_ms: u64) -> u64 {
     current.max(now_ms)
 }
 
+fn validate_recovered(id: &str, group: &Group) -> Result<(), Error> {
+    validate_name(id)?;
+    validate_name(&group.protocol)?;
+    if group.members.is_empty() || !group.members.contains_key(&group.leader) {
+        return Err(Error::InvalidRequest);
+    }
+    validate_name(&group.leader)?;
+    let mut seen = BTreeSet::new();
+    for (member_id, member) in &group.members {
+        validate_name(member_id)?;
+        for partition in &member.assignment {
+            if *partition < 0 || !seen.insert(*partition) {
+                return Err(Error::InvalidRequest);
+            }
+        }
+    }
+    Ok(())
+}
+
 fn validate_name(name: &str) -> Result<(), Error> {
     if name.is_empty() || name.len() > 249 || name.chars().any(|c| c.is_control()) {
         Err(Error::InvalidRequest)
@@ -652,11 +671,14 @@ fn decode(mut bytes: &[u8]) -> Result<(i64, u64, BTreeMap<String, Group>), Error
             let member_id = take_str(&mut bytes)?;
             let joined_generation = take_i32(&mut bytes)?;
             let last_seen_ms = take_u64(&mut bytes)?;
-            let synced = take_u8(&mut bytes)? == 1;
+            let synced_byte = take_u8(&mut bytes)?;
             let assignment_len = take_u16(&mut bytes)?;
             let mut assignment = Vec::with_capacity(assignment_len);
             for _ in 0..assignment_len {
                 assignment.push(take_i32(&mut bytes)?);
+            }
+            if synced_byte > 1 {
+                return Err(Error::InvalidRequest);
             }
             members.insert(
                 member_id,
@@ -664,20 +686,21 @@ fn decode(mut bytes: &[u8]) -> Result<(i64, u64, BTreeMap<String, Group>), Error
                     joined_generation,
                     last_seen_ms,
                     assignment,
-                    synced,
+                    synced: synced_byte == 1,
                 },
             );
         }
-        groups.insert(
-            id,
-            Group {
-                protocol,
-                generation,
-                generation_started_ms,
-                leader,
-                members,
-            },
-        );
+        let group = Group {
+            protocol,
+            generation,
+            generation_started_ms,
+            leader,
+            members,
+        };
+        validate_recovered(&id, &group)?;
+        if groups.insert(id, group).is_some() {
+            return Err(Error::InvalidRequest);
+        }
     }
     if !bytes.is_empty() {
         return Err(Error::InvalidRequest);
@@ -763,6 +786,61 @@ mod tests {
         let path = std::env::temp_dir().join(format!("pl-group-{name}-{nanos}"));
         let groups = Groups::open(&path, limits()).unwrap_or_else(|error| panic!("{error:?}"));
         (groups, path)
+    }
+
+    #[test]
+    fn a_negative_or_repeated_assignment_is_not_recovered() {
+        let mut members = BTreeMap::new();
+        members.insert(
+            "m-1".to_owned(),
+            Member {
+                joined_generation: 1,
+                last_seen_ms: 0,
+                assignment: vec![-1],
+                synced: true,
+            },
+        );
+        let group = Group {
+            protocol: "range".to_owned(),
+            generation: 1,
+            generation_started_ms: 0,
+            leader: "m-1".to_owned(),
+            members,
+        };
+        let mut groups = BTreeMap::new();
+        groups.insert("orders".to_owned(), group);
+        let encoded = encode(0, 2, &groups).unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(decode(&encoded), Err(Error::InvalidRequest)));
+        let mut members = BTreeMap::new();
+        members.insert(
+            "m-1".to_owned(),
+            Member {
+                joined_generation: 1,
+                last_seen_ms: 0,
+                assignment: vec![0],
+                synced: true,
+            },
+        );
+        members.insert(
+            "m-2".to_owned(),
+            Member {
+                joined_generation: 1,
+                last_seen_ms: 0,
+                assignment: vec![0],
+                synced: true,
+            },
+        );
+        let group = Group {
+            protocol: "range".to_owned(),
+            generation: 1,
+            generation_started_ms: 0,
+            leader: "m-1".to_owned(),
+            members,
+        };
+        let mut groups = BTreeMap::new();
+        groups.insert("orders".to_owned(), group);
+        let encoded = encode(0, 3, &groups).unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(decode(&encoded), Err(Error::InvalidRequest)));
     }
 
     #[test]
