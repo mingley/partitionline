@@ -1999,7 +1999,7 @@ impl Producer {
         compact_record_backing(&mut rec);
         let now = Instant::now();
         let deadline = now + self.inner.shared.cfg.delivery_timeout;
-        let topic = rec.topic.clone();
+        let topic = tracker.is_none().then(|| Arc::clone(&rec.topic));
         let rest_block = block_deadline.saturating_duration_since(now);
         if rest_block.is_zero() {
             return Err(Error::Timeout);
@@ -2035,7 +2035,7 @@ impl Producer {
         if let Some(tracker) = tracker {
             self.inner.shared.note_queued_totals(1, bytes);
             tracker.note_queued(1, bytes);
-        } else {
+        } else if let Some(topic) = topic {
             self.inner.shared.note_queued_n(&topic, 1, bytes);
         }
         Ok(rx)
@@ -2448,7 +2448,7 @@ impl Producer {
         };
         let now = Instant::now();
         let deadline = now + self.inner.shared.cfg.delivery_timeout;
-        let topic = rec.topic.clone();
+        let topic = tracker.is_none().then(|| Arc::clone(&rec.topic));
         if !self.inner.shared.try_reserve_buffer(bytes) {
             return Err(Error::QueueFull);
         }
@@ -2482,7 +2482,7 @@ impl Producer {
         if let Some(tracker) = tracker {
             self.inner.shared.note_queued_totals(1, bytes);
             tracker.note_queued(1, bytes);
-        } else {
+        } else if let Some(topic) = topic {
             self.inner.shared.note_queued_n(&topic, 1, bytes);
         }
         Ok(())
