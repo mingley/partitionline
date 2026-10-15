@@ -625,38 +625,46 @@ impl Store {
         remaining_entries: usize,
         dest: &mut Vec<u8>,
     ) -> Result<(Option<journal::PayloadView>, segments::Work), partition::Error> {
+        let Some(log) = log else {
+            return Ok((None, segments::Work::default()));
+        };
         let epoch = self.read_epoch;
         let max_entry = self.config.journal_limits.max_entry_bytes();
-        let matched = log.as_ref().is_some_and(|log| {
-            self.slots
-                .get(log.position)
-                .is_some_and(|slot| slot.id == log.id && slot.index == log.index)
-        });
-        let slot = if matched {
-            log.as_ref()
-                .and_then(|log| self.slots.get_mut(log.position))
-        } else if let Some(log) = log.as_ref() {
-            self.located_slot_mut(log.id, log.index)
+        let direct = if let Some(slot) = self.slots.get_mut(log.position) {
+            if slot.id == log.id && slot.index == log.index {
+                Some(observe_cached_read(
+                    slot,
+                    epoch,
+                    max_entry,
+                    offset,
+                    remaining_bytes,
+                    remaining_entries,
+                    dest,
+                )?)
+            } else {
+                None
+            }
         } else {
             None
         };
-        let Some(slot) = slot else {
+        if let Some((result, changed)) = direct {
+            self.changed |= changed;
+            return Ok(result);
+        }
+        let Some(slot) = self.located_slot_mut(log.id, log.index) else {
             return Ok((None, segments::Work::default()));
         };
-        if slot.seen_epoch != epoch {
-            slot.partition.invalidate_length_observation();
-            slot.seen_epoch = epoch;
-        }
-        let maximum = max_entry
-            .min(remaining_bytes)
-            .checked_add(std::mem::size_of::<journal::Entry>())
-            .ok_or(partition::Error::InvalidLimits)?;
-        let poisoned = slot.partition.is_poisoned();
-        let result =
-            slot.partition
-                .read_into(offset, maximum, remaining_bytes, remaining_entries, dest);
-        self.changed |= poisoned != slot.partition.is_poisoned();
-        result
+        let (result, changed) = observe_cached_read(
+            slot,
+            epoch,
+            max_entry,
+            offset,
+            remaining_bytes,
+            remaining_entries,
+            dest,
+        )?;
+        self.changed |= changed;
+        Ok(result)
     }
     pub(crate) fn timestamp_start(
         &mut self,
@@ -678,6 +686,31 @@ impl Store {
         result
     }
 }
+fn observe_cached_read(
+    slot: &mut Slot,
+    epoch: u64,
+    max_entry: usize,
+    offset: i64,
+    remaining_bytes: usize,
+    remaining_entries: usize,
+    dest: &mut Vec<u8>,
+) -> Result<((Option<journal::PayloadView>, segments::Work), bool), partition::Error> {
+    if slot.seen_epoch != epoch {
+        slot.partition.invalidate_length_observation();
+        slot.seen_epoch = epoch;
+    }
+    let maximum = max_entry
+        .min(remaining_bytes)
+        .checked_add(std::mem::size_of::<journal::Entry>())
+        .ok_or(partition::Error::InvalidLimits)?;
+    let poisoned = slot.partition.is_poisoned();
+    let result =
+        slot.partition
+            .read_into(offset, maximum, remaining_bytes, remaining_entries, dest)?;
+    let changed = poisoned != slot.partition.is_poisoned();
+    Ok((result, changed))
+}
+
 fn storage_filename(id: TopicId, index: i32, rolling: bool) -> String {
     let mut name = filename(id, index);
     if rolling {
