@@ -4331,6 +4331,15 @@ impl Consumer {
         if !collect_parallel {
             let mut out = Vec::with_capacity(nodes.len());
             for node in nodes {
+                let timeout = deadline.saturating_duration_since(Instant::now());
+                if timeout.is_zero() {
+                    return if out.is_empty() {
+                        Err(Error::Timeout)
+                    } else {
+                        Ok(out)
+                    };
+                }
+                let max_wait = max_wait.min(duration_millis_i32(timeout));
                 let Some(by_topic) = by_leader.remove(&node) else {
                     continue;
                 };
