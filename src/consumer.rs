@@ -5147,11 +5147,7 @@ impl Consumer {
                         };
                     }
                     if retry == FetchRetry::Backoff {
-                        let topics: Vec<String> = self
-                            .assigned
-                            .iter()
-                            .map(|(t, _, _)| t.as_ref().to_owned())
-                            .collect();
+                        let topics = unique_assigned_topics(&self.assigned);
                         if let Err(error) = self
                             .refresh_metadata_timeout(
                                 Some(&topics),
