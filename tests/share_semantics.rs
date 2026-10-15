@@ -11422,6 +11422,58 @@ async fn share_fetch_unknown_server_error_skips_without_metadata() {
 }
 
 #[tokio::test]
+async fn share_fetch_unknown_server_error_current_leader_does_not_override() {
+    let mock = common::Mock::start_two_node().await;
+    v2(&mock);
+    mock.set_partition_leader("t", 0, 1);
+    produce(&mock, &[(0, b"keep")]).await;
+    let mut group = ShareGroup::join(config(&mock), "fetch-unk-srv-cur", "t")
+        .await
+        .unwrap();
+    let version = mock.last_share_fetch_version().unwrap_or(2);
+    let mut part = ShareFetchedPartition::partition_response(0, error::UNKNOWN_SERVER_ERROR);
+    part.current_leader_id = 2;
+    part.current_leader_epoch = 1;
+    let topics = vec![ShareFetchedTopic {
+        topic_id: mock.topic_id("t"),
+        partitions: vec![part],
+    }];
+    let addr = mock.broker_addr(2).expect("node 2 listening");
+    let (host, port) = addr.rsplit_once(':').expect("host:port");
+    let endpoints = vec![NodeEndpoint::new(
+        2,
+        host,
+        port.parse().expect("port"),
+        None,
+    )];
+    let mut injected = BytesMut::new();
+    encode_share_fetch_response_with_endpoints(&mut injected, version, &topics, &endpoints)
+        .unwrap();
+    mock.inject_share_fetch_response_once(&injected);
+    assert!(
+        group.poll().await.unwrap().is_empty(),
+        "Java handleInitializeErrors skips UNKNOWN_SERVER_ERROR without throwing"
+    );
+    assert_eq!(mock.last_share_fetch_node(), Some(1));
+    let after_skip = mock.metadata_calls();
+    let got = group.poll().await.unwrap();
+    assert_eq!(got.len(), 1);
+    assert_eq!(got[0].value.as_deref(), Some(&b"keep"[..]));
+    assert_eq!(
+        mock.last_share_fetch_node(),
+        Some(1),
+        "Java handleShareFetchSuccess applies CurrentLeader only for NOT_LEADER / FENCED"
+    );
+    assert_eq!(
+        mock.metadata_calls(),
+        after_skip,
+        "UNKNOWN_SERVER_ERROR CurrentLeader must not request Metadata"
+    );
+    group.accept(&got).await.unwrap();
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn share_fetch_unknown_server_error_message_still_skips() {
     let mock = common::Mock::start().await;
     v2(&mock);

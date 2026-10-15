@@ -215,7 +215,9 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   the next ShareFetch target and does not request Metadata. A
   ShareFetch `UNKNOWN_LEADER_EPOCH` with a usable CurrentLeader on one
   partition does not update the next ShareFetch target for a sibling
-  whose error is none and does not request Metadata.
+  whose error is none and does not request Metadata. A ShareFetch
+  `UNKNOWN_SERVER_ERROR` with a usable CurrentLeader does not update
+  the next ShareFetch target and does not request Metadata.
 
 - `ShareGroup::set_acknowledgement_commit_callback` is Java
   `ShareConsumer.setAcknowledgementCommitCallback`
