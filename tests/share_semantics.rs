@@ -600,6 +600,47 @@ async fn share_close_sends_acks_to_each_partition_leader() {
 }
 
 #[tokio::test]
+async fn share_fetch_refuses_piggyback_on_initial_session() {
+    let mock = common::Mock::start_two_node().await;
+    v2(&mock);
+    mock.set_partition_leader("t", 0, 1);
+    produce(&mock, &[(0, b"held")]).await;
+    let mut group = ShareGroup::join(config(&mock), "init-piggy", "t")
+        .await
+        .unwrap();
+    let first = group.poll().await.unwrap();
+    assert_eq!(first.len(), 1);
+    let first_off = first[0].offset;
+    group.accept(&first).await.unwrap();
+    mock.set_partition_leader("t", 0, 2);
+    let _ = group.list_topics().await.unwrap();
+    let acks = mock.share_ack_calls();
+    let seen = Arc::new(Mutex::new(Vec::new()));
+    let seen_cb = seen.clone();
+    group.set_acknowledgement_commit_callback(move |_, exception| {
+        seen_cb
+            .lock()
+            .push(exception.as_ref().and_then(|error| error.code()));
+    });
+    let _ = group.poll().await;
+    assert_eq!(
+        *seen.lock(),
+        vec![Some(error::NOT_LEADER_OR_FOLLOWER)],
+        "Java testPiggybackAcknowledgementsOnInitialShareSessionError completes leftover acks with NOT_LEADER"
+    );
+    assert_eq!(
+        mock.share_ack_calls(),
+        acks,
+        "piggyback must not be sent on an initial share session"
+    );
+    assert!(
+        !mock.share_accepted("init-piggy", "t", 0, first_off),
+        "refused initial-session piggyback must not ACCEPT"
+    );
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn share_fetch_subscription_change_sends_old_acks_to_previous_leader() {
     let mock = common::Mock::start_two_node().await;
     v2(&mock);

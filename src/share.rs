@@ -679,7 +679,9 @@ pub enum ShareAcquireMode {
 /// with that code (Java `handleResponse` false). A ShareFetch
 /// transport / timeout / decode failure completes those acknowledgements
 /// the same way (Java `handleShareFetchFailure`). Piggyback is refused
-/// on the initial share session (Java `maybeAddAcknowledgements`).
+/// on the initial share session and those acknowledgements complete
+/// with `NOT_LEADER_OR_FOLLOWER` (Java
+/// `testPiggybackAcknowledgementsOnInitialShareSessionError`).
 /// A successful ShareFetch that omits a piggybacked partition completes
 /// those acknowledgements with `INVALID_RECORD_STATE` (Java
 /// `InvalidRecordStateException` / `INVALID_RESPONSE`). A successful
@@ -1481,6 +1483,9 @@ impl ShareGroup {
     /// `testShareFetchWithSubscriptionChangeMultipleNodes`). With no
     /// leftover acks, only the new leader is fetched (Java
     /// `testShareFetchWithSubscriptionChangeMultipleNodesEmptyAcknowledgements`).
+    /// Piggyback is refused on an initial share session and those
+    /// acknowledgements complete with `NOT_LEADER_OR_FOLLOWER` (Java
+    /// `testPiggybackAcknowledgementsOnInitialShareSessionError`).
     /// A partition-level error (Java `ShareFetchCollector.collect` /
     /// `testMultipleTopicsFetch`) leaves successful sibling partitions
     /// deliverable. The error is returned on this poll when it is first
