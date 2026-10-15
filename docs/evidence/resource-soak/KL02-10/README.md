@@ -196,6 +196,12 @@ RSS is 6.48 MiB over 69 999 host samples (`fetch_errors=0`). Latest
 RSS at capture was 6.48 MiB. Workload `ambiguous` stayed 16. Still
 not a 24 h pass.
 
+T+23h (startup + 1380 min) is recorded in
+[progress/t-plus-23h.json](progress/t-plus-23h.json). Twenty-third-hour median
+RSS is 6.48 MiB over 69 998 host samples (`fetch_errors=0`). Latest
+RSS at capture was 6.48 MiB. Workload `ambiguous` stayed 16. Still
+not a 24 h pass.
+
 Live progress (never a 24 h pass):
 
 ```sh
