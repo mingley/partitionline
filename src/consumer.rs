@@ -5224,9 +5224,13 @@ impl Consumer {
         for by_topic in by_leader.values() {
             for (topic, partitions) in by_topic {
                 let current = self.name_to_id.get(topic.as_ref()).copied();
+                let captured = self.assigned_topic_ids.get(topic.as_ref());
                 let mut bound = None;
                 for partition in partitions {
-                    if let Some(id) = self.assigned_topic_id(topic.as_ref(), partition.partition) {
+                    if let Some(id) = captured
+                        .and_then(|parts| parts.get(&partition.partition))
+                        .copied()
+                    {
                         if current.is_some_and(|current| current != id)
                             || bound.is_some_and(|bound| bound != id)
                         {
