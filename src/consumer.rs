@@ -4535,12 +4535,12 @@ impl Consumer {
                     return Ok(self.finish_fetch(out));
                 }
             }
-            let metadata_stale = self.assigned.iter().any(|(t, p, _)| {
-                !completed.contains(t, *p)
-                    && !self
-                        .cluster
-                        .topic_fresh(t.as_ref(), self.cfg.metadata_max_age)
-            });
+            let metadata_stale = assignment_metadata_stale(
+                &self.assigned,
+                &completed,
+                &self.cluster,
+                self.cfg.metadata_max_age,
+            );
             if metadata_stale {
                 let mut topics = Vec::new();
                 let mut seen = HashSet::new();
@@ -7005,6 +7005,32 @@ fn fetch_topic_name(
     resolved_fetch_topic(response_name, topic_id, id_names).map(|name| name.map(str::to_owned))
 }
 
+/// Whether any incomplete assignment needs a metadata refresh.
+///
+/// One topic is checked once. A fresh topic does not inspect every partition.
+fn assignment_metadata_stale(
+    assigned: &[(Arc<str>, i32, i64)],
+    completed: &PartitionMap<()>,
+    cluster: &Cluster,
+    max_age: Duration,
+) -> bool {
+    let Some((first, _, _)) = assigned.first() else {
+        return false;
+    };
+    if assigned
+        .iter()
+        .all(|(topic, _, _)| Arc::ptr_eq(topic, first))
+    {
+        return !cluster.topic_fresh(first.as_ref(), max_age)
+            && assigned
+                .iter()
+                .any(|(topic, partition, _)| !completed.contains(topic, *partition));
+    }
+    assigned.iter().any(|(topic, partition, _)| {
+        !completed.contains(topic, *partition) && !cluster.topic_fresh(topic.as_ref(), max_age)
+    })
+}
+
 /// First copy of a fetch partition wins. A later copy is ignored.
 ///
 /// The topic name is stored once. Later partitions of that topic only record
@@ -7662,6 +7688,40 @@ mod tests {
         assert!(matches!(
             listed_partition_indexes([(0, &[0, 1][..]), (5, empty)]),
             ListedPartitions::Indexes(ref indexes) if indexes == &[0, 1]
+        ));
+    }
+
+    #[test]
+    fn one_topic_assignment_checks_metadata_freshness_once() {
+        let topic = Arc::<str>::from("orders");
+        let assigned = vec![
+            (Arc::clone(&topic), 0, 0),
+            (Arc::clone(&topic), 1, 0),
+            (topic, 2, 0),
+        ];
+        let cluster = Cluster::default();
+        let open = PartitionMap::new();
+        assert!(assignment_metadata_stale(
+            &assigned,
+            &open,
+            &cluster,
+            Duration::from_secs(5)
+        ));
+        let mut done = PartitionMap::new();
+        let _ = done.insert("orders", 0, ());
+        let _ = done.insert("orders", 1, ());
+        let _ = done.insert("orders", 2, ());
+        assert!(!assignment_metadata_stale(
+            &assigned,
+            &done,
+            &cluster,
+            Duration::from_secs(5)
+        ));
+        assert!(!assignment_metadata_stale(
+            &[],
+            &open,
+            &cluster,
+            Duration::from_secs(5)
         ));
     }
 
