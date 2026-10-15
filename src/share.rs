@@ -684,10 +684,10 @@ pub enum ShareAcquireMode {
 /// `UNKNOWN_TOPIC_OR_PARTITION` / `UNKNOWN_TOPIC_ID` /
 /// `INCONSISTENT_TOPIC_ID` still completes without retry, including
 /// when `AcknowledgeErrorMessage` is set or empty. A piggybacked
-/// `FENCED_LEADER_EPOCH` / `NOT_LEADER_OR_FOLLOWER` on one partition
-/// does not fail a sibling partition whose `AcknowledgeErrorCode` is
-/// none, including when `AcknowledgeErrorMessage` is set or empty. A
-/// top-level
+/// `FENCED_LEADER_EPOCH` / `NOT_LEADER_OR_FOLLOWER` /
+/// `UNKNOWN_TOPIC_OR_PARTITION` on one partition does not fail a
+/// sibling partition whose `AcknowledgeErrorCode` is none, including
+/// when `AcknowledgeErrorMessage` is set or empty. A top-level
 /// ShareFetch error completes in-flight piggybacked acknowledgements
 /// with that code (Java `handleResponse` false), preferring a non-empty
 /// `ErrorMessage`. Top-level `SHARE_SESSION_LIMIT_REACHED` /

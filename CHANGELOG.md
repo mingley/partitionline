@@ -75,7 +75,8 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `INCONSISTENT_TOPIC_ID` still completes
   without retry, including when `AcknowledgeErrorMessage` is set or
   empty. A piggybacked `FENCED_LEADER_EPOCH` /
-  `NOT_LEADER_OR_FOLLOWER` on one partition does
+  `NOT_LEADER_OR_FOLLOWER` / `UNKNOWN_TOPIC_OR_PARTITION` on one
+  partition does
   not fail a sibling partition whose `AcknowledgeErrorCode` is none,
   including when `AcknowledgeErrorMessage` is set or empty.
   ShareAcknowledge top-level `SHARE_SESSION_LIMIT_REACHED` completes
