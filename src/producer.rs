@@ -5591,11 +5591,8 @@ fn encode_produce_body(
                 },
             );
             if flexible {
-                // Encode into the request, then shrink the reserved compact
-                // length to its canonical width. A failed batch leaves no bytes.
                 let mark = buf.len();
-                buf.resize(mark + COMPACT_BYTES_WIDTH, 0);
-                if let Err(error) = encode_pendings(
+                if let Err(error) = encode_flexible_partition(
                     buf,
                     pendings,
                     compression,
@@ -5606,10 +5603,6 @@ fn encode_produce_body(
                     transactional,
                     scratch,
                 ) {
-                    buf.truncate(mark);
-                    return Err(error);
-                }
-                if let Err(error) = patch_compact_bytes(buf, mark) {
                     buf.truncate(mark);
                     return Err(error);
                 }
@@ -5643,8 +5636,80 @@ fn encode_produce_body(
     Ok(())
 }
 
-/// Widest unsigned varint. The compact length is rewritten to the real width.
+/// Widest unsigned varint. Compressed batches learn their size only after
+/// packing, so the placeholder is rewritten and the payload slides left.
 const COMPACT_BYTES_WIDTH: usize = 5;
+
+#[expect(
+    clippy::too_many_arguments,
+    reason = "flexible partition encode shares the produce batch knobs"
+)]
+fn encode_flexible_partition(
+    buf: &mut BytesMut,
+    pendings: &[Pending],
+    compression: Compression,
+    now: i64,
+    producer_id: i64,
+    producer_epoch: i16,
+    base_sequence: i32,
+    transactional: bool,
+    scratch: &mut CompressScratch,
+) -> Result<()> {
+    if compression == Compression::None {
+        let header = pending_batch_header(
+            pendings,
+            compression,
+            now,
+            producer_id,
+            producer_epoch,
+            base_sequence,
+            transactional,
+        )?;
+        let batch_len = crate::protocol::records::uncompressed_batch_len(
+            &header,
+            pendings.iter().map(|pending| EncodeRecord {
+                timestamp: pending.rec.timestamp.unwrap_or(now),
+                key: pending.rec.key.as_deref(),
+                value: pending.rec.value.as_deref(),
+                headers: &pending.rec.headers,
+            }),
+        )?;
+        let compact = crate::protocol::buf::u32_from_usize(batch_len)?
+            .checked_add(1)
+            .ok_or_else(|| Error::protocol("compact bytes overflow"))?;
+        crate::protocol::buf::put_unsigned_varint(buf, compact);
+        let start = buf.len();
+        encode_pendings(
+            buf,
+            pendings,
+            compression,
+            now,
+            producer_id,
+            producer_epoch,
+            base_sequence,
+            transactional,
+            scratch,
+        )?;
+        if buf.len().saturating_sub(start) != batch_len {
+            return Err(Error::protocol("uncompressed batch length mismatch"));
+        }
+        return Ok(());
+    }
+    let mark = buf.len();
+    buf.resize(mark + COMPACT_BYTES_WIDTH, 0);
+    encode_pendings(
+        buf,
+        pendings,
+        compression,
+        now,
+        producer_id,
+        producer_epoch,
+        base_sequence,
+        transactional,
+        scratch,
+    )?;
+    patch_compact_bytes(buf, mark)
+}
 
 fn patch_compact_bytes(buf: &mut BytesMut, mark: usize) -> Result<()> {
     let payload = buf.len().saturating_sub(mark + COMPACT_BYTES_WIDTH);
@@ -5673,6 +5738,41 @@ fn patch_compact_bytes(buf: &mut BytesMut, mark: usize) -> Result<()> {
     };
     dest.copy_from_slice(encoded);
     Ok(())
+}
+
+fn pending_batch_header(
+    pendings: &[Pending],
+    compression: Compression,
+    now: i64,
+    producer_id: i64,
+    producer_epoch: i16,
+    base_sequence: i32,
+    transactional: bool,
+) -> Result<BatchHeader> {
+    let base_ts = pendings
+        .first()
+        .and_then(|pending| pending.rec.timestamp)
+        .unwrap_or(now);
+    let max_ts = pendings
+        .iter()
+        .map(|pending| pending.rec.timestamp.unwrap_or(now))
+        .max()
+        .unwrap_or(base_ts);
+    Ok(BatchHeader {
+        attributes: (compression as i16)
+            | if transactional {
+                crate::protocol::records::ATTR_TRANSACTIONAL
+            } else {
+                0
+            },
+        base_timestamp: base_ts,
+        max_timestamp: max_ts,
+        count: crate::protocol::buf::i32_from_usize(pendings.len())?,
+        producer_id,
+        producer_epoch,
+        base_sequence,
+        ..BatchHeader::default()
+    })
 }
 
 fn next_sequence(
@@ -5707,32 +5807,17 @@ fn encode_pendings(
     transactional: bool,
     scratch: &mut CompressScratch,
 ) -> Result<()> {
-    let base_ts = pendings
-        .first()
-        .and_then(|p| p.rec.timestamp)
-        .unwrap_or(now);
-    let max_ts = pendings
-        .iter()
-        .map(|p| p.rec.timestamp.unwrap_or(now))
-        .max()
-        .unwrap_or(base_ts);
     write_record_batch_scratch(
         buf,
-        &BatchHeader {
-            attributes: (compression as i16)
-                | if transactional {
-                    crate::protocol::records::ATTR_TRANSACTIONAL
-                } else {
-                    0
-                },
-            base_timestamp: base_ts,
-            max_timestamp: max_ts,
-            count: crate::protocol::buf::i32_from_usize(pendings.len())?,
+        &pending_batch_header(
+            pendings,
+            compression,
+            now,
             producer_id,
             producer_epoch,
             base_sequence,
-            ..BatchHeader::default()
-        },
+            transactional,
+        )?,
         pendings.iter().map(|p| EncodeRecord {
             timestamp: p.rec.timestamp.unwrap_or(now),
             key: p.rec.key.as_deref(),

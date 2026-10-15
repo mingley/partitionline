@@ -2242,6 +2242,29 @@ where
     encoded
 }
 
+/// On-wire size of an uncompressed magic-v2 batch with this header and records.
+///
+/// The length matches [`write_record_batch_scratch`] for [`Compression::None`],
+/// including [`RecordBatch::RECORD_BATCH_OVERHEAD`].
+pub fn uncompressed_batch_len<'a, I>(header: &BatchHeader, records: I) -> Result<usize>
+where
+    I: IntoIterator<Item = EncodeRecord<'a>>,
+{
+    let mut size = buf::usize_from_i32(RecordBatch::RECORD_BATCH_OVERHEAD)?;
+    for (index, rec) in records.into_iter().enumerate() {
+        let offset_delta = absolute_offset_delta(header.base_offset, index)?;
+        let timestamp_delta = timestamp_delta(header.base_timestamp, rec.timestamp)?;
+        let body = record_body_size(&rec, offset_delta, timestamp_delta)?;
+        let wire = body
+            .checked_add(buf::size_of_varint(body))
+            .ok_or_else(|| Error::protocol("record size overflow"))?;
+        size = size
+            .checked_add(buf::usize_from_i32(wire)?)
+            .ok_or_else(|| Error::protocol("batch size overflow"))?;
+    }
+    Ok(size)
+}
+
 fn start_record_batch(buf: &mut BytesMut, header: &BatchHeader) -> (usize, usize, usize, usize) {
     let batch_start = buf.len();
     buf.put_i64(header.base_offset);
