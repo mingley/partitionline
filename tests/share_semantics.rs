@@ -3728,6 +3728,41 @@ async fn share_fetch_unknown_leader_epoch_skips_without_metadata() {
 }
 
 #[tokio::test]
+async fn share_fetch_unknown_leader_epoch_message_still_skips() {
+    let mock = common::Mock::start().await;
+    v2(&mock);
+    produce(&mock, &[(0, b"keep")]).await;
+    let mut group = ShareGroup::join(config(&mock), "fetch-epoch-msg", "t")
+        .await
+        .unwrap();
+    let version = mock.last_share_fetch_version().unwrap_or(2);
+    let mut part = ShareFetchedPartition::partition_response(0, error::UNKNOWN_LEADER_EPOCH);
+    part.error_message = Some("leader epoch not recognized".into());
+    let topics = vec![ShareFetchedTopic {
+        topic_id: mock.topic_id("t"),
+        partitions: vec![part],
+    }];
+    let mut injected = BytesMut::new();
+    encode_share_fetch_response(&mut injected, version, &topics).unwrap();
+    mock.inject_share_fetch_response_once(&injected);
+    assert!(
+        group.poll().await.unwrap().is_empty(),
+        "Java handleInitializeErrors skips UNKNOWN_LEADER_EPOCH even when ErrorMessage is set"
+    );
+    let after_skip = mock.metadata_calls();
+    let got = group.poll().await.unwrap();
+    assert_eq!(got.len(), 1);
+    assert_eq!(got[0].value.as_deref(), Some(&b"keep"[..]));
+    assert_eq!(
+        mock.metadata_calls(),
+        after_skip,
+        "ErrorMessage must not turn UNKNOWN_LEADER_EPOCH into a Metadata refresh"
+    );
+    group.accept(&got).await.unwrap();
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn share_fetch_unknown_leader_epoch_delivers_sibling() {
     let mock = common::Mock::start().await;
     v2(&mock);
