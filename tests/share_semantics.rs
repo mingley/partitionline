@@ -4635,6 +4635,38 @@ async fn share_fetch_top_level_error_message_reaches_poll() {
 }
 
 #[tokio::test]
+async fn share_fetch_top_level_empty_error_message_uses_fallback() {
+    let mock = common::Mock::start().await;
+    v2(&mock);
+    produce(&mock, &[(0, b"keep")]).await;
+    let mut group = ShareGroup::join(config(&mock), "fetch-top-empty", "t")
+        .await
+        .unwrap();
+    let version = mock.last_share_fetch_version().unwrap_or(2);
+    let mut injected = BytesMut::new();
+    encode_share_fetch_error_with_message(
+        &mut injected,
+        version,
+        error::UNKNOWN_SERVER_ERROR,
+        Some(""),
+    )
+    .unwrap();
+    mock.inject_share_fetch_response_once(&injected);
+    match group.poll().await.unwrap_err() {
+        Error::Broker { code, message } => {
+            assert_eq!(code, error::UNKNOWN_SERVER_ERROR);
+            assert_eq!(message, "ShareFetch");
+        }
+        other => panic!("{other:?}"),
+    }
+    let got = group.poll().await.unwrap();
+    assert_eq!(got.len(), 1);
+    assert_eq!(got[0].value.as_deref(), Some(&b"keep"[..]));
+    group.accept(&got).await.unwrap();
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn delayed_share_replies_after_outer_timeout_cannot_satisfy_new_requests() {
     let mock = common::Mock::start().await;
     v2(&mock);

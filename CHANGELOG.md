@@ -73,7 +73,9 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   / `UNKNOWN_TOPIC_ID` / `REPLICA_NOT_AVAILABLE` / `OFFSET_NOT_AVAILABLE`
   / `KAFKA_STORAGE_ERROR` skip without throwing and request Metadata on
   the next poll; siblings still deliver (Java `handleInitializeErrors`).
-  Top-level `UNKNOWN_TOPIC_ID` still fails that poll. A sole partition
+  Top-level `UNKNOWN_TOPIC_ID` still fails that poll. A non-empty
+  top-level ShareFetch `ErrorMessage` is preferred; empty uses
+  `ShareFetch`. A sole partition
   `NOT_LEADER_OR_FOLLOWER` collects empty on that poll (Java
   `testFetchError`). `UNKNOWN_LEADER_EPOCH` still skips without Metadata.
 
