@@ -4470,12 +4470,14 @@ struct Worker {
 
 #[derive(Default)]
 struct ProduceGroupScratch {
-    buckets: HashMap<(Arc<str>, i32), Vec<Pending>>,
+    buckets: ProduceBuckets,
     /// First group index of each topic, in first-seen order.
     topics: Vec<usize>,
     /// Group indexes for each topic, parallel to `topics`.
     parts: Vec<Vec<usize>>,
 }
+
+type ProduceBuckets = HashMap<Arc<str>, Vec<(i32, Vec<Pending>)>>;
 
 #[derive(Default)]
 struct AckIndex {
@@ -5934,7 +5936,7 @@ fn group_txn_offsets(
 
 fn group_pending(
     batch: Vec<Pending>,
-    buckets: &mut HashMap<(Arc<str>, i32), Vec<Pending>>,
+    buckets: &mut ProduceBuckets,
 ) -> Vec<(Arc<str>, i32, Vec<Pending>)> {
     if batch.is_empty() {
         return Vec::new();
@@ -5942,7 +5944,7 @@ fn group_pending(
     let Some(first) = batch.first() else {
         return Vec::new();
     };
-    let topic0 = first.rec.topic.clone();
+    let topic0 = Arc::clone(&first.rec.topic);
     let part0 = first
         .rec
         .partition
@@ -5953,17 +5955,30 @@ fn group_pending(
     if homogeneous {
         return vec![(topic0, part0, batch)];
     }
+    let mut order: Vec<Arc<str>> = Vec::new();
     for p in batch {
-        buckets
-            .entry((
-                p.rec.topic.clone(),
-                p.rec.partition.unwrap_or(RecordMetadata::UNKNOWN_PARTITION),
-            ))
-            .or_default()
-            .push(p);
+        let partition = p.rec.partition.unwrap_or(RecordMetadata::UNKNOWN_PARTITION);
+        if let Some(groups) = buckets.get_mut(p.rec.topic.as_ref()) {
+            if let Some((_, pending)) = groups.iter_mut().find(|(part, _)| *part == partition) {
+                pending.push(p);
+            } else {
+                groups.push((partition, vec![p]));
+            }
+        } else {
+            order.push(Arc::clone(&p.rec.topic));
+            let _ = buckets.insert(Arc::clone(&p.rec.topic), vec![(partition, vec![p])]);
+        }
     }
-    // `drain` keeps the map's allocation for the next batch.
-    buckets.drain().map(|((t, p), v)| (t, p, v)).collect()
+    let mut out = Vec::new();
+    for topic in order {
+        let Some(groups) = buckets.remove(topic.as_ref()) else {
+            continue;
+        };
+        for (partition, pending) in groups {
+            out.push((Arc::clone(&topic), partition, pending));
+        }
+    }
+    out
 }
 
 fn take_count(pending: &[Pending], rec_limit: usize, byte_limit: usize) -> usize {
@@ -6647,6 +6662,46 @@ mod tests {
         split[1].batch_base_seq = Some(2);
         assert_eq!(take_count(&split, 10, usize::MAX), 1);
         assert_eq!(take_count(&[], 10, usize::MAX), 0);
+    }
+
+    #[test]
+    fn mixed_produce_groups_share_the_first_topic_name() {
+        let mut buckets = ProduceBuckets::default();
+        let mut batch = vec![
+            queued("orders", Some(1)),
+            queued("orders", Some(0)),
+            queued("orders", Some(1)),
+            queued("payments", Some(0)),
+        ];
+        let orders = Arc::clone(&batch[0].rec.topic);
+        batch[2].rec.topic = Arc::clone(&orders);
+        let payments = Arc::clone(&batch[3].rec.topic);
+        let groups = group_pending(batch, &mut buckets);
+        assert_eq!(groups.len(), 3);
+        assert_eq!(
+            (groups[0].0.as_ref(), groups[0].1, groups[0].2.len()),
+            ("orders", 1, 2)
+        );
+        assert!(Arc::ptr_eq(&groups[0].0, &orders));
+        assert_eq!(
+            (groups[1].0.as_ref(), groups[1].1, groups[1].2.len()),
+            ("orders", 0, 1)
+        );
+        assert!(Arc::ptr_eq(&groups[1].0, &orders));
+        assert_eq!(
+            (groups[2].0.as_ref(), groups[2].1, groups[2].2.len()),
+            ("payments", 0, 1)
+        );
+        assert!(Arc::ptr_eq(&groups[2].0, &payments));
+        assert!(buckets.is_empty());
+
+        let again = group_pending(
+            vec![queued("payments", Some(1)), queued("orders", Some(0))],
+            &mut buckets,
+        );
+        assert_eq!(again.len(), 2);
+        assert_eq!((again[0].0.as_ref(), again[0].1), ("payments", 1));
+        assert_eq!((again[1].0.as_ref(), again[1].1), ("orders", 0));
     }
 
     #[test]
