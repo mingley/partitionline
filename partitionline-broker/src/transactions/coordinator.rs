@@ -455,16 +455,42 @@ impl Coordinator {
                 if !rest.is_empty() {
                     return Err(Error::InvalidRequest);
                 }
-                self.transactions.insert(
-                    id,
-                    Transaction {
-                        producer_id,
-                        producer_epoch: epoch,
-                        state: State::Empty,
-                        partitions: BTreeSet::new(),
-                    },
-                );
-                self.next_producer = self.next_producer.max(producer_id.saturating_add(1));
+                validate_id(&id)?;
+                if let Some(existing) = self.transactions.get(&id) {
+                    if matches!(existing.state, State::PrepareCommit | State::PrepareAbort) {
+                        return Err(Error::InvalidState);
+                    }
+                    if producer_id != existing.producer_id
+                        || existing.producer_epoch.checked_add(1) != Some(epoch)
+                    {
+                        return Err(Error::InvalidRequest);
+                    }
+                    let txn = self.transactions.get_mut(&id).ok_or(Error::InvalidState)?;
+                    txn.producer_epoch = epoch;
+                    txn.state = State::Empty;
+                    txn.partitions.clear();
+                } else {
+                    if self.transactions.len() >= self.limits.max_transactions {
+                        return Err(Error::InvalidLimits);
+                    }
+                    if producer_id != self.next_producer || epoch != 0 {
+                        return Err(Error::InvalidRequest);
+                    }
+                    let next = self
+                        .next_producer
+                        .checked_add(1)
+                        .ok_or(Error::InvalidRequest)?;
+                    self.transactions.insert(
+                        id,
+                        Transaction {
+                            producer_id,
+                            producer_epoch: 0,
+                            state: State::Empty,
+                            partitions: BTreeSet::new(),
+                        },
+                    );
+                    self.next_producer = next;
+                }
             }
             KIND_BEGIN => {
                 let id = take_str(&mut rest)?;
@@ -473,12 +499,11 @@ impl Coordinator {
                 }
                 let txn = self.transactions.get_mut(&id).ok_or(Error::InvalidState)?;
                 match txn.state {
-                    State::Ongoing => {}
                     State::Empty | State::CompleteCommit | State::CompleteAbort => {
                         txn.state = State::Ongoing;
                         txn.partitions.clear();
                     }
-                    State::PrepareCommit | State::PrepareAbort => {
+                    State::Ongoing | State::PrepareCommit | State::PrepareAbort => {
                         return Err(Error::InvalidState);
                     }
                 }
@@ -518,7 +543,6 @@ impl Coordinator {
                 };
                 match txn.state {
                     State::Ongoing => txn.state = prepared,
-                    state if state == prepared => {}
                     _ => return Err(Error::InvalidState),
                 }
             }
@@ -537,7 +561,6 @@ impl Coordinator {
                 match txn.state {
                     State::PrepareCommit if commit => txn.state = completed,
                     State::PrepareAbort if !commit => txn.state = completed,
-                    state if state == completed => {}
                     _ => return Err(Error::InvalidState),
                 }
             }
@@ -802,6 +825,42 @@ mod tests {
                 .unwrap_or_else(|error| panic!("{error:?}")),
             Outcome::Completed { commit: true }
         );
+    }
+
+    #[test]
+    fn a_replayed_init_cannot_skip_the_producer_sequence() {
+        let (mut coordinator, _) = open("replay-init");
+        let skipped = encode_init("orders-txn", 9, 0).unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(
+            coordinator.apply(&skipped),
+            Err(Error::InvalidRequest)
+        ));
+        let (producer, epoch) = coordinator
+            .init("orders-txn", 0)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        coordinator
+            .begin("orders-txn", producer, epoch, 0)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        coordinator
+            .end("orders-txn", producer, epoch, 0, true)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let during = encode_init("orders-txn", producer, epoch.saturating_add(1))
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(
+            coordinator.apply(&during),
+            Err(Error::InvalidState)
+        ));
+        coordinator
+            .finish("orders-txn", producer, epoch, 0)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let jumped = encode_init("orders-txn", producer, epoch.saturating_add(2))
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(
+            coordinator.apply(&jumped),
+            Err(Error::InvalidRequest)
+        ));
+        assert_eq!(coordinator.state("orders-txn"), Some(State::CompleteCommit));
+        assert_eq!(coordinator.next_producer, producer.saturating_add(1));
     }
 
     #[test]
