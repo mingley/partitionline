@@ -4085,6 +4085,7 @@ async fn spawn_slot_worker(
         write_buf: BytesMut::with_capacity(2 * 1024 * 1024),
         pending: Vec::with_capacity(shared.cfg.batch_records.min(8192)),
         pending_estimate: 0,
+        earliest_deadline: None,
         in_flight: VecDeque::new(),
         fail: None,
         compress_scratch: CompressScratch::with_caps(batch_cap, batch_cap),
@@ -4364,6 +4365,8 @@ struct Worker {
     /// Sum of [`estimate`] for `pending`. Steady-state batching reads this
     /// instead of scanning the queue.
     pending_estimate: usize,
+    /// Soonest delivery deadline in `pending`.
+    earliest_deadline: Option<Instant>,
     in_flight: VecDeque<InFlight>,
     fail: Option<Error>,
     compress_scratch: CompressScratch,
@@ -4467,21 +4470,39 @@ impl Worker {
         }
     }
 
+    fn note_deadline(&mut self, deadline: Instant) {
+        self.earliest_deadline = Some(match self.earliest_deadline {
+            Some(current) if current <= deadline => current,
+            _ => deadline,
+        });
+    }
+
     fn push_pending(&mut self, pending: Pending) {
         self.pending_estimate = self.pending_estimate.saturating_add(estimate(&pending));
+        self.note_deadline(pending.deadline);
         self.pending.push(pending);
     }
 
     fn account_pending_from(&mut self, from: usize) {
-        if let Some(added) = self.pending.get(from..) {
-            for pending in added {
-                self.pending_estimate = self.pending_estimate.saturating_add(estimate(pending));
-            }
+        let Some(added) = self.pending.get(from..) else {
+            return;
+        };
+        let mut extra = 0usize;
+        let mut earliest = self.earliest_deadline;
+        for pending in added {
+            extra = extra.saturating_add(estimate(pending));
+            earliest = Some(match earliest {
+                Some(current) if current <= pending.deadline => current,
+                _ => pending.deadline,
+            });
         }
+        self.pending_estimate = self.pending_estimate.saturating_add(extra);
+        self.earliest_deadline = earliest;
     }
 
     fn take_all_pending(&mut self) -> Vec<Pending> {
         self.pending_estimate = 0;
+        self.earliest_deadline = None;
         std::mem::take(&mut self.pending)
     }
 
@@ -4500,19 +4521,39 @@ impl Worker {
             || self.pending_estimate >= self.shared.cfg.produce_batch_bytes()
     }
 
+    fn forget_deadline(&mut self, deadline: Instant) {
+        if self.earliest_deadline == Some(deadline) {
+            self.earliest_deadline = self.pending.iter().map(|pending| pending.deadline).min();
+        }
+    }
+
     fn drain_pending(&mut self, n: usize) -> Vec<Pending> {
         let batch: Vec<Pending> = self.pending.drain(..n).collect();
+        let mut refresh_deadline = false;
         for pending in &batch {
             self.pending_estimate = self.pending_estimate.saturating_sub(estimate(pending));
+            if self.earliest_deadline == Some(pending.deadline) {
+                refresh_deadline = true;
+            }
+        }
+        if refresh_deadline {
+            self.earliest_deadline = self.pending.iter().map(|pending| pending.deadline).min();
         }
         batch
     }
 
     fn recompute_pending_estimate(&mut self) {
-        self.pending_estimate = 0;
+        let mut total = 0usize;
+        let mut earliest = None;
         for pending in &self.pending {
-            self.pending_estimate = self.pending_estimate.saturating_add(estimate(pending));
+            total = total.saturating_add(estimate(pending));
+            earliest = Some(match earliest {
+                Some(current) if current <= pending.deadline => current,
+                _ => pending.deadline,
+            });
         }
+        self.pending_estimate = total;
+        self.earliest_deadline = earliest;
     }
 
     fn sticky_complete(&self) -> bool {
@@ -4601,6 +4642,7 @@ impl Worker {
                         };
                         self.pending_estimate =
                             self.pending_estimate.saturating_sub(estimate(&pending));
+                        self.forget_deadline(pending.deadline);
                         return vec![pending];
                     }
                     let mut batch = Vec::with_capacity(count);
@@ -4682,7 +4724,7 @@ impl Worker {
     }
 
     fn earliest_pending_deadline(&self) -> Option<Instant> {
-        self.pending.iter().map(|p| p.deadline).min()
+        self.earliest_deadline
     }
 
     fn linger_expired(&self, start: Option<Instant>) -> bool {
