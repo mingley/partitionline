@@ -1667,7 +1667,10 @@ impl ShareGroup {
     /// waiting for the next [`Self::poll`] or [`Self::leave`]. Leftover
     /// acknowledgements for a previous topic still flush after
     /// [`Self::subscribe`] and no ShareFetch is sent (Java
-    /// `testCommitSyncWithSubscriptionChange`).
+    /// `testCommitSyncWithSubscriptionChange`). After this flush,
+    /// [`Self::leave`] / [`Self::close`] send only a FINAL-epoch session
+    /// close — they do not ACCEPT the same records again (Java
+    /// `testAcknowledgeOnCloseWithPendingCommitSync`).
     pub async fn commit(&mut self) -> Result<()> {
         self.flush_pending_acknowledgements().await
     }
@@ -3904,7 +3907,10 @@ impl ShareGroup {
     ///
     /// Flushes queued acknowledgements (including a prior
     /// [`Self::commit_async`]; Java
-    /// `testAcknowledgeOnCloseWithPendingCommitAsync`). Implicit
+    /// `testAcknowledgeOnCloseWithPendingCommitAsync`). A prior
+    /// [`Self::commit`] / [`Self::commit_sync`] has already sent those
+    /// acknowledgements, so close is an empty FINAL-epoch ShareAcknowledge
+    /// (Java `testAcknowledgeOnCloseWithPendingCommitSync`). Implicit
     /// last-poll records that were never committed are released without
     /// ACCEPT (Java `close`).
     /// Leftover acknowledgements for a previous topic still flush after

@@ -271,6 +271,48 @@ async fn explicit_commit_async_then_leave_sends_standalone_ack() {
 }
 
 #[tokio::test]
+async fn explicit_commit_then_leave_does_not_resend_accept() {
+    let mock = common::Mock::start().await;
+    produce(&mock, &[(0, b"queued")]).await;
+    let mut group = ShareGroup::join(config(&mock), "close-exp-sync", "t")
+        .await
+        .unwrap();
+    let recs = group.poll().await.unwrap();
+    assert_eq!(recs.len(), 1);
+    let off = recs[0].offset;
+    group.accept(&recs).await.unwrap();
+    group.commit().await.unwrap();
+    assert!(
+        mock.share_accepted("close-exp-sync", "t", 0, off),
+        "explicit commit must send ACCEPT before leave"
+    );
+    let attempts = mock.share_ack_attempts();
+    assert!(
+        attempts
+            .iter()
+            .any(|attempt| attempt == &("t".into(), 0, off, off)),
+        "commit ShareAcknowledge must include the accepted offset: {attempts:?}"
+    );
+    assert!(mock.share_ack_calls() >= 1);
+    assert!(
+        mock.last_share_ack_epoch().is_some_and(|epoch| epoch >= 0),
+        "commit is not a FINAL-epoch close"
+    );
+    group.leave().await.unwrap();
+    assert_eq!(
+        mock.share_ack_attempts(),
+        attempts,
+        "Java testAcknowledgeOnCloseWithPendingCommitSync close is empty FINAL"
+    );
+    assert_eq!(
+        mock.last_share_ack_epoch(),
+        Some(-1),
+        "leave still closes the share session"
+    );
+    assert!(mock.share_accepted("close-exp-sync", "t", 0, off));
+}
+
+#[tokio::test]
 async fn max_poll_interval_errors_on_second_share_poll() {
     let mock = common::Mock::start().await;
     let mut cfg = config(&mock);
