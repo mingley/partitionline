@@ -3621,6 +3621,11 @@ pub(crate) async fn coord_roundtrip(
     mut encode_body: impl FnMut(i16, &mut BytesMut) -> Result<()>,
     request_timeout: Duration,
 ) -> Result<(i16, Bytes)> {
+    let deadline = crate::net::Deadline::from_std(
+        Instant::now()
+            .checked_add(request_timeout)
+            .ok_or(Error::Timeout)?,
+    );
     if api_key == OFFSET_COMMIT || api_key == OFFSET_FETCH {
         let version = negotiated_coord_version(coord, api_key)?;
         let body = offsets::coord_offsets_legacy(
@@ -3631,35 +3636,27 @@ pub(crate) async fn coord_roundtrip(
             api_key,
             version,
             |buf| encode_body(version, buf),
-            request_timeout,
+            deadline.remaining()?,
         )
         .await?;
         return Ok((version, body));
     }
     if coord.idle_expired(cfg.connections_max_idle) {
-        *coord = open_coord(cfg, coord.addr()).await?;
+        let bounded = bounded_coord_config(cfg, deadline)?;
+        *coord = open_coord(&bounded, coord.addr()).await?;
     }
     let version = negotiated_coord_version(coord, api_key)?;
     let body = match coord
-        .roundtrip(
-            api_key,
-            version,
-            |buf| encode_body(version, buf),
-            request_timeout,
-        )
+        .roundtrip_deadline(api_key, version, |buf| encode_body(version, buf), deadline)
         .await
     {
         Ok(body) => body,
         Err(e) if e.is_retriable() => {
-            *coord = open_coord(cfg, coord.addr()).await?;
+            let bounded = bounded_coord_config(cfg, deadline)?;
+            *coord = open_coord(&bounded, coord.addr()).await?;
             let version = negotiated_coord_version(coord, api_key)?;
             let body = coord
-                .roundtrip(
-                    api_key,
-                    version,
-                    |buf| encode_body(version, buf),
-                    request_timeout,
-                )
+                .roundtrip_deadline(api_key, version, |buf| encode_body(version, buf), deadline)
                 .await?;
             return finish_coord_roundtrip(
                 coord,
@@ -3670,7 +3667,7 @@ pub(crate) async fn coord_roundtrip(
                 version,
                 body,
                 &mut encode_body,
-                request_timeout,
+                deadline,
             )
             .await;
         }
@@ -3685,9 +3682,20 @@ pub(crate) async fn coord_roundtrip(
         version,
         body,
         &mut encode_body,
-        request_timeout,
+        deadline,
     )
     .await
+}
+
+fn bounded_coord_config(
+    cfg: &ConsumerConfig,
+    deadline: crate::net::Deadline,
+) -> Result<ConsumerConfig> {
+    let remaining = deadline.remaining()?;
+    let mut bounded = cfg.clone();
+    bounded.request_timeout = remaining;
+    bounded.connect_timeout = cfg.connect_timeout.min(remaining);
+    Ok(bounded)
 }
 
 #[expect(
@@ -3703,18 +3711,14 @@ async fn finish_coord_roundtrip(
     version: i16,
     body: Bytes,
     encode_body: &mut impl FnMut(i16, &mut BytesMut) -> Result<()>,
-    request_timeout: Duration,
+    deadline: crate::net::Deadline,
 ) -> Result<(i16, Bytes)> {
     if coordinator_error(api_key, version, &body).is_some_and(error::coordinator_retriable) {
-        *coord = discover_coord(cfg, group_id, key_type).await?;
+        let bounded = bounded_coord_config(cfg, deadline)?;
+        *coord = discover_coord(&bounded, group_id, key_type).await?;
         let version = negotiated_coord_version(coord, api_key)?;
         let body = coord
-            .roundtrip(
-                api_key,
-                version,
-                |buf| encode_body(version, buf),
-                request_timeout,
-            )
+            .roundtrip_deadline(api_key, version, |buf| encode_body(version, buf), deadline)
             .await?;
         Ok((version, body))
     } else {
