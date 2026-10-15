@@ -573,6 +573,15 @@ pub enum TopicName {
 }
 
 impl TopicName {
+    /// Reuse `topic` when it is too long to store inline.
+    fn shared(topic: &Arc<str>) -> Self {
+        if topic.len() <= 23 {
+            Self::from(topic.as_ref())
+        } else {
+            Self::Heap(Arc::clone(topic))
+        }
+    }
+
     /// Borrow the topic as UTF-8.
     #[must_use]
     pub fn as_str(&self) -> &str {
@@ -5612,13 +5621,19 @@ impl Consumer {
                 .is_none_or(|topic| topic.partitions.len() <= 1);
         let mut seen_partitions: HashMap<Arc<str>, HashSet<i32>> = HashMap::new();
         for (topic, topic_batches) in fetched.into_iter().zip(batches) {
+            let Some(name) = self.fetch_topic_arc(&topic.topic, topic.topic_id)? else {
+                continue;
+            };
+            let mut topic_seen = if sole_partition {
+                None
+            } else {
+                Some(seen_partitions.remove(name.as_ref()).unwrap_or_default())
+            };
             if *budget_reached {
-                let Some(name) = self.fetch_topic_arc(&topic.topic, topic.topic_id)? else {
-                    continue;
-                };
                 for (part, part_batches) in topic.partitions.into_iter().zip(topic_batches) {
-                    if !sole_partition
-                        && !take_fetch_partition(&mut seen_partitions, &name, part.partition)
+                    if topic_seen
+                        .as_mut()
+                        .is_some_and(|seen| !seen.insert(part.partition))
                     {
                         continue;
                     }
@@ -5634,15 +5649,18 @@ impl Consumer {
                         );
                     }
                 }
+                if let Some(parts) = topic_seen {
+                    if !parts.is_empty() {
+                        let _ = seen_partitions.insert(Arc::clone(&name), parts);
+                    }
+                }
                 continue;
             }
-            let Some(name) = self.fetch_topic_arc(&topic.topic, topic.topic_id)? else {
-                continue;
-            };
-            let topic_name = TopicName::from(name.as_ref());
+            let topic_name = TopicName::shared(&name);
             for (part, part_batches) in topic.partitions.into_iter().zip(topic_batches) {
-                if !sole_partition
-                    && !take_fetch_partition(&mut seen_partitions, &name, part.partition)
+                if topic_seen
+                    .as_mut()
+                    .is_some_and(|seen| !seen.insert(part.partition))
                 {
                     continue;
                 }
@@ -6082,6 +6100,11 @@ impl Consumer {
                 }
                 if *budget_reached {
                     break;
+                }
+            }
+            if let Some(parts) = topic_seen {
+                if !parts.is_empty() {
+                    let _ = seen_partitions.insert(name, parts);
                 }
             }
             if *budget_reached {
@@ -7156,6 +7179,7 @@ fn assignment_metadata_stale(
 ///
 /// The topic name is stored once. Later partitions of that topic only record
 /// the partition index.
+#[cfg(test)]
 fn take_fetch_partition(
     seen: &mut HashMap<Arc<str>, HashSet<i32>>,
     topic: &Arc<str>,
