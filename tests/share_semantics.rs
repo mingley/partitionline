@@ -2425,6 +2425,124 @@ async fn share_fetch_crc_failure_on_first_batch_then_subsequent() {
     }
 }
 
+fn inject_share_fetch_with_corrupt_batches(
+    mock: &common::Mock,
+    version: i16,
+    batches: Vec<RecordBatch>,
+    acquired: AcquiredRange,
+    corrupt: &[usize],
+) {
+    let mut recs = BytesMut::new();
+    let mut starts = Vec::new();
+    for batch in &batches {
+        starts.push(recs.len());
+        encode_record_batch(&mut recs, batch).unwrap();
+    }
+    let mut part = ShareFetchedPartition::partition_response(0, 0);
+    part.records = batches;
+    part.acquired = vec![acquired];
+    let topics = vec![ShareFetchedTopic {
+        topic_id: mock.topic_id("t"),
+        partitions: vec![part],
+    }];
+    let mut injected = BytesMut::new();
+    encode_share_fetch_response(&mut injected, version, &topics).unwrap();
+    let pos = injected
+        .windows(recs.len())
+        .position(|window| window == recs.as_ref())
+        .expect("ShareFetch records blob");
+    let crc = usize::try_from(RecordBatch::CRC_OFFSET).unwrap();
+    for &index in corrupt {
+        injected[pos + starts[index] + crc] ^= 0xff;
+    }
+    mock.inject_share_fetch_response_once(&injected);
+}
+
+#[tokio::test]
+async fn share_fetch_crc_failure_after_partial_fetch() {
+    let mock = common::Mock::start().await;
+    v2(&mock);
+    let mut cfg = config(&mock);
+    cfg.max_poll_records = Some(10);
+    let mut group = ShareGroup::join(cfg, "crc-partial", "t").await.unwrap();
+    let version = mock.last_share_fetch_version().unwrap_or(2);
+    inject_share_fetch_with_corrupt_batches(
+        &mock,
+        version,
+        vec![share_batch_at(0, 5), share_batch_at(5, 10)],
+        AcquiredRange {
+            first_offset: 0,
+            last_offset: 14,
+            delivery_count: 1,
+        },
+        &[1],
+    );
+    let first = group.poll().await.unwrap();
+    assert_eq!(
+        first.iter().map(|rec| rec.offset).collect::<Vec<_>>(),
+        (0..5).collect::<Vec<_>>(),
+        "Java returns the good batch before the cached CRC error"
+    );
+    let err = group.poll().await.unwrap_err().to_string();
+    assert!(
+        err.contains("Record is corrupt"),
+        "Java second fetchRecords is the cached CRC error, got {err}"
+    );
+    match group.leave().await {
+        Ok(()) => {}
+        Err(Error::Broker { code, .. }) => assert_eq!(code, error::INVALID_RECORD_STATE),
+        other => panic!("{other:?}"),
+    }
+}
+
+#[tokio::test]
+async fn share_fetch_multiple_consecutive_crc_failures() {
+    let mock = common::Mock::start().await;
+    v2(&mock);
+    let mut cfg = config(&mock);
+    cfg.max_poll_records = Some(10);
+    let mut group = ShareGroup::join(cfg, "crc-multi", "t").await.unwrap();
+    let version = mock.last_share_fetch_version().unwrap_or(2);
+    inject_share_fetch_with_corrupt_batches(
+        &mock,
+        version,
+        vec![
+            share_batch_at(0, 10),
+            share_batch_at(10, 10),
+            share_batch_at(20, 10),
+            share_batch_at(30, 10),
+        ],
+        AcquiredRange {
+            first_offset: 0,
+            last_offset: 39,
+            delivery_count: 1,
+        },
+        &[0, 1],
+    );
+    for _ in 0..2 {
+        let err = group.poll().await.unwrap_err().to_string();
+        assert!(
+            err.contains("Record is corrupt"),
+            "Java emits one CRC exception per corrupt batch, got {err}"
+        );
+    }
+    let third = group.poll().await.unwrap();
+    assert_eq!(
+        third.iter().map(|rec| rec.offset).collect::<Vec<_>>(),
+        (20..30).collect::<Vec<_>>()
+    );
+    let fourth = group.poll().await.unwrap();
+    assert_eq!(
+        fourth.iter().map(|rec| rec.offset).collect::<Vec<_>>(),
+        (30..40).collect::<Vec<_>>()
+    );
+    match group.leave().await {
+        Ok(()) => {}
+        Err(Error::Broker { code, .. }) => assert_eq!(code, error::INVALID_RECORD_STATE),
+        other => panic!("{other:?}"),
+    }
+}
+
 #[tokio::test]
 async fn outstanding_acquisitions_consume_budget_across_successive_polls() {
     let mock = common::Mock::start().await;
