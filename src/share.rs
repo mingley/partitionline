@@ -472,12 +472,25 @@ impl<'a> IntoIterator for &'a ShareRecords {
 const SHARE_FETCH_RUNTIME_MAX_VERSION: i16 = 2;
 const SHARE_ACKNOWLEDGE_RUNTIME_MAX_VERSION: i16 = 2;
 
-type AcquisitionKey = (crate::consumer::TopicName, i32, i64);
+type AcquisitionMap = HashMap<crate::consumer::TopicName, HashMap<(i32, i64), Acquisition>>;
 
 struct Acquisition {
     node: i32,
     delivery_count: i16,
     expires_at: Option<Instant>,
+}
+
+fn acquisition_at<'a>(
+    map: &'a AcquisitionMap,
+    topic: &crate::consumer::TopicName,
+    partition: i32,
+    offset: i64,
+) -> Option<&'a Acquisition> {
+    map.get(topic)?.get(&(partition, offset))
+}
+
+fn acquisition_count(map: &AcquisitionMap) -> usize {
+    map.values().map(HashMap::len).sum()
 }
 
 struct ShareNodeConnection {
@@ -518,7 +531,7 @@ pub struct ShareGroup {
     /// CurrentLeader values from the latest share response. A metadata refresh
     /// drops cached leaders, and these patches are put back afterward.
     leader_patches: Vec<ShareLeaderPatch>,
-    acquisitions: HashMap<AcquisitionKey, Acquisition>,
+    acquisitions: AcquisitionMap,
     pending_delivery: VecDeque<ShareRecord>,
     acquire_mode: ShareAcquireMode,
     acquisition_lock_timeout_ms: Option<i32>,
@@ -854,7 +867,7 @@ impl ShareGroup {
     /// Number of locally tracked acquisitions awaiting a terminal acknowledgement.
     #[must_use]
     pub fn acquired_record_count(&self) -> usize {
-        self.acquisitions.len()
+        acquisition_count(&self.acquisitions)
     }
 
     /// Kafka member id assigned by the coordinator.
@@ -1110,11 +1123,12 @@ impl ShareGroup {
             .iter()
             .map(|(topic, partition)| (topic.as_str(), *partition))
             .collect();
-        self.acquisitions
-            .retain(|(topic, part, _), _| still_assigned.contains(&(topic.as_str(), *part)));
+        self.acquisitions.retain(|topic, parts| {
+            parts.retain(|(part, _), _| still_assigned.contains(&(topic.as_str(), *part)));
+            !parts.is_empty()
+        });
         self.pending_delivery.retain(|r| {
-            self.acquisitions
-                .contains_key(&(r.topic.clone(), r.partition, r.offset))
+            acquisition_at(&self.acquisitions, &r.topic, r.partition, r.offset).is_some()
         });
     }
 
@@ -1141,8 +1155,7 @@ impl ShareGroup {
                 continue;
             };
             if stored.is_some_and(|stored| share_topic_recreated(stored, next)) {
-                self.acquisitions
-                    .retain(|(name, _, _), _| name.as_str() != topic);
+                let _ = self.acquisitions.remove(topic.as_str());
                 self.pending_delivery
                     .retain(|record| record.topic.as_str() != topic);
             }
@@ -1409,11 +1422,12 @@ impl ShareGroup {
             self.reset_node_session(node);
         }
         let now = Instant::now();
-        self.acquisitions
-            .retain(|_, acquisition| acquisition.expires_at.is_none_or(|expiry| expiry > now));
+        self.acquisitions.retain(|_, parts| {
+            parts.retain(|_, acquisition| acquisition.expires_at.is_none_or(|expiry| expiry > now));
+            !parts.is_empty()
+        });
         self.pending_delivery.retain(|r| {
-            self.acquisitions
-                .get(&(r.topic.clone(), r.partition, r.offset))
+            acquisition_at(&self.acquisitions, &r.topic, r.partition, r.offset)
                 .is_some_and(|a| a.delivery_count == r.delivery_count)
         });
     }
@@ -1722,11 +1736,12 @@ impl ShareGroup {
     fn reset_node_session(&mut self, node: i32) {
         let _ = self.share_epochs.remove(&node);
         let _ = self.share_conns.remove(&node);
-        self.acquisitions
-            .retain(|_, acquisition| acquisition.node != node);
+        self.acquisitions.retain(|_, parts| {
+            parts.retain(|_, acquisition| acquisition.node != node);
+            !parts.is_empty()
+        });
         self.pending_delivery.retain(|r| {
-            self.acquisitions
-                .contains_key(&(r.topic.clone(), r.partition, r.offset))
+            acquisition_at(&self.acquisitions, &r.topic, r.partition, r.offset).is_some()
         });
         self.consumer.drop_node(node);
     }
@@ -1919,9 +1934,12 @@ impl ShareGroup {
         nodes.sort_by_key(|(node, _)| *node);
         let metadata_bytes = self
             .acquisitions
-            .keys()
-            .map(|(topic, _, _)| acquisition_storage_bytes(topic))
-            .fold(0usize, usize::saturating_add);
+            .iter()
+            .fold(0usize, |sum, (topic, parts)| {
+                sum.saturating_add(
+                    acquisition_storage_bytes(topic.as_str()).saturating_mul(parts.len()),
+                )
+            });
         let mut remaining_bytes = self
             .decoded_byte_limit()
             .checked_sub(metadata_bytes)
@@ -2182,7 +2200,12 @@ impl ShareGroup {
                             if incoming_keys.contains(&key) {
                                 return Err(Error::protocol("duplicate ShareFetch record offset"));
                             }
-                            if let Some(previous) = self.acquisitions.get(&key) {
+                            if let Some(previous) = acquisition_at(
+                                &self.acquisitions,
+                                &topic_name,
+                                part.partition,
+                                record.offset,
+                            ) {
                                 if delivery_count < previous.delivery_count {
                                     return Err(Error::protocol(
                                         "ShareFetch delivery count regressed",
@@ -2217,11 +2240,13 @@ impl ShareGroup {
             let new_metadata_bytes = incoming
                 .iter()
                 .filter(|record| {
-                    !self.acquisitions.contains_key(&(
-                        record.topic.clone(),
+                    acquisition_at(
+                        &self.acquisitions,
+                        &record.topic,
                         record.partition,
                         record.offset,
-                    ))
+                    )
+                    .is_none()
                 })
                 .map(|record| acquisition_storage_bytes(&record.topic))
                 .fold(0usize, usize::saturating_add);
@@ -2236,14 +2261,18 @@ impl ShareGroup {
                 }
             };
             for record in incoming {
-                let _ = self.acquisitions.insert(
-                    (record.topic.clone(), record.partition, record.offset),
-                    Acquisition {
-                        node,
-                        delivery_count: record.delivery_count,
-                        expires_at: expiry,
-                    },
-                );
+                let _ = self
+                    .acquisitions
+                    .entry(record.topic.clone())
+                    .or_default()
+                    .insert(
+                        (record.partition, record.offset),
+                        Acquisition {
+                            node,
+                            delivery_count: record.delivery_count,
+                            expires_at: expiry,
+                        },
+                    );
                 self.pending_delivery.push_back(record);
             }
         }
@@ -2427,9 +2456,12 @@ impl ShareGroup {
         self.refresh_share_topic_ids();
         self.prune_expired_acquisitions();
         for record in recs {
-            let acquired =
-                self.acquisitions
-                    .get(&(record.topic.clone(), record.partition, record.offset));
+            let acquired = acquisition_at(
+                &self.acquisitions,
+                &record.topic,
+                record.partition,
+                record.offset,
+            );
             if acquired.is_none_or(|a| a.delivery_count != record.delivery_count) {
                 return Err(Error::broker(
                     error::INVALID_RECORD_STATE,
@@ -2473,7 +2505,8 @@ impl ShareGroup {
         let grouped = group_acks_by_acquisition_node(
             |topic, partition, offset| {
                 self.acquisitions
-                    .get(&(crate::consumer::TopicName::from(topic), partition, offset))
+                    .get(topic)
+                    .and_then(|parts| parts.get(&(partition, offset)))
                     .map(|acquired| acquired.node)
             },
             partitions,
@@ -2624,13 +2657,16 @@ impl ShareGroup {
                     if part.error_code == 0 {
                         let count = self
                             .acquisitions
-                            .iter()
-                            .filter(|((t, p, offset), _)| {
-                                t.as_str() == name
-                                    && *p == part.partition
-                                    && batch_covers(sent, *offset)
+                            .get(name.as_str())
+                            .map(|parts| {
+                                parts
+                                    .iter()
+                                    .filter(|((partition, offset), _)| {
+                                        *partition == part.partition && batch_covers(sent, *offset)
+                                    })
+                                    .count()
                             })
-                            .count();
+                            .unwrap_or(0);
                         if ack == ACK_RENEW {
                             if lock_timeout <= 0 {
                                 return Err(Error::protocol(
@@ -2640,20 +2676,27 @@ impl ShareGroup {
                             let expiry = Instant::now().checked_add(Duration::from_millis(
                                 u64::try_from(lock_timeout).unwrap_or(0),
                             ));
-                            for ((t, p, offset), acquired) in &mut self.acquisitions {
-                                if t.as_str() == name
-                                    && *p == part.partition
-                                    && batch_covers(sent, *offset)
-                                {
-                                    acquired.expires_at = expiry;
+                            if let Some(parts) = self.acquisitions.get_mut(name.as_str()) {
+                                for ((partition, offset), acquired) in parts.iter_mut() {
+                                    if *partition == part.partition && batch_covers(sent, *offset) {
+                                        acquired.expires_at = expiry;
+                                    }
                                 }
                             }
                         } else {
-                            self.acquisitions.retain(|(t, p, offset), _| {
-                                !(t.as_str() == name
-                                    && *p == part.partition
-                                    && batch_covers(sent, *offset))
-                            });
+                            let empty = if let Some(parts) =
+                                self.acquisitions.get_mut(name.as_str())
+                            {
+                                parts.retain(|(partition, offset), _| {
+                                    !(*partition == part.partition && batch_covers(sent, *offset))
+                                });
+                                parts.is_empty()
+                            } else {
+                                false
+                            };
+                            if empty {
+                                let _ = self.acquisitions.remove(name.as_str());
+                            }
                             self.records_acknowledged = self
                                 .records_acknowledged
                                 .saturating_add(u64::try_from(count).unwrap_or(u64::MAX));
@@ -2663,11 +2706,19 @@ impl ShareGroup {
                         if part.error_code == error::INVALID_RECORD_STATE
                             || share_ack_ownership_lost(part.error_code)
                         {
-                            self.acquisitions.retain(|(t, p, offset), _| {
-                                !(t.as_str() == name
-                                    && *p == part.partition
-                                    && batch_covers(sent, *offset))
-                            });
+                            let empty = if let Some(parts) =
+                                self.acquisitions.get_mut(name.as_str())
+                            {
+                                parts.retain(|(partition, offset), _| {
+                                    !(*partition == part.partition && batch_covers(sent, *offset))
+                                });
+                                parts.is_empty()
+                            } else {
+                                false
+                            };
+                            if empty {
+                                let _ = self.acquisitions.remove(name.as_str());
+                            }
                         }
                         let error = Error::broker(
                             part.error_code,
@@ -3079,7 +3130,9 @@ fn share_record_bytes(rec: &ShareRecord) -> u64 {
 // Logical key/value storage plus a conservative hash-entry allowance. Record
 // buffers and outstanding acquisition metadata share the configured allowance.
 fn acquisition_storage_bytes(topic: &str) -> usize {
-    std::mem::size_of::<AcquisitionKey>()
+    std::mem::size_of::<crate::consumer::TopicName>()
+        .saturating_add(std::mem::size_of::<i32>())
+        .saturating_add(std::mem::size_of::<i64>())
         .saturating_add(std::mem::size_of::<Acquisition>())
         .saturating_add(topic.len())
         .saturating_add(32)

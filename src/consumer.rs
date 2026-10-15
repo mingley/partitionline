@@ -676,6 +676,12 @@ impl std::hash::Hash for TopicName {
     }
 }
 
+impl std::borrow::Borrow<str> for TopicName {
+    fn borrow(&self) -> &str {
+        self.as_str()
+    }
+}
+
 impl PartialEq<str> for TopicName {
     fn eq(&self, other: &str) -> bool {
         self.as_str() == other
