@@ -2036,6 +2036,11 @@
 //! Java `AcknowledgeType.id` / `forId` (gap `0` is `None`).
 //! [`ShareGroup::poll`] queues wire `ACK_GAP` for acquired offsets with no
 //! record and for control-record holes (Java `ShareCompletedFetch`).
+//! Unacquired records present in a ShareFetch batch (unaligned tail,
+//! disjoint or odd acquired ranges) are skipped and are not `ACK_GAP`.
+//! [`ShareRecord::last_header`] is Java `Headers.lastHeader` (last-wins).
+//! Committed transactional data batches are delivered; control batches
+//! stay GAP holes (Java `testCommittedTransactionRecordsIncluded`).
 //! Overlapping ShareFetch `AcquiredRecords` keep the first occurrence
 //! (Java `testOverlappingAcquiredRecordsLogsErrorAndRetainsFirstOccurrence`).
 //! [`ShareAcknowledgementMode`] is Java `share.acknowledgement.mode`

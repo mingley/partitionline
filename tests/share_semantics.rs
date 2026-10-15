@@ -21,7 +21,7 @@ use bytes::{Bytes, BytesMut};
 use partitionline::protocol::api::NodeEndpoint;
 use partitionline::protocol::api_keys::{SHARE_ACKNOWLEDGE, SHARE_FETCH};
 use partitionline::protocol::records::{
-    encode_record_batch, ControlRecordType, EndTransactionMarker, Record, RecordBatch,
+    encode_record_batch, ControlRecordType, EndTransactionMarker, Header, Record, RecordBatch,
 };
 use partitionline::protocol::share::{
     decode_share_fetch_response, decode_share_fetch_response_with_limit,
@@ -106,6 +106,24 @@ fn injected_share_records(values: &[&[u8]], acquired: &[(i64, i64)]) -> ShareFet
         })
         .collect();
     part
+}
+
+fn inject_share_partition(mock: &common::Mock, version: i16, part: ShareFetchedPartition) {
+    let topics = vec![ShareFetchedTopic {
+        topic_id: mock.topic_id("t"),
+        partitions: vec![part],
+    }];
+    let mut injected = BytesMut::new();
+    encode_share_fetch_response(&mut injected, version, &topics).unwrap();
+    mock.inject_share_fetch_response_once(&injected);
+}
+
+fn acquired_range(first: i64, last: i64) -> AcquiredRange {
+    AcquiredRange {
+        first_offset: first,
+        last_offset: last,
+        delivery_count: 1,
+    }
 }
 
 #[tokio::test]
@@ -2617,6 +2635,244 @@ async fn share_fetch_crc_failure_rejects_unaligned_acquired() {
         Err(Error::Broker { code, .. }) => assert_eq!(code, error::INVALID_RECORD_STATE),
         other => panic!("{other:?}"),
     }
+}
+
+#[tokio::test]
+async fn share_fetch_headers_last_header_wins() {
+    let mock = common::Mock::start().await;
+    v2(&mock);
+    let mut group = ShareGroup::join(config(&mock), "headers", "t")
+        .await
+        .unwrap();
+    let version = mock.last_share_fetch_version().unwrap_or(2);
+    let recs = vec![
+        Record {
+            offset: 0,
+            timestamp: 0,
+            key: Some(Bytes::from_static(b"key")),
+            value: Some(Bytes::from_static(b"value-1")),
+            headers: Vec::new(),
+        },
+        Record {
+            offset: 0,
+            timestamp: 0,
+            key: Some(Bytes::from_static(b"key")),
+            value: Some(Bytes::from_static(b"value-2")),
+            headers: vec![Header::new("headerKey", Bytes::from_static(b"headerValue"))],
+        },
+        Record {
+            offset: 0,
+            timestamp: 0,
+            key: Some(Bytes::from_static(b"key")),
+            value: Some(Bytes::from_static(b"value-3")),
+            headers: vec![
+                Header::new("headerKey", Bytes::from_static(b"headerValue")),
+                Header::new("headerKey", Bytes::from_static(b"headerValue2")),
+            ],
+        },
+    ];
+    let mut batch = RecordBatch::from_records(recs);
+    batch.base_offset = 1;
+    for rec in &mut batch.records {
+        rec.offset += 1;
+    }
+    let mut part = ShareFetchedPartition::partition_response(0, 0);
+    part.records = vec![batch];
+    part.acquired = vec![acquired_range(1, 3)];
+    inject_share_partition(&mock, version, part);
+    let got = group.poll().await.unwrap();
+    assert_eq!(got.len(), 3);
+    assert_eq!(
+        got.iter().map(|rec| rec.offset).collect::<Vec<_>>(),
+        vec![1, 2, 3]
+    );
+    assert!(
+        got[0].last_header("headerKey").is_none(),
+        "Java testHeaders: first record has no headerKey"
+    );
+    assert_eq!(
+        got[1].last_header("headerKey").and_then(Header::value),
+        Some(&b"headerValue"[..])
+    );
+    assert_eq!(
+        got[2].last_header("headerKey").and_then(Header::value),
+        Some(&b"headerValue2"[..]),
+        "Java Headers.lastHeader keeps the last duplicate key"
+    );
+    assert_eq!(got[2].headers_for_key("headerKey").count(), 2);
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn share_fetch_unaligned_acquired_delivers_tail() {
+    let mock = common::Mock::start().await;
+    v2(&mock);
+    let mut group = ShareGroup::join(config(&mock), "unaligned", "t")
+        .await
+        .unwrap();
+    let version = mock.last_share_fetch_version().unwrap_or(2);
+    let mut part = ShareFetchedPartition::partition_response(0, 0);
+    part.records = vec![share_batch_at(10, 20)];
+    part.acquired = vec![acquired_range(20, 29)];
+    inject_share_partition(&mock, version, part);
+    let got = group.poll().await.unwrap();
+    assert_eq!(
+        got.iter().map(|rec| rec.offset).collect::<Vec<_>>(),
+        (20..30).collect::<Vec<_>>()
+    );
+    assert_eq!(got[0].delivery_count, 1);
+    assert_eq!(group.acquired_record_count(), 10);
+    let start_acks = mock.share_ack_calls();
+    group.commit().await.unwrap();
+    assert_eq!(
+        mock.share_ack_calls() - start_acks,
+        0,
+        "unacquired prefix 10-19 must not become ACK_GAP"
+    );
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn share_fetch_acquired_ranges_skip_unacquired_present() {
+    let mock = common::Mock::start().await;
+    v2(&mock);
+    let mut group = ShareGroup::join(config(&mock), "acquired-ranges", "t")
+        .await
+        .unwrap();
+    let version = mock.last_share_fetch_version().unwrap_or(2);
+    let part = injected_share_records(
+        &[b"0", b"1", b"2", b"3", b"4", b"5", b"6", b"7", b"8", b"9"],
+        &[(0, 2), (6, 8)],
+    );
+    inject_share_partition(&mock, version, part);
+    let got = group.poll().await.unwrap();
+    assert_eq!(
+        got.iter().map(|rec| rec.offset).collect::<Vec<_>>(),
+        vec![0, 1, 2, 6, 7, 8]
+    );
+    assert_eq!(got[3].offset, 6);
+    assert_eq!(got[3].delivery_count, 1);
+    assert_eq!(group.acquired_record_count(), 6);
+    let start_acks = mock.share_ack_calls();
+    group.commit().await.unwrap();
+    assert_eq!(
+        mock.share_ack_calls() - start_acks,
+        0,
+        "present but unacquired 3-5 must not become ACK_GAP"
+    );
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn share_fetch_acquired_odds_skip_evens() {
+    let mock = common::Mock::start().await;
+    v2(&mock);
+    let mut group = ShareGroup::join(config(&mock), "acquired-odds", "t")
+        .await
+        .unwrap();
+    let version = mock.last_share_fetch_version().unwrap_or(2);
+    let part = injected_share_records(
+        &[b"0", b"1", b"2", b"3", b"4", b"5", b"6", b"7", b"8", b"9"],
+        &[(1, 1), (3, 3), (5, 5), (7, 7), (9, 9)],
+    );
+    inject_share_partition(&mock, version, part);
+    let got = group.poll().await.unwrap();
+    assert_eq!(
+        got.iter().map(|rec| rec.offset).collect::<Vec<_>>(),
+        vec![1, 3, 5, 7, 9]
+    );
+    assert_eq!(got[0].delivery_count, 1);
+    assert_eq!(group.acquired_record_count(), 5);
+    let start_acks = mock.share_ack_calls();
+    group.commit().await.unwrap();
+    assert_eq!(
+        mock.share_ack_calls() - start_acks,
+        0,
+        "present but unacquired evens must not become ACK_GAP"
+    );
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn share_fetch_committed_transaction_records_included() {
+    let mock = common::Mock::start().await;
+    v2(&mock);
+    let mut group = ShareGroup::join(config(&mock), "txn-included", "t")
+        .await
+        .unwrap();
+    let version = mock.last_share_fetch_version().unwrap_or(2);
+    let mut batch = share_batch_at(0, 10).with_transactional(true);
+    batch.producer_id = 1;
+    batch.producer_epoch = 0;
+    batch.base_sequence = 0;
+    let mut part = ShareFetchedPartition::partition_response(0, 0);
+    part.records = vec![batch];
+    part.acquired = vec![acquired_range(0, 9)];
+    inject_share_partition(&mock, version, part);
+    let got = group.poll().await.unwrap();
+    assert_eq!(
+        got.iter().map(|rec| rec.offset).collect::<Vec<_>>(),
+        (0..10).collect::<Vec<_>>(),
+        "Java testCommittedTransactionRecordsIncluded delivers transactional data"
+    );
+    assert_eq!(group.acquired_record_count(), 10);
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn share_fetch_compacted_last_record_missing() {
+    let mock = common::Mock::start().await;
+    v2(&mock);
+    let mut group = ShareGroup::join(config(&mock), "compacted", "t")
+        .await
+        .unwrap();
+    let version = mock.last_share_fetch_version().unwrap_or(2);
+    let recs: Vec<Record> = (0..3)
+        .map(|i| Record {
+            offset: 0,
+            timestamp: 0,
+            key: Some(Bytes::from(i.to_string().into_bytes())),
+            value: Some(Bytes::from_static(b"v")),
+            headers: Vec::new(),
+        })
+        .collect();
+    let mut part = ShareFetchedPartition::partition_response(0, 0);
+    part.records = vec![RecordBatch::from_records(recs)];
+    part.acquired = vec![acquired_range(0, 2)];
+    inject_share_partition(&mock, version, part);
+    let got = group.poll().await.unwrap();
+    assert_eq!(got.len(), 3);
+    for (i, rec) in got.iter().enumerate() {
+        assert_eq!(rec.offset, i as i64);
+        assert_eq!(
+            rec.key.as_deref(),
+            Some(i.to_string().as_bytes()),
+            "Java testFetchWithLastRecordMissingFromBatch keeps keyed records"
+        );
+    }
+    assert_eq!(group.acquired_record_count(), 3);
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn share_fetch_empty_partition_delivers_nothing() {
+    let mock = common::Mock::start().await;
+    v2(&mock);
+    let mut group = ShareGroup::join(config(&mock), "empty-fetch", "t")
+        .await
+        .unwrap();
+    let version = mock.last_share_fetch_version().unwrap_or(2);
+    inject_share_partition(
+        &mock,
+        version,
+        ShareFetchedPartition::partition_response(0, 0),
+    );
+    assert!(
+        group.poll().await.unwrap().is_empty(),
+        "Java testNoRecordsInFetch delivers no records"
+    );
+    assert_eq!(group.acquired_record_count(), 0);
+    group.leave().await.unwrap();
 }
 
 #[tokio::test]

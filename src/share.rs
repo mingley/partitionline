@@ -2618,6 +2618,11 @@ impl ShareGroup {
                                 let leader_epoch = (batch.partition_leader_epoch >= 0)
                                     .then_some(batch.partition_leader_epoch);
                                 for record in batch.records {
+                                    // Java ShareCompletedFetch skips records
+                                    // that are present but not acquired
+                                    // (testUnaligned, testAcquiredRecords,
+                                    // testAcquireOddRecords). Those offsets
+                                    // are not ACK_GAP.
                                     let Some(delivery_count) =
                                         range_lookup.delivery_count(record.offset)
                                     else {
