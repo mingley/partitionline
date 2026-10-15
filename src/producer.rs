@@ -4465,6 +4465,16 @@ impl Worker {
                 ), if next_wake.is_some() => {
                     self.purge_expired_pending();
                 }
+                ready = self.conn.inbound_ready(), if !self.in_flight.is_empty() && !self.conn.is_closed() => {
+                    let read = match ready {
+                        Ok(()) => self.wait_one().await,
+                        Err(error) => Err(error),
+                    };
+                    if let Err(error) = read {
+                        fail_inflight(&self.shared, &mut self.in_flight, clone_err(&error));
+                        self.note_fail(error);
+                    }
+                }
             }
         }
     }

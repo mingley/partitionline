@@ -934,6 +934,38 @@ impl BrokerConn {
             .await
     }
 
+    /// Wait until at least one response byte is buffered.
+    ///
+    /// Cancellation leaves the socket open. A byte that arrives is kept in the
+    /// read buffer for the following framed read.
+    pub(crate) async fn inbound_ready(&mut self) -> Result<()> {
+        if self.is_closed() {
+            return Err(Error::Closed);
+        }
+        if !self.read_buf.is_empty() {
+            return Ok(());
+        }
+        poll_fn(|cx| {
+            if self.is_closed() {
+                return Poll::Ready(Err(Error::Closed));
+            }
+            let mut tmp = [0u8; 1];
+            let mut buf = ReadBuf::new(&mut tmp);
+            match Pin::new(&mut self.stream).poll_read(cx, &mut buf) {
+                Poll::Pending => Poll::Pending,
+                Poll::Ready(Err(error)) => Poll::Ready(Err(Error::from(error))),
+                Poll::Ready(Ok(())) => {
+                    let filled = buf.filled();
+                    if !filled.is_empty() {
+                        self.read_buf.extend_from_slice(filled);
+                    }
+                    Poll::Ready(Ok(()))
+                }
+            }
+        })
+        .await
+    }
+
     async fn read_frame_deadline_internal(
         &mut self,
         deadline: Deadline,

@@ -3,7 +3,63 @@
 mod common;
 
 use partitionline::{Admin, AdminConfig, NewTopic, ProduceRecord, Producer, ProducerConfig};
-use std::time::Duration;
+use std::time::{Duration, Instant};
+
+#[tokio::test]
+async fn ack_completes_while_the_next_batch_lingers() {
+    let mock = common::Mock::start().await;
+    mock.set_produce_delay_times(Duration::from_millis(80), 1);
+    let mut cfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    cfg.linger = Duration::from_millis(400);
+    cfg.batch_records = 2;
+    cfg.client_id = "linger-ack".into();
+    let producer = Producer::new(cfg).await.unwrap();
+    let first = producer.clone();
+    let second = producer.clone();
+    let third = producer.clone();
+    let first = tokio::spawn(async move {
+        first
+            .send(ProduceRecord::to("t").value(&b"a"[..]))
+            .await
+            .unwrap()
+    });
+    let second = tokio::spawn(async move {
+        second
+            .send(ProduceRecord::to("t").value(&b"b"[..]))
+            .await
+            .unwrap()
+    });
+    let third = tokio::spawn(async move {
+        third
+            .send(ProduceRecord::to("t").value(&b"c"[..]))
+            .await
+            .unwrap()
+    });
+    let started = Instant::now();
+    while mock.produce_request_nodes().is_empty() {
+        assert!(
+            started.elapsed() < Duration::from_secs(2),
+            "first batch was not sent"
+        );
+        tokio::task::yield_now().await;
+    }
+    let acked_at = Instant::now();
+    let (left, right) = tokio::join!(first, second);
+    let left = left.unwrap();
+    let right = right.unwrap();
+    assert!(
+        acked_at.elapsed() < Duration::from_millis(250),
+        "in-flight ack waited out linger: {:?}",
+        acked_at.elapsed()
+    );
+    assert_eq!((left.offset, right.offset), (0, 1));
+    let third = tokio::time::timeout(Duration::from_secs(2), third)
+        .await
+        .expect("lingering record")
+        .unwrap();
+    assert_eq!(third.offset, 2);
+    producer.close().await.unwrap();
+}
 
 #[tokio::test]
 async fn produce_one_record_against_mock() {
