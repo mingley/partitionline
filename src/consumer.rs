@@ -3307,18 +3307,28 @@ impl Consumer {
     }
 
     fn refresh_topic_identities(&mut self) {
-        let (by_name, by_id) = if let Some(md) = self.metadata.as_ref() {
-            resolved_topic_identities(
+        let rebuilt = if let Some(md) = self.metadata.as_ref() {
+            Some(resolved_topic_identities(
                 md.topics
                     .iter()
                     .filter_map(|topic| topic.name.as_deref().map(|name| (name, topic.topic_id))),
                 &self.cluster.topic_ids,
-            )
+                &mut self.name_to_id,
+                &mut self.id_to_name,
+            ))
         } else {
-            (HashMap::new(), HashMap::new())
+            None
         };
-        self.name_to_id = by_name;
-        self.id_to_name = by_id;
+        match rebuilt {
+            Some((by_name, by_id)) => {
+                self.name_to_id = by_name;
+                self.id_to_name = by_id;
+            }
+            None => {
+                self.name_to_id.clear();
+                self.id_to_name.clear();
+            }
+        }
     }
 
     fn response_topic_name(
@@ -6899,6 +6909,8 @@ fn cap_fetch_cursor(next: i64, high_watermark: i64) -> i64 {
 fn resolved_topic_identities<'a>(
     topics: impl IntoIterator<Item = (&'a str, [u8; 16])>,
     cached: &HashMap<String, [u8; 16]>,
+    previous_names: &mut HashMap<String, [u8; 16]>,
+    previous_ids: &mut HashMap<[u8; 16], String>,
 ) -> (HashMap<String, [u8; 16]>, HashMap<[u8; 16], String>) {
     let mut by_name = HashMap::new();
     let mut by_id = HashMap::new();
@@ -6912,7 +6924,15 @@ fn resolved_topic_identities<'a>(
         if id == [0; 16] && by_name.get(name).is_some_and(|current| *current != [0; 16]) {
             continue;
         }
-        let _previous = by_name.insert(name.to_owned(), id);
+        if let Some(slot) = by_name.get_mut(name) {
+            *slot = id;
+        } else {
+            let key = match previous_names.remove_entry(name) {
+                Some((key, _)) => key,
+                None => name.to_owned(),
+            };
+            let _previous = by_name.insert(key, id);
+        }
         if id == [0; 16] || ambiguous.contains(&id) {
             continue;
         }
@@ -6923,7 +6943,11 @@ fn resolved_topic_identities<'a>(
             }
             Some(_) => {}
             None => {
-                let _previous = by_id.insert(id, name.to_owned());
+                let owned = match previous_ids.remove(&id) {
+                    Some(existing) if existing == name => existing,
+                    _ => name.to_owned(),
+                };
+                let _previous = by_id.insert(id, owned);
             }
         }
     }
@@ -7637,6 +7661,8 @@ mod tests {
         let (by_name, by_id) = resolved_topic_identities(
             [("orders", [7u8; 16]), ("trades", [7u8; 16])],
             &HashMap::new(),
+            &mut HashMap::new(),
+            &mut HashMap::new(),
         );
         assert_eq!(by_name.get("orders").copied(), Some([7u8; 16]));
         assert_eq!(by_name.get("trades").copied(), Some([7u8; 16]));
@@ -7674,17 +7700,51 @@ mod tests {
         let (by_name, by_id) = resolved_topic_identities(
             [("t", [1u8; 16]), ("t", [0u8; 16]), ("u", [2u8; 16])],
             &cached,
+            &mut HashMap::new(),
+            &mut HashMap::new(),
         );
         assert_eq!(by_name.get("t").copied(), Some([1u8; 16]));
         assert_eq!(by_name.get("u").copied(), Some([2u8; 16]));
         assert_eq!(by_id.get(&[1u8; 16]).map(String::as_str), Some("t"));
-        let (by_name, _) =
-            resolved_topic_identities([("t", [4u8; 16]), ("t", [0u8; 16])], &HashMap::new());
+        let (by_name, _) = resolved_topic_identities(
+            [("t", [4u8; 16]), ("t", [0u8; 16])],
+            &HashMap::new(),
+            &mut HashMap::new(),
+            &mut HashMap::new(),
+        );
         assert_eq!(
             by_name.get("t").copied(),
             Some([4u8; 16]),
             "a zero copy must not erase an earlier id in the same response"
         );
+        let mut names = HashMap::new();
+        let mut ids = HashMap::new();
+        let (names, mut ids) = resolved_topic_identities(
+            [("orders", [1u8; 16])],
+            &HashMap::new(),
+            &mut names,
+            &mut ids,
+        );
+        let name_ptr = names
+            .get_key_value("orders")
+            .map(|(name, _)| name.as_ptr())
+            .unwrap_or(std::ptr::null());
+        let id_ptr = ids
+            .get(&[1u8; 16])
+            .map(|name| name.as_ptr())
+            .unwrap_or(std::ptr::null());
+        let mut names = names;
+        let (names, ids) = resolved_topic_identities(
+            [("orders", [1u8; 16])],
+            &HashMap::new(),
+            &mut names,
+            &mut ids,
+        );
+        assert_eq!(
+            names.get_key_value("orders").map(|(name, _)| name.as_ptr()),
+            Some(name_ptr)
+        );
+        assert_eq!(ids.get(&[1u8; 16]).map(|name| name.as_ptr()), Some(id_ptr));
     }
 
     #[test]
