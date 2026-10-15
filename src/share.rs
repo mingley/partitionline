@@ -1356,8 +1356,13 @@ impl ShareGroup {
                 self.assigned.push((name.clone(), *p));
             }
         }
-        self.acquisitions.retain(|(topic, part, _), _| {
+        // Java still acknowledges a previous topic after subscribe
+        // (testCloseWithSubscriptionChange). Keep those acquisitions.
+        self.acquisitions.retain(|(topic, part, offset), _| {
             self.assigned.iter().any(|(t, p)| t == topic && p == part)
+                || self
+                    .pending_acknowledgements
+                    .contains_key(&(topic.clone(), *part, *offset))
         });
         retain_completed_records(&mut self.pending_completed, |r| {
             self.acquisitions
@@ -3386,18 +3391,35 @@ impl ShareGroup {
         }
         self.prune_expired_acquisitions();
         for record in recs {
-            let acquired =
-                self.acquisitions
-                    .get(&(record.topic.clone(), record.partition, record.offset));
-            if acquired.is_none_or(|a| a.delivery_count != record.delivery_count) {
-                return Err(Error::broker(
-                    error::INVALID_RECORD_STATE,
-                    format!(
-                        "stale share acknowledgement {}-{}@{}",
-                        record.topic, record.partition, record.offset
-                    ),
-                ));
+            let key = (record.topic.clone(), record.partition, record.offset);
+            if let Some(acquired) = self.acquisitions.get(&key) {
+                if acquired.delivery_count != record.delivery_count {
+                    return Err(Error::broker(
+                        error::INVALID_RECORD_STATE,
+                        format!(
+                            "stale share acknowledgement {}-{}@{}",
+                            record.topic, record.partition, record.offset
+                        ),
+                    ));
+                }
+                continue;
             }
+            // Already-queued leftover acks survive assignment shrink
+            // (Java testCloseWithSubscriptionChange).
+            if self
+                .pending_acknowledgements
+                .get(&key)
+                .is_some_and(|(queued, _)| queued.delivery_count == record.delivery_count)
+            {
+                continue;
+            }
+            return Err(Error::broker(
+                error::INVALID_RECORD_STATE,
+                format!(
+                    "stale share acknowledgement {}-{}@{}",
+                    record.topic, record.partition, record.offset
+                ),
+            ));
         }
         Ok(())
     }
