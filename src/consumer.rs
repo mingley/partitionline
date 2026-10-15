@@ -1012,8 +1012,24 @@ pub(crate) fn partitions_from<T>(
     topic_of: impl Fn(&T) -> &TopicName,
     partition_of: impl Fn(&T) -> i32,
 ) -> Vec<TopicPartition> {
+    let Some(first) = records.first() else {
+        return Vec::new();
+    };
+    let topic = topic_of(first);
+    let partition = partition_of(first);
+    let mut cursor = 1usize;
+    while let Some(record) = records.get(cursor) {
+        if partition_of(record) != partition || topic_of(record) != topic {
+            break;
+        }
+        cursor = cursor.saturating_add(1);
+    }
+    if cursor == records.len() {
+        return vec![TopicPartition::new(topic.clone(), partition)];
+    }
     let mut seen: Vec<(&TopicName, i32)> = Vec::new();
-    let mut index = 0;
+    seen.push((topic, partition));
+    let mut index = cursor;
     while index < records.len() {
         let Some(first) = records.get(index) else {
             break;
@@ -1050,8 +1066,39 @@ pub(crate) fn next_offsets_from<T>(
     offset_of: impl Fn(&T) -> i64,
     epoch_of: impl Fn(&T) -> Option<i32>,
 ) -> Vec<(TopicPartition, OffsetAndMetadata)> {
+    let Some(first) = records.first() else {
+        return Vec::new();
+    };
+    let topic = topic_of(first);
+    let partition = partition_of(first);
+    let mut end = 0usize;
+    let mut cursor = 1usize;
+    while let Some(record) = records.get(cursor) {
+        if partition_of(record) != partition || topic_of(record) != topic {
+            break;
+        }
+        end = cursor;
+        cursor = cursor.saturating_add(1);
+    }
+    if cursor == records.len() {
+        let Some(tail) = records.get(end) else {
+            return Vec::new();
+        };
+        let Some(next) = exclusive_fetch_offset(offset_of(tail)) else {
+            return Vec::new();
+        };
+        let mut metadata = OffsetAndMetadata::new(next);
+        if let Some(epoch) = epoch_of(tail) {
+            metadata = metadata.with_leader_epoch(epoch);
+        }
+        return vec![(TopicPartition::new(topic.clone(), partition), metadata)];
+    }
+    let Some(tail) = records.get(end) else {
+        return Vec::new();
+    };
     let mut last: Vec<(&TopicName, i32, i64, Option<i32>)> = Vec::new();
-    let mut index = 0;
+    last.push((topic, partition, offset_of(tail), epoch_of(tail)));
+    let mut index = cursor;
     while index < records.len() {
         let Some(first) = records.get(index) else {
             break;
@@ -9201,6 +9248,15 @@ mod tests {
         );
         let mut later = rec("a", 0, 8);
         later.leader_epoch = Some(9);
+        let one = ConsumerRecords::from(vec![rec("a", 0, 1), rec("a", 0, 2)]);
+        assert_eq!(one.partitions(), vec![TopicPartition::new("a", 0)]);
+        assert_eq!(
+            one.next_offsets(),
+            vec![(TopicPartition::new("a", 0), OffsetAndMetadata::new(3))]
+        );
+        let at_end = ConsumerRecords::from(vec![rec("a", 0, i64::MAX)]);
+        assert_eq!(at_end.partitions(), vec![TopicPartition::new("a", 0)]);
+        assert!(at_end.next_offsets().is_empty());
         let interleaved = ConsumerRecords::from(vec![rec("a", 0, 1), rec("b", 0, 4), later]);
         assert_eq!(
             interleaved.partitions(),
