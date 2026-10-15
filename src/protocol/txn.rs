@@ -18,6 +18,20 @@ pub const ADD_OFFSETS_TO_TXN: i16 = 25;
 /// EndTxn (26).
 pub const END_TXN: i16 = 26;
 
+fn remember_topic<T>(
+    order: &mut Vec<String>,
+    by_topic: &mut HashMap<String, Vec<T>>,
+    topic: &str,
+    value: T,
+) {
+    if let Some(parts) = by_topic.get_mut(topic) {
+        parts.push(value);
+        return;
+    }
+    order.push(topic.to_string());
+    let _ = by_topic.insert(topic.to_string(), vec![value]);
+}
+
 /// Java `EndTxnRequest` version helpers (KIP-890 transaction V2).
 pub struct EndTxnRequest;
 
@@ -302,13 +316,7 @@ impl AddPartitionsToTxnRequest {
         let mut order: Vec<String> = Vec::new();
         let mut by_topic: HashMap<String, Vec<i32>> = HashMap::new();
         for (topic, partition) in partitions {
-            by_topic
-                .entry(topic.to_string())
-                .or_insert_with(|| {
-                    order.push(topic.to_string());
-                    Vec::new()
-                })
-                .push(partition);
+            remember_topic(&mut order, &mut by_topic, topic, partition);
         }
         order
             .into_iter()
@@ -459,17 +467,24 @@ impl AddPartitionsToTxnResponse {
         let mut order: Vec<String> = Vec::new();
         let mut by_topic: HashMap<String, Vec<AddPartitionsToTxnPartitionResult>> = HashMap::new();
         for (topic, partition, error_code) in errors {
-            let partitions = by_topic.entry(topic.to_string()).or_insert_with(|| {
+            if let Some(parts) = by_topic.get_mut(topic) {
+                if parts.iter().any(|part| part.partition == partition) {
+                    continue;
+                }
+                parts.push(AddPartitionsToTxnPartitionResult {
+                    partition,
+                    error_code,
+                });
+            } else {
                 order.push(topic.to_string());
-                Vec::new()
-            });
-            if partitions.iter().any(|p| p.partition == partition) {
-                continue;
+                let _ = by_topic.insert(
+                    topic.to_string(),
+                    vec![AddPartitionsToTxnPartitionResult {
+                        partition,
+                        error_code,
+                    }],
+                );
             }
-            partitions.push(AddPartitionsToTxnPartitionResult {
-                partition,
-                error_code,
-            });
         }
         order
             .into_iter()
@@ -962,13 +977,7 @@ impl TxnOffsetCommitRequest {
         let mut order: Vec<String> = Vec::new();
         let mut by_topic: HashMap<String, Vec<TxnOffsetPartition>> = HashMap::new();
         for (topic, partition) in pending_txn_offset_commits {
-            by_topic
-                .entry(topic.to_string())
-                .or_insert_with(|| {
-                    order.push(topic.to_string());
-                    Vec::new()
-                })
-                .push(partition);
+            remember_topic(&mut order, &mut by_topic, topic, partition);
         }
         order
             .into_iter()
@@ -1068,16 +1077,15 @@ impl TxnOffsetCommitResponse {
         let mut order: Vec<String> = Vec::new();
         let mut by_topic: HashMap<String, Vec<TxnOffsetCommitResponsePartition>> = HashMap::new();
         for (topic, partition, error_code) in response_data {
-            by_topic
-                .entry(topic.to_string())
-                .or_insert_with(|| {
-                    order.push(topic.to_string());
-                    Vec::new()
-                })
-                .push(TxnOffsetCommitResponsePartition {
+            remember_topic(
+                &mut order,
+                &mut by_topic,
+                topic,
+                TxnOffsetCommitResponsePartition {
                     partition,
                     error_code,
-                });
+                },
+            );
         }
         order
             .into_iter()
@@ -1794,13 +1802,7 @@ impl WritableTxnMarker {
         let mut order: Vec<String> = Vec::new();
         let mut by_topic: HashMap<String, Vec<i32>> = HashMap::new();
         for (topic, partition) in partitions {
-            by_topic
-                .entry(topic.to_string())
-                .or_insert_with(|| {
-                    order.push(topic.to_string());
-                    Vec::new()
-                })
-                .push(partition);
+            remember_topic(&mut order, &mut by_topic, topic, partition);
         }
         Self {
             producer_id,
@@ -2047,16 +2049,15 @@ impl WriteTxnMarkersResponse {
             let mut by_topic: HashMap<String, Vec<WritableTxnMarkerPartitionResult>> =
                 HashMap::new();
             for (topic, partition_index, error_code) in partitions {
-                by_topic
-                    .entry(topic.to_string())
-                    .or_insert_with(|| {
-                        topic_order.push(topic.to_string());
-                        Vec::new()
-                    })
-                    .push(WritableTxnMarkerPartitionResult {
+                remember_topic(
+                    &mut topic_order,
+                    &mut by_topic,
+                    topic,
+                    WritableTxnMarkerPartitionResult {
                         partition_index,
                         error_code,
-                    });
+                    },
+                );
             }
             markers.push(WritableTxnMarkerResult {
                 producer_id,
