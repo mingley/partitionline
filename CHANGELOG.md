@@ -55,10 +55,11 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `UNKNOWN_TOPIC_ID` / `INCONSISTENT_TOPIC_ID` complete without retry
   (`commit_sync` map; Java `testFatalErrorsAcknowledgementResponse` plus
   ownership-lost topic-id codes), including when `ErrorMessage` is
-  empty. Metadata is requested when that error
-  has no usable CurrentLeader. A successful ShareAcknowledge that omits
-  a requested partition completes that partition with
-  `INVALID_RECORD_STATE` (Java `testShareAcknowledgeInvalidResponse`).
+  empty or a non-empty broker `ErrorMessage` is preferred. Metadata is
+  requested when that error has no usable CurrentLeader. A successful
+  ShareAcknowledge that omits a requested partition completes that
+  partition with `INVALID_RECORD_STATE` (Java
+  `testShareAcknowledgeInvalidResponse`).
   Unrequested ShareAcknowledge partitions, unknown topic ids, and
   known topic ids that were not in the request are skipped (Java
   `lookupTopicId` / `handleAcknowledgeErrorCode`). A non-empty
