@@ -4529,41 +4529,43 @@ impl AckIndex {
             groups.iter().all(|(name, _, _)| Arc::ptr_eq(name, topic))
         });
         if one_topic {
-            let Some(topic) = groups.first().map(|(topic, _, _)| Arc::clone(topic)) else {
-                return;
-            };
-            if !self.topics.contains_key(topic.as_ref()) {
-                let _ = self.topics.insert(Arc::clone(&topic), HashMap::new());
-            }
-            let Some(parts) = self.topics.get_mut(topic.as_ref()) else {
-                return;
-            };
-            for (slot, (_, part, _)) in groups.iter().enumerate() {
-                match parts.get_mut(part) {
-                    Some(entry) if entry.1 == generation => {}
-                    Some(entry) => *entry = (slot, generation),
-                    None => {
-                        let _ = parts.insert(*part, (slot, generation));
+            if let Some(topic) = groups.first().map(|(topic, _, _)| Arc::clone(topic)) {
+                if !self.topics.contains_key(topic.as_ref()) {
+                    let _ = self.topics.insert(Arc::clone(&topic), HashMap::new());
+                }
+                if let Some(parts) = self.topics.get_mut(topic.as_ref()) {
+                    for (slot, (_, part, _)) in groups.iter().enumerate() {
+                        match parts.get_mut(part) {
+                            Some(entry) if entry.1 == generation => {}
+                            Some(entry) => *entry = (slot, generation),
+                            None => {
+                                let _ = parts.insert(*part, (slot, generation));
+                            }
+                        }
                     }
                 }
             }
-            return;
-        }
-        for (slot, (topic, part, _)) in groups.iter().enumerate() {
-            if let Some(parts) = self.topics.get_mut(topic.as_ref()) {
-                match parts.get_mut(part) {
-                    Some(entry) if entry.1 == generation => {}
-                    Some(entry) => *entry = (slot, generation),
-                    None => {
-                        let _ = parts.insert(*part, (slot, generation));
+        } else {
+            for (slot, (topic, part, _)) in groups.iter().enumerate() {
+                if let Some(parts) = self.topics.get_mut(topic.as_ref()) {
+                    match parts.get_mut(part) {
+                        Some(entry) if entry.1 == generation => {}
+                        Some(entry) => *entry = (slot, generation),
+                        None => {
+                            let _ = parts.insert(*part, (slot, generation));
+                        }
                     }
+                    continue;
                 }
-                continue;
+                let mut parts = HashMap::new();
+                let _ = parts.insert(*part, (slot, generation));
+                let _ = self.topics.insert(Arc::clone(topic), parts);
             }
-            let mut parts = HashMap::new();
-            let _ = parts.insert(*part, (slot, generation));
-            let _ = self.topics.insert(Arc::clone(topic), parts);
         }
+        self.topics.retain(|_, parts| {
+            parts.retain(|_, entry| entry.1 == generation);
+            !parts.is_empty()
+        });
     }
 
     fn get(&self, topic: &str, partition: i32) -> Option<usize> {
@@ -7053,6 +7055,7 @@ mod tests {
         index.fill(&next);
         assert_eq!(index.get("t", 1), Some(0));
         assert_eq!(index.get("t", 0), None);
+        assert_eq!(index.topics.get("t").map(|parts| parts.len()), Some(1));
         assert!(Arc::ptr_eq(
             index
                 .topics
