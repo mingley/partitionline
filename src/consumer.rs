@@ -2894,10 +2894,20 @@ impl Consumer {
     }
 
     pub(crate) async fn ensure_topic_metadata(&mut self, topic: &str) -> Result<()> {
+        self.ensure_topic_metadata_timeout(topic, self.cfg.request_timeout)
+            .await
+    }
+
+    pub(crate) async fn ensure_topic_metadata_timeout(
+        &mut self,
+        topic: &str,
+        timeout: Duration,
+    ) -> Result<()> {
         if self.cluster.topic_fresh(topic, self.cfg.metadata_max_age) {
             return Ok(());
         }
-        self.refresh_topic_metadata(topic).await
+        let topics = [topic.to_string()];
+        self.refresh_metadata_timeout(Some(&topics), timeout).await
     }
 
     pub(crate) async fn refresh_topics(&mut self, topics: &[String]) -> Result<()> {
@@ -2905,11 +2915,6 @@ impl Consumer {
             return Ok(());
         }
         self.refresh_metadata(Some(topics)).await
-    }
-
-    pub(crate) async fn refresh_topic_metadata(&mut self, topic: &str) -> Result<()> {
-        let topics = [topic.to_string()];
-        self.refresh_metadata(Some(&topics)).await
     }
 
     pub(crate) fn topic_id_names(&self) -> HashMap<[u8; 16], String> {
@@ -5414,9 +5419,15 @@ impl Consumer {
                 .iter()
                 .map(|(topic, partition)| (topic.as_str(), *partition)),
         )?;
+        let deadline = offset_lookup_deadline(self.cfg.request_timeout)?;
         for (topic, partition) in partitions {
             let offset = self
-                .list_offsets(topic.clone(), partition, timestamp)
+                .list_offsets_timeout(
+                    topic.clone(),
+                    partition,
+                    timestamp,
+                    remaining_offset_timeout(deadline, Instant::now()),
+                )
                 .await?;
             self.seek(&topic, partition, offset)?;
         }
@@ -6179,13 +6190,13 @@ fn require_fetch_offset(offset: i64) -> Result<()> {
 ///
 /// Java `beginningOffsets`, `endOffsets`, and `offsetsForTimes` spend the
 /// caller timeout once. A later partition sees only the time still left.
-fn offset_lookup_deadline(timeout: Duration) -> Result<Instant> {
+pub(crate) fn offset_lookup_deadline(timeout: Duration) -> Result<Instant> {
     Instant::now()
         .checked_add(timeout)
         .ok_or_else(|| Error::protocol("ListOffsets deadline overflow"))
 }
 
-fn remaining_offset_timeout(deadline: Instant, now: Instant) -> Duration {
+pub(crate) fn remaining_offset_timeout(deadline: Instant, now: Instant) -> Duration {
     deadline.saturating_duration_since(now)
 }
 

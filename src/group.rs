@@ -2464,11 +2464,27 @@ impl ConsumerGroup {
         Ok(())
     }
 
-    async fn listed_reset_offset(&mut self, topic: &str, part: i32, timestamp: i64) -> Result<i64> {
-        self.consumer.ensure_topic_metadata(topic).await?;
+    async fn listed_reset_offset(
+        &mut self,
+        topic: &str,
+        part: i32,
+        timestamp: i64,
+        deadline: Instant,
+    ) -> Result<i64> {
+        self.consumer
+            .ensure_topic_metadata_timeout(
+                topic,
+                crate::consumer::remaining_offset_timeout(deadline, Instant::now()),
+            )
+            .await?;
         let offset = self
             .consumer
-            .list_offsets(topic.to_owned(), part, timestamp)
+            .list_offsets_timeout(
+                topic.to_owned(),
+                part,
+                timestamp,
+                crate::consumer::remaining_offset_timeout(deadline, Instant::now()),
+            )
             .await?;
         crate::consumer::reset_position(offset).ok_or_else(|| {
             Error::protocol(format!(
@@ -2549,6 +2565,7 @@ impl ConsumerGroup {
         };
         let map = committed_offset_map(&fetched)?;
         let reset = self.cfg.auto_offset_reset;
+        let reset_deadline = crate::consumer::offset_lookup_deadline(self.cfg.request_timeout)?;
         let mut starts: Vec<(String, i32, i64)> = Vec::with_capacity(wanted.len());
         for (topic, part) in wanted {
             let key = (topic.clone(), *part);
@@ -2565,12 +2582,22 @@ impl ConsumerGroup {
             } else {
                 match reset {
                     AutoOffsetReset::Earliest => {
-                        self.listed_reset_offset(topic, *part, crate::EARLIEST_TIMESTAMP)
-                            .await?
+                        self.listed_reset_offset(
+                            topic,
+                            *part,
+                            crate::EARLIEST_TIMESTAMP,
+                            reset_deadline,
+                        )
+                        .await?
                     }
                     AutoOffsetReset::Latest => {
-                        self.listed_reset_offset(topic, *part, crate::LATEST_TIMESTAMP)
-                            .await?
+                        self.listed_reset_offset(
+                            topic,
+                            *part,
+                            crate::LATEST_TIMESTAMP,
+                            reset_deadline,
+                        )
+                        .await?
                     }
                     AutoOffsetReset::None => {
                         return Err(Error::protocol(format!(
