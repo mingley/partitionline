@@ -2687,7 +2687,7 @@ impl Producer {
         // RPC when the broker advertised v5 (Java `isTransactionV2Enabled`).
         if version <= TxnOffsetCommitRequest::LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2 {
             let add_offsets_version = self.inner.shared.add_offsets_version;
-            let start = Instant::now();
+            let deadline = Instant::now() + timeout;
             let mut attempt = 0u32;
             loop {
                 let body = txn_roundtrip(
@@ -2704,7 +2704,7 @@ impl Producer {
                             group_id,
                         )
                     },
-                    timeout,
+                    timeout_remaining(deadline)?,
                     |body| {
                         Ok(
                             decode_add_offsets_to_txn_response(&mut { body }, add_offsets_version)?
@@ -2724,11 +2724,13 @@ impl Producer {
                 // and retrying the whole transaction is always safe.
                 let can_handle = self.inner.shared.txn_can_handle_abortable();
                 if classify_add_offsets_error(err, can_handle) == TxnErrorDisposition::Retriable
-                    && start.elapsed() < timeout
+                    && Instant::now() < deadline
                 {
                     attempt += 1;
-                    txn_retry_sleep(&self.inner.shared, attempt).await;
-                    continue;
+                    txn_retry_sleep(&self.inner.shared, attempt, deadline).await;
+                    if Instant::now() < deadline {
+                        continue;
+                    }
                 }
                 let e = Error::broker(err, "AddOffsetsToTxn");
                 self.inner.shared.apply_txn_disposition(
@@ -2754,7 +2756,7 @@ impl Producer {
             let cluster = self.inner.shared.cluster.lock();
             group_txn_offsets(&offsets, |topic, part| cluster.leader_epoch(topic, part))
         };
-        let start = Instant::now();
+        let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         loop {
             let body = group_coord_roundtrip(
@@ -2768,7 +2770,7 @@ impl Producer {
                         buf, version, &tid, group_id, pid, epoch, member, &grouped,
                     )
                 },
-                timeout,
+                timeout_remaining(deadline)?,
                 |body| decode_txn_offset_commit_response(&mut { body }, version),
             )
             .await?;
@@ -2780,11 +2782,13 @@ impl Producer {
             // fence or require an abort (see the `AddOffsetsToTxn` loop above
             // for the exhausted-budget rule).
             if classify_txn_offset_commit_error(err) == TxnErrorDisposition::Retriable
-                && start.elapsed() < timeout
+                && Instant::now() < deadline
             {
                 attempt += 1;
-                txn_retry_sleep(&self.inner.shared, attempt).await;
-                continue;
+                txn_retry_sleep(&self.inner.shared, attempt, deadline).await;
+                if Instant::now() < deadline {
+                    continue;
+                }
             }
             let e = Error::broker(err, "TxnOffsetCommit");
             self.inner
@@ -2804,7 +2808,7 @@ impl Producer {
         let epoch = self.inner.shared.producer_epoch.load(Ordering::SeqCst);
         let end_txn_version = self.inner.shared.end_txn_version;
         let is_abort = !committed;
-        let start = Instant::now();
+        let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         let (new_pid, new_epoch) = loop {
             // A transport error here is ambiguous (the broker may have
@@ -2817,7 +2821,7 @@ impl Producer {
                 END_TXN,
                 end_txn_version,
                 |buf| encode_end_txn_request(buf, end_txn_version, &tid, pid, epoch, committed),
-                timeout,
+                timeout_remaining(deadline)?,
                 |body| Ok(decode_end_txn_response(&mut { body }, end_txn_version)?.0),
             )
             .await?;
@@ -2831,11 +2835,13 @@ impl Producer {
             // (see the `AddOffsetsToTxn` loop for the exhausted-budget rule).
             let can_handle = self.inner.shared.txn_can_handle_abortable();
             if classify_end_txn_error(err, is_abort, can_handle) == TxnErrorDisposition::Retriable
-                && start.elapsed() < timeout
+                && Instant::now() < deadline
             {
                 attempt += 1;
-                txn_retry_sleep(&self.inner.shared, attempt).await;
-                continue;
+                txn_retry_sleep(&self.inner.shared, attempt, deadline).await;
+                if Instant::now() < deadline {
+                    continue;
+                }
             }
             let e = Error::broker(err, "EndTxn");
             self.inner.shared.apply_txn_disposition(
@@ -3414,13 +3420,37 @@ async fn renew_nontransactional_identity(shared: &Shared) -> Result<()> {
 /// Bounded Java `reenqueue` for transactional RPCs: backoff between retries
 /// of a retriable broker code. Retries never invent identities: every
 /// attempt reuses the broker-authorized producer id and epoch.
-async fn txn_retry_sleep(shared: &Shared, attempt: u32) {
-    tokio::time::sleep(crate::config::retry_backoff_delay(
+async fn txn_retry_sleep(shared: &Shared, attempt: u32, deadline: Instant) {
+    crate::config::sleep_retry_backoff(
         shared.cfg.retry_backoff,
         shared.cfg.retry_backoff_max,
         attempt,
-    ))
+        deadline,
+    )
     .await;
+}
+
+fn timeout_remaining(deadline: Instant) -> Result<Duration> {
+    let remaining = deadline.saturating_duration_since(Instant::now());
+    if remaining.is_zero() {
+        Err(Error::Timeout)
+    } else {
+        Ok(remaining)
+    }
+}
+
+async fn discover_within(
+    cfg: &ProducerConfig,
+    key: &str,
+    key_type: i8,
+    version: i16,
+    deadline: Instant,
+) -> Result<CoordinatorConnection> {
+    let remaining = timeout_remaining(deadline)?;
+    let mut bounded = cfg.clone();
+    bounded.request_timeout = remaining;
+    bounded.connect_timeout = cfg.connect_timeout.min(remaining);
+    discover_typed_coord(&bounded, key, key_type, version).await
 }
 
 async fn txn_roundtrip(
@@ -3431,23 +3461,20 @@ async fn txn_roundtrip(
     request_timeout: Duration,
     error_of: impl Fn(&[u8]) -> Result<i16>,
 ) -> Result<Bytes> {
+    let deadline = Instant::now() + request_timeout;
     let tid = shared
         .cfg
         .transactional_id
         .clone()
         .ok_or_else(reject_java_no_transaction_manager)?;
     let first = {
+        let remaining = timeout_remaining(deadline)?;
         let mut guard = shared.txn.lock().await;
         let conn = guard
             .as_mut()
             .ok_or_else(|| Error::protocol("no transaction coordinator"))?;
         conn.conn
-            .roundtrip(
-                api_key,
-                api_version,
-                |buf| encode_body(buf),
-                request_timeout,
-            )
+            .roundtrip(api_key, api_version, |buf| encode_body(buf), remaining)
             .await
     };
     match first {
@@ -3459,25 +3486,22 @@ async fn txn_roundtrip(
         Err(e) if e.is_retriable() || matches!(e, Error::Closed) => {}
         Err(e) => return Err(e),
     }
-    let new = discover_typed_coord(
+    let new = discover_within(
         &shared.cfg,
         &tid,
         COORDINATOR_TRANSACTION,
         required_find_coordinator(shared.find_coord_version)?,
+        deadline,
     )
     .await?;
+    let remaining = timeout_remaining(deadline)?;
     let mut guard = shared.txn.lock().await;
     *guard = Some(new);
     let conn = guard
         .as_mut()
         .ok_or_else(|| Error::protocol("no transaction coordinator"))?;
     conn.conn
-        .roundtrip(
-            api_key,
-            api_version,
-            |buf| encode_body(buf),
-            request_timeout,
-        )
+        .roundtrip(api_key, api_version, |buf| encode_body(buf), remaining)
         .await
 }
 
@@ -3495,29 +3519,43 @@ async fn group_coord_roundtrip(
     request_timeout: Duration,
     error_of: impl Fn(&[u8]) -> Result<i16>,
 ) -> Result<Bytes> {
+    let deadline = Instant::now() + request_timeout;
     let find_coord_version = required_find_coordinator(find_coord_version)?;
-    let mut coord =
-        discover_typed_coord(cfg, group_id, COORDINATOR_GROUP, find_coord_version).await?;
+    let mut coord = discover_within(
+        cfg,
+        group_id,
+        COORDINATOR_GROUP,
+        find_coord_version,
+        deadline,
+    )
+    .await?;
     let body = coord
         .conn
         .roundtrip(
             api_key,
             api_version,
             |buf| encode_body(buf),
-            request_timeout,
+            timeout_remaining(deadline)?,
         )
         .await?;
     if !error::coordinator_retriable(error_of(&body)?) {
         return Ok(body);
     }
-    coord = discover_typed_coord(cfg, group_id, COORDINATOR_GROUP, find_coord_version).await?;
+    coord = discover_within(
+        cfg,
+        group_id,
+        COORDINATOR_GROUP,
+        find_coord_version,
+        deadline,
+    )
+    .await?;
     coord
         .conn
         .roundtrip(
             api_key,
             api_version,
             |buf| encode_body(buf),
-            request_timeout,
+            timeout_remaining(deadline)?,
         )
         .await
 }
@@ -5075,18 +5113,28 @@ impl Worker {
             return Ok(());
         }
         let topics = group_txn_partitions(&added);
-        let start = Instant::now();
+        let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         loop {
             // A transport error sets no sticky state: adding partitions is
             // idempotent, so the failed send is simply retried by the caller
             // (or the transaction is aborted).
+            let remaining = match timeout_remaining(deadline) {
+                Ok(remaining) => remaining,
+                Err(error) => {
+                    let mut set = self.shared.txn_partitions.lock();
+                    for k in &added {
+                        let _ = set.remove(k);
+                    }
+                    return Err(error);
+                }
+            };
             let body = match txn_roundtrip(
                 &self.shared,
                 ADD_PARTITIONS_TO_TXN,
                 version,
                 |buf| encode_add_partitions_to_txn_request(buf, version, &tid, pid, epoch, &topics),
-                timeout,
+                remaining,
                 |body| decode_add_partitions_to_txn_response(&mut { body }, version),
             )
             .await
@@ -5118,11 +5166,13 @@ impl Worker {
             // (see the `AddOffsetsToTxn` loop for the exhausted-budget rule).
             let can_handle = self.shared.txn_can_handle_abortable();
             if classify_add_partitions_error(err, can_handle) == TxnErrorDisposition::Retriable
-                && start.elapsed() < timeout
+                && Instant::now() < deadline
             {
                 attempt += 1;
-                txn_retry_sleep(&self.shared, attempt).await;
-                continue;
+                txn_retry_sleep(&self.shared, attempt, deadline).await;
+                if Instant::now() < deadline {
+                    continue;
+                }
             }
             let mut set = self.shared.txn_partitions.lock();
             for k in &added {
