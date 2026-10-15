@@ -4582,27 +4582,35 @@ impl Worker {
         }
     }
 
+    fn record_expired(&self, pending: &Pending, now: Instant) -> bool {
+        now >= pending.deadline
+            || pending.sticky.is_some_and(|tag| {
+                self.shared
+                    .sticky
+                    .as_ref()
+                    .is_some_and(|policy| policy.lock().cancelled(tag))
+            })
+    }
+
     fn purge_expired_pending(&mut self) {
         if self.pending.is_empty() {
             return;
         }
         let now = Instant::now();
-        let mut i = 0;
+        let Some(first) = self
+            .pending
+            .iter()
+            .position(|pending| self.record_expired(pending, now))
+        else {
+            return;
+        };
+        // One pass from the first expired record. Survivors stay in order.
         let mut expired = Vec::new();
-        while i < self.pending.len() {
-            let is_expired = self.pending.get(i).is_some_and(|p| {
-                now >= p.deadline
-                    || p.sticky.is_some_and(|tag| {
-                        self.shared
-                            .sticky
-                            .as_ref()
-                            .is_some_and(|policy| policy.lock().cancelled(tag))
-                    })
-            });
-            if is_expired {
-                expired.push(self.pending.remove(i));
+        for pending in self.pending.split_off(first) {
+            if self.record_expired(&pending, now) {
+                expired.push(pending);
             } else {
-                i += 1;
+                self.pending.push(pending);
             }
         }
         if !expired.is_empty() {
