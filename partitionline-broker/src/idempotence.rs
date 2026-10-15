@@ -140,6 +140,7 @@ pub struct Producers {
     log_end: i64,
     journal: Journal,
     stored: usize,
+    encoded: Vec<u8>,
     poisoned: bool,
 }
 
@@ -154,6 +155,7 @@ impl Producers {
             log_end: 0,
             journal,
             stored: 0,
+            encoded: Vec::new(),
             poisoned: false,
         };
         let mut offset = state.journal.base_offset();
@@ -198,7 +200,7 @@ impl Producers {
             return Err(Error::InvalidLimits);
         }
         let id = self.next_id;
-        self.persist(&encode_alloc(id)?)?;
+        self.append_encoded(|bytes| write_alloc(bytes, id))?;
         self.producers.insert(
             id,
             Producer {
@@ -223,7 +225,7 @@ impl Producers {
             return Err(Error::EpochExhausted);
         }
         let epoch = producer.epoch + 1;
-        self.persist(&encode_bump(producer_id, epoch)?)?;
+        self.append_encoded(|bytes| write_bump(bytes, producer_id, epoch))?;
         let producer = self
             .producers
             .get_mut(&producer_id)
@@ -279,14 +281,17 @@ impl Producers {
         // that overflows `i32`, and a persisted record it cannot apply would
         // make the next reopen fail.
         let _ = sequence.checked_add(count).ok_or(Error::InvalidRequest)?;
-        self.persist(&encode_append(
-            producer_id,
-            epoch,
-            partition,
-            sequence,
-            count,
-            offset,
-        )?)?;
+        self.append_encoded(|bytes| {
+            write_append(
+                bytes,
+                producer_id,
+                epoch,
+                partition,
+                sequence,
+                count,
+                offset,
+            );
+        })?;
         self.note(producer_id, partition, sequence, count, offset)?;
         self.log_end = next_end;
         Ok(Batch { offset, count })
@@ -417,6 +422,15 @@ impl Producers {
         Ok(())
     }
 
+    fn append_encoded(&mut self, write: impl FnOnce(&mut Vec<u8>)) -> Result<(), Error> {
+        self.encoded.clear();
+        write(&mut self.encoded);
+        let payload = std::mem::take(&mut self.encoded);
+        let result = self.persist(&payload);
+        self.encoded = payload;
+        result
+    }
+
     fn persist(&mut self, payload: &[u8]) -> Result<(), Error> {
         if self.stored >= self.limits.max_records {
             return Err(Error::InvalidLimits);
@@ -441,23 +455,56 @@ fn split_kind(bytes: &[u8]) -> Result<(u8, &[u8]), Error> {
     Ok((bytes[RECORD_MAGIC.len()], &bytes[RECORD_MAGIC.len() + 1..]))
 }
 
-fn encode_alloc(id: i64) -> Result<Vec<u8>, Error> {
-    let mut bytes = Vec::with_capacity(17);
+fn write_alloc(bytes: &mut Vec<u8>, id: i64) {
+    bytes.clear();
     bytes.extend_from_slice(RECORD_MAGIC);
     bytes.push(KIND_ALLOC);
     bytes.extend_from_slice(&id.to_be_bytes());
-    Ok(bytes)
 }
 
-fn encode_bump(id: i64, epoch: i16) -> Result<Vec<u8>, Error> {
-    let mut bytes = Vec::with_capacity(19);
+fn write_bump(bytes: &mut Vec<u8>, id: i64, epoch: i16) {
+    bytes.clear();
     bytes.extend_from_slice(RECORD_MAGIC);
     bytes.push(KIND_BUMP);
     bytes.extend_from_slice(&id.to_be_bytes());
     bytes.extend_from_slice(&epoch.to_be_bytes());
+}
+
+fn write_append(
+    bytes: &mut Vec<u8>,
+    id: i64,
+    epoch: i16,
+    partition: i32,
+    sequence: i32,
+    count: i32,
+    offset: i64,
+) {
+    bytes.clear();
+    bytes.extend_from_slice(RECORD_MAGIC);
+    bytes.push(KIND_APPEND);
+    bytes.extend_from_slice(&id.to_be_bytes());
+    bytes.extend_from_slice(&epoch.to_be_bytes());
+    bytes.extend_from_slice(&partition.to_be_bytes());
+    bytes.extend_from_slice(&sequence.to_be_bytes());
+    bytes.extend_from_slice(&count.to_be_bytes());
+    bytes.extend_from_slice(&offset.to_be_bytes());
+}
+
+#[cfg(test)]
+fn encode_alloc(id: i64) -> Result<Vec<u8>, Error> {
+    let mut bytes = Vec::with_capacity(17);
+    write_alloc(&mut bytes, id);
     Ok(bytes)
 }
 
+#[cfg(test)]
+fn encode_bump(id: i64, epoch: i16) -> Result<Vec<u8>, Error> {
+    let mut bytes = Vec::with_capacity(19);
+    write_bump(&mut bytes, id, epoch);
+    Ok(bytes)
+}
+
+#[cfg(test)]
 fn encode_append(
     id: i64,
     epoch: i16,
@@ -467,14 +514,7 @@ fn encode_append(
     offset: i64,
 ) -> Result<Vec<u8>, Error> {
     let mut bytes = Vec::with_capacity(35);
-    bytes.extend_from_slice(RECORD_MAGIC);
-    bytes.push(KIND_APPEND);
-    bytes.extend_from_slice(&id.to_be_bytes());
-    bytes.extend_from_slice(&epoch.to_be_bytes());
-    bytes.extend_from_slice(&partition.to_be_bytes());
-    bytes.extend_from_slice(&sequence.to_be_bytes());
-    bytes.extend_from_slice(&count.to_be_bytes());
-    bytes.extend_from_slice(&offset.to_be_bytes());
+    write_append(&mut bytes, id, epoch, partition, sequence, count, offset);
     Ok(bytes)
 }
 
@@ -590,9 +630,12 @@ mod tests {
         producers
             .append(id, epoch, 1, 0, 1)
             .unwrap_or_else(|error| panic!("{error:?}"));
+        let encoded_capacity = producers.encoded.capacity();
+        assert!(encoded_capacity > 0);
         let bumped = producers
             .bump_epoch(id)
             .unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(producers.encoded.capacity() >= encoded_capacity);
         assert_eq!(bumped, 1);
         assert!(matches!(
             producers.append(id, epoch, 1, 0, 1),
