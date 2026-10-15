@@ -345,14 +345,7 @@ impl Store {
                     return Err(Error::Corrupt);
                 }
                 let key = key_of(&object);
-                if let Some(existing) = self.objects.get(&key) {
-                    if existing.object.checksum == object.checksum
-                        && existing.object.body == object.body
-                        && existing.object.key == object.key
-                        && existing.retain_until_ms == retain_until_ms
-                    {
-                        return Ok(());
-                    }
+                if self.objects.contains_key(&key) {
                     return Err(Error::InvalidRequest);
                 }
                 let added = object.body.len().saturating_add(object.key.len());
@@ -371,9 +364,28 @@ impl Store {
                     return Err(Error::InvalidRequest);
                 }
                 let stored = self.objects.get_mut(&key).ok_or(Error::Incomplete)?;
+                if stored.committed {
+                    return Err(Error::InvalidRequest);
+                }
                 stored.committed = true;
             }
-            Record::Abort(key) | Record::Expire(key) => {
+            Record::Abort(key) => {
+                if !usable_key(&key.topic, key.partition, key.base_offset) {
+                    return Err(Error::InvalidRequest);
+                }
+                let stored = self.objects.get(&key).ok_or(Error::Incomplete)?;
+                if stored.committed {
+                    return Err(Error::InvalidRequest);
+                }
+                let bytes = stored
+                    .object
+                    .body
+                    .len()
+                    .saturating_add(stored.object.key.len());
+                self.objects.remove(&key);
+                self.disk_bytes = self.disk_bytes.saturating_sub(bytes);
+            }
+            Record::Expire(key) => {
                 if !usable_key(&key.topic, key.partition, key.base_offset) {
                     return Err(Error::InvalidRequest);
                 }
@@ -627,6 +639,30 @@ mod tests {
             body,
             retain_until_ms: retain,
         }
+    }
+
+    #[test]
+    fn an_abort_of_a_published_object_is_not_recovered() {
+        let dir = path("abort-published");
+        let mut store =
+            Store::open(&dir, limits(1024, 4096)).unwrap_or_else(|error| panic!("{error:?}"));
+        store
+            .stage(segment(4, b"k", b"local", 5_000))
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        store
+            .finish(segment(4, b"k", b"local", 5_000))
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let encoded = encode_key(
+            KIND_ABORT,
+            &Key {
+                topic: "orders".to_owned(),
+                partition: 0,
+                base_offset: 4,
+            },
+        )
+        .unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(store.apply(&encoded), Err(Error::InvalidRequest)));
+        assert!(store.releasable("orders", 0, 4));
     }
 
     #[test]
