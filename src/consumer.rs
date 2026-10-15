@@ -1814,6 +1814,15 @@ pub struct Consumer {
 /// the others. A slower leader stays in flight and is applied on a later fetch.
 const MULTI_LEADER_COLLECTION_WINDOW: Duration = Duration::from_millis(10);
 
+/// How long to wait for the other leaders after the first fetch reply.
+///
+/// The window never extends past the fetch deadline.
+fn multi_leader_grace(elapsed: Duration, until_deadline: Duration) -> Duration {
+    MULTI_LEADER_COLLECTION_WINDOW
+        .saturating_sub(elapsed)
+        .min(until_deadline)
+}
+
 /// Preserve each peer's completion clock while collecting a concurrent round.
 struct FetchReply {
     node: i32,
@@ -4491,7 +4500,10 @@ impl Consumer {
         let mut first_reply: Option<Instant> = None;
         while let Some(set) = inflight.set.as_mut().filter(|set| !set.is_empty()) {
             let joined = if let Some(started) = first_reply {
-                let grace = MULTI_LEADER_COLLECTION_WINDOW.saturating_sub(started.elapsed());
+                let grace = multi_leader_grace(
+                    started.elapsed(),
+                    deadline.saturating_duration_since(Instant::now()),
+                );
                 if grace.is_zero() {
                     break;
                 }
@@ -7158,6 +7170,31 @@ mod tests {
                 ),
                 (TopicPartition::new("b", 0), OffsetAndMetadata::new(5)),
             ]
+        );
+    }
+
+    #[test]
+    fn a_multi_leader_fetch_does_not_wait_past_the_deadline() {
+        let window = Duration::from_millis(10);
+        assert_eq!(
+            multi_leader_grace(Duration::ZERO, Duration::from_secs(1)),
+            window
+        );
+        assert_eq!(
+            multi_leader_grace(Duration::from_millis(4), Duration::from_millis(20)),
+            Duration::from_millis(6)
+        );
+        assert_eq!(
+            multi_leader_grace(Duration::from_millis(4), Duration::from_millis(3)),
+            Duration::from_millis(3)
+        );
+        assert_eq!(
+            multi_leader_grace(window, Duration::from_secs(1)),
+            Duration::ZERO
+        );
+        assert_eq!(
+            multi_leader_grace(Duration::ZERO, Duration::ZERO),
+            Duration::ZERO
         );
     }
 
