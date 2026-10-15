@@ -2429,7 +2429,7 @@ fn inject_share_fetch_with_corrupt_batches(
     mock: &common::Mock,
     version: i16,
     batches: Vec<RecordBatch>,
-    acquired: AcquiredRange,
+    acquired: Vec<AcquiredRange>,
     corrupt: &[usize],
 ) {
     let mut recs = BytesMut::new();
@@ -2440,7 +2440,7 @@ fn inject_share_fetch_with_corrupt_batches(
     }
     let mut part = ShareFetchedPartition::partition_response(0, 0);
     part.records = batches;
-    part.acquired = vec![acquired];
+    part.acquired = acquired;
     let topics = vec![ShareFetchedTopic {
         topic_id: mock.topic_id("t"),
         partitions: vec![part],
@@ -2470,11 +2470,11 @@ async fn share_fetch_crc_failure_after_partial_fetch() {
         &mock,
         version,
         vec![share_batch_at(0, 5), share_batch_at(5, 10)],
-        AcquiredRange {
+        vec![AcquiredRange {
             first_offset: 0,
             last_offset: 14,
             delivery_count: 1,
-        },
+        }],
         &[1],
     );
     let first = group.poll().await.unwrap();
@@ -2512,11 +2512,11 @@ async fn share_fetch_multiple_consecutive_crc_failures() {
             share_batch_at(20, 10),
             share_batch_at(30, 10),
         ],
-        AcquiredRange {
+        vec![AcquiredRange {
             first_offset: 0,
             last_offset: 39,
             delivery_count: 1,
-        },
+        }],
         &[0, 1],
     );
     for _ in 0..2 {
@@ -2535,6 +2535,82 @@ async fn share_fetch_multiple_consecutive_crc_failures() {
     assert_eq!(
         fourth.iter().map(|rec| rec.offset).collect::<Vec<_>>(),
         (30..40).collect::<Vec<_>>()
+    );
+    match group.leave().await {
+        Ok(()) => {}
+        Err(Error::Broker { code, .. }) => assert_eq!(code, error::INVALID_RECORD_STATE),
+        other => panic!("{other:?}"),
+    }
+}
+
+#[tokio::test]
+async fn share_fetch_crc_failure_rejects_only_acquired_odds() {
+    let mock = common::Mock::start().await;
+    v2(&mock);
+    let mut group = ShareGroup::join(config(&mock), "crc-odds", "t")
+        .await
+        .unwrap();
+    let version = mock.last_share_fetch_version().unwrap_or(2);
+    let acquired = (1..10)
+        .step_by(2)
+        .map(|offset| AcquiredRange {
+            first_offset: offset,
+            last_offset: offset,
+            delivery_count: 1,
+        })
+        .collect();
+    inject_share_fetch_with_corrupt_batches(
+        &mock,
+        version,
+        vec![share_batch_at(0, 10)],
+        acquired,
+        &[0],
+    );
+    let err = group.poll().await.unwrap_err().to_string();
+    assert!(
+        err.contains("Record is corrupt"),
+        "Java CRC with gaps is still CorruptRecordException, got {err}"
+    );
+    assert_eq!(
+        group.acquired_record_count(),
+        5,
+        "Java rejects only the five acquired odd offsets"
+    );
+    match group.leave().await {
+        Ok(()) => {}
+        Err(Error::Broker { code, .. }) => assert_eq!(code, error::INVALID_RECORD_STATE),
+        other => panic!("{other:?}"),
+    }
+}
+
+#[tokio::test]
+async fn share_fetch_crc_failure_rejects_unaligned_acquired() {
+    let mock = common::Mock::start().await;
+    v2(&mock);
+    let mut group = ShareGroup::join(config(&mock), "crc-unalign", "t")
+        .await
+        .unwrap();
+    let version = mock.last_share_fetch_version().unwrap_or(2);
+    inject_share_fetch_with_corrupt_batches(
+        &mock,
+        version,
+        vec![share_batch_at(0, 20)],
+        vec![AcquiredRange {
+            first_offset: 10,
+            last_offset: 19,
+            delivery_count: 1,
+        }],
+        &[0],
+    );
+    let err = group.poll().await.unwrap_err().to_string();
+    assert!(
+        err.contains("Record is corrupt"),
+        "Java unaligned CRC is still CorruptRecordException, got {err}"
+    );
+    assert_eq!(
+        group.acquired_record_count(),
+        10,
+        "Java rejects only acquired offsets 10-19, not the whole batch"
     );
     match group.leave().await {
         Ok(()) => {}
