@@ -5767,12 +5767,8 @@ impl Admin {
             allow_replication_factor_change: allow,
             topics: group_reassignments(assignments),
         };
-        tokio::time::timeout_at(
-            tokio::time::Instant::from_std(deadline),
-            self.alter_partition_reassignments_until(request, deadline),
-        )
-        .await
-        .map_err(|_| Error::Timeout)?
+        self.alter_partition_reassignments_until(request, deadline)
+            .await
     }
 
     async fn alter_partition_reassignments_until(
@@ -6089,101 +6085,100 @@ impl Admin {
         let deadline = Instant::now()
             .checked_add(timeout)
             .ok_or_else(|| Error::protocol("UpdateFeatures deadline overflow"))?;
-        tokio::time::timeout_at(tokio::time::Instant::from_std(deadline), async {
-            let keys: Vec<FeatureUpdateKey> = updates
-                .iter()
-                .map(|u| FeatureUpdateKey {
-                    name: u.name.clone(),
-                    max_version_level: u.max_version_level,
-                    allow_downgrade: u.allow_downgrade,
-                    upgrade_type: u.upgrade_type,
-                })
-                .collect();
-            let version = self.update_features_version.ok_or_else(|| {
-                Error::Unsupported("broker does not support UpdateFeatures v0-2".into())
-            })?;
-            let mut attempt = 0u32;
-            loop {
-                if self.cluster.controller().is_err() {
-                    self.refresh_metadata_until(None, deadline).await?;
-                }
-                let node = self.cluster.controller()?;
-                self.connect_node_until(node, deadline).await?;
-                let remaining = deadline.saturating_duration_since(Instant::now());
-                if remaining.is_zero() {
-                    return Err(Error::Timeout);
-                }
-                let wire_timeout_ms = timeout_ms.min(
-                    i32::try_from(remaining.as_millis())
-                        .unwrap_or(i32::MAX)
-                        .max(1),
-                );
-                let body = {
-                    let conn = self
-                        .conns
-                        .get_mut(&node)
-                        .ok_or_else(|| Error::protocol("missing update_features conn"))?;
-                    conn.roundtrip(
-                        UPDATE_FEATURES,
-                        version,
-                        |buf| {
-                            encode_update_features_request(
-                                buf,
-                                version,
-                                wire_timeout_ms,
-                                &keys,
-                                validate_only,
-                            )
-                        },
-                        remaining,
-                    )
-                    .await
-                };
-                let body = match body {
-                    Ok(b) => b,
-                    Err(e) if e.is_retriable() => {
-                        let _ = self.conns.remove(&node);
-                        self.cluster.invalidate_controller();
-                        self.wait_retry(&mut attempt, deadline).await?;
-                        continue;
-                    }
-                    Err(e) => return Err(e),
-                };
-                let resp = decode_update_features_response(&mut body.clone(), version)?;
-                if resp.error_code == error::NOT_CONTROLLER {
-                    // NOT_CONTROLLER (41): Metadata, then the new controller.
-                    self.cluster.invalidate_controller();
+        let keys: Vec<FeatureUpdateKey> = updates
+            .iter()
+            .map(|u| FeatureUpdateKey {
+                name: u.name.clone(),
+                max_version_level: u.max_version_level,
+                allow_downgrade: u.allow_downgrade,
+                upgrade_type: u.upgrade_type,
+            })
+            .collect();
+        let version = self.update_features_version.ok_or_else(|| {
+            Error::Unsupported("broker does not support UpdateFeatures v0-2".into())
+        })?;
+        let mut attempt = 0u32;
+        loop {
+            if Instant::now() >= deadline {
+                return Err(Error::Timeout);
+            }
+            if self.cluster.controller().is_err() {
+                self.refresh_metadata_until(None, deadline).await?;
+            }
+            let node = self.cluster.controller()?;
+            self.connect_node_until(node, deadline).await?;
+            let remaining = deadline.saturating_duration_since(Instant::now());
+            if remaining.is_zero() {
+                return Err(Error::Timeout);
+            }
+            let wire_timeout_ms = timeout_ms.min(
+                i32::try_from(remaining.as_millis())
+                    .unwrap_or(i32::MAX)
+                    .max(1),
+            );
+            let body = {
+                let conn = self
+                    .conns
+                    .get_mut(&node)
+                    .ok_or_else(|| Error::protocol("missing update_features conn"))?;
+                conn.roundtrip(
+                    UPDATE_FEATURES,
+                    version,
+                    |buf| {
+                        encode_update_features_request(
+                            buf,
+                            version,
+                            wire_timeout_ms,
+                            &keys,
+                            validate_only,
+                        )
+                    },
+                    remaining,
+                )
+                .await
+            };
+            let body = match body {
+                Ok(b) => b,
+                Err(e) if e.is_retriable() => {
                     let _ = self.conns.remove(&node);
+                    self.cluster.invalidate_controller();
                     self.wait_retry(&mut attempt, deadline).await?;
-                    self.refresh_metadata_until(None, deadline).await?;
                     continue;
                 }
-                if resp.error_code != 0 {
-                    return Err(Error::broker(resp.error_code, "UpdateFeatures"));
-                }
-                if version >= 2 || resp.results.is_empty() {
-                    return Ok(keys
-                        .iter()
-                        .map(|k| FeatureUpdateResult {
-                            name: k.name.clone(),
-                            error_code: 0,
-                            error_message: None,
-                        })
-                        .collect());
-                }
-                return Ok(resp
-                    .results
-                    .into_iter()
-                    .map(|r| FeatureUpdateResult {
-                        name: r.name,
-                        error_code: r.error_code,
-                        error_message: r.error_message,
+                Err(e) => return Err(e),
+            };
+            let resp = decode_update_features_response(&mut body.clone(), version)?;
+            if resp.error_code == error::NOT_CONTROLLER {
+                // NOT_CONTROLLER (41): Metadata, then the new controller.
+                self.cluster.invalidate_controller();
+                let _ = self.conns.remove(&node);
+                self.wait_retry(&mut attempt, deadline).await?;
+                self.refresh_metadata_until(None, deadline).await?;
+                continue;
+            }
+            if resp.error_code != 0 {
+                return Err(Error::broker(resp.error_code, "UpdateFeatures"));
+            }
+            if version >= 2 || resp.results.is_empty() {
+                return Ok(keys
+                    .iter()
+                    .map(|k| FeatureUpdateResult {
+                        name: k.name.clone(),
+                        error_code: 0,
+                        error_message: None,
                     })
                     .collect());
             }
-        })
-        .await
-        .map_err(|_| Error::Timeout)?
+            return Ok(resp
+                .results
+                .into_iter()
+                .map(|r| FeatureUpdateResult {
+                    name: r.name,
+                    error_code: r.error_code,
+                    error_message: r.error_message,
+                })
+                .collect());
+        }
     }
 
     /// Supported and finalized features (Java `describeFeatures`).
@@ -7029,111 +7024,110 @@ impl Admin {
         let deadline = Instant::now()
             .checked_add(timeout)
             .ok_or_else(|| Error::protocol("WriteTxnMarkers deadline overflow"))?;
-        tokio::time::timeout_at(tokio::time::Instant::from_std(deadline), async {
-            let mut attempt = 0u32;
-            let marker = WritableTxnMarker {
-                producer_id: spec.producer_id,
-                producer_epoch: spec.producer_epoch,
-                transaction_result: TransactionResult::Abort.id(),
-                topics: vec![WritableTxnMarkerTopic {
-                    name: spec.topic.clone(),
-                    partitions: vec![spec.partition],
-                }],
-                coordinator_epoch: spec.coordinator_epoch,
+        let mut attempt = 0u32;
+        let marker = WritableTxnMarker {
+            producer_id: spec.producer_id,
+            producer_epoch: spec.producer_epoch,
+            transaction_result: TransactionResult::Abort.id(),
+            topics: vec![WritableTxnMarkerTopic {
+                name: spec.topic.clone(),
+                partitions: vec![spec.partition],
+            }],
+            coordinator_epoch: spec.coordinator_epoch,
+        };
+        loop {
+            if Instant::now() >= deadline {
+                return Err(Error::Timeout);
+            }
+            if self.cluster.leader(&spec.topic, spec.partition).is_err() {
+                let topics = [spec.topic.clone()];
+                self.refresh_metadata_until(Some(&topics), deadline).await?;
+            }
+            let (node, _) = self.cluster.leader(&spec.topic, spec.partition)?;
+            self.connect_node_until(node, deadline).await?;
+            let body = {
+                let conn = self
+                    .conns
+                    .get_mut(&node)
+                    .ok_or_else(|| Error::protocol("missing abort_transaction conn"))?;
+                conn.roundtrip(
+                    WRITE_TXN_MARKERS,
+                    version,
+                    |buf| {
+                        encode_write_txn_markers_request(
+                            buf,
+                            version,
+                            std::slice::from_ref(&marker),
+                        )
+                    },
+                    deadline.saturating_duration_since(Instant::now()),
+                )
+                .await
             };
-            loop {
-                if self.cluster.leader(&spec.topic, spec.partition).is_err() {
-                    let topics = [spec.topic.clone()];
-                    self.refresh_metadata_until(Some(&topics), deadline).await?;
-                }
-                let (node, _) = self.cluster.leader(&spec.topic, spec.partition)?;
-                self.connect_node_until(node, deadline).await?;
-                let body = {
-                    let conn = self
-                        .conns
-                        .get_mut(&node)
-                        .ok_or_else(|| Error::protocol("missing abort_transaction conn"))?;
-                    conn.roundtrip(
-                        WRITE_TXN_MARKERS,
-                        version,
-                        |buf| {
-                            encode_write_txn_markers_request(
-                                buf,
-                                version,
-                                std::slice::from_ref(&marker),
-                            )
-                        },
-                        deadline.saturating_duration_since(Instant::now()),
-                    )
-                    .await
-                };
-                let body = match body {
-                    Ok(b) => b,
-                    Err(e) if e.is_retriable() => {
-                        let _ = self.conns.remove(&node);
-                        self.wait_retry(&mut attempt, deadline).await?;
-                        continue;
-                    }
-                    Err(e) => return Err(e),
-                };
-                let mut cursor = body.clone();
-                let resp = decode_write_txn_markers_response(&mut cursor, version)?;
-                if !cursor.is_empty() {
-                    return Err(Error::protocol("WriteTxnMarkers trailing response bytes"));
-                }
-                // Official AbortTransactionHandler requires exactly one matching
-                // marker/topic/partition before consulting its error. A generic
-                // batched codec permits many entries; this public operation sent
-                // exactly one marker and must not infer success from absence.
-                let [marker_result] = resp.as_slice() else {
-                    return Err(Error::protocol("WriteTxnMarkers unexpected marker count"));
-                };
-                if marker_result.producer_id != spec.producer_id {
-                    return Err(Error::protocol(
-                        "WriteTxnMarkers unexpected producer identity",
-                    ));
-                }
-                let [topic_result] = marker_result.topics.as_slice() else {
-                    return Err(Error::protocol("WriteTxnMarkers unexpected topic count"));
-                };
-                if topic_result.name != spec.topic {
-                    return Err(Error::protocol("WriteTxnMarkers unexpected topic identity"));
-                }
-                let [partition_result] = topic_result.partitions.as_slice() else {
-                    return Err(Error::protocol(
-                        "WriteTxnMarkers unexpected partition count",
-                    ));
-                };
-                if partition_result.partition_index != spec.partition {
-                    return Err(Error::protocol(
-                        "WriteTxnMarkers unexpected partition identity",
-                    ));
-                }
-                let error_code = partition_result.error_code;
-                if error_code == 0 {
-                    return Ok(());
-                }
-                let e = Error::broker(error_code, "WriteTxnMarkers");
-                if matches!(
-                    error_code,
-                    error::FENCED_LEADER_EPOCH
-                        | error::UNKNOWN_LEADER_EPOCH
-                        | error::BROKER_NOT_AVAILABLE
-                        | error::REPLICA_NOT_AVAILABLE
-                ) || e.is_retriable()
-                {
-                    self.cluster.invalidate_topic(&spec.topic);
+            let body = match body {
+                Ok(b) => b,
+                Err(e) if e.is_retriable() => {
                     let _ = self.conns.remove(&node);
                     self.wait_retry(&mut attempt, deadline).await?;
-                    let topics = [spec.topic.clone()];
-                    self.refresh_metadata_until(Some(&topics), deadline).await?;
                     continue;
                 }
-                return Err(e);
+                Err(e) => return Err(e),
+            };
+            let mut cursor = body.clone();
+            let resp = decode_write_txn_markers_response(&mut cursor, version)?;
+            if !cursor.is_empty() {
+                return Err(Error::protocol("WriteTxnMarkers trailing response bytes"));
             }
-        })
-        .await
-        .map_err(|_| Error::Timeout)?
+            // Official AbortTransactionHandler requires exactly one matching
+            // marker/topic/partition before consulting its error. A generic
+            // batched codec permits many entries; this public operation sent
+            // exactly one marker and must not infer success from absence.
+            let [marker_result] = resp.as_slice() else {
+                return Err(Error::protocol("WriteTxnMarkers unexpected marker count"));
+            };
+            if marker_result.producer_id != spec.producer_id {
+                return Err(Error::protocol(
+                    "WriteTxnMarkers unexpected producer identity",
+                ));
+            }
+            let [topic_result] = marker_result.topics.as_slice() else {
+                return Err(Error::protocol("WriteTxnMarkers unexpected topic count"));
+            };
+            if topic_result.name != spec.topic {
+                return Err(Error::protocol("WriteTxnMarkers unexpected topic identity"));
+            }
+            let [partition_result] = topic_result.partitions.as_slice() else {
+                return Err(Error::protocol(
+                    "WriteTxnMarkers unexpected partition count",
+                ));
+            };
+            if partition_result.partition_index != spec.partition {
+                return Err(Error::protocol(
+                    "WriteTxnMarkers unexpected partition identity",
+                ));
+            }
+            let error_code = partition_result.error_code;
+            if error_code == 0 {
+                return Ok(());
+            }
+            let e = Error::broker(error_code, "WriteTxnMarkers");
+            if matches!(
+                error_code,
+                error::FENCED_LEADER_EPOCH
+                    | error::UNKNOWN_LEADER_EPOCH
+                    | error::BROKER_NOT_AVAILABLE
+                    | error::REPLICA_NOT_AVAILABLE
+            ) || e.is_retriable()
+            {
+                self.cluster.invalidate_topic(&spec.topic);
+                let _ = self.conns.remove(&node);
+                self.wait_retry(&mut attempt, deadline).await?;
+                let topics = [spec.topic.clone()];
+                self.refresh_metadata_until(Some(&topics), deadline).await?;
+                continue;
+            }
+            return Err(e);
+        }
     }
 
     /// Describe transactional.id state (DescribeTransactions api 65).
@@ -7496,21 +7490,13 @@ impl Admin {
             duration_ms,
             pattern,
         };
-        let nodes = tokio::time::timeout_at(
-            tokio::time::Instant::from_std(deadline),
-            self.list_transactions_broker_ids(deadline),
-        )
-        .await
-        .map_err(|_| Error::Timeout)??;
+        let nodes = self.list_transactions_broker_ids(deadline).await?;
         let mut results = Vec::with_capacity(nodes.len());
         let mut budget = ListTransactionsBudget::default();
         for node in nodes {
-            let listings = tokio::time::timeout_at(
-                tokio::time::Instant::from_std(deadline),
-                self.list_transactions_on_broker(node, &query, deadline, &mut budget),
-            )
-            .await
-            .unwrap_or(Err(Error::Timeout));
+            let listings = self
+                .list_transactions_on_broker(node, &query, deadline, &mut budget)
+                .await;
             results.push(BrokerTransactionListings {
                 broker_id: node,
                 listings,
