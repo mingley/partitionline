@@ -518,6 +518,17 @@ fn offset_in_log(offset: i64, log_start: i64, watermark: i64) -> bool {
     offset >= log_start && offset < watermark
 }
 
+/// Highest timestamp, and the earliest offset when that timestamp is tied.
+///
+/// Kafka `MemoryRecordsBuilder.recordWritten` updates the max-timestamp offset
+/// only when the new timestamp is strictly greater.
+fn earlier_max_offset(current: Option<(i64, i64)>, timestamp: i64, offset: i64) -> (i64, i64) {
+    match current {
+        Some((time, at)) if timestamp < time || (timestamp == time && offset >= at) => (time, at),
+        _ => (timestamp, offset),
+    }
+}
+
 fn observe_max(
     batch: records::Batch<'_>,
     log_start: i64,
@@ -531,11 +542,7 @@ fn observe_max(
         if !offset_in_log(record.offset, log_start, watermark) {
             continue;
         }
-        let candidate = (record.timestamp, record.offset);
-        best = Some(match best {
-            Some(current) if candidate <= current => current,
-            _ => candidate,
-        });
+        best = Some(earlier_max_offset(best, record.timestamp, record.offset));
     }
     Ok(best)
 }
@@ -594,6 +601,15 @@ mod tests {
         assert_eq!(super::fetch_boundary(0, 4, 1), (4, 4, 1));
         assert_eq!(super::fetch_boundary(1, 4, 1), (4, 4, 1));
         assert_eq!(super::fetch_boundary(3, 4, 1), (-1, -1, -1));
+    }
+
+    #[test]
+    fn a_tied_max_timestamp_keeps_the_earlier_offset() {
+        assert_eq!(super::earlier_max_offset(None, 5, 3), (5, 3));
+        assert_eq!(super::earlier_max_offset(Some((5, 1)), 5, 3), (5, 1));
+        assert_eq!(super::earlier_max_offset(Some((5, 4)), 5, 2), (5, 2));
+        assert_eq!(super::earlier_max_offset(Some((4, 1)), 9, 2), (9, 2));
+        assert_eq!(super::earlier_max_offset(Some((9, 4)), 4, 1), (9, 4));
     }
 
     #[test]
