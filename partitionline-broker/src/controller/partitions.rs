@@ -382,11 +382,13 @@ impl Table {
             }
             KIND_PLACEMENT => {
                 let (controller_epoch, placement) = decode_placement(rest)?;
-                if controller_epoch != self.controller_epoch {
+                if controller_epoch < 0 || controller_epoch != self.controller_epoch {
                     return Err(Error::InvalidAssignment);
                 }
-                self.placements
-                    .insert((placement.topic.clone(), placement.partition), placement);
+                let key = (placement.topic.clone(), placement.partition);
+                if accept_recovered_placement(self.placements.get(&key), &placement)? {
+                    self.placements.insert(key, placement);
+                }
             }
             _ => return Err(Error::InvalidAssignment),
         }
@@ -408,6 +410,62 @@ impl Table {
             }
         }
     }
+}
+
+/// A recovered placement is stored only when it is the first assignment at
+/// leader epoch 0, an election the live path would append, or a reassignment
+/// the live path would append. An exact copy of the current placement is ignored.
+fn accept_recovered_placement(
+    current: Option<&Placement>,
+    next: &Placement,
+) -> Result<bool, Error> {
+    catalog::validate_topic_name(&next.topic).map_err(|_| Error::InvalidAssignment)?;
+    let Some(current) = current else {
+        return if next.leader_epoch == 0 {
+            Ok(true)
+        } else {
+            Err(Error::InvalidAssignment)
+        };
+    };
+    if current == next {
+        return Ok(false);
+    }
+    let elected = next.leader != current.leader;
+    let reassigned = next.replicas != current.replicas;
+    if elected == reassigned {
+        return Err(Error::InvalidAssignment);
+    }
+    if elected {
+        let epoch = current
+            .leader_epoch
+            .checked_add(1)
+            .ok_or(Error::InvalidAssignment)?;
+        let expected_isr = if current.isr.contains(&next.leader) {
+            current.isr.clone()
+        } else {
+            vec![next.leader]
+        };
+        if next.leader_epoch != epoch
+            || next.replicas != current.replicas
+            || next.isr != expected_isr
+        {
+            return Err(Error::InvalidAssignment);
+        }
+        return Ok(true);
+    }
+    if next.leader_epoch != current.leader_epoch {
+        return Err(Error::InvalidAssignment);
+    }
+    let expected_isr: Vec<i32> = current
+        .isr
+        .iter()
+        .copied()
+        .filter(|id| next.replicas.contains(id))
+        .collect();
+    if next.isr != expected_isr {
+        return Err(Error::InvalidAssignment);
+    }
+    Ok(true)
 }
 
 fn validate_set(replicas: &[i32], leader: Option<i32>, isr: &[i32]) -> Result<(), Error> {
@@ -759,6 +817,103 @@ mod tests {
         assert_eq!(changed.replicas, vec![1, 3, 4]);
         assert_eq!(changed.isr, vec![1, 3]);
         assert_eq!(changed.leader_epoch, 0);
+    }
+
+    #[test]
+    fn a_recovered_placement_must_match_a_live_transition() {
+        let (mut table, _) = table("recover-transition");
+        table
+            .advance_controller(1)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let illegal = Placement {
+            topic: "..".to_owned(),
+            partition: 0,
+            replicas: vec![1],
+            leader: 1,
+            isr: vec![1],
+            leader_epoch: 0,
+        };
+        let encoded = encode_placement(1, &illegal).unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(
+            table.apply_record(&encoded),
+            Err(Error::InvalidAssignment)
+        ));
+        let jumped = Placement {
+            topic: "orders".to_owned(),
+            partition: 0,
+            replicas: vec![1, 2, 3],
+            leader: 1,
+            isr: vec![1, 2, 3],
+            leader_epoch: 4,
+        };
+        let encoded = encode_placement(1, &jumped).unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(
+            table.apply_record(&encoded),
+            Err(Error::InvalidAssignment)
+        ));
+        assert!(table.placement("orders", 0).is_none());
+        let created = Placement {
+            topic: "orders".to_owned(),
+            partition: 0,
+            replicas: vec![1, 2, 3],
+            leader: 1,
+            isr: vec![1, 2, 3],
+            leader_epoch: 0,
+        };
+        let encoded = encode_placement(1, &created).unwrap_or_else(|error| panic!("{error:?}"));
+        table
+            .apply_record(&encoded)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let skipped = Placement {
+            leader: 2,
+            leader_epoch: 3,
+            ..created.clone()
+        };
+        let encoded = encode_placement(1, &skipped).unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(
+            table.apply_record(&encoded),
+            Err(Error::InvalidAssignment)
+        ));
+        let elected = Placement {
+            leader: 2,
+            leader_epoch: 1,
+            ..created.clone()
+        };
+        let encoded = encode_placement(1, &elected).unwrap_or_else(|error| panic!("{error:?}"));
+        table
+            .apply_record(&encoded)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        table
+            .apply_record(&encoded)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let reassigned = Placement {
+            replicas: vec![2, 3, 4],
+            isr: vec![2, 3],
+            ..elected.clone()
+        };
+        let encoded = encode_placement(1, &reassigned).unwrap_or_else(|error| panic!("{error:?}"));
+        table
+            .apply_record(&encoded)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let both = Placement {
+            leader: 3,
+            replicas: vec![2, 3],
+            isr: vec![3],
+            leader_epoch: 2,
+            ..reassigned
+        };
+        let encoded = encode_placement(1, &both).unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(
+            table.apply_record(&encoded),
+            Err(Error::InvalidAssignment)
+        ));
+        let placement = table
+            .placement("orders", 0)
+            .unwrap_or_else(|| panic!("placement"));
+        assert_eq!(placement.leader, 2);
+        assert_eq!(placement.leader_epoch, 1);
+        assert_eq!(placement.replicas, vec![2, 3, 4]);
+        assert_eq!(placement.isr, vec![2, 3]);
     }
 
     #[test]
