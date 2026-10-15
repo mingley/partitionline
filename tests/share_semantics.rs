@@ -622,12 +622,18 @@ async fn share_fetch_refuses_piggyback_on_initial_session() {
             .lock()
             .push(exception.as_ref().and_then(|error| error.code()));
     });
-    let _ = group.poll().await;
+    let second = group.poll().await.unwrap();
     assert_eq!(
         *seen.lock(),
         vec![Some(error::NOT_LEADER_OR_FOLLOWER)],
         "Java testPiggybackAcknowledgementsOnInitialShareSessionError completes leftover acks with NOT_LEADER"
     );
+    assert_eq!(
+        mock.last_share_fetch_node(),
+        Some(2),
+        "the new leader is still fetched without leftover piggyback acks"
+    );
+    drop(second);
     assert_eq!(
         mock.share_ack_calls(),
         acks,
