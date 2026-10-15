@@ -2072,8 +2072,8 @@
 //! `INCONSISTENT_TOPIC_ID` / `UNKNOWN_TOPIC_OR_PARTITION` /
 //! `UNKNOWN_TOPIC_ID` / `REPLICA_NOT_AVAILABLE` skip without throwing,
 //! still deliver siblings, and request Metadata; `UNKNOWN_LEADER_EPOCH`
-//! skips without Metadata
-//! (Java `handleInitializeErrors`). Top-level `UNKNOWN_TOPIC_ID` still
+//! skips without Metadata (Java `handleInitializeErrors`). Top-level
+//! `UNKNOWN_TOPIC_ID` still
 //! fails that poll. A sole partition `NOT_LEADER_OR_FOLLOWER` collects empty
 //! (Java `testFetchError`). Partition `FENCED_LEADER_EPOCH`
 //! without a usable CurrentLeader skips that partition, still delivers
