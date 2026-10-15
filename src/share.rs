@@ -1782,7 +1782,7 @@ impl ShareGroup {
     /// when `ErrorMessage` is empty; it is not a
     /// ShareAcknowledge session reset. Top-level
     /// `SHARE_SESSION_NOT_FOUND` / `INVALID_SHARE_SESSION_EPOCH`
-    /// still reset, including when `ErrorMessage` is set.
+    /// still reset, including when `ErrorMessage` is set or empty.
     pub async fn commit_sync(&mut self) -> Result<AcknowledgementCommitResults> {
         if !self.has_pending_acknowledgements() {
             return Ok(Vec::new());

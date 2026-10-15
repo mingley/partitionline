@@ -2146,7 +2146,7 @@
 //! `nextEpoch`), including when `ErrorMessage` is empty;
 //! `SHARE_SESSION_NOT_FOUND` /
 //! `INVALID_SHARE_SESSION_EPOCH` still reset, including when
-//! `ErrorMessage` is set.
+//! `ErrorMessage` is set or empty.
 //! [`ShareGroup::group_metadata`] is Java `ShareConsumer.groupMetadata()`
 //! ([`ConsumerGroupMetadata`]; `generationId` is the share member epoch).
 //! [`ShareGroup::set_acknowledgement_commit_callback`] is Java

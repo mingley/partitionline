@@ -73,7 +73,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `handleResponse` `nextEpoch`), including when `ErrorMessage` is
   empty; `SHARE_SESSION_NOT_FOUND` /
   `INVALID_SHARE_SESSION_EPOCH` still reset, including when
-  `ErrorMessage` is set. A non-empty top-level `ErrorMessage` is
+  `ErrorMessage` is set or empty. A non-empty top-level `ErrorMessage` is
   preferred on that path; empty uses `ShareAcknowledge`. ShareFetch top-level
   `SHARE_SESSION_LIMIT_REACHED` / `INVALID_SHARE_SESSION_EPOCH` /
   `SHARE_SESSION_NOT_FOUND` still reset the session (Java
