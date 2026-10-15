@@ -163,7 +163,9 @@ impl Delivery {
                 if entry.record_count != 1 {
                     return Err(Error::InvalidRequest);
                 }
-                delivery.state = decode(&entry.payload)?;
+                let decoded = decode(&entry.payload)?;
+                accept_delivery(&delivery.state, &decoded, delivery.limits)?;
+                delivery.state = decoded;
                 delivery.stored = delivery.stored.saturating_add(1);
                 cursor = entry
                     .first_offset
@@ -520,6 +522,76 @@ fn put_str(bytes: &mut Vec<u8>, value: &str) -> Result<(), Error> {
     Ok(())
 }
 
+fn accept_delivery(previous: &State, next: &State, limits: Limits) -> Result<(), Error> {
+    if next.records.len() > limits.max_records {
+        return Err(Error::InvalidLimits);
+    }
+    if previous
+        .records
+        .keys()
+        .any(|offset| !next.records.contains_key(offset))
+    {
+        return Err(Error::InvalidRequest);
+    }
+    let mut added = None;
+    let mut changed = 0usize;
+    for (offset, record) in &next.records {
+        match previous.records.get(offset) {
+            None => {
+                if added.is_some() {
+                    return Err(Error::InvalidRequest);
+                }
+                added = Some(record);
+            }
+            Some(stored) if stored != record => {
+                changed += 1;
+                if !delivery_step(stored, record, limits.max_deliveries) {
+                    return Err(Error::InvalidRequest);
+                }
+            }
+            Some(_) => {}
+        }
+    }
+    if let Some(record) = added {
+        if changed == 0 && record.deliveries == 0 && record.phase == Phase::Available {
+            Ok(())
+        } else {
+            Err(Error::InvalidRequest)
+        }
+    } else if changed == 0 {
+        Err(Error::InvalidRequest)
+    } else {
+        Ok(())
+    }
+}
+
+fn delivery_step(stored: &Record, next: &Record, max_deliveries: u32) -> bool {
+    match (&stored.phase, &next.phase) {
+        (Phase::Available, Phase::Locked(_)) => {
+            stored.deliveries < max_deliveries
+                && next.deliveries == stored.deliveries.saturating_add(1)
+        }
+        (Phase::Locked(_), Phase::Accepted | Phase::Rejected) => {
+            next.deliveries == stored.deliveries
+        }
+        (Phase::Locked(_), Phase::Available) => {
+            next.deliveries == stored.deliveries && stored.deliveries < max_deliveries
+        }
+        (Phase::Locked(_), Phase::Archived) => {
+            next.deliveries == stored.deliveries && stored.deliveries >= max_deliveries
+        }
+        (Phase::Locked(old_lock), Phase::Locked(new_lock)) => {
+            if next.deliveries == stored.deliveries {
+                old_lock.member == new_lock.member && old_lock.leader_epoch == new_lock.leader_epoch
+            } else {
+                stored.deliveries < max_deliveries
+                    && next.deliveries == stored.deliveries.saturating_add(1)
+            }
+        }
+        _ => false,
+    }
+}
+
 fn release_lock(record: &mut Record, max_deliveries: u32) {
     record.phase = if record.deliveries >= max_deliveries {
         Phase::Archived
@@ -581,6 +653,24 @@ mod tests {
         let path = std::env::temp_dir().join(format!("pl-share-del-{name}-{nanos}"));
         let delivery = Delivery::open(&path, limits()).unwrap_or_else(|error| panic!("{error:?}"));
         (delivery, path)
+    }
+
+    #[test]
+    fn a_record_that_starts_accepted_is_not_recovered() {
+        let (delivery, _) = open("jump");
+        let mut records = BTreeMap::new();
+        records.insert(
+            0,
+            Record {
+                deliveries: 0,
+                phase: Phase::Accepted,
+            },
+        );
+        assert!(matches!(
+            accept_delivery(&delivery.state, &State { records }, delivery.limits),
+            Err(Error::InvalidRequest)
+        ));
+        assert!(delivery.state.records.is_empty());
     }
 
     #[test]
