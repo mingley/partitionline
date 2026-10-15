@@ -223,7 +223,9 @@ impl Groups {
                 if entry.record_count != 1 {
                     return Err(Error::InvalidRequest);
                 }
-                groups.state = decode(&entry.payload)?;
+                let decoded = decode(&entry.payload)?;
+                accept_share_group_state(&groups.state, &decoded)?;
+                groups.state = decoded;
                 groups.stored = groups.stored.saturating_add(1);
                 cursor = entry
                     .first_offset
@@ -506,6 +508,81 @@ impl Groups {
             }
         }
     }
+}
+
+fn within_steps(previous: i32, next: i32, steps: u32) -> bool {
+    let mut current = previous;
+    for _ in 0..=steps {
+        if current == next {
+            return true;
+        }
+        match current.checked_add(1) {
+            Some(advanced) => current = advanced,
+            None => return false,
+        }
+    }
+    false
+}
+
+fn accept_share_group_state(previous: &State, next: &State) -> Result<(), Error> {
+    if next.next_member != previous.next_member
+        && previous.next_member.checked_add(1) != Some(next.next_member)
+    {
+        return Err(Error::InvalidRequest);
+    }
+    if previous
+        .topics
+        .keys()
+        .any(|topic| !next.topics.contains_key(topic))
+    {
+        return Err(Error::InvalidRequest);
+    }
+    for (id, group) in &next.groups {
+        match previous.groups.get(id) {
+            None => {
+                if group.epoch != 0 || !within_steps(-1, group.assignment_epoch, 1) {
+                    return Err(Error::InvalidRequest);
+                }
+            }
+            Some(stored) => {
+                if !within_steps(stored.epoch, group.epoch, 2)
+                    || !within_steps(stored.assignment_epoch, group.assignment_epoch, 1)
+                {
+                    return Err(Error::InvalidRequest);
+                }
+                for (member_id, member) in &group.members {
+                    if let Some(stored_member) = stored.members.get(member_id) {
+                        if !within_steps(stored_member.epoch, member.epoch, 1) {
+                            return Err(Error::InvalidRequest);
+                        }
+                    } else if member.epoch != 0 {
+                        return Err(Error::InvalidRequest);
+                    }
+                }
+            }
+        }
+    }
+    let mut added = 0usize;
+    for (id, group) in &next.groups {
+        for member_id in group.members.keys() {
+            let known = previous
+                .groups
+                .get(id)
+                .is_some_and(|stored| stored.members.contains_key(member_id));
+            if !known {
+                added += 1;
+                if next.next_member != previous.next_member
+                    && member_id != &format!("s-{}", previous.next_member)
+                {
+                    return Err(Error::InvalidRequest);
+                }
+            }
+        }
+    }
+    if added > 1 || (next.next_member != previous.next_member && added != 1) {
+        return Err(Error::InvalidRequest);
+    }
+    Ok(())
 }
 
 fn advance_epoch(epoch: i32) -> Result<i32, Error> {
@@ -887,6 +964,43 @@ mod tests {
         let path = std::env::temp_dir().join(format!("pl-share-{name}-{nanos}"));
         let groups = Groups::open(&path, limits()).unwrap_or_else(|error| panic!("{error:?}"));
         (groups, path)
+    }
+
+    #[test]
+    fn a_share_epoch_jump_is_not_recovered() {
+        let (groups, _) = open("jump");
+        let mut members = BTreeMap::new();
+        members.insert(
+            "s-1".to_owned(),
+            Member {
+                epoch: 0,
+                last_seen_ms: 0,
+                acked: true,
+                version: 0,
+                topics: BTreeSet::new(),
+                assignment: BTreeMap::new(),
+            },
+        );
+        let mut stored = BTreeMap::new();
+        stored.insert(
+            "g".to_owned(),
+            Group {
+                epoch: 4,
+                assignment_epoch: 0,
+                version: 0,
+                members,
+            },
+        );
+        let state = State {
+            next_member: 2,
+            topics: BTreeMap::new(),
+            groups: stored,
+        };
+        assert!(matches!(
+            accept_share_group_state(&groups.state, &state),
+            Err(Error::InvalidRequest)
+        ));
+        assert!(groups.state.groups.is_empty());
     }
 
     #[test]
