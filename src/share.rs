@@ -803,7 +803,9 @@ pub enum ShareAcquireMode {
 /// and still requests Metadata. A ShareFetch `FENCED_LEADER_EPOCH`
 /// with CurrentLeader `leaderId == -1` and `leaderEpoch != -1` does
 /// not update the next ShareFetch target and still requests
-/// Metadata. A ShareFetch
+/// Metadata. A ShareFetch `NOT_LEADER_OR_FOLLOWER` with CurrentLeader
+/// `leaderId == -1` and `leaderEpoch != -1` does not update the next
+/// ShareFetch target and still requests Metadata. A ShareFetch
 /// `FENCED_LEADER_EPOCH` with a usable
 /// CurrentLeader on one partition updates that partition's next
 /// ShareFetch target and does not retarget a sibling whose error is
@@ -1666,6 +1668,9 @@ impl ShareGroup {
     /// `leaderId != -1` and `leaderEpoch == -1` does not update the
     /// next ShareFetch target and still requests Metadata. A
     /// ShareFetch `FENCED_LEADER_EPOCH` with CurrentLeader
+    /// `leaderId == -1` and `leaderEpoch != -1` does not update the
+    /// next ShareFetch target and still requests Metadata. A
+    /// ShareFetch `NOT_LEADER_OR_FOLLOWER` with CurrentLeader
     /// `leaderId == -1` and `leaderEpoch != -1` does not update the
     /// next ShareFetch target and still requests Metadata. A
     /// ShareFetch `FENCED_LEADER_EPOCH` with a usable CurrentLeader
