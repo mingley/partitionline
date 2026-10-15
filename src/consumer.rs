@@ -2765,18 +2765,18 @@ impl Consumer {
         }
     }
 
-    async fn reconnect_bootstrap(&mut self) -> Result<()> {
+    async fn reconnect_bootstrap(&mut self, deadline: Instant) -> Result<()> {
         self.conns.clear();
         let addr = self.conn.addr().to_string();
         let mut conn = BrokerConn::connect_tls(
             &addr,
             &self.cfg.client_id,
-            self.cfg.connect_timeout,
+            self.cfg.connect_timeout.min(startup_remaining(deadline)?),
             self.cfg.tls.as_ref(),
         )
         .await?;
         let resp =
-            crate::protocol::api::negotiate_api_versions(&mut conn, self.cfg.request_timeout)
+            crate::protocol::api::negotiate_api_versions(&mut conn, startup_remaining(deadline)?)
                 .await?;
         sasl::apply_api_keys(&mut conn, &resp.api_keys);
         sasl::authenticate(
@@ -2786,7 +2786,7 @@ impl Consumer {
             self.cfg.sasl_scram_sha512.as_ref(),
             self.cfg.sasl_oauthbearer.as_deref(),
             self.cfg.sasl_oauthbearer_oidc.as_ref(),
-            self.cfg.request_timeout,
+            startup_remaining(deadline)?,
         )
         .await?;
         self.metadata_version = resp
@@ -2826,16 +2826,16 @@ impl Consumer {
         topics: Option<&[String]>,
         timeout: Duration,
     ) -> Result<()> {
-        let deadline = crate::net::Deadline::from_timeout(timeout);
-        deadline
-            .run(self.refresh_metadata_until(topics, timeout))
+        let deadline = Instant::now().checked_add(timeout).ok_or(Error::Timeout)?;
+        crate::net::Deadline::from_std(deadline)
+            .run(self.refresh_metadata_until(topics, deadline))
             .await
     }
 
     async fn refresh_metadata_until(
         &mut self,
         topics: Option<&[String]>,
-        timeout: Duration,
+        deadline: Instant,
     ) -> Result<()> {
         if self.metadata_version == 0 {
             let mut encoded = bytes::BytesMut::new();
@@ -2843,7 +2843,7 @@ impl Consumer {
             encode_metadata_request(&mut encoded, 0, topics, allow)?;
         }
         if self.conn.idle_expired(self.cfg.connections_max_idle) {
-            self.reconnect_bootstrap().await?;
+            self.reconnect_bootstrap(deadline).await?;
         }
         let mut version = self.metadata_version;
         let allow = self.cfg.allow_auto_topic_creation || version < 4 && topics.is_none();
@@ -2853,13 +2853,13 @@ impl Consumer {
                 METADATA,
                 version,
                 |buf| encode_metadata_request(buf, version, topics, allow),
-                timeout,
+                startup_remaining(deadline)?,
             )
             .await
         {
             Ok(b) => b,
             Err(e) if e.is_retriable() => {
-                self.reconnect_bootstrap().await?;
+                self.reconnect_bootstrap(deadline).await?;
                 version = self.metadata_version;
                 let allow = self.cfg.allow_auto_topic_creation || version < 4 && topics.is_none();
                 self.conn
@@ -2867,7 +2867,7 @@ impl Consumer {
                         METADATA,
                         version,
                         |buf| encode_metadata_request(buf, version, topics, allow),
-                        timeout,
+                        startup_remaining(deadline)?,
                     )
                     .await?
             }
