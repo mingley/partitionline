@@ -7112,11 +7112,11 @@ impl Admin {
             if Instant::now() >= deadline {
                 return Err(Error::Timeout);
             }
-            if self.cluster.leader(&spec.topic, spec.partition).is_err() {
+            if self.cluster.leader_id(&spec.topic, spec.partition).is_err() {
                 let topics = [spec.topic.clone()];
                 self.refresh_metadata_until(Some(&topics), deadline).await?;
             }
-            let (node, _) = self.cluster.leader(&spec.topic, spec.partition)?;
+            let node = self.cluster.leader_id(&spec.topic, spec.partition)?;
             self.connect_node_until(node, deadline).await?;
             let body = {
                 let conn = self
@@ -8370,7 +8370,7 @@ impl Admin {
                 let Some((tp, _)) = records.get(i) else {
                     continue;
                 };
-                if self.cluster.leader(&tp.topic, tp.partition).is_err()
+                if self.cluster.leader_id(&tp.topic, tp.partition).is_err()
                     && !need.iter().any(|t| t == &tp.topic)
                 {
                     need.push(tp.topic.clone());
@@ -8385,7 +8385,7 @@ impl Admin {
                 let (tp, _) = records
                     .get(i)
                     .ok_or_else(|| Error::protocol("missing DeleteRecords query"))?;
-                let (node, _) = self.cluster.leader(&tp.topic, tp.partition)?;
+                let node = self.cluster.leader_id(&tp.topic, tp.partition)?;
                 match by_node.entry(node) {
                     std::collections::hash_map::Entry::Vacant(slot) => {
                         nodes.push(node);
@@ -8712,7 +8712,7 @@ impl Admin {
                 let Some((tp, _)) = queries.get(i) else {
                     continue;
                 };
-                if self.cluster.leader(&tp.topic, tp.partition).is_err()
+                if self.cluster.leader_id(&tp.topic, tp.partition).is_err()
                     && !need.iter().any(|t| t == &tp.topic)
                 {
                     need.push(tp.topic.clone());
@@ -8727,7 +8727,7 @@ impl Admin {
                 let (tp, _) = queries
                     .get(i)
                     .ok_or_else(|| Error::protocol("missing ListOffsets query"))?;
-                let (node, _) = self.cluster.leader(&tp.topic, tp.partition)?;
+                let node = self.cluster.leader_id(&tp.topic, tp.partition)?;
                 match by_node.entry(node) {
                     std::collections::hash_map::Entry::Vacant(slot) => {
                         nodes.push(node);
@@ -9283,7 +9283,7 @@ impl Admin {
                     let Some(tp) = partitions.get(i) else {
                         continue;
                     };
-                    if self.cluster.leader(&tp.topic, tp.partition).is_err()
+                    if self.cluster.leader_id(&tp.topic, tp.partition).is_err()
                         && !need.iter().any(|t| t == &tp.topic)
                     {
                         need.push(tp.topic.clone());
@@ -9303,7 +9303,7 @@ impl Admin {
                     let tp = partitions
                         .get(i)
                         .ok_or_else(|| Error::protocol("missing DescribeProducers query"))?;
-                    let (node, _) = self.cluster.leader(&tp.topic, tp.partition)?;
+                    let node = self.cluster.leader_id(&tp.topic, tp.partition)?;
                     match by_node.entry(node) {
                         std::collections::hash_map::Entry::Vacant(slot) => {
                             nodes.push(node);

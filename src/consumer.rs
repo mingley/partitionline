@@ -3655,7 +3655,7 @@ impl Consumer {
             }
             let mut missing_leader = false;
             for (topic, partition) in &remaining {
-                if self.cluster.leader(topic, *partition).is_err() {
+                if self.cluster.leader_id(topic, *partition).is_err() {
                     missing_leader = true;
                     break;
                 }
@@ -3673,8 +3673,8 @@ impl Consumer {
             let mut by_leader: HashMap<i32, Vec<(String, i32)>> = HashMap::new();
             let mut retry = Vec::new();
             for (topic, partition) in remaining {
-                match self.cluster.leader(&topic, partition) {
-                    Ok((node, _)) => by_leader.entry(node).or_default().push((topic, partition)),
+                match self.cluster.leader_id(&topic, partition) {
+                    Ok(node) => by_leader.entry(node).or_default().push((topic, partition)),
                     Err(_) => retry.push((topic, partition)),
                 }
             }
@@ -4270,7 +4270,7 @@ impl Consumer {
                 } else {
                     None
                 };
-                let leader = self.cluster.leader(topic, *part).ok().map(|(n, _)| n);
+                let leader = self.cluster.leader_id(topic, *part).ok();
                 let preferred_known =
                     preferred.is_some_and(|node| self.cluster.brokers.contains_key(&node));
                 let node = fetch_target(preferred, preferred_known, leader);
@@ -5210,12 +5210,8 @@ impl Consumer {
                     }
                 }
                 if part.error_code == error::OFFSET_OUT_OF_RANGE {
-                    let is_leader = self
-                        .cluster
-                        .leader(&name, part.partition)
-                        .ok()
-                        .map(|(l, _)| l)
-                        == Some(node);
+                    let is_leader =
+                        self.cluster.leader_id(&name, part.partition).ok() == Some(node);
                     if self.preferred.remove(&name, part.partition).is_some() || !is_leader {
                         let _ = self.preferred.remove(&name, part.partition);
                         retry = retry.merge(FetchRetry::Redirect);
@@ -5277,12 +5273,8 @@ impl Consumer {
                 if position_past_high_watermark(req_offset, part.high_watermark)
                     || position_before_log_start(req_offset, part.log_start_offset)
                 {
-                    let is_leader = self
-                        .cluster
-                        .leader(&name, part.partition)
-                        .ok()
-                        .map(|(leader, _)| leader)
-                        == Some(node);
+                    let is_leader =
+                        self.cluster.leader_id(&name, part.partition).ok() == Some(node);
                     if self.preferred.remove(&name, part.partition).is_some() || !is_leader {
                         let _ = self.preferred.remove(&name, part.partition);
                         retry = retry.merge(FetchRetry::Redirect);
@@ -5741,7 +5733,7 @@ impl Consumer {
             if Instant::now() >= deadline {
                 return Err(Error::Timeout);
             }
-            if self.cluster.leader(topic, partition).is_err() {
+            if self.cluster.leader_id(topic, partition).is_err() {
                 let topics = [topic.to_string()];
                 self.refresh_metadata_timeout(
                     Some(&topics),
@@ -5749,7 +5741,7 @@ impl Consumer {
                 )
                 .await?;
             }
-            let (node, _) = self.cluster.leader(topic, partition)?;
+            let node = self.cluster.leader_id(topic, partition)?;
             self.connect_node(node, deadline).await?;
             let isolation = self.cfg.isolation_level.as_i8();
             let minimum =
@@ -6929,8 +6921,8 @@ where
             if preferred.get(topic.as_ref(), part.partition).copied() != Some(node) {
                 return false;
             }
-            match cluster.leader(topic.as_ref(), part.partition) {
-                Ok((leader, _)) if leader != node => {}
+            match cluster.leader_id(topic.as_ref(), part.partition) {
+                Ok(leader) if leader != node => {}
                 _ => return false,
             }
         }
@@ -6961,8 +6953,7 @@ where
     for (topic, parts) in by_topic {
         for part in parts {
             let leader = cluster
-                .leader(topic.as_ref(), part.partition)
-                .map(|(leader, _)| leader)
+                .leader_id(topic.as_ref(), part.partition)
                 .unwrap_or(node);
             if leader != node {
                 let _removed = preferred.remove(topic.as_ref(), part.partition);

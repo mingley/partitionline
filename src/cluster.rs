@@ -416,7 +416,7 @@ impl Cluster {
     }
 
     /// Leader node id and `host:port` for `topic`/`partition`.
-    pub(crate) fn leader(&self, topic: &str, partition: i32) -> Result<(i32, String)> {
+    pub(crate) fn leader_id(&self, topic: &str, partition: i32) -> Result<i32> {
         let parts = self
             .leaders
             .get(topic)
@@ -433,6 +433,18 @@ impl Cluster {
                 topic: topic.to_string(),
                 partition,
             })?;
+        if self.brokers.contains_key(&node) {
+            Ok(node)
+        } else {
+            Err(Error::NoLeader {
+                topic: topic.to_string(),
+                partition,
+            })
+        }
+    }
+
+    pub(crate) fn leader(&self, topic: &str, partition: i32) -> Result<(i32, String)> {
+        let node = self.leader_id(topic, partition)?;
         let addr = self
             .brokers
             .get(&node)
@@ -728,6 +740,10 @@ mod tests {
                 topic(error::UNKNOWN_TOPIC_OR_PARTITION, 0),
             ]),
             13,
+        );
+        assert_eq!(
+            cluster.leader_id("t", 0).unwrap(),
+            cluster.leader("t", 0).unwrap().0
         );
         assert_eq!(cluster.leader("t", 0).unwrap().0, 1);
         assert_eq!(cluster.leader_epoch("t", 0), 4);

@@ -1764,7 +1764,7 @@ impl Producer {
     fn worker_for(&self, rec: &ProduceRecord) -> Option<WorkerHandle> {
         let p = rec.partition?;
         let cluster = self.inner.shared.cluster.lock();
-        let (node, _) = cluster.leader(rec.topic.as_ref(), p).ok()?;
+        let node = cluster.leader_id(rec.topic.as_ref(), p).ok()?;
         drop(cluster);
         let n_conn = self.inner.shared.cfg.connections.max(1);
         let slot = usize::try_from(p).unwrap_or(0) % n_conn;
@@ -1777,12 +1777,12 @@ impl Producer {
     fn nudge_topic(&self, rec: &ProduceRecord) {
         drop(self.inner.shared.meta_tx.try_send(rec.topic.clone()));
         if let Some(p) = rec.partition {
-            if let Ok((node, _)) = self
+            if let Ok(node) = self
                 .inner
                 .shared
                 .cluster
                 .lock()
-                .leader(rec.topic.as_ref(), p)
+                .leader_id(rec.topic.as_ref(), p)
             {
                 let n_conn = self.inner.shared.cfg.connections.max(1);
                 let slot = usize::try_from(p).unwrap_or(0) % n_conn;
@@ -2046,7 +2046,7 @@ impl Producer {
             |route| route.partition,
         );
         pending.rec.partition = Some(partition);
-        let Ok((node, _)) = cluster.leader(&pending.rec.topic, partition) else {
+        let Ok(node) = cluster.leader_id(&pending.rec.topic, partition) else {
             return Err(Error::QueueFull);
         };
         let slot = usize::try_from(partition).unwrap_or(0) % shared.cfg.connections.max(1);
@@ -4172,7 +4172,7 @@ async fn retry_one(shared: &Arc<Shared>, p: Pending) {
             Some(part) => shared
                 .cluster
                 .lock()
-                .leader(p.rec.topic.as_ref(), part)
+                .leader_id(p.rec.topic.as_ref(), part)
                 .is_err(),
             None => true,
         }
@@ -4208,8 +4208,8 @@ async fn retry_one(shared: &Arc<Shared>, p: Pending) {
     let Some(part) = p.rec.partition else {
         return;
     };
-    let leader = shared.cluster.lock().leader(p.rec.topic.as_ref(), part);
-    let Ok((node, _)) = leader else {
+    let leader = shared.cluster.lock().leader_id(p.rec.topic.as_ref(), part);
+    let Ok(node) = leader else {
         return;
     };
     let n_conn = shared.cfg.connections.max(1);
@@ -4293,7 +4293,7 @@ async fn retry_sticky_one(shared: &Arc<Shared>, guard: &mut RetryGuard<'_>) {
             {
                 return;
             }
-            if let Ok((node, _)) = cluster.leader(&topic, partition) {
+            if let Ok(node) = cluster.leader_id(&topic, partition) {
                 let slot = usize::try_from(partition).unwrap_or(0) % shared.cfg.connections.max(1);
                 try_nudge_slot(&shared.connect_tx, node, slot);
                 let worker = shared
