@@ -206,6 +206,8 @@ struct Slot {
     id: TopicId,
     index: i32,
     partition: partition::Partition,
+    /// [`Store::read_epoch`] last used to drop this log's cached file length.
+    seen_epoch: u64,
 }
 
 /// An open partition log, resolved once and reused for each record read.
@@ -240,6 +242,9 @@ pub(crate) struct Store {
     retention: Option<retention::Config>,
     compaction: Option<compaction::Policy>,
     sweep_cursor: usize,
+    /// Bumped once per fetch request. A log rechecks its file length the first
+    /// time it is read in that request, then reuses the check for later entries.
+    read_epoch: u64,
 }
 impl Store {
     pub(crate) fn open(config: Config, catalog: &Catalog) -> Result<Self, Error> {
@@ -297,6 +302,7 @@ impl Store {
                 id,
                 index,
                 partition,
+                seen_epoch: 0,
             });
         }
         Ok(Self {
@@ -307,6 +313,7 @@ impl Store {
             retention: None,
             compaction: None,
             sweep_cursor: 0,
+            read_epoch: 0,
         })
     }
     pub(crate) fn enable_retention(&mut self, config: retention::Config) -> Result<(), Error> {
@@ -475,6 +482,7 @@ impl Store {
             id,
             index,
             partition,
+            seen_epoch: 0,
         });
         let _ = self.located.insert((id, index), position);
         Ok(position)
@@ -604,10 +612,10 @@ impl Store {
         active()?;
         Ok(report)
     }
-    pub(crate) fn invalidate_length_observations(&mut self) {
-        for slot in &mut self.slots {
-            slot.partition.invalidate_length_observation();
-        }
+    /// Start a fetch request. Only logs read after this drop their cached
+    /// file length, so an unrelated partition is not touched.
+    pub(crate) fn begin_read(&mut self) {
+        self.read_epoch = self.read_epoch.wrapping_add(1);
     }
     pub(crate) fn read_entry_at(
         &mut self,
@@ -617,6 +625,7 @@ impl Store {
         remaining_entries: usize,
         dest: &mut Vec<u8>,
     ) -> Result<(Option<journal::PayloadView>, segments::Work), partition::Error> {
+        let epoch = self.read_epoch;
         let max_entry = self.config.journal_limits.max_entry_bytes();
         let matched = log.as_ref().is_some_and(|log| {
             self.slots
@@ -634,6 +643,10 @@ impl Store {
         let Some(slot) = slot else {
             return Ok((None, segments::Work::default()));
         };
+        if slot.seen_epoch != epoch {
+            slot.partition.invalidate_length_observation();
+            slot.seen_epoch = epoch;
+        }
         let maximum = max_entry
             .min(remaining_bytes)
             .checked_add(std::mem::size_of::<journal::Entry>())

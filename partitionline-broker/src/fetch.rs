@@ -668,7 +668,7 @@ pub(crate) fn process(
     active: impl Fn() -> Result<(), Error>,
 ) -> Result<Snapshot, Error> {
     active()?;
-    store.invalidate_length_observations();
+    store.begin_read();
     let (header, body) = protocol::RequestHeader::parse(input, 1, common.protocol_limits)?;
     let key = header.api_key;
     let version = header.api_version;
