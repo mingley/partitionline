@@ -66,6 +66,10 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `UNKNOWN_TOPIC_OR_PARTITION` / `UNKNOWN_TOPIC_ID` with a usable
   CurrentLeader plus NodeEndpoints updates the next ShareFetch target
   without a Metadata refresh (Java `updateLeaderInfoMap` / KIP-951).
+  A ShareAcknowledge partition `FENCED_LEADER_EPOCH` with CurrentLeader
+  `leaderId != -1` and `leaderEpoch == -1` does not update the next
+  ShareFetch target and still requests Metadata (Java
+  `updateLeaderInfoMap` requires both).
   A ShareAcknowledge partition `FENCED_LEADER_EPOCH` /
   `UNKNOWN_TOPIC_OR_PARTITION` / `UNKNOWN_TOPIC_ID` with a usable
   CurrentLeader on one partition updates that partition's next
