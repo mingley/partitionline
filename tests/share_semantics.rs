@@ -1288,6 +1288,67 @@ async fn explicit_leave_after_leader_change_sends_unmoved_acks() {
 }
 
 #[tokio::test]
+async fn explicit_leave_after_leader_change_fires_partition_callbacks() {
+    let mock = common::Mock::start_two_node().await;
+    v2(&mock);
+    mock.set_topic_partitions("t", 2);
+    mock.set_partition_leader("t", 0, 1);
+    mock.set_partition_leader("t", 1, 1);
+    produce(&mock, &[(0, b"keep-success"), (1, b"move-lock")]).await;
+    let mut group = ShareGroup::join(config(&mock), "close-cb", "t")
+        .await
+        .unwrap();
+    let acquired = group.poll().await.unwrap();
+    assert_eq!(acquired.len(), 2);
+    mock.set_partition_leader("t", 1, 2);
+    let _ = group.list_topics().await.unwrap();
+    group.accept(&acquired).await.unwrap();
+    let seen = Arc::new(Mutex::new(Vec::new()));
+    let seen_cb = seen.clone();
+    group.set_acknowledgement_commit_callback(move |offsets, exception| {
+        seen_cb.lock().push((
+            offsets
+                .iter()
+                .map(|(tp, _)| (tp.topic().to_string(), tp.partition()))
+                .collect::<Vec<_>>(),
+            exception
+                .as_ref()
+                .and_then(AcknowledgementCommitError::code),
+        ));
+    });
+    group.leave().await.unwrap();
+    let got = seen.lock().clone();
+    assert_eq!(
+        got.len(),
+        2,
+        "Java testLeadershipChangeAfterFetchBeforeCloseMove invokes once per partition, got {got:?}"
+    );
+    assert!(
+        got.iter().all(|(offsets, _)| offsets.len() == 1),
+        "each invocation is one topic-partition, got {got:?}"
+    );
+    let mut saw_ok = false;
+    let mut saw_moved = false;
+    for (offsets, code) in &got {
+        match (offsets[0].1, code) {
+            (0, None) => saw_ok = true,
+            (1, Some(code)) if *code == error::NOT_LEADER_OR_FOLLOWER => saw_moved = true,
+            other => panic!("unexpected leave callback {other:?}"),
+        }
+    }
+    assert!(
+        saw_ok,
+        "still-led ACCEPT must pass a null exception, got {got:?}"
+    );
+    assert!(
+        saw_moved,
+        "moved leftover acks complete NOT_LEADER, got {got:?}"
+    );
+    assert!(mock.share_accepted("close-cb", "t", 0, 0));
+    assert!(!mock.share_accepted("close-cb", "t", 1, 0));
+}
+
+#[tokio::test]
 async fn implicit_commit_sync_returns_empty_optional() {
     let mock = common::Mock::start().await;
     produce(&mock, &[(0, b"first")]).await;
