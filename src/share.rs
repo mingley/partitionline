@@ -2389,7 +2389,13 @@ impl ShareGroup {
                         // metadata update and do not throw. Sibling
                         // partitions stay collectable.
                         if share_fetch_partition_skipped(part.error_code) {
-                            if node_retriable.is_none() && share_leader_retriable(&error) {
+                            // A usable CurrentLeader is a redirect, not a
+                            // failed fetch. Returning NOT_LEADER here would
+                            // make poll() refresh Metadata and drop the hint.
+                            if !applied_leader
+                                && node_retriable.is_none()
+                                && share_leader_retriable(&error)
+                            {
                                 node_retriable = Some(error);
                             }
                             continue;

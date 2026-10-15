@@ -1674,9 +1674,9 @@ async fn share_fetch_current_leader_overrides_cached_metadata() {
     encode_share_fetch_response_with_endpoints(&mut injected, version, &topics, &endpoints)
         .unwrap();
     mock.inject_share_fetch_response_once(&injected);
-    assert_broker(
-        group.poll().await.unwrap_err(),
-        error::NOT_LEADER_OR_FOLLOWER,
+    assert!(
+        group.poll().await.unwrap().is_empty(),
+        "Java collect skips NOT_LEADER when CurrentLeader is applied"
     );
     assert_eq!(mock.last_share_fetch_node(), Some(1));
     let after_err = mock.metadata_calls();
