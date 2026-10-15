@@ -422,11 +422,24 @@ impl Durability {
                 return Err(Error::InvalidLimits);
             }
         }
-        for (offset, id, end) in rows {
+        let replay = rows
+            .iter()
+            .all(|(offset, id, _)| self.ids.get(offset).copied() == Some(*id));
+        if replay {
+            return Ok(());
+        }
+        let mut extension = self.high_watermark;
+        for (offset, _, end) in &rows {
+            if *offset != extension {
+                return Err(Error::InvalidLimits);
+            }
+            extension = *end;
+        }
+        for (offset, id, _) in rows {
             self.ids.insert(offset, id);
             self.committed.insert(id);
-            self.high_watermark = self.high_watermark.max(end);
         }
+        self.high_watermark = extension;
         Ok(())
     }
 
@@ -658,5 +671,14 @@ mod tests {
         assert_eq!(state.ids.get(&0).copied(), Some(4));
         assert!(!state.ids.contains_key(&1));
         assert_eq!(state.high_watermark(), 1);
+        let gap = encode_commit(&[(2, 9)]).unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(state.apply(&gap), Err(Error::InvalidLimits)));
+        assert_eq!(state.high_watermark(), 1);
+        let next = encode_commit(&[(1, 9)]).unwrap_or_else(|error| panic!("{error:?}"));
+        state
+            .apply(&next)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(state.high_watermark(), 2);
+        assert!(state.is_committed(9));
     }
 }
