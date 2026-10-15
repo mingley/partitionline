@@ -4598,11 +4598,7 @@ impl Consumer {
         let mut seen_partitions: HashSet<(String, i32)> = HashSet::new();
         for (topic, topic_batches) in fetched.into_iter().zip(batches) {
             if *budget_reached {
-                let name = if !topic.topic.is_empty() {
-                    topic.topic
-                } else if let Some(n) = id_names.get(&topic.topic_id) {
-                    n.clone()
-                } else {
+                let Some(name) = fetch_topic_name(&topic.topic, topic.topic_id, &id_names)? else {
                     continue;
                 };
                 for (part, part_batches) in topic.partitions.into_iter().zip(topic_batches) {
@@ -4623,11 +4619,7 @@ impl Consumer {
                 }
                 continue;
             }
-            let name = if !topic.topic.is_empty() {
-                topic.topic
-            } else if let Some(n) = id_names.get(&topic.topic_id) {
-                n.clone()
-            } else {
+            let Some(name) = fetch_topic_name(&topic.topic, topic.topic_id, &id_names)? else {
                 continue;
             };
             for (part, part_batches) in topic.partitions.into_iter().zip(topic_batches) {
@@ -5993,6 +5985,7 @@ fn resolved_topic_identities<'a>(
 ) -> (HashMap<String, [u8; 16]>, HashMap<[u8; 16], String>) {
     let mut by_name = HashMap::new();
     let mut by_id = HashMap::new();
+    let mut ambiguous = HashSet::new();
     for (name, metadata_id) in topics {
         let id = cached
             .get(name)
@@ -6003,11 +5996,48 @@ fn resolved_topic_identities<'a>(
             continue;
         }
         let _previous = by_name.insert(name.to_owned(), id);
-        if id != [0; 16] {
-            let _previous = by_id.insert(id, name.to_owned());
+        if id == [0; 16] || ambiguous.contains(&id) {
+            continue;
+        }
+        match by_id.get(&id).map(String::as_str) {
+            Some(existing) if existing != name => {
+                let _removed = by_id.remove(&id);
+                let _inserted = ambiguous.insert(id);
+            }
+            Some(_) => {}
+            None => {
+                let _previous = by_id.insert(id, name.to_owned());
+            }
         }
     }
     (by_name, by_id)
+}
+
+/// Name to use for one Fetch topic.
+///
+/// A non-zero topic id selects the subscribed name. A response name that
+/// disagrees with that id is rejected. An unknown id does not borrow another
+/// topic's name; an empty response name is then skipped.
+fn fetch_topic_name(
+    response_name: &str,
+    topic_id: [u8; 16],
+    id_names: &HashMap<[u8; 16], String>,
+) -> Result<Option<String>> {
+    if topic_id != [0; 16] {
+        if let Some(mapped) = id_names.get(&topic_id) {
+            if !response_name.is_empty() && response_name != mapped.as_str() {
+                return Err(Error::protocol(
+                    "fetch topic id does not match the topic name",
+                ));
+            }
+            return Ok(Some(mapped.clone()));
+        }
+    }
+    if response_name.is_empty() {
+        Ok(None)
+    } else {
+        Ok(Some(response_name.to_owned()))
+    }
 }
 
 /// First copy of a fetch partition wins. A later copy is ignored.
@@ -6554,6 +6584,42 @@ mod tests {
         assert!(!take_fetch_partition(&mut seen, "t", 0));
         assert!(take_fetch_partition(&mut seen, "t", 1));
         assert!(take_fetch_partition(&mut seen, "u", 0));
+    }
+
+    #[test]
+    fn a_topic_id_shared_by_two_names_is_not_resolved() {
+        let (by_name, by_id) = resolved_topic_identities(
+            [("orders", [7u8; 16]), ("trades", [7u8; 16])],
+            &HashMap::new(),
+        );
+        assert_eq!(by_name.get("orders").copied(), Some([7u8; 16]));
+        assert_eq!(by_name.get("trades").copied(), Some([7u8; 16]));
+        assert!(by_id.get(&[7u8; 16]).is_none());
+        let named = fetch_topic_name("", [7u8; 16], &by_id);
+        assert!(named.is_ok());
+        if let Ok(name) = named {
+            assert!(name.is_none());
+        }
+        let agreed = fetch_topic_name(
+            "",
+            [1u8; 16],
+            &HashMap::from([([1u8; 16], "orders".to_owned())]),
+        );
+        assert!(agreed.is_ok());
+        if let Ok(name) = agreed {
+            assert_eq!(name.as_deref(), Some("orders"));
+        }
+        assert!(fetch_topic_name(
+            "trades",
+            [1u8; 16],
+            &HashMap::from([([1u8; 16], "orders".to_owned())])
+        )
+        .is_err());
+        let plain = fetch_topic_name("orders", [0u8; 16], &HashMap::new());
+        assert!(plain.is_ok());
+        if let Ok(name) = plain {
+            assert_eq!(name.as_deref(), Some("orders"));
+        }
     }
 
     #[test]
