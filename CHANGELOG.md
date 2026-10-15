@@ -65,6 +65,9 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   CurrentLeader skips that partition, still delivers siblings, and
   requests Metadata (Java
   `testWhenShareFetchResponseReturnsALeadershipChangeErrorButNoNewLeaderInformation`).
+  A usable CurrentLeader plus NodeEndpoints redirects the next
+  ShareFetch without a Metadata refresh (Java
+  `testWhenFetchResponseReturnsWithALeadershipChangeErrorAndNewLeaderInformation`).
 
 - `ShareGroup::set_acknowledgement_commit_callback` is Java
   `ShareConsumer.setAcknowledgementCommitCallback`

@@ -2075,6 +2075,9 @@
 //! without a usable CurrentLeader skips that partition, still delivers
 //! siblings, and requests Metadata (Java
 //! `testWhenShareFetchResponseReturnsALeadershipChangeErrorButNoNewLeaderInformation`).
+//! A usable CurrentLeader plus NodeEndpoints redirects the next
+//! ShareFetch without a Metadata refresh (Java
+//! `testWhenFetchResponseReturnsWithALeadershipChangeErrorAndNewLeaderInformation`).
 //! Implicit
 //! [`ShareGroup::leave`] / [`ShareGroup::close`] release the last poll
 //! without ACCEPT (Java `close`). [`ShareGroup::poll`] returns
