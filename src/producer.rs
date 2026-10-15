@@ -4541,6 +4541,10 @@ struct ProduceGroupScratch {
     parts: Vec<Vec<usize>>,
     /// Partition slots for a one-topic batch. Cleared on each use.
     partition_slots: HashMap<i32, usize>,
+    /// Topic name to the group-list slot. Cleared on each mixed batch.
+    topic_slots: HashMap<Arc<str>, usize>,
+    /// Sequence base already packed for each topic partition. Cleared per take.
+    batch_bases: HashMap<Arc<str>, HashMap<i32, Option<i32>>>,
 }
 
 struct PendingParts {
@@ -5200,10 +5204,11 @@ impl Worker {
         let batch: Vec<Pending> = if self.shared.sticky.is_some() {
             self.take_sticky_batch().await
         } else {
-            let n = take_count(
+            let n = take_count_in(
                 &self.pending,
                 self.shared.cfg.batch_records,
                 self.shared.cfg.produce_batch_bytes(),
+                &mut self.group_scratch.batch_bases,
             );
             self.drain_pending(n)
         };
@@ -6152,7 +6157,18 @@ fn group_pending(
     out
 }
 
+#[cfg(test)]
 fn take_count(pending: &[Pending], rec_limit: usize, byte_limit: usize) -> usize {
+    let mut bases = HashMap::new();
+    take_count_in(pending, rec_limit, byte_limit, &mut bases)
+}
+
+fn take_count_in(
+    pending: &[Pending],
+    rec_limit: usize,
+    byte_limit: usize,
+    bases: &mut HashMap<Arc<str>, HashMap<i32, Option<i32>>>,
+) -> usize {
     let group_overhead = usize::try_from(RecordBatch::RECORD_BATCH_OVERHEAD).unwrap_or(0);
     if let Some(first) = pending.first() {
         let topic = first.rec.topic.as_ref();
@@ -6184,17 +6200,23 @@ fn take_count(pending: &[Pending], rec_limit: usize, byte_limit: usize) -> usize
     }
     let mut n = 0;
     let mut bytes = 0usize;
-    let mut batch_bases: HashMap<(&str, i32), Option<i32>> = HashMap::new();
+    for parts in bases.values_mut() {
+        parts.clear();
+    }
     for p in pending.iter().take(rec_limit) {
-        let key = (p.rec.topic.as_ref(), p.rec.partition.unwrap_or(0));
-        let new_group = match batch_bases.get(&key) {
-            Some(&expected_base) => {
-                if p.batch_base_seq != expected_base {
-                    break;
+        let partition = p.rec.partition.unwrap_or(0);
+        let new_group = if let Some(parts) = bases.get(p.rec.topic.as_ref()) {
+            match parts.get(&partition) {
+                Some(&expected_base) => {
+                    if p.batch_base_seq != expected_base {
+                        break;
+                    }
+                    false
                 }
-                false
+                None => true,
             }
-            None => true,
+        } else {
+            true
         };
         // KL09-14: strict bound — stop before the record that would cross
         // it, counting one batch overhead per partition group. The take
@@ -6205,7 +6227,13 @@ fn take_count(pending: &[Pending], rec_limit: usize, byte_limit: usize) -> usize
             break;
         }
         if new_group {
-            let _ = batch_bases.insert(key, p.batch_base_seq);
+            if let Some(parts) = bases.get_mut(p.rec.topic.as_ref()) {
+                let _ = parts.insert(partition, p.batch_base_seq);
+            } else {
+                let mut parts = HashMap::new();
+                let _ = parts.insert(partition, p.batch_base_seq);
+                let _ = bases.insert(Arc::clone(&p.rec.topic), parts);
+            }
         }
         bytes = bytes.saturating_add(add);
         n += 1;
@@ -6213,6 +6241,7 @@ fn take_count(pending: &[Pending], rec_limit: usize, byte_limit: usize) -> usize
             break;
         }
     }
+    bases.retain(|_, parts| !parts.is_empty());
     n.max(1).min(pending.len())
 }
 
@@ -6453,9 +6482,9 @@ fn index_produce_groups(
             return;
         }
     }
-    let mut slot_of: HashMap<&str, usize> = HashMap::new();
+    scratch.topic_slots.clear();
     for (index, (topic, _, _)) in groups.iter().enumerate() {
-        if let Some(&slot) = slot_of.get(topic.as_ref()) {
+        if let Some(&slot) = scratch.topic_slots.get(topic.as_ref()) {
             if let Some(parts) = scratch.parts.get_mut(slot) {
                 parts.push(index);
             }
@@ -6469,7 +6498,7 @@ fn index_produce_groups(
         if let Some(parts) = scratch.parts.get_mut(slot) {
             parts.push(index);
         }
-        let _ = slot_of.insert(topic.as_ref(), slot);
+        let _ = scratch.topic_slots.insert(Arc::clone(topic), slot);
     }
 }
 
@@ -6986,6 +7015,19 @@ mod tests {
         split[1].batch_base_seq = Some(2);
         assert_eq!(take_count(&split, 10, usize::MAX), 1);
         assert_eq!(take_count(&[], 10, usize::MAX), 0);
+        let mut bases = HashMap::new();
+        let mixed_topics = vec![
+            queued("t", Some(0)),
+            queued("t", Some(1)),
+            queued("u", Some(0)),
+        ];
+        assert_eq!(take_count_in(&mixed_topics, 10, usize::MAX, &mut bases), 3);
+        assert_eq!(bases.len(), 2);
+        assert_eq!(take_count_in(&mixed_topics, 10, usize::MAX, &mut bases), 3);
+        let mut same_base = vec![queued("t", Some(0)), queued("t", Some(0))];
+        same_base[0].batch_base_seq = Some(4);
+        same_base[1].batch_base_seq = Some(4);
+        assert_eq!(take_count_in(&same_base, 10, usize::MAX, &mut bases), 2);
     }
 
     #[test]
