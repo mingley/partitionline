@@ -11474,6 +11474,62 @@ async fn share_fetch_unknown_server_error_current_leader_does_not_override() {
 }
 
 #[tokio::test]
+async fn share_fetch_unknown_server_error_sibling_current_leader_does_not_override() {
+    let mock = common::Mock::start_two_node().await;
+    v2(&mock);
+    mock.set_topic_partitions("t", 2);
+    mock.set_partition_leader("t", 0, 1);
+    mock.set_partition_leader("t", 1, 1);
+    produce(&mock, &[(1, b"later")]).await;
+    let mut group = ShareGroup::join(config(&mock), "fetch-unk-srv-sib-cur", "t")
+        .await
+        .unwrap();
+    let version = mock.last_share_fetch_version().unwrap_or(2);
+    let mut failed = ShareFetchedPartition::partition_response(1, error::UNKNOWN_SERVER_ERROR);
+    failed.current_leader_id = 2;
+    failed.current_leader_epoch = 1;
+    let topics = vec![ShareFetchedTopic {
+        topic_id: mock.topic_id("t"),
+        partitions: vec![injected_share_success(b"keep"), failed],
+    }];
+    let addr = mock.broker_addr(2).expect("node 2 listening");
+    let (host, port) = addr.rsplit_once(':').expect("host:port");
+    let endpoints = vec![NodeEndpoint::new(
+        2,
+        host,
+        port.parse().expect("port"),
+        None,
+    )];
+    let mut injected = BytesMut::new();
+    encode_share_fetch_response_with_endpoints(&mut injected, version, &topics, &endpoints)
+        .unwrap();
+    mock.inject_share_fetch_response_once(&injected);
+    let first = group.poll().await.unwrap();
+    assert_eq!(first.len(), 1);
+    assert_eq!(first[0].partition, 0);
+    assert_eq!(first[0].value.as_deref(), Some(&b"keep"[..]));
+    assert_eq!(mock.last_share_fetch_node(), Some(1));
+    group.accept(&first).await.unwrap();
+    let after_err = mock.metadata_calls();
+    let second = group.poll().await.unwrap();
+    assert_eq!(second.len(), 1);
+    assert_eq!(second[0].partition, 1);
+    assert_eq!(second[0].value.as_deref(), Some(&b"later"[..]));
+    assert_eq!(
+        mock.last_share_fetch_node(),
+        Some(1),
+        "Java handleShareFetchSuccess applies CurrentLeader only for NOT_LEADER / FENCED"
+    );
+    assert_eq!(
+        mock.metadata_calls(),
+        after_err,
+        "sibling UNKNOWN_SERVER_ERROR CurrentLeader must not request Metadata"
+    );
+    group.accept(&second).await.unwrap();
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn share_fetch_unknown_server_error_message_still_skips() {
     let mock = common::Mock::start().await;
     v2(&mock);
