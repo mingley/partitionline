@@ -3542,11 +3542,11 @@ impl Consumer {
         Ok(Some(Arc::<str>::from(resolved)))
     }
 
-    pub(crate) fn leader_id_list(&self, topic: &str) -> Result<Vec<i32>> {
+    pub(crate) fn leader_ids_of(&self, topic: &str) -> Result<&[i32]> {
         self.cluster
             .leaders
             .get(topic)
-            .cloned()
+            .map(Vec::as_slice)
             .ok_or_else(|| Error::UnknownTopic(topic.to_string()))
     }
 

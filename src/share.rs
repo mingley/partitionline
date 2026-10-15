@@ -523,6 +523,11 @@ pub struct ShareGroup {
     topic_match: Option<TopicMatch>,
     last_match_refresh: Instant,
     assigned: Vec<(String, i32)>,
+    /// Leader ids for the topic currently being routed. Cleared at the start
+    /// of each poll so a metadata refresh is visible, and kept so the next
+    /// poll does not allocate the list again.
+    leader_topic: String,
+    leader_ids: Vec<i32>,
     topic_ids: HashMap<String, [u8; 16]>,
     /// Share session epoch per share-partition leader (KIP-932).
     share_epochs: HashMap<i32, i32>,
@@ -827,6 +832,8 @@ impl ShareGroup {
             topic_match,
             last_match_refresh: Instant::now(),
             assigned: Vec::new(),
+            leader_topic: String::new(),
+            leader_ids: Vec::new(),
             topic_ids: HashMap::new(),
             share_epochs: HashMap::new(),
             share_conns: HashMap::new(),
@@ -1798,15 +1805,16 @@ impl ShareGroup {
                 .await?;
         }
         let mut by_leader: HashMap<i32, HashMap<String, Vec<i32>>> = HashMap::new();
-        let mut cached_topic = String::new();
-        let mut leaders = Vec::new();
+        self.leader_topic.clear();
         for (topic, p) in &self.assigned {
-            if cached_topic != topic.as_str() {
-                leaders = self.consumer.leader_id_list(topic)?;
-                cached_topic.clear();
-                cached_topic.push_str(topic);
+            if self.leader_topic.as_str() != topic.as_str() {
+                let ids = self.consumer.leader_ids_of(topic)?;
+                self.leader_ids.clear();
+                self.leader_ids.extend_from_slice(ids);
+                self.leader_topic.clear();
+                self.leader_topic.push_str(topic);
             }
-            let node = share_partition_leader(topic, *p, &leaders)?;
+            let node = share_partition_leader(topic, *p, &self.leader_ids)?;
             if !self.consumer.broker_known(node) {
                 return Err(Error::NoLeader {
                     topic: topic.clone(),
