@@ -2219,8 +2219,8 @@ pub fn decode_fetch_response<B: Buf>(
     i32,
     i32,
 )> {
-    let (mut topics, raw, endpoints, error_code, session_id, throttle_time_ms) =
-        decode_fetch_response_raw(buf, version)?;
+    let (mut topics, _retained, raw, endpoints, error_code, session_id, throttle_time_ms) =
+        decode_fetch_response_raw(buf, version, Vec::new())?;
     for (topic, raw_partitions) in topics.iter_mut().zip(raw) {
         for (part, rec_bytes) in topic.partitions.iter_mut().zip(raw_partitions) {
             if !rec_bytes.is_empty() {
@@ -2242,7 +2242,9 @@ pub fn decode_fetch_response<B: Buf>(
 pub(crate) fn decode_fetch_response_raw<B: Buf>(
     buf: &mut B,
     version: i16,
+    mut topics: Vec<FetchedTopic>,
 ) -> Result<(
+    Vec<FetchedTopic>,
     Vec<FetchedTopic>,
     SlotList<SlotList<Bytes>>,
     Vec<super::api::NodeEndpoint>,
@@ -2259,14 +2261,41 @@ pub(crate) fn decode_fetch_response_raw<B: Buf>(
         FetchMetadata::INVALID_SESSION_ID
     };
     let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-    let mut topics = Vec::with_capacity(n);
+    if n == 0 {
+        let endpoints = if flexible {
+            super::api::decode_top_level_node_endpoints(buf, version >= 16)?
+        } else {
+            Vec::new()
+        };
+        return Ok((
+            Vec::new(),
+            topics,
+            SlotList::Empty,
+            endpoints,
+            error_code,
+            session_id,
+            throttle_time_ms,
+        ));
+    }
+    if topics.len() > n {
+        topics.truncate(n);
+    }
     let mut raw_records = SlotList::Empty;
-    for _ in 0..n {
-        let (topic, topic_id) = get_fetch_topic_identity(buf, version, flexible)?;
+    for topic_index in 0..n {
+        let (topic_name, topic_id) = get_fetch_topic_identity(buf, version, flexible)?;
         let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-        let mut partitions = Vec::with_capacity(pn);
+        let mut partitions = if topic_index < topics.len() {
+            topics
+                .get_mut(topic_index)
+                .map_or_else(Vec::new, |topic| std::mem::take(&mut topic.partitions))
+        } else {
+            Vec::new()
+        };
+        if partitions.len() > pn {
+            partitions.truncate(pn);
+        }
         let mut raw_partitions = SlotList::Empty;
-        for _ in 0..pn {
+        for part_index in 0..pn {
             let partition = buf::get_i32(buf)?;
             let error_code = buf::get_i16(buf)?;
             let high_watermark = buf::get_i64(buf)?;
@@ -2277,7 +2306,21 @@ pub(crate) fn decode_fetch_response_raw<B: Buf>(
                 FetchedPartition::INVALID_LOG_START_OFFSET
             };
             let aborted_len = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-            let mut aborted_transactions = Vec::with_capacity(aborted_len);
+            let mut aborted_transactions = if part_index < partitions.len() {
+                partitions
+                    .get_mut(part_index)
+                    .map_or_else(Vec::new, |part| {
+                        std::mem::take(&mut part.aborted_transactions)
+                    })
+            } else {
+                Vec::new()
+            };
+            aborted_transactions.clear();
+            if aborted_len > aborted_transactions.capacity() {
+                aborted_transactions
+                    .try_reserve(aborted_len)
+                    .map_err(|_| Error::protocol("aborted transaction reserve"))?;
+            }
             for _ in 0..aborted_len {
                 let pid = buf::get_i64(buf)?;
                 let first = buf::get_i64(buf)?;
@@ -2317,7 +2360,7 @@ pub(crate) fn decode_fetch_response_raw<B: Buf>(
                     EpochEndOffset::UNDEFINED_EPOCH,
                 )
             };
-            partitions.push(FetchedPartition {
+            let built = FetchedPartition {
                 partition,
                 error_code,
                 high_watermark,
@@ -2332,16 +2375,36 @@ pub(crate) fn decode_fetch_response_raw<B: Buf>(
                 snapshot_end_offset,
                 snapshot_epoch,
                 records,
-            });
+            };
+            if part_index < partitions.len() {
+                if let Some(slot) = partitions.get_mut(part_index) {
+                    *slot = built;
+                }
+            } else {
+                partitions.push(built);
+            }
         }
         if flexible {
             buf::skip_tagged_fields(buf)?;
         }
-        topics.push(FetchedTopic {
-            topic,
-            topic_id,
-            partitions,
-        });
+        if topic_index < topics.len() {
+            if let Some(slot) = topics.get_mut(topic_index) {
+                if topic_name.capacity() > slot.topic.capacity() {
+                    slot.topic = topic_name;
+                } else {
+                    slot.topic.clear();
+                    slot.topic.push_str(&topic_name);
+                }
+                slot.topic_id = topic_id;
+                slot.partitions = partitions;
+            }
+        } else {
+            topics.push(FetchedTopic {
+                topic: topic_name,
+                topic_id,
+                partitions,
+            });
+        }
         raw_records.push(raw_partitions);
     }
     let endpoints = if flexible {
@@ -2351,6 +2414,7 @@ pub(crate) fn decode_fetch_response_raw<B: Buf>(
     };
     Ok((
         topics,
+        Vec::new(),
         raw_records,
         endpoints,
         error_code,
@@ -6444,6 +6508,27 @@ mod tests {
         );
         assert_eq!(decoded[0].partitions[0].log_start_offset, 10);
         assert!(decoded[0].partitions[0].records.is_empty());
+        let (again, retained, _, _, _, _, _) =
+            decode_fetch_response_raw(&mut &buf[..], 11, decoded).unwrap();
+        assert!(retained.is_empty());
+        let capacity = again
+            .first()
+            .map(|topic| topic.partitions.capacity())
+            .unwrap_or(0);
+        assert!(capacity >= 1);
+        let (reused, retained, _, _, _, _, _) =
+            decode_fetch_response_raw(&mut &buf[..], 11, again).unwrap();
+        assert!(retained.is_empty());
+        assert!(reused
+            .first()
+            .is_some_and(|topic| topic.partitions.capacity() >= capacity));
+        assert_eq!(
+            reused
+                .first()
+                .and_then(|topic| topic.partitions.first())
+                .map(|part| part.log_start_offset),
+            Some(10)
+        );
     }
 
     #[test]

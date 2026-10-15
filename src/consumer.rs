@@ -1999,6 +1999,8 @@ pub struct Consumer {
     spare_leaders: Vec<i32>,
     /// Empty connected-leader list for a one-broker fetch.
     spare_connected: Vec<i32>,
+    /// Previous fetch topic bodies. The next response refills their partition vectors.
+    spare_fetch_topics: Vec<crate::protocol::fetch::FetchedTopic>,
     reconnect_fails: HashMap<i32, u32>,
     /// Leaders whose Fetch was sent and not yet applied. A multi-leader round
     /// returns after [`MULTI_LEADER_COLLECTION_WINDOW`] once any peer has
@@ -2780,6 +2782,7 @@ impl Consumer {
             spare_decoded: Vec::new(),
             spare_leaders: Vec::new(),
             spare_connected: Vec::new(),
+            spare_fetch_topics: Vec::new(),
             reconnect_fails: HashMap::new(),
             inflight_fetches: None,
             inflight_nodes: HashSet::new(),
@@ -5819,6 +5822,7 @@ impl Consumer {
         let mut recovery = None;
         let session = self.fetch_sessions.get_mut(&reply.node);
         let mut session = session;
+        let mut retained_topics = Vec::new();
         let body = (|| {
             let mut bytes = reply.body?;
             let full = session.as_ref().is_some_and(|s| s.metadata.is_full());
@@ -5835,8 +5839,10 @@ impl Consumer {
                     return Err(error);
                 }
             }
-            let (topics, raw, endpoints, _, _, throttle) =
-                decode_fetch_response_raw(&mut bytes, reply.version)?;
+            let scratch = std::mem::take(&mut self.spare_fetch_topics);
+            let (topics, retained, raw, endpoints, _, _, throttle) =
+                decode_fetch_response_raw(&mut bytes, reply.version, scratch)?;
+            retained_topics = retained;
             let mut batches = SlotList::Empty;
             for partitions in raw {
                 let mut split = SlotList::Empty;
@@ -5858,6 +5864,9 @@ impl Consumer {
                             session.metadata = FetchMetadata::INITIAL;
                         }
                         recovery = Some(FetchRetry::Session);
+                        if topics.capacity() > retained_topics.capacity() {
+                            retained_topics = topics;
+                        }
                         return Err(error);
                     }
                 }
@@ -5873,6 +5882,7 @@ impl Consumer {
                 session.reset();
             }
         }
+        self.park_fetch_topics(retained_topics);
         DecodedFetchReply {
             node: reply.node,
             body,
@@ -6015,7 +6025,11 @@ impl Consumer {
             }
         }
         let mut seen_partitions: HashMap<Arc<str>, HashSet<i32>> = HashMap::new();
-        for (topic, topic_batches) in fetched.into_iter().zip(batches) {
+        let mut topic_batches_iter = batches.into_iter();
+        for topic in &fetched {
+            let Some(topic_batches) = topic_batches_iter.next() else {
+                break;
+            };
             let Some(name) = self.fetch_topic_arc(&topic.topic, topic.topic_id)? else {
                 continue;
             };
@@ -6029,7 +6043,11 @@ impl Consumer {
             let mut topic_records = 0u64;
             let mut topic_bytes = 0u64;
             if *budget_reached {
-                for (part, part_batches) in topic.partitions.into_iter().zip(topic_batches) {
+                let mut part_batches_iter = topic_batches.into_iter();
+                for part in &topic.partitions {
+                    let Some(part_batches) = part_batches_iter.next() else {
+                        break;
+                    };
                     if topic_seen
                         .as_mut()
                         .is_some_and(|seen| !seen.insert(part.partition))
@@ -6060,7 +6078,11 @@ impl Consumer {
             let node_known = self.broker_known(node);
             let mut topic_leaders: Option<Vec<i32>> = None;
             let mut topic_leaders_live = true;
-            for (part, part_batches) in topic.partitions.into_iter().zip(topic_batches) {
+            let mut part_batches_iter = topic_batches.into_iter();
+            for part in &topic.partitions {
+                let Some(part_batches) = part_batches_iter.next() else {
+                    break;
+                };
                 if topic_seen
                     .as_mut()
                     .is_some_and(|seen| !seen.insert(part.partition))
@@ -6513,7 +6535,14 @@ impl Consumer {
                 break;
             }
         }
+        self.park_fetch_topics(fetched);
         Ok(retry)
+    }
+
+    fn park_fetch_topics(&mut self, topics: Vec<crate::protocol::fetch::FetchedTopic>) {
+        if topics.capacity() > self.spare_fetch_topics.capacity() {
+            self.spare_fetch_topics = topics;
+        }
     }
 
     /// Negotiated ApiVersions for this connection.
