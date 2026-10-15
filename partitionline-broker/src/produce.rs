@@ -795,6 +795,25 @@ struct Part {
     index: i32,
     bytes: Option<(usize, usize)>,
 }
+
+#[derive(Eq, PartialEq, Hash)]
+enum ProduceTopicKey {
+    Id([u8; 16]),
+    Name(Option<Vec<u8>>),
+}
+
+fn produce_topic_key(version: i16, topic: &Topic, body: &[u8]) -> ProduceTopicKey {
+    if version >= 13 {
+        ProduceTopicKey::Id(topic.id)
+    } else {
+        ProduceTopicKey::Name(
+            ranged(body, topic.name)
+                .ok()
+                .flatten()
+                .map(|bytes| bytes.to_vec()),
+        )
+    }
+}
 struct Request {
     tx: Option<(usize, usize)>,
     acks: i16,
@@ -1333,6 +1352,22 @@ fn process_inner(
     let mut writer = Writer::new(response_bound)?;
     let mut results = reserved(parsed.topics.len())?;
     let mut normalized = 0usize;
+    let mut topic_owner: HashMap<ProduceTopicKey, usize> = HashMap::new();
+    let mut topic_first = vec![false; parsed.topics.len()];
+    let mut topic_duplicated = vec![false; parsed.topics.len()];
+    for (index, topic) in parsed.topics.iter().enumerate() {
+        let key = produce_topic_key(version, topic, body);
+        if let Some(earlier) = topic_owner.get(&key).copied() {
+            if let Some(flag) = topic_duplicated.get_mut(earlier) {
+                *flag = true;
+            }
+        } else {
+            if let Some(flag) = topic_first.get_mut(index) {
+                *flag = true;
+            }
+            let _ = topic_owner.insert(key, index);
+        }
+    }
     for (topic_position, topic) in parsed.topics.iter().enumerate() {
         active()?;
         let topic_name = ranged_str(body, topic.name)?;
@@ -1341,36 +1376,41 @@ fn process_inner(
         } else {
             topic_name.and_then(|name| catalog.by_name(name))
         };
-        let same_topic = |other: &Topic| {
-            if version >= 13 {
-                topic.id == other.id
-            } else {
-                ranged(body, topic.name).ok().flatten() == ranged(body, other.name).ok().flatten()
-            }
-        };
-        if parsed.topics[..topic_position].iter().any(same_topic) {
+        if !topic_first.get(topic_position).copied().unwrap_or(false) {
             continue;
         }
-        let duplicate_topic = parsed.topics[topic_position + 1..].iter().any(same_topic);
+        let duplicate_topic = topic_duplicated
+            .get(topic_position)
+            .copied()
+            .unwrap_or(false);
         let mut parts = reserved(topic.partitions.len())?;
+        let mut part_owner: HashMap<i32, usize> = HashMap::new();
+        let mut part_first = vec![false; topic.partitions.len()];
+        let mut part_duplicated = vec![false; topic.partitions.len()];
         for (position, part) in topic.partitions.iter().enumerate() {
-            if topic.partitions[..position]
-                .iter()
-                .any(|p| p.index == part.index)
-            {
+            if let Some(earlier) = part_owner.get(&part.index).copied() {
+                if let Some(flag) = part_duplicated.get_mut(earlier) {
+                    *flag = true;
+                }
+            } else {
+                if let Some(flag) = part_first.get_mut(position) {
+                    *flag = true;
+                }
+                let _ = part_owner.insert(part.index, position);
+            }
+        }
+        for (position, part) in topic.partitions.iter().enumerate() {
+            if !part_first.get(position).copied().unwrap_or(false) {
                 continue;
             }
+            let duplicate_part = part_duplicated.get(position).copied().unwrap_or(false);
             let mut error = if !matches!(parsed.acks, -1..=1) {
                 21
             } else if parsed.timeout < 0 {
                 42
             } else if parsed.tx.is_some() {
                 43
-            } else if duplicate_topic
-                || topic.partitions[position + 1..]
-                    .iter()
-                    .any(|p| p.index == part.index)
-            {
+            } else if duplicate_topic || duplicate_part {
                 42
             } else if target.is_none() {
                 if version >= 13 {
