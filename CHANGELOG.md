@@ -88,7 +88,8 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   (Java `lookupTopicId`) and does not fail a requested partition whose
   `AcknowledgeErrorCode` is none. A known cluster topic id that was
   not in this piggyback ShareFetch is skipped the same way and does
-  not deliver those records. A piggybacked `FENCED_LEADER_EPOCH`
+  not deliver those records. A piggybacked `FENCED_LEADER_EPOCH` /
+  `NOT_LEADER_OR_FOLLOWER`
   `AcknowledgeErrorCode` with a usable CurrentLeader does not update
   the next ShareFetch target (Java `handleShareFetchSuccess` applies
   CurrentLeader only for fetch `errorCode`).
