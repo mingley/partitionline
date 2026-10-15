@@ -2581,14 +2581,17 @@ impl ConsumerGroup {
             .assigned_offsets()
             .iter()
             .filter(|(t, p, _)| {
-                self.consumer.assigned_topic_id(t, *p)
-                    == identities.get(t).copied().filter(|id| *id != [0; 16])
+                self.consumer.assigned_topic_id(t.as_ref(), *p)
+                    == identities
+                        .get(t.as_ref())
+                        .copied()
+                        .filter(|id| *id != [0; 16])
             })
-            .map(|(t, p, o)| ((t.clone(), *p), *o))
+            .map(|(t, p, o)| ((t.as_ref().to_owned(), *p), *o))
             .collect();
         let prev: HashSet<(String, i32)> = all_current
             .iter()
-            .map(|(topic, partition, _)| (topic.clone(), *partition))
+            .map(|(topic, partition, _)| (topic.as_ref().to_owned(), *partition))
             .collect();
         let next: HashSet<(String, i32)> = wanted.iter().cloned().collect();
         let revoked: Vec<(String, i32)> = prev

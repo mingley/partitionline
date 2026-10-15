@@ -1771,10 +1771,10 @@ pub struct Consumer {
     fetch_throttles: HashMap<i32, Instant>,
     fetch_sessions: HashMap<i32, BrokerFetchSession>,
     throttle_metrics: crate::metrics::ThrottleTracker,
-    assigned: Vec<(String, i32, i64)>,
+    assigned: Vec<(Arc<str>, i32, i64)>,
     /// Topic identity captured when each partition was assigned. Metadata
     /// refreshes must not bind delivered offsets to a recreated topic.
-    assigned_topic_ids: HashMap<(String, i32), [u8; 16]>,
+    assigned_topic_ids: HashMap<Arc<str>, HashMap<i32, [u8; 16]>>,
     /// Last consumed record-batch leader epoch (Fetch v12+ `LastFetchedEpoch`).
     last_fetched_epochs: PartitionMap<i32>,
     preferred: PartitionMap<i32>,
@@ -2353,25 +2353,26 @@ impl Consumer {
         partition: i32,
         offset: i64,
     ) -> Result<()> {
-        let topic = topic.into();
+        let topic_name = topic.into();
         require_partition(partition)?;
         require_fetch_offset(offset)?;
-        Topic::validate(&topic)?;
+        Topic::validate(&topic_name)?;
         self.reject_pending_wakeup()?;
         self.abort_inflight_fetches();
-        self.refresh_metadata(Some(std::slice::from_ref(&topic)))
+        self.refresh_metadata(Some(std::slice::from_ref(&topic_name)))
             .await?;
-        self.drop_pending_for(&topic, partition);
+        self.drop_pending_for(&topic_name, partition);
         self.assigned
-            .retain(|(t, p, _)| !(t == &topic && *p == partition));
+            .retain(|(t, p, _)| !(t.as_ref() == topic_name.as_str() && *p == partition));
         self.set_last_fetched_epoch(
-            &topic,
+            &topic_name,
             partition,
             crate::RecordBatch::NO_PARTITION_LEADER_EPOCH,
         );
-        self.assigned.push((topic, partition, offset));
-        if let Some((topic, part, _)) = self.assigned.last() {
-            let _previous = self.assigned_topic_ids.remove(&(topic.clone(), *part));
+        let topic: Arc<str> = Arc::from(topic_name);
+        self.assigned.push((Arc::clone(&topic), partition, offset));
+        if let Some(parts) = self.assigned_topic_ids.get_mut(topic.as_ref()) {
+            let _previous = parts.remove(&partition);
         }
         self.capture_assigned_topic_ids();
         Ok(())
@@ -2482,13 +2483,14 @@ impl Consumer {
             }
             ListedPartitions::Error(code) => return Err(Error::broker(code, topic)),
         };
-        self.assigned.retain(|(t, _, _)| t != &topic);
-        self.assigned_topic_ids
-            .retain(|(name, _), _| name != &topic);
+        self.assigned
+            .retain(|(t, _, _)| t.as_ref() != topic.as_str());
+        let _removed = self.assigned_topic_ids.remove(topic.as_str());
+        let name: Arc<str> = Arc::from(topic.as_str());
         for p in parts {
             self.drop_pending_for(&topic, p);
             self.set_last_fetched_epoch(&topic, p, crate::RecordBatch::NO_PARTITION_LEADER_EPOCH);
-            self.assigned.push((topic.clone(), p, offset));
+            self.assigned.push((Arc::clone(&name), p, offset));
         }
         self.capture_assigned_topic_ids();
         Ok(())
@@ -2499,7 +2501,7 @@ impl Consumer {
     pub fn assignment(&self) -> Vec<TopicPartition> {
         self.assigned
             .iter()
-            .map(|(t, p, _)| TopicPartition::new(t.clone(), *p))
+            .map(|(t, p, _)| TopicPartition::new(t.as_ref(), *p))
             .collect()
     }
 
@@ -2521,7 +2523,7 @@ impl Consumer {
             .iter()
             .filter_map(|(t, p, o)| {
                 let pos = self.delivered_position(t, *p, *o);
-                defined_position(pos).map(|pos| (TopicPartition::new(t.clone(), *p), pos))
+                defined_position(pos).map(|pos| (TopicPartition::new(t.as_ref(), *p), pos))
             })
             .collect()
     }
@@ -2535,7 +2537,7 @@ impl Consumer {
         let offset = self
             .assigned
             .iter()
-            .find(|(t, p, _)| t == topic && *p == partition)
+            .find(|(t, p, _)| t.as_ref() == topic && *p == partition)
             .map(|(_, _, offset)| *offset)
             .ok_or_else(reject_java_position_unassigned)?;
         defined_position(offset).ok_or_else(|| {
@@ -2553,7 +2555,7 @@ impl Consumer {
         self.assigned
             .iter()
             .filter_map(|(t, p, o)| {
-                defined_position(*o).map(|offset| (TopicPartition::new(t.clone(), *p), offset))
+                defined_position(*o).map(|offset| (TopicPartition::new(t.as_ref(), *p), offset))
             })
             .collect()
     }
@@ -2575,7 +2577,7 @@ impl Consumer {
             .map_or(fetch_cursor, |record| record.offset)
     }
 
-    pub(crate) fn assigned_offsets(&self) -> &[(String, i32, i64)] {
+    pub(crate) fn assigned_offsets(&self) -> &[(Arc<str>, i32, i64)] {
         &self.assigned
     }
 
@@ -2627,7 +2629,7 @@ impl Consumer {
         let fetch_offset = self
             .assigned
             .iter()
-            .find(|(t, p, _)| t == topic && *p == partition)
+            .find(|(t, p, _)| t.as_ref() == topic && *p == partition)
             .map(|(_, _, o)| *o)
             .ok_or_else(reject_java_position_unassigned)?;
         let position = self.delivered_position(topic, partition, fetch_offset);
@@ -2668,8 +2670,8 @@ impl Consumer {
     pub fn paused(&self) -> Vec<TopicPartition> {
         self.assigned
             .iter()
-            .filter(|(t, p, _)| self.paused.contains(t, *p))
-            .map(|(t, p, _)| TopicPartition::new(t.clone(), *p))
+            .filter(|(t, p, _)| self.paused.contains(t.as_ref(), *p))
+            .map(|(t, p, _)| TopicPartition::new(t.as_ref(), *p))
             .collect()
     }
 
@@ -2734,11 +2736,25 @@ impl Consumer {
             return Err(error);
         }
         let new_ids = self.topic_name_ids();
-        self.assigned.extend(starts.iter().cloned());
+        let mut names: HashMap<&str, Arc<str>> = HashMap::new();
+        self.assigned
+            .extend(starts.iter().map(|(topic, part, offset)| {
+                let name = if let Some(existing) = names.get(topic.as_str()) {
+                    Arc::clone(existing)
+                } else {
+                    let name = Arc::<str>::from(topic.as_str());
+                    let _previous = names.insert(topic.as_str(), Arc::clone(&name));
+                    name
+                };
+                (name, *part, *offset)
+            }));
         for (topic, part, offset) in starts {
             if let Some(&old_offset) = old_assigned.get(topic, *part) {
                 if old_offset != *offset
-                    || old_ids.get(&(topic.clone(), *part)) != new_ids.get(topic)
+                    || old_ids
+                        .get(topic.as_str())
+                        .and_then(|parts| parts.get(part))
+                        != new_ids.get(topic.as_str())
                 {
                     self.drop_pending_for(topic, *part);
                 }
@@ -2753,16 +2769,25 @@ impl Consumer {
 
     fn capture_assigned_topic_ids(&mut self) {
         let ids = self.topic_name_ids();
-        self.assigned_topic_ids.retain(|(topic, partition), _| {
-            self.assigned
-                .iter()
-                .any(|(assigned, part, _)| assigned == topic && part == partition)
+        self.assigned_topic_ids.retain(|topic, parts| {
+            parts.retain(|partition, _| {
+                self.assigned.iter().any(|(assigned, part, _)| {
+                    assigned.as_ref() == topic.as_ref() && part == partition
+                })
+            });
+            !parts.is_empty()
+                && self
+                    .assigned
+                    .iter()
+                    .any(|(assigned, _, _)| assigned.as_ref() == topic.as_ref())
         });
         for (topic, partition, _) in &self.assigned {
-            if let Some(id) = ids.get(topic).filter(|id| **id != [0; 16]) {
+            if let Some(id) = ids.get(topic.as_ref()).filter(|id| **id != [0; 16]) {
                 let _previous = self
                     .assigned_topic_ids
-                    .entry((topic.clone(), *partition))
+                    .entry(Arc::clone(topic))
+                    .or_default()
+                    .entry(*partition)
                     .or_insert(*id);
             }
         }
@@ -2770,7 +2795,8 @@ impl Consumer {
 
     pub(crate) fn assigned_topic_id(&self, topic: &str, partition: i32) -> Option<[u8; 16]> {
         self.assigned_topic_ids
-            .get(&(topic.to_owned(), partition))
+            .get(topic)
+            .and_then(|parts| parts.get(&partition))
             .copied()
     }
 
@@ -2807,7 +2833,7 @@ impl Consumer {
         if let Some(slot) = self
             .assigned
             .iter_mut()
-            .find(|(t, p, _)| t == topic && *p == partition)
+            .find(|(t, p, _)| t.as_ref() == topic && *p == partition)
         {
             slot.2 = next_offset;
         }
@@ -3254,7 +3280,7 @@ impl Consumer {
     async fn connect_parallel_fetch_nodes(
         &mut self,
         nodes: Vec<i32>,
-        by_leader: &mut HashMap<i32, HashMap<String, Vec<FetchPartition>>>,
+        by_leader: &mut HashMap<i32, HashMap<Arc<str>, Vec<FetchPartition>>>,
         deadline: Instant,
     ) -> Result<Vec<i32>> {
         let mut queue = nodes;
@@ -3717,7 +3743,9 @@ impl Consumer {
                     let assigned = self
                         .assigned
                         .iter()
-                        .find(|(name, part, _)| name == &t.topic && *part == p.partition)
+                        .find(|(name, part, _)| {
+                            name.as_ref() == t.topic.as_str() && *part == p.partition
+                        })
                         .map(|(_, _, o)| *o);
                     if let Some(off) = assigned {
                         if let Some(next) = truncated_fetch_offset(off, p.end_offset) {
@@ -4183,8 +4211,8 @@ impl Consumer {
                 if completed.contains(t, *p) {
                     continue;
                 }
-                if seen.insert(t.as_str()) {
-                    topics.push(t.clone());
+                if seen.insert(t.as_ref()) {
+                    topics.push(t.as_ref().to_owned());
                 }
             }
             if topics
@@ -4205,7 +4233,8 @@ impl Consumer {
                     return self.fetched_or_timeout(out, error);
                 }
             }
-            let mut by_leader: HashMap<i32, HashMap<&str, Vec<FetchPartition>>> = HashMap::new();
+            let mut by_leader: HashMap<i32, HashMap<Arc<str>, Vec<FetchPartition>>> =
+                HashMap::new();
             let mut missing_leader = false;
             for (topic, part, offset) in &self.assigned {
                 if self.paused.contains(topic, *part) {
@@ -4228,7 +4257,7 @@ impl Consumer {
                         by_leader
                             .entry(node)
                             .or_default()
-                            .entry(topic.as_str())
+                            .entry(Arc::clone(topic))
                             .or_default()
                             .push(FetchPartition {
                                 partition: *part,
@@ -4246,16 +4275,6 @@ impl Consumer {
                     }
                 }
             }
-            let mut by_leader = by_leader
-                .into_iter()
-                .map(|(node, topics)| {
-                    let topics = topics
-                        .into_iter()
-                        .map(|(topic, partitions)| (topic.to_owned(), partitions))
-                        .collect();
-                    (node, topics)
-                })
-                .collect::<HashMap<_, _>>();
             if missing_leader {
                 if Instant::now() >= deadline {
                     return if !out.is_empty() {
@@ -4276,7 +4295,11 @@ impl Consumer {
                 for (t, _, _) in &self.assigned {
                     self.cluster.invalidate_topic(t);
                 }
-                let topics: Vec<String> = self.assigned.iter().map(|(t, _, _)| t.clone()).collect();
+                let topics: Vec<String> = self
+                    .assigned
+                    .iter()
+                    .map(|(t, _, _)| t.as_ref().to_owned())
+                    .collect();
                 if let Err(error) = self
                     .refresh_metadata_timeout(
                         Some(&topics),
@@ -4498,8 +4521,11 @@ impl Consumer {
                         };
                     }
                     if retry == FetchRetry::Backoff {
-                        let topics: Vec<String> =
-                            self.assigned.iter().map(|(t, _, _)| t.clone()).collect();
+                        let topics: Vec<String> = self
+                            .assigned
+                            .iter()
+                            .map(|(t, _, _)| t.as_ref().to_owned())
+                            .collect();
                         if let Err(error) = self
                             .refresh_metadata_timeout(
                                 Some(&topics),
@@ -4564,7 +4590,7 @@ impl Consumer {
 
     async fn fetch_from_leaders(
         &mut self,
-        by_leader: HashMap<i32, HashMap<String, Vec<FetchPartition>>>,
+        by_leader: HashMap<i32, HashMap<Arc<str>, Vec<FetchPartition>>>,
         deadline: Instant,
         max_wait: i32,
     ) -> Result<Vec<FetchReply>> {
@@ -4588,7 +4614,7 @@ impl Consumer {
 
     async fn fetch_from_leaders_io(
         &mut self,
-        mut by_leader: HashMap<i32, HashMap<String, Vec<FetchPartition>>>,
+        mut by_leader: HashMap<i32, HashMap<Arc<str>, Vec<FetchPartition>>>,
         deadline: Instant,
         max_wait: i32,
     ) -> Result<Vec<FetchReply>> {
@@ -4616,10 +4642,10 @@ impl Consumer {
         let mut name_ids = self.topic_name_ids();
         for by_topic in by_leader.values() {
             for (topic, partitions) in by_topic {
-                let current = name_ids.get(topic).copied();
+                let current = name_ids.get(topic.as_ref()).copied();
                 let mut bound = None;
                 for partition in partitions {
-                    if let Some(id) = self.assigned_topic_id(topic, partition.partition) {
+                    if let Some(id) = self.assigned_topic_id(topic.as_ref(), partition.partition) {
                         if current.is_some_and(|current| current != id)
                             || bound.is_some_and(|bound| bound != id)
                         {
@@ -4632,7 +4658,7 @@ impl Consumer {
                     }
                 }
                 if let Some(id) = bound.filter(|_| current.is_none()) {
-                    let _previous = name_ids.insert(topic.clone(), id);
+                    let _previous = name_ids.insert(topic.to_string(), id);
                 }
             }
         }
@@ -5223,7 +5249,7 @@ impl Consumer {
                 let req_offset = self
                     .assigned
                     .iter()
-                    .find(|(t, p, _)| t == &name && *p == part.partition)
+                    .find(|(t, p, _)| t.as_ref() == name.as_str() && *p == part.partition)
                     .map_or(0, |(_, _, offset)| *offset);
                 if position_past_high_watermark(req_offset, part.high_watermark)
                     || position_before_log_start(req_offset, part.log_start_offset)
@@ -5274,7 +5300,7 @@ impl Consumer {
                 let req_offset = self
                     .assigned
                     .iter()
-                    .find(|(t, p, _)| t == &name && *p == part.partition)
+                    .find(|(t, p, _)| t.as_ref() == name.as_str() && *p == part.partition)
                     .map_or(0, |(_, _, off)| *off);
 
                 let mut next: Option<i64> = None;
@@ -5880,7 +5906,7 @@ impl Consumer {
         if let Some(slot) = self
             .assigned
             .iter_mut()
-            .find(|(t, p, _)| t == topic && *p == partition)
+            .find(|(t, p, _)| t.as_ref() == topic && *p == partition)
         {
             slot.2 = offset;
             self.set_last_fetched_epoch(topic, partition, last_fetched_epoch);
@@ -5922,7 +5948,7 @@ impl Consumer {
         let assigned: Vec<(String, i32)> = self
             .assigned
             .iter()
-            .map(|(t, p, _)| (t.clone(), *p))
+            .map(|(t, p, _)| (t.as_ref().to_owned(), *p))
             .collect();
         self.seek_listed(timestamp, assigned).await
     }
@@ -6086,7 +6112,7 @@ impl Consumer {
         let fetch_cursor = self
             .assigned
             .iter()
-            .find(|(t, p, _)| t == &tp.topic && *p == tp.partition)
+            .find(|(t, p, _)| t.as_ref() == tp.topic.as_str() && *p == tp.partition)
             .map(|(_, _, o)| *o)
             .ok_or_else(|| reject_java_no_current_assignment(&tp.topic, tp.partition))?;
         let pos = self.delivered_position(&tp.topic, tp.partition, fetch_cursor);
@@ -6425,15 +6451,18 @@ fn is_abort_marker(batch: &crate::protocol::records::RecordBatch) -> bool {
         })
 }
 
-fn fetch_topics(
-    by_topic: HashMap<String, Vec<FetchPartition>>,
+fn fetch_topics<T>(
+    by_topic: HashMap<T, Vec<FetchPartition>>,
     name_ids: &HashMap<String, [u8; 16]>,
-) -> Vec<FetchTopic> {
+) -> Vec<FetchTopic>
+where
+    T: std::hash::Hash + Eq + AsRef<str>,
+{
     by_topic
         .into_iter()
         .map(|(topic, partitions)| FetchTopic {
-            topic_id: name_ids.get(&topic).copied().unwrap_or([0u8; 16]),
-            topic,
+            topic_id: name_ids.get(topic.as_ref()).copied().unwrap_or([0u8; 16]),
+            topic: topic.as_ref().to_owned(),
             partitions,
         })
         .collect()
@@ -6512,10 +6541,10 @@ fn batch_fetch_end(batch: &crate::RecordBatch) -> Result<i64> {
     fetch_end_after(count_end, batch.records.last().map(|record| record.offset))
 }
 
-fn partition_is_assigned(assigned: &[(String, i32, i64)], topic: &str, partition: i32) -> bool {
+fn partition_is_assigned(assigned: &[(Arc<str>, i32, i64)], topic: &str, partition: i32) -> bool {
     assigned
         .iter()
-        .any(|(name, index, _)| name == topic && *index == partition)
+        .any(|(name, index, _)| name.as_ref() == topic && *index == partition)
 }
 
 /// Do not advance a fetch cursor to or past a known high watermark.
@@ -6643,20 +6672,25 @@ fn listed_partition_indexes<'a>(
 }
 
 fn recreated_topic_partitions(
-    assigned: &[(String, i32, i64)],
-    assigned_ids: &HashMap<(String, i32), [u8; 16]>,
+    assigned: &[(Arc<str>, i32, i64)],
+    assigned_ids: &HashMap<Arc<str>, HashMap<i32, [u8; 16]>>,
     metadata_ids: &HashMap<String, [u8; 16]>,
 ) -> Vec<(String, i32, [u8; 16])> {
     let mut changed = Vec::new();
     for (topic, partition, _) in assigned {
-        let Some(id) = metadata_ids.get(topic).copied().filter(|id| *id != [0; 16]) else {
+        let Some(id) = metadata_ids
+            .get(topic.as_ref())
+            .copied()
+            .filter(|id| *id != [0; 16])
+        else {
             continue;
         };
         if assigned_ids
-            .get(&(topic.clone(), *partition))
+            .get(topic.as_ref())
+            .and_then(|parts| parts.get(partition))
             .is_some_and(|current| *current != id)
         {
-            changed.push((topic.clone(), *partition, id));
+            changed.push((topic.to_string(), *partition, id));
         }
     }
     changed
@@ -6852,12 +6886,15 @@ fn epoch_at(epochs: &HashMap<String, Vec<i32>>, topic: &str, partition: i32) -> 
 }
 
 /// True when every partition on `node` is a rack hint for a different leader.
-fn is_preferred_only_target(
+fn is_preferred_only_target<T>(
     preferred: &PartitionMap<i32>,
     cluster: &Cluster,
     node: i32,
-    by_leader: &HashMap<i32, HashMap<String, Vec<FetchPartition>>>,
-) -> bool {
+    by_leader: &HashMap<i32, HashMap<T, Vec<FetchPartition>>>,
+) -> bool
+where
+    T: std::hash::Hash + Eq + AsRef<str>,
+{
     let Some(by_topic) = by_leader.get(&node) else {
         return false;
     };
@@ -6865,10 +6902,10 @@ fn is_preferred_only_target(
     for (topic, parts) in by_topic {
         for part in parts {
             saw_partition = true;
-            if preferred.get(topic, part.partition).copied() != Some(node) {
+            if preferred.get(topic.as_ref(), part.partition).copied() != Some(node) {
                 return false;
             }
-            match cluster.leader(topic, part.partition) {
+            match cluster.leader(topic.as_ref(), part.partition) {
                 Ok((leader, _)) if leader != node => {}
                 _ => return false,
             }
@@ -6882,12 +6919,15 @@ fn is_preferred_only_target(
 /// The hint is dropped and the partitions return to their metadata leaders.
 /// A node that is itself the leader is left unchanged so the caller reports
 /// the connection failure.
-fn reroute_unreachable_preferred(
+fn reroute_unreachable_preferred<T>(
     preferred: &mut PartitionMap<i32>,
     cluster: &Cluster,
     node: i32,
-    by_leader: &mut HashMap<i32, HashMap<String, Vec<FetchPartition>>>,
-) -> bool {
+    by_leader: &mut HashMap<i32, HashMap<T, Vec<FetchPartition>>>,
+) -> bool
+where
+    T: std::hash::Hash + Eq + Clone + AsRef<str>,
+{
     if !is_preferred_only_target(preferred, cluster, node, by_leader) {
         return false;
     }
@@ -6897,11 +6937,11 @@ fn reroute_unreachable_preferred(
     for (topic, parts) in by_topic {
         for part in parts {
             let leader = cluster
-                .leader(&topic, part.partition)
+                .leader(topic.as_ref(), part.partition)
                 .map(|(leader, _)| leader)
                 .unwrap_or(node);
             if leader != node {
-                let _removed = preferred.remove(&topic, part.partition);
+                let _removed = preferred.remove(topic.as_ref(), part.partition);
             }
             by_leader
                 .entry(leader)
@@ -7222,10 +7262,16 @@ mod tests {
 
     #[test]
     fn a_changed_topic_id_is_a_new_log() {
-        let assigned = vec![("t".to_string(), 0, 4), ("u".to_string(), 1, 0)];
-        let mut assigned_ids = HashMap::new();
-        let _ = assigned_ids.insert(("t".to_string(), 0), [1u8; 16]);
-        let _ = assigned_ids.insert(("u".to_string(), 1), [4u8; 16]);
+        let assigned = vec![(Arc::<str>::from("t"), 0, 4), (Arc::<str>::from("u"), 1, 0)];
+        let mut assigned_ids: HashMap<Arc<str>, HashMap<i32, [u8; 16]>> = HashMap::new();
+        let _ = assigned_ids
+            .entry(Arc::from("t"))
+            .or_default()
+            .insert(0, [1u8; 16]);
+        let _ = assigned_ids
+            .entry(Arc::from("u"))
+            .or_default()
+            .insert(1, [4u8; 16]);
         let mut metadata_ids = HashMap::new();
         let _ = metadata_ids.insert("t".to_string(), [2u8; 16]);
         let _ = metadata_ids.insert("u".to_string(), [4u8; 16]);
