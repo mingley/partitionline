@@ -507,6 +507,11 @@ impl Catalog {
             .and_then(|index| state.records.get(*index))
             .is_some_and(|record| !record.live)
     }
+    /// Whether a live topic folds to the same name when `.` and `_` are equal.
+    pub(crate) fn name_collides(&self, name: &str) -> bool {
+        self.state().folded_by_name.contains_key(&folded_name(name))
+    }
+
     /// Iterate live topics in creation order without allocating a snapshot.
     pub fn topics(&self) -> impl Iterator<Item = &Topic> {
         self.state()
@@ -693,6 +698,8 @@ struct State {
     records: Vec<Record>,
     /// Live topic name to its index in `records`.
     live_by_name: HashMap<String, usize>,
+    /// Live topic name with `.` folded to `_`, so a collision is one lookup.
+    folded_by_name: HashMap<String, usize>,
     /// Every identity, including tombstones, to its index in `records`.
     by_id: HashMap<TopicId, usize>,
     live_topics: usize,
@@ -715,12 +722,12 @@ pub(crate) struct PreparedDelete {
     totals: Totals,
 }
 
-fn collision(left: &str, right: &str) -> bool {
-    left.len() == right.len()
-        && left
-            .bytes()
-            .zip(right.bytes())
-            .all(|(a, b)| (if a == b'.' { b'_' } else { a }) == (if b == b'.' { b'_' } else { b }))
+fn folded_name(name: &str) -> String {
+    let mut folded = String::with_capacity(name.len());
+    for byte in name.bytes() {
+        folded.push(if byte == b'.' { '_' } else { char::from(byte) });
+    }
+    folded
 }
 
 impl State {
@@ -767,10 +774,8 @@ impl State {
         if self.live_by_name.contains_key(name) {
             return Err(Error::DuplicateName);
         }
-        for record in &self.records {
-            if record.live && collision(&record.topic.name, name) {
-                return Err(Error::NameCollision);
-            }
+        if self.folded_by_name.contains_key(&folded_name(name)) {
+            return Err(Error::NameCollision);
         }
         if self.live_topics >= limits.max_live_topics {
             return Err(Error::TopicBudgetExceeded);
@@ -852,6 +857,9 @@ impl State {
         let _ = self
             .live_by_name
             .insert(prepared.record.topic.name.clone(), index);
+        let _ = self
+            .folded_by_name
+            .insert(folded_name(&prepared.record.topic.name), index);
         let _ = self.by_id.insert(prepared.record.topic.id, index);
         self.records.push(prepared.record);
         self.publish_totals(prepared.totals);
@@ -860,6 +868,7 @@ impl State {
         if let Some(record) = self.records.get_mut(prepared.index) {
             record.live = false;
             let _ = self.live_by_name.remove(record.topic.name.as_str());
+            let _ = self.folded_by_name.remove(&folded_name(&record.topic.name));
         }
         self.publish_totals(prepared.totals);
     }

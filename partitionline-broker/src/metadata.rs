@@ -1810,10 +1810,7 @@ fn create_validation(
     if catalog.by_name(topic.name).is_some() {
         return Err(api_error(36, "Topic already exists."));
     }
-    if catalog
-        .topics()
-        .any(|live| topic_names_collide(live.name(), topic.name))
-    {
+    if catalog.name_collides(topic.name) {
         return Err(api_error(17, "Topic name collides with an existing topic."));
     }
     if topic.config_count != 0 {
@@ -1989,6 +1986,7 @@ fn topic_collision_key(name: &str) -> Vec<u8> {
         .collect()
 }
 
+#[cfg(test)]
 fn topic_names_collide(left: &str, right: &str) -> bool {
     let fold = |byte: u8| if byte == b'.' { b'_' } else { byte };
     left.len() == right.len()
