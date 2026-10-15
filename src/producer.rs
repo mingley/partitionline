@@ -891,6 +891,7 @@ struct FastRoute {
     topic: Arc<str>,
     np: i32,
     handles: Vec<WorkerHandle>,
+    tracker: Arc<crate::metrics::ProduceTopicTracker>,
 }
 
 /// One broker's client quota, shared by all its connection slots. The atomic
@@ -1136,9 +1137,17 @@ impl Shared {
 
     fn topic_tracker(&self, topic: &Arc<str>) -> Arc<crate::metrics::ProduceTopicTracker> {
         let mut map = self.topics.lock();
-        map.entry(Arc::clone(topic))
-            .or_insert_with(|| Arc::new(crate::metrics::ProduceTopicTracker::new()))
-            .clone()
+        if let Some(tracker) = map.get(topic.as_ref()) {
+            return Arc::clone(tracker);
+        }
+        let tracker = Arc::new(crate::metrics::ProduceTopicTracker::new());
+        let _ = map.insert(Arc::clone(topic), Arc::clone(&tracker));
+        tracker
+    }
+
+    fn note_queued_totals(&self, n: u64, bytes: u64) {
+        let _ = self.m_queued.fetch_add(n, Ordering::Relaxed);
+        let _ = self.m_bytes.fetch_add(bytes, Ordering::Relaxed);
     }
 
     /// Apply EndTxn v5 ProducerId / ProducerEpoch. Ignores
@@ -1258,8 +1267,7 @@ impl Shared {
     }
 
     fn note_queued_n(&self, topic: &Arc<str>, n: u64, bytes: u64) {
-        let _ = self.m_queued.fetch_add(n, Ordering::Relaxed);
-        let _ = self.m_bytes.fetch_add(bytes, Ordering::Relaxed);
+        self.note_queued_totals(n, bytes);
         self.topic_tracker(topic).note_queued(n, bytes);
     }
 
@@ -1934,8 +1942,16 @@ impl Producer {
                 .await?;
             return Ok(rx);
         }
-        self.ensure_ready(&mut rec, block_deadline).await?;
-        let w = self.worker_for(&rec).ok_or(Error::Closed)?;
+        let fast = self.fresh_fast_route(&rec);
+        let (w, tracker) = if let Some((partition, handle, tracker)) = fast {
+            rec.partition = Some(partition);
+            (handle, Some(tracker))
+        } else {
+            self.ensure_ready(&mut rec, block_deadline).await?;
+            let handle = self.worker_for(&rec).ok_or(Error::Closed)?;
+            self.remember_fast(&rec);
+            (handle, None)
+        };
         self.wait_buffer(bytes, block_deadline).await?;
         let mut reservation = BufferReservation {
             shared: &self.inner.shared,
@@ -1981,7 +1997,12 @@ impl Producer {
                 return Err(Error::Timeout);
             }
         }
-        self.inner.shared.note_queued_n(&topic, 1, bytes);
+        if let Some(tracker) = tracker {
+            self.inner.shared.note_queued_totals(1, bytes);
+            tracker.note_queued(1, bytes);
+        } else {
+            self.inner.shared.note_queued_n(&topic, 1, bytes);
+        }
         Ok(rx)
     }
 
@@ -2209,7 +2230,10 @@ impl Producer {
             .map(|records| (records.used.load(Ordering::Acquire), records.limit))
     }
 
-    fn fast_route(&self, rec: &ProduceRecord) -> Option<(i32, WorkerHandle)> {
+    fn fast_route(
+        &self,
+        rec: &ProduceRecord,
+    ) -> Option<(i32, WorkerHandle, Arc<crate::metrics::ProduceTopicTracker>)> {
         let fast = self.inner.shared.fast.lock();
         let f = fast.as_ref()?;
         if f.topic != rec.topic || f.handles.is_empty() || f.np <= 0 {
@@ -2224,7 +2248,30 @@ impl Producer {
         }
         let i = usize::try_from(p).ok()?;
         let w = f.handles.get(i)?.clone();
-        Some((p, w))
+        Some((p, w, Arc::clone(&f.tracker)))
+    }
+
+    /// A cached route whose metadata is still inside `metadata_max_age`.
+    ///
+    /// A recorded metadata error still goes through the slow path so the
+    /// caller sees it before another record is queued.
+    fn fresh_fast_route(
+        &self,
+        rec: &ProduceRecord,
+    ) -> Option<(i32, WorkerHandle, Arc<crate::metrics::ProduceTopicTracker>)> {
+        if peek_meta_err(&self.inner.shared).is_some() {
+            return None;
+        }
+        let fresh = self
+            .inner
+            .shared
+            .cluster
+            .lock()
+            .topic_fresh(rec.topic.as_ref(), self.inner.shared.cfg.metadata_max_age);
+        if !fresh {
+            return None;
+        }
+        self.fast_route(rec)
     }
 
     fn remember_fast(&self, rec: &ProduceRecord) {
@@ -2256,10 +2303,12 @@ impl Producer {
             };
             handles.push(w);
         }
+        let tracker = self.inner.shared.topic_tracker(&rec.topic);
         *self.inner.shared.fast.lock() = Some(FastRoute {
             topic: rec.topic.clone(),
             np,
             handles,
+            tracker,
         });
     }
 
@@ -2325,9 +2374,9 @@ impl Producer {
                 }
             }
         }
-        let w = if let Some((p, w)) = self.fast_route(&rec) {
+        let (w, tracker) = if let Some((p, w, tracker)) = self.fast_route(&rec) {
             rec.partition = Some(p);
-            w
+            (w, Some(tracker))
         } else {
             let _ = self.apply_cached_partition(&mut rec);
             let Some(w) = self.worker_for(&rec) else {
@@ -2335,7 +2384,7 @@ impl Producer {
                 return Err(Error::QueueFull);
             };
             self.remember_fast(&rec);
-            w
+            (w, None)
         };
         let now = Instant::now();
         let deadline = now + self.inner.shared.cfg.delivery_timeout;
@@ -2370,7 +2419,12 @@ impl Producer {
             });
         }
         reservation.active = false;
-        self.inner.shared.note_queued_n(&topic, 1, bytes);
+        if let Some(tracker) = tracker {
+            self.inner.shared.note_queued_totals(1, bytes);
+            tracker.note_queued(1, bytes);
+        } else {
+            self.inner.shared.note_queued_n(&topic, 1, bytes);
+        }
         Ok(())
     }
 
