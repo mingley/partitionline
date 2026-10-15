@@ -2158,6 +2158,39 @@ struct PlannedFetch<'a> {
     partitions: &'a [FetchPartition],
 }
 
+/// One topic stays in an array. A multi-topic fetch owns a vector.
+enum PlannedList<'a> {
+    One([PlannedFetch<'a>; 1]),
+    Many(Vec<PlannedFetch<'a>>),
+}
+
+impl<'a> PlannedList<'a> {
+    fn as_slice(&self) -> &[PlannedFetch<'a>] {
+        match self {
+            Self::One(topic) => topic,
+            Self::Many(topics) => topics,
+        }
+    }
+}
+
+fn planned_fetch<'a>(
+    topic: &'a Arc<str>,
+    partitions: &'a [FetchPartition],
+    overrides: &HashMap<Arc<str>, [u8; 16]>,
+    known_ids: &HashMap<String, [u8; 16]>,
+) -> PlannedFetch<'a> {
+    PlannedFetch {
+        topic_id: overrides
+            .get(topic.as_ref())
+            .or_else(|| known_ids.get(topic.as_ref()))
+            .copied()
+            .filter(|id| *id != [0; 16])
+            .unwrap_or([0; 16]),
+        topic,
+        partitions,
+    }
+}
+
 fn planned_fetch_topic(planned: &PlannedFetch<'_>) -> SessionFetchTopic {
     SessionFetchTopic {
         topic: Arc::clone(planned.topic),
@@ -5516,7 +5549,7 @@ impl Consumer {
                         .fetch_sessions
                         .entry(node)
                         .or_default()
-                        .prepare(&topics, fetch_version);
+                        .prepare(topics.as_slice(), fetch_version);
                     let encode = |buf: &mut bytes::BytesMut| {
                         encode_fetch_request_topics(
                             buf,
@@ -5586,7 +5619,7 @@ impl Consumer {
                 .fetch_sessions
                 .entry(node)
                 .or_default()
-                .prepare(&topics, fetch_version);
+                .prepare(topics.as_slice(), fetch_version);
             let rack = rack.clone();
             let _ = inflight.pending.insert(node);
             let Some(set) = inflight.set.as_mut() else {
@@ -7251,20 +7284,18 @@ fn fetch_topics<'a>(
     by_topic: &'a HashMap<Arc<str>, Vec<FetchPartition>>,
     overrides: &HashMap<Arc<str>, [u8; 16]>,
     known_ids: &HashMap<String, [u8; 16]>,
-) -> Vec<PlannedFetch<'a>> {
-    by_topic
-        .iter()
-        .map(|(topic, partitions)| PlannedFetch {
-            topic_id: overrides
-                .get(topic.as_ref())
-                .or_else(|| known_ids.get(topic.as_ref()))
-                .copied()
-                .filter(|id| *id != [0; 16])
-                .unwrap_or([0; 16]),
-            topic,
-            partitions,
-        })
-        .collect()
+) -> PlannedList<'a> {
+    if by_topic.len() == 1 {
+        if let Some((topic, partitions)) = by_topic.iter().next() {
+            return PlannedList::One([planned_fetch(topic, partitions, overrides, known_ids)]);
+        }
+    }
+    PlannedList::Many(
+        by_topic
+            .iter()
+            .map(|(topic, partitions)| planned_fetch(topic, partitions, overrides, known_ids))
+            .collect(),
+    )
 }
 
 /// Next fetch offset when `position` sits past the epoch end.
@@ -8304,21 +8335,33 @@ mod tests {
         let mut planned = HashMap::new();
         let _ = planned.insert(Arc::clone(&topic), partitions.clone());
         let resolved = fetch_topics(&planned, &HashMap::new(), &known);
-        assert_eq!(resolved.first().map(|topic| topic.topic_id), Some([1; 16]));
+        assert!(matches!(resolved, PlannedList::One(_)));
+        assert_eq!(
+            resolved.as_slice().first().map(|topic| topic.topic_id),
+            Some([1; 16])
+        );
 
         let mut overrides = HashMap::new();
         let _ = overrides.insert(Arc::clone(&topic), [2; 16]);
         let mut planned = HashMap::new();
         let _ = planned.insert(Arc::clone(&topic), partitions.clone());
         let resolved = fetch_topics(&planned, &overrides, &known);
-        assert_eq!(resolved.first().map(|topic| topic.topic_id), Some([2; 16]));
+        assert!(matches!(resolved, PlannedList::One(_)));
+        assert_eq!(
+            resolved.as_slice().first().map(|topic| topic.topic_id),
+            Some([2; 16])
+        );
 
         let mut zeros = HashMap::new();
         let _ = zeros.insert("orders".to_owned(), [0; 16]);
         let mut planned = HashMap::new();
         let _ = planned.insert(topic, partitions);
         let resolved = fetch_topics(&planned, &HashMap::new(), &zeros);
-        assert_eq!(resolved.first().map(|topic| topic.topic_id), Some([0; 16]));
+        assert!(matches!(resolved, PlannedList::One(_)));
+        assert_eq!(
+            resolved.as_slice().first().map(|topic| topic.topic_id),
+            Some([0; 16])
+        );
     }
 
     #[test]
