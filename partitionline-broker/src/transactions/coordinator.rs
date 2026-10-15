@@ -177,6 +177,8 @@ pub struct Coordinator {
     journal: Journal,
     stored: usize,
     poisoned: bool,
+    /// Reused journal record. Cleared and rewritten on each append.
+    encoded: Vec<u8>,
 }
 
 type BTreeMapTxn = std::collections::BTreeMap<String, Transaction>;
@@ -193,6 +195,7 @@ impl Coordinator {
             journal,
             stored: 0,
             poisoned: false,
+            encoded: Vec::new(),
         };
         let mut offset = coordinator.journal.base_offset();
         loop {
@@ -235,7 +238,7 @@ impl Coordinator {
         if epoch <= self.epoch {
             return Err(Error::StaleCoordinator);
         }
-        self.persist(&encode_epoch(epoch)?)?;
+        self.append_encoded(|bytes| write_epoch(bytes, epoch))?;
         self.epoch = epoch;
         Ok(epoch)
     }
@@ -261,7 +264,7 @@ impl Coordinator {
             }
             let epoch = existing.producer_epoch + 1;
             let producer_id = existing.producer_id;
-            self.persist(&encode_init(transactional_id, producer_id, epoch)?)?;
+            self.append_encoded(|bytes| write_init(bytes, transactional_id, producer_id, epoch))?;
             let txn = self
                 .transactions
                 .get_mut(transactional_id)
@@ -275,7 +278,7 @@ impl Coordinator {
             return Err(Error::InvalidLimits);
         }
         let producer_id = self.next_producer;
-        self.persist(&encode_init(transactional_id, producer_id, 0)?)?;
+        self.append_encoded(|bytes| write_init(bytes, transactional_id, producer_id, 0))?;
         self.transactions.insert(
             transactional_id.to_owned(),
             Transaction {
@@ -306,7 +309,7 @@ impl Coordinator {
                 return Err(Error::Concurrent)
             }
         }
-        self.persist(&encode_begin(transactional_id)?)?;
+        self.append_encoded(|bytes| write_begin(bytes, transactional_id))?;
         let txn = self
             .transactions
             .get_mut(transactional_id)
@@ -345,7 +348,7 @@ impl Coordinator {
         if txn_partition_count(&txn.partitions) >= 64 {
             return Err(Error::InvalidRequest);
         }
-        self.persist(&encode_add(transactional_id, topic, partition)?)?;
+        self.append_encoded(|bytes| write_add(bytes, transactional_id, topic, partition))?;
         let txn = self
             .transactions
             .get_mut(transactional_id)
@@ -378,7 +381,7 @@ impl Coordinator {
         };
         match txn.state {
             State::Ongoing => {
-                self.persist(&encode_prepare(transactional_id, commit)?)?;
+                self.append_encoded(|bytes| write_prepare(bytes, transactional_id, commit))?;
                 let txn = self
                     .transactions
                     .get_mut(transactional_id)
@@ -410,7 +413,7 @@ impl Coordinator {
             State::CompleteAbort => return Ok(Outcome::Completed { commit: false }),
             _ => return Err(Error::InvalidState),
         };
-        self.persist(&encode_finish(transactional_id, commit)?)?;
+        self.append_encoded(|bytes| write_finish(bytes, transactional_id, commit))?;
         let txn = self
             .transactions
             .get_mut(transactional_id)
@@ -588,6 +591,18 @@ impl Coordinator {
         Ok(())
     }
 
+    fn append_encoded(
+        &mut self,
+        write: impl FnOnce(&mut Vec<u8>) -> Result<(), Error>,
+    ) -> Result<(), Error> {
+        self.encoded.clear();
+        write(&mut self.encoded)?;
+        let payload = std::mem::take(&mut self.encoded);
+        let result = self.persist(&payload);
+        self.encoded = payload;
+        result
+    }
+
     fn persist(&mut self, payload: &[u8]) -> Result<(), Error> {
         if self.stored >= self.limits.max_records {
             return Err(Error::InvalidLimits);
@@ -620,58 +635,79 @@ fn split_kind(bytes: &[u8]) -> Result<(u8, &[u8]), Error> {
     Ok((bytes[RECORD_MAGIC.len()], &bytes[RECORD_MAGIC.len() + 1..]))
 }
 
-fn encode_epoch(epoch: i64) -> Result<Vec<u8>, Error> {
-    let mut bytes = Vec::with_capacity(17);
+fn write_epoch(bytes: &mut Vec<u8>, epoch: i64) -> Result<(), Error> {
+    bytes.clear();
     bytes.extend_from_slice(RECORD_MAGIC);
     bytes.push(KIND_COORDINATOR);
     bytes.extend_from_slice(&epoch.to_be_bytes());
-    Ok(bytes)
+    Ok(())
 }
 
+#[cfg(test)]
 fn encode_init(id: &str, producer_id: i64, epoch: i16) -> Result<Vec<u8>, Error> {
     let mut bytes = Vec::new();
+    write_init(&mut bytes, id, producer_id, epoch)?;
+    Ok(bytes)
+}
+
+fn write_init(bytes: &mut Vec<u8>, id: &str, producer_id: i64, epoch: i16) -> Result<(), Error> {
+    bytes.clear();
     bytes.extend_from_slice(RECORD_MAGIC);
     bytes.push(KIND_INIT);
-    put_str(&mut bytes, id)?;
+    put_str(bytes, id)?;
     bytes.extend_from_slice(&producer_id.to_be_bytes());
     bytes.extend_from_slice(&epoch.to_be_bytes());
-    Ok(bytes)
+    Ok(())
 }
 
-fn encode_begin(id: &str) -> Result<Vec<u8>, Error> {
-    let mut bytes = Vec::new();
+fn write_begin(bytes: &mut Vec<u8>, id: &str) -> Result<(), Error> {
+    bytes.clear();
     bytes.extend_from_slice(RECORD_MAGIC);
     bytes.push(KIND_BEGIN);
-    put_str(&mut bytes, id)?;
-    Ok(bytes)
+    put_str(bytes, id)?;
+    Ok(())
 }
 
+#[cfg(test)]
 fn encode_add(id: &str, topic: &str, partition: i32) -> Result<Vec<u8>, Error> {
     let mut bytes = Vec::new();
+    write_add(&mut bytes, id, topic, partition)?;
+    Ok(bytes)
+}
+
+fn write_add(bytes: &mut Vec<u8>, id: &str, topic: &str, partition: i32) -> Result<(), Error> {
+    bytes.clear();
     bytes.extend_from_slice(RECORD_MAGIC);
     bytes.push(KIND_ADD);
-    put_str(&mut bytes, id)?;
-    put_str(&mut bytes, topic)?;
+    put_str(bytes, id)?;
+    put_str(bytes, topic)?;
     bytes.extend_from_slice(&partition.to_be_bytes());
-    Ok(bytes)
+    Ok(())
 }
 
-fn encode_prepare(id: &str, commit: bool) -> Result<Vec<u8>, Error> {
-    let mut bytes = Vec::new();
+fn write_prepare(bytes: &mut Vec<u8>, id: &str, commit: bool) -> Result<(), Error> {
+    bytes.clear();
     bytes.extend_from_slice(RECORD_MAGIC);
     bytes.push(KIND_PREPARE);
-    put_str(&mut bytes, id)?;
+    put_str(bytes, id)?;
     bytes.push(u8::from(commit));
+    Ok(())
+}
+
+#[cfg(test)]
+fn encode_finish(id: &str, commit: bool) -> Result<Vec<u8>, Error> {
+    let mut bytes = Vec::new();
+    write_finish(&mut bytes, id, commit)?;
     Ok(bytes)
 }
 
-fn encode_finish(id: &str, commit: bool) -> Result<Vec<u8>, Error> {
-    let mut bytes = Vec::new();
+fn write_finish(bytes: &mut Vec<u8>, id: &str, commit: bool) -> Result<(), Error> {
+    bytes.clear();
     bytes.extend_from_slice(RECORD_MAGIC);
     bytes.push(KIND_FINISH);
-    put_str(&mut bytes, id)?;
+    put_str(bytes, id)?;
     bytes.push(u8::from(commit));
-    Ok(bytes)
+    Ok(())
 }
 
 fn put_str(bytes: &mut Vec<u8>, value: &str) -> Result<(), Error> {
@@ -953,12 +989,15 @@ mod tests {
         coordinator
             .add_partition("orders-txn", producer, epoch, 0, "orders", 0)
             .unwrap_or_else(|error| panic!("{error:?}"));
+        let encoded_capacity = coordinator.encoded.capacity();
+        assert!(encoded_capacity > 0);
         coordinator
             .add_partition("orders-txn", producer, epoch, 0, "orders", 0)
             .unwrap_or_else(|error| panic!("{error:?}"));
         coordinator
             .add_partition("orders-txn", producer, epoch, 0, "orders", 1)
             .unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(coordinator.encoded.capacity() >= encoded_capacity);
         assert!(matches!(
             coordinator.add_partition("orders-txn", producer, epoch, 0, "orders", 2),
             Err(Error::InvalidLimits)
