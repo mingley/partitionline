@@ -11525,7 +11525,7 @@ impl Admin {
     /// Java `describeShareGroups` is [`Self::describe_share_groups`].
     /// FindCoordinator v4+ CoordinatorKeys array of N (KIP-699): one
     /// FindCoordinator per retry for uncached groups. ShareGroupDescribe
-    /// is one RPC per coordinator. Brokers that only speak FindCoordinator
+    /// is one RPC per coordinator, and those RPCs run together. Brokers that only speak FindCoordinator
     /// v1–v3 get one FindCoordinator per uncached group. Empty input is
     /// a no-op. ShareGroupDescribe has no TimeoutMs; the RPC deadline
     /// is [`AdminConfig::request_timeout`]. For a one-shot deadline, use
@@ -11567,34 +11567,83 @@ impl Admin {
             let mut nodes: Vec<i32> = by_node.keys().copied().collect();
             nodes.sort_unstable();
             let mut still = Vec::new();
-            for node in nodes {
-                let idxs = by_node.get(&node).cloned().unwrap_or_default();
-                match self
-                    .share_group_describe_on_node(
-                        node,
-                        version,
-                        &ids,
-                        &idxs,
-                        include_authorized_operations,
-                        deadline,
-                    )
-                    .await
-                {
-                    Ok(done) => {
-                        for (i, g) in done {
-                            if error::coordinator_retriable(g.error_code) {
-                                self.invalidate_group_coord_idxs(&ids, &[i], node);
-                                still.push(i);
-                            } else if let Some(slot) = out.get_mut(i) {
-                                *slot = Some(g);
+            if nodes.len() > 1 {
+                let mut finished = self
+                    .exchange_leaders(&nodes, deadline, |_admin, node, _conn, _timeout| {
+                        let idxs = by_node.get(&node).map(Vec::as_slice).unwrap_or(&[]);
+                        let subset: Vec<String> =
+                            idxs.iter().filter_map(|&i| ids.get(i).cloned()).collect();
+                        let mut payload = BytesMut::new();
+                        encode_share_group_describe_request(
+                            &mut payload,
+                            version,
+                            &subset,
+                            include_authorized_operations,
+                        )?;
+                        Ok(LeaderFrame {
+                            api_key: SHARE_GROUP_DESCRIBE,
+                            version,
+                            body: payload.freeze(),
+                        })
+                    })
+                    .await;
+                for node in &nodes {
+                    let idxs = by_node.get(node).cloned().unwrap_or_default();
+                    let Some((spoken, body)) = finished.remove(node) else {
+                        self.invalidate_group_coord_idxs(&ids, &idxs, *node);
+                        still.extend(idxs);
+                        continue;
+                    };
+                    match body {
+                        Err(error) if error.is_retriable() => {
+                            self.invalidate_group_coord_idxs(&ids, &idxs, *node);
+                            still.extend(idxs);
+                        }
+                        Err(error) => return Err(error),
+                        Ok(body) => {
+                            let done =
+                                Self::apply_share_group_describe_body(spoken, &ids, &idxs, body)?;
+                            for (i, g) in done {
+                                if error::coordinator_retriable(g.error_code) {
+                                    self.invalidate_group_coord_idxs(&ids, &[i], *node);
+                                    still.push(i);
+                                } else if let Some(slot) = out.get_mut(i) {
+                                    *slot = Some(g);
+                                }
                             }
                         }
                     }
-                    Err(e) if e.is_retriable() => {
-                        self.invalidate_group_coord_idxs(&ids, &idxs, node);
-                        still.extend(idxs);
+                }
+            } else {
+                for node in nodes {
+                    let idxs = by_node.get(&node).cloned().unwrap_or_default();
+                    match self
+                        .share_group_describe_on_node(
+                            node,
+                            version,
+                            &ids,
+                            &idxs,
+                            include_authorized_operations,
+                            deadline,
+                        )
+                        .await
+                    {
+                        Ok(done) => {
+                            for (i, g) in done {
+                                if error::coordinator_retriable(g.error_code) {
+                                    self.invalidate_group_coord_idxs(&ids, &[i], node);
+                                    still.push(i);
+                                } else if let Some(slot) = out.get_mut(i) {
+                                    *slot = Some(g);
+                                }
+                            }
+                        }
+                        Err(e) if e.is_retriable() => {
+                            self.invalidate_group_coord_idxs(&ids, &idxs, node);
+                            still.extend(idxs);
+                        }
+                        Err(e) => return Err(e),
                     }
-                    Err(e) => return Err(e),
                 }
             }
             pending = still;
@@ -11667,7 +11716,7 @@ impl Admin {
     /// Java `listShareGroupOffsets` is [`Self::list_share_group_offsets`].
     /// FindCoordinator v4+ CoordinatorKeys array of N (KIP-699): one
     /// FindCoordinator per retry for uncached groups. DescribeShareGroupOffsets
-    /// is one RPC per coordinator. Brokers that only speak FindCoordinator
+    /// is one RPC per coordinator, and those RPCs run together. Brokers that only speak FindCoordinator
     /// v1–v3 get one FindCoordinator per uncached group. Empty input is
     /// a no-op. DescribeShareGroupOffsets has no TimeoutMs; the RPC
     /// deadline is [`AdminConfig::request_timeout`]. For a one-shot
@@ -11745,27 +11794,80 @@ impl Admin {
             let mut nodes: Vec<i32> = by_node.keys().copied().collect();
             nodes.sort_unstable();
             let mut still = Vec::new();
-            for node in nodes {
-                let idxs = by_node.get(&node).cloned().unwrap_or_default();
-                match self
-                    .describe_share_group_offsets_on_node(node, version, groups, &idxs, deadline)
-                    .await
-                {
-                    Ok(done) => {
-                        for (i, g) in done {
-                            if error::coordinator_retriable(g.error_code) {
-                                self.invalidate_group_coord_idxs(&ids, &[i], node);
-                                still.push(i);
-                            } else if let Some(slot) = out.get_mut(i) {
-                                *slot = Some(g);
+            if nodes.len() > 1 {
+                let mut finished = self
+                    .exchange_leaders(&nodes, deadline, |_admin, node, _conn, _timeout| {
+                        let idxs = by_node.get(&node).map(Vec::as_slice).unwrap_or(&[]);
+                        let subset: Vec<DescribeShareGroupOffsetsGroup> = idxs
+                            .iter()
+                            .filter_map(|&i| groups.get(i).cloned())
+                            .collect();
+                        let mut payload = BytesMut::new();
+                        encode_describe_share_group_offsets_request_versioned(
+                            &mut payload,
+                            version,
+                            &subset,
+                        )?;
+                        Ok(LeaderFrame {
+                            api_key: DESCRIBE_SHARE_GROUP_OFFSETS,
+                            version,
+                            body: payload.freeze(),
+                        })
+                    })
+                    .await;
+                for node in &nodes {
+                    let idxs = by_node.get(node).cloned().unwrap_or_default();
+                    let Some((spoken, body)) = finished.remove(node) else {
+                        self.invalidate_group_coord_idxs(&ids, &idxs, *node);
+                        still.extend(idxs);
+                        continue;
+                    };
+                    match body {
+                        Err(error) if error.is_retriable() => {
+                            self.invalidate_group_coord_idxs(&ids, &idxs, *node);
+                            still.extend(idxs);
+                        }
+                        Err(error) => return Err(error),
+                        Ok(body) => {
+                            let done = Self::apply_describe_share_group_offsets_body(
+                                spoken, groups, &idxs, body,
+                            )?;
+                            for (i, g) in done {
+                                if error::coordinator_retriable(g.error_code) {
+                                    self.invalidate_group_coord_idxs(&ids, &[i], *node);
+                                    still.push(i);
+                                } else if let Some(slot) = out.get_mut(i) {
+                                    *slot = Some(g);
+                                }
                             }
                         }
                     }
-                    Err(e) if e.is_retriable() => {
-                        self.invalidate_group_coord_idxs(&ids, &idxs, node);
-                        still.extend(idxs);
+                }
+            } else {
+                for node in nodes {
+                    let idxs = by_node.get(&node).cloned().unwrap_or_default();
+                    match self
+                        .describe_share_group_offsets_on_node(
+                            node, version, groups, &idxs, deadline,
+                        )
+                        .await
+                    {
+                        Ok(done) => {
+                            for (i, g) in done {
+                                if error::coordinator_retriable(g.error_code) {
+                                    self.invalidate_group_coord_idxs(&ids, &[i], node);
+                                    still.push(i);
+                                } else if let Some(slot) = out.get_mut(i) {
+                                    *slot = Some(g);
+                                }
+                            }
+                        }
+                        Err(e) if e.is_retriable() => {
+                            self.invalidate_group_coord_idxs(&ids, &idxs, node);
+                            still.extend(idxs);
+                        }
+                        Err(e) => return Err(e),
                     }
-                    Err(e) => return Err(e),
                 }
             }
             pending = still;
@@ -13684,6 +13786,15 @@ impl Admin {
             )
             .await
         }?;
+        Self::apply_share_group_describe_body(version, ids, idxs, body)
+    }
+
+    fn apply_share_group_describe_body(
+        version: i16,
+        ids: &[String],
+        idxs: &[usize],
+        body: Bytes,
+    ) -> Result<Vec<(usize, DescribedShareGroup)>> {
         let (results, ..) = decode_share_group_describe_response(&mut body.clone(), version)?;
         let mut by_id: HashMap<String, VecDeque<DescribedShareGroup>> = HashMap::new();
         for g in results {
@@ -13730,7 +13841,16 @@ impl Admin {
             )
             .await
         }?;
-        let mut cursor = body.clone();
+        Self::apply_describe_share_group_offsets_body(version, groups, idxs, body)
+    }
+
+    fn apply_describe_share_group_offsets_body(
+        version: i16,
+        groups: &[DescribeShareGroupOffsetsGroup],
+        idxs: &[usize],
+        body: Bytes,
+    ) -> Result<Vec<(usize, DescribedShareGroupOffsetsWithLag)>> {
+        let mut cursor = body;
         let (results, ..) =
             decode_describe_share_group_offsets_response_versioned(&mut cursor, version)?;
         if !cursor.is_empty() {

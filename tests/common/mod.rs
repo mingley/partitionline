@@ -8524,31 +8524,33 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 st.last_share_group_describe_version = Some(version);
                 st.last_share_group_describe_n = ids.len();
                 st.share_group_describe_calls = st.share_group_describe_calls.saturating_add(1);
-                if st.coord_node != node_id {
-                    st.share_group_describe_not_coordinator =
-                        st.share_group_describe_not_coordinator.saturating_add(1);
-                    // Per-group 16 only. Do not invent a member store,
-                    // a 41 path, or a 6 path.
-                    let results: Vec<DescribedShareGroup> = ids
-                        .into_iter()
-                        .map(|group_id| DescribedShareGroup::new(group_id, error::NOT_COORDINATOR))
-                        .collect();
-                    encode_share_group_describe_response(&mut body, version, &results).unwrap();
-                } else {
-                    st.last_share_group_describe_node = Some(node_id);
-                    let results: Vec<DescribedShareGroup> = ids
-                        .into_iter()
-                        .map(|group_id| {
-                            let mut g = DescribedShareGroup::new(group_id, 0);
-                            g.group_state = "Stable".into();
-                            g.group_epoch = 1;
-                            g.assignment_epoch = 1;
-                            g.assignor_name = "uniform".into();
-                            g
-                        })
-                        .collect();
-                    encode_share_group_describe_response(&mut body, version, &results).unwrap();
-                }
+                let mut saw_foreign = false;
+                let results: Vec<DescribedShareGroup> = ids
+                    .into_iter()
+                    .map(|group_id| {
+                        let owner = st
+                            .group_coord_overrides
+                            .get(&group_id)
+                            .copied()
+                            .unwrap_or(st.coord_node);
+                        if owner != node_id {
+                            if !saw_foreign {
+                                st.share_group_describe_not_coordinator =
+                                    st.share_group_describe_not_coordinator.saturating_add(1);
+                                saw_foreign = true;
+                            }
+                            return DescribedShareGroup::new(group_id, error::NOT_COORDINATOR);
+                        }
+                        st.last_share_group_describe_node = Some(node_id);
+                        let mut g = DescribedShareGroup::new(group_id, 0);
+                        g.group_state = "Stable".into();
+                        g.group_epoch = 1;
+                        g.assignment_epoch = 1;
+                        g.assignor_name = "uniform".into();
+                        g
+                    })
+                    .collect();
+                encode_share_group_describe_response(&mut body, version, &results).unwrap();
             }
             DESCRIBE_SHARE_GROUP_OFFSETS => {
                 let groups = decode_describe_share_group_offsets_request(&mut frame).unwrap();
@@ -8556,27 +8558,32 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 st.last_describe_share_group_offsets_n = groups.len();
                 st.describe_share_group_offsets_calls =
                     st.describe_share_group_offsets_calls.saturating_add(1);
-                if st.coord_node != node_id {
-                    st.describe_share_group_offsets_not_coordinator = st
-                        .describe_share_group_offsets_not_coordinator
-                        .saturating_add(1);
-                    // Per-group 16 only. Do not invent an offset store,
-                    // a 41 path, or a 6 path.
-                    let results: Vec<DescribedShareGroupOffsets> = groups
-                        .into_iter()
-                        .map(|g| {
-                            DescribedShareGroupOffsets::new(g.group_id, error::NOT_COORDINATOR)
-                        })
-                        .collect();
-                    encode_describe_share_group_offsets_response(&mut body, &results).unwrap();
-                } else {
-                    st.last_describe_share_group_offsets_node = Some(node_id);
-                    let results: Vec<DescribedShareGroupOffsets> = groups
-                        .into_iter()
-                        .map(|g| DescribedShareGroupOffsets::new(g.group_id, 0))
-                        .collect();
-                    encode_describe_share_group_offsets_response(&mut body, &results).unwrap();
-                }
+                let mut saw_foreign = false;
+                let results: Vec<DescribedShareGroupOffsets> = groups
+                    .into_iter()
+                    .map(|g| {
+                        let owner = st
+                            .group_coord_overrides
+                            .get(&g.group_id)
+                            .copied()
+                            .unwrap_or(st.coord_node);
+                        if owner != node_id {
+                            if !saw_foreign {
+                                st.describe_share_group_offsets_not_coordinator = st
+                                    .describe_share_group_offsets_not_coordinator
+                                    .saturating_add(1);
+                                saw_foreign = true;
+                            }
+                            return DescribedShareGroupOffsets::new(
+                                g.group_id,
+                                error::NOT_COORDINATOR,
+                            );
+                        }
+                        st.last_describe_share_group_offsets_node = Some(node_id);
+                        DescribedShareGroupOffsets::new(g.group_id, 0)
+                    })
+                    .collect();
+                encode_describe_share_group_offsets_response(&mut body, &results).unwrap();
             }
             ALTER_SHARE_GROUP_OFFSETS => {
                 let (_group_id, _topics) =
