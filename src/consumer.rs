@@ -5719,16 +5719,39 @@ impl Consumer {
         let mut retry = FetchRetry::None;
         // A partition listed twice must not rewind the cursor or deliver twice.
         // One topic with one partition cannot repeat, so that fetch skips the set.
+        // A topic that appears once, with partition indexes in increasing order,
+        // cannot repeat either.
         let sole_partition = fetched.len() <= 1
             && fetched
                 .first()
                 .is_none_or(|topic| topic.partitions.len() <= 1);
+        let mut repeated_topics: HashSet<Arc<str>> = HashSet::new();
+        let mut trust_unique = true;
+        if fetched.len() > 1 {
+            let mut once = HashSet::new();
+            for topic in &fetched {
+                match self.fetch_topic_arc(&topic.topic, topic.topic_id) {
+                    Ok(Some(name)) => {
+                        if !once.insert(Arc::clone(&name)) {
+                            let _ = repeated_topics.insert(name);
+                        }
+                    }
+                    Ok(None) => {}
+                    Err(_) => {
+                        trust_unique = false;
+                        break;
+                    }
+                }
+            }
+        }
         let mut seen_partitions: HashMap<Arc<str>, HashSet<i32>> = HashMap::new();
         for (topic, topic_batches) in fetched.into_iter().zip(batches) {
             let Some(name) = self.fetch_topic_arc(&topic.topic, topic.topic_id)? else {
                 continue;
             };
-            let mut topic_seen = if sole_partition {
+            let increasing = partitions_strictly_increase(&topic.partitions);
+            let repeated = trust_unique && repeated_topics.contains(name.as_ref());
+            let mut topic_seen = if sole_partition || (trust_unique && increasing && !repeated) {
                 None
             } else {
                 Some(seen_partitions.remove(name.as_ref()).unwrap_or_default())
@@ -7520,6 +7543,17 @@ fn drop_records_at_or_after(
     removed
 }
 
+fn partitions_strictly_increase(parts: &[crate::protocol::fetch::FetchedPartition]) -> bool {
+    let mut previous = None;
+    for part in parts {
+        if previous.is_some_and(|earlier| part.partition <= earlier) {
+            return false;
+        }
+        previous = Some(part.partition);
+    }
+    true
+}
+
 fn truncated_fetch_offset(position: i64, end_offset: i64) -> Option<i64> {
     if end_offset >= 0 && position > end_offset {
         Some(end_offset)
@@ -8320,6 +8354,28 @@ mod tests {
             .map(|record| (record.topic.as_str(), record.offset))
             .collect();
         assert_eq!(kept, vec![("t", 1), ("u", 4)]);
+    }
+
+    #[test]
+    fn an_increasing_partition_list_cannot_repeat() {
+        use crate::protocol::fetch::FetchedPartition;
+        let parts = [
+            FetchedPartition::partition_response(0, 0),
+            FetchedPartition::partition_response(1, 0),
+            FetchedPartition::partition_response(4, 0),
+        ];
+        assert!(partitions_strictly_increase(&parts));
+        assert!(partitions_strictly_increase(&[]));
+        let repeated = [
+            FetchedPartition::partition_response(0, 0),
+            FetchedPartition::partition_response(0, 0),
+        ];
+        assert!(!partitions_strictly_increase(&repeated));
+        let backwards = [
+            FetchedPartition::partition_response(2, 0),
+            FetchedPartition::partition_response(1, 0),
+        ];
+        assert!(!partitions_strictly_increase(&backwards));
     }
 
     #[test]
