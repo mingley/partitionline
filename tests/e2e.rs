@@ -22,7 +22,7 @@ async fn produce_fetch_classic_join_same_payload() {
         .send(ProduceRecord::to("t").value(payload))
         .await
         .unwrap();
-    assert_eq!(md.topic, "t");
+    assert_eq!(md.topic.as_ref(), "t");
     assert_eq!(md.partition, 0);
     assert_eq!(md.offset, 0);
     producer.close().await.unwrap();

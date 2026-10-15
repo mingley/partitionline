@@ -411,7 +411,7 @@ async fn permit_stays_owned_across_retry_and_releases_exactly_once() {
         .value(vec![b'r'; 100])
         .header("retry-header", "retry-value");
     let md = producer.send(rec).await.unwrap();
-    assert_eq!(md.topic, "t");
+    assert_eq!(md.topic.as_ref(), "t");
     assert_eq!(
         producer.metrics().bytes_buffered,
         0,
@@ -454,7 +454,7 @@ async fn presend_failure_transaction_partition_releases_permit_and_flush_fails()
     );
 
     let md2 = res2.expect("unrelated record in worker pending must not be dropped");
-    assert_eq!(md2.topic, "t");
+    assert_eq!(md2.topic.as_ref(), "t");
 
     let flush_err = producer
         .flush()
@@ -506,7 +506,7 @@ async fn presend_failure_encode_releases_permit_and_flush_fails() {
     );
 
     let md2 = res2.expect("unrelated record must not be dropped on encode failure");
-    assert_eq!(md2.topic, "t");
+    assert_eq!(md2.topic.as_ref(), "t");
 
     let flush_err = producer
         .flush()
@@ -558,7 +558,7 @@ async fn presend_failure_write_releases_permit_and_flush_fails() {
     );
 
     let md2 = res2.expect("unrelated record must not be dropped on write failure");
-    assert_eq!(md2.topic, "t");
+    assert_eq!(md2.topic.as_ref(), "t");
 
     let flush_err = producer
         .flush()
@@ -674,7 +674,7 @@ async fn presend_failure_real_mock_add_partitions_to_txn() {
         .send(rec2)
         .await
         .expect("subsequent record after 1-time broker error must succeed");
-    assert_eq!(md2.topic, "t");
+    assert_eq!(md2.topic.as_ref(), "t");
 
     producer.flush().await.unwrap();
     assert_eq!(producer.metrics().bytes_buffered, 0);

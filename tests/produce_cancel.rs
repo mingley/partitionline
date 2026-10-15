@@ -22,7 +22,7 @@ async fn send_completes_with_record_metadata() {
         .send(ProduceRecord::to("t").value(&b"ok"[..]))
         .await
         .unwrap();
-    assert_eq!(md.topic, "t");
+    assert_eq!(md.topic.as_ref(), "t");
     assert_eq!(md.partition, 0);
     assert!(!mock.produce_nodes().is_empty());
     assert_eq!(producer.metrics().bytes_buffered, 0);
@@ -335,7 +335,7 @@ async fn concurrent_sends_during_close_do_not_hang_and_observe_closed() {
             let res = h.await.expect("task must not panic");
             match res {
                 Ok(md) => {
-                    assert_eq!(md.topic, "t");
+                    assert_eq!(md.topic.as_ref(), "t");
                 }
                 Err(e) => {
                     assert!(
@@ -610,7 +610,7 @@ async fn retry_succeeds_when_broker_recovers_within_delivery_deadline() {
         .await
         .expect("send should succeed once retriable errors clear within deadline");
 
-    assert_eq!(md.topic, "t");
+    assert_eq!(md.topic.as_ref(), "t");
     assert!(
         mock.produce_request_nodes().len() >= 3,
         "expected at least 3 produce attempts (2 failed + 1 success), got {}",

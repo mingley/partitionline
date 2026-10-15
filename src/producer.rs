@@ -685,8 +685,8 @@ impl fmt::Display for ProduceRecord {
 /// [`Self::serialized_value_size`] are `-1` when the key or value is null.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RecordMetadata {
-    /// Topic name.
-    pub topic: String,
+    /// Topic name, shared with the produced record.
+    pub topic: Arc<str>,
     /// Partition the record was written to.
     pub partition: i32,
     /// Assigned offset, or `-1` when `acks=0`.
@@ -729,7 +729,7 @@ impl RecordMetadata {
             base_offset + i64::from(batch_index)
         };
         Self {
-            topic: tp.topic,
+            topic: Arc::from(tp.topic),
             partition: tp.partition,
             offset,
             timestamp,
@@ -741,7 +741,7 @@ impl RecordMetadata {
     /// Java `RecordMetadata.topic`.
     #[must_use]
     pub fn topic(&self) -> &str {
-        self.topic.as_str()
+        self.topic.as_ref()
     }
 
     /// Java `RecordMetadata.partition`.
@@ -791,7 +791,7 @@ impl RecordMetadata {
     /// `RecordMetadata`).
     #[must_use]
     pub fn topic_partition(&self) -> crate::TopicPartition {
-        crate::TopicPartition::new(self.topic.clone(), self.partition)
+        crate::TopicPartition::new(self.topic.as_ref(), self.partition)
     }
 }
 
@@ -6415,7 +6415,7 @@ fn serialized_bytes_size(bytes: Option<&Bytes>) -> i32 {
 }
 
 fn record_metadata(
-    topic: &str,
+    topic: &Arc<str>,
     partition: i32,
     base_offset: i64,
     batch_index: i32,
@@ -6427,14 +6427,19 @@ fn record_metadata(
     } else {
         rec.timestamp.unwrap_or_else(now_ms)
     };
-    RecordMetadata::new(
-        crate::TopicPartition::new(topic, partition),
-        base_offset,
-        batch_index,
+    let offset = if base_offset == RecordMetadata::INVALID_OFFSET {
+        base_offset
+    } else {
+        base_offset + i64::from(batch_index)
+    };
+    RecordMetadata {
+        topic: Arc::clone(topic),
+        partition,
+        offset,
         timestamp,
-        serialized_bytes_size(rec.key.as_ref()),
-        serialized_bytes_size(rec.value.as_ref()),
-    )
+        serialized_key_size: serialized_bytes_size(rec.key.as_ref()),
+        serialized_value_size: serialized_bytes_size(rec.value.as_ref()),
+    }
 }
 
 #[cfg(test)]
@@ -6545,6 +6550,15 @@ mod tests {
         assert_eq!(throttle.remaining(), None);
         assert!(!throttle.active.load(Ordering::Acquire));
         assert_eq!(*throttle.until.lock(), None);
+    }
+
+    #[test]
+    fn record_metadata_shares_the_produce_topic() {
+        let rec = ProduceRecord::to("events");
+        let md = record_metadata(&rec.topic, 1, 4, 2, &rec, -1);
+        assert!(Arc::ptr_eq(&md.topic, &rec.topic));
+        assert_eq!(md.offset(), 6);
+        assert_eq!(md.topic(), "events");
     }
 
     #[test]

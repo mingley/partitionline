@@ -15,7 +15,7 @@ async fn produce_then_fetch_same_payload() {
         .send(ProduceRecord::to("t").value(&b"hello-roundtrip"[..]))
         .await
         .unwrap();
-    assert_eq!(md.topic, "t");
+    assert_eq!(md.topic.as_ref(), "t");
     assert_eq!(md.partition, 0);
     assert_eq!(md.offset, 0);
     producer.close().await.unwrap();

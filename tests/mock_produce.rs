@@ -105,7 +105,7 @@ async fn produce_one_record_against_mock() {
         .send(ProduceRecord::to("t").value(&b"hello"[..]))
         .await
         .unwrap();
-    assert_eq!(md.topic, "t");
+    assert_eq!(md.topic.as_ref(), "t");
     assert_eq!(md.partition, 0);
     assert_eq!(md.offset, 0);
     let md2 = producer

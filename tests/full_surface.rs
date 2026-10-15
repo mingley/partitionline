@@ -1679,7 +1679,7 @@ async fn idempotent_lost_ack_single_batch_retry_succeeds_without_duplicate() {
         .await
         .expect("send must succeed on retry after lost ack");
 
-    assert_eq!(md.topic, "t");
+    assert_eq!(md.topic.as_ref(), "t");
     assert_eq!(md.partition, 0);
     assert_eq!(md.offset, 0);
 
@@ -15605,7 +15605,7 @@ async fn produce_v13_uses_metadata_topic_ids_and_preserves_public_names() {
         .send(ProduceRecord::to("t").partition(0).value(&b"topic-id"[..]))
         .await
         .unwrap();
-    assert_eq!(result.topic, "t");
+    assert_eq!(result.topic.as_ref(), "t");
     assert_eq!(result.partition, 0);
     assert_eq!(result.offset, 0);
     assert_eq!(mock.last_produce_version(), Some(13));
@@ -15632,7 +15632,7 @@ async fn produce_v13_stale_id_refreshes_without_extending_delivery_budget() {
         .send(ProduceRecord::to("t").partition(0).value(&b"retry-id"[..]))
         .await
         .unwrap();
-    assert_eq!(result.topic, "t");
+    assert_eq!(result.topic.as_ref(), "t");
     assert_eq!(result.offset, 0);
     let sent = mock.produce_sent_topic_ids();
     assert_eq!(sent.len(), 2);
@@ -15679,7 +15679,7 @@ async fn produce_v13_response_identity_uses_sent_snapshot_after_metadata_change(
         producer.partitions_for("t").await.unwrap();
         send.await.unwrap()
     };
-    assert_eq!(result.topic, "t");
+    assert_eq!(result.topic.as_ref(), "t");
     assert_eq!(result.offset, 0);
     assert_ne!(mock.produce_sent_topic_ids()[0].1, [0x72; 16]);
     producer.close().await.unwrap();
@@ -15731,7 +15731,7 @@ async fn produce_v13_retains_older_name_versions_and_metadata_fallback() {
             .send(ProduceRecord::to("t").value(&b"name-fallback"[..]))
             .await
             .unwrap();
-        assert_eq!(result.topic, "t");
+        assert_eq!(result.topic.as_ref(), "t");
         assert_eq!(mock.last_produce_version(), Some(version));
         assert!(mock.produce_sent_topic_ids().is_empty());
         producer.close().await.unwrap();
@@ -15772,7 +15772,7 @@ async fn produce_v13_transaction_v2_semantics_and_classic_ceiling() {
             .send(ProduceRecord::to("t").partition(0).value(&b"txn-v13"[..]))
             .await
             .unwrap();
-        assert_eq!(result.topic, "t");
+        assert_eq!(result.topic.as_ref(), "t");
         assert_eq!(mock.last_produce_version(), Some(produce_version));
         assert_eq!(mock.add_partitions_to_txn_calls() > 0, explicit_add);
         producer.commit_transaction().await.unwrap();
