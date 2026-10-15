@@ -4202,6 +4202,42 @@ async fn share_fetch_sole_not_leader_collects_empty() {
 }
 
 #[tokio::test]
+async fn share_fetch_not_leader_message_still_skips_and_refreshes_metadata() {
+    let mock = common::Mock::start().await;
+    v2(&mock);
+    produce(&mock, &[(0, b"keep")]).await;
+    let mut group = ShareGroup::join(config(&mock), "fetch-nl-msg", "t")
+        .await
+        .unwrap();
+    let version = mock.last_share_fetch_version().unwrap_or(2);
+    let mut failed = ShareFetchedPartition::partition_response(0, error::NOT_LEADER_OR_FOLLOWER);
+    failed.current_leader_id = -1;
+    failed.current_leader_epoch = -1;
+    failed.error_message = Some("not the current leader".into());
+    let topics = vec![ShareFetchedTopic {
+        topic_id: mock.topic_id("t"),
+        partitions: vec![failed],
+    }];
+    let mut injected = BytesMut::new();
+    encode_share_fetch_response(&mut injected, version, &topics).unwrap();
+    mock.inject_share_fetch_response_once(&injected);
+    assert!(
+        group.poll().await.unwrap().is_empty(),
+        "Java testFetchError / handleInitializeErrors skip NOT_LEADER even when ErrorMessage is set"
+    );
+    let after_skip = mock.metadata_calls();
+    let got = group.poll().await.unwrap();
+    assert_eq!(got.len(), 1);
+    assert_eq!(got[0].value.as_deref(), Some(&b"keep"[..]));
+    assert!(
+        mock.metadata_calls() > after_skip,
+        "ErrorMessage must not suppress Metadata refresh for sole NOT_LEADER"
+    );
+    group.accept(&got).await.unwrap();
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn share_fetch_partition_unknown_topic_id_skips_and_refreshes_metadata() {
     let mock = common::Mock::start().await;
     v2(&mock);
