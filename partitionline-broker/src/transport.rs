@@ -1,7 +1,8 @@
 //! Bounded asynchronous length-prefixed transport with optional TLS/SASL profiles.
 //!
-//! Each connection reads one signed big-endian length and request, awaits one
-//! handler, and writes its optional response before reading the next request. Pipelined
+//! Each connection awaits one handler and writes its optional response before
+//! the next handler runs. While that response is written, the connection may
+//! read the next length-prefixed request into a one-frame buffer. Pipelined
 //! responses therefore remain in request order without an application queue.
 //! Connections and concurrent handler futures have separate explicit caps.
 //! Read and write deadlines cover both prefix and body without resetting on
@@ -26,14 +27,16 @@
 
 use bytes::BufMut;
 use std::{
-    future::Future,
+    future::{poll_fn, Future},
     io::{self, IoSlice},
     net::SocketAddr,
+    pin::Pin,
     sync::Arc,
+    task::Poll,
     time::Duration,
 };
 use tokio::{
-    io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt},
+    io::{AsyncRead, AsyncReadExt, AsyncWrite},
     net::{TcpListener, TcpStream},
     sync::{oneshot, watch, Semaphore},
     task::{JoinError, JoinHandle, JoinSet},
@@ -733,11 +736,86 @@ async fn read_exact_spare<S: AsyncRead + Unpin>(
     Ok(())
 }
 
+enum Ahead {
+    /// More socket bytes are required before a frame can be split off.
+    Need(usize),
+    /// `ahead` holds at least one full frame.
+    Ready,
+    /// The length prefix is not a frame this connection will accept.
+    Invalid,
+}
+
+fn classify_ahead(ahead: &[u8], max_request: usize) -> Ahead {
+    let Some(prefix) = ahead.get(..4) else {
+        return Ahead::Need(8 * 1024);
+    };
+    let Ok(raw) = <[u8; 4]>::try_from(prefix) else {
+        return Ahead::Invalid;
+    };
+    let Ok(length) = usize::try_from(i32::from_be_bytes(raw)) else {
+        return Ahead::Invalid;
+    };
+    if length > max_request {
+        return Ahead::Invalid;
+    }
+    let Some(total) = 4usize.checked_add(length) else {
+        return Ahead::Invalid;
+    };
+    if ahead.len() < total {
+        Ahead::Need(total - ahead.len())
+    } else {
+        Ahead::Ready
+    }
+}
+
+fn take_inner(frame: &mut Frame) -> Vec<u8> {
+    std::mem::take(&mut *frame)
+}
+
+fn frame_mut(frame: &mut Frame) -> &mut Vec<u8> {
+    frame
+}
+
+fn put_inner(frame: &mut Frame, mut bytes: Vec<u8>) {
+    let inner = frame_mut(frame);
+    inner.clear();
+    inner.append(&mut bytes);
+}
+
+/// Split one body out of `ahead` when a full frame is buffered.
+///
+/// The length prefix stays out of the returned body, matching a direct read.
+fn take_complete_frame(ahead: &mut Frame, max_request: usize) -> Result<Option<Frame>, Exit> {
+    match classify_ahead(ahead, max_request) {
+        Ahead::Need(_) => Ok(None),
+        Ahead::Invalid => Err(Exit::InvalidLength),
+        Ahead::Ready => {
+            let mut prefix = [0u8; 4];
+            let raw = ahead.get(..4).ok_or(Exit::InvalidLength)?;
+            prefix.copy_from_slice(raw);
+            let length =
+                usize::try_from(i32::from_be_bytes(prefix)).map_err(|_| Exit::InvalidLength)?;
+            let total = 4usize.checked_add(length).ok_or(Exit::InvalidLength)?;
+            let mut owned = take_inner(ahead);
+            let rest = owned.split_off(total);
+            owned.drain(..4);
+            put_inner(ahead, rest);
+            let mut body = new_frame();
+            put_inner(&mut body, owned);
+            Ok(Some(body))
+        }
+    }
+}
+
 async fn read_frame<S: AsyncRead + Unpin>(
     socket: &mut S,
     config: Config,
     deadline: Instant,
+    ahead: &mut Frame,
 ) -> Result<Frame, Exit> {
+    if !ahead.is_empty() {
+        return read_frame_buffered(socket, config, deadline, ahead).await;
+    }
     if Instant::now() >= deadline {
         return Err(Exit::ReadDeadline);
     }
@@ -760,6 +838,128 @@ async fn read_frame<S: AsyncRead + Unpin>(
     })
     .await
     .map_err(|_| Exit::ReadDeadline)?
+}
+
+async fn read_frame_buffered<S: AsyncRead + Unpin>(
+    socket: &mut S,
+    config: Config,
+    deadline: Instant,
+    ahead: &mut Frame,
+) -> Result<Frame, Exit> {
+    if let Some(frame) = take_complete_frame(ahead, config.max_request_bytes)? {
+        return Ok(frame);
+    }
+    if Instant::now() >= deadline {
+        return Err(Exit::ReadDeadline);
+    }
+    timeout_at(deadline, async {
+        loop {
+            if let Some(frame) = take_complete_frame(ahead, config.max_request_bytes)? {
+                return Ok(frame);
+            }
+            let Ahead::Need(budget) = classify_ahead(ahead, config.max_request_bytes) else {
+                return Err(Exit::InvalidLength);
+            };
+            frame_mut(ahead).try_reserve(budget).map_err(|_| Exit::Io)?;
+            let mut limited = frame_mut(ahead).limit(budget);
+            let n = socket.read_buf(&mut limited).await.map_err(read_error)?;
+            if n == 0 {
+                return Err(read_error(io::Error::new(
+                    io::ErrorKind::UnexpectedEof,
+                    "frame body closed",
+                )));
+            }
+        }
+    })
+    .await
+    .map_err(|_| Exit::ReadDeadline)?
+}
+
+async fn write_and_prefetch<S: AsyncRead + AsyncWrite + Unpin>(
+    socket: &mut S,
+    response: &[u8],
+    deadline: Instant,
+    ahead: &mut Frame,
+    max_request: usize,
+    prefetch: bool,
+) -> Result<(), Exit> {
+    if Instant::now() >= deadline {
+        return Err(Exit::WriteDeadline);
+    }
+    let length = i32::try_from(response.len()).map_err(|_| Exit::OversizedResponse)?;
+    let prefix = length.to_be_bytes();
+    let mut saw_read_error = false;
+    timeout_at(deadline, async {
+        let mut slices = [IoSlice::new(&prefix), IoSlice::new(response)];
+        let mut bufs: &mut [IoSlice<'_>] = &mut slices;
+        let mut stop_read = !prefetch;
+        poll_fn(|cx| loop {
+            if bufs.is_empty() {
+                return Poll::Ready(Ok(()));
+            }
+            match Pin::new(&mut *socket).poll_write_vectored(cx, bufs) {
+                Poll::Ready(Ok(0)) => {
+                    return Poll::Ready(Err(io::Error::new(
+                        io::ErrorKind::WriteZero,
+                        "response write returned 0",
+                    )));
+                }
+                Poll::Ready(Ok(n)) => {
+                    IoSlice::advance_slices(&mut bufs, n);
+                }
+                Poll::Ready(Err(error)) => return Poll::Ready(Err(error)),
+                Poll::Pending => {
+                    if !stop_read && matches!(classify_ahead(ahead, max_request), Ahead::Need(_)) {
+                        let Ahead::Need(budget) = classify_ahead(ahead, max_request) else {
+                            return Poll::Pending;
+                        };
+                        if frame_mut(ahead).try_reserve(budget).is_err() {
+                            stop_read = true;
+                        } else {
+                            let polled = {
+                                let mut limited = frame_mut(ahead).limit(budget);
+                                let mut read = std::pin::pin!(socket.read_buf(&mut limited));
+                                read.as_mut().poll(cx)
+                            };
+                            match polled {
+                                Poll::Pending => return Poll::Pending,
+                                Poll::Ready(Ok(0)) => stop_read = true,
+                                Poll::Ready(Err(_)) => {
+                                    stop_read = true;
+                                    saw_read_error = true;
+                                }
+                                Poll::Ready(Ok(_)) => {}
+                            }
+                        }
+                    }
+                    if stop_read || !matches!(classify_ahead(ahead, max_request), Ahead::Need(_)) {
+                        match Pin::new(&mut *socket).poll_write_vectored(cx, bufs) {
+                            Poll::Ready(Ok(0)) => {
+                                return Poll::Ready(Err(io::Error::new(
+                                    io::ErrorKind::WriteZero,
+                                    "response write returned 0",
+                                )));
+                            }
+                            Poll::Ready(Ok(n)) => {
+                                IoSlice::advance_slices(&mut bufs, n);
+                                continue;
+                            }
+                            Poll::Ready(Err(error)) => return Poll::Ready(Err(error)),
+                            Poll::Pending => return Poll::Pending,
+                        }
+                    }
+                }
+            }
+        })
+        .await
+    })
+    .await
+    .map_err(|_| Exit::WriteDeadline)?
+    .map_err(|_| Exit::Io)?;
+    if saw_read_error {
+        return Err(Exit::Io);
+    }
+    Ok(())
 }
 
 fn operation_deadline(absolute: Option<Instant>, timeout: Duration) -> Instant {
@@ -799,6 +999,9 @@ async fn exchange<H: Handler, S: AsyncRead + AsyncWrite + Unpin>(
     #[allow(unused_mut)] mut peer: Peer,
     #[cfg(feature = "sasl")] mut auth: Option<Box<crate::security::session::Session>>,
 ) -> Exit {
+    // Bytes of the next request read while the previous response was written.
+    // Empty unless the client pipelined. Handlers still run one at a time.
+    let mut ahead = new_frame();
     loop {
         #[allow(unused_mut)]
         let mut frame_config = config;
@@ -811,7 +1014,7 @@ async fn exchange<H: Handler, S: AsyncRead + AsyncWrite + Unpin>(
             frame_config.max_request_bytes = auth.frame_limit(config.max_request_bytes);
         }
         let read_deadline = operation_deadline(preauth_deadline, config.read_timeout);
-        let read = read_frame(&mut socket, frame_config, read_deadline);
+        let read = read_frame(&mut socket, frame_config, read_deadline, &mut ahead);
         #[cfg(feature = "oidc")]
         let read = authorized(auth.as_ref().and_then(|a| a.lease()), read);
         let request = match read.await {
@@ -899,10 +1102,9 @@ async fn exchange<H: Handler, S: AsyncRead + AsyncWrite + Unpin>(
         if response.len() > config.max_response_bytes {
             return Exit::OversizedResponse;
         }
-        let length = match i32::try_from(response.len()) {
-            Ok(length) => length,
-            Err(_) => return Exit::OversizedResponse,
-        };
+        if i32::try_from(response.len()).is_err() {
+            return Exit::OversizedResponse;
+        }
         // Handshake may have just begun a bounded renewal; retain the earlier
         // operation's deadline and the freshly installed authentication deadline.
         #[cfg(feature = "sasl")]
@@ -917,27 +1119,18 @@ async fn exchange<H: Handler, S: AsyncRead + AsyncWrite + Unpin>(
         let write_authority = preauth_deadline;
         let deadline = operation_deadline(write_authority, config.write_timeout);
         // One vectored write so a deadline that lands between the length and
-        // the body cannot commit a prefix and then drop the payload.
-        let write = async {
-            if Instant::now() >= deadline {
-                return Err(Exit::WriteDeadline);
-            }
-            let prefix = length.to_be_bytes();
-            timeout_at(deadline, async {
-                let mut slices = [IoSlice::new(&prefix), IoSlice::new(&response)];
-                let mut bufs: &mut [IoSlice<'_>] = &mut slices;
-                while !bufs.is_empty() {
-                    let wrote = socket.write_vectored(bufs).await.map_err(|_| Exit::Io)?;
-                    if wrote == 0 {
-                        return Err(Exit::Io);
-                    }
-                    IoSlice::advance_slices(&mut bufs, wrote);
-                }
-                Ok(())
-            })
-            .await
-            .map_err(|_| Exit::WriteDeadline)?
-        };
+        // the body cannot commit a prefix and then drop the payload. The next
+        // request is read only while this write waits, and only when the
+        // connection will stay open for another handler.
+        let prefetch = !close;
+        let write = write_and_prefetch(
+            &mut socket,
+            &response,
+            deadline,
+            &mut ahead,
+            frame_config.max_request_bytes,
+            prefetch,
+        );
         #[cfg(feature = "oidc")]
         let write = authorized(auth.as_ref().and_then(|a| a.lease()), write);
         if let Err(exit) = write.await {
