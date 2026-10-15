@@ -225,6 +225,46 @@ pub(crate) fn reserve_frame(buf: &mut BytesMut, total: usize) {
     }
 }
 
+/// Bytes pulled into `read_buf` on one stalled-write read when the next
+/// frame length is not known yet. A known short frame is filled directly.
+const STALLED_WRITE_READ_CHUNK: usize = 8 * 1024;
+
+/// How many bytes to append while a write waits, and the absolute `read_buf`
+/// length to reserve when that read finishes a length-prefixed frame.
+///
+/// Complete frames already buffered are skipped so a later frame is still
+/// read. An illegal length is not reserved; the framed reader rejects it.
+fn stalled_write_read(read_buf: &BytesMut) -> (usize, Option<usize>) {
+    let bytes = read_buf.as_ref();
+    let mut offset = 0usize;
+    while bytes.len().saturating_sub(offset) >= 4 {
+        let Some(prefix) = bytes.get(offset..offset.saturating_add(4)) else {
+            break;
+        };
+        let Ok(raw) = <[u8; 4]>::try_from(prefix) else {
+            break;
+        };
+        let size = i32::from_be_bytes(raw);
+        if !(0..=MAX_FRAME).contains(&size) {
+            return (STALLED_WRITE_READ_CHUNK, None);
+        }
+        let Ok(size) = usize::try_from(size) else {
+            return (STALLED_WRITE_READ_CHUNK, None);
+        };
+        let Some(total) = 4usize.checked_add(size) else {
+            return (STALLED_WRITE_READ_CHUNK, None);
+        };
+        let Some(frame_end) = offset.checked_add(total) else {
+            return (STALLED_WRITE_READ_CHUNK, None);
+        };
+        if bytes.len() < frame_end {
+            return (frame_end - bytes.len(), Some(frame_end));
+        }
+        offset = frame_end;
+    }
+    (STALLED_WRITE_READ_CHUNK, None)
+}
+
 /// rustls client settings. No OpenSSL.
 ///
 /// [`Debug`] never prints PEM bytes; the private key is always `<redacted>`
@@ -500,11 +540,10 @@ pub(crate) async fn wrap_tls(
         .map_err(Error::from)
 }
 
-async fn write_all_pump(
-    stream: &mut ConnIo,
-    read_buf: &mut BytesMut,
-    bytes: &[u8],
-) -> io::Result<()> {
+async fn write_all_pump<S>(stream: &mut S, read_buf: &mut BytesMut, bytes: &[u8]) -> io::Result<()>
+where
+    S: AsyncRead + AsyncWrite + Unpin,
+{
     let mut pos = 0usize;
     poll_fn(|cx| loop {
         let remaining = match bytes.get(pos..) {
@@ -531,19 +570,27 @@ async fn write_all_pump(
             }
             Poll::Ready(Err(e)) => return Poll::Ready(Err(e)),
             Poll::Pending => {
-                let mut tmp = [0u8; 8192];
-                let mut rb = ReadBuf::new(&mut tmp);
-                match Pin::new(&mut *stream).poll_read(cx, &mut rb) {
-                    Poll::Ready(Ok(())) => {
-                        let filled = rb.filled();
-                        if filled.is_empty() {
-                            return Poll::Ready(Err(io::Error::new(
-                                io::ErrorKind::UnexpectedEof,
-                                "broker closed connection",
-                            )));
-                        }
-                        read_buf.extend_from_slice(filled);
+                // Read straight into `read_buf` spare capacity. The framed
+                // reader and a stalled TLS handshake both need those bytes,
+                // and a stack buffer would copy them once on the way in.
+                let (budget, frame_end) = stalled_write_read(read_buf);
+                if let Some(end) = frame_end {
+                    reserve_frame(read_buf, end);
+                } else {
+                    read_buf.reserve(budget);
+                }
+                let mut limited = (&mut *read_buf).limit(budget);
+                // `read_buf` only advances `read_buf` after a ready read, so
+                // dropping this future on Pending does not lose bytes.
+                let mut read = std::pin::pin!(stream.read_buf(&mut limited));
+                match read.as_mut().poll(cx) {
+                    Poll::Ready(Ok(0)) => {
+                        return Poll::Ready(Err(io::Error::new(
+                            io::ErrorKind::UnexpectedEof,
+                            "broker closed connection",
+                        )));
                     }
+                    Poll::Ready(Ok(_)) => {}
                     Poll::Ready(Err(e)) => return Poll::Ready(Err(e)),
                     Poll::Pending => return Poll::Pending,
                 }
@@ -2078,6 +2125,9 @@ pub fn install_crypto_provider() {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::pin::Pin;
+    use std::task::{Context, Poll};
+    use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
 
     #[test]
     fn reserve_frame_grows_once_to_known_size() {
@@ -2086,6 +2136,123 @@ mod tests {
         reserve_frame(&mut buf, 4 + 1_000_000);
         assert!(buf.capacity() >= 1_000_004);
         assert_eq!(buf.len(), 4);
+    }
+
+    #[test]
+    fn stalled_write_read_fills_only_the_open_frame() {
+        let mut buf = BytesMut::new();
+        let (budget, end) = stalled_write_read(&buf);
+        assert_eq!(budget, STALLED_WRITE_READ_CHUNK);
+        assert!(end.is_none());
+
+        buf.extend_from_slice(&[0, 1]);
+        let (budget, end) = stalled_write_read(&buf);
+        assert_eq!(budget, STALLED_WRITE_READ_CHUNK);
+        assert!(end.is_none());
+
+        let mut framed = BytesMut::new();
+        framed.extend_from_slice(&3i32.to_be_bytes());
+        framed.extend_from_slice(b"one");
+        let (budget, end) = stalled_write_read(&framed);
+        assert_eq!(budget, STALLED_WRITE_READ_CHUNK);
+        assert!(end.is_none());
+
+        let at = framed.len();
+        framed.extend_from_slice(&1i32.to_be_bytes());
+        let (budget, end) = stalled_write_read(&framed);
+        assert_eq!(budget, 1);
+        assert_eq!(end, Some(at + 5));
+
+        let mut illegal = BytesMut::new();
+        illegal.extend_from_slice(&i32::MAX.to_be_bytes());
+        let (budget, end) = stalled_write_read(&illegal);
+        assert_eq!(budget, STALLED_WRITE_READ_CHUNK);
+        assert!(end.is_none());
+    }
+
+    struct Script {
+        inbound: Vec<u8>,
+        pos: usize,
+        chunk: usize,
+        reads: u32,
+    }
+
+    impl AsyncRead for Script {
+        fn poll_read(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            buf: &mut ReadBuf<'_>,
+        ) -> Poll<io::Result<()>> {
+            let this = self.get_mut();
+            this.reads = this.reads.saturating_add(1);
+            if this.pos >= this.inbound.len() {
+                return Poll::Ready(Ok(()));
+            }
+            let end = this.pos.saturating_add(this.chunk).min(this.inbound.len());
+            if let Some(slice) = this.inbound.get(this.pos..end) {
+                buf.put_slice(slice);
+                this.pos = end;
+            }
+            Poll::Ready(Ok(()))
+        }
+    }
+
+    impl AsyncWrite for Script {
+        fn poll_write(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            buf: &[u8],
+        ) -> Poll<io::Result<usize>> {
+            let drained = self.reads > 0 && self.pos >= self.inbound.len();
+            if !drained {
+                return Poll::Pending;
+            }
+            Poll::Ready(Ok(buf.len()))
+        }
+
+        fn poll_flush(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<io::Result<()>> {
+            Poll::Ready(Ok(()))
+        }
+
+        fn poll_shutdown(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<io::Result<()>> {
+            Poll::Ready(Ok(()))
+        }
+    }
+
+    #[tokio::test]
+    async fn stalled_write_keeps_a_large_response_without_copying_through_a_stack_buffer() {
+        let body = vec![7u8; 20_000];
+        let mut inbound = Vec::new();
+        inbound.extend_from_slice(&i32::try_from(body.len()).unwrap().to_be_bytes());
+        inbound.extend_from_slice(&body);
+        let mut stream = Script {
+            inbound: inbound.clone(),
+            pos: 0,
+            chunk: 100,
+            reads: 0,
+        };
+        let mut read_buf = BytesMut::new();
+        write_all_pump(&mut stream, &mut read_buf, b"request")
+            .await
+            .unwrap();
+        assert_eq!(&read_buf[..], &inbound[..]);
+        assert!(read_buf.capacity() >= inbound.len());
+    }
+
+    #[tokio::test]
+    async fn stalled_write_eof_before_any_byte_is_an_error() {
+        let mut stream = Script {
+            inbound: Vec::new(),
+            pos: 0,
+            chunk: 8,
+            reads: 0,
+        };
+        let mut read_buf = BytesMut::new();
+        let error = write_all_pump(&mut stream, &mut read_buf, b"request")
+            .await
+            .unwrap_err();
+        assert_eq!(error.kind(), io::ErrorKind::UnexpectedEof);
+        assert!(read_buf.is_empty());
     }
 
     #[test]
