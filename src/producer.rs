@@ -4546,6 +4546,8 @@ struct ProduceGroupScratch {
     partition_slots: HashMap<i32, usize>,
     /// Topic name to the group-list slot. Cleared on each mixed batch.
     topic_slots: HashMap<Arc<str>, usize>,
+    /// First topic id for each name. Cleared when a multi-topic v13 body is encoded.
+    topic_ids: HashMap<Arc<str>, [u8; 16]>,
     /// Sequence base already packed for each topic partition. Cleared per take.
     batch_bases: HashMap<Arc<str>, HashMap<i32, Option<i32>>>,
 }
@@ -4561,6 +4563,8 @@ type ProduceBuckets = HashMap<Arc<str>, PendingParts>;
 struct AckIndex {
     topics: HashMap<Arc<str>, HashMap<i32, (usize, u64)>>,
     generation: u64,
+    /// Topic id to the first sent name. Cleared when a multi-topic v13 response is matched.
+    by_uuid: HashMap<[u8; 16], Arc<str>>,
 }
 
 impl AckIndex {
@@ -5527,6 +5531,14 @@ impl Worker {
             }
         };
         let mut body = body;
+        if version >= 13 {
+            if let Some(inf) = guard.inf.as_ref() {
+                if inf.topic_ids.len() > 1 {
+                    fill_ids_by_uuid(&inf.topic_ids, &mut self.ack_index.by_uuid);
+                }
+            }
+        }
+        let by_uuid = &self.ack_index.by_uuid;
         let decoded =
             decode_produce_acks(&mut body, version).and_then(|(acks, endpoints, throttle)| {
                 if version >= 13 {
@@ -5559,7 +5571,7 @@ impl Worker {
                             }
                         }
                     } else {
-                        solicited_v13_acks(&inf.topic_ids, &inf.groups, &acks)?;
+                        solicited_v13_acks(&inf.groups, &acks, by_uuid)?;
                     }
                 }
                 Ok((acks, endpoints, throttle))
@@ -5587,11 +5599,10 @@ impl Worker {
         let mut slots = std::mem::take(&mut self.ack_slots);
         slots.clear();
         slots.resize_with(inf.groups.len(), || None);
-        let ack_ids =
-            (version >= 13 && inf.topic_ids.len() > 1).then(|| index_ids_by_uuid(&inf.topic_ids));
+        let ack_ids = (version >= 13 && inf.topic_ids.len() > 1).then_some(&self.ack_index.by_uuid);
         for (ack_at, ack) in responses.iter().enumerate() {
             let topic = if version >= 13 {
-                name_for_topic_id(&inf.topic_ids, ack_ids.as_ref(), ack.topic_id)
+                name_for_topic_id(&inf.topic_ids, ack_ids, ack.topic_id)
             } else {
                 std::str::from_utf8(&ack.topic).ok()
             };
@@ -6478,43 +6489,41 @@ where
 
 /// First topic id for each name. A later copy of the same name is ignored,
 /// including when the first id is all zeros.
-fn index_topic_ids(ids: &[(Arc<str>, [u8; 16])]) -> HashMap<&str, &[u8; 16]> {
-    let mut index = HashMap::new();
+fn fill_topic_ids(ids: &[(Arc<str>, [u8; 16])], index: &mut HashMap<Arc<str>, [u8; 16]>) {
+    index.clear();
     for (name, id) in ids {
         if !index.contains_key(name.as_ref()) {
-            let _ = index.insert(name.as_ref(), id);
+            let _ = index.insert(Arc::clone(name), *id);
         }
     }
-    index
 }
 
 fn topic_id_for<'a>(
     ids: &'a [(Arc<str>, [u8; 16])],
-    index: Option<&HashMap<&'a str, &'a [u8; 16]>>,
+    index: Option<&'a HashMap<Arc<str>, [u8; 16]>>,
     topic: &Arc<str>,
 ) -> Option<&'a [u8; 16]> {
     let id = if ids.len() == 1 {
         ids.first().map(|(_, id)| id)
     } else {
-        index?.get(topic.as_ref()).copied()
+        index?.get(topic.as_ref())
     };
     id.filter(|id| **id != [0; 16])
 }
 
 /// First name for each non-zero topic id.
-fn index_ids_by_uuid(ids: &[(Arc<str>, [u8; 16])]) -> HashMap<[u8; 16], &str> {
-    let mut index = HashMap::new();
+fn fill_ids_by_uuid(ids: &[(Arc<str>, [u8; 16])], index: &mut HashMap<[u8; 16], Arc<str>>) {
+    index.clear();
     for (name, id) in ids {
         if *id != [0; 16] && !index.contains_key(id) {
-            let _ = index.insert(*id, name.as_ref());
+            let _ = index.insert(*id, Arc::clone(name));
         }
     }
-    index
 }
 
 fn name_for_topic_id<'a>(
     ids: &'a [(Arc<str>, [u8; 16])],
-    index: Option<&HashMap<[u8; 16], &'a str>>,
+    index: Option<&'a HashMap<[u8; 16], Arc<str>>>,
     id: [u8; 16],
 ) -> Option<&'a str> {
     if id == [0; 16] {
@@ -6525,22 +6534,21 @@ fn name_for_topic_id<'a>(
             .first()
             .and_then(|(name, sent)| (*sent == id).then_some(name.as_ref()));
     }
-    index?.get(&id).copied()
+    index?.get(&id).map(|name| name.as_ref())
 }
 
 fn solicited_v13_acks(
-    ids: &[(Arc<str>, [u8; 16])],
     groups: &[(Arc<str>, i32, Vec<Pending>)],
     acks: &[ProduceAck],
+    by_id: &HashMap<[u8; 16], Arc<str>>,
 ) -> Result<()> {
-    let by_id = index_ids_by_uuid(ids);
     let mut requested = HashSet::new();
     for (topic, partition, _) in groups {
         let _ = requested.insert((topic.as_ref(), *partition));
     }
     let mut seen = HashSet::new();
     for ack in acks {
-        let Some(name) = by_id.get(&ack.topic_id).copied() else {
+        let Some(name) = by_id.get(&ack.topic_id).map(|name| name.as_ref()) else {
             return Err(Error::protocol(
                 "Produce v13 response UUID is absent from sent snapshot",
             ));
@@ -6643,7 +6651,9 @@ fn encode_produce_body(
     buf.put_i32(timeout_ms);
     index_produce_groups(groups, groups_scratch);
     crate::protocol::buf::put_array_len(buf, flexible, Some(groups_scratch.topics.len()))?;
-    let topic_id_index = (version >= 13 && topic_ids.len() > 1).then(|| index_topic_ids(topic_ids));
+    if version >= 13 && topic_ids.len() > 1 {
+        fill_topic_ids(topic_ids, &mut groups_scratch.topic_ids);
+    }
     let topic_count = groups_scratch.topics.len();
     for topic_slot in 0..topic_count {
         let Some(group_at) = groups_scratch.topics.get(topic_slot).copied() else {
@@ -6653,7 +6663,8 @@ fn encode_produce_body(
             continue;
         };
         if version >= 13 {
-            let id = topic_id_for(topic_ids, topic_id_index.as_ref(), topic).ok_or_else(|| {
+            let indexed = (topic_ids.len() > 1).then_some(&groups_scratch.topic_ids);
+            let id = topic_id_for(topic_ids, indexed, topic).ok_or_else(|| {
                 Error::Unsupported(format!("Produce v13 missing topic ID for {topic}"))
             })?;
             buf.extend_from_slice(id);
@@ -7418,7 +7429,12 @@ mod tests {
             (Arc::clone(&orders), [9; 16]),
             (Arc::<str>::from("zero"), [0; 16]),
         ];
-        let by_name = index_topic_ids(&ids);
+        let mut by_name = HashMap::new();
+        fill_topic_ids(&ids, &mut by_name);
+        let name_capacity = by_name.capacity();
+        assert!(name_capacity > 0);
+        fill_topic_ids(&ids, &mut by_name);
+        assert!(by_name.capacity() >= name_capacity);
         assert_eq!(
             topic_id_for(&ids, Some(&by_name), &orders).copied(),
             Some([1; 16])
@@ -7436,7 +7452,12 @@ mod tests {
         let only_zero = vec![(Arc::clone(&payments), [0; 16])];
         assert_eq!(topic_id_for(&only_zero, None, &payments), None);
 
-        let by_uuid = index_ids_by_uuid(&ids);
+        let mut by_uuid = HashMap::new();
+        fill_ids_by_uuid(&ids, &mut by_uuid);
+        let uuid_capacity = by_uuid.capacity();
+        assert!(uuid_capacity > 0);
+        fill_ids_by_uuid(&ids, &mut by_uuid);
+        assert!(by_uuid.capacity() >= uuid_capacity);
         assert_eq!(
             name_for_topic_id(&ids, Some(&by_uuid), [2; 16]),
             Some("payments")
@@ -7456,7 +7477,8 @@ mod tests {
             (Arc::clone(&orders), [7; 16]),
             (Arc::clone(&payments), [7; 16]),
         ];
-        let shared = index_ids_by_uuid(&shared_id);
+        let mut shared = HashMap::new();
+        fill_ids_by_uuid(&shared_id, &mut shared);
         assert_eq!(
             name_for_topic_id(&shared_id, Some(&shared), [7; 16]),
             Some("orders")
