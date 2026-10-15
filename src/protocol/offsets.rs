@@ -9,6 +9,20 @@ use super::buf;
 use super::records::RecordBatch;
 use crate::error::{Error, Result};
 
+fn remember_topic<T>(
+    order: &mut Vec<String>,
+    by_topic: &mut HashMap<String, Vec<T>>,
+    topic: &str,
+    value: T,
+) {
+    if let Some(parts) = by_topic.get_mut(topic) {
+        parts.push(value);
+        return;
+    }
+    order.push(topic.to_string());
+    let _ = by_topic.insert(topic.to_string(), vec![value]);
+}
+
 /// Log start (earliest).
 pub const EARLIEST_TIMESTAMP: i64 = -2;
 /// High watermark (latest).
@@ -367,13 +381,7 @@ impl ListOffsetsRequest {
         let mut order: Vec<String> = Vec::new();
         let mut by_topic: HashMap<String, Vec<ListOffsetsPartitionRequest>> = HashMap::new();
         for (topic, partition) in timestamps_to_search {
-            by_topic
-                .entry(topic.to_string())
-                .or_insert_with(|| {
-                    order.push(topic.to_string());
-                    Vec::new()
-                })
-                .push(partition);
+            remember_topic(&mut order, &mut by_topic, topic, partition);
         }
         order
             .into_iter()

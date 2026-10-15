@@ -7215,13 +7215,18 @@ pub(crate) fn partition_infos_from(
             if first_error.is_none() {
                 first_error = Some((name.clone(), tmd.error_code));
             }
-            let _ = topic_error.entry(name.clone()).or_insert(tmd.error_code);
+            if !topic_error.contains_key(name.as_str()) {
+                let _ = topic_error.insert(name.clone(), tmd.error_code);
+            }
             continue;
         }
-        if !parts.contains_key(name) {
+        if !parts.contains_key(name.as_str()) {
             order.push(name.clone());
+            let _ = parts.insert(name.clone(), Vec::new());
         }
-        let slot = parts.entry(name.clone()).or_default();
+        let Some(slot) = parts.get_mut(name.as_str()) else {
+            continue;
+        };
         for partition in &tmd.partitions {
             if partition.partition_index < 0 {
                 continue;

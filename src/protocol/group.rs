@@ -14,6 +14,20 @@ use super::buf;
 use super::records::RecordBatch;
 use crate::error::{for_code, Error, Result};
 
+fn remember_topic<T>(
+    order: &mut Vec<String>,
+    by_topic: &mut HashMap<String, Vec<T>>,
+    topic: &str,
+    value: T,
+) {
+    if let Some(parts) = by_topic.get_mut(topic) {
+        parts.push(value);
+        return;
+    }
+    order.push(topic.to_string());
+    let _ = by_topic.insert(topic.to_string(), vec![value]);
+}
+
 /// FindCoordinator `key_type` for a consumer group.
 pub const COORDINATOR_GROUP: i8 = 0;
 /// FindCoordinator `key_type` for a transactional.id (KIP-98).
@@ -3311,13 +3325,7 @@ impl OffsetFetchResponse {
         let mut order: Vec<String> = Vec::new();
         let mut by_topic: HashMap<String, Vec<FetchedOffset>> = HashMap::new();
         for (topic, partition) in response_data {
-            by_topic
-                .entry(topic.to_string())
-                .or_insert_with(|| {
-                    order.push(topic.to_string());
-                    Vec::new()
-                })
-                .push(partition);
+            remember_topic(&mut order, &mut by_topic, topic, partition);
         }
         order
             .into_iter()
@@ -3676,13 +3684,7 @@ impl OffsetFetchRequest {
             let mut order: Vec<String> = Vec::new();
             let mut by_topic: HashMap<String, Vec<i32>> = HashMap::new();
             for (topic, partition) in ps {
-                by_topic
-                    .entry(topic.to_string())
-                    .or_insert_with(|| {
-                        order.push(topic.to_string());
-                        Vec::new()
-                    })
-                    .push(partition);
+                remember_topic(&mut order, &mut by_topic, topic, partition);
             }
             order
                 .into_iter()
@@ -4079,16 +4081,15 @@ impl OffsetCommitResponse {
         let mut order: Vec<String> = Vec::new();
         let mut by_topic: HashMap<String, Vec<OffsetCommitResponsePartition>> = HashMap::new();
         for (topic, partition, error_code) in response_data {
-            by_topic
-                .entry(topic.to_string())
-                .or_insert_with(|| {
-                    order.push(topic.to_string());
-                    Vec::new()
-                })
-                .push(OffsetCommitResponsePartition {
+            remember_topic(
+                &mut order,
+                &mut by_topic,
+                topic,
+                OffsetCommitResponsePartition {
                     partition,
                     error_code,
-                });
+                },
+            );
         }
         order
             .into_iter()
