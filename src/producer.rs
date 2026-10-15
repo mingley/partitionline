@@ -6489,15 +6489,26 @@ fn index_produce_groups(
         parts.clear();
     }
     // Steady-state batches share one topic allocation, so the name map is unused.
+    // The pointer check and the index fill are the same walk.
     if let Some((first, _, _)) = groups.first() {
-        if groups.iter().all(|(topic, _, _)| Arc::ptr_eq(topic, first)) {
+        if scratch.parts.is_empty() {
+            scratch.parts.push(Vec::new());
+        }
+        let mut same = true;
+        if let Some(parts) = scratch.parts.first_mut() {
+            for (index, (topic, _, _)) in groups.iter().enumerate() {
+                if !Arc::ptr_eq(topic, first) {
+                    same = false;
+                    break;
+                }
+                parts.push(index);
+            }
+            if !same {
+                parts.clear();
+            }
+        }
+        if same {
             scratch.topics.push(0);
-            if scratch.parts.is_empty() {
-                scratch.parts.push(Vec::new());
-            }
-            if let Some(parts) = scratch.parts.first_mut() {
-                parts.extend(0..groups.len());
-            }
             return;
         }
     }
