@@ -703,8 +703,9 @@ pub enum ShareAcquireMode {
 /// in the request are skipped (Java `lookupTopicId` /
 /// `handleAcknowledgeErrorCode`).
 /// Top-level ShareFetch `UNKNOWN_TOPIC_ID` invalidates topic metadata
-/// so the next poll uses the refreshed id (Java
-/// `handleShareFetchSuccess` / `metadata.requestUpdate`). Top-level
+/// so the next poll uses the refreshed id, including when
+/// `ErrorMessage` is set (Java `handleShareFetchSuccess` /
+/// `metadata.requestUpdate` / `testUnknownTopicIdError`). Top-level
 /// `INCONSISTENT_TOPIC_ID` still fails that poll and does not request
 /// Metadata, including when `ErrorMessage` is set. Incremental ShareFetch sends Java
 /// `ShareSessionHandler` forgotten partitions when the assignment
@@ -1550,8 +1551,9 @@ impl ShareGroup {
     /// siblings still deliver (Java `handleInitializeErrors` /
     /// `ShareFetchCollector.collect`).
     /// Top-level `UNKNOWN_TOPIC_ID` still fails that poll and refreshes
-    /// the topic id. Top-level `INCONSISTENT_TOPIC_ID` still fails that
-    /// poll without Metadata, including when `ErrorMessage` is set (Java
+    /// the topic id, including when `ErrorMessage` is set. Top-level
+    /// `INCONSISTENT_TOPIC_ID` still fails that poll without Metadata,
+    /// including when `ErrorMessage` is set (Java
     /// `handleShareFetchSuccess` only `requestUpdate`s for
     /// `UNKNOWN_TOPIC_ID`). A sole
     /// partition `NOT_LEADER_OR_FOLLOWER` collects empty (Java

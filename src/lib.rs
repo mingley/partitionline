@@ -2068,8 +2068,9 @@
 //! A successful ShareFetch that omits a piggybacked partition completes
 //! those acknowledgements with `INVALID_RECORD_STATE` (Java
 //! `InvalidRecordStateException` / `INVALID_RESPONSE`).
-//! Top-level ShareFetch `UNKNOWN_TOPIC_ID` refreshes topic metadata
-//! (Java `handleShareFetchSuccess` / `metadata.requestUpdate`).
+//! Top-level ShareFetch `UNKNOWN_TOPIC_ID` refreshes topic metadata,
+//! including when `ErrorMessage` is set (Java `handleShareFetchSuccess`
+//! / `metadata.requestUpdate` / `testUnknownTopicIdError`).
 //! Top-level `INCONSISTENT_TOPIC_ID` still fails that poll without
 //! Metadata, including when `ErrorMessage` is set. Partition
 //! `INCONSISTENT_TOPIC_ID` / `UNKNOWN_TOPIC_OR_PARTITION` /
