@@ -702,9 +702,11 @@ pub enum ShareAcquireMode {
 /// partitions, unknown topic ids, and known topic ids that were not
 /// in the request are skipped (Java `lookupTopicId` /
 /// `handleAcknowledgeErrorCode`).
-/// Top-level ShareFetch `UNKNOWN_TOPIC_ID` / `INCONSISTENT_TOPIC_ID`
-/// invalidate topic metadata so the next poll uses the refreshed id
-/// (Java `metadata.requestUpdate`). Incremental ShareFetch sends Java
+/// Top-level ShareFetch `UNKNOWN_TOPIC_ID` invalidates topic metadata
+/// so the next poll uses the refreshed id (Java
+/// `handleShareFetchSuccess` / `metadata.requestUpdate`). Top-level
+/// `INCONSISTENT_TOPIC_ID` still fails that poll and does not request
+/// Metadata, including when `ErrorMessage` is set. Incremental ShareFetch sends Java
 /// `ShareSessionHandler` forgotten partitions when the assignment
 /// shrinks or a topic id is replaced on a node this poll still
 /// contacts (remaining assigned partitions or leftover acknowledgements).
@@ -1547,7 +1549,11 @@ impl ShareGroup {
     /// Metadata, including when a partition `ErrorMessage` is set;
     /// siblings still deliver (Java `handleInitializeErrors` /
     /// `ShareFetchCollector.collect`).
-    /// Top-level `UNKNOWN_TOPIC_ID` still fails that poll. A sole
+    /// Top-level `UNKNOWN_TOPIC_ID` still fails that poll and refreshes
+    /// the topic id. Top-level `INCONSISTENT_TOPIC_ID` still fails that
+    /// poll without Metadata, including when `ErrorMessage` is set (Java
+    /// `handleShareFetchSuccess` only `requestUpdate`s for
+    /// `UNKNOWN_TOPIC_ID`). A sole
     /// partition `NOT_LEADER_OR_FOLLOWER` collects empty (Java
     /// `testFetchError`). A ShareFetch topic id that is
     /// not in this request — including a real cluster topic that is
@@ -2177,9 +2183,9 @@ impl ShareGroup {
         for (topic, _) in tps {
             self.consumer.ensure_topic_metadata(topic).await?;
         }
-        // Metadata is the source of topic ids (Java UNKNOWN_TOPIC_ID /
-        // INCONSISTENT_TOPIC_ID refresh). Assignment may still hold the
-        // id from join.
+        // Metadata is the source of topic ids (Java top-level
+        // UNKNOWN_TOPIC_ID / partition INCONSISTENT_TOPIC_ID refresh).
+        // Assignment may still hold the id from join.
         let name_to_id = self.consumer.topic_name_ids();
         for (topic, _) in tps {
             if let Some(id) = name_to_id.get(topic).copied().filter(|id| *id != [0; 16]) {
@@ -4398,8 +4404,12 @@ fn share_leader_retriable(e: &Error) -> bool {
     }
 }
 
+/// Java `handleShareFetchSuccess`: only top-level `UNKNOWN_TOPIC_ID`
+/// calls `metadata.requestUpdate(false)`. Partition-level
+/// `INCONSISTENT_TOPIC_ID` still refreshes via
+/// [`share_fetch_partition_metadata_refresh`].
 fn share_topic_id_refresh(code: i16) -> bool {
-    matches!(code, error::UNKNOWN_TOPIC_ID | error::INCONSISTENT_TOPIC_ID)
+    matches!(code, error::UNKNOWN_TOPIC_ID)
 }
 
 fn share_ack_ownership_lost(code: i16) -> bool {
@@ -4907,6 +4917,11 @@ mod tests {
         assert!(!share_fetch_partition_metadata_refresh(
             error::TOPIC_AUTHORIZATION_FAILED
         ));
+        assert!(share_topic_id_refresh(error::UNKNOWN_TOPIC_ID));
+        assert!(
+            !share_topic_id_refresh(error::INCONSISTENT_TOPIC_ID),
+            "Java handleShareFetchSuccess only requestUpdates for top-level UNKNOWN_TOPIC_ID"
+        );
         assert!(share_fetch_current_leader_usable(
             error::NOT_LEADER_OR_FOLLOWER
         ));

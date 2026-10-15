@@ -2068,8 +2068,10 @@
 //! A successful ShareFetch that omits a piggybacked partition completes
 //! those acknowledgements with `INVALID_RECORD_STATE` (Java
 //! `InvalidRecordStateException` / `INVALID_RESPONSE`).
-//! Top-level ShareFetch `UNKNOWN_TOPIC_ID` / `INCONSISTENT_TOPIC_ID`
-//! refresh topic metadata (Java `metadata.requestUpdate`). Partition
+//! Top-level ShareFetch `UNKNOWN_TOPIC_ID` refreshes topic metadata
+//! (Java `handleShareFetchSuccess` / `metadata.requestUpdate`).
+//! Top-level `INCONSISTENT_TOPIC_ID` still fails that poll without
+//! Metadata, including when `ErrorMessage` is set. Partition
 //! `INCONSISTENT_TOPIC_ID` / `UNKNOWN_TOPIC_OR_PARTITION` /
 //! `UNKNOWN_TOPIC_ID` / `REPLICA_NOT_AVAILABLE` /
 //! `OFFSET_NOT_AVAILABLE` / `KAFKA_STORAGE_ERROR` skip without throwing,

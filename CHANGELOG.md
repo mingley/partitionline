@@ -73,7 +73,10 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   / `UNKNOWN_TOPIC_ID` / `REPLICA_NOT_AVAILABLE` / `OFFSET_NOT_AVAILABLE`
   / `KAFKA_STORAGE_ERROR` skip without throwing and request Metadata on
   the next poll; siblings still deliver (Java `handleInitializeErrors`).
-  Top-level `UNKNOWN_TOPIC_ID` still fails that poll. A non-empty
+  Top-level `UNKNOWN_TOPIC_ID` still fails that poll. Top-level
+  `INCONSISTENT_TOPIC_ID` still fails that poll without Metadata,
+  including when `ErrorMessage` is set (Java `handleShareFetchSuccess`
+  only `requestUpdate`s for top-level `UNKNOWN_TOPIC_ID`). A non-empty
   throwable partition or top-level ShareFetch `ErrorMessage` is
   preferred; empty uses `ShareFetch {topic}-{partition}` or
   `ShareFetch`. A sole partition
