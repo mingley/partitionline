@@ -6100,13 +6100,23 @@ fn group_pending(
         .unwrap_or(RecordMetadata::UNKNOWN_PARTITION);
     let same_topic =
         |topic: &Arc<str>| Arc::ptr_eq(topic, &topic0) || topic.as_ref() == topic0.as_ref();
-    let homogeneous = batch
-        .iter()
-        .all(|p| p.rec.partition == Some(part0) && same_topic(&p.rec.topic));
-    if homogeneous {
+    // One pass classifies the batch. A second topic stops the scan; a single
+    // topic does not walk the records again just to learn that.
+    let mut one_partition = true;
+    let mut one_topic = true;
+    for pending in batch.iter().skip(1) {
+        if pending.rec.partition != Some(part0) {
+            one_partition = false;
+        }
+        if !same_topic(&pending.rec.topic) {
+            one_topic = false;
+            break;
+        }
+    }
+    if one_partition && one_topic {
         return vec![(topic0, part0, batch)];
     }
-    if batch.iter().all(|p| same_topic(&p.rec.topic)) {
+    if one_topic {
         let mut order: Vec<(i32, Vec<Pending>)> = Vec::new();
         scratch.partition_slots.clear();
         for p in batch {
