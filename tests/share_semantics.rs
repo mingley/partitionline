@@ -647,6 +647,88 @@ async fn share_fetch_refuses_piggyback_on_initial_session() {
 }
 
 #[tokio::test]
+async fn share_fetch_refuses_piggyback_after_subscription_change_on_initial_session() {
+    let mock = common::Mock::start_two_node().await;
+    v2(&mock);
+    mock.set_partition_leader("t", 0, 1);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let created = admin
+        .create_topics(&[NewTopic::new("u", 1, 1)], 10_000, false)
+        .await
+        .unwrap();
+    for result in &created {
+        assert!(
+            result.error_code == 0
+                || result.error_code == partitionline::error::TOPIC_ALREADY_EXISTS,
+            "{}: {} {:?}",
+            result.name,
+            result.error_code,
+            result.error_message
+        );
+    }
+    admin.close().await.unwrap();
+    mock.set_partition_leader("u", 0, 2);
+    produce(&mock, &[(0, b"old")]).await;
+    produce_topic(&mock, "u", &[(0, b"new")]).await;
+    let mut group = ShareGroup::join(config(&mock), "init-sub", "t")
+        .await
+        .unwrap();
+    let first = group.poll().await.unwrap();
+    assert_eq!(first[0].topic, "t");
+    let first_off = first[0].offset;
+    group.accept(&first).await.unwrap();
+    mock.set_partition_leader("t", 0, 2);
+    mock.set_partition_leader("u", 0, 1);
+    let _ = group.list_topics().await.unwrap();
+    group.subscribe(["u"]).await.unwrap();
+    let fetches = mock.share_fetch_calls();
+    let acks = mock.share_ack_calls();
+    let history_before = mock.share_fetch_history();
+    let seen = Arc::new(Mutex::new(Vec::new()));
+    let seen_cb = seen.clone();
+    group.set_acknowledgement_commit_callback(move |_, exception| {
+        seen_cb
+            .lock()
+            .push(exception.as_ref().and_then(|error| error.code()));
+    });
+    let second = group.poll().await.unwrap();
+    assert_eq!(
+        *seen.lock(),
+        vec![Some(error::NOT_LEADER_OR_FOLLOWER)],
+        "Java testPiggybackAcknowledgementsOnInitialShareSessionErrorSubscriptionChange completes leftover acks with NOT_LEADER"
+    );
+    let extra: Vec<(i32, i32)> = mock
+        .share_fetch_history()
+        .into_iter()
+        .skip(history_before.len())
+        .collect();
+    assert!(
+        extra.iter().all(|(node, _)| *node == 1) && !extra.is_empty(),
+        "leftover initial-session leader must not be fetched, got {extra:?}"
+    );
+    assert_eq!(
+        mock.last_share_fetch_node(),
+        Some(1),
+        "the established session still fetches the new assignment"
+    );
+    drop(second);
+    assert_eq!(
+        mock.share_ack_calls(),
+        acks,
+        "refused leftover piggyback must not send ShareAcknowledge"
+    );
+    assert!(
+        mock.share_fetch_calls() > fetches,
+        "the new assignment is still ShareFetched"
+    );
+    assert!(
+        !mock.share_accepted("init-sub", "t", 0, first_off),
+        "refused leftover piggyback must not ACCEPT"
+    );
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn share_fetch_subscription_change_sends_old_acks_to_previous_leader() {
     let mock = common::Mock::start_two_node().await;
     v2(&mock);

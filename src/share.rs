@@ -681,7 +681,10 @@ pub enum ShareAcquireMode {
 /// the same way (Java `handleShareFetchFailure`). Piggyback is refused
 /// on the initial share session and those acknowledgements complete
 /// with `NOT_LEADER_OR_FOLLOWER` (Java
-/// `testPiggybackAcknowledgementsOnInitialShareSessionError`).
+/// `testPiggybackAcknowledgementsOnInitialShareSessionError`). After
+/// subscribe, leftover acknowledgements whose leader has no share
+/// session complete the same way and that leader is not fetched (Java
+/// `testPiggybackAcknowledgementsOnInitialShareSessionErrorSubscriptionChange`).
 /// A successful ShareFetch that omits a piggybacked partition completes
 /// those acknowledgements with `INVALID_RECORD_STATE` (Java
 /// `InvalidRecordStateException` / `INVALID_RESPONSE`). A successful
@@ -1486,6 +1489,10 @@ impl ShareGroup {
     /// Piggyback is refused on an initial share session and those
     /// acknowledgements complete with `NOT_LEADER_OR_FOLLOWER` (Java
     /// `testPiggybackAcknowledgementsOnInitialShareSessionError`).
+    /// Leftover acknowledgements for a previous topic whose leader has
+    /// no share session complete the same way and that leader is not
+    /// fetched (Java
+    /// `testPiggybackAcknowledgementsOnInitialShareSessionErrorSubscriptionChange`).
     /// A partition-level error (Java `ShareFetchCollector.collect` /
     /// `testMultipleTopicsFetch`) leaves successful sibling partitions
     /// deliverable. The error is returned on this poll when it is first
@@ -2208,7 +2215,7 @@ impl ShareGroup {
             .checked_sub(metadata_bytes)
             .ok_or_else(|| Error::protocol("ShareFetch acquisition metadata budget exceeded"))?;
         let mut prepared = Vec::new();
-        for (node, tps) in nodes {
+        for (node, mut tps) in nodes {
             let version = match self.node_share_version(node, SHARE_FETCH).await {
                 Ok(version) => version,
                 Err(_) if tps.is_empty() => {
@@ -2226,7 +2233,9 @@ impl ShareGroup {
             let epoch = self.session_epoch(node);
             // Java maybeAddAcknowledgements: piggyback is refused on the
             // initial ShareFetch (isNewSession). Those acks complete with
-            // NOT_LEADER_OR_FOLLOWER and are not sent.
+            // NOT_LEADER_OR_FOLLOWER and are not sent. Leftover-only
+            // partitions are not added to that session
+            // (testPiggybackAcknowledgementsOnInitialShareSessionErrorSubscriptionChange).
             let piggyback = epoch > ShareRequestMetadata::INITIAL_EPOCH;
             if !piggyback && !tps.is_empty() {
                 let error = Error::broker(
@@ -2237,6 +2246,7 @@ impl ShareGroup {
                 for (topic, part) in &tps {
                     let _ = pending_acks.remove(&(topic.clone(), *part));
                 }
+                tps.retain(|(topic, part)| assigned_set.contains(&(topic.clone(), *part)));
             }
             let mut by_id: BTreeMap<[u8; 16], Vec<i32>> = BTreeMap::new();
             for (topic, part) in &tps {
@@ -2859,6 +2869,10 @@ impl ShareGroup {
     /// (Java `testShareFetchWithSubscriptionChangeMultipleNodes`). With
     /// no leftover acks, only the new leader is fetched (Java
     /// `testShareFetchWithSubscriptionChangeMultipleNodesEmptyAcknowledgements`).
+    /// Leftover acknowledgements whose leader has no share session
+    /// complete with `NOT_LEADER_OR_FOLLOWER` and that leader is not
+    /// fetched (Java
+    /// `testPiggybackAcknowledgementsOnInitialShareSessionErrorSubscriptionChange`).
     /// After [`Self::unsubscribe`], this starts a new heartbeat loop.
     pub async fn subscribe(
         &mut self,

@@ -2057,7 +2057,10 @@
 //! `ShareSessionHandler.handleResponse` false); the initial share
 //! session does not piggyback and those acknowledgements complete with
 //! `NOT_LEADER_OR_FOLLOWER` (Java
-//! `testPiggybackAcknowledgementsOnInitialShareSessionError`).
+//! `testPiggybackAcknowledgementsOnInitialShareSessionError`). After
+//! subscribe, leftover acknowledgements whose leader has no share
+//! session complete the same way and that leader is not fetched (Java
+//! `testPiggybackAcknowledgementsOnInitialShareSessionErrorSubscriptionChange`).
 //! A successful ShareFetch that omits a piggybacked partition completes
 //! those acknowledgements with `INVALID_RECORD_STATE` (Java
 //! `InvalidRecordStateException` / `INVALID_RESPONSE`).
