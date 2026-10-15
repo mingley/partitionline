@@ -7238,9 +7238,6 @@ fn fetch_topic_name(
     resolved_fetch_topic(response_name, topic_id, id_names).map(|name| name.map(str::to_owned))
 }
 
-/// Whether any incomplete assignment needs a metadata refresh.
-///
-/// One topic is checked once. A fresh topic does not inspect every partition.
 /// Whether this fetch node is still the metadata leader for `partition`.
 ///
 /// `leaders` is the topic list loaded once for the response. After the topic
@@ -7279,27 +7276,29 @@ fn unique_assigned_topics(assigned: &[(Arc<str>, i32, i64)]) -> Vec<String> {
     topics
 }
 
+/// Whether any incomplete assignment needs a metadata refresh.
+///
+/// One topic name is checked once, including when each partition keeps its
+/// own topic allocation. A fresh topic does not inspect every partition's age.
 fn assignment_metadata_stale(
     assigned: &[(Arc<str>, i32, i64)],
     completed: &PartitionMap<()>,
     cluster: &Cluster,
     max_age: Duration,
 ) -> bool {
-    let Some((first, _, _)) = assigned.first() else {
-        return false;
-    };
-    if assigned
-        .iter()
-        .all(|(topic, _, _)| Arc::ptr_eq(topic, first))
-    {
-        return !cluster.topic_fresh(first.as_ref(), max_age)
-            && assigned
-                .iter()
-                .any(|(topic, partition, _)| !completed.contains(topic, *partition));
+    let mut cached: Option<&str> = None;
+    let mut fresh = false;
+    for (topic, partition, _) in assigned {
+        let name = topic.as_ref();
+        if cached != Some(name) {
+            fresh = cluster.topic_fresh(name, max_age);
+            cached = Some(name);
+        }
+        if !fresh && !completed.contains(topic, *partition) {
+            return true;
+        }
     }
-    assigned.iter().any(|(topic, partition, _)| {
-        !completed.contains(topic, *partition) && !cluster.topic_fresh(topic.as_ref(), max_age)
-    })
+    false
 }
 
 /// First copy of a fetch partition wins. A later copy is ignored.
@@ -8042,6 +8041,20 @@ mod tests {
             &open,
             &cluster,
             Duration::from_secs(5)
+        ));
+        use crate::protocol::api::NodeEndpoint;
+        let mut fresh_cluster = Cluster::default();
+        fresh_cluster.apply_node_endpoints(&[NodeEndpoint::new(1, "127.0.0.1", 9092, None)]);
+        assert!(fresh_cluster.apply_current_leader("orders", 0, 1, 1));
+        let separate = vec![
+            (Arc::<str>::from("orders"), 0, 0),
+            (Arc::<str>::from("orders"), 1, 0),
+        ];
+        assert!(!assignment_metadata_stale(
+            &separate,
+            &open,
+            &fresh_cluster,
+            Duration::from_secs(30)
         ));
     }
 
