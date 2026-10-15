@@ -1545,7 +1545,8 @@ impl ShareGroup {
     /// `UNKNOWN_TOPIC_ID` / `REPLICA_NOT_AVAILABLE` /
     /// `OFFSET_NOT_AVAILABLE` / `KAFKA_STORAGE_ERROR` skip and request
     /// Metadata, including when a partition `ErrorMessage` is set;
-    /// siblings still deliver (Java `handleInitializeErrors`).
+    /// siblings still deliver (Java `handleInitializeErrors` /
+    /// `ShareFetchCollector.collect`).
     /// Top-level `UNKNOWN_TOPIC_ID` still fails that poll. A sole
     /// partition `NOT_LEADER_OR_FOLLOWER` collects empty (Java
     /// `testFetchError`). A ShareFetch topic id that is

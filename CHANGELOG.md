@@ -88,7 +88,9 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `FENCED_LEADER_EPOCH` without CurrentLeader /
   `REPLICA_NOT_AVAILABLE` / `OFFSET_NOT_AVAILABLE` /
   `KAFKA_STORAGE_ERROR` still skip and still request Metadata when
-  `ErrorMessage` is set.
+  `ErrorMessage` is set. A sibling `INCONSISTENT_TOPIC_ID` with
+  `ErrorMessage` still delivers the successful partition and still
+  requests Metadata.
 
 - ShareFetch partition `FENCED_LEADER_EPOCH` without a usable
   CurrentLeader skips that partition, still delivers siblings, and
