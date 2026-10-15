@@ -390,14 +390,7 @@ impl ShareRecords {
     /// Distinct partitions in this batch, in first-seen order.
     #[must_use]
     pub fn partitions(&self) -> Vec<crate::TopicPartition> {
-        let mut seen = HashSet::new();
-        let mut out = Vec::new();
-        for rec in &self.records {
-            if seen.insert((rec.topic.as_str(), rec.partition)) {
-                out.push(crate::TopicPartition::new(rec.topic.clone(), rec.partition));
-            }
-        }
-        out
+        crate::consumer::partitions_from(&self.records, |rec| &rec.topic, |rec| rec.partition)
     }
 
     /// Records for this partition (Java `records(TopicPartition)`).
@@ -428,30 +421,13 @@ impl ShareRecords {
     /// partition is omitted.
     #[must_use]
     pub fn next_offsets(&self) -> Vec<(crate::TopicPartition, crate::OffsetAndMetadata)> {
-        let mut last: HashMap<(&str, i32), &ShareRecord> = HashMap::new();
-        let mut order = Vec::new();
-        for rec in &self.records {
-            let key = (rec.topic.as_str(), rec.partition);
-            if last.insert(key, rec).is_none() {
-                order.push(key);
-            }
-        }
-        order
-            .into_iter()
-            .filter_map(|key| {
-                last.remove(&key).and_then(|rec| {
-                    let next = rec.offset.checked_add(1)?;
-                    let mut md = crate::OffsetAndMetadata::new(next);
-                    if let Some(epoch) = rec.leader_epoch {
-                        md = md.with_leader_epoch(epoch);
-                    }
-                    Some((
-                        crate::TopicPartition::new(rec.topic.clone(), rec.partition),
-                        md,
-                    ))
-                })
-            })
-            .collect()
+        crate::consumer::next_offsets_from(
+            &self.records,
+            |rec| &rec.topic,
+            |rec| rec.partition,
+            |rec| rec.offset,
+            |rec| rec.leader_epoch,
+        )
     }
 }
 

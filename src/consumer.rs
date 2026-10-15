@@ -947,14 +947,7 @@ impl ConsumerRecords {
     /// Distinct partitions in this batch, in first-seen order.
     #[must_use]
     pub fn partitions(&self) -> Vec<TopicPartition> {
-        let mut seen = HashSet::new();
-        let mut out = Vec::new();
-        for rec in &self.records {
-            if seen.insert((rec.topic.as_str(), rec.partition)) {
-                out.push(TopicPartition::new(rec.topic.clone(), rec.partition));
-            }
-        }
-        out
+        partitions_from(&self.records, |rec| &rec.topic, |rec| rec.partition)
     }
 
     /// Records for this partition (Java `records(TopicPartition)`).
@@ -985,28 +978,105 @@ impl ConsumerRecords {
     /// is omitted.
     #[must_use]
     pub fn next_offsets(&self) -> Vec<(TopicPartition, OffsetAndMetadata)> {
-        let mut last: HashMap<(&str, i32), &FetchedRecord> = HashMap::new();
-        let mut order = Vec::new();
-        for rec in &self.records {
-            let key = (rec.topic.as_str(), rec.partition);
-            if last.insert(key, rec).is_none() {
-                order.push(key);
-            }
-        }
-        order
-            .into_iter()
-            .filter_map(|key| {
-                last.remove(&key).and_then(|rec| {
-                    let next = exclusive_fetch_offset(rec.offset)?;
-                    let mut md = OffsetAndMetadata::new(next);
-                    if let Some(epoch) = rec.leader_epoch {
-                        md = md.with_leader_epoch(epoch);
-                    }
-                    Some((TopicPartition::new(rec.topic.clone(), rec.partition), md))
-                })
-            })
-            .collect()
+        next_offsets_from(
+            &self.records,
+            |rec| &rec.topic,
+            |rec| rec.partition,
+            |rec| rec.offset,
+            |rec| rec.leader_epoch,
+        )
     }
+}
+
+/// Distinct partitions in first-seen order.
+///
+/// Adjacent records of one partition are one run, so a batch does not hash every record.
+pub(crate) fn partitions_from<T>(
+    records: &[T],
+    topic_of: impl Fn(&T) -> &TopicName,
+    partition_of: impl Fn(&T) -> i32,
+) -> Vec<TopicPartition> {
+    let mut seen: Vec<(&TopicName, i32)> = Vec::new();
+    let mut index = 0;
+    while index < records.len() {
+        let Some(first) = records.get(index) else {
+            break;
+        };
+        let topic = topic_of(first);
+        let partition = partition_of(first);
+        let mut cursor = index.saturating_add(1);
+        while let Some(record) = records.get(cursor) {
+            if partition_of(record) != partition || topic_of(record) != topic {
+                break;
+            }
+            cursor = cursor.saturating_add(1);
+        }
+        if !seen
+            .iter()
+            .any(|slot| slot.1 == partition && slot.0 == topic)
+        {
+            seen.push((topic, partition));
+        }
+        index = cursor;
+    }
+    seen.into_iter()
+        .map(|(topic, partition)| TopicPartition::new(topic.clone(), partition))
+        .collect()
+}
+
+/// Last offset plus one for each partition, in first-seen order.
+///
+/// A later run of a partition replaces the offset. [`i64::MAX`] omits that partition.
+pub(crate) fn next_offsets_from<T>(
+    records: &[T],
+    topic_of: impl Fn(&T) -> &TopicName,
+    partition_of: impl Fn(&T) -> i32,
+    offset_of: impl Fn(&T) -> i64,
+    epoch_of: impl Fn(&T) -> Option<i32>,
+) -> Vec<(TopicPartition, OffsetAndMetadata)> {
+    let mut last: Vec<(&TopicName, i32, i64, Option<i32>)> = Vec::new();
+    let mut index = 0;
+    while index < records.len() {
+        let Some(first) = records.get(index) else {
+            break;
+        };
+        let topic = topic_of(first);
+        let partition = partition_of(first);
+        let mut end = index;
+        let mut cursor = index.saturating_add(1);
+        while let Some(record) = records.get(cursor) {
+            if partition_of(record) != partition || topic_of(record) != topic {
+                break;
+            }
+            end = cursor;
+            cursor = cursor.saturating_add(1);
+        }
+        let Some(tail) = records.get(end) else {
+            break;
+        };
+        let offset = offset_of(tail);
+        let epoch = epoch_of(tail);
+        if let Some(slot) = last
+            .iter_mut()
+            .find(|slot| slot.1 == partition && slot.0 == topic)
+        {
+            slot.2 = offset;
+            slot.3 = epoch;
+        } else {
+            last.push((topic, partition, offset, epoch));
+        }
+        index = cursor;
+    }
+    last.into_iter()
+        .filter_map(|(topic, partition, offset, epoch)| {
+            let next = exclusive_fetch_offset(offset)?;
+            let mut metadata = OffsetAndMetadata::new(next);
+            if let Some(epoch) = epoch {
+                metadata = metadata.with_leader_epoch(epoch);
+            }
+            Some((TopicPartition::new(topic.clone(), partition), metadata))
+        })
+        .collect()
 }
 
 impl Deref for ConsumerRecords {
