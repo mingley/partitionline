@@ -1823,8 +1823,9 @@ impl Producer {
     /// continue; the caller outcome is **ambiguous** until `flush`/`close` (or
     /// another observe path) settles it. See `docs/guide.md` (Produce cancellation).
     pub async fn send(&self, rec: ProduceRecord) -> Result<RecordMetadata> {
-        let mut out = self.send_all(std::iter::once(rec)).await?;
-        out.pop().ok_or_else(|| Error::protocol("send_all empty"))
+        self.ensure_send_open()?;
+        let rx = self.enqueue_one(rec).await?;
+        rx.await.map_err(|_| Error::Closed)?
     }
 
     /// Queue every record, then wait for every offset.
@@ -1836,6 +1837,23 @@ impl Producer {
         &self,
         recs: impl IntoIterator<Item = ProduceRecord>,
     ) -> Result<Vec<RecordMetadata>> {
+        self.ensure_send_open()?;
+        let recs: Vec<ProduceRecord> = recs.into_iter().collect();
+        if recs.is_empty() {
+            return Ok(Vec::new());
+        }
+        let mut rxs = Vec::with_capacity(recs.len());
+        for rec in recs {
+            rxs.push(self.enqueue_one(rec).await?);
+        }
+        let mut out = Vec::with_capacity(rxs.len());
+        for rx in rxs {
+            out.push(rx.await.map_err(|_| Error::Closed)??);
+        }
+        Ok(out)
+    }
+
+    fn ensure_send_open(&self) -> Result<()> {
         if self.inner.shared.closed.load(Ordering::SeqCst) {
             return Err(Error::Closed);
         }
@@ -1850,77 +1868,71 @@ impl Producer {
         if self.inner.shared.cfg.transactional_id.is_some() {
             self.inner.shared.fail_on_txn_fatal()?;
         }
-        let recs: Vec<ProduceRecord> = recs.into_iter().collect();
-        if recs.is_empty() {
-            return Ok(Vec::new());
+        Ok(())
+    }
+
+    async fn enqueue_one(
+        &self,
+        rec: ProduceRecord,
+    ) -> Result<oneshot::Receiver<Result<RecordMetadata>>> {
+        let (tx, rx) = oneshot::channel();
+        let mut rec = self.inner.shared.interceptors.on_send(rec);
+        let bytes = reject_oversized(&self.inner.shared.cfg, &rec)?;
+        let block_deadline = Instant::now() + self.inner.shared.cfg.max_block;
+        if self.inner.shared.sticky.is_some() {
+            self.enqueue_sticky(rec, Some(tx), bytes, block_deadline)
+                .await?;
+            return Ok(rx);
         }
-        let mut rxs = Vec::with_capacity(recs.len());
-        for rec in recs {
-            let (tx, rx) = oneshot::channel();
-            let mut rec = self.inner.shared.interceptors.on_send(rec);
-            let bytes = reject_oversized(&self.inner.shared.cfg, &rec)?;
-            let block_deadline = Instant::now() + self.inner.shared.cfg.max_block;
-            if self.inner.shared.sticky.is_some() {
-                self.enqueue_sticky(rec, Some(tx), bytes, block_deadline)
-                    .await?;
-                rxs.push(rx);
-                continue;
-            }
-            self.ensure_ready(&mut rec, block_deadline).await?;
-            let w = self.worker_for(&rec).ok_or(Error::Closed)?;
-            self.wait_buffer(bytes, block_deadline).await?;
-            let mut reservation = BufferReservation {
-                shared: &self.inner.shared,
-                bytes,
-                active: true,
-            };
-            if self.inner.shared.closed.load(Ordering::SeqCst) {
+        self.ensure_ready(&mut rec, block_deadline).await?;
+        let w = self.worker_for(&rec).ok_or(Error::Closed)?;
+        self.wait_buffer(bytes, block_deadline).await?;
+        let mut reservation = BufferReservation {
+            shared: &self.inner.shared,
+            bytes,
+            active: true,
+        };
+        if self.inner.shared.closed.load(Ordering::SeqCst) {
+            return Err(Error::Closed);
+        }
+        compact_record_backing(&mut rec);
+        let now = Instant::now();
+        let deadline = now + self.inner.shared.cfg.delivery_timeout;
+        let topic = rec.topic.clone();
+        let rest_block = block_deadline.saturating_duration_since(now);
+        if rest_block.is_zero() {
+            return Err(Error::Timeout);
+        }
+        let send_res = tokio::time::timeout(
+            rest_block,
+            w.data.send(Pending {
+                sticky_record: None,
+                sticky: None,
+                rec,
+                tx: Some(tx),
+                seq: None,
+                batch_base_seq: None,
+                batch_len: 1,
+                epoch_gen: self.inner.shared.epoch_gen.load(Ordering::SeqCst),
+                deadline,
+                queued_at: now,
+                retry: 0,
+                skip_meta_refresh: false,
+                retry_after: now,
+            }),
+        )
+        .await;
+        match send_res {
+            Ok(Ok(())) => reservation.active = false,
+            Ok(Err(_)) => {
                 return Err(Error::Closed);
             }
-            compact_record_backing(&mut rec);
-            let now = Instant::now();
-            let deadline = now + self.inner.shared.cfg.delivery_timeout;
-            let topic = rec.topic.clone();
-            let rest_block = block_deadline.saturating_duration_since(now);
-            if rest_block.is_zero() {
+            Err(_) => {
                 return Err(Error::Timeout);
             }
-            let send_res = tokio::time::timeout(
-                rest_block,
-                w.data.send(Pending {
-                    sticky_record: None,
-                    sticky: None,
-                    rec,
-                    tx: Some(tx),
-                    seq: None,
-                    batch_base_seq: None,
-                    batch_len: 1,
-                    epoch_gen: self.inner.shared.epoch_gen.load(Ordering::SeqCst),
-                    deadline,
-                    queued_at: now,
-                    retry: 0,
-                    skip_meta_refresh: false,
-                    retry_after: now,
-                }),
-            )
-            .await;
-            match send_res {
-                Ok(Ok(())) => reservation.active = false,
-                Ok(Err(_)) => {
-                    return Err(Error::Closed);
-                }
-                Err(_) => {
-                    return Err(Error::Timeout);
-                }
-            }
-            self.inner.shared.note_queued_n(&topic, 1, bytes);
-            rxs.push(rx);
         }
-        let mut out = Vec::with_capacity(rxs.len());
-        for rx in rxs {
-            out.push(rx.await.map_err(|_| Error::Closed)??);
-        }
-        Ok(out)
+        self.inner.shared.note_queued_n(&topic, 1, bytes);
+        Ok(rx)
     }
 
     fn new_pending(
