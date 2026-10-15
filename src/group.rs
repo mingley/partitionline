@@ -2534,7 +2534,7 @@ impl ConsumerGroup {
     /// Copy a broker-rotated member id from the heartbeat task (KL03-15).
     fn adopt_kip848_member_id(&mut self) {
         if self.kip848 {
-            self.member_id = self.hb_member_id.lock().clone();
+            copy_member_id(&mut self.member_id, &self.hb_member_id.lock());
         }
     }
 
@@ -2825,6 +2825,19 @@ impl ConsumerGroup {
                 *hb_deadline.lock() = Some(d);
                 d
             };
+            let mut member_id = hb_member_id.lock().clone();
+            let mut heartbeat = ConsumerGroupHeartbeatRequest {
+                group_id: group_id.clone(),
+                member_id: member_id.clone(),
+                member_epoch: 0,
+                instance_id: cfg.group_instance_id.clone(),
+                rack_id: cfg.rack.clone(),
+                rebalance_timeout_ms: ConsumerGroupHeartbeatRequest::UNCHANGED_REBALANCE_TIMEOUT_MS,
+                subscribed_topic_names: None,
+                subscribed_topic_regex: None,
+                server_assignor: None,
+                topic_partitions: None,
+            };
             loop {
                 let now = Instant::now();
                 if let Some(extern_deadline) = *hb_deadline.lock() {
@@ -2857,8 +2870,9 @@ impl ConsumerGroup {
                     }
                     _ = tokio::time::sleep(sleep_duration) => {
                         // Re-read the shared id every tick: the broker may
-                        // rotate it mid-session (KL03-15).
-                        let member_id = hb_member_id.lock().clone();
+                        // rotate it mid-session (KL03-15). An unchanged id
+                        // keeps the existing string.
+                        copy_member_id(&mut member_id, &hb_member_id.lock());
                         if leave_if_max_poll(
                             &cfg,
                             &group_id,
@@ -2936,23 +2950,22 @@ impl ConsumerGroup {
                             *hb_deadline.lock() = Some(next_hb_deadline);
                             continue;
                         }
-                        let req = ConsumerGroupHeartbeatRequest {
-                            group_id: group_id.clone(),
-                            member_id: member_id.clone(),
-                            member_epoch: epoch,
-                            instance_id: cfg.group_instance_id.clone(),
-                            rack_id: cfg.rack.clone(),
-                            rebalance_timeout_ms,
-                            subscribed_topic_names,
-                            subscribed_topic_regex: None,
-                            server_assignor: None,
-                            topic_partitions,
-                        };
+                        copy_member_id(&mut heartbeat.member_id, &member_id);
+                        heartbeat.member_epoch = epoch;
+                        heartbeat.rebalance_timeout_ms = rebalance_timeout_ms;
+                        heartbeat.subscribed_topic_names = subscribed_topic_names;
+                        heartbeat.topic_partitions = topic_partitions;
                         let res = c
                             .roundtrip(
                                 CONSUMER_GROUP_HEARTBEAT,
                                 version,
-                                |buf| encode_consumer_group_heartbeat_request(buf, version, &req),
+                                |buf| {
+                                    encode_consumer_group_heartbeat_request(
+                                        buf,
+                                        version,
+                                        &heartbeat,
+                                    )
+                                },
                                 timeout,
                             )
                             .await;
@@ -2982,7 +2995,9 @@ impl ConsumerGroup {
                                         // the poll path (KL03-15).
                                         if let Some(id) = resp.member_id.as_deref() {
                                             if id != member_id {
-                                                *hb_member_id.lock() = id.to_string();
+                                                copy_member_id(&mut member_id, id);
+                                                copy_member_id(&mut heartbeat.member_id, id);
+                                                *hb_member_id.lock() = member_id.clone();
                                             }
                                         }
                                         if resp.error_code == 0 {
@@ -3142,6 +3157,30 @@ impl ConsumerGroup {
                 }
             }
         }));
+    }
+}
+
+fn copy_member_id(dest: &mut String, source: &str) {
+    if dest.as_str() != source {
+        dest.clear();
+        dest.push_str(source);
+    }
+}
+
+#[cfg(test)]
+mod member_id_tests {
+    use super::copy_member_id;
+
+    #[test]
+    fn an_unchanged_member_id_keeps_its_buffer() {
+        let mut dest = String::from("member-1");
+        let ptr = dest.as_ptr();
+        let capacity = dest.capacity();
+        copy_member_id(&mut dest, "member-1");
+        assert_eq!(dest.as_ptr(), ptr);
+        assert!(dest.capacity() >= capacity);
+        copy_member_id(&mut dest, "member-2");
+        assert_eq!(dest, "member-2");
     }
 }
 
