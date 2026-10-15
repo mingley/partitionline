@@ -207,6 +207,14 @@ struct Slot {
     index: i32,
     partition: partition::Partition,
 }
+
+/// An open partition log, resolved once and reused for each record read.
+#[derive(Clone, Copy)]
+pub(crate) struct OpenLog {
+    position: usize,
+    id: TopicId,
+    index: i32,
+}
 fn open_partition(path: &Path, config: &Config) -> Result<partition::Partition, Error> {
     match config.segment_limits {
         Some(limits) => partition::Partition::open_segmented(
@@ -585,17 +593,39 @@ impl Store {
             slot.partition.invalidate_length_observation();
         }
     }
-    pub(crate) fn read_entry_into(
+    pub(crate) fn partition_position(&self, id: TopicId, index: i32) -> Option<OpenLog> {
+        let position = self.located.get(&(id, index)).copied()?;
+        self.slots.get(position).and_then(|slot| {
+            (slot.id == id && slot.index == index).then_some(OpenLog {
+                position,
+                id,
+                index,
+            })
+        })
+    }
+    pub(crate) fn read_entry_at(
         &mut self,
-        id: TopicId,
-        index: i32,
+        log: Option<OpenLog>,
         offset: i64,
         remaining_bytes: usize,
         remaining_entries: usize,
         dest: &mut Vec<u8>,
     ) -> Result<(Option<journal::PayloadView>, segments::Work), partition::Error> {
         let max_entry = self.config.journal_limits.max_entry_bytes();
-        let Some(slot) = self.located_slot_mut(id, index) else {
+        let matched = log.as_ref().is_some_and(|log| {
+            self.slots
+                .get(log.position)
+                .is_some_and(|slot| slot.id == log.id && slot.index == log.index)
+        });
+        let slot = if matched {
+            log.as_ref()
+                .and_then(|log| self.slots.get_mut(log.position))
+        } else if let Some(log) = log.as_ref() {
+            self.located_slot_mut(log.id, log.index)
+        } else {
+            None
+        };
+        let Some(slot) = slot else {
             return Ok((None, segments::Work::default()));
         };
         let maximum = max_entry

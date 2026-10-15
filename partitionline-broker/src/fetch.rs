@@ -352,25 +352,23 @@ impl Budget {
     fn read_into(
         &mut self,
         store: &mut produce::Store,
-        id: crate::catalog::TopicId,
-        index: i32,
+        log: Option<produce::OpenLog>,
         offset: i64,
         dest: &mut Vec<u8>,
     ) -> Result<Result<Option<journal::PayloadView>, i16>, Error> {
         if self.entries == 0 || self.bytes == 0 {
             return Err(Error::ScanLimit);
         }
-        let (view, work) =
-            match store.read_entry_into(id, index, offset, self.bytes, self.entries, dest) {
-                Ok(value) => value,
-                Err(partition::Error::Storage(journal::Error::FetchBudgetExceeded)) => {
-                    return Err(Error::ScanLimit)
-                }
-                Err(partition::Error::Segments(crate::segments::Error::ScanBudget)) => {
-                    return Err(Error::ScanLimit)
-                }
-                Err(_) => return Ok(Err(56)),
-            };
+        let (view, work) = match store.read_entry_at(log, offset, self.bytes, self.entries, dest) {
+            Ok(value) => value,
+            Err(partition::Error::Storage(journal::Error::FetchBudgetExceeded)) => {
+                return Err(Error::ScanLimit)
+            }
+            Err(partition::Error::Segments(crate::segments::Error::ScanBudget)) => {
+                return Err(Error::ScanLimit)
+            }
+            Err(_) => return Ok(Err(56)),
+        };
         self.bytes = self.bytes.checked_sub(work.bytes).ok_or(Error::ScanLimit)?;
         self.entries = self
             .entries
@@ -762,6 +760,7 @@ pub(crate) fn process(
                         offset = watermark;
                     } else if query != ListQuery::TieredEnd {
                         if let Some(id) = id {
+                            let position = store.partition_position(id, part.index);
                             let want_max = query == ListQuery::MaxTimestamp;
                             let mut best = None;
                             let mut cursor = if want_max {
@@ -780,8 +779,7 @@ pub(crate) fn process(
                                 scan_buf.clear();
                                 let loaded = match budget.read_into(
                                     store,
-                                    id,
-                                    part.index,
+                                    position,
                                     cursor,
                                     &mut scan_buf,
                                 )? {
@@ -871,6 +869,7 @@ pub(crate) fn process(
             let data_at = out.bytes.len();
             if error == 0 {
                 if let Some(id) = id {
+                    let position = store.partition_position(id, part.index);
                     let mut cursor = part.offset;
                     let part_maximum =
                         usize::try_from(part.maximum).map_err(|_| Error::StoredRecords)?;
@@ -884,23 +883,18 @@ pub(crate) fn process(
                         }
                         let start = cursor;
                         let payload_at = out.bytes.len();
-                        let loaded = match budget.read_into(
-                            store,
-                            id,
-                            part.index,
-                            cursor,
-                            &mut out.bytes,
-                        )? {
-                            Err(code) => {
-                                error = storage_code(code, key, version);
-                                break;
-                            }
-                            Ok(Some(view)) => view,
-                            Ok(None) => {
-                                error = storage_code(56, key, version);
-                                break;
-                            }
-                        };
+                        let loaded =
+                            match budget.read_into(store, position, cursor, &mut out.bytes)? {
+                                Err(code) => {
+                                    error = storage_code(code, key, version);
+                                    break;
+                                }
+                                Ok(Some(view)) => view,
+                                Ok(None) => {
+                                    error = storage_code(56, key, version);
+                                    break;
+                                }
+                            };
                         let payload_end = out.bytes.len();
                         let mut keep_from = None;
                         let mut keep_to = payload_at;
