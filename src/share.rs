@@ -709,9 +709,11 @@ pub enum ShareAcquireMode {
 /// `testWhenLeadershipChangeBetweenShareFetchRequests`).
 /// A successful ShareFetch that omits a piggybacked partition completes
 /// those acknowledgements with `INVALID_RECORD_STATE` (Java
-/// `InvalidRecordStateException` / `INVALID_RESPONSE`). A successful
-/// ShareAcknowledge that omits a requested partition completes that
-/// partition the same way (Java `processingComplete` /
+/// `InvalidRecordStateException` / `INVALID_RESPONSE`). An omitted
+/// piggyback acknowledgement on one partition does not fail a sibling
+/// partition that is present with `AcknowledgeErrorCode` none. A
+/// successful ShareAcknowledge that omits a requested partition
+/// completes that partition the same way (Java `processingComplete` /
 /// `testShareAcknowledgeInvalidResponse`). Unrequested ShareAcknowledge
 /// partitions, unknown topic ids, and known topic ids that were not
 /// in the request are skipped (Java `lookupTopicId` /
