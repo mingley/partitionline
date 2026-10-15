@@ -6192,27 +6192,28 @@ fn take_count_in(
         let topic = first.rec.topic.as_ref();
         let part = first.rec.partition.unwrap_or(0);
         let base = first.batch_base_seq;
-        let one_group = pending
-            .iter()
-            .take(rec_limit)
-            .all(|p| p.rec.partition.unwrap_or(0) == part && p.rec.topic.as_ref() == topic);
-        if one_group {
-            let mut n = 0usize;
-            let mut bytes = 0usize;
-            for p in pending.iter().take(rec_limit) {
-                if p.batch_base_seq != base {
-                    break;
-                }
-                let add = estimate(p).saturating_add(if n == 0 { group_overhead } else { 0 });
-                if n > 0 && bytes.saturating_add(add) > byte_limit {
-                    break;
-                }
-                bytes = bytes.saturating_add(add);
-                n += 1;
-                if bytes >= byte_limit {
-                    break;
-                }
+        let mut n = 0usize;
+        let mut bytes = 0usize;
+        let mut one_group = true;
+        for p in pending.iter().take(rec_limit) {
+            if p.rec.partition.unwrap_or(0) != part || p.rec.topic.as_ref() != topic {
+                one_group = false;
+                break;
             }
+            if p.batch_base_seq != base {
+                break;
+            }
+            let add = estimate(p).saturating_add(if n == 0 { group_overhead } else { 0 });
+            if n > 0 && bytes.saturating_add(add) > byte_limit {
+                break;
+            }
+            bytes = bytes.saturating_add(add);
+            n += 1;
+            if bytes >= byte_limit {
+                break;
+            }
+        }
+        if one_group {
             return n.max(1).min(pending.len());
         }
     }
