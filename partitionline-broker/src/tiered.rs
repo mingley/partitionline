@@ -334,11 +334,28 @@ impl Store {
                 object,
                 retain_until_ms,
             } => {
-                let key = key_of(&object);
-                let added = object.body.len().saturating_add(object.key.len());
+                if !usable_key(&object.topic, object.partition, object.base_offset)
+                    || retain_until_ms < 0
+                    || object.key.len() > 1024
+                    || object.body.is_empty()
+                {
+                    return Err(Error::InvalidRequest);
+                }
                 if checksum(&object) != object.checksum {
                     return Err(Error::Corrupt);
                 }
+                let key = key_of(&object);
+                if let Some(existing) = self.objects.get(&key) {
+                    if existing.object.checksum == object.checksum
+                        && existing.object.body == object.body
+                        && existing.object.key == object.key
+                        && existing.retain_until_ms == retain_until_ms
+                    {
+                        return Ok(());
+                    }
+                    return Err(Error::InvalidRequest);
+                }
+                let added = object.body.len().saturating_add(object.key.len());
                 self.disk_bytes = self.disk_bytes.saturating_add(added);
                 self.objects.insert(
                     key,
@@ -350,19 +367,24 @@ impl Store {
                 );
             }
             Record::Commit(key) => {
+                if !usable_key(&key.topic, key.partition, key.base_offset) {
+                    return Err(Error::InvalidRequest);
+                }
                 let stored = self.objects.get_mut(&key).ok_or(Error::Incomplete)?;
                 stored.committed = true;
             }
             Record::Abort(key) | Record::Expire(key) => {
-                if let Some(stored) = self.objects.remove(&key) {
-                    self.disk_bytes = self.disk_bytes.saturating_sub(
-                        stored
-                            .object
-                            .body
-                            .len()
-                            .saturating_add(stored.object.key.len()),
-                    );
+                if !usable_key(&key.topic, key.partition, key.base_offset) {
+                    return Err(Error::InvalidRequest);
                 }
+                let stored = self.objects.remove(&key).ok_or(Error::Incomplete)?;
+                self.disk_bytes = self.disk_bytes.saturating_sub(
+                    stored
+                        .object
+                        .body
+                        .len()
+                        .saturating_add(stored.object.key.len()),
+                );
             }
         }
         Ok(())
@@ -401,6 +423,14 @@ enum Record {
     Commit(Key),
     Abort(Key),
     Expire(Key),
+}
+
+fn usable_key(topic: &str, partition: i32, base_offset: i64) -> bool {
+    !topic.is_empty()
+        && topic.len() <= 249
+        && !topic.chars().any(char::is_control)
+        && partition >= 0
+        && base_offset >= 0
 }
 
 fn validate(segment: Segment<'_>) -> Result<(Key, Object, i64), Error> {
@@ -597,6 +627,35 @@ mod tests {
             body,
             retain_until_ms: retain,
         }
+    }
+
+    #[test]
+    fn a_negative_partition_is_not_recovered() {
+        let dir = path("bad-partition");
+        let mut store =
+            Store::open(&dir, limits(1024, 4096)).unwrap_or_else(|error| panic!("{error:?}"));
+        let mut object = Object {
+            topic: "orders".to_owned(),
+            partition: -1,
+            base_offset: 0,
+            key: b"k".to_vec(),
+            body: b"v".to_vec(),
+            checksum: 0,
+        };
+        object.checksum = checksum(&object);
+        let encoded = encode_partial(&object, 1).unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(store.apply(&encoded), Err(Error::InvalidRequest)));
+        assert_eq!(store.disk_bytes(), 0);
+        let missing = encode_key(
+            KIND_COMMIT,
+            &Key {
+                topic: "orders".to_owned(),
+                partition: 0,
+                base_offset: 0,
+            },
+        )
+        .unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(store.apply(&missing), Err(Error::Incomplete)));
     }
 
     #[test]
