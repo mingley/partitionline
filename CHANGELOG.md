@@ -206,7 +206,9 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   target and still requests Metadata. A ShareFetch
   `OFFSET_NOT_AVAILABLE` with a usable CurrentLeader on one partition
   does not update the next ShareFetch target for a sibling whose
-  error is none.
+  error is none. A ShareFetch `KAFKA_STORAGE_ERROR` with a usable
+  CurrentLeader does not update the next ShareFetch target and still
+  requests Metadata.
 
 - `ShareGroup::set_acknowledgement_commit_callback` is Java
   `ShareConsumer.setAcknowledgementCommitCallback`
