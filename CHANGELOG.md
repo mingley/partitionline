@@ -51,10 +51,11 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   per partition with that partition's exception.
 
 - ShareAcknowledge partition `NOT_LEADER_OR_FOLLOWER` /
-  `FENCED_LEADER_EPOCH` / `UNKNOWN_TOPIC_OR_PARTITION` complete without
-  retry (`commit_sync` map; Java
-  `testFatalErrorsAcknowledgementResponse`). Metadata is requested when
-  that error has no usable CurrentLeader.
+  `FENCED_LEADER_EPOCH` / `UNKNOWN_TOPIC_OR_PARTITION` /
+  `UNKNOWN_TOPIC_ID` complete without retry (`commit_sync` map; Java
+  `testFatalErrorsAcknowledgementResponse` plus ownership-lost
+  `UNKNOWN_TOPIC_ID`). Metadata is requested when that error has no
+  usable CurrentLeader.
 
 - ShareFetch partition `INCONSISTENT_TOPIC_ID` / `UNKNOWN_TOPIC_OR_PARTITION`
   / `UNKNOWN_TOPIC_ID` skip without throwing and request Metadata on the
