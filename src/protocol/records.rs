@@ -2193,12 +2193,14 @@ where
         }
         let (batch_start, batch_len_pos, crc_pos, crc_start) = start_record_batch(buf, header);
         let mut written = 0usize;
+        let mut header_wires = Vec::new();
         for (i, rec) in records.enumerate() {
             encode_record(
                 buf,
                 &rec,
                 absolute_offset_delta(header.base_offset, i)?,
                 timestamp_delta(header.base_timestamp, rec.timestamp)?,
+                &mut header_wires,
             )?;
             written = i.saturating_add(1);
         }
@@ -2251,6 +2253,7 @@ where
     scratch.section.clear();
     scratch.section.reserve(1024);
     let mut written = 0usize;
+    let mut header_wires = Vec::new();
     for (index, rec) in records.into_iter().enumerate() {
         let offset_delta = absolute_offset_delta(header.base_offset, index)?;
         let timestamp_delta = timestamp_delta(header.base_timestamp, rec.timestamp)?;
@@ -2265,7 +2268,13 @@ where
                 return Err(Error::protocol("zstd record section exceeds 64 MiB"));
             }
         }
-        encode_record(&mut scratch.section, &rec, offset_delta, timestamp_delta)?;
+        encode_record(
+            &mut scratch.section,
+            &rec,
+            offset_delta,
+            timestamp_delta,
+            &mut header_wires,
+        )?;
         written = index.saturating_add(1);
     }
     if header.count != buf::i32_from_usize(written)? {
@@ -2504,8 +2513,8 @@ struct HeaderWire {
     value: NullablePrefix,
 }
 
-fn header_wires(headers: &[Header]) -> Result<(usize, Vec<HeaderWire>)> {
-    let mut wires = Vec::with_capacity(headers.len());
+fn fill_header_wires(headers: &[Header], wires: &mut Vec<HeaderWire>) -> Result<usize> {
+    wires.clear();
     let mut size = 0usize;
     for header in headers {
         let key_bits = buf::zigzag_bits_i32(buf::utf8_length(&header.key));
@@ -2523,7 +2532,7 @@ fn header_wires(headers: &[Header]) -> Result<(usize, Vec<HeaderWire>)> {
             value,
         });
     }
-    Ok((size, wires))
+    Ok(size)
 }
 
 /// KL09-33: saturating input for [`estimate_compressed_size_in_bytes`];
@@ -2613,6 +2622,7 @@ fn encode_record(
     rec: &EncodeRecord<'_>,
     offset_delta: i32,
     timestamp_delta: i64,
+    header_wires: &mut Vec<HeaderWire>,
 ) -> crate::error::Result<()> {
     // Widths are derived once from the zigzag bits and reused by the writer.
     let ts_bits = buf::zigzag_bits_i64(timestamp_delta);
@@ -2624,7 +2634,7 @@ fn encode_record(
     let header_count = buf::i32_from_usize(rec.headers.len())?;
     let header_bits = buf::zigzag_bits_i32(header_count);
     let header_width = buf::unsigned_varint_size(header_bits);
-    let (headers_len, header_wires) = header_wires(rec.headers)?;
+    let headers_len = fill_header_wires(rec.headers, header_wires)?;
     let body = 1usize
         .checked_add(ts_width)
         .and_then(|n| n.checked_add(offset_width))
@@ -2645,7 +2655,7 @@ fn encode_record(
     put_nullable(buf, rec.key, &key);
     put_nullable(buf, rec.value, &value);
     buf::put_unsigned_varint_width(buf, header_bits, header_width);
-    for (header, wire) in rec.headers.iter().zip(&header_wires) {
+    for (header, wire) in rec.headers.iter().zip(header_wires.iter()) {
         buf::put_unsigned_varint_width(buf, wire.key_bits, wire.key_width);
         buf.extend_from_slice(header.key.as_bytes());
         put_nullable(buf, header.value.as_deref(), &wire.value);
@@ -4773,6 +4783,7 @@ mod tests {
             },
             0,
             0,
+            &mut Vec::new(),
         )
         .is_ok());
         let bytes = encoded.to_vec();
@@ -5059,14 +5070,27 @@ mod tests {
         let size = rec.size_in_bytes(offset_delta, timestamp_delta).unwrap();
         assert_eq!(size, body + buf::size_of_varint(body));
         let mut encoded = BytesMut::new();
+        let mut wires = Vec::new();
         encode_record(
             &mut encoded,
             &EncodeRecord::from_record(&rec),
             offset_delta,
             timestamp_delta,
+            &mut wires,
         )
         .unwrap();
         assert_eq!(size, buf::i32_from_usize(encoded.len()).unwrap());
+        let wire_capacity = wires.capacity();
+        encode_record(
+            &mut BytesMut::new(),
+            &EncodeRecord::from_record(&rec),
+            offset_delta,
+            timestamp_delta,
+            &mut wires,
+        )
+        .unwrap();
+        assert!(wires.capacity() >= wire_capacity);
+        assert!(wire_capacity >= 1);
 
         let rec_a = Record {
             offset: 0,
