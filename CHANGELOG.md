@@ -56,7 +56,10 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   (`commit_sync` map; Java `testFatalErrorsAcknowledgementResponse` plus
   ownership-lost topic-id codes), including when `ErrorMessage` is
   empty or a non-empty broker `ErrorMessage` is preferred. Metadata is
-  requested when that error has no usable CurrentLeader. A successful
+  requested when that error has no usable CurrentLeader. A
+  ShareAcknowledge partition `INCONSISTENT_TOPIC_ID` with a usable
+  CurrentLeader does not update the next ShareFetch target (Java
+  `updateLeaderInfoMap` omits that code). A successful
   ShareAcknowledge that omits a requested partition completes that
   partition with `INVALID_RECORD_STATE` (Java
   `testShareAcknowledgeInvalidResponse`). An omitted ShareAcknowledge
