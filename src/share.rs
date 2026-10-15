@@ -2179,7 +2179,7 @@ impl ShareGroup {
                                 continue;
                             };
                             let key = (topic_name.clone(), part.partition, record.offset);
-                            if !incoming_keys.insert(key.clone()) {
+                            if incoming_keys.contains(&key) {
                                 return Err(Error::protocol("duplicate ShareFetch record offset"));
                             }
                             if let Some(previous) = self.acquisitions.get(&key) {
@@ -2189,9 +2189,11 @@ impl ShareGroup {
                                     ));
                                 }
                                 if delivery_count == previous.delivery_count {
+                                    let _ = incoming_keys.insert(key);
                                     continue;
                                 }
                             }
+                            let _ = incoming_keys.insert(key);
                             incoming.push(ShareRecord {
                                 topic: topic_name.clone(),
                                 partition: part.partition,
