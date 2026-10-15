@@ -1746,8 +1746,9 @@ impl ShareGroup {
     /// partitions, unknown topic ids, and known topic ids that were
     /// not in the request are skipped (Java `lookupTopicId` /
     /// `handleAcknowledgeErrorCode`). A non-empty partition
-    /// `ErrorMessage` is preferred over the crate fallback (Java
-    /// `Errors.exception(errorMessage)`).
+    /// `ErrorMessage` is preferred over the crate fallback; an empty
+    /// or missing `ErrorMessage` uses `ShareAcknowledge {topic}-{partition}`
+    /// (Java `Errors.exception(errorMessage)`).
     pub async fn commit_sync(&mut self) -> Result<AcknowledgementCommitResults> {
         if !self.has_pending_acknowledgements() {
             return Ok(Vec::new());
