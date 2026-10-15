@@ -1525,7 +1525,10 @@ impl ShareGroup {
     /// Metadata (Java
     /// `testWhenShareFetchResponseReturnsALeadershipChangeErrorButNoNewLeaderInformation`).
     /// `UNKNOWN_LEADER_EPOCH` skips without Metadata (Java
-    /// `testHandleFetchResponseError`).
+    /// `testHandleFetchResponseError`). A ShareFetch topic id that is
+    /// not in this request — including a real cluster topic that is
+    /// not subscribed — is skipped and does not fail poll (Java
+    /// `lookupTopicId` / `testShareFetchInvalidResponse`).
     pub async fn poll(&mut self) -> Result<ShareRecords> {
         if self.consumer.take_wakeup() {
             return Err(Error::Wakeup);

@@ -2670,6 +2670,36 @@ async fn share_fetch_unrequested_topic_id_is_skipped() {
 }
 
 #[tokio::test]
+async fn share_fetch_unrequested_known_topic_id_is_skipped() {
+    let mock = common::Mock::start().await;
+    v2(&mock);
+    mock.set_topic_partitions("u", 1);
+    produce(&mock, &[(0, b"keep")]).await;
+    produce_topic(&mock, "u", &[(0, b"other")]).await;
+    let mut group = ShareGroup::join(config(&mock), "skip-known", "t")
+        .await
+        .unwrap();
+    let version = mock.last_share_fetch_version().unwrap_or(2);
+    let topics = vec![ShareFetchedTopic {
+        topic_id: mock.topic_id("u"),
+        partitions: vec![injected_share_success(b"other")],
+    }];
+    let mut injected = BytesMut::new();
+    encode_share_fetch_response(&mut injected, version, &topics).unwrap();
+    mock.inject_share_fetch_response_once(&injected);
+    assert!(
+        group.poll().await.unwrap().is_empty(),
+        "Java testShareFetchInvalidResponse skips a topic id that is not in this ShareFetch"
+    );
+    let got = group.poll().await.unwrap();
+    assert_eq!(got.len(), 1);
+    assert_eq!(got[0].topic, "t");
+    assert_eq!(got[0].value.as_deref(), Some(&b"keep"[..]));
+    group.accept(&got).await.unwrap();
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn share_fetch_sibling_partition_error_still_delivers() {
     let mock = common::Mock::start().await;
     v2(&mock);
