@@ -3226,49 +3226,242 @@ async fn discover_typed_coord_once(
     version: i16,
     deadline: Instant,
 ) -> Result<CoordinatorConnection> {
+    if cfg.bootstrap.len() > 1 {
+        return discover_typed_coord_raced(cfg, key, key_type, version, deadline).await;
+    }
     let mut last = Error::protocol("find coordinator failed");
     for addr in &cfg.bootstrap {
         let bounded = bounded_producer_config(cfg, deadline)?;
-        let (mut hop, hop_versions) = match open_conn_with_versions(addr, &bounded, false).await {
+        let (hop, hop_versions) = match open_conn_with_versions(addr, &bounded, false).await {
             Ok(c) => c,
             Err(e) => {
                 last = e;
                 continue;
             }
         };
-        let body = match hop
-            .roundtrip(
-                FIND_COORDINATOR,
-                version,
-                |buf| encode_find_coordinator_request_typed(buf, version, key, key_type),
-                timeout_remaining(deadline)?,
-            )
+        match find_producer_coordinator(cfg, hop, hop_versions, key, key_type, version, deadline)
             .await
         {
-            Ok(b) => b,
-            Err(e) => {
-                last = e;
-                continue;
-            }
-        };
-        let (err, _node, host, port) =
-            decode_find_coordinator_response(&mut body.clone(), version)?;
-        if err != 0 {
-            last = Error::broker(err, "FindCoordinator");
-            if !error::coordinator_retriable(err) {
-                return Err(last);
-            }
-            continue;
+            HopFind::Found(found) => return Ok(*found),
+            HopFind::Continue(error) => last = error,
+            HopFind::Stop(error) => return Err(error),
         }
-        let coord_addr = crate::net::format_address(&host, port);
-        if coord_addr == hop.addr() {
-            return Ok(coordinator_connection(hop, &hop_versions));
-        }
-        let bounded = bounded_producer_config(cfg, deadline)?;
-        let (conn, versions) = open_conn_with_versions(&coord_addr, &bounded, false).await?;
-        return Ok(coordinator_connection(conn, &versions));
     }
     Err(last)
+}
+
+type ProducerHandshake = (BrokerConn, ApiVersionsResponse);
+
+enum HopFind {
+    Found(Box<CoordinatorConnection>),
+    Continue(Error),
+    Stop(Error),
+}
+
+enum ProducerCoordAsk {
+    Found(Box<CoordinatorConnection>),
+    Fatal(Error),
+    Retry(Error),
+}
+
+async fn discover_typed_coord_raced(
+    cfg: &ProducerConfig,
+    key: &str,
+    key_type: i8,
+    version: i16,
+    deadline: Instant,
+) -> Result<CoordinatorConnection> {
+    let mut inflight = tokio::task::JoinSet::<(usize, Result<ProducerHandshake>)>::new();
+    for (index, addr) in cfg.bootstrap.iter().enumerate() {
+        let cfg = cfg.clone();
+        let addr = addr.clone();
+        let _ = inflight.spawn(async move {
+            let result = match bounded_producer_config(&cfg, deadline) {
+                Ok(bounded) => open_conn_with_versions(&addr, &bounded, false).await,
+                Err(error) => Err(error),
+            };
+            (index, result)
+        });
+    }
+    let mut ready: Vec<Option<Result<ProducerHandshake>>> = Vec::new();
+    ready.resize_with(inflight.len(), || None);
+    let mut last = Error::protocol("find coordinator failed");
+    while !inflight.is_empty() {
+        if Instant::now() >= deadline {
+            inflight.abort_all();
+            return Err(Error::Timeout);
+        }
+        let rest = timeout_remaining(deadline).unwrap_or(Duration::ZERO);
+        let joined = tokio::select! {
+            joined = inflight.join_next() => joined,
+            () = tokio::time::sleep(rest) => {
+                inflight.abort_all();
+                return Err(Error::Timeout);
+            }
+        };
+        let Some(Ok((index, result))) = joined else {
+            break;
+        };
+        if let Some(slot) = ready.get_mut(index) {
+            *slot = Some(result);
+        }
+        // Handshakes that finish together are gathered so an earlier
+        // terminal FindCoordinator error is seen before a later broker
+        // is asked. A handshake that is still running does not block a
+        // later broker that is already up.
+        let gather = timeout_remaining(deadline)
+            .unwrap_or(Duration::ZERO)
+            .min(Duration::from_millis(5));
+        let gather_done = tokio::time::sleep(gather);
+        tokio::pin!(gather_done);
+        loop {
+            tokio::select! {
+                biased;
+                joined = inflight.join_next(), if !inflight.is_empty() => {
+                    if let Some(Ok((index, result))) = joined {
+                        if let Some(slot) = ready.get_mut(index) {
+                            *slot = Some(result);
+                        }
+                    }
+                }
+                () = &mut gather_done => break,
+            }
+        }
+        let mut cursor = 0usize;
+        while cursor < ready.len() {
+            match ready.get(cursor).and_then(|slot| slot.as_ref()) {
+                None => {
+                    let later =
+                        ready
+                            .iter()
+                            .enumerate()
+                            .skip(cursor + 1)
+                            .find_map(|(index, slot)| match slot {
+                                Some(Ok(_)) => Some(index),
+                                _ => None,
+                            });
+                    let Some(index) = later else {
+                        break;
+                    };
+                    match ask_ready_producer_coordinator(
+                        cfg, key, key_type, version, deadline, &mut ready, index,
+                    )
+                    .await
+                    {
+                        ProducerCoordAsk::Found(found) => {
+                            inflight.abort_all();
+                            return Ok(*found);
+                        }
+                        ProducerCoordAsk::Fatal(error) => {
+                            inflight.abort_all();
+                            return Err(error);
+                        }
+                        ProducerCoordAsk::Retry(error) => last = error,
+                    }
+                    break;
+                }
+                Some(_) => {
+                    match ask_ready_producer_coordinator(
+                        cfg, key, key_type, version, deadline, &mut ready, cursor,
+                    )
+                    .await
+                    {
+                        ProducerCoordAsk::Found(found) => {
+                            inflight.abort_all();
+                            return Ok(*found);
+                        }
+                        ProducerCoordAsk::Fatal(error) => {
+                            inflight.abort_all();
+                            return Err(error);
+                        }
+                        ProducerCoordAsk::Retry(error) => {
+                            last = error;
+                            cursor = cursor.saturating_add(1);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    inflight.abort_all();
+    if Instant::now() >= deadline {
+        return Err(Error::Timeout);
+    }
+    Err(last)
+}
+
+async fn ask_ready_producer_coordinator(
+    cfg: &ProducerConfig,
+    key: &str,
+    key_type: i8,
+    version: i16,
+    deadline: Instant,
+    ready: &mut [Option<Result<ProducerHandshake>>],
+    index: usize,
+) -> ProducerCoordAsk {
+    let Some(slot) = ready.get_mut(index).and_then(Option::take) else {
+        return ProducerCoordAsk::Retry(Error::protocol("missing coordinator handshake"));
+    };
+    let (hop, versions) = match slot {
+        Ok(handshake) => handshake,
+        Err(error) => return ProducerCoordAsk::Retry(error),
+    };
+    match find_producer_coordinator(cfg, hop, versions, key, key_type, version, deadline).await {
+        HopFind::Found(found) => ProducerCoordAsk::Found(found),
+        HopFind::Stop(error) => ProducerCoordAsk::Fatal(error),
+        HopFind::Continue(error) => ProducerCoordAsk::Retry(error),
+    }
+}
+
+async fn find_producer_coordinator(
+    cfg: &ProducerConfig,
+    mut hop: BrokerConn,
+    hop_versions: ApiVersionsResponse,
+    key: &str,
+    key_type: i8,
+    version: i16,
+    deadline: Instant,
+) -> HopFind {
+    let rest = match timeout_remaining(deadline) {
+        Ok(rest) => rest,
+        Err(error) => return HopFind::Stop(error),
+    };
+    let body = match hop
+        .roundtrip(
+            FIND_COORDINATOR,
+            version,
+            |buf| encode_find_coordinator_request_typed(buf, version, key, key_type),
+            rest,
+        )
+        .await
+    {
+        Ok(body) => body,
+        Err(error) => return HopFind::Continue(error),
+    };
+    let (err, _node, host, port) =
+        match decode_find_coordinator_response(&mut body.clone(), version) {
+            Ok(decoded) => decoded,
+            Err(error) => return HopFind::Stop(error),
+        };
+    if err != 0 {
+        let error = Error::broker(err, "FindCoordinator");
+        if error::coordinator_retriable(err) {
+            return HopFind::Continue(error);
+        }
+        return HopFind::Stop(error);
+    }
+    let coord_addr = crate::net::format_address(&host, port);
+    if coord_addr == hop.addr() {
+        return HopFind::Found(Box::new(coordinator_connection(hop, &hop_versions)));
+    }
+    let bounded = match bounded_producer_config(cfg, deadline) {
+        Ok(bounded) => bounded,
+        Err(error) => return HopFind::Stop(error),
+    };
+    match open_conn_with_versions(&coord_addr, &bounded, false).await {
+        Ok((conn, versions)) => HopFind::Found(Box::new(coordinator_connection(conn, &versions))),
+        Err(error) => HopFind::Stop(error),
+    }
 }
 
 fn coordinator_connection(
