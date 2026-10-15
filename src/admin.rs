@@ -8544,13 +8544,18 @@ impl Admin {
         body: Bytes,
     ) -> Result<(Vec<(usize, i64, i16)>, Vec<usize>)> {
         let (resp, ..) = decode_delete_records_topics_response(&mut body.clone(), version)?;
-        let mut by_key: HashMap<(String, i32), VecDeque<(i64, i16)>> = HashMap::new();
+        let mut by_key: HashMap<String, HashMap<i32, VecDeque<(i64, i16)>>> = HashMap::new();
         for t in resp {
             for p in t.partitions {
-                by_key
-                    .entry((t.topic.clone(), p.partition))
-                    .or_default()
-                    .push_back((p.low_watermark, p.error_code));
+                if !by_key.contains_key(t.topic.as_str()) {
+                    let _ = by_key.insert(t.topic.clone(), HashMap::new());
+                }
+                if let Some(parts) = by_key.get_mut(t.topic.as_str()) {
+                    parts
+                        .entry(p.partition)
+                        .or_default()
+                        .push_back((p.low_watermark, p.error_code));
+                }
             }
         }
         let mut done = Vec::new();
@@ -8560,7 +8565,8 @@ impl Admin {
                 .get(i)
                 .ok_or_else(|| Error::protocol("missing DeleteRecords query"))?;
             let (low, err) = by_key
-                .get_mut(&(tp.topic.clone(), tp.partition))
+                .get_mut(tp.topic.as_str())
+                .and_then(|parts| parts.get_mut(&tp.partition))
                 .and_then(VecDeque::pop_front)
                 .ok_or_else(|| {
                     Error::protocol(format!(
@@ -9096,14 +9102,17 @@ impl Admin {
         if !cursor.is_empty() {
             return Err(Error::protocol("trailing ListOffsets response bytes"));
         }
-        let mut by_key: HashMap<(String, i32), VecDeque<ListOffsetsResponsePartition>> =
+        let mut by_key: HashMap<String, HashMap<i32, VecDeque<ListOffsetsResponsePartition>>> =
             HashMap::new();
         for t in resp {
             for p in t.partitions {
-                by_key
-                    .entry((t.name.clone(), p.partition_index))
-                    .or_default()
-                    .push_back(p);
+                if !by_key.contains_key(t.name.as_str()) {
+                    let _ = by_key.insert(t.name.clone(), HashMap::new());
+                }
+                let index = p.partition_index;
+                if let Some(parts) = by_key.get_mut(t.name.as_str()) {
+                    parts.entry(index).or_default().push_back(p);
+                }
             }
         }
         let mut done = Vec::new();
@@ -9113,7 +9122,8 @@ impl Admin {
                 .get(i)
                 .ok_or_else(|| Error::protocol("missing ListOffsets query"))?;
             let part = by_key
-                .get_mut(&(tp.topic.clone(), tp.partition))
+                .get_mut(tp.topic.as_str())
+                .and_then(|parts| parts.get_mut(&tp.partition))
                 .and_then(VecDeque::pop_front)
                 .ok_or_else(|| {
                     Error::protocol(format!("ListOffsets missing {}-{}", tp.topic, tp.partition))

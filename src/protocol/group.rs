@@ -3829,19 +3829,26 @@ impl OffsetFetchRequest {
             };
             let mut order = Vec::new();
             let mut by_topic: HashMap<String, Vec<FetchedOffset>> = HashMap::new();
-            let mut seen = HashSet::new();
+            let mut seen: HashMap<String, HashSet<i32>> = HashMap::new();
             for topic in topics {
                 for &partition in &topic.partitions {
-                    if !seen.insert((topic.topic.clone(), partition)) {
+                    let duplicate = if let Some(parts) = seen.get_mut(topic.topic.as_str()) {
+                        !parts.insert(partition)
+                    } else {
+                        let mut parts = HashSet::new();
+                        let _ = parts.insert(partition);
+                        let _ = seen.insert(topic.topic.clone(), parts);
+                        false
+                    };
+                    if duplicate {
                         continue;
                     }
-                    by_topic
-                        .entry(topic.topic.clone())
-                        .or_insert_with(|| {
-                            order.push(topic.topic.clone());
-                            Vec::new()
-                        })
-                        .push(FetchedOffset::error(partition, error_code));
+                    remember_topic(
+                        &mut order,
+                        &mut by_topic,
+                        &topic.topic,
+                        FetchedOffset::error(partition, error_code),
+                    );
                 }
             }
             let topics = order
@@ -5214,15 +5221,12 @@ pub fn encode_offset_delete_response_with_throttle(
         std::collections::HashMap::new();
     let mut order: Vec<String> = Vec::new();
     for r in results {
-        match by_topic.entry(r.topic.clone()) {
-            std::collections::hash_map::Entry::Vacant(slot) => {
-                order.push(r.topic.clone());
-                let _ = slot.insert(vec![(r.partition, r.error_code)]);
-            }
-            std::collections::hash_map::Entry::Occupied(mut slot) => {
-                slot.get_mut().push((r.partition, r.error_code));
-            }
-        }
+        remember_topic(
+            &mut order,
+            &mut by_topic,
+            &r.topic,
+            (r.partition, r.error_code),
+        );
     }
     buf::put_array_len(buf, false, Some(order.len()))?;
     for name in &order {
