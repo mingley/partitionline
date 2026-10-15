@@ -2420,7 +2420,10 @@ impl Producer {
         Ok(crate::Uuid::from_bytes(id))
     }
 
-    async fn flush_workers(&self) -> Result<()> {
+    async fn flush_workers(&self, deadline: Instant) -> Result<()> {
+        if Instant::now() >= deadline {
+            return Err(Error::Timeout);
+        }
         let workers: Vec<WorkerHandle> = self
             .inner
             .shared
@@ -2436,15 +2439,27 @@ impl Producer {
         }
         let mut rxs = Vec::with_capacity(workers.len());
         for w in &workers {
+            let rest = deadline.saturating_duration_since(Instant::now());
+            if rest.is_zero() {
+                return Err(Error::Timeout);
+            }
             let (tx, rx) = oneshot::channel();
-            w.ctrl
-                .send(Ctrl::Flush(tx))
-                .await
-                .map_err(|_| Error::Closed)?;
-            rxs.push(rx);
+            match tokio::time::timeout(rest, w.ctrl.send(Ctrl::Flush(tx))).await {
+                Ok(Ok(())) => rxs.push(rx),
+                Ok(Err(_)) => return Err(Error::Closed),
+                Err(_) => return Err(Error::Timeout),
+            }
         }
         for rx in rxs {
-            rx.await.map_err(|_| Error::Closed)??;
+            let rest = deadline.saturating_duration_since(Instant::now());
+            if rest.is_zero() {
+                return Err(Error::Timeout);
+            }
+            match tokio::time::timeout(rest, rx).await {
+                Ok(Ok(result)) => result?,
+                Ok(Err(_)) => return Err(Error::Closed),
+                Err(_) => return Err(Error::Timeout),
+            }
         }
         Ok(())
     }
@@ -2877,19 +2892,9 @@ impl Producer {
             if Instant::now() >= deadline {
                 return Err(Error::Timeout);
             }
-            let rest = deadline.saturating_duration_since(Instant::now());
-            match tokio::time::timeout(rest, self.flush_workers()).await {
-                Ok(Ok(())) => {}
-                Ok(Err(e)) => return Err(e),
-                Err(_) => return Err(Error::Timeout),
-            }
+            self.flush_workers(deadline).await?;
             if self.inner.shared.retries_out.load(Ordering::SeqCst) == 0 {
-                let rest = deadline.saturating_duration_since(Instant::now());
-                match tokio::time::timeout(rest, self.flush_workers()).await {
-                    Ok(Ok(())) => {}
-                    Ok(Err(e)) => return Err(e),
-                    Err(_) => return Err(Error::Timeout),
-                }
+                self.flush_workers(deadline).await?;
                 if self.inner.shared.retries_out.load(Ordering::SeqCst) == 0 {
                     return Ok(());
                 }
