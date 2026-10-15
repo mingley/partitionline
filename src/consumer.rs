@@ -1812,12 +1812,12 @@ pub struct Consumer {
 
 /// After one leader in a multi-leader round has responded, wait this long for
 /// the others. A slower leader stays in flight and is applied on a later fetch.
-const MULTI_LEADER_COLLECTION_WINDOW: Duration = Duration::from_millis(10);
+pub(crate) const MULTI_LEADER_COLLECTION_WINDOW: Duration = Duration::from_millis(10);
 
 /// How long to wait for the other leaders after the first fetch reply.
 ///
 /// The window never extends past the fetch deadline.
-fn multi_leader_grace(elapsed: Duration, until_deadline: Duration) -> Duration {
+pub(crate) fn multi_leader_grace(elapsed: Duration, until_deadline: Duration) -> Duration {
     MULTI_LEADER_COLLECTION_WINDOW
         .saturating_sub(elapsed)
         .min(until_deadline)
@@ -2805,7 +2805,8 @@ impl Consumer {
             .await
     }
 
-    async fn refresh_metadata_timeout(
+    /// Refresh metadata for `topics`, bounded by one `timeout`.
+    pub(crate) async fn refresh_metadata_timeout(
         &mut self,
         topics: Option<&[String]>,
         timeout: Duration,

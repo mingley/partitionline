@@ -566,6 +566,50 @@ pub struct ShareGroup {
     records_acknowledged: u64,
     fetch_latency: crate::metrics::LatencyTracker,
     topic_metrics: HashMap<String, crate::metrics::FetchTopicTracker>,
+    /// ShareFetch requests sent and not yet applied. A multi-leader poll
+    /// returns after the collection window once any peer has responded.
+    inflight_share_fetches: Option<tokio::task::JoinSet<(i32, ShareNodeConnection, Result<Bytes>)>>,
+    inflight_share_nodes: HashMap<i32, InflightShareMeta>,
+}
+
+struct InflightShareMeta {
+    version: i16,
+    by_id: BTreeMap<[u8; 16], Vec<i32>>,
+}
+
+struct ReadyShareFetch {
+    node: i32,
+    version: i16,
+    by_id: BTreeMap<[u8; 16], Vec<i32>>,
+    body: Result<Bytes>,
+}
+
+/// Aborts parked share fetches if this round is cancelled before they are stored.
+struct InflightShareFetches {
+    set: Option<tokio::task::JoinSet<(i32, ShareNodeConnection, Result<Bytes>)>>,
+    pending: HashMap<i32, InflightShareMeta>,
+}
+
+impl Drop for InflightShareFetches {
+    fn drop(&mut self) {
+        if let Some(mut set) = self.set.take() {
+            set.abort_all();
+        }
+    }
+}
+
+impl InflightShareFetches {
+    fn park(mut self, group: &mut ShareGroup) {
+        let set = self.set.take().unwrap_or_default();
+        let pending = std::mem::take(&mut self.pending);
+        if set.is_empty() {
+            group.inflight_share_fetches = None;
+            group.inflight_share_nodes.clear();
+        } else {
+            group.inflight_share_fetches = Some(set);
+            group.inflight_share_nodes = pending;
+        }
+    }
 }
 
 fn spoken_share_acknowledge(version: i16) -> Result<i16> {
@@ -813,6 +857,8 @@ impl ShareGroup {
             records_acknowledged: 0,
             fetch_latency: crate::metrics::LatencyTracker::new(),
             topic_metrics: HashMap::new(),
+            inflight_share_fetches: None,
+            inflight_share_nodes: HashMap::new(),
         };
         if g.topic_match.is_some() {
             g.topics = g.matching_topic_names().await?;
@@ -1226,58 +1272,70 @@ impl ShareGroup {
         .map_err(|_| Error::Timeout)??;
         let mut attempt = 0u32;
         loop {
-            let round = tokio::time::timeout_at(
-                tokio::time::Instant::from_std(deadline),
-                self.poll_leaders(),
-            )
-            .await;
-            match round.unwrap_or(Err(Error::Timeout)) {
-                Ok(recs) => {
-                    let elapsed = started.elapsed();
-                    self.fetch_latency.record(elapsed);
-                    self.fetch_rounds = self.fetch_rounds.saturating_add(1);
-                    let n = u64::try_from(recs.len()).unwrap_or(u64::MAX);
-                    self.records_fetched = self.records_fetched.saturating_add(n);
-                    let bytes = recs
-                        .iter()
-                        .map(share_record_bytes)
-                        .fold(0, u64::saturating_add);
-                    self.bytes_fetched = self.bytes_fetched.saturating_add(bytes);
-                    crate::metrics::accumulate_fetch_topics(
-                        &mut self.topic_metrics,
-                        recs.iter()
-                            .map(|r| (r.topic.as_str(), share_record_bytes(r))),
-                        elapsed,
-                    );
-                    return Ok(ShareRecords::from(recs));
+            let recs = match self.poll_leaders(deadline).await {
+                Ok(recs) => recs,
+                // Records already acquired stay delivered when a later leader
+                // runs out of time.
+                Err(Error::Timeout) if !self.pending_delivery.is_empty() => {
+                    self.drain_pending_delivery()
                 }
                 Err(e) if share_leader_retriable(&e) || share_fetch_session_reset(&e) => {
                     if Instant::now() >= deadline {
-                        return Err(Error::Timeout);
-                    }
-                    self.consumer.sleep_retry_backoff(attempt, deadline).await?;
-                    attempt = attempt.saturating_add(1);
-                    if Instant::now() >= deadline {
-                        return Err(Error::Timeout);
-                    }
-                    if share_leader_retriable(&e) {
-                        let patches = std::mem::take(&mut self.leader_patches);
-                        let refreshed = self.refresh_assigned_metadata().await;
-                        reapply_share_leader_patches(&mut self.consumer, &patches);
-                        if let Err(error) = refreshed {
-                            if patches.is_empty() {
-                                return Err(error);
-                            }
+                        if self.pending_delivery.is_empty() {
+                            return Err(Error::Timeout);
                         }
+                        self.drain_pending_delivery()
                     } else {
-                        self.leader_patches.clear();
+                        self.consumer.sleep_retry_backoff(attempt, deadline).await?;
+                        attempt = attempt.saturating_add(1);
+                        if Instant::now() >= deadline {
+                            if self.pending_delivery.is_empty() {
+                                return Err(Error::Timeout);
+                            }
+                            self.drain_pending_delivery()
+                        } else {
+                            if share_leader_retriable(&e) {
+                                let patches = std::mem::take(&mut self.leader_patches);
+                                let refreshed = self
+                                    .refresh_assigned_metadata(
+                                        deadline.saturating_duration_since(Instant::now()),
+                                    )
+                                    .await;
+                                reapply_share_leader_patches(&mut self.consumer, &patches);
+                                if let Err(error) = refreshed {
+                                    if patches.is_empty() {
+                                        return Err(error);
+                                    }
+                                }
+                            } else {
+                                self.leader_patches.clear();
+                            }
+                            continue;
+                        }
                     }
                 }
                 Err(e) => {
                     self.fetch_errors = self.fetch_errors.saturating_add(1);
                     return Err(e);
                 }
-            }
+            };
+            let elapsed = started.elapsed();
+            self.fetch_latency.record(elapsed);
+            self.fetch_rounds = self.fetch_rounds.saturating_add(1);
+            let n = u64::try_from(recs.len()).unwrap_or(u64::MAX);
+            self.records_fetched = self.records_fetched.saturating_add(n);
+            let bytes = recs
+                .iter()
+                .map(share_record_bytes)
+                .fold(0, u64::saturating_add);
+            self.bytes_fetched = self.bytes_fetched.saturating_add(bytes);
+            crate::metrics::accumulate_fetch_topics(
+                &mut self.topic_metrics,
+                recs.iter()
+                    .map(|r| (r.topic.as_str(), share_record_bytes(r))),
+                elapsed,
+            );
+            return Ok(ShareRecords::from(recs));
         }
     }
 
@@ -1361,6 +1419,21 @@ impl ShareGroup {
     }
 
     async fn node_share_version(&mut self, node: i32, api: i16) -> Result<i16> {
+        let budget = self
+            .cfg
+            .connect_timeout
+            .saturating_add(self.cfg.request_timeout)
+            .saturating_add(self.cfg.request_timeout);
+        self.node_share_version_until(node, api, Instant::now() + budget)
+            .await
+    }
+
+    async fn node_share_version_until(
+        &mut self,
+        node: i32,
+        api: i16,
+        deadline: Instant,
+    ) -> Result<i16> {
         if self
             .share_conns
             .get(&node)
@@ -1389,16 +1462,22 @@ impl ShareGroup {
                 })
                 .or_else(|| self.share_addresses.get(&node).cloned())
                 .ok_or_else(|| Error::protocol(format!("unknown share broker {node}")))?;
+            let rest = deadline.saturating_duration_since(Instant::now());
+            if rest.is_zero() {
+                return Err(Error::Timeout);
+            }
             let mut conn = BrokerConn::connect_tls(
                 &addr,
                 &self.cfg.client_id,
-                self.cfg.connect_timeout,
+                self.cfg.connect_timeout.min(rest),
                 self.cfg.tls.as_ref(),
             )
             .await?;
-            let versions =
-                crate::protocol::api::negotiate_api_versions(&mut conn, self.cfg.request_timeout)
-                    .await?;
+            let rest = deadline.saturating_duration_since(Instant::now());
+            if rest.is_zero() {
+                return Err(Error::Timeout);
+            }
+            let versions = crate::protocol::api::negotiate_api_versions(&mut conn, rest).await?;
             let fetch_version = versions
                 .api_version(SHARE_FETCH)
                 .and_then(|v| {
@@ -1422,6 +1501,10 @@ impl ShareGroup {
                 })
                 .unwrap_or(-1);
             crate::protocol::sasl::apply_api_keys(&mut conn, &versions.api_keys);
+            let rest = deadline.saturating_duration_since(Instant::now());
+            if rest.is_zero() {
+                return Err(Error::Timeout);
+            }
             crate::protocol::sasl::authenticate(
                 &mut conn,
                 self.cfg.sasl_plain.as_ref(),
@@ -1429,7 +1512,7 @@ impl ShareGroup {
                 self.cfg.sasl_scram_sha512.as_ref(),
                 self.cfg.sasl_oauthbearer.as_deref(),
                 self.cfg.sasl_oauthbearer_oidc.as_ref(),
-                self.cfg.request_timeout,
+                rest,
             )
             .await?;
             let _ = self.share_addresses.insert(node, addr);
@@ -1458,7 +1541,11 @@ impl ShareGroup {
         api: i16,
         version: i16,
         body: &BytesMut,
+        timeout: Duration,
     ) -> Result<Bytes> {
+        if timeout.is_zero() {
+            return Err(Error::Timeout);
+        }
         let peer = self
             .share_conns
             .get_mut(&node)
@@ -1471,7 +1558,7 @@ impl ShareGroup {
                     buf.extend_from_slice(body);
                     Ok(())
                 },
-                self.cfg.request_timeout,
+                timeout,
             )
             .await
     }
@@ -1500,29 +1587,35 @@ impl ShareGroup {
         self.consumer.drop_node(node);
     }
 
-    async fn refresh_assigned_metadata(&mut self) -> Result<()> {
+    async fn refresh_assigned_metadata(&mut self, timeout: Duration) -> Result<()> {
+        if timeout.is_zero() {
+            return Err(Error::Timeout);
+        }
         let topics = self.topics.clone();
         for t in &topics {
             self.consumer.invalidate_topic(t);
         }
-        self.consumer.refresh_topics(&topics).await
+        self.consumer
+            .refresh_metadata_timeout(Some(&topics), timeout)
+            .await
     }
 
     async fn leaders_of(
         &mut self,
         tps: &[(String, i32)],
+        deadline: Instant,
     ) -> Result<HashMap<i32, Vec<(String, i32)>>> {
-        let deadline = crate::consumer::offset_lookup_deadline(self.cfg.request_timeout)?;
         let mut refreshed = HashSet::new();
         for (topic, _) in tps {
             if !refreshed.insert(topic.as_str()) {
                 continue;
             }
+            let rest = deadline.saturating_duration_since(Instant::now());
+            if rest.is_zero() {
+                return Err(Error::Timeout);
+            }
             self.consumer
-                .ensure_topic_metadata_timeout(
-                    topic,
-                    crate::consumer::remaining_offset_timeout(deadline, Instant::now()),
-                )
+                .ensure_topic_metadata_timeout(topic, rest)
                 .await?;
         }
         let mut by_leader: HashMap<i32, Vec<(String, i32)>> = HashMap::new();
@@ -1533,53 +1626,147 @@ impl ShareGroup {
         Ok(by_leader)
     }
 
-    async fn overlap_share_fetches(
-        &mut self,
-        prepared: &[PreparedShareFetch],
-    ) -> HashMap<i32, Result<Bytes>> {
-        let timeout = self.cfg.request_timeout;
-        let mut set = tokio::task::JoinSet::new();
-        for job in prepared {
-            let Some(mut peer) = self.share_conns.remove(&job.node) else {
-                continue;
-            };
-            let node = job.node;
-            let version = job.version;
-            let request = job.request.clone();
-            let _ = set.spawn(async move {
-                let result = peer
-                    .conn
-                    .roundtrip(
-                        SHARE_FETCH,
-                        version,
-                        |buf| {
-                            buf.extend_from_slice(&request);
-                            Ok(())
-                        },
-                        timeout,
-                    )
-                    .await;
-                (node, peer, result)
-            });
+    fn abort_inflight_share_fetches(&mut self) {
+        if let Some(mut set) = self.inflight_share_fetches.take() {
+            set.abort_all();
         }
-        let mut out = HashMap::new();
-        while let Some(joined) = set.join_next().await {
-            let Ok((node, peer, result)) = joined else {
-                continue;
-            };
-            let _ = self.share_conns.insert(node, peer);
-            let _ = out.insert(node, result);
-        }
-        out
+        self.inflight_share_nodes.clear();
     }
 
-    async fn poll_leaders(&mut self) -> Result<Vec<ShareRecord>> {
+    /// Send prepared fetches and collect the replies that finish in time.
+    ///
+    /// After the first reply, slower leaders stay parked for a later poll.
+    /// A poll with nothing ready returns a timeout.
+    async fn collect_share_fetches(
+        &mut self,
+        prepared: Vec<PreparedShareFetch>,
+        deadline: Instant,
+    ) -> Result<Vec<ReadyShareFetch>> {
+        let mut inflight = InflightShareFetches {
+            set: Some(self.inflight_share_fetches.take().unwrap_or_default()),
+            pending: std::mem::take(&mut self.inflight_share_nodes),
+        };
+        let timeout = deadline.saturating_duration_since(Instant::now());
+        if !timeout.is_zero() {
+            let Some(set) = inflight.set.as_mut() else {
+                return Err(Error::protocol("inflight share fetch set missing"));
+            };
+            for job in prepared {
+                if inflight.pending.contains_key(&job.node) {
+                    continue;
+                }
+                let Some(mut peer) = self.share_conns.remove(&job.node) else {
+                    continue;
+                };
+                let node = job.node;
+                let version = job.version;
+                let request = job.request.clone();
+                let _ = inflight.pending.insert(
+                    node,
+                    InflightShareMeta {
+                        version: job.version,
+                        by_id: job.by_id,
+                    },
+                );
+                let _ = set.spawn(async move {
+                    let result = peer
+                        .conn
+                        .roundtrip(
+                            SHARE_FETCH,
+                            version,
+                            |buf| {
+                                buf.extend_from_slice(&request);
+                                Ok(())
+                            },
+                            timeout,
+                        )
+                        .await;
+                    (node, peer, result)
+                });
+            }
+        }
+        let mut ready = Vec::new();
+        let mut first_reply: Option<Instant> = None;
+        while inflight.set.as_ref().is_some_and(|set| !set.is_empty()) {
+            let wait = if let Some(started) = first_reply {
+                crate::consumer::multi_leader_grace(
+                    started.elapsed(),
+                    deadline.saturating_duration_since(Instant::now()),
+                )
+            } else {
+                deadline.saturating_duration_since(Instant::now())
+            };
+            if wait.is_zero() {
+                break;
+            }
+            let Some(set) = inflight.set.as_mut() else {
+                break;
+            };
+            let joined = tokio::select! {
+                biased;
+                joined = set.join_next() => joined,
+                () = tokio::time::sleep(wait) => break,
+            };
+            let Some(joined) = joined else {
+                break;
+            };
+            let (node, peer, result) = match joined {
+                Ok(joined) => joined,
+                Err(error) => {
+                    inflight.park(self);
+                    return Err(Error::protocol(format!("share fetch task: {error}")));
+                }
+            };
+            let meta = inflight.pending.remove(&node);
+            let _ = self.share_conns.insert(node, peer);
+            if first_reply.is_none() {
+                first_reply = Some(Instant::now());
+            }
+            if let Some(meta) = meta {
+                ready.push(ReadyShareFetch {
+                    node,
+                    version: meta.version,
+                    by_id: meta.by_id,
+                    body: result,
+                });
+            }
+        }
+        if let Some(set) = inflight.set.as_mut() {
+            while let Some(joined) = set.try_join_next() {
+                let (node, peer, result) = match joined {
+                    Ok(joined) => joined,
+                    Err(error) => {
+                        inflight.park(self);
+                        return Err(Error::protocol(format!("share fetch task: {error}")));
+                    }
+                };
+                let meta = inflight.pending.remove(&node);
+                let _ = self.share_conns.insert(node, peer);
+                if let Some(meta) = meta {
+                    ready.push(ReadyShareFetch {
+                        node,
+                        version: meta.version,
+                        by_id: meta.by_id,
+                        body: result,
+                    });
+                }
+            }
+        }
+        inflight.park(self);
+        if ready.is_empty() && Instant::now() >= deadline {
+            return Err(Error::Timeout);
+        }
+        ready.sort_by_key(|reply| reply.node);
+        Ok(ready)
+    }
+
+    async fn poll_leaders(&mut self, deadline: Instant) -> Result<Vec<ShareRecord>> {
         self.refresh_share_topic_ids();
         if !self.pending_delivery.is_empty() {
             return Ok(self.drain_pending_delivery());
         }
         let assigned = self.assigned.clone();
-        let by_leader = self.leaders_of(&assigned).await?;
+        let by_leader = self.leaders_of(&assigned, deadline).await?;
         let mut nodes: Vec<_> = by_leader.into_iter().collect();
         nodes.sort_by_key(|(node, _)| *node);
         let metadata_bytes = self
@@ -1593,7 +1780,21 @@ impl ShareGroup {
             .ok_or_else(|| Error::protocol("ShareFetch acquisition metadata budget exceeded"))?;
         let mut prepared = Vec::new();
         for (node, tps) in nodes {
-            let version = self.node_share_version(node, SHARE_FETCH).await?;
+            if self.inflight_share_nodes.contains_key(&node) {
+                continue;
+            }
+            let rest = deadline.saturating_duration_since(Instant::now());
+            if rest.is_zero() {
+                break;
+            }
+            let version = match self
+                .node_share_version_until(node, SHARE_FETCH, deadline)
+                .await
+            {
+                Ok(version) => version,
+                Err(Error::Timeout) => break,
+                Err(error) => return Err(error),
+            };
             if self.acquire_mode == ShareAcquireMode::RecordLimit && version < 2 {
                 return Err(Error::Unsupported(format!(
                     "share broker {node} does not support record-limit acquisition"
@@ -1654,44 +1855,48 @@ impl ShareGroup {
                 request,
             });
         }
-        let mut overlapped = if prepared.len() > 1 {
-            self.overlap_share_fetches(&prepared).await
+        let parked = self
+            .inflight_share_fetches
+            .as_ref()
+            .is_some_and(|set| !set.is_empty());
+        let ready = if prepared.len() > 1 || parked {
+            self.collect_share_fetches(prepared, deadline).await?
+        } else if let Some(job) = prepared.pop() {
+            let timeout = deadline.saturating_duration_since(Instant::now());
+            if timeout.is_zero() {
+                return Err(Error::Timeout);
+            }
+            let body = self
+                .share_roundtrip(job.node, SHARE_FETCH, job.version, &job.request, timeout)
+                .await;
+            vec![ReadyShareFetch {
+                node: job.node,
+                version: job.version,
+                by_id: job.by_id,
+                body,
+            }]
+        } else if Instant::now() >= deadline {
+            return Err(Error::Timeout);
         } else {
-            HashMap::new()
+            Vec::new()
         };
-        let multi = prepared.len() > 1;
-        for PreparedShareFetch {
+        for ReadyShareFetch {
             node,
             version,
             by_id,
-            request,
-        } in prepared
+            body,
+        } in ready
         {
-            let body = if multi {
-                match overlapped.remove(&node) {
-                    Some(Ok(body)) => body,
-                    Some(Err(error)) => {
-                        self.reset_node_session(node);
-                        return Err(error);
+            let mut body = match body {
+                Ok(body) => body,
+                Err(error) => {
+                    self.reset_node_session(node);
+                    if matches!(error, Error::Timeout) && !self.pending_delivery.is_empty() {
+                        return Ok(self.drain_pending_delivery());
                     }
-                    None => {
-                        self.reset_node_session(node);
-                        return Err(Error::protocol("missing overlapped ShareFetch response"));
-                    }
-                }
-            } else {
-                match self
-                    .share_roundtrip(node, SHARE_FETCH, version, &request)
-                    .await
-                {
-                    Ok(body) => body,
-                    Err(error) => {
-                        self.reset_node_session(node);
-                        return Err(error);
-                    }
+                    return Err(error);
                 }
             };
-            let mut body = body;
             let ((fetched, endpoints, _, _, lock_timeout, error_code), decoded_bytes) =
                 match decode_share_fetch_response_with_budget(&mut body, version, remaining_bytes) {
                     Ok(reply) => reply,
@@ -2151,7 +2356,13 @@ impl ShareGroup {
                 &topics,
             )?;
             let mut body = match self
-                .share_roundtrip(node, SHARE_ACKNOWLEDGE, version, &request)
+                .share_roundtrip(
+                    node,
+                    SHARE_ACKNOWLEDGE,
+                    version,
+                    &request,
+                    self.cfg.request_timeout,
+                )
                 .await
             {
                 Ok(body) => body,
@@ -2303,6 +2514,7 @@ impl ShareGroup {
     }
 
     async fn close_share_session(&mut self) -> Result<()> {
+        self.abort_inflight_share_fetches();
         let open: Vec<_> = self
             .share_epochs
             .iter()
@@ -2333,7 +2545,13 @@ impl ShareGroup {
                 continue;
             }
             let code = match self
-                .share_roundtrip(node, SHARE_ACKNOWLEDGE, version, &request)
+                .share_roundtrip(
+                    node,
+                    SHARE_ACKNOWLEDGE,
+                    version,
+                    &request,
+                    self.cfg.request_timeout,
+                )
                 .await
             {
                 Ok(mut body) => match decode_share_acknowledge_response(&mut body, version) {
