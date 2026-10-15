@@ -4234,6 +4234,7 @@ async fn spawn_slot_worker(
         shared: shared.clone(),
         write_buf: BytesMut::with_capacity(2 * 1024 * 1024),
         pending: Vec::with_capacity(shared.cfg.batch_records.min(8192)),
+        spare_batch: Vec::new(),
         pending_estimate: 0,
         earliest_deadline: None,
         in_flight: VecDeque::new(),
@@ -4521,6 +4522,8 @@ struct Worker {
     shared: Arc<Shared>,
     write_buf: BytesMut,
     pending: Vec<Pending>,
+    /// Empty record batch returned after an acknowledgement. The next drain refills it.
+    spare_batch: Vec<Pending>,
     /// Sum of [`estimate`] for `pending`. Steady-state batching reads this
     /// instead of scanning the queue.
     pending_estimate: usize,
@@ -4815,7 +4818,7 @@ impl Worker {
     }
 
     fn drain_pending(&mut self, n: usize) -> Vec<Pending> {
-        let batch: Vec<Pending> = self.pending.drain(..n).collect();
+        let batch = fill_spare(&mut self.spare_batch, &mut self.pending, n);
         let mut refresh_deadline = false;
         for pending in &batch {
             self.pending_estimate = self.pending_estimate.saturating_sub(estimate(pending));
@@ -5797,6 +5800,7 @@ impl Worker {
                     }
                 }
                 Some(r) => {
+                    let mut pendings = pendings;
                     let n = u64::try_from(pendings.len()).unwrap_or(u64::MAX);
                     self.shared.retire_sticky(&pendings, false);
                     self.shared.release_buffer(pendings_bytes(&pendings));
@@ -5814,7 +5818,7 @@ impl Worker {
                     let mut lat_min = u64::MAX;
                     let mut lat_max = 0u64;
                     let mut stamped = None;
-                    for (i, p) in pendings.into_iter().enumerate() {
+                    for (i, p) in pendings.drain(..).enumerate() {
                         let ns = ack_latency_ns(ack, p.queued_at);
                         lat_n += 1;
                         lat_sum = lat_sum.saturating_add(ns);
@@ -5851,6 +5855,7 @@ impl Worker {
                             sample_ns,
                         },
                     );
+                    self.park_batch(pendings);
                 }
             }
         }
@@ -5990,7 +5995,11 @@ impl Worker {
         Ok(())
     }
 
-    fn requeue_pendings(&mut self, pendings: Vec<Pending>) {
+    fn park_batch(&mut self, batch: Vec<Pending>) {
+        park_spare(&mut self.spare_batch, batch);
+    }
+
+    fn requeue_pendings(&mut self, mut pendings: Vec<Pending>) {
         if let Some(policy) = &self.shared.sticky {
             let mut policy = policy.lock();
             for p in &pendings {
@@ -6013,7 +6022,7 @@ impl Worker {
                 *first = (*first).min(i);
             }
         }
-        for (i, (mut p, gi)) in pendings.into_iter().zip(group_of).enumerate() {
+        for (i, (mut p, gi)) in pendings.drain(..).zip(group_of).enumerate() {
             p.retry = p.retry.saturating_add(1);
             if now >= p.deadline {
                 fail_pendings(&self.shared, vec![p], Error::Timeout);
@@ -6051,6 +6060,7 @@ impl Worker {
                 }
             }
         }
+        self.park_batch(pendings);
     }
 
     async fn drain_inflight(&mut self) {
@@ -6198,6 +6208,20 @@ fn group_txn_offsets(
         });
     }
     topics
+}
+
+fn fill_spare(spare: &mut Vec<Pending>, pending: &mut Vec<Pending>, n: usize) -> Vec<Pending> {
+    let mut batch = std::mem::take(spare);
+    batch.clear();
+    batch.extend(pending.drain(..n));
+    batch
+}
+
+fn park_spare(spare: &mut Vec<Pending>, mut batch: Vec<Pending>) {
+    batch.clear();
+    if batch.capacity() > spare.capacity() {
+        *spare = batch;
+    }
 }
 
 fn group_pending(batch: Vec<Pending>, scratch: &mut ProduceGroupScratch) -> ProduceGroups {
@@ -7572,6 +7596,20 @@ mod tests {
             vec![queued("orders", Some(0)), queued("orders", Some(0))],
             &mut scratch,
         );
+        let mut spare = Vec::new();
+        let mut queued_batch = vec![queued("orders", Some(0)), queued("orders", Some(0))];
+        let drained = fill_spare(&mut spare, &mut queued_batch, 2);
+        assert!(queued_batch.is_empty());
+        assert_eq!(drained.len(), 2);
+        let batch_capacity = drained.capacity();
+        assert!(batch_capacity > 0);
+        park_spare(&mut spare, drained);
+        assert!(spare.capacity() >= batch_capacity);
+        let mut next = vec![queued("orders", Some(0)), queued("orders", Some(0))];
+        let again = fill_spare(&mut spare, &mut next, 2);
+        assert!(again.capacity() >= batch_capacity);
+        assert!(spare.is_empty());
+
         assert!(matches!(one, ProduceGroups::One(_)));
         assert_eq!(one.len(), 1);
         assert_eq!(
