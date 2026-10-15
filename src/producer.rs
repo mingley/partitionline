@@ -4288,18 +4288,19 @@ async fn retry_one(shared: &Arc<Shared>, p: Pending) {
     }
     let skip_meta = p.skip_meta_refresh;
     p.skip_meta_refresh = false;
-    let need_meta = if skip_meta {
+    let cached_node = if skip_meta {
         match p.rec.partition {
             Some(part) => shared
                 .cluster
                 .lock()
                 .leader_id(p.rec.topic.as_ref(), part)
-                .is_err(),
-            None => true,
+                .ok(),
+            None => None,
         }
     } else {
-        true
+        None
     };
+    let need_meta = cached_node.is_none();
     if need_meta {
         invalidate_cached_topic(shared, p.rec.topic.as_ref());
         let rest = p.deadline.saturating_duration_since(Instant::now());
@@ -4329,9 +4330,13 @@ async fn retry_one(shared: &Arc<Shared>, p: Pending) {
     let Some(part) = p.rec.partition else {
         return;
     };
-    let leader = shared.cluster.lock().leader_id(p.rec.topic.as_ref(), part);
-    let Ok(node) = leader else {
-        return;
+    let node = if let Some(node) = cached_node {
+        node
+    } else {
+        let Ok(node) = shared.cluster.lock().leader_id(p.rec.topic.as_ref(), part) else {
+            return;
+        };
+        node
     };
     let n_conn = shared.cfg.connections.max(1);
     let slot = usize::try_from(part).unwrap_or(0) % n_conn;
