@@ -1864,7 +1864,11 @@ pub struct Consumer {
     /// refreshes must not bind delivered offsets to a recreated topic.
     assigned_topic_ids: HashMap<Arc<str>, HashMap<i32, [u8; 16]>>,
     /// Last consumed record-batch leader epoch (Fetch v12+ `LastFetchedEpoch`).
-    last_fetched_epochs: PartitionMap<i32>,
+    ///
+    /// One entry per `assigned` slot. A negative value is
+    /// [`crate::RecordBatch::NO_PARTITION_LEADER_EPOCH`]. A fetch copies this
+    /// list and writes it back by slot, without hashing the topic name.
+    fetched_epochs: Vec<i32>,
     preferred: PartitionMap<i32>,
     paused: PartitionMap<()>,
     pending: PendingRecords,
@@ -2539,7 +2543,7 @@ impl Consumer {
             cursor_index: None,
             cursor_slots: None,
             assigned_topic_ids: HashMap::new(),
-            last_fetched_epochs: PartitionMap::new(),
+            fetched_epochs: Vec::new(),
             preferred: PartitionMap::new(),
             paused: PartitionMap::new(),
             pending: PendingRecords::new(),
@@ -2583,15 +2587,15 @@ impl Consumer {
         self.refresh_metadata(Some(std::slice::from_ref(&topic_name)))
             .await?;
         self.drop_pending_for(&topic_name, partition);
-        self.assigned
-            .retain(|(t, p, _)| !(t.as_ref() == topic_name.as_str() && *p == partition));
-        self.set_last_fetched_epoch(
-            &topic_name,
-            partition,
-            crate::RecordBatch::NO_PARTITION_LEADER_EPOCH,
-        );
+        if let Some(pos) = self
+            .assigned
+            .iter()
+            .position(|(t, p, _)| t.as_ref() == topic_name.as_str() && *p == partition)
+        {
+            self.remove_assigned_at(pos);
+        }
         let topic: Arc<str> = Arc::from(topic_name);
-        self.assigned.push((Arc::clone(&topic), partition, offset));
+        self.push_assigned(Arc::clone(&topic), partition, offset);
         self.cursor_index = None;
         self.cursor_slots = None;
         if let Some(parts) = self.assigned_topic_ids.get_mut(topic.as_ref()) {
@@ -2706,14 +2710,12 @@ impl Consumer {
             }
             ListedPartitions::Error(code) => return Err(Error::broker(code, topic)),
         };
-        self.assigned
-            .retain(|(t, _, _)| t.as_ref() != topic.as_str());
+        self.retain_assigned_topics(|name| name != topic.as_str());
         let _removed = self.assigned_topic_ids.remove(topic.as_str());
         let name: Arc<str> = Arc::from(topic.as_str());
         for p in parts {
             self.drop_pending_for(&topic, p);
-            self.set_last_fetched_epoch(&topic, p, crate::RecordBatch::NO_PARTITION_LEADER_EPOCH);
-            self.assigned.push((Arc::clone(&name), p, offset));
+            self.push_assigned(Arc::clone(&name), p, offset);
         }
         self.cursor_index = None;
         self.cursor_slots = None;
@@ -2826,18 +2828,94 @@ impl Consumer {
     }
 
     pub(crate) fn last_fetched_epoch(&self, topic: &str, partition: i32) -> i32 {
-        self.last_fetched_epochs
-            .get(topic, partition)
-            .copied()
+        self.fetched_epoch_slot(topic, partition)
+            .and_then(|slot| self.fetched_epochs.get(slot).copied())
             .unwrap_or(crate::RecordBatch::NO_PARTITION_LEADER_EPOCH)
     }
 
-    pub(crate) fn set_last_fetched_epoch(&mut self, topic: &str, partition: i32, epoch: i32) {
-        if epoch >= 0 {
-            let _prev = self.last_fetched_epochs.insert(topic, partition, epoch);
+    fn fetched_epoch_slot(&self, topic: &str, partition: i32) -> Option<usize> {
+        let slot = if self
+            .cursor_slots
+            .as_ref()
+            .is_some_and(|(name, _)| name.as_ref() == topic)
+        {
+            self.cursor_slots
+                .as_ref()
+                .and_then(|(_, parts)| parts.get(&partition).copied())
+        } else if let Some(index) = &self.cursor_index {
+            index
+                .get(topic)
+                .and_then(|parts| parts.get(&partition).copied())
         } else {
-            let _removed = self.last_fetched_epochs.remove(topic, partition);
+            self.assigned
+                .iter()
+                .position(|(name, part, _)| name.as_ref() == topic && *part == partition)
+        }?;
+        self.assigned.get(slot).and_then(|(name, part, _)| {
+            (name.as_ref() == topic && *part == partition).then_some(slot)
+        })
+    }
+
+    pub(crate) fn set_last_fetched_epoch(&mut self, topic: &str, partition: i32, epoch: i32) {
+        let mut slot = if self.cursor_index.is_some() {
+            self.cursor_slot(topic, partition)
+        } else {
+            None
+        };
+        if slot.is_none() {
+            slot = self
+                .assigned
+                .iter()
+                .position(|(name, part, _)| name.as_ref() == topic && *part == partition);
         }
+        let Some(slot) = slot else {
+            return;
+        };
+        if self
+            .assigned
+            .get(slot)
+            .is_some_and(|(name, part, _)| name.as_ref() == topic && *part == partition)
+        {
+            if let Some(entry) = self.fetched_epochs.get_mut(slot) {
+                *entry = if epoch >= 0 {
+                    epoch
+                } else {
+                    crate::RecordBatch::NO_PARTITION_LEADER_EPOCH
+                };
+            }
+        }
+    }
+
+    fn push_assigned(&mut self, topic: Arc<str>, partition: i32, offset: i64) {
+        self.assigned.push((topic, partition, offset));
+        self.fetched_epochs
+            .push(crate::RecordBatch::NO_PARTITION_LEADER_EPOCH);
+    }
+
+    fn remove_assigned_at(&mut self, pos: usize) {
+        let _ = self.assigned.remove(pos);
+        if pos < self.fetched_epochs.len() {
+            let _ = self.fetched_epochs.remove(pos);
+        }
+    }
+
+    fn retain_assigned_topics(&mut self, keep: impl Fn(&str) -> bool) {
+        let assigned = std::mem::take(&mut self.assigned);
+        let epochs = std::mem::take(&mut self.fetched_epochs);
+        let mut epochs = epochs.into_iter();
+        let mut kept_assigned = Vec::with_capacity(assigned.len());
+        let mut kept_epochs = Vec::with_capacity(assigned.len());
+        for entry in assigned {
+            let epoch = epochs
+                .next()
+                .unwrap_or(crate::RecordBatch::NO_PARTITION_LEADER_EPOCH);
+            if keep(entry.0.as_ref()) {
+                kept_assigned.push(entry);
+                kept_epochs.push(epoch);
+            }
+        }
+        self.assigned = kept_assigned;
+        self.fetched_epochs = kept_epochs;
     }
 
     /// Next consumable offset (delivered position) for an assigned partition.
@@ -2910,7 +2988,7 @@ impl Consumer {
         self.retained.clear();
         self.retained_bytes = 0;
         self.buffered_bytes = 0;
-        self.last_fetched_epochs.clear();
+        self.fetched_epochs.clear();
         self.aborted.clear();
     }
 
@@ -2941,7 +3019,7 @@ impl Consumer {
         let previous_assigned = std::mem::take(&mut self.assigned);
         self.cursor_index = None;
         self.cursor_slots = None;
-        let previous_epochs = std::mem::replace(&mut self.last_fetched_epochs, PartitionMap::new());
+        let previous_epochs = std::mem::take(&mut self.fetched_epochs);
         let previous_aborted = std::mem::replace(&mut self.aborted, PartitionMap::new());
         if starts.is_empty() {
             self.pending.clear();
@@ -2960,7 +3038,7 @@ impl Consumer {
         if let Err(error) = self.refresh_metadata(Some(&topics)).await {
             self.assigned = previous_assigned;
             self.assigned_topic_ids = old_ids;
-            self.last_fetched_epochs = previous_epochs;
+            self.fetched_epochs = previous_epochs;
             self.aborted = previous_aborted;
             return Err(error);
         }
@@ -2976,6 +3054,11 @@ impl Consumer {
                 };
                 (name, *part, *offset)
             }));
+        self.fetched_epochs.clear();
+        self.fetched_epochs.resize(
+            self.assigned.len(),
+            crate::RecordBatch::NO_PARTITION_LEADER_EPOCH,
+        );
         for (topic, part, offset) in starts {
             let metadata_id = self.name_to_id.get(topic.as_str()).copied();
             if let Some(&old_offset) = old_assigned.get(topic, *part) {
@@ -3995,11 +4078,11 @@ impl Consumer {
                 }
                 self.connect_node(node, deadline).await?;
                 let version = self.offset_for_leader_epoch_version(node)?;
-                let topics = offset_for_leader_epoch_topics(
-                    &self.cluster,
-                    &self.last_fetched_epochs,
-                    &parts,
-                );
+                let fetched_epochs: Vec<i32> = parts
+                    .iter()
+                    .map(|(topic, partition)| self.last_fetched_epoch(topic, *partition))
+                    .collect();
+                let topics = offset_for_leader_epoch_topics(&self.cluster, &fetched_epochs, &parts);
                 let timeout = remaining_offset_timeout(deadline, Instant::now());
                 let body = {
                     let conn = self.broker_conn_mut(node)?;
@@ -4490,11 +4573,7 @@ impl Consumer {
             started + Duration::from_millis(u64::try_from(max_wait_ms).unwrap_or(0));
         let initial_offsets: Vec<i64> =
             self.assigned.iter().map(|(_, _, offset)| *offset).collect();
-        let initial_epochs: Vec<i32> = self
-            .assigned
-            .iter()
-            .map(|(topic, partition, _)| self.last_fetched_epoch(topic.as_ref(), *partition))
-            .collect();
+        let initial_epochs = self.fetched_epochs.clone();
         match self
             .fetch_assigned_inner(deadline, poll_deadline, max_wait_ms)
             .await
@@ -4506,14 +4585,8 @@ impl Consumer {
                         entry.2 = offset;
                     }
                 }
-                for (slot, epoch) in initial_epochs.into_iter().enumerate() {
-                    let Some((topic, partition, _)) = self.assigned.get(slot) else {
-                        continue;
-                    };
-                    let topic = Arc::clone(topic);
-                    let partition = *partition;
-                    self.set_last_fetched_epoch(topic.as_ref(), partition, epoch);
-                }
+                self.fetched_epochs.clear();
+                self.fetched_epochs.extend_from_slice(&initial_epochs);
                 Err(error)
             }
         }
@@ -4597,8 +4670,7 @@ impl Consumer {
             let mut paused_parts: Option<&HashMap<i32, ()>> = None;
             let mut completed_parts: Option<&HashMap<i32, ()>> = None;
             let mut retained_parts: Option<&HashMap<i32, HeldFetch>> = None;
-            let mut fetched_epochs: Option<&HashMap<i32, i32>> = None;
-            for (topic, part, offset) in &self.assigned {
+            for (slot, (topic, part, offset)) in self.assigned.iter().enumerate() {
                 let topic_ptr = Arc::as_ptr(topic) as *const u8;
                 if topic_ptr != cached_topic {
                     leaders = cluster.leader_ids(topic.as_ref());
@@ -4606,7 +4678,6 @@ impl Consumer {
                     paused_parts = self.paused.topic_partitions(topic.as_ref());
                     completed_parts = completed.topic_partitions(topic.as_ref());
                     retained_parts = self.retained.topic_partitions(topic.as_ref());
-                    fetched_epochs = self.last_fetched_epochs.topic_partitions(topic.as_ref());
                     cached_topic = topic_ptr;
                 }
                 if paused_parts.is_some_and(|parts| parts.contains_key(part)) {
@@ -4632,8 +4703,9 @@ impl Consumer {
                             partition: *part,
                             current_leader_epoch: cached_epoch(epochs, *part),
                             fetch_offset: *offset,
-                            last_fetched_epoch: fetched_epochs
-                                .and_then(|parts| parts.get(part))
+                            last_fetched_epoch: self
+                                .fetched_epochs
+                                .get(slot)
                                 .copied()
                                 .unwrap_or(crate::RecordBatch::NO_PARTITION_LEADER_EPOCH),
                             log_start_offset: INVALID_LOG_START_OFFSET,
@@ -7270,18 +7342,18 @@ fn truncated_fetch_offset(position: i64, end_offset: i64) -> Option<i64> {
 
 fn offset_for_leader_epoch_topics(
     cluster: &Cluster,
-    last_fetched: &PartitionMap<i32>,
+    last_fetched: &[i32],
     parts: &[(String, i32)],
 ) -> Vec<OffsetForLeaderTopic> {
     let mut by_topic: HashMap<String, Vec<OffsetForLeaderPartition>> = HashMap::new();
     let mut order: Vec<String> = Vec::new();
-    for (topic, partition) in parts {
+    for (index, (topic, partition)) in parts.iter().enumerate() {
         let current = cluster.leader_epoch(topic, *partition);
         // KIP-320: current_leader_epoch fences the leader. The epoch to resolve
         // is the one already fetched. An unknown fetch epoch keeps the current
         // epoch so a broker does not treat -1 as older than the log.
         let looked_up = last_fetched
-            .get(topic, *partition)
+            .get(index)
             .copied()
             .filter(|epoch| *epoch >= 0)
             .unwrap_or(current);
@@ -8017,10 +8089,11 @@ mod tests {
     fn offset_for_leader_epoch_resolves_the_fetched_epoch() {
         let mut cluster = Cluster::default();
         let _ = cluster.leader_epochs.insert("t".into(), vec![4, 6]);
-        let mut fetched = PartitionMap::new();
-        let _ = fetched.insert("t", 0, 2);
-        let topics =
-            offset_for_leader_epoch_topics(&cluster, &fetched, &[("t".into(), 0), ("t".into(), 1)]);
+        let topics = offset_for_leader_epoch_topics(
+            &cluster,
+            &[2, crate::RecordBatch::NO_PARTITION_LEADER_EPOCH],
+            &[("t".into(), 0), ("t".into(), 1)],
+        );
         assert_eq!(topics.len(), 1);
         assert_eq!(topics[0].partitions[0].partition, 0);
         assert_eq!(topics[0].partitions[0].current_leader_epoch, 4);
