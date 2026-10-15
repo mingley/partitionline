@@ -734,7 +734,8 @@ pub enum ShareAcquireMode {
 /// && `leaderEpoch != -1`) plus NodeEndpoints updates the next ShareFetch
 /// target without a Metadata refresh (Java `handleShareFetchSuccess` /
 /// KIP-951). `UNKNOWN_LEADER_EPOCH` / `UNKNOWN_SERVER_ERROR` skip without
-/// requesting metadata (Java `handleInitializeErrors`). A throwable
+/// requesting metadata (Java `handleInitializeErrors`), including when
+/// a partition `ErrorMessage` is present. A throwable
 /// partition `ErrorMessage` is the broker exception text (Java
 /// `Errors.forCode.exception(errorMessage)`); empty uses
 /// `ShareFetch {topic}-{partition}`. A top-level ShareFetch

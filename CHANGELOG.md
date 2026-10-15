@@ -78,7 +78,9 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   preferred; empty uses `ShareFetch {topic}-{partition}` or
   `ShareFetch`. A sole partition
   `NOT_LEADER_OR_FOLLOWER` collects empty on that poll (Java
-  `testFetchError`). `UNKNOWN_LEADER_EPOCH` still skips without Metadata.
+  `testFetchError`). `UNKNOWN_LEADER_EPOCH` / `UNKNOWN_SERVER_ERROR`
+  still skip without Metadata, including when a partition
+  `ErrorMessage` is present.
 
 - ShareFetch partition `FENCED_LEADER_EPOCH` without a usable
   CurrentLeader skips that partition, still delivers siblings, and
