@@ -306,19 +306,34 @@ impl Authorizer {
         match decode(payload)? {
             Record::Grant(entry) => {
                 validate_entry(&entry)?;
-                self.entries.insert(key_from(&entry), entry.permission);
+                let key = key_from(&entry);
+                if !self.entries.contains_key(&key) && self.entries.len() >= self.limits.max_entries
+                {
+                    return Err(Error::InvalidLimits);
+                }
+                self.entries.insert(key, entry.permission);
             }
             Record::Revoke(entry) => {
                 validate_entry(&entry)?;
-                self.entries.remove(&key_from(&entry));
+                if self.entries.remove(&key_from(&entry)).is_none() {
+                    return Err(Error::InvalidRequest);
+                }
             }
             Record::Super(principal) => {
                 validate_principal(&principal)?;
+                if self.superusers.contains(&principal) {
+                    return Err(Error::InvalidRequest);
+                }
+                if self.superusers.len() >= self.limits.max_entries {
+                    return Err(Error::InvalidLimits);
+                }
                 self.superusers.insert(principal);
             }
             Record::Unsuper(principal) => {
                 validate_principal(&principal)?;
-                self.superusers.remove(&principal);
+                if !self.superusers.remove(&principal) {
+                    return Err(Error::InvalidRequest);
+                }
             }
         }
         Ok(())
@@ -791,6 +806,49 @@ mod tests {
                 Resource::Topic,
                 "orders",
                 Operation::Read,
+            )
+            .unwrap_or_else(|error| panic!("{error:?}"));
+    }
+
+    #[test]
+    fn a_revoke_or_superuser_the_live_path_would_not_store_is_refused() {
+        let (mut authorizer, _) = open("replay-acl");
+        let binding = entry(
+            Resource::Topic,
+            Pattern::Literal,
+            "orders",
+            Operation::Read,
+            "User:bob",
+            "*",
+            Permission::Allow,
+        );
+        let missing = encode_revoke(&binding).unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(
+            authorizer.apply(&missing),
+            Err(Error::InvalidRequest)
+        ));
+        let unknown = encode_principal(KIND_UNSUPER, "User:carol")
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(
+            authorizer.apply(&unknown),
+            Err(Error::InvalidRequest)
+        ));
+        authorizer
+            .add_superuser("User:carol")
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let again =
+            encode_principal(KIND_SUPER, "User:carol").unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(
+            authorizer.apply(&again),
+            Err(Error::InvalidRequest)
+        ));
+        authorizer
+            .authorize(
+                "User:carol",
+                "*",
+                Resource::Topic,
+                "orders",
+                Operation::Write,
             )
             .unwrap_or_else(|error| panic!("{error:?}"));
     }
