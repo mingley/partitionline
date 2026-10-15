@@ -401,6 +401,7 @@ fn fixed_size(request: &Request<'_>, key: i16, version: i16) -> Result<usize, Er
         },
     )
 }
+#[cfg(test)]
 fn name_repeats<'a>(names: impl IntoIterator<Item = &'a str>, name: &str) -> bool {
     let mut seen = false;
     for candidate in names {
@@ -741,7 +742,6 @@ pub(crate) fn process(
         .min(common.max_response_bytes - fixed);
     let minimum = usize::try_from(request.minimum).unwrap_or(0).min(maximum);
     let mut record_bytes = 0usize;
-    let mut immediate = request.topics.iter().all(|t| t.parts.is_empty()) || invalid;
     let mut budget = Budget {
         bytes: limits.scan_bytes,
         entries: limits.scan_entries,
@@ -753,23 +753,53 @@ pub(crate) fn process(
         out.i32(0)?;
     }
     out.count(request.topics.len())?;
-    // One topic cannot be repeated. A short list is scanned per topic so a
-    // normal fetch does not allocate a name map. Longer lists use the map.
+    // One topic cannot be repeated. A short list records repeats in one pass
+    // and also notices an empty request. Longer lists use the name map.
     let one_topic = request.topics.len() <= 1;
     let scan_names = !one_topic && request.topics.len() <= 16;
     let mut topic_copies: HashMap<&str, usize> = HashMap::new();
-    if !one_topic && !scan_names {
-        for topic in &request.topics {
-            let count = topic_copies.entry(topic.name).or_insert(0);
-            *count = count.saturating_add(1);
+    let mut repeated_names = [false; 16];
+    let mut immediate = if scan_names {
+        let mut saw_part = false;
+        for index in 0..request.topics.len() {
+            let Some(topic) = request.topics.get(index) else {
+                continue;
+            };
+            if !topic.parts.is_empty() {
+                saw_part = true;
+            }
+            for earlier in 0..index {
+                let same = request
+                    .topics
+                    .get(earlier)
+                    .is_some_and(|prior| prior.name == topic.name);
+                if !same {
+                    continue;
+                }
+                if let Some(flag) = repeated_names.get_mut(index) {
+                    *flag = true;
+                }
+                if let Some(flag) = repeated_names.get_mut(earlier) {
+                    *flag = true;
+                }
+            }
         }
-    }
-    for topic in &request.topics {
+        invalid || !saw_part
+    } else {
+        if !one_topic {
+            for topic in &request.topics {
+                let count = topic_copies.entry(topic.name).or_insert(0);
+                *count = count.saturating_add(1);
+            }
+        }
+        request.topics.iter().all(|topic| topic.parts.is_empty()) || invalid
+    };
+    for (topic_index, topic) in request.topics.iter().enumerate() {
         out.string(topic.name)?;
         out.count(topic.parts.len())?;
         let sole_topic = one_topic
             || if scan_names {
-                !name_repeats(request.topics.iter().map(|topic| topic.name), topic.name)
+                !repeated_names.get(topic_index).copied().unwrap_or(true)
             } else {
                 topic_copies.get(topic.name).copied() == Some(1)
             };
