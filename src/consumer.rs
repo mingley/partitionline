@@ -4513,7 +4513,15 @@ impl Consumer {
                     () = tokio::time::sleep(grace) => break,
                 }
             } else {
-                set.join_next().await
+                let rest = deadline.saturating_duration_since(Instant::now());
+                if rest.is_zero() {
+                    break;
+                }
+                tokio::select! {
+                    biased;
+                    joined = set.join_next() => joined,
+                    () = tokio::time::sleep(rest) => break,
+                }
             };
             let Some(joined) = joined else {
                 break;
@@ -4527,6 +4535,9 @@ impl Consumer {
             out.push(reply);
         }
         inflight.park(self);
+        if out.is_empty() && Instant::now() >= deadline {
+            return Err(Error::Timeout);
+        }
         out.sort_by_key(|reply| reply.node);
         Ok(out)
     }
