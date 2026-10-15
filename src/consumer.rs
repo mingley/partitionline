@@ -2103,20 +2103,17 @@ impl BrokerFetchSession {
     }
 
     fn validate_partitions(&self, topics: &[FetchedTopic], version: i16, full: bool) -> Result<()> {
-        let expected: HashSet<_> = self
-            .partitions
-            .iter()
-            .flat_map(|(name, parts)| {
-                parts
-                    .keys()
-                    .map(move |partition| (name.as_ref(), *partition))
-            })
-            .collect();
-        let ids: HashMap<_, _> = self
-            .partitions
-            .iter()
-            .flat_map(|(name, parts)| parts.values().map(move |stored| (stored.id, name.as_ref())))
-            .collect();
+        // Membership is the session map. The response set only catches duplicates.
+        // A full response is complete when those unique members cover every
+        // stored partition, so the stored set does not need its own copy.
+        let mut ids: HashMap<[u8; 16], &str> = HashMap::new();
+        if version >= 13 {
+            for (name, parts) in &self.partitions {
+                for stored in parts.values() {
+                    let _ = ids.insert(stored.id, name.as_ref());
+                }
+            }
+        }
         let mut seen = HashSet::new();
         for topic in topics {
             let name = if version >= 13 {
@@ -2126,19 +2123,26 @@ impl BrokerFetchSession {
             } else {
                 topic.topic.as_str()
             };
+            let stored = self.partitions.get(name);
             for partition in &topic.partitions {
-                let key = (name, partition.partition);
-                if !expected.contains(&key) || !seen.insert(key) {
+                let known = stored.is_some_and(|parts| parts.contains_key(&partition.partition));
+                if !known || !seen.insert((name, partition.partition)) {
                     return Err(Error::protocol(
                         "Fetch session response has an extra or duplicate partition",
                     ));
                 }
             }
         }
-        if full && seen != expected {
-            return Err(Error::protocol(
-                "Fetch full session response is missing partitions",
-            ));
+        if full {
+            let mut expected = 0usize;
+            for parts in self.partitions.values() {
+                expected = expected.saturating_add(parts.len());
+            }
+            if seen.len() != expected {
+                return Err(Error::protocol(
+                    "Fetch full session response is missing partitions",
+                ));
+            }
         }
         Ok(())
     }
