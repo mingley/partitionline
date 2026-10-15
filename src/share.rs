@@ -1723,8 +1723,9 @@ impl ShareGroup {
     /// topic and the following ShareFetch is only the new assignment
     /// (Java `testCommitAsyncWithSubscriptionChange`). [`Self::leave`],
     /// [`Self::close`], and [`Self::unsubscribe`] also flush those queued
-    /// acknowledgements. Implicit last-poll records that were never
-    /// committed are released without ACCEPT on leave. Same callback as
+    /// acknowledgements (Java `testAcknowledgeOnCloseWithPendingCommitAsync`).
+    /// Implicit last-poll records that were never committed are released
+    /// without ACCEPT on leave. Same callback as
     /// [`Self::set_acknowledgement_commit_callback`]. Does not spawn a
     /// task.
     pub fn commit_async(&mut self) {
@@ -3869,8 +3870,10 @@ impl ShareGroup {
     /// Leave the share group ([`ShareGroupHeartbeatRequest::LEAVE_GROUP_MEMBER_EPOCH`]).
     ///
     /// Flushes queued acknowledgements (including a prior
-    /// [`Self::commit_async`]). Implicit last-poll records that were
-    /// never committed are released without ACCEPT (Java `close`).
+    /// [`Self::commit_async`]; Java
+    /// `testAcknowledgeOnCloseWithPendingCommitAsync`). Implicit
+    /// last-poll records that were never committed are released without
+    /// ACCEPT (Java `close`).
     /// Leftover acknowledgements for a previous topic still flush after
     /// [`Self::subscribe`] and no further ShareFetch is sent
     /// (Java `testCloseWithSubscriptionChange`). When the last poll

@@ -245,6 +245,32 @@ async fn implicit_commit_async_then_leave_sends_standalone_ack() {
 }
 
 #[tokio::test]
+async fn explicit_commit_async_then_leave_sends_standalone_ack() {
+    let mock = common::Mock::start().await;
+    produce(&mock, &[(0, b"queued")]).await;
+    let mut group = ShareGroup::join(config(&mock), "close-exp-async", "t")
+        .await
+        .unwrap();
+    let recs = group.poll().await.unwrap();
+    assert_eq!(recs.len(), 1);
+    let off = recs[0].offset;
+    group.accept(&recs).await.unwrap();
+    group.commit_async();
+    assert_eq!(
+        mock.share_ack_calls(),
+        0,
+        "explicit commit_async keeps ACCEPT local and does not send"
+    );
+    assert!(!mock.share_accepted("close-exp-async", "t", 0, off));
+    group.leave().await.unwrap();
+    assert!(
+        mock.share_accepted("close-exp-async", "t", 0, off),
+        "Java testAcknowledgeOnCloseWithPendingCommitAsync flushes on close"
+    );
+    assert!(mock.share_ack_calls() >= 1);
+}
+
+#[tokio::test]
 async fn max_poll_interval_errors_on_second_share_poll() {
     let mock = common::Mock::start().await;
     let mut cfg = config(&mock);

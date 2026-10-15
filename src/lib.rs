@@ -2107,7 +2107,8 @@
 //! pending acknowledgements (`Result<()>`). [`ShareGroup::commit_async`]
 //! is Java `ShareConsumer.commitAsync` (implicit last-poll ACCEPT is
 //! snapshotted immediately; standalone ShareAcknowledge on the next
-//! poll / leave). [`ShareGroup::commit_sync`] /
+//! poll / leave, including explicit `accept` then `commit_async` then
+//! leave; Java `testAcknowledgeOnCloseWithPendingCommitAsync`). [`ShareGroup::commit_sync`] /
 //! [`ShareGroup::commit_sync_timeout`] are Java `ShareConsumer.commitSync` /
 //! `commitSync(Duration)` (`Map<TopicIdPartition, Optional<KafkaException>>`,
 //! [`AcknowledgementCommitResults`]).
