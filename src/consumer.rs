@@ -5737,7 +5737,31 @@ impl Consumer {
                 .is_none_or(|topic| topic.partitions.len() <= 1);
         let mut repeated_topics: HashSet<Arc<str>> = HashSet::new();
         let mut trust_unique = true;
-        if fetched.len() > 1 {
+        if (2..=16).contains(&fetched.len()) {
+            let mut resolved: [Option<Arc<str>>; 16] = std::array::from_fn(|_| None);
+            for (index, topic) in fetched.iter().enumerate() {
+                match self.fetch_topic_arc(&topic.topic, topic.topic_id) {
+                    Ok(Some(name)) => {
+                        let repeated = resolved.iter().take(index).any(|earlier| {
+                            earlier
+                                .as_ref()
+                                .is_some_and(|prior| prior.as_ref() == name.as_ref())
+                        });
+                        if repeated {
+                            let _ = repeated_topics.insert(Arc::clone(&name));
+                        }
+                        if let Some(slot) = resolved.get_mut(index) {
+                            *slot = Some(name);
+                        }
+                    }
+                    Ok(None) => {}
+                    Err(_) => {
+                        trust_unique = false;
+                        break;
+                    }
+                }
+            }
+        } else if fetched.len() > 16 {
             let mut once = HashSet::new();
             for topic in &fetched {
                 match self.fetch_topic_arc(&topic.topic, topic.topic_id) {
