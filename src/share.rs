@@ -480,6 +480,23 @@ struct Acquisition {
     expires_at: Option<Instant>,
 }
 
+fn remember_acquisition(
+    map: &mut AcquisitionMap,
+    topic: &crate::consumer::TopicName,
+    partition: i32,
+    offset: i64,
+    acquisition: Acquisition,
+) {
+    let key = (partition, offset);
+    if let Some(parts) = map.get_mut(topic.as_str()) {
+        let _ = parts.insert(key, acquisition);
+        return;
+    }
+    let mut parts = HashMap::new();
+    let _ = parts.insert(key, acquisition);
+    let _ = map.insert(topic.clone(), parts);
+}
+
 fn acquisition_at<'a>(
     map: &'a AcquisitionMap,
     topic: &crate::consumer::TopicName,
@@ -2307,18 +2324,17 @@ impl ShareGroup {
                 }
             };
             for record in incoming {
-                let _ = self
-                    .acquisitions
-                    .entry(record.topic.clone())
-                    .or_default()
-                    .insert(
-                        (record.partition, record.offset),
-                        Acquisition {
-                            node,
-                            delivery_count: record.delivery_count,
-                            expires_at: expiry,
-                        },
-                    );
+                remember_acquisition(
+                    &mut self.acquisitions,
+                    &record.topic,
+                    record.partition,
+                    record.offset,
+                    Acquisition {
+                        node,
+                        delivery_count: record.delivery_count,
+                        expires_at: expiry,
+                    },
+                );
                 self.pending_delivery.push_back(record);
             }
         }
@@ -3602,6 +3618,40 @@ mod tests {
     use std::sync::Arc;
 
     use super::*;
+
+    #[test]
+    fn a_share_topic_keeps_one_acquisition_entry() {
+        let mut map = AcquisitionMap::new();
+        let topic = crate::consumer::TopicName::from("orders");
+        let again = crate::consumer::TopicName::from("orders");
+        let stored = Acquisition {
+            node: 2,
+            delivery_count: 1,
+            expires_at: None,
+        };
+        remember_acquisition(&mut map, &topic, 0, 1, stored);
+        remember_acquisition(
+            &mut map,
+            &again,
+            0,
+            2,
+            Acquisition {
+                node: 2,
+                delivery_count: 1,
+                expires_at: None,
+            },
+        );
+        assert_eq!(map.len(), 1);
+        assert_eq!(map.get("orders").map(HashMap::len), Some(2));
+        assert_eq!(
+            acquisition_at(&map, &topic, 0, 1).map(|found| found.node),
+            Some(2)
+        );
+        assert_eq!(
+            acquisition_at(&map, &again, 0, 2).map(|found| found.delivery_count),
+            Some(1)
+        );
+    }
 
     fn rec(partition: i32, offset: i64) -> ShareRecord {
         ShareRecord {
