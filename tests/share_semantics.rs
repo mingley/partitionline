@@ -4445,6 +4445,40 @@ async fn share_fetch_offset_not_available_message_still_skips_and_refreshes_meta
 }
 
 #[tokio::test]
+async fn share_fetch_kafka_storage_error_message_still_skips_and_refreshes_metadata() {
+    let mock = common::Mock::start().await;
+    v2(&mock);
+    produce(&mock, &[(0, b"keep")]).await;
+    let mut group = ShareGroup::join(config(&mock), "fetch-storage-msg", "t")
+        .await
+        .unwrap();
+    let version = mock.last_share_fetch_version().unwrap_or(2);
+    let mut failed = ShareFetchedPartition::partition_response(0, error::KAFKA_STORAGE_ERROR);
+    failed.error_message = Some("disk failure on log dir".into());
+    let topics = vec![ShareFetchedTopic {
+        topic_id: mock.topic_id("t"),
+        partitions: vec![failed],
+    }];
+    let mut injected = BytesMut::new();
+    encode_share_fetch_response(&mut injected, version, &topics).unwrap();
+    mock.inject_share_fetch_response_once(&injected);
+    assert!(
+        group.poll().await.unwrap().is_empty(),
+        "Java handleInitializeErrors skips KAFKA_STORAGE_ERROR even when ErrorMessage is set"
+    );
+    let after_skip = mock.metadata_calls();
+    let got = group.poll().await.unwrap();
+    assert_eq!(got.len(), 1);
+    assert_eq!(got[0].value.as_deref(), Some(&b"keep"[..]));
+    assert!(
+        mock.metadata_calls() > after_skip,
+        "ErrorMessage must not suppress Metadata refresh for KAFKA_STORAGE_ERROR"
+    );
+    group.accept(&got).await.unwrap();
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn share_fetch_partition_unknown_topic_id_skips_and_refreshes_metadata() {
     let mock = common::Mock::start().await;
     v2(&mock);

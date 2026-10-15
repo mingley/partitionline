@@ -739,9 +739,9 @@ pub enum ShareAcquireMode {
 /// such as `NOT_LEADER_OR_FOLLOWER` / `INCONSISTENT_TOPIC_ID` /
 /// `UNKNOWN_TOPIC_OR_PARTITION` / partition `UNKNOWN_TOPIC_ID` /
 /// `FENCED_LEADER_EPOCH` without CurrentLeader / `REPLICA_NOT_AVAILABLE`
-/// / `OFFSET_NOT_AVAILABLE` still skips and still requests Metadata
-/// when `ErrorMessage` is set (Java `testFetchError` /
-/// `handleInitializeErrors`). A throwable
+/// / `OFFSET_NOT_AVAILABLE` / `KAFKA_STORAGE_ERROR` still skips and
+/// still requests Metadata when `ErrorMessage` is set (Java
+/// `testFetchError` / `handleInitializeErrors`). A throwable
 /// partition `ErrorMessage` is the broker exception text (Java
 /// `Errors.forCode.exception(errorMessage)`); empty uses
 /// `ShareFetch {topic}-{partition}`. A top-level ShareFetch
