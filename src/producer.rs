@@ -1034,8 +1034,8 @@ struct Shared {
     reconnect_busy: parking_lot::Mutex<HashSet<(i32, usize)>>,
     retries_out: AtomicUsize,
     in_txn: AtomicBool,
-    txn_partitions: parking_lot::Mutex<HashSet<(Arc<str>, i32)>>,
-    txn_added: parking_lot::Mutex<HashSet<(Arc<str>, i32)>>,
+    txn_partitions: parking_lot::Mutex<TxnPartSet>,
+    txn_added: parking_lot::Mutex<TxnPartSet>,
     fast: parking_lot::RwLock<FastRoutes>,
     m_queued: AtomicU64,
     m_acked: AtomicU64,
@@ -1734,8 +1734,8 @@ impl Producer {
             reconnect_busy: parking_lot::Mutex::new(HashSet::new()),
             retries_out: AtomicUsize::new(0),
             in_txn: AtomicBool::new(false),
-            txn_partitions: parking_lot::Mutex::new(HashSet::new()),
-            txn_added: parking_lot::Mutex::new(HashSet::new()),
+            txn_partitions: parking_lot::Mutex::new(HashMap::new()),
+            txn_added: parking_lot::Mutex::new(HashMap::new()),
             fast: parking_lot::RwLock::new(FastRoutes::default()),
             m_queued: AtomicU64::new(0),
             m_acked: AtomicU64::new(0),
@@ -5830,7 +5830,7 @@ impl Worker {
         {
             let mut set = self.shared.txn_partitions.lock();
             for (topic, part, _) in groups {
-                let _ = set.insert((topic.clone(), *part));
+                remember_txn_part(&mut set, topic, *part);
             }
         }
         // Produce v12 is transaction V2 (KIP-890 Part 2): Produce also
@@ -5847,11 +5847,15 @@ impl Worker {
         let added: Vec<(Arc<str>, i32)> = {
             let wanted = self.shared.txn_partitions.lock();
             let sent = self.shared.txn_added.lock();
-            wanted
-                .iter()
-                .filter(|k| !sent.contains(*k))
-                .cloned()
-                .collect()
+            let mut added = Vec::new();
+            for (topic, parts) in wanted.iter() {
+                for part in parts {
+                    if !txn_part_present(&sent, topic, *part) {
+                        added.push((Arc::clone(topic), *part));
+                    }
+                }
+            }
+            added
         };
         if added.is_empty() {
             return Ok(());
@@ -5867,8 +5871,8 @@ impl Worker {
                 Ok(remaining) => remaining,
                 Err(error) => {
                     let mut set = self.shared.txn_partitions.lock();
-                    for k in &added {
-                        let _ = set.remove(k);
+                    for (topic, part) in &added {
+                        forget_txn_part(&mut set, topic, *part);
                     }
                     return Err(error);
                 }
@@ -5886,8 +5890,8 @@ impl Worker {
                 Ok(b) => b,
                 Err(e) => {
                     let mut set = self.shared.txn_partitions.lock();
-                    for k in &added {
-                        let _ = set.remove(k);
+                    for (topic, part) in &added {
+                        forget_txn_part(&mut set, topic, *part);
                     }
                     return Err(e);
                 }
@@ -5896,8 +5900,8 @@ impl Worker {
                 Ok(e) => e,
                 Err(e) => {
                     let mut set = self.shared.txn_partitions.lock();
-                    for k in &added {
-                        let _ = set.remove(k);
+                    for (topic, part) in &added {
+                        forget_txn_part(&mut set, topic, *part);
                     }
                     return Err(e);
                 }
@@ -5919,8 +5923,8 @@ impl Worker {
                 }
             }
             let mut set = self.shared.txn_partitions.lock();
-            for k in &added {
-                let _ = set.remove(k);
+            for (topic, part) in &added {
+                forget_txn_part(&mut set, topic, *part);
             }
             drop(set);
             let e = Error::broker(err, "AddPartitionsToTxn");
@@ -5932,8 +5936,8 @@ impl Worker {
         }
         {
             let mut sent = self.shared.txn_added.lock();
-            for k in added {
-                let _ = sent.insert(k);
+            for (topic, part) in added {
+                remember_txn_part_owned(&mut sent, topic, part);
             }
         }
         Ok(())
@@ -6042,16 +6046,61 @@ impl Worker {
     }
 }
 
+type TxnPartSet = HashMap<Arc<str>, HashSet<i32>>;
+
+fn remember_txn_part(map: &mut TxnPartSet, topic: &Arc<str>, partition: i32) {
+    if let Some(parts) = map.get_mut(topic.as_ref()) {
+        let _ = parts.insert(partition);
+        return;
+    }
+    let mut parts = HashSet::new();
+    let _ = parts.insert(partition);
+    let _ = map.insert(Arc::clone(topic), parts);
+}
+
+fn remember_txn_part_owned(map: &mut TxnPartSet, topic: Arc<str>, partition: i32) {
+    if let Some(parts) = map.get_mut(topic.as_ref()) {
+        let _ = parts.insert(partition);
+        return;
+    }
+    let mut parts = HashSet::new();
+    let _ = parts.insert(partition);
+    let _ = map.insert(topic, parts);
+}
+
+fn txn_part_present(map: &TxnPartSet, topic: &Arc<str>, partition: i32) -> bool {
+    map.get(topic.as_ref())
+        .is_some_and(|parts| parts.contains(&partition))
+}
+
+fn forget_txn_part(map: &mut TxnPartSet, topic: &Arc<str>, partition: i32) {
+    let empty = if let Some(parts) = map.get_mut(topic.as_ref()) {
+        let _ = parts.remove(&partition);
+        parts.is_empty()
+    } else {
+        return;
+    };
+    if empty {
+        let _ = map.remove(topic.as_ref());
+    }
+}
+
 fn group_txn_partitions(parts: &[(Arc<str>, i32)]) -> Vec<TxnPartitionsTopic> {
     let mut topics: Vec<TxnPartitionsTopic> = Vec::new();
+    let mut slots: HashMap<&str, usize> = HashMap::new();
     for (topic, part) in parts {
-        match topics.iter_mut().find(|t| t.topic == topic.as_ref()) {
-            Some(slot) => slot.partitions.push(*part),
-            None => topics.push(TxnPartitionsTopic {
-                topic: topic.to_string(),
-                partitions: vec![*part],
-            }),
+        if let Some(&slot) = slots.get(topic.as_ref()) {
+            if let Some(group) = topics.get_mut(slot) {
+                group.partitions.push(*part);
+                continue;
+            }
         }
+        let slot = topics.len();
+        let _ = slots.insert(topic.as_ref(), slot);
+        topics.push(TxnPartitionsTopic {
+            topic: topic.to_string(),
+            partitions: vec![*part],
+        });
     }
     topics
 }
@@ -7034,6 +7083,51 @@ mod tests {
             skip_meta_refresh: false,
             retry_after: now,
         }
+    }
+
+    #[test]
+    fn transactional_partitions_share_one_topic_entry() {
+        let mut set = TxnPartSet::new();
+        let orders = Arc::<str>::from("orders");
+        let orders_again = Arc::<str>::from("orders");
+        remember_txn_part(&mut set, &orders, 0);
+        remember_txn_part(&mut set, &orders_again, 1);
+        remember_txn_part(&mut set, &orders, 0);
+        assert_eq!(set.len(), 1);
+        assert!(txn_part_present(&set, &orders_again, 0));
+        assert!(txn_part_present(&set, &orders, 1));
+        assert!(!txn_part_present(&set, &orders, 2));
+        let payments = Arc::<str>::from("payments");
+        remember_txn_part_owned(&mut set, Arc::clone(&payments), 3);
+        assert_eq!(set.len(), 2);
+        assert!(txn_part_present(&set, &payments, 3));
+        forget_txn_part(&mut set, &orders, 0);
+        assert!(!txn_part_present(&set, &orders, 0));
+        assert!(txn_part_present(&set, &orders, 1));
+        forget_txn_part(&mut set, &orders_again, 1);
+        assert!(set.get("orders").is_none());
+        assert!(txn_part_present(&set, &payments, 3));
+        let grouped = group_txn_partitions(&[
+            (Arc::clone(&orders), 1),
+            (Arc::clone(&payments), 0),
+            (Arc::clone(&orders), 0),
+        ]);
+        assert_eq!(
+            grouped.first().map(|topic| topic.topic.as_str()),
+            Some("orders")
+        );
+        assert_eq!(
+            grouped.first().map(|topic| topic.partitions.as_slice()),
+            Some(&[1, 0][..])
+        );
+        assert_eq!(
+            grouped.get(1).map(|topic| topic.topic.as_str()),
+            Some("payments")
+        );
+        assert_eq!(
+            grouped.get(1).map(|topic| topic.partitions.as_slice()),
+            Some(&[0][..])
+        );
     }
 
     #[test]
