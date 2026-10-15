@@ -2468,10 +2468,12 @@ fn inject_share_fetch_with_corrupt_batches(
     let pos = injected
         .windows(recs.len())
         .position(|window| window == recs.as_ref())
-        .expect("ShareFetch records blob");
+        .unwrap();
     let crc = usize::try_from(RecordBatch::CRC_OFFSET).unwrap();
     for &index in corrupt {
-        injected[pos + starts[index] + crc] ^= 0xff;
+        let start = starts.get(index).copied().unwrap();
+        let byte = injected.get_mut(pos + start + crc).unwrap();
+        *byte ^= 0xff;
     }
     mock.inject_share_fetch_response_once(&injected);
 }
@@ -2843,7 +2845,7 @@ async fn share_fetch_compacted_last_record_missing() {
     let got = group.poll().await.unwrap();
     assert_eq!(got.len(), 3);
     for (i, rec) in got.iter().enumerate() {
-        assert_eq!(rec.offset, i as i64);
+        assert_eq!(rec.offset, i64::try_from(i).unwrap());
         assert_eq!(
             rec.key.as_deref(),
             Some(i.to_string().as_bytes()),
