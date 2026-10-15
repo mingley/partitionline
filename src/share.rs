@@ -1770,7 +1770,10 @@ impl ShareGroup {
     /// or missing `ErrorMessage` uses `ShareAcknowledge {topic}-{partition}`
     /// (Java `Errors.exception(errorMessage)`). A top-level ShareAcknowledge
     /// `ErrorMessage` is preferred the same way; empty uses
-    /// `ShareAcknowledge`.
+    /// `ShareAcknowledge`. Top-level `SHARE_SESSION_LIMIT_REACHED`
+    /// completes without retry and advances the session epoch (Java
+    /// `ShareSessionHandler.handleResponse` `nextEpoch`); it is not a
+    /// ShareAcknowledge session reset.
     pub async fn commit_sync(&mut self) -> Result<AcknowledgementCommitResults> {
         if !self.has_pending_acknowledgements() {
             return Ok(Vec::new());
@@ -4531,6 +4534,11 @@ fn ack_outcome_is_fatal(error: &Error) -> bool {
     )
 }
 
+/// Java `ShareSessionHandler.handleResponse(ShareFetchResponse)`:
+/// `SHARE_SESSION_NOT_FOUND` / `INVALID_SHARE_SESSION_EPOCH` /
+/// `SHARE_SESSION_LIMIT_REACHED` call `nextCloseExistingAttemptNew`.
+/// ShareAcknowledge `handleResponse` omits `SHARE_SESSION_LIMIT_REACHED`
+/// (that path uses [`share_session_reset`] only).
 fn share_fetch_session_reset(error: &Error) -> bool {
     share_session_reset(error) || error.broker_code() == Some(error::SHARE_SESSION_LIMIT_REACHED)
 }
@@ -4867,6 +4875,21 @@ mod tests {
         )));
         assert!(share_session_reset(&Error::broker(
             error::INVALID_SHARE_SESSION_EPOCH,
+            "x"
+        )));
+        assert!(share_fetch_session_reset(&Error::broker(
+            error::SHARE_SESSION_LIMIT_REACHED,
+            "x"
+        )));
+        assert!(
+            !share_session_reset(&Error::broker(
+                error::SHARE_SESSION_LIMIT_REACHED,
+                "x"
+            )),
+            "Java ShareAcknowledge handleResponse only resets on SHARE_SESSION_NOT_FOUND / INVALID_SHARE_SESSION_EPOCH"
+        );
+        assert!(!share_ack_retriable(&Error::broker(
+            error::SHARE_SESSION_LIMIT_REACHED,
             "x"
         )));
     }

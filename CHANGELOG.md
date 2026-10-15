@@ -68,6 +68,11 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `ShareAcknowledge`. A piggybacked ShareFetch
   `AcknowledgeErrorMessage` that is empty uses
   `ShareFetch acknowledgement {topic}-{partition}`.
+  ShareAcknowledge top-level `SHARE_SESSION_LIMIT_REACHED` completes
+  without retry and advances the share session epoch (Java
+  `handleResponse` `nextEpoch`); `SHARE_SESSION_NOT_FOUND` /
+  `INVALID_SHARE_SESSION_EPOCH` still reset. A non-empty top-level
+  `ErrorMessage` is preferred on that path.
 
 - ShareFetch partition `INCONSISTENT_TOPIC_ID` / `UNKNOWN_TOPIC_OR_PARTITION`
   / `UNKNOWN_TOPIC_ID` / `REPLICA_NOT_AVAILABLE` / `OFFSET_NOT_AVAILABLE`

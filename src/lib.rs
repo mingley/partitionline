@@ -2134,7 +2134,11 @@
 //! leave; Java `testAcknowledgeOnCloseWithPendingCommitAsync`). [`ShareGroup::commit_sync`] /
 //! [`ShareGroup::commit_sync_timeout`] are Java `ShareConsumer.commitSync` /
 //! `commitSync(Duration)` (`Map<TopicIdPartition, Optional<KafkaException>>`,
-//! [`AcknowledgementCommitResults`]).
+//! [`AcknowledgementCommitResults`]). Top-level ShareAcknowledge
+//! `SHARE_SESSION_LIMIT_REACHED` completes without retry and advances
+//! the session epoch (Java `ShareSessionHandler.handleResponse`
+//! `nextEpoch`); `SHARE_SESSION_NOT_FOUND` /
+//! `INVALID_SHARE_SESSION_EPOCH` still reset.
 //! [`ShareGroup::group_metadata`] is Java `ShareConsumer.groupMetadata()`
 //! ([`ConsumerGroupMetadata`]; `generationId` is the share member epoch).
 //! [`ShareGroup::set_acknowledgement_commit_callback`] is Java

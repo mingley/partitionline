@@ -2101,6 +2101,51 @@ async fn share_acknowledge_top_level_empty_error_message_uses_fallback() {
 }
 
 #[tokio::test]
+async fn share_acknowledge_session_limit_message_does_not_reset_session() {
+    let mock = common::Mock::start().await;
+    v2(&mock);
+    produce(&mock, &[(0, b"held")]).await;
+    let mut group = ShareGroup::join(config(&mock), "ack-limit-msg", "t")
+        .await
+        .unwrap();
+    let recs = group.poll().await.unwrap();
+    assert_eq!(recs.len(), 1);
+    group.accept(&recs).await.unwrap();
+    let version = mock.last_share_fetch_version().unwrap_or(2);
+    let mut injected = BytesMut::new();
+    encode_share_acknowledge_topics_response_with_error_message(
+        &mut injected,
+        version,
+        error::SHARE_SESSION_LIMIT_REACHED,
+        &[],
+        Some("share session limit reached"),
+    )
+    .unwrap();
+    mock.inject_share_ack_response_once(&injected);
+    let results = group.commit_sync().await.unwrap();
+    assert_eq!(results.len(), 1);
+    let err = results[0]
+        .1
+        .as_ref()
+        .expect("Java Errors.exception(errorMessage) completes the map");
+    assert_eq!(err.code(), Some(error::SHARE_SESSION_LIMIT_REACHED));
+    assert_eq!(err.message(), "share session limit reached");
+    assert_eq!(
+        mock.share_ack_calls(),
+        1,
+        "SHARE_SESSION_LIMIT_REACHED is not retried on ShareAcknowledge"
+    );
+    assert_eq!(mock.last_share_ack_epoch(), Some(1));
+    let _ = group.poll().await.unwrap();
+    assert_eq!(
+        mock.last_share_fetch_epoch(),
+        Some(2),
+        "Java ShareAcknowledge handleResponse nextEpoch for LIMIT_REACHED; must not reset to 0"
+    );
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn commit_restores_pending_after_broker_error() {
     let mock = common::Mock::start().await;
     produce(&mock, &[(0, b"held")]).await;
