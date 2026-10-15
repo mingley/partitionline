@@ -375,14 +375,12 @@ impl Groups {
         let member_number = next.next_member;
         next.next_member = next.next_member.saturating_add(1);
         let topic_counts = next.topics.clone();
-        let group = next
-            .groups
-            .entry(request.group.to_owned())
-            .or_insert(Group {
-                epoch: -1,
-                version: request.version,
-                members: BTreeMap::new(),
-            });
+        let group = super::occupy(&mut next.groups, request.group, || Group {
+            epoch: -1,
+            version: request.version,
+            members: BTreeMap::new(),
+        })
+        .ok_or(Error::InvalidRequest)?;
         if let Some(instance) = &instance {
             let previous = group
                 .members

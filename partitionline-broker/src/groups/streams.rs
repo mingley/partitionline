@@ -347,16 +347,14 @@ impl Groups {
         let (topology, tasks) = topology_of(request, self.limits.max_tasks)?;
         let instance = instance_of(request.instance_id)?;
         let mut next = self.state.clone();
-        let group = next
-            .groups
-            .entry(request.group_id.to_owned())
-            .or_insert(Group {
-                epoch: -1,
-                assignment_epoch: -1,
-                topology_epoch: topology,
-                task_count: tasks,
-                members: BTreeMap::new(),
-            });
+        let group = super::occupy(&mut next.groups, request.group_id, || Group {
+            epoch: -1,
+            assignment_epoch: -1,
+            topology_epoch: topology,
+            task_count: tasks,
+            members: BTreeMap::new(),
+        })
+        .ok_or(Error::InvalidRequest)?;
         if group.members.is_empty() {
             group.topology_epoch = topology;
             group.task_count = tasks;

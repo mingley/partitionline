@@ -244,13 +244,14 @@ impl Groups {
         {
             return Err(Error::UnknownMember);
         }
-        let group = self.groups.entry(group_id.to_owned()).or_insert(Group {
+        let group = super::occupy(&mut self.groups, group_id, || Group {
             protocol: protocol.to_owned(),
             generation: 0,
             generation_started_ms: now_ms,
             leader: String::new(),
             members: BTreeMap::new(),
-        });
+        })
+        .ok_or(Error::InvalidRequest)?;
         if group.protocol != protocol {
             return Err(Error::InconsistentProtocol);
         }

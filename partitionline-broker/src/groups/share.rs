@@ -350,15 +350,13 @@ impl Groups {
             next.next_member = next.next_member.saturating_add(1);
         }
         let counts = next.topics.clone();
-        let group = next
-            .groups
-            .entry(request.group_id.to_owned())
-            .or_insert(Group {
-                epoch: -1,
-                assignment_epoch: -1,
-                version: request.version,
-                members: BTreeMap::new(),
-            });
+        let group = super::occupy(&mut next.groups, request.group_id, || Group {
+            epoch: -1,
+            assignment_epoch: -1,
+            version: request.version,
+            members: BTreeMap::new(),
+        })
+        .ok_or(Error::InvalidRequest)?;
         let member_id = if request.member_id.is_empty() {
             format!("s-{member_number}")
         } else if group.members.contains_key(request.member_id) {
