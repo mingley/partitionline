@@ -400,20 +400,17 @@ impl Tokens {
     fn apply(&mut self, payload: &[u8]) -> Result<(), Error> {
         match decode(payload)? {
             Record::Issue { view, secret } => {
-                if view.expiry_ms < view.issued_at_ms
-                    || view.expiry_ms > view.max_timestamp_ms
-                    || self.tokens.contains_key(&view.token_id)
-                {
+                validate_recovered_issue(&view, self.next_id)?;
+                if self.tokens.len() >= self.limits.max_tokens {
+                    return Err(Error::InvalidLimits);
+                }
+                if self.tokens.contains_key(&view.token_id) {
                     return Err(Error::InvalidRequest);
                 }
-                let id_number = view
-                    .token_id
-                    .strip_prefix("t-")
-                    .and_then(|rest| rest.parse::<u64>().ok())
-                    .ok_or(Error::InvalidRequest)?;
-                self.next_id = self.next_id.max(id_number.saturating_add(1));
+                let next_id = self.next_id.checked_add(1).ok_or(Error::InvalidRequest)?;
                 self.tokens
                     .insert(view.token_id.clone(), Token { view, secret });
+                self.next_id = next_id;
             }
             Record::Renew {
                 token_id,
@@ -423,13 +420,15 @@ impl Tokens {
                     .tokens
                     .get_mut(&token_id)
                     .ok_or(Error::InvalidRequest)?;
-                if expiry_ms < token.view.expiry_ms || expiry_ms > token.view.max_timestamp_ms {
+                if expiry_ms <= token.view.expiry_ms || expiry_ms > token.view.max_timestamp_ms {
                     return Err(Error::InvalidRequest);
                 }
                 token.view.expiry_ms = expiry_ms;
             }
             Record::Revoke { token_id } => {
-                self.tokens.remove(&token_id);
+                if self.tokens.remove(&token_id).is_none() {
+                    return Err(Error::InvalidRequest);
+                }
             }
         }
         Ok(())
@@ -464,6 +463,26 @@ enum Record {
     Issue { view: TokenView, secret: Secret },
     Renew { token_id: String, expiry_ms: i64 },
     Revoke { token_id: String },
+}
+
+fn validate_recovered_issue(view: &TokenView, next_id: u64) -> Result<(), Error> {
+    if view.token_id != format!("t-{next_id}")
+        || view.issued_at_ms < 0
+        || view.expiry_ms < view.issued_at_ms
+        || view.expiry_ms > view.max_timestamp_ms
+        || view.renewers.len() > 16
+        || !valid_principal(&view.owner)
+    {
+        return Err(Error::InvalidRequest);
+    }
+    let mut previous = "";
+    for renewer in &view.renewers {
+        if !valid_principal(renewer) || renewer == &view.owner || renewer.as_str() <= previous {
+            return Err(Error::InvalidRequest);
+        }
+        previous = renewer.as_str();
+    }
+    Ok(())
 }
 
 fn validate_issue(request: IssueRequest<'_>, next_id: u64) -> Result<TokenView, Error> {
@@ -899,5 +918,63 @@ mod tests {
             restored.authenticate("t-1", &kept_secret, 100),
             Err(Error::NotFound)
         ));
+    }
+
+    #[test]
+    fn a_skipped_or_unsorted_token_is_not_recovered() {
+        let mut tokens =
+            Tokens::open(path("skip"), token_limits()).unwrap_or_else(|error| panic!("{error:?}"));
+        let skipped = TokenView {
+            token_id: "t-5".to_owned(),
+            owner: "User:alice".to_owned(),
+            renewers: Vec::new(),
+            issued_at_ms: 0,
+            expiry_ms: 1_000,
+            max_timestamp_ms: 5_000,
+        };
+        assert!(matches!(
+            tokens.apply(
+                &encode_issue(&skipped, &[1; 32]).unwrap_or_else(|error| panic!("{error:?}"))
+            ),
+            Err(Error::InvalidRequest)
+        ));
+        let unsorted = TokenView {
+            token_id: "t-1".to_owned(),
+            owner: "User:alice".to_owned(),
+            renewers: vec!["User:zoe".to_owned(), "User:ann".to_owned()],
+            issued_at_ms: 0,
+            expiry_ms: 1_000,
+            max_timestamp_ms: 5_000,
+        };
+        assert!(matches!(
+            tokens.apply(
+                &encode_issue(&unsorted, &[1; 32]).unwrap_or_else(|error| panic!("{error:?}"))
+            ),
+            Err(Error::InvalidRequest)
+        ));
+        let issued = TokenView {
+            renewers: vec!["User:carol".to_owned()],
+            ..unsorted
+        };
+        tokens
+            .apply(&encode_issue(&issued, &[1; 32]).unwrap_or_else(|error| panic!("{error:?}")))
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(
+            tokens.apply(&encode_renew("t-1", 1_000).unwrap_or_else(|error| panic!("{error:?}"))),
+            Err(Error::InvalidRequest)
+        ));
+        assert!(matches!(
+            tokens.apply(&encode_revoke("t-9").unwrap_or_else(|error| panic!("{error:?}"))),
+            Err(Error::InvalidRequest)
+        ));
+        assert_eq!(
+            tokens
+                .tokens
+                .get("t-1")
+                .unwrap_or_else(|| panic!("token"))
+                .view
+                .expiry_ms,
+            1_000
+        );
     }
 }
