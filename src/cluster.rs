@@ -514,6 +514,19 @@ impl Cluster {
             .map(|v| i32::try_from(v.len()).unwrap_or(i32::MAX))
     }
 
+    /// Leader node ids for `topic`, or an empty slice when Metadata has not listed it.
+    pub(crate) fn leader_ids(&self, topic: &str) -> &[i32] {
+        self.leaders.get(topic).map(Vec::as_slice).unwrap_or(&[])
+    }
+
+    /// Leader epochs for `topic`, or an empty slice when none are cached.
+    pub(crate) fn leader_epochs_of(&self, topic: &str) -> &[i32] {
+        self.leader_epochs
+            .get(topic)
+            .map(Vec::as_slice)
+            .unwrap_or(&[])
+    }
+
     /// Leader node id and `host:port` for `topic`/`partition`.
     pub(crate) fn leader_id(&self, topic: &str, partition: i32) -> Result<i32> {
         let parts = self

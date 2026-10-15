@@ -1586,6 +1586,10 @@ impl<V> PartitionMap<V> {
         self.get(topic, partition).is_some()
     }
 
+    fn topic_partitions(&self, topic: &str) -> Option<&HashMap<i32, V>> {
+        self.topics.get(topic)
+    }
+
     fn insert(&mut self, topic: &str, partition: i32, value: V) -> Option<V> {
         if let Some(partitions) = self.topics.get_mut(topic) {
             return partitions.insert(partition, value);
@@ -4573,11 +4577,31 @@ impl Consumer {
                 }
             }
             let mut missing_leader = false;
+            let cluster = &self.cluster;
+            let mut cached_topic = std::ptr::null::<u8>();
+            let mut leaders: &[i32] = &[];
+            let mut epochs: &[i32] = &[];
+            let mut paused_parts: Option<&HashMap<i32, ()>> = None;
+            let mut completed_parts: Option<&HashMap<i32, ()>> = None;
+            let mut retained_parts: Option<&HashMap<i32, HeldFetch>> = None;
+            let mut fetched_epochs: Option<&HashMap<i32, i32>> = None;
             for (topic, part, offset) in &self.assigned {
-                if self.paused.contains(topic, *part) {
+                let topic_ptr = Arc::as_ptr(topic) as *const u8;
+                if topic_ptr != cached_topic {
+                    leaders = cluster.leader_ids(topic.as_ref());
+                    epochs = cluster.leader_epochs_of(topic.as_ref());
+                    paused_parts = self.paused.topic_partitions(topic.as_ref());
+                    completed_parts = completed.topic_partitions(topic.as_ref());
+                    retained_parts = self.retained.topic_partitions(topic.as_ref());
+                    fetched_epochs = self.last_fetched_epochs.topic_partitions(topic.as_ref());
+                    cached_topic = topic_ptr;
+                }
+                if paused_parts.is_some_and(|parts| parts.contains_key(part)) {
                     continue;
                 }
-                if completed.contains(topic, *part) || self.retained.contains(topic, *part) {
+                if completed_parts.is_some_and(|parts| parts.contains_key(part))
+                    || retained_parts.is_some_and(|parts| parts.contains_key(part))
+                {
                     continue;
                 }
                 let preferred = if self.cfg.rack.is_some() {
@@ -4585,17 +4609,20 @@ impl Consumer {
                 } else {
                     None
                 };
-                let leader = self.cluster.leader_id(topic, *part).ok();
+                let leader = cached_leader(leaders, *part);
                 let preferred_known =
-                    preferred.is_some_and(|node| self.cluster.brokers.contains_key(&node));
+                    preferred.is_some_and(|node| cluster.brokers.contains_key(&node));
                 let node = fetch_target(preferred, preferred_known, leader);
                 match node {
                     Some(node) => {
                         let planned = FetchPartition {
                             partition: *part,
-                            current_leader_epoch: self.cluster.leader_epoch(topic, *part),
+                            current_leader_epoch: cached_epoch(epochs, *part),
                             fetch_offset: *offset,
-                            last_fetched_epoch: self.last_fetched_epoch(topic, *part),
+                            last_fetched_epoch: fetched_epochs
+                                .and_then(|parts| parts.get(part))
+                                .copied()
+                                .unwrap_or(crate::RecordBatch::NO_PARTITION_LEADER_EPOCH),
                             log_start_offset: INVALID_LOG_START_OFFSET,
                             partition_max_bytes: self.cfg.max_partition_fetch_bytes,
                             replica_directory_id: [0; 16],
@@ -7008,6 +7035,21 @@ fn fetch_topic_name(
 /// Whether any incomplete assignment needs a metadata refresh.
 ///
 /// One topic is checked once. A fresh topic does not inspect every partition.
+fn cached_leader(leaders: &[i32], partition: i32) -> Option<i32> {
+    let idx = usize::try_from(partition).ok()?;
+    leaders.get(idx).copied().filter(|id| *id >= 0)
+}
+
+fn cached_epoch(epochs: &[i32], partition: i32) -> i32 {
+    let Ok(idx) = usize::try_from(partition) else {
+        return crate::RecordBatch::NO_PARTITION_LEADER_EPOCH;
+    };
+    epochs
+        .get(idx)
+        .copied()
+        .unwrap_or(crate::RecordBatch::NO_PARTITION_LEADER_EPOCH)
+}
+
 fn assignment_metadata_stale(
     assigned: &[(Arc<str>, i32, i64)],
     completed: &PartitionMap<()>,
@@ -7689,6 +7731,23 @@ mod tests {
             listed_partition_indexes([(0, &[0, 1][..]), (5, empty)]),
             ListedPartitions::Indexes(ref indexes) if indexes == &[0, 1]
         ));
+    }
+
+    #[test]
+    fn cached_partition_leaders_match_a_missing_topic() {
+        assert_eq!(cached_leader(&[], 0), None);
+        assert_eq!(cached_leader(&[1, -1], 0), Some(1));
+        assert_eq!(cached_leader(&[1, -1], 1), None);
+        assert_eq!(cached_leader(&[1], -1), None);
+        assert_eq!(
+            cached_epoch(&[], 0),
+            crate::RecordBatch::NO_PARTITION_LEADER_EPOCH
+        );
+        assert_eq!(cached_epoch(&[4], 0), 4);
+        assert_eq!(
+            cached_epoch(&[4], -1),
+            crate::RecordBatch::NO_PARTITION_LEADER_EPOCH
+        );
     }
 
     #[test]
