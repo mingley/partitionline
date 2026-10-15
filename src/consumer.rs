@@ -1991,6 +1991,8 @@ pub struct Consumer {
     /// Record count of the previous fetch buffer. The next buffer reserves this
     /// many slots so a steady poll does not grow from empty.
     last_fetch_records: usize,
+    /// Empty fetch-reply list returned after a poll. The next sequential fetch refills it.
+    spare_replies: Vec<FetchReply>,
     reconnect_fails: HashMap<i32, u32>,
     /// Leaders whose Fetch was sent and not yet applied. A multi-leader round
     /// returns after [`MULTI_LEADER_COLLECTION_WINDOW`] once any peer has
@@ -2768,6 +2770,7 @@ impl Consumer {
             fetch_return_totals: HashMap::new(),
             fetch_completed: PartitionMap::new(),
             last_fetch_records: 0,
+            spare_replies: Vec::new(),
             reconnect_fails: HashMap::new(),
             inflight_fetches: None,
             inflight_nodes: HashSet::new(),
@@ -5188,10 +5191,13 @@ impl Consumer {
             }
             // Decode each envelope once, before any record application. Validate
             // every session even when the record budget will discard its body.
-            let bodies: Vec<_> = bodies
-                .into_iter()
+            let mut bodies = bodies;
+            let decoded: Vec<_> = bodies
+                .drain(..)
                 .map(|reply| self.decode_fetch_reply(reply))
                 .collect();
+            self.park_replies(bodies);
+            let bodies = decoded;
             let mut retry = FetchRetry::None;
             let mut fenced = Vec::new();
             let mut need_offsets = Vec::new();
@@ -5548,13 +5554,14 @@ impl Consumer {
         }
         let max_wait = max_wait.min(duration_millis_i32(timeout));
         if !collect_parallel {
-            let mut out = Vec::with_capacity(nodes.len());
+            let mut out = self.take_replies(nodes.len());
             for node in nodes {
                 let timeout = deadline.saturating_duration_since(Instant::now());
                 if timeout.is_zero() {
                     if !out.is_empty() {
                         return Ok(out);
                     }
+                    self.park_replies(out);
                     return self.ready_fetches_or_timeout();
                 }
                 let max_wait = max_wait.min(duration_millis_i32(timeout));
@@ -5583,6 +5590,7 @@ impl Consumer {
                             .fetch_version()
                     };
                     if fetch_version < 0 {
+                        self.park_replies(out);
                         return Err(Error::Unsupported(format!(
                             "broker at {} does not support Fetch v4-17",
                             if reuse_bootstrap {
@@ -5705,7 +5713,7 @@ impl Consumer {
                 )
             });
         }
-        let mut out = Vec::new();
+        let mut out = self.take_replies(inflight.pending.len());
         let mut first_reply: Option<Instant> = None;
         while let Some(set) = inflight.set.as_mut().filter(|set| !set.is_empty()) {
             let joined = if let Some(started) = first_reply {
@@ -7262,6 +7270,14 @@ impl Consumer {
         }
     }
 
+    fn take_replies(&mut self, hint: usize) -> Vec<FetchReply> {
+        take_replies(&mut self.spare_replies, hint)
+    }
+
+    fn park_replies(&mut self, replies: Vec<FetchReply>) {
+        park_replies(&mut self.spare_replies, replies);
+    }
+
     fn finish_fetch(&mut self, recs: Vec<FetchedRecord>) -> Vec<FetchedRecord> {
         note_fetch_records(&mut self.last_fetch_records, recs.len());
         if self.pending.is_empty() && self.cfg.max_poll_records.is_none() && self.paused.is_empty()
@@ -7469,6 +7485,26 @@ fn fetch_totals_keep_their_buckets() {
 }
 
 #[test]
+fn a_fetch_reply_list_keeps_its_capacity() {
+    let mut spare = Vec::new();
+    let mut taken = take_replies(&mut spare, 1);
+    taken.push(FetchReply {
+        node: 1,
+        version: 4,
+        received_at: Instant::now(),
+        body: Ok(Bytes::new()),
+    });
+    let capacity = taken.capacity();
+    assert!(capacity > 0);
+    park_replies(&mut spare, taken);
+    assert!(spare.capacity() >= capacity);
+    let again = take_replies(&mut spare, 1);
+    assert!(again.capacity() >= capacity);
+    assert!(again.is_empty());
+    assert!(spare.is_empty());
+}
+
+#[test]
 fn a_fetch_buffer_reserves_the_previous_record_count() {
     let mut previous = 0usize;
     let first = sized_fetch_records(previous);
@@ -7537,6 +7573,22 @@ fn retained_topics_keep_their_table_when_a_paused_partition_stays() {
 }
 
 /// Reserve a fetch buffer from the previous poll's record count.
+fn take_replies(spare: &mut Vec<FetchReply>, hint: usize) -> Vec<FetchReply> {
+    let mut out = std::mem::take(spare);
+    out.clear();
+    if out.capacity() < hint {
+        out.reserve(hint);
+    }
+    out
+}
+
+fn park_replies(spare: &mut Vec<FetchReply>, mut replies: Vec<FetchReply>) {
+    replies.clear();
+    if replies.capacity() > spare.capacity() {
+        *spare = replies;
+    }
+}
+
 fn sized_fetch_records(previous: usize) -> Vec<FetchedRecord> {
     Vec::with_capacity(previous)
 }
