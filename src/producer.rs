@@ -894,6 +894,8 @@ struct FastRoute {
     np: i32,
     handles: Vec<WorkerHandle>,
     tracker: Arc<crate::metrics::ProduceTopicTracker>,
+    /// Metadata time captured when this route was built.
+    fetched_at: Option<Instant>,
 }
 
 #[derive(Default)]
@@ -2277,27 +2279,37 @@ impl Producer {
         if peek_meta_err(&self.inner.shared).is_some() {
             return None;
         }
-        let fresh = self
-            .inner
-            .shared
-            .cluster
-            .lock()
-            .topic_fresh(rec.topic.as_ref(), self.inner.shared.cfg.metadata_max_age);
-        if !fresh {
+        let max_age = self.inner.shared.cfg.metadata_max_age;
+        if max_age.is_zero() {
             return None;
         }
-        self.fast_route(rec)
+        let fast = self.inner.shared.fast.lock();
+        let f = fast.routes.get(rec.topic.as_ref())?;
+        let fresh = f
+            .fetched_at
+            .is_some_and(|at| Instant::now().saturating_duration_since(at) < max_age);
+        if !fresh || f.handles.is_empty() || f.np <= 0 {
+            return None;
+        }
+        let p = match rec.partition {
+            Some(p) => p,
+            None => pick_part(rec, f.np, self.inner.shared.partitioner.as_ref()),
+        };
+        if p < 0 || p >= f.np {
+            return None;
+        }
+        let i = usize::try_from(p).ok()?;
+        let w = f.handles.get(i)?.clone();
+        Some((p, w, Arc::clone(&f.tracker)))
     }
 
     fn remember_fast(&self, rec: &ProduceRecord) {
-        let Some(np) = self
-            .inner
-            .shared
-            .cluster
-            .lock()
-            .partition_count(rec.topic.as_ref())
-        else {
-            return;
+        let (np, fetched_at) = {
+            let cluster = self.inner.shared.cluster.lock();
+            let Some(np) = cluster.partition_count(rec.topic.as_ref()) else {
+                return;
+            };
+            (np, cluster.topic_fetched_at(rec.topic.as_ref()))
         };
         if np <= 0 {
             return;
@@ -2323,6 +2335,7 @@ impl Producer {
             np,
             handles,
             tracker,
+            fetched_at,
         };
         let mut fast = self.inner.shared.fast.lock();
         if fast.routes.contains_key(rec.topic.as_ref()) {

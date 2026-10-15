@@ -361,6 +361,11 @@ impl Cluster {
         let _removed = self.topic_fetched_at.remove(topic);
     }
 
+    /// When `topic` leaders were last applied, if Metadata has been seen.
+    pub(crate) fn topic_fetched_at(&self, topic: &str) -> Option<Instant> {
+        self.topic_fetched_at.get(topic).copied()
+    }
+
     /// True when `topic` has Metadata newer than `max_age`.
     ///
     /// A zero `max_age` is always stale (refresh on every lookup).
@@ -741,6 +746,7 @@ mod tests {
             13,
         );
         assert!(cluster.topic_fresh("t", Duration::from_secs(5)));
+        assert!(cluster.topic_fetched_at("t").is_some());
         assert!(
             !cluster.topic_fresh("t", Duration::ZERO),
             "zero max.age must refresh every lookup"
