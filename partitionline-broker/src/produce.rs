@@ -802,6 +802,17 @@ enum ProduceTopicKey {
     Name(Option<Vec<u8>>),
 }
 
+fn strictly_increasing_indexes(parts: &[Part]) -> bool {
+    let mut previous = None;
+    for part in parts {
+        if previous.is_some_and(|earlier| part.index <= earlier) {
+            return false;
+        }
+        previous = Some(part.index);
+    }
+    true
+}
+
 fn produce_topic_key(version: i16, topic: &Topic, body: &[u8]) -> ProduceTopicKey {
     if version >= 13 {
         ProduceTopicKey::Id(topic.id)
@@ -1390,10 +1401,11 @@ fn process_inner(
                 .copied()
                 .unwrap_or(false);
         let mut parts = reserved(topic.partitions.len())?;
-        let lone_part = topic.partitions.len() <= 1;
+        // Strictly increasing indexes cannot repeat, including a single partition.
+        let unique_parts = strictly_increasing_indexes(&topic.partitions);
         let mut part_first = Vec::new();
         let mut part_duplicated = Vec::new();
-        if !lone_part {
+        if !unique_parts {
             part_first = vec![false; topic.partitions.len()];
             part_duplicated = vec![false; topic.partitions.len()];
             let mut part_owner: HashMap<i32, usize> = HashMap::new();
@@ -1411,11 +1423,11 @@ fn process_inner(
             }
         }
         for (position, part) in topic.partitions.iter().enumerate() {
-            if !lone_part && !part_first.get(position).copied().unwrap_or(false) {
+            if !unique_parts && !part_first.get(position).copied().unwrap_or(false) {
                 continue;
             }
             let duplicate_part =
-                !lone_part && part_duplicated.get(position).copied().unwrap_or(false);
+                !unique_parts && part_duplicated.get(position).copied().unwrap_or(false);
             let mut error = if !matches!(parsed.acks, -1..=1) {
                 21
             } else if parsed.timeout < 0 {
@@ -1725,6 +1737,20 @@ impl Writer {
 mod tests {
     use super::*;
     use crate::catalog::{Catalog, TopicId};
+
+    fn part(index: i32) -> Part {
+        Part { index, bytes: None }
+    }
+
+    #[test]
+    fn strictly_increasing_partition_indexes_need_no_duplicate_map() {
+        assert!(strictly_increasing_indexes(&[]));
+        assert!(strictly_increasing_indexes(&[part(0)]));
+        assert!(strictly_increasing_indexes(&[part(0), part(1), part(4)]));
+        assert!(!strictly_increasing_indexes(&[part(1), part(1)]));
+        assert!(!strictly_increasing_indexes(&[part(1), part(0)]));
+        assert!(!strictly_increasing_indexes(&[part(0), part(2), part(2)]));
+    }
 
     #[test]
     fn finished_append_keeps_its_offset_after_the_request_timer() {
