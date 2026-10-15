@@ -13,7 +13,7 @@
 
 use crate::catalog;
 use crate::journal::{self, Journal};
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
 const RECORD_MAGIC: &[u8; 8] = b"PLTXNC01";
@@ -140,12 +140,32 @@ impl Limits {
     }
 }
 
+type TxnPartitions = BTreeMap<String, BTreeSet<i32>>;
+
+fn txn_partition_count(parts: &TxnPartitions) -> usize {
+    parts.values().map(BTreeSet::len).sum()
+}
+
+fn txn_has_partition(parts: &TxnPartitions, topic: &str, partition: i32) -> bool {
+    parts.get(topic).is_some_and(|set| set.contains(&partition))
+}
+
+fn txn_add_partition(parts: &mut TxnPartitions, topic: &str, partition: i32) {
+    if let Some(set) = parts.get_mut(topic) {
+        let _ = set.insert(partition);
+        return;
+    }
+    let mut set = BTreeSet::new();
+    let _ = set.insert(partition);
+    let _ = parts.insert(topic.to_owned(), set);
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct Transaction {
     producer_id: i64,
     producer_epoch: i16,
     state: State,
-    partitions: BTreeSet<(String, i32)>,
+    partitions: TxnPartitions,
 }
 
 /// Durable coordinator for transactional ids.
@@ -262,7 +282,7 @@ impl Coordinator {
                 producer_id,
                 producer_epoch: 0,
                 state: State::Empty,
-                partitions: BTreeSet::new(),
+                partitions: BTreeMap::new(),
             },
         );
         self.next_producer = self.next_producer.saturating_add(1);
@@ -319,11 +339,10 @@ impl Coordinator {
         if txn.state != State::Ongoing {
             return Err(Error::InvalidState);
         }
-        let key = (topic.to_owned(), partition);
-        if txn.partitions.contains(&key) {
+        if txn_has_partition(&txn.partitions, topic, partition) {
             return Ok(());
         }
-        if txn.partitions.len() >= 64 {
+        if txn_partition_count(&txn.partitions) >= 64 {
             return Err(Error::InvalidRequest);
         }
         self.persist(&encode_add(transactional_id, topic, partition)?)?;
@@ -331,7 +350,7 @@ impl Coordinator {
             .transactions
             .get_mut(transactional_id)
             .ok_or(Error::InvalidState)?;
-        txn.partitions.insert(key);
+        txn_add_partition(&mut txn.partitions, topic, partition);
         Ok(())
     }
 
@@ -486,7 +505,7 @@ impl Coordinator {
                             producer_id,
                             producer_epoch: 0,
                             state: State::Empty,
-                            partitions: BTreeSet::new(),
+                            partitions: BTreeMap::new(),
                         },
                     );
                     self.next_producer = next;
@@ -522,12 +541,12 @@ impl Coordinator {
                 if txn.state != State::Ongoing {
                     return Err(Error::InvalidState);
                 }
-                if txn.partitions.len() >= 64
-                    && !txn.partitions.contains(&(topic.clone(), partition))
+                if txn_partition_count(&txn.partitions) >= 64
+                    && !txn_has_partition(&txn.partitions, &topic, partition)
                 {
                     return Err(Error::InvalidRequest);
                 }
-                txn.partitions.insert((topic, partition));
+                txn_add_partition(&mut txn.partitions, &topic, partition);
             }
             KIND_PREPARE => {
                 let id = take_str(&mut rest)?;
@@ -906,10 +925,11 @@ mod tests {
             .get("orders-txn")
             .map(|txn| txn.partitions.clone())
             .unwrap_or_default();
-        assert_eq!(
-            stored,
-            std::collections::BTreeSet::from([("orders".to_owned(), 0)])
-        );
+        let mut expected = BTreeMap::new();
+        let mut parts = BTreeSet::new();
+        let _ = parts.insert(0);
+        let _ = expected.insert("orders".to_owned(), parts);
+        assert_eq!(stored, expected);
     }
 
     #[test]
