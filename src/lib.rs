@@ -2034,6 +2034,8 @@
 //! [`AcknowledgeType`] `Display` is Java `AcknowledgeType.toString`
 //! (`accept`). [`AcknowledgeType::id`] / [`AcknowledgeType::from_id`] are
 //! Java `AcknowledgeType.id` / `forId` (gap `0` is `None`).
+//! [`ShareGroup::poll`] queues wire `ACK_GAP` for acquired offsets with no
+//! record and for control-record holes (Java `ShareCompletedFetch`).
 //! [`ShareAcknowledgementMode`] is Java `share.acknowledgement.mode`
 //! (`implicit` / `explicit`); this client defaults to explicit.
 //! Implicit ACCEPT on the next [`ShareGroup::poll`] is piggybacked on

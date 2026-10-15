@@ -20,7 +20,9 @@ use parking_lot::Mutex;
 use bytes::{Bytes, BytesMut};
 use partitionline::protocol::api::NodeEndpoint;
 use partitionline::protocol::api_keys::{SHARE_ACKNOWLEDGE, SHARE_FETCH};
-use partitionline::protocol::records::{Record, RecordBatch};
+use partitionline::protocol::records::{
+    ControlRecordType, EndTransactionMarker, Record, RecordBatch,
+};
 use partitionline::protocol::share::{
     decode_share_fetch_response, decode_share_fetch_response_with_limit,
     encode_share_fetch_error_with_message, encode_share_fetch_response,
@@ -78,20 +80,32 @@ fn assert_broker(error: Error, expected: i16) {
 }
 
 fn injected_share_success(value: &'static [u8]) -> ShareFetchedPartition {
-    let rec = Record {
-        offset: 0,
-        timestamp: 0,
-        key: None,
-        value: Some(Bytes::from_static(value)),
-        headers: Vec::new(),
-    };
+    injected_share_records(&[value], &[(0, 0)])
+}
+
+fn injected_share_records(values: &[&[u8]], acquired: &[(i64, i64)]) -> ShareFetchedPartition {
+    let recs: Vec<Record> = values
+        .iter()
+        .map(|value| Record {
+            offset: 0,
+            timestamp: 0,
+            key: None,
+            value: Some(Bytes::copy_from_slice(value)),
+            headers: Vec::new(),
+        })
+        .collect();
     let mut part = ShareFetchedPartition::partition_response(0, 0);
-    part.records = vec![RecordBatch::from_records(vec![rec])];
-    part.acquired = vec![AcquiredRange {
-        first_offset: 0,
-        last_offset: 0,
-        delivery_count: 1,
-    }];
+    if !recs.is_empty() {
+        part.records = vec![RecordBatch::from_records(recs)];
+    }
+    part.acquired = acquired
+        .iter()
+        .map(|(first, last)| AcquiredRange {
+            first_offset: *first,
+            last_offset: *last,
+            delivery_count: 1,
+        })
+        .collect();
     part
 }
 
@@ -1857,6 +1871,141 @@ async fn share_acknowledge_current_leader_overrides_cached_metadata() {
         "usable ShareAcknowledge CurrentLeader must skip Metadata"
     );
     group.accept(&moved).await.unwrap();
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn share_fetch_mixed_records_and_gaps_queue_gap_acks() {
+    let mock = common::Mock::start().await;
+    v2(&mock);
+    let mut group = ShareGroup::join(config(&mock), "gap-mixed", "t")
+        .await
+        .unwrap();
+    let version = mock.last_share_fetch_version().unwrap_or(2);
+    let topics = vec![ShareFetchedTopic {
+        topic_id: mock.topic_id("t"),
+        partitions: vec![injected_share_records(
+            &[b"0", b"1", b"2", b"3", b"4"],
+            &[(0, 4), (10, 14)],
+        )],
+    }];
+    let mut injected = BytesMut::new();
+    encode_share_fetch_response(&mut injected, version, &topics).unwrap();
+    mock.inject_share_fetch_response_once(&injected);
+    let got = group.poll().await.unwrap();
+    let offsets: Vec<i64> = got.iter().map(|rec| rec.offset).collect();
+    assert_eq!(offsets, vec![0, 1, 2, 3, 4]);
+    assert_eq!(
+        group.acquired_record_count(),
+        10,
+        "Java ShareCompletedFetch keeps delivered records and GAP offsets"
+    );
+    let start_acks = mock.share_ack_calls();
+    group.commit().await.unwrap();
+    assert_eq!(
+        mock.share_ack_calls() - start_acks,
+        1,
+        "explicit commit without accept sends only collector GAP acks"
+    );
+    assert!(
+        mock.share_ack_attempts()
+            .iter()
+            .any(|attempt| attempt == &("t".into(), 0, 10, 14)),
+        "GAP range 10-14 must be acknowledged: {:?}",
+        mock.share_ack_attempts()
+    );
+    assert!(
+        !mock.share_accepted("gap-mixed", "t", 0, 10),
+        "ACK_GAP must not ACCEPT a missing acquired offset"
+    );
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn share_fetch_only_gaps_queue_gap_acks() {
+    let mock = common::Mock::start().await;
+    v2(&mock);
+    let mut group = ShareGroup::join(config(&mock), "gap-only", "t")
+        .await
+        .unwrap();
+    let version = mock.last_share_fetch_version().unwrap_or(2);
+    let topics = vec![ShareFetchedTopic {
+        topic_id: mock.topic_id("t"),
+        partitions: vec![injected_share_records(
+            &[b"0", b"1", b"2", b"3", b"4", b"5", b"6", b"7", b"8", b"9"],
+            &[(15, 19)],
+        )],
+    }];
+    let mut injected = BytesMut::new();
+    encode_share_fetch_response(&mut injected, version, &topics).unwrap();
+    mock.inject_share_fetch_response_once(&injected);
+    assert!(
+        group.poll().await.unwrap().is_empty(),
+        "Java testAcknowledgementsIncludeOnlyGaps delivers no records"
+    );
+    assert_eq!(group.acquired_record_count(), 5);
+    group.commit().await.unwrap();
+    assert!(
+        mock.share_ack_attempts()
+            .iter()
+            .any(|attempt| attempt == &("t".into(), 0, 15, 19)),
+        "GAP range 15-19 must be acknowledged: {:?}",
+        mock.share_ack_attempts()
+    );
+    assert!(!mock.share_accepted("gap-only", "t", 0, 15));
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn share_fetch_control_records_in_acquired_range_are_gaps() {
+    let mock = common::Mock::start().await;
+    v2(&mock);
+    let mut group = ShareGroup::join(config(&mock), "gap-ctrl", "t")
+        .await
+        .unwrap();
+    let version = mock.last_share_fetch_version().unwrap_or(2);
+    let data: Vec<Record> = (0..10)
+        .map(|_| Record {
+            offset: 0,
+            timestamp: 0,
+            key: None,
+            value: Some(Bytes::from_static(b"d")),
+            headers: Vec::new(),
+        })
+        .collect();
+    let marker = EndTransactionMarker::new(ControlRecordType::Commit, 0).unwrap();
+    let control = RecordBatch::with_end_transaction_marker(10, 0, -1, 1, 0, &marker).unwrap();
+    let mut part = ShareFetchedPartition::partition_response(0, 0);
+    part.records = vec![RecordBatch::from_records(data), control];
+    part.acquired = vec![AcquiredRange {
+        first_offset: 0,
+        last_offset: 10,
+        delivery_count: 1,
+    }];
+    let topics = vec![ShareFetchedTopic {
+        topic_id: mock.topic_id("t"),
+        partitions: vec![part],
+    }];
+    let mut injected = BytesMut::new();
+    encode_share_fetch_response(&mut injected, version, &topics).unwrap();
+    mock.inject_share_fetch_response_once(&injected);
+    let got = group.poll().await.unwrap();
+    let offsets: Vec<i64> = got.iter().map(|rec| rec.offset).collect();
+    assert_eq!(offsets, (0..10).collect::<Vec<_>>());
+    assert_eq!(
+        group.acquired_record_count(),
+        11,
+        "control-record hole stays acquired until GAP is sent"
+    );
+    group.commit().await.unwrap();
+    assert!(
+        mock.share_ack_attempts()
+            .iter()
+            .any(|attempt| attempt == &("t".into(), 0, 10, 10)),
+        "control offset 10 must be GAP-acknowledged: {:?}",
+        mock.share_ack_attempts()
+    );
+    assert!(!mock.share_accepted("gap-ctrl", "t", 0, 10));
     group.leave().await.unwrap();
 }
 
