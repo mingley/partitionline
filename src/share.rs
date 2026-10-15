@@ -1503,6 +1503,9 @@ impl ShareGroup {
     /// `testMultipleTopicsFetch`) leaves successful sibling partitions
     /// deliverable. The error is returned on this poll when it is first
     /// in the completed-fetch buffer, otherwise on a later poll.
+    /// `TOPIC_AUTHORIZATION_FAILED` is Java `TopicAuthorizationException`;
+    /// [`Error::unauthorized_topics`] names the topic (Java
+    /// `testUnauthorizedTopic`).
     pub async fn poll(&mut self) -> Result<ShareRecords> {
         if self.consumer.take_wakeup() {
             return Err(Error::Wakeup);
@@ -2558,10 +2561,11 @@ impl ShareGroup {
                         {
                             self.invalidate_share_topic(&name);
                         }
-                        let error = share_partition_broker_error(
+                        let error = share_fetch_collect_error(
                             part.error_code,
                             part.error_message.as_deref(),
-                            format!("ShareFetch {name}-{}", part.partition),
+                            &name,
+                            part.partition,
                         );
                         if share_session_reset(&error) {
                             self.reset_node_session(node);
@@ -4339,6 +4343,25 @@ fn share_partition_broker_error(
     Error::broker(code, detail)
 }
 
+/// Java `ShareFetchCollector.collect` / `testUnauthorizedTopic`:
+/// `TOPIC_AUTHORIZATION_FAILED` is `TopicAuthorizationException` whose
+/// `unauthorizedTopics()` is the partition topic, not ErrorMessage.
+fn share_fetch_collect_error(
+    code: i16,
+    broker_message: Option<&str>,
+    topic: &str,
+    partition: i32,
+) -> Error {
+    if code == error::TOPIC_AUTHORIZATION_FAILED {
+        return Error::broker(code, topic);
+    }
+    share_partition_broker_error(
+        code,
+        broker_message,
+        format!("ShareFetch {topic}-{partition}"),
+    )
+}
+
 /// Java `handleShareFetchSuccess` applies CurrentLeader only for these.
 fn share_fetch_current_leader_usable(code: i16) -> bool {
     matches!(
@@ -4779,13 +4802,29 @@ mod tests {
 
     #[test]
     fn share_partition_broker_error_prefers_nonempty_message() {
-        match share_partition_broker_error(
+        match share_fetch_collect_error(
             error::TOPIC_AUTHORIZATION_FAILED,
+            Some("not authorized for t"),
+            "orders",
+            0,
+        ) {
+            Error::Broker { code, message } => {
+                assert_eq!(code, error::TOPIC_AUTHORIZATION_FAILED);
+                assert_eq!(message, "orders");
+                assert_eq!(
+                    Error::broker(code, message).unauthorized_topics(),
+                    ["orders"]
+                );
+            }
+            other => panic!("{other:?}"),
+        }
+        match share_partition_broker_error(
+            error::CORRUPT_MESSAGE,
             Some("not authorized for t"),
             "ShareFetch t-0",
         ) {
             Error::Broker { code, message } => {
-                assert_eq!(code, error::TOPIC_AUTHORIZATION_FAILED);
+                assert_eq!(code, error::CORRUPT_MESSAGE);
                 assert_eq!(message, "not authorized for t");
             }
             other => panic!("{other:?}"),

@@ -118,6 +118,22 @@ impl Error {
         }
     }
 
+    /// Java `TopicAuthorizationException.unauthorizedTopics()`.
+    ///
+    /// Non-empty only for [`TOPIC_AUTHORIZATION_FAILED`]. The topic name is
+    /// the broker context string (the ShareFetch partition's topic).
+    #[must_use]
+    pub fn unauthorized_topics(&self) -> Vec<&str> {
+        match self {
+            Self::Broker { code, message }
+                if *code == TOPIC_AUTHORIZATION_FAILED && !message.is_empty() =>
+            {
+                vec![message.as_str()]
+            }
+            _ => Vec::new(),
+        }
+    }
+
     /// The retryable error category: [`Error::Io`], [`Error::Timeout`], and
     /// the transient broker codes listed in the match below.
     ///
@@ -850,5 +866,23 @@ mod tests {
         assert_eq!(with_msg.to_string(), "ApiError(error=NONE, message=ok)");
         assert!(with_msg.is_success());
         assert_eq!(with_msg.message(), Some("ok"));
+    }
+
+    #[test]
+    fn unauthorized_topics_matches_java_topic_authorization() {
+        assert_eq!(
+            Error::broker(TOPIC_AUTHORIZATION_FAILED, "orders").unauthorized_topics(),
+            ["orders"]
+        );
+        assert!(Error::broker(TOPIC_AUTHORIZATION_FAILED, "")
+            .unauthorized_topics()
+            .is_empty());
+        assert!(Error::broker(CORRUPT_MESSAGE, "orders")
+            .unauthorized_topics()
+            .is_empty());
+        assert!(Error::protocol("orders").unauthorized_topics().is_empty());
+        assert!(Error::UnknownTopic("orders".into())
+            .unauthorized_topics()
+            .is_empty());
     }
 }

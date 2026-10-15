@@ -36,6 +36,11 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 - `ShareGroup::group_metadata` is Java `ShareConsumer.groupMetadata()`
   (`ConsumerGroupMetadata`; `generationId` is the share member epoch).
 
+- `Error::unauthorized_topics` is Java
+  `TopicAuthorizationException.unauthorizedTopics()` (non-empty only for
+  `TOPIC_AUTHORIZATION_FAILED`; ShareFetch collect uses the partition
+  topic, not ErrorMessage).
+
 - `ShareGroup::set_acknowledgement_commit_callback` is Java
   `ShareConsumer.setAcknowledgementCommitCallback`
   (`AcknowledgementCommitCallback.onComplete`).

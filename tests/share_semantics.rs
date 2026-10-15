@@ -2719,8 +2719,8 @@ async fn share_fetch_partition_error_message_reaches_poll() {
         .await
         .unwrap();
     let version = mock.last_share_fetch_version().unwrap_or(2);
-    let mut part = ShareFetchedPartition::partition_response(0, error::TOPIC_AUTHORIZATION_FAILED);
-    part.error_message = Some("not authorized for share topic t".into());
+    let mut part = ShareFetchedPartition::partition_response(0, error::CORRUPT_MESSAGE);
+    part.error_message = Some("Record is corrupt".into());
     let topics = vec![ShareFetchedTopic {
         topic_id: mock.topic_id("t"),
         partitions: vec![part],
@@ -2730,11 +2730,39 @@ async fn share_fetch_partition_error_message_reaches_poll() {
     mock.inject_share_fetch_response_once(&injected);
     match group.poll().await.unwrap_err() {
         Error::Broker { code, message } => {
-            assert_eq!(code, error::TOPIC_AUTHORIZATION_FAILED);
-            assert_eq!(message, "not authorized for share topic t");
+            assert_eq!(code, error::CORRUPT_MESSAGE);
+            assert_eq!(message, "Record is corrupt");
         }
         other => panic!("{other:?}"),
     }
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn share_fetch_unauthorized_topic_names_topics() {
+    let mock = common::Mock::start().await;
+    v2(&mock);
+    let mut group = ShareGroup::join(config(&mock), "unauth", "t")
+        .await
+        .unwrap();
+    let version = mock.last_share_fetch_version().unwrap_or(2);
+    let topics = vec![ShareFetchedTopic {
+        topic_id: mock.topic_id("t"),
+        partitions: vec![ShareFetchedPartition::partition_response(
+            0,
+            error::TOPIC_AUTHORIZATION_FAILED,
+        )],
+    }];
+    let mut injected = BytesMut::new();
+    encode_share_fetch_response(&mut injected, version, &topics).unwrap();
+    mock.inject_share_fetch_response_once(&injected);
+    let err = group.poll().await.unwrap_err();
+    assert_eq!(err.broker_code(), Some(error::TOPIC_AUTHORIZATION_FAILED));
+    assert_eq!(
+        err.unauthorized_topics(),
+        ["t"],
+        "Java testUnauthorizedTopic unauthorizedTopics is the topic name"
+    );
     group.leave().await.unwrap();
 }
 
