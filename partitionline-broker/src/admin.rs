@@ -252,7 +252,9 @@ impl Admin {
                 if entry.record_count != 1 {
                     return Err(Error::InvalidRequest);
                 }
-                admin.state = decode(&entry.payload)?;
+                let decoded = decode(&entry.payload)?;
+                accept_admin(&admin.state, &decoded, admin.limits)?;
+                admin.state = decoded;
                 restored = true;
                 admin.stored = admin.stored.saturating_add(1);
                 cursor = entry
@@ -672,6 +674,133 @@ fn decode(mut bytes: &[u8]) -> Result<State, Error> {
     Ok(state)
 }
 
+fn accept_admin(previous: &State, next: &State, limits: Limits) -> Result<(), Error> {
+    if next.dirs.len() > limits.max_dirs
+        || next.replicas.len() > limits.max_replicas
+        || next.features.len() > limits.max_features
+    {
+        return Err(Error::InvalidLimits);
+    }
+    if next.cluster_id != previous.cluster_id {
+        return Err(Error::InvalidRequest);
+    }
+    let epoch_changed = next.controller_epoch != previous.controller_epoch;
+    let dirs_changed = next.dirs != previous.dirs;
+    let replicas_changed = next.replicas != previous.replicas;
+    let features_changed = next.features != previous.features;
+    let voters_changed = next.voters != previous.voters;
+    let changes = usize::from(epoch_changed)
+        + usize::from(dirs_changed)
+        + usize::from(replicas_changed)
+        + usize::from(features_changed)
+        + usize::from(voters_changed);
+    if changes == 0 {
+        return Ok(());
+    }
+    if changes != 1 {
+        return Err(Error::InvalidRequest);
+    }
+    if epoch_changed {
+        return if next.controller_epoch > previous.controller_epoch {
+            Ok(())
+        } else {
+            Err(Error::InvalidRequest)
+        };
+    }
+    if dirs_changed {
+        return if next.dirs.len() == previous.dirs.len().saturating_add(1)
+            && previous.dirs.is_subset(&next.dirs)
+        {
+            Ok(())
+        } else {
+            Err(Error::InvalidRequest)
+        };
+    }
+    if voters_changed {
+        let added = next.voters.len() == previous.voters.len().saturating_add(1)
+            && previous.voters.is_subset(&next.voters);
+        let removed = previous.voters.len() == next.voters.len().saturating_add(1)
+            && next.voters.is_subset(&previous.voters)
+            && !next.voters.is_empty();
+        return if added || removed {
+            Ok(())
+        } else {
+            Err(Error::InvalidRequest)
+        };
+    }
+    if features_changed {
+        return feature_step(&previous.features, &next.features);
+    }
+    replica_step(&previous.replicas, &next.replicas)
+}
+
+fn feature_step(
+    previous: &BTreeMap<String, i16>,
+    next: &BTreeMap<String, i16>,
+) -> Result<(), Error> {
+    if next.len() == previous.len().saturating_add(1)
+        && previous
+            .iter()
+            .all(|(name, level)| next.get(name) == Some(level))
+    {
+        return Ok(());
+    }
+    if next.len() != previous.len() {
+        return Err(Error::InvalidRequest);
+    }
+    let mut raised = 0usize;
+    for (name, level) in previous {
+        match next.get(name) {
+            Some(next_level) if next_level == level => {}
+            Some(next_level) if *next_level > *level => raised += 1,
+            _ => return Err(Error::InvalidRequest),
+        }
+    }
+    if raised == 1 {
+        Ok(())
+    } else {
+        Err(Error::InvalidRequest)
+    }
+}
+
+fn replica_step(
+    previous: &BTreeMap<TopicPartition, Replica>,
+    next: &BTreeMap<TopicPartition, Replica>,
+) -> Result<(), Error> {
+    if next.len() == previous.len().saturating_add(1) {
+        return if previous
+            .iter()
+            .all(|(key, replica)| next.get(key) == Some(replica))
+        {
+            Ok(())
+        } else {
+            Err(Error::InvalidRequest)
+        };
+    }
+    if next.len() != previous.len() {
+        return Err(Error::InvalidRequest);
+    }
+    let mut changed = 0usize;
+    let mut structural = 0usize;
+    for (key, old) in previous {
+        let Some(new) = next.get(key) else {
+            return Err(Error::InvalidRequest);
+        };
+        if old == new {
+            continue;
+        }
+        changed += 1;
+        if old.replicas != new.replicas || old.leader != new.leader {
+            structural += 1;
+        }
+    }
+    if structural == 0 || (structural == 1 && changed == 1) {
+        Ok(())
+    } else {
+        Err(Error::InvalidRequest)
+    }
+}
+
 fn validate_recovered(state: &State) -> Result<(), Error> {
     if !valid_name(&state.cluster_id) || state.controller_epoch < 0 || state.voters.is_empty() {
         return Err(Error::InvalidRequest);
@@ -762,6 +891,22 @@ mod tests {
         let admin = Admin::open(&path, limits(), "cluster-1", 1)
             .unwrap_or_else(|error| panic!("{error:?}"));
         (admin, path)
+    }
+
+    #[test]
+    fn an_admin_snapshot_cannot_change_epoch_and_voters_together() {
+        let (admin, _) = open("jump");
+        let mut voters = admin.state.voters.clone();
+        voters.insert(2);
+        let mut next = admin.state.clone();
+        next.controller_epoch = 4;
+        next.voters = voters;
+        assert!(matches!(
+            accept_admin(&admin.state, &next, admin.limits),
+            Err(Error::InvalidRequest)
+        ));
+        assert_eq!(admin.state.controller_epoch, 0);
+        assert_eq!(admin.state.voters.len(), 1);
     }
 
     #[test]
