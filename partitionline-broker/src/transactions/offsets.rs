@@ -157,6 +157,8 @@ pub struct TxnOffsets {
     limits: Limits,
     rows: Vec<Row>,
     journal: Journal,
+    /// Reused journal record. Cleared and rewritten on each append.
+    encoded: Vec<u8>,
     stored: usize,
     poisoned: bool,
 }
@@ -169,6 +171,7 @@ impl TxnOffsets {
             limits,
             rows: Vec::new(),
             journal,
+            encoded: Vec::new(),
             stored: 0,
             poisoned: false,
         };
@@ -471,7 +474,7 @@ impl TxnOffsets {
         if self.rows.len() >= self.limits.max_records {
             return Err(Error::InvalidLimits);
         }
-        self.persist(&encode(&row)?)?;
+        self.append_encoded(|bytes| write(bytes, &row))?;
         self.rows.push(row);
         Ok(())
     }
@@ -482,6 +485,18 @@ impl TxnOffsets {
         } else {
             Ok(())
         }
+    }
+
+    fn append_encoded(
+        &mut self,
+        write: impl FnOnce(&mut Vec<u8>) -> Result<(), Error>,
+    ) -> Result<(), Error> {
+        self.encoded.clear();
+        write(&mut self.encoded)?;
+        let payload = std::mem::take(&mut self.encoded);
+        let result = self.persist(&payload);
+        self.encoded = payload;
+        result
     }
 
     fn persist(&mut self, payload: &[u8]) -> Result<(), Error> {
@@ -501,8 +516,15 @@ impl TxnOffsets {
     }
 }
 
+#[cfg(test)]
 fn encode(row: &Row) -> Result<Vec<u8>, Error> {
     let mut bytes = Vec::new();
+    write(&mut bytes, row)?;
+    Ok(bytes)
+}
+
+fn write(bytes: &mut Vec<u8>, row: &Row) -> Result<(), Error> {
+    bytes.clear();
     bytes.extend_from_slice(RECORD_MAGIC);
     match row {
         Row::Data {
@@ -528,10 +550,10 @@ fn encode(row: &Row) -> Result<Vec<u8>, Error> {
             bytes.push(KIND_OFFSET);
             bytes.extend_from_slice(&producer_id.to_be_bytes());
             bytes.extend_from_slice(&epoch.to_be_bytes());
-            put_str(&mut bytes, group)?;
-            put_str(&mut bytes, member)?;
+            put_str(bytes, group)?;
+            put_str(bytes, member)?;
             bytes.extend_from_slice(&generation.to_be_bytes());
-            put_str(&mut bytes, topic)?;
+            put_str(bytes, topic)?;
             bytes.extend_from_slice(&partition.to_be_bytes());
             bytes.extend_from_slice(&offset.to_be_bytes());
         }
@@ -546,7 +568,7 @@ fn encode(row: &Row) -> Result<Vec<u8>, Error> {
             bytes.push(u8::from(*commit));
         }
     }
-    Ok(bytes)
+    Ok(())
 }
 
 fn decode(mut bytes: &[u8]) -> Result<Row, Error> {
@@ -784,8 +806,11 @@ mod tests {
         let (mut log, path) = open("atomic");
         log.append_data(4, 0, 10)
             .unwrap_or_else(|error| panic!("{error:?}"));
+        let encoded_capacity = log.encoded.capacity();
+        assert!(encoded_capacity > 0);
         log.stage_offset(4, 0, staged("orders", "m-1", 2, "orders", 0, 10))
             .unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(log.encoded.capacity() >= encoded_capacity);
         assert!(log.visible_data().is_empty());
         assert!(log.visible_offsets().is_empty());
         log.marker(4, 0, false)
