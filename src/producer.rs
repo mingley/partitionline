@@ -4386,7 +4386,7 @@ struct InFlight {
     version: i16,
     // Snapshot of identities actually sent; latest metadata may describe a
     // recreated topic when an older response arrives.
-    topic_ids: Vec<(String, [u8; 16])>,
+    topic_ids: Vec<(Arc<str>, [u8; 16])>,
     groups: Vec<(Arc<str>, i32, Vec<Pending>)>,
 }
 
@@ -4996,7 +4996,7 @@ impl Worker {
             return Ok(());
         }
         let version = self.conn.produce_version();
-        let topic_ids = if version >= 13 {
+        let topic_ids: Vec<(Arc<str>, [u8; 16])> = if version >= 13 {
             let identities = {
                 let cluster = self.shared.cluster.lock();
                 let mut identities = Vec::new();
@@ -5004,7 +5004,7 @@ impl Worker {
                 for (topic, _, pendings) in &groups {
                     if identities
                         .iter()
-                        .any(|(name, _): &(String, [u8; 16])| name == topic.as_ref())
+                        .any(|(name, _): &(Arc<str>, [u8; 16])| name.as_ref() == topic.as_ref())
                     {
                         continue;
                     }
@@ -5024,7 +5024,7 @@ impl Worker {
                                 missing = Some(format!("{topic} (ambiguous UUID)"));
                                 break;
                             }
-                            identities.push((topic.to_string(), id));
+                            identities.push((Arc::clone(topic), id));
                         }
                         None => {
                             missing = Some(topic.to_string());
@@ -5295,7 +5295,7 @@ impl Worker {
                             .topic_ids
                             .iter()
                             .find(|(_, sent)| *sent == ack.topic_id && ack.topic_id != [0; 16])
-                            .map(|(name, _)| name.as_str())
+                            .map(|(name, _)| name.as_ref())
                             .ok_or_else(|| {
                                 Error::protocol(
                                     "Produce v13 response UUID is absent from sent snapshot",
@@ -5347,7 +5347,7 @@ impl Worker {
                 inf.topic_ids
                     .iter()
                     .find(|(_, sent)| *sent == ack.topic_id && ack.topic_id != [0; 16])
-                    .map(|(name, _)| name.as_str())
+                    .map(|(name, _)| name.as_ref())
             } else {
                 std::str::from_utf8(&ack.topic).ok()
             };
@@ -5998,7 +5998,7 @@ fn encode_produce_body(
     acks: i16,
     timeout_ms: i32,
     groups: &[(Arc<str>, i32, Vec<Pending>)],
-    topic_ids: &[(String, [u8; 16])],
+    topic_ids: &[(Arc<str>, [u8; 16])],
     compression: Compression,
     now: i64,
     producer_id: i64,
@@ -6046,7 +6046,7 @@ fn encode_produce_body(
         if version >= 13 {
             let id = topic_ids
                 .iter()
-                .find(|(name, _)| name == topic.as_ref())
+                .find(|(name, _)| name.as_ref() == topic.as_ref())
                 .map(|(_, id)| id)
                 .filter(|id| **id != [0; 16])
                 .ok_or_else(|| {
