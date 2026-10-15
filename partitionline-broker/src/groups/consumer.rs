@@ -242,7 +242,9 @@ impl Groups {
                 if entry.record_count != 1 {
                     return Err(Error::InvalidRequest);
                 }
-                groups.state = decode(&entry.payload)?;
+                let decoded = decode(&entry.payload)?;
+                accept_consumer_state(&groups.state, &decoded)?;
+                groups.state = decoded;
                 groups.stored = groups.stored.saturating_add(1);
                 cursor = entry
                     .first_offset
@@ -596,6 +598,73 @@ fn assign_topic(group: &mut Group, topic: &str, count: i32, subscribers: &[Strin
             member.assignment.insert(topic.to_owned(), owned);
         }
     }
+}
+
+fn accept_consumer_state(previous: &State, next: &State) -> Result<(), Error> {
+    if next.coordinator_epoch < previous.coordinator_epoch {
+        return Err(Error::InvalidRequest);
+    }
+    if next.next_member != previous.next_member
+        && previous.next_member.checked_add(1) != Some(next.next_member)
+    {
+        return Err(Error::InvalidRequest);
+    }
+    if previous
+        .topics
+        .keys()
+        .any(|topic| !next.topics.contains_key(topic))
+    {
+        return Err(Error::InvalidRequest);
+    }
+    for (id, group) in &next.groups {
+        match previous.groups.get(id) {
+            None => {
+                if group.epoch != 0 {
+                    return Err(Error::InvalidRequest);
+                }
+            }
+            Some(stored) => {
+                if group.epoch != stored.epoch && stored.epoch.checked_add(1) != Some(group.epoch) {
+                    return Err(Error::InvalidRequest);
+                }
+                for (member_id, member) in &group.members {
+                    if let Some(stored_member) = stored.members.get(member_id) {
+                        if member.epoch != stored_member.epoch
+                            && stored_member.epoch.checked_add(1) != Some(member.epoch)
+                        {
+                            return Err(Error::InvalidRequest);
+                        }
+                    } else if member.epoch != 0 {
+                        return Err(Error::InvalidRequest);
+                    }
+                }
+            }
+        }
+    }
+    let mut allocated = None;
+    if next.next_member != previous.next_member {
+        allocated = Some(format!("m-{}", previous.next_member));
+    }
+    let mut found = allocated.is_none();
+    for (id, group) in &next.groups {
+        for member_id in group.members.keys() {
+            let known = previous
+                .groups
+                .get(id)
+                .is_some_and(|stored| stored.members.contains_key(member_id));
+            if known {
+                continue;
+            }
+            if allocated.as_deref() != Some(member_id.as_str()) || found {
+                return Err(Error::InvalidRequest);
+            }
+            found = true;
+        }
+    }
+    if !found {
+        return Err(Error::InvalidRequest);
+    }
+    Ok(())
 }
 
 fn advance_epoch(epoch: i32) -> Result<i32, Error> {
@@ -980,6 +1049,45 @@ mod tests {
             }
         }
         owned
+    }
+
+    #[test]
+    fn a_group_epoch_jump_is_not_recovered() {
+        let (groups, _) = open("jump");
+        let mut members = BTreeMap::new();
+        members.insert(
+            "m-1".to_owned(),
+            Member {
+                epoch: 0,
+                last_seen_ms: 0,
+                acked: true,
+                instance: None,
+                version: 0,
+                topics: BTreeSet::new(),
+                assignment: BTreeMap::new(),
+            },
+        );
+        let mut stored = BTreeMap::new();
+        stored.insert(
+            "g".to_owned(),
+            Group {
+                epoch: 4,
+                version: 0,
+                members,
+            },
+        );
+        let state = State {
+            coordinator_epoch: 0,
+            next_member: 2,
+            topics: BTreeMap::new(),
+            groups: stored,
+        };
+        assert!(matches!(
+            accept_consumer_state(&groups.state, &state),
+            Err(Error::InvalidRequest)
+        ));
+        assert!(groups.state.groups.is_empty());
+        assert_eq!(groups.state.next_member, 1);
     }
 
     #[test]
