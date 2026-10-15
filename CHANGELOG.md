@@ -88,7 +88,10 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   (Java `lookupTopicId`) and does not fail a requested partition whose
   `AcknowledgeErrorCode` is none. A known cluster topic id that was
   not in this piggyback ShareFetch is skipped the same way and does
-  not deliver those records.
+  not deliver those records. A piggybacked `FENCED_LEADER_EPOCH`
+  `AcknowledgeErrorCode` with a usable CurrentLeader does not update
+  the next ShareFetch target (Java `handleShareFetchSuccess` applies
+  CurrentLeader only for fetch `errorCode`).
   ShareAcknowledge top-level `SHARE_SESSION_LIMIT_REACHED` completes
   without retry and advances the share session epoch (Java
   `handleResponse` `nextEpoch`), including when `ErrorMessage` is
