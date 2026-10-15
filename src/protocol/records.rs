@@ -2125,7 +2125,7 @@ impl CompressScratch {
         self.zstd_max_batch_bytes = bytes;
     }
 
-    fn shrink_to_caps(&mut self) {
+    pub(crate) fn shrink_to_caps(&mut self) {
         #[cfg(feature = "zstd")]
         if self.section.capacity() > self.section_cap.saturating_mul(2)
             || self.packed.capacity() > self.packed_cap.saturating_mul(2)
@@ -2176,53 +2176,12 @@ where
     // written before the records, so an overflow must roll that prefix back.
     let original = buf.len();
     let encoded = (|| {
-        let (batch_start, batch_len_pos, crc_pos, crc_start) = start_record_batch(buf, header);
-        let mut written = 0usize;
         match compression {
-            Compression::None => {
-                for (i, rec) in records.enumerate() {
-                    encode_record(
-                        buf,
-                        &rec,
-                        absolute_offset_delta(header.base_offset, i)?,
-                        timestamp_delta(header.base_timestamp, rec.timestamp)?,
-                    )?;
-                    written = i.saturating_add(1);
-                }
-            }
             Compression::Gzip | Compression::Snappy | Compression::Lz4 => {
-                // KL09-33: 1 KiB floor kills the early doubling steps for real
-                // batches. `reserve` is a no-op once reused capacity covers it.
-                // KL09-32 sizes each record's varints once inside `encode_record`.
-                let section = &mut scratch.section;
-                section.clear();
-                section.reserve(1024);
-                for (i, rec) in records.enumerate() {
-                    encode_record(
-                        section,
-                        &rec,
-                        absolute_offset_delta(header.base_offset, i)?,
-                        timestamp_delta(header.base_timestamp, rec.timestamp)?,
-                    )?;
-                    written = i.saturating_add(1);
-                }
-                let packed = &mut scratch.packed;
-                match compression {
-                    Compression::Gzip => gzip_compress_into(section, packed)?,
-                    Compression::Snappy => snappy_compress_into(section, packed)?,
-                    Compression::Lz4 => lz4_compress_into(section, packed)?,
-                    Compression::None => {
-                        return Err(Error::protocol("internal: none after compressed branch"));
-                    }
-                    #[cfg(feature = "zstd")]
-                    Compression::Zstd => {
-                        return Err(Error::Unsupported(
-                            "internal: zstd after non-zstd encoder branch".into(),
-                        ))
-                    }
-                }
-                buf.extend_from_slice(packed);
+                let _framed = pack_compressed_batch(header, records, scratch)?;
+                write_packed_batch(buf, header, scratch)?;
                 scratch.shrink_to_caps();
+                return Ok(());
             }
             #[cfg(feature = "zstd")]
             Compression::Zstd => {
@@ -2230,12 +2189,134 @@ where
                     "internal: zstd after non-zstd encoder branch".into(),
                 ))
             }
+            Compression::None => {}
+        }
+        let (batch_start, batch_len_pos, crc_pos, crc_start) = start_record_batch(buf, header);
+        let mut written = 0usize;
+        for (i, rec) in records.enumerate() {
+            encode_record(
+                buf,
+                &rec,
+                absolute_offset_delta(header.base_offset, i)?,
+                timestamp_delta(header.base_timestamp, rec.timestamp)?,
+            )?;
+            written = i.saturating_add(1);
         }
         if header.count != buf::i32_from_usize(written)? {
             return Err(Error::protocol("record count differs from header"));
         }
         finish_record_batch(buf, batch_start, batch_len_pos, crc_pos, crc_start)
     })();
+    if encoded.is_err() {
+        buf.truncate(original);
+    }
+    encoded
+}
+
+/// Compress `records` into the scratch payload and return the framed batch length.
+///
+/// The length is [`RecordBatch::RECORD_BATCH_OVERHEAD`] plus the packed
+/// payload, matching [`write_packed_batch`].
+pub fn pack_compressed_batch<'a, I>(
+    header: &BatchHeader,
+    records: I,
+    scratch: &mut CompressScratch,
+) -> Result<usize>
+where
+    I: IntoIterator<Item = EncodeRecord<'a>>,
+{
+    let compression = Compression::from_attributes(header.attributes)?;
+    let result = pack_compressed_batch_inner(header, records, scratch, compression);
+    if result.is_err() {
+        scratch.section.clear();
+        scratch.packed.clear();
+        #[cfg(feature = "zstd")]
+        {
+            scratch.zstd_encoder = None;
+        }
+    }
+    result
+}
+
+fn pack_compressed_batch_inner<'a, I>(
+    header: &BatchHeader,
+    records: I,
+    scratch: &mut CompressScratch,
+    compression: Compression,
+) -> Result<usize>
+where
+    I: IntoIterator<Item = EncodeRecord<'a>>,
+{
+    // KL09-33: 1 KiB floor kills the early doubling steps for real batches.
+    scratch.section.clear();
+    scratch.section.reserve(1024);
+    let mut written = 0usize;
+    for (index, rec) in records.into_iter().enumerate() {
+        let offset_delta = absolute_offset_delta(header.base_offset, index)?;
+        let timestamp_delta = timestamp_delta(header.base_timestamp, rec.timestamp)?;
+        #[cfg(feature = "zstd")]
+        if compression == Compression::Zstd {
+            let body = record_body_size(&rec, offset_delta, timestamp_delta)?;
+            let size = buf::usize_from_i32(body)?
+                .checked_add(buf::varint_size(body))
+                .and_then(|n| n.checked_add(scratch.section.len()))
+                .ok_or_else(|| Error::protocol("zstd record section size overflow"))?;
+            if size > DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES {
+                return Err(Error::protocol("zstd record section exceeds 64 MiB"));
+            }
+        }
+        encode_record(&mut scratch.section, &rec, offset_delta, timestamp_delta)?;
+        written = index.saturating_add(1);
+    }
+    if header.count != buf::i32_from_usize(written)? {
+        return Err(Error::protocol("record count differs from header"));
+    }
+    match compression {
+        Compression::Gzip => gzip_compress_into(&scratch.section, &mut scratch.packed)?,
+        Compression::Snappy => snappy_compress_into(&scratch.section, &mut scratch.packed)?,
+        Compression::Lz4 => lz4_compress_into(&scratch.section, &mut scratch.packed)?,
+        #[cfg(feature = "zstd")]
+        Compression::Zstd => zstd_compress_into(
+            &scratch.section,
+            &mut scratch.packed,
+            &mut scratch.zstd_encoder,
+            scratch.zstd_level,
+        )?,
+        Compression::None => {
+            return Err(Error::protocol("internal: uncompressed pack"));
+        }
+    }
+    let framed = scratch
+        .packed
+        .len()
+        .checked_add(buf::usize_from_i32(RecordBatch::RECORD_BATCH_OVERHEAD)?)
+        .ok_or_else(|| Error::protocol("compressed batch size overflow"))?;
+    #[cfg(feature = "zstd")]
+    if compression == Compression::Zstd
+        && scratch.zstd_max_batch_bytes != 0
+        && framed > scratch.zstd_max_batch_bytes
+    {
+        return Err(Error::RecordTooLarge {
+            size: u64::try_from(framed).unwrap_or(u64::MAX),
+            max: u64::try_from(scratch.zstd_max_batch_bytes).unwrap_or(u64::MAX),
+            config: Error::MAX_REQUEST_SIZE_CONFIG,
+        });
+    }
+    Ok(framed)
+}
+
+/// Write a batch whose payload is already in `scratch.packed`.
+pub fn write_packed_batch(
+    buf: &mut BytesMut,
+    header: &BatchHeader,
+    scratch: &CompressScratch,
+) -> Result<()> {
+    let original = buf.len();
+    let encoded = {
+        let (batch_start, batch_len_pos, crc_pos, crc_start) = start_record_batch(buf, header);
+        buf.extend_from_slice(&scratch.packed);
+        finish_record_batch(buf, batch_start, batch_len_pos, crc_pos, crc_start)
+    };
     if encoded.is_err() {
         buf.truncate(original);
     }
@@ -2361,48 +2442,14 @@ where
     I: Iterator<Item = EncodeRecord<'a>>,
 {
     let original = buf.len();
-    scratch.section.clear();
-    scratch.packed.clear();
     let result = (|| {
-        let mut count = 0usize;
-        for rec in records {
-            let delta = absolute_offset_delta(header.base_offset, count)?;
-            let timestamp = timestamp_delta(header.base_timestamp, rec.timestamp)?;
-            let body = record_body_size(&rec, delta, timestamp)?;
-            let size = buf::usize_from_i32(body)?
-                .checked_add(buf::varint_size(body))
-                .and_then(|n| n.checked_add(scratch.section.len()))
-                .ok_or_else(|| Error::protocol("zstd record section size overflow"))?;
-            if size > DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES {
-                return Err(Error::protocol("zstd record section exceeds 64 MiB"));
-            }
-            encode_record(&mut scratch.section, &rec, delta, timestamp)?;
-            count += 1;
+        let framed = pack_compressed_batch(header, records, scratch)?;
+        let start = buf.len();
+        write_packed_batch(buf, header, scratch)?;
+        if buf.len().saturating_sub(start) != framed {
+            return Err(Error::protocol("zstd batch length mismatch"));
         }
-        if header.count != buf::i32_from_usize(count)? {
-            return Err(Error::protocol("zstd record count differs from header"));
-        }
-        zstd_compress_into(
-            &scratch.section,
-            &mut scratch.packed,
-            &mut scratch.zstd_encoder,
-            scratch.zstd_level,
-        )?;
-        let encoded_bytes = scratch
-            .packed
-            .len()
-            .checked_add(61)
-            .ok_or_else(|| Error::protocol("zstd batch size overflow"))?;
-        if scratch.zstd_max_batch_bytes != 0 && encoded_bytes > scratch.zstd_max_batch_bytes {
-            return Err(Error::RecordTooLarge {
-                size: u64::try_from(encoded_bytes).unwrap_or(u64::MAX),
-                max: u64::try_from(scratch.zstd_max_batch_bytes).unwrap_or(u64::MAX),
-                config: Error::MAX_REQUEST_SIZE_CONFIG,
-            });
-        }
-        let (start, len, crc, data) = start_record_batch(buf, header);
-        buf.extend_from_slice(&scratch.packed);
-        finish_record_batch(buf, start, len, crc, data)
+        Ok(())
     })();
     if result.is_err() {
         buf.truncate(original);

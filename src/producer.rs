@@ -5636,10 +5636,6 @@ fn encode_produce_body(
     Ok(())
 }
 
-/// Widest unsigned varint. Compressed batches learn their size only after
-/// packing, so the placeholder is rewritten and the payload slides left.
-const COMPACT_BYTES_WIDTH: usize = 5;
-
 #[expect(
     clippy::too_many_arguments,
     reason = "flexible partition encode shares the produce batch knobs"
@@ -5695,10 +5691,7 @@ fn encode_flexible_partition(
         }
         return Ok(());
     }
-    let mark = buf.len();
-    buf.resize(mark + COMPACT_BYTES_WIDTH, 0);
-    encode_pendings(
-        buf,
+    let header = pending_batch_header(
         pendings,
         compression,
         now,
@@ -5706,37 +5699,27 @@ fn encode_flexible_partition(
         producer_epoch,
         base_sequence,
         transactional,
+    )?;
+    let batch_len = crate::protocol::records::pack_compressed_batch(
+        &header,
+        pendings.iter().map(|pending| EncodeRecord {
+            timestamp: pending.rec.timestamp.unwrap_or(now),
+            key: pending.rec.key.as_deref(),
+            value: pending.rec.value.as_deref(),
+            headers: &pending.rec.headers,
+        }),
         scratch,
     )?;
-    patch_compact_bytes(buf, mark)
-}
-
-fn patch_compact_bytes(buf: &mut BytesMut, mark: usize) -> Result<()> {
-    let payload = buf.len().saturating_sub(mark + COMPACT_BYTES_WIDTH);
-    let n = crate::protocol::buf::u32_from_usize(payload)?
+    let compact = crate::protocol::buf::u32_from_usize(batch_len)?
         .checked_add(1)
         .ok_or_else(|| Error::protocol("compact bytes overflow"))?;
-    let width = crate::protocol::buf::unsigned_varint_size(n);
-    let shift = COMPACT_BYTES_WIDTH.saturating_sub(width);
-    if shift != 0 {
-        buf.copy_within(mark + COMPACT_BYTES_WIDTH.., mark + width);
-        buf.truncate(buf.len() - shift);
+    crate::protocol::buf::put_unsigned_varint(buf, compact);
+    let start = buf.len();
+    crate::protocol::records::write_packed_batch(buf, &header, scratch)?;
+    if buf.len().saturating_sub(start) != batch_len {
+        return Err(Error::protocol("compressed batch length mismatch"));
     }
-    let mut encoded = [0u8; COMPACT_BYTES_WIDTH];
-    let mut value = n;
-    for slot in encoded.iter_mut().take(width) {
-        let more = value >= 0x80;
-        let low = u8::try_from(value & 0x7f).unwrap_or(0);
-        *slot = low | if more { 0x80 } else { 0 };
-        value >>= 7;
-    }
-    let Some(encoded) = encoded.get(..width) else {
-        return Err(Error::protocol("compact bytes length slot"));
-    };
-    let Some(dest) = buf.get_mut(mark..mark + width) else {
-        return Err(Error::protocol("compact bytes length slot"));
-    };
-    dest.copy_from_slice(encoded);
+    scratch.shrink_to_caps();
     Ok(())
 }
 
