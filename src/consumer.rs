@@ -3126,7 +3126,7 @@ impl Consumer {
         let mut topics = Vec::new();
         {
             let mut named = HashSet::new();
-            let mut seen = HashSet::new();
+            let mut seen: HashMap<&str, HashSet<i32>> = HashMap::new();
             for (topic, partition, offset) in starts {
                 require_partition(*partition)?;
                 require_fetch_offset(*offset)?;
@@ -3134,7 +3134,7 @@ impl Consumer {
                 if named.insert(topic.as_str()) {
                     topics.push(topic.clone());
                 }
-                if !seen.insert((topic.clone(), *partition)) {
+                if !claim_topic_partition(&mut seen, topic, *partition) {
                     return Err(Error::protocol("duplicate assigned partition"));
                 }
             }
@@ -7581,13 +7581,27 @@ fn require_list_offset_target(topic: &str, partition: i32) -> Result<()> {
     require_partition(partition)
 }
 
+fn claim_topic_partition<'a>(
+    seen: &mut HashMap<&'a str, HashSet<i32>>,
+    topic: &'a str,
+    partition: i32,
+) -> bool {
+    if let Some(parts) = seen.get_mut(topic) {
+        return parts.insert(partition);
+    }
+    let mut parts = HashSet::new();
+    let _ = parts.insert(partition);
+    let _ = seen.insert(topic, parts);
+    true
+}
+
 fn require_unique_offset_partitions<'a>(
     partitions: impl IntoIterator<Item = (&'a str, i32)>,
 ) -> Result<()> {
-    let mut seen = HashSet::new();
+    let mut seen: HashMap<&str, HashSet<i32>> = HashMap::new();
     for (topic, partition) in partitions {
         require_list_offset_target(topic, partition)?;
-        if !seen.insert((topic.to_owned(), partition)) {
+        if !claim_topic_partition(&mut seen, topic, partition) {
             return Err(Error::protocol("duplicate offset partition"));
         }
     }
@@ -8978,6 +8992,11 @@ mod tests {
         assert!(require_list_offset_target("orders", -1).is_err());
         assert!(require_list_offset_target("orders", 0).is_ok());
         assert!(require_unique_offset_partitions([("orders", 0), ("orders", 1)]).is_ok());
+        let mut claimed: HashMap<&str, HashSet<i32>> = HashMap::new();
+        assert!(claim_topic_partition(&mut claimed, "orders", 0));
+        assert!(claim_topic_partition(&mut claimed, "orders", 1));
+        assert!(!claim_topic_partition(&mut claimed, "orders", 0));
+        assert!(claim_topic_partition(&mut claimed, "payments", 0));
         let duplicate = require_unique_offset_partitions([("orders", 0), ("orders", 0)])
             .unwrap_err()
             .to_string();
