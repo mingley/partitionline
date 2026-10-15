@@ -5754,6 +5754,9 @@ impl Consumer {
                 continue;
             }
             let topic_name = TopicName::shared(&name);
+            let node_known = self.broker_known(node);
+            let mut topic_leaders: Option<Vec<i32>> = None;
+            let mut topic_leaders_live = true;
             for (part, part_batches) in topic.partitions.into_iter().zip(topic_batches) {
                 if topic_seen
                     .as_mut()
@@ -5785,8 +5788,14 @@ impl Consumer {
                     }
                 }
                 if part.error_code == error::OFFSET_OUT_OF_RANGE {
-                    let is_leader =
-                        self.cluster.leader_id(&name, part.partition).ok() == Some(node);
+                    let is_leader = fetch_response_is_leader(
+                        topic_leaders
+                            .get_or_insert_with(|| self.cluster.leader_ids(name.as_ref()).to_vec()),
+                        topic_leaders_live,
+                        node_known,
+                        part.partition,
+                        node,
+                    );
                     if self.preferred.remove(&name, part.partition).is_some() || !is_leader {
                         let _ = self.preferred.remove(&name, part.partition);
                         retry = retry.merge(FetchRetry::Redirect);
@@ -5826,6 +5835,7 @@ impl Consumer {
                             retry = retry.merge(FetchRetry::Redirect);
                         } else {
                             self.cluster.invalidate_topic(&name);
+                            topic_leaders_live = false;
                             let _ = self.conns.remove(&node);
                             retry = retry.merge(FetchRetry::Backoff);
                         }
@@ -5844,8 +5854,14 @@ impl Consumer {
                 if position_past_high_watermark(req_offset, part.high_watermark)
                     || position_before_log_start(req_offset, part.log_start_offset)
                 {
-                    let is_leader =
-                        self.cluster.leader_id(&name, part.partition).ok() == Some(node);
+                    let is_leader = fetch_response_is_leader(
+                        topic_leaders
+                            .get_or_insert_with(|| self.cluster.leader_ids(name.as_ref()).to_vec()),
+                        topic_leaders_live,
+                        node_known,
+                        part.partition,
+                        node,
+                    );
                     if self.preferred.remove(&name, part.partition).is_some() || !is_leader {
                         let _ = self.preferred.remove(&name, part.partition);
                         retry = retry.merge(FetchRetry::Redirect);
@@ -7222,6 +7238,20 @@ fn fetch_topic_name(
 /// Whether any incomplete assignment needs a metadata refresh.
 ///
 /// One topic is checked once. A fresh topic does not inspect every partition.
+/// Whether this fetch node is still the metadata leader for `partition`.
+///
+/// `leaders` is the topic list loaded once for the response. After the topic
+/// is invalidated, `live` is false and later partitions are not leaders.
+fn fetch_response_is_leader(
+    leaders: &[i32],
+    live: bool,
+    node_known: bool,
+    partition: i32,
+    node: i32,
+) -> bool {
+    live && node_known && cached_leader(leaders, partition) == Some(node)
+}
+
 fn cached_leader(leaders: &[i32], partition: i32) -> Option<i32> {
     let idx = usize::try_from(partition).ok()?;
     leaders.get(idx).copied().filter(|id| *id >= 0)
@@ -7746,6 +7776,17 @@ mod tests {
             vec!["orders".to_owned(), "payments".to_owned()]
         );
         assert!(unique_assigned_topics(&[]).is_empty());
+    }
+
+    #[test]
+    fn a_fetch_topic_reuses_its_leader_list() {
+        let leaders = [2, 2, -1];
+        assert!(fetch_response_is_leader(&leaders, true, true, 0, 2));
+        assert!(fetch_response_is_leader(&leaders, true, true, 1, 2));
+        assert!(!fetch_response_is_leader(&leaders, true, true, 1, 9));
+        assert!(!fetch_response_is_leader(&leaders, true, true, 2, 2));
+        assert!(!fetch_response_is_leader(&leaders, false, true, 0, 2));
+        assert!(!fetch_response_is_leader(&leaders, true, false, 0, 2));
     }
 
     struct OwnedPlan {
