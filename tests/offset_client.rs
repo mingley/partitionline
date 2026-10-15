@@ -998,6 +998,7 @@ async fn two_offset_coordinators_are_fetched_and_restored_in_request_order() {
         .collect::<Vec<_>>();
     slots.sort_unstable();
     assert_eq!(slots, vec![1, 2]);
+    assert_eq!(frames.iter().filter(|frame| frame.api == 10).count(), 1);
 }
 
 #[tokio::test]

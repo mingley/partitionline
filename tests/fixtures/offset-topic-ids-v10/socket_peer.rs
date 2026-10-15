@@ -91,7 +91,13 @@ fn api_versions(range: Option<(i16, i16)>, fc: i16, metadata_version: i16, error
     out
 }
 
-fn find_response(address: SocketAddr, key: &[u8], version: i16, code: i16) -> Vec<u8> {
+fn find_response(
+    addresses: &[SocketAddr; 3],
+    routes: &mut VecDeque<usize>,
+    key: &[u8],
+    version: i16,
+    code: i16,
+) -> Vec<u8> {
     let mut out = vec![0; 4];
     if version >= 4 {
         assert_eq!(key[0], 0, "GROUP coordinator type");
@@ -131,6 +137,8 @@ fn find_response(address: SocketAddr, key: &[u8], version: i16, code: i16) -> Ve
             at = at.checked_add(length - 1).unwrap();
             assert!(at < key.len());
             let _utf8 = std::str::from_utf8(&key[text_start..at]).unwrap();
+            let route = routes.pop_front().unwrap_or(1);
+            let address = addresses[route];
             out.extend_from_slice(&key[start..at]);
             out.extend_from_slice(&7i32.to_be_bytes());
             compact(&mut out, "127.0.0.1");
@@ -141,6 +149,8 @@ fn find_response(address: SocketAddr, key: &[u8], version: i16, code: i16) -> Ve
         assert_eq!(&key[at..], &[0], "whole request and empty root tags");
         out.push(0);
     } else {
+        let route = routes.pop_front().unwrap_or(1);
+        let address = addresses[route];
         out.extend_from_slice(&code.to_be_bytes());
         if version == 3 {
             out.push(0);
@@ -282,8 +292,14 @@ async fn worker(
                     if s.require_bootstrap_find {
                         assert_eq!(slot, 0, "GROUP discovery goes to bootstrap");
                     }
-                    let route = s.routes.pop_front().unwrap_or(1);
-                    Reply::Body(find_response(addresses[route], &body, version, s.find_code))
+                    let find_code = s.find_code;
+                    Reply::Body(find_response(
+                        &addresses,
+                        &mut s.routes,
+                        &body,
+                        version,
+                        find_code,
+                    ))
                 }
                 3 => {
                     let id = s.metadata_ids.pop_front().unwrap_or(s.metadata_id);

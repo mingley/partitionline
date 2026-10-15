@@ -12,12 +12,12 @@ use crate::protocol::api_keys::{
 };
 use crate::protocol::group::{
     decode_find_coordinator_response_coordinators, decode_offset_commit_response_data,
-    decode_offset_fetch_response_data, encode_find_coordinator_request_typed,
-    encode_offset_commit_request_data, encode_offset_fetch_request_data,
-    validate_offset_commit_request_data, validate_offset_fetch_request_data,
-    validate_offset_fetch_response_data, OffsetCommitRequestData, OffsetCommitResponseData,
-    OffsetFetchRequestData, OffsetFetchResponseData, OffsetLimits, OffsetTopicIdentity,
-    COORDINATOR_GROUP,
+    decode_offset_fetch_response_data, encode_find_coordinator_request_keys,
+    encode_find_coordinator_request_typed, encode_offset_commit_request_data,
+    encode_offset_fetch_request_data, validate_offset_commit_request_data,
+    validate_offset_fetch_request_data, validate_offset_fetch_response_data,
+    OffsetCommitRequestData, OffsetCommitResponseData, OffsetFetchRequestData,
+    OffsetFetchResponseData, OffsetLimits, OffsetTopicIdentity, COORDINATOR_GROUP,
 };
 use crate::protocol::group::{decode_offset_metadata_bindings, encode_offset_metadata_names};
 use crate::protocol::sasl;
@@ -416,6 +416,65 @@ impl OffsetClient {
             .ok_or_else(|| Error::protocol("invalid offset coordinator address"))
     }
 
+    async fn route_groups(
+        conn: &mut BrokerConn,
+        versions: &ApiVersionsResponse,
+        groups: &[crate::protocol::group::OffsetFetchGroupData],
+        deadline: Deadline,
+        control_bytes: &mut usize,
+    ) -> Result<BTreeMap<String, Vec<usize>>> {
+        let version = versions
+            .api_version(FIND_COORDINATOR)
+            .and_then(|range| pick_version(range.min_version, range.max_version, 1, 6))
+            .ok_or_else(|| {
+                Error::Unsupported("broker does not support FindCoordinator v1-6".into())
+            })?;
+        if groups.len() <= 1 || version < 4 {
+            let mut routes: BTreeMap<String, Vec<usize>> = BTreeMap::new();
+            for (index, group) in groups.iter().enumerate() {
+                let address =
+                    Self::coordinator(conn, versions, &group.group_id, deadline, control_bytes)
+                        .await?;
+                routes.entry(address).or_default().push(index);
+            }
+            return Ok(routes);
+        }
+        let keys: Vec<&str> = groups.iter().map(|group| group.group_id.as_str()).collect();
+        let body = conn
+            .roundtrip_deadline(
+                FIND_COORDINATOR,
+                version,
+                |buf| encode_find_coordinator_request_keys(buf, version, &keys, COORDINATOR_GROUP),
+                deadline,
+            )
+            .await?;
+        charge_bytes(control_bytes, body.len(), MAX_CONTROL_BYTES)?;
+        if body.len() > 64 * 1024 {
+            return Err(Error::protocol(
+                "offset coordinator response exceeds bounds",
+            ));
+        }
+        let mut raw = body.as_ref();
+        let (coordinators, _) = decode_find_coordinator_response_coordinators(&mut raw, version)?;
+        if !raw.is_empty() || coordinators.len() != groups.len() {
+            return Err(Error::protocol("invalid offset coordinator response"));
+        }
+        let mut routes: BTreeMap<String, Vec<usize>> = BTreeMap::new();
+        for (index, group) in groups.iter().enumerate() {
+            let coordinator = coordinators
+                .iter()
+                .find(|item| item.key == group.group_id)
+                .ok_or_else(|| Error::protocol("offset coordinator key differs"))?;
+            if coordinator.error_code != 0 {
+                return Err(Error::broker(coordinator.error_code, "FindCoordinator"));
+            }
+            let address = crate::cluster::dial_address(&coordinator.host, coordinator.port)
+                .ok_or_else(|| Error::protocol("invalid offset coordinator address"))?;
+            routes.entry(address).or_default().push(index);
+        }
+        Ok(routes)
+    }
+
     async fn commit_once(
         &self,
         request: &OffsetCommitRequestData,
@@ -487,18 +546,14 @@ impl OffsetClient {
         let (mut bootstrap, versions, _) = self
             .bootstrap(OFFSET_FETCH, options.topic_ids, member, deadline)
             .await?;
-        let mut routes = BTreeMap::<String, Vec<usize>>::new();
-        for (index, group) in request.groups.iter().enumerate() {
-            let address = Self::coordinator(
-                &mut bootstrap,
-                &versions,
-                &group.group_id,
-                deadline,
-                control_bytes,
-            )
-            .await?;
-            routes.entry(address).or_default().push(index);
-        }
+        let routes = Self::route_groups(
+            &mut bootstrap,
+            &versions,
+            &request.groups,
+            deadline,
+            control_bytes,
+        )
+        .await?;
         drop(bootstrap);
         let order: Vec<(String, Vec<usize>)> = routes.into_iter().collect();
         let mut next_dial = 0usize;
