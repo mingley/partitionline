@@ -2710,7 +2710,7 @@ impl EncodedBatch {
             };
             on_record(record);
         }
-        if count > 0 && body.has_remaining() {
+        if body.has_remaining() {
             return Ok(None);
         }
         Ok(Some(ShortKeyBatch {
@@ -2923,7 +2923,7 @@ fn decode_checked_batch(
             base_timestamp,
         )?);
     }
-    if count > 0 && records_cur.has_remaining() {
+    if records_cur.has_remaining() {
         return Err(Error::protocol(
             "Incorrect declared batch size, records still remaining in file",
         ));
@@ -4613,6 +4613,31 @@ mod tests {
             .unwrap_err()
             .to_string();
         assert!(short.contains("need 4 bytes"), "{short}");
+    }
+
+    #[test]
+    fn a_zero_count_batch_with_trailing_bytes_is_rejected() {
+        let mut empty = vec![0u8; 49];
+        empty[4] = 2;
+        let crc = crc32c::crc32c(&empty[9..]);
+        empty[5..9].copy_from_slice(&crc.to_be_bytes());
+        assert!(decode_checked_batch(0, Bytes::from(empty.clone()), 1024).is_ok());
+        let mut trailing = empty;
+        trailing.push(1);
+        let crc = crc32c::crc32c(&trailing[9..]);
+        trailing[5..9].copy_from_slice(&crc.to_be_bytes());
+        let body = Bytes::from(trailing);
+        assert!(decode_checked_batch(0, body.clone(), 1024).is_err());
+        let framed = EncodedBatch {
+            base_offset: 0,
+            attributes: 0,
+            body,
+        };
+        let visited = framed.try_visit_short_keys(|_| {});
+        assert!(visited.is_ok());
+        if let Ok(visited) = visited {
+            assert!(visited.is_none());
+        }
     }
 
     #[test]
