@@ -256,6 +256,8 @@ pub(crate) struct Store {
     sync_reps: Vec<(usize, usize)>,
     /// Partition identity to the representative slot in `sync_reps`.
     sync_slots: HashMap<(TopicId, i32), usize>,
+    /// Join handles for the grouped partition sync. Cleared between batches.
+    sync_joins: Vec<Option<Option<std::thread::JoinHandle<std::io::Result<()>>>>>,
 }
 impl Store {
     pub(crate) fn open(config: Config, catalog: &Catalog) -> Result<Self, Error> {
@@ -330,6 +332,7 @@ impl Store {
             queued_replies: Vec::new(),
             sync_reps: Vec::new(),
             sync_slots: HashMap::new(),
+            sync_joins: Vec::new(),
         })
     }
     pub(crate) fn prepare_response_buf(&mut self, buf: Vec<u8>) {
@@ -1493,7 +1496,7 @@ pub(crate) fn process(
 pub(crate) fn process_queued(
     catalog: &Catalog,
     store: &mut Store,
-    inputs: &mut [&mut [u8]],
+    inputs: &mut [Vec<u8>],
     admitted: &[Instant],
     common: &metadata::Config,
     spares: &mut [Vec<u8>],
@@ -1528,7 +1531,7 @@ pub(crate) fn process_queued(
         let Some(item) = slot.take() else {
             continue;
         };
-        let input = &inputs[index];
+        let input = inputs.get(index).map(Vec::as_slice).unwrap_or(&[]);
         if let Some(spare) = spares.get_mut(index) {
             replies[index] = finish_captured(store, item, input, spare);
         } else {
@@ -1581,8 +1584,9 @@ fn latest_sync_slots(
 fn sync_partition_once(store: &mut Store, captured: &mut [Option<CapturedProduce>]) {
     let mut reps = std::mem::take(&mut store.sync_reps);
     let mut slots = std::mem::take(&mut store.sync_slots);
+    let mut joins = std::mem::take(&mut store.sync_joins);
+    joins.clear();
     latest_sync_slots(captured, &mut reps, &mut slots);
-    let mut joins = Vec::new();
     let parallel = reps.len() > 1;
     for &(state_index, local_index) in &reps {
         if !parallel {
@@ -1598,7 +1602,7 @@ fn sync_partition_once(store: &mut Store, captured: &mut [Option<CapturedProduce
             cloned.map(|file| std::thread::spawn(move || file.sync_data())),
         ));
     }
-    for (index, join) in joins.into_iter().enumerate() {
+    for (index, join) in joins.drain(..).enumerate() {
         let Some(&(state_index, local_index)) = reps.get(index) else {
             continue;
         };
@@ -1637,6 +1641,7 @@ fn sync_partition_once(store: &mut Store, captured: &mut [Option<CapturedProduce
     }
     store.sync_reps = reps;
     store.sync_slots = slots;
+    store.sync_joins = joins;
 }
 
 fn finish_captured(
@@ -2208,8 +2213,7 @@ mod tests {
             .unwrap_or_else(|error| panic!("{error:?}"));
         let mut store = Store::open(Config::new(path.join("data")), &catalog)
             .unwrap_or_else(|error| panic!("{error:?}"));
-        let mut input = [0, 0, 0, 1];
-        let mut inputs: [&mut [u8]; 1] = [&mut input];
+        let mut inputs = vec![vec![0, 0, 0, 1]];
         let admitted = [std::time::Instant::now()];
         let mut spare = vec![Vec::new()];
         let first = process_queued(

@@ -1017,12 +1017,10 @@ fn actor(
                             queued_admitted.push(queued.admitted);
                             queued_senders.push(queued.reply);
                         }
-                        let mut inputs: Vec<&mut [u8]> =
-                            queued_bodies.iter_mut().map(Vec::as_mut_slice).collect();
                         let mut results = produce::process_queued(
                             &catalog,
                             store,
-                            inputs.as_mut_slice(),
+                            &mut queued_bodies,
                             &queued_admitted,
                             config,
                             &mut queued_spares,
