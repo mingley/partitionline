@@ -8560,103 +8560,102 @@ impl Admin {
         let deadline = Instant::now()
             .checked_add(timeout)
             .ok_or_else(|| Error::protocol("ListOffsets deadline overflow"))?;
-        tokio::time::timeout_at(tokio::time::Instant::from_std(deadline), async {
-            let mut attempt = 0u32;
-            let isolation = isolation.as_i8();
-            let mut out: Vec<Option<crate::OffsetAndTimestamp>> = vec![None; queries.len()];
-            let mut pending: Vec<usize> = (0..queries.len()).collect();
-            loop {
-                if pending.is_empty() {
-                    break;
-                }
-                let mut need: Vec<String> = Vec::new();
-                for &i in &pending {
-                    let Some((tp, _)) = queries.get(i) else {
-                        continue;
-                    };
-                    if self.cluster.leader(&tp.topic, tp.partition).is_err()
-                        && !need.iter().any(|t| t == &tp.topic)
-                    {
-                        need.push(tp.topic.clone());
-                    }
-                }
-                if !need.is_empty() {
-                    self.refresh_metadata_until(Some(&need), deadline).await?;
-                }
-                let mut by_node: HashMap<i32, Vec<usize>> = HashMap::new();
-                let mut nodes: Vec<i32> = Vec::new();
-                for &i in &pending {
-                    let (tp, _) = queries
-                        .get(i)
-                        .ok_or_else(|| Error::protocol("missing ListOffsets query"))?;
-                    let (node, _) = self.cluster.leader(&tp.topic, tp.partition)?;
-                    match by_node.entry(node) {
-                        std::collections::hash_map::Entry::Vacant(slot) => {
-                            nodes.push(node);
-                            let _ = slot.insert(vec![i]);
-                        }
-                        std::collections::hash_map::Entry::Occupied(mut slot) => {
-                            slot.get_mut().push(i);
-                        }
-                    }
-                }
-                let mut still = Vec::new();
-                for node in nodes {
-                    let idxs = by_node.remove(&node).unwrap_or_default();
-                    match self
-                        .list_offsets_on_node(node, isolation, &queries, &idxs, deadline)
-                        .await
-                    {
-                        Ok((done, retry)) => {
-                            for (i, ot) in done {
-                                if let Some(slot) = out.get_mut(i) {
-                                    *slot = Some(ot);
-                                }
-                            }
-                            still.extend(retry);
-                        }
-                        Err(e) if e.is_retriable() => {
-                            let _ = self.conns.remove(&node);
-                            still.extend(idxs);
-                        }
-                        Err(e) => return Err(e),
-                    }
-                }
-                pending = still;
-                if pending.is_empty() {
-                    break;
-                }
-                self.wait_retry(&mut attempt, deadline).await?;
-                for &i in &pending {
-                    if let Some((tp, _)) = queries.get(i) {
-                        self.cluster.invalidate_topic(&tp.topic);
-                    }
-                }
-                let topics: Vec<String> = {
-                    let mut t = Vec::new();
-                    for &i in &pending {
-                        if let Some((tp, _)) = queries.get(i) {
-                            if !t.iter().any(|n| n == &tp.topic) {
-                                t.push(tp.topic.clone());
-                            }
-                        }
-                    }
-                    t
+        let mut attempt = 0u32;
+        let isolation = isolation.as_i8();
+        let mut out: Vec<Option<crate::OffsetAndTimestamp>> = vec![None; queries.len()];
+        let mut pending: Vec<usize> = (0..queries.len()).collect();
+        loop {
+            if Instant::now() >= deadline {
+                return Err(Error::Timeout);
+            }
+            if pending.is_empty() {
+                break;
+            }
+            let mut need: Vec<String> = Vec::new();
+            for &i in &pending {
+                let Some((tp, _)) = queries.get(i) else {
+                    continue;
                 };
-                if !topics.is_empty() {
-                    self.refresh_metadata_until(Some(&topics), deadline).await?;
+                if self.cluster.leader(&tp.topic, tp.partition).is_err()
+                    && !need.iter().any(|t| t == &tp.topic)
+                {
+                    need.push(tp.topic.clone());
                 }
             }
-            out.into_iter()
-                .zip(queries)
-                .map(|(ot, (tp, _))| {
-                    ot.map(|ot| (tp, ot))
-                        .ok_or_else(|| Error::protocol("ListOffsets missing result"))
-                })
-                .collect()
-        })
-        .await
-        .map_err(|_| Error::Timeout)?
+            if !need.is_empty() {
+                self.refresh_metadata_until(Some(&need), deadline).await?;
+            }
+            let mut by_node: HashMap<i32, Vec<usize>> = HashMap::new();
+            let mut nodes: Vec<i32> = Vec::new();
+            for &i in &pending {
+                let (tp, _) = queries
+                    .get(i)
+                    .ok_or_else(|| Error::protocol("missing ListOffsets query"))?;
+                let (node, _) = self.cluster.leader(&tp.topic, tp.partition)?;
+                match by_node.entry(node) {
+                    std::collections::hash_map::Entry::Vacant(slot) => {
+                        nodes.push(node);
+                        let _ = slot.insert(vec![i]);
+                    }
+                    std::collections::hash_map::Entry::Occupied(mut slot) => {
+                        slot.get_mut().push(i);
+                    }
+                }
+            }
+            let mut still = Vec::new();
+            for node in nodes {
+                let idxs = by_node.remove(&node).unwrap_or_default();
+                match self
+                    .list_offsets_on_node(node, isolation, &queries, &idxs, deadline)
+                    .await
+                {
+                    Ok((done, retry)) => {
+                        for (i, ot) in done {
+                            if let Some(slot) = out.get_mut(i) {
+                                *slot = Some(ot);
+                            }
+                        }
+                        still.extend(retry);
+                    }
+                    Err(e) if e.is_retriable() => {
+                        let _ = self.conns.remove(&node);
+                        still.extend(idxs);
+                    }
+                    Err(e) => return Err(e),
+                }
+            }
+            pending = still;
+            if pending.is_empty() {
+                break;
+            }
+            self.wait_retry(&mut attempt, deadline).await?;
+            for &i in &pending {
+                if let Some((tp, _)) = queries.get(i) {
+                    self.cluster.invalidate_topic(&tp.topic);
+                }
+            }
+            let topics: Vec<String> = {
+                let mut t = Vec::new();
+                for &i in &pending {
+                    if let Some((tp, _)) = queries.get(i) {
+                        if !t.iter().any(|n| n == &tp.topic) {
+                            t.push(tp.topic.clone());
+                        }
+                    }
+                }
+                t
+            };
+            if !topics.is_empty() {
+                self.refresh_metadata_until(Some(&topics), deadline).await?;
+            }
+        }
+        out.into_iter()
+            .zip(queries)
+            .map(|(ot, (tp, _))| {
+                ot.map(|ot| (tp, ot))
+                    .ok_or_else(|| Error::protocol("ListOffsets missing result"))
+            })
+            .collect()
     }
 
     async fn list_offsets_on_node(
@@ -11192,61 +11191,58 @@ impl Admin {
         let deadline = Instant::now()
             .checked_add(timeout)
             .ok_or_else(|| Error::protocol("DescribeShareGroupOffsets deadline overflow"))?;
-        tokio::time::timeout_at(tokio::time::Instant::from_std(deadline), async {
-            let mut attempt = 0u32;
-            let mut out: Vec<Option<DescribedShareGroupOffsetsWithLag>> = vec![None; groups.len()];
-            let mut pending: Vec<usize> = (0..groups.len()).collect();
-            loop {
-                let by_node = self.group_coord_nodes(&ids, &pending, deadline).await?;
-                let mut nodes: Vec<i32> = by_node.keys().copied().collect();
-                nodes.sort_unstable();
-                let mut still = Vec::new();
-                for node in nodes {
-                    let idxs = by_node.get(&node).cloned().unwrap_or_default();
-                    match self
-                        .describe_share_group_offsets_on_node(
-                            node,
-                            version,
-                            groups,
-                            &idxs,
-                            deadline.saturating_duration_since(Instant::now()),
-                        )
-                        .await
-                    {
-                        Ok(done) => {
-                            for (i, g) in done {
-                                if error::coordinator_retriable(g.error_code) {
-                                    self.invalidate_group_coord_idxs(&ids, &[i], node);
-                                    still.push(i);
-                                } else if let Some(slot) = out.get_mut(i) {
-                                    *slot = Some(g);
-                                }
+        let mut attempt = 0u32;
+        let mut out: Vec<Option<DescribedShareGroupOffsetsWithLag>> = vec![None; groups.len()];
+        let mut pending: Vec<usize> = (0..groups.len()).collect();
+        loop {
+            if Instant::now() >= deadline {
+                return Err(Error::Timeout);
+            }
+            let by_node = self.group_coord_nodes(&ids, &pending, deadline).await?;
+            let mut nodes: Vec<i32> = by_node.keys().copied().collect();
+            nodes.sort_unstable();
+            let mut still = Vec::new();
+            for node in nodes {
+                let idxs = by_node.get(&node).cloned().unwrap_or_default();
+                match self
+                    .describe_share_group_offsets_on_node(
+                        node,
+                        version,
+                        groups,
+                        &idxs,
+                        deadline.saturating_duration_since(Instant::now()),
+                    )
+                    .await
+                {
+                    Ok(done) => {
+                        for (i, g) in done {
+                            if error::coordinator_retriable(g.error_code) {
+                                self.invalidate_group_coord_idxs(&ids, &[i], node);
+                                still.push(i);
+                            } else if let Some(slot) = out.get_mut(i) {
+                                *slot = Some(g);
                             }
                         }
-                        Err(e) if e.is_retriable() => {
-                            self.invalidate_group_coord_idxs(&ids, &idxs, node);
-                            still.extend(idxs);
-                        }
-                        Err(e) => return Err(e),
                     }
+                    Err(e) if e.is_retriable() => {
+                        self.invalidate_group_coord_idxs(&ids, &idxs, node);
+                        still.extend(idxs);
+                    }
+                    Err(e) => return Err(e),
                 }
-                pending = still;
-                if pending.is_empty() {
-                    break;
-                }
-                self.wait_retry(&mut attempt, deadline).await?;
             }
-            out.into_iter()
-                .zip(ids)
-                .map(|(g, id)| {
-                    g.ok_or_else(|| {
-                        Error::protocol(format!("DescribeShareGroupOffsets missing {id}"))
-                    })
-                })
-                .collect()
-        })
-        .await
-        .map_err(|_| Error::Timeout)?
+            pending = still;
+            if pending.is_empty() {
+                break;
+            }
+            self.wait_retry(&mut attempt, deadline).await?;
+        }
+        out.into_iter()
+            .zip(ids)
+            .map(|(g, id)| {
+                g.ok_or_else(|| Error::protocol(format!("DescribeShareGroupOffsets missing {id}")))
+            })
+            .collect()
     }
 
     /// List share-group offsets (Java `Admin.listShareGroupOffsets`).
