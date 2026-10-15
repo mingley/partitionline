@@ -2085,12 +2085,21 @@ impl ShareGroup {
         partitions: &mut Vec<(String, i32, Vec<AcknowledgementBatch>)>,
         ack: i8,
     ) -> Result<()> {
-        let tps: Vec<_> = partitions
-            .iter()
-            .map(|(topic, part, _)| (topic.clone(), *part))
+        let grouped = group_acks_by_acquisition_node(
+            |topic, partition, offset| {
+                self.acquisitions
+                    .get(&(crate::consumer::TopicName::from(topic), partition, offset))
+                    .map(|acquired| acquired.node)
+            },
+            partitions,
+        )?;
+        // Keep the caller's retry list identical to the batches that are sent,
+        // including a split when one partition was acquired from two brokers.
+        *partitions = grouped
+            .values()
+            .flat_map(|parts| parts.iter().cloned())
             .collect();
-        let mut nodes: Vec<_> = self.leaders_of(&tps).await?.into_iter().collect();
-        nodes.sort_by_key(|(node, _)| *node);
+        let nodes: Vec<_> = grouped.into_iter().collect();
         let mut first_error = None;
         for (node, node_tps) in nodes {
             let version = self.node_share_version(node, SHARE_ACKNOWLEDGE).await?;
@@ -2107,10 +2116,7 @@ impl ShareGroup {
                 ));
             }
             let mut topics: Vec<ShareAckTopic> = Vec::new();
-            for (topic, part, batches) in partitions.iter() {
-                if !node_tps.iter().any(|(t, p)| t == topic && p == part) {
-                    continue;
-                }
+            for (topic, part, batches) in &node_tps {
                 let topic_id = self
                     .topic_ids
                     .get(topic)
@@ -2218,21 +2224,15 @@ impl ShareGroup {
                             remember_share_leader_patch(&mut self.leader_patches, patch);
                         }
                     }
+                    let sent = sent_ack_batches(&node_tps, &name, part.partition);
                     if part.error_code == 0 {
                         let count = self
                             .acquisitions
                             .iter()
                             .filter(|((t, p, offset), _)| {
-                                t == &name
+                                t.as_str() == name
                                     && *p == part.partition
-                                    && partitions.iter().any(|(topic, partition, batches)| {
-                                        topic == t
-                                            && partition == p
-                                            && batches.iter().any(|b| {
-                                                *offset >= b.first_offset
-                                                    && *offset <= b.last_offset
-                                            })
-                                    })
+                                    && batch_covers(sent, *offset)
                             })
                             .count();
                         if ack == ACK_RENEW {
@@ -2245,53 +2245,32 @@ impl ShareGroup {
                                 u64::try_from(lock_timeout).unwrap_or(0),
                             ));
                             for ((t, p, offset), acquired) in &mut self.acquisitions {
-                                if t == &name
+                                if t.as_str() == name
                                     && *p == part.partition
-                                    && partitions.iter().any(|(topic, partition, batches)| {
-                                        topic == t
-                                            && partition == p
-                                            && batches.iter().any(|b| {
-                                                *offset >= b.first_offset
-                                                    && *offset <= b.last_offset
-                                            })
-                                    })
+                                    && batch_covers(sent, *offset)
                                 {
                                     acquired.expires_at = expiry;
                                 }
                             }
                         } else {
                             self.acquisitions.retain(|(t, p, offset), _| {
-                                !(t == &name
+                                !(t.as_str() == name
                                     && *p == part.partition
-                                    && partitions.iter().any(|(topic, partition, batches)| {
-                                        topic == t
-                                            && partition == p
-                                            && batches.iter().any(|b| {
-                                                *offset >= b.first_offset
-                                                    && *offset <= b.last_offset
-                                            })
-                                    }))
+                                    && batch_covers(sent, *offset))
                             });
                             self.records_acknowledged = self
                                 .records_acknowledged
                                 .saturating_add(u64::try_from(count).unwrap_or(u64::MAX));
                         }
-                        partitions.retain(|(t, p, _)| t != &name || *p != part.partition);
+                        drop_sent_ack_batches(partitions, &name, part.partition, sent);
                     } else {
                         if part.error_code == error::INVALID_RECORD_STATE
                             || share_ack_ownership_lost(part.error_code)
                         {
                             self.acquisitions.retain(|(t, p, offset), _| {
-                                !(t == &name
+                                !(t.as_str() == name
                                     && *p == part.partition
-                                    && partitions.iter().any(|(topic, partition, batches)| {
-                                        topic == t
-                                            && partition == p
-                                            && batches.iter().any(|b| {
-                                                *offset >= b.first_offset
-                                                    && *offset <= b.last_offset
-                                            })
-                                    }))
+                                    && batch_covers(sent, *offset))
                             });
                         }
                         let error = Error::broker(
@@ -2854,6 +2833,155 @@ fn reject_java_acknowledge_before_poll() -> Error {
     Error::protocol("Acknowledge called before poll.")
 }
 
+fn batch_covers(batches: &[AcknowledgementBatch], offset: i64) -> bool {
+    batches
+        .iter()
+        .any(|batch| offset >= batch.first_offset && offset <= batch.last_offset)
+}
+
+fn sent_ack_batches<'a>(
+    node_tps: &'a [(String, i32, Vec<AcknowledgementBatch>)],
+    topic: &str,
+    partition: i32,
+) -> &'a [AcknowledgementBatch] {
+    node_tps
+        .iter()
+        .find(|(name, part, _)| name == topic && *part == partition)
+        .map(|(_, _, batches)| batches.as_slice())
+        .unwrap_or(&[])
+}
+
+fn drop_sent_ack_batches(
+    partitions: &mut Vec<(String, i32, Vec<AcknowledgementBatch>)>,
+    topic: &str,
+    partition: i32,
+    sent: &[AcknowledgementBatch],
+) {
+    let mut kept = Vec::new();
+    for (name, part, batches) in partitions.drain(..) {
+        if name != topic || part != partition {
+            kept.push((name, part, batches));
+            continue;
+        }
+        let remaining = batches
+            .into_iter()
+            .filter(|batch| !sent.contains(batch))
+            .collect::<Vec<_>>();
+        if !remaining.is_empty() {
+            kept.push((name, part, remaining));
+        }
+    }
+    *partitions = kept;
+}
+
+/// Route each acknowledgement to the broker that acquired those offsets.
+///
+/// A later metadata leader is the target of the next fetch. Locks already
+/// taken stay on the session that delivered them, including when one
+/// partition's offsets came from two brokers.
+type AckRoute = BTreeMap<i32, Vec<(String, i32, Vec<AcknowledgementBatch>)>>;
+
+fn group_acks_by_acquisition_node(
+    node_of: impl Fn(&str, i32, i64) -> Option<i32>,
+    partitions: &[(String, i32, Vec<AcknowledgementBatch>)],
+) -> Result<AckRoute> {
+    let mut by_node: AckRoute = BTreeMap::new();
+    for (topic, partition, batches) in partitions {
+        let mut node_batches: BTreeMap<i32, Vec<AcknowledgementBatch>> = BTreeMap::new();
+        for batch in batches {
+            let span = batch
+                .last_offset
+                .checked_sub(batch.first_offset)
+                .and_then(|delta| delta.checked_add(1))
+                .ok_or_else(|| Error::protocol("share acknowledgement range is too large"))?;
+            if !(1..=1_000_000).contains(&span) {
+                return Err(Error::protocol("share acknowledgement range is too large"));
+            }
+            let span = usize::try_from(span)
+                .map_err(|_| Error::protocol("share acknowledgement range is too large"))?;
+            let per_offset = if batch.types.len() == 1 {
+                None
+            } else if batch.types.len() == span {
+                Some(batch.types.as_slice())
+            } else {
+                return Err(Error::protocol(
+                    "share acknowledgement type count does not match the range",
+                ));
+            };
+            let mut offset = batch.first_offset;
+            let mut index = 0usize;
+            let mut run_node = None;
+            let mut run_first = offset;
+            let mut run_types = Vec::new();
+            while index < span {
+                let node = node_of(topic, *partition, offset).ok_or_else(|| {
+                    Error::broker(
+                        error::INVALID_RECORD_STATE,
+                        format!("stale share acknowledgement {topic}-{partition}@{offset}"),
+                    )
+                })?;
+                let ack_type = match per_offset {
+                    Some(types) => *types.get(index).ok_or_else(|| {
+                        Error::protocol("share acknowledgement type count does not match the range")
+                    })?,
+                    None => *batch.types.first().ok_or_else(|| {
+                        Error::protocol("share acknowledgement type count does not match the range")
+                    })?,
+                };
+                if run_node.is_some_and(|current| current != node) {
+                    if let Some(current) = run_node {
+                        node_batches
+                            .entry(current)
+                            .or_default()
+                            .push(finish_ack_run(
+                                run_first,
+                                offset.saturating_sub(1),
+                                &run_types,
+                            ));
+                    }
+                    run_first = offset;
+                    run_types.clear();
+                }
+                run_node = Some(node);
+                run_types.push(ack_type);
+                if offset == i64::MAX {
+                    break;
+                }
+                offset = offset.saturating_add(1);
+                index += 1;
+            }
+            if let Some(current) = run_node {
+                node_batches
+                    .entry(current)
+                    .or_default()
+                    .push(finish_ack_run(run_first, batch.last_offset, &run_types));
+            }
+        }
+        for (node, batches) in node_batches {
+            by_node
+                .entry(node)
+                .or_default()
+                .push((topic.clone(), *partition, batches));
+        }
+    }
+    Ok(by_node)
+}
+
+fn finish_ack_run(first: i64, last: i64, types: &[i8]) -> AcknowledgementBatch {
+    let collapsed = types
+        .first()
+        .is_some_and(|kind| types.iter().all(|item| item == kind));
+    AcknowledgementBatch {
+        first_offset: first,
+        last_offset: last,
+        types: if collapsed {
+            types.first().copied().into_iter().collect()
+        } else {
+            types.to_vec()
+        },
+    }
+}
+
 /// Collapse records into KIP-932 acknowledgement batches.
 ///
 /// Contiguous offsets with the same type become one batch with a single
@@ -3247,6 +3375,97 @@ mod tests {
         assert_eq!(
             first.to_string(),
             "ConsumerRecord(topic = t, partition = 0, leaderEpoch = null, offset = 1, CreateTime = 0, deliveryCount = 1, serialized key size = -1, serialized value size = -1, headers = RecordHeaders(headers = [], isReadOnly = true), key = null, value = null)"
+        );
+    }
+
+    #[test]
+    fn acknowledgements_go_to_the_broker_that_acquired_them() {
+        let partitions = vec![(
+            "orders".to_owned(),
+            0,
+            vec![AcknowledgementBatch {
+                first_offset: 1,
+                last_offset: 3,
+                types: vec![ACK_ACCEPT],
+            }],
+        )];
+        let grouped = group_acks_by_acquisition_node(
+            |_topic, _partition, offset| match offset {
+                1 | 2 => Some(4),
+                3 => Some(9),
+                _ => None,
+            },
+            &partitions,
+        );
+        assert!(grouped.is_ok());
+        if let Ok(grouped) = grouped {
+            assert_eq!(grouped.len(), 2);
+            let first = grouped.get(&4).and_then(|parts| parts.first());
+            let second = grouped.get(&9).and_then(|parts| parts.first());
+            assert_eq!(
+                first
+                    .and_then(|part| part.2.first())
+                    .map(|batch| batch.first_offset),
+                Some(1)
+            );
+            assert_eq!(
+                first
+                    .and_then(|part| part.2.first())
+                    .map(|batch| batch.last_offset),
+                Some(2)
+            );
+            assert_eq!(
+                second
+                    .and_then(|part| part.2.first())
+                    .map(|batch| batch.first_offset),
+                Some(3)
+            );
+            assert_eq!(
+                second
+                    .and_then(|part| part.2.first())
+                    .map(|batch| batch.last_offset),
+                Some(3)
+            );
+        }
+        let missing = group_acks_by_acquisition_node(|_, _, _| None, &partitions);
+        assert!(missing.is_err());
+        let mut pending = vec![
+            (
+                "orders".to_owned(),
+                0,
+                vec![AcknowledgementBatch {
+                    first_offset: 1,
+                    last_offset: 2,
+                    types: vec![ACK_ACCEPT],
+                }],
+            ),
+            (
+                "orders".to_owned(),
+                0,
+                vec![AcknowledgementBatch {
+                    first_offset: 3,
+                    last_offset: 3,
+                    types: vec![ACK_ACCEPT],
+                }],
+            ),
+        ];
+        drop_sent_ack_batches(
+            &mut pending,
+            "orders",
+            0,
+            &[AcknowledgementBatch {
+                first_offset: 1,
+                last_offset: 2,
+                types: vec![ACK_ACCEPT],
+            }],
+        );
+        assert_eq!(pending.len(), 1);
+        assert_eq!(
+            pending
+                .first()
+                .and_then(|part| part.2.first())
+                .map(|batch| batch.first_offset),
+            Some(3)
         );
     }
 
