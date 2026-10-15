@@ -714,10 +714,10 @@ impl ConsumerGroup {
             pending_async_commits: Vec::new(),
         };
         if g.topic_match.is_some() {
-            g.topics = g.matching_topic_names().await?;
+            g.topics = g.matching_topic_names_within(started).await?;
             g.last_match_refresh = Instant::now();
         }
-        g.rejoin().await?;
+        g.rejoin_within(started).await?;
         g.spawn_heartbeat(hb_rx);
         Ok(g)
     }
@@ -877,10 +877,10 @@ impl ConsumerGroup {
             pending_async_commits: Vec::new(),
         };
         if g.topic_match.is_some() {
-            g.topics = g.matching_topic_names().await?;
+            g.topics = g.matching_topic_names_within(started).await?;
             g.last_match_refresh = Instant::now();
         }
-        g.heartbeat_join().await?;
+        g.heartbeat_join_within(started).await?;
         g.spawn_heartbeat_consumer(hb_rx);
         Ok(g)
     }
@@ -1940,13 +1940,27 @@ impl ConsumerGroup {
         &mut self,
         matches: impl Fn(&str) -> bool + Send + Sync + 'static,
     ) -> Result<()> {
+        let deadline = Instant::now()
+            .checked_add(self.cfg.request_timeout)
+            .ok_or(Error::Timeout)?;
         self.topic_match = Some(Arc::new(matches));
-        let topics = self.matching_topic_names().await?;
+        let topics = self.matching_topic_names_within(deadline).await?;
         self.last_match_refresh = Instant::now();
-        self.apply_subscription(topics).await
+        self.apply_subscription_within(topics, deadline).await
     }
 
     async fn apply_subscription(&mut self, topics: Vec<String>) -> Result<()> {
+        let deadline = Instant::now()
+            .checked_add(self.cfg.request_timeout)
+            .ok_or(Error::Timeout)?;
+        self.apply_subscription_within(topics, deadline).await
+    }
+
+    async fn apply_subscription_within(
+        &mut self,
+        topics: Vec<String>,
+        deadline: Instant,
+    ) -> Result<()> {
         if self.consumer.take_wakeup() {
             return Err(Error::Wakeup);
         }
@@ -1958,7 +1972,10 @@ impl ConsumerGroup {
             if self.cfg.enable_auto_commit {
                 let to_commit = self.assigned_commit_offsets();
                 if !to_commit.is_empty() {
-                    let timeout = self.cfg.request_timeout;
+                    let timeout = deadline.saturating_duration_since(Instant::now());
+                    if timeout.is_zero() {
+                        return Err(Error::Timeout);
+                    }
                     self.commit_metadata_offsets(to_commit, timeout).await?;
                 }
             }
@@ -1974,29 +1991,33 @@ impl ConsumerGroup {
         self.left_max_poll.store(false, Ordering::SeqCst);
         if rejoining {
             if self.kip848 {
-                self.heartbeat_join().await?;
+                self.heartbeat_join_within(deadline).await?;
             } else {
-                self.rejoin().await?;
+                self.rejoin_within(deadline).await?;
             }
             return Ok(());
         }
         let (hb_stop, hb_rx) = watch::channel(false);
         self.hb_stop = hb_stop;
         if self.kip848 {
-            self.heartbeat_join().await?;
+            self.heartbeat_join_within(deadline).await?;
             self.spawn_heartbeat_consumer(hb_rx);
         } else {
-            self.rejoin().await?;
+            self.rejoin_within(deadline).await?;
             self.spawn_heartbeat(hb_rx);
         }
         Ok(())
     }
 
-    async fn matching_topic_names(&mut self) -> Result<Vec<String>> {
+    async fn matching_topic_names_within(&mut self, deadline: Instant) -> Result<Vec<String>> {
         let Some(pred) = self.topic_match.clone() else {
             return Ok(self.topics.clone());
         };
-        let infos = self.consumer.list_topics().await?;
+        let timeout = deadline.saturating_duration_since(Instant::now());
+        if timeout.is_zero() {
+            return Err(Error::Timeout);
+        }
+        let infos = self.consumer.list_topics_timeout(timeout).await?;
         Ok(filter_matching_topics(
             infos.iter().map(|i| i.topic.as_str()),
             |n| pred(n),
@@ -2011,9 +2032,12 @@ impl ConsumerGroup {
         if !age.is_zero() && self.last_match_refresh.elapsed() < age {
             return Ok(());
         }
-        let topics = self.matching_topic_names().await?;
+        let deadline = Instant::now()
+            .checked_add(self.cfg.request_timeout)
+            .ok_or(Error::Timeout)?;
+        let topics = self.matching_topic_names_within(deadline).await?;
         self.last_match_refresh = Instant::now();
-        self.apply_subscription(topics).await
+        self.apply_subscription_within(topics, deadline).await
     }
 
     /// Leave the group (`LeaveGroup` or KIP-848 heartbeat leave).
@@ -2143,9 +2167,16 @@ impl ConsumerGroup {
 
     #[cfg_attr(feature = "tracing", tracing::instrument(skip(self), fields(protocol = %self.protocol)))]
     async fn rejoin(&mut self) -> Result<()> {
+        let deadline = Instant::now()
+            .checked_add(self.cfg.request_timeout)
+            .ok_or(Error::Timeout)?;
+        self.rejoin_within(deadline).await
+    }
+
+    async fn rejoin_within(&mut self, deadline: Instant) -> Result<()> {
         let rejoining = !self.member_id.is_empty();
         for _ in 0..8 {
-            let revoked = self.rejoin_once().await?;
+            let revoked = self.rejoin_once(deadline).await?;
             if self.protocol != "cooperative-sticky" || revoked.is_empty() {
                 if rejoining {
                     let _ = self.m_rebalances.fetch_add(1, Ordering::Relaxed);
@@ -2176,8 +2207,7 @@ impl ConsumerGroup {
         Ok(out)
     }
 
-    async fn rejoin_once(&mut self) -> Result<Vec<(String, i32)>> {
-        let deadline = Instant::now() + self.cfg.request_timeout;
+    async fn rejoin_once(&mut self, deadline: Instant) -> Result<Vec<(String, i32)>> {
         let entries = self.join_protocol_entries()?;
         let protocols: Vec<JoinGroupProtocol<'_>> = entries
             .iter()
@@ -2336,7 +2366,13 @@ impl ConsumerGroup {
     }
 
     async fn heartbeat_join(&mut self) -> Result<()> {
-        let deadline = Instant::now() + self.cfg.request_timeout;
+        let deadline = Instant::now()
+            .checked_add(self.cfg.request_timeout)
+            .ok_or(Error::Timeout)?;
+        self.heartbeat_join_within(deadline).await
+    }
+
+    async fn heartbeat_join_within(&mut self, deadline: Instant) -> Result<()> {
         let timeout = deadline.saturating_duration_since(Instant::now());
         if timeout.is_zero() {
             return Err(Error::Timeout);
@@ -2396,8 +2432,8 @@ impl ConsumerGroup {
             .store(resp.heartbeat_interval_ms, Ordering::SeqCst);
         let interval =
             Duration::from_millis(u64::try_from(resp.heartbeat_interval_ms).unwrap_or(0));
-        let deadline = Instant::now() + interval;
-        *self.hb_deadline.lock() = Some(deadline);
+        let next_heartbeat = Instant::now() + interval;
+        *self.hb_deadline.lock() = Some(next_heartbeat);
         if let Some(id) = resp.member_id {
             self.member_id = id;
         }
