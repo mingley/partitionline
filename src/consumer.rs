@@ -1895,14 +1895,16 @@ struct DecodedFetchReply {
     recovery: Option<FetchRetry>,
 }
 
+type SessionParts = HashMap<i32, ([u8; 16], FetchPartition)>;
+
 /// A broker's cached request map is bounded by this consumer's active assignment.
 /// Preparing marks the map uncertain until a response arrives, so cancellation
 /// cannot reuse an epoch whose request may already have reached the broker.
 struct BrokerFetchSession {
     version: Option<i16>,
     metadata: FetchMetadata,
-    /// Topic names are shared across the partitions of one topic.
-    partitions: HashMap<(Arc<str>, i32), ([u8; 16], FetchPartition)>,
+    /// One topic name is shared by every partition of that topic.
+    partitions: HashMap<Arc<str>, SessionParts>,
     awaiting_response: bool,
 }
 
@@ -1932,13 +1934,17 @@ impl BrokerFetchSession {
     fn validate_partitions(&self, topics: &[FetchedTopic], version: i16, full: bool) -> Result<()> {
         let expected: HashSet<_> = self
             .partitions
-            .keys()
-            .map(|(name, partition)| (name.as_ref(), *partition))
+            .iter()
+            .flat_map(|(name, parts)| {
+                parts
+                    .keys()
+                    .map(move |partition| (name.as_ref(), *partition))
+            })
             .collect();
         let ids: HashMap<_, _> = self
             .partitions
             .iter()
-            .map(|((name, _), (id, _))| (*id, name.as_ref()))
+            .flat_map(|(name, parts)| parts.values().map(move |(id, _)| (*id, name.as_ref())))
             .collect();
         let mut seen = HashSet::new();
         for topic in topics {
@@ -1979,36 +1985,48 @@ impl BrokerFetchSession {
             self.reset();
         }
         self.version = Some(version);
-        let mut next = HashMap::new();
+        let mut next: HashMap<Arc<str>, SessionParts> = HashMap::new();
         let mut changed: HashMap<String, Vec<FetchPartition>> = HashMap::new();
-        let mut ids = HashMap::new();
+        let mut ids: HashMap<Arc<str>, [u8; 16]> = HashMap::new();
         for topic in &topics {
-            let name = Arc::<str>::from(topic.topic.as_str());
-            let _ = ids.insert(topic.topic.clone(), topic.topic_id);
+            let name = next
+                .get_key_value(topic.topic.as_str())
+                .or_else(|| self.partitions.get_key_value(topic.topic.as_str()))
+                .map(|(existing, _)| Arc::clone(existing))
+                .unwrap_or_else(|| Arc::<str>::from(topic.topic.as_str()));
+            let _ = ids.insert(Arc::clone(&name), topic.topic_id);
+            let slot = next.entry(name).or_default();
             for partition in &topic.partitions {
-                let key = (Arc::clone(&name), partition.partition);
                 let value = (topic.topic_id, partition.clone());
-                if !self.metadata.is_full() && self.partitions.get(&key) != Some(&value) {
-                    if let Some(slot) = changed.get_mut(topic.topic.as_str()) {
-                        slot.push(partition.clone());
+                let unchanged = self
+                    .partitions
+                    .get(topic.topic.as_str())
+                    .and_then(|parts| parts.get(&partition.partition))
+                    == Some(&value);
+                if !self.metadata.is_full() && !unchanged {
+                    if let Some(changed_slot) = changed.get_mut(topic.topic.as_str()) {
+                        changed_slot.push(partition.clone());
                     } else {
                         let _ = changed.insert(topic.topic.clone(), vec![partition.clone()]);
                     }
                 }
-                let _ = next.insert(key, value);
+                let _ = slot.insert(partition.partition, value);
             }
         }
         let mut forgotten: HashMap<(Arc<str>, [u8; 16]), Vec<i32>> = HashMap::new();
         if !self.metadata.is_full() {
-            for ((topic, partition), (id, _)) in &self.partitions {
-                if next
-                    .get(&(Arc::clone(topic), *partition))
-                    .is_none_or(|(next_id, _)| next_id != id)
-                {
-                    forgotten
-                        .entry((Arc::clone(topic), *id))
-                        .or_default()
-                        .push(*partition);
+            for (topic, parts) in &self.partitions {
+                for (partition, (id, _)) in parts {
+                    if next
+                        .get(topic.as_ref())
+                        .and_then(|stored| stored.get(partition))
+                        .is_none_or(|(next_id, _)| next_id != id)
+                    {
+                        forgotten
+                            .entry((Arc::clone(topic), *id))
+                            .or_default()
+                            .push(*partition);
+                    }
                 }
             }
         }
@@ -6456,12 +6474,13 @@ fn is_abort_marker(batch: &crate::protocol::records::RecordBatch) -> bool {
         })
 }
 
-fn fetch_topics<T>(
+fn fetch_topics<T, I>(
     by_topic: HashMap<T, Vec<FetchPartition>>,
-    name_ids: &HashMap<String, [u8; 16]>,
+    name_ids: &HashMap<I, [u8; 16]>,
 ) -> Vec<FetchTopic>
 where
     T: std::hash::Hash + Eq + AsRef<str>,
+    I: std::hash::Hash + Eq + std::borrow::Borrow<str>,
 {
     by_topic
         .into_iter()
@@ -7087,6 +7106,26 @@ mod tests {
                 replica_directory_id: [0; 16],
             }],
         }
+    }
+
+    #[test]
+    fn fetch_session_reuses_the_topic_name() {
+        let mut session = BrokerFetchSession::default();
+        let _ = session.prepare(vec![session_topic([1; 16], 0)], 7);
+        let first = Arc::clone(
+            session
+                .partitions
+                .get_key_value("t")
+                .map(|(name, _)| name)
+                .unwrap(),
+        );
+        let _ = session.prepare(vec![session_topic([1; 16], 4)], 7);
+        let second = session
+            .partitions
+            .get_key_value("t")
+            .map(|(name, _)| name)
+            .unwrap();
+        assert!(Arc::ptr_eq(&first, second));
     }
 
     fn session_header(code: i16, id: i32) -> Bytes {
