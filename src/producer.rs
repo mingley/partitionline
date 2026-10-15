@@ -2678,6 +2678,7 @@ impl Producer {
             return Err(Error::protocol("no transaction in progress"));
         }
         let timeout = self.inner.shared.cfg.request_timeout;
+        let deadline = Instant::now().checked_add(timeout).ok_or(Error::Timeout)?;
         let pid = self.inner.shared.producer_id.load(Ordering::SeqCst);
         let epoch = self.inner.shared.producer_epoch.load(Ordering::SeqCst);
         let version = self.inner.shared.txn_offset_version;
@@ -2686,7 +2687,6 @@ impl Producer {
         // RPC when the broker advertised v5 (Java `isTransactionV2Enabled`).
         if version <= TxnOffsetCommitRequest::LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2 {
             let add_offsets_version = self.inner.shared.add_offsets_version;
-            let deadline = Instant::now() + timeout;
             let mut attempt = 0u32;
             loop {
                 let body = txn_roundtrip(
@@ -2747,7 +2747,10 @@ impl Producer {
         }
         for topic in &topics {
             let name = Arc::<str>::from(topic.as_str());
-            if partitions_for(&self.inner.shared, &name).await? <= 0 {
+            if partitions_for_timeout(&self.inner.shared, &name, timeout_remaining(deadline)?)
+                .await?
+                <= 0
+            {
                 return Err(Error::UnknownTopic(topic.clone()));
             }
         }
@@ -2755,7 +2758,6 @@ impl Producer {
             let cluster = self.inner.shared.cluster.lock();
             group_txn_offsets(&offsets, |topic, part| cluster.leader_epoch(topic, part))
         };
-        let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         loop {
             let body = group_coord_roundtrip(
