@@ -70,10 +70,11 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `ShareFetch acknowledgement {topic}-{partition}`.
   ShareAcknowledge top-level `SHARE_SESSION_LIMIT_REACHED` completes
   without retry and advances the share session epoch (Java
-  `handleResponse` `nextEpoch`); `SHARE_SESSION_NOT_FOUND` /
+  `handleResponse` `nextEpoch`), including when `ErrorMessage` is
+  empty; `SHARE_SESSION_NOT_FOUND` /
   `INVALID_SHARE_SESSION_EPOCH` still reset, including when
   `ErrorMessage` is set. A non-empty top-level `ErrorMessage` is
-  preferred on that path. ShareFetch top-level
+  preferred on that path; empty uses `ShareAcknowledge`. ShareFetch top-level
   `SHARE_SESSION_LIMIT_REACHED` / `INVALID_SHARE_SESSION_EPOCH` /
   `SHARE_SESSION_NOT_FOUND` still reset the session (Java
   `nextCloseExistingAttemptNew`) and complete piggybacked

@@ -2142,7 +2142,8 @@
 //! [`AcknowledgementCommitResults`]). Top-level ShareAcknowledge
 //! `SHARE_SESSION_LIMIT_REACHED` completes without retry and advances
 //! the session epoch (Java `ShareSessionHandler.handleResponse`
-//! `nextEpoch`); `SHARE_SESSION_NOT_FOUND` /
+//! `nextEpoch`), including when `ErrorMessage` is empty;
+//! `SHARE_SESSION_NOT_FOUND` /
 //! `INVALID_SHARE_SESSION_EPOCH` still reset, including when
 //! `ErrorMessage` is set.
 //! [`ShareGroup::group_metadata`] is Java `ShareConsumer.groupMetadata()`

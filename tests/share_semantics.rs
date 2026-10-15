@@ -2146,6 +2146,51 @@ async fn share_acknowledge_session_limit_message_does_not_reset_session() {
 }
 
 #[tokio::test]
+async fn share_acknowledge_session_limit_empty_message_does_not_reset_session() {
+    let mock = common::Mock::start().await;
+    v2(&mock);
+    produce(&mock, &[(0, b"held")]).await;
+    let mut group = ShareGroup::join(config(&mock), "ack-limit-empty", "t")
+        .await
+        .unwrap();
+    let recs = group.poll().await.unwrap();
+    assert_eq!(recs.len(), 1);
+    group.accept(&recs).await.unwrap();
+    let version = mock.last_share_fetch_version().unwrap_or(2);
+    let mut injected = BytesMut::new();
+    encode_share_acknowledge_topics_response_with_error_message(
+        &mut injected,
+        version,
+        error::SHARE_SESSION_LIMIT_REACHED,
+        &[],
+        Some(""),
+    )
+    .unwrap();
+    mock.inject_share_ack_response_once(&injected);
+    let results = group.commit_sync().await.unwrap();
+    assert_eq!(results.len(), 1);
+    let err = results[0]
+        .1
+        .as_ref()
+        .expect("empty top-level ErrorMessage uses the crate fallback");
+    assert_eq!(err.code(), Some(error::SHARE_SESSION_LIMIT_REACHED));
+    assert_eq!(err.message(), "ShareAcknowledge");
+    assert_eq!(
+        mock.share_ack_calls(),
+        1,
+        "SHARE_SESSION_LIMIT_REACHED is not retried on ShareAcknowledge"
+    );
+    assert_eq!(mock.last_share_ack_epoch(), Some(1));
+    let _ = group.poll().await.unwrap();
+    assert_eq!(
+        mock.last_share_fetch_epoch(),
+        Some(2),
+        "empty ErrorMessage must not reset; Java nextEpoch for LIMIT_REACHED"
+    );
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn share_acknowledge_invalid_session_epoch_message_resets_session() {
     let mock = common::Mock::start().await;
     v2(&mock);
