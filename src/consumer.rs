@@ -3878,7 +3878,18 @@ impl Consumer {
                 .iter()
                 .any(|t| !self.cluster.topic_fresh(t, self.cfg.metadata_max_age))
             {
-                self.refresh_metadata(Some(&topics)).await?;
+                if Instant::now() >= deadline {
+                    return if !out.is_empty() {
+                        Ok(self.finish_fetch(out))
+                    } else {
+                        Err(Error::Timeout)
+                    };
+                }
+                self.refresh_metadata_timeout(
+                    Some(&topics),
+                    remaining_offset_timeout(deadline, Instant::now()),
+                )
+                .await?;
             }
             let mut by_leader: HashMap<i32, HashMap<&str, Vec<FetchPartition>>> = HashMap::new();
             let mut missing_leader = false;
@@ -3952,7 +3963,11 @@ impl Consumer {
                     self.cluster.invalidate_topic(t);
                 }
                 let topics: Vec<String> = self.assigned.iter().map(|(t, _, _)| t.clone()).collect();
-                self.refresh_metadata(Some(&topics)).await?;
+                self.refresh_metadata_timeout(
+                    Some(&topics),
+                    remaining_offset_timeout(deadline, Instant::now()),
+                )
+                .await?;
                 continue;
             }
             let retired = self
@@ -4143,7 +4158,11 @@ impl Consumer {
                     if retry == FetchRetry::Backoff {
                         let topics: Vec<String> =
                             self.assigned.iter().map(|(t, _, _)| t.clone()).collect();
-                        self.refresh_metadata(Some(&topics)).await?;
+                        self.refresh_metadata_timeout(
+                            Some(&topics),
+                            remaining_offset_timeout(deadline, Instant::now()),
+                        )
+                        .await?;
                     }
                 }
                 continue;
