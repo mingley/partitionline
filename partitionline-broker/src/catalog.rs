@@ -21,6 +21,7 @@
 //! partition-log creation/deletion, wire handler, retention, or qualification.
 
 use crate::journal;
+use std::collections::HashMap;
 use std::mem::size_of;
 use std::path::Path;
 
@@ -486,24 +487,25 @@ impl Catalog {
 
     /// Look up a confirmed live topic by its exact, case-sensitive name.
     pub fn by_name(&self, name: &str) -> Option<&Topic> {
-        self.state()
-            .records
-            .iter()
-            .find_map(|record| (record.live && record.topic.name == name).then_some(&record.topic))
+        let state = self.state();
+        let index = *state.live_by_name.get(name)?;
+        state.records.get(index).map(|record| &record.topic)
     }
     /// Look up a confirmed live topic by its stable identity.
     pub fn by_id(&self, id: TopicId) -> Option<&Topic> {
-        self.state()
-            .records
-            .iter()
-            .find_map(|record| (record.live && record.topic.id == id).then_some(&record.topic))
+        let state = self.state();
+        let index = *state.by_id.get(&id)?;
+        let record = state.records.get(index)?;
+        record.live.then_some(&record.topic)
     }
     /// Whether this identity is permanently tombstoned in confirmed state.
     pub fn is_tombstoned(&self, id: TopicId) -> bool {
-        self.state()
-            .records
-            .iter()
-            .any(|record| !record.live && record.topic.id == id)
+        let state = self.state();
+        state
+            .by_id
+            .get(&id)
+            .and_then(|index| state.records.get(*index))
+            .is_some_and(|record| !record.live)
     }
     /// Iterate live topics in creation order without allocating a snapshot.
     pub fn topics(&self) -> impl Iterator<Item = &Topic> {
@@ -570,17 +572,14 @@ impl Projection {
     }
     /// Borrow a confirmed topic by its exact name.
     pub fn by_name(&self, name: &str) -> Option<&Topic> {
-        self.state
-            .records
-            .iter()
-            .find_map(|r| (r.live && r.topic.name == name).then_some(&r.topic))
+        let index = *self.state.live_by_name.get(name)?;
+        self.state.records.get(index).map(|record| &record.topic)
     }
     /// Borrow a confirmed topic by identity.
     pub fn by_id(&self, id: TopicId) -> Option<&Topic> {
-        self.state
-            .records
-            .iter()
-            .find_map(|r| (r.live && r.topic.id == id).then_some(&r.topic))
+        let index = *self.state.by_id.get(&id)?;
+        let record = self.state.records.get(index)?;
+        record.live.then_some(&record.topic)
     }
     /// A deleted identity stays reserved within the bounded history.
     pub fn is_tombstoned(&self, id: TopicId) -> bool {
@@ -692,6 +691,10 @@ struct Record {
 #[derive(Default)]
 struct State {
     records: Vec<Record>,
+    /// Live topic name to its index in `records`.
+    live_by_name: HashMap<String, usize>,
+    /// Every identity, including tombstones, to its index in `records`.
+    by_id: HashMap<TopicId, usize>,
     live_topics: usize,
     partitions: u64,
     operations: usize,
@@ -758,13 +761,13 @@ impl State {
         if count == 0 || count > i32::MAX as u32 {
             return Err(Error::InvalidPartitionCount);
         }
+        if self.by_id.contains_key(&id) {
+            return Err(Error::DuplicateIdentity);
+        }
+        if self.live_by_name.contains_key(name) {
+            return Err(Error::DuplicateName);
+        }
         for record in &self.records {
-            if record.topic.id == id {
-                return Err(Error::DuplicateIdentity);
-            }
-            if record.live && record.topic.name == name {
-                return Err(Error::DuplicateName);
-            }
             if record.live && collision(&record.topic.name, name) {
                 return Err(Error::NameCollision);
             }
@@ -819,10 +822,12 @@ impl State {
     }
 
     fn prepare_delete(&self, id: TopicId, limits: Limits) -> Result<PreparedDelete, Error> {
-        let index = self
+        let index = *self.by_id.get(&id).ok_or(Error::UnknownIdentity)?;
+        let partition_count = self
             .records
-            .iter()
-            .position(|record| record.live && record.topic.id == id)
+            .get(index)
+            .filter(|record| record.live)
+            .map(|record| record.topic.partition_count)
             .ok_or(Error::UnknownIdentity)?;
         let mut totals = self.totals(HEADER, limits)?;
         totals.live_topics = self
@@ -831,7 +836,7 @@ impl State {
             .ok_or(Error::UnknownIdentity)?;
         totals.partitions = self
             .partitions
-            .checked_sub(u64::from(self.records[index].topic.partition_count))
+            .checked_sub(u64::from(partition_count))
             .ok_or(Error::UnknownIdentity)?;
         Ok(PreparedDelete { index, totals })
     }
@@ -843,11 +848,19 @@ impl State {
         self.payload_bytes = totals.payload_bytes;
     }
     fn publish_create(&mut self, prepared: PreparedCreate) {
+        let index = self.records.len();
+        let _ = self
+            .live_by_name
+            .insert(prepared.record.topic.name.clone(), index);
+        let _ = self.by_id.insert(prepared.record.topic.id, index);
         self.records.push(prepared.record);
         self.publish_totals(prepared.totals);
     }
     fn publish_delete(&mut self, prepared: PreparedDelete) {
-        self.records[prepared.index].live = false;
+        if let Some(record) = self.records.get_mut(prepared.index) {
+            record.live = false;
+            let _ = self.live_by_name.remove(record.topic.name.as_str());
+        }
         self.publish_totals(prepared.totals);
     }
 }
