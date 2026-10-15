@@ -6125,6 +6125,35 @@ fn estimate(p: &Pending) -> usize {
         .unwrap_or(usize::MAX)
 }
 
+fn refresh_sequence_epoch(pendings: &mut [Pending], epoch_gen: u64) {
+    // A retained batch whose sequence was assigned under a superseded
+    // epoch (shared epoch bump or identity renewal while it was
+    // pending, in flight, or queued for retry) must drop the stale
+    // assignment and re-take a sequence under the current epoch.
+    // Sending the old base sequence with the new epoch would fail with
+    // OUT_OF_ORDER_SEQUENCE_NUMBER; reusing seq zero twice on one
+    // partition would silently dedup away a record.
+    for pending in pendings {
+        if pending.epoch_gen != epoch_gen {
+            pending.seq = None;
+            pending.batch_base_seq = None;
+            pending.batch_len = 1;
+            pending.epoch_gen = epoch_gen;
+        }
+    }
+}
+
+fn stamp_sequences(pendings: &mut [Pending], base: i32) {
+    let count = pendings.len();
+    for (index, pending) in pendings.iter_mut().enumerate() {
+        if pending.seq.is_none() {
+            pending.seq = Some(base.saturating_add(i32::try_from(index).unwrap_or(0)));
+            pending.batch_base_seq = Some(base);
+            pending.batch_len = count;
+        }
+    }
+}
+
 fn assign_sequences(
     groups: &mut [(Arc<str>, i32, Vec<Pending>)],
     producer_id: i64,
@@ -6134,34 +6163,37 @@ fn assign_sequences(
     if producer_id <= RecordBatch::NO_PRODUCER_ID {
         return;
     }
-    for (topic, partition, pendings) in groups.iter_mut() {
-        // A retained batch whose sequence was assigned under a superseded
-        // epoch (shared epoch bump or identity renewal while it was
-        // pending, in flight, or queued for retry) must drop the stale
-        // assignment and re-take a sequence under the current epoch.
-        // Sending the old base sequence with the new epoch would fail with
-        // OUT_OF_ORDER_SEQUENCE_NUMBER; reusing seq zero twice on one
-        // partition would silently dedup away a record.
-        for p in pendings.iter_mut() {
-            if p.epoch_gen != epoch_gen {
-                p.seq = None;
-                p.batch_base_seq = None;
-                p.batch_len = 1;
-                p.epoch_gen = epoch_gen;
-            }
+    let mut map = seqs.lock();
+    let one_topic = groups
+        .first()
+        .is_some_and(|(topic, _, _)| groups.iter().all(|(name, _, _)| Arc::ptr_eq(name, topic)));
+    if one_topic {
+        let Some(topic) = groups.first().map(|(topic, _, _)| Arc::clone(topic)) else {
+            return;
+        };
+        if !map.contains_key(topic.as_ref()) {
+            let _ = map.insert(Arc::clone(&topic), HashMap::new());
         }
-        if pendings.iter().all(|p| p.seq.is_some()) {
+        let Some(parts) = map.get_mut(topic.as_ref()) else {
+            return;
+        };
+        for (_, partition, pendings) in groups.iter_mut() {
+            refresh_sequence_epoch(pendings, epoch_gen);
+            if pendings.iter().all(|pending| pending.seq.is_some()) {
+                continue;
+            }
+            let base = sequence_in(parts, *partition, pendings.len());
+            stamp_sequences(pendings, base);
+        }
+        return;
+    }
+    for (topic, partition, pendings) in groups.iter_mut() {
+        refresh_sequence_epoch(pendings, epoch_gen);
+        if pendings.iter().all(|pending| pending.seq.is_some()) {
             continue;
         }
-        let base = next_sequence(seqs, producer_id, topic, *partition, pendings.len());
-        let count = pendings.len();
-        for (i, p) in pendings.iter_mut().enumerate() {
-            if p.seq.is_none() {
-                p.seq = Some(base.saturating_add(i32::try_from(i).unwrap_or(0)));
-                p.batch_base_seq = Some(base);
-                p.batch_len = count;
-            }
-        }
+        let base = sequence_of(&mut map, topic, *partition, pendings.len());
+        stamp_sequences(pendings, base);
     }
 }
 
@@ -6490,30 +6522,25 @@ fn pending_batch_header(
     })
 }
 
-fn next_sequence(
-    seqs: &parking_lot::Mutex<SequenceMap>,
-    producer_id: i64,
-    topic: &Arc<str>,
-    partition: i32,
-    count: usize,
-) -> i32 {
-    if producer_id <= RecordBatch::NO_PRODUCER_ID {
-        return RecordBatch::NO_SEQUENCE;
+fn sequence_in(parts: &mut HashMap<i32, i32>, partition: i32, count: usize) -> i32 {
+    let added = i32::try_from(count).unwrap_or(i32::MAX);
+    if let Some(slot) = parts.get_mut(&partition) {
+        let base = *slot;
+        *slot = slot.saturating_add(added);
+        return base;
+    }
+    let _ = parts.insert(partition, added);
+    0
+}
+
+fn sequence_of(map: &mut SequenceMap, topic: &Arc<str>, partition: i32, count: usize) -> i32 {
+    if let Some(parts) = map.get_mut(topic.as_ref()) {
+        return sequence_in(parts, partition, count);
     }
     let added = i32::try_from(count).unwrap_or(i32::MAX);
-    let mut g = seqs.lock();
-    if let Some(parts) = g.get_mut(topic.as_ref()) {
-        if let Some(slot) = parts.get_mut(&partition) {
-            let base = *slot;
-            *slot = slot.saturating_add(added);
-            return base;
-        }
-        let _ = parts.insert(partition, added);
-        return 0;
-    }
     let mut parts = HashMap::new();
     let _ = parts.insert(partition, added);
-    let _ = g.insert(Arc::clone(topic), parts);
+    let _ = map.insert(Arc::clone(topic), parts);
     0
 }
 
