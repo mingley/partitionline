@@ -736,9 +736,10 @@ pub enum ShareAcquireMode {
 /// KIP-951). `UNKNOWN_LEADER_EPOCH` / `UNKNOWN_SERVER_ERROR` skip without
 /// requesting metadata (Java `handleInitializeErrors`), including when
 /// a partition `ErrorMessage` is present. A skip-with-metadata code
-/// such as `NOT_LEADER_OR_FOLLOWER` / `INCONSISTENT_TOPIC_ID` still skips
-/// and still requests Metadata when `ErrorMessage` is set (Java
-/// `testFetchError` / `handleInitializeErrors`). A throwable
+/// such as `NOT_LEADER_OR_FOLLOWER` / `INCONSISTENT_TOPIC_ID` /
+/// `UNKNOWN_TOPIC_OR_PARTITION` still skips and still requests
+/// Metadata when `ErrorMessage` is set (Java `testFetchError` /
+/// `handleInitializeErrors`). A throwable
 /// partition `ErrorMessage` is the broker exception text (Java
 /// `Errors.forCode.exception(errorMessage)`); empty uses
 /// `ShareFetch {topic}-{partition}`. A top-level ShareFetch
