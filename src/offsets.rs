@@ -41,11 +41,48 @@ pub struct OffsetOptions {
 /// Typed offset operations without group membership or background tasks.
 ///
 /// Every operation negotiates on the actual coordinator and owns at most two
-/// sockets. Cancellation drops them. OffsetCommit supplies the caller's group
+/// sockets, including overlapped coordinator handshakes. OffsetFetch responses
+/// are still checked in coordinator order before the next fetch is sent.
+/// Cancellation drops the sockets. OffsetCommit supplies the caller's group
 /// generation or member epoch; this client does not join or heartbeat a group.
 pub struct OffsetClient {
     cfg: AdminConfig,
     stats: Option<std::sync::Arc<crate::metrics::AdminTracker>>,
+}
+
+async fn open_offset_socket(
+    cfg: &AdminConfig,
+    stats: Option<&std::sync::Arc<crate::metrics::AdminTracker>>,
+    address: &str,
+    api: i16,
+    ids: bool,
+    member: bool,
+    deadline: Deadline,
+) -> Result<(BrokerConn, ApiVersionsResponse, i16)> {
+    let mut conn = BrokerConn::connect_tls(
+        address,
+        &cfg.client_id,
+        cfg.connect_timeout.min(deadline.remaining()?),
+        cfg.tls.as_ref(),
+    )
+    .await?;
+    if let Some(stats) = stats {
+        conn.set_stats(std::sync::Arc::clone(stats));
+    }
+    let versions = negotiate_api_versions(&mut conn, deadline.remaining()?).await?;
+    let version = OffsetClient::version(&versions, api, ids, member)?;
+    sasl::apply_api_keys(&mut conn, &versions.api_keys);
+    sasl::authenticate(
+        &mut conn,
+        cfg.sasl_plain.as_ref(),
+        cfg.sasl_scram.as_ref(),
+        cfg.sasl_scram_sha512.as_ref(),
+        cfg.sasl_oauthbearer.as_deref(),
+        cfg.sasl_oauthbearer_oidc.as_ref(),
+        deadline.remaining()?,
+    )
+    .await?;
+    Ok((conn, versions, version))
 }
 
 fn retryable(err: &Error) -> bool {
@@ -280,31 +317,16 @@ impl OffsetClient {
         member: bool,
         deadline: Deadline,
     ) -> Result<(BrokerConn, ApiVersionsResponse, i16)> {
-        let cfg = &self.cfg;
-        let mut conn = BrokerConn::connect_tls(
+        open_offset_socket(
+            &self.cfg,
+            self.stats.as_ref(),
             address,
-            &cfg.client_id,
-            cfg.connect_timeout.min(deadline.remaining()?),
-            cfg.tls.as_ref(),
+            api,
+            ids,
+            member,
+            deadline,
         )
-        .await?;
-        if let Some(stats) = &self.stats {
-            conn.set_stats(std::sync::Arc::clone(stats));
-        }
-        let versions = negotiate_api_versions(&mut conn, deadline.remaining()?).await?;
-        let version = Self::version(&versions, api, ids, member)?;
-        sasl::apply_api_keys(&mut conn, &versions.api_keys);
-        sasl::authenticate(
-            &mut conn,
-            cfg.sasl_plain.as_ref(),
-            cfg.sasl_scram.as_ref(),
-            cfg.sasl_scram_sha512.as_ref(),
-            cfg.sasl_oauthbearer.as_deref(),
-            cfg.sasl_oauthbearer_oidc.as_ref(),
-            deadline.remaining()?,
-        )
-        .await?;
-        Ok((conn, versions, version))
+        .await
     }
 
     async fn bootstrap(
@@ -454,12 +476,68 @@ impl OffsetClient {
             .await?;
             routes.entry(address).or_default().push(index);
         }
+        drop(bootstrap);
+        let order: Vec<(String, Vec<usize>)> = routes.into_iter().collect();
+        let mut next_dial = 0usize;
+        let mut dialing = tokio::task::JoinSet::<(String, Result<(BrokerConn, i16)>)>::new();
+        let mut ready: HashMap<String, Result<(BrokerConn, i16)>> = HashMap::new();
+        let mut in_use = 0usize;
+        let cfg = self.cfg.clone();
+        let stats = self.stats.clone();
+        let topic_ids = options.topic_ids;
+        let start_dial =
+            |dialing: &mut tokio::task::JoinSet<(String, Result<(BrokerConn, i16)>)>,
+             index: usize| {
+                let Some((address, _)) = order.get(index) else {
+                    return;
+                };
+                let address = address.clone();
+                let cfg = cfg.clone();
+                let stats = stats.clone();
+                let _ = dialing.spawn(async move {
+                    let result = open_offset_socket(
+                        &cfg,
+                        stats.as_ref(),
+                        &address,
+                        OFFSET_FETCH,
+                        topic_ids,
+                        member,
+                        deadline,
+                    )
+                    .await
+                    .map(|(conn, _versions, version)| (conn, version));
+                    (address, result)
+                });
+            };
+        while next_dial < order.len() && dialing.len() + ready.len() + in_use < 2 {
+            start_dial(&mut dialing, next_dial);
+            next_dial += 1;
+        }
         let mut slots = vec![None; request.groups.len()];
         let mut throttle_time_ms = 0;
-        for (address, indexes) in routes {
-            let (mut conn, _, version) = self
-                .open(&address, OFFSET_FETCH, options.topic_ids, member, deadline)
-                .await?;
+        for pos in 0..order.len() {
+            let Some((address, indexes)) = order.get(pos) else {
+                break;
+            };
+            let address = address.clone();
+            let indexes = indexes.clone();
+            while !ready.contains_key(&address) {
+                let Some(joined) = dialing.join_next().await else {
+                    return Err(Error::protocol("missing offset coordinator socket"));
+                };
+                let Ok((dialed, result)) = joined else {
+                    return Err(Error::protocol("offset coordinator handshake failed"));
+                };
+                let _prev = ready.insert(dialed, result);
+            }
+            let (mut conn, version) = ready
+                .remove(&address)
+                .ok_or_else(|| Error::protocol("missing offset coordinator socket"))??;
+            in_use = 1;
+            while next_dial < order.len() && dialing.len() + ready.len() + in_use < 2 {
+                start_dial(&mut dialing, next_dial);
+                next_dial += 1;
+            }
             let groups = indexes
                 .iter()
                 .map(|index| {
@@ -542,6 +620,12 @@ impl OffsetClient {
                     .ok_or_else(|| Error::protocol("missing retained offset slot"))? = Some(group);
             }
             deadline.check_expired()?;
+            drop(conn);
+            in_use = 0;
+            while next_dial < order.len() && dialing.len() + ready.len() + in_use < 2 {
+                start_dial(&mut dialing, next_dial);
+                next_dial += 1;
+            }
         }
         let groups = slots
             .into_iter()

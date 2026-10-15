@@ -975,6 +975,32 @@ async fn legacy_named_admin_offsets_share_one_deadline_and_validate_group_before
 }
 
 #[tokio::test]
+async fn two_offset_coordinators_are_fetched_and_restored_in_request_order() {
+    let peer = Peer::start().await;
+    peer.state.lock().await.routes.extend([1, 2]);
+    peer.script(1, [Reply::Body(fetched(&["ga"], 0))]).await;
+    peer.script(2, [Reply::Body(fetched(&["gb"], 0))]).await;
+    let mut request = fetch();
+    request.groups[0].group_id = "ga".into();
+    let mut second = request.groups[0].clone();
+    second.group_id = "gb".into();
+    request.groups.push(second);
+    let mut client = OffsetClient::new(peer.config()).unwrap();
+    let response = client.fetch(&request, &options()).await.unwrap();
+    assert_eq!(response.groups[0].group_id, "ga");
+    assert_eq!(response.groups[1].group_id, "gb");
+    drop(client);
+    let frames = peer.close().await;
+    let mut slots = frames
+        .iter()
+        .filter(|frame| frame.api == 9)
+        .map(|frame| frame.slot)
+        .collect::<Vec<_>>();
+    slots.sort_unstable();
+    assert_eq!(slots, vec![1, 2]);
+}
+
+#[tokio::test]
 #[ignore = "requires pinned SDK seeds and owned process runner"]
 async fn serve_offset_id_probe() {
     let directory = std::path::PathBuf::from(std::env::var_os("OFFSET_ID_DIRECTORY").unwrap());
