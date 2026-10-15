@@ -1256,26 +1256,33 @@ pub(crate) fn process_queued(
     replies
 }
 
-fn sync_partition_once(captured: &mut [Option<CapturedProduce>]) {
+/// Last staged sync for each topic partition. Earlier copies of that
+/// partition wait on this fsync instead of scanning every queued batch.
+fn latest_sync_slots(captured: &[Option<CapturedProduce>]) -> Vec<(usize, usize)> {
     let mut reps: Vec<(usize, usize)> = Vec::new();
+    let mut slots: HashMap<(TopicId, i32), usize> = HashMap::new();
     for (state_index, item) in captured.iter().enumerate() {
         let Some(item) = item else {
             continue;
         };
         for (local_index, sync) in item.pending_sync.iter().enumerate() {
-            let replaced = reps.iter_mut().find(|(state, local)| {
-                captured[*state].as_ref().is_some_and(|other| {
-                    let previous = &other.pending_sync[*local];
-                    previous.id == sync.id && previous.index == sync.index
-                })
-            });
-            if let Some(slot) = replaced {
-                *slot = (state_index, local_index);
-            } else {
-                reps.push((state_index, local_index));
+            let key = (sync.id, sync.index);
+            if let Some(&slot) = slots.get(&key) {
+                if let Some(entry) = reps.get_mut(slot) {
+                    *entry = (state_index, local_index);
+                    continue;
+                }
             }
+            let slot = reps.len();
+            reps.push((state_index, local_index));
+            let _ = slots.insert(key, slot);
         }
     }
+    reps
+}
+
+fn sync_partition_once(captured: &mut [Option<CapturedProduce>]) {
+    let reps = latest_sync_slots(captured);
     let mut joins = Vec::new();
     let parallel = reps.len() > 1;
     for &(state_index, local_index) in &reps {
@@ -1900,5 +1907,43 @@ mod tests {
         assert_eq!(part.error, 0);
         assert_eq!(part.base, 7);
         assert_eq!(part.log_start, 0);
+    }
+
+    fn null_sync(id: TopicId, index: i32) -> PendingSync {
+        PendingSync {
+            topic_at: 0,
+            part_at: 0,
+            id,
+            index,
+            file: File::open("/dev/null").expect("null device"),
+            batch_count: 1,
+            failed: false,
+            log_start: Some(0),
+            position: 0,
+        }
+    }
+
+    fn captured(syncs: Vec<PendingSync>) -> CapturedProduce {
+        CapturedProduce {
+            version: 9,
+            correlation_id: 1,
+            body_off: 0,
+            acks: 1,
+            response_bound: 16,
+            results: Vec::new(),
+            pending_sync: syncs,
+        }
+    }
+
+    #[test]
+    fn queued_produces_keep_the_last_sync_for_each_partition() {
+        let orders = TopicId::new([9; 16]).expect("orders");
+        let payments = TopicId::new([8; 16]).expect("payments");
+        let captured = vec![
+            Some(captured(vec![null_sync(orders, 0), null_sync(orders, 1)])),
+            None,
+            Some(captured(vec![null_sync(orders, 0), null_sync(payments, 0)])),
+        ];
+        assert_eq!(latest_sync_slots(&captured), vec![(2, 0), (0, 1), (2, 1)]);
     }
 }
