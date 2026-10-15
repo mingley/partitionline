@@ -5127,6 +5127,69 @@ async fn implicit_piggyback_omitted_sibling_is_invalid_response() {
 }
 
 #[tokio::test]
+async fn implicit_piggyback_unrequested_topic_id_is_skipped() {
+    let mock = common::Mock::start().await;
+    v2(&mock);
+    produce(&mock, &[(0, b"first")]).await;
+    let mut cfg = config(&mock);
+    cfg.share_acknowledgement_mode = ShareAcknowledgementMode::Implicit;
+    let mut group = ShareGroup::join(cfg, "ack-unreq-tid-piggy", "t")
+        .await
+        .unwrap();
+    let first = group.poll().await.unwrap();
+    assert_eq!(first.len(), 1);
+    produce(&mock, &[(0, b"later")]).await;
+    let seen = Arc::new(Mutex::new(Vec::new()));
+    let seen_cb = seen.clone();
+    group.set_acknowledgement_commit_callback(move |offsets, exception| {
+        let partition = offsets[0].0.partition();
+        seen_cb.lock().push((
+            partition,
+            exception
+                .as_ref()
+                .map(|error| (error.code(), error.message().to_owned())),
+        ));
+    });
+    let version = mock.last_share_fetch_version().unwrap_or(2);
+    let ok = ShareFetchedPartition::partition_response(0, 0);
+    let mut extra = ShareFetchedPartition::partition_response(0, 0);
+    extra.acknowledge_error_code = error::UNKNOWN_TOPIC_ID;
+    extra.acknowledge_error_message = Some("piggyback unrequested topic id".into());
+    let topics = vec![
+        ShareFetchedTopic {
+            topic_id: mock.topic_id("t"),
+            partitions: vec![ok],
+        },
+        ShareFetchedTopic {
+            topic_id: [0xCD; 16],
+            partitions: vec![extra],
+        },
+    ];
+    let mut injected = BytesMut::new();
+    encode_share_fetch_response(&mut injected, version, &topics).unwrap();
+    mock.inject_share_fetch_response_once(&injected);
+    assert!(
+        group.poll().await.unwrap().is_empty(),
+        "Java lookupTopicId skips an unknown piggyback topic id; poll does not fail"
+    );
+    assert_eq!(*seen.lock(), vec![(0, None)]);
+    assert_eq!(
+        mock.share_ack_calls(),
+        0,
+        "unknown piggyback topic id must not retry standalone ShareAcknowledge"
+    );
+    let third = group.poll().await.unwrap();
+    assert_eq!(third.len(), 1);
+    assert_eq!(third[0].value.as_deref(), Some(&b"later"[..]));
+    assert_eq!(
+        mock.share_ack_calls(),
+        0,
+        "completed piggyback after skipped topic id must not send standalone ShareAcknowledge"
+    );
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn implicit_piggyback_fetch_timeout_completes_acks() {
     let mock = common::Mock::start().await;
     v2(&mock);

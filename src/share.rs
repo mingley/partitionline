@@ -747,9 +747,11 @@ pub enum ShareAcquireMode {
 /// per poll; other leaders send a zero-limit session/ack ShareFetch
 /// (Java `canSkipIfRequestEmpty`). An unrequested ShareFetch topic id
 /// or partition is skipped (Java `lookupTopicId` /
-/// `testShareFetchInvalidResponse`). A partition-level ShareFetch
-/// error does not discard sibling partitions in the same response
-/// (Java `testMultipleTopicsFetch` / `testMultipleTopicsFetchError` /
+/// `testShareFetchInvalidResponse`). An unknown ShareFetch topic id
+/// on a piggyback response is skipped and does not fail a requested
+/// partition whose `AcknowledgeErrorCode` is none. A partition-level
+/// ShareFetch error does not discard sibling partitions in the same
+/// response (Java `testMultipleTopicsFetch` / `testMultipleTopicsFetchError` /
 /// `ShareFetchCollector.collect`). Partition `NOT_LEADER_OR_FOLLOWER`
 /// / `FENCED_LEADER_EPOCH` with a usable CurrentLeader (`leaderId != -1`
 /// && `leaderEpoch != -1`) plus NodeEndpoints updates the next ShareFetch

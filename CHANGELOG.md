@@ -84,6 +84,9 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   including when `AcknowledgeErrorMessage` is set or empty.
   An omitted piggyback acknowledgement on one partition does not fail
   a sibling partition that is present with `AcknowledgeErrorCode` none.
+  An unknown ShareFetch topic id on a piggyback response is skipped
+  (Java `lookupTopicId`) and does not fail a requested partition whose
+  `AcknowledgeErrorCode` is none.
   ShareAcknowledge top-level `SHARE_SESSION_LIMIT_REACHED` completes
   without retry and advances the share session epoch (Java
   `handleResponse` `nextEpoch`), including when `ErrorMessage` is
