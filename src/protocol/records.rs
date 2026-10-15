@@ -2076,6 +2076,9 @@ pub fn encode_record_batch(buf: &mut BytesMut, batch: &RecordBatch) -> Result<()
 pub struct CompressScratch {
     section: BytesMut,
     packed: Vec<u8>,
+    /// Header widths for the record being encoded. Cleared per record and kept
+    /// across batches.
+    header_wires: Vec<HeaderWire>,
     section_cap: usize,
     packed_cap: usize,
     #[cfg(feature = "zstd")]
@@ -2098,6 +2101,7 @@ impl CompressScratch {
         Self {
             section: BytesMut::new(),
             packed: Vec::new(),
+            header_wires: Vec::new(),
             section_cap: section_cap.max(1024),
             packed_cap: packed_cap.max(1024),
             #[cfg(feature = "zstd")]
@@ -2192,18 +2196,23 @@ where
             Compression::None => {}
         }
         let (batch_start, batch_len_pos, crc_pos, crc_start) = start_record_batch(buf, header);
-        let mut written = 0usize;
-        let mut header_wires = Vec::new();
-        for (i, rec) in records.enumerate() {
-            encode_record(
-                buf,
-                &rec,
-                absolute_offset_delta(header.base_offset, i)?,
-                timestamp_delta(header.base_timestamp, rec.timestamp)?,
-                &mut header_wires,
-            )?;
-            written = i.saturating_add(1);
-        }
+        let mut header_wires = std::mem::take(&mut scratch.header_wires);
+        let write_result: Result<usize> = (|| {
+            let mut written = 0usize;
+            for (i, rec) in records.enumerate() {
+                encode_record(
+                    buf,
+                    &rec,
+                    absolute_offset_delta(header.base_offset, i)?,
+                    timestamp_delta(header.base_timestamp, rec.timestamp)?,
+                    &mut header_wires,
+                )?;
+                written = i.saturating_add(1);
+            }
+            Ok(written)
+        })();
+        scratch.header_wires = header_wires;
+        let written = write_result?;
         if header.count != buf::i32_from_usize(written)? {
             return Err(Error::protocol("record count differs from header"));
         }
@@ -2252,66 +2261,70 @@ where
     // KL09-33: 1 KiB floor kills the early doubling steps for real batches.
     scratch.section.clear();
     scratch.section.reserve(1024);
+    let mut header_wires = std::mem::take(&mut scratch.header_wires);
     let mut written = 0usize;
-    let mut header_wires = Vec::new();
-    for (index, rec) in records.into_iter().enumerate() {
-        let offset_delta = absolute_offset_delta(header.base_offset, index)?;
-        let timestamp_delta = timestamp_delta(header.base_timestamp, rec.timestamp)?;
-        #[cfg(feature = "zstd")]
-        if compression == Compression::Zstd {
-            let body = record_body_size(&rec, offset_delta, timestamp_delta)?;
-            let size = buf::usize_from_i32(body)?
-                .checked_add(buf::varint_size(body))
-                .and_then(|n| n.checked_add(scratch.section.len()))
-                .ok_or_else(|| Error::protocol("zstd record section size overflow"))?;
-            if size > DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES {
-                return Err(Error::protocol("zstd record section exceeds 64 MiB"));
+    let encoded: Result<usize> = (|| {
+        for (index, rec) in records.into_iter().enumerate() {
+            let offset_delta = absolute_offset_delta(header.base_offset, index)?;
+            let timestamp_delta = timestamp_delta(header.base_timestamp, rec.timestamp)?;
+            #[cfg(feature = "zstd")]
+            if compression == Compression::Zstd {
+                let body = record_body_size(&rec, offset_delta, timestamp_delta)?;
+                let size = buf::usize_from_i32(body)?
+                    .checked_add(buf::varint_size(body))
+                    .and_then(|n| n.checked_add(scratch.section.len()))
+                    .ok_or_else(|| Error::protocol("zstd record section size overflow"))?;
+                if size > DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES {
+                    return Err(Error::protocol("zstd record section exceeds 64 MiB"));
+                }
+            }
+            encode_record(
+                &mut scratch.section,
+                &rec,
+                offset_delta,
+                timestamp_delta,
+                &mut header_wires,
+            )?;
+            written = index.saturating_add(1);
+        }
+        if header.count != buf::i32_from_usize(written)? {
+            return Err(Error::protocol("record count differs from header"));
+        }
+        match compression {
+            Compression::Gzip => gzip_compress_into(&scratch.section, &mut scratch.packed)?,
+            Compression::Snappy => snappy_compress_into(&scratch.section, &mut scratch.packed)?,
+            Compression::Lz4 => lz4_compress_into(&scratch.section, &mut scratch.packed)?,
+            #[cfg(feature = "zstd")]
+            Compression::Zstd => zstd_compress_into(
+                &scratch.section,
+                &mut scratch.packed,
+                &mut scratch.zstd_encoder,
+                scratch.zstd_level,
+            )?,
+            Compression::None => {
+                return Err(Error::protocol("internal: uncompressed pack"));
             }
         }
-        encode_record(
-            &mut scratch.section,
-            &rec,
-            offset_delta,
-            timestamp_delta,
-            &mut header_wires,
-        )?;
-        written = index.saturating_add(1);
-    }
-    if header.count != buf::i32_from_usize(written)? {
-        return Err(Error::protocol("record count differs from header"));
-    }
-    match compression {
-        Compression::Gzip => gzip_compress_into(&scratch.section, &mut scratch.packed)?,
-        Compression::Snappy => snappy_compress_into(&scratch.section, &mut scratch.packed)?,
-        Compression::Lz4 => lz4_compress_into(&scratch.section, &mut scratch.packed)?,
+        let framed = scratch
+            .packed
+            .len()
+            .checked_add(buf::usize_from_i32(RecordBatch::RECORD_BATCH_OVERHEAD)?)
+            .ok_or_else(|| Error::protocol("compressed batch size overflow"))?;
         #[cfg(feature = "zstd")]
-        Compression::Zstd => zstd_compress_into(
-            &scratch.section,
-            &mut scratch.packed,
-            &mut scratch.zstd_encoder,
-            scratch.zstd_level,
-        )?,
-        Compression::None => {
-            return Err(Error::protocol("internal: uncompressed pack"));
+        if compression == Compression::Zstd
+            && scratch.zstd_max_batch_bytes != 0
+            && framed > scratch.zstd_max_batch_bytes
+        {
+            return Err(Error::RecordTooLarge {
+                size: u64::try_from(framed).unwrap_or(u64::MAX),
+                max: u64::try_from(scratch.zstd_max_batch_bytes).unwrap_or(u64::MAX),
+                config: Error::MAX_REQUEST_SIZE_CONFIG,
+            });
         }
-    }
-    let framed = scratch
-        .packed
-        .len()
-        .checked_add(buf::usize_from_i32(RecordBatch::RECORD_BATCH_OVERHEAD)?)
-        .ok_or_else(|| Error::protocol("compressed batch size overflow"))?;
-    #[cfg(feature = "zstd")]
-    if compression == Compression::Zstd
-        && scratch.zstd_max_batch_bytes != 0
-        && framed > scratch.zstd_max_batch_bytes
-    {
-        return Err(Error::RecordTooLarge {
-            size: u64::try_from(framed).unwrap_or(u64::MAX),
-            max: u64::try_from(scratch.zstd_max_batch_bytes).unwrap_or(u64::MAX),
-            config: Error::MAX_REQUEST_SIZE_CONFIG,
-        });
-    }
-    Ok(framed)
+        Ok(framed)
+    })();
+    scratch.header_wires = header_wires;
+    encoded
 }
 
 /// Write a batch whose payload is already in `scratch.packed`.
@@ -5051,6 +5064,45 @@ mod tests {
         .unwrap();
         assert_eq!(plain_scratch.section.capacity(), 0);
         assert_eq!(plain_scratch.packed.capacity(), 0);
+    }
+
+    #[test]
+    fn header_wire_widths_stay_on_the_scratch_across_batches() {
+        let rec = Record {
+            offset: 0,
+            timestamp: 1,
+            key: None,
+            value: Some(Bytes::from_static(b"v")),
+            headers: vec![Header::new("h", Bytes::from_static(b"x"))],
+        };
+        let header = BatchHeader {
+            count: 1,
+            base_timestamp: 1,
+            max_timestamp: 1,
+            ..BatchHeader::default()
+        };
+        let mut scratch = CompressScratch::new();
+        for _ in 0..2 {
+            let mut buf = BytesMut::new();
+            write_record_batch_scratch(
+                &mut buf,
+                &header,
+                std::iter::once(EncodeRecord::from_record(&rec)),
+                &mut scratch,
+            )
+            .unwrap();
+        }
+        assert!(scratch.header_wires.capacity() >= 1);
+        let kept = scratch.header_wires.capacity();
+        let mut buf = BytesMut::new();
+        write_record_batch_scratch(
+            &mut buf,
+            &header,
+            std::iter::once(EncodeRecord::from_record(&rec)),
+            &mut scratch,
+        )
+        .unwrap();
+        assert!(scratch.header_wires.capacity() >= kept);
     }
 
     #[test]
