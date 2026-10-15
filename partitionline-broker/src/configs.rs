@@ -272,7 +272,11 @@ impl ConfigStore {
     fn apply(&mut self, bytes: &[u8]) -> Result<(), Error> {
         let (kind, name, resource) = decode_resource(bytes)?;
         validate_stored(kind, &name, &resource)?;
-        self.resources.insert((kind, name), resource);
+        let key = (kind, name);
+        if self.resources.len() >= self.limits.max_resources && !self.resources.contains_key(&key) {
+            return Err(Error::InvalidLimits);
+        }
+        self.resources.insert(key, resource);
         Ok(())
     }
 
@@ -619,6 +623,40 @@ mod tests {
         let path = std::env::temp_dir().join(format!("pl-cfg-{name}-{nanos}"));
         let store = ConfigStore::open(&path, limits()).unwrap_or_else(|error| panic!("{error:?}"));
         (store, path)
+    }
+
+    #[test]
+    fn a_replay_cannot_pass_the_resource_cap() {
+        let journal = journal::Limits::new(4096, 1 << 20, 100, 1 << 20)
+            .unwrap_or_else(|_| panic!("journal limits"));
+        let tight = Limits::new(1, 32, journal).unwrap_or_else(|_| panic!("config limits"));
+        let nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_nanos();
+        let path = std::env::temp_dir().join(format!("pl-cfg-cap-{nanos}"));
+        let mut store = ConfigStore::open(&path, tight).unwrap_or_else(|error| panic!("{error:?}"));
+        store
+            .alter(
+                ResourceKind::Topic,
+                "orders",
+                &[Alter {
+                    name: "retention.ms".into(),
+                    op: Op::Set,
+                    value: Some("1".into()),
+                }],
+                false,
+            )
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let mut values = BTreeMap::new();
+        values.insert("retention.ms".to_owned(), "1".to_owned());
+        let encoded = encode_resource(ResourceKind::Topic, "payments", &Resource { values })
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(store.apply(&encoded), Err(Error::InvalidLimits)));
+        let described = store
+            .describe(ResourceKind::Topic, "payments")
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(described.iter().all(|entry| !entry.dynamic));
     }
 
     #[test]
