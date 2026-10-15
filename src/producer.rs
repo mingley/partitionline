@@ -5756,9 +5756,37 @@ fn batch_ready(pending: &[Pending], rec_limit: usize, byte_limit: usize) -> bool
 }
 
 fn take_count(pending: &[Pending], rec_limit: usize, byte_limit: usize) -> usize {
+    let group_overhead = usize::try_from(RecordBatch::RECORD_BATCH_OVERHEAD).unwrap_or(0);
+    if let Some(first) = pending.first() {
+        let topic = first.rec.topic.as_ref();
+        let part = first.rec.partition.unwrap_or(0);
+        let base = first.batch_base_seq;
+        let one_group = pending
+            .iter()
+            .take(rec_limit)
+            .all(|p| p.rec.partition.unwrap_or(0) == part && p.rec.topic.as_ref() == topic);
+        if one_group {
+            let mut n = 0usize;
+            let mut bytes = 0usize;
+            for p in pending.iter().take(rec_limit) {
+                if p.batch_base_seq != base {
+                    break;
+                }
+                let add = estimate(p).saturating_add(if n == 0 { group_overhead } else { 0 });
+                if n > 0 && bytes.saturating_add(add) > byte_limit {
+                    break;
+                }
+                bytes = bytes.saturating_add(add);
+                n += 1;
+                if bytes >= byte_limit {
+                    break;
+                }
+            }
+            return n.max(1).min(pending.len());
+        }
+    }
     let mut n = 0;
     let mut bytes = 0usize;
-    let group_overhead = usize::try_from(RecordBatch::RECORD_BATCH_OVERHEAD).unwrap_or(0);
     let mut batch_bases: HashMap<(Arc<str>, i32), Option<i32>> = HashMap::new();
     for p in pending.iter().take(rec_limit) {
         let key = (p.rec.topic.clone(), p.rec.partition.unwrap_or(0));
@@ -6326,6 +6354,50 @@ fn record_metadata(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn queued(topic: &str, partition: Option<i32>) -> Pending {
+        let now = Instant::now();
+        let mut rec = ProduceRecord::to(topic);
+        if let Some(partition) = partition {
+            rec = rec.partition(partition);
+        }
+        Pending {
+            sticky_record: None,
+            sticky: None,
+            rec,
+            tx: None,
+            seq: None,
+            batch_base_seq: None,
+            batch_len: 1,
+            epoch_gen: 0,
+            deadline: now,
+            queued_at: now,
+            retry: 0,
+            skip_meta_refresh: false,
+            retry_after: now,
+        }
+    }
+
+    #[test]
+    fn take_count_charges_one_group_overhead_for_one_partition() {
+        let same = vec![queued("t", Some(0)), queued("t", Some(0))];
+        let mixed = vec![queued("t", Some(0)), queued("t", Some(1))];
+        let overhead = usize::try_from(RecordBatch::RECORD_BATCH_OVERHEAD).unwrap_or(0);
+        let first = estimate(&same[0]);
+        let second = estimate(&same[1]);
+        let one = first.saturating_add(overhead);
+        let two_same = one.saturating_add(second);
+        let two_groups = two_same.saturating_add(overhead);
+        assert_eq!(take_count(&same, 10, one), 1);
+        assert_eq!(take_count(&same, 10, two_same), 2);
+        assert_eq!(take_count(&mixed, 10, two_same), 1);
+        assert_eq!(take_count(&mixed, 10, two_groups), 2);
+        let mut split = same;
+        split[0].batch_base_seq = Some(1);
+        split[1].batch_base_seq = Some(2);
+        assert_eq!(take_count(&split, 10, usize::MAX), 1);
+        assert_eq!(take_count(&[], 10, usize::MAX), 0);
+    }
 
     #[test]
     fn compact_payload_preserves_bytes_and_reuses_an_exact_unique_allocation() {
