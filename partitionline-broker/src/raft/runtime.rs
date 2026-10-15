@@ -13,6 +13,7 @@ use super::{
     replication::{self, ChangeReceipt, DynamicSnapshotRequest, Node, Record, State},
     snapshot,
 };
+use bytes::BufMut;
 #[cfg(test)]
 use std::path::Path;
 use std::{
@@ -1780,6 +1781,25 @@ impl Drop for Counter {
         }
     }
 }
+/// Fill `length` bytes into spare capacity. The body is not zeroed first.
+async fn read_exact_spare(
+    socket: &mut TcpStream,
+    payload: &mut Vec<u8>,
+    length: usize,
+) -> Result<()> {
+    payload
+        .try_reserve_exact(length)
+        .map_err(|_| Error::Allocation)?;
+    let mut limited = (&mut *payload).limit(length);
+    while limited.get_ref().len() < length {
+        let n = socket.read_buf(&mut limited).await?;
+        if n == 0 {
+            return Err(io::Error::new(io::ErrorKind::UnexpectedEof, "frame body closed").into());
+        }
+    }
+    Ok(())
+}
+
 async fn read_frame(
     socket: &mut TcpStream,
     limit: usize,
@@ -1792,11 +1812,7 @@ async fn read_frame(
             return Err(Error::Peer);
         }
         let mut bytes = Vec::new();
-        bytes
-            .try_reserve_exact(length)
-            .map_err(|_| Error::Allocation)?;
-        bytes.resize(length, 0);
-        socket.read_exact(&mut bytes).await?;
+        read_exact_spare(&mut *socket, &mut bytes, length).await?;
         Ok(peer_codec::decode(&bytes, limit, max_records)?)
     })
     .await

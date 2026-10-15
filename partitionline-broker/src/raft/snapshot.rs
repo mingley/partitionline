@@ -345,6 +345,26 @@ fn allocated(size: usize) -> Result<Vec<u8>, Error> {
         .map_err(|_| Error::Allocation)?;
     Ok(bytes)
 }
+
+/// Read exactly `len` bytes into spare capacity. A short read leaves `dest`
+/// at its previous length and reports [`Error::Incomplete`].
+fn read_exact_spare(reader: &mut impl Read, dest: &mut Vec<u8>, len: usize) -> Result<(), Error> {
+    let start = dest.len();
+    dest.try_reserve_exact(len).map_err(|_| Error::Allocation)?;
+    let limit = u64::try_from(len).map_err(|_| Error::Allocation)?;
+    let result = reader.take(limit).read_to_end(dest);
+    let complete = matches!(result, Ok(n) if n == len) && dest.len() == start.saturating_add(len);
+    if complete {
+        return Ok(());
+    }
+    dest.truncate(start);
+    match result {
+        Ok(_) => {
+            Err(io::Error::new(io::ErrorKind::UnexpectedEof, "snapshot changed during read").into())
+        }
+        Err(error) => Err(error.into()),
+    }
+}
 fn name(generation: [u8; 16], partial: bool) -> String {
     const HEX: &[u8; 16] = b"0123456789abcdef";
     let mut result = String::with_capacity(49);
@@ -510,8 +530,8 @@ fn decode(
     }
     let mut header = allocated(length)?;
     header.extend_from_slice(&prefix);
-    header.resize(length, 0);
-    file.read_exact(&mut header[16..])?;
+    let rest = length.saturating_sub(header.len());
+    read_exact_spare(file, &mut header, rest)?;
     let (data, checksum) = header.split_at(length - 4);
     if crc32c::crc32c(data) != u32::from_be_bytes(checksum.try_into().map_err(|_| Error::Corrupt)?)
     {
@@ -1123,10 +1143,9 @@ impl Store {
         let length = (outgoing.descriptor.bytes - outgoing.position)
             .min(self.limits.chunk_bytes as u64) as usize;
         let mut bytes = allocated(length)?;
-        bytes.resize(length, 0);
-        if let Err(error) = outgoing.file.read_exact(&mut bytes) {
+        if let Err(error) = read_exact_spare(&mut outgoing.file, &mut bytes, length) {
             self.poisoned = true;
-            return Err(error.into());
+            return Err(error);
         }
         let offset = outgoing.position;
         outgoing.position += length as u64;
