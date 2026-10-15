@@ -74,9 +74,10 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `INVALID_SHARE_SESSION_EPOCH` still reset, including when
   `ErrorMessage` is set. A non-empty top-level `ErrorMessage` is
   preferred on that path. ShareFetch top-level
-  `SHARE_SESSION_LIMIT_REACHED` still resets the session (Java
-  `nextCloseExistingAttemptNew`) and completes piggybacked
-  acknowledgements with a non-empty `ErrorMessage`.
+  `SHARE_SESSION_LIMIT_REACHED` / `INVALID_SHARE_SESSION_EPOCH`
+  still reset the session (Java `nextCloseExistingAttemptNew`) and
+  complete piggybacked acknowledgements with a non-empty
+  `ErrorMessage`.
 
 - ShareFetch partition `INCONSISTENT_TOPIC_ID` / `UNKNOWN_TOPIC_OR_PARTITION`
   / `UNKNOWN_TOPIC_ID` / `REPLICA_NOT_AVAILABLE` / `OFFSET_NOT_AVAILABLE`

@@ -2056,8 +2056,9 @@
 //! `Errors.exception(acknowledgeErrorMessage)`). A top-level ShareFetch
 //! error completes in-flight piggybacked acknowledgements (Java
 //! `ShareSessionHandler.handleResponse` false), preferring a non-empty
-//! `ErrorMessage`. Top-level `SHARE_SESSION_LIMIT_REACHED` still resets
-//! the share session (Java `nextCloseExistingAttemptNew`); the initial share
+//! `ErrorMessage`. Top-level `SHARE_SESSION_LIMIT_REACHED` /
+//! `INVALID_SHARE_SESSION_EPOCH` still reset the share session (Java
+//! `nextCloseExistingAttemptNew`); the initial share
 //! session does not piggyback and those acknowledgements complete with
 //! `NOT_LEADER_OR_FOLLOWER` (Java
 //! `testPiggybackAcknowledgementsOnInitialShareSessionError`). After

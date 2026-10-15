@@ -2803,6 +2803,63 @@ async fn share_fetch_session_limit_message_resets_session_and_completes_acks() {
 }
 
 #[tokio::test]
+async fn share_fetch_invalid_session_epoch_message_resets_session_and_completes_acks() {
+    let mock = common::Mock::start().await;
+    v2(&mock);
+    produce(&mock, &[(0, b"first"), (0, b"second")]).await;
+    let mut cfg = config(&mock);
+    cfg.max_poll_records = Some(1);
+    cfg.share_acknowledgement_mode = ShareAcknowledgementMode::Implicit;
+    let mut group = ShareGroup::join(cfg, "fetch-sess-epoch-msg", "t")
+        .await
+        .unwrap();
+    let first = group.poll().await.unwrap();
+    assert_eq!(first.len(), 1);
+    let first_off = first[0].offset;
+    let seen = Arc::new(Mutex::new(Vec::new()));
+    let seen_cb = seen.clone();
+    group.set_acknowledgement_commit_callback(move |_, exception| {
+        seen_cb.lock().push(
+            exception
+                .as_ref()
+                .map(|error| (error.code(), error.message().to_owned())),
+        );
+    });
+    let version = mock.last_share_fetch_version().unwrap_or(2);
+    let mut injected = BytesMut::new();
+    encode_share_fetch_error_with_message(
+        &mut injected,
+        version,
+        error::INVALID_SHARE_SESSION_EPOCH,
+        Some("invalid share session epoch"),
+    )
+    .unwrap();
+    mock.inject_share_fetch_response_once(&injected);
+    let second = group.poll().await.unwrap();
+    assert_eq!(
+        *seen.lock(),
+        vec![Some((
+            Some(error::INVALID_SHARE_SESSION_EPOCH),
+            "invalid share session epoch".into()
+        ))],
+        "Java handleShareFetchSuccess completes piggybacked acks with ErrorMessage"
+    );
+    assert!(
+        !mock.share_accepted("fetch-sess-epoch-msg", "t", 0, first_off),
+        "invalid session epoch must not apply the piggybacked ACCEPT"
+    );
+    assert_eq!(second.len(), 1);
+    assert_ne!(second[0].offset, first_off);
+    assert_eq!(
+        mock.last_share_fetch_epoch(),
+        Some(0),
+        "Java ShareFetch handleResponse nextCloseExistingAttemptNew for INVALID_SHARE_SESSION_EPOCH"
+    );
+    assert_eq!(group.metrics().records_acknowledged, 0);
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn implicit_piggyback_missing_partition_is_invalid_response() {
     let mock = common::Mock::start().await;
     produce(&mock, &[(0, b"first"), (0, b"second")]).await;
