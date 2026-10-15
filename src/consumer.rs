@@ -1947,6 +1947,9 @@ pub struct Consumer {
     /// Partitions finished in the current poll. Cleared and reused so the next
     /// poll does not allocate a new topic table.
     fetch_completed: PartitionMap<()>,
+    /// Record count of the previous fetch buffer. The next buffer reserves this
+    /// many slots so a steady poll does not grow from empty.
+    last_fetch_records: usize,
     reconnect_fails: HashMap<i32, u32>,
     /// Leaders whose Fetch was sent and not yet applied. A multi-leader round
     /// returns after [`MULTI_LEADER_COLLECTION_WINDOW`] once any peer has
@@ -2690,6 +2693,7 @@ impl Consumer {
             topic_metrics: HashMap::new(),
             fetch_return_totals: HashMap::new(),
             fetch_completed: PartitionMap::new(),
+            last_fetch_records: 0,
             reconnect_fails: HashMap::new(),
             inflight_fetches: None,
             inflight_nodes: HashSet::new(),
@@ -4853,7 +4857,7 @@ impl Consumer {
         max_wait_ms: i32,
     ) -> Result<Vec<FetchedRecord>> {
         let mut attempt = 0u32;
-        let mut out = Vec::new();
+        let mut out = sized_fetch_records(self.last_fetch_records);
         let mut out_bytes = 0usize;
         self.fetch_return_totals.clear();
         loop {
@@ -7188,6 +7192,7 @@ impl Consumer {
     }
 
     fn finish_fetch(&mut self, recs: Vec<FetchedRecord>) -> Vec<FetchedRecord> {
+        note_fetch_records(&mut self.last_fetch_records, recs.len());
         if self.pending.is_empty() && self.cfg.max_poll_records.is_none() && self.paused.is_empty()
         {
             return recs;
@@ -7395,6 +7400,17 @@ fn fetch_totals_keep_their_buckets() {
 }
 
 #[test]
+fn a_fetch_buffer_reserves_the_previous_record_count() {
+    let mut previous = 0usize;
+    let first = sized_fetch_records(previous);
+    assert_eq!(first.capacity(), 0);
+    note_fetch_records(&mut previous, 4);
+    let second = sized_fetch_records(previous);
+    assert!(second.capacity() >= 4);
+    assert!(second.is_empty());
+}
+
+#[test]
 fn a_fetch_completion_map_keeps_its_buckets() {
     let mut slot = PartitionMap::new();
     let _ = slot.insert("orders", 0, ());
@@ -7449,6 +7465,15 @@ fn retained_topics_keep_their_table_when_a_paused_partition_stays() {
     assert!(retained.get("payments", 0).is_none());
     assert_eq!(delivered.len(), 2);
     assert!(retained.topics.capacity() >= capacity);
+}
+
+/// Reserve a fetch buffer from the previous poll's record count.
+fn sized_fetch_records(previous: usize) -> Vec<FetchedRecord> {
+    Vec::with_capacity(previous)
+}
+
+fn note_fetch_records(previous: &mut usize, count: usize) {
+    *previous = count;
 }
 
 /// Do not advance a fetch cursor to or past a known high watermark.
