@@ -1512,6 +1512,13 @@ impl ShareGroup {
     /// and continues later batches. A sole CRC-failed batch throws
     /// once (`Record is corrupt`) and the next poll does not throw again
     /// (Java `testInvalidDefaultRecordBatch` / `testParseInvalidRecordBatch`).
+    /// Partition `NOT_LEADER_OR_FOLLOWER` / `FENCED_LEADER_EPOCH` without
+    /// a usable CurrentLeader (`leaderId == -1` or `leaderEpoch == -1`)
+    /// skips that partition, still delivers siblings, and requests
+    /// Metadata (Java
+    /// `testWhenShareFetchResponseReturnsALeadershipChangeErrorButNoNewLeaderInformation`).
+    /// `UNKNOWN_LEADER_EPOCH` skips without Metadata (Java
+    /// `testHandleFetchResponseError`).
     pub async fn poll(&mut self) -> Result<ShareRecords> {
         if self.consumer.take_wakeup() {
             return Err(Error::Wakeup);

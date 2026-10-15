@@ -2685,6 +2685,82 @@ async fn share_fetch_current_leader_overrides_cached_metadata() {
 }
 
 #[tokio::test]
+async fn share_fetch_leadership_error_without_current_leader_refreshes_metadata() {
+    let mock = common::Mock::start().await;
+    v2(&mock);
+    mock.set_topic_partitions("t", 2);
+    mock.set_partition_leader("t", 0, 1);
+    mock.set_partition_leader("t", 1, 1);
+    let mut group = ShareGroup::join(config(&mock), "no-leader-info", "t")
+        .await
+        .unwrap();
+    let version = mock.last_share_fetch_version().unwrap_or(2);
+    let mut failed = ShareFetchedPartition::partition_response(1, error::NOT_LEADER_OR_FOLLOWER);
+    failed.current_leader_id = -1;
+    failed.current_leader_epoch = -1;
+    let topics = vec![ShareFetchedTopic {
+        topic_id: mock.topic_id("t"),
+        partitions: vec![injected_share_success(b"keep"), failed],
+    }];
+    let mut injected = BytesMut::new();
+    encode_share_fetch_response(&mut injected, version, &topics).unwrap();
+    mock.inject_share_fetch_response_once(&injected);
+    let first = group.poll().await.unwrap();
+    assert_eq!(first.len(), 1);
+    assert_eq!(first[0].partition, 0);
+    assert_eq!(first[0].value.as_deref(), Some(&b"keep"[..]));
+    group.accept(&first).await.unwrap();
+    let after_err = mock.metadata_calls();
+    produce(&mock, &[(1, b"later")]).await;
+    let second = group.poll().await.unwrap();
+    assert_eq!(second.len(), 1);
+    assert_eq!(second[0].partition, 1);
+    assert_eq!(second[0].value.as_deref(), Some(&b"later"[..]));
+    assert!(
+        mock.metadata_calls() > after_err,
+        "Java requests Metadata when a leadership error has no CurrentLeader"
+    );
+    group.accept(&second).await.unwrap();
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn share_fetch_unknown_leader_epoch_skips_without_metadata() {
+    let mock = common::Mock::start().await;
+    v2(&mock);
+    produce(&mock, &[(0, b"keep")]).await;
+    let mut group = ShareGroup::join(config(&mock), "unk-epoch", "t")
+        .await
+        .unwrap();
+    let version = mock.last_share_fetch_version().unwrap_or(2);
+    let topics = vec![ShareFetchedTopic {
+        topic_id: mock.topic_id("t"),
+        partitions: vec![ShareFetchedPartition::partition_response(
+            0,
+            error::UNKNOWN_LEADER_EPOCH,
+        )],
+    }];
+    let mut injected = BytesMut::new();
+    encode_share_fetch_response(&mut injected, version, &topics).unwrap();
+    mock.inject_share_fetch_response_once(&injected);
+    assert!(
+        group.poll().await.unwrap().is_empty(),
+        "Java handleInitializeErrors skips UNKNOWN_LEADER_EPOCH without throwing"
+    );
+    let after_skip = mock.metadata_calls();
+    let got = group.poll().await.unwrap();
+    assert_eq!(got.len(), 1);
+    assert_eq!(got[0].value.as_deref(), Some(&b"keep"[..]));
+    assert_eq!(
+        mock.metadata_calls(),
+        after_skip,
+        "Java testHandleFetchResponseError does not request Metadata for UNKNOWN_LEADER_EPOCH"
+    );
+    group.accept(&got).await.unwrap();
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn share_acknowledge_current_leader_overrides_cached_metadata() {
     let mock = common::Mock::start_two_node().await;
     v2(&mock);
