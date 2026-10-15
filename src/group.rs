@@ -204,14 +204,15 @@ fn cooperative_filter<T: Clone + Eq + std::hash::Hash>(
         }
     }
     let mut out: HashMap<String, Vec<T>> = HashMap::new();
-    for (m, tps) in computed {
-        let slot = out.entry(m.clone()).or_default();
-        for tp in tps {
-            match owner.get(&tp) {
-                Some(o) if o != &m => {}
-                _ => slot.push(tp),
+    for (member, owned) in computed {
+        let mut kept = Vec::with_capacity(owned.len());
+        for partition in owned {
+            match owner.get(&partition) {
+                Some(current) if current != &member => {}
+                _ => kept.push(partition),
             }
         }
+        let _ = out.insert(member, kept);
     }
     out
 }
