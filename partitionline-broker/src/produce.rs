@@ -887,7 +887,85 @@ fn reserved<T>(count: usize) -> Result<Vec<T>, Error> {
 struct Topic {
     name: Option<(usize, usize)>,
     id: [u8; 16],
-    partitions: Vec<Part>,
+    partitions: List<Part>,
+}
+
+/// One produce slot stays inline. Several slots own a vector.
+enum List<T> {
+    Empty,
+    One(T),
+    Many(Vec<T>),
+}
+
+impl<T> List<T> {
+    fn as_slice(&self) -> &[T] {
+        match self {
+            Self::Empty => &[],
+            Self::One(item) => std::slice::from_ref(item),
+            Self::Many(items) => items,
+        }
+    }
+
+    fn as_mut_slice(&mut self) -> &mut [T] {
+        match self {
+            Self::Empty => &mut [],
+            Self::One(item) => std::slice::from_mut(item),
+            Self::Many(items) => items,
+        }
+    }
+
+    fn push(&mut self, item: T) {
+        match self {
+            Self::Many(items) => items.push(item),
+            Self::Empty => *self = Self::One(item),
+            Self::One(_) => {
+                let Self::One(first) = std::mem::replace(self, Self::Empty) else {
+                    return;
+                };
+                *self = Self::Many(vec![first, item]);
+            }
+        }
+    }
+}
+
+impl<T> std::ops::Deref for List<T> {
+    type Target = [T];
+
+    fn deref(&self) -> &Self::Target {
+        self.as_slice()
+    }
+}
+
+impl<T> std::ops::DerefMut for List<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.as_mut_slice()
+    }
+}
+
+impl<'a, T> IntoIterator for &'a List<T> {
+    type Item = &'a T;
+    type IntoIter = std::slice::Iter<'a, T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.as_slice().iter()
+    }
+}
+
+impl<'a, T> IntoIterator for &'a mut List<T> {
+    type Item = &'a mut T;
+    type IntoIter = std::slice::IterMut<'a, T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.as_mut_slice().iter_mut()
+    }
+}
+
+fn exact_list<T>(count: usize) -> Result<List<T>, Error> {
+    if count <= 1 {
+        Ok(List::Empty)
+    } else {
+        Ok(List::Many(reserved(count)?))
+    }
 }
 struct Part {
     index: i32,
@@ -997,7 +1075,7 @@ struct Request {
     tx: Option<(usize, usize)>,
     acks: i16,
     timeout: i32,
-    topics: Vec<Topic>,
+    topics: List<Topic>,
 }
 fn parse(
     body: &[u8],
@@ -1019,7 +1097,7 @@ fn parse(
     if count > common.max_topics {
         return Err(Error::RequestCount);
     }
-    let mut topics = reserved(count)?;
+    let mut topics = exact_list(count)?;
     let mut total = 0usize;
     for _ in 0..count {
         let (name, id) = if version >= 13 {
@@ -1038,7 +1116,7 @@ fn parse(
         if total > limits.max_partitions {
             return Err(Error::RequestCount);
         }
-        let mut partitions = reserved(count)?;
+        let mut partitions = exact_list(count)?;
         for _ in 0..count {
             let index = reader.i32()?;
             let bytes = match reader.length(flex, true, false)? {
@@ -1092,7 +1170,7 @@ struct ResultPart {
 struct ResultTopic {
     name: Option<(usize, usize)>,
     id: [u8; 16],
-    parts: Vec<ResultPart>,
+    parts: List<ResultPart>,
 }
 fn record_error(error: records::Error) -> i16 {
     match error {
@@ -1297,7 +1375,7 @@ struct CapturedProduce {
     body_off: usize,
     acks: i16,
     response_bound: usize,
-    results: Vec<ResultTopic>,
+    results: List<ResultTopic>,
     pending_sync: Vec<PendingSync>,
 }
 enum ProcessOut {
@@ -1543,7 +1621,7 @@ fn process_inner(
         return Err(Error::ResourceLimit);
     }
     let mut writer = Writer::new(response_bound)?;
-    let mut results = reserved(parsed.topics.len())?;
+    let mut results = exact_list(parsed.topics.len())?;
     let mut normalized = 0usize;
     let lone_topic = parsed.topics.len() <= 1;
     // A short produce is scanned per topic. A longer one records the first copy.
@@ -1603,7 +1681,7 @@ fn process_inner(
         if !is_first {
             continue;
         }
-        let mut parts = reserved(topic.partitions.len())?;
+        let mut parts = exact_list(topic.partitions.len())?;
         // Strictly increasing indexes cannot repeat, including a single partition.
         let unique_parts = strictly_increasing_indexes(&topic.partitions);
         let scan_parts = !unique_parts && topic.partitions.len() <= 16;
@@ -1971,22 +2049,38 @@ mod tests {
     }
 
     #[test]
+    fn a_single_produce_slot_stays_inline() {
+        let mut parts = exact_list(1).unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(parts, List::Empty));
+        parts.push(part(0));
+        assert!(matches!(parts, List::One(_)));
+        assert_eq!(parts.len(), 1);
+        assert_eq!(parts.first().map(|part| part.index), Some(0));
+        let mut many = exact_list(2).unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(many, List::Many(_)));
+        many.push(part(0));
+        many.push(part(1));
+        assert_eq!(many.len(), 2);
+        assert!(matches!(many, List::Many(_)));
+    }
+
+    #[test]
     fn a_produce_topic_key_borrows_the_request_name() {
         let body = b"orderspayments";
         let orders = Topic {
             name: Some((0, 6)),
             id: [1; 16],
-            partitions: Vec::new(),
+            partitions: List::Empty,
         };
         let payments = Topic {
             name: Some((6, 14)),
             id: [2; 16],
-            partitions: Vec::new(),
+            partitions: List::Empty,
         };
         let again = Topic {
             name: Some((0, 6)),
             id: [9; 16],
-            partitions: Vec::new(),
+            partitions: List::Empty,
         };
         let orders_key = produce_topic_key(9, &orders, body);
         assert!(matches!(
@@ -2000,17 +2094,17 @@ mod tests {
             Topic {
                 name: Some((0, 6)),
                 id: [1; 16],
-                partitions: Vec::new(),
+                partitions: List::Empty,
             },
             Topic {
                 name: Some((6, 14)),
                 id: [2; 16],
-                partitions: Vec::new(),
+                partitions: List::Empty,
             },
             Topic {
                 name: Some((0, 6)),
                 id: [9; 16],
-                partitions: Vec::new(),
+                partitions: List::Empty,
             },
         ];
         let (first, duplicated) = short_topic_copies(&topics, 9, body);
@@ -2040,7 +2134,7 @@ mod tests {
         let missing = Topic {
             name: None,
             id: [0; 16],
-            partitions: Vec::new(),
+            partitions: List::Empty,
         };
         assert_eq!(
             produce_topic_key(9, &missing, body),
@@ -2133,7 +2227,7 @@ mod tests {
             body_off: 0,
             acks: 1,
             response_bound: 16,
-            results: Vec::new(),
+            results: List::Empty,
             pending_sync: syncs,
         }
     }
