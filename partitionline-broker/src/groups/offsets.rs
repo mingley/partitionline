@@ -11,6 +11,7 @@ use crate::catalog;
 use crate::journal::{self, Journal};
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
+use std::sync::Arc;
 
 const RECORD_MAGIC: &[u8; 8] = b"PLGOFF01";
 
@@ -35,8 +36,8 @@ pub struct Committed {
 /// Per-partition result of one commit request.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PartitionResult {
-    /// Topic name.
-    pub topic: String,
+    /// Topic name. Adjacent results for the same topic share this allocation.
+    pub topic: Arc<str>,
     /// Partition index.
     pub partition: i32,
     /// Zero when this partition was stored.
@@ -222,7 +223,7 @@ impl Offsets {
         } else if self.groups.len() >= self.limits.max_groups {
             return Err(Error::InvalidLimits);
         }
-        let mut results = Vec::with_capacity(batch.len());
+        let mut results: Vec<PartitionResult> = Vec::with_capacity(batch.len());
         let mut accepted = Vec::new();
         let mut seen = BTreeSet::new();
         for (topic, partition, offset, metadata) in batch {
@@ -240,8 +241,12 @@ impl Offsets {
             } else {
                 0
             };
+            let topic_name = match results.last() {
+                Some(row) if row.topic.as_ref() == *topic => Arc::clone(&row.topic),
+                _ => Arc::<str>::from(*topic),
+            };
             results.push(PartitionResult {
-                topic: (*topic).to_owned(),
+                topic: topic_name,
                 partition: *partition,
                 error_code,
             });
@@ -702,6 +707,8 @@ mod tests {
         assert_eq!(results.len(), 2);
         assert_eq!(results[0].error_code, 0);
         assert_eq!(results[1].error_code, 42);
+        assert!(Arc::ptr_eq(&results[0].topic, &results[1].topic));
+        assert_eq!(results[0].topic.as_ref(), "orders");
         assert_eq!(
             offsets
                 .fetch("orders", "orders", 0)
