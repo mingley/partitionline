@@ -2769,15 +2769,14 @@ impl Consumer {
     /// queue. A negative delivered offset is omitted.
     pub(crate) fn delivered_commit_offsets(&self) -> Vec<(TopicPartition, OffsetAndMetadata)> {
         let mut cached_topic = std::ptr::null::<u8>();
+        let mut cached_name: Option<&str> = None;
         let mut epochs: &[i32] = &[];
         let mut pending_parts: Option<&HashMap<i32, VecDeque<FetchedRecord>>> = None;
         let mut out = Vec::new();
         for (slot, (topic, partition, offset)) in self.assigned.iter().enumerate() {
-            let topic_ptr = Arc::as_ptr(topic) as *const u8;
-            if topic_ptr != cached_topic {
+            if !reuse_topic_cache(&mut cached_topic, &mut cached_name, topic) {
                 epochs = self.cluster.leader_epochs_of(topic.as_ref());
                 pending_parts = self.pending.partitions.topic_partitions(topic.as_ref());
-                cached_topic = topic_ptr;
             }
             let front = pending_parts
                 .and_then(|parts| parts.get(partition))
@@ -4773,20 +4772,19 @@ impl Consumer {
             let mut missing_leader = false;
             let cluster = &self.cluster;
             let mut cached_topic = std::ptr::null::<u8>();
+            let mut cached_name: Option<&str> = None;
             let mut leaders: &[i32] = &[];
             let mut epochs: &[i32] = &[];
             let mut paused_parts: Option<&HashMap<i32, ()>> = None;
             let mut completed_parts: Option<&HashMap<i32, ()>> = None;
             let mut retained_parts: Option<&HashMap<i32, HeldFetch>> = None;
             for (slot, (topic, part, offset)) in self.assigned.iter().enumerate() {
-                let topic_ptr = Arc::as_ptr(topic) as *const u8;
-                if topic_ptr != cached_topic {
+                if !reuse_topic_cache(&mut cached_topic, &mut cached_name, topic) {
                     leaders = cluster.leader_ids(topic.as_ref());
                     epochs = cluster.leader_epochs_of(topic.as_ref());
                     paused_parts = self.paused.topic_partitions(topic.as_ref());
                     completed_parts = completed.topic_partitions(topic.as_ref());
                     retained_parts = self.retained.topic_partitions(topic.as_ref());
-                    cached_topic = topic_ptr;
                 }
                 if paused_parts.is_some_and(|parts| parts.contains_key(part)) {
                     continue;
@@ -7272,6 +7270,28 @@ fn cached_epoch(epochs: &[i32], partition: i32) -> i32 {
     crate::cluster::partition_epoch(epochs, partition)
 }
 
+/// True when `topic` is the same topic as the previous call.
+///
+/// The same allocation hits immediately. A new allocation of the same name,
+/// which `assign` creates for each partition, still reuses the loaded lists.
+fn reuse_topic_cache<'a>(
+    cached_ptr: &mut *const u8,
+    cached_name: &mut Option<&'a str>,
+    topic: &'a Arc<str>,
+) -> bool {
+    let ptr = Arc::as_ptr(topic) as *const u8;
+    if ptr == *cached_ptr {
+        return true;
+    }
+    let name = topic.as_ref();
+    let same = *cached_name == Some(name);
+    *cached_ptr = ptr;
+    if !same {
+        *cached_name = Some(name);
+    }
+    same
+}
+
 /// Topic names in assignment order, once each.
 ///
 /// A missing-leader refresh asks Metadata for these names. One entry per
@@ -8017,6 +8037,21 @@ mod tests {
             cached_epoch(&[4], -1),
             crate::RecordBatch::NO_PARTITION_LEADER_EPOCH
         );
+    }
+
+    #[test]
+    fn a_repeated_topic_name_reuses_the_partition_cache() {
+        let first = Arc::<str>::from("orders");
+        let second = Arc::<str>::from("orders");
+        let other = Arc::<str>::from("payments");
+        assert!(!Arc::ptr_eq(&first, &second));
+        let mut ptr = std::ptr::null();
+        let mut name = None;
+        assert!(!reuse_topic_cache(&mut ptr, &mut name, &first));
+        assert!(reuse_topic_cache(&mut ptr, &mut name, &first));
+        assert!(reuse_topic_cache(&mut ptr, &mut name, &second));
+        assert!(!reuse_topic_cache(&mut ptr, &mut name, &other));
+        assert!(reuse_topic_cache(&mut ptr, &mut name, &other));
     }
 
     #[test]
