@@ -16,6 +16,9 @@ pub(super) struct AdminOffsetConn {
     fetch: Option<(i16, i16)>,
     pub(super) metadata: Option<i16>,
     pub(super) find: Option<i16>,
+    /// ApiVersions learned on this socket. Later RPCs reuse it until the
+    /// socket is replaced.
+    pub(super) apis: Vec<crate::protocol::api::ApiVersion>,
 }
 
 impl AdminOffsetConn {
@@ -41,7 +44,18 @@ impl AdminOffsetConn {
             fetch: versions
                 .api_version(OFFSET_FETCH)
                 .map(|range| (range.min_version, range.max_version)),
+            apis: versions.api_keys.clone(),
         }
+    }
+
+    /// Pick a version from the handshake on this socket.
+    pub(super) fn negotiated(&self, api_key: i16, min: i16, max: i16) -> Option<i16> {
+        self.apis
+            .iter()
+            .find(|api| api.api_key == api_key)
+            .and_then(|api| {
+                crate::protocol::api_keys::pick_version(api.min_version, api.max_version, min, max)
+            })
     }
 
     pub(super) fn offset_version(&self, api: i16, min: i16, max: i16) -> Result<i16> {

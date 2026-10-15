@@ -3375,28 +3375,21 @@ impl Admin {
             let result = async {
                 if reconnect {
                     let addr = self.conn.addr().to_owned();
-                    self.conn = self.open_node_conn_until(&addr, deadline).await?.inner;
+                    self.adopt_bootstrap(self.open_node_conn_until(&addr, deadline).await?)?;
                     reconnect = false;
                 }
                 self.ensure_bootstrap(deadline).await?;
-                let remaining = deadline.saturating_duration_since(Instant::now());
-                if remaining.is_zero() {
-                    return Err(Error::Timeout);
-                }
-                let capabilities =
-                    crate::protocol::api::negotiate_api_versions(&mut self.conn, remaining).await?;
                 let (want_min, want_max) = if request.ack_when_committed {
                     (0, 1)
                 } else {
                     (1, 1)
                 };
-                let version = capabilities
-                    .api_keys
-                    .iter()
-                    .find(|api| api.api_key == crate::protocol::api_keys::ADD_RAFT_VOTER)
-                    .and_then(|api| {
-                        pick_version(api.min_version, api.max_version, want_min, want_max)
-                    })
+                let version = self
+                    .negotiated(
+                        crate::protocol::api_keys::ADD_RAFT_VOTER,
+                        want_min,
+                        want_max,
+                    )
                     .ok_or_else(|| {
                         if request.ack_when_committed {
                             Error::Unsupported(
@@ -3525,21 +3518,12 @@ impl Admin {
             let result = async {
                 if reconnect {
                     let addr = self.conn.addr().to_owned();
-                    self.conn = self.open_node_conn_until(&addr, deadline).await?.inner;
+                    self.adopt_bootstrap(self.open_node_conn_until(&addr, deadline).await?)?;
                     reconnect = false;
                 }
                 self.ensure_bootstrap(deadline).await?;
-                let remaining = deadline.saturating_duration_since(Instant::now());
-                if remaining.is_zero() {
-                    return Err(Error::Timeout);
-                }
-                let capabilities =
-                    crate::protocol::api::negotiate_api_versions(&mut self.conn, remaining).await?;
-                let version = capabilities
-                    .api_keys
-                    .iter()
-                    .find(|api| api.api_key == crate::protocol::api_keys::REMOVE_RAFT_VOTER)
-                    .and_then(|api| pick_version(api.min_version, api.max_version, 0, 0))
+                let version = self
+                    .negotiated(crate::protocol::api_keys::REMOVE_RAFT_VOTER, 0, 0)
                     .ok_or_else(|| {
                         Error::Unsupported("broker does not support RemoveRaftVoter v0".into())
                     })?;
@@ -3633,21 +3617,12 @@ impl Admin {
             let result = async {
                 if reconnect {
                     let addr = self.conn.addr().to_owned();
-                    self.conn = self.open_node_conn_until(&addr, deadline).await?.inner;
+                    self.adopt_bootstrap(self.open_node_conn_until(&addr, deadline).await?)?;
                     reconnect = false;
                 }
                 self.ensure_bootstrap(deadline).await?;
-                let remaining = deadline.saturating_duration_since(Instant::now());
-                if remaining.is_zero() {
-                    return Err(Error::Timeout);
-                }
-                let capabilities =
-                    crate::protocol::api::negotiate_api_versions(&mut self.conn, remaining).await?;
-                let version = capabilities
-                    .api_keys
-                    .iter()
-                    .find(|api| api.api_key == crate::protocol::api_keys::DESCRIBE_QUORUM)
-                    .and_then(|api| pick_version(api.min_version, api.max_version, 0, 2))
+                let version = self
+                    .negotiated(crate::protocol::api_keys::DESCRIBE_QUORUM, 0, 2)
                     .ok_or_else(|| {
                         Error::Unsupported("broker does not support DescribeQuorum v0-2".into())
                     })?;
@@ -3806,31 +3781,11 @@ impl Admin {
             }
             let node = self.cluster.controller()?;
             self.connect_node_until(node, deadline).await?;
-            let conn = self
+            // The controller socket's own handshake selects the schema.
+            let version = self
                 .conns
-                .get_mut(&node)
-                .ok_or_else(|| Error::protocol("missing ElectLeaders controller connection"))?;
-            let remaining = deadline.saturating_duration_since(Instant::now());
-            if remaining.is_zero() {
-                return Err(Error::Timeout);
-            }
-            // Bootstrap capabilities cannot select the schema of another controller.
-            let capabilities =
-                match crate::protocol::api::negotiate_api_versions(conn, remaining).await {
-                    Ok(capabilities) => capabilities,
-                    Err(err) if err.is_retriable() || matches!(err, Error::Closed) => {
-                        let _ = self.conns.remove(&node);
-                        self.cluster.invalidate_controller();
-                        self.wait_retry(&mut attempt, deadline).await?;
-                        continue;
-                    }
-                    Err(err) => return Err(err),
-                };
-            let version = capabilities
-                .api_keys
-                .iter()
-                .find(|api| api.api_key == crate::protocol::api_keys::ELECT_LEADERS)
-                .and_then(|api| pick_version(api.min_version, api.max_version, 0, 2))
+                .get(&node)
+                .and_then(|conn| conn.negotiated(crate::protocol::api_keys::ELECT_LEADERS, 0, 2))
                 .ok_or_else(|| {
                     Error::Unsupported("controller does not support ElectLeaders v0-2".into())
                 })?;
@@ -3859,6 +3814,10 @@ impl Admin {
                 topics,
                 timeout_ms: crate::consumer::duration_millis_i32(remaining),
             };
+            let conn = self
+                .conns
+                .get_mut(&node)
+                .ok_or_else(|| Error::protocol("missing ElectLeaders controller connection"))?;
             let body = conn
                 .roundtrip(
                     crate::protocol::api_keys::ELECT_LEADERS,
@@ -4271,6 +4230,27 @@ impl Admin {
     #[must_use]
     pub fn versions(&self) -> &HashMap<i16, ApiVersion> {
         &self.versions
+    }
+
+    /// Pick a version from the bootstrap handshake.
+    fn negotiated(&self, api_key: i16, min: i16, max: i16) -> Option<i16> {
+        self.versions
+            .get(&api_key)
+            .and_then(|api| pick_version(api.min_version, api.max_version, min, max))
+    }
+
+    /// Install a replacement bootstrap socket and the ApiVersions it learned.
+    fn adopt_bootstrap(&mut self, opened: AdminOffsetConn) -> Result<()> {
+        self.metadata_version = opened
+            .metadata
+            .ok_or_else(|| Error::Unsupported("broker does not support Metadata".into()))?;
+        self.find_coord_version = opened.find;
+        self.versions.clear();
+        for api in opened.apis {
+            let _prev = self.versions.insert(api.api_key, api);
+        }
+        self.conn = opened.inner;
+        Ok(())
     }
 
     /// Admin RPC counters and round-trip latency since connect.
@@ -5828,7 +5808,7 @@ impl Admin {
                 if self.cluster.controller().is_err() {
                     if self.conn.is_closed() {
                         let addr = self.conn.addr().to_owned();
-                        self.conn = self.open_node_conn_until(&addr, deadline).await?.inner;
+                        self.adopt_bootstrap(self.open_node_conn_until(&addr, deadline).await?)?;
                     }
                     self.refresh_metadata_until(None, deadline).await?;
                 }
@@ -5837,15 +5817,17 @@ impl Admin {
                     let _removed = self.conns.remove(&node);
                 }
                 self.connect_node_until(node, deadline).await?;
+                let version = self
+                    .conns
+                    .get(&node)
+                    .and_then(|conn| conn.negotiated(ALTER_PARTITION_REASSIGNMENTS, 0, 1))
+                    .ok_or_else(|| {
+                        Error::Unsupported(
+                            "controller does not support AlterPartitionReassignments v0-1".into(),
+                        )
+                    })?;
                 let conn = self.conns.get_mut(&node)
                     .ok_or_else(|| Error::protocol("missing reassignment controller connection"))?;
-                let capabilities = crate::protocol::api::negotiate_api_versions(
-                    conn, deadline.saturating_duration_since(Instant::now()),
-                ).await?;
-                let version = capabilities.api_keys.iter()
-                    .find(|api| api.api_key == ALTER_PARTITION_REASSIGNMENTS)
-                    .and_then(|api| pick_version(api.min_version, api.max_version, 0, 1))
-                    .ok_or_else(|| Error::Unsupported("controller does not support AlterPartitionReassignments v0-1".into()))?;
                 if version == 0 && !request.allow_replication_factor_change {
                     return Err(Error::Unsupported("AllowReplicationFactorChange=false requires AlterPartitionReassignments v1".into()));
                 }
@@ -7612,25 +7594,19 @@ impl Admin {
             }
             let result = async {
                 self.list_transactions_connect(node, deadline).await?;
-                let conn = self
+                let version = self
                     .conns
-                    .get_mut(&node)
-                    .ok_or_else(|| Error::protocol("missing ListTransactions broker connection"))?;
-                let capabilities = crate::protocol::api::negotiate_api_versions(
-                    conn,
-                    deadline.saturating_duration_since(Instant::now()),
-                )
-                .await?;
-                let version = capabilities
-                    .api_keys
-                    .iter()
-                    .find(|v| v.api_key == LIST_TRANSACTIONS)
-                    .and_then(|v| pick_version(v.min_version, v.max_version, 0, 2))
+                    .get(&node)
+                    .and_then(|conn| conn.negotiated(LIST_TRANSACTIONS, 0, 2))
                     .ok_or_else(|| {
                         Error::Unsupported(format!(
                             "broker {node} does not support ListTransactions v0-2"
                         ))
                     })?;
+                let conn = self
+                    .conns
+                    .get_mut(&node)
+                    .ok_or_else(|| Error::protocol("missing ListTransactions broker connection"))?;
                 crate::protocol::admin::ListTransactionsRequest::build_with_pattern(
                     version,
                     query.duration_ms,
@@ -8078,12 +8054,7 @@ impl Admin {
         }
         let addr = self.conn.addr().to_string();
         let replacement = self.open_node_conn_until(&addr, deadline).await?;
-        self.metadata_version = replacement
-            .metadata
-            .ok_or_else(|| Error::Unsupported("broker does not support Metadata".into()))?;
-        self.find_coord_version = replacement.find;
-        self.conn = replacement.inner;
-        Ok(())
+        self.adopt_bootstrap(replacement)
     }
 
     /// Reconnect the bootstrap socket if it has been idle, then round-trip.
@@ -8717,16 +8688,15 @@ impl Admin {
                 *timestamp, isolation,
             ));
         }
-        let capabilities = crate::protocol::api::negotiate_api_versions(
-            self.conns
-                .get_mut(&node)
-                .ok_or_else(|| Error::protocol("missing list_offsets conn"))?,
-            deadline.saturating_duration_since(Instant::now()),
-        )
-        .await?;
-        let version = capabilities.api_keys.iter().find(|v| v.api_key == LIST_OFFSETS)
-            .and_then(|v| pick_version(v.min_version, v.max_version, minimum, 11))
-            .ok_or_else(|| Error::Unsupported(format!("broker does not support requested ListOffsets selector/isolation (requires v{minimum}+)")))?;
+        let version = self
+            .conns
+            .get(&node)
+            .and_then(|conn| conn.negotiated(LIST_OFFSETS, minimum, 11))
+            .ok_or_else(|| {
+                Error::Unsupported(format!(
+                    "broker does not support requested ListOffsets selector/isolation (requires v{minimum}+)"
+                ))
+            })?;
         let timeout = deadline.saturating_duration_since(Instant::now());
         let body = {
             let conn = self
@@ -12255,10 +12225,8 @@ impl Admin {
         self.describe_log_dirs_at(Some(node), topics, timeout).await
     }
 
-    // Each selected peer is queried for its current range, including after a
-    // reconnect. This read-only diagnostic API adds one ApiVersions RPC per
-    // attempt instead of retaining another peer-capability cache. Connection,
-    // auth, capability lookup, request and existing retry waits share one budget.
+    // The socket's handshake selects DescribeLogDirs. A replacement socket
+    // negotiates again. Connection, auth, request, and retry waits share one budget.
     async fn describe_log_dirs_at(
         &mut self,
         node: Option<i32>,
@@ -12286,6 +12254,16 @@ impl Admin {
                 } else {
                     self.ensure_bootstrap(deadline).await?;
                 }
+                let version = if let Some(node) = node {
+                    self.conns
+                        .get(&node)
+                        .and_then(|conn| conn.negotiated(DESCRIBE_LOG_DIRS, 1, 5))
+                } else {
+                    self.negotiated(DESCRIBE_LOG_DIRS, 1, 5)
+                }
+                .ok_or_else(|| {
+                    Error::Unsupported("broker does not support DescribeLogDirs v1-5".into())
+                })?;
                 let conn = if let Some(node) = node {
                     self.conns
                         .get_mut(&node)
@@ -12293,19 +12271,6 @@ impl Admin {
                 } else {
                     &mut self.conn
                 };
-                let capabilities = crate::protocol::api::negotiate_api_versions(
-                    conn,
-                    deadline.saturating_duration_since(Instant::now()),
-                )
-                .await?;
-                let version = capabilities
-                    .api_keys
-                    .iter()
-                    .find(|api| api.api_key == DESCRIBE_LOG_DIRS)
-                    .and_then(|api| pick_version(api.min_version, api.max_version, 1, 5))
-                    .ok_or_else(|| {
-                        Error::Unsupported("broker does not support DescribeLogDirs v1-5".into())
-                    })?;
                 let body = conn
                     .roundtrip(
                         DESCRIBE_LOG_DIRS,

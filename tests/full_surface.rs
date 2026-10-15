@@ -15326,27 +15326,26 @@ async fn describe_log_dirs_v5_absence_and_deadline_never_send_directory_rpc() {
         .contains("deadline overflow"));
     assert!(mock.describe_log_dirs_nodes().is_empty());
     mock.hide_api(DESCRIBE_LOG_DIRS);
+    let mut hidden = Admin::connect(mock.addr.clone()).await.unwrap();
     assert!(matches!(
-        admin.describe_log_dirs(None).await,
+        hidden.describe_log_dirs(None).await,
         Err(partitionline::Error::Unsupported(_))
     ));
     assert!(mock.describe_log_dirs_nodes().is_empty());
 }
 
 #[tokio::test]
-async fn describe_log_dirs_v5_deadline_bounds_stalled_capability_negotiation() {
+async fn describe_log_dirs_reuses_the_negotiated_handshake() {
     let mock = common::Mock::start().await;
     let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
     mock.set_api_versions_delay(Duration::from_secs(1));
     let started = std::time::Instant::now();
-    assert!(matches!(
-        admin
-            .describe_log_dirs_timeout(None, Duration::from_millis(100))
-            .await,
-        Err(partitionline::Error::Timeout)
-    ));
+    admin
+        .describe_log_dirs_timeout(None, Duration::from_millis(500))
+        .await
+        .unwrap();
     assert!(started.elapsed() < Duration::from_millis(500));
-    assert!(mock.describe_log_dirs_nodes().is_empty());
+    assert!(!mock.describe_log_dirs_nodes().is_empty());
 }
 
 #[tokio::test]
