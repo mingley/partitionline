@@ -1206,22 +1206,16 @@ impl TxnOffsetCommitResponse {
         current: &[TxnOffsetCommitResponseTopic],
         new_topics: &[TxnOffsetCommitResponseTopic],
     ) -> Vec<TxnOffsetCommitResponseTopic> {
-        if current.is_empty() {
-            return new_topics.to_vec();
-        }
-        let mut out = current.to_vec();
-        for new_topic in new_topics {
-            if let Some(i) = out.iter().position(|t| t.topic == new_topic.topic) {
-                if let Some(existing) = out.get_mut(i) {
-                    existing
-                        .partitions
-                        .extend(new_topic.partitions.iter().cloned());
-                }
-            } else {
-                out.push(new_topic.clone());
-            }
-        }
-        out
+        super::group::merge_named_topics(
+            current,
+            new_topics,
+            |topic| topic.topic.as_str(),
+            |existing, new_topic| {
+                existing
+                    .partitions
+                    .extend(new_topic.partitions.iter().cloned());
+            },
+        )
     }
 }
 

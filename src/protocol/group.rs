@@ -14,6 +14,47 @@ use super::buf;
 use super::records::RecordBatch;
 use crate::error::{for_code, Error, Result};
 
+pub(crate) fn merge_named_topics<'a, T, N, E>(
+    current: &'a [T],
+    new_topics: &'a [T],
+    name: N,
+    extend: E,
+) -> Vec<T>
+where
+    T: Clone,
+    N: for<'b> Fn(&'b T) -> &'b str,
+    E: Fn(&mut T, &T),
+{
+    if current.is_empty() {
+        return new_topics.to_vec();
+    }
+    let mut slots: HashMap<&str, usize> = HashMap::new();
+    let mut out = Vec::with_capacity(current.len().saturating_add(new_topics.len()));
+    for item in current {
+        let topic = name(item);
+        if slots.contains_key(topic) {
+            out.push(item.clone());
+            continue;
+        }
+        let slot = out.len();
+        let _ = slots.insert(topic, slot);
+        out.push(item.clone());
+    }
+    for item in new_topics {
+        let topic = name(item);
+        if let Some(&slot) = slots.get(topic) {
+            if let Some(existing) = out.get_mut(slot) {
+                extend(existing, item);
+            }
+            continue;
+        }
+        let slot = out.len();
+        let _ = slots.insert(topic, slot);
+        out.push(item.clone());
+    }
+    out
+}
+
 fn remember_topic<T>(
     order: &mut Vec<String>,
     by_topic: &mut HashMap<String, Vec<T>>,
@@ -4211,22 +4252,16 @@ impl OffsetCommitResponse {
         current: &[OffsetCommitResponseTopic],
         new_topics: &[OffsetCommitResponseTopic],
     ) -> Vec<OffsetCommitResponseTopic> {
-        if current.is_empty() {
-            return new_topics.to_vec();
-        }
-        let mut out = current.to_vec();
-        for new_topic in new_topics {
-            if let Some(i) = out.iter().position(|t| t.topic == new_topic.topic) {
-                if let Some(existing) = out.get_mut(i) {
-                    existing
-                        .partitions
-                        .extend(new_topic.partitions.iter().cloned());
-                }
-            } else {
-                out.push(new_topic.clone());
-            }
-        }
-        out
+        merge_named_topics(
+            current,
+            new_topics,
+            |topic| topic.topic.as_str(),
+            |existing, new_topic| {
+                existing
+                    .partitions
+                    .extend(new_topic.partitions.iter().cloned());
+            },
+        )
     }
 }
 
@@ -5144,16 +5179,14 @@ impl OffsetDeleteResponse {
         if new_error != crate::error::NONE || current.is_empty() {
             return (new_error, new_results.to_vec());
         }
-        let mut groups = offset_delete_group_results(current);
-        for (name, parts) in offset_delete_group_results(new_results) {
-            if let Some(i) = groups.iter().position(|(topic, _)| topic == &name) {
-                if let Some((_, existing)) = groups.get_mut(i) {
-                    existing.extend(parts);
-                }
-            } else {
-                groups.push((name, parts));
-            }
-        }
+        let current_groups = offset_delete_group_results(current);
+        let new_groups = offset_delete_group_results(new_results);
+        let groups = merge_named_topics(
+            &current_groups,
+            &new_groups,
+            |group| group.0.as_str(),
+            |existing, new_group| existing.1.extend(new_group.1.iter().copied()),
+        );
         (current_error, offset_delete_flatten_results(groups))
     }
 }
@@ -6417,6 +6450,33 @@ mod tests {
             cur.is_empty(),
             "OffsetCommit v{version} addPartitions {empty}leftover-empty; leftover {} bytes",
             cur.len()
+        );
+    }
+
+    #[test]
+    fn offset_commit_merge_appends_to_the_first_copy_of_a_topic() {
+        let first = OffsetCommitResponseTopic {
+            topic: "t".into(),
+            partitions: vec![OffsetCommitResponsePartition::error(0, 0)],
+        };
+        let second = OffsetCommitResponseTopic {
+            topic: "t".into(),
+            partitions: vec![OffsetCommitResponsePartition::error(1, 0)],
+        };
+        let extra = OffsetCommitResponseTopic {
+            topic: "t".into(),
+            partitions: vec![OffsetCommitResponsePartition::error(2, 0)],
+        };
+        let merged = OffsetCommitResponse::merge(&[first, second], &[extra]);
+        assert_eq!(merged.len(), 2);
+        assert_eq!(merged.first().map(|topic| topic.partitions.len()), Some(2));
+        assert_eq!(merged.get(1).map(|topic| topic.partitions.len()), Some(1));
+        assert_eq!(
+            merged
+                .first()
+                .and_then(|topic| topic.partitions.get(1))
+                .map(|part| part.partition),
+            Some(2)
         );
     }
 
