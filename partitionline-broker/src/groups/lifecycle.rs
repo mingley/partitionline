@@ -147,7 +147,9 @@ impl Lifecycle {
                 if entry.record_count != 1 {
                     return Err(Error::InvalidRequest);
                 }
-                life.members = decode(&entry.payload)?;
+                let decoded = decode(&entry.payload)?;
+                accept_lifecycle(&life.members, &decoded, life.limits)?;
+                life.members = decoded;
                 life.stored = life.stored.saturating_add(1);
                 offset = entry
                     .first_offset
@@ -383,6 +385,120 @@ impl Lifecycle {
     }
 }
 
+fn accept_lifecycle(
+    previous: &BTreeMap<String, Member>,
+    next: &BTreeMap<String, Member>,
+    limits: Limits,
+) -> Result<(), Error> {
+    if next.len() > limits.max_members {
+        return Err(Error::InvalidLimits);
+    }
+    let mut added = None;
+    let mut removed = Vec::new();
+    let mut changed = None;
+    let mut extra = false;
+    let mut left = previous.iter();
+    let mut right = next.iter();
+    let mut previous_item = left.next();
+    let mut next_item = right.next();
+    while previous_item.is_some() || next_item.is_some() {
+        match (previous_item, next_item) {
+            (Some((left_id, old)), Some((right_id, new))) if left_id == right_id => {
+                if old != new {
+                    if changed.is_some() {
+                        extra = true;
+                    }
+                    changed = Some((old, new));
+                }
+                previous_item = left.next();
+                next_item = right.next();
+            }
+            (Some((left_id, _)), Some((right_id, new))) if *left_id > *right_id => {
+                if added.is_some() {
+                    extra = true;
+                }
+                added = Some(new);
+                next_item = right.next();
+            }
+            (Some((_, old)), _) => {
+                removed.push(old);
+                previous_item = left.next();
+            }
+            (None, Some((_, new))) => {
+                if added.is_some() {
+                    extra = true;
+                }
+                added = Some(new);
+                next_item = right.next();
+            }
+            (None, None) => break,
+        }
+    }
+    if extra {
+        return Err(Error::InvalidRequest);
+    }
+    match (added, removed.len(), changed) {
+        (None, 0, None) => Ok(()),
+        (Some(member), 0, None) => joined_member(member),
+        (None, removed, None) if removed > 0 => Ok(()),
+        (Some(member), 1, None) => replaced_member(removed[0], member),
+        (None, 0, Some((old, new))) => updated_member(old, new, limits),
+        _ => Err(Error::InvalidRequest),
+    }
+}
+
+fn joined_member(member: &Member) -> Result<(), Error> {
+    if member.delivered.is_empty() && member.rebalance_deadline_ms.is_none() {
+        Ok(())
+    } else {
+        Err(Error::InvalidRequest)
+    }
+}
+
+fn replaced_member(old: &Member, new: &Member) -> Result<(), Error> {
+    if old.instance_id.is_some()
+        && old.instance_id == new.instance_id
+        && old.owned == new.owned
+        && old.delivered == new.delivered
+        && new.last_heartbeat_ms >= old.last_heartbeat_ms
+        && new.rebalance_deadline_ms.is_none()
+    {
+        Ok(())
+    } else {
+        Err(Error::InvalidRequest)
+    }
+}
+
+fn updated_member(old: &Member, new: &Member, limits: Limits) -> Result<(), Error> {
+    if old.instance_id != new.instance_id || new.last_heartbeat_ms < old.last_heartbeat_ms {
+        return Err(Error::InvalidRequest);
+    }
+    let heartbeat = new.owned == old.owned
+        && new.delivered == old.delivered
+        && new.rebalance_deadline_ms.is_none();
+    let delivered = new.owned == old.owned
+        && new.last_heartbeat_ms == old.last_heartbeat_ms
+        && new.rebalance_deadline_ms == old.rebalance_deadline_ms
+        && old.delivered.is_subset(&new.delivered)
+        && new.delivered != old.delivered;
+    let minimum = old
+        .last_heartbeat_ms
+        .saturating_add(limits.rebalance_timeout_ms);
+    let floor = old.rebalance_deadline_ms.unwrap_or(0).max(minimum);
+    let revoked = new.last_heartbeat_ms == old.last_heartbeat_ms
+        && new.owned.is_subset(&old.owned)
+        && new.owned != old.owned
+        && new.delivered.is_subset(&old.delivered)
+        && new
+            .rebalance_deadline_ms
+            .is_some_and(|deadline| deadline >= floor);
+    if heartbeat || delivered || revoked {
+        Ok(())
+    } else {
+        Err(Error::InvalidRequest)
+    }
+}
+
 fn validate_name(name: &str) -> Result<(), Error> {
     if name.is_empty() || name.len() > 249 || name.chars().any(|c| c.is_control()) {
         Err(Error::InvalidRequest)
@@ -571,6 +687,29 @@ mod tests {
         let path = std::env::temp_dir().join(format!("pl-life-{name}-{nanos}"));
         let life = Lifecycle::open(&path, limits()).unwrap_or_else(|error| panic!("{error:?}"));
         (life, path)
+    }
+
+    #[test]
+    fn a_join_that_is_already_delivered_is_not_recovered() {
+        let (life, _) = open("jump");
+        let mut members = BTreeMap::new();
+        let mut delivered = BTreeSet::new();
+        delivered.insert(0);
+        members.insert(
+            "a".to_owned(),
+            Member {
+                instance_id: None,
+                owned: delivered.clone(),
+                delivered,
+                last_heartbeat_ms: 0,
+                rebalance_deadline_ms: None,
+            },
+        );
+        assert!(matches!(
+            accept_lifecycle(&life.members, &members, life.limits),
+            Err(Error::InvalidRequest)
+        ));
+        assert!(life.members.is_empty());
     }
 
     #[test]
