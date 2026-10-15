@@ -768,40 +768,78 @@ fn classify_ahead(ahead: &[u8], max_request: usize) -> Ahead {
     }
 }
 
-fn take_inner(frame: &mut Frame) -> Vec<u8> {
-    std::mem::take(&mut *frame)
-}
-
 fn frame_mut(frame: &mut Frame) -> &mut Vec<u8> {
     frame
 }
 
-fn put_inner(frame: &mut Frame, mut bytes: Vec<u8>) {
-    let inner = frame_mut(frame);
-    inner.clear();
-    inner.append(&mut bytes);
+/// Bytes already read from the socket and not yet handed to a handler.
+///
+/// `start` is the first unconsumed byte. Taking a frame copies that body out
+/// and advances `start`. The bytes behind `start` stay put until the next
+/// socket read, so a pipeline of N frames is not recopied for every frame.
+struct ReadAhead {
+    bytes: Frame,
+    start: usize,
+}
+
+impl ReadAhead {
+    fn new() -> Self {
+        Self {
+            bytes: new_frame(),
+            start: 0,
+        }
+    }
+
+    fn pending(&self) -> &[u8] {
+        self.bytes.get(self.start..).unwrap_or(&[])
+    }
+
+    fn is_empty(&self) -> bool {
+        self.start >= self.bytes.len()
+    }
+
+    /// Drop the consumed prefix so the next read appends after the tail.
+    fn compact(&mut self) {
+        if self.start == 0 {
+            return;
+        }
+        let inner = frame_mut(&mut self.bytes);
+        if self.start >= inner.len() {
+            inner.clear();
+        } else {
+            let _consumed = inner.drain(..self.start);
+        }
+        self.start = 0;
+    }
 }
 
 /// Split one body out of `ahead` when a full frame is buffered.
 ///
 /// The length prefix stays out of the returned body, matching a direct read.
-fn take_complete_frame(ahead: &mut Frame, max_request: usize) -> Result<Option<Frame>, Exit> {
-    match classify_ahead(ahead, max_request) {
+fn take_complete_frame(ahead: &mut ReadAhead, max_request: usize) -> Result<Option<Frame>, Exit> {
+    match classify_ahead(ahead.pending(), max_request) {
         Ahead::Need(_) => Ok(None),
         Ahead::Invalid => Err(Exit::InvalidLength),
         Ahead::Ready => {
             let mut prefix = [0u8; 4];
-            let raw = ahead.get(..4).ok_or(Exit::InvalidLength)?;
+            let raw = ahead.pending().get(..4).ok_or(Exit::InvalidLength)?;
             prefix.copy_from_slice(raw);
             let length =
                 usize::try_from(i32::from_be_bytes(prefix)).map_err(|_| Exit::InvalidLength)?;
             let total = 4usize.checked_add(length).ok_or(Exit::InvalidLength)?;
-            let mut owned = take_inner(ahead);
-            let rest = owned.split_off(total);
-            owned.drain(..4);
-            put_inner(ahead, rest);
             let mut body = new_frame();
-            put_inner(&mut body, owned);
+            {
+                let payload = ahead.pending().get(4..total).ok_or(Exit::InvalidLength)?;
+                let dest = frame_mut(&mut body);
+                dest.try_reserve_exact(payload.len())
+                    .map_err(|_| Exit::Io)?;
+                dest.extend_from_slice(payload);
+            }
+            ahead.start = ahead.start.checked_add(total).ok_or(Exit::InvalidLength)?;
+            if ahead.start >= ahead.bytes.len() {
+                frame_mut(&mut ahead.bytes).clear();
+                ahead.start = 0;
+            }
             Ok(Some(body))
         }
     }
@@ -811,7 +849,7 @@ async fn read_frame<S: AsyncRead + Unpin>(
     socket: &mut S,
     config: Config,
     deadline: Instant,
-    ahead: &mut Frame,
+    ahead: &mut ReadAhead,
 ) -> Result<Frame, Exit> {
     if !ahead.is_empty() {
         return read_frame_buffered(socket, config, deadline, ahead).await;
@@ -844,7 +882,7 @@ async fn read_frame_buffered<S: AsyncRead + Unpin>(
     socket: &mut S,
     config: Config,
     deadline: Instant,
-    ahead: &mut Frame,
+    ahead: &mut ReadAhead,
 ) -> Result<Frame, Exit> {
     if let Some(frame) = take_complete_frame(ahead, config.max_request_bytes)? {
         return Ok(frame);
@@ -857,11 +895,15 @@ async fn read_frame_buffered<S: AsyncRead + Unpin>(
             if let Some(frame) = take_complete_frame(ahead, config.max_request_bytes)? {
                 return Ok(frame);
             }
-            let Ahead::Need(budget) = classify_ahead(ahead, config.max_request_bytes) else {
+            let Ahead::Need(budget) = classify_ahead(ahead.pending(), config.max_request_bytes)
+            else {
                 return Err(Exit::InvalidLength);
             };
-            frame_mut(ahead).try_reserve(budget).map_err(|_| Exit::Io)?;
-            let mut limited = frame_mut(ahead).limit(budget);
+            ahead.compact();
+            frame_mut(&mut ahead.bytes)
+                .try_reserve(budget)
+                .map_err(|_| Exit::Io)?;
+            let mut limited = frame_mut(&mut ahead.bytes).limit(budget);
             let n = socket.read_buf(&mut limited).await.map_err(read_error)?;
             if n == 0 {
                 return Err(read_error(io::Error::new(
@@ -879,7 +921,7 @@ async fn write_and_prefetch<S: AsyncRead + AsyncWrite + Unpin>(
     socket: &mut S,
     response: &[u8],
     deadline: Instant,
-    ahead: &mut Frame,
+    ahead: &mut ReadAhead,
     max_request: usize,
     prefetch: bool,
 ) -> Result<(), Exit> {
@@ -909,15 +951,19 @@ async fn write_and_prefetch<S: AsyncRead + AsyncWrite + Unpin>(
                 }
                 Poll::Ready(Err(error)) => return Poll::Ready(Err(error)),
                 Poll::Pending => {
-                    if !stop_read && matches!(classify_ahead(ahead, max_request), Ahead::Need(_)) {
-                        let Ahead::Need(budget) = classify_ahead(ahead, max_request) else {
+                    if !stop_read
+                        && matches!(classify_ahead(ahead.pending(), max_request), Ahead::Need(_))
+                    {
+                        let Ahead::Need(budget) = classify_ahead(ahead.pending(), max_request)
+                        else {
                             return Poll::Pending;
                         };
-                        if frame_mut(ahead).try_reserve(budget).is_err() {
+                        ahead.compact();
+                        if frame_mut(&mut ahead.bytes).try_reserve(budget).is_err() {
                             stop_read = true;
                         } else {
                             let polled = {
-                                let mut limited = frame_mut(ahead).limit(budget);
+                                let mut limited = frame_mut(&mut ahead.bytes).limit(budget);
                                 let mut read = std::pin::pin!(socket.read_buf(&mut limited));
                                 read.as_mut().poll(cx)
                             };
@@ -932,7 +978,9 @@ async fn write_and_prefetch<S: AsyncRead + AsyncWrite + Unpin>(
                             }
                         }
                     }
-                    if stop_read || !matches!(classify_ahead(ahead, max_request), Ahead::Need(_)) {
+                    if stop_read
+                        || !matches!(classify_ahead(ahead.pending(), max_request), Ahead::Need(_))
+                    {
                         match Pin::new(&mut *socket).poll_write_vectored(cx, bufs) {
                             Poll::Ready(Ok(0)) => {
                                 return Poll::Ready(Err(io::Error::new(
@@ -1001,7 +1049,7 @@ async fn exchange<H: Handler, S: AsyncRead + AsyncWrite + Unpin>(
 ) -> Exit {
     // Bytes of the next request read while the previous response was written.
     // Empty unless the client pipelined. Handlers still run one at a time.
-    let mut ahead = new_frame();
+    let mut ahead = ReadAhead::new();
     loop {
         #[allow(unused_mut)]
         let mut frame_config = config;
@@ -1146,6 +1194,91 @@ async fn exchange<H: Handler, S: AsyncRead + AsyncWrite + Unpin>(
         if close {
             return Exit::HandlerError;
         }
+    }
+}
+
+#[cfg(test)]
+mod read_ahead_tests {
+    use super::{frame_mut, take_complete_frame, Exit, ReadAhead};
+
+    fn extend_frame(ahead: &mut ReadAhead, payload: &[u8]) {
+        let Ok(length) = i32::try_from(payload.len()) else {
+            return;
+        };
+        frame_mut(&mut ahead.bytes).extend_from_slice(&length.to_be_bytes());
+        frame_mut(&mut ahead.bytes).extend_from_slice(payload);
+    }
+
+    #[test]
+    fn pipelined_frames_are_split_without_moving_the_tail() {
+        let mut ahead = ReadAhead::new();
+        extend_frame(&mut ahead, b"one");
+        extend_frame(&mut ahead, b"two");
+        extend_frame(&mut ahead, b"three");
+        let stored = ahead.bytes.len();
+        let capacity = ahead.bytes.capacity();
+        let first = take_complete_frame(&mut ahead, 64);
+        assert!(matches!(first, Ok(Some(body)) if body.as_slice() == b"one"));
+        assert_eq!(ahead.bytes.len(), stored);
+        assert!(ahead.bytes.capacity() >= capacity);
+        let second = take_complete_frame(&mut ahead, 64);
+        assert!(matches!(second, Ok(Some(body)) if body.as_slice() == b"two"));
+        assert_eq!(ahead.bytes.len(), stored);
+        let third = take_complete_frame(&mut ahead, 64);
+        assert!(matches!(third, Ok(Some(body)) if body.as_slice() == b"three"));
+        assert!(ahead.is_empty());
+        assert_eq!(ahead.start, 0);
+        assert!(ahead.bytes.is_empty());
+        assert!(ahead.bytes.capacity() >= capacity);
+    }
+
+    #[test]
+    fn a_partial_tail_compacts_without_the_consumed_frame() {
+        let mut ahead = ReadAhead::new();
+        extend_frame(&mut ahead, b"ab");
+        frame_mut(&mut ahead.bytes).extend_from_slice(&2i32.to_be_bytes());
+        frame_mut(&mut ahead.bytes).push(b'x');
+        let first = take_complete_frame(&mut ahead, 64);
+        assert!(matches!(first, Ok(Some(body)) if body.as_slice() == b"ab"));
+        assert!(matches!(take_complete_frame(&mut ahead, 64), Ok(None)));
+        assert_eq!(ahead.pending().len(), 5);
+        ahead.compact();
+        assert_eq!(ahead.start, 0);
+        assert_eq!(ahead.bytes.len(), 5);
+        frame_mut(&mut ahead.bytes).push(b'y');
+        let second = take_complete_frame(&mut ahead, 64);
+        assert!(matches!(second, Ok(Some(body)) if body.as_slice() == b"xy"));
+        assert!(ahead.is_empty());
+    }
+
+    #[test]
+    fn an_empty_body_is_a_frame() {
+        let mut ahead = ReadAhead::new();
+        extend_frame(&mut ahead, b"");
+        let body = take_complete_frame(&mut ahead, 64);
+        assert!(matches!(body, Ok(Some(body)) if body.is_empty()));
+        assert!(ahead.is_empty());
+    }
+
+    #[test]
+    fn an_oversized_length_is_rejected_before_its_body() {
+        let mut ahead = ReadAhead::new();
+        extend_frame(&mut ahead, b"ok");
+        frame_mut(&mut ahead.bytes).extend_from_slice(&100i32.to_be_bytes());
+        let first = take_complete_frame(&mut ahead, 8);
+        assert!(matches!(first, Ok(Some(body)) if body.as_slice() == b"ok"));
+        assert!(matches!(
+            take_complete_frame(&mut ahead, 8),
+            Err(Exit::InvalidLength)
+        ));
+    }
+
+    #[test]
+    fn a_short_prefix_waits_for_the_rest_of_the_frame() {
+        let mut ahead = ReadAhead::new();
+        frame_mut(&mut ahead.bytes).extend_from_slice(&[0, 0, 0, 4, 1]);
+        assert!(matches!(take_complete_frame(&mut ahead, 64), Ok(None)));
+        assert!(!ahead.is_empty());
     }
 }
 
