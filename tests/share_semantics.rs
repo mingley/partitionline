@@ -2191,6 +2191,51 @@ async fn share_acknowledge_invalid_session_epoch_message_resets_session() {
 }
 
 #[tokio::test]
+async fn share_acknowledge_session_not_found_message_resets_session() {
+    let mock = common::Mock::start().await;
+    v2(&mock);
+    produce(&mock, &[(0, b"held")]).await;
+    let mut group = ShareGroup::join(config(&mock), "ack-not-found-msg", "t")
+        .await
+        .unwrap();
+    let recs = group.poll().await.unwrap();
+    assert_eq!(recs.len(), 1);
+    group.accept(&recs).await.unwrap();
+    let version = mock.last_share_fetch_version().unwrap_or(2);
+    let mut injected = BytesMut::new();
+    encode_share_acknowledge_topics_response_with_error_message(
+        &mut injected,
+        version,
+        error::SHARE_SESSION_NOT_FOUND,
+        &[],
+        Some("share session not found"),
+    )
+    .unwrap();
+    mock.inject_share_ack_response_once(&injected);
+    let results = group.commit_sync().await.unwrap();
+    assert_eq!(results.len(), 1);
+    let err = results[0]
+        .1
+        .as_ref()
+        .expect("Java Errors.exception(errorMessage) completes the map");
+    assert_eq!(err.code(), Some(error::SHARE_SESSION_NOT_FOUND));
+    assert_eq!(err.message(), "share session not found");
+    assert_eq!(
+        mock.share_ack_calls(),
+        1,
+        "SHARE_SESSION_NOT_FOUND is a ShareAcknowledge session reset, not a retry"
+    );
+    assert_eq!(mock.last_share_ack_epoch(), Some(1));
+    let _ = group.poll().await.unwrap();
+    assert_eq!(
+        mock.last_share_fetch_epoch(),
+        Some(0),
+        "Java ShareAcknowledge handleResponse nextCloseExistingAttemptNew for SHARE_SESSION_NOT_FOUND"
+    );
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn commit_restores_pending_after_broker_error() {
     let mock = common::Mock::start().await;
     produce(&mock, &[(0, b"held")]).await;

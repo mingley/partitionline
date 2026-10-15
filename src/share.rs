@@ -1777,8 +1777,8 @@ impl ShareGroup {
     /// completes without retry and advances the session epoch (Java
     /// `ShareSessionHandler.handleResponse` `nextEpoch`); it is not a
     /// ShareAcknowledge session reset. Top-level
-    /// `INVALID_SHARE_SESSION_EPOCH` still resets, including when
-    /// `ErrorMessage` is set.
+    /// `SHARE_SESSION_NOT_FOUND` / `INVALID_SHARE_SESSION_EPOCH`
+    /// still reset, including when `ErrorMessage` is set.
     pub async fn commit_sync(&mut self) -> Result<AcknowledgementCommitResults> {
         if !self.has_pending_acknowledgements() {
             return Ok(Vec::new());
