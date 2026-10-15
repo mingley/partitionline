@@ -2059,7 +2059,8 @@
 //! `ErrorMessage`. Top-level `SHARE_SESSION_LIMIT_REACHED` /
 //! `INVALID_SHARE_SESSION_EPOCH` / `SHARE_SESSION_NOT_FOUND` still
 //! reset the share session (Java
-//! `nextCloseExistingAttemptNew`); the initial share
+//! `nextCloseExistingAttemptNew`), including when `ErrorMessage` is
+//! empty; the initial share
 //! session does not piggyback and those acknowledgements complete with
 //! `NOT_LEADER_OR_FOLLOWER` (Java
 //! `testPiggybackAcknowledgementsOnInitialShareSessionError`). After

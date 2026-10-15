@@ -685,7 +685,8 @@ pub enum ShareAcquireMode {
 /// `ErrorMessage`. Top-level `SHARE_SESSION_LIMIT_REACHED` /
 /// `INVALID_SHARE_SESSION_EPOCH` / `SHARE_SESSION_NOT_FOUND` still
 /// reset the share session (Java
-/// `nextCloseExistingAttemptNew`). A ShareFetch
+/// `nextCloseExistingAttemptNew`), including when `ErrorMessage` is
+/// empty. A ShareFetch
 /// transport / timeout / decode failure completes those acknowledgements
 /// the same way (Java `handleShareFetchFailure`). Piggyback is refused
 /// on the initial share session and those acknowledgements complete
