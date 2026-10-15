@@ -2728,8 +2728,16 @@ impl ShareGroup {
                         {
                             conn = None;
                         }
+                        let deadline = Instant::now() + cfg.request_timeout;
                         if conn.is_none() {
-                            conn = discover_coord(&cfg, &group_id, COORDINATOR_GROUP).await.ok();
+                            conn = crate::group::discover_coord_within(
+                                &cfg,
+                                &group_id,
+                                COORDINATOR_GROUP,
+                                deadline,
+                            )
+                            .await
+                            .ok();
                         }
                         if *stop.borrow() { break; }
                         let Some(c) = conn.as_mut() else {
@@ -2749,6 +2757,13 @@ impl ShareGroup {
                             if !update_share_heartbeat_deadline(&hb_deadline, &stop, next_hb_deadline) { break; }
                             continue;
                         };
+                        let timeout = deadline.saturating_duration_since(Instant::now());
+                        if timeout.is_zero() {
+                            let retry_delay = cfg.retry_backoff.max(Duration::from_millis(50));
+                            next_hb_deadline = Instant::now() + retry_delay;
+                            if !update_share_heartbeat_deadline(&hb_deadline, &stop, next_hb_deadline) { break; }
+                            continue;
+                        }
                         let member_id = hb_member_id.lock().clone();
                         let req = ShareGroupHeartbeatRequest {
                             group_id: group_id.clone(),
@@ -2765,7 +2780,7 @@ impl ShareGroup {
                                 SHARE_GROUP_HEARTBEAT,
                                 version,
                                 |buf| encode_share_group_heartbeat_request(buf, version, &req),
-                                cfg.request_timeout,
+                                timeout,
                             )
                             .await;
                         if *stop.borrow() { break; }

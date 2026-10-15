@@ -2788,8 +2788,16 @@ impl ConsumerGroup {
                         {
                             conn = None;
                         }
+                        let deadline = Instant::now() + cfg.request_timeout;
                         if conn.is_none() {
-                            conn = discover_coord(&cfg, &group_id, COORDINATOR_GROUP).await.ok();
+                            conn = discover_coord_within(
+                                &cfg,
+                                &group_id,
+                                COORDINATOR_GROUP,
+                                deadline,
+                            )
+                            .await
+                            .ok();
                         }
                         let Some(c) = conn.as_mut() else {
                             let retry_delay = cfg.retry_backoff.max(Duration::from_millis(50));
@@ -2797,7 +2805,13 @@ impl ConsumerGroup {
                             *hb_deadline.lock() = Some(next_hb_deadline);
                             continue;
                         };
-                        let timeout = cfg.request_timeout;
+                        let timeout = deadline.saturating_duration_since(Instant::now());
+                        if timeout.is_zero() {
+                            let retry_delay = cfg.retry_backoff.max(Duration::from_millis(50));
+                            next_hb_deadline = Instant::now() + retry_delay;
+                            *hb_deadline.lock() = Some(next_hb_deadline);
+                            continue;
+                        }
                         let epoch = hb_generation.load(Ordering::SeqCst);
                         let joining =
                             epoch == ConsumerGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH;
@@ -2967,13 +2981,24 @@ impl ConsumerGroup {
                         {
                             conn = None;
                         }
+                        let deadline = Instant::now() + cfg.request_timeout;
                         if conn.is_none() {
-                            conn = discover_coord(&cfg, &group_id, COORDINATOR_GROUP).await.ok();
+                            conn = discover_coord_within(
+                                &cfg,
+                                &group_id,
+                                COORDINATOR_GROUP,
+                                deadline,
+                            )
+                            .await
+                            .ok();
                         }
                         let Some(c) = conn.as_mut() else {
                             continue;
                         };
-                        let timeout = cfg.request_timeout;
+                        let timeout = deadline.saturating_duration_since(Instant::now());
+                        if timeout.is_zero() {
+                            continue;
+                        }
                         let gid = group_id.clone();
                         let mid = member_id.clone();
                         let instance = cfg.group_instance_id.clone();
@@ -3048,8 +3073,12 @@ async fn leave_if_max_poll(
         return false;
     }
     left.store(true, Ordering::SeqCst);
-    if let Ok(mut c) = discover_coord(cfg, group_id, COORDINATOR_GROUP).await {
-        let timeout = cfg.request_timeout;
+    let deadline = Instant::now() + cfg.request_timeout;
+    if let Ok(mut c) = discover_coord_within(cfg, group_id, COORDINATOR_GROUP, deadline).await {
+        let timeout = deadline.saturating_duration_since(Instant::now());
+        if timeout.is_zero() {
+            return true;
+        }
         if kip848 {
             let version = c.consumer_group_heartbeat_version;
             if spoken_consumer_group_heartbeat(version).is_ok() {
@@ -3463,6 +3492,23 @@ pub(crate) async fn discover_coord(
     discover_coord_with_versions(cfg, group_id, key_type)
         .await
         .map(|(conn, _)| conn)
+}
+
+/// Find a coordinator using only the time still left on `deadline`.
+pub(crate) async fn discover_coord_within(
+    cfg: &ConsumerConfig,
+    group_id: &str,
+    key_type: i8,
+    deadline: Instant,
+) -> Result<BrokerConn> {
+    let remaining = deadline.saturating_duration_since(Instant::now());
+    if remaining.is_zero() {
+        return Err(Error::Timeout);
+    }
+    let mut bounded = cfg.clone();
+    bounded.request_timeout = remaining;
+    bounded.connect_timeout = cfg.connect_timeout.min(remaining);
+    discover_coord(&bounded, group_id, key_type).await
 }
 
 async fn discover_coord_with_versions(
