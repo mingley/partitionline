@@ -206,7 +206,7 @@ pub struct Normalized<'a> {
     records: usize,
     headers: usize,
 }
-impl Normalized<'_> {
+impl<'a> Normalized<'a> {
     /// Complete ordinary uncompressed bytes, already checked by `records::validate`.
     #[must_use]
     pub fn as_bytes(&self) -> &[u8] {
@@ -216,6 +216,12 @@ impl Normalized<'_> {
     #[must_use]
     pub fn is_borrowed(&self) -> bool {
         matches!(self.bytes, Cow::Borrowed(_))
+    }
+
+    /// Release the admitted bytes. A borrowed result still references the input.
+    #[must_use]
+    pub fn into_bytes(self) -> Cow<'a, [u8]> {
+        self.bytes
     }
     /// Fully validated batch count.
     #[must_use]

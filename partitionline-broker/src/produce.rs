@@ -958,7 +958,28 @@ fn normalize<'a>(
                 crate::codecs::Error::BudgetExceeded { .. } => 10,
                 _ => 2,
             })?;
-        owned_epoch(normalized.as_bytes(), config)
+        // Uncompressed batches are already in the request. `process` stamped
+        // leader epoch 0 there, so a borrowed admission does not need a copy.
+        match normalized.into_bytes() {
+            Cow::Borrowed(_) => {
+                if input.len() > config.journal_limits.max_entry_bytes() {
+                    return Err(10);
+                }
+                if input.get(12..16) == Some(&[0, 0, 0, 0]) {
+                    return Ok(Cow::Borrowed(input));
+                }
+                owned_epoch(input, config)
+            }
+            Cow::Owned(mut buf) => {
+                if buf.len() > config.journal_limits.max_entry_bytes() {
+                    return Err(10);
+                }
+                if buf.len() >= 16 {
+                    buf[12..16].copy_from_slice(&0i32.to_be_bytes());
+                }
+                Ok(Cow::Owned(buf))
+            }
+        }
     }
     #[cfg(not(feature = "codecs"))]
     {
