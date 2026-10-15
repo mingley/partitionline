@@ -282,7 +282,9 @@ pub fn resolve_sticky_owned_partitions(
 ) -> HashMap<String, Vec<(String, i32)>> {
     let mut out: HashMap<String, Vec<(String, i32)>> = HashMap::new();
     for (member, _, _) in claims {
-        let _ = out.entry(member.clone()).or_default();
+        if !out.contains_key(member.as_str()) {
+            let _ = out.insert(member.clone(), Vec::new());
+        }
     }
     let mut owner: HashMap<(String, i32), (String, i32)> = HashMap::new();
     for (member, owned, generation) in claims {
