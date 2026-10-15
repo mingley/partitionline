@@ -702,7 +702,8 @@ pub enum ShareAcquireMode {
 /// KIP-951). `UNKNOWN_LEADER_EPOCH` / `UNKNOWN_SERVER_ERROR` skip without
 /// requesting metadata (Java `handleInitializeErrors`). A throwable
 /// partition `ErrorMessage` is the broker exception text (Java
-/// `Errors.forCode.exception(errorMessage)`).
+/// `Errors.forCode.exception(errorMessage)`). A top-level ShareFetch
+/// `ErrorMessage` is used the same way.
 /// [`Self::accept`] / [`Self::release`] / [`Self::reject`] are Java
 /// `acknowledge` (local until the next poll, commit, or leave).
 /// Explicit mode requires those acknowledgements before the next
@@ -2273,7 +2274,7 @@ impl ShareGroup {
                 }
             };
             let mut body = body;
-            let ((fetched, endpoints, _, _, lock_timeout, error_code), decoded_bytes) =
+            let ((fetched, endpoints, _, error_message, lock_timeout, error_code), decoded_bytes) =
                 match decode_share_fetch_response_with_budget(&mut body, version, remaining_bytes) {
                     Ok(reply) => reply,
                     Err(error) => {
@@ -2287,7 +2288,11 @@ impl ShareGroup {
                 return Err(Error::protocol("trailing ShareFetch response bytes"));
             }
             if error_code != 0 {
-                let error = Error::broker(error_code, "ShareFetch");
+                let error = share_partition_broker_error(
+                    error_code,
+                    error_message.as_deref(),
+                    "ShareFetch",
+                );
                 // Java ShareSessionHandler.handleResponse false: complete
                 // in-flight piggybacked acknowledgements with the top-level
                 // code. The next fetch does not resend them.
@@ -3311,7 +3316,7 @@ impl ShareGroup {
                     return Err(error);
                 }
             };
-            let (code, responses, _, _, _, lock_timeout) =
+            let (code, responses, _, _, error_message, lock_timeout) =
                 match decode_share_acknowledge_topics_response_with_lock_timeout(&mut body, version)
                 {
                     Ok(reply) => reply,
@@ -3325,7 +3330,11 @@ impl ShareGroup {
                 return Err(Error::protocol("trailing ShareAcknowledge response bytes"));
             }
             if code != 0 {
-                let error = Error::broker(code, "ShareAcknowledge");
+                let error = share_partition_broker_error(
+                    code,
+                    error_message.as_deref(),
+                    "ShareAcknowledge",
+                );
                 if share_session_reset(&error) {
                     self.reset_node_session(node);
                 } else {

@@ -23,7 +23,8 @@ use partitionline::protocol::api_keys::{SHARE_ACKNOWLEDGE, SHARE_FETCH};
 use partitionline::protocol::records::{Record, RecordBatch};
 use partitionline::protocol::share::{
     decode_share_fetch_response, decode_share_fetch_response_with_limit,
-    encode_share_fetch_response, encode_share_fetch_response_with_acquisition_lock_timeout,
+    encode_share_fetch_error_with_message, encode_share_fetch_response,
+    encode_share_fetch_response_with_acquisition_lock_timeout,
     encode_share_fetch_response_with_endpoints, AcquiredRange, ShareFetchedPartition,
     ShareFetchedTopic,
 };
@@ -1757,6 +1758,38 @@ async fn share_fetch_unknown_server_error_skips_without_metadata() {
         after_skip,
         "UNKNOWN_SERVER_ERROR must skip without Metadata refresh"
     );
+    group.accept(&got).await.unwrap();
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn share_fetch_top_level_error_message_reaches_poll() {
+    let mock = common::Mock::start().await;
+    v2(&mock);
+    produce(&mock, &[(0, b"keep")]).await;
+    let mut group = ShareGroup::join(config(&mock), "top-msg", "t")
+        .await
+        .unwrap();
+    let version = mock.last_share_fetch_version().unwrap_or(2);
+    let mut injected = BytesMut::new();
+    encode_share_fetch_error_with_message(
+        &mut injected,
+        version,
+        error::UNKNOWN_SERVER_ERROR,
+        Some("share session overloaded"),
+    )
+    .unwrap();
+    mock.inject_share_fetch_response_once(&injected);
+    match group.poll().await.unwrap_err() {
+        Error::Broker { code, message } => {
+            assert_eq!(code, error::UNKNOWN_SERVER_ERROR);
+            assert_eq!(message, "share session overloaded");
+        }
+        other => panic!("{other:?}"),
+    }
+    let got = group.poll().await.unwrap();
+    assert_eq!(got.len(), 1);
+    assert_eq!(got[0].value.as_deref(), Some(&b"keep"[..]));
     group.accept(&got).await.unwrap();
     group.leave().await.unwrap();
 }

@@ -2169,6 +2169,24 @@ pub fn encode_share_fetch_error(
     encode_share_fetch_error_with_throttle(buf, version, error_code, 0)
 }
 
+/// Encode a top-level ShareFetch error with ErrorMessage.
+///
+/// ErrorMessage is JSON `0+` (nullable compact STRING). Official Java
+/// `ShareFetchResponse.of` / `getErrorResponse` set it from the
+/// exception. [`encode_share_fetch_error`] still writes null.
+/// ThrottleTimeMs stays `0`. Empty Responses and NodeEndpoints. v1
+/// AcquisitionLockTimeoutMs stays `0` (Java `of` last argument), not
+/// 15000. This is not [`encode_share_fetch_response_with_error_message`]
+/// (that helper still writes ErrorCode `0`).
+pub fn encode_share_fetch_error_with_message(
+    buf: &mut BytesMut,
+    version: i16,
+    error_code: i16,
+    error_message: Option<&str>,
+) -> crate::error::Result<()> {
+    encode_share_fetch_response_full(buf, version, &[], &[], 0, error_message, 0, error_code)
+}
+
 /// Encode a top-level ShareFetch error with ThrottleTimeMs.
 ///
 /// ThrottleTimeMs is JSON `0+` (first field). Official Java
@@ -3151,6 +3169,27 @@ mod tests {
         let _th = crate::protocol::buf::get_i32(&mut cur).unwrap();
         let err = crate::protocol::buf::get_i16(&mut cur).unwrap();
         assert_eq!(err, crate::error::INVALID_SHARE_SESSION_EPOCH);
+    }
+
+    #[test]
+    fn share_fetch_error_message_roundtrip() {
+        let mut buf = BytesMut::new();
+        encode_share_fetch_error_with_message(
+            &mut buf,
+            1,
+            crate::error::UNKNOWN_SERVER_ERROR,
+            Some("share session overloaded"),
+        )
+        .unwrap();
+        let (_, _, _, message, _, code) = decode_share_fetch_response(&mut &buf[..], 1).unwrap();
+        assert_eq!(code, crate::error::UNKNOWN_SERVER_ERROR);
+        assert_eq!(message.as_deref(), Some("share session overloaded"));
+        let mut empty = BytesMut::new();
+        encode_share_fetch_error(&mut empty, 1, crate::error::UNKNOWN_SERVER_ERROR).unwrap();
+        assert_ne!(
+            buf, empty,
+            "encode_share_fetch_error still writes ErrorMessage null"
+        );
     }
 
     #[test]
