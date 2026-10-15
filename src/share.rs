@@ -745,7 +745,9 @@ pub enum ShareAcquireMode {
 /// `updateLeaderInfoMap` / KIP-951). A ShareAcknowledge partition
 /// `INCONSISTENT_TOPIC_ID` with a usable CurrentLeader does not update
 /// the next ShareFetch target (Java `updateLeaderInfoMap` omits that
-/// code).
+/// code). A ShareAcknowledge partition `INCONSISTENT_TOPIC_ID` with a
+/// usable CurrentLeader on one partition does not update the next
+/// ShareFetch target for a sibling whose error is none.
 /// [`ShareAcquireMode::RecordLimit`] fetches records from one leader
 /// per poll; other leaders send a zero-limit session/ack ShareFetch
 /// (Java `canSkipIfRequestEmpty`). An unrequested ShareFetch topic id
@@ -1802,7 +1804,10 @@ impl ShareGroup {
     /// Metadata is requested when that error has no usable CurrentLeader.
     /// A ShareAcknowledge partition `INCONSISTENT_TOPIC_ID` with a usable
     /// CurrentLeader does not update the next ShareFetch target (Java
-    /// `updateLeaderInfoMap` omits that code).
+    /// `updateLeaderInfoMap` omits that code). A ShareAcknowledge
+    /// partition `INCONSISTENT_TOPIC_ID` with a usable CurrentLeader on
+    /// one partition does not update the next ShareFetch target for a
+    /// sibling whose error is none.
     /// A successful ShareAcknowledge that omits a requested partition
     /// completes that partition with `INVALID_RECORD_STATE` (Java
     /// `testShareAcknowledgeInvalidResponse`). An omitted ShareAcknowledge
