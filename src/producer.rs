@@ -5935,26 +5935,7 @@ impl Worker {
         // refresh lands before the followers check the cached leader;
         // a follower that still finds no leader refreshes as a
         // fallback (e.g. the first's refresh failed).
-        let mut group_of = Vec::with_capacity(pendings.len());
-        let mut groups: Vec<(Arc<str>, u32)> = Vec::new();
-        for p in &pendings {
-            let incremented = p.retry.saturating_add(1);
-            match groups
-                .iter()
-                .position(|(topic, _)| topic.as_ref() == p.rec.topic.as_ref())
-            {
-                Some(gi) => {
-                    if let Some(slot) = groups.get_mut(gi) {
-                        slot.1 = slot.1.max(incremented);
-                    }
-                    group_of.push(gi);
-                }
-                None => {
-                    group_of.push(groups.len());
-                    groups.push((p.rec.topic.clone(), incremented));
-                }
-            }
-        }
+        let (group_of, groups) = retry_topic_groups(&pendings);
         let mut firsts = vec![usize::MAX; groups.len()];
         for (i, &gi) in group_of.iter().enumerate() {
             if let Some(first) = firsts.get_mut(gi) {
@@ -6059,6 +6040,27 @@ fn forget_txn_part(map: &mut TxnPartSet, topic: &Arc<str>, partition: i32) {
     if empty {
         let _ = map.remove(topic.as_ref());
     }
+}
+
+fn retry_topic_groups(pendings: &[Pending]) -> (Vec<usize>, Vec<(Arc<str>, u32)>) {
+    let mut group_of = Vec::with_capacity(pendings.len());
+    let mut groups: Vec<(Arc<str>, u32)> = Vec::new();
+    let mut slots: HashMap<&str, usize> = HashMap::new();
+    for pending in pendings {
+        let incremented = pending.retry.saturating_add(1);
+        if let Some(&group) = slots.get(pending.rec.topic.as_ref()) {
+            if let Some(slot) = groups.get_mut(group) {
+                slot.1 = slot.1.max(incremented);
+            }
+            group_of.push(group);
+            continue;
+        }
+        let group = groups.len();
+        let _ = slots.insert(pending.rec.topic.as_ref(), group);
+        group_of.push(group);
+        groups.push((Arc::clone(&pending.rec.topic), incremented));
+    }
+    (group_of, groups)
 }
 
 fn group_txn_partitions(parts: &[(Arc<str>, i32)]) -> Vec<TxnPartitionsTopic> {
@@ -7106,6 +7108,29 @@ mod tests {
             skip_meta_refresh: false,
             retry_after: now,
         }
+    }
+
+    #[test]
+    fn retry_groups_share_a_topic_and_keep_the_larger_attempt() {
+        let mut orders = queued("orders", Some(0));
+        let mut payments = queued("payments", Some(1));
+        let mut orders_again = queued("orders", Some(2));
+        orders.retry = 0;
+        payments.retry = 2;
+        orders_again.retry = 5;
+        let (group_of, groups) = retry_topic_groups(&[orders, payments, orders_again]);
+        assert_eq!(group_of, vec![0, 1, 0]);
+        assert_eq!(groups.len(), 2);
+        assert_eq!(
+            groups
+                .first()
+                .map(|(topic, retry)| (topic.as_ref(), *retry)),
+            Some(("orders", 6))
+        );
+        assert_eq!(
+            groups.get(1).map(|(topic, retry)| (topic.as_ref(), *retry)),
+            Some(("payments", 3))
+        );
     }
 
     #[test]
