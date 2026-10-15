@@ -248,6 +248,14 @@ pub(crate) struct Store {
     /// Response bytes for the job currently on this actor. The connection
     /// refills the buffer after the reply is written.
     response_buf: Vec<u8>,
+    /// Staged grouped produces. Cleared between batches; the slots stay.
+    queued_captured: Vec<Option<CapturedProduce>>,
+    /// Replies for the grouped batch currently being finished.
+    queued_replies: Vec<Result<Option<Vec<u8>>, Error>>,
+    /// One sync representative per partition in the grouped batch.
+    sync_reps: Vec<(usize, usize)>,
+    /// Partition identity to the representative slot in `sync_reps`.
+    sync_slots: HashMap<(TopicId, i32), usize>,
 }
 impl Store {
     pub(crate) fn open(config: Config, catalog: &Catalog) -> Result<Self, Error> {
@@ -318,6 +326,10 @@ impl Store {
             sweep_cursor: 0,
             read_epoch: 0,
             response_buf: Vec::new(),
+            queued_captured: Vec::new(),
+            queued_replies: Vec::new(),
+            sync_reps: Vec::new(),
+            sync_slots: HashMap::new(),
         })
     }
     pub(crate) fn prepare_response_buf(&mut self, buf: Vec<u8>) {
@@ -1487,8 +1499,11 @@ pub(crate) fn process_queued(
     spares: &mut [Vec<u8>],
     mut active: impl FnMut(usize) -> Result<(), Error>,
 ) -> Vec<Result<Option<Vec<u8>>, Error>> {
-    let mut captured: Vec<Option<CapturedProduce>> = (0..inputs.len()).map(|_| None).collect();
-    let mut replies = Vec::with_capacity(inputs.len());
+    let mut captured = std::mem::take(&mut store.queued_captured);
+    captured.clear();
+    captured.resize_with(inputs.len(), || None);
+    let mut replies = std::mem::take(&mut store.queued_replies);
+    replies.clear();
     for (index, input) in inputs.iter_mut().enumerate() {
         let admitted_at = admitted.get(index).copied().unwrap_or_else(Instant::now);
         match process_inner(
@@ -1508,9 +1523,9 @@ pub(crate) fn process_queued(
             Err(error) => replies.push(Err(error)),
         }
     }
-    sync_partition_once(&mut captured);
-    for (index, item) in captured.into_iter().enumerate() {
-        let Some(item) = item else {
+    sync_partition_once(store, &mut captured);
+    for (index, slot) in captured.iter_mut().enumerate() {
+        let Some(item) = slot.take() else {
             continue;
         };
         let input = &inputs[index];
@@ -1521,14 +1536,29 @@ pub(crate) fn process_queued(
             replies[index] = finish_captured(store, item, input, &mut spare);
         }
     }
+    store.queued_captured = captured;
     replies
+}
+
+pub(crate) fn recycle_queued_replies(
+    store: &mut Store,
+    mut replies: Vec<Result<Option<Vec<u8>>, Error>>,
+) {
+    replies.clear();
+    if replies.capacity() >= store.queued_replies.capacity() {
+        store.queued_replies = replies;
+    }
 }
 
 /// Last staged sync for each topic partition. Earlier copies of that
 /// partition wait on this fsync instead of scanning every queued batch.
-fn latest_sync_slots(captured: &[Option<CapturedProduce>]) -> Vec<(usize, usize)> {
-    let mut reps: Vec<(usize, usize)> = Vec::new();
-    let mut slots: HashMap<(TopicId, i32), usize> = HashMap::new();
+fn latest_sync_slots(
+    captured: &[Option<CapturedProduce>],
+    reps: &mut Vec<(usize, usize)>,
+    slots: &mut HashMap<(TopicId, i32), usize>,
+) {
+    reps.clear();
+    slots.clear();
     for (state_index, item) in captured.iter().enumerate() {
         let Some(item) = item else {
             continue;
@@ -1546,11 +1576,12 @@ fn latest_sync_slots(captured: &[Option<CapturedProduce>]) -> Vec<(usize, usize)
             let _ = slots.insert(key, slot);
         }
     }
-    reps
 }
 
-fn sync_partition_once(captured: &mut [Option<CapturedProduce>]) {
-    let reps = latest_sync_slots(captured);
+fn sync_partition_once(store: &mut Store, captured: &mut [Option<CapturedProduce>]) {
+    let mut reps = std::mem::take(&mut store.sync_reps);
+    let mut slots = std::mem::take(&mut store.sync_slots);
+    latest_sync_slots(captured, &mut reps, &mut slots);
     let mut joins = Vec::new();
     let parallel = reps.len() > 1;
     for &(state_index, local_index) in &reps {
@@ -1567,7 +1598,10 @@ fn sync_partition_once(captured: &mut [Option<CapturedProduce>]) {
             cloned.map(|file| std::thread::spawn(move || file.sync_data())),
         ));
     }
-    for ((state_index, local_index), join) in reps.into_iter().zip(joins) {
+    for (index, join) in joins.into_iter().enumerate() {
+        let Some(&(state_index, local_index)) = reps.get(index) else {
+            continue;
+        };
         let failed = if let Some(join) = join {
             match join {
                 Some(handle) => handle.join().ok().is_none_or(|result| result.is_err()),
@@ -1601,6 +1635,8 @@ fn sync_partition_once(captured: &mut [Option<CapturedProduce>]) {
             }
         }
     }
+    store.sync_reps = reps;
+    store.sync_slots = slots;
 }
 
 fn finish_captured(
@@ -2160,6 +2196,52 @@ mod tests {
     }
 
     #[test]
+    fn a_second_grouped_produce_reuses_the_capture_list() {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_nanos();
+        let path = std::env::temp_dir().join(format!("pl-queued-{nanos}"));
+        let _ = std::fs::create_dir(&path);
+        let common = metadata::Config::new(0, "127.0.0.1".into(), 9092, "queued".into());
+        let (catalog, _) = Catalog::open(path.join("catalog"), common.catalog_limits)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let mut store = Store::open(Config::new(path.join("data")), &catalog)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let mut input = [0, 0, 0, 1];
+        let mut inputs: [&mut [u8]; 1] = [&mut input];
+        let admitted = [std::time::Instant::now()];
+        let mut spare = vec![Vec::new()];
+        let first = process_queued(
+            &catalog,
+            &mut store,
+            &mut inputs,
+            &admitted,
+            &common,
+            &mut spare,
+            |_| Ok(()),
+        );
+        assert!(first.first().is_some_and(|result| result.is_err()));
+        let captured = store.queued_captured.capacity();
+        let replies = first.capacity();
+        assert!(captured >= 1);
+        assert!(replies >= 1);
+        recycle_queued_replies(&mut store, first);
+        let second = process_queued(
+            &catalog,
+            &mut store,
+            &mut inputs,
+            &admitted,
+            &common,
+            &mut spare,
+            |_| Ok(()),
+        );
+        assert!(store.queued_captured.capacity() >= captured);
+        assert!(second.capacity() >= replies);
+        let _ = std::fs::remove_dir_all(path);
+    }
+
+    #[test]
     fn a_single_produce_slot_stays_inline() {
         let mut parts = exact_list(1).unwrap_or_else(|error| panic!("{error:?}"));
         assert!(matches!(parts, List::Empty));
@@ -2355,6 +2437,12 @@ mod tests {
             None,
             Some(captured(vec![null_sync(orders, 0), null_sync(payments, 0)])),
         ];
-        assert_eq!(latest_sync_slots(&captured), vec![(2, 0), (0, 1), (2, 1)]);
+        let mut reps = Vec::new();
+        let mut slots = HashMap::new();
+        latest_sync_slots(&captured, &mut reps, &mut slots);
+        assert_eq!(reps, vec![(2, 0), (0, 1), (2, 1)]);
+        latest_sync_slots(&captured, &mut reps, &mut slots);
+        assert_eq!(reps, vec![(2, 0), (0, 1), (2, 1)]);
+        assert!(slots.capacity() > 0);
     }
 }

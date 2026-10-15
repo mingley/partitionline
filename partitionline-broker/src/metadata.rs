@@ -885,6 +885,12 @@ fn actor(
     changes: &watch::Sender<()>,
 ) {
     let mut pending: Option<Command> = None;
+    let mut grouped: Vec<DataJob> = Vec::new();
+    let mut queued_jobs: Vec<DataJob> = Vec::new();
+    let mut queued_bodies: Vec<Vec<u8>> = Vec::new();
+    let mut queued_spares: Vec<Vec<u8>> = Vec::new();
+    let mut queued_admitted: Vec<Instant> = Vec::new();
+    let mut queued_senders: Vec<oneshot::Sender<Result<DataReply, Error>>> = Vec::new();
     while let Some(command) = pending.take().or_else(|| receiver.blocking_recv()) {
         if stopping.load(Ordering::Acquire) {
             receiver.close();
@@ -943,7 +949,7 @@ fn actor(
                     continue;
                 }
                 let produce_key = job.request.get(..2) == Some(&[0, 0]);
-                let mut grouped: Vec<DataJob> = Vec::new();
+                grouped.clear();
                 if produce_key {
                     while grouped.len() < 7 {
                         match receiver.try_recv() {
@@ -998,31 +1004,32 @@ fn actor(
                             Err(error) => Err(error.into()),
                         }
                     } else if produce_key {
-                        let mut jobs = Vec::with_capacity(grouped.len() + 1);
-                        jobs.push(job);
-                        jobs.append(&mut grouped);
-                        let mut bodies = Vec::with_capacity(jobs.len());
-                        let mut spares = Vec::with_capacity(jobs.len());
-                        let mut admitted = Vec::with_capacity(jobs.len());
-                        let mut senders = Vec::with_capacity(jobs.len());
-                        for mut queued in jobs {
-                            bodies.push(std::mem::take(&mut queued.request));
-                            spares.push(std::mem::take(&mut queued.spare));
-                            admitted.push(queued.admitted);
-                            senders.push(queued.reply);
+                        queued_jobs.clear();
+                        queued_jobs.push(job);
+                        queued_jobs.append(&mut grouped);
+                        queued_bodies.clear();
+                        queued_spares.clear();
+                        queued_admitted.clear();
+                        queued_senders.clear();
+                        for mut queued in queued_jobs.drain(..) {
+                            queued_bodies.push(std::mem::take(&mut queued.request));
+                            queued_spares.push(std::mem::take(&mut queued.spare));
+                            queued_admitted.push(queued.admitted);
+                            queued_senders.push(queued.reply);
                         }
                         let mut inputs: Vec<&mut [u8]> =
-                            bodies.iter_mut().map(Vec::as_mut_slice).collect();
-                        let results = produce::process_queued(
+                            queued_bodies.iter_mut().map(Vec::as_mut_slice).collect();
+                        let mut results = produce::process_queued(
                             &catalog,
                             store,
                             inputs.as_mut_slice(),
-                            &admitted,
+                            &queued_admitted,
                             config,
-                            &mut spares,
+                            &mut queued_spares,
                             |index| {
-                                let closed =
-                                    senders.get(index).is_none_or(|sender| sender.is_closed());
+                                let closed = queued_senders
+                                    .get(index)
+                                    .is_none_or(|sender| sender.is_closed());
                                 if closed || stopping.load(Ordering::Acquire) {
                                     Err(produce::Error::Canceled)
                                 } else {
@@ -1033,10 +1040,11 @@ fn actor(
                         if store.take_changed() {
                             changes.send_replace(());
                         }
-                        for (sender, (result, (request, spare))) in senders
-                            .into_iter()
-                            .zip(results.into_iter().zip(bodies.into_iter().zip(spares)))
-                        {
+                        let mut body_iter = queued_bodies.drain(..);
+                        let mut spare_iter = queued_spares.drain(..);
+                        for (sender, result) in queued_senders.drain(..).zip(results.drain(..)) {
+                            let request = body_iter.next().unwrap_or_default();
+                            let spare = spare_iter.next().unwrap_or_default();
                             let reply = match result {
                                 Ok(response) => Ok(DataReply::Produce {
                                     response,
@@ -1047,6 +1055,7 @@ fn actor(
                             };
                             let _ = sender.send(reply);
                         }
+                        produce::recycle_queued_replies(store, results);
                         continue;
                     } else if job.request.get(..2) == Some(&[0, 21]) {
                         if let Some(retention) = options.retention {
