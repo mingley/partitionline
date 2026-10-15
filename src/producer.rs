@@ -1450,11 +1450,15 @@ impl Producer {
     /// `InitProducerId` when idempotent or transactional.
     /// FindCoordinator is required only when a transactional id is configured.
     pub async fn new(cfg: ProducerConfig) -> Result<Self> {
-        let deadline = crate::net::Deadline::from_timeout(cfg.request_timeout);
-        deadline.run(Self::new_until(cfg)).await
+        let deadline = Instant::now()
+            .checked_add(cfg.request_timeout)
+            .ok_or(Error::Timeout)?;
+        crate::net::Deadline::from_std(deadline)
+            .run(Self::new_until(cfg, deadline))
+            .await
     }
 
-    async fn new_until(cfg: ProducerConfig) -> Result<Self> {
+    async fn new_until(cfg: ProducerConfig, deadline: Instant) -> Result<Self> {
         if cfg.bootstrap.len() > 16 || cfg.client_id.len() > i16::MAX as usize {
             return Err(Error::protocol(
                 "bootstrap/client ID exceeds discovery limit",
@@ -1465,15 +1469,17 @@ impl Producer {
             return Err(Error::protocol("acks must be -1, 0, or 1"));
         }
         cfg.bootstrap = crate::net::parse_and_validate_addresses(&cfg.bootstrap)?;
+        let connect_timeout = cfg.connect_timeout.min(timeout_remaining(deadline)?);
         let mut meta = BrokerConn::connect_tls_any(
             &cfg.bootstrap,
             &cfg.client_id,
-            cfg.connect_timeout,
+            connect_timeout,
             cfg.tls.as_ref(),
         )
         .await?;
         let resp =
-            crate::protocol::api::negotiate_api_versions(&mut meta, cfg.request_timeout).await?;
+            crate::protocol::api::negotiate_api_versions(&mut meta, timeout_remaining(deadline)?)
+                .await?;
         let mut versions = HashMap::new();
         for api in &resp.api_keys {
             let _prev = versions.insert(api.api_key, api.clone());
@@ -1486,7 +1492,7 @@ impl Producer {
             cfg.sasl_scram_sha512.as_ref(),
             cfg.sasl_oauthbearer.as_deref(),
             cfg.sasl_oauthbearer_oidc.as_ref(),
-            cfg.request_timeout,
+            timeout_remaining(deadline)?,
         )
         .await?;
         let mut cfg = cfg;
@@ -1533,15 +1539,16 @@ impl Producer {
         let mut producer_id = RecordBatch::NO_PRODUCER_ID;
         let mut producer_epoch = RecordBatch::NO_PRODUCER_EPOCH;
         let mut init_producer_id_version = 0i16;
-        // Coordinator discovery and producer-ID allocation are one startup
-        // phase. Rediscovery and backoff cannot renew its original budget.
-        let initialization_deadline = tokio::time::Instant::now() + cfg.request_timeout;
+        // Coordinator discovery and producer-ID allocation continue the
+        // startup deadline. Rediscovery and backoff cannot renew it.
+        let initialization_deadline = tokio::time::Instant::from_std(deadline);
         let mut txn = if let Some(tid) = cfg.transactional_id.as_deref() {
+            let startup_cfg = bounded_producer_config(&cfg, deadline)?;
             Some(
                 tokio::time::timeout_at(
                     initialization_deadline,
                     discover_typed_coord(
-                        &cfg,
+                        &startup_cfg,
                         tid,
                         COORDINATOR_TRANSACTION,
                         required_find_coordinator(find_coord_version)?,
@@ -1557,10 +1564,11 @@ impl Producer {
             let ipid_version = pick(&versions, INIT_PRODUCER_ID, 0, 6).ok_or_else(|| {
                 Error::Unsupported("broker does not support InitProducerId".into())
             })?;
+            let startup_cfg = bounded_producer_config(&cfg, deadline)?;
             let (body, ipid_version) = tokio::time::timeout_at(
                 initialization_deadline,
                 init_producer_id_roundtrip(
-                    &cfg,
+                    &startup_cfg,
                     &mut txn,
                     Some(&mut meta),
                     ipid_version,
@@ -3439,6 +3447,14 @@ fn timeout_remaining(deadline: Instant) -> Result<Duration> {
     }
 }
 
+fn bounded_producer_config(cfg: &ProducerConfig, deadline: Instant) -> Result<ProducerConfig> {
+    let remaining = timeout_remaining(deadline)?;
+    let mut bounded = cfg.clone();
+    bounded.request_timeout = remaining;
+    bounded.connect_timeout = cfg.connect_timeout.min(remaining);
+    Ok(bounded)
+}
+
 async fn discover_within(
     cfg: &ProducerConfig,
     key: &str,
@@ -3446,10 +3462,7 @@ async fn discover_within(
     version: i16,
     deadline: Instant,
 ) -> Result<CoordinatorConnection> {
-    let remaining = timeout_remaining(deadline)?;
-    let mut bounded = cfg.clone();
-    bounded.request_timeout = remaining;
-    bounded.connect_timeout = cfg.connect_timeout.min(remaining);
+    let bounded = bounded_producer_config(cfg, deadline)?;
     discover_typed_coord(&bounded, key, key_type, version).await
 }
 
