@@ -123,7 +123,11 @@ impl Cluster {
                 let _removed = self.topic_fetched_at.remove(name);
             }
             if version >= 10 && t.topic_id != [0; 16] {
-                let _ = self.topic_ids.insert(name.clone(), t.topic_id);
+                if let Some(slot) = self.topic_ids.get_mut(name.as_str()) {
+                    *slot = t.topic_id;
+                } else {
+                    let _ = self.topic_ids.insert(name.clone(), t.topic_id);
+                }
             } else if !repeated {
                 let _ = self.topic_ids.remove(name);
             }
@@ -150,36 +154,37 @@ impl Cluster {
                 Ok(n) => n,
                 Err(_) => continue,
             };
-            let previous_leaders = self.leaders.get(name).cloned();
-            let previous_epochs = self.leader_epochs.get(name).cloned();
-            let previous_len = previous_leaders.as_ref().map(Vec::len).unwrap_or(0);
+            let mut leaders = if let Some(existing) = self.leaders.get_mut(name.as_str()) {
+                std::mem::take(existing)
+            } else {
+                Vec::new()
+            };
+            let mut epochs = if let Some(existing) = self.leader_epochs.get_mut(name.as_str()) {
+                std::mem::take(existing)
+            } else {
+                Vec::new()
+            };
+            let old_leaders_len = leaders.len();
+            let old_epochs_len = epochs.len();
             let len = if repeated {
-                previous_len.max(new_len)
+                old_leaders_len.max(new_len)
             } else {
                 new_len
             };
-            let mut leaders = vec![MetadataResponse::NO_LEADER_ID; len];
-            let mut epochs = vec![RecordBatch::NO_PARTITION_LEADER_EPOCH; len];
-            // A repeated partition is one decision. A later copy must not
-            // discard a leader this response already accepted.
+            if leaders.len() < len {
+                leaders.resize(len, MetadataResponse::NO_LEADER_ID);
+            } else if leaders.len() > len {
+                leaders.truncate(len);
+            }
+            if epochs.len() < len {
+                epochs.resize(len, RecordBatch::NO_PARTITION_LEADER_EPOCH);
+            } else if epochs.len() > len {
+                epochs.truncate(len);
+            }
             let mut decided = vec![false; len];
             if repeated {
-                if let Some(previous) = &previous_leaders {
-                    for (idx, id) in previous.iter().enumerate() {
-                        if let Some(slot) = leaders.get_mut(idx) {
-                            *slot = *id;
-                        }
-                        if let Some(slot) = decided.get_mut(idx) {
-                            *slot = true;
-                        }
-                    }
-                }
-                if let Some(previous) = &previous_epochs {
-                    for (idx, epoch) in previous.iter().enumerate() {
-                        if let Some(slot) = epochs.get_mut(idx) {
-                            *slot = *epoch;
-                        }
-                    }
+                for slot in decided.iter_mut().take(old_leaders_len.min(len)) {
+                    *slot = true;
                 }
             }
             for p in &t.partitions {
@@ -187,6 +192,22 @@ impl Cluster {
                     continue;
                 };
                 let already = decided.get(idx).copied().unwrap_or(false);
+                let prev_leader = if idx < old_leaders_len {
+                    leaders
+                        .get(idx)
+                        .copied()
+                        .unwrap_or(MetadataResponse::NO_LEADER_ID)
+                } else {
+                    MetadataResponse::NO_LEADER_ID
+                };
+                let prev_epoch = if idx < old_epochs_len {
+                    epochs
+                        .get(idx)
+                        .copied()
+                        .unwrap_or(RecordBatch::NO_PARTITION_LEADER_EPOCH)
+                } else {
+                    RecordBatch::NO_PARTITION_LEADER_EPOCH
+                };
                 if p.error_code != 0 {
                     // An unknown partition drops its leader, including one
                     // chosen earlier in this response. A transient error keeps
@@ -203,16 +224,10 @@ impl Cluster {
                         }
                     } else if !already {
                         if let Some(slot) = leaders.get_mut(idx) {
-                            *slot = previous_leaders
-                                .as_ref()
-                                .and_then(|cached| cached.get(idx).copied())
-                                .unwrap_or(MetadataResponse::NO_LEADER_ID);
+                            *slot = prev_leader;
                         }
                         if let Some(slot) = epochs.get_mut(idx) {
-                            *slot = previous_epochs
-                                .as_ref()
-                                .and_then(|cached| cached.get(idx).copied())
-                                .unwrap_or(RecordBatch::NO_PARTITION_LEADER_EPOCH);
+                            *slot = prev_epoch;
                         }
                     }
                     if let Some(slot) = decided.get_mut(idx) {
@@ -224,23 +239,16 @@ impl Cluster {
                     .get(idx)
                     .copied()
                     .unwrap_or(RecordBatch::NO_PARTITION_LEADER_EPOCH);
-                let prior = previous_epochs
-                    .as_ref()
-                    .and_then(|cached| cached.get(idx).copied())
-                    .unwrap_or(RecordBatch::NO_PARTITION_LEADER_EPOCH);
                 // A repeated partition in this response is part of the cache
                 // being built. An older copy must not replace the newer one.
-                let cached_epoch = if already { in_response } else { prior };
+                let cached_epoch = if already { in_response } else { prev_epoch };
                 let keep_cached = retain_epochs
                     && cached_epoch != RecordBatch::NO_PARTITION_LEADER_EPOCH
                     && p.leader_epoch < cached_epoch;
                 if keep_cached {
                     if !already {
                         if let Some(slot) = leaders.get_mut(idx) {
-                            *slot = previous_leaders
-                                .as_ref()
-                                .and_then(|cached| cached.get(idx).copied())
-                                .unwrap_or(MetadataResponse::NO_LEADER_ID);
+                            *slot = prev_leader;
                         }
                         if let Some(slot) = epochs.get_mut(idx) {
                             *slot = cached_epoch;
@@ -265,9 +273,32 @@ impl Cluster {
                     *slot = true;
                 }
             }
-            let _prev = self.leaders.insert(name.clone(), leaders);
-            let _prev = self.leader_epochs.insert(name.clone(), epochs);
-            let _prev = self.topic_fetched_at.insert(name.clone(), Instant::now());
+            for idx in 0..len {
+                if decided.get(idx).copied().unwrap_or(false) {
+                    continue;
+                }
+                if let Some(slot) = leaders.get_mut(idx) {
+                    *slot = MetadataResponse::NO_LEADER_ID;
+                }
+                if let Some(slot) = epochs.get_mut(idx) {
+                    *slot = RecordBatch::NO_PARTITION_LEADER_EPOCH;
+                }
+            }
+            if let Some(slot) = self.leaders.get_mut(name.as_str()) {
+                *slot = leaders;
+            } else {
+                let _prev = self.leaders.insert(name.clone(), leaders);
+            }
+            if let Some(slot) = self.leader_epochs.get_mut(name.as_str()) {
+                *slot = epochs;
+            } else {
+                let _prev = self.leader_epochs.insert(name.clone(), epochs);
+            }
+            if let Some(slot) = self.topic_fetched_at.get_mut(name.as_str()) {
+                *slot = Instant::now();
+            } else {
+                let _prev = self.topic_fetched_at.insert(name.clone(), Instant::now());
+            }
             let _inserted = seen_topics.insert(name.as_str());
         }
     }
