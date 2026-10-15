@@ -4178,6 +4178,7 @@ async fn spawn_slot_worker(
         fail: None,
         compress_scratch: CompressScratch::with_caps(batch_cap, batch_cap),
         group_scratch: ProduceGroupScratch::default(),
+        ack_index: AckIndex::default(),
     };
     let handle = tokio::spawn(worker.run());
     Ok(WorkerHandle {
@@ -4460,6 +4461,8 @@ struct Worker {
     compress_scratch: CompressScratch,
     /// Reused partition map and topic index for the next Produce body.
     group_scratch: ProduceGroupScratch,
+    /// Reused partition index for the next Produce acknowledgement.
+    ack_index: AckIndex,
 }
 
 #[derive(Default)]
@@ -4469,6 +4472,39 @@ struct ProduceGroupScratch {
     topics: Vec<usize>,
     /// Group indexes for each topic, parallel to `topics`.
     parts: Vec<Vec<usize>>,
+}
+
+#[derive(Default)]
+struct AckIndex {
+    topics: HashMap<Arc<str>, HashMap<i32, (usize, u64)>>,
+    generation: u64,
+}
+
+impl AckIndex {
+    fn fill(&mut self, groups: &[(Arc<str>, i32, Vec<Pending>)]) {
+        self.generation = self.generation.wrapping_add(1);
+        let generation = self.generation;
+        for (slot, (topic, part, _)) in groups.iter().enumerate() {
+            if let Some(parts) = self.topics.get_mut(topic.as_ref()) {
+                match parts.get_mut(part) {
+                    Some(entry) if entry.1 == generation => {}
+                    Some(entry) => *entry = (slot, generation),
+                    None => {
+                        let _ = parts.insert(*part, (slot, generation));
+                    }
+                }
+                continue;
+            }
+            let mut parts = HashMap::new();
+            let _ = parts.insert(*part, (slot, generation));
+            let _ = self.topics.insert(Arc::clone(topic), parts);
+        }
+    }
+
+    fn get(&self, topic: &str, partition: i32) -> Option<usize> {
+        let (slot, generation) = self.topics.get(topic)?.get(&partition)?;
+        (*generation == self.generation).then_some(*slot)
+    }
 }
 
 struct InFlight {
@@ -5422,14 +5458,7 @@ impl Worker {
             return Ok(());
         };
         self.shared.cluster.lock().apply_node_endpoints(&endpoints);
-        let mut index: HashMap<(&str, i32), usize> = HashMap::with_capacity(inf.groups.len());
-        for (slot, (topic, part, _)) in inf.groups.iter().enumerate() {
-            if let std::collections::hash_map::Entry::Vacant(entry) =
-                index.entry((topic.as_ref(), *part))
-            {
-                let _slot = entry.insert(slot);
-            }
-        }
+        self.ack_index.fill(&inf.groups);
         let mut slots = Vec::new();
         slots.resize_with(inf.groups.len(), || None);
         for (ack_at, ack) in responses.iter().enumerate() {
@@ -5449,7 +5478,7 @@ impl Worker {
                 }
                 continue;
             };
-            let Some(&slot) = index.get(&(topic, ack.partition)) else {
+            let Some(slot) = self.ack_index.get(topic, ack.partition) else {
                 continue;
             };
             if let Some(entry) = slots.get_mut(slot) {
@@ -6674,6 +6703,32 @@ mod tests {
         assert_eq!(throttle.remaining(), None);
         assert!(!throttle.active.load(Ordering::Acquire));
         assert_eq!(*throttle.until.lock(), None);
+    }
+
+    #[test]
+    fn ack_index_keeps_the_first_slot_and_drops_the_previous_response() {
+        let topic = Arc::<str>::from("t");
+        let groups = vec![
+            (Arc::clone(&topic), 0, Vec::new()),
+            (Arc::clone(&topic), 0, Vec::new()),
+            (Arc::clone(&topic), 1, Vec::new()),
+        ];
+        let mut index = AckIndex::default();
+        index.fill(&groups);
+        assert_eq!(index.get("t", 0), Some(0));
+        assert_eq!(index.get("t", 1), Some(2));
+        let next = vec![(Arc::clone(&topic), 1, Vec::new())];
+        index.fill(&next);
+        assert_eq!(index.get("t", 1), Some(0));
+        assert_eq!(index.get("t", 0), None);
+        assert!(Arc::ptr_eq(
+            index
+                .topics
+                .get_key_value("t")
+                .map(|(name, _)| name)
+                .unwrap(),
+            &topic
+        ));
     }
 
     #[test]
