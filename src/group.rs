@@ -1750,18 +1750,7 @@ impl ConsumerGroup {
     }
 
     fn assigned_commit_offsets(&self) -> Vec<(TopicPartition, OffsetAndMetadata)> {
-        self.consumer
-            .positions()
-            .into_iter()
-            .filter(|(_, offset)| position_is_committable(*offset))
-            .map(|(tp, offset)| {
-                let epoch = self.consumer.position_epoch(&tp.topic, tp.partition);
-                (
-                    tp,
-                    OffsetAndMetadata::from_wire(offset, epoch, String::new()),
-                )
-            })
-            .collect()
+        self.consumer.delivered_commit_offsets()
     }
 
     async fn flush_async_commits(&mut self, deadline: Instant) {

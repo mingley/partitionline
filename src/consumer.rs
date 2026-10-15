@@ -2752,6 +2752,45 @@ impl Consumer {
         self.assignment()
     }
 
+    /// Delivered positions that can be committed, with the leader epoch for each.
+    ///
+    /// Partitions of one topic share that topic's leader-epoch list and pending
+    /// queue. A negative delivered offset is omitted.
+    pub(crate) fn delivered_commit_offsets(&self) -> Vec<(TopicPartition, OffsetAndMetadata)> {
+        let mut cached_topic = std::ptr::null::<u8>();
+        let mut epochs: &[i32] = &[];
+        let mut pending_parts: Option<&HashMap<i32, VecDeque<FetchedRecord>>> = None;
+        let mut out = Vec::new();
+        for (slot, (topic, partition, offset)) in self.assigned.iter().enumerate() {
+            let topic_ptr = Arc::as_ptr(topic) as *const u8;
+            if topic_ptr != cached_topic {
+                epochs = self.cluster.leader_epochs_of(topic.as_ref());
+                pending_parts = self.pending.partitions.topic_partitions(topic.as_ref());
+                cached_topic = topic_ptr;
+            }
+            let front = pending_parts
+                .and_then(|parts| parts.get(partition))
+                .and_then(|records| records.front());
+            let delivered = front.map(|record| record.offset).unwrap_or(*offset);
+            let Some(position) = defined_position(delivered) else {
+                continue;
+            };
+            let epoch = crate::group::commit_position_epoch(
+                front.and_then(|record| record.leader_epoch),
+                self.fetched_epochs
+                    .get(slot)
+                    .copied()
+                    .unwrap_or(crate::RecordBatch::NO_PARTITION_LEADER_EPOCH),
+                cached_epoch(epochs, *partition),
+            );
+            out.push((
+                TopicPartition::new(topic.as_ref(), *partition),
+                OffsetAndMetadata::from_wire(position, epoch, String::new()),
+            ));
+        }
+        out
+    }
+
     /// Assigned partitions with their next consumable offsets (delivered positions).
     ///
     /// When [`ConsumerConfig::max_poll_records`] leaves fetched records buffered,
