@@ -360,14 +360,18 @@ struct Writer {
     maximum: usize,
 }
 impl Writer {
-    fn new(fixed: usize, maximum: usize) -> Result<Self, Error> {
+    fn new(fixed: usize, maximum: usize, mut bytes: Vec<u8>) -> Result<Self, Error> {
         if fixed > maximum {
             return Err(Error::ResponseLimit);
         }
-        Ok(Self {
-            bytes: reserved(fixed)?,
-            maximum,
-        })
+        bytes.clear();
+        let extra = fixed.saturating_sub(bytes.capacity());
+        if extra > 0 {
+            bytes
+                .try_reserve_exact(extra)
+                .map_err(|_| Error::Allocation)?;
+        }
+        Ok(Self { bytes, maximum })
     }
     fn bytes(&mut self, value: &[u8]) -> Result<(), Error> {
         if self
@@ -759,7 +763,7 @@ mod tests {
 
     #[test]
     fn response_bytes_keep_earlier_fields_as_the_buffer_grows() {
-        let mut writer = super::Writer::new(4, 10_000).unwrap();
+        let mut writer = super::Writer::new(4, 10_000, Vec::new()).unwrap();
         writer.i32(1).unwrap();
         for value in 2..40 {
             writer.i32(value).unwrap();
@@ -854,7 +858,7 @@ pub(crate) fn process(
     let version = header.api_version;
     let request = parse(key, version, body, common, store.max_partitions())?;
     let fixed = fixed_size(&request, key, version)?;
-    let mut out = Writer::new(fixed, common.max_response_bytes)?;
+    let mut out = Writer::new(fixed, common.max_response_bytes, store.take_response_buf())?;
     let invalid = request.replica != -1
         || request.isolation > 1
         || request.wait < 0

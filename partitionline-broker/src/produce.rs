@@ -245,6 +245,9 @@ pub(crate) struct Store {
     /// Bumped once per fetch request. A log rechecks its file length the first
     /// time it is read in that request, then reuses the check for later entries.
     read_epoch: u64,
+    /// Response bytes for the job currently on this actor. The connection
+    /// refills the buffer after the reply is written.
+    response_buf: Vec<u8>,
 }
 impl Store {
     pub(crate) fn open(config: Config, catalog: &Catalog) -> Result<Self, Error> {
@@ -314,7 +317,21 @@ impl Store {
             compaction: None,
             sweep_cursor: 0,
             read_epoch: 0,
+            response_buf: Vec::new(),
         })
+    }
+    pub(crate) fn prepare_response_buf(&mut self, buf: Vec<u8>) {
+        if buf.capacity() >= self.response_buf.capacity() {
+            self.response_buf = buf;
+        }
+    }
+    pub(crate) fn take_response_buf(&mut self) -> Vec<u8> {
+        std::mem::take(&mut self.response_buf)
+    }
+    fn keep_response_buf(&mut self, buf: Vec<u8>) {
+        if buf.capacity() > self.response_buf.capacity() {
+            self.response_buf = buf;
+        }
     }
     pub(crate) fn enable_retention(&mut self, config: retention::Config) -> Result<(), Error> {
         config.validate().map_err(|_| Error::InvalidConfig)?;
@@ -1467,6 +1484,7 @@ pub(crate) fn process_queued(
     inputs: &mut [&mut [u8]],
     admitted: &[Instant],
     common: &metadata::Config,
+    spares: &mut [Vec<u8>],
     mut active: impl FnMut(usize) -> Result<(), Error>,
 ) -> Vec<Result<Option<Vec<u8>>, Error>> {
     let mut captured: Vec<Option<CapturedProduce>> = (0..inputs.len()).map(|_| None).collect();
@@ -1496,7 +1514,12 @@ pub(crate) fn process_queued(
             continue;
         };
         let input = &inputs[index];
-        replies[index] = finish_captured(store, item, input);
+        if let Some(spare) = spares.get_mut(index) {
+            replies[index] = finish_captured(store, item, input, spare);
+        } else {
+            let mut spare = Vec::new();
+            replies[index] = finish_captured(store, item, input, &mut spare);
+        }
     }
     replies
 }
@@ -1584,6 +1607,7 @@ fn finish_captured(
     store: &mut Store,
     mut item: CapturedProduce,
     input: &[u8],
+    spare: &mut Vec<u8>,
 ) -> Result<Option<Vec<u8>>, Error> {
     for sync in item.pending_sync {
         let Some(part) = item
@@ -1608,8 +1632,8 @@ fn finish_captured(
             }
         }
     }
-    let mut writer = Writer::new(item.response_bound)?;
-    write_produce_response(
+    let mut writer = Writer::new(item.response_bound, std::mem::take(spare))?;
+    let written = write_produce_response(
         &mut writer,
         item.version,
         item.correlation_id,
@@ -1617,7 +1641,11 @@ fn finish_captured(
         item.acks,
         &item.results,
         input,
-    )
+    );
+    if written.as_ref().ok().is_none_or(|body| body.is_none()) {
+        *spare = std::mem::take(&mut writer.bytes);
+    }
+    written
 }
 
 fn process_inner(
@@ -1681,7 +1709,6 @@ fn process_inner(
     if response_bound > common.max_response_bytes {
         return Err(Error::ResourceLimit);
     }
-    let mut writer = Writer::new(response_bound)?;
     let mut results = exact_list(parsed.topics.len())?;
     let mut normalized = 0usize;
     let lone_topic = parsed.topics.len() <= 1;
@@ -1952,7 +1979,8 @@ fn process_inner(
             }
         }
     }
-    write_produce_response(
+    let mut writer = Writer::new(response_bound, store.take_response_buf())?;
+    let written = write_produce_response(
         &mut writer,
         version,
         correlation_id,
@@ -1960,8 +1988,11 @@ fn process_inner(
         parsed.acks,
         &results,
         input,
-    )
-    .map(ProcessOut::Reply)
+    );
+    if written.as_ref().ok().is_none_or(|body| body.is_none()) {
+        store.keep_response_buf(std::mem::take(&mut writer.bytes));
+    }
+    Ok(ProcessOut::Reply(written?))
 }
 
 fn write_produce_response(
@@ -2040,11 +2071,14 @@ struct Writer {
     cap: usize,
 }
 impl Writer {
-    fn new(cap: usize) -> Result<Self, Error> {
-        let mut bytes = Vec::new();
-        bytes
-            .try_reserve_exact(cap)
-            .map_err(|_| Error::ResourceLimit)?;
+    fn new(cap: usize, mut bytes: Vec<u8>) -> Result<Self, Error> {
+        bytes.clear();
+        let extra = cap.saturating_sub(bytes.capacity());
+        if extra > 0 {
+            bytes
+                .try_reserve_exact(extra)
+                .map_err(|_| Error::ResourceLimit)?;
+        }
         Ok(Self { bytes, cap })
     }
     fn put(&mut self, v: &[u8]) -> Result<(), Error> {
@@ -2107,6 +2141,22 @@ mod tests {
 
     fn part(index: i32) -> Part {
         Part { index, bytes: None }
+    }
+
+    #[test]
+    fn a_produce_response_reuses_a_parked_buffer() {
+        let mut parked = Vec::new();
+        parked
+            .try_reserve_exact(128)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let capacity = parked.capacity();
+        assert!(capacity >= 128);
+        let mut writer = Writer::new(32, parked).unwrap_or_else(|error| panic!("{error:?}"));
+        writer.i32(7).unwrap_or_else(|error| panic!("{error:?}"));
+        let body = std::mem::take(&mut writer.bytes);
+        assert!(body.capacity() >= capacity);
+        let reused = Writer::new(32, body).unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(reused.bytes.capacity() >= capacity);
     }
 
     #[test]

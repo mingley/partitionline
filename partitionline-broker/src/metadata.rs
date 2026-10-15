@@ -30,7 +30,7 @@ use crate::{
     compaction, fetch, journal, produce,
     protocol::{self, ApiVersionsHandler, RequestHeader},
     retention,
-    transport::Handler,
+    transport::{ExchangeOutcome, Handler, Peer},
 };
 use std::{
     collections::{HashMap, HashSet},
@@ -241,11 +241,21 @@ struct DataOptions {
 }
 struct DataJob {
     request: Vec<u8>,
+    spare: Vec<u8>,
     admitted: Instant,
     reply: oneshot::Sender<Result<DataReply, Error>>,
 }
+struct Reused {
+    response: Option<Vec<u8>>,
+    request: Vec<u8>,
+    spare: Vec<u8>,
+}
 enum DataReply {
-    Produce(Option<Vec<u8>>),
+    Produce {
+        response: Option<Vec<u8>>,
+        request: Vec<u8>,
+        spare: Vec<u8>,
+    },
     Read {
         request: Vec<u8>,
         snapshot: fetch::Snapshot,
@@ -668,7 +678,16 @@ impl Router {
     }
     /// Dispatch a bounded payload; `None` means successful acks0 and no wire bytes.
     /// Errors close the transport connection. Metadata-only routers reject Produce.
-    pub async fn dispatch(&self, mut request: Vec<u8>) -> Result<Option<Vec<u8>>, Error> {
+    pub async fn dispatch(&self, request: Vec<u8>) -> Result<Option<Vec<u8>>, Error> {
+        self.dispatch_reusing(request, Vec::new())
+            .await
+            .map(|reused| reused.response)
+    }
+    async fn dispatch_reusing(
+        &self,
+        mut request: Vec<u8>,
+        mut spare: Vec<u8>,
+    ) -> Result<Reused, Error> {
         if self.stopping.load(Ordering::Acquire) {
             return Err(Error::Stopped);
         }
@@ -722,9 +741,11 @@ impl Router {
                 // and the serialized snapshot cannot disappear into a lost wake.
                 changes.borrow_and_update();
                 let (reply, receiver) = oneshot::channel();
+                let job_spare = std::mem::take(&mut spare);
                 self.sender
                     .try_send(Command::Data(DataJob {
                         request,
+                        spare: job_spare,
                         admitted,
                         reply,
                     }))
@@ -733,7 +754,17 @@ impl Router {
                         mpsc::error::TrySendError::Closed(_) => Error::Stopped,
                     })?;
                 match receiver.await.map_err(|_| Error::ActorFailed)?? {
-                    DataReply::Produce(response) => return Ok(response),
+                    DataReply::Produce {
+                        response,
+                        request,
+                        spare,
+                    } => {
+                        return Ok(Reused {
+                            response,
+                            request,
+                            spare,
+                        });
+                    }
                     DataReply::Read {
                         request: retained,
                         snapshot,
@@ -745,12 +776,20 @@ impl Router {
                             || snapshot.record_bytes >= snapshot.minimum_bytes
                             || Instant::now() >= deadline
                         {
-                            return Ok(Some(snapshot.response));
+                            return Ok(Reused {
+                                response: Some(snapshot.response),
+                                request: retained,
+                                spare,
+                            });
                         }
                         request = retained;
-                        // Only the original bounded input survives the wait;
-                        // each candidate response is released before suspension.
-                        drop(snapshot);
+                        // The candidate body is released. Its allocation stays
+                        // so the next attempt does not reserve it again.
+                        let mut recycled = snapshot.response;
+                        recycled.clear();
+                        if recycled.capacity() >= spare.capacity() {
+                            spare = recycled;
+                        }
                         if self.stopping.load(Ordering::Acquire) {
                             return Err(Error::Stopped);
                         }
@@ -784,7 +823,12 @@ impl Router {
             } else {
                 ApiVersionsHandler::composed(self.config.protocol_limits)
             };
-            return handler.respond(&request).map(Some).map_err(Into::into);
+            let response = handler.respond(&request).map(Some)?;
+            return Ok(Reused {
+                response,
+                request,
+                spare,
+            });
         }
         let (reply, receiver) = oneshot::channel();
         let job = Job {
@@ -798,7 +842,12 @@ impl Router {
                 mpsc::error::TrySendError::Full(_) => Error::QueueFull,
                 mpsc::error::TrySendError::Closed(_) => Error::Stopped,
             })?;
-        receiver.await.map_err(|_| Error::ActorFailed)?.map(Some)
+        let response = receiver.await.map_err(|_| Error::ActorFailed)??;
+        Ok(Reused {
+            response: Some(response),
+            request: Vec::new(),
+            spare,
+        })
     }
 }
 impl Drop for Router {
@@ -810,6 +859,20 @@ impl Handler for Router {
     type Error = Error;
     async fn handle(&self, request: Vec<u8>) -> Result<Option<Vec<u8>>, Error> {
         self.dispatch(request).await
+    }
+
+    async fn exchange_request(
+        &self,
+        _peer: &Peer,
+        request: Vec<u8>,
+        spare: Vec<u8>,
+    ) -> Result<ExchangeOutcome, Error> {
+        let reused = self.dispatch_reusing(request, spare).await?;
+        Ok(ExchangeOutcome {
+            response: reused.response,
+            request: reused.request,
+            spare: reused.spare,
+        })
     }
 }
 fn actor(
@@ -908,7 +971,8 @@ fn actor(
                     Err(Error::StoragePoisoned)
                 } else if let Some(store) = store.as_mut() {
                     if produce_key && grouped.is_empty() {
-                        produce::process(
+                        store.prepare_response_buf(std::mem::take(&mut job.spare));
+                        match produce::process(
                             &catalog,
                             store,
                             &mut job.request,
@@ -921,18 +985,29 @@ fn actor(
                                     Ok(())
                                 }
                             },
-                        )
-                        .map(DataReply::Produce)
-                        .map_err(Into::into)
+                        ) {
+                            Ok(response) => {
+                                let spare = store.take_response_buf();
+                                let request = std::mem::take(&mut job.request);
+                                Ok(DataReply::Produce {
+                                    response,
+                                    request,
+                                    spare,
+                                })
+                            }
+                            Err(error) => Err(error.into()),
+                        }
                     } else if produce_key {
                         let mut jobs = Vec::with_capacity(grouped.len() + 1);
                         jobs.push(job);
                         jobs.append(&mut grouped);
                         let mut bodies = Vec::with_capacity(jobs.len());
+                        let mut spares = Vec::with_capacity(jobs.len());
                         let mut admitted = Vec::with_capacity(jobs.len());
                         let mut senders = Vec::with_capacity(jobs.len());
                         for mut queued in jobs {
                             bodies.push(std::mem::take(&mut queued.request));
+                            spares.push(std::mem::take(&mut queued.spare));
                             admitted.push(queued.admitted);
                             senders.push(queued.reply);
                         }
@@ -944,6 +1019,7 @@ fn actor(
                             inputs.as_mut_slice(),
                             &admitted,
                             config,
+                            &mut spares,
                             |index| {
                                 let closed =
                                     senders.get(index).is_none_or(|sender| sender.is_closed());
@@ -957,8 +1033,19 @@ fn actor(
                         if store.take_changed() {
                             changes.send_replace(());
                         }
-                        for (sender, result) in senders.into_iter().zip(results) {
-                            let _ = sender.send(result.map(DataReply::Produce).map_err(Into::into));
+                        for (sender, (result, (request, spare))) in senders
+                            .into_iter()
+                            .zip(results.into_iter().zip(bodies.into_iter().zip(spares)))
+                        {
+                            let reply = match result {
+                                Ok(response) => Ok(DataReply::Produce {
+                                    response,
+                                    request,
+                                    spare,
+                                }),
+                                Err(error) => Err(error.into()),
+                            };
+                            let _ = sender.send(reply);
                         }
                         continue;
                     } else if job.request.get(..2) == Some(&[0, 21]) {
@@ -977,12 +1064,17 @@ fn actor(
                                     }
                                 },
                             )
-                            .map(|response| DataReply::Produce(Some(response)))
+                            .map(|response| DataReply::Produce {
+                                response: Some(response),
+                                request: std::mem::take(&mut job.request),
+                                spare: std::mem::take(&mut job.spare),
+                            })
                             .map_err(Into::into)
                         } else {
                             Err(protocol::Error::UnimplementedApi(21).into())
                         }
                     } else if let Some(reads) = options.reads {
+                        store.prepare_response_buf(std::mem::take(&mut job.spare));
                         fetch::process(&catalog, store, &job.request, config, reads, || {
                             if job.reply.is_closed() || stopping.load(Ordering::Acquire) {
                                 Err(fetch::Error::Canceled)

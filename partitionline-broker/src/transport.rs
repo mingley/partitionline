@@ -269,6 +269,36 @@ pub trait Handler: Send + Sync {
     ) -> impl Future<Output = Result<Option<Vec<u8>>, Self::Error>> + Send {
         self.handle(request)
     }
+
+    /// Handle one request and return storage the connection can refill.
+    ///
+    /// The default drops the request buffer. A handler that still owns it
+    /// after the response is built can return that storage instead.
+    fn exchange_request(
+        &self,
+        peer: &Peer,
+        request: Vec<u8>,
+        spare: Vec<u8>,
+    ) -> impl Future<Output = Result<ExchangeOutcome, Self::Error>> + Send {
+        async move {
+            let response = self.handle_with_peer(peer, request).await?;
+            Ok(ExchangeOutcome {
+                response,
+                request: Vec::new(),
+                spare,
+            })
+        }
+    }
+}
+
+/// Response bytes plus storage the connection refills on the next request.
+pub struct ExchangeOutcome {
+    /// Response body without the length prefix. `None` writes nothing.
+    pub response: Option<Vec<u8>>,
+    /// Request storage, still holding the request bytes until the connection parks it.
+    pub request: Vec<u8>,
+    /// Response storage that was not used for `response`.
+    pub spare: Vec<u8>,
 }
 
 impl<F, Fut, E> Handler for F
@@ -717,6 +747,40 @@ fn dispatch_frame(mut frame: Frame) -> Vec<u8> {
     }
 }
 
+fn frame_from_vec(bytes: Vec<u8>) -> Frame {
+    #[cfg(feature = "sasl")]
+    {
+        Frame(zeroize::Zeroizing::new(bytes))
+    }
+    #[cfg(not(feature = "sasl"))]
+    {
+        bytes
+    }
+}
+
+fn park_request(mut bytes: Vec<u8>) -> Frame {
+    #[cfg(feature = "sasl")]
+    {
+        use zeroize::Zeroize;
+        bytes.zeroize();
+    }
+    #[cfg(not(feature = "sasl"))]
+    {
+        bytes.clear();
+    }
+    frame_from_vec(bytes)
+}
+
+fn park_response(mut current: Vec<u8>, mut incoming: Vec<u8>) -> Vec<u8> {
+    current.clear();
+    incoming.clear();
+    if incoming.capacity() > current.capacity() {
+        incoming
+    } else {
+        current
+    }
+}
+
 async fn read_exact_spare<S: AsyncRead + Unpin>(
     socket: &mut S,
     payload: &mut Vec<u8>,
@@ -816,9 +880,23 @@ impl ReadAhead {
 /// Split one body out of `ahead` when a full frame is buffered.
 ///
 /// The length prefix stays out of the returned body, matching a direct read.
+#[cfg(test)]
 fn take_complete_frame(ahead: &mut ReadAhead, max_request: usize) -> Result<Option<Frame>, Exit> {
+    let mut body = new_frame();
+    if fill_complete_frame(ahead, max_request, &mut body)? {
+        Ok(Some(body))
+    } else {
+        Ok(None)
+    }
+}
+
+fn fill_complete_frame(
+    ahead: &mut ReadAhead,
+    max_request: usize,
+    body: &mut Frame,
+) -> Result<bool, Exit> {
     match classify_ahead(ahead.pending(), max_request) {
-        Ahead::Need(_) => Ok(None),
+        Ahead::Need(_) => Ok(false),
         Ahead::Invalid => Err(Exit::InvalidLength),
         Ahead::Ready => {
             let mut prefix = [0u8; 4];
@@ -827,10 +905,10 @@ fn take_complete_frame(ahead: &mut ReadAhead, max_request: usize) -> Result<Opti
             let length =
                 usize::try_from(i32::from_be_bytes(prefix)).map_err(|_| Exit::InvalidLength)?;
             let total = 4usize.checked_add(length).ok_or(Exit::InvalidLength)?;
-            let mut body = new_frame();
             {
                 let payload = ahead.pending().get(4..total).ok_or(Exit::InvalidLength)?;
-                let dest = frame_mut(&mut body);
+                let dest = frame_mut(body);
+                dest.clear();
                 dest.try_reserve_exact(payload.len())
                     .map_err(|_| Exit::Io)?;
                 dest.extend_from_slice(payload);
@@ -840,7 +918,7 @@ fn take_complete_frame(ahead: &mut ReadAhead, max_request: usize) -> Result<Opti
                 frame_mut(&mut ahead.bytes).clear();
                 ahead.start = 0;
             }
-            Ok(Some(body))
+            Ok(true)
         }
     }
 }
@@ -850,9 +928,11 @@ async fn read_frame<S: AsyncRead + Unpin>(
     config: Config,
     deadline: Instant,
     ahead: &mut ReadAhead,
+    mut spare: Frame,
 ) -> Result<Frame, Exit> {
+    frame_mut(&mut spare).clear();
     if !ahead.is_empty() {
-        return read_frame_buffered(socket, config, deadline, ahead).await;
+        return read_frame_buffered(socket, config, deadline, ahead, spare).await;
     }
     if Instant::now() >= deadline {
         return Err(Exit::ReadDeadline);
@@ -870,9 +950,8 @@ async fn read_frame<S: AsyncRead + Unpin>(
         // No allocation based on the peer's length occurs before this check.
         // The body is filled directly into spare capacity so a large request
         // is not zeroed and then overwritten.
-        let mut payload = new_frame();
-        read_exact_spare(&mut *socket, &mut payload, length).await?;
-        Ok(payload)
+        read_exact_spare(&mut *socket, frame_mut(&mut spare), length).await?;
+        Ok(spare)
     })
     .await
     .map_err(|_| Exit::ReadDeadline)?
@@ -883,17 +962,18 @@ async fn read_frame_buffered<S: AsyncRead + Unpin>(
     config: Config,
     deadline: Instant,
     ahead: &mut ReadAhead,
+    mut spare: Frame,
 ) -> Result<Frame, Exit> {
-    if let Some(frame) = take_complete_frame(ahead, config.max_request_bytes)? {
-        return Ok(frame);
+    if fill_complete_frame(ahead, config.max_request_bytes, &mut spare)? {
+        return Ok(spare);
     }
     if Instant::now() >= deadline {
         return Err(Exit::ReadDeadline);
     }
     timeout_at(deadline, async {
         loop {
-            if let Some(frame) = take_complete_frame(ahead, config.max_request_bytes)? {
-                return Ok(frame);
+            if fill_complete_frame(ahead, config.max_request_bytes, &mut spare)? {
+                return Ok(spare);
             }
             let Ahead::Need(budget) = classify_ahead(ahead.pending(), config.max_request_bytes)
             else {
@@ -1049,7 +1129,10 @@ async fn exchange<H: Handler, S: AsyncRead + AsyncWrite + Unpin>(
 ) -> Exit {
     // Bytes of the next request read while the previous response was written.
     // Empty unless the client pipelined. Handlers still run one at a time.
+    // The request body and response body stay on this connection and are refilled.
     let mut ahead = ReadAhead::new();
+    let mut request_spare = new_frame();
+    let mut response_spare = Vec::new();
     loop {
         #[allow(unused_mut)]
         let mut frame_config = config;
@@ -1062,7 +1145,13 @@ async fn exchange<H: Handler, S: AsyncRead + AsyncWrite + Unpin>(
             frame_config.max_request_bytes = auth.frame_limit(config.max_request_bytes);
         }
         let read_deadline = operation_deadline(preauth_deadline, config.read_timeout);
-        let read = read_frame(&mut socket, frame_config, read_deadline, &mut ahead);
+        let read = read_frame(
+            &mut socket,
+            frame_config,
+            read_deadline,
+            &mut ahead,
+            std::mem::replace(&mut request_spare, new_frame()),
+        );
         #[cfg(feature = "oidc")]
         let read = authorized(auth.as_ref().and_then(|a| a.lease()), read);
         let request = match read.await {
@@ -1090,6 +1179,7 @@ async fn exchange<H: Handler, S: AsyncRead + AsyncWrite + Unpin>(
         let mut close = false;
         #[cfg(feature = "oidc")]
         let lease = auth.as_ref().and_then(|a| a.lease());
+        let response_buf = std::mem::take(&mut response_spare);
         let operation = async {
             timeout_at(deadline, async {
                 let permit = handlers.acquire().await.map_err(|_| Exit::Shutdown)?;
@@ -1110,7 +1200,11 @@ async fn exchange<H: Handler, S: AsyncRead + AsyncWrite + Unpin>(
                             close = terminal;
                             peer.identity = auth.identity();
                             drop(permit);
-                            return Ok(Some(bytes));
+                            return Ok(ExchangeOutcome {
+                                response: Some(bytes),
+                                request: dispatch_frame(request),
+                                spare: response_buf,
+                            });
                         }
                         crate::security::session::Decision::Dispatch => {
                             peer.identity = auth.identity();
@@ -1121,31 +1215,33 @@ async fn exchange<H: Handler, S: AsyncRead + AsyncWrite + Unpin>(
                         }
                     }
                 }
-                let response = handler
-                    .handle_with_peer(&peer, dispatch_frame(request))
+                let outcome = handler
+                    .exchange_request(&peer, dispatch_frame(request), response_buf)
                     .await
-                    .map_err(|_| Exit::HandlerError);
+                    .map_err(|_| Exit::HandlerError)?;
                 drop(permit);
-                response
+                Ok(outcome)
             })
             .await
             .map_err(|_| Exit::HandlerDeadline)?
         };
         #[cfg(feature = "oidc")]
         let operation = authorized(lease, operation);
-        let response = match operation.await {
-            Ok(response) => {
+        let outcome = match operation.await {
+            Ok(outcome) => {
                 // timeout_at cannot preempt a synchronously Ready handler.
                 // Recheck the original bound before accepting its result.
                 if Instant::now() >= deadline {
                     return Exit::HandlerDeadline;
                 }
-                match response {
-                    Some(response) => response,
-                    None => continue,
-                }
+                outcome
             }
             Err(exit) => return exit,
+        };
+        request_spare = park_request(outcome.request);
+        let Some(response) = outcome.response else {
+            response_spare = park_response(outcome.spare, Vec::new());
+            continue;
         };
         if response.len() > config.max_response_bytes {
             return Exit::OversizedResponse;
@@ -1184,6 +1280,7 @@ async fn exchange<H: Handler, S: AsyncRead + AsyncWrite + Unpin>(
         if let Err(exit) = write.await {
             return exit;
         }
+        response_spare = park_response(response, outcome.spare);
         #[cfg(feature = "sasl")]
         if let Some(auth) = &mut auth {
             if auth.response_written().is_err() {
@@ -1199,7 +1296,7 @@ async fn exchange<H: Handler, S: AsyncRead + AsyncWrite + Unpin>(
 
 #[cfg(test)]
 mod read_ahead_tests {
-    use super::{frame_mut, take_complete_frame, Exit, ReadAhead};
+    use super::{fill_complete_frame, frame_mut, new_frame, take_complete_frame, Exit, ReadAhead};
 
     fn extend_frame(ahead: &mut ReadAhead, payload: &[u8]) {
         let Ok(length) = i32::try_from(payload.len()) else {
@@ -1271,6 +1368,26 @@ mod read_ahead_tests {
             take_complete_frame(&mut ahead, 8),
             Err(Exit::InvalidLength)
         ));
+    }
+
+    #[test]
+    fn a_second_frame_reuses_the_body_buffer() {
+        let mut ahead = ReadAhead::new();
+        extend_frame(&mut ahead, b"one");
+        extend_frame(&mut ahead, b"two");
+        let mut body = new_frame();
+        assert!(matches!(
+            fill_complete_frame(&mut ahead, 64, &mut body),
+            Ok(true)
+        ));
+        let capacity = body.capacity();
+        assert!(capacity > 0);
+        assert!(matches!(
+            fill_complete_frame(&mut ahead, 64, &mut body),
+            Ok(true)
+        ));
+        assert!(body.capacity() >= capacity);
+        assert_eq!(body.as_slice(), b"two");
     }
 
     #[test]
