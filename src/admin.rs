@@ -3965,6 +3965,10 @@ impl Admin {
 
     /// Connect using `cfg`. Negotiates ApiVersions and optional SASL/TLS.
     ///
+    /// Several bootstraps race that handshake. The first one to finish is
+    /// kept, so a peer that accepts TCP and then stalls cannot hold a
+    /// reachable broker for the whole connect timeout.
+    ///
     /// CreateTopics, DeleteTopics, and Metadata are required at connect.
     /// Configuration, partition expansion, record deletion, ACL, coordinator,
     /// and group APIs are optional; missing APIs fail on the method with
@@ -3990,32 +3994,25 @@ impl Admin {
             .await
     }
 
-    async fn new_until(cfg: AdminConfig, deadline: Instant) -> Result<Self> {
-        if cfg.bootstrap.len() > 16 || cfg.client_id.len() > i16::MAX as usize {
-            return Err(Error::protocol(
-                "bootstrap/client ID exceeds discovery limit",
-            ));
-        }
-        let mut cfg = cfg;
-        cfg.bootstrap = crate::net::parse_and_validate_addresses(&cfg.bootstrap)?;
-        let stats = Arc::new(crate::metrics::AdminTracker::default());
-        let connect_timeout = cfg.connect_timeout.min(startup_remaining(deadline)?);
-        let mut conn = BrokerConn::connect_tls_any(
-            &cfg.bootstrap,
+    /// TCP, ApiVersions, and SASL on one bootstrap, bounded by `deadline`.
+    async fn open_one_bootstrap(
+        cfg: &AdminConfig,
+        addr: &str,
+        stats: &Arc<crate::metrics::AdminTracker>,
+        deadline: Instant,
+    ) -> Result<(BrokerConn, crate::protocol::api::ApiVersionsResponse)> {
+        let mut conn = BrokerConn::connect_tls(
+            addr,
             &cfg.client_id,
-            connect_timeout,
+            cfg.connect_timeout.min(startup_remaining(deadline)?),
             cfg.tls.as_ref(),
         )
         .await?;
-        conn.set_stats(Arc::clone(&stats));
+        conn.set_stats(Arc::clone(stats));
         let resp =
             crate::protocol::api::negotiate_api_versions(&mut conn, startup_remaining(deadline)?)
                 .await?;
         sasl::apply_api_keys(&mut conn, &resp.api_keys);
-        let mut versions = HashMap::new();
-        for api in resp.api_keys {
-            let _prev = versions.insert(api.api_key, api);
-        }
         sasl::authenticate(
             &mut conn,
             cfg.sasl_plain.as_ref(),
@@ -4026,6 +4023,59 @@ impl Admin {
             startup_remaining(deadline)?,
         )
         .await?;
+        Ok((conn, resp))
+    }
+
+    /// Handshake every bootstrap together and keep the first full success.
+    async fn open_bootstrap(
+        cfg: &AdminConfig,
+        stats: &Arc<crate::metrics::AdminTracker>,
+        deadline: Instant,
+    ) -> Result<(BrokerConn, crate::protocol::api::ApiVersionsResponse)> {
+        if cfg.bootstrap.len() <= 1 {
+            let addr = cfg
+                .bootstrap
+                .first()
+                .ok_or_else(|| Error::protocol("all bootstrap servers failed"))?;
+            return Self::open_one_bootstrap(cfg, addr, stats, deadline).await;
+        }
+        let mut inflight = tokio::task::JoinSet::new();
+        for addr in &cfg.bootstrap {
+            let cfg = cfg.clone();
+            let addr = addr.clone();
+            let stats = Arc::clone(stats);
+            let _ = inflight.spawn(async move {
+                Admin::open_one_bootstrap(&cfg, &addr, &stats, deadline).await
+            });
+        }
+        let mut last = Error::protocol("all bootstrap servers failed");
+        while let Some(joined) = inflight.join_next().await {
+            match joined {
+                Ok(Ok(opened)) => {
+                    inflight.abort_all();
+                    return Ok(opened);
+                }
+                Ok(Err(error)) => last = error,
+                Err(error) => last = Error::protocol(format!("bootstrap handshake: {error}")),
+            }
+        }
+        Err(last)
+    }
+
+    async fn new_until(cfg: AdminConfig, deadline: Instant) -> Result<Self> {
+        if cfg.bootstrap.len() > 16 || cfg.client_id.len() > i16::MAX as usize {
+            return Err(Error::protocol(
+                "bootstrap/client ID exceeds discovery limit",
+            ));
+        }
+        let mut cfg = cfg;
+        cfg.bootstrap = crate::net::parse_and_validate_addresses(&cfg.bootstrap)?;
+        let stats = Arc::new(crate::metrics::AdminTracker::default());
+        let (conn, resp) = Self::open_bootstrap(&cfg, &stats, deadline).await?;
+        let mut versions = HashMap::new();
+        for api in resp.api_keys {
+            let _prev = versions.insert(api.api_key, api);
+        }
         let create_version = versions
             .get(&CREATE_TOPICS)
             .and_then(|v| pick_version(v.min_version, v.max_version, 0, 7))

@@ -506,7 +506,7 @@ impl ProducerConfig {
     ///
     /// Default 50ms (Java). Zero retries immediately. Combined with
     /// [`Self::reconnect_backoff_max`] this is exponential (`base * 2^n`),
-    /// no jitter. Bootstrap `connect_tls_any` does not wait between hosts.
+    /// no jitter. Startup handshakes do not wait between hosts.
     #[must_use]
     pub fn reconnect_backoff(mut self, backoff: Duration) -> Self {
         self.reconnect_backoff = backoff;
@@ -1449,6 +1449,10 @@ impl Producer {
     /// Connect using `cfg`. Negotiates ApiVersions, optional SASL/TLS, and
     /// `InitProducerId` when idempotent or transactional.
     /// FindCoordinator is required only when a transactional id is configured.
+    ///
+    /// Several bootstraps race the handshake. The first one to finish is
+    /// kept, so a peer that accepts TCP and then stalls cannot hold a
+    /// reachable broker for the whole connect timeout.
     pub async fn new(cfg: ProducerConfig) -> Result<Self> {
         let deadline = Instant::now()
             .checked_add(cfg.request_timeout)
@@ -1456,6 +1460,69 @@ impl Producer {
         crate::net::Deadline::from_std(deadline)
             .run(Self::new_until(cfg, deadline))
             .await
+    }
+
+    /// TCP, ApiVersions, and SASL on one bootstrap, bounded by `deadline`.
+    async fn open_one_bootstrap(
+        cfg: &ProducerConfig,
+        addr: &str,
+        deadline: Instant,
+    ) -> Result<(BrokerConn, ApiVersionsResponse)> {
+        let mut conn = BrokerConn::connect_tls(
+            addr,
+            &cfg.client_id,
+            cfg.connect_timeout.min(timeout_remaining(deadline)?),
+            cfg.tls.as_ref(),
+        )
+        .await?;
+        let resp =
+            crate::protocol::api::negotiate_api_versions(&mut conn, timeout_remaining(deadline)?)
+                .await?;
+        crate::protocol::sasl::apply_api_keys(&mut conn, &resp.api_keys);
+        crate::protocol::sasl::authenticate(
+            &mut conn,
+            cfg.sasl_plain.as_ref(),
+            cfg.sasl_scram.as_ref(),
+            cfg.sasl_scram_sha512.as_ref(),
+            cfg.sasl_oauthbearer.as_deref(),
+            cfg.sasl_oauthbearer_oidc.as_ref(),
+            timeout_remaining(deadline)?,
+        )
+        .await?;
+        Ok((conn, resp))
+    }
+
+    /// Handshake every bootstrap together and keep the first full success.
+    async fn open_bootstrap(
+        cfg: &ProducerConfig,
+        deadline: Instant,
+    ) -> Result<(BrokerConn, ApiVersionsResponse)> {
+        if cfg.bootstrap.len() <= 1 {
+            let addr = cfg
+                .bootstrap
+                .first()
+                .ok_or_else(|| Error::protocol("all bootstrap servers failed"))?;
+            return Self::open_one_bootstrap(cfg, addr, deadline).await;
+        }
+        let mut inflight = tokio::task::JoinSet::new();
+        for addr in &cfg.bootstrap {
+            let cfg = cfg.clone();
+            let addr = addr.clone();
+            let _ = inflight
+                .spawn(async move { Producer::open_one_bootstrap(&cfg, &addr, deadline).await });
+        }
+        let mut last = Error::protocol("all bootstrap servers failed");
+        while let Some(joined) = inflight.join_next().await {
+            match joined {
+                Ok(Ok(opened)) => {
+                    inflight.abort_all();
+                    return Ok(opened);
+                }
+                Ok(Err(error)) => last = error,
+                Err(error) => last = Error::protocol(format!("bootstrap handshake: {error}")),
+            }
+        }
+        Err(last)
     }
 
     async fn new_until(cfg: ProducerConfig, deadline: Instant) -> Result<Self> {
@@ -1469,32 +1536,11 @@ impl Producer {
             return Err(Error::protocol("acks must be -1, 0, or 1"));
         }
         cfg.bootstrap = crate::net::parse_and_validate_addresses(&cfg.bootstrap)?;
-        let connect_timeout = cfg.connect_timeout.min(timeout_remaining(deadline)?);
-        let mut meta = BrokerConn::connect_tls_any(
-            &cfg.bootstrap,
-            &cfg.client_id,
-            connect_timeout,
-            cfg.tls.as_ref(),
-        )
-        .await?;
-        let resp =
-            crate::protocol::api::negotiate_api_versions(&mut meta, timeout_remaining(deadline)?)
-                .await?;
+        let (mut meta, resp) = Self::open_bootstrap(&cfg, deadline).await?;
         let mut versions = HashMap::new();
         for api in &resp.api_keys {
             let _prev = versions.insert(api.api_key, api.clone());
         }
-        crate::protocol::sasl::apply_api_keys(&mut meta, &resp.api_keys);
-        crate::protocol::sasl::authenticate(
-            &mut meta,
-            cfg.sasl_plain.as_ref(),
-            cfg.sasl_scram.as_ref(),
-            cfg.sasl_scram_sha512.as_ref(),
-            cfg.sasl_oauthbearer.as_deref(),
-            cfg.sasl_oauthbearer_oidc.as_ref(),
-            timeout_remaining(deadline)?,
-        )
-        .await?;
         let mut cfg = cfg;
         if cfg.transactional_id.is_some() {
             cfg.enable_idempotence = true;
