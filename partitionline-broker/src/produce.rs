@@ -1139,16 +1139,12 @@ fn normalize<'a>(
     if input.len() > config.journal_limits.max_entry_bytes() {
         return Err(10);
     }
-    let crc = u32::from_be_bytes(input[17..21].try_into().map_err(|_| 87i16)?);
-    if crc32c::crc32c(&input[21..]) != crc {
-        return Err(2);
-    }
     let codec = input[22] & 7;
     if codec == 4 && version < 7 {
         return Err(76);
     }
-    // CRC32-C was matched above for this single batch. Codec normalization
-    // validates the bytes it returns, including rewritten batches.
+    // Codec normalization matches this single batch's CRC32-C before it
+    // rewrites a compressed payload. The no-codec path matches it here.
     #[cfg(feature = "codecs")]
     {
         let normalized = crate::codecs::normalize(input, config.codec_limits, config.record_limits)
@@ -1182,6 +1178,10 @@ fn normalize<'a>(
     }
     #[cfg(not(feature = "codecs"))]
     {
+        let crc = u32::from_be_bytes(input[17..21].try_into().map_err(|_| 87i16)?);
+        if crc32c::crc32c(&input[21..]) != crc {
+            return Err(2);
+        }
         records::validate_known_crc(input, config.record_limits).map_err(record_error)?;
         if input.len() > config.journal_limits.max_entry_bytes() {
             return Err(10);

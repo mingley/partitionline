@@ -363,7 +363,9 @@ pub fn normalize(
     admitted(Cow::Owned(output), record_limits)
 }
 fn admitted(bytes: Cow<'_, [u8]>, limits: records::Limits) -> Result<Normalized<'_>, Error> {
-    let checked = records::validate(&bytes, limits)?;
+    // The wire checksum was matched in `header`, or this output was just
+    // stamped with the checksum of these bytes. Do not hash them again.
+    let checked = records::validate_known_crc(&bytes, limits)?;
     let (batches, records, headers) = (
         checked.batch_count(),
         checked.record_count(),

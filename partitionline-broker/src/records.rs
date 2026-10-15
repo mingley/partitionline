@@ -532,12 +532,11 @@ pub fn validate(bytes: &[u8], limits: Limits) -> Result<Validated<'_>, Error> {
     })
 }
 
-/// Like [`validate`], for a single batch whose CRC32-C the caller already matched.
+/// Like [`validate`], for bytes whose CRC32-C the caller already matched.
 ///
 /// The structural checks are unchanged. The checksum is not computed again.
-/// Codec builds validate inside `codecs::normalize` instead, so this entry
-/// point exists only for the no-codec produce path.
-#[cfg(not(feature = "codecs"))]
+/// Produce uses this after it has checked a batch, and codec normalization
+/// uses it after it has checked or rewritten the batch checksum.
 pub(crate) fn validate_known_crc(bytes: &[u8], limits: Limits) -> Result<Validated<'_>, Error> {
     if bytes.len() > limits.input_bytes {
         return Err(budget(0, Budget::InputBytes));
