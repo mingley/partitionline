@@ -2532,7 +2532,7 @@ impl ShareGroup {
 
     async fn acknowledge_leaders(
         &mut self,
-        partitions: &mut Vec<(String, i32, Vec<AcknowledgementBatch>)>,
+        partitions: &mut Vec<AckPartition>,
         ack: i8,
         deadline: Instant,
     ) -> Result<()> {
@@ -2578,7 +2578,7 @@ impl ShareGroup {
             for (topic, part, batches) in &node_tps {
                 let topic_id = self
                     .topic_ids
-                    .get(topic)
+                    .get(topic.as_ref())
                     .copied()
                     .filter(|id| *id != [0; 16])
                     .ok_or_else(|| {
@@ -3382,27 +3382,30 @@ fn batch_covers(batches: &[AcknowledgementBatch], offset: i64) -> bool {
         .any(|batch| offset >= batch.first_offset && offset <= batch.last_offset)
 }
 
+/// One topic name is shared by every partition acknowledged for that topic.
+type AckPartition = (Arc<str>, i32, Vec<AcknowledgementBatch>);
+
 fn sent_ack_batches<'a>(
-    node_tps: &'a [(String, i32, Vec<AcknowledgementBatch>)],
+    node_tps: &'a [AckPartition],
     topic: &str,
     partition: i32,
 ) -> &'a [AcknowledgementBatch] {
     node_tps
         .iter()
-        .find(|(name, part, _)| name == topic && *part == partition)
+        .find(|(name, part, _)| name.as_ref() == topic && *part == partition)
         .map(|(_, _, batches)| batches.as_slice())
         .unwrap_or(&[])
 }
 
 fn drop_sent_ack_batches(
-    partitions: &mut Vec<(String, i32, Vec<AcknowledgementBatch>)>,
+    partitions: &mut Vec<AckPartition>,
     topic: &str,
     partition: i32,
     sent: &[AcknowledgementBatch],
 ) {
     let mut kept = Vec::new();
     for (name, part, batches) in partitions.drain(..) {
-        if name != topic || part != partition {
+        if name.as_ref() != topic || part != partition {
             kept.push((name, part, batches));
             continue;
         }
@@ -3422,11 +3425,11 @@ fn drop_sent_ack_batches(
 /// A later metadata leader is the target of the next fetch. Locks already
 /// taken stay on the session that delivered them, including when one
 /// partition's offsets came from two brokers.
-type AckRoute = BTreeMap<i32, Vec<(String, i32, Vec<AcknowledgementBatch>)>>;
+type AckRoute = BTreeMap<i32, Vec<AckPartition>>;
 
 fn group_acks_by_acquisition_node(
     node_of: impl Fn(&str, i32, i64) -> Option<i32>,
-    partitions: &[(String, i32, Vec<AcknowledgementBatch>)],
+    partitions: &[AckPartition],
 ) -> Result<AckRoute> {
     let mut by_node: AckRoute = BTreeMap::new();
     for (topic, partition, batches) in partitions {
@@ -3504,7 +3507,7 @@ fn group_acks_by_acquisition_node(
             by_node
                 .entry(node)
                 .or_default()
-                .push((topic.clone(), *partition, batches));
+                .push((Arc::clone(topic), *partition, batches));
         }
     }
     Ok(by_node)
@@ -3529,10 +3532,8 @@ fn finish_ack_run(first: i64, last: i64, types: &[i8]) -> AcknowledgementBatch {
 ///
 /// Contiguous offsets with the same type become one batch with a single
 /// `AcknowledgeType` (applies to the whole range). Gaps start a new batch.
-fn acknowledgement_batches(
-    recs: &[ShareRecord],
-    ack: i8,
-) -> Vec<(String, i32, Vec<AcknowledgementBatch>)> {
+/// Partitions of one topic share that topic's name.
+fn acknowledgement_batches(recs: &[ShareRecord], ack: i8) -> Vec<AckPartition> {
     let mut by_part: BTreeMap<crate::consumer::TopicName, BTreeMap<i32, Vec<i64>>> =
         BTreeMap::new();
     for rec in recs {
@@ -3546,6 +3547,10 @@ fn acknowledgement_batches(
     }
     let mut out = Vec::new();
     for (topic, parts) in by_part {
+        let name = match topic {
+            crate::consumer::TopicName::Heap(shared) => shared,
+            inline => Arc::from(inline.as_str()),
+        };
         for (partition, mut offs) in parts {
             offs.sort_unstable();
             offs.dedup();
@@ -3573,7 +3578,7 @@ fn acknowledgement_batches(
                 });
             }
             if !batches.is_empty() {
-                out.push((topic.as_str().to_owned(), partition, batches));
+                out.push((Arc::clone(&name), partition, batches));
             }
         }
     }
@@ -3582,6 +3587,8 @@ fn acknowledgement_batches(
 
 #[cfg(test)]
 mod tests {
+    use std::sync::Arc;
+
     use super::*;
 
     fn rec(partition: i32, offset: i64) -> ShareRecord {
@@ -3722,13 +3729,14 @@ mod tests {
         let recs = [rec(0, 1), rec(0, 3), rec(0, 2), rec(1, 9)];
         let batches = acknowledgement_batches(&recs, ACK_ACCEPT);
         assert_eq!(batches.len(), 2);
-        assert_eq!(batches[0].0, "t");
+        assert_eq!(batches[0].0.as_ref(), "t");
+        assert!(Arc::ptr_eq(&batches[0].0, &batches[1].0));
         assert_eq!(batches[0].1, 0);
         assert_eq!(batches[0].2.len(), 1);
         assert_eq!(batches[0].2[0].first_offset, 1);
         assert_eq!(batches[0].2[0].last_offset, 3);
         assert_eq!(batches[0].2[0].types, vec![ACK_ACCEPT]);
-        assert_eq!(batches[1].0, "t");
+        assert_eq!(batches[1].0.as_ref(), "t");
         assert_eq!(batches[1].1, 1);
         assert_eq!(batches[1].2[0].first_offset, 9);
         assert_eq!(batches[1].2[0].last_offset, 9);
@@ -3945,7 +3953,7 @@ mod tests {
     #[test]
     fn acknowledgements_go_to_the_broker_that_acquired_them() {
         let partitions = vec![(
-            "orders".to_owned(),
+            Arc::<str>::from("orders"),
             0,
             vec![AcknowledgementBatch {
                 first_offset: 1,
@@ -3995,7 +4003,7 @@ mod tests {
         assert!(missing.is_err());
         let mut pending = vec![
             (
-                "orders".to_owned(),
+                Arc::<str>::from("orders"),
                 0,
                 vec![AcknowledgementBatch {
                     first_offset: 1,
@@ -4004,7 +4012,7 @@ mod tests {
                 }],
             ),
             (
-                "orders".to_owned(),
+                Arc::<str>::from("orders"),
                 0,
                 vec![AcknowledgementBatch {
                     first_offset: 3,
