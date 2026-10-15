@@ -4836,14 +4836,10 @@ impl Consumer {
                         Err(Error::Timeout)
                     };
                 }
-                for (t, _, _) in &self.assigned {
-                    self.cluster.invalidate_topic(t);
+                let topics = unique_assigned_topics(&self.assigned);
+                for topic in &topics {
+                    self.cluster.invalidate_topic(topic);
                 }
-                let topics: Vec<String> = self
-                    .assigned
-                    .iter()
-                    .map(|(t, _, _)| t.as_ref().to_owned())
-                    .collect();
                 if let Err(error) = self
                     .refresh_metadata_timeout(
                         Some(&topics),
@@ -7227,6 +7223,21 @@ fn cached_epoch(epochs: &[i32], partition: i32) -> i32 {
         .unwrap_or(crate::RecordBatch::NO_PARTITION_LEADER_EPOCH)
 }
 
+/// Topic names in assignment order, once each.
+///
+/// A missing-leader refresh asks Metadata for these names. One entry per
+/// partition would repeat the topic and the broker would skip the copies.
+fn unique_assigned_topics(assigned: &[(Arc<str>, i32, i64)]) -> Vec<String> {
+    let mut topics = Vec::new();
+    let mut seen = HashSet::new();
+    for (topic, _, _) in assigned {
+        if seen.insert(topic.as_ref()) {
+            topics.push(topic.as_ref().to_owned());
+        }
+    }
+    topics
+}
+
 fn assignment_metadata_stale(
     assigned: &[(Arc<str>, i32, i64)],
     completed: &PartitionMap<()>,
@@ -7710,6 +7721,24 @@ pub(crate) fn partition_infos_from(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_missing_leader_refreshes_each_topic_once() {
+        let orders = Arc::<str>::from("orders");
+        let other_orders = Arc::<str>::from("orders");
+        let payments = Arc::<str>::from("payments");
+        let assigned = [
+            (Arc::clone(&orders), 0, 1),
+            (other_orders, 1, 2),
+            (Arc::clone(&payments), 0, 3),
+            (orders, 2, 4),
+        ];
+        assert_eq!(
+            unique_assigned_topics(&assigned),
+            vec!["orders".to_owned(), "payments".to_owned()]
+        );
+        assert!(unique_assigned_topics(&[]).is_empty());
+    }
 
     struct OwnedPlan {
         topic: Arc<str>,
