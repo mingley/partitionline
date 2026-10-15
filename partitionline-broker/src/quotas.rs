@@ -313,14 +313,25 @@ impl Window {
     }
 
     fn client_mut(&mut self, client: &str, now_ms: u64) -> &mut Client {
-        let produce = self.limits.produce_bytes_per_sec;
-        let fetch = self.limits.fetch_bytes_per_sec;
-        self.clients.entry(client.to_owned()).or_insert(Client {
-            connections: 0,
-            produce_tokens: produce,
-            fetch_tokens: fetch,
-            updated_ms: now_ms,
-        })
+        if !self.clients.contains_key(client) {
+            let produce = self.limits.produce_bytes_per_sec;
+            let fetch = self.limits.fetch_bytes_per_sec;
+            let _ = self.clients.insert(
+                client.to_owned(),
+                Client {
+                    connections: 0,
+                    produce_tokens: produce,
+                    fetch_tokens: fetch,
+                    updated_ms: now_ms,
+                },
+            );
+        }
+        // Present: either it was already stored, or the insert above added it.
+        #[expect(
+            clippy::unwrap_used,
+            reason = "the client is present after the insert above"
+        )]
+        self.clients.get_mut(client).unwrap()
     }
 
     fn named(&self, client: &str) -> Result<(), Error> {
