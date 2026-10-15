@@ -1508,6 +1508,73 @@ impl Writer {
     }
 }
 
+fn collect_metadata_topics<'a>(
+    catalog: &'a Catalog,
+    semantic_error: bool,
+    targets: &'a [Target<'a>],
+    results: &mut Vec<MetadataTopic<'a>>,
+) -> Result<(), Error> {
+    for target in targets {
+        // Each topic is resolved on its own. A non-zero id is an id lookup.
+        // A zero id is a name lookup, including when the same request also
+        // names other topics by id.
+        let by_id = !semantic_error && target.id != ZERO;
+        if !semantic_error
+            && results.iter().any(|result| {
+                if by_id {
+                    result.id == target.id
+                } else {
+                    result.name == target.name
+                }
+            })
+        {
+            continue;
+        }
+        if semantic_error {
+            results.push(MetadataTopic {
+                name: Some(target.name.unwrap_or("")),
+                id: target.id,
+                error: 42,
+                topic: None,
+            });
+            continue;
+        }
+        let topic = if by_id {
+            TopicId::new(target.id)
+                .ok()
+                .and_then(|id| catalog.by_id(id))
+        } else {
+            target.name.and_then(|name| catalog.by_name(name))
+        };
+        if let Some(topic) = topic {
+            results.push(MetadataTopic {
+                name: Some(topic.name()),
+                id: topic.id().bytes(),
+                error: 0,
+                topic: Some(topic),
+            });
+        } else {
+            let error = if by_id {
+                100
+            } else if target
+                .name
+                .is_some_and(|name| catalog::validate_topic_name(name).is_err())
+            {
+                17
+            } else {
+                3
+            };
+            results.push(MetadataTopic {
+                name: if by_id { None } else { target.name },
+                id: if by_id { target.id } else { ZERO },
+                error,
+                topic: None,
+            });
+        }
+    }
+    Ok(())
+}
+
 struct MetadataTopic<'a> {
     name: Option<&'a str>,
     id: [u8; 16],
@@ -1541,64 +1608,7 @@ fn metadata(
             .map_or(catalog.topic_count(), Vec::len),
     )?;
     if let Some(targets) = &request.topics {
-        let use_id = !semantic_error && targets.iter().any(|t| t.id != ZERO);
-        for target in targets {
-            if use_id && target.id == ZERO {
-                continue;
-            }
-            if !semantic_error
-                && results.iter().any(|result: &MetadataTopic<'_>| {
-                    if use_id {
-                        result.id == target.id
-                    } else {
-                        result.name == target.name
-                    }
-                })
-            {
-                continue;
-            }
-            if semantic_error {
-                results.push(MetadataTopic {
-                    name: Some(target.name.unwrap_or("")),
-                    id: target.id,
-                    error: 42,
-                    topic: None,
-                });
-                continue;
-            }
-            let topic = if use_id {
-                TopicId::new(target.id)
-                    .ok()
-                    .and_then(|id| catalog.by_id(id))
-            } else {
-                target.name.and_then(|name| catalog.by_name(name))
-            };
-            if let Some(topic) = topic {
-                results.push(MetadataTopic {
-                    name: Some(topic.name()),
-                    id: topic.id().bytes(),
-                    error: 0,
-                    topic: Some(topic),
-                });
-            } else {
-                let error = if use_id {
-                    100
-                } else if target
-                    .name
-                    .is_some_and(|name| catalog::validate_topic_name(name).is_err())
-                {
-                    17
-                } else {
-                    3
-                };
-                results.push(MetadataTopic {
-                    name: if use_id { None } else { target.name },
-                    id: if use_id { target.id } else { ZERO },
-                    error,
-                    topic: None,
-                });
-            }
-        }
+        collect_metadata_topics(catalog, semantic_error, targets, &mut results)?;
     } else {
         for topic in catalog.topics() {
             results.push(MetadataTopic {
@@ -2160,6 +2170,61 @@ fn delete(
 mod tests {
     use super::*;
     use std::{error::Error as StdError, sync::atomic::AtomicU64};
+
+    #[test]
+    fn a_metadata_request_resolves_each_topic_by_its_own_id_or_name() {
+        let path = std::env::temp_dir().join(format!(
+            "partitionline-metadata-mix-{}-{}",
+            std::process::id(),
+            NEXT.fetch_add(1, Ordering::Relaxed)
+        ));
+        let (mut catalog, _) = Catalog::open(&path, catalog::Limits::default())
+            .unwrap_or_else(|error| panic!("{error}"));
+        let mut alpha_bytes = [0; 16];
+        alpha_bytes[15] = 2;
+        let mut beta_bytes = [0; 16];
+        beta_bytes[15] = 3;
+        let alpha = TopicId::new(alpha_bytes).unwrap_or_else(|error| panic!("{error}"));
+        let beta = TopicId::new(beta_bytes).unwrap_or_else(|error| panic!("{error}"));
+        catalog
+            .create("alpha", alpha, 1)
+            .unwrap_or_else(|error| panic!("{error}"));
+        catalog
+            .create("beta", beta, 1)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let targets = [
+            Target {
+                name: None,
+                id: alpha.bytes(),
+            },
+            Target {
+                name: Some("beta"),
+                id: ZERO,
+            },
+            Target {
+                name: Some("missing"),
+                id: ZERO,
+            },
+            Target {
+                name: None,
+                id: [9u8; 16],
+            },
+        ];
+        let mut results = Vec::new();
+        collect_metadata_topics(&catalog, false, &targets, &mut results)
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(results.len(), 4);
+        assert_eq!(results[0].name, Some("alpha"));
+        assert_eq!(results[0].error, 0);
+        assert_eq!(results[1].name, Some("beta"));
+        assert_eq!(results[1].error, 0);
+        assert_eq!(results[2].name, Some("missing"));
+        assert_eq!(results[2].error, 3);
+        assert_eq!(results[3].name, None);
+        assert_eq!(results[3].id, [9u8; 16]);
+        assert_eq!(results[3].error, 100);
+        let _ = std::fs::remove_file(&path);
+    }
 
     #[test]
     fn a_bracketed_advertised_host_is_sent_without_brackets() {
