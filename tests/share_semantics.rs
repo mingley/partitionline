@@ -1249,6 +1249,45 @@ async fn explicit_commit_async_then_commit_sync_fails_moved_leader() {
 }
 
 #[tokio::test]
+async fn explicit_leave_after_leader_change_sends_unmoved_acks() {
+    let mock = common::Mock::start_two_node().await;
+    v2(&mock);
+    mock.set_topic_partitions("t", 2);
+    mock.set_partition_leader("t", 0, 1);
+    mock.set_partition_leader("t", 1, 1);
+    produce(&mock, &[(0, b"keep-success"), (1, b"move-lock")]).await;
+    let mut group = ShareGroup::join(config(&mock), "close-leader", "t")
+        .await
+        .unwrap();
+    let acquired = group.poll().await.unwrap();
+    assert_eq!(acquired.len(), 2);
+    mock.set_partition_leader("t", 1, 2);
+    let _ = group.list_topics().await.unwrap();
+    group.accept(&acquired).await.unwrap();
+    let calls = mock.share_ack_calls();
+    let history_before = mock.share_ack_history();
+    group.leave().await.unwrap();
+    assert!(
+        mock.share_ack_calls() > calls,
+        "Java acknowledgeOnClose still sends the still-led partition"
+    );
+    let extra: Vec<(i32, i32)> = mock
+        .share_ack_history()
+        .into_iter()
+        .skip(history_before.len())
+        .collect();
+    assert!(
+        extra.iter().any(|(node, epoch)| *node == 1 && *epoch >= 0),
+        "still-led ACCEPT must go to the acquisition node, got {extra:?}"
+    );
+    assert!(mock.share_accepted("close-leader", "t", 0, 0));
+    assert!(
+        !mock.share_accepted("close-leader", "t", 1, 0),
+        "Java testLeadershipChangeAfterFetchBeforeCloseMove fails moved leftover acks with NOT_LEADER"
+    );
+}
+
+#[tokio::test]
 async fn implicit_commit_sync_returns_empty_optional() {
     let mock = common::Mock::start().await;
     produce(&mock, &[(0, b"first")]).await;

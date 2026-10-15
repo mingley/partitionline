@@ -3339,14 +3339,28 @@ impl ShareGroup {
 
     /// Java `close` / `ShareAcknowledgeOnCloseEvent`: flush queued
     /// acknowledgements (including a prior [`Self::commit_async`]) but
-    /// do not implicit-ACCEPT the last poll.
+    /// do not implicit-ACCEPT the last poll. Per-partition leader-change
+    /// failures complete locally (`NOT_LEADER_OR_FOLLOWER`) and close
+    /// still proceeds (Java
+    /// `testLeadershipChangeAfterFetchBeforeCloseMove`).
     async fn flush_close_acknowledgements(&mut self) -> Result<()> {
         if self.async_commit {
             self.snapshot_implicit_acknowledgements();
             self.async_commit = false;
         }
         self.last_poll_unacked.clear();
-        self.flush_pending_acknowledgements().await
+        if !self.has_pending_acknowledgements() {
+            return Ok(());
+        }
+        let (implicit, explicit) = self.take_pending_acknowledgements();
+        let typed = pending_typed(&implicit, &explicit);
+        match self.acknowledge_typed(&typed).await {
+            Ok(_) => Ok(()),
+            Err(error) => {
+                self.restore_pending_acknowledgements(implicit, explicit);
+                Err(error)
+            }
+        }
     }
 
     async fn flush_pending_acknowledgements(&mut self) -> Result<()> {
@@ -3933,7 +3947,11 @@ impl ShareGroup {
     /// (Java `testCloseWithSubscriptionChange`). When the last poll
     /// acquired partitions on more than one leader, close sends one
     /// ShareAcknowledge to each of those nodes (Java
-    /// `testShareFetchAndCloseMultipleNodes`).
+    /// `testShareFetchAndCloseMultipleNodes`). After a metadata leader
+    /// change, leftover acknowledgements whose acquisition node is no
+    /// longer the Metadata leader complete `NOT_LEADER_OR_FOLLOWER` and
+    /// close still sends the still-led partitions (Java
+    /// `testLeadershipChangeAfterFetchBeforeCloseMove`).
     pub async fn leave(mut self) -> Result<()> {
         if self.member_id.is_empty() {
             self.hb_stop.send(true).unwrap_or(());
