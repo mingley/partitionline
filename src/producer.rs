@@ -5142,45 +5142,72 @@ impl Worker {
         let version = self.conn.produce_version();
         let topic_ids: Vec<(Arc<str>, [u8; 16])> = if version >= 13 {
             let identities = {
-                let cluster = self.shared.cluster.lock();
-                let mut identities = Vec::new();
-                let mut missing = None;
-                for (topic, _, pendings) in &groups {
-                    if identities
-                        .iter()
-                        .any(|(name, _): &(Arc<str>, [u8; 16])| name.as_ref() == topic.as_ref())
-                    {
-                        continue;
-                    }
-                    let admitted_id = pendings
+                let shared_topic = groups.first().and_then(|(topic, _, _)| {
+                    let shared = groups.iter().all(|(name, _, _)| Arc::ptr_eq(name, topic));
+                    shared.then(|| Arc::clone(topic))
+                });
+                if let Some(topic) = shared_topic {
+                    let admitted_id = groups
                         .first()
-                        .and_then(|p| p.sticky)
+                        .and_then(|(_, _, pendings)| pendings.first())
+                        .and_then(|pending| pending.sticky)
                         .and_then(|tag| tag.identity);
-                    match admitted_id.or_else(|| {
-                        cluster
+                    let id = admitted_id.or_else(|| {
+                        self.shared
+                            .cluster
+                            .lock()
                             .topic_ids
                             .get(topic.as_ref())
                             .copied()
                             .filter(|id| *id != [0; 16])
-                    }) {
-                        Some(id) => {
-                            if identities.iter().any(|(_, previous)| *previous == id) {
-                                missing = Some(format!("{topic} (ambiguous UUID)"));
+                    });
+                    match id {
+                        Some(id) => Ok(vec![(topic, id)]),
+                        None => Err(Error::Unsupported(format!(
+                            "Produce v13 missing nonzero Metadata topic ID for {topic}"
+                        ))),
+                    }
+                } else {
+                    let cluster = self.shared.cluster.lock();
+                    let mut identities = Vec::new();
+                    let mut missing = None;
+                    for (topic, _, pendings) in &groups {
+                        if identities
+                            .iter()
+                            .any(|(name, _): &(Arc<str>, [u8; 16])| name.as_ref() == topic.as_ref())
+                        {
+                            continue;
+                        }
+                        let admitted_id = pendings
+                            .first()
+                            .and_then(|p| p.sticky)
+                            .and_then(|tag| tag.identity);
+                        match admitted_id.or_else(|| {
+                            cluster
+                                .topic_ids
+                                .get(topic.as_ref())
+                                .copied()
+                                .filter(|id| *id != [0; 16])
+                        }) {
+                            Some(id) => {
+                                if identities.iter().any(|(_, previous)| *previous == id) {
+                                    missing = Some(format!("{topic} (ambiguous UUID)"));
+                                    break;
+                                }
+                                identities.push((Arc::clone(topic), id));
+                            }
+                            None => {
+                                missing = Some(topic.to_string());
                                 break;
                             }
-                            identities.push((Arc::clone(topic), id));
-                        }
-                        None => {
-                            missing = Some(topic.to_string());
-                            break;
                         }
                     }
+                    missing.map_or(Ok(identities), |topic| {
+                        Err(Error::Unsupported(format!(
+                            "Produce v13 missing nonzero Metadata topic ID for {topic}"
+                        )))
+                    })
                 }
-                missing.map_or(Ok(identities), |topic| {
-                    Err(Error::Unsupported(format!(
-                        "Produce v13 missing nonzero Metadata topic ID for {topic}"
-                    )))
-                })
             };
             match identities {
                 Ok(ids) => ids,
@@ -6253,14 +6280,18 @@ fn encode_produce_body(
             continue;
         };
         if version >= 13 {
-            let id = topic_ids
-                .iter()
-                .find(|(name, _)| name.as_ref() == topic.as_ref())
-                .map(|(_, id)| id)
-                .filter(|id| **id != [0; 16])
-                .ok_or_else(|| {
-                    Error::Unsupported(format!("Produce v13 missing topic ID for {topic}"))
-                })?;
+            let id = if topic_ids.len() == 1 {
+                topic_ids.first().map(|(_, id)| id)
+            } else {
+                topic_ids
+                    .iter()
+                    .find(|(name, _)| name.as_ref() == topic.as_ref())
+                    .map(|(_, id)| id)
+            }
+            .filter(|id| **id != [0; 16])
+            .ok_or_else(|| {
+                Error::Unsupported(format!("Produce v13 missing topic ID for {topic}"))
+            })?;
             buf.extend_from_slice(id);
         } else {
             crate::protocol::buf::put_string(buf, flexible, Some(topic.as_ref()))?;
