@@ -1352,20 +1352,25 @@ fn process_inner(
     let mut writer = Writer::new(response_bound)?;
     let mut results = reserved(parsed.topics.len())?;
     let mut normalized = 0usize;
-    let mut topic_owner: HashMap<ProduceTopicKey, usize> = HashMap::new();
-    let mut topic_first = vec![false; parsed.topics.len()];
-    let mut topic_duplicated = vec![false; parsed.topics.len()];
-    for (index, topic) in parsed.topics.iter().enumerate() {
-        let key = produce_topic_key(version, topic, body);
-        if let Some(earlier) = topic_owner.get(&key).copied() {
-            if let Some(flag) = topic_duplicated.get_mut(earlier) {
-                *flag = true;
+    let lone_topic = parsed.topics.len() <= 1;
+    let mut topic_first = Vec::new();
+    let mut topic_duplicated = Vec::new();
+    if !lone_topic {
+        topic_first = vec![false; parsed.topics.len()];
+        topic_duplicated = vec![false; parsed.topics.len()];
+        let mut topic_owner: HashMap<ProduceTopicKey, usize> = HashMap::new();
+        for (index, topic) in parsed.topics.iter().enumerate() {
+            let key = produce_topic_key(version, topic, body);
+            if let Some(earlier) = topic_owner.get(&key).copied() {
+                if let Some(flag) = topic_duplicated.get_mut(earlier) {
+                    *flag = true;
+                }
+            } else {
+                if let Some(flag) = topic_first.get_mut(index) {
+                    *flag = true;
+                }
+                let _ = topic_owner.insert(key, index);
             }
-        } else {
-            if let Some(flag) = topic_first.get_mut(index) {
-                *flag = true;
-            }
-            let _ = topic_owner.insert(key, index);
         }
     }
     for (topic_position, topic) in parsed.topics.iter().enumerate() {
@@ -1376,34 +1381,41 @@ fn process_inner(
         } else {
             topic_name.and_then(|name| catalog.by_name(name))
         };
-        if !topic_first.get(topic_position).copied().unwrap_or(false) {
+        if !lone_topic && !topic_first.get(topic_position).copied().unwrap_or(false) {
             continue;
         }
-        let duplicate_topic = topic_duplicated
-            .get(topic_position)
-            .copied()
-            .unwrap_or(false);
+        let duplicate_topic = !lone_topic
+            && topic_duplicated
+                .get(topic_position)
+                .copied()
+                .unwrap_or(false);
         let mut parts = reserved(topic.partitions.len())?;
-        let mut part_owner: HashMap<i32, usize> = HashMap::new();
-        let mut part_first = vec![false; topic.partitions.len()];
-        let mut part_duplicated = vec![false; topic.partitions.len()];
-        for (position, part) in topic.partitions.iter().enumerate() {
-            if let Some(earlier) = part_owner.get(&part.index).copied() {
-                if let Some(flag) = part_duplicated.get_mut(earlier) {
-                    *flag = true;
+        let lone_part = topic.partitions.len() <= 1;
+        let mut part_first = Vec::new();
+        let mut part_duplicated = Vec::new();
+        if !lone_part {
+            part_first = vec![false; topic.partitions.len()];
+            part_duplicated = vec![false; topic.partitions.len()];
+            let mut part_owner: HashMap<i32, usize> = HashMap::new();
+            for (position, part) in topic.partitions.iter().enumerate() {
+                if let Some(earlier) = part_owner.get(&part.index).copied() {
+                    if let Some(flag) = part_duplicated.get_mut(earlier) {
+                        *flag = true;
+                    }
+                } else {
+                    if let Some(flag) = part_first.get_mut(position) {
+                        *flag = true;
+                    }
+                    let _ = part_owner.insert(part.index, position);
                 }
-            } else {
-                if let Some(flag) = part_first.get_mut(position) {
-                    *flag = true;
-                }
-                let _ = part_owner.insert(part.index, position);
             }
         }
         for (position, part) in topic.partitions.iter().enumerate() {
-            if !part_first.get(position).copied().unwrap_or(false) {
+            if !lone_part && !part_first.get(position).copied().unwrap_or(false) {
                 continue;
             }
-            let duplicate_part = part_duplicated.get(position).copied().unwrap_or(false);
+            let duplicate_part =
+                !lone_part && part_duplicated.get(position).copied().unwrap_or(false);
             let mut error = if !matches!(parsed.acks, -1..=1) {
                 21
             } else if parsed.timeout < 0 {
