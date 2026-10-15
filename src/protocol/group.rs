@@ -5070,14 +5070,20 @@ pub struct OffsetDeleteResponse;
 
 fn offset_delete_group_results(results: &[OffsetDeleteResult]) -> Vec<(String, Vec<(i32, i16)>)> {
     let mut groups: Vec<(String, Vec<(i32, i16)>)> = Vec::new();
-    for r in results {
-        if let Some(i) = groups.iter().position(|(topic, _)| topic == &r.topic) {
-            if let Some((_, parts)) = groups.get_mut(i) {
-                parts.push((r.partition, r.error_code));
+    let mut slots: HashMap<&str, usize> = HashMap::new();
+    for result in results {
+        if let Some(&slot) = slots.get(result.topic.as_str()) {
+            if let Some((_, parts)) = groups.get_mut(slot) {
+                parts.push((result.partition, result.error_code));
+                continue;
             }
-        } else {
-            groups.push((r.topic.clone(), vec![(r.partition, r.error_code)]));
         }
+        let slot = groups.len();
+        let _ = slots.insert(result.topic.as_str(), slot);
+        groups.push((
+            result.topic.clone(),
+            vec![(result.partition, result.error_code)],
+        ));
     }
     groups
 }
@@ -14692,6 +14698,28 @@ mod tests {
             cur.is_empty(),
             "OffsetDelete v0 Request.getErrorResponse leftover-empty; leftover {} bytes",
             cur.len()
+        );
+    }
+
+    #[test]
+    fn offset_delete_results_group_by_the_first_topic() {
+        let results = [
+            OffsetDeleteResult::new("orders", 1, 0),
+            OffsetDeleteResult::new("payments", 0, 3),
+            OffsetDeleteResult::new("orders", 0, 0),
+        ];
+        let groups = offset_delete_group_results(&results);
+        assert_eq!(
+            groups
+                .first()
+                .map(|(topic, parts)| (topic.as_str(), parts.as_slice())),
+            Some(("orders", &[(1, 0), (0, 0)][..]))
+        );
+        assert_eq!(
+            groups
+                .get(1)
+                .map(|(topic, parts)| (topic.as_str(), parts.as_slice())),
+            Some(("payments", &[(0, 3)][..]))
         );
     }
 
