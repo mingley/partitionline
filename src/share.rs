@@ -749,7 +749,9 @@ pub enum ShareAcquireMode {
 /// or partition is skipped (Java `lookupTopicId` /
 /// `testShareFetchInvalidResponse`). An unknown ShareFetch topic id
 /// on a piggyback response is skipped and does not fail a requested
-/// partition whose `AcknowledgeErrorCode` is none. A partition-level
+/// partition whose `AcknowledgeErrorCode` is none. A known cluster
+/// topic id that was not in this piggyback ShareFetch is skipped the
+/// same way and does not deliver those records. A partition-level
 /// ShareFetch error does not discard sibling partitions in the same
 /// response (Java `testMultipleTopicsFetch` / `testMultipleTopicsFetchError` /
 /// `ShareFetchCollector.collect`). Partition `NOT_LEADER_OR_FOLLOWER`
@@ -1581,7 +1583,8 @@ impl ShareGroup {
     /// `testFetchError`). A ShareFetch topic id that is
     /// not in this request — including a real cluster topic that is
     /// not subscribed — is skipped and does not fail poll (Java
-    /// `lookupTopicId` / `testShareFetchInvalidResponse`).
+    /// `lookupTopicId` / `testShareFetchInvalidResponse`), including
+    /// on a piggyback ShareFetch.
     pub async fn poll(&mut self) -> Result<ShareRecords> {
         if self.consumer.take_wakeup() {
             return Err(Error::Wakeup);

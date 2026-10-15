@@ -86,7 +86,9 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   a sibling partition that is present with `AcknowledgeErrorCode` none.
   An unknown ShareFetch topic id on a piggyback response is skipped
   (Java `lookupTopicId`) and does not fail a requested partition whose
-  `AcknowledgeErrorCode` is none.
+  `AcknowledgeErrorCode` is none. A known cluster topic id that was
+  not in this piggyback ShareFetch is skipped the same way and does
+  not deliver those records.
   ShareAcknowledge top-level `SHARE_SESSION_LIMIT_REACHED` completes
   without retry and advances the share session epoch (Java
   `handleResponse` `nextEpoch`), including when `ErrorMessage` is
