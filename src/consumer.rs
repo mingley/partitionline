@@ -1846,6 +1846,9 @@ pub struct Consumer {
     leader_epoch_ranges: HashMap<i32, (i16, i16)>,
     fetch_throttles: HashMap<i32, Instant>,
     fetch_sessions: HashMap<i32, BrokerFetchSession>,
+    /// Reused fetch grouping. Cleared and refilled each round so a stable
+    /// assignment does not allocate a new partition list.
+    fetch_plan: HashMap<i32, HashMap<Arc<str>, Vec<FetchPartition>>>,
     throttle_metrics: crate::metrics::ThrottleTracker,
     assigned: Vec<(Arc<str>, i32, i64)>,
     /// Positions in `assigned`. Cleared when membership changes.
@@ -2037,18 +2040,17 @@ fn remember_forgotten(
 }
 
 /// Fetch plan carried into session preparation without copying the topic name.
-#[derive(Clone)]
-struct PlannedFetch {
-    topic: Arc<str>,
+struct PlannedFetch<'a> {
+    topic: &'a Arc<str>,
     topic_id: [u8; 16],
-    partitions: Vec<FetchPartition>,
+    partitions: &'a [FetchPartition],
 }
 
-fn planned_fetch_topic(planned: PlannedFetch) -> FetchTopic {
+fn planned_fetch_topic(planned: &PlannedFetch<'_>) -> FetchTopic {
     FetchTopic {
         topic: planned.topic.as_ref().to_owned(),
         topic_id: planned.topic_id,
-        partitions: planned.partitions,
+        partitions: planned.partitions.to_vec(),
     }
 }
 
@@ -2099,12 +2101,12 @@ impl BrokerFetchSession {
         Ok(())
     }
 
-    fn prepare(&mut self, topics: Vec<PlannedFetch>, version: i16) -> SessionFetchRequest {
+    fn prepare(&mut self, topics: &[PlannedFetch<'_>], version: i16) -> SessionFetchRequest {
         if version < 7 {
             *self = Self::default();
             return SessionFetchRequest {
                 metadata: FetchMetadata::LEGACY,
-                topics: topics.into_iter().map(planned_fetch_topic).collect(),
+                topics: topics.iter().map(planned_fetch_topic).collect(),
                 forgotten: Vec::new(),
             };
         }
@@ -2125,11 +2127,11 @@ impl BrokerFetchSession {
         let stamp = self.stamp;
         let full = self.metadata.is_full();
         let mut replaced: Vec<(Arc<str>, [u8; 16], i32)> = Vec::new();
-        for topic in &topics {
+        for topic in topics {
             if !self.partitions.contains_key(topic.topic.as_ref()) {
                 let _ = self
                     .partitions
-                    .insert(Arc::clone(&topic.topic), SessionParts::new());
+                    .insert(Arc::clone(topic.topic), SessionParts::new());
             }
             if let Some(entry) = self.changed.get_mut(topic.topic.as_ref()) {
                 entry.0 = topic.topic_id;
@@ -2208,7 +2210,7 @@ impl BrokerFetchSession {
             }
         }
         let topics = if full {
-            topics.into_iter().map(planned_fetch_topic).collect()
+            topics.iter().map(planned_fetch_topic).collect()
         } else {
             self.changed
                 .drain()
@@ -2524,6 +2526,7 @@ impl Consumer {
             leader_epoch_ranges: HashMap::new(),
             fetch_throttles: HashMap::new(),
             fetch_sessions: HashMap::new(),
+            fetch_plan: HashMap::new(),
             throttle_metrics: crate::metrics::ThrottleTracker::default(),
             assigned: Vec::new(),
             cursor_index: None,
@@ -4544,8 +4547,12 @@ impl Consumer {
                     return self.fetched_or_timeout(out, error);
                 }
             }
-            let mut by_leader: HashMap<i32, HashMap<Arc<str>, Vec<FetchPartition>>> =
-                HashMap::new();
+            let mut by_leader = std::mem::take(&mut self.fetch_plan);
+            for topics in by_leader.values_mut() {
+                for parts in topics.values_mut() {
+                    parts.clear();
+                }
+            }
             let mut missing_leader = false;
             for (topic, part, offset) in &self.assigned {
                 if self.paused.contains(topic, *part) {
@@ -4587,17 +4594,26 @@ impl Consumer {
                     }
                 }
             }
+            by_leader.retain(|_, topics| {
+                topics.retain(|_, parts| !parts.is_empty());
+                !topics.is_empty()
+            });
             if missing_leader {
                 if Instant::now() >= deadline {
+                    self.fetch_plan = by_leader;
                     return if !out.is_empty() {
                         Ok(self.finish_fetch(out))
                     } else {
                         Err(Error::Timeout)
                     };
                 }
-                self.sleep_retry_backoff(attempt, deadline).await?;
+                if let Err(error) = self.sleep_retry_backoff(attempt, deadline).await {
+                    self.fetch_plan = by_leader;
+                    return Err(error);
+                }
                 attempt = attempt.saturating_add(1);
                 if Instant::now() >= deadline {
+                    self.fetch_plan = by_leader;
                     return if !out.is_empty() {
                         Ok(self.finish_fetch(out))
                     } else {
@@ -4619,8 +4635,10 @@ impl Consumer {
                     )
                     .await
                 {
+                    self.fetch_plan = by_leader;
                     return self.fetched_or_timeout(out, error);
                 }
+                self.fetch_plan = by_leader;
                 continue;
             }
             let retired = self
@@ -4629,9 +4647,15 @@ impl Consumer {
                 .filter(|node| !by_leader.contains_key(node) && !self.inflight_nodes.contains(node))
                 .copied()
                 .collect();
-            self.retire_fetch_sessions(retired, deadline.min(poll_deadline))
-                .await?;
+            if let Err(error) = self
+                .retire_fetch_sessions(retired, deadline.min(poll_deadline))
+                .await
+            {
+                self.fetch_plan = by_leader;
+                return Err(error);
+            }
             if by_leader.is_empty() {
+                self.fetch_plan = by_leader;
                 return Ok(self.finish_fetch(out));
             }
             if !self.fetch_throttles.is_empty() {
@@ -4650,12 +4674,15 @@ impl Consumer {
                     // Deliver previously accumulated work before waiting for
                     // any muted peer; no fetch/position advance for that peer.
                     if !out.is_empty() {
+                        self.fetch_plan = by_leader;
                         return Ok(self.finish_fetch(out));
                     }
                     if now >= deadline {
+                        self.fetch_plan = by_leader;
                         return Err(Error::Timeout);
                     }
                     if now >= poll_deadline {
+                        self.fetch_plan = by_leader;
                         return Ok(self.finish_fetch(out));
                     }
                     if let Some(until) = earliest {
@@ -4665,10 +4692,12 @@ impl Consumer {
                             biased;
                             result = rx.wait_for(|on| *on) => {
                                 drop(result);
+                                self.fetch_plan = by_leader;
                                 return Err(Error::Wakeup);
                             }
                             _ = tokio::time::sleep(wake.saturating_duration_since(now)) => {}
                         }
+                        self.fetch_plan = by_leader;
                         continue;
                     }
                 }
@@ -4676,7 +4705,11 @@ impl Consumer {
             let wait = max_wait_ms.min(duration_millis_i32(
                 poll_deadline.saturating_duration_since(Instant::now()),
             ));
-            let bodies = match self.fetch_from_leaders(by_leader, deadline, wait).await {
+            let fetched = self
+                .fetch_from_leaders(&mut by_leader, deadline, wait)
+                .await;
+            self.fetch_plan = by_leader;
+            let bodies = match fetched {
                 Ok(bodies) => bodies,
                 // Dialing or waiting out the deadline must not roll back records
                 // this poll already took from an earlier leader.
@@ -4902,7 +4935,7 @@ impl Consumer {
 
     async fn fetch_from_leaders(
         &mut self,
-        by_leader: HashMap<i32, HashMap<Arc<str>, Vec<FetchPartition>>>,
+        by_leader: &mut HashMap<i32, HashMap<Arc<str>, Vec<FetchPartition>>>,
         deadline: Instant,
         max_wait: i32,
     ) -> Result<Vec<FetchReply>> {
@@ -4926,7 +4959,7 @@ impl Consumer {
 
     async fn fetch_from_leaders_io(
         &mut self,
-        mut by_leader: HashMap<i32, HashMap<Arc<str>, Vec<FetchPartition>>>,
+        by_leader: &mut HashMap<i32, HashMap<Arc<str>, Vec<FetchPartition>>>,
         deadline: Instant,
         max_wait: i32,
     ) -> Result<Vec<FetchReply>> {
@@ -4982,7 +5015,7 @@ impl Consumer {
         let mut connected = Vec::new();
         if collect_parallel {
             connected = match self
-                .connect_parallel_fetch_nodes(queue, &mut by_leader, deadline)
+                .connect_parallel_fetch_nodes(queue, by_leader, deadline)
                 .await
             {
                 Ok(nodes) => nodes,
@@ -5002,7 +5035,7 @@ impl Consumer {
                     break;
                 }
                 let preferred_only =
-                    is_preferred_only_target(&self.preferred, &self.cluster, node, &by_leader);
+                    is_preferred_only_target(&self.preferred, &self.cluster, node, by_leader);
                 let connected_ok = if preferred_only {
                     match self.connect_preferred_once(node, deadline).await {
                         Ok(()) => true,
@@ -5011,7 +5044,7 @@ impl Consumer {
                                 &mut self.preferred,
                                 &self.cluster,
                                 node,
-                                &mut by_leader,
+                                by_leader,
                             ) {
                                 if matches!(error, Error::Timeout) {
                                     return self.ready_fetches_or_timeout();
@@ -5067,7 +5100,7 @@ impl Consumer {
                     return self.ready_fetches_or_timeout();
                 }
                 let max_wait = max_wait.min(duration_millis_i32(timeout));
-                let Some(by_topic) = by_leader.remove(&node) else {
+                let Some(by_topic) = by_leader.get(&node) else {
                     continue;
                 };
                 let topics = fetch_topics(by_topic, &name_ids, &self.name_to_id);
@@ -5105,7 +5138,7 @@ impl Consumer {
                         .fetch_sessions
                         .entry(node)
                         .or_default()
-                        .prepare(topics, fetch_version);
+                        .prepare(&topics, fetch_version);
                     let encode = |buf: &mut bytes::BytesMut| {
                         encode_fetch_request_with_forgotten(
                             buf,
@@ -5150,7 +5183,7 @@ impl Consumer {
             if inflight.pending.contains(&node) {
                 continue;
             }
-            let Some(by_topic) = by_leader.remove(&node) else {
+            let Some(by_topic) = by_leader.get(&node) else {
                 continue;
             };
             let topics = fetch_topics(by_topic, &name_ids, &self.name_to_id);
@@ -5175,7 +5208,7 @@ impl Consumer {
                 .fetch_sessions
                 .entry(node)
                 .or_default()
-                .prepare(topics, fetch_version);
+                .prepare(&topics, fetch_version);
             let rack = rack.clone();
             let _ = inflight.pending.insert(node);
             let Some(set) = inflight.set.as_mut() else {
@@ -6752,13 +6785,13 @@ fn is_abort_marker(batch: &crate::protocol::records::RecordBatch) -> bool {
         })
 }
 
-fn fetch_topics(
-    by_topic: HashMap<Arc<str>, Vec<FetchPartition>>,
+fn fetch_topics<'a>(
+    by_topic: &'a HashMap<Arc<str>, Vec<FetchPartition>>,
     overrides: &HashMap<Arc<str>, [u8; 16]>,
     known_ids: &HashMap<String, [u8; 16]>,
-) -> Vec<PlannedFetch> {
+) -> Vec<PlannedFetch<'a>> {
     by_topic
-        .into_iter()
+        .iter()
         .map(|(topic, partitions)| PlannedFetch {
             topic_id: overrides
                 .get(topic.as_ref())
@@ -7384,8 +7417,34 @@ pub(crate) fn partition_infos_from(
 mod tests {
     use super::*;
 
-    fn session_topic(id: [u8; 16], offset: i64) -> PlannedFetch {
-        PlannedFetch {
+    struct OwnedPlan {
+        topic: Arc<str>,
+        topic_id: [u8; 16],
+        partitions: Vec<FetchPartition>,
+    }
+
+    impl OwnedPlan {
+        fn as_plan(&self) -> PlannedFetch<'_> {
+            PlannedFetch {
+                topic: &self.topic,
+                topic_id: self.topic_id,
+                partitions: &self.partitions,
+            }
+        }
+    }
+
+    fn prepare_topic(
+        session: &mut BrokerFetchSession,
+        id: [u8; 16],
+        offset: i64,
+        version: i16,
+    ) -> SessionFetchRequest {
+        let topic = session_topic(id, offset);
+        session.prepare(&[topic.as_plan()], version)
+    }
+
+    fn session_topic(id: [u8; 16], offset: i64) -> OwnedPlan {
+        OwnedPlan {
             topic: Arc::from("t"),
             topic_id: id,
             partitions: vec![FetchPartition {
@@ -7408,28 +7467,28 @@ mod tests {
         let _ = known.insert("orders".to_owned(), [1; 16]);
         let mut planned = HashMap::new();
         let _ = planned.insert(Arc::clone(&topic), partitions.clone());
-        let resolved = fetch_topics(planned, &HashMap::new(), &known);
+        let resolved = fetch_topics(&planned, &HashMap::new(), &known);
         assert_eq!(resolved.first().map(|topic| topic.topic_id), Some([1; 16]));
 
         let mut overrides = HashMap::new();
         let _ = overrides.insert(Arc::clone(&topic), [2; 16]);
         let mut planned = HashMap::new();
         let _ = planned.insert(Arc::clone(&topic), partitions.clone());
-        let resolved = fetch_topics(planned, &overrides, &known);
+        let resolved = fetch_topics(&planned, &overrides, &known);
         assert_eq!(resolved.first().map(|topic| topic.topic_id), Some([2; 16]));
 
         let mut zeros = HashMap::new();
         let _ = zeros.insert("orders".to_owned(), [0; 16]);
         let mut planned = HashMap::new();
         let _ = planned.insert(topic, partitions);
-        let resolved = fetch_topics(planned, &HashMap::new(), &zeros);
+        let resolved = fetch_topics(&planned, &HashMap::new(), &zeros);
         assert_eq!(resolved.first().map(|topic| topic.topic_id), Some([0; 16]));
     }
 
     #[test]
     fn fetch_session_reuses_the_topic_name() {
         let mut session = BrokerFetchSession::default();
-        let _ = session.prepare(vec![session_topic([1; 16], 0)], 7);
+        let _ = prepare_topic(&mut session, [1; 16], 0, 7);
         let first = Arc::clone(
             session
                 .partitions
@@ -7437,7 +7496,7 @@ mod tests {
                 .map(|(name, _)| name)
                 .unwrap(),
         );
-        let _ = session.prepare(vec![session_topic([1; 16], 4)], 7);
+        let _ = prepare_topic(&mut session, [1; 16], 4, 7);
         let second = session
             .partitions
             .get_key_value("t")
@@ -7846,14 +7905,14 @@ mod tests {
     fn fetch_session_abandoned_request_requires_full_map_and_closes_known_session() {
         let topic = session_topic([1; 16], 0);
         let mut session = BrokerFetchSession::default();
-        let first = session.prepare(vec![topic.clone()], 17);
+        let first = session.prepare(&[topic.as_plan()], 17);
         assert_eq!(first.metadata, FetchMetadata::INITIAL);
         session.response(&session_header(0, 91), 17).unwrap();
-        let second = session.prepare(vec![topic.clone()], 17);
+        let second = session.prepare(&[topic.as_plan()], 17);
         assert_eq!(second.metadata, FetchMetadata::new(91, 1));
         assert!(second.topics.is_empty());
         // No response was observed; an outer future may have been canceled.
-        let third = session.prepare(vec![topic], 17);
+        let third = session.prepare(&[topic.as_plan()], 17);
         assert_eq!(third.metadata, FetchMetadata::new(91, 0));
         assert_eq!(third.topics.len(), 1);
         assert!(third.forgotten.is_empty());
@@ -7862,9 +7921,9 @@ mod tests {
     #[test]
     fn fetch_session_topic_id_replacement_forgets_old_identity() {
         let mut session = BrokerFetchSession::default();
-        let _ = session.prepare(vec![session_topic([1; 16], 0)], 17);
+        let _ = prepare_topic(&mut session, [1; 16], 0, 17);
         session.response(&session_header(0, 91), 17).unwrap();
-        let request = session.prepare(vec![session_topic([2; 16], 0)], 17);
+        let request = prepare_topic(&mut session, [2; 16], 0, 17);
         assert_eq!(request.topics[0].topic_id, [2; 16]);
         assert_eq!(request.forgotten[0].topic_id, [1; 16]);
         assert_eq!(request.forgotten[0].partitions, [0]);
@@ -7878,13 +7937,13 @@ mod tests {
             error::FETCH_SESSION_TOPIC_ID_ERROR,
         ] {
             let mut session = BrokerFetchSession::default();
-            let _ = session.prepare(vec![session_topic([1; 16], 0)], 17);
+            let _ = prepare_topic(&mut session, [1; 16], 0, 17);
             session.response(&session_header(0, 91), 17).unwrap();
-            let _ = session.prepare(vec![session_topic([1; 16], 0)], 17);
+            let _ = prepare_topic(&mut session, [1; 16], 0, 17);
             assert!(
                 matches!(session.response(&session_header(code, 0), 17), Err(Error::Broker { code: got, .. }) if got == code)
             );
-            let request = session.prepare(vec![session_topic([1; 16], 0)], 17);
+            let request = prepare_topic(&mut session, [1; 16], 0, 17);
             assert!(request.metadata.is_full());
             assert_eq!(request.topics.len(), 1);
             if code == error::FETCH_SESSION_ID_NOT_FOUND {
@@ -7894,10 +7953,9 @@ mod tests {
             }
         }
         let mut session = BrokerFetchSession::default();
-        let _ = session.prepare(vec![session_topic([1; 16], 0)], 17);
+        let _ = prepare_topic(&mut session, [1; 16], 0, 17);
         assert!(session.response(&Bytes::from_static(&[0; 6]), 17).is_err());
-        assert!(session
-            .prepare(vec![session_topic([1; 16], 0)], 17)
+        assert!(prepare_topic(&mut session, [1; 16], 0, 17)
             .metadata
             .is_full());
     }
@@ -7905,24 +7963,18 @@ mod tests {
     #[test]
     fn fetch_session_decline_version_change_and_epoch_wrap() {
         let mut session = BrokerFetchSession::default();
-        let _ = session.prepare(vec![session_topic([1; 16], 0)], 17);
+        let _ = prepare_topic(&mut session, [1; 16], 0, 17);
         session.response(&session_header(0, 0), 17).unwrap();
-        assert_eq!(
-            session
-                .prepare(vec![session_topic([1; 16], 0)], 17)
-                .topics
-                .len(),
-            1
-        );
+        assert_eq!(prepare_topic(&mut session, [1; 16], 0, 17).topics.len(), 1);
         session.response(&session_header(0, 91), 17).unwrap();
         session.metadata = FetchMetadata::new(91, i32::MAX);
-        let _ = session.prepare(vec![session_topic([1; 16], 0)], 17);
+        let _ = prepare_topic(&mut session, [1; 16], 0, 17);
         session.response(&session_header(0, 91), 17).unwrap();
         assert_eq!(session.metadata, FetchMetadata::new(91, 1));
-        let changed = session.prepare(vec![session_topic([1; 16], 0)], 12);
+        let changed = prepare_topic(&mut session, [1; 16], 0, 12);
         assert!(changed.metadata.is_full());
         assert_eq!(changed.topics.len(), 1);
-        let legacy = session.prepare(vec![session_topic([1; 16], 0)], 6);
+        let legacy = prepare_topic(&mut session, [1; 16], 0, 6);
         assert_eq!(legacy.metadata, FetchMetadata::LEGACY);
         assert_eq!(legacy.topics.len(), 1);
         assert!(session.partitions.is_empty());
