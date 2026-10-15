@@ -7183,7 +7183,7 @@ impl Admin {
             for node in nodes {
                 let idxs = by_node.get(&node).cloned().unwrap_or_default();
                 match self
-                    .describe_transactions_on_node(node, &ids, &idxs, version, timeout)
+                    .describe_transactions_on_node(node, &ids, &idxs, version, deadline)
                     .await
                 {
                     Ok(done) => {
@@ -8331,7 +8331,7 @@ impl Admin {
             for node in nodes {
                 let idxs = by_node.remove(&node).unwrap_or_default();
                 match self
-                    .delete_records_on_node(node, version, timeout_ms, &records, &idxs, timeout)
+                    .delete_records_on_node(node, version, timeout_ms, &records, &idxs, deadline)
                     .await
                 {
                     Ok((done, retry)) => {
@@ -8390,11 +8390,14 @@ impl Admin {
         timeout_ms: i32,
         records: &[(crate::TopicPartition, i64)],
         idxs: &[usize],
-        timeout: Duration,
+        deadline: Instant,
     ) -> Result<(Vec<(usize, i64, i16)>, Vec<usize>)> {
         let topics = delete_records_topics(records, idxs);
-        self.connect_node_until(node, Instant::now() + timeout)
-            .await?;
+        self.connect_node_until(node, deadline).await?;
+        let timeout = deadline.saturating_duration_since(Instant::now());
+        if timeout.is_zero() {
+            return Err(Error::Timeout);
+        }
         let body = {
             let conn = self
                 .conns
@@ -8942,7 +8945,7 @@ impl Admin {
                         version,
                         &partitions,
                         &idxs,
-                        timeout,
+                        deadline,
                         pin_broker,
                     )
                     .await
@@ -9007,12 +9010,15 @@ impl Admin {
         version: i16,
         partitions: &[crate::TopicPartition],
         idxs: &[usize],
-        timeout: Duration,
+        deadline: Instant,
         pin_broker: bool,
     ) -> Result<DescribeProducersNodeOutcome> {
         let topics = describe_producers_topics(partitions, idxs);
-        self.connect_node_until(node, Instant::now() + timeout)
-            .await?;
+        self.connect_node_until(node, deadline).await?;
+        let timeout = deadline.saturating_duration_since(Instant::now());
+        if timeout.is_zero() {
+            return Err(Error::Timeout);
+        }
         let body = {
             let conn = self
                 .conns
@@ -10088,7 +10094,7 @@ impl Admin {
                         &ids,
                         &idxs,
                         include_authorized_operations,
-                        timeout,
+                        deadline,
                     )
                     .await
                 {
@@ -10191,7 +10197,7 @@ impl Admin {
                         &ids,
                         &idxs,
                         include_authorized_operations,
-                        timeout,
+                        deadline,
                     )
                     .await
                 {
@@ -10593,7 +10599,7 @@ impl Admin {
             for node in nodes {
                 let idxs = by_node.get(&node).cloned().unwrap_or_default();
                 match self
-                    .delete_groups_on_node(node, version, &ids, &idxs, timeout)
+                    .delete_groups_on_node(node, version, &ids, &idxs, deadline)
                     .await
                 {
                     Ok(done) => {
@@ -11033,7 +11039,7 @@ impl Admin {
                         &ids,
                         &idxs,
                         include_authorized_operations,
-                        timeout,
+                        deadline,
                     )
                     .await
                 {
@@ -11205,13 +11211,7 @@ impl Admin {
             for node in nodes {
                 let idxs = by_node.get(&node).cloned().unwrap_or_default();
                 match self
-                    .describe_share_group_offsets_on_node(
-                        node,
-                        version,
-                        groups,
-                        &idxs,
-                        deadline.saturating_duration_since(Instant::now()),
-                    )
+                    .describe_share_group_offsets_on_node(node, version, groups, &idxs, deadline)
                     .await
                 {
                     Ok(done) => {
@@ -12955,11 +12955,11 @@ impl Admin {
         ids: &[String],
         idxs: &[usize],
         include_authorized_operations: bool,
-        timeout: Duration,
+        deadline: Instant,
     ) -> Result<Vec<(usize, DescribedGroup)>> {
         let subset: Vec<String> = idxs.iter().filter_map(|&i| ids.get(i).cloned()).collect();
-        self.connect_node_until(node, Instant::now() + timeout)
-            .await?;
+        self.connect_node_until(node, deadline).await?;
+        let timeout = startup_remaining(deadline)?;
         let body = {
             let conn = self
                 .conns
@@ -13005,11 +13005,11 @@ impl Admin {
         version: i16,
         ids: &[String],
         idxs: &[usize],
-        timeout: Duration,
+        deadline: Instant,
     ) -> Result<Vec<(usize, DeletableGroupResult)>> {
         let subset: Vec<String> = idxs.iter().filter_map(|&i| ids.get(i).cloned()).collect();
-        self.connect_node_until(node, Instant::now() + timeout)
-            .await?;
+        self.connect_node_until(node, deadline).await?;
+        let timeout = startup_remaining(deadline)?;
         let body = {
             let conn = self
                 .conns
@@ -13049,11 +13049,11 @@ impl Admin {
         ids: &[String],
         idxs: &[usize],
         include_authorized_operations: bool,
-        timeout: Duration,
+        deadline: Instant,
     ) -> Result<Vec<(usize, DescribedConsumerGroup)>> {
         let subset: Vec<String> = idxs.iter().filter_map(|&i| ids.get(i).cloned()).collect();
-        self.connect_node_until(node, Instant::now() + timeout)
-            .await?;
+        self.connect_node_until(node, deadline).await?;
+        let timeout = startup_remaining(deadline)?;
         let body = {
             let conn = self
                 .conns
@@ -13100,11 +13100,11 @@ impl Admin {
         ids: &[String],
         idxs: &[usize],
         include_authorized_operations: bool,
-        timeout: Duration,
+        deadline: Instant,
     ) -> Result<Vec<(usize, DescribedShareGroup)>> {
         let subset: Vec<String> = idxs.iter().filter_map(|&i| ids.get(i).cloned()).collect();
-        self.connect_node_until(node, Instant::now() + timeout)
-            .await?;
+        self.connect_node_until(node, deadline).await?;
+        let timeout = startup_remaining(deadline)?;
         let body = {
             let conn = self
                 .conns
@@ -13150,14 +13150,14 @@ impl Admin {
         version: i16,
         groups: &[DescribeShareGroupOffsetsGroup],
         idxs: &[usize],
-        timeout: Duration,
+        deadline: Instant,
     ) -> Result<Vec<(usize, DescribedShareGroupOffsetsWithLag)>> {
         let subset: Vec<DescribeShareGroupOffsetsGroup> = idxs
             .iter()
             .filter_map(|&i| groups.get(i).cloned())
             .collect();
-        self.connect_node_until(node, Instant::now() + timeout)
-            .await?;
+        self.connect_node_until(node, deadline).await?;
+        let timeout = startup_remaining(deadline)?;
         let body = {
             let conn = self
                 .conns
@@ -13207,11 +13207,11 @@ impl Admin {
         ids: &[String],
         idxs: &[usize],
         version: i16,
-        timeout: Duration,
+        deadline: Instant,
     ) -> Result<Vec<(usize, TransactionState)>> {
         let subset: Vec<String> = idxs.iter().filter_map(|&i| ids.get(i).cloned()).collect();
-        self.connect_node_until(node, Instant::now() + timeout)
-            .await?;
+        self.connect_node_until(node, deadline).await?;
+        let timeout = startup_remaining(deadline)?;
         let body = {
             let conn = self
                 .conns
