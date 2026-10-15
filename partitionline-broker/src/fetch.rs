@@ -414,6 +414,30 @@ fn name_repeats<'a>(names: impl IntoIterator<Item = &'a str>, name: &str) -> boo
     false
 }
 
+fn parts_increase(parts: &[Part]) -> bool {
+    let mut previous = None;
+    for part in parts {
+        if previous.is_some_and(|earlier| part.index <= earlier) {
+            return false;
+        }
+        previous = Some(part.index);
+    }
+    true
+}
+
+fn index_repeats(parts: &[Part], index: i32) -> bool {
+    let mut seen = false;
+    for part in parts {
+        if part.index == index {
+            if seen {
+                return true;
+            }
+            seen = true;
+        }
+    }
+    false
+}
+
 fn repeated_partition_indexes(parts: &[Part]) -> HashSet<i32> {
     if parts.len() < 2 {
         return HashSet::new();
@@ -588,6 +612,11 @@ mod tests {
         let later = super::repeated_partition_indexes(&[part(1), part(0), part(1)]);
         assert!(later.contains(&1));
         assert!(!later.contains(&0));
+        assert!(!super::index_repeats(&[part(1), part(0)], 1));
+        assert!(super::index_repeats(&[part(1), part(0), part(1)], 1));
+        assert!(!super::index_repeats(&[part(1), part(0), part(1)], 0));
+        assert!(super::parts_increase(&[part(0), part(2)]));
+        assert!(!super::parts_increase(&[part(2), part(0)]));
     }
 
     #[test]
@@ -751,21 +780,23 @@ pub(crate) fn process(
         } else {
             catalog.by_name(topic.name)
         };
-        let repeated_partitions = if key == 2 {
+        let short_parts = key != 2 && topic.parts.len() <= 16;
+        let increasing = short_parts && parts_increase(&topic.parts);
+        let repeated_partitions = if key == 2 || short_parts {
             HashSet::new()
         } else {
             repeated_partition_indexes(&topic.parts)
         };
         for part in &topic.parts {
             active()?;
-            let target = selected(
-                named,
-                part,
-                repeated_partitions.contains(&part.index),
-                sole_topic,
-                invalid,
-                key,
-            );
+            let repeated = if key == 2 || increasing {
+                false
+            } else if short_parts {
+                index_repeats(&topic.parts, part.index)
+            } else {
+                repeated_partitions.contains(&part.index)
+            };
+            let target = selected(named, part, repeated, sole_topic, invalid, key);
             let (id, position, log_start, watermark, error) = match target {
                 Err(error) => (None, None, -1, -1, error),
                 Ok(target) => match store.open_bounds(target.id(), part.index) {

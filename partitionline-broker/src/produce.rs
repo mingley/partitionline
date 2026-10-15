@@ -867,6 +867,24 @@ enum ProduceTopicKey<'a> {
     Name(Option<&'a [u8]>),
 }
 
+fn partition_copy_state(parts: &[Part], index: usize) -> (bool, bool) {
+    let Some(part) = parts.get(index) else {
+        return (false, false);
+    };
+    let mut first = true;
+    let mut duplicated = false;
+    for (other_at, other) in parts.iter().enumerate() {
+        if other_at == index || other.index != part.index {
+            continue;
+        }
+        duplicated = true;
+        if other_at < index {
+            first = false;
+        }
+    }
+    (first, duplicated)
+}
+
 fn strictly_increasing_indexes(parts: &[Part]) -> bool {
     let mut previous = None;
     for part in parts {
@@ -1510,9 +1528,10 @@ fn process_inner(
         let mut parts = reserved(topic.partitions.len())?;
         // Strictly increasing indexes cannot repeat, including a single partition.
         let unique_parts = strictly_increasing_indexes(&topic.partitions);
+        let scan_parts = !unique_parts && topic.partitions.len() <= 16;
         let mut part_first = Vec::new();
         let mut part_duplicated = Vec::new();
-        if !unique_parts {
+        if !unique_parts && !scan_parts {
             part_first = vec![false; topic.partitions.len()];
             part_duplicated = vec![false; topic.partitions.len()];
             let mut part_owner: HashMap<i32, usize> = HashMap::new();
@@ -1530,11 +1549,19 @@ fn process_inner(
             }
         }
         for (position, part) in topic.partitions.iter().enumerate() {
-            if !unique_parts && !part_first.get(position).copied().unwrap_or(false) {
+            let (is_part_first, duplicate_part) = if unique_parts {
+                (true, false)
+            } else if scan_parts {
+                partition_copy_state(&topic.partitions, position)
+            } else {
+                (
+                    part_first.get(position).copied().unwrap_or(false),
+                    part_duplicated.get(position).copied().unwrap_or(false),
+                )
+            };
+            if !is_part_first {
                 continue;
             }
-            let duplicate_part =
-                !unique_parts && part_duplicated.get(position).copied().unwrap_or(false);
             let mut error = if !matches!(parsed.acks, -1..=1) {
                 21
             } else if parsed.timeout < 0 {
@@ -1928,6 +1955,10 @@ mod tests {
         assert!(!strictly_increasing_indexes(&[part(1), part(1)]));
         assert!(!strictly_increasing_indexes(&[part(1), part(0)]));
         assert!(!strictly_increasing_indexes(&[part(0), part(2), part(2)]));
+        let mixed = [part(1), part(0), part(1)];
+        assert_eq!(partition_copy_state(&mixed, 0), (true, true));
+        assert_eq!(partition_copy_state(&mixed, 1), (true, false));
+        assert_eq!(partition_copy_state(&mixed, 2), (false, true));
     }
 
     #[test]
