@@ -4502,6 +4502,30 @@ impl AckIndex {
     fn fill(&mut self, groups: &[(Arc<str>, i32, Vec<Pending>)]) {
         self.generation = self.generation.wrapping_add(1);
         let generation = self.generation;
+        let one_topic = groups.first().is_some_and(|(topic, _, _)| {
+            groups.iter().all(|(name, _, _)| Arc::ptr_eq(name, topic))
+        });
+        if one_topic {
+            let Some(topic) = groups.first().map(|(topic, _, _)| Arc::clone(topic)) else {
+                return;
+            };
+            if !self.topics.contains_key(topic.as_ref()) {
+                let _ = self.topics.insert(Arc::clone(&topic), HashMap::new());
+            }
+            let Some(parts) = self.topics.get_mut(topic.as_ref()) else {
+                return;
+            };
+            for (slot, (_, part, _)) in groups.iter().enumerate() {
+                match parts.get_mut(part) {
+                    Some(entry) if entry.1 == generation => {}
+                    Some(entry) => *entry = (slot, generation),
+                    None => {
+                        let _ = parts.insert(*part, (slot, generation));
+                    }
+                }
+            }
+            return;
+        }
         for (slot, (topic, part, _)) in groups.iter().enumerate() {
             if let Some(parts) = self.topics.get_mut(topic.as_ref()) {
                 match parts.get_mut(part) {
@@ -5460,25 +5484,46 @@ impl Worker {
                     let inf = guard.inf.as_ref().ok_or_else(|| {
                         Error::protocol("missing Produce request identity snapshot")
                     })?;
-                    let mut seen = HashSet::new();
-                    for ack in &acks {
-                        let name = inf
-                            .topic_ids
-                            .iter()
-                            .find(|(_, sent)| *sent == ack.topic_id && ack.topic_id != [0; 16])
-                            .map(|(name, _)| name.as_ref())
-                            .ok_or_else(|| {
-                                Error::protocol(
-                                    "Produce v13 response UUID is absent from sent snapshot",
-                                )
-                            })?;
-                        if !inf.groups.iter().any(|(topic, index, _)| {
-                            topic.as_ref() == name && *index == ack.partition
-                        }) || !seen.insert((name, ack.partition))
-                        {
-                            return Err(Error::protocol(
-                                "Produce v13 unsolicited or duplicate partition response",
-                            ));
+                    let absent = || {
+                        Error::protocol("Produce v13 response UUID is absent from sent snapshot")
+                    };
+                    let unsolicited = || {
+                        Error::protocol("Produce v13 unsolicited or duplicate partition response")
+                    };
+                    if let Some((name, sent)) =
+                        inf.topic_ids.first().filter(|_| inf.topic_ids.len() == 1)
+                    {
+                        let mut requested = HashSet::new();
+                        for (topic, index, _) in &inf.groups {
+                            if Arc::ptr_eq(topic, name) || topic.as_ref() == name.as_ref() {
+                                let _ = requested.insert(*index);
+                            }
+                        }
+                        let mut seen = HashSet::new();
+                        for ack in &acks {
+                            if *sent == [0; 16] || ack.topic_id == [0; 16] || ack.topic_id != *sent
+                            {
+                                return Err(absent());
+                            }
+                            if !requested.contains(&ack.partition) || !seen.insert(ack.partition) {
+                                return Err(unsolicited());
+                            }
+                        }
+                    } else {
+                        let mut seen = HashSet::new();
+                        for ack in &acks {
+                            let name = inf
+                                .topic_ids
+                                .iter()
+                                .find(|(_, id)| *id == ack.topic_id && ack.topic_id != [0; 16])
+                                .map(|(name, _)| name.as_ref())
+                                .ok_or_else(absent)?;
+                            if !inf.groups.iter().any(|(topic, index, _)| {
+                                topic.as_ref() == name && *index == ack.partition
+                            }) || !seen.insert((name, ack.partition))
+                            {
+                                return Err(unsolicited());
+                            }
                         }
                     }
                 }
@@ -5509,10 +5554,16 @@ impl Worker {
         slots.resize_with(inf.groups.len(), || None);
         for (ack_at, ack) in responses.iter().enumerate() {
             let topic = if version >= 13 {
-                inf.topic_ids
-                    .iter()
-                    .find(|(_, sent)| *sent == ack.topic_id && ack.topic_id != [0; 16])
-                    .map(|(name, _)| name.as_ref())
+                if inf.topic_ids.len() == 1 {
+                    inf.topic_ids.first().and_then(|(name, sent)| {
+                        (*sent == ack.topic_id && ack.topic_id != [0; 16]).then_some(name.as_ref())
+                    })
+                } else {
+                    inf.topic_ids
+                        .iter()
+                        .find(|(_, sent)| *sent == ack.topic_id && ack.topic_id != [0; 16])
+                        .map(|(name, _)| name.as_ref())
+                }
             } else {
                 std::str::from_utf8(&ack.topic).ok()
             };
