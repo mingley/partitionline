@@ -3248,6 +3248,7 @@ async fn share_fetch_unknown_leader_epoch_delivers_sibling() {
     mock.set_topic_partitions("t", 2);
     mock.set_partition_leader("t", 0, 1);
     mock.set_partition_leader("t", 1, 1);
+    produce(&mock, &[(1, b"later")]).await;
     let mut group = ShareGroup::join(config(&mock), "unk-epoch-sib", "t")
         .await
         .unwrap();
@@ -3266,7 +3267,6 @@ async fn share_fetch_unknown_leader_epoch_delivers_sibling() {
     assert_eq!(first[0].value.as_deref(), Some(&b"keep"[..]));
     group.accept(&first).await.unwrap();
     let after_skip = mock.metadata_calls();
-    produce(&mock, &[(1, b"later")]).await;
     let second = group.poll().await.unwrap();
     assert_eq!(second.len(), 1);
     assert_eq!(second[0].partition, 1);
