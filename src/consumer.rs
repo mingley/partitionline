@@ -1827,6 +1827,8 @@ impl PendingRecords {
 #[derive(Default)]
 struct AbortedIntervals {
     pending: BinaryHeap<std::cmp::Reverse<(i64, i64)>>,
+    /// `(first offset, producer id)` already waiting in `pending`.
+    pending_keys: HashSet<(i64, i64)>,
     active: HashMap<i64, i64>,
     completed: HashSet<(i64, i64)>,
 }
@@ -1834,10 +1836,10 @@ struct AbortedIntervals {
 impl AbortedIntervals {
     fn extend(&mut self, intervals: &[(i64, i64)]) {
         for &(pid, first) in intervals {
-            if !self.completed.contains(&(pid, first))
-                && self.active.get(&pid) != Some(&first)
-                && !self.pending.iter().any(|entry| entry.0 == (first, pid))
-            {
+            if self.completed.contains(&(pid, first)) || self.active.get(&pid) == Some(&first) {
+                continue;
+            }
+            if self.pending_keys.insert((first, pid)) {
                 self.pending.push(std::cmp::Reverse((first, pid)));
             }
         }
@@ -1849,6 +1851,7 @@ impl AbortedIntervals {
                 break;
             }
             let _pending = self.pending.pop();
+            let _removed = self.pending_keys.remove(&(first, pid));
             let _previous = self.active.insert(pid, first);
         }
     }
@@ -8011,6 +8014,26 @@ pub(crate) fn partition_infos_from(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn an_aborted_interval_is_remembered_once() {
+        let mut intervals = AbortedIntervals::default();
+        intervals.extend(&[(7, 1), (7, 1), (8, 4)]);
+        assert_eq!(intervals.pending.len(), 2);
+        assert_eq!(intervals.pending_keys.len(), 2);
+        intervals.advance(1);
+        assert!(intervals.pending_keys.contains(&(4, 8)));
+        assert!(!intervals.pending_keys.contains(&(1, 7)));
+        assert_eq!(intervals.active.get(&7), Some(&1));
+        intervals.extend(&[(7, 1), (9, 2)]);
+        assert!(!intervals.pending_keys.contains(&(1, 7)));
+        assert!(intervals.pending_keys.contains(&(2, 9)));
+        intervals.abort(7);
+        intervals.extend(&[(7, 1)]);
+        assert_eq!(intervals.pending.len(), 2);
+        assert!(!intervals.pending_keys.contains(&(1, 7)));
+        assert!(intervals.completed.contains(&(7, 1)));
+    }
 
     #[test]
     fn a_missing_leader_refreshes_each_topic_once() {
