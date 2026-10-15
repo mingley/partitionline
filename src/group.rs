@@ -2614,14 +2614,17 @@ impl ConsumerGroup {
         // failure propagates: the rebalance reports the error rather than
         // silently handing over uncommitted work.
         if !revoked.is_empty() && self.cfg.enable_auto_commit {
-            let revoked_set: HashSet<(String, i32)> = revoked.iter().cloned().collect();
+            // Membership uses the names `revoked` already owns. A
+            // `(String, i32)` set would copy each name again on insert and
+            // once more for every position that asks.
+            let revoked_parts = index_revoked(&revoked);
             let to_commit: Vec<(TopicPartition, OffsetAndMetadata)> = self
                 .consumer
                 .positions()
                 .into_iter()
                 .filter(|(tp, offset)| {
                     position_is_committable(*offset)
-                        && revoked_set.contains(&(tp.topic.clone(), tp.partition))
+                        && revoked_contains(&revoked_parts, &tp.topic, tp.partition)
                 })
                 .map(|(tp, offset)| {
                     let epoch = self.consumer.position_epoch(&tp.topic, tp.partition);
@@ -3461,6 +3464,26 @@ pub(crate) fn group_offset_fetch_topics(wanted: &[(String, i32)]) -> Vec<OffsetF
         .collect()
 }
 
+fn index_revoked(revoked: &[(String, i32)]) -> HashMap<&str, HashSet<i32>> {
+    let mut parts: HashMap<&str, HashSet<i32>> = HashMap::new();
+    for (topic, partition) in revoked {
+        if let Some(slot) = parts.get_mut(topic.as_str()) {
+            let _ = slot.insert(*partition);
+            continue;
+        }
+        let mut slot = HashSet::new();
+        let _ = slot.insert(*partition);
+        let _ = parts.insert(topic.as_str(), slot);
+    }
+    parts
+}
+
+fn revoked_contains(index: &HashMap<&str, HashSet<i32>>, topic: &str, partition: i32) -> bool {
+    index
+        .get(topic)
+        .is_some_and(|parts| parts.contains(&partition))
+}
+
 fn remember_partition(map: &mut HashMap<String, HashSet<i32>>, topic: &str, partition: i32) {
     if let Some(parts) = map.get_mut(topic) {
         let _ = parts.insert(partition);
@@ -4227,6 +4250,24 @@ mod tests {
     use super::*;
     use crate::protocol::group::{ConsumerProtocolSubscription, FetchedOffset, JoinGroupRequest};
     use std::collections::HashMap;
+
+    #[test]
+    fn revoked_partitions_match_by_borrowed_topic_name() {
+        let revoked = vec![
+            ("orders".to_owned(), 0),
+            ("orders".to_owned(), 2),
+            ("payments".to_owned(), 1),
+            ("orders".to_owned(), 0),
+        ];
+        let index = index_revoked(&revoked);
+        assert!(revoked_contains(&index, "orders", 0));
+        assert!(revoked_contains(&index, "orders", 2));
+        assert!(revoked_contains(&index, "payments", 1));
+        assert!(!revoked_contains(&index, "orders", 1));
+        assert!(!revoked_contains(&index, "payments", 0));
+        assert!(!revoked_contains(&index, "other", 0));
+        assert_eq!(index.get("orders").map(HashSet::len), Some(2));
+    }
 
     #[test]
     fn a_commit_uses_the_fetched_epoch_ahead_of_metadata() {
