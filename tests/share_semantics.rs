@@ -9092,6 +9092,57 @@ async fn share_fetch_fenced_current_leader_overrides_cached_metadata() {
 }
 
 #[tokio::test]
+async fn share_fetch_fenced_current_leader_unusable_epoch_does_not_override() {
+    let mock = common::Mock::start_two_node().await;
+    v2(&mock);
+    mock.set_partition_leader("t", 0, 1);
+    produce(&mock, &[(0, b"keep")]).await;
+    let mut group = ShareGroup::join(config(&mock), "fetch-fenced-unusable-cur", "t")
+        .await
+        .unwrap();
+    let version = mock.last_share_fetch_version().unwrap_or(2);
+    let mut part = ShareFetchedPartition::partition_response(0, error::FENCED_LEADER_EPOCH);
+    part.current_leader_id = 2;
+    part.current_leader_epoch = -1;
+    let topics = vec![ShareFetchedTopic {
+        topic_id: mock.topic_id("t"),
+        partitions: vec![part],
+    }];
+    let addr = mock.broker_addr(2).expect("node 2 listening");
+    let (host, port) = addr.rsplit_once(':').expect("host:port");
+    let endpoints = vec![NodeEndpoint::new(
+        2,
+        host,
+        port.parse().expect("port"),
+        None,
+    )];
+    let mut injected = BytesMut::new();
+    encode_share_fetch_response_with_endpoints(&mut injected, version, &topics, &endpoints)
+        .unwrap();
+    mock.inject_share_fetch_response_once(&injected);
+    assert!(
+        group.poll().await.unwrap().is_empty(),
+        "Java handleInitializeErrors skips FENCED_LEADER_EPOCH without throwing"
+    );
+    assert_eq!(mock.last_share_fetch_node(), Some(1));
+    let after_skip = mock.metadata_calls();
+    let got = group.poll().await.unwrap();
+    assert_eq!(got.len(), 1);
+    assert_eq!(got[0].value.as_deref(), Some(&b"keep"[..]));
+    assert_eq!(
+        mock.last_share_fetch_node(),
+        Some(1),
+        "Java handleShareFetchSuccess requires leaderEpoch != -1"
+    );
+    assert!(
+        mock.metadata_calls() > after_skip,
+        "unusable FENCED CurrentLeader must still request Metadata"
+    );
+    group.accept(&got).await.unwrap();
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn share_fetch_fenced_sibling_current_leader_overrides_cached_metadata() {
     let mock = common::Mock::start_two_node().await;
     v2(&mock);
