@@ -3242,6 +3242,45 @@ async fn share_fetch_unknown_leader_epoch_skips_without_metadata() {
 }
 
 #[tokio::test]
+async fn share_fetch_unknown_leader_epoch_delivers_sibling() {
+    let mock = common::Mock::start().await;
+    v2(&mock);
+    mock.set_topic_partitions("t", 2);
+    mock.set_partition_leader("t", 0, 1);
+    mock.set_partition_leader("t", 1, 1);
+    let mut group = ShareGroup::join(config(&mock), "unk-epoch-sib", "t")
+        .await
+        .unwrap();
+    let version = mock.last_share_fetch_version().unwrap_or(2);
+    let failed = ShareFetchedPartition::partition_response(1, error::UNKNOWN_LEADER_EPOCH);
+    let topics = vec![ShareFetchedTopic {
+        topic_id: mock.topic_id("t"),
+        partitions: vec![injected_share_success(b"keep"), failed],
+    }];
+    let mut injected = BytesMut::new();
+    encode_share_fetch_response(&mut injected, version, &topics).unwrap();
+    mock.inject_share_fetch_response_once(&injected);
+    let first = group.poll().await.unwrap();
+    assert_eq!(first.len(), 1);
+    assert_eq!(first[0].partition, 0);
+    assert_eq!(first[0].value.as_deref(), Some(&b"keep"[..]));
+    group.accept(&first).await.unwrap();
+    let after_skip = mock.metadata_calls();
+    produce(&mock, &[(1, b"later")]).await;
+    let second = group.poll().await.unwrap();
+    assert_eq!(second.len(), 1);
+    assert_eq!(second[0].partition, 1);
+    assert_eq!(second[0].value.as_deref(), Some(&b"later"[..]));
+    assert_eq!(
+        mock.metadata_calls(),
+        after_skip,
+        "Java handleInitializeErrors does not request Metadata for sibling UNKNOWN_LEADER_EPOCH"
+    );
+    group.accept(&second).await.unwrap();
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn share_fetch_inconsistent_topic_id_skips_and_refreshes_metadata() {
     let mock = common::Mock::start().await;
     v2(&mock);
