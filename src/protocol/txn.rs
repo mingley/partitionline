@@ -1,7 +1,7 @@
 //! AddPartitionsToTxn, AddOffsetsToTxn, EndTxn, WriteTxnMarkers, and
 //! TxnOffsetCommit (api keys 24–28).
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fmt;
 
 use bytes::{Buf, BufMut, BytesMut};
@@ -465,33 +465,39 @@ impl AddPartitionsToTxnResponse {
         I: IntoIterator<Item = (&'a str, i32, i16)>,
     {
         let mut order: Vec<String> = Vec::new();
-        let mut by_topic: HashMap<String, Vec<AddPartitionsToTxnPartitionResult>> = HashMap::new();
+        let mut by_topic: HashMap<String, (HashSet<i32>, Vec<AddPartitionsToTxnPartitionResult>)> =
+            HashMap::new();
         for (topic, partition, error_code) in errors {
-            if let Some(parts) = by_topic.get_mut(topic) {
-                if parts.iter().any(|part| part.partition == partition) {
+            if let Some((seen, parts)) = by_topic.get_mut(topic) {
+                if !seen.insert(partition) {
                     continue;
                 }
                 parts.push(AddPartitionsToTxnPartitionResult {
                     partition,
                     error_code,
                 });
-            } else {
-                order.push(topic.to_string());
-                let _ = by_topic.insert(
-                    topic.to_string(),
+                continue;
+            }
+            order.push(topic.to_string());
+            let mut seen = HashSet::new();
+            let _ = seen.insert(partition);
+            let _ = by_topic.insert(
+                topic.to_string(),
+                (
+                    seen,
                     vec![AddPartitionsToTxnPartitionResult {
                         partition,
                         error_code,
                     }],
-                );
-            }
+                ),
+            );
         }
         order
             .into_iter()
             .filter_map(|topic| {
                 by_topic
                     .remove(&topic)
-                    .map(|partitions| AddPartitionsToTxnTopicResult { topic, partitions })
+                    .map(|(_, partitions)| AddPartitionsToTxnTopicResult { topic, partitions })
             })
             .collect()
     }
