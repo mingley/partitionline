@@ -5154,14 +5154,15 @@ impl Consumer {
         let id_names = self.topic_id_names();
         let mut retry = FetchRetry::None;
         // A partition listed twice must not rewind the cursor or deliver twice.
-        let mut seen_partitions: HashSet<(String, i32)> = HashSet::new();
+        let mut seen_partitions: HashMap<Arc<str>, HashSet<i32>> = HashMap::new();
         for (topic, topic_batches) in fetched.into_iter().zip(batches) {
             if *budget_reached {
                 let Some(name) = fetch_topic_name(&topic.topic, topic.topic_id, &id_names)? else {
                     continue;
                 };
+                let seen_name = Arc::<str>::from(name.as_str());
                 for (part, part_batches) in topic.partitions.into_iter().zip(topic_batches) {
-                    if !take_fetch_partition(&mut seen_partitions, &name, part.partition) {
+                    if !take_fetch_partition(&mut seen_partitions, &seen_name, part.partition) {
                         continue;
                     }
                     if !partition_is_assigned(&self.assigned, &name, part.partition) {
@@ -5181,9 +5182,10 @@ impl Consumer {
             let Some(name) = fetch_topic_name(&topic.topic, topic.topic_id, &id_names)? else {
                 continue;
             };
+            let seen_name = Arc::<str>::from(name.as_str());
             let topic_name = TopicName::from(name.as_str());
             for (part, part_batches) in topic.partitions.into_iter().zip(topic_batches) {
-                if !take_fetch_partition(&mut seen_partitions, &name, part.partition) {
+                if !take_fetch_partition(&mut seen_partitions, &seen_name, part.partition) {
                     continue;
                 }
                 if !partition_is_assigned(&self.assigned, &name, part.partition) {
@@ -6643,8 +6645,21 @@ fn fetch_topic_name(
 }
 
 /// First copy of a fetch partition wins. A later copy is ignored.
-fn take_fetch_partition(seen: &mut HashSet<(String, i32)>, topic: &str, partition: i32) -> bool {
-    seen.insert((topic.to_owned(), partition))
+///
+/// The topic name is stored once. Later partitions of that topic only record
+/// the partition index.
+fn take_fetch_partition(
+    seen: &mut HashMap<Arc<str>, HashSet<i32>>,
+    topic: &Arc<str>,
+    partition: i32,
+) -> bool {
+    if let Some(parts) = seen.get_mut(topic.as_ref()) {
+        return parts.insert(partition);
+    }
+    let mut parts = HashSet::new();
+    let inserted = parts.insert(partition);
+    let _ = seen.insert(Arc::clone(topic), parts);
+    inserted
 }
 
 /// Partition indexes for one topic across every copy in a Metadata response.
@@ -7233,11 +7248,17 @@ mod tests {
 
     #[test]
     fn a_repeated_fetch_partition_is_applied_once() {
-        let mut seen = HashSet::new();
-        assert!(take_fetch_partition(&mut seen, "t", 0));
-        assert!(!take_fetch_partition(&mut seen, "t", 0));
-        assert!(take_fetch_partition(&mut seen, "t", 1));
-        assert!(take_fetch_partition(&mut seen, "u", 0));
+        let topic_t = Arc::<str>::from("t");
+        let topic_u = Arc::<str>::from("u");
+        let mut seen = HashMap::new();
+        assert!(take_fetch_partition(&mut seen, &topic_t, 0));
+        assert!(!take_fetch_partition(&mut seen, &topic_t, 0));
+        assert!(take_fetch_partition(&mut seen, &topic_t, 1));
+        assert!(take_fetch_partition(&mut seen, &topic_u, 0));
+        assert!(Arc::ptr_eq(
+            seen.get_key_value("t").map(|(name, _)| name).unwrap(),
+            &topic_t
+        ));
     }
 
     #[test]
