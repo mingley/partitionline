@@ -1530,8 +1530,8 @@ impl ShareGroup {
     /// `testWhenFetchResponseReturnsWithALeadershipChangeErrorAndNewLeaderInformation`).
     /// `UNKNOWN_LEADER_EPOCH` skips without Metadata; partition
     /// `INCONSISTENT_TOPIC_ID` / `UNKNOWN_TOPIC_OR_PARTITION` /
-    /// `UNKNOWN_TOPIC_ID` skip and request Metadata; siblings still
-    /// deliver (Java `handleInitializeErrors`).
+    /// `UNKNOWN_TOPIC_ID` / `REPLICA_NOT_AVAILABLE` skip and request
+    /// Metadata; siblings still deliver (Java `handleInitializeErrors`).
     /// Top-level `UNKNOWN_TOPIC_ID` still fails that poll. A sole
     /// partition `NOT_LEADER_OR_FOLLOWER` collects empty (Java
     /// `testFetchError`). A ShareFetch topic id that is
@@ -4839,6 +4839,9 @@ mod tests {
         assert!(share_fetch_partition_skipped(error::UNKNOWN_TOPIC_ID));
         assert!(share_fetch_partition_skipped(error::INCONSISTENT_TOPIC_ID));
         assert!(share_fetch_partition_skipped(error::UNKNOWN_SERVER_ERROR));
+        assert!(share_fetch_partition_skipped(error::REPLICA_NOT_AVAILABLE));
+        assert!(share_fetch_partition_skipped(error::KAFKA_STORAGE_ERROR));
+        assert!(share_fetch_partition_skipped(error::OFFSET_NOT_AVAILABLE));
         assert!(!share_fetch_partition_skipped(
             error::TOPIC_AUTHORIZATION_FAILED
         ));
@@ -4859,6 +4862,15 @@ mod tests {
         ));
         assert!(share_fetch_partition_metadata_refresh(
             error::INCONSISTENT_TOPIC_ID
+        ));
+        assert!(share_fetch_partition_metadata_refresh(
+            error::REPLICA_NOT_AVAILABLE
+        ));
+        assert!(share_fetch_partition_metadata_refresh(
+            error::KAFKA_STORAGE_ERROR
+        ));
+        assert!(share_fetch_partition_metadata_refresh(
+            error::OFFSET_NOT_AVAILABLE
         ));
         assert!(!share_fetch_partition_metadata_refresh(
             error::UNKNOWN_LEADER_EPOCH
