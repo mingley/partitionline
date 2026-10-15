@@ -795,7 +795,10 @@ pub enum ShareAcquireMode {
 /// / `FENCED_LEADER_EPOCH` with a usable CurrentLeader (`leaderId != -1`
 /// && `leaderEpoch != -1`) plus NodeEndpoints updates the next ShareFetch
 /// target without a Metadata refresh (Java `handleShareFetchSuccess` /
-/// KIP-951). A ShareFetch partition `INCONSISTENT_TOPIC_ID` with a
+/// KIP-951). A ShareFetch `FENCED_LEADER_EPOCH` with a usable
+/// CurrentLeader on one partition updates that partition's next
+/// ShareFetch target and does not retarget a sibling whose error is
+/// none. A ShareFetch partition `INCONSISTENT_TOPIC_ID` with a
 /// usable CurrentLeader does not update the next ShareFetch target
 /// (Java `handleShareFetchSuccess` applies CurrentLeader only for
 /// `NOT_LEADER_OR_FOLLOWER` / `FENCED_LEADER_EPOCH`) and still
@@ -1644,6 +1647,9 @@ impl ShareGroup {
     /// `NOT_LEADER_OR_FOLLOWER` / `FENCED_LEADER_EPOCH` redirects the
     /// next ShareFetch without Metadata (Java
     /// `testWhenFetchResponseReturnsWithALeadershipChangeErrorAndNewLeaderInformation`).
+    /// A ShareFetch `FENCED_LEADER_EPOCH` with a usable CurrentLeader
+    /// on one partition updates that partition's next ShareFetch
+    /// target and does not retarget a sibling whose error is none.
     /// A ShareFetch partition `INCONSISTENT_TOPIC_ID` with a usable
     /// CurrentLeader does not update the next ShareFetch target (Java
     /// `handleShareFetchSuccess` applies CurrentLeader only for

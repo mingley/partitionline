@@ -180,6 +180,9 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   A usable CurrentLeader plus NodeEndpoints redirects the next
   ShareFetch without a Metadata refresh (Java
   `testWhenFetchResponseReturnsWithALeadershipChangeErrorAndNewLeaderInformation`).
+  A ShareFetch `FENCED_LEADER_EPOCH` with a usable CurrentLeader on
+  one partition updates that partition's next ShareFetch target and
+  does not retarget a sibling whose error is none.
   A ShareFetch partition `INCONSISTENT_TOPIC_ID` with a usable
   CurrentLeader does not update the next ShareFetch target (Java
   `handleShareFetchSuccess` applies CurrentLeader only for
