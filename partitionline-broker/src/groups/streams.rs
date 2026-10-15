@@ -15,6 +15,13 @@
 use crate::journal::{self, Journal};
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
+use std::sync::Arc;
+
+/// Active or standby task ids shared by a stored member and a heartbeat.
+///
+/// A steady heartbeat clones this pointer. The list is copied only when the
+/// assignment is rebuilt.
+pub type TaskIds = Arc<Vec<i32>>;
 
 const RECORD_MAGIC: &[u8; 8] = b"PLSTR001";
 
@@ -74,9 +81,9 @@ pub struct HeartbeatResult {
     /// Endpoint epoch echoed to the member.
     pub endpoint_epoch: i32,
     /// Active task ids.
-    pub active: Vec<i32>,
+    pub active: TaskIds,
     /// Standby task ids. Disjoint from `active`.
-    pub standby: Vec<i32>,
+    pub standby: TaskIds,
 }
 
 /// One described member.
@@ -87,9 +94,9 @@ pub struct MemberView {
     /// Current epoch.
     pub member_epoch: i32,
     /// Active tasks.
-    pub active: Vec<i32>,
+    pub active: TaskIds,
     /// Standby tasks.
-    pub standby: Vec<i32>,
+    pub standby: TaskIds,
 }
 
 /// Describe view.
@@ -191,8 +198,8 @@ struct Member {
     acked: bool,
     instance: Option<String>,
     endpoint_epoch: i32,
-    active: Vec<i32>,
-    standby: Vec<i32>,
+    active: TaskIds,
+    standby: TaskIds,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -294,8 +301,8 @@ impl Groups {
             members.push(MemberView {
                 member_id: member_id.clone(),
                 member_epoch: member.epoch,
-                active: member.active.clone(),
-                standby: member.standby.clone(),
+                active: Arc::clone(&member.active),
+                standby: Arc::clone(&member.standby),
             });
         }
         Some(Description {
@@ -375,8 +382,8 @@ impl Groups {
                 acked: true,
                 instance,
                 endpoint_epoch: request.endpoint_epoch,
-                active: Vec::new(),
-                standby: Vec::new(),
+                active: no_tasks(),
+                standby: no_tasks(),
             },
         );
         group.epoch = advance_epoch(group.epoch)?;
@@ -465,8 +472,8 @@ impl Groups {
             group_epoch: epoch,
             assignment_epoch,
             endpoint_epoch: request.endpoint_epoch,
-            active: Vec::new(),
-            standby: Vec::new(),
+            active: no_tasks(),
+            standby: no_tasks(),
         };
         self.commit(next)?;
         Ok(result)
@@ -506,8 +513,8 @@ impl Groups {
                 acked: true,
                 instance: Some(instance),
                 endpoint_epoch: endpoint,
-                active: Vec::new(),
-                standby: Vec::new(),
+                active: no_tasks(),
+                standby: no_tasks(),
             },
         );
         group.epoch = advance_epoch(group.epoch)?;
@@ -710,10 +717,15 @@ fn advance_epoch(epoch: i32) -> Result<i32, Error> {
 }
 
 fn reassign(group: &mut Group) -> Result<(), Error> {
-    let previous: BTreeMap<String, (Vec<i32>, Vec<i32>)> = group
+    let previous: BTreeMap<String, (TaskIds, TaskIds)> = group
         .members
         .iter()
-        .map(|(id, member)| (id.clone(), (member.active.clone(), member.standby.clone())))
+        .map(|(id, member)| {
+            (
+                id.clone(),
+                (Arc::clone(&member.active), Arc::clone(&member.standby)),
+            )
+        })
         .collect();
     let ids: Vec<String> = group.members.keys().cloned().collect();
     let count = usize::try_from(group.task_count).unwrap_or(0);
@@ -740,13 +752,14 @@ fn reassign(group: &mut Group) -> Result<(), Error> {
             Vec::new()
         };
         if let Some(member) = group.members.get_mut(member_id) {
-            member.active = active.get(member_id).cloned().unwrap_or_default();
-            member.standby = standby;
+            let next_active = active.get(member_id).cloned().unwrap_or_default();
+            store_tasks(&mut member.active, next_active);
+            store_tasks(&mut member.standby, standby);
         }
     }
     let mut changed = false;
     for (id, member) in &mut group.members {
-        let now = (member.active.clone(), member.standby.clone());
+        let now = (Arc::clone(&member.active), Arc::clone(&member.standby));
         if previous.get(id) != Some(&now) {
             member.acked = false;
             changed = true;
@@ -756,6 +769,16 @@ fn reassign(group: &mut Group) -> Result<(), Error> {
         group.assignment_epoch = advance_epoch(group.assignment_epoch)?;
     }
     Ok(())
+}
+
+fn no_tasks() -> TaskIds {
+    Arc::new(Vec::new())
+}
+
+fn store_tasks(current: &mut TaskIds, next: Vec<i32>) {
+    if current.as_slice() != next.as_slice() {
+        *current = Arc::new(next);
+    }
 }
 
 fn later_seen(current: u64, now_ms: u64) -> u64 {
@@ -770,8 +793,8 @@ fn result_from(group: &Group, member_id: &str) -> Result<HeartbeatResult, Error>
         group_epoch: group.epoch,
         assignment_epoch: group.assignment_epoch,
         endpoint_epoch: member.endpoint_epoch,
-        active: member.active.clone(),
-        standby: member.standby.clone(),
+        active: Arc::clone(&member.active),
+        standby: Arc::clone(&member.standby),
     })
 }
 
@@ -864,8 +887,8 @@ fn decode(mut bytes: &[u8]) -> Result<State, Error> {
                         acked: acked_byte == 1,
                         instance,
                         endpoint_epoch,
-                        active: take_ids(&mut bytes)?,
-                        standby: take_ids(&mut bytes)?,
+                        active: Arc::new(take_ids(&mut bytes)?),
+                        standby: Arc::new(take_ids(&mut bytes)?),
                     },
                 )
                 .is_some()
@@ -905,7 +928,7 @@ fn validate_recovered(name: &str, group: &Group) -> Result<(), Error> {
             return Err(Error::InvalidRequest);
         }
         let mut owned = BTreeSet::new();
-        for task in &member.active {
+        for task in member.active.iter() {
             if *task < 0
                 || *task >= group.task_count
                 || !active.insert(*task)
@@ -914,7 +937,7 @@ fn validate_recovered(name: &str, group: &Group) -> Result<(), Error> {
                 return Err(Error::InvalidRequest);
             }
         }
-        for task in &member.standby {
+        for task in member.standby.iter() {
             if *task < 0 || *task >= group.task_count || owned.contains(task) {
                 return Err(Error::InvalidRequest);
             }
@@ -1036,8 +1059,8 @@ mod tests {
                 acked: true,
                 instance: None,
                 endpoint_epoch: 1,
-                active: vec![0],
-                standby: Vec::new(),
+                active: Arc::new(vec![0]),
+                standby: no_tasks(),
             },
         );
         let mut stored = std::collections::BTreeMap::new();
@@ -1069,8 +1092,8 @@ mod tests {
                 acked: true,
                 instance: None,
                 endpoint_epoch: 0,
-                active: vec![1],
-                standby: Vec::new(),
+                active: Arc::new(vec![1]),
+                standby: no_tasks(),
             },
         );
         let mut groups = std::collections::BTreeMap::new();
@@ -1151,7 +1174,7 @@ mod tests {
             .heartbeat(join("a", Some("i-1")))
             .unwrap_or_else(|error| panic!("{error:?}"));
         assert_eq!(first.member_epoch, 0);
-        assert_eq!(first.active, vec![0, 1, 2, 3]);
+        assert_eq!(first.active.as_slice(), &[0, 1, 2, 3]);
         assert!(first.standby.is_empty());
         let mut other = join("b", None);
         other.topology_epoch = Some(4);
@@ -1195,7 +1218,7 @@ mod tests {
                 .active
                 .iter()
                 .all(|task| member.standby.iter().all(|standby| standby != task)));
-            for task in &member.active {
+            for task in member.active.iter() {
                 assert!(active.insert(*task));
             }
         }
@@ -1219,8 +1242,8 @@ mod tests {
             })
             .unwrap_or_else(|error| panic!("{error:?}"));
         assert_eq!(again.member_epoch, refreshed.member_epoch);
-        assert_eq!(again.active, refreshed.active);
-        assert_eq!(again.standby, refreshed.standby);
+        assert!(Arc::ptr_eq(&again.active, &refreshed.active));
+        assert!(Arc::ptr_eq(&again.standby, &refreshed.standby));
         assert!(matches!(
             groups.heartbeat(Heartbeat {
                 member_epoch: refreshed.member_epoch,
@@ -1271,7 +1294,7 @@ mod tests {
             .all(|member| member.member_id != "a"));
         let mut active = Set::new();
         for member in &described.members {
-            for task in &member.active {
+            for task in member.active.iter() {
                 assert!(active.insert(*task));
             }
         }
