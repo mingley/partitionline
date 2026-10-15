@@ -7561,7 +7561,7 @@ impl Admin {
                 return Err(Error::Timeout);
             }
             let result = async {
-                self.list_transactions_connect(node).await?;
+                self.list_transactions_connect(node, deadline).await?;
                 let conn = self
                     .conns
                     .get_mut(&node)
@@ -7643,7 +7643,7 @@ impl Admin {
         }
     }
 
-    async fn list_transactions_connect(&mut self, node: i32) -> Result<()> {
+    async fn list_transactions_connect(&mut self, node: i32, deadline: Instant) -> Result<()> {
         if self
             .conns
             .get(&node)
@@ -7659,13 +7659,22 @@ impl Admin {
                 Error::protocol(format!("unknown ListTransactions broker {node}"))
             })?;
         let failures = self.reconnect_fails.get(&node).copied().unwrap_or(0);
-        crate::config::sleep_reconnect_backoff(
+        let delay = crate::config::reconnect_backoff_delay(
             self.cfg.reconnect_backoff,
             self.cfg.reconnect_backoff_max,
             failures,
-        )
-        .await;
-        match self.open_node_conn(&address).await {
+        );
+        if !delay.is_zero() {
+            let now = Instant::now();
+            if now >= deadline {
+                return Err(Error::Timeout);
+            }
+            tokio::time::sleep(delay.min(deadline.saturating_duration_since(now))).await;
+        }
+        if Instant::now() >= deadline {
+            return Err(Error::Timeout);
+        }
+        match self.open_node_conn_until(&address, deadline).await {
             Ok(connection) => {
                 let _ = self.reconnect_fails.remove(&node);
                 let _ = self.conns.insert(node, connection);
@@ -8079,16 +8088,22 @@ impl Admin {
         let deadline = Instant::now() + self.cfg.request_timeout;
         loop {
             let fails = self.reconnect_fails.get(&node).copied().unwrap_or(0);
-            crate::config::sleep_reconnect_backoff(
+            let delay = crate::config::reconnect_backoff_delay(
                 self.cfg.reconnect_backoff,
                 self.cfg.reconnect_backoff_max,
                 fails,
-            )
-            .await;
+            );
+            if !delay.is_zero() {
+                let now = Instant::now();
+                if now >= deadline {
+                    return Err(Error::Timeout);
+                }
+                tokio::time::sleep(delay.min(deadline.saturating_duration_since(now))).await;
+            }
             if Instant::now() >= deadline {
                 return Err(Error::Timeout);
             }
-            match self.open_node_conn(&addr).await {
+            match self.open_node_conn_until(&addr, deadline).await {
                 Ok(conn) => {
                     let _ = self.reconnect_fails.remove(&node);
                     let _prev = self.conns.insert(node, conn);
@@ -8111,18 +8126,39 @@ impl Admin {
     }
 
     async fn open_node_conn(&self, addr: &str) -> Result<AdminOffsetConn> {
+        let deadline = Instant::now()
+            + self
+                .cfg
+                .connect_timeout
+                .saturating_add(self.cfg.request_timeout)
+                .saturating_add(self.cfg.request_timeout);
+        self.open_node_conn_until(addr, deadline).await
+    }
+
+    /// Dial, negotiate, and authenticate inside `deadline`.
+    async fn open_node_conn_until(&self, addr: &str, deadline: Instant) -> Result<AdminOffsetConn> {
+        let rest = deadline.saturating_duration_since(Instant::now());
+        if rest.is_zero() {
+            return Err(Error::Timeout);
+        }
         let mut conn = BrokerConn::connect_tls(
             addr,
             &self.cfg.client_id,
-            self.cfg.connect_timeout,
+            self.cfg.connect_timeout.min(rest),
             self.cfg.tls.as_ref(),
         )
         .await?;
         conn.set_stats(Arc::clone(&self.stats));
-        let versions_resp =
-            crate::protocol::api::negotiate_api_versions(&mut conn, self.cfg.request_timeout)
-                .await?;
+        let rest = deadline.saturating_duration_since(Instant::now());
+        if rest.is_zero() {
+            return Err(Error::Timeout);
+        }
+        let versions_resp = crate::protocol::api::negotiate_api_versions(&mut conn, rest).await?;
         sasl::apply_api_keys(&mut conn, &versions_resp.api_keys);
+        let rest = deadline.saturating_duration_since(Instant::now());
+        if rest.is_zero() {
+            return Err(Error::Timeout);
+        }
         sasl::authenticate(
             &mut conn,
             self.cfg.sasl_plain.as_ref(),
@@ -8130,7 +8166,7 @@ impl Admin {
             self.cfg.sasl_scram_sha512.as_ref(),
             self.cfg.sasl_oauthbearer.as_deref(),
             self.cfg.sasl_oauthbearer_oidc.as_ref(),
-            self.cfg.request_timeout,
+            rest,
         )
         .await?;
         Ok(AdminOffsetConn::new(conn, &versions_resp))

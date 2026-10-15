@@ -92,15 +92,6 @@ pub(crate) fn reconnect_backoff_delay(base: Duration, max: Duration, fails: u32)
     }
 }
 
-/// Sleep [`reconnect_backoff_delay`].
-pub(crate) async fn sleep_reconnect_backoff(base: Duration, max: Duration, fails: u32) {
-    let delay = reconnect_backoff_delay(base, max, fails);
-    if delay.is_zero() {
-        return;
-    }
-    tokio::time::sleep(delay).await;
-}
-
 /// Count one failed connect for `node`. Returns the new count.
 pub(crate) fn bump_reconnect_fails(map: &mut HashMap<i32, u32>, node: i32) -> u32 {
     let slot = map.entry(node).or_insert(0);
