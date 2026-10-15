@@ -4363,17 +4363,33 @@ impl Consumer {
         let deadline = started + self.cfg.request_timeout;
         let poll_deadline =
             started + Duration::from_millis(u64::try_from(max_wait_ms).unwrap_or(0));
-        let initial_assigned = self.assigned.clone();
-        let initial_epochs = self.last_fetched_epochs.clone();
+        let initial_offsets: Vec<i64> =
+            self.assigned.iter().map(|(_, _, offset)| *offset).collect();
+        let initial_epochs: Vec<i32> = self
+            .assigned
+            .iter()
+            .map(|(topic, partition, _)| self.last_fetched_epoch(topic.as_ref(), *partition))
+            .collect();
         match self
             .fetch_assigned_inner(deadline, poll_deadline, max_wait_ms)
             .await
         {
             Ok(records) => Ok(records),
-            Err(e) => {
-                self.assigned = initial_assigned;
-                self.last_fetched_epochs = initial_epochs;
-                Err(e)
+            Err(error) => {
+                for (slot, offset) in initial_offsets.into_iter().enumerate() {
+                    if let Some(entry) = self.assigned.get_mut(slot) {
+                        entry.2 = offset;
+                    }
+                }
+                for (slot, epoch) in initial_epochs.into_iter().enumerate() {
+                    let Some((topic, partition, _)) = self.assigned.get(slot) else {
+                        continue;
+                    };
+                    let topic = Arc::clone(topic);
+                    let partition = *partition;
+                    self.set_last_fetched_epoch(topic.as_ref(), partition, epoch);
+                }
+                Err(error)
             }
         }
     }
