@@ -6722,10 +6722,23 @@ fn fail_groups(shared: &Shared, groups: Vec<(Arc<str>, i32, Vec<Pending>)>, err:
 fn fail_pendings(shared: &Shared, pendings: Vec<Pending>, err: Error) {
     shared.retire_sticky(&pendings, true);
     shared.release_buffer(pendings_bytes(&pendings));
-    for p in pendings {
-        shared.note_errors(&p.rec.topic, 1);
+    let one_topic = pendings.first().is_some_and(|first| {
+        pendings
+            .iter()
+            .all(|pending| Arc::ptr_eq(&pending.rec.topic, &first.rec.topic))
+    });
+    if one_topic {
+        if let Some(first) = pendings.first() {
+            let n = u64::try_from(pendings.len()).unwrap_or(u64::MAX);
+            shared.note_errors(&first.rec.topic, n);
+        }
+    }
+    for pending in pendings {
+        if !one_topic {
+            shared.note_errors(&pending.rec.topic, 1);
+        }
         shared.interceptors.on_error(&err);
-        if let Some(tx) = p.tx {
+        if let Some(tx) = pending.tx {
             drop(tx.send(Err(clone_err(&err))));
         }
     }
