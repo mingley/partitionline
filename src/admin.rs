@@ -6938,7 +6938,7 @@ impl Admin {
                 .as_ref()
                 .is_none_or(|(k, _)| k != transactional_id);
             if stale {
-                let node = self.discover_txn_coord(transactional_id).await?;
+                let node = self.discover_txn_coord(transactional_id, deadline).await?;
                 self.txn_coord = Some((transactional_id.to_string(), node));
             }
             let node = self
@@ -7182,7 +7182,7 @@ impl Admin {
         let mut out: Vec<Option<TransactionState>> = vec![None; ids.len()];
         let mut pending: Vec<usize> = (0..ids.len()).collect();
         loop {
-            let by_node = self.txn_coord_nodes(&ids, &pending).await?;
+            let by_node = self.txn_coord_nodes(&ids, &pending, deadline).await?;
             let mut nodes: Vec<i32> = by_node.keys().copied().collect();
             nodes.sort_unstable();
             let mut still = Vec::new();
@@ -8011,11 +8011,6 @@ impl Admin {
         md.check()?;
         self.cluster.apply(&md, version);
         Ok(md)
-    }
-
-    async fn refresh_metadata(&mut self, topics: Option<&[String]>) -> Result<()> {
-        let deadline = Instant::now() + self.cfg.request_timeout;
-        self.refresh_metadata_until(topics, deadline).await
     }
 
     /// Refresh metadata using only the time still left on `deadline`.
@@ -9296,7 +9291,7 @@ impl Admin {
                 .as_ref()
                 .is_none_or(|(g, _)| g != &group_id);
             if stale {
-                let node = self.discover_group_coord(&group_id).await?;
+                let node = self.discover_group_coord(&group_id, deadline).await?;
                 self.group_coord = Some((group_id.clone(), node));
             }
             let node = self
@@ -9641,7 +9636,7 @@ impl Admin {
                             .iter()
                             .filter_map(|&i| jobs.get(i).map(|j| j.0.clone()))
                             .collect();
-                        let coords = self.discover_group_coords(&group_ids).await?;
+                        let coords = self.discover_group_coords(&group_ids, deadline).await?;
                         let mut by_node: HashMap<i32, Vec<usize>> = HashMap::new();
                         for &i in &remaining {
                             let group_id = jobs
@@ -9848,7 +9843,7 @@ impl Admin {
                         .as_ref()
                         .is_none_or(|(g, _)| g != &group_id);
                     if stale {
-                        let node = self.discover_group_coord(&group_id).await?;
+                        let node = self.discover_group_coord(&group_id, deadline).await?;
                         self.group_coord = Some((group_id.clone(), node));
                     }
                     let node = self
@@ -9975,7 +9970,7 @@ impl Admin {
                         .as_ref()
                         .is_none_or(|(g, _)| g != &group_id);
                     if stale {
-                        let node = self.discover_group_coord(&group_id).await?;
+                        let node = self.discover_group_coord(&group_id, deadline).await?;
                         self.group_coord = Some((group_id.clone(), node));
                     }
                     let node = self
@@ -10095,7 +10090,7 @@ impl Admin {
         let mut out: Vec<Option<DescribedConsumerGroup>> = vec![None; ids.len()];
         let mut pending: Vec<usize> = (0..ids.len()).collect();
         loop {
-            let by_node = self.group_coord_nodes(&ids, &pending).await?;
+            let by_node = self.group_coord_nodes(&ids, &pending, deadline).await?;
             let mut nodes: Vec<i32> = by_node.keys().copied().collect();
             nodes.sort_unstable();
             let mut still = Vec::new();
@@ -10198,7 +10193,7 @@ impl Admin {
         let mut out: Vec<Option<DescribedGroup>> = vec![None; ids.len()];
         let mut pending: Vec<usize> = (0..ids.len()).collect();
         loop {
-            let by_node = self.group_coord_nodes(&ids, &pending).await?;
+            let by_node = self.group_coord_nodes(&ids, &pending, deadline).await?;
             let mut nodes: Vec<i32> = by_node.keys().copied().collect();
             nodes.sort_unstable();
             let mut still = Vec::new();
@@ -10606,7 +10601,7 @@ impl Admin {
         let mut out: Vec<Option<DeletableGroupResult>> = vec![None; ids.len()];
         let mut pending: Vec<usize> = (0..ids.len()).collect();
         loop {
-            let by_node = self.group_coord_nodes(&ids, &pending).await?;
+            let by_node = self.group_coord_nodes(&ids, &pending, deadline).await?;
             let mut nodes: Vec<i32> = by_node.keys().copied().collect();
             nodes.sort_unstable();
             let mut still = Vec::new();
@@ -10927,7 +10922,7 @@ impl Admin {
                 .as_ref()
                 .is_none_or(|(g, _)| g != &group_id);
             if stale {
-                let node = self.discover_group_coord(&group_id).await?;
+                let node = self.discover_group_coord(&group_id, deadline).await?;
                 self.group_coord = Some((group_id.clone(), node));
             }
             let node = self
@@ -11040,7 +11035,7 @@ impl Admin {
         let mut out: Vec<Option<DescribedShareGroup>> = vec![None; ids.len()];
         let mut pending: Vec<usize> = (0..ids.len()).collect();
         loop {
-            let by_node = self.group_coord_nodes(&ids, &pending).await?;
+            let by_node = self.group_coord_nodes(&ids, &pending, deadline).await?;
             let mut nodes: Vec<i32> = by_node.keys().copied().collect();
             nodes.sort_unstable();
             let mut still = Vec::new();
@@ -11216,7 +11211,7 @@ impl Admin {
             let mut out: Vec<Option<DescribedShareGroupOffsetsWithLag>> = vec![None; groups.len()];
             let mut pending: Vec<usize> = (0..groups.len()).collect();
             loop {
-                let by_node = self.group_coord_nodes(&ids, &pending).await?;
+                let by_node = self.group_coord_nodes(&ids, &pending, deadline).await?;
                 let mut nodes: Vec<i32> = by_node.keys().copied().collect();
                 nodes.sort_unstable();
                 let mut still = Vec::new();
@@ -11352,7 +11347,7 @@ impl Admin {
                 .as_ref()
                 .is_none_or(|(g, _)| g != &coord_key);
             if stale {
-                let node = self.discover_group_coord(&coord_key).await?;
+                let node = self.discover_group_coord(&coord_key, deadline).await?;
                 self.group_coord = Some((coord_key.clone(), node));
             }
             let node = self
@@ -11451,7 +11446,7 @@ impl Admin {
                 .as_ref()
                 .is_none_or(|(g, _)| g != &coord_key);
             if stale {
-                let node = self.discover_group_coord(&coord_key).await?;
+                let node = self.discover_group_coord(&coord_key, deadline).await?;
                 self.group_coord = Some((coord_key.clone(), node));
             }
             let node = self
@@ -12703,14 +12698,7 @@ impl Admin {
             .await
     }
 
-    async fn discover_group_coord(&mut self, group_id: &str) -> Result<i32> {
-        let deadline = crate::net::Deadline::from_timeout(self.cfg.request_timeout);
-        deadline
-            .run(self.discover_group_coord_until(group_id))
-            .await
-    }
-
-    async fn discover_group_coord_until(&mut self, group_id: &str) -> Result<i32> {
+    async fn discover_group_coord(&mut self, group_id: &str, deadline: Instant) -> Result<i32> {
         if group_id.len() > i16::MAX as usize {
             return Err(Error::protocol("coordinator key exceeds discovery limit"));
         }
@@ -12718,12 +12706,13 @@ impl Admin {
             Error::Unsupported("broker does not support FindCoordinator v0-6".into())
         })?;
         if version > 0 && self.cluster.brokers.is_empty() {
-            self.refresh_metadata(None).await?;
+            self.refresh_metadata_until(None, deadline).await?;
         }
-        let timeout = self.cfg.request_timeout;
-        let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         loop {
+            if Instant::now() >= deadline {
+                return Err(Error::Timeout);
+            }
             if attempt >= 8 {
                 return Err(Error::protocol("FindCoordinator retry limit"));
             }
@@ -12789,15 +12778,18 @@ impl Admin {
     async fn discover_group_coords(
         &mut self,
         group_ids: &[String],
+        deadline: Instant,
     ) -> Result<HashMap<String, i32>> {
-        self.discover_coords(group_ids, COORDINATOR_GROUP).await
+        self.discover_coords(group_ids, COORDINATOR_GROUP, deadline)
+            .await
     }
 
     async fn discover_txn_coords(
         &mut self,
         transactional_ids: &[String],
+        deadline: Instant,
     ) -> Result<HashMap<String, i32>> {
-        self.discover_coords(transactional_ids, COORDINATOR_TRANSACTION)
+        self.discover_coords(transactional_ids, COORDINATOR_TRANSACTION, deadline)
             .await
     }
 
@@ -12805,6 +12797,7 @@ impl Admin {
         &mut self,
         keys: &[String],
         key_type: i8,
+        deadline: Instant,
     ) -> Result<HashMap<String, i32>> {
         let mut uniq: Vec<String> = Vec::new();
         for k in keys {
@@ -12822,21 +12815,22 @@ impl Admin {
             let mut out = HashMap::new();
             for k in &uniq {
                 let node = if key_type == COORDINATOR_TRANSACTION {
-                    self.discover_txn_coord(k).await?
+                    self.discover_txn_coord(k, deadline).await?
                 } else {
-                    self.discover_group_coord(k).await?
+                    self.discover_group_coord(k, deadline).await?
                 };
                 let _prev = out.insert(k.clone(), node);
             }
             return Ok(out);
         }
         if self.cluster.brokers.is_empty() {
-            self.refresh_metadata(None).await?;
+            self.refresh_metadata_until(None, deadline).await?;
         }
-        let timeout = self.cfg.request_timeout;
-        let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         loop {
+            if Instant::now() >= deadline {
+                return Err(Error::Timeout);
+            }
             let key_refs: Vec<&str> = uniq.iter().map(String::as_str).collect();
             let body = self
                 .roundtrip_bootstrap(
@@ -12892,6 +12886,7 @@ impl Admin {
         &mut self,
         ids: &[String],
         pending: &[usize],
+        deadline: Instant,
     ) -> Result<HashMap<i32, Vec<usize>>> {
         let mut need: Vec<String> = Vec::new();
         for &i in pending {
@@ -12903,7 +12898,7 @@ impl Admin {
             }
         }
         if !need.is_empty() {
-            let found = self.discover_group_coords(&need).await?;
+            let found = self.discover_group_coords(&need, deadline).await?;
             self.group_coords.extend(found);
         }
         let mut by_node: HashMap<i32, Vec<usize>> = HashMap::new();
@@ -12933,6 +12928,7 @@ impl Admin {
         &mut self,
         ids: &[String],
         pending: &[usize],
+        deadline: Instant,
     ) -> Result<HashMap<i32, Vec<usize>>> {
         let mut need: Vec<String> = Vec::new();
         for &i in pending {
@@ -12944,7 +12940,7 @@ impl Admin {
             }
         }
         if !need.is_empty() {
-            let found = self.discover_txn_coords(&need).await?;
+            let found = self.discover_txn_coords(&need, deadline).await?;
             self.txn_coords.extend(found);
         }
         let mut by_node: HashMap<i32, Vec<usize>> = HashMap::new();
@@ -13269,7 +13265,11 @@ impl Admin {
         Ok(out)
     }
 
-    async fn discover_txn_coord(&mut self, transactional_id: &str) -> Result<i32> {
+    async fn discover_txn_coord(
+        &mut self,
+        transactional_id: &str,
+        deadline: Instant,
+    ) -> Result<i32> {
         let version = self.find_coord_version.ok_or_else(|| {
             Error::Unsupported("broker does not support FindCoordinator v1-6".into())
         })?;
@@ -13279,12 +13279,13 @@ impl Admin {
             ));
         }
         if self.cluster.brokers.is_empty() {
-            self.refresh_metadata(None).await?;
+            self.refresh_metadata_until(None, deadline).await?;
         }
-        let timeout = self.cfg.request_timeout;
-        let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         loop {
+            if Instant::now() >= deadline {
+                return Err(Error::Timeout);
+            }
             let body = self
                 .roundtrip_bootstrap(
                     FIND_COORDINATOR,
