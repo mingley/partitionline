@@ -117,10 +117,16 @@ impl Limits {
     }
 }
 
+type TopicOffsets = BTreeMap<String, BTreeMap<i32, Committed>>;
+
+fn offset_count(offsets: &TopicOffsets) -> usize {
+    offsets.values().map(BTreeMap::len).sum()
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct Group {
     generation: i32,
-    offsets: BTreeMap<(String, i32), Committed>,
+    offsets: TopicOffsets,
 }
 
 /// Durable offset store.
@@ -178,14 +184,14 @@ impl Offsets {
     pub fn describe(&self, group: &str) -> Option<(i32, usize)> {
         self.groups
             .get(group)
-            .map(|group| (group.generation, group.offsets.len()))
+            .map(|group| (group.generation, offset_count(&group.offsets)))
     }
 
     /// Fetch one committed offset.
     pub fn fetch(&self, group: &str, topic: &str, partition: i32) -> Option<&Committed> {
         self.groups
             .get(group)
-            .and_then(|group| group.offsets.get(&(topic.to_owned(), partition)))
+            .and_then(|group| group.offsets.get(topic)?.get(&partition))
     }
 
     /// Commit a batch. A generation mismatch stores nothing.
@@ -247,28 +253,65 @@ impl Offsets {
             let mut fresh = BTreeSet::new();
             let existing = self.groups.get(group_id);
             for (topic, partition, _, _) in &accepted {
-                let key = ((*topic).to_owned(), *partition);
-                if existing.is_none_or(|group| !group.offsets.contains_key(&key)) {
-                    fresh.insert(key);
+                let known = existing.is_some_and(|group| {
+                    group
+                        .offsets
+                        .get(*topic)
+                        .and_then(|parts| parts.get(partition))
+                        .is_some()
+                });
+                if !known {
+                    let _ = fresh.insert((*topic, *partition));
                 }
             }
-            let stored = existing.map(|group| group.offsets.len()).unwrap_or(0);
+            let stored = existing
+                .map(|group| offset_count(&group.offsets))
+                .unwrap_or(0);
             if stored.saturating_add(fresh.len()) > self.limits.max_offsets {
                 return Err(Error::InvalidLimits);
             }
-            let group = self.groups.entry(group_id.to_owned()).or_insert(Group {
-                generation,
-                offsets: BTreeMap::new(),
-            });
-            for (topic, partition, offset, metadata) in accepted {
-                group.offsets.insert(
-                    (topic.to_owned(), partition),
-                    Committed {
-                        offset,
-                        metadata: metadata.to_owned(),
+            if !self.groups.contains_key(group_id) {
+                let _ = self.groups.insert(
+                    group_id.to_owned(),
+                    Group {
                         generation,
+                        offsets: BTreeMap::new(),
                     },
                 );
+            }
+            let Some(group) = self.groups.get_mut(group_id) else {
+                return Err(Error::UnknownGroup);
+            };
+            for (topic, partition, offset, metadata) in accepted {
+                if let Some(parts) = group.offsets.get_mut(topic) {
+                    if let Some(slot) = parts.get_mut(&partition) {
+                        slot.offset = offset;
+                        slot.generation = generation;
+                        if slot.metadata != metadata {
+                            slot.metadata = metadata.to_owned();
+                        }
+                        continue;
+                    }
+                    let _ = parts.insert(
+                        partition,
+                        Committed {
+                            offset,
+                            metadata: metadata.to_owned(),
+                            generation,
+                        },
+                    );
+                } else {
+                    let mut parts = BTreeMap::new();
+                    let _ = parts.insert(
+                        partition,
+                        Committed {
+                            offset,
+                            metadata: metadata.to_owned(),
+                            generation,
+                        },
+                    );
+                    let _ = group.offsets.insert(topic.to_owned(), parts);
+                }
             }
             self.persist()?;
         }
@@ -287,11 +330,19 @@ impl Offsets {
         };
         let mut removed = 0usize;
         for (topic, partition) in partitions {
-            if group
+            let removed_one = group
                 .offsets
-                .remove(&(topic.to_string(), *partition))
-                .is_some()
-            {
+                .get_mut(*topic)
+                .and_then(|parts| parts.remove(partition))
+                .is_some();
+            if removed_one {
+                if group
+                    .offsets
+                    .get(*topic)
+                    .is_some_and(|parts| parts.is_empty())
+                {
+                    let _ = group.offsets.remove(*topic);
+                }
                 removed = removed.saturating_add(1);
             }
         }
@@ -345,7 +396,7 @@ fn accept_offset_groups(
     if next.len() > limits.max_groups
         || next
             .values()
-            .any(|group| group.offsets.len() > limits.max_offsets)
+            .any(|group| offset_count(&group.offsets) > limits.max_offsets)
     {
         return Err(Error::InvalidLimits);
     }
@@ -353,6 +404,7 @@ fn accept_offset_groups(
         if group
             .offsets
             .values()
+            .flat_map(BTreeMap::values)
             .any(|committed| committed.generation != group.generation)
         {
             return Err(Error::InvalidRequest);
@@ -426,13 +478,15 @@ fn encode(groups: &BTreeMap<String, Group>) -> Result<Vec<u8>, Error> {
     for (id, group) in groups {
         put_str(&mut bytes, id)?;
         bytes.extend_from_slice(&group.generation.to_be_bytes());
-        put_u16(&mut bytes, group.offsets.len())?;
-        for ((topic, partition), committed) in &group.offsets {
-            put_str(&mut bytes, topic)?;
-            bytes.extend_from_slice(&partition.to_be_bytes());
-            bytes.extend_from_slice(&committed.offset.to_be_bytes());
-            bytes.extend_from_slice(&committed.generation.to_be_bytes());
-            put_str(&mut bytes, &committed.metadata)?;
+        put_u16(&mut bytes, offset_count(&group.offsets))?;
+        for (topic, parts) in &group.offsets {
+            for (partition, committed) in parts {
+                put_str(&mut bytes, topic)?;
+                bytes.extend_from_slice(&partition.to_be_bytes());
+                bytes.extend_from_slice(&committed.offset.to_be_bytes());
+                bytes.extend_from_slice(&committed.generation.to_be_bytes());
+                put_str(&mut bytes, &committed.metadata)?;
+            }
         }
     }
     Ok(bytes)
@@ -450,7 +504,7 @@ fn decode(mut bytes: &[u8]) -> Result<BTreeMap<String, Group>, Error> {
         validate_group(&id)?;
         let generation = take_i32(&mut bytes)?;
         let offsets_len = take_u16(&mut bytes)?;
-        let mut offsets = BTreeMap::new();
+        let mut offsets: TopicOffsets = BTreeMap::new();
         for _ in 0..offsets_len {
             let topic = take_str(&mut bytes)?;
             let partition = take_i32(&mut bytes)?;
@@ -464,9 +518,10 @@ fn decode(mut bytes: &[u8]) -> Result<BTreeMap<String, Group>, Error> {
             {
                 return Err(Error::InvalidRequest);
             }
-            if offsets
+            let parts = offsets.entry(topic).or_default();
+            if parts
                 .insert(
-                    (topic, partition),
+                    partition,
                     Committed {
                         offset,
                         metadata,
@@ -567,61 +622,49 @@ mod tests {
         (offsets, path)
     }
 
+    fn stored(topic: &str, partition: i32, offset: i64, generation: i32) -> TopicOffsets {
+        let mut parts = BTreeMap::new();
+        let _ = parts.insert(
+            partition,
+            Committed {
+                offset,
+                metadata: String::new(),
+                generation,
+            },
+        );
+        let mut topics = BTreeMap::new();
+        let _ = topics.insert(topic.to_owned(), parts);
+        topics
+    }
+
     #[test]
     fn an_offset_generation_jump_is_not_recovered() {
         let (offsets, _) = open("jump");
-        let mut rows = BTreeMap::new();
-        rows.insert(
-            ("orders".to_owned(), 0),
-            Committed {
-                offset: 4,
-                metadata: String::new(),
-                generation: 9,
-            },
-        );
         let mut groups = BTreeMap::new();
-        groups.insert(
+        let _ = groups.insert(
             "orders".to_owned(),
             Group {
                 generation: 1,
-                offsets: rows,
+                offsets: stored("orders", 0, 4, 9),
             },
         );
         assert!(matches!(
             accept_offset_groups(&offsets.groups, &groups, offsets.limits),
             Err(Error::InvalidRequest)
         ));
-        let mut payments = BTreeMap::new();
-        payments.insert(
-            ("paid".to_owned(), 0),
-            Committed {
-                offset: 1,
-                metadata: String::new(),
-                generation: 1,
-            },
-        );
-        let mut orders = BTreeMap::new();
-        orders.insert(
-            ("orders".to_owned(), 0),
-            Committed {
-                offset: 1,
-                metadata: String::new(),
-                generation: 1,
-            },
-        );
         let mut both = BTreeMap::new();
-        both.insert(
+        let _ = both.insert(
             "orders".to_owned(),
             Group {
                 generation: 1,
-                offsets: orders,
+                offsets: stored("orders", 0, 1, 1),
             },
         );
-        both.insert(
+        let _ = both.insert(
             "payments".to_owned(),
             Group {
                 generation: 1,
-                offsets: payments,
+                offsets: stored("paid", 0, 1, 1),
             },
         );
         assert!(matches!(
@@ -633,21 +676,12 @@ mod tests {
 
     #[test]
     fn a_negative_offset_is_not_recovered() {
-        let mut offsets = BTreeMap::new();
-        offsets.insert(
-            ("orders".to_owned(), 0),
-            Committed {
-                offset: -1,
-                metadata: String::new(),
-                generation: 1,
-            },
-        );
         let mut groups = BTreeMap::new();
-        groups.insert(
+        let _ = groups.insert(
             "orders".to_owned(),
             Group {
                 generation: 1,
-                offsets,
+                offsets: stored("orders", 0, -1, 1),
             },
         );
         let encoded = encode(&groups).unwrap_or_else(|error| panic!("{error:?}"));
