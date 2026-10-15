@@ -1884,8 +1884,8 @@ pub struct Consumer {
     /// Positions in `assigned`. Cleared when membership changes.
     cursor_index: Option<CursorIndex>,
     /// Slot map for the topic currently being read, so later partitions skip
-    /// hashing that topic name.
-    cursor_slots: Option<(Arc<str>, HashMap<i32, usize>)>,
+    /// hashing that topic name. The map is shared with `cursor_index`.
+    cursor_slots: Option<(Arc<str>, CursorParts)>,
     /// Topic identity captured when each partition was assigned. Metadata
     /// refreshes must not bind delivered offsets to a recreated topic.
     assigned_topic_ids: HashMap<Arc<str>, HashMap<i32, [u8; 16]>>,
@@ -2020,7 +2020,11 @@ type SessionParts = HashMap<i32, SessionPartition>;
 type ChangedFetch = HashMap<String, ([u8; 16], Vec<FetchPartition>)>;
 
 /// Position of each assigned partition in [`Consumer::assigned`].
-type CursorIndex = HashMap<Arc<str>, HashMap<i32, usize>>;
+///
+/// The inner map is shared. Applying a fetch topic clones the pointer, not
+/// every partition slot.
+type CursorParts = Arc<HashMap<i32, usize>>;
+type CursorIndex = HashMap<Arc<str>, CursorParts>;
 
 /// A broker's cached request map is bounded by this consumer's active assignment.
 /// Preparing marks the map uncertain until a response arrives, so cancellation
@@ -3227,16 +3231,20 @@ impl Consumer {
         if self.cursor_index.is_some() {
             return;
         }
-        let mut index: CursorIndex = HashMap::new();
+        let mut built: HashMap<Arc<str>, HashMap<i32, usize>> = HashMap::new();
         for (slot, (topic, partition, _)) in self.assigned.iter().enumerate() {
-            if let Some(parts) = index.get_mut(topic.as_ref()) {
+            if let Some(parts) = built.get_mut(topic.as_ref()) {
                 let _ = parts.insert(*partition, slot);
             } else {
                 let mut parts = HashMap::new();
                 let _ = parts.insert(*partition, slot);
-                let _ = index.insert(Arc::clone(topic), parts);
+                let _ = built.insert(Arc::clone(topic), parts);
             }
         }
+        let index = built
+            .into_iter()
+            .map(|(topic, parts)| (topic, Arc::new(parts)))
+            .collect();
         self.cursor_index = Some(index);
         self.cursor_slots = None;
     }
@@ -3249,7 +3257,7 @@ impl Consumer {
         if !cached {
             let index = self.cursor_index.as_ref()?;
             let (name, parts) = index.get_key_value(topic)?;
-            self.cursor_slots = Some((Arc::clone(name), parts.clone()));
+            self.cursor_slots = Some((Arc::clone(name), Arc::clone(parts)));
         }
         self.cursor_slots
             .as_ref()
