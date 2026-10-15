@@ -1857,6 +1857,9 @@ pub struct Consumer {
     assigned: Vec<(Arc<str>, i32, i64)>,
     /// Positions in `assigned`. Cleared when membership changes.
     cursor_index: Option<CursorIndex>,
+    /// Slot map for the topic currently being read, so later partitions skip
+    /// hashing that topic name.
+    cursor_slots: Option<(Arc<str>, HashMap<i32, usize>)>,
     /// Topic identity captured when each partition was assigned. Metadata
     /// refreshes must not bind delivered offsets to a recreated topic.
     assigned_topic_ids: HashMap<Arc<str>, HashMap<i32, [u8; 16]>>,
@@ -2534,6 +2537,7 @@ impl Consumer {
             throttle_metrics: crate::metrics::ThrottleTracker::default(),
             assigned: Vec::new(),
             cursor_index: None,
+            cursor_slots: None,
             assigned_topic_ids: HashMap::new(),
             last_fetched_epochs: PartitionMap::new(),
             preferred: PartitionMap::new(),
@@ -2589,6 +2593,7 @@ impl Consumer {
         let topic: Arc<str> = Arc::from(topic_name);
         self.assigned.push((Arc::clone(&topic), partition, offset));
         self.cursor_index = None;
+        self.cursor_slots = None;
         if let Some(parts) = self.assigned_topic_ids.get_mut(topic.as_ref()) {
             let _previous = parts.remove(&partition);
         }
@@ -2711,6 +2716,7 @@ impl Consumer {
             self.assigned.push((Arc::clone(&name), p, offset));
         }
         self.cursor_index = None;
+        self.cursor_slots = None;
         self.capture_assigned_topic_ids();
         Ok(())
     }
@@ -2898,6 +2904,7 @@ impl Consumer {
         self.abort_inflight_fetches();
         self.assigned.clear();
         self.cursor_index = None;
+        self.cursor_slots = None;
         self.assigned_topic_ids.clear();
         self.pending.clear();
         self.retained.clear();
@@ -2933,6 +2940,7 @@ impl Consumer {
         }
         let previous_assigned = std::mem::take(&mut self.assigned);
         self.cursor_index = None;
+        self.cursor_slots = None;
         let previous_epochs = std::mem::replace(&mut self.last_fetched_epochs, PartitionMap::new());
         let previous_aborted = std::mem::replace(&mut self.aborted, PartitionMap::new());
         if starts.is_empty() {
@@ -3084,28 +3092,33 @@ impl Consumer {
             }
         }
         self.cursor_index = Some(index);
+        self.cursor_slots = None;
     }
 
-    fn cursor_at(&self, topic: &str, partition: i32) -> Option<i64> {
-        let slot = self
-            .cursor_index
-            .as_ref()?
-            .get(topic)?
-            .get(&partition)
-            .copied()?;
+    fn cursor_slot(&mut self, topic: &str, partition: i32) -> Option<usize> {
+        let cached = self
+            .cursor_slots
+            .as_ref()
+            .is_some_and(|(name, _)| name.as_ref() == topic);
+        if !cached {
+            let index = self.cursor_index.as_ref()?;
+            let (name, parts) = index.get_key_value(topic)?;
+            self.cursor_slots = Some((Arc::clone(name), parts.clone()));
+        }
+        self.cursor_slots
+            .as_ref()
+            .and_then(|(_, parts)| parts.get(&partition).copied())
+    }
+
+    fn cursor_at(&mut self, topic: &str, partition: i32) -> Option<i64> {
+        let slot = self.cursor_slot(topic, partition)?;
         self.assigned.get(slot).and_then(|(name, part, offset)| {
             (name.as_ref() == topic && *part == partition).then_some(*offset)
         })
     }
 
     fn advance_indexed(&mut self, topic: &str, partition: i32, next_offset: i64) {
-        let slot = self.cursor_index.as_ref().and_then(|index| {
-            index
-                .get(topic)
-                .and_then(|parts| parts.get(&partition))
-                .copied()
-        });
-        let Some(slot) = slot else {
+        let Some(slot) = self.cursor_slot(topic, partition) else {
             return;
         };
         if let Some(entry) = self.assigned.get_mut(slot) {
