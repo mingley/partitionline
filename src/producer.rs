@@ -2075,12 +2075,8 @@ impl Producer {
             if rest.is_zero() {
                 return Err(Error::Timeout);
             }
-            let _ = tokio::time::timeout(
-                rest,
-                partitions_for_timeout(shared, &topic, shared.cfg.request_timeout.min(rest)),
-            )
-            .await
-            .map_err(|_| Error::Timeout)??;
+            let _ = partitions_for_timeout(shared, &topic, shared.cfg.request_timeout.min(rest))
+                .await?;
         }
         let record_permit = self.wait_sticky_record(deadline).await?;
         pending.as_mut().ok_or(Error::Closed)?.sticky_record = Some(record_permit);
