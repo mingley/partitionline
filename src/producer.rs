@@ -2322,31 +2322,59 @@ impl Producer {
     }
 
     fn remember_fast(&self, rec: &ProduceRecord) {
-        let (np, fetched_at) = {
+        let (np, fetched_at, leader_nodes, complete) = {
             let cluster = self.inner.shared.cluster.lock();
             let Some(np) = cluster.partition_count(rec.topic.as_ref()) else {
                 return;
             };
-            (np, cluster.topic_fetched_at(rec.topic.as_ref()))
-        };
-        if np <= 0 {
-            return;
-        }
-        let n = usize::try_from(np).unwrap_or(0);
-        let mut handles = Vec::with_capacity(n);
-        for i in 0..np {
-            let probe = ProduceRecord {
-                topic: rec.topic.clone(),
-                partition: Some(i),
-                key: None,
-                value: None,
-                timestamp: None,
-                headers: Vec::new(),
-            };
-            let Some(w) = self.worker_for(&probe) else {
+            if np <= 0 {
+                return;
+            }
+            let Ok(n) = usize::try_from(np) else {
                 return;
             };
-            handles.push(w);
+            let leaders = cluster.leader_ids(rec.topic.as_ref());
+            let mut leader_nodes = Vec::with_capacity(n);
+            for partition in 0..np {
+                let Some(idx) = usize::try_from(partition).ok() else {
+                    break;
+                };
+                let Some(node) = leaders.get(idx).copied().filter(|id| *id >= 0) else {
+                    break;
+                };
+                if !cluster.brokers.contains_key(&node) {
+                    break;
+                }
+                leader_nodes.push(node);
+            }
+            let complete = leader_nodes.len() == n;
+            (
+                np,
+                cluster.topic_fetched_at(rec.topic.as_ref()),
+                leader_nodes,
+                complete,
+            )
+        };
+        let n_conn = self.inner.shared.cfg.connections.max(1);
+        let mut handles = Vec::with_capacity(leader_nodes.len());
+        {
+            let nodes = self.inner.shared.nodes.lock();
+            for (partition, node) in leader_nodes.into_iter().enumerate() {
+                let slot = partition % n_conn;
+                try_nudge_slot(&self.inner.shared.connect_tx, node, slot);
+                let Some(handle) = nodes
+                    .get(&node)
+                    .and_then(|slots| slots.get(slot))
+                    .cloned()
+                    .flatten()
+                else {
+                    return;
+                };
+                handles.push(handle);
+            }
+        }
+        if !complete {
+            return;
         }
         let tracker = self.inner.shared.topic_tracker(&rec.topic);
         let route = FastRoute {
