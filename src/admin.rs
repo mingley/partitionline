@@ -3285,6 +3285,25 @@ fn creatable_from_new(topics: &[NewTopic]) -> Vec<CreatableTopic> {
         .collect()
 }
 
+fn group_named<T>(
+    items: impl IntoIterator<Item = T>,
+    name: impl Fn(&T) -> &str,
+) -> HashMap<String, VecDeque<T>> {
+    let mut grouped: HashMap<String, VecDeque<T>> = HashMap::new();
+    for item in items {
+        let key = name(&item);
+        if let Some(queue) = grouped.get_mut(key) {
+            queue.push_back(item);
+            continue;
+        }
+        let owned = key.to_owned();
+        let mut queue = VecDeque::new();
+        queue.push_back(item);
+        let _ = grouped.insert(owned, queue);
+    }
+    grouped
+}
+
 fn first_name_index<'a>(names: impl IntoIterator<Item = &'a str>) -> HashMap<&'a str, usize> {
     let mut slots = HashMap::new();
     for (index, name) in names.into_iter().enumerate() {
@@ -13868,10 +13887,7 @@ impl Admin {
         body: Bytes,
     ) -> Result<Vec<(usize, DescribedGroup)>> {
         let (results, ..) = decode_describe_groups_response(&mut body.clone(), version)?;
-        let mut by_id: HashMap<String, VecDeque<DescribedGroup>> = HashMap::new();
-        for g in results {
-            by_id.entry(g.group_id.clone()).or_default().push_back(g);
-        }
+        let mut by_id = group_named(results, |group| group.group_id.as_str());
         let mut out = Vec::new();
         for &i in idxs {
             let id = ids
@@ -13920,10 +13936,7 @@ impl Admin {
         body: Bytes,
     ) -> Result<Vec<(usize, DeletableGroupResult)>> {
         let (results, ..) = decode_delete_groups_response(&mut body.clone(), version)?;
-        let mut by_id: HashMap<String, VecDeque<DeletableGroupResult>> = HashMap::new();
-        for g in results {
-            by_id.entry(g.group_id.clone()).or_default().push_back(g);
-        }
+        let mut by_id = group_named(results, |group| group.group_id.as_str());
         let mut out = Vec::new();
         for &i in idxs {
             let id = ids
@@ -13980,10 +13993,7 @@ impl Admin {
         body: Bytes,
     ) -> Result<Vec<(usize, DescribedConsumerGroup)>> {
         let (results, ..) = decode_consumer_group_describe_response(&mut body.clone(), version)?;
-        let mut by_id: HashMap<String, VecDeque<DescribedConsumerGroup>> = HashMap::new();
-        for g in results {
-            by_id.entry(g.group_id.clone()).or_default().push_back(g);
-        }
+        let mut by_id = group_named(results, |group| group.group_id.as_str());
         let mut out = Vec::new();
         for &i in idxs {
             let id = ids
@@ -14040,10 +14050,7 @@ impl Admin {
         body: Bytes,
     ) -> Result<Vec<(usize, DescribedShareGroup)>> {
         let (results, ..) = decode_share_group_describe_response(&mut body.clone(), version)?;
-        let mut by_id: HashMap<String, VecDeque<DescribedShareGroup>> = HashMap::new();
-        for g in results {
-            by_id.entry(g.group_id.clone()).or_default().push_back(g);
-        }
+        let mut by_id = group_named(results, |group| group.group_id.as_str());
         let mut out = Vec::new();
         for &i in idxs {
             let id = ids
@@ -14102,11 +14109,7 @@ impl Admin {
                 "DescribeShareGroupOffsets trailing response bytes",
             ));
         }
-        let mut by_id: HashMap<String, VecDeque<DescribedShareGroupOffsetsWithLag>> =
-            HashMap::new();
-        for g in results {
-            by_id.entry(g.group_id.clone()).or_default().push_back(g);
-        }
+        let mut by_id = group_named(results, |group| group.group_id.as_str());
         let mut out = Vec::new();
         for &i in idxs {
             let id = groups
@@ -14157,13 +14160,7 @@ impl Admin {
         body: Bytes,
     ) -> Result<Vec<(usize, TransactionState)>> {
         let (results, ..) = decode_describe_transactions_response(&mut body.clone())?;
-        let mut by_id: HashMap<String, VecDeque<TransactionState>> = HashMap::new();
-        for t in results {
-            by_id
-                .entry(t.transactional_id.clone())
-                .or_default()
-                .push_back(t);
-        }
+        let mut by_id = group_named(results, |txn| txn.transactional_id.as_str());
         let mut out = Vec::new();
         for &i in idxs {
             let id = ids
@@ -14623,6 +14620,30 @@ mod tests {
         CreatedTopicConfig, ListConfigResourcesResponse,
     };
     use bytes::BytesMut;
+
+    #[test]
+    fn a_repeated_group_id_stays_in_arrival_order() {
+        let grouped = group_named(
+            [
+                ("orders".to_owned(), 1),
+                ("orders".to_owned(), 2),
+                ("payments".to_owned(), 3),
+            ],
+            |item| item.0.as_str(),
+        );
+        assert_eq!(grouped.len(), 2);
+        let orders = grouped
+            .get("orders")
+            .map(|queue| queue.iter().map(|item| item.1).collect::<Vec<_>>());
+        assert_eq!(orders, Some(vec![1, 2]));
+        assert_eq!(
+            grouped
+                .get("payments")
+                .and_then(|queue| queue.front())
+                .map(|item| item.1),
+            Some(3)
+        );
+    }
 
     #[test]
     fn the_first_pending_topic_is_the_one_a_result_finds() {
