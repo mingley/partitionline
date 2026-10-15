@@ -338,11 +338,7 @@ impl Store {
         if now_ms < 0 {
             return Err(Error::InvalidConfig);
         }
-        let Some(slot) = self
-            .slots
-            .iter_mut()
-            .find(|slot| slot.id == id && slot.index == index)
-        else {
+        let Some(slot) = self.located_slot_mut(id, index) else {
             // Known empty partitions need no file or zero-length cleaner swap.
             return Ok(compaction::Outcome::default());
         };
@@ -420,6 +416,12 @@ impl Store {
             self.changed = true;
         }
     }
+    fn located_slot_mut(&mut self, id: TopicId, index: i32) -> Option<&mut Slot> {
+        let position = self.located.get(&(id, index)).copied()?;
+        let slot = self.slots.get_mut(position)?;
+        let matches = slot.id == id && slot.index == index;
+        matches.then_some(slot)
+    }
     fn slot(&mut self, id: TopicId, index: i32) -> Result<usize, i16> {
         if let Some(position) = self.located.get(&(id, index)).copied() {
             return Ok(position);
@@ -486,11 +488,7 @@ impl Store {
         if offset < 0 || offset > watermark {
             return Err(1);
         }
-        let Some(slot) = self
-            .slots
-            .iter_mut()
-            .find(|slot| slot.id == id && slot.index == index)
-        else {
+        let Some(slot) = self.located_slot_mut(id, index) else {
             // A known empty partition needs no filesystem handle or manifest.
             return Ok(0);
         };
@@ -572,17 +570,11 @@ impl Store {
         remaining_entries: usize,
         dest: &mut Vec<u8>,
     ) -> Result<(Option<journal::PayloadView>, segments::Work), partition::Error> {
-        let Some(slot) = self
-            .slots
-            .iter_mut()
-            .find(|slot| slot.id == id && slot.index == index)
-        else {
+        let max_entry = self.config.journal_limits.max_entry_bytes();
+        let Some(slot) = self.located_slot_mut(id, index) else {
             return Ok((None, segments::Work::default()));
         };
-        let maximum = self
-            .config
-            .journal_limits
-            .max_entry_bytes()
+        let maximum = max_entry
             .min(remaining_bytes)
             .checked_add(std::mem::size_of::<journal::Entry>())
             .ok_or(partition::Error::InvalidLimits)?;
@@ -599,10 +591,7 @@ impl Store {
         index: i32,
         wanted: i64,
     ) -> Result<i64, partition::Error> {
-        let Some(position) = self.located.get(&(id, index)).copied() else {
-            return Ok(0);
-        };
-        let Some(slot) = self.slots.get_mut(position) else {
+        let Some(slot) = self.located_slot_mut(id, index) else {
             return Ok(0);
         };
         let poisoned = slot.partition.is_poisoned();
