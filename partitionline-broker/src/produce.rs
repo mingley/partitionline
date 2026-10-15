@@ -1049,14 +1049,10 @@ struct PendingSync {
     batch_count: usize,
     failed: bool,
 }
-fn note_append(
-    part: &mut ResultPart,
-    id: TopicId,
-    result: partition::Append,
-    store: &mut Store,
-    admitted: Instant,
-    timeout: i32,
-) {
+fn note_append(part: &mut ResultPart, id: TopicId, result: partition::Append, store: &mut Store) {
+    // The request timer is checked before mutation. A finished single-node
+    // append already met acks, so hiding its offset would make the producer
+    // retry a durable batch.
     part.base = result.base_offset;
     match store.log_start(id, part.index) {
         Ok(log_start) => part.log_start = log_start,
@@ -1064,10 +1060,6 @@ fn note_append(
             part.error = error;
             part.base = -1;
         }
-    }
-    if timed_out(admitted, timeout) {
-        part.error = 7;
-        part.base = -1;
     }
 }
 fn sync_staged(items: &mut [PendingSync]) {
@@ -1106,8 +1098,6 @@ struct CapturedProduce {
     correlation_id: i32,
     body_off: usize,
     acks: i16,
-    timeout: i32,
-    admitted: Instant,
     response_bound: usize,
     results: Vec<ResultTopic>,
     pending_sync: Vec<PendingSync>,
@@ -1267,7 +1257,7 @@ fn finish_captured(
             continue;
         }
         match store.commit_staged(sync.id, sync.index, sync.batch_count) {
-            Ok(result) => note_append(part, sync.id, result, store, item.admitted, item.timeout),
+            Ok(result) => note_append(part, sync.id, result, store),
             Err(error) => {
                 part.error = error;
                 part.base = -1;
@@ -1487,7 +1477,7 @@ fn process_inner(
                     };
                     match staged {
                         Ok(partition::Stage::Done(result)) => {
-                            note_append(part, id, result, store, admitted, parsed.timeout);
+                            note_append(part, id, result, store);
                         }
                         Ok(partition::Stage::Sync(staged)) => pending_sync.push(PendingSync {
                             topic_at,
@@ -1512,8 +1502,6 @@ fn process_inner(
             correlation_id,
             body_off,
             acks: parsed.acks,
-            timeout: parsed.timeout,
-            admitted,
             response_bound,
             results,
             pending_sync,
@@ -1535,7 +1523,7 @@ fn process_inner(
             continue;
         }
         match store.commit_staged(item.id, item.index, item.batch_count) {
-            Ok(result) => note_append(part, item.id, result, store, admitted, parsed.timeout),
+            Ok(result) => note_append(part, item.id, result, store),
             Err(error) => {
                 part.error = error;
                 part.base = -1;
@@ -1685,5 +1673,59 @@ impl Writer {
         } else {
             self.i16(-1)
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::catalog::{Catalog, TopicId};
+
+    #[test]
+    fn finished_append_keeps_its_offset_after_the_request_timer() {
+        let root = std::env::temp_dir().join(format!(
+            "pl-produce-timer-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .expect("clock")
+                .as_nanos()
+        ));
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(&root).expect("scratch");
+        let (catalog, _) = Catalog::open(
+            root.join("catalog.journal"),
+            metadata::Config::new(0, "127.0.0.1".into(), 1, "timer".into()).catalog_limits,
+        )
+        .expect("catalog");
+        let mut store = Store::open(Config::new(root.join("partitions")), &catalog).expect("store");
+        let mut part = ResultPart {
+            index: 0,
+            error: 0,
+            base: -1,
+            log_start: -1,
+            bytes: Held::Owned(Vec::new()),
+            id: None,
+        };
+        note_append(
+            &mut part,
+            TopicId::new([9; 16]).expect("id"),
+            partition::Append {
+                base_offset: 7,
+                next_offset: 8,
+                record_count: 1,
+                batch_count: 1,
+            },
+            &mut store,
+        );
+        // The timer elapsed before this observation. The offset is already assigned.
+        let expired = Instant::now()
+            .checked_sub(Duration::from_secs(5))
+            .expect("past");
+        assert!(timed_out(expired, 1));
+        assert_eq!(part.error, 0);
+        assert_eq!(part.base, 7);
+        assert_eq!(part.log_start, 0);
+        let _ = fs::remove_dir_all(&root);
     }
 }

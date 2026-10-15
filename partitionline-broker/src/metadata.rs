@@ -1967,13 +1967,9 @@ fn create(
                             partitions,
                             admitted + Duration::from_millis(request.timeout.max(0) as u64),
                         ) {
-                            Ok(_) => {
-                                if timed_out(admitted, request.timeout) {
-                                    TIMEOUT
-                                } else {
-                                    OK
-                                }
-                            }
+                            // The timer already refused to start this create.
+                            // A completed topic stays visible as success.
+                            Ok(_) => OK,
                             Err(error) => catalog_error(&error),
                         }
                     }
@@ -2141,13 +2137,9 @@ fn delete(
                 id,
                 admitted + Duration::from_millis(request.timeout.max(0) as u64),
             ) {
-                Ok(_) => {
-                    if timed_out(admitted, request.timeout) {
-                        TIMEOUT
-                    } else {
-                        OK
-                    }
-                }
+                // The timer already refused to start this delete.
+                // A completed tombstone stays visible as success.
+                Ok(_) => OK,
                 Err(error) => catalog_error(&error),
             }
         };
