@@ -689,7 +689,13 @@ pub enum ShareAcquireMode {
 /// invalidate topic metadata so the next poll uses the refreshed id
 /// (Java `metadata.requestUpdate`). Incremental ShareFetch sends Java
 /// `ShareSessionHandler` forgotten partitions when the assignment
-/// shrinks or a topic id is replaced.
+/// shrinks or a topic id is replaced. Standalone ShareAcknowledge
+/// fails locally with `NOT_LEADER_OR_FOLLOWER` when Metadata already
+/// shows a different leader than the fetch node (Java
+/// `isLeaderKnownToHaveChanged` /
+/// `testLeadershipChangeAfterFetchBeforeCommitSync`). Acquisition
+/// locks are released on the previous broker; those acknowledgements
+/// are not sent to the new leader.
 /// [`ShareAcquireMode::RecordLimit`] fetches records from one leader
 /// per poll; other leaders send a zero-limit session/ack ShareFetch
 /// (Java `canSkipIfRequestEmpty`). An unrequested ShareFetch topic id
@@ -1952,6 +1958,51 @@ impl ShareGroup {
             return Ok(*node);
         }
         Ok(self.consumer.leader_of(topic, partition)?.0)
+    }
+
+    /// Fetch-node that acquired this topic-partition, if any lock remains.
+    fn share_ack_fetch_node(&self, topic: &str, partition: i32) -> Option<i32> {
+        self.acquisitions
+            .iter()
+            .find_map(|((name, part, _), acquired)| {
+                (name == topic && *part == partition).then_some(acquired.node)
+            })
+    }
+
+    /// Java `isLeaderKnownToHaveChanged`: Metadata already names a
+    /// different leader than the node that issued the acquisition.
+    fn share_ack_leader_changed(&self, topic: &str, partition: i32) -> bool {
+        share_ack_fetch_leader_changed(
+            self.share_ack_fetch_node(topic, partition),
+            self.share_leader_node(topic, partition).ok(),
+        )
+    }
+
+    /// Drop acquisitions covered by these acknowledgement batches
+    /// (Java ownership-lost / omitted / known leader change).
+    fn drop_acknowledged_acquisitions(
+        &mut self,
+        name: &str,
+        partition: i32,
+        batches: &[AcknowledgementBatch],
+    ) {
+        let in_batches = |offset: i64| {
+            batches
+                .iter()
+                .any(|batch| offset >= batch.first_offset && offset <= batch.last_offset)
+        };
+        let matched: Vec<(String, i32, i64)> = self
+            .acquisitions
+            .keys()
+            .filter(|(topic, part, offset)| {
+                topic == name && *part == partition && in_batches(*offset)
+            })
+            .cloned()
+            .collect();
+        self.uncount_acknowledgements(matched);
+        self.acquisitions.retain(|(topic, part, offset), _| {
+            !(topic == name && *part == partition && in_batches(*offset))
+        });
     }
 
     async fn leaders_of(
@@ -3266,13 +3317,37 @@ impl ShareGroup {
         ack: i8,
         outcomes: &mut BTreeMap<(String, i32), Option<Error>>,
     ) -> Result<()> {
+        let mut first_error = None;
+        // Java isLeaderKnownToHaveChanged: fail acknowledgements when
+        // Metadata already shows a different leader. Acquisition locks
+        // are released on the previous broker; do not send them to the
+        // new leader (testLeadershipChangeAfterFetchBeforeCommitSync).
+        let mut kept = Vec::with_capacity(partitions.len());
+        for (topic, part, batches) in partitions.drain(..) {
+            if self.share_ack_leader_changed(&topic, part) {
+                let error = Error::broker(
+                    error::NOT_LEADER_OR_FOLLOWER,
+                    format!("ShareAcknowledge {topic}-{part}"),
+                );
+                self.drop_acknowledged_acquisitions(&topic, part, &batches);
+                let _ = outcomes.insert((topic, part), Some(error.clone()));
+                if first_error.as_ref().is_none_or(share_ack_retriable) {
+                    first_error = Some(error);
+                }
+            } else {
+                kept.push((topic, part, batches));
+            }
+        }
+        *partitions = kept;
+        if partitions.is_empty() {
+            return first_error.map_or(Ok(()), Err);
+        }
         let tps: Vec<_> = partitions
             .iter()
             .map(|(topic, part, _)| (topic.clone(), *part))
             .collect();
         let mut nodes: Vec<_> = self.leaders_of(&tps).await?.into_iter().collect();
         nodes.sort_by_key(|(node, _)| *node);
-        let mut first_error = None;
         for (node, node_tps) in nodes {
             let version = self.node_share_version(node, SHARE_ACKNOWLEDGE).await?;
             if ack == ACK_RENEW && version < 2 {
@@ -3442,36 +3517,12 @@ impl ShareGroup {
                         if part.error_code == error::INVALID_RECORD_STATE
                             || share_ack_ownership_lost(part.error_code)
                         {
-                            let matched: Vec<(String, i32, i64)> = self
-                                .acquisitions
-                                .keys()
-                                .filter(|(t, p, offset)| {
-                                    t == &name
-                                        && *p == part.partition
-                                        && partitions.iter().any(|(topic, partition, batches)| {
-                                            topic == t
-                                                && partition == p
-                                                && batches.iter().any(|b| {
-                                                    *offset >= b.first_offset
-                                                        && *offset <= b.last_offset
-                                                })
-                                        })
-                                })
-                                .cloned()
-                                .collect();
-                            self.uncount_acknowledgements(matched);
-                            self.acquisitions.retain(|(t, p, offset), _| {
-                                !(t == &name
-                                    && *p == part.partition
-                                    && partitions.iter().any(|(topic, partition, batches)| {
-                                        topic == t
-                                            && partition == p
-                                            && batches.iter().any(|b| {
-                                                *offset >= b.first_offset
-                                                    && *offset <= b.last_offset
-                                            })
-                                    }))
-                            });
+                            if let Some((_, _, batches)) = partitions
+                                .iter()
+                                .find(|(topic, p, _)| topic == &name && *p == part.partition)
+                            {
+                                self.drop_acknowledged_acquisitions(&name, part.partition, batches);
+                            }
                         }
                         let error = share_partition_broker_error(
                             part.error_code,
@@ -3495,34 +3546,12 @@ impl ShareGroup {
             }
             for (topic_id, partition) in omitted {
                 let name = self.name_for_topic_id(topic_id);
-                let matched: Vec<(String, i32, i64)> = self
-                    .acquisitions
-                    .keys()
-                    .filter(|(t, p, offset)| {
-                        t == &name
-                            && *p == partition
-                            && partitions.iter().any(|(topic, part, batches)| {
-                                topic == t
-                                    && part == p
-                                    && batches.iter().any(|b| {
-                                        *offset >= b.first_offset && *offset <= b.last_offset
-                                    })
-                            })
-                    })
-                    .cloned()
-                    .collect();
-                self.uncount_acknowledgements(matched);
-                self.acquisitions.retain(|(t, p, offset), _| {
-                    !(t == &name
-                        && *p == partition
-                        && partitions.iter().any(|(topic, part, batches)| {
-                            topic == t
-                                && part == p
-                                && batches
-                                    .iter()
-                                    .any(|b| *offset >= b.first_offset && *offset <= b.last_offset)
-                        }))
-                });
+                if let Some((_, _, batches)) = partitions
+                    .iter()
+                    .find(|(topic, part, _)| topic == &name && *part == partition)
+                {
+                    self.drop_acknowledged_acquisitions(&name, partition, batches);
+                }
                 let error = Error::broker(error::INVALID_RECORD_STATE, SHARE_ACK_INVALID_RESPONSE);
                 let _ = outcomes.insert((name, partition), Some(error.clone()));
                 if first_error.as_ref().is_none_or(share_ack_retriable) {
@@ -3981,6 +4010,16 @@ fn share_ack_ownership_lost(code: i16) -> bool {
     )
 }
 
+/// Java `isLeaderKnownToHaveChanged`: a present Metadata leader that
+/// differs from the fetch node. A missing leader is not a known change
+/// (Java requests `metadata.requestUpdate` and returns false).
+fn share_ack_fetch_leader_changed(fetch_node: Option<i32>, current_leader: Option<i32>) -> bool {
+    match (fetch_node, current_leader) {
+        (Some(fetch), Some(leader)) => leader != fetch,
+        _ => false,
+    }
+}
+
 /// Java `ShareFetchCollector.handleInitializeErrors` codes that request
 /// a metadata update (or are logged) and do not throw from `collect`.
 fn share_fetch_partition_skipped(code: i16) -> bool {
@@ -4362,6 +4401,15 @@ mod tests {
             }
             other => panic!("{other:?}"),
         }
+    }
+
+    #[test]
+    fn share_ack_fetch_leader_changed_matches_java() {
+        assert!(share_ack_fetch_leader_changed(Some(1), Some(2)));
+        assert!(!share_ack_fetch_leader_changed(Some(1), Some(1)));
+        assert!(!share_ack_fetch_leader_changed(None, Some(2)));
+        assert!(!share_ack_fetch_leader_changed(Some(1), None));
+        assert!(!share_ack_fetch_leader_changed(None, None));
     }
 
     #[test]

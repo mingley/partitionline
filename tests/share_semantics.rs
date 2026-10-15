@@ -1349,6 +1349,62 @@ async fn leader_change_ack_is_terminal_and_record_is_reacquired_on_new_leader() 
 }
 
 #[tokio::test]
+async fn share_acknowledge_fails_when_metadata_leader_changed() {
+    let mock = common::Mock::start_two_node().await;
+    v2(&mock);
+    mock.set_topic_partitions("t", 2);
+    mock.set_partition_leader("t", 0, 1);
+    mock.set_partition_leader("t", 1, 1);
+    produce(&mock, &[(0, b"keep-success"), (1, b"move-lock")]).await;
+    let mut group = ShareGroup::join(config(&mock), "meta-leader-ack", "t")
+        .await
+        .unwrap();
+    let acquired = group.poll().await.unwrap();
+    assert_eq!(acquired.len(), 2);
+    mock.set_partition_leader("t", 1, 2);
+    // Java commitSync sees the Metadata update before building
+    // ShareAcknowledge (testLeadershipChangeAfterFetchBeforeCommitSync).
+    let _ = group.list_topics().await.unwrap();
+    let calls = mock.share_ack_calls();
+    group.accept(&acquired).await.unwrap();
+    let results = group.commit_sync().await.unwrap();
+    assert_eq!(results.len(), 2);
+    let by_part: Vec<(i32, Option<i16>)> = results
+        .iter()
+        .map(|(tp, error)| (tp.partition(), error.as_ref().and_then(|e| e.code())))
+        .collect();
+    assert!(
+        by_part.contains(&(0, None)),
+        "unmoved partition still acknowledges: {by_part:?}"
+    );
+    assert!(
+        by_part.contains(&(1, Some(error::NOT_LEADER_OR_FOLLOWER))),
+        "Java isLeaderKnownToHaveChanged completes with NOT_LEADER: {by_part:?}"
+    );
+    assert_eq!(
+        mock.share_ack_calls(),
+        calls + 1,
+        "only the still-led partition is sent"
+    );
+    assert_eq!(mock.last_share_ack_partitions(), 1);
+    assert_eq!(mock.last_share_ack_node(), Some(1));
+    assert!(mock.share_accepted("meta-leader-ack", "t", 0, 0));
+    assert!(!mock.share_accepted("meta-leader-ack", "t", 1, 0));
+    assert_eq!(group.metrics().records_acknowledged, 1);
+    let moved = group.poll().await.unwrap();
+    assert_eq!(moved.len(), 1);
+    assert_eq!(
+        (moved[0].partition, moved[0].offset, moved[0].delivery_count),
+        (1, 0, 2)
+    );
+    assert_eq!(mock.last_share_fetch_node(), Some(2));
+    group.accept(&moved).await.unwrap();
+    group.commit().await.unwrap();
+    assert_eq!(group.metrics().records_acknowledged, 2);
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn session_reset_restarts_initial_epoch_and_repeated_failure_is_bounded() {
     let mock = common::Mock::start().await;
     v2(&mock);
