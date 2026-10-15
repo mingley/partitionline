@@ -777,7 +777,10 @@ pub enum ShareAcquireMode {
 /// `AcknowledgeErrorCode` with a usable
 /// CurrentLeader does not update the next ShareFetch target (Java
 /// `handleShareFetchSuccess` applies CurrentLeader only for fetch
-/// `errorCode`). A piggybacked `FENCED_LEADER_EPOCH` /
+/// `errorCode`). A piggybacked `INVALID_RECORD_STATE`
+/// `AcknowledgeErrorCode` with a usable CurrentLeader does not
+/// update the next ShareFetch target. A piggybacked
+/// `FENCED_LEADER_EPOCH` /
 /// `NOT_LEADER_OR_FOLLOWER` / `UNKNOWN_TOPIC_OR_PARTITION` /
 /// `UNKNOWN_TOPIC_ID` / `INCONSISTENT_TOPIC_ID`
 /// `AcknowledgeErrorCode` with a usable CurrentLeader on one

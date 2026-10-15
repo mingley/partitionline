@@ -6902,6 +6902,95 @@ async fn implicit_piggyback_inconsistent_topic_id_current_leader_does_not_overri
 }
 
 #[tokio::test]
+async fn implicit_piggyback_invalid_record_state_current_leader_does_not_override() {
+    let mock = common::Mock::start_two_node().await;
+    v2(&mock);
+    mock.set_partition_leader("t", 0, 1);
+    produce(&mock, &[(0, b"first")]).await;
+    let mut cfg = config(&mock);
+    cfg.share_acknowledgement_mode = ShareAcknowledgementMode::Implicit;
+    let mut group = ShareGroup::join(cfg, "ack-invalid-piggy-cur", "t")
+        .await
+        .unwrap();
+    let first = group.poll().await.unwrap();
+    assert_eq!(first.len(), 1);
+    let first_off = first[0].offset;
+    assert_eq!(mock.last_share_fetch_node(), Some(1));
+    produce(&mock, &[(0, b"later")]).await;
+    let after_produce = mock.metadata_calls();
+    let seen = Arc::new(Mutex::new(Vec::new()));
+    let seen_cb = seen.clone();
+    group.set_acknowledgement_commit_callback(move |_, exception| {
+        seen_cb.lock().push(
+            exception
+                .as_ref()
+                .map(|error| (error.code(), error.message().to_owned())),
+        );
+    });
+    let version = mock.last_share_fetch_version().unwrap_or(2);
+    let mut failed = ShareFetchedPartition::partition_response(0, 0);
+    failed.acknowledge_error_code = error::INVALID_RECORD_STATE;
+    failed.acknowledge_error_message = Some("piggyback invalid record state current leader".into());
+    failed.current_leader_id = 2;
+    failed.current_leader_epoch = 1;
+    let topics = vec![ShareFetchedTopic {
+        topic_id: mock.topic_id("t"),
+        partitions: vec![failed],
+    }];
+    let addr = mock.broker_addr(2).expect("node 2 listening");
+    let (host, port) = addr.rsplit_once(':').expect("host:port");
+    let endpoints = vec![NodeEndpoint::new(
+        2,
+        host,
+        port.parse().expect("port"),
+        None,
+    )];
+    let mut injected = BytesMut::new();
+    encode_share_fetch_response_with_endpoints(&mut injected, version, &topics, &endpoints)
+        .unwrap();
+    mock.inject_share_fetch_response_once(&injected);
+    assert!(
+        group.poll().await.unwrap().is_empty(),
+        "Java poll still delivers the ShareFetch after a piggyback INVALID_RECORD_STATE ack"
+    );
+    assert_eq!(
+        *seen.lock(),
+        vec![Some((
+            Some(error::INVALID_RECORD_STATE),
+            "piggyback invalid record state current leader".into()
+        ))]
+    );
+    assert!(
+        !mock.share_accepted("ack-invalid-piggy-cur", "t", 0, first_off),
+        "injected INVALID_RECORD_STATE piggyback must not apply ACCEPT"
+    );
+    assert_eq!(
+        mock.share_ack_calls(),
+        0,
+        "piggyback INVALID_RECORD_STATE CurrentLeader must not retry standalone ShareAcknowledge"
+    );
+    assert_eq!(
+        mock.metadata_calls(),
+        after_produce,
+        "piggyback AcknowledgeErrorCode CurrentLeader must not request Metadata"
+    );
+    let third = group.poll().await.unwrap();
+    assert_eq!(third.len(), 1);
+    assert_eq!(third[0].value.as_deref(), Some(&b"later"[..]));
+    assert_eq!(
+        mock.last_share_fetch_node(),
+        Some(1),
+        "Java handleShareFetchSuccess applies CurrentLeader only for fetch errorCode"
+    );
+    assert_eq!(
+        mock.share_ack_calls(),
+        0,
+        "completed piggyback must not send standalone ShareAcknowledge"
+    );
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn implicit_piggyback_fenced_sibling_current_leader_does_not_override() {
     let mock = common::Mock::start_two_node().await;
     v2(&mock);
