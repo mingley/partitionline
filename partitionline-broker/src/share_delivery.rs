@@ -484,14 +484,28 @@ fn decode(mut bytes: &[u8]) -> Result<State, Error> {
             2 => Phase::Accepted,
             3 => Phase::Rejected,
             4 => Phase::Archived,
-            5 => Phase::Locked(Lock {
-                member: take_str(&mut bytes)?,
-                deadline_ms: take_i64(&mut bytes)?,
-                leader_epoch: take_i64(&mut bytes)?,
-            }),
+            5 => {
+                let member = take_str(&mut bytes)?;
+                let deadline_ms = take_i64(&mut bytes)?;
+                let leader_epoch = take_i64(&mut bytes)?;
+                if !valid_member(&member) || deadline_ms < 0 || leader_epoch < 0 {
+                    return Err(Error::InvalidRequest);
+                }
+                Phase::Locked(Lock {
+                    member,
+                    deadline_ms,
+                    leader_epoch,
+                })
+            }
             _ => return Err(Error::InvalidRequest),
         };
-        records.insert(offset, Record { deliveries, phase });
+        if offset < 0
+            || records
+                .insert(offset, Record { deliveries, phase })
+                .is_some()
+        {
+            return Err(Error::InvalidRequest);
+        }
     }
     if !bytes.is_empty() {
         return Err(Error::InvalidRequest);
@@ -567,6 +581,34 @@ mod tests {
         let path = std::env::temp_dir().join(format!("pl-share-del-{name}-{nanos}"));
         let delivery = Delivery::open(&path, limits()).unwrap_or_else(|error| panic!("{error:?}"));
         (delivery, path)
+    }
+
+    #[test]
+    fn a_negative_delivery_offset_is_not_recovered() {
+        let mut records = BTreeMap::new();
+        records.insert(
+            -1,
+            Record {
+                deliveries: 0,
+                phase: Phase::Available,
+            },
+        );
+        let encoded = encode(&State { records }).unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(decode(&encoded), Err(Error::InvalidRequest)));
+        let mut records = BTreeMap::new();
+        records.insert(
+            0,
+            Record {
+                deliveries: 1,
+                phase: Phase::Locked(Lock {
+                    member: String::new(),
+                    deadline_ms: 1,
+                    leader_epoch: 0,
+                }),
+            },
+        );
+        let encoded = encode(&State { records }).unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(decode(&encoded), Err(Error::InvalidRequest)));
     }
 
     #[test]
