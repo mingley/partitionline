@@ -697,8 +697,8 @@ fn require_read(reader: &mut impl Read, output: &mut [u8]) -> io::Result<()> {
 /// same interrupted-tail failure as [`require_read`].
 fn read_exact_into(reader: &mut impl Read, dest: &mut Vec<u8>, len: usize) -> Result<(), Error> {
     let start = dest.len();
-    dest.try_reserve_exact(len)
-        .map_err(|_| Error::AllocationFailed)?;
+    // Geometric growth: a fetch appends many entries into one buffer.
+    dest.try_reserve(len).map_err(|_| Error::AllocationFailed)?;
     let limit = u64::try_from(len).map_err(|_| Error::AllocationFailed)?;
     let result = reader.take(limit).read_to_end(dest);
     let complete = matches!(result, Ok(n) if n == len) && dest.len() == start.saturating_add(len);
@@ -1371,6 +1371,16 @@ mod tests {
     use std::cell::Cell;
     use std::io::Cursor;
     use std::rc::Rc;
+
+    #[test]
+    fn repeated_reads_append_without_dropping_earlier_bytes() {
+        let mut src = Cursor::new(vec![7u8; 24]);
+        let mut dest = Vec::new();
+        read_exact_into(&mut src, &mut dest, 8).unwrap();
+        read_exact_into(&mut src, &mut dest, 8).unwrap();
+        read_exact_into(&mut src, &mut dest, 8).unwrap();
+        assert_eq!(dest, vec![7u8; 24]);
+    }
 
     struct Faults {
         cursor: Cursor<Vec<u8>>,

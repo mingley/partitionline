@@ -481,8 +481,8 @@ fn read_exact_into(
     len: usize,
 ) -> Result<(), Error> {
     let start = dest.len();
-    dest.try_reserve_exact(len)
-        .map_err(|_| Error::AllocationFailed)?;
+    // Geometric growth: a fetch appends many entries into one buffer.
+    dest.try_reserve(len).map_err(|_| Error::AllocationFailed)?;
     let limit = u64::try_from(len).map_err(|_| Error::AllocationFailed)?;
     let result = reader.take(limit).read_to_end(dest);
     let complete = matches!(result, Ok(n) if n == len) && dest.len() == start.saturating_add(len);
