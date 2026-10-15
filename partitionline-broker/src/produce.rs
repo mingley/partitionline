@@ -878,6 +878,27 @@ fn strictly_increasing_indexes(parts: &[Part]) -> bool {
     true
 }
 
+fn topic_copy_state(topics: &[Topic], version: i16, body: &[u8], index: usize) -> (bool, bool) {
+    let Some(topic) = topics.get(index) else {
+        return (false, false);
+    };
+    let key = produce_topic_key(version, topic, body);
+    let mut first = true;
+    let mut duplicated = false;
+    for (other_at, other) in topics.iter().enumerate() {
+        if other_at == index {
+            continue;
+        }
+        if produce_topic_key(version, other, body) == key {
+            duplicated = true;
+            if other_at < index {
+                first = false;
+            }
+        }
+    }
+    (first, duplicated)
+}
+
 fn produce_topic_key<'a>(version: i16, topic: &Topic, body: &'a [u8]) -> ProduceTopicKey<'a> {
     if version >= 13 {
         ProduceTopicKey::Id(topic.id)
@@ -1440,9 +1461,11 @@ fn process_inner(
     let mut results = reserved(parsed.topics.len())?;
     let mut normalized = 0usize;
     let lone_topic = parsed.topics.len() <= 1;
+    // A short produce is scanned per topic. A longer one records the first copy.
+    let scan_topics = !lone_topic && parsed.topics.len() <= 16;
     let mut topic_first = Vec::new();
     let mut topic_duplicated = Vec::new();
-    if !lone_topic {
+    if !lone_topic && !scan_topics {
         topic_first = vec![false; parsed.topics.len()];
         topic_duplicated = vec![false; parsed.topics.len()];
         let mut topic_owner: HashMap<ProduceTopicKey, usize> = HashMap::new();
@@ -1468,14 +1491,22 @@ fn process_inner(
         } else {
             topic_name.and_then(|name| catalog.by_name(name))
         };
-        if !lone_topic && !topic_first.get(topic_position).copied().unwrap_or(false) {
+        let (is_first, duplicate_topic) = if lone_topic {
+            (true, false)
+        } else if scan_topics {
+            topic_copy_state(&parsed.topics, version, body, topic_position)
+        } else {
+            (
+                topic_first.get(topic_position).copied().unwrap_or(false),
+                topic_duplicated
+                    .get(topic_position)
+                    .copied()
+                    .unwrap_or(false),
+            )
+        };
+        if !is_first {
             continue;
         }
-        let duplicate_topic = !lone_topic
-            && topic_duplicated
-                .get(topic_position)
-                .copied()
-                .unwrap_or(false);
         let mut parts = reserved(topic.partitions.len())?;
         // Strictly increasing indexes cannot repeat, including a single partition.
         let unique_parts = strictly_increasing_indexes(&topic.partitions);
@@ -1849,6 +1880,26 @@ mod tests {
         ));
         assert_eq!(orders_key, produce_topic_key(9, &again, body));
         assert_ne!(orders_key, produce_topic_key(9, &payments, body));
+        let topics = [
+            Topic {
+                name: Some((0, 6)),
+                id: [1; 16],
+                partitions: Vec::new(),
+            },
+            Topic {
+                name: Some((6, 14)),
+                id: [2; 16],
+                partitions: Vec::new(),
+            },
+            Topic {
+                name: Some((0, 6)),
+                id: [9; 16],
+                partitions: Vec::new(),
+            },
+        ];
+        assert_eq!(topic_copy_state(&topics, 9, body, 0), (true, true));
+        assert_eq!(topic_copy_state(&topics, 9, body, 1), (true, false));
+        assert_eq!(topic_copy_state(&topics, 9, body, 2), (false, true));
         let payments_key = produce_topic_key(9, &payments, body);
         assert!(matches!(
             payments_key,
