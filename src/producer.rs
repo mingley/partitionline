@@ -14,8 +14,8 @@ use crate::partitioner::{
     partition_for_key, to_positive, Partitioner, PartitionerBox, StickyState, StickyTag,
 };
 use crate::protocol::api::{
-    decode_metadata_response, decode_produce_response, decode_produce_response_with_topic_ids,
-    encode_metadata_request, ApiVersion, ApiVersionsResponse, ProduceRequest,
+    decode_metadata_response, decode_produce_acks, encode_metadata_request, ApiVersion,
+    ApiVersionsResponse, ProduceRequest,
 };
 use crate::protocol::api_keys::{
     pick_version, ADD_OFFSETS_TO_TXN, ADD_PARTITIONS_TO_TXN, END_TXN, FIND_COORDINATOR,
@@ -5154,40 +5154,36 @@ impl Worker {
             }
         };
         let mut body = body;
-        let decoded = if version >= 13 {
-            decode_produce_response_with_topic_ids(&mut body).and_then(
-                |(mut parts, endpoints, throttle, ids)| {
+        let decoded =
+            decode_produce_acks(&mut body, version).and_then(|(acks, endpoints, throttle)| {
+                if version >= 13 {
                     let inf = guard.inf.as_ref().ok_or_else(|| {
                         Error::protocol("missing Produce request identity snapshot")
                     })?;
                     let mut seen = HashSet::new();
-                    for (part, id) in parts.iter_mut().zip(ids) {
+                    for ack in &acks {
                         let name = inf
                             .topic_ids
                             .iter()
-                            .find(|(_, sent)| *sent == id && id != [0; 16])
-                            .map(|(name, _)| name)
+                            .find(|(_, sent)| *sent == ack.topic_id && ack.topic_id != [0; 16])
+                            .map(|(name, _)| name.as_str())
                             .ok_or_else(|| {
                                 Error::protocol(
                                     "Produce v13 response UUID is absent from sent snapshot",
                                 )
                             })?;
                         if !inf.groups.iter().any(|(topic, index, _)| {
-                            topic.as_ref() == name && *index == part.partition
-                        }) || !seen.insert((name.clone(), part.partition))
+                            topic.as_ref() == name && *index == ack.partition
+                        }) || !seen.insert((name, ack.partition))
                         {
                             return Err(Error::protocol(
                                 "Produce v13 unsolicited or duplicate partition response",
                             ));
                         }
-                        part.topic.clone_from(name);
                     }
-                    Ok((parts, endpoints, throttle))
-                },
-            )
-        } else {
-            decode_produce_response(&mut body, version)
-        };
+                }
+                Ok((acks, endpoints, throttle))
+            });
         let (responses, endpoints, throttle_ms) = match decoded {
             Ok(r) => r,
             Err(e) => {
@@ -5207,11 +5203,45 @@ impl Worker {
             return Ok(());
         };
         self.shared.cluster.lock().apply_node_endpoints(&endpoints);
+        let mut index: HashMap<(&str, i32), usize> = HashMap::with_capacity(inf.groups.len());
+        for (slot, (topic, part, _)) in inf.groups.iter().enumerate() {
+            if let std::collections::hash_map::Entry::Vacant(entry) =
+                index.entry((topic.as_ref(), *part))
+            {
+                let _slot = entry.insert(slot);
+            }
+        }
+        let mut slots = Vec::new();
+        slots.resize_with(inf.groups.len(), || None);
+        for (ack_at, ack) in responses.iter().enumerate() {
+            let topic = if version >= 13 {
+                inf.topic_ids
+                    .iter()
+                    .find(|(_, sent)| *sent == ack.topic_id && ack.topic_id != [0; 16])
+                    .map(|(name, _)| name.as_str())
+            } else {
+                std::str::from_utf8(&ack.topic).ok()
+            };
+            let Some(topic) = topic else {
+                if version < 13 {
+                    let e = Error::protocol("produce response topic is not utf-8");
+                    fail_groups(&self.shared, inf.groups, clone_err(&e));
+                    return Err(e);
+                }
+                continue;
+            };
+            let Some(&slot) = index.get(&(topic, ack.partition)) else {
+                continue;
+            };
+            if let Some(entry) = slots.get_mut(slot) {
+                if entry.is_none() {
+                    *entry = Some(ack_at);
+                }
+            }
+        }
         let mut first_err: Option<Error> = None;
-        for (topic, part, pendings) in inf.groups {
-            let found = responses
-                .iter()
-                .find(|r| r.topic.as_str() == topic.as_ref() && r.partition == part);
+        for (found_at, (topic, part, pendings)) in slots.into_iter().zip(inf.groups) {
+            let found = found_at.and_then(|at| responses.get(at));
             match found {
                 None => {
                     let e = Error::protocol("missing produce response");

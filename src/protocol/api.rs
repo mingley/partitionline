@@ -3328,12 +3328,154 @@ fn decode_produce_response_fields<B: Buf>(
     Ok((out, endpoints, throttle_time_ms, identities))
 }
 
+/// One Produce partition result whose topic bytes still point at the response.
+///
+/// The ack path matches these bytes to the request instead of allocating a
+/// topic `String` per partition.
+pub(crate) struct ProduceAck {
+    /// Topic name bytes. Empty for Produce v13, which carries [`Self::topic_id`].
+    pub topic: Bytes,
+    /// Produce v13 topic id. Zeros on name-based versions.
+    pub topic_id: [u8; 16],
+    /// Partition index.
+    pub partition: i32,
+    /// Kafka error code (`0` is success).
+    pub error_code: i16,
+    /// First offset assigned to the batch.
+    pub base_offset: i64,
+    /// Log append time, or [`RecordBatch::NO_TIMESTAMP`] below v2.
+    pub log_append_time_ms: i64,
+    /// Produce v10+ CurrentLeader id, or [`MetadataResponse::NO_LEADER_ID`].
+    pub current_leader_id: i32,
+    /// Produce v10+ CurrentLeader epoch, or [`RecordBatch::NO_PARTITION_LEADER_EPOCH`].
+    pub current_leader_epoch: i32,
+}
+
+fn take_produce_topic_bytes(buf: &mut Bytes, flexible: bool) -> Result<Bytes> {
+    if flexible {
+        let n = buf::get_unsigned_varint(buf)?;
+        if n == 0 {
+            return Ok(Bytes::new());
+        }
+        let len = buf::usize_from_u32(n - 1)?;
+        buf::need(buf, len)?;
+        return Ok(buf.split_to(len));
+    }
+    buf::need(buf, 2)?;
+    let len = buf.get_i16();
+    if len < 0 {
+        return Ok(Bytes::new());
+    }
+    let len = buf::usize_from_i16(len)?;
+    buf::need(buf, len)?;
+    Ok(buf.split_to(len))
+}
+
+/// Decode Produce v3–v13 partition results without copying topic names.
+///
+/// Name-based versions keep each topic as a slice of `buf`. v13 leaves
+/// [`ProduceAck::topic`] empty and fills [`ProduceAck::topic_id`]. Record
+/// errors and error messages are skipped after they are validated. The
+/// numeric fields match [`decode_produce_response`].
+pub(crate) fn decode_produce_acks(
+    buf: &mut Bytes,
+    version: i16,
+) -> Result<(Vec<ProduceAck>, Vec<NodeEndpoint>, i32)> {
+    let flexible = produce_flexible(version)?;
+    let topic_count = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+    let mut out = Vec::new();
+    for _ in 0..topic_count {
+        let mut topic_id = [0; 16];
+        let topic = if version <= 12 {
+            take_produce_topic_bytes(buf, flexible)?
+        } else {
+            topic_id = buf::get_uuid(buf)?;
+            Bytes::new()
+        };
+        let part_count = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+        for _ in 0..part_count {
+            let partition = buf::get_i32(buf)?;
+            let error_code = buf::get_i16(buf)?;
+            let base_offset = buf::get_i64(buf)?;
+            let log_append_time_ms = if version >= 2 {
+                buf::get_i64(buf)?
+            } else {
+                RecordBatch::NO_TIMESTAMP
+            };
+            if version >= 5 {
+                let _log_start_offset = buf::get_i64(buf)?;
+            }
+            if version >= 8 {
+                let _record_errors = decode_produce_record_errors(buf, flexible)?;
+                let _error_message = buf::get_string(buf, flexible)?;
+            }
+            let (current_leader_id, current_leader_epoch) = if flexible {
+                decode_produce_partition_tags(buf, version)?
+            } else {
+                (
+                    MetadataResponse::NO_LEADER_ID,
+                    RecordBatch::NO_PARTITION_LEADER_EPOCH,
+                )
+            };
+            out.push(ProduceAck {
+                topic: topic.clone(),
+                topic_id,
+                partition,
+                error_code,
+                base_offset,
+                log_append_time_ms,
+                current_leader_id,
+                current_leader_epoch,
+            });
+        }
+        if flexible {
+            buf::skip_tagged_fields(buf)?;
+        }
+    }
+    let throttle_time_ms = if version >= 1 { buf::get_i32(buf)? } else { 0 };
+    let endpoints = if flexible {
+        decode_top_level_node_endpoints(buf, version >= 10)?
+    } else {
+        Vec::new()
+    };
+    Ok((out, endpoints, throttle_time_ms))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::protocol::records::{Compression, Record};
     use bytes::Bytes;
     use std::collections::{HashMap, HashSet};
+
+    #[test]
+    fn produce_acks_keep_topic_bytes_and_match_decoded_partitions() {
+        let parts = vec![
+            ProducePartitionResponse::partition_response_with_offsets("orders", 0, 0, 10, 20, 1),
+            ProducePartitionResponse::partition_response_with_offsets("orders", 1, 0, 11, 21, 1),
+        ];
+        for version in [3_i16, 9, 12] {
+            let mut buf = BytesMut::new();
+            encode_produce_response(&mut buf, version, &parts).unwrap();
+            let encoded = buf.freeze();
+            let mut raw = encoded.clone();
+            let mut named = encoded;
+            let (acks, _, throttle) = decode_produce_acks(&mut raw, version).unwrap();
+            let (decoded, _, throttle_named) =
+                decode_produce_response(&mut named, version).unwrap();
+            assert_eq!(throttle, throttle_named);
+            assert_eq!(acks.len(), decoded.len());
+            for (ack, part) in acks.iter().zip(decoded.iter()) {
+                assert_eq!(ack.topic.as_ref(), part.topic.as_bytes());
+                assert_eq!(ack.partition, part.partition);
+                assert_eq!(ack.error_code, part.error_code);
+                assert_eq!(ack.base_offset, part.base_offset);
+                assert_eq!(ack.log_append_time_ms, part.log_append_time_ms);
+                assert_eq!(ack.current_leader_id, part.current_leader_id);
+                assert_eq!(ack.current_leader_epoch, part.current_leader_epoch);
+            }
+        }
+    }
 
     #[test]
     fn produce_transaction_v2_version_cap_matches_java() {
