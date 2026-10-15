@@ -564,13 +564,13 @@ impl ConsumerConfig {
 /// Topic name stored beside the record when it fits in 23 bytes.
 ///
 /// Kafka topic names are at most 249 bytes. Names that fit inline clone
-/// without a heap allocation. Longer names stay on the heap.
+/// without a heap allocation. Longer names share one heap allocation.
 #[derive(Clone, Debug)]
 pub enum TopicName {
     /// UTF-8 bytes and their length, at most 23.
     Inline([u8; 23], u8),
     /// Topic longer than 23 bytes.
-    Heap(String),
+    Heap(Arc<str>),
 }
 
 impl TopicName {
@@ -584,7 +584,7 @@ impl TopicName {
                     .and_then(|bytes| std::str::from_utf8(bytes).ok())
                     .unwrap_or("")
             }
-            Self::Heap(topic) => topic.as_str(),
+            Self::Heap(topic) => topic.as_ref(),
         }
     }
 }
@@ -599,14 +599,18 @@ impl From<&str> for TopicName {
             }
             Self::Inline(buf, len)
         } else {
-            Self::Heap(value.to_owned())
+            Self::Heap(Arc::from(value))
         }
     }
 }
 
 impl From<String> for TopicName {
     fn from(value: String) -> Self {
-        Self::from(value.as_str())
+        if value.len() <= 23 {
+            Self::from(value.as_str())
+        } else {
+            Self::Heap(Arc::from(value))
+        }
     }
 }
 
@@ -619,7 +623,7 @@ impl From<&String> for TopicName {
 impl From<TopicName> for String {
     fn from(value: TopicName) -> Self {
         match value {
-            TopicName::Heap(topic) => topic,
+            TopicName::Heap(topic) => topic.as_ref().to_owned(),
             inline => inline.as_str().to_owned(),
         }
     }
@@ -1560,7 +1564,7 @@ struct HeldFetch {
 /// A contiguous arrival run. Separate runs of the same partition can straddle
 /// other partitions, so queue grouping alone cannot preserve delivery order.
 struct PendingRun {
-    topic: String,
+    topic: TopicName,
     partition: i32,
     count: usize,
 }
@@ -1595,12 +1599,12 @@ impl PendingRecords {
         for rec in records.into_iter().rev() {
             if let Some(run) = runs
                 .front_mut()
-                .filter(|run| run.topic == rec.topic.as_str() && run.partition == rec.partition)
+                .filter(|run| run.topic == rec.topic && run.partition == rec.partition)
             {
                 run.count += 1;
             } else {
                 runs.push_front(PendingRun {
-                    topic: rec.topic.as_str().to_owned(),
+                    topic: rec.topic.clone(),
                     partition: rec.partition,
                     count: 1,
                 });
@@ -1629,7 +1633,7 @@ impl PendingRecords {
                 run.count += 1;
             } else {
                 self.order.push_back(PendingRun {
-                    topic: rec.topic.as_str().to_owned(),
+                    topic: rec.topic.clone(),
                     partition: rec.partition,
                     count: 1,
                 });
@@ -5159,6 +5163,7 @@ impl Consumer {
             let Some(name) = fetch_topic_name(&topic.topic, topic.topic_id, &id_names)? else {
                 continue;
             };
+            let topic_name = TopicName::from(name.as_str());
             for (part, part_batches) in topic.partitions.into_iter().zip(topic_batches) {
                 if !take_fetch_partition(&mut seen_partitions, &name, part.partition) {
                     continue;
@@ -5364,7 +5369,7 @@ impl Consumer {
                                 included_next.map_or(advanced, |current| current.max(advanced)),
                             );
                             out.push(FetchedRecord {
-                                topic: TopicName::from(name.as_str()),
+                                topic: topic_name.clone(),
                                 partition: part.partition,
                                 offset: rec.offset,
                                 timestamp: rec.timestamp,
@@ -5574,7 +5579,7 @@ impl Consumer {
                         );
                         let timestamp = log_append_timestamp.unwrap_or(rec.timestamp);
                         out.push(FetchedRecord {
-                            topic: TopicName::from(name.as_str()),
+                            topic: topic_name.clone(),
                             partition: part.partition,
                             offset,
                             timestamp,
@@ -7571,7 +7576,11 @@ mod tests {
         assert_eq!(String::from("nb-fetch"), cloned);
         let long = "topic-name-longer-than-twenty-three";
         let heaped = TopicName::from(long);
-        assert!(matches!(heaped, TopicName::Heap(_)));
+        let cloned = heaped.clone();
+        assert!(matches!(
+            (&heaped, &cloned),
+            (TopicName::Heap(left), TopicName::Heap(right)) if Arc::ptr_eq(left, right)
+        ));
         assert_eq!(heaped.as_str(), long);
         assert_eq!(String::from(heaped.as_str()), long);
     }
