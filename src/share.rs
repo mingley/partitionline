@@ -1734,7 +1734,7 @@ impl ShareGroup {
                 let requested = by_id.get(&topic.topic_id).ok_or_else(|| {
                     Error::protocol("ShareFetch returned an unrequested topic id")
                 })?;
-                let name = self.name_for_topic_id(topic.topic_id);
+                let name = self.name_for_topic_id(topic.topic_id)?;
                 let topic_name = crate::consumer::TopicName::from(name.as_str());
                 for part in topic.partitions {
                     if !requested.contains(&part.partition) {
@@ -2021,13 +2021,11 @@ impl ShareGroup {
         self.apply_topics(topics).await
     }
 
-    fn name_for_topic_id(&self, id: [u8; 16]) -> String {
-        self.topic_ids
-            .iter()
-            .find(|(_, v)| **v == id)
-            .map(|(n, _)| n.clone())
-            .or_else(|| self.topics.first().cloned())
-            .unwrap_or_default()
+    fn name_for_topic_id(&self, id: [u8; 16]) -> Result<String> {
+        share_topic_name(
+            self.topic_ids.iter().map(|(name, id)| (name.as_str(), id)),
+            id,
+        )
     }
 
     async fn send_acknowledgements(&mut self, recs: &[ShareRecord], ack: i8) -> Result<()> {
@@ -2201,7 +2199,7 @@ impl ShareGroup {
                 self.acquisition_lock_timeout_ms = Some(lock_timeout);
             }
             for topic in responses {
-                let name = self.name_for_topic_id(topic.topic_id);
+                let name = self.name_for_topic_id(topic.topic_id)?;
                 for part in topic.partitions {
                     if part.error_code != 0
                         && !name.is_empty()
@@ -2748,6 +2746,30 @@ fn reapply_share_leader_patches_on(
             patch.leader_epoch,
         );
     }
+}
+
+/// The subscribed name for one topic id.
+///
+/// An id that matches nothing is not guessed from the first subscription.
+/// An id that matches two names is ambiguous and must not label records.
+fn share_topic_name<'a>(
+    names: impl IntoIterator<Item = (&'a str, &'a [u8; 16])>,
+    id: [u8; 16],
+) -> Result<String> {
+    let mut found = None;
+    for (name, stored) in names {
+        if *stored != id {
+            continue;
+        }
+        if found.is_some() {
+            return Err(Error::protocol("share topic id is assigned to two names"));
+        }
+        found = Some(name);
+    }
+    found
+        .filter(|name| !name.is_empty())
+        .map(str::to_owned)
+        .ok_or_else(|| Error::protocol("share topic id has no subscribed name"))
 }
 
 fn share_leader_retriable(e: &Error) -> bool {
@@ -3376,6 +3398,21 @@ mod tests {
             first.to_string(),
             "ConsumerRecord(topic = t, partition = 0, leaderEpoch = null, offset = 1, CreateTime = 0, deliveryCount = 1, serialized key size = -1, serialized value size = -1, headers = RecordHeaders(headers = [], isReadOnly = true), key = null, value = null)"
         );
+    }
+
+    #[test]
+    fn a_share_topic_id_is_not_guessed_from_the_first_subscription() {
+        let orders = [1u8; 16];
+        let trades = [2u8; 16];
+        let names = [("orders", &orders), ("trades", &trades)];
+        let named = share_topic_name(names, orders);
+        assert!(named.is_ok());
+        if let Ok(name) = named {
+            assert_eq!(name, "orders");
+        }
+        assert!(share_topic_name(names, [9u8; 16]).is_err());
+        assert!(share_topic_name([("orders", &orders), ("other", &orders)], orders).is_err());
+        assert!(share_topic_name([("", &orders)], orders).is_err());
     }
 
     #[test]
