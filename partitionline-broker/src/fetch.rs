@@ -347,34 +347,6 @@ struct Budget {
     entries: usize,
 }
 impl Budget {
-    fn read(
-        &mut self,
-        store: &mut produce::Store,
-        id: crate::catalog::TopicId,
-        index: i32,
-        offset: i64,
-    ) -> Result<Result<Option<journal::Entry>, i16>, Error> {
-        if self.entries == 0 || self.bytes == 0 {
-            return Err(Error::ScanLimit);
-        }
-        let (entry, work) = match store.read_entry(id, index, offset, self.bytes, self.entries) {
-            Ok(value) => value,
-            Err(partition::Error::Storage(journal::Error::FetchBudgetExceeded)) => {
-                return Err(Error::ScanLimit)
-            }
-            Err(partition::Error::Segments(crate::segments::Error::ScanBudget)) => {
-                return Err(Error::ScanLimit)
-            }
-            Err(_) => return Ok(Err(56)),
-        };
-        self.bytes = self.bytes.checked_sub(work.bytes).ok_or(Error::ScanLimit)?;
-        self.entries = self
-            .entries
-            .checked_sub(work.entries)
-            .ok_or(Error::ScanLimit)?;
-        Ok(Ok(entry))
-    }
-
     fn read_into(
         &mut self,
         store: &mut produce::Store,
@@ -677,6 +649,8 @@ pub(crate) fn process(
         bytes: limits.scan_bytes,
         entries: limits.scan_entries,
     };
+    // Timestamp scans reuse one payload buffer. Fetch reads into the response.
+    let mut scan_buf = Vec::new();
     out.i32(header.correlation_id)?;
     if key == 1 || version >= 2 {
         out.i32(0)?;
@@ -731,21 +705,30 @@ pub(crate) fn process(
                             };
                             'scan: while cursor < watermark {
                                 active()?;
-                                let entry = match budget.read(store, id, part.index, cursor)? {
+                                scan_buf.clear();
+                                let loaded = match budget.read_into(
+                                    store,
+                                    id,
+                                    part.index,
+                                    cursor,
+                                    &mut scan_buf,
+                                )? {
                                     Err(code) => {
                                         error = code;
                                         break;
                                     }
-                                    Ok(Some(entry)) => entry,
+                                    Ok(Some(view)) => view,
                                     Ok(None) => {
                                         error = 56;
                                         break;
                                     }
                                 };
+                                let payload =
+                                    scan_buf.get(..loaded.len).ok_or(Error::StoredRecords)?;
                                 let (checked, next) = stored_records(
-                                    &entry.payload,
-                                    entry.first_offset,
-                                    entry.record_count,
+                                    payload,
+                                    loaded.first_offset,
+                                    loaded.record_count,
                                     store.record_limits(),
                                 )?;
                                 for batch in checked.batches() {

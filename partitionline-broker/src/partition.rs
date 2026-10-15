@@ -590,41 +590,10 @@ impl Partition {
         };
         i64::try_from(offset).map_err(|_| Error::OffsetOverflow)
     }
-    pub(crate) fn read_with_work(
-        &mut self,
-        offset: i64,
-        maximum: usize,
-        scan_bytes: usize,
-        scan_entries: usize,
-    ) -> Result<(Option<journal::Entry>, segments::Work), Error> {
-        self.check_alive()?;
-        let offset = u64::try_from(offset).map_err(|_| Error::OffsetOverflow)?;
-        let (entry, work) = match &mut self.journal {
-            Backend::Journal(log) => {
-                let entry = log.fetch(offset, 1, maximum)?.pop();
-                let work = entry
-                    .as_ref()
-                    .map_or(segments::Work::default(), |e| segments::Work {
-                        bytes: e.payload.len(),
-                        entries: 1,
-                    });
-                (entry, work)
-            }
-            Backend::Segments(log) => log.read_one(offset, maximum, scan_bytes, scan_entries)?,
-        };
-        if let Some(entry) = &entry {
-            if let Err(error) = self.check_for_read(entry) {
-                self.poisoned = true;
-                return Err(error);
-            }
-        }
-        Ok((entry, work))
-    }
-
-    /// Like [`Self::read_with_work`], appending the payload onto `dest`.
+    /// Append one kept payload onto `dest`.
     ///
-    /// Monolithic logs and rolling generations read a kept payload into `dest`.
-    /// On failure `dest` is restored.
+    /// Monolithic logs and rolling generations read into `dest`. On failure
+    /// `dest` is restored.
     pub(crate) fn read_into(
         &mut self,
         offset: i64,
@@ -832,8 +801,10 @@ mod tests {
         assert_eq!(got.len(), 1);
         assert_eq!(records::record_visits(), 0);
         records::reset_record_visits();
-        let (entry, _) = part.read_with_work(0, 1024 * 1024, 1024 * 1024, 4)?;
-        assert!(entry.is_some());
+        let mut dest = Vec::new();
+        let (view, _) = part.read_into(0, 1024 * 1024, 1024 * 1024, 4, &mut dest)?;
+        assert!(view.is_some());
+        assert!(!dest.is_empty());
         assert_eq!(records::record_visits(), 0);
         drop(part);
         let _ = std::fs::remove_file(path);

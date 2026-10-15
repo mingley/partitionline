@@ -558,35 +558,6 @@ impl Store {
         active()?;
         Ok(report)
     }
-    pub(crate) fn read_entry(
-        &mut self,
-        id: TopicId,
-        index: i32,
-        offset: i64,
-        remaining_bytes: usize,
-        remaining_entries: usize,
-    ) -> Result<(Option<journal::Entry>, segments::Work), partition::Error> {
-        let Some(slot) = self
-            .slots
-            .iter_mut()
-            .find(|slot| slot.id == id && slot.index == index)
-        else {
-            return Ok((None, segments::Work::default()));
-        };
-        let maximum = self
-            .config
-            .journal_limits
-            .max_entry_bytes()
-            .min(remaining_bytes)
-            .checked_add(std::mem::size_of::<journal::Entry>())
-            .ok_or(partition::Error::InvalidLimits)?;
-        let poisoned = slot.partition.is_poisoned();
-        let result =
-            slot.partition
-                .read_with_work(offset, maximum, remaining_bytes, remaining_entries);
-        self.changed |= poisoned != slot.partition.is_poisoned();
-        result
-    }
     pub(crate) fn invalidate_length_observations(&mut self) {
         for slot in &mut self.slots {
             slot.partition.invalidate_length_observation();
