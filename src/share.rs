@@ -714,9 +714,11 @@ pub enum ShareAcquireMode {
 /// partition that is present with `AcknowledgeErrorCode` none. A
 /// successful ShareAcknowledge that omits a requested partition
 /// completes that partition the same way (Java `processingComplete` /
-/// `testShareAcknowledgeInvalidResponse`). Unrequested ShareAcknowledge
-/// partitions, unknown topic ids, and known topic ids that were not
-/// in the request are skipped (Java `lookupTopicId` /
+/// `testShareAcknowledgeInvalidResponse`). An omitted ShareAcknowledge
+/// partition does not fail a sibling partition that is present with
+/// error none. Unrequested ShareAcknowledge partitions, unknown topic
+/// ids, and known topic ids that were not in the request are skipped
+/// (Java `lookupTopicId` /
 /// `handleAcknowledgeErrorCode`).
 /// Top-level ShareFetch `UNKNOWN_TOPIC_ID` invalidates topic metadata
 /// so the next poll uses the refreshed id, including when
@@ -1780,9 +1782,11 @@ impl ShareGroup {
     /// Metadata is requested when that error has no usable CurrentLeader.
     /// A successful ShareAcknowledge that omits a requested partition
     /// completes that partition with `INVALID_RECORD_STATE` (Java
-    /// `testShareAcknowledgeInvalidResponse`). Unrequested response
-    /// partitions, unknown topic ids, and known topic ids that were
-    /// not in the request are skipped (Java `lookupTopicId` /
+    /// `testShareAcknowledgeInvalidResponse`). An omitted ShareAcknowledge
+    /// partition does not fail a sibling partition that is present with
+    /// error none. Unrequested response partitions, unknown topic ids,
+    /// and known topic ids that were not in the request are skipped
+    /// (Java `lookupTopicId` /
     /// `handleAcknowledgeErrorCode`). A non-empty partition
     /// `ErrorMessage` is preferred over the crate fallback; an empty
     /// or missing `ErrorMessage` uses `ShareAcknowledge {topic}-{partition}`

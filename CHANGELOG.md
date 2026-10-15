@@ -59,7 +59,9 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   requested when that error has no usable CurrentLeader. A successful
   ShareAcknowledge that omits a requested partition completes that
   partition with `INVALID_RECORD_STATE` (Java
-  `testShareAcknowledgeInvalidResponse`).
+  `testShareAcknowledgeInvalidResponse`). An omitted ShareAcknowledge
+  partition does not fail a sibling partition that is present with
+  error none.
   Unrequested ShareAcknowledge partitions, unknown topic ids, and
   known topic ids that were not in the request are skipped (Java
   `lookupTopicId` / `handleAcknowledgeErrorCode`). A non-empty
