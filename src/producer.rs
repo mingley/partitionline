@@ -887,11 +887,26 @@ struct WorkerHandle {
     task: Arc<tokio::task::JoinHandle<()>>,
 }
 
+/// Topics kept with a ready partition-to-connection map.
+const FAST_ROUTE_TOPICS: usize = 8;
+
 struct FastRoute {
-    topic: Arc<str>,
     np: i32,
     handles: Vec<WorkerHandle>,
     tracker: Arc<crate::metrics::ProduceTopicTracker>,
+}
+
+#[derive(Default)]
+struct FastRoutes {
+    order: VecDeque<Arc<str>>,
+    routes: HashMap<Arc<str>, FastRoute>,
+}
+
+impl FastRoutes {
+    fn clear(&mut self) {
+        self.order.clear();
+        self.routes.clear();
+    }
 }
 
 /// One broker's client quota, shared by all its connection slots. The atomic
@@ -1016,7 +1031,7 @@ struct Shared {
     in_txn: AtomicBool,
     txn_partitions: parking_lot::Mutex<HashSet<(Arc<str>, i32)>>,
     txn_added: parking_lot::Mutex<HashSet<(Arc<str>, i32)>>,
-    fast: parking_lot::Mutex<Option<FastRoute>>,
+    fast: parking_lot::Mutex<FastRoutes>,
     m_queued: AtomicU64,
     m_acked: AtomicU64,
     m_errors: AtomicU64,
@@ -1060,7 +1075,7 @@ impl Drop for Inner {
             w.task.abort();
         }
         self.shared.nodes.lock().clear();
-        *self.shared.fast.lock() = None;
+        self.shared.fast.lock().clear();
 
         if let Some(h) = self.shared.meta_task.lock().take() {
             h.abort();
@@ -1697,7 +1712,7 @@ impl Producer {
             in_txn: AtomicBool::new(false),
             txn_partitions: parking_lot::Mutex::new(HashSet::new()),
             txn_added: parking_lot::Mutex::new(HashSet::new()),
-            fast: parking_lot::Mutex::new(None),
+            fast: parking_lot::Mutex::new(FastRoutes::default()),
             m_queued: AtomicU64::new(0),
             m_acked: AtomicU64::new(0),
             m_errors: AtomicU64::new(0),
@@ -2235,8 +2250,8 @@ impl Producer {
         rec: &ProduceRecord,
     ) -> Option<(i32, WorkerHandle, Arc<crate::metrics::ProduceTopicTracker>)> {
         let fast = self.inner.shared.fast.lock();
-        let f = fast.as_ref()?;
-        if f.topic != rec.topic || f.handles.is_empty() || f.np <= 0 {
+        let f = fast.routes.get(rec.topic.as_ref())?;
+        if f.handles.is_empty() || f.np <= 0 {
             return None;
         }
         let p = match rec.partition {
@@ -2304,12 +2319,26 @@ impl Producer {
             handles.push(w);
         }
         let tracker = self.inner.shared.topic_tracker(&rec.topic);
-        *self.inner.shared.fast.lock() = Some(FastRoute {
-            topic: rec.topic.clone(),
+        let route = FastRoute {
             np,
             handles,
             tracker,
-        });
+        };
+        let mut fast = self.inner.shared.fast.lock();
+        if fast.routes.contains_key(rec.topic.as_ref()) {
+            if let Some(slot) = fast.routes.get_mut(rec.topic.as_ref()) {
+                *slot = route;
+            }
+            return;
+        }
+        while fast.order.len() >= FAST_ROUTE_TOPICS {
+            let Some(old) = fast.order.pop_front() else {
+                break;
+            };
+            let _ = fast.routes.remove(old.as_ref());
+        }
+        fast.order.push_back(Arc::clone(&rec.topic));
+        let _ = fast.routes.insert(Arc::clone(&rec.topic), route);
     }
 
     /// Enqueue without a per-record future. Delivery is observed on [`Self::flush`].
@@ -3112,7 +3141,7 @@ impl Producer {
             w.task.abort();
         }
         self.inner.shared.nodes.lock().clear();
-        *self.inner.shared.fast.lock() = None;
+        self.inner.shared.fast.lock().clear();
 
         if let Some(h) = self.inner.shared.meta_task.lock().take() {
             h.abort();
@@ -3937,9 +3966,10 @@ async fn partitions_for_timeout(
 
 fn drop_fast_topic(shared: &Shared, topic: &str) {
     let mut fast = shared.fast.lock();
-    if fast.as_ref().is_some_and(|f| f.topic.as_ref() == topic) {
-        *fast = None;
+    if let Some(pos) = fast.order.iter().position(|name| name.as_ref() == topic) {
+        let _ = fast.order.remove(pos);
     }
+    let _ = fast.routes.remove(topic);
 }
 
 fn invalidate_cached_topic(shared: &Shared, topic: &str) {
