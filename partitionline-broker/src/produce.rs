@@ -451,27 +451,26 @@ impl Store {
     pub(crate) fn record_limits(&self) -> records::Limits {
         self.config.record_limits
     }
-    pub(crate) fn watermark(&self, id: TopicId, index: i32) -> Result<i64, i16> {
+    /// Log start and high watermark from one open-partition lookup.
+    pub(crate) fn log_bounds(&self, id: TopicId, index: i32) -> Result<(i64, i64), i16> {
         match self
             .located
             .get(&(id, index))
             .and_then(|position| self.slots.get(*position))
         {
-            None => Ok(0),
+            None => Ok((0, 0)),
             Some(slot) if slot.partition.is_poisoned() => Err(56),
-            Some(slot) => Ok(slot.partition.next_offset()),
+            Some(slot) => Ok((
+                slot.partition.log_start_offset(),
+                slot.partition.next_offset(),
+            )),
         }
     }
+    pub(crate) fn watermark(&self, id: TopicId, index: i32) -> Result<i64, i16> {
+        self.log_bounds(id, index).map(|(_, watermark)| watermark)
+    }
     pub(crate) fn log_start(&self, id: TopicId, index: i32) -> Result<i64, i16> {
-        match self
-            .located
-            .get(&(id, index))
-            .and_then(|position| self.slots.get(*position))
-        {
-            None => Ok(0),
-            Some(slot) if slot.partition.is_poisoned() => Err(56),
-            Some(slot) => Ok(slot.partition.log_start_offset()),
-        }
+        self.log_bounds(id, index).map(|(start, _)| start)
     }
     pub(crate) fn delete_records(
         &mut self,
@@ -600,11 +599,10 @@ impl Store {
         index: i32,
         wanted: i64,
     ) -> Result<i64, partition::Error> {
-        let Some(slot) = self
-            .slots
-            .iter_mut()
-            .find(|slot| slot.id == id && slot.index == index)
-        else {
+        let Some(position) = self.located.get(&(id, index)).copied() else {
+            return Ok(0);
+        };
+        let Some(slot) = self.slots.get_mut(position) else {
             return Ok(0);
         };
         let poisoned = slot.partition.is_poisoned();

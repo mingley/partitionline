@@ -433,8 +433,7 @@ fn repeated_partition_indexes(parts: &[Part]) -> HashSet<i32> {
 }
 
 fn selected<'a>(
-    catalog: &'a Catalog,
-    topic: &Topic<'_>,
+    named: Option<&'a crate::catalog::Topic>,
     part: &Part,
     repeated: bool,
     sole_topic: bool,
@@ -446,7 +445,7 @@ fn selected<'a>(
     if invalid || (key != 2 && repeated) || !sole_topic {
         return Err(42);
     }
-    let target = catalog.by_name(topic.name).ok_or(3i16)?;
+    let target = named.ok_or(3i16)?;
     if part.index < 0 || part.index as u32 >= target.partition_count() {
         return Err(3);
     }
@@ -718,6 +717,13 @@ pub(crate) fn process(
         out.string(topic.name)?;
         out.count(topic.parts.len())?;
         let sole_topic = one_topic || topic_copies.get(topic.name).copied() == Some(1);
+        // A repeated or invalid topic is rejected before the catalog. Every
+        // partition of a live topic shares that one lookup.
+        let named = if invalid || !sole_topic {
+            None
+        } else {
+            catalog.by_name(topic.name)
+        };
         let repeated_partitions = if key == 2 {
             HashSet::new()
         } else {
@@ -726,8 +732,7 @@ pub(crate) fn process(
         for part in &topic.parts {
             active()?;
             let target = selected(
-                catalog,
-                topic,
+                named,
                 part,
                 repeated_partitions.contains(&part.index),
                 sole_topic,
@@ -736,14 +741,9 @@ pub(crate) fn process(
             );
             let (id, log_start, watermark, error) = match target {
                 Err(error) => (None, -1, -1, error),
-                Ok(target) => match (
-                    store.log_start(target.id(), part.index),
-                    store.watermark(target.id(), part.index),
-                ) {
-                    (Ok(log_start), Ok(watermark)) => (Some(target.id()), log_start, watermark, 0),
-                    (Err(error), _) | (_, Err(error)) => {
-                        (None, -1, -1, storage_code(error, key, version))
-                    }
+                Ok(target) => match store.log_bounds(target.id(), part.index) {
+                    Ok((log_start, watermark)) => (Some(target.id()), log_start, watermark, 0),
+                    Err(error) => (None, -1, -1, storage_code(error, key, version)),
                 },
             };
             let mut error = stored_log_error(error, log_start, watermark);
