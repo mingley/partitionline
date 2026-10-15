@@ -209,6 +209,8 @@ pub struct Admin {
     limits: Limits,
     state: State,
     journal: Journal,
+    /// Reused journal image. Cleared and rewritten on each commit.
+    encoded: Vec<u8>,
     stored: usize,
     poisoned: bool,
 }
@@ -236,6 +238,7 @@ impl Admin {
                 voters: BTreeSet::from([initial_voter]),
             },
             journal,
+            encoded: Vec::new(),
             stored: 0,
             poisoned: false,
         };
@@ -499,11 +502,15 @@ impl Admin {
     }
 
     fn commit(&mut self, state: State) -> Result<(), Error> {
-        let payload = encode(&state)?;
-        if payload.len() > self.limits.journal.max_entry_bytes() {
+        self.encoded.clear();
+        write(&mut self.encoded, &state)?;
+        if self.encoded.len() > self.limits.journal.max_entry_bytes() {
             return Err(Error::InvalidLimits);
         }
-        self.persist(&payload)?;
+        let payload = std::mem::take(&mut self.encoded);
+        let result = self.persist(&payload);
+        self.encoded = payload;
+        result?;
         self.state = state;
         Ok(())
     }
@@ -554,51 +561,58 @@ fn valid_replicas(replicas: &[i32], leader: i32) -> bool {
         .all(|replica| *replica > 0 && seen.insert(*replica))
 }
 
+#[cfg(test)]
 fn encode(state: &State) -> Result<Vec<u8>, Error> {
     let mut bytes = Vec::new();
+    write(&mut bytes, state)?;
+    Ok(bytes)
+}
+
+fn write(bytes: &mut Vec<u8>, state: &State) -> Result<(), Error> {
+    bytes.clear();
     bytes.extend_from_slice(RECORD_MAGIC);
-    put_str(&mut bytes, &state.cluster_id)?;
+    put_str(bytes, &state.cluster_id)?;
     bytes.extend_from_slice(&state.controller_epoch.to_be_bytes());
     put_u32(
-        &mut bytes,
+        bytes,
         u32::try_from(state.dirs.len()).map_err(|_| Error::InvalidRequest)?,
     )?;
     for directory in &state.dirs {
-        put_str(&mut bytes, directory)?;
+        put_str(bytes, directory)?;
     }
     put_u32(
-        &mut bytes,
+        bytes,
         u32::try_from(state.replicas.len()).map_err(|_| Error::InvalidRequest)?,
     )?;
     for (key, replica) in &state.replicas {
-        put_str(&mut bytes, &key.topic)?;
+        put_str(bytes, &key.topic)?;
         bytes.extend_from_slice(&key.partition.to_be_bytes());
         put_u32(
-            &mut bytes,
+            bytes,
             u32::try_from(replica.replicas.len()).map_err(|_| Error::InvalidRequest)?,
         )?;
         for broker in &replica.replicas {
             bytes.extend_from_slice(&broker.to_be_bytes());
         }
         bytes.extend_from_slice(&replica.leader.to_be_bytes());
-        put_str(&mut bytes, &replica.log_dir)?;
+        put_str(bytes, &replica.log_dir)?;
     }
     put_u32(
-        &mut bytes,
+        bytes,
         u32::try_from(state.features.len()).map_err(|_| Error::InvalidRequest)?,
     )?;
     for (name, level) in &state.features {
-        put_str(&mut bytes, name)?;
+        put_str(bytes, name)?;
         bytes.extend_from_slice(&level.to_be_bytes());
     }
     put_u32(
-        &mut bytes,
+        bytes,
         u32::try_from(state.voters.len()).map_err(|_| Error::InvalidRequest)?,
     )?;
     for voter in &state.voters {
         bytes.extend_from_slice(&voter.to_be_bytes());
     }
-    Ok(bytes)
+    Ok(())
 }
 
 fn decode(mut bytes: &[u8]) -> Result<State, Error> {
@@ -973,9 +987,12 @@ mod tests {
         admin
             .register_log_dir(0, 0, "data-a")
             .unwrap_or_else(|error| panic!("{error:?}"));
+        let encoded_capacity = admin.encoded.capacity();
+        assert!(encoded_capacity > 0);
         admin
             .register_log_dir(1, 0, "data-b")
             .unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(admin.encoded.capacity() >= encoded_capacity);
         admin
             .alter_assignment(
                 0,
