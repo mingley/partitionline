@@ -158,19 +158,17 @@ pub(super) enum Error {
     Allocation,
 }
 
-struct Writer {
-    bytes: Vec<u8>,
+struct Writer<'a> {
+    bytes: &'a mut Vec<u8>,
     limit: usize,
 }
-impl Writer {
-    fn new(limit: usize) -> Result<Self, Error> {
+impl<'a> Writer<'a> {
+    fn new(bytes: &'a mut Vec<u8>, limit: usize) -> Result<Self, Error> {
         if !(MIN_FRAME..=4 * 1024 * 1024).contains(&limit) {
             return Err(Error::Bounds);
         }
-        Ok(Self {
-            bytes: Vec::new(),
-            limit,
-        })
+        bytes.clear();
+        Ok(Self { bytes, limit })
     }
     fn put(&mut self, bytes: &[u8]) -> Result<(), Error> {
         let size = self
@@ -492,8 +490,15 @@ fn copy(bytes: &[u8]) -> Result<Vec<u8>, Error> {
     Ok(out)
 }
 
+#[cfg(test)]
 pub(super) fn encode(frame: &Frame, limit: usize) -> Result<Vec<u8>, Error> {
-    let mut w = Writer::new(limit.checked_sub(4).ok_or(Error::Bounds)?)?;
+    let mut bytes = Vec::new();
+    encode_into(frame, limit, &mut bytes)?;
+    Ok(bytes)
+}
+
+pub(super) fn encode_into(frame: &Frame, limit: usize, bytes: &mut Vec<u8>) -> Result<(), Error> {
+    let mut w = Writer::new(bytes, limit.checked_sub(4).ok_or(Error::Bounds)?)?;
     let kind = frame.message.kind();
     if (kind == 1 || kind == 2) != (frame.rpc == 0) {
         return Err(Error::Corrupt);
@@ -596,11 +601,12 @@ pub(super) fn encode(frame: &Frame, limit: usize) -> Result<Vec<u8>, Error> {
             w.u8(*code)?;
         }
     }
-    let crc = crc32c::crc32c(&w.bytes);
-    let mut out = w.bytes;
-    out.try_reserve_exact(4).map_err(|_| Error::Allocation)?;
-    out.extend_from_slice(&crc.to_be_bytes());
-    Ok(out)
+    let crc = crc32c::crc32c(w.bytes);
+    w.bytes
+        .try_reserve_exact(4)
+        .map_err(|_| Error::Allocation)?;
+    w.bytes.extend_from_slice(&crc.to_be_bytes());
+    Ok(())
 }
 pub(super) fn decode(bytes: &[u8], limit: usize, max_records: usize) -> Result<Frame, Error> {
     if !(MIN_FRAME..=limit).contains(&bytes.len()) || limit > 4 * 1024 * 1024 {
@@ -795,13 +801,27 @@ mod tests {
 
     #[test]
     fn writer_keeps_earlier_bytes_as_it_grows() {
-        let mut writer = Writer::new(256).unwrap();
+        let mut bytes = Vec::new();
+        let mut writer = Writer::new(&mut bytes, 256).unwrap();
         for value in 0..20u32 {
             writer.put(&value.to_be_bytes()).unwrap();
         }
         assert_eq!(writer.bytes.len(), 80);
         assert_eq!(&writer.bytes[..4], &0u32.to_be_bytes());
         assert_eq!(&writer.bytes[76..], &19u32.to_be_bytes());
+    }
+
+    #[test]
+    fn a_second_frame_reuses_the_encode_buffer() {
+        let frame = sample();
+        let mut bytes = Vec::new();
+        encode_into(&frame, 1024, &mut bytes).unwrap();
+        let encoded_capacity = bytes.capacity();
+        assert!(encoded_capacity > 0);
+        let first = bytes.clone();
+        encode_into(&frame, 1024, &mut bytes).unwrap();
+        assert!(bytes.capacity() >= encoded_capacity);
+        assert_eq!(bytes, first);
     }
 
     fn sample() -> Frame {

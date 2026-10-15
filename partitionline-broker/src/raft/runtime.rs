@@ -1800,20 +1800,34 @@ async fn read_exact_spare(
     Ok(())
 }
 
+/// Read and write buffers kept for the life of one peer connection.
+struct WireBuf {
+    read: Vec<u8>,
+    write: Vec<u8>,
+}
+impl WireBuf {
+    fn new() -> Self {
+        Self {
+            read: Vec::new(),
+            write: Vec::new(),
+        }
+    }
+}
 async fn read_frame(
     socket: &mut TcpStream,
     limit: usize,
     max_records: usize,
     deadline: Instant,
+    wire: &mut WireBuf,
 ) -> Result<Frame> {
     tokio::time::timeout_at(deadline, async {
         let length = socket.read_u32().await? as usize;
         if !(28..=limit).contains(&length) {
             return Err(Error::Peer);
         }
-        let mut bytes = Vec::new();
-        read_exact_spare(&mut *socket, &mut bytes, length).await?;
-        Ok(peer_codec::decode(&bytes, limit, max_records)?)
+        wire.read.clear();
+        read_exact_spare(&mut *socket, &mut wire.read, length).await?;
+        Ok(peer_codec::decode(&wire.read, limit, max_records)?)
     })
     .await
     .map_err(|_| Error::Deadline)?
@@ -1823,14 +1837,16 @@ async fn write_frame(
     frame: &Frame,
     limit: usize,
     deadline: Instant,
+    wire: &mut WireBuf,
 ) -> Result<()> {
-    let bytes = peer_codec::encode(frame, limit)?;
+    peer_codec::encode_into(frame, limit, &mut wire.write)?;
+    let bytes = &wire.write;
     let len = u32::try_from(bytes.len())
         .map_err(|_| Error::Peer)?
         .to_be_bytes();
     tokio::time::timeout_at(deadline, async {
         // One vectored send so the length prefix is not a separate packet.
-        let mut slices = [IoSlice::new(&len), IoSlice::new(&bytes)];
+        let mut slices = [IoSlice::new(&len), IoSlice::new(bytes)];
         let mut bufs: &mut [IoSlice<'_>] = &mut slices;
         while !bufs.is_empty() {
             let n = socket.write_vectored(bufs).await?;
@@ -1849,6 +1865,7 @@ async fn hello(
     control: &Control,
     peer: Key,
     deadline: Instant,
+    wire: &mut WireBuf,
 ) -> Result<()> {
     let h = Hello {
         source: control.config.bootstrap.local().key(),
@@ -1863,6 +1880,7 @@ async fn hello(
         },
         control.config.limits.frame_bytes,
         deadline,
+        wire,
     )
     .await?;
     let response = read_frame(
@@ -1870,6 +1888,7 @@ async fn hello(
         control.config.limits.frame_bytes,
         control.config.storage.live_entries,
         deadline,
+        wire,
     )
     .await?;
     if response.rpc != 0 || response.message != Message::HelloAck(h) {
@@ -1883,15 +1902,24 @@ async fn rpc(
     id: &mut u64,
     control: &Control,
     deadline: Instant,
+    wire: &mut WireBuf,
 ) -> Result<Message> {
     *id = id.checked_add(1).ok_or(Error::Peer)?;
     let frame = Frame { rpc: *id, message };
-    write_frame(socket, &frame, control.config.limits.frame_bytes, deadline).await?;
+    write_frame(
+        socket,
+        &frame,
+        control.config.limits.frame_bytes,
+        deadline,
+        wire,
+    )
+    .await?;
     let response = read_frame(
         socket,
         control.config.limits.frame_bytes,
         control.config.storage.live_entries,
         deadline,
+        wire,
     )
     .await?;
     if response.rpc != frame.rpc || !frame.message.matches_reply(&response.message) {
@@ -1901,6 +1929,7 @@ async fn rpc(
 }
 async fn outbound(control: Arc<Control>, peer: Peer, mut jobs: mpsc::Receiver<Job>) {
     let _task = Counter::task(&control);
+    let mut wire = WireBuf::new();
     let mut socket: Option<(TcpStream, Counter, u64)> = None;
     let mut tick = tokio::time::interval(Duration::from_millis(control.config.limits.heartbeat_ms));
     tick.set_missed_tick_behavior(MissedTickBehavior::Skip);
@@ -1934,7 +1963,9 @@ async fn outbound(control: Arc<Control>, peer: Peer, mut jobs: mpsc::Receiver<Jo
                 tokio::time::timeout_at(connect_deadline, TcpStream::connect(peer.address)).await
             {
                 if configure_peer_socket(&s).is_ok()
-                    && hello(&mut s, &control, peer.key(), deadline).await.is_ok()
+                    && hello(&mut s, &control, peer.key(), deadline, &mut wire)
+                        .await
+                        .is_ok()
                 {
                     socket = Some((s, counter, 0));
                 }
@@ -1943,7 +1974,7 @@ async fn outbound(control: Arc<Control>, peer: Peer, mut jobs: mpsc::Receiver<Jo
         let result = if let Some((s, _, id)) = &mut socket {
             tokio::select! {
                 _ = control.stopping()=>Err(Error::Closed),
-                result=send_job(s,&control,job,id,deadline,&reservation)=>result,
+                result=send_job(s,&control,job,id,deadline,&reservation,&mut wire)=>result,
             }
         } else {
             Err(Error::Peer)
@@ -1983,13 +2014,14 @@ async fn send_job(
     id: &mut u64,
     deadline: Instant,
     reservation: &Arc<AdmissionPermit>,
+    wire: &mut WireBuf,
 ) -> Result<Message> {
     match job {
-        Job::Vote(q) => rpc(socket, Message::Vote(q), id, control, deadline).await,
-        Job::Feature(q) => rpc(socket, Message::Feature(q), id, control, deadline).await,
-        Job::Append(q) => rpc(socket, Message::Append(q), id, control, deadline).await,
+        Job::Vote(q) => rpc(socket, Message::Vote(q), id, control, deadline, wire).await,
+        Job::Feature(q) => rpc(socket, Message::Feature(q), id, control, deadline, wire).await,
+        Job::Append(q) => rpc(socket, Message::Append(q), id, control, deadline, wire).await,
         Job::Image(offer) => {
-            rpc(socket, Message::Begin(offer), id, control, deadline).await?;
+            rpc(socket, Message::Begin(offer), id, control, deadline, wire).await?;
             let mut offset = 0;
             while offset < offer.request.descriptor.bytes {
                 let reply = control
@@ -2025,10 +2057,11 @@ async fn send_job(
                     id,
                     control,
                     deadline,
+                    wire,
                 )
                 .await?;
             }
-            rpc(socket, Message::Finish(offer), id, control, deadline).await
+            rpc(socket, Message::Finish(offer), id, control, deadline, wire).await
         }
     }
 }
@@ -2058,12 +2091,13 @@ async fn serve(
     if configure_peer_socket(&socket).is_err() {
         return;
     }
+    let mut wire = WireBuf::new();
     let deadline = Instant::now() + Duration::from_millis(control.config.limits.rpc_ms);
     let reservation = control.reserve_frame(deadline).await;
     let Ok(reservation) = reservation else {
         return;
     };
-    let first = tokio::select! {_ = control.stopping()=>return,r=read_frame(&mut socket,control.config.limits.frame_bytes,control.config.storage.live_entries,deadline)=>r};
+    let first = tokio::select! {_ = control.stopping()=>return,r=read_frame(&mut socket,control.config.limits.frame_bytes,control.config.storage.live_entries,deadline,&mut wire)=>r};
     let Ok(Frame {
         rpc: 0,
         message: Message::Hello(h),
@@ -2098,6 +2132,7 @@ async fn serve(
         },
         control.config.limits.frame_bytes,
         deadline,
+        &mut wire,
     )
     .await
     .is_err()
@@ -2113,7 +2148,7 @@ async fn serve(
         let Ok(reservation) = reservation else {
             break;
         };
-        let frame = tokio::select! {_ = control.stopping()=>break,r=read_frame(&mut socket,control.config.limits.frame_bytes,control.config.storage.live_entries,deadline)=>r};
+        let frame = tokio::select! {_ = control.stopping()=>break,r=read_frame(&mut socket,control.config.limits.frame_bytes,control.config.storage.live_entries,deadline,&mut wire)=>r};
         let Ok(frame) = frame else {
             break;
         };
@@ -2148,6 +2183,7 @@ async fn serve(
             },
             control.config.limits.frame_bytes,
             deadline,
+            &mut wire,
         )
         .await
         .is_err()
@@ -3067,6 +3103,7 @@ mod ownership_tests {
         let handle = runtime.handle();
         let before = handle.state().await?;
         let mut socket = TcpStream::connect(address).await?;
+        let mut wire = WireBuf::new();
         let deadline = Instant::now() + Duration::from_secs(2);
         let hello = Hello {
             source: voters[3].key(),
@@ -3081,9 +3118,12 @@ mod ownership_tests {
             },
             bound,
             deadline,
+            &mut wire,
         )
         .await?;
-        let response = read_frame(&mut socket, bound, 4096, deadline).await?;
+        let encoded_capacity = wire.write.capacity();
+        assert!(encoded_capacity > 0);
+        let response = read_frame(&mut socket, bound, 4096, deadline, &mut wire).await?;
         assert_eq!(response.message, Message::HelloAck(hello));
         let request = replication::DynamicVoteRequest {
             context: replication::Context {
@@ -3106,9 +3146,11 @@ mod ownership_tests {
             },
             bound,
             deadline,
+            &mut wire,
         )
         .await?;
-        let response = read_frame(&mut socket, bound, 4096, deadline).await?;
+        assert!(wire.write.capacity() >= encoded_capacity);
+        let response = read_frame(&mut socket, bound, 4096, deadline, &mut wire).await?;
         assert_eq!(response.rpc, 1);
         assert!(matches!(
             response.message,
