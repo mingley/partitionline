@@ -1033,7 +1033,7 @@ struct Shared {
     in_txn: AtomicBool,
     txn_partitions: parking_lot::Mutex<HashSet<(Arc<str>, i32)>>,
     txn_added: parking_lot::Mutex<HashSet<(Arc<str>, i32)>>,
-    fast: parking_lot::Mutex<FastRoutes>,
+    fast: parking_lot::RwLock<FastRoutes>,
     m_queued: AtomicU64,
     m_acked: AtomicU64,
     m_errors: AtomicU64,
@@ -1077,7 +1077,7 @@ impl Drop for Inner {
             w.task.abort();
         }
         self.shared.nodes.lock().clear();
-        self.shared.fast.lock().clear();
+        self.shared.fast.write().clear();
 
         if let Some(h) = self.shared.meta_task.lock().take() {
             h.abort();
@@ -1732,7 +1732,7 @@ impl Producer {
             in_txn: AtomicBool::new(false),
             txn_partitions: parking_lot::Mutex::new(HashSet::new()),
             txn_added: parking_lot::Mutex::new(HashSet::new()),
-            fast: parking_lot::Mutex::new(FastRoutes::default()),
+            fast: parking_lot::RwLock::new(FastRoutes::default()),
             m_queued: AtomicU64::new(0),
             m_acked: AtomicU64::new(0),
             m_errors: AtomicU64::new(0),
@@ -2273,7 +2273,7 @@ impl Producer {
         Arc<WorkerHandle>,
         Arc<crate::metrics::ProduceTopicTracker>,
     )> {
-        let fast = self.inner.shared.fast.lock();
+        let fast = self.inner.shared.fast.read();
         let f = fast.routes.get(rec.topic.as_ref())?;
         if f.handles.is_empty() || f.np <= 0 {
             return None;
@@ -2309,7 +2309,7 @@ impl Producer {
         if max_age.is_zero() {
             return None;
         }
-        let fast = self.inner.shared.fast.lock();
+        let fast = self.inner.shared.fast.read();
         let f = fast.routes.get(rec.topic.as_ref())?;
         let fresh = f
             .fetched_at
@@ -2391,7 +2391,7 @@ impl Producer {
             tracker,
             fetched_at,
         };
-        let mut fast = self.inner.shared.fast.lock();
+        let mut fast = self.inner.shared.fast.write();
         if fast.routes.contains_key(rec.topic.as_ref()) {
             if let Some(slot) = fast.routes.get_mut(rec.topic.as_ref()) {
                 *slot = route;
@@ -3208,7 +3208,7 @@ impl Producer {
             w.task.abort();
         }
         self.inner.shared.nodes.lock().clear();
-        self.inner.shared.fast.lock().clear();
+        self.inner.shared.fast.write().clear();
 
         if let Some(h) = self.inner.shared.meta_task.lock().take() {
             h.abort();
@@ -4032,7 +4032,7 @@ async fn partitions_for_timeout(
 }
 
 fn drop_fast_topic(shared: &Shared, topic: &str) {
-    let mut fast = shared.fast.lock();
+    let mut fast = shared.fast.write();
     if let Some(pos) = fast.order.iter().position(|name| name.as_ref() == topic) {
         let _ = fast.order.remove(pos);
     }
