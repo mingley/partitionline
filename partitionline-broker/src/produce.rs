@@ -837,10 +837,10 @@ struct Part {
     bytes: Option<(usize, usize)>,
 }
 
-#[derive(Eq, PartialEq, Hash)]
-enum ProduceTopicKey {
+#[derive(Debug, Eq, PartialEq, Hash)]
+enum ProduceTopicKey<'a> {
     Id([u8; 16]),
-    Name(Option<Vec<u8>>),
+    Name(Option<&'a [u8]>),
 }
 
 fn strictly_increasing_indexes(parts: &[Part]) -> bool {
@@ -854,16 +854,13 @@ fn strictly_increasing_indexes(parts: &[Part]) -> bool {
     true
 }
 
-fn produce_topic_key(version: i16, topic: &Topic, body: &[u8]) -> ProduceTopicKey {
+fn produce_topic_key<'a>(version: i16, topic: &Topic, body: &'a [u8]) -> ProduceTopicKey<'a> {
     if version >= 13 {
         ProduceTopicKey::Id(topic.id)
     } else {
-        ProduceTopicKey::Name(
-            ranged(body, topic.name)
-                .ok()
-                .flatten()
-                .map(|bytes| bytes.to_vec()),
-        )
+        // A truncated name is the same absent key as a missing one. The bytes
+        // stay in the request so equal names compare without a copy.
+        ProduceTopicKey::Name(ranged(body, topic.name).ok().flatten())
     }
 }
 struct Request {
@@ -1793,6 +1790,52 @@ mod tests {
 
     fn part(index: i32) -> Part {
         Part { index, bytes: None }
+    }
+
+    #[test]
+    fn a_produce_topic_key_borrows_the_request_name() {
+        let body = b"orderspayments";
+        let orders = Topic {
+            name: Some((0, 6)),
+            id: [1; 16],
+            partitions: Vec::new(),
+        };
+        let payments = Topic {
+            name: Some((6, 14)),
+            id: [2; 16],
+            partitions: Vec::new(),
+        };
+        let again = Topic {
+            name: Some((0, 6)),
+            id: [9; 16],
+            partitions: Vec::new(),
+        };
+        let orders_key = produce_topic_key(9, &orders, body);
+        assert!(matches!(
+            orders_key,
+            ProduceTopicKey::Name(Some(bytes))
+                if bytes.as_ptr() == body.as_ptr() && bytes.len() == 6
+        ));
+        assert_eq!(orders_key, produce_topic_key(9, &again, body));
+        assert_ne!(orders_key, produce_topic_key(9, &payments, body));
+        let payments_key = produce_topic_key(9, &payments, body);
+        assert!(matches!(
+            payments_key,
+            ProduceTopicKey::Name(Some(bytes)) if bytes.as_ptr() == body[6..].as_ptr()
+        ));
+        let missing = Topic {
+            name: None,
+            id: [0; 16],
+            partitions: Vec::new(),
+        };
+        assert_eq!(
+            produce_topic_key(9, &missing, body),
+            ProduceTopicKey::Name(None)
+        );
+        assert_eq!(
+            produce_topic_key(13, &orders, body),
+            ProduceTopicKey::Id([1; 16])
+        );
     }
 
     #[test]
