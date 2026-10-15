@@ -403,6 +403,9 @@ impl Groups {
                 return Err(Error::Inconsistent);
             }
         }
+        if self.steady_refresh(&request) {
+            return self.commit_seen(request);
+        }
         let mut next = self.state.clone();
         let Some(group) = next.groups.get_mut(request.group_id) else {
             return Err(Error::UnknownMember);
@@ -518,6 +521,77 @@ impl Groups {
         let result = result_from(group, request.member_id)?;
         self.commit(next)?;
         Ok(result)
+    }
+
+    fn steady_refresh(&self, request: &Heartbeat<'_>) -> bool {
+        let Some(group) = self.state.groups.get(request.group_id) else {
+            return false;
+        };
+        let Some(member) = group.members.get(request.member_id) else {
+            return false;
+        };
+        request.member_epoch == member.epoch
+            && member.instance.as_deref() == request.instance_id
+            && request.endpoint_epoch <= member.endpoint_epoch
+    }
+
+    fn commit_seen(&mut self, request: Heartbeat<'_>) -> Result<HeartbeatResult, Error> {
+        let saved = {
+            let group = self
+                .state
+                .groups
+                .get_mut(request.group_id)
+                .ok_or(Error::UnknownMember)?;
+            let member = group
+                .members
+                .get_mut(request.member_id)
+                .ok_or(Error::UnknownMember)?;
+            let saved = (member.last_seen_ms, member.epoch, member.acked);
+            member.last_seen_ms = later_seen(saved.0, request.now_ms);
+            if !saved.2 {
+                match advance_epoch(saved.1) {
+                    Ok(epoch) => {
+                        member.epoch = epoch;
+                        member.acked = true;
+                    }
+                    Err(error) => {
+                        member.last_seen_ms = saved.0;
+                        return Err(error);
+                    }
+                }
+            }
+            saved
+        };
+        if let Err(error) = self.commit_current() {
+            self.restore_member(request.group_id, request.member_id, saved);
+            return Err(error);
+        }
+        let group = self
+            .state
+            .groups
+            .get(request.group_id)
+            .ok_or(Error::UnknownMember)?;
+        result_from(group, request.member_id)
+    }
+
+    fn commit_current(&mut self) -> Result<(), Error> {
+        let payload = encode(&self.state)?;
+        if payload.len() > self.limits.journal.max_entry_bytes() {
+            return Err(Error::InvalidLimits);
+        }
+        self.persist(&payload)
+    }
+
+    fn restore_member(&mut self, group_id: &str, member_id: &str, saved: (u64, i32, bool)) {
+        let Some(group) = self.state.groups.get_mut(group_id) else {
+            return;
+        };
+        let Some(member) = group.members.get_mut(member_id) else {
+            return;
+        };
+        member.last_seen_ms = saved.0;
+        member.epoch = saved.1;
+        member.acked = saved.2;
     }
 
     fn commit(&mut self, state: State) -> Result<(), Error> {
@@ -1137,6 +1211,18 @@ mod tests {
             })
             .unwrap_or_else(|error| panic!("{error:?}"));
         assert_eq!(refreshed.member_epoch, 1);
+        let again = groups
+            .heartbeat(Heartbeat {
+                member_epoch: refreshed.member_epoch,
+                now_ms: 10,
+                topology_epoch: None,
+                task_count: None,
+                ..join("a", Some("i-1"))
+            })
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(again.member_epoch, refreshed.member_epoch);
+        assert_eq!(again.active, refreshed.active);
+        assert_eq!(again.standby, refreshed.standby);
         assert!(matches!(
             groups.heartbeat(Heartbeat {
                 member_epoch: refreshed.member_epoch,

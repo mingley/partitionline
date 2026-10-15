@@ -392,6 +392,9 @@ impl Groups {
     }
 
     fn refresh(&mut self, request: Heartbeat<'_>) -> Result<HeartbeatResult, Error> {
+        if self.steady_refresh(&request) {
+            return self.commit_seen(request);
+        }
         let mut next = self.state.clone();
         let counts = next.topics.clone();
         let Some(group) = next.groups.get_mut(request.group_id) else {
@@ -473,6 +476,97 @@ impl Groups {
         };
         self.commit(next)?;
         Ok(result)
+    }
+
+    fn steady_refresh(&self, request: &Heartbeat<'_>) -> bool {
+        let Some(group) = self.state.groups.get(request.group_id) else {
+            return false;
+        };
+        let Some(member) = group.members.get(request.member_id) else {
+            return false;
+        };
+        if request.member_epoch != member.epoch || member.version != request.version {
+            return false;
+        }
+        let topics_same = match request.subscribed_topics {
+            None => true,
+            Some(names) => same_topic_list(names, &member.topics),
+        };
+        if !topics_same {
+            return false;
+        }
+        let min_version = group
+            .members
+            .values()
+            .map(|member| member.version)
+            .min()
+            .unwrap_or(0);
+        group.version == min_version
+    }
+
+    fn commit_seen(&mut self, request: Heartbeat<'_>) -> Result<HeartbeatResult, Error> {
+        let (saved, changed) = {
+            let group = self
+                .state
+                .groups
+                .get_mut(request.group_id)
+                .ok_or(Error::UnknownMember)?;
+            let member = group
+                .members
+                .get_mut(request.member_id)
+                .ok_or(Error::UnknownMember)?;
+            let saved = (member.last_seen_ms, member.epoch, member.acked);
+            let changed = !member.acked;
+            member.last_seen_ms = later_seen(saved.0, request.now_ms);
+            if changed {
+                match advance_epoch(saved.1) {
+                    Ok(epoch) => {
+                        member.epoch = epoch;
+                        member.acked = true;
+                    }
+                    Err(error) => {
+                        member.last_seen_ms = saved.0;
+                        return Err(error);
+                    }
+                }
+            }
+            (saved, changed)
+        };
+        if let Err(error) = self.commit_current() {
+            self.restore_member(request.group_id, request.member_id, saved);
+            return Err(error);
+        }
+        let group = self
+            .state
+            .groups
+            .get(request.group_id)
+            .ok_or(Error::UnknownMember)?;
+        result_from(
+            group,
+            request.member_id,
+            self.limits.heartbeat_interval_ms,
+            changed,
+        )
+    }
+
+    fn commit_current(&mut self) -> Result<(), Error> {
+        let payload = encode(&self.state)?;
+        if payload.len() > self.limits.journal.max_entry_bytes() {
+            return Err(Error::InvalidLimits);
+        }
+        self.persist(&payload)
+    }
+
+    fn restore_member(&mut self, group_id: &str, member_id: &str, saved: (u64, i32, bool)) {
+        let Some(group) = self.state.groups.get_mut(group_id) else {
+            return;
+        };
+        let Some(member) = group.members.get_mut(member_id) else {
+            return;
+        };
+        member.last_seen_ms = saved.0;
+        member.epoch = saved.1;
+        member.acked = saved.2;
     }
 
     fn commit(&mut self, state: State) -> Result<(), Error> {
@@ -675,6 +769,26 @@ fn result_from(
 
 fn later_seen(current: u64, now_ms: u64) -> u64 {
     current.max(now_ms)
+}
+
+fn same_topic_list(names: &[&str], owned: &BTreeSet<String>) -> bool {
+    if names.len() != owned.len() {
+        return false;
+    }
+    let mut matched = 0usize;
+    for stored in owned {
+        let mut hits = 0usize;
+        for name in names {
+            if *name == stored.as_str() {
+                hits = hits.saturating_add(1);
+            }
+        }
+        if hits != 1 {
+            return false;
+        }
+        matched = matched.saturating_add(1);
+    }
+    matched == names.len()
 }
 
 fn topic_set(topics: &[&str], known: &BTreeMap<String, i32>) -> Result<BTreeSet<String>, Error> {
@@ -1185,6 +1299,18 @@ mod tests {
                 .map(Vec::as_slice),
             Some(&[0, 1][..])
         );
+        let steady = groups
+            .heartbeat(Heartbeat {
+                version: 1,
+                group_id: "g",
+                member_id: "alice",
+                member_epoch: alice.member_epoch,
+                now_ms: 5,
+                subscribed_topics: Some(&["orders"]),
+            })
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(steady.member_epoch, alice.member_epoch);
+        assert!(steady.assignment.is_none());
         assert!(matches!(
             groups.heartbeat(Heartbeat {
                 version: 1,
