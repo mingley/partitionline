@@ -926,6 +926,29 @@ impl<T> List<T> {
             }
         }
     }
+
+    fn pop(&mut self) -> Option<T> {
+        match self {
+            Self::Empty => None,
+            Self::Many(items) => items.pop(),
+            Self::One(_) => match std::mem::replace(self, Self::Empty) {
+                Self::One(item) => Some(item),
+                _ => None,
+            },
+        }
+    }
+
+    #[cfg(test)]
+    fn from_vec(items: Vec<T>) -> Self {
+        match items.len() {
+            0 => Self::Empty,
+            1 => match items.into_iter().next() {
+                Some(item) => Self::One(item),
+                None => Self::Empty,
+            },
+            _ => Self::Many(items),
+        }
+    }
 }
 
 impl<T> std::ops::Deref for List<T> {
@@ -957,6 +980,44 @@ impl<'a, T> IntoIterator for &'a mut List<T> {
 
     fn into_iter(self) -> Self::IntoIter {
         self.as_mut_slice().iter_mut()
+    }
+}
+
+impl<T> IntoIterator for List<T> {
+    type Item = T;
+    type IntoIter = ListIntoIter<T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        match self {
+            Self::Empty => ListIntoIter {
+                one: None,
+                many: Vec::new().into_iter(),
+            },
+            Self::One(item) => ListIntoIter {
+                one: Some(item),
+                many: Vec::new().into_iter(),
+            },
+            Self::Many(items) => ListIntoIter {
+                one: None,
+                many: items.into_iter(),
+            },
+        }
+    }
+}
+
+struct ListIntoIter<T> {
+    one: Option<T>,
+    many: std::vec::IntoIter<T>,
+}
+
+impl<T> Iterator for ListIntoIter<T> {
+    type Item = T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some(item) = self.one.take() {
+            return Some(item);
+        }
+        self.many.next()
     }
 }
 
@@ -1376,7 +1437,7 @@ struct CapturedProduce {
     acks: i16,
     response_bound: usize,
     results: List<ResultTopic>,
-    pending_sync: Vec<PendingSync>,
+    pending_sync: List<PendingSync>,
 }
 enum ProcessOut {
     Reply(Option<Vec<u8>>),
@@ -1792,7 +1853,7 @@ fn process_inner(
     // Complete structural/record/response preflight precedes every storage mutation.
     // Monolithic journals write first and sync together; rolling storage syncs
     // inside its own append.
-    let mut pending_sync: Vec<PendingSync> = Vec::new();
+    let mut pending_sync = List::Empty;
     for (topic_at, topic) in results.iter_mut().enumerate() {
         for (part_at, part) in topic.parts.iter_mut().enumerate() {
             if let Err(error) = active() {
@@ -1964,7 +2025,7 @@ fn write_produce_response(
     Ok(Some(std::mem::take(&mut writer.bytes)))
 }
 
-fn rollback_pending(store: &mut Store, pending: &mut Vec<PendingSync>) {
+fn rollback_pending(store: &mut Store, pending: &mut List<PendingSync>) {
     while let Some(sync) = pending.pop() {
         if store
             .unstage_last(sync.position, sync.id, sync.index)
@@ -2062,6 +2123,9 @@ mod tests {
         many.push(part(1));
         assert_eq!(many.len(), 2);
         assert!(matches!(many, List::Many(_)));
+        let inline = List::from_vec(vec![part(3)]);
+        assert!(matches!(inline, List::One(_)));
+        assert_eq!(inline.first().map(|part| part.index), Some(3));
     }
 
     #[test]
@@ -2228,7 +2292,7 @@ mod tests {
             acks: 1,
             response_bound: 16,
             results: List::Empty,
-            pending_sync: syncs,
+            pending_sync: List::from_vec(syncs),
         }
     }
 
