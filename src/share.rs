@@ -680,8 +680,9 @@ pub enum ShareAcquireMode {
 /// `ShareConsumeRequestManager`); the callback message is
 /// `AcknowledgeErrorMessage` when the broker sends a non-empty one,
 /// otherwise `ShareFetch acknowledgement {topic}-{partition}`. A
-/// piggybacked `FENCED_LEADER_EPOCH` still completes without retry,
-/// including when `AcknowledgeErrorMessage` is set or empty. A top-level
+/// piggybacked `FENCED_LEADER_EPOCH` / `NOT_LEADER_OR_FOLLOWER` still
+/// completes without retry, including when `AcknowledgeErrorMessage`
+/// is set or empty. A top-level
 /// ShareFetch error completes in-flight piggybacked acknowledgements
 /// with that code (Java `handleResponse` false), preferring a non-empty
 /// `ErrorMessage`. Top-level `SHARE_SESSION_LIMIT_REACHED` /
