@@ -4245,11 +4245,9 @@ impl Consumer {
             self.cfg.max_bytes
         };
         let isolation_level = self.cfg.isolation_level.as_i8();
-        let timeout = deadline.saturating_duration_since(Instant::now());
-        if timeout.is_zero() {
+        if deadline.saturating_duration_since(Instant::now()).is_zero() {
             return Err(Error::Timeout);
         }
-        let max_wait = max_wait.min(duration_millis_i32(timeout));
         let rack = self.cfg.rack.clone();
         let mut name_ids = self.topic_name_ids();
         for by_topic in by_leader.values() {
@@ -4322,6 +4320,14 @@ impl Consumer {
             }
         }
         let nodes: Vec<i32> = connected;
+        // Dialing spent part of the deadline. The broker wait and the RPC
+        // timeout are the time still left, not the time that remained before
+        // the first connection.
+        let timeout = deadline.saturating_duration_since(Instant::now());
+        if timeout.is_zero() {
+            return Err(Error::Timeout);
+        }
+        let max_wait = max_wait.min(duration_millis_i32(timeout));
         if !collect_parallel {
             let mut out = Vec::with_capacity(nodes.len());
             for node in nodes {
