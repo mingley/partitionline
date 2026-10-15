@@ -1765,25 +1765,30 @@ impl ShareGroup {
         if timeout.is_zero() {
             return Err(Error::Timeout);
         }
-        let topics = self.topics.clone();
-        for t in &topics {
+        for t in &self.topics {
             self.consumer.invalidate_topic(t);
         }
         self.consumer
-            .refresh_metadata_timeout(Some(&topics), timeout)
+            .refresh_metadata_timeout(Some(&self.topics), timeout)
             .await
     }
 
     async fn leaders_of(
         &mut self,
-        tps: &[(String, i32)],
         deadline: Instant,
     ) -> Result<HashMap<i32, HashMap<String, Vec<i32>>>> {
-        let mut refreshed = HashSet::new();
-        for (topic, _) in tps {
-            if !refreshed.insert(topic.as_str()) {
-                continue;
+        // One owned name per topic. The assignment stays put across the
+        // metadata awaits, so a poll does not copy every partition's topic.
+        let mut names = Vec::new();
+        {
+            let mut seen = HashSet::new();
+            for (topic, _) in &self.assigned {
+                if seen.insert(topic.as_str()) {
+                    names.push(topic.clone());
+                }
             }
+        }
+        for topic in &names {
             let rest = deadline.saturating_duration_since(Instant::now());
             if rest.is_zero() {
                 return Err(Error::Timeout);
@@ -1795,7 +1800,7 @@ impl ShareGroup {
         let mut by_leader: HashMap<i32, HashMap<String, Vec<i32>>> = HashMap::new();
         let mut cached_topic = String::new();
         let mut leaders = Vec::new();
-        for (topic, p) in tps {
+        for (topic, p) in &self.assigned {
             if cached_topic != topic.as_str() {
                 leaders = self.consumer.leader_id_list(topic)?;
                 cached_topic.clear();
@@ -1961,8 +1966,7 @@ impl ShareGroup {
         if !self.pending_delivery.is_empty() {
             return Ok(self.drain_pending_delivery());
         }
-        let assigned = self.assigned.clone();
-        let by_leader = self.leaders_of(&assigned, deadline).await?;
+        let by_leader = self.leaders_of(deadline).await?;
         let mut nodes: Vec<_> = by_leader.into_iter().collect();
         nodes.sort_by_key(|(node, _)| *node);
         let metadata_bytes = self
