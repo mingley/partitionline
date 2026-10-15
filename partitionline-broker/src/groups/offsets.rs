@@ -371,6 +371,7 @@ fn decode(mut bytes: &[u8]) -> Result<BTreeMap<String, Group>, Error> {
     let mut groups = BTreeMap::new();
     for _ in 0..count {
         let id = take_str(&mut bytes)?;
+        validate_group(&id)?;
         let generation = take_i32(&mut bytes)?;
         let offsets_len = take_u16(&mut bytes)?;
         let mut offsets = BTreeMap::new();
@@ -380,22 +381,39 @@ fn decode(mut bytes: &[u8]) -> Result<BTreeMap<String, Group>, Error> {
             let offset = take_i64(&mut bytes)?;
             let committed_generation = take_i32(&mut bytes)?;
             let metadata = take_str(&mut bytes)?;
-            offsets.insert(
-                (topic, partition),
-                Committed {
-                    offset,
-                    metadata,
-                    generation: committed_generation,
-                },
-            );
+            if catalog::validate_topic_name(&topic).is_err()
+                || partition < 0
+                || offset < 0
+                || metadata.len() > 4096
+            {
+                return Err(Error::InvalidRequest);
+            }
+            if offsets
+                .insert(
+                    (topic, partition),
+                    Committed {
+                        offset,
+                        metadata,
+                        generation: committed_generation,
+                    },
+                )
+                .is_some()
+            {
+                return Err(Error::InvalidRequest);
+            }
         }
-        groups.insert(
-            id,
-            Group {
-                generation,
-                offsets,
-            },
-        );
+        if groups
+            .insert(
+                id,
+                Group {
+                    generation,
+                    offsets,
+                },
+            )
+            .is_some()
+        {
+            return Err(Error::InvalidRequest);
+        }
     }
     if !bytes.is_empty() {
         return Err(Error::InvalidRequest);
@@ -471,6 +489,29 @@ mod tests {
         let path = std::env::temp_dir().join(format!("pl-goff-{name}-{nanos}"));
         let offsets = Offsets::open(&path, limits()).unwrap_or_else(|error| panic!("{error:?}"));
         (offsets, path)
+    }
+
+    #[test]
+    fn a_negative_offset_is_not_recovered() {
+        let mut offsets = BTreeMap::new();
+        offsets.insert(
+            ("orders".to_owned(), 0),
+            Committed {
+                offset: -1,
+                metadata: String::new(),
+                generation: 1,
+            },
+        );
+        let mut groups = BTreeMap::new();
+        groups.insert(
+            "orders".to_owned(),
+            Group {
+                generation: 1,
+                offsets,
+            },
+        );
+        let encoded = encode(&groups).unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(decode(&encoded), Err(Error::InvalidRequest)));
     }
 
     #[test]
