@@ -1714,8 +1714,8 @@ impl ShareGroup {
     /// A ShareAcknowledge partition `NOT_LEADER_OR_FOLLOWER` /
     /// `FENCED_LEADER_EPOCH` / `UNKNOWN_TOPIC_OR_PARTITION` is not
     /// retried even when those codes are otherwise retriable; the map
-    /// completes and Metadata is requested (Java
-    /// `testFatalErrorsAcknowledgementResponse`).
+    /// completes (Java `testFatalErrorsAcknowledgementResponse`).
+    /// Metadata is requested when that error has no usable CurrentLeader.
     pub async fn commit_sync(&mut self) -> Result<AcknowledgementCommitResults> {
         if !self.has_pending_acknowledgements() {
             return Ok(Vec::new());
@@ -3819,18 +3819,17 @@ impl ShareGroup {
                         }
                         partitions.retain(|(t, p, _)| t != &name || *p != part.partition);
                     } else {
-                        if share_ack_current_leader_usable(part.error_code) {
-                            // Java updateLeaderInfoMap: apply CurrentLeader
-                            // for NOT_LEADER / FENCED / UNKNOWN_TOPIC_OR_PARTITION
-                            // / UNKNOWN_TOPIC_ID when leaderId and leaderEpoch
-                            // are both set.
-                            let _ = self.apply_share_current_leader(
+                        // Java updateLeaderInfoMap: apply CurrentLeader
+                        // for NOT_LEADER / FENCED / UNKNOWN_TOPIC_OR_PARTITION
+                        // / UNKNOWN_TOPIC_ID when leaderId and leaderEpoch
+                        // are both set.
+                        let applied_leader = share_ack_current_leader_usable(part.error_code)
+                            && self.apply_share_current_leader(
                                 &name,
                                 part.partition,
                                 part.current_leader_id,
                                 part.current_leader_epoch,
                             );
-                        }
                         if part.error_code == error::INVALID_RECORD_STATE
                             || share_ack_ownership_lost(part.error_code)
                         {
@@ -3842,8 +3841,10 @@ impl ShareGroup {
                             }
                             // Java testFatalErrorsAcknowledgementResponse:
                             // NOT_LEADER / FENCED / UNKNOWN_TOPIC_OR_PARTITION
-                            // complete without retry and request Metadata.
-                            if share_ack_ownership_lost(part.error_code) {
+                            // complete without retry. Metadata is requested
+                            // when there is no usable CurrentLeader (KIP-951
+                            // still applies the hint without a refresh).
+                            if share_ack_ownership_lost(part.error_code) && !applied_leader {
                                 self.invalidate_share_topic(&name);
                             }
                         }

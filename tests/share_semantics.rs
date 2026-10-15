@@ -1390,7 +1390,6 @@ async fn share_acknowledge_fatal_leadership_error_does_not_retry() {
     mock.fail_share_ack_once("t", 0, error::FENCED_LEADER_EPOCH);
     group.accept(&recs).await.unwrap();
     let calls = mock.share_ack_calls();
-    let after_accept = mock.metadata_calls();
     let results = group.commit_sync().await.unwrap();
     assert_eq!(results.len(), 1);
     assert_eq!(
@@ -1404,11 +1403,6 @@ async fn share_acknowledge_fatal_leadership_error_does_not_retry() {
         "fatal leadership ack errors must not retry"
     );
     assert_eq!(*seen.lock(), vec![Some(error::FENCED_LEADER_EPOCH)]);
-    let _ = group.list_topics().await.unwrap();
-    assert!(
-        mock.metadata_calls() > after_accept,
-        "Java treats those errors as fatal and requests Metadata"
-    );
     let empty = group.commit_sync().await.unwrap();
     assert!(
         empty.is_empty(),
