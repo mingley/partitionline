@@ -1237,9 +1237,19 @@ impl BrokerConn {
             .get_mut(..4)
             .ok_or_else(|| Error::protocol("short length prefix"))?;
         slot.copy_from_slice(&size.to_be_bytes());
-        let payload = self.write_buf.split();
-        self.write_all_deadline(&payload, deadline).await?;
+        // `split` would leave only the spare tail and drop the grown buffer.
+        // Take it for the write, then clear and put the same allocation back.
+        let mut payload = std::mem::take(&mut self.write_buf);
+        let result = self.write_all_deadline(&payload, deadline).await;
+        payload.clear();
+        self.write_buf = payload;
+        result?;
         Ok(())
+    }
+
+    #[cfg(test)]
+    fn write_capacity(&self) -> usize {
+        self.write_buf.capacity()
     }
 
     /// Encode and write one request bounded by `deadline`. Returns the correlation id.
@@ -2167,7 +2177,7 @@ mod tests {
     use std::pin::Pin;
     use std::task::{Context, Poll};
     use std::time::Duration;
-    use tokio::io::{AsyncRead, AsyncWrite, AsyncWriteExt, ReadBuf};
+    use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt, ReadBuf};
     use tokio::net::TcpListener;
 
     #[test]
@@ -2278,6 +2288,61 @@ mod tests {
             .unwrap();
         assert_eq!(&read_buf[..], &inbound[..]);
         assert!(read_buf.capacity() >= inbound.len());
+    }
+
+    #[tokio::test]
+    async fn repeated_requests_reuse_the_write_buffer() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let server = tokio::spawn(async move {
+            let (mut socket, _) = listener.accept().await.unwrap();
+            for _ in 0..2 {
+                let mut prefix = [0u8; 4];
+                let _ = socket.read_exact(&mut prefix).await.unwrap();
+                let size = usize::try_from(i32::from_be_bytes(prefix)).unwrap();
+                let mut body = vec![0u8; size];
+                let _ = socket.read_exact(&mut body).await.unwrap();
+                let correlation = i32::from_be_bytes(body[4..8].try_into().unwrap());
+                let mut response = Vec::new();
+                response.extend_from_slice(&4i32.to_be_bytes());
+                response.extend_from_slice(&correlation.to_be_bytes());
+                socket.write_all(&response).await.unwrap();
+            }
+        });
+        let mut conn = BrokerConn::connect(&addr, "reuse", Duration::from_secs(2))
+            .await
+            .unwrap();
+        let body = vec![0u8; 20_000];
+        let first = body.clone();
+        let _ = conn
+            .roundtrip(
+                crate::protocol::api_keys::API_VERSIONS,
+                0,
+                move |buf| {
+                    buf.extend_from_slice(&first);
+                    Ok(())
+                },
+                Duration::from_secs(2),
+            )
+            .await
+            .unwrap();
+        let after_first = conn.write_capacity();
+        let second = body.clone();
+        let _ = conn
+            .roundtrip(
+                crate::protocol::api_keys::API_VERSIONS,
+                0,
+                move |buf| {
+                    buf.extend_from_slice(&second);
+                    Ok(())
+                },
+                Duration::from_secs(2),
+            )
+            .await
+            .unwrap();
+        assert!(after_first >= body.len());
+        assert_eq!(conn.write_capacity(), after_first);
+        drop(server);
     }
 
     #[tokio::test]
