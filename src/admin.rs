@@ -3360,9 +3360,7 @@ impl Admin {
             listeners: endpoints,
             ack_when_committed: options.ack_when_committed,
         };
-        tokio::time::timeout(timeout, self.add_raft_voter_until(request, deadline))
-            .await
-            .map_err(|_| Error::Timeout)?
+        self.add_raft_voter_until(request, deadline).await
     }
 
     async fn add_raft_voter_until(
@@ -3512,9 +3510,7 @@ impl Admin {
             voter_id,
             voter_directory_id: voter_directory_id.to_bytes(),
         };
-        tokio::time::timeout(timeout, self.remove_raft_voter_until(request, deadline))
-            .await
-            .map_err(|_| Error::Timeout)?
+        self.remove_raft_voter_until(request, deadline).await
     }
 
     async fn remove_raft_voter_until(
@@ -3626,9 +3622,7 @@ impl Admin {
         let deadline = Instant::now()
             .checked_add(timeout)
             .ok_or_else(|| Error::protocol("quorum timeout exceeds clock range"))?;
-        tokio::time::timeout(timeout, self.describe_quorum_until(deadline))
-            .await
-            .map_err(|_| Error::Timeout)?
+        self.describe_quorum_until(deadline).await
     }
 
     async fn describe_quorum_until(&mut self, deadline: Instant) -> Result<QuorumInfo> {
@@ -3780,9 +3774,7 @@ impl Admin {
         let deadline = Instant::now()
             .checked_add(timeout)
             .ok_or_else(|| Error::protocol("election timeout exceeds clock range"))?;
-        tokio::time::timeout(timeout, self.elect_leaders_until(options, deadline))
-            .await
-            .map_err(|_| Error::Timeout)?
+        self.elect_leaders_until(options, deadline).await
     }
 
     async fn elect_leaders_until(
