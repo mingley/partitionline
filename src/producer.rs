@@ -4631,8 +4631,50 @@ struct InFlight {
     version: i16,
     // Snapshot of identities actually sent; latest metadata may describe a
     // recreated topic when an older response arrives.
-    topic_ids: Vec<(Arc<str>, [u8; 16])>,
+    topic_ids: ProduceTopicIds,
     groups: Vec<(Arc<str>, i32, Vec<Pending>)>,
+}
+
+/// Topic ids carried with one Produce request.
+///
+/// One topic stays inline. Several topics own a vector.
+enum ProduceTopicIds {
+    Empty,
+    One((Arc<str>, [u8; 16])),
+    Many(Vec<(Arc<str>, [u8; 16])>),
+}
+
+impl ProduceTopicIds {
+    fn as_slice(&self) -> &[(Arc<str>, [u8; 16])] {
+        match self {
+            Self::Empty => &[],
+            Self::One(id) => std::slice::from_ref(id),
+            Self::Many(ids) => ids,
+        }
+    }
+
+    fn len(&self) -> usize {
+        match self {
+            Self::Empty => 0,
+            Self::One(_) => 1,
+            Self::Many(ids) => ids.len(),
+        }
+    }
+
+    fn first(&self) -> Option<&(Arc<str>, [u8; 16])> {
+        self.as_slice().first()
+    }
+
+    fn from_vec(ids: Vec<(Arc<str>, [u8; 16])>) -> Self {
+        match ids.len() {
+            0 => Self::Empty,
+            1 => match ids.into_iter().next() {
+                Some(id) => Self::One(id),
+                None => Self::Empty,
+            },
+            _ => Self::Many(ids),
+        }
+    }
 }
 
 struct InFlightGuard {
@@ -5242,7 +5284,7 @@ impl Worker {
             return Ok(());
         }
         let version = self.conn.produce_version();
-        let topic_ids: Vec<(Arc<str>, [u8; 16])> = if version >= 13 {
+        let topic_ids = if version >= 13 {
             let identities = {
                 let shared_topic = groups.first().and_then(|(topic, _, _)| {
                     let shared = groups.iter().all(|(name, _, _)| Arc::ptr_eq(name, topic));
@@ -5264,7 +5306,7 @@ impl Worker {
                             .filter(|id| *id != [0; 16])
                     });
                     match id {
-                        Some(id) => Ok(vec![(topic, id)]),
+                        Some(id) => Ok(ProduceTopicIds::One((topic, id))),
                         None => Err(Error::Unsupported(format!(
                             "Produce v13 missing nonzero Metadata topic ID for {topic}"
                         ))),
@@ -5285,11 +5327,13 @@ impl Worker {
                         });
                         (topic, id)
                     });
-                    collect_produce_topic_ids(resolved).map_err(|topic| {
-                        Error::Unsupported(format!(
-                            "Produce v13 missing nonzero Metadata topic ID for {topic}"
-                        ))
-                    })
+                    collect_produce_topic_ids(resolved)
+                        .map(ProduceTopicIds::from_vec)
+                        .map_err(|topic| {
+                            Error::Unsupported(format!(
+                                "Produce v13 missing nonzero Metadata topic ID for {topic}"
+                            ))
+                        })
                 }
             };
             match identities {
@@ -5301,7 +5345,7 @@ impl Worker {
                 }
             }
         } else {
-            Vec::new()
+            ProduceTopicIds::Empty
         };
         let producer_id = self.shared.producer_id.load(Ordering::SeqCst);
         let producer_epoch = self.shared.producer_epoch.load(Ordering::SeqCst);
@@ -5388,7 +5432,7 @@ impl Worker {
             acks,
             timeout_ms,
             &groups,
-            &topic_ids,
+            topic_ids.as_slice(),
             compression,
             now,
             producer_id,
@@ -5540,7 +5584,7 @@ impl Worker {
         if version >= 13 {
             if let Some(inf) = guard.inf.as_ref() {
                 if inf.topic_ids.len() > 1 {
-                    fill_ids_by_uuid(&inf.topic_ids, &mut self.ack_index.by_uuid);
+                    fill_ids_by_uuid(inf.topic_ids.as_slice(), &mut self.ack_index.by_uuid);
                 }
             }
         }
@@ -5618,7 +5662,7 @@ impl Worker {
         let ack_ids = (version >= 13 && inf.topic_ids.len() > 1).then_some(&self.ack_index.by_uuid);
         for (ack_at, ack) in responses.iter().enumerate() {
             let topic = if version >= 13 {
-                name_for_topic_id(&inf.topic_ids, ack_ids, ack.topic_id)
+                name_for_topic_id(inf.topic_ids.as_slice(), ack_ids, ack.topic_id)
             } else {
                 std::str::from_utf8(&ack.topic).ok()
             };
@@ -7495,6 +7539,30 @@ mod tests {
         assert_eq!(again.len(), 2);
         assert_eq!((again[0].0.as_ref(), again[0].1), ("payments", 1));
         assert_eq!((again[1].0.as_ref(), again[1].1), ("orders", 0));
+    }
+
+    #[test]
+    fn one_produce_topic_id_stays_inline() {
+        let orders = Arc::<str>::from("orders");
+        let one = ProduceTopicIds::One((Arc::clone(&orders), [1; 16]));
+        assert!(matches!(one, ProduceTopicIds::One(_)));
+        assert_eq!(one.len(), 1);
+        assert_eq!(
+            one.first().map(|(topic, id)| (topic.as_ref(), *id)),
+            Some(("orders", [1; 16]))
+        );
+        let folded = ProduceTopicIds::from_vec(vec![(orders, [1; 16])]);
+        assert!(matches!(folded, ProduceTopicIds::One(_)));
+        assert!(matches!(
+            ProduceTopicIds::from_vec(Vec::new()),
+            ProduceTopicIds::Empty
+        ));
+        let many = ProduceTopicIds::from_vec(vec![
+            (Arc::<str>::from("orders"), [1; 16]),
+            (Arc::<str>::from("payments"), [2; 16]),
+        ]);
+        assert!(matches!(many, ProduceTopicIds::Many(_)));
+        assert_eq!(many.len(), 2);
     }
 
     #[test]
