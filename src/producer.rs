@@ -2962,19 +2962,14 @@ impl Producer {
                 return Err(e);
             }
         }
-        let mut topics: Vec<String> = Vec::new();
-        for (tp, _) in &offsets {
-            if !topics.iter().any(|t| t == &tp.topic) {
-                topics.push(tp.topic.clone());
-            }
-        }
-        for topic in &topics {
-            let name = Arc::<str>::from(topic.as_str());
+        let topics = unique_offset_topics(&offsets);
+        for topic in topics {
+            let name = Arc::<str>::from(topic);
             if partitions_for_timeout(&self.inner.shared, &name, timeout_remaining(deadline)?)
                 .await?
                 <= 0
             {
-                return Err(Error::UnknownTopic(topic.clone()));
+                return Err(Error::UnknownTopic(topic.to_owned()));
             }
         }
         let grouped = {
@@ -6086,11 +6081,25 @@ fn group_txn_partitions(parts: &[(Arc<str>, i32)]) -> Vec<TxnPartitionsTopic> {
     topics
 }
 
+fn unique_offset_topics(
+    offsets: &[(crate::TopicPartition, crate::OffsetAndMetadata)],
+) -> Vec<&str> {
+    let mut seen: HashSet<&str> = HashSet::new();
+    let mut topics = Vec::new();
+    for (tp, _) in offsets {
+        if seen.insert(tp.topic.as_str()) {
+            topics.push(tp.topic.as_str());
+        }
+    }
+    topics
+}
+
 fn group_txn_offsets(
     offsets: &[(crate::TopicPartition, crate::OffsetAndMetadata)],
     cluster: &crate::cluster::Cluster,
 ) -> Vec<TxnOffsetTopic> {
     let mut topics: Vec<TxnOffsetTopic> = Vec::new();
+    let mut slots: HashMap<&str, usize> = HashMap::new();
     let mut epochs = crate::cluster::EpochList::new();
     for (tp, md) in offsets {
         let leader_epoch = md
@@ -6102,13 +6111,18 @@ fn group_txn_offsets(
             leader_epoch,
             metadata: md.metadata.clone(),
         };
-        match topics.iter_mut().find(|t| t.topic == tp.topic) {
-            Some(slot) => slot.partitions.push(partition),
-            None => topics.push(TxnOffsetTopic {
-                topic: tp.topic.clone(),
-                partitions: vec![partition],
-            }),
+        if let Some(&slot) = slots.get(tp.topic.as_str()) {
+            if let Some(group) = topics.get_mut(slot) {
+                group.partitions.push(partition);
+                continue;
+            }
         }
+        let slot = topics.len();
+        let _ = slots.insert(tp.topic.as_str(), slot);
+        topics.push(TxnOffsetTopic {
+            topic: tp.topic.clone(),
+            partitions: vec![partition],
+        });
     }
     topics
 }
@@ -7092,6 +7106,66 @@ mod tests {
             skip_meta_refresh: false,
             retry_after: now,
         }
+    }
+
+    #[test]
+    fn transactional_offsets_group_by_first_seen_topic() {
+        let offsets = [
+            (
+                crate::TopicPartition::new("orders", 1),
+                crate::OffsetAndMetadata::from_wire(4, 7, "a".into()),
+            ),
+            (
+                crate::TopicPartition::new("payments", 0),
+                crate::OffsetAndMetadata::from_wire(1, 2, String::new()),
+            ),
+            (
+                crate::TopicPartition::new("orders", 0),
+                crate::OffsetAndMetadata::from_wire(9, 7, "b".into()),
+            ),
+        ];
+        let names = unique_offset_topics(&offsets);
+        assert_eq!(names.first().copied(), Some("orders"));
+        assert_eq!(names.get(1).copied(), Some("payments"));
+        assert_eq!(names.len(), 2);
+        let grouped = group_txn_offsets(&offsets, &crate::cluster::Cluster::default());
+        assert_eq!(
+            grouped.first().map(|topic| topic.topic.as_str()),
+            Some("orders")
+        );
+        assert_eq!(
+            grouped.first().map(|topic| {
+                topic
+                    .partitions
+                    .iter()
+                    .map(|partition| {
+                        (
+                            partition.partition,
+                            partition.offset,
+                            partition.leader_epoch,
+                        )
+                    })
+                    .collect::<Vec<_>>()
+            }),
+            Some(vec![(1, 4, 7), (0, 9, 7)])
+        );
+        assert_eq!(
+            grouped.get(1).map(|topic| topic.topic.as_str()),
+            Some("payments")
+        );
+        assert_eq!(
+            grouped
+                .get(1)
+                .and_then(|topic| topic.partitions.first())
+                .map(|partition| {
+                    (
+                        partition.partition,
+                        partition.offset,
+                        partition.metadata.as_str(),
+                    )
+                }),
+            Some((0, 1, ""))
+        );
     }
 
     #[test]
