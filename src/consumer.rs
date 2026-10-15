@@ -3278,6 +3278,9 @@ impl Consumer {
         if coords.is_empty() {
             return Ok(());
         }
+        if Instant::now() >= deadline {
+            return Err(Error::Timeout);
+        }
         // Preferred replica may have returned the fence; OffsetForLeaderEpoch is leader-only.
         // Refresh Metadata first so `current_leader_epoch` is not the value that just fenced us.
         for (topic, partition) in coords {
@@ -3329,10 +3332,15 @@ impl Consumer {
                 let Some(parts) = by_leader.remove(&node) else {
                     continue;
                 };
-                if Instant::now() >= deadline {
+                let rest = remaining_offset_timeout(deadline, Instant::now());
+                if rest.is_zero() {
                     return Err(Error::Timeout);
                 }
-                self.connect_node(node).await?;
+                match tokio::time::timeout(rest, self.connect_node(node)).await {
+                    Ok(Ok(())) => {}
+                    Ok(Err(error)) => return Err(error),
+                    Err(_) => return Err(Error::Timeout),
+                }
                 let version = self.offset_for_leader_epoch_version(node)?;
                 let topics = offset_for_leader_epoch_topics(
                     &self.cluster,
