@@ -195,7 +195,9 @@ impl Store {
                 if entry.record_count != 1 {
                     return Err(Error::InvalidRequest);
                 }
-                store.partitions = decode(&entry.payload, store.limits.max_batches)?;
+                let decoded = decode(&entry.payload, store.limits.max_batches)?;
+                accept_share_snapshot(&store.partitions, &decoded, store.limits.max_partitions)?;
+                store.partitions = decoded;
                 store.stored = store.stored.saturating_add(1);
                 cursor = entry
                     .first_offset
@@ -368,6 +370,86 @@ impl Store {
                 Err(error.into())
             }
         }
+    }
+}
+
+/// One recovered snapshot is one live `init`, `write`/`timeout`, or `delete`.
+fn accept_share_snapshot(
+    previous: &BTreeMap<Key, Partition>,
+    next: &BTreeMap<Key, Partition>,
+    max_partitions: usize,
+) -> Result<(), Error> {
+    if next.len() > max_partitions {
+        return Err(Error::InvalidLimits);
+    }
+    let mut added = None;
+    let mut removed = 0usize;
+    let mut changed = None;
+    let mut extra = false;
+    let mut left = previous.iter();
+    let mut right = next.iter();
+    let mut previous_item = left.next();
+    let mut next_item = right.next();
+    while previous_item.is_some() || next_item.is_some() {
+        match (previous_item, next_item) {
+            (Some((left_key, old)), Some((right_key, new))) if left_key == right_key => {
+                if old != new {
+                    if changed.is_some() {
+                        extra = true;
+                    }
+                    changed = Some((old, new));
+                }
+                previous_item = left.next();
+                next_item = right.next();
+            }
+            (Some((left_key, _)), Some((right_key, new))) if left_key > right_key => {
+                if added.is_some() {
+                    extra = true;
+                }
+                added = Some(new);
+                next_item = right.next();
+            }
+            (Some(_), _) => {
+                removed += 1;
+                previous_item = left.next();
+            }
+            (None, Some((_, new))) => {
+                if added.is_some() {
+                    extra = true;
+                }
+                added = Some(new);
+                next_item = right.next();
+            }
+            (None, None) => break,
+        }
+    }
+    if extra {
+        return Err(Error::InvalidRequest);
+    }
+    match (added, removed, changed) {
+        (Some(created), 0, None) => {
+            if created.state_epoch == 0 && created.leader_epoch == 0 && created.batches.is_empty() {
+                Ok(())
+            } else {
+                Err(Error::InvalidRequest)
+            }
+        }
+        (None, 1, None) => Ok(()),
+        (None, 0, Some((old, new))) => {
+            let epoch = old
+                .state_epoch
+                .checked_add(1)
+                .ok_or(Error::InvalidRequest)?;
+            if new.state_epoch == epoch
+                && new.leader_epoch >= old.leader_epoch
+                && new.start_offset >= old.start_offset
+            {
+                Ok(())
+            } else {
+                Err(Error::InvalidRequest)
+            }
+        }
+        _ => Err(Error::InvalidRequest),
     }
 }
 
@@ -781,6 +863,54 @@ mod tests {
             .unwrap_or_else(|error| panic!("{error:?}"));
         assert_eq!(restored.start_offset, 10);
         assert_eq!(restored.batches[0].last_offset, 11);
+    }
+
+    #[test]
+    fn a_snapshot_that_skips_a_live_change_is_not_recovered() {
+        let mut previous = BTreeMap::new();
+        let created = Partition {
+            state_epoch: 0,
+            leader_epoch: 0,
+            start_offset: 10,
+            batches: Vec::new(),
+        };
+        previous.insert(
+            Key {
+                group: "share".into(),
+                topic: "orders".into(),
+                partition: 0,
+            },
+            created,
+        );
+        accept_share_snapshot(&BTreeMap::new(), &previous, 8)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let mut jumped = previous.clone();
+        jumped
+            .get_mut(&Key {
+                group: "share".into(),
+                topic: "orders".into(),
+                partition: 0,
+            })
+            .unwrap_or_else(|| panic!("partition"))
+            .state_epoch = 4;
+        assert!(matches!(
+            accept_share_snapshot(&previous, &jumped, 8),
+            Err(Error::InvalidRequest)
+        ));
+        let mut backward = previous.clone();
+        let moved = backward
+            .get_mut(&Key {
+                group: "share".into(),
+                topic: "orders".into(),
+                partition: 0,
+            })
+            .unwrap_or_else(|| panic!("partition"));
+        moved.state_epoch = 1;
+        moved.start_offset = 9;
+        assert!(matches!(
+            accept_share_snapshot(&previous, &backward, 8),
+            Err(Error::InvalidRequest)
+        ));
     }
 
     #[test]
