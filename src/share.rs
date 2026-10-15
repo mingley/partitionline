@@ -681,7 +681,9 @@ pub enum ShareAcquireMode {
 /// `AcknowledgeErrorMessage` when the broker sends a non-empty one,
 /// otherwise `ShareFetch acknowledgement {topic}-{partition}`. A top-level
 /// ShareFetch error completes in-flight piggybacked acknowledgements
-/// with that code (Java `handleResponse` false). A ShareFetch
+/// with that code (Java `handleResponse` false), preferring a non-empty
+/// `ErrorMessage`. Top-level `SHARE_SESSION_LIMIT_REACHED` still resets
+/// the share session (Java `nextCloseExistingAttemptNew`). A ShareFetch
 /// transport / timeout / decode failure completes those acknowledgements
 /// the same way (Java `handleShareFetchFailure`). Piggyback is refused
 /// on the initial share session and those acknowledgements complete
