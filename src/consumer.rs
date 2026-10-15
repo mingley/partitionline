@@ -2168,6 +2168,11 @@ impl Consumer {
         let deadline = Instant::now()
             .checked_add(cfg.request_timeout)
             .ok_or(Error::Timeout)?;
+        Self::connect_within(cfg, deadline).await
+    }
+
+    /// Connect using only the time still left on `deadline`.
+    pub(crate) async fn connect_within(cfg: ConsumerConfig, deadline: Instant) -> Result<Self> {
         crate::net::Deadline::from_std(deadline)
             .run(Self::new_until(cfg, deadline))
             .await

@@ -656,11 +656,15 @@ impl ConsumerGroup {
             .first()
             .cloned()
             .ok_or_else(reject_java_no_assignors)?;
-        let deadline = crate::net::Deadline::from_timeout(cfg.request_timeout);
+        let started = Instant::now()
+            .checked_add(cfg.request_timeout)
+            .ok_or(Error::Timeout)?;
+        let deadline = crate::net::Deadline::from_std(started);
         let (consumer, coord) = deadline
             .run(async {
-                let consumer = Consumer::new(cfg.clone()).await?;
-                let coord = discover_coord(&cfg, &group_id, COORDINATOR_GROUP).await?;
+                let consumer = Consumer::connect_within(cfg.clone(), started).await?;
+                let coord =
+                    discover_coord_within(&cfg, &group_id, COORDINATOR_GROUP, started).await?;
                 Ok((consumer, coord))
             })
             .await?;
@@ -814,11 +818,15 @@ impl ConsumerGroup {
         reject_java_empty_group_id(&group_id)?;
         let mut cfg = cfg;
         cfg.bootstrap = crate::net::parse_and_validate_addresses(&cfg.bootstrap)?;
-        let deadline = crate::net::Deadline::from_timeout(cfg.request_timeout);
+        let started = Instant::now()
+            .checked_add(cfg.request_timeout)
+            .ok_or(Error::Timeout)?;
+        let deadline = crate::net::Deadline::from_std(started);
         let (consumer, coord) = deadline
             .run(async {
-                let consumer = Consumer::new(cfg.clone()).await?;
-                let coord = discover_coord(&cfg, &group_id, COORDINATOR_GROUP).await?;
+                let consumer = Consumer::connect_within(cfg.clone(), started).await?;
+                let coord =
+                    discover_coord_within(&cfg, &group_id, COORDINATOR_GROUP, started).await?;
                 Ok((consumer, coord))
             })
             .await?;
