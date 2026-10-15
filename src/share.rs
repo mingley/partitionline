@@ -1763,7 +1763,7 @@ impl ShareGroup {
         &mut self,
         tps: &[(String, i32)],
         deadline: Instant,
-    ) -> Result<HashMap<i32, Vec<(String, i32)>>> {
+    ) -> Result<HashMap<i32, HashMap<String, Vec<i32>>>> {
         let mut refreshed = HashSet::new();
         for (topic, _) in tps {
             if !refreshed.insert(topic.as_str()) {
@@ -1777,10 +1777,15 @@ impl ShareGroup {
                 .ensure_topic_metadata_timeout(topic, rest)
                 .await?;
         }
-        let mut by_leader: HashMap<i32, Vec<(String, i32)>> = HashMap::new();
+        let mut by_leader: HashMap<i32, HashMap<String, Vec<i32>>> = HashMap::new();
         for (topic, p) in tps {
-            let (node, _) = self.consumer.leader_of(topic, *p)?;
-            by_leader.entry(node).or_default().push((topic.clone(), *p));
+            let node = self.consumer.leader_id(topic, *p)?;
+            let topics = by_leader.entry(node).or_default();
+            if let Some(parts) = topics.get_mut(topic.as_str()) {
+                parts.push(*p);
+            } else {
+                let _ = topics.insert(topic.clone(), vec![*p]);
+            }
         }
         Ok(by_leader)
     }
@@ -1972,16 +1977,16 @@ impl ShareGroup {
             }
             let epoch = self.session_epoch(node);
             let mut by_id: BTreeMap<[u8; 16], Vec<i32>> = BTreeMap::new();
-            for (topic, part) in &tps {
+            for (topic, parts) in &tps {
                 let id = self
                     .topic_ids
-                    .get(topic)
+                    .get(topic.as_str())
                     .copied()
                     .filter(|id| *id != [0; 16])
                     .ok_or_else(|| {
                         Error::protocol(format!("share assignment missing topic id for {topic}"))
                     })?;
-                by_id.entry(id).or_default().push(*part);
+                by_id.entry(id).or_default().extend(parts.iter().copied());
             }
             let topics: Vec<_> = by_id
                 .iter()

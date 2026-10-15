@@ -3521,6 +3521,10 @@ impl Consumer {
         Ok(Some(Arc::<str>::from(resolved)))
     }
 
+    pub(crate) fn leader_id(&self, topic: &str, partition: i32) -> Result<i32> {
+        self.cluster.leader_id(topic, partition)
+    }
+
     pub(crate) fn leader_of(&self, topic: &str, partition: i32) -> Result<(i32, String)> {
         self.cluster.leader(topic, partition)
     }
