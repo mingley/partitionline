@@ -1171,8 +1171,7 @@ impl ConsumerGroup {
         Ok(partitions
             .iter()
             .map(|tp| {
-                let md = map
-                    .get(&(tp.topic.clone(), tp.partition))
+                let md = committed_offset(&map, &tp.topic, tp.partition)
                     .cloned()
                     .unwrap_or_else(|| OffsetAndMetadata::new(-1));
                 (tp.clone(), md)
@@ -2660,8 +2659,7 @@ impl ConsumerGroup {
                 starts.push((topic.clone(), *part, *o));
                 continue;
             }
-            let committed = map
-                .get(&key)
+            let committed = committed_offset(&map, topic, *part)
                 .map(|m| m.offset)
                 .unwrap_or(OffsetAndMetadata::INVALID_OFFSET);
             let start = if committed >= 0 {
@@ -2709,7 +2707,7 @@ impl ConsumerGroup {
             let key = (topic.clone(), *part);
             if let Some(epoch) = kept_epochs.get(&key) {
                 self.consumer.set_last_fetched_epoch(topic, *part, *epoch);
-            } else if let Some(md) = map.get(&key) {
+            } else if let Some(md) = committed_offset(&map, topic, *part) {
                 self.consumer
                     .set_last_fetched_epoch(topic, *part, md.wire_epoch());
             }
@@ -3444,9 +3442,10 @@ pub(crate) fn group_offset_fetch_topics(wanted: &[(String, i32)]) -> Vec<OffsetF
 
 pub(crate) fn committed_offset_map(
     fetched: &[FetchedOffsetTopic],
-) -> Result<HashMap<(String, i32), OffsetAndMetadata>> {
-    let mut map = HashMap::new();
+) -> Result<HashMap<String, HashMap<i32, OffsetAndMetadata>>> {
+    let mut map: HashMap<String, HashMap<i32, OffsetAndMetadata>> = HashMap::new();
     for t in fetched {
+        let parts = map.entry(t.topic.clone()).or_default();
         for p in &t.partitions {
             if p.has_error() {
                 return Err(Error::broker(
@@ -3454,13 +3453,33 @@ pub(crate) fn committed_offset_map(
                     format!("OffsetFetch {}-{}", t.topic, p.partition),
                 ));
             }
-            let _ = map.insert(
-                (t.topic.clone(), p.partition),
+            let _ = parts.insert(
+                p.partition,
                 OffsetAndMetadata::from_wire(p.offset, p.leader_epoch, p.metadata.clone()),
             );
         }
     }
     Ok(map)
+}
+
+pub(crate) fn committed_offset<'a>(
+    map: &'a HashMap<String, HashMap<i32, OffsetAndMetadata>>,
+    topic: &str,
+    partition: i32,
+) -> Option<&'a OffsetAndMetadata> {
+    map.get(topic)?.get(&partition)
+}
+
+pub(crate) fn committed_offset_pairs(
+    map: HashMap<String, HashMap<i32, OffsetAndMetadata>>,
+) -> Vec<(TopicPartition, OffsetAndMetadata)> {
+    let mut out = Vec::new();
+    for (topic, parts) in map {
+        for (partition, md) in parts {
+            out.push((TopicPartition::new(topic.clone(), partition), md));
+        }
+    }
+    out
 }
 
 pub(crate) fn commit_position_epoch(
@@ -3486,8 +3505,7 @@ fn committed_starts(
     let map = committed_offset_map(fetched)?;
     let mut out = Vec::with_capacity(wanted.len());
     for (topic, part) in wanted {
-        let committed = map
-            .get(&(topic.clone(), *part))
+        let committed = committed_offset(&map, topic, *part)
             .map(|m| m.offset)
             .unwrap_or(OffsetAndMetadata::INVALID_OFFSET);
         let start = if committed >= 0 {

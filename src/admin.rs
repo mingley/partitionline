@@ -3152,15 +3152,11 @@ fn listed_group_offsets(
 ) -> Result<Vec<(crate::TopicPartition, crate::OffsetAndMetadata)>> {
     let map = crate::group::committed_offset_map(fetched)?;
     match &spec.partitions {
-        None => Ok(map
-            .into_iter()
-            .map(|((topic, partition), md)| (crate::TopicPartition::new(topic, partition), md))
-            .collect()),
+        None => Ok(crate::group::committed_offset_pairs(map)),
         Some(ps) => Ok(ps
             .iter()
             .map(|tp| {
-                let md = map
-                    .get(&(tp.topic.clone(), tp.partition))
+                let md = crate::group::committed_offset(&map, &tp.topic, tp.partition)
                     .cloned()
                     .unwrap_or_else(|| crate::OffsetAndMetadata::new(-1));
                 (tp.clone(), md)
@@ -9884,8 +9880,7 @@ impl Admin {
         Ok(partitions
             .iter()
             .map(|tp| {
-                let md = map
-                    .get(&(tp.topic.clone(), tp.partition))
+                let md = crate::group::committed_offset(&map, &tp.topic, tp.partition)
                     .cloned()
                     .unwrap_or_else(|| crate::OffsetAndMetadata::new(-1));
                 (tp.clone(), md)
@@ -9937,10 +9932,7 @@ impl Admin {
             .fetch_consumer_group_offsets(group_id, None, require_stable, timeout)
             .await?;
         let map = crate::group::committed_offset_map(&fetched)?;
-        Ok(map
-            .into_iter()
-            .map(|((topic, partition), md)| (crate::TopicPartition::new(topic, partition), md))
-            .collect())
+        Ok(crate::group::committed_offset_pairs(map))
     }
 
     /// List committed offsets for several groups (Java
