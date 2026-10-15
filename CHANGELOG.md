@@ -69,7 +69,9 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `ErrorMessage` is preferred the same way; empty uses
   `ShareAcknowledge`. A piggybacked ShareFetch
   `AcknowledgeErrorMessage` that is empty uses
-  `ShareFetch acknowledgement {topic}-{partition}`.
+  `ShareFetch acknowledgement {topic}-{partition}`. A piggybacked
+  `FENCED_LEADER_EPOCH` still completes without retry, including when
+  `AcknowledgeErrorMessage` is set.
   ShareAcknowledge top-level `SHARE_SESSION_LIMIT_REACHED` completes
   without retry and advances the share session epoch (Java
   `handleResponse` `nextEpoch`), including when `ErrorMessage` is
