@@ -3107,9 +3107,6 @@ impl ConsumerGroup {
                         if timeout.is_zero() {
                             continue;
                         }
-                        let gid = group_id.clone();
-                        let mid = member_id.clone();
-                        let instance = cfg.group_instance_id.clone();
                         let generation = hb_generation.load(Ordering::SeqCst);
                         let Ok(version) = spoken_heartbeat(c.heartbeat_version) else {
                             // A coordinator that joined us and then omits Heartbeat
@@ -3128,10 +3125,10 @@ impl ConsumerGroup {
                                     encode_heartbeat_request(
                                         buf,
                                         version,
-                                        &gid,
+                                        &group_id,
                                         generation,
-                                        &mid,
-                                        instance.as_deref(),
+                                        &member_id,
+                                        cfg.group_instance_id.as_deref(),
                                     )
                                 },
                                 timeout,
