@@ -246,7 +246,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   top-level `UNKNOWN_TOPIC_ID`; a partition `OFFSET_NOT_AVAILABLE`
   still skips and requests Metadata). Top-level `KAFKA_STORAGE_ERROR`
   still fails that poll without Metadata, including when
-  `ErrorMessage` is set (Java `handleShareFetchSuccess` only
+  `ErrorMessage` is set or empty (Java `handleShareFetchSuccess` only
   `requestUpdate`s for top-level `UNKNOWN_TOPIC_ID`; a partition
   `KAFKA_STORAGE_ERROR` still skips and requests Metadata). A non-empty
   throwable partition or top-level ShareFetch `ErrorMessage` is
