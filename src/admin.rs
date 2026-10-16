@@ -3151,18 +3151,22 @@ fn listed_group_offsets(
     spec: &ListConsumerGroupOffsetsSpec,
     fetched: &[crate::protocol::group::FetchedOffsetTopic],
 ) -> Result<Vec<(crate::TopicPartition, crate::OffsetAndMetadata)>> {
-    let map = crate::group::committed_offset_map(fetched)?;
     match &spec.partitions {
-        None => Ok(crate::group::committed_offset_pairs(map)),
-        Some(ps) => Ok(ps
-            .iter()
-            .map(|tp| {
-                let md = crate::group::committed_offset(&map, &tp.topic, tp.partition)
-                    .cloned()
-                    .unwrap_or_else(|| crate::OffsetAndMetadata::new(-1));
-                (tp.clone(), md)
-            })
-            .collect()),
+        None => Ok(crate::group::committed_offset_pairs(
+            crate::group::committed_offset_map(fetched)?,
+        )),
+        Some(ps) => {
+            crate::group::check_fetched_offsets(fetched)?;
+            Ok(ps
+                .iter()
+                .map(|tp| {
+                    let md = crate::group::fetched_committed(fetched, &tp.topic, tp.partition)
+                        .map(crate::group::offset_and_metadata_from)
+                        .unwrap_or_else(|| crate::OffsetAndMetadata::new(-1));
+                    (tp.clone(), md)
+                })
+                .collect())
+        }
     }
 }
 
@@ -10078,12 +10082,12 @@ impl Admin {
                 timeout.saturating_sub(started.elapsed()),
             )
             .await?;
-        let map = crate::group::committed_offset_map(&fetched)?;
+        crate::group::check_fetched_offsets(&fetched)?;
         Ok(partitions
             .into_iter()
             .map(|tp| {
-                let md = crate::group::committed_offset(&map, &tp.topic, tp.partition)
-                    .cloned()
+                let md = crate::group::fetched_committed(&fetched, &tp.topic, tp.partition)
+                    .map(crate::group::offset_and_metadata_from)
                     .unwrap_or_else(|| crate::OffsetAndMetadata::new(-1));
                 (tp, md)
             })

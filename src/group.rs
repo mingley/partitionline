@@ -32,10 +32,10 @@ use crate::protocol::group::{
     encode_find_coordinator_request_typed, encode_heartbeat_request,
     encode_join_group_protocols_request, encode_leave_group_request_members,
     encode_offset_commit_request, encode_offset_fetch_request, encode_sync_group_request,
-    encode_tp_assignment, ConsumerProtocol, ConsumerProtocolSubscription, FetchedOffsetTopic,
-    JoinGroupProtocol, JoinGroupProtocolsRequest, JoinGroupRequest, JoinGroupResponse,
-    LeaveGroupMember, OffsetCommitRequestData, OffsetFetchRequestData, OffsetFetchTopic,
-    OffsetPartition, OffsetTopic, SyncGroupRequest, Topic, COORDINATOR_GROUP,
+    encode_tp_assignment, ConsumerProtocol, ConsumerProtocolSubscription, FetchedOffset,
+    FetchedOffsetTopic, JoinGroupProtocol, JoinGroupProtocolsRequest, JoinGroupRequest,
+    JoinGroupResponse, LeaveGroupMember, OffsetCommitRequestData, OffsetFetchRequestData,
+    OffsetFetchTopic, OffsetPartition, OffsetTopic, SyncGroupRequest, Topic, COORDINATOR_GROUP,
     DEFAULT_RETENTION_TIME,
 };
 use crate::protocol::sasl;
@@ -1315,12 +1315,12 @@ impl ConsumerGroup {
             .await;
         self.classic_fetch_topics = topics;
         let fetched = fetched?;
-        let map = committed_offset_map(&fetched)?;
+        check_fetched_offsets(&fetched)?;
         Ok(partitions
             .into_iter()
             .map(|tp| {
-                let md = committed_offset(&map, &tp.topic, tp.partition)
-                    .cloned()
+                let md = fetched_committed(&fetched, &tp.topic, tp.partition)
+                    .map(offset_and_metadata_from)
                     .unwrap_or_else(|| OffsetAndMetadata::new(-1));
                 (tp, md)
             })
@@ -2847,7 +2847,7 @@ impl ConsumerGroup {
             self.classic_fetch_topics = topics;
             fetched?
         };
-        let map = committed_offset_map(&fetched)?;
+        check_fetched_offsets(&fetched)?;
         let reset = self.cfg.auto_offset_reset;
         let reset_deadline = deadline;
         let mut starts: Vec<(String, i32, i64)> = Vec::with_capacity(wanted.len());
@@ -2856,8 +2856,8 @@ impl ConsumerGroup {
                 starts.push((topic.clone(), *part, offset));
                 continue;
             }
-            let committed = committed_offset(&map, topic, *part)
-                .map(|m| m.offset)
+            let committed = fetched_committed(&fetched, topic, *part)
+                .map(|part| part.offset)
                 .unwrap_or(OffsetAndMetadata::INVALID_OFFSET);
             let start = if committed >= 0 {
                 committed
@@ -2906,9 +2906,9 @@ impl ConsumerGroup {
         for (topic, part) in wanted {
             if let Some(epoch) = nested_i32(&kept_epochs, topic, *part) {
                 self.consumer.set_last_fetched_epoch(topic, *part, epoch);
-            } else if let Some(md) = committed_offset(&map, topic, *part) {
+            } else if let Some(found) = fetched_committed(&fetched, topic, *part) {
                 self.consumer
-                    .set_last_fetched_epoch(topic, *part, md.wire_epoch());
+                    .set_last_fetched_epoch(topic, *part, found.leader_epoch);
             }
         }
         let added_tps: Vec<(String, i32)> = next
@@ -3930,6 +3930,49 @@ fn nested_topic_id(map: &DeliveredTopicIds, topic: &str, partition: i32) -> Opti
     map.get(topic)?.get(&partition).copied()
 }
 
+pub(crate) fn check_fetched_offsets(fetched: &[FetchedOffsetTopic]) -> Result<()> {
+    for topic in fetched {
+        for partition in &topic.partitions {
+            if partition.has_error() {
+                return Err(Error::broker(
+                    partition.error_code,
+                    format!("OffsetFetch {}-{}", topic.topic, partition.partition),
+                ));
+            }
+        }
+    }
+    Ok(())
+}
+
+/// The last fetched commit for `topic`/`partition`.
+///
+/// A later copy of the same topic replaces an earlier partition, matching the
+/// map used by [`committed_offset_map`].
+pub(crate) fn fetched_committed<'a>(
+    fetched: &'a [FetchedOffsetTopic],
+    topic: &str,
+    partition: i32,
+) -> Option<&'a FetchedOffset> {
+    let mut found = None;
+    for item in fetched {
+        if item.topic != topic {
+            continue;
+        }
+        if let Some(part) = item
+            .partitions
+            .iter()
+            .find(|part| part.partition == partition)
+        {
+            found = Some(part);
+        }
+    }
+    found
+}
+
+pub(crate) fn offset_and_metadata_from(part: &FetchedOffset) -> OffsetAndMetadata {
+    OffsetAndMetadata::from_wire(part.offset, part.leader_epoch, part.metadata.clone())
+}
+
 fn insert_committed(
     parts: &mut HashMap<i32, OffsetAndMetadata>,
     topic: &FetchedOffsetTopic,
@@ -3969,6 +4012,7 @@ pub(crate) fn committed_offset_map(
     Ok(map)
 }
 
+#[cfg(test)]
 pub(crate) fn committed_offset<'a>(
     map: &'a HashMap<String, HashMap<i32, OffsetAndMetadata>>,
     topic: &str,
@@ -4039,11 +4083,11 @@ fn committed_starts(
     fetched: &[FetchedOffsetTopic],
     reset: AutoOffsetReset,
 ) -> Result<Vec<(String, i32, i64)>> {
-    let map = committed_offset_map(fetched)?;
+    check_fetched_offsets(fetched)?;
     let mut out = Vec::with_capacity(wanted.len());
     for (topic, part) in wanted {
-        let committed = committed_offset(&map, topic, *part)
-            .map(|m| m.offset)
+        let committed = fetched_committed(fetched, topic, *part)
+            .map(|part| part.offset)
             .unwrap_or(OffsetAndMetadata::INVALID_OFFSET);
         let start = if committed >= 0 {
             committed
@@ -5371,10 +5415,19 @@ mod tests {
             committed_offset(&map, "orders", 0).map(|md| md.offset),
             Some(8)
         );
+        assert_eq!(
+            fetched_committed(&fetched, "orders", 0).map(|part| part.offset),
+            Some(8)
+        );
+        assert_eq!(
+            fetched_committed(&fetched, "orders", 1).map(|part| part.offset),
+            Some(9)
+        );
         let failed = [FetchedOffsetTopic {
             topic: "orders".into(),
             partitions: vec![FetchedOffset::new(0, 4, 1)],
         }];
+        assert!(check_fetched_offsets(&failed).is_err());
         assert!(committed_offset_map(&failed).is_err());
     }
 
