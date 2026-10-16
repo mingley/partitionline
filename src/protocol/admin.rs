@@ -7215,6 +7215,12 @@ pub fn encode_describe_user_scram_credentials_request(
     buf: &mut BytesMut,
     users: Option<&[String]>,
 ) -> crate::error::Result<()> {
+    let body_start = buf.len();
+    let planned = describe_user_scram_request_len(users)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf::put_array_len(buf, true, users.map(|u| u.len()))?;
     if let Some(users) = users {
         for name in users {
@@ -7223,7 +7229,23 @@ pub fn encode_describe_user_scram_credentials_request(
         }
     }
     buf::put_empty_tagged_fields(buf);
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn describe_user_scram_request_len(users: Option<&[String]>) -> Result<usize> {
+    let total = match users {
+        None => buf::unsigned_varint_size(0),
+        Some(users) => {
+            let mut total = describe_array_len(true, users.len())?;
+            for name in users {
+                total = add_describe_len(total, describe_string_len(true, Some(name))?)?;
+                total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+            }
+            total
+        }
+    };
+    add_describe_len(total, buf::unsigned_varint_size(0))
 }
 
 /// Decode a DescribeUserScramCredentials request.
@@ -7252,6 +7274,12 @@ pub fn encode_describe_user_scram_credentials_response(
     buf: &mut BytesMut,
     resp: &DescribeUserScramCredentialsResponse,
 ) -> crate::error::Result<()> {
+    let body_start = buf.len();
+    let planned = describe_user_scram_response_len(resp)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf.put_i32(resp.throttle_time_ms);
     buf.put_i16(resp.error_code);
     buf::put_compact_string(buf, resp.error_message.as_deref())?;
@@ -7269,7 +7297,35 @@ pub fn encode_describe_user_scram_credentials_response(
         buf::put_empty_tagged_fields(buf);
     }
     buf::put_empty_tagged_fields(buf);
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn describe_user_scram_response_len(resp: &DescribeUserScramCredentialsResponse) -> Result<usize> {
+    let mut total = 6;
+    total = add_describe_len(
+        total,
+        describe_string_len(true, resp.error_message.as_deref())?,
+    )?;
+    total = add_describe_len(total, describe_array_len(true, resp.results.len())?)?;
+    for result in &resp.results {
+        total = add_describe_len(total, describe_string_len(true, Some(&result.user))?)?;
+        total = add_describe_len(total, 2)?;
+        total = add_describe_len(
+            total,
+            describe_string_len(true, result.error_message.as_deref())?,
+        )?;
+        total = add_describe_len(
+            total,
+            describe_array_len(true, result.credential_infos.len())?,
+        )?;
+        for _info in &result.credential_infos {
+            total = add_describe_len(total, 5)?;
+            total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+        }
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    add_describe_len(total, buf::unsigned_varint_size(0))
 }
 
 /// Decode a DescribeUserScramCredentials response.
@@ -30748,6 +30804,67 @@ mod tests {
             err.throttle_time_ms, 0,
             "DescribeUserScramCredentialsResponse::error still fills ThrottleTimeMs 0"
         );
+    }
+
+    #[test]
+    fn a_describe_user_scram_credentials_request_sizes_its_body_once() {
+        let users = vec!["alice".to_string(), "bob".to_string()];
+        for listed in [None, Some(users.as_slice())] {
+            let mut buf = BytesMut::new();
+            encode_describe_user_scram_credentials_request(&mut buf, listed).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_describe_user_scram_credentials_request(&mut buf, listed).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+            let mut cur = &buf[..];
+            let decoded = decode_describe_user_scram_credentials_request(&mut cur).unwrap();
+            assert!(cur.is_empty());
+            assert_eq!(decoded.as_deref(), listed);
+        }
+    }
+
+    #[test]
+    fn a_describe_user_scram_credentials_response_sizes_its_body_once() {
+        let response = DescribeUserScramCredentialsResponse {
+            throttle_time_ms: 12,
+            error_code: 0,
+            error_message: Some("listed".into()),
+            results: vec![
+                DescribeUserScramCredentialsResult {
+                    user: "alice".into(),
+                    error_code: 0,
+                    error_message: None,
+                    credential_infos: vec![
+                        ScramCredentialInfo::new(1, 4096),
+                        ScramCredentialInfo::new(2, 8192),
+                    ],
+                },
+                DescribeUserScramCredentialsResult {
+                    user: "bob".into(),
+                    error_code: 3,
+                    error_message: Some("busy".into()),
+                    credential_infos: Vec::new(),
+                },
+            ],
+        };
+        let mut buf = BytesMut::new();
+        encode_describe_user_scram_credentials_response(&mut buf, &response).unwrap();
+        let len = buf.len();
+        let capacity = buf.capacity();
+        assert!(capacity >= len);
+        assert!(capacity < 64 * 1024);
+        buf.clear();
+        encode_describe_user_scram_credentials_response(&mut buf, &response).unwrap();
+        assert_eq!(buf.len(), len);
+        assert_eq!(buf.capacity(), capacity);
+        let mut cur = &buf[..];
+        let decoded = decode_describe_user_scram_credentials_response(&mut cur).unwrap();
+        assert!(cur.is_empty());
+        assert_eq!(decoded, response);
     }
 
     #[test]
