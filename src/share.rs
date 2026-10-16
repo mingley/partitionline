@@ -762,6 +762,10 @@ pub enum ShareAcquireMode {
 /// `handleShareFetchSuccess` only `requestUpdate`s for
 /// `UNKNOWN_TOPIC_ID`; a partition `TOPIC_AUTHORIZATION_FAILED`
 /// still throws with `unauthorizedTopics` equal to the topic name).
+/// Top-level `GROUP_AUTHORIZATION_FAILED` still fails that poll
+/// and does not request Metadata, including when `ErrorMessage` is
+/// set (Java `handleShareFetchSuccess` only `requestUpdate`s for
+/// `UNKNOWN_TOPIC_ID`).
 /// Top-level
 /// `SHARE_SESSION_LIMIT_REACHED` resets the share session and does
 /// not request Metadata, including when `ErrorMessage` is set or
@@ -1956,7 +1960,10 @@ impl ShareGroup {
     /// `handleShareFetchSuccess` only `requestUpdate`s for
     /// `UNKNOWN_TOPIC_ID`; a partition `TOPIC_AUTHORIZATION_FAILED`
     /// still throws with `unauthorizedTopics` equal to the topic
-    /// name). Top-level
+    /// name). Top-level `GROUP_AUTHORIZATION_FAILED` still fails
+    /// that poll without Metadata, including when `ErrorMessage` is
+    /// set (Java `handleShareFetchSuccess` only `requestUpdate`s for
+    /// `UNKNOWN_TOPIC_ID`). Top-level
     /// `SHARE_SESSION_LIMIT_REACHED` resets the share session and
     /// does not request Metadata, including when `ErrorMessage` is
     /// set or empty (Java `handleShareFetchSuccess` only
