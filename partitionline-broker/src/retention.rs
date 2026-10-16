@@ -334,14 +334,17 @@ struct Writer {
     planned: usize,
 }
 impl Writer {
-    fn new(planned: usize, maximum: usize) -> Result<Self, Error> {
+    fn reusing(planned: usize, maximum: usize, mut bytes: Vec<u8>) -> Result<Self, Error> {
         if planned > maximum {
             return Err(Error::ResourceLimit);
         }
-        let mut bytes = Vec::new();
-        bytes
-            .try_reserve_exact(planned)
-            .map_err(|_| Error::ResourceLimit)?;
+        bytes.clear();
+        let extra = planned.saturating_sub(bytes.capacity());
+        if extra > 0 {
+            bytes
+                .try_reserve_exact(extra)
+                .map_err(|_| Error::ResourceLimit)?;
+        }
         Ok(Self { bytes, planned })
     }
     fn bytes(&mut self, value: &[u8]) -> Result<(), Error> {
@@ -402,6 +405,7 @@ pub(crate) fn process(
     input: &[u8],
     common: &metadata::Config,
     config: Config,
+    spare: Vec<u8>,
     active: impl Fn() -> Result<(), Error>,
 ) -> Result<Vec<u8>, Error> {
     config.validate()?;
@@ -420,7 +424,11 @@ pub(crate) fn process(
         return Err(Error::UnsupportedVersion);
     }
     let targets = parse(body, flex, common, store.max_partitions())?;
-    let mut out = Writer::new(response_size(&targets, flex)?, common.max_response_bytes)?;
+    let mut out = Writer::reusing(
+        response_size(&targets, flex)?,
+        common.max_response_bytes,
+        spare,
+    )?;
     let topic_count = targets
         .iter()
         .enumerate()
@@ -485,4 +493,29 @@ pub(crate) fn process(
         return Err(Error::ResourceLimit);
     }
     Ok(out.bytes)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Writer;
+
+    #[test]
+    fn a_delete_records_response_reuses_its_buffer() {
+        let mut spare = Vec::new();
+        spare
+            .try_reserve_exact(64)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let capacity = spare.capacity();
+        let mut writer = Writer::reusing(16, 1024, spare).unwrap_or_else(|error| panic!("{error}"));
+        assert!(writer.bytes.capacity() >= capacity);
+        writer
+            .bytes(&[0; 16])
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(writer.bytes.len(), writer.planned);
+        let kept = writer.bytes.capacity();
+        let again =
+            Writer::reusing(16, 1024, writer.bytes).unwrap_or_else(|error| panic!("{error}"));
+        assert!(again.bytes.is_empty());
+        assert!(again.bytes.capacity() >= kept);
+    }
 }

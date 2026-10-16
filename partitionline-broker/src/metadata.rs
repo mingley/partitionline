@@ -1074,6 +1074,7 @@ fn actor(
                                 &job.request,
                                 config,
                                 retention,
+                                std::mem::take(&mut job.spare),
                                 || {
                                     if job.reply.is_closed() || stopping.load(Ordering::Acquire) {
                                         Err(retention::Error::Canceled)
@@ -1085,7 +1086,7 @@ fn actor(
                             .map(|response| DataReply::Produce {
                                 response: Some(response),
                                 request: std::mem::take(&mut job.request),
-                                spare: std::mem::take(&mut job.spare),
+                                spare: Vec::new(),
                             })
                             .map_err(Into::into)
                         } else {
