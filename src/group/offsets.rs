@@ -31,7 +31,7 @@ impl ConsumerGroup {
             if let Some(id) = self
                 .consumer
                 .assigned_topic_id(&tp.topic, tp.partition)
-                .or_else(|| metadata.get(&tp.topic).copied())
+                .or_else(|| metadata.get(tp.topic.as_str()).copied())
                 .filter(|id| *id != [0; 16])
             {
                 super::remember_topic_id(&mut ids, &tp.topic, tp.partition, id);
@@ -131,7 +131,7 @@ impl ConsumerGroup {
                 None => self
                     .consumer
                     .assigned_topic_id(&tp.topic, tp.partition)
-                    .or_else(|| metadata.get(&tp.topic).copied()),
+                    .or_else(|| metadata.get(tp.topic.as_str()).copied()),
             }
             .filter(|id| *id != [0; 16])
             .ok_or_else(|| {
@@ -195,7 +195,7 @@ impl ConsumerGroup {
             .iter()
             .map(|topic| {
                 let id = names
-                    .get(&topic.topic)
+                    .get(topic.topic.as_str())
                     .copied()
                     .filter(|id| *id != [0; 16])
                     .ok_or_else(|| {

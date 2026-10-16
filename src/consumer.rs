@@ -1961,8 +1961,8 @@ pub struct Consumer {
     metadata_version: i16,
     metadata: Option<MetadataResponse>,
     /// Name and id maps for `metadata`. Rebuilt when metadata is replaced.
-    name_to_id: HashMap<String, [u8; 16]>,
-    id_to_name: HashMap<[u8; 16], String>,
+    name_to_id: HashMap<Arc<str>, [u8; 16]>,
+    id_to_name: HashMap<[u8; 16], Arc<str>>,
     cluster: Cluster,
     conns: HashMap<i32, BrokerConn>,
     /// ListOffsets min/max negotiated for each dedicated leader socket.
@@ -2276,12 +2276,15 @@ impl<'a> PlannedList<'a> {
     }
 }
 
-fn planned_fetch<'a>(
+fn planned_fetch<'a, K>(
     topic: &'a Arc<str>,
     partitions: &'a [FetchPartition],
     overrides: &HashMap<Arc<str>, [u8; 16]>,
-    known_ids: &HashMap<String, [u8; 16]>,
-) -> PlannedFetch<'a> {
+    known_ids: &HashMap<K, [u8; 16]>,
+) -> PlannedFetch<'a>
+where
+    K: std::borrow::Borrow<str> + std::hash::Hash + Eq,
+{
     PlannedFetch {
         topic_id: overrides
             .get(topic.as_ref())
@@ -3786,11 +3789,11 @@ impl Consumer {
         self.refresh_metadata_timeout(Some(&topics), timeout).await
     }
 
-    pub(crate) fn topic_id_names(&self) -> &HashMap<[u8; 16], String> {
+    pub(crate) fn topic_id_names(&self) -> &HashMap<[u8; 16], Arc<str>> {
         &self.id_to_name
     }
 
-    pub(crate) fn topic_name_ids(&self) -> &HashMap<String, [u8; 16]> {
+    pub(crate) fn topic_name_ids(&self) -> &HashMap<Arc<str>, [u8; 16]> {
         &self.name_to_id
     }
 
@@ -3846,6 +3849,13 @@ impl Consumer {
             .and_then(|index| index.get_key_value(resolved))
         {
             return Ok(Some(Arc::clone(key)));
+        }
+        if topic_id != [0; 16] {
+            if let Some(mapped) = self.id_to_name.get(&topic_id) {
+                if mapped.as_ref() == resolved {
+                    return Ok(Some(Arc::clone(mapped)));
+                }
+            }
         }
         Ok(Some(Arc::<str>::from(resolved)))
     }
@@ -7625,10 +7635,10 @@ fn is_abort_marker(batch: &crate::protocol::records::RecordBatch) -> bool {
         })
 }
 
-fn fetch_topics<'a>(
+fn fetch_topics<'a, K: std::borrow::Borrow<str> + std::hash::Hash + Eq>(
     by_topic: &'a HashMap<Arc<str>, Vec<FetchPartition>>,
     overrides: &HashMap<Arc<str>, [u8; 16]>,
-    known_ids: &HashMap<String, [u8; 16]>,
+    known_ids: &HashMap<K, [u8; 16]>,
 ) -> PlannedList<'a> {
     if by_topic.len() == 1 {
         if let Some((topic, partitions)) = by_topic.iter().next() {
@@ -7969,12 +7979,15 @@ fn cap_fetch_cursor(next: i64, high_watermark: i64) -> i64 {
 /// `cached` is the leader cache's topic id. It replaces a zero id written by
 /// a later copy of the same name. A zero id does not erase an id already
 /// taken from an earlier copy.
+type NameIds = HashMap<Arc<str>, [u8; 16]>;
+type IdNames = HashMap<[u8; 16], Arc<str>>;
+
 fn resolved_topic_identities<'a>(
     topics: impl IntoIterator<Item = (&'a str, [u8; 16])>,
-    cached: &HashMap<Arc<str>, [u8; 16]>,
-    previous_names: &mut HashMap<String, [u8; 16]>,
-    previous_ids: &mut HashMap<[u8; 16], String>,
-) -> (HashMap<String, [u8; 16]>, HashMap<[u8; 16], String>) {
+    cached: &NameIds,
+    previous_names: &mut NameIds,
+    previous_ids: &mut IdNames,
+) -> (NameIds, IdNames) {
     let mut by_name = HashMap::new();
     let mut by_id = HashMap::new();
     let mut ambiguous = HashSet::new();
@@ -7992,14 +8005,17 @@ fn resolved_topic_identities<'a>(
         } else {
             let key = match previous_names.remove_entry(name) {
                 Some((key, _)) => key,
-                None => name.to_owned(),
+                None => cached
+                    .get_key_value(name)
+                    .map(|(key, _)| Arc::clone(key))
+                    .unwrap_or_else(|| Arc::from(name)),
             };
             let _previous = by_name.insert(key, id);
         }
         if id == [0; 16] || ambiguous.contains(&id) {
             continue;
         }
-        match by_id.get(&id).map(String::as_str) {
+        match by_id.get(&id).map(|existing: &Arc<str>| existing.as_ref()) {
             Some(existing) if existing != name => {
                 let _removed = by_id.remove(&id);
                 let _inserted = ambiguous.insert(id);
@@ -8007,8 +8023,11 @@ fn resolved_topic_identities<'a>(
             Some(_) => {}
             None => {
                 let owned = match previous_ids.remove(&id) {
-                    Some(existing) if existing == name => existing,
-                    _ => name.to_owned(),
+                    Some(existing) if existing.as_ref() == name => existing,
+                    _ => cached
+                        .get_key_value(name)
+                        .map(|(key, _)| Arc::clone(key))
+                        .unwrap_or_else(|| Arc::from(name)),
                 };
                 let _previous = by_id.insert(id, owned);
             }
@@ -8022,19 +8041,20 @@ fn resolved_topic_identities<'a>(
 /// A non-zero topic id selects the subscribed name. A response name that
 /// disagrees with that id is rejected. An unknown id does not borrow another
 /// topic's name; an empty response name is then skipped.
-fn resolved_fetch_topic<'a>(
+fn resolved_fetch_topic<'a, N: AsRef<str>>(
     response_name: &'a str,
     topic_id: [u8; 16],
-    id_names: &'a HashMap<[u8; 16], String>,
+    id_names: &'a HashMap<[u8; 16], N>,
 ) -> Result<Option<&'a str>> {
     if topic_id != [0; 16] {
         if let Some(mapped) = id_names.get(&topic_id) {
-            if !response_name.is_empty() && response_name != mapped.as_str() {
+            let mapped = mapped.as_ref();
+            if !response_name.is_empty() && response_name != mapped {
                 return Err(Error::protocol(
                     "fetch topic id does not match the topic name",
                 ));
             }
-            return Ok(Some(mapped.as_str()));
+            return Ok(Some(mapped));
         }
     }
     if response_name.is_empty() {
@@ -8045,10 +8065,10 @@ fn resolved_fetch_topic<'a>(
 }
 
 #[cfg(test)]
-fn fetch_topic_name(
+fn fetch_topic_name<N: AsRef<str>>(
     response_name: &str,
     topic_id: [u8; 16],
-    id_names: &HashMap<[u8; 16], String>,
+    id_names: &HashMap<[u8; 16], N>,
 ) -> Result<Option<String>> {
     resolved_fetch_topic(response_name, topic_id, id_names).map(|name| name.map(str::to_owned))
 }
@@ -8257,10 +8277,10 @@ fn listed_partition_indexes<'a>(
     ListedPartitions::Indexes(indexes)
 }
 
-fn recreated_topic_partitions(
+fn recreated_topic_partitions<K: std::borrow::Borrow<str> + std::hash::Hash + Eq>(
     assigned: &[(Arc<str>, i32, i64)],
     assigned_ids: &HashMap<Arc<str>, HashMap<i32, [u8; 16]>>,
-    metadata_ids: &HashMap<String, [u8; 16]>,
+    metadata_ids: &HashMap<K, [u8; 16]>,
 ) -> Vec<(String, i32, [u8; 16])> {
     let mut changed = Vec::new();
     for (topic, partition, _) in assigned {
@@ -9166,11 +9186,31 @@ mod tests {
             &HashMap::from([([1u8; 16], "orders".to_owned())])
         )
         .is_err());
-        let plain = fetch_topic_name("orders", [0u8; 16], &HashMap::new());
+        let plain = fetch_topic_name("orders", [0u8; 16], &HashMap::<[u8; 16], String>::new());
         assert!(plain.is_ok());
         if let Ok(name) = plain {
             assert_eq!(name.as_deref(), Some("orders"));
         }
+    }
+
+    #[test]
+    fn resolved_topic_identities_share_the_cached_name() {
+        let name: Arc<str> = Arc::from("topic-name-longer-than-twenty-three");
+        let stored = Arc::as_ptr(&name);
+        let cached = HashMap::from([(Arc::clone(&name), [1u8; 16])]);
+        let (by_name, by_id) = resolved_topic_identities(
+            [(name.as_ref(), [1u8; 16])],
+            &cached,
+            &mut HashMap::new(),
+            &mut HashMap::new(),
+        );
+        assert_eq!(
+            by_name
+                .get_key_value(name.as_ref())
+                .map(|(key, _)| Arc::as_ptr(key)),
+            Some(stored)
+        );
+        assert_eq!(by_id.get(&[1u8; 16]).map(Arc::as_ptr), Some(stored));
     }
 
     #[test]
@@ -9184,7 +9224,7 @@ mod tests {
         );
         assert_eq!(by_name.get("t").copied(), Some([1u8; 16]));
         assert_eq!(by_name.get("u").copied(), Some([2u8; 16]));
-        assert_eq!(by_id.get(&[1u8; 16]).map(String::as_str), Some("t"));
+        assert_eq!(by_id.get(&[1u8; 16]).map(|name| name.as_ref()), Some("t"));
         let (by_name, _) = resolved_topic_identities(
             [("t", [4u8; 16]), ("t", [0u8; 16])],
             &HashMap::new(),

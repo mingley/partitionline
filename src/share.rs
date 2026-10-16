@@ -1065,12 +1065,16 @@ struct ShareAssignmentUpdate {
 /// `None` means the topic ids could not be named, so the caller keeps its
 /// current partitions. An empty input is an explicit revoke. Negative
 /// partition indexes are omitted, and a repeated partition is stored once.
-fn next_share_assignment(
+fn next_share_assignment<I, N>(
     incoming: &[ShareTopicPartitions],
-    id_to_name: &HashMap<[u8; 16], String>,
-    name_to_id: &HashMap<String, [u8; 16]>,
+    id_to_name: &HashMap<[u8; 16], I>,
+    name_to_id: &HashMap<N, [u8; 16]>,
     subscribed: &[String],
-) -> Option<ShareAssignmentUpdate> {
+) -> Option<ShareAssignmentUpdate>
+where
+    I: AsRef<str>,
+    N: std::borrow::Borrow<str> + std::hash::Hash + Eq,
+{
     if incoming.is_empty() {
         return Some(ShareAssignmentUpdate {
             assigned: Vec::new(),
@@ -1087,7 +1091,7 @@ fn next_share_assignment(
         }
         let name = id_to_name
             .get(&tp.topic_id)
-            .map(String::as_str)
+            .map(|name| name.as_ref())
             .or_else(|| {
                 // Single-topic subscribe: map the only name when metadata
                 // has not yet indexed this id.
@@ -4327,11 +4331,15 @@ fn share_ack_retriable(error: &Error) -> bool {
 /// True when a refresh would leave every stored id unchanged.
 ///
 /// A steady poll then skips cloning the topic-name list.
-fn share_topic_ids_current<T: AsRef<str>>(
+fn share_topic_ids_current<T, M>(
     stored_map: &HashMap<Arc<str>, [u8; 16]>,
     assigned: &[(T, i32)],
-    metadata: &HashMap<String, [u8; 16]>,
-) -> bool {
+    metadata: &HashMap<M, [u8; 16]>,
+) -> bool
+where
+    T: AsRef<str>,
+    M: std::borrow::Borrow<str> + std::hash::Hash + Eq,
+{
     for (name, stored) in stored_map {
         let next = metadata.get(name.as_ref()).copied();
         if let Some(id) = refreshed_share_topic_id(Some(*stored), next) {
@@ -5156,8 +5164,8 @@ mod tests {
                 topic_id: unknown,
                 partitions: vec![2],
             }],
-            &HashMap::new(),
-            &HashMap::new(),
+            &HashMap::<[u8; 16], String>::new(),
+            &HashMap::<String, [u8; 16]>::new(),
             &only,
         )
         .expect("one subscription names the only topic");

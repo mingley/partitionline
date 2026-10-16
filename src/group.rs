@@ -1903,7 +1903,7 @@ impl ConsumerGroup {
                     != self
                         .consumer
                         .assigned_topic_id(&tp.topic, tp.partition)
-                        .or_else(|| metadata_ids.get(&tp.topic).copied())
+                        .or_else(|| metadata_ids.get(tp.topic.as_str()).copied())
                         .filter(|id| *id != [0; 16])
             }) {
                 self.note_commit(false);
@@ -2833,7 +2833,10 @@ impl ConsumerGroup {
         self.consumer.assign_all(&starts).await?;
         if wanted.iter().any(|(topic, partition)| {
             self.consumer.assigned_topic_id(topic, *partition)
-                != identities.get(topic).copied().filter(|id| *id != [0; 16])
+                != identities
+                    .get(topic.as_str())
+                    .copied()
+                    .filter(|id| *id != [0; 16])
         }) {
             self.consumer.clear_assignment();
             return Err(Error::protocol(
@@ -3471,9 +3474,9 @@ fn new_kip848_member_id() -> Result<String> {
     ))
 }
 
-fn wanted_from_kip848(
+fn wanted_from_kip848<I: AsRef<str>>(
     subscribed: &[String],
-    id_to_name: &HashMap<[u8; 16], String>,
+    id_to_name: &HashMap<[u8; 16], I>,
     assignment: &[TopicPartitions],
 ) -> Vec<(String, i32)> {
     let mut out = Vec::new();
@@ -3481,7 +3484,7 @@ fn wanted_from_kip848(
     for tp in assignment {
         let name = id_to_name
             .get(&tp.topic_id)
-            .map(String::as_str)
+            .map(|name| name.as_ref())
             .or_else(|| {
                 // One subscription can name an id metadata has not indexed yet.
                 // A zero id is not a topic, so it must not be attached to the
@@ -4944,10 +4947,14 @@ mod tests {
             partitions: vec![1, 3],
         }];
         assert_eq!(
-            wanted_from_kip848(&["orders".into()], &HashMap::new(), &assignment),
+            wanted_from_kip848(
+                &["orders".into()],
+                &HashMap::<[u8; 16], String>::new(),
+                &assignment,
+            ),
             vec![("orders".into(), 1), ("orders".into(), 3)]
         );
-        let mut ids = HashMap::new();
+        let mut ids: HashMap<[u8; 16], String> = HashMap::new();
         let _ = ids.insert([1u8; 16], "payments".into());
         let multi = vec![
             TopicPartitions {
@@ -5003,7 +5010,11 @@ mod tests {
         }];
         assert!(wanted_from_kip848(&["orders".into(), "payments".into()], &ids, &zero).is_empty());
         assert_eq!(
-            wanted_from_kip848(&["orders".into()], &HashMap::new(), &zero),
+            wanted_from_kip848(
+                &["orders".into()],
+                &HashMap::<[u8; 16], String>::new(),
+                &zero,
+            ),
             vec![("orders".into(), 0), ("orders".into(), 1)]
         );
     }
