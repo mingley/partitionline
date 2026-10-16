@@ -212,10 +212,13 @@ impl std::fmt::Display for Error {
 }
 impl std::error::Error for Error {}
 
+type Handled = Result<(Vec<u8>, Vec<u8>), Error>;
+
 struct Job {
     request: Vec<u8>,
+    spare: Vec<u8>,
     admitted: Instant,
-    reply: oneshot::Sender<Result<Vec<u8>, Error>>,
+    reply: oneshot::Sender<Handled>,
 }
 enum Command {
     Request(Job),
@@ -833,6 +836,7 @@ impl Router {
         let (reply, receiver) = oneshot::channel();
         let job = Job {
             request,
+            spare,
             admitted: Instant::now(),
             reply,
         };
@@ -842,11 +846,11 @@ impl Router {
                 mpsc::error::TrySendError::Full(_) => Error::QueueFull,
                 mpsc::error::TrySendError::Closed(_) => Error::Stopped,
             })?;
-        let response = receiver.await.map_err(|_| Error::ActorFailed)??;
+        let (response, request) = receiver.await.map_err(|_| Error::ActorFailed)??;
         Ok(Reused {
             response: Some(response),
-            request: Vec::new(),
-            spare,
+            request,
+            spare: Vec::new(),
         })
     }
 }
@@ -907,18 +911,25 @@ fn actor(
                     continue;
                 }
                 let revision = (catalog.operation_count(), catalog.is_poisoned());
+                let Job {
+                    request,
+                    spare,
+                    admitted,
+                    reply,
+                } = job;
                 let result = process(
                     &mut catalog,
-                    &job.request,
+                    &request,
                     config,
-                    job.admitted,
-                    &job.reply,
+                    admitted,
+                    &reply,
                     stopping,
+                    spare,
                 );
                 if revision != (catalog.operation_count(), catalog.is_poisoned()) {
                     changes.send_replace(());
                 }
-                let _ = job.reply.send(result);
+                let _ = reply.send(result.map(|response| (response, request)));
             }
             Command::Sweep(job) => {
                 if job.reply.is_closed() {
@@ -1180,8 +1191,9 @@ fn process(
     request: &[u8],
     config: &Config,
     admitted: Instant,
-    reply: &oneshot::Sender<Result<Vec<u8>, Error>>,
+    reply: &oneshot::Sender<Handled>,
     stopping: &AtomicBool,
+    spare: Vec<u8>,
 ) -> Result<Vec<u8>, Error> {
     if catalog.is_poisoned() {
         return Err(Error::StoragePoisoned);
@@ -1208,7 +1220,7 @@ fn process(
             check_active(reply, stopping)?;
             catalog.refresh().map_err(Error::Catalog)?;
             check_active(reply, stopping)?;
-            metadata(catalog, config, header, parsed, flexible)
+            metadata(catalog, config, header, parsed, flexible, spare)
         }
         19 => {
             let mut parsed = read_create(&mut reader)?;
@@ -1225,7 +1237,9 @@ fn process(
                 }
             }
             check_active(reply, stopping)?;
-            create(catalog, config, header, parsed, admitted, reply, stopping)
+            create(
+                catalog, config, header, parsed, admitted, reply, stopping, spare,
+            )
         }
         20 => {
             let mut parsed = read_delete(&mut reader, version, flexible)?;
@@ -1242,7 +1256,9 @@ fn process(
                 }
             }
             check_active(reply, stopping)?;
-            delete(catalog, config, header, parsed, admitted, reply, stopping)
+            delete(
+                catalog, config, header, parsed, admitted, reply, stopping, spare,
+            )
         }
         _ => Err(protocol::Error::UnimplementedApi(key).into()),
     }
@@ -1536,11 +1552,13 @@ struct Writer {
     cap: usize,
 }
 impl Writer {
+    #[cfg(test)]
     fn new(cap: usize) -> Result<Self, Error> {
-        Ok(Self {
-            bytes: Vec::new(),
-            cap,
-        })
+        Self::reusing(cap, Vec::new())
+    }
+    fn reusing(cap: usize, mut bytes: Vec<u8>) -> Result<Self, Error> {
+        bytes.clear();
+        Ok(Self { bytes, cap })
     }
     fn put(&mut self, value: &[u8]) -> Result<(), Error> {
         if value.len() > self.cap.saturating_sub(self.bytes.len()) {
@@ -1745,6 +1763,7 @@ fn metadata(
     header: RequestHeader<'_>,
     request: MetadataRequest<'_>,
     flex: bool,
+    spare: Vec<u8>,
 ) -> Result<Vec<u8>, Error> {
     let version = header.api_version;
     if version >= 12
@@ -1777,7 +1796,7 @@ fn metadata(
             });
         }
     }
-    let mut writer = Writer::new(config.max_response_bytes)?;
+    let mut writer = Writer::reusing(config.max_response_bytes, spare)?;
     writer.header(header.correlation_id, flex)?;
     if version >= 3 {
         writer.i32(0)?;
@@ -1928,10 +1947,7 @@ fn catalog_error(error: &catalog::Error) -> ApiError {
 fn timed_out(admitted: Instant, timeout: i32) -> bool {
     timeout <= 0 || admitted.elapsed() >= Duration::from_millis(timeout as u64)
 }
-fn check_active(
-    reply: &oneshot::Sender<Result<Vec<u8>, Error>>,
-    stopping: &AtomicBool,
-) -> Result<(), Error> {
+fn check_active(reply: &oneshot::Sender<Handled>, stopping: &AtomicBool) -> Result<(), Error> {
     if stopping.load(Ordering::Acquire) {
         Err(Error::Stopped)
     } else if reply.is_closed() {
@@ -2166,16 +2182,21 @@ fn fresh_id(catalog: &Catalog) -> Result<TopicId, ApiError> {
         "Topic identity collision retry budget exhausted.",
     ))
 }
+#[expect(
+    clippy::too_many_arguments,
+    reason = "create threads the catalog, header, deadline, and reused response buffer"
+)]
 fn create(
     catalog: &mut Catalog,
     config: &Config,
     header: RequestHeader<'_>,
     request: CreateRequest<'_>,
     admitted: Instant,
-    reply: &oneshot::Sender<Result<Vec<u8>, Error>>,
+    reply: &oneshot::Sender<Handled>,
     stopping: &AtomicBool,
+    spare: Vec<u8>,
 ) -> Result<Vec<u8>, Error> {
-    let mut writer = Writer::new(config.max_response_bytes)?;
+    let mut writer = Writer::reusing(config.max_response_bytes, spare)?;
     let mut results = bounded_vec(request.topics.len())?;
     // Reserve a conservative complete response before any durable operation.
     let needed = request.topics.iter().try_fold(12usize, |sum, topic| {
@@ -2256,17 +2277,22 @@ struct DeleteResult<'a> {
     id: [u8; 16],
     error: ApiError,
 }
+#[expect(
+    clippy::too_many_arguments,
+    reason = "delete threads the catalog, header, deadline, and reused response buffer"
+)]
 fn delete(
     catalog: &mut Catalog,
     config: &Config,
     header: RequestHeader<'_>,
     request: DeleteRequest<'_>,
     admitted: Instant,
-    reply: &oneshot::Sender<Result<Vec<u8>, Error>>,
+    reply: &oneshot::Sender<Handled>,
     stopping: &AtomicBool,
+    spare: Vec<u8>,
 ) -> Result<Vec<u8>, Error> {
     let flex = header.api_version >= 4;
-    let mut writer = Writer::new(config.max_response_bytes)?;
+    let mut writer = Writer::reusing(config.max_response_bytes, spare)?;
     let mut results = bounded_vec(request.topics.len())?;
     // Names resolved from IDs are copied before mutation, bounded by249 bytes.
     let mut names = bounded_vec(request.topics.len())?;
@@ -2437,6 +2463,11 @@ mod tests {
             .put(&vec![0; 8 * 1024 * 1024])
             .expect_err("over the cap");
         assert!(matches!(err, Error::ResponseLimit));
+        let kept = writer.bytes.capacity();
+        let mut again = Writer::reusing(8 * 1024 * 1024, writer.bytes).expect("reuse");
+        again.i32(9).expect("int");
+        assert!(again.bytes.capacity() >= kept);
+        assert_eq!(again.bytes.len(), 4);
     }
 
     #[test]
@@ -2925,10 +2956,11 @@ mod tests {
                     Instant::now(),
                     &reply,
                     &stop,
+                    Vec::new(),
                 )?;
                 let identity = catalog.by_name("new").ok_or(Error::ActorFailed)?.id();
                 drop(receiver);
-                assert!(reply.send(Ok(response)).is_err());
+                assert!(reply.send(Ok((response, Vec::new()))).is_err());
                 drop(catalog);
                 let (reopened, _) =
                     Catalog::open(&path, config.catalog_limits).map_err(Error::Catalog)?;
