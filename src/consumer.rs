@@ -1807,8 +1807,14 @@ impl PendingRecords {
         }
     }
 
+    #[cfg(test)]
     fn extend(&mut self, records: Vec<FetchedRecord>) {
-        for rec in records {
+        let _emptied = self.extend_reusing(records);
+    }
+
+    /// Move `records` into the queues and return the emptied buffer.
+    fn extend_reusing(&mut self, mut records: Vec<FetchedRecord>) -> Vec<FetchedRecord> {
+        for rec in records.drain(..) {
             if let Some(run) = self
                 .order
                 .back_mut()
@@ -1831,6 +1837,7 @@ impl PendingRecords {
                         .insert_owned(topic, rec.partition, VecDeque::from([rec]));
             }
         }
+        records
     }
 
     fn drop_for(&mut self, topic: &str, partition: i32) -> usize {
@@ -2021,6 +2028,9 @@ pub struct Consumer {
     /// Record count of the previous fetch buffer. The next buffer reserves this
     /// many slots so a steady poll does not grow from empty.
     last_fetch_records: usize,
+    /// Fetch record buffer returned to the queue after a capped poll. The next
+    /// poll refills it instead of allocating another staging buffer.
+    spare_fetch_records: Vec<FetchedRecord>,
     /// Empty fetch-reply list returned after a poll. The next sequential fetch refills it.
     spare_replies: Vec<FetchReply>,
     /// Empty decoded-reply list returned after a poll. The next poll refills it.
@@ -2880,6 +2890,7 @@ impl Consumer {
             fetch_return_totals: HashMap::new(),
             fetch_completed: PartitionMap::new(),
             last_fetch_records: 0,
+            spare_fetch_records: Vec::new(),
             spare_replies: Vec::new(),
             spare_decoded: Vec::new(),
             spare_leaders: Vec::new(),
@@ -5130,11 +5141,12 @@ impl Consumer {
         max_wait_ms: i32,
     ) -> Result<Vec<FetchedRecord>> {
         let mut attempt = 0u32;
-        let mut out = Vec::new();
+        let mut out = self.take_fetch_records();
         let mut out_bytes = 0usize;
         reset_fetch_totals(&mut self.fetch_return_totals);
         loop {
             if self.woken() {
+                self.park_fetch_records(out);
                 return Err(Error::Wakeup);
             }
             if let Some(body) = self.detach_unpaused_retained() {
@@ -5263,11 +5275,13 @@ impl Consumer {
                     return if !out.is_empty() {
                         Ok(self.finish_fetch(out))
                     } else {
+                        self.park_fetch_records(out);
                         Err(Error::Timeout)
                     };
                 }
                 if let Err(error) = self.sleep_retry_backoff(attempt, deadline).await {
                     self.fetch_plan = by_leader;
+                    self.park_fetch_records(out);
                     return Err(error);
                 }
                 attempt = attempt.saturating_add(1);
@@ -5276,6 +5290,7 @@ impl Consumer {
                     return if !out.is_empty() {
                         Ok(self.finish_fetch(out))
                     } else {
+                        self.park_fetch_records(out);
                         Err(Error::Timeout)
                     };
                 }
@@ -5312,6 +5327,7 @@ impl Consumer {
                 .await
             {
                 self.fetch_plan = by_leader;
+                self.park_fetch_records(out);
                 return Err(error);
             }
             if by_leader.is_empty() {
@@ -5339,6 +5355,7 @@ impl Consumer {
                     }
                     if now >= deadline {
                         self.fetch_plan = by_leader;
+                        self.park_fetch_records(out);
                         return Err(Error::Timeout);
                     }
                     if now >= poll_deadline {
@@ -5353,6 +5370,7 @@ impl Consumer {
                             result = rx.wait_for(|on| *on) => {
                                 drop(result);
                                 self.fetch_plan = by_leader;
+                                self.park_fetch_records(out);
                                 return Err(Error::Wakeup);
                             }
                             _ = tokio::time::sleep(wake.saturating_duration_since(now)) => {}
@@ -5422,7 +5440,10 @@ impl Consumer {
                         retry = retry.merge(FetchRetry::Backoff);
                         continue;
                     }
-                    Err(e) => return Err(e),
+                    Err(e) => {
+                        self.park_fetch_records(out);
+                        return Err(e);
+                    }
                 };
                 let applied = self.apply_fetch_body(
                     node,
@@ -5463,9 +5484,13 @@ impl Consumer {
                         Err(Error::Timeout) if !out.is_empty() => {
                             return Ok(self.finish_fetch(out));
                         }
-                        Err(error) => return Err(error),
+                        Err(error) => {
+                            self.park_fetch_records(out);
+                            return Err(error);
+                        }
                     };
                     let Some(offset) = reset_position(offset) else {
+                        self.park_fetch_records(out);
                         return Err(Error::protocol(format!(
                             "ListOffsets returned no reset offset for {topic}-{partition}"
                         )));
@@ -5501,7 +5526,10 @@ impl Consumer {
                     Err(Error::Timeout) if !out.is_empty() => {
                         return Ok(self.finish_fetch(out));
                     }
-                    Err(error) => return Err(error),
+                    Err(error) => {
+                        self.park_fetch_records(out);
+                        return Err(error);
+                    }
                 }
             }
             if budget_reached {
@@ -5516,6 +5544,7 @@ impl Consumer {
                     return if !out.is_empty() {
                         Ok(self.finish_fetch(out))
                     } else {
+                        self.park_fetch_records(out);
                         Err(Error::Timeout)
                     };
                 }
@@ -5526,6 +5555,7 @@ impl Consumer {
                         return if !out.is_empty() {
                             Ok(self.finish_fetch(out))
                         } else {
+                            self.park_fetch_records(out);
                             Err(Error::Timeout)
                         };
                     }
@@ -5565,6 +5595,7 @@ impl Consumer {
         if matches!(error, Error::Timeout) && !out.is_empty() {
             Ok(self.finish_fetch(out))
         } else {
+            self.park_fetch_records(out);
             Err(error)
         }
     }
@@ -7608,8 +7639,21 @@ impl Consumer {
         for rec in &recs {
             self.buffered_bytes = self.buffered_bytes.saturating_add(record_bytes(rec));
         }
-        self.pending.extend(recs);
+        let emptied = self.pending.extend_reusing(recs);
+        self.park_fetch_records(emptied);
         self.drain_pending()
+    }
+
+    fn take_fetch_records(&mut self) -> Vec<FetchedRecord> {
+        let mut records = std::mem::take(&mut self.spare_fetch_records);
+        records.clear();
+        records
+    }
+
+    fn park_fetch_records(&mut self, records: Vec<FetchedRecord>) {
+        if records.capacity() > self.spare_fetch_records.capacity() {
+            self.spare_fetch_records = records;
+        }
     }
 
     fn drain_pending(&mut self) -> Vec<FetchedRecord> {
@@ -9213,6 +9257,29 @@ mod tests {
         assert_eq!(next.first().map(|record| record.offset), Some(3));
         assert!(pending.is_empty());
         assert!(pending.partitions.get("orders", 0).is_some());
+    }
+
+    #[test]
+    fn a_capped_fetch_returns_its_record_buffer() {
+        let mut pending = PendingRecords::new();
+        let mut records = Vec::with_capacity(4);
+        records.push(fetched_at("orders", 0, 1));
+        records.push(fetched_at("orders", 0, 2));
+        let capacity = records.capacity();
+        let emptied = pending.extend_reusing(records);
+        assert!(emptied.is_empty());
+        assert!(emptied.capacity() >= capacity);
+        let mut bytes = 0usize;
+        let drained = pending.drain(&PartitionMap::new(), 1, &mut bytes);
+        assert_eq!(drained.len(), 1);
+        assert_eq!(drained.first().map(|record| record.offset), Some(1));
+        assert_eq!(
+            pending
+                .partitions
+                .get("orders", 0)
+                .map(|queue| queue.front().map(|record| record.offset)),
+            Some(Some(2))
+        );
     }
 
     #[test]
