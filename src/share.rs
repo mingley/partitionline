@@ -826,6 +826,10 @@ pub enum ShareAcquireMode {
 /// retry and does not request Metadata, including when `ErrorMessage`
 /// is set or empty (Java `handleShareAcknowledgeSuccess` has no
 /// `metadata.requestUpdate`). A top-level
+/// ShareAcknowledge `GROUP_AUTHORIZATION_FAILED` completes without
+/// retry and does not request Metadata, including when `ErrorMessage`
+/// is set (Java `handleShareAcknowledgeSuccess` has no
+/// `metadata.requestUpdate`). A top-level
 /// ShareAcknowledge `SHARE_SESSION_LIMIT_REACHED` completes without
 /// retry and does not request Metadata, including when `ErrorMessage`
 /// is set or empty (Java `handleShareAcknowledgeSuccess` has no
@@ -2329,6 +2333,10 @@ impl ShareGroup {
     /// A top-level ShareAcknowledge `TOPIC_AUTHORIZATION_FAILED`
     /// completes without retry and does not request Metadata,
     /// including when `ErrorMessage` is set or empty (Java
+    /// `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`).
+    /// A top-level ShareAcknowledge `GROUP_AUTHORIZATION_FAILED`
+    /// completes without retry and does not request Metadata,
+    /// including when `ErrorMessage` is set (Java
     /// `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`).
     /// Top-level `SHARE_SESSION_LIMIT_REACHED`
     /// completes without retry and advances the session epoch (Java

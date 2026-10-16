@@ -2156,6 +2156,10 @@
 //! `TOPIC_AUTHORIZATION_FAILED` completes without retry and does not
 //! request Metadata, including when `ErrorMessage` is set or empty (Java
 //! `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`).
+//! Top-level ShareAcknowledge `GROUP_AUTHORIZATION_FAILED` completes
+//! without retry and does not request Metadata, including when
+//! `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+//! `metadata.requestUpdate`).
 //! Top-level ShareAcknowledge
 //! `SHARE_SESSION_LIMIT_REACHED` completes without retry and advances
 //! the session epoch (Java `ShareSessionHandler.handleResponse`
