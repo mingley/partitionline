@@ -25,6 +25,7 @@ use partitionline::share::ShareAcquireMode;
 use partitionline::{
     error, Admin, AlterConfig, ConfigResource, ConfigResourceUpdate, ConsumerConfig, Error,
     NewTopic, ProduceRecord, Producer, ProducerConfig, ShareGroup, ShareRecord,
+    ShareRequestMetadata,
 };
 
 fn config(mock: &common::Mock) -> ConsumerConfig {
@@ -199,6 +200,40 @@ async fn share_fetch_overlaps_two_leaders() {
         "overlapped leader fetches took {elapsed:?}"
     );
     group.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn share_close_overlaps_two_leaders() {
+    let mock = common::Mock::start_two_node().await;
+    v2(&mock);
+    mock.set_topic_partitions("t", 2);
+    mock.set_partition_leader("t", 0, 1);
+    mock.set_partition_leader("t", 1, 2);
+    produce(&mock, &[(0, b"left"), (1, b"right")]).await;
+    let mut group = ShareGroup::join(config(&mock), "close-overlap", "t")
+        .await
+        .unwrap();
+    let got = group.poll().await.unwrap();
+    assert_eq!(got.len(), 2, "both leaders must open a share session");
+    let delay = Duration::from_millis(250);
+    mock.delay_share_reply_once(SHARE_ACKNOWLEDGE, delay);
+    mock.delay_share_reply_once(SHARE_ACKNOWLEDGE, delay);
+    let started = Instant::now();
+    group.leave().await.unwrap();
+    let elapsed = started.elapsed();
+    let mut nodes: Vec<i32> = mock
+        .share_ack_history()
+        .into_iter()
+        .filter(|(_, epoch)| *epoch == ShareRequestMetadata::FINAL_EPOCH)
+        .map(|(node, _)| node)
+        .collect();
+    nodes.sort_unstable();
+    nodes.dedup();
+    assert_eq!(nodes, vec![1, 2]);
+    assert!(
+        elapsed < Duration::from_millis(450),
+        "share session close ran one leader after another: {elapsed:?}"
+    );
 }
 
 #[tokio::test]

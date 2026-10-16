@@ -3874,6 +3874,28 @@ impl ShareGroup {
         first_error.map_or(Ok(()), Err)
     }
 
+    /// Map a ShareAcknowledge close roundtrip to the error the caller keeps.
+    ///
+    /// A transport failure, including a timeout, is share-session-not-found:
+    /// the broker already dropped the session, so close does not fail the leave.
+    fn share_close_error(sent: Result<Bytes>, version: i16) -> Option<Error> {
+        let code = match sent {
+            Ok(mut body) => match decode_share_acknowledge_response(&mut body, version) {
+                Ok(code) if body.is_empty() => code,
+                Ok(_) => {
+                    return Some(Error::protocol("trailing ShareAcknowledge close bytes"));
+                }
+                Err(error) => return Some(error),
+            },
+            Err(_) => error::SHARE_SESSION_NOT_FOUND,
+        };
+        if code != 0 && code != error::SHARE_SESSION_NOT_FOUND {
+            Some(Error::broker(code, "ShareAcknowledge close"))
+        } else {
+            None
+        }
+    }
+
     async fn close_share_session(&mut self, deadline: Instant) -> Result<()> {
         self.abort_inflight_share_fetches();
         let open: Vec<_> = self
@@ -3882,8 +3904,31 @@ impl ShareGroup {
             .filter(|(_, epoch)| **epoch > 0)
             .map(|(node, _)| *node)
             .collect();
+        let last = if open.len() > 1 {
+            self.close_share_sessions_together(&open, deadline).await
+        } else {
+            self.close_share_sessions_in_order(&open, deadline).await
+        };
+        self.share_epochs.clear();
+        self.share_conns.clear();
+        self.acquisitions.clear();
+        self.pending_delivery.clear();
+        last
+    }
+
+    /// Close one open share session at a time.
+    ///
+    /// A single leader stays on this path so a transport failure is still
+    /// reported as share-session-not-found and the socket is put back before
+    /// the caller drops every share connection.
+    async fn close_share_sessions_in_order(
+        &mut self,
+        open: &[i32],
+        deadline: Instant,
+    ) -> Result<()> {
         let mut last = Ok(());
         for node in open {
+            let node = *node;
             if deadline.saturating_duration_since(Instant::now()).is_zero() {
                 last = Err(Error::Timeout);
                 break;
@@ -3936,28 +3981,116 @@ impl ShareGroup {
                 };
                 continue;
             }
-            let code = match sent {
-                Ok(mut body) => match decode_share_acknowledge_response(&mut body, version) {
-                    Ok(code) if body.is_empty() => code,
-                    Ok(_) => {
-                        last = Err(Error::protocol("trailing ShareAcknowledge close bytes"));
-                        continue;
-                    }
-                    Err(error) => {
-                        last = Err(error);
-                        continue;
-                    }
-                },
-                Err(_) => error::SHARE_SESSION_NOT_FOUND,
-            };
-            if code != 0 && code != error::SHARE_SESSION_NOT_FOUND {
-                last = Err(Error::broker(code, "ShareAcknowledge close"));
+            if let Some(error) = Self::share_close_error(sent, version) {
+                last = Err(error);
             }
         }
-        self.share_epochs.clear();
-        self.share_conns.clear();
-        self.acquisitions.clear();
-        self.pending_delivery.clear();
+        last
+    }
+
+    /// Close every open share session within one remaining budget.
+    ///
+    /// Version lookup stays in order. The final-epoch acknowledgements then
+    /// leave together, so one slow leader cannot hold the other sessions
+    /// open until this deadline expires.
+    async fn close_share_sessions_together(
+        &mut self,
+        open: &[i32],
+        deadline: Instant,
+    ) -> Result<()> {
+        let mut decided = vec![None; open.len()];
+        let mut set = tokio::task::JoinSet::new();
+        let mut rpc_timeout = None;
+        let mut timed_out = false;
+        for (index, node) in open.iter().copied().enumerate() {
+            if deadline.saturating_duration_since(Instant::now()).is_zero() {
+                timed_out = true;
+                break;
+            }
+            let version = match self
+                .node_share_version_until(node, SHARE_ACKNOWLEDGE, deadline)
+                .await
+            {
+                Ok(version) => version,
+                Err(error) => {
+                    if let Some(slot) = decided.get_mut(index) {
+                        *slot = Some(error);
+                    }
+                    continue;
+                }
+            };
+            let timeout = deadline.saturating_duration_since(Instant::now());
+            if timeout.is_zero() {
+                timed_out = true;
+                break;
+            }
+            let Some(peer) = self.share_conns.remove(&node) else {
+                if let Some(slot) = decided.get_mut(index) {
+                    *slot = Some(Error::protocol("missing share connection"));
+                }
+                continue;
+            };
+            let mut body = BytesMut::new();
+            if let Err(error) = encode_share_acknowledge_request(
+                &mut body,
+                version,
+                &self.group_id,
+                &self.member_id,
+                ShareRequestMetadata::FINAL_EPOCH,
+                [0; 16],
+                &[],
+            ) {
+                if let Some(slot) = decided.get_mut(index) {
+                    *slot = Some(error);
+                }
+                continue;
+            }
+            let payload = body.freeze();
+            let timeout = *rpc_timeout.get_or_insert(timeout);
+            let _ = set.spawn(async move {
+                let mut peer = peer;
+                let sent = peer
+                    .conn
+                    .roundtrip(
+                        SHARE_ACKNOWLEDGE,
+                        version,
+                        |buf| {
+                            buf.extend_from_slice(&payload);
+                            Ok(())
+                        },
+                        timeout,
+                    )
+                    .await;
+                (index, sent, version)
+            });
+        }
+        let mut join_error = None;
+        while let Some(joined) = set.join_next().await {
+            match joined {
+                Ok((index, sent, version)) => {
+                    if let Some(error) = Self::share_close_error(sent, version) {
+                        if let Some(slot) = decided.get_mut(index) {
+                            *slot = Some(error);
+                        }
+                    }
+                }
+                Err(_) => {
+                    join_error = Some(Error::protocol("share acknowledge close task"));
+                }
+            }
+        }
+        if timed_out {
+            return Err(Error::Timeout);
+        }
+        let mut last = Ok(());
+        for slot in &mut decided {
+            if let Some(error) = slot.take() {
+                last = Err(error);
+            }
+        }
+        if let Some(error) = join_error {
+            last = Err(error);
+        }
         last
     }
 
