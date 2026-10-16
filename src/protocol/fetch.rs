@@ -2282,7 +2282,21 @@ pub(crate) fn decode_fetch_response_raw<B: Buf>(
     }
     let mut raw_records = SlotList::Empty;
     for topic_index in 0..n {
-        let (topic_name, topic_id) = get_fetch_topic_identity(buf, version, flexible)?;
+        let mut topic_name = if topic_index < topics.len() {
+            topics
+                .get_mut(topic_index)
+                .map(|topic| std::mem::take(&mut topic.topic))
+                .unwrap_or_default()
+        } else {
+            String::new()
+        };
+        let topic_id = if version >= 13 {
+            topic_name.clear();
+            buf::get_uuid(buf)?
+        } else {
+            buf::read_string_into(buf, flexible, &mut topic_name)?;
+            [0; 16]
+        };
         let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
         let mut partitions = if topic_index < topics.len() {
             topics
@@ -2389,12 +2403,7 @@ pub(crate) fn decode_fetch_response_raw<B: Buf>(
         }
         if topic_index < topics.len() {
             if let Some(slot) = topics.get_mut(topic_index) {
-                if topic_name.capacity() > slot.topic.capacity() {
-                    slot.topic = topic_name;
-                } else {
-                    slot.topic.clear();
-                    slot.topic.push_str(&topic_name);
-                }
+                slot.topic = topic_name;
                 slot.topic_id = topic_id;
                 slot.partitions = partitions;
             }
@@ -2622,6 +2631,30 @@ mod tests {
                 size,
                 "v{version} decoded recordsSize must match"
             );
+        }
+    }
+
+    #[test]
+    fn a_repeated_fetch_topic_name_keeps_its_buffer() {
+        let topics = vec![FetchedTopic {
+            topic: "orders".into(),
+            topic_id: [0; 16],
+            partitions: vec![FetchedPartition::partition_response(0, 0)],
+        }];
+        for version in [4_i16, 11, 12] {
+            let mut buf = BytesMut::new();
+            encode_fetch_response(&mut buf, version, &topics).unwrap();
+            let (decoded, ..) =
+                decode_fetch_response_raw(&mut buf.as_ref(), version, Vec::new()).unwrap();
+            let kept = decoded
+                .first()
+                .map(|topic| topic.topic.as_ptr())
+                .expect("topic");
+            let (again, ..) =
+                decode_fetch_response_raw(&mut buf.as_ref(), version, decoded).unwrap();
+            let topic = again.first().expect("topic");
+            assert_eq!(topic.topic, "orders");
+            assert_eq!(topic.topic.as_ptr(), kept, "v{version} topic buffer");
         }
     }
 

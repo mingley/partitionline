@@ -783,6 +783,57 @@ pub fn get_string<B: Buf>(buf: &mut B, flexible: bool) -> Result<Option<String>>
     }
 }
 
+/// Read a STRING into `out`.
+///
+/// A null string clears `out`. An empty string does too. The bytes match
+/// [`get_string`] with null turned into an empty string. When the name is in
+/// one chunk and `out` already has room, the previous allocation is kept.
+pub(crate) fn read_string_into<B: Buf>(
+    buf: &mut B,
+    flexible: bool,
+    out: &mut String,
+) -> Result<()> {
+    let len = if flexible {
+        let n = get_unsigned_varint(buf)?;
+        if n == 0 {
+            out.clear();
+            return Ok(());
+        }
+        usize_from_u32(n - 1)?
+    } else {
+        need(buf, 2)?;
+        let n = buf.get_i16();
+        if n < 0 {
+            out.clear();
+            return Ok(());
+        }
+        usize_from_i16(n)?
+    };
+    need(buf, len)?;
+    let available = buf.chunk().len();
+    if available >= len {
+        let bytes = buf
+            .chunk()
+            .get(..len)
+            .ok_or_else(|| Error::protocol(format!("need {len} bytes, have {available}")))?;
+        let text =
+            std::str::from_utf8(bytes).map_err(|error| Error::protocol(error.to_string()))?;
+        out.clear();
+        out.push_str(text);
+        buf.advance(len);
+        return Ok(());
+    }
+    let owned = String::from_utf8(copy_exact(buf, len)?)
+        .map_err(|error| Error::protocol(error.to_string()))?;
+    if owned.capacity() > out.capacity() {
+        *out = owned;
+    } else {
+        out.clear();
+        out.push_str(&owned);
+    }
+    Ok(())
+}
+
 /// Write compact BYTES (`unsigned varint` of `n+1`, `0` is null).
 pub fn put_compact_bytes(buf: &mut BytesMut, bytes: Option<&[u8]>) -> Result<()> {
     match bytes {
@@ -1223,6 +1274,57 @@ mod tests {
         assert_eq!(get_compact_string(&mut cur).unwrap().as_deref(), Some(""));
         assert_eq!(get_compact_string(&mut cur).unwrap().as_deref(), Some("hi"));
         assert_eq!(cur.remaining(), 0);
+    }
+
+    #[test]
+    fn read_string_into_keeps_a_buffer_that_already_fits() {
+        for flexible in [false, true] {
+            let mut encoded = BytesMut::new();
+            put_string(&mut encoded, flexible, Some("orders")).unwrap();
+            put_string(&mut encoded, flexible, None).unwrap();
+            put_string(&mut encoded, flexible, Some("")).unwrap();
+            let mut cursor = &encoded[..];
+            let mut out = String::with_capacity(16);
+            let kept = out.as_ptr();
+            read_string_into(&mut cursor, flexible, &mut out).unwrap();
+            assert_eq!(out, "orders");
+            assert_eq!(out.as_ptr(), kept);
+            read_string_into(&mut cursor, flexible, &mut out).unwrap();
+            assert_eq!(out, "");
+            assert_eq!(out.as_ptr(), kept);
+            read_string_into(&mut cursor, flexible, &mut out).unwrap();
+            assert_eq!(out, "");
+            assert_eq!(out.as_ptr(), kept);
+            assert_eq!(cursor.remaining(), 0);
+
+            let mut encoded = BytesMut::new();
+            put_string(&mut encoded, flexible, Some("orders")).unwrap();
+            let mut fresh = encoded.as_ref();
+            let mut again = encoded.as_ref();
+            assert_eq!(
+                get_string(&mut fresh, flexible).unwrap().as_deref(),
+                Some("orders")
+            );
+            let mut reused = String::new();
+            read_string_into(&mut again, flexible, &mut reused).unwrap();
+            assert_eq!(reused, "orders");
+        }
+        let mut split = (&b"\x00\x06ord"[..]).chain(&b"ers"[..]);
+        let mut out = String::with_capacity(16);
+        read_string_into(&mut split, false, &mut out).unwrap();
+        assert_eq!(out, "orders");
+        assert_eq!(split.remaining(), 0);
+        let mut bad = BytesMut::new();
+        put_classic_nullable_string(&mut bad, Some("ok")).unwrap();
+        let mut bytes = bad.to_vec();
+        if let Some(last) = bytes.last_mut() {
+            *last = 0xff;
+        }
+        let mut kept = String::from("prior");
+        let err = read_string_into(&mut bytes.as_slice(), false, &mut kept).unwrap_err();
+        let encoded_err = get_classic_nullable_string(&mut bytes.as_slice()).unwrap_err();
+        assert_eq!(err.to_string(), encoded_err.to_string());
+        assert_eq!(kept, "prior");
     }
 
     #[test]
