@@ -101,8 +101,8 @@ use crate::protocol::group::{
     decode_offset_fetch_response, encode_find_coordinator_request_keys,
     encode_find_coordinator_request_typed, encode_leave_group_request_members,
     encode_offset_commit_named, encode_offset_delete_named_topics,
-    encode_offset_fetch_groups_request, encode_offset_fetch_named, LeaveGroupMember,
-    OffsetFetchGroup, COORDINATOR_GROUP, COORDINATOR_TRANSACTION, DEFAULT_RETENTION_TIME,
+    encode_offset_fetch_groups_named, encode_offset_fetch_named, BorrowedOffsetFetchRequestGroup,
+    LeaveGroupMember, COORDINATOR_GROUP, COORDINATOR_TRANSACTION, DEFAULT_RETENTION_TIME,
 };
 use crate::protocol::idem::{decode_init_producer_id_response, encode_init_producer_id_request};
 use crate::protocol::offsets::{
@@ -3137,6 +3137,30 @@ pub(crate) async fn fetch_client_instance_id(
         return Err(Error::broker(resp.error_code, "GetTelemetrySubscriptions"));
     }
     Ok(resp.client_instance_id)
+}
+
+fn borrowed_offset_fetch_groups<'a>(
+    jobs: &'a [(String, ListConsumerGroupOffsetsSpec)],
+    idxs: &[usize],
+) -> Result<Vec<BorrowedOffsetFetchRequestGroup<'a>>> {
+    let mut groups = Vec::new();
+    for &i in idxs {
+        let job = jobs
+            .get(i)
+            .ok_or_else(|| Error::protocol("missing group spec"))?;
+        let topics = job.1.partitions.as_ref().map(|parts| {
+            crate::group::group_borrowed_offset_fetch_topics(
+                parts.iter().map(|tp| (tp.topic.as_str(), tp.partition)),
+            )
+        });
+        groups.push(BorrowedOffsetFetchRequestGroup {
+            group_id: job.0.as_str(),
+            member_id: None,
+            member_epoch: -1,
+            topics,
+        });
+    }
+    Ok(groups)
 }
 
 fn offset_fetch_topics_for_spec(
@@ -10348,19 +10372,10 @@ impl Admin {
                         let mut finished = self
                             .exchange_leaders(&nodes, deadline, |_admin, node, conn, _timeout| {
                                 let idxs = by_node.get(&node).map(Vec::as_slice).unwrap_or(&[]);
-                                let mut groups = Vec::new();
-                                for &i in idxs {
-                                    let job = jobs
-                                        .get(i)
-                                        .ok_or_else(|| Error::protocol("missing group spec"))?;
-                                    groups.push(OffsetFetchGroup::new(
-                                        job.0.clone(),
-                                        offset_fetch_topics_for_spec(&job.1),
-                                    ));
-                                }
+                                let groups = borrowed_offset_fetch_groups(&jobs, idxs)?;
                                 let version = conn.offset_version(OFFSET_FETCH, 8, 9)?;
                                 let mut payload = BytesMut::new();
-                                encode_offset_fetch_groups_request(
+                                encode_offset_fetch_groups_named(
                                     &mut payload,
                                     version,
                                     &groups,
@@ -10405,16 +10420,7 @@ impl Admin {
                     } else {
                         for node in nodes {
                             let idxs = by_node.get(&node).cloned().unwrap_or_default();
-                            let mut groups = Vec::new();
-                            for &i in &idxs {
-                                let job = jobs
-                                    .get(i)
-                                    .ok_or_else(|| Error::protocol("missing group spec"))?;
-                                groups.push(OffsetFetchGroup::new(
-                                    job.0.clone(),
-                                    offset_fetch_topics_for_spec(&job.1),
-                                ));
-                            }
+                            let groups = borrowed_offset_fetch_groups(&jobs, &idxs)?;
                             self.connect_node_until(node, deadline).await?;
                             let version = self
                                 .conns
@@ -10433,7 +10439,7 @@ impl Admin {
                                     OFFSET_FETCH,
                                     version,
                                     |buf| {
-                                        encode_offset_fetch_groups_request(
+                                        encode_offset_fetch_groups_named(
                                             buf,
                                             version,
                                             &groups,

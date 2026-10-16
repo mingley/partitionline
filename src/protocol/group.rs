@@ -6020,6 +6020,85 @@ pub fn encode_offset_fetch_groups_request(
     groups: &[OffsetFetchGroup],
     require_stable: bool,
 ) -> crate::error::Result<()> {
+    encode_offset_fetch_request_group_views(buf, version, groups, require_stable)
+}
+
+/// One batched OffsetFetch group whose id and topic names are borrowed.
+pub(crate) struct BorrowedOffsetFetchRequestGroup<'a> {
+    /// Consumer group id.
+    pub group_id: &'a str,
+    /// Member id (v9). `None` is null.
+    pub member_id: Option<&'a str>,
+    /// Member epoch (v9). `-1` when unknown.
+    pub member_epoch: i32,
+    /// Topic-partitions to fetch. `None` is null Topics.
+    pub topics: Option<Vec<(&'a str, Vec<i32>)>>,
+}
+
+trait OffsetFetchRequestGroupView {
+    type Topic: OffsetFetchTopicView;
+    fn offset_fetch_group_id(&self) -> &str;
+    fn offset_fetch_member_id(&self) -> Option<&str>;
+    fn offset_fetch_member_epoch(&self) -> i32;
+    fn offset_fetch_group_topics(&self) -> Option<&[Self::Topic]>;
+}
+
+impl OffsetFetchRequestGroupView for OffsetFetchGroup {
+    type Topic = OffsetFetchTopic;
+
+    fn offset_fetch_group_id(&self) -> &str {
+        &self.group_id
+    }
+
+    fn offset_fetch_member_id(&self) -> Option<&str> {
+        self.member_id.as_deref()
+    }
+
+    fn offset_fetch_member_epoch(&self) -> i32 {
+        self.member_epoch
+    }
+
+    fn offset_fetch_group_topics(&self) -> Option<&[Self::Topic]> {
+        self.topics.as_deref()
+    }
+}
+
+impl<'a> OffsetFetchRequestGroupView for BorrowedOffsetFetchRequestGroup<'a> {
+    type Topic = (&'a str, Vec<i32>);
+
+    fn offset_fetch_group_id(&self) -> &str {
+        self.group_id
+    }
+
+    fn offset_fetch_member_id(&self) -> Option<&str> {
+        self.member_id
+    }
+
+    fn offset_fetch_member_epoch(&self) -> i32 {
+        self.member_epoch
+    }
+
+    fn offset_fetch_group_topics(&self) -> Option<&[Self::Topic]> {
+        self.topics.as_deref()
+    }
+}
+
+/// Encode batched OffsetFetch groups whose ids and topic names are borrowed.
+pub(crate) fn encode_offset_fetch_groups_named(
+    buf: &mut BytesMut,
+    version: i16,
+    groups: &[BorrowedOffsetFetchRequestGroup<'_>],
+    require_stable: bool,
+) -> crate::error::Result<()> {
+    encode_offset_fetch_request_group_views(buf, version, groups, require_stable)
+}
+
+fn encode_offset_fetch_request_group_views<G: OffsetFetchRequestGroupView>(
+    buf: &mut BytesMut,
+    version: i16,
+    groups: &[G],
+    require_stable: bool,
+) -> crate::error::Result<()> {
     let _flexible = offset_fetch_flexible(version)?;
     if version < 8 {
         if groups.len() > 1 {
@@ -6035,15 +6114,15 @@ pub fn encode_offset_fetch_groups_request(
     let planned = offset_fetch_groups_request_len(version, groups)?;
     reserve_group_body(buf, planned);
     buf::put_array_len(buf, true, Some(groups.len()))?;
-    for g in groups {
+    for group in groups {
         encode_offset_fetch_group_item(
             buf,
             version,
             false,
-            &g.group_id,
-            g.member_id.as_deref(),
-            g.member_epoch,
-            g.topics.as_deref(),
+            group.offset_fetch_group_id(),
+            group.offset_fetch_member_id(),
+            group.offset_fetch_member_epoch(),
+            group.offset_fetch_group_topics(),
         )?;
     }
     buf.put_u8(u8::from(require_stable));
@@ -6129,7 +6208,10 @@ fn offset_fetch_request_len<T: OffsetFetchTopicView>(
     add_group_len(total, buf::unsigned_varint_size(0))
 }
 
-fn offset_fetch_groups_request_len(version: i16, groups: &[OffsetFetchGroup]) -> Result<usize> {
+fn offset_fetch_groups_request_len<G: OffsetFetchRequestGroupView>(
+    version: i16,
+    groups: &[G],
+) -> Result<usize> {
     let mut total = group_array_len(true, groups.len())?;
     for group in groups {
         total = add_group_len(
@@ -6137,9 +6219,9 @@ fn offset_fetch_groups_request_len(version: i16, groups: &[OffsetFetchGroup]) ->
             offset_fetch_group_item_len(
                 version,
                 false,
-                &group.group_id,
-                group.member_id.as_deref(),
-                group.topics.as_deref(),
+                group.offset_fetch_group_id(),
+                group.offset_fetch_member_id(),
+                group.offset_fetch_group_topics(),
             )?,
         )?;
     }
@@ -14453,6 +14535,41 @@ mod tests {
                 .unwrap();
                 assert_eq!(got.as_ref(), expected.as_ref(), "version {version}");
             }
+        }
+    }
+
+    #[test]
+    fn offset_fetch_named_groups_match_owned_groups() {
+        let owned = [
+            OffsetFetchGroup::new(
+                "orders-group",
+                Some(vec![OffsetFetchTopic {
+                    topic: "orders-topic-name-is-long".into(),
+                    partitions: vec![0, 2],
+                }]),
+            ),
+            OffsetFetchGroup::new("payments-group", None),
+        ];
+        let named = [
+            BorrowedOffsetFetchRequestGroup {
+                group_id: "orders-group",
+                member_id: None,
+                member_epoch: -1,
+                topics: Some(vec![("orders-topic-name-is-long", vec![0, 2])]),
+            },
+            BorrowedOffsetFetchRequestGroup {
+                group_id: "payments-group",
+                member_id: None,
+                member_epoch: -1,
+                topics: None,
+            },
+        ];
+        for version in 8..=9 {
+            let mut expected = BytesMut::new();
+            encode_offset_fetch_groups_request(&mut expected, version, &owned, true).unwrap();
+            let mut got = BytesMut::new();
+            encode_offset_fetch_groups_named(&mut got, version, &named, true).unwrap();
+            assert_eq!(got.as_ref(), expected.as_ref(), "version {version}");
         }
     }
 
