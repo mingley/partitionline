@@ -2417,6 +2417,12 @@ pub fn encode_delete_acls_request(
         }
     }
     reject_delete_acls_unknown_elements(filters)?;
+    let body_start = buf.len();
+    let planned = delete_acls_request_len(version, flexible, filters)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf::put_array_len(buf, flexible, Some(filters.len()))?;
     for filter in filters {
         put_acl_filter_fields(buf, version, flexible, filter)?;
@@ -2427,7 +2433,23 @@ pub fn encode_delete_acls_request(
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn delete_acls_request_len(
+    version: i16,
+    flexible: bool,
+    filters: &[AclBindingFilter],
+) -> Result<usize> {
+    let mut total = acl_array_len(flexible, filters.len())?;
+    for filter in filters {
+        total = add_acl_len(total, describe_acls_request_len(version, flexible, filter)?)?;
+    }
+    if flexible {
+        total = add_acl_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 /// Decode DeleteAcls: every filter.
@@ -2568,6 +2590,12 @@ pub fn encode_delete_acls_filter_results_with_throttle(
         .collect();
     reject_v0_non_literal_acl_patterns(version, matching_bindings.iter())?;
     reject_delete_acls_matching_unknown_elements(results)?;
+    let body_start = buf.len();
+    let planned = delete_acls_response_len(version, flexible, results)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf.put_i32(throttle_time_ms);
     buf::put_array_len(buf, flexible, Some(results.len()))?;
     for r in results {
@@ -2584,7 +2612,53 @@ pub fn encode_delete_acls_filter_results_with_throttle(
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn delete_acls_response_len(
+    version: i16,
+    flexible: bool,
+    results: &[DeletedAclsFilterResult],
+) -> Result<usize> {
+    let mut total = 4;
+    total = add_acl_len(total, acl_array_len(flexible, results.len())?)?;
+    for result in results {
+        total = add_acl_len(total, 2)?;
+        total = add_acl_len(
+            total,
+            acl_string_len(flexible, result.error_message.as_deref())?,
+        )?;
+        total = add_acl_len(total, acl_array_len(flexible, result.matching.len())?)?;
+        for matching in &result.matching {
+            total = add_acl_len(total, 2)?;
+            total = add_acl_len(
+                total,
+                acl_string_len(flexible, matching.error_message.as_deref())?,
+            )?;
+            total = add_acl_len(total, 1)?;
+            total = add_acl_len(
+                total,
+                acl_string_len(flexible, Some(&matching.resource_name))?,
+            )?;
+            if version >= 1 {
+                total = add_acl_len(total, 1)?;
+            }
+            total = add_acl_len(total, acl_string_len(flexible, Some(&matching.principal))?)?;
+            total = add_acl_len(total, acl_string_len(flexible, Some(&matching.host))?)?;
+            total = add_acl_len(total, 2)?;
+            if flexible {
+                total = add_acl_len(total, buf::unsigned_varint_size(0))?;
+            }
+        }
+        if flexible {
+            total = add_acl_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    if flexible {
+        total = add_acl_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 /// Decode DeleteAcls: first filter error code.
@@ -4220,6 +4294,66 @@ mod tests {
             &v3_with[..],
             "MatchingAcls ErrorMessage bodies: v2 == v3"
         );
+    }
+
+    #[test]
+    fn a_delete_acls_request_sizes_its_body_once() {
+        let filters = vec![
+            AclBindingFilter::resource_type(ACL_RESOURCE_TOPIC),
+            AclBindingFilter::resource_type(ACL_RESOURCE_ANY),
+        ];
+        for version in [0_i16, 1, 2] {
+            let mut buf = BytesMut::new();
+            encode_delete_acls_request(&mut buf, version, &filters).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_delete_acls_request(&mut buf, version, &filters).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+            let mut cur = &buf[..];
+            let decoded = decode_delete_acls_request(&mut cur, version).unwrap();
+            assert!(cur.is_empty());
+            assert_eq!(decoded.len(), 2);
+        }
+    }
+
+    #[test]
+    fn a_delete_acls_response_sizes_its_body_once() {
+        let matching = DeleteAclsResponse::matching_acl(
+            &AclBinding::allow_topic("orders", "User:alice"),
+            &ApiError::NONE,
+        );
+        let mut denied = matching.clone();
+        denied.error_code = 3;
+        denied.error_message = Some("busy".into());
+        denied.resource_name = "payments".into();
+        let results = vec![DeletedAclsFilterResult {
+            error_code: 0,
+            error_message: Some("deleted".into()),
+            matching: vec![matching, denied],
+        }];
+        for version in [0_i16, 1, 2] {
+            let mut buf = BytesMut::new();
+            encode_delete_acls_filter_results_with_throttle(&mut buf, version, &results, 12)
+                .unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_delete_acls_filter_results_with_throttle(&mut buf, version, &results, 12)
+                .unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+            let mut cur = &buf[..];
+            let (decoded, throttle) = decode_delete_acls_filter_results(&mut cur, version).unwrap();
+            assert!(cur.is_empty());
+            assert_eq!(decoded, results);
+            assert_eq!(throttle, 12);
+        }
     }
 
     #[test]
