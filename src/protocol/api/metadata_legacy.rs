@@ -311,10 +311,12 @@ fn put_name(output: &mut BytesMut, name: &str) -> Result<()> {
     output.extend_from_slice(name.as_bytes());
     Ok(())
 }
-pub(super) fn accept_names(names: Option<&[String]>, allow: bool) -> Result<()> {
+pub(super) fn accept_names<T: AsRef<str>>(names: Option<&[T]>, allow: bool) -> Result<()> {
     request_policy(allow, false, false)?;
-    let names = names.unwrap_or(&[]);
-    let (_count, _bytes) = names_size(names.iter().map(String::as_str))?;
+    let (_count, _bytes) = match names {
+        Some(names) => names_size(names.iter().map(|name| name.as_ref()))?,
+        None => names_size(std::iter::empty())?,
+    };
     Ok(())
 }
 

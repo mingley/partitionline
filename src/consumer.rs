@@ -14,8 +14,8 @@ use crate::cluster::Cluster;
 use crate::error::{self, Error, Result};
 use crate::net::BrokerConn;
 use crate::protocol::api::{
-    decode_metadata_response_into, encode_metadata_request, metadata_v0_names_acceptable,
-    ApiVersion, ApiVersionsResponse, MetadataResponse, PartitionMetadata,
+    decode_metadata_response_into, encode_metadata_request_ref, metadata_v0_names_ref, ApiVersion,
+    ApiVersionsResponse, MetadataResponse, PartitionMetadata,
 };
 use crate::protocol::api_keys::{
     pick_version, FETCH, GET_TELEMETRY_SUBSCRIPTIONS, LIST_OFFSETS, METADATA,
@@ -3576,8 +3576,8 @@ impl Consumer {
     }
 
     pub(crate) async fn partition_ids(&mut self, topic: &str) -> Result<Vec<i32>> {
-        let topics = [topic.to_string()];
-        self.refresh_metadata(Some(&topics)).await?;
+        self.refresh_metadata_ref(Some(std::slice::from_ref(&topic)))
+            .await?;
         let Some(md) = self.metadata.as_ref() else {
             return Err(Error::UnknownTopic(topic.to_string()));
         };
@@ -3728,26 +3728,40 @@ impl Consumer {
             .await
     }
 
+    async fn refresh_metadata_ref<T: AsRef<str>>(&mut self, topics: Option<&[T]>) -> Result<()> {
+        self.refresh_metadata_timeout_ref(topics, self.cfg.request_timeout)
+            .await
+    }
+
     /// Refresh metadata for `topics`, bounded by one `timeout`.
     pub(crate) async fn refresh_metadata_timeout(
         &mut self,
         topics: Option<&[String]>,
         timeout: Duration,
     ) -> Result<()> {
+        self.refresh_metadata_timeout_ref(topics, timeout).await
+    }
+
+    /// [`Self::refresh_metadata_timeout`] for caller-owned topic names.
+    pub(crate) async fn refresh_metadata_timeout_ref<T: AsRef<str>>(
+        &mut self,
+        topics: Option<&[T]>,
+        timeout: Duration,
+    ) -> Result<()> {
         let deadline = Instant::now().checked_add(timeout).ok_or(Error::Timeout)?;
         self.refresh_metadata_until(topics, deadline).await
     }
 
-    async fn refresh_metadata_until(
+    async fn refresh_metadata_until<T: AsRef<str>>(
         &mut self,
-        topics: Option<&[String]>,
+        topics: Option<&[T]>,
         deadline: Instant,
     ) -> Result<()> {
         if self.metadata_version == 0 {
             // A rejected body must fail here. Encode failure inside roundtrip
             // closes the bootstrap socket.
             let allow = self.cfg.allow_auto_topic_creation || topics.is_none();
-            metadata_v0_names_acceptable(topics, allow)?;
+            metadata_v0_names_ref(topics, allow)?;
         }
         if self.conn.idle_expired(self.cfg.connections_max_idle) {
             self.reconnect_bootstrap(deadline).await?;
@@ -3759,7 +3773,7 @@ impl Consumer {
             .roundtrip(
                 METADATA,
                 version,
-                |buf| encode_metadata_request(buf, version, topics, allow),
+                |buf| encode_metadata_request_ref(buf, version, topics, allow),
                 startup_remaining(deadline)?,
             )
             .await
@@ -3773,7 +3787,7 @@ impl Consumer {
                     .roundtrip(
                         METADATA,
                         version,
-                        |buf| encode_metadata_request(buf, version, topics, allow),
+                        |buf| encode_metadata_request_ref(buf, version, topics, allow),
                         startup_remaining(deadline)?,
                     )
                     .await?
@@ -3870,8 +3884,8 @@ impl Consumer {
         if self.topic_metadata_fresh(topic) {
             return Ok(());
         }
-        let topics = [topic.to_string()];
-        self.refresh_metadata_timeout(Some(&topics), timeout).await
+        self.refresh_metadata_timeout_ref(Some(std::slice::from_ref(&topic)), timeout)
+            .await
     }
 
     pub(crate) fn topic_id_names(&self) -> &HashMap<[u8; 16], Arc<str>> {

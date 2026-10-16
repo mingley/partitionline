@@ -1907,8 +1907,17 @@ impl MetadataRequest {
 /// Authorization flags stay unset, matching [`encode_metadata_request`].
 /// The check does not write a body, so a caller can fail before a round-trip
 /// that would close the socket on an encode error.
+#[cfg(test)]
 pub(crate) fn metadata_v0_names_acceptable(
     topics: Option<&[String]>,
+    allow_auto: bool,
+) -> crate::error::Result<()> {
+    metadata_v0_names_ref(topics, allow_auto)
+}
+
+/// [`metadata_v0_names_acceptable`] for topic names the caller already holds.
+pub(crate) fn metadata_v0_names_ref<T: AsRef<str>>(
+    topics: Option<&[T]>,
     allow_auto: bool,
 ) -> crate::error::Result<()> {
     metadata_legacy::accept_names(topics, allow_auto)
