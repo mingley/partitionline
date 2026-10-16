@@ -104,8 +104,8 @@ use crate::protocol::group::{
 };
 use crate::protocol::idem::{decode_init_producer_id_response, encode_init_producer_id_request};
 use crate::protocol::offsets::{
-    decode_list_offsets_topics_response, encode_list_offsets_topics_request,
-    ListOffsetsPartitionRequest, ListOffsetsResponsePartition, ListOffsetsTopicRequest,
+    decode_list_offsets_topics_response, encode_list_offsets_named_topics,
+    ListOffsetsPartitionRequest, ListOffsetsResponsePartition,
 };
 use crate::protocol::sasl;
 use crate::protocol::txn::{
@@ -9210,7 +9210,7 @@ impl Admin {
             })?;
             let topics = list_offset_topic_requests(queries, idxs, &admin.cluster);
             let mut payload = BytesMut::new();
-            encode_list_offsets_topics_request(
+            encode_list_offsets_named_topics(
                 &mut payload,
                 version,
                 isolation,
@@ -9290,7 +9290,7 @@ impl Admin {
                 LIST_OFFSETS,
                 version,
                 |buf| {
-                    encode_list_offsets_topics_request(
+                    encode_list_offsets_named_topics(
                         buf,
                         version,
                         isolation,
@@ -14566,13 +14566,13 @@ fn topic_description_from_dtp(
     }
 }
 
-fn list_offset_topic_requests(
-    queries: &[(crate::TopicPartition, i64)],
+fn list_offset_topic_requests<'a>(
+    queries: &'a [(crate::TopicPartition, i64)],
     idxs: &[usize],
     cluster: &Cluster,
-) -> Vec<ListOffsetsTopicRequest> {
-    let mut groups: Vec<(String, Vec<ListOffsetsPartitionRequest>)> = Vec::new();
-    let mut slots = HashMap::new();
+) -> Vec<(&'a str, Vec<ListOffsetsPartitionRequest>)> {
+    let mut groups: Vec<(&str, Vec<ListOffsetsPartitionRequest>)> = Vec::new();
+    let mut slots: HashMap<&str, usize> = HashMap::new();
     let mut epochs = crate::cluster::EpochList::new();
     for &i in idxs {
         let Some((tp, ts)) = queries.get(i) else {
@@ -14583,12 +14583,18 @@ fn list_offset_topic_requests(
             current_leader_epoch: epochs.epoch(cluster, &tp.topic, tp.partition),
             timestamp: *ts,
         };
-        remember_topic_group(&mut groups, &mut slots, &tp.topic, part);
+        let topic = tp.topic.as_str();
+        if let Some(&slot) = slots.get(topic) {
+            if let Some((_, parts)) = groups.get_mut(slot) {
+                parts.push(part);
+                continue;
+            }
+        }
+        let slot = groups.len();
+        let _ = slots.insert(topic, slot);
+        groups.push((topic, vec![part]));
     }
     groups
-        .into_iter()
-        .map(|(name, partitions)| ListOffsetsTopicRequest { partitions, name })
-        .collect()
 }
 
 fn replica_broker_ids(replicas: &[TopicPartitionReplica]) -> Vec<i32> {
@@ -16642,10 +16648,10 @@ mod tests {
         ];
         let topics = list_offset_topic_requests(&queries, &[0, 1, 2], &cluster);
         assert_eq!(topics.len(), 1);
-        assert_eq!(topics[0].name, "t");
-        assert_eq!(topics[0].partitions.len(), 3);
-        assert_eq!(topics[0].partitions[0].timestamp, crate::EARLIEST_TIMESTAMP);
-        assert_eq!(topics[0].partitions[1].timestamp, crate::LATEST_TIMESTAMP);
-        assert_eq!(topics[0].partitions[2].partition, 1);
+        assert_eq!(topics[0].0, "t");
+        assert_eq!(topics[0].1.len(), 3);
+        assert_eq!(topics[0].1[0].timestamp, crate::EARLIEST_TIMESTAMP);
+        assert_eq!(topics[0].1[1].timestamp, crate::LATEST_TIMESTAMP);
+        assert_eq!(topics[0].1[2].partition, 1);
     }
 }

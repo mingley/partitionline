@@ -681,10 +681,35 @@ fn list_offsets_string_len(flexible: bool, value: &str) -> Result<usize> {
     }
 }
 
-fn list_offsets_request_len(
+trait ListOffsetsTopicView {
+    fn list_offsets_name(&self) -> &str;
+    fn list_offsets_partitions(&self) -> &[ListOffsetsPartitionRequest];
+}
+
+impl ListOffsetsTopicView for ListOffsetsTopicRequest {
+    fn list_offsets_name(&self) -> &str {
+        &self.name
+    }
+
+    fn list_offsets_partitions(&self) -> &[ListOffsetsPartitionRequest] {
+        &self.partitions
+    }
+}
+
+impl ListOffsetsTopicView for (&str, Vec<ListOffsetsPartitionRequest>) {
+    fn list_offsets_name(&self) -> &str {
+        self.0
+    }
+
+    fn list_offsets_partitions(&self) -> &[ListOffsetsPartitionRequest] {
+        &self.1
+    }
+}
+
+fn list_offsets_request_len<T: ListOffsetsTopicView>(
     version: i16,
     flexible: bool,
-    topics: &[ListOffsetsTopicRequest],
+    topics: &[T],
 ) -> Result<usize> {
     let mut total = 4usize;
     if version >= 2 {
@@ -692,11 +717,12 @@ fn list_offsets_request_len(
     }
     total = add_list_offsets_len(total, list_offsets_array_len(flexible, topics.len())?)?;
     for topic in topics {
-        total = add_list_offsets_len(total, list_offsets_string_len(flexible, &topic.name)?)?;
         total = add_list_offsets_len(
             total,
-            list_offsets_array_len(flexible, topic.partitions.len())?,
+            list_offsets_string_len(flexible, topic.list_offsets_name())?,
         )?;
+        let partitions = topic.list_offsets_partitions();
+        total = add_list_offsets_len(total, list_offsets_array_len(flexible, partitions.len())?)?;
         let mut partition: usize = 4 + 8;
         if version >= 4 {
             partition += 4;
@@ -704,12 +730,12 @@ fn list_offsets_request_len(
         total = add_list_offsets_len(
             total,
             partition
-                .checked_mul(topic.partitions.len())
+                .checked_mul(partitions.len())
                 .ok_or_else(|| Error::protocol("list offsets request size overflow"))?,
         )?;
         if flexible {
             let tags = buf::unsigned_varint_size(0)
-                .checked_mul(topic.partitions.len().saturating_add(1))
+                .checked_mul(partitions.len().saturating_add(1))
                 .ok_or_else(|| Error::protocol("list offsets request size overflow"))?;
             total = add_list_offsets_len(total, tags)?;
         }
@@ -738,6 +764,42 @@ pub fn encode_list_offsets_topics_request_with_replica_id(
     timeout_ms: i32,
     replica_id: i32,
 ) -> crate::error::Result<()> {
+    encode_list_offsets_topic_views(
+        buf,
+        version,
+        isolation_level,
+        topics,
+        timeout_ms,
+        replica_id,
+    )
+}
+
+/// Encode ListOffsets topics whose names are borrowed from the caller.
+pub(crate) fn encode_list_offsets_named_topics(
+    buf: &mut BytesMut,
+    version: i16,
+    isolation_level: i8,
+    topics: &[(&str, Vec<ListOffsetsPartitionRequest>)],
+    timeout_ms: i32,
+) -> crate::error::Result<()> {
+    encode_list_offsets_topic_views(
+        buf,
+        version,
+        isolation_level,
+        topics,
+        timeout_ms,
+        CONSUMER_REPLICA_ID,
+    )
+}
+
+fn encode_list_offsets_topic_views<T: ListOffsetsTopicView>(
+    buf: &mut BytesMut,
+    version: i16,
+    isolation_level: i8,
+    topics: &[T],
+    timeout_ms: i32,
+    replica_id: i32,
+) -> crate::error::Result<()> {
     let flexible = list_offsets_flexible(version)?;
     let body_start = buf.len();
     let planned = list_offsets_request_len(version, flexible, topics)?;
@@ -750,10 +812,11 @@ pub fn encode_list_offsets_topics_request_with_replica_id(
         buf.put_i8(isolation_level);
     }
     buf::put_array_len(buf, flexible, Some(topics.len()))?;
-    for t in topics {
-        buf::put_string(buf, flexible, Some(&t.name))?;
-        buf::put_array_len(buf, flexible, Some(t.partitions.len()))?;
-        for p in &t.partitions {
+    for topic in topics {
+        buf::put_string(buf, flexible, Some(topic.list_offsets_name()))?;
+        let partitions = topic.list_offsets_partitions();
+        buf::put_array_len(buf, flexible, Some(partitions.len()))?;
+        for p in partitions {
             buf.put_i32(p.partition);
             if version >= 4 {
                 buf.put_i32(p.current_leader_epoch);
@@ -1593,6 +1656,31 @@ mod tests {
             "ListOffsets v6 duplicatePartitions leftover-empty; leftover {} bytes",
             cur.len()
         );
+    }
+
+    #[test]
+    fn list_offsets_named_topics_match_owned_topics() {
+        let owned = [ListOffsetsTopicRequest {
+            name: "orders-topic-name-is-long".into(),
+            partitions: vec![
+                ListOffsetsPartitionRequest::new(0, 3, EARLIEST_TIMESTAMP),
+                ListOffsetsPartitionRequest::new(2, -1, LATEST_TIMESTAMP),
+            ],
+        }];
+        let named = [(
+            "orders-topic-name-is-long",
+            vec![
+                ListOffsetsPartitionRequest::new(0, 3, EARLIEST_TIMESTAMP),
+                ListOffsetsPartitionRequest::new(2, -1, LATEST_TIMESTAMP),
+            ],
+        )];
+        for version in 1..=11 {
+            let mut expected = BytesMut::new();
+            encode_list_offsets_topics_request(&mut expected, version, 1, &owned, 1_500).unwrap();
+            let mut got = BytesMut::new();
+            encode_list_offsets_named_topics(&mut got, version, 1, &named, 1_500).unwrap();
+            assert_eq!(got.as_ref(), expected.as_ref(), "version {version}");
+        }
     }
 
     #[test]
