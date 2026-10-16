@@ -1148,7 +1148,7 @@ where
             // has not yet indexed this id.
             subscribed
                 .first()
-                .map(|name| ResolvedShareName::Only(name.as_str()))
+                .map(|name| ResolvedShareName::Only(name.as_ref()))
         } else {
             None
         };
@@ -3202,12 +3202,8 @@ impl ShareGroup {
         }
     }
 
-    fn name_for_topic_id(&self, id: [u8; 16]) -> Result<String> {
-        self.topic_name_ref(id).map(str::to_owned)
-    }
-
-    fn topic_name_ref(&self, id: [u8; 16]) -> Result<&str> {
-        share_topic_by_id(&self.topic_ids, id).map(|name| name.as_ref())
+    fn name_for_topic_id(&self, id: [u8; 16]) -> Result<Arc<str>> {
+        share_topic_by_id(&self.topic_ids, id).map(Arc::clone)
     }
 
     async fn send_acknowledgements(&mut self, recs: &[ShareRecord], ack: i8) -> Result<()> {
@@ -3423,7 +3419,7 @@ impl ShareGroup {
         if part.error_code == 0 {
             let count = self
                 .acquisitions
-                .get(name.as_str())
+                .get(name.as_ref())
                 .map(|parts| count_covered_acquisitions(parts, part.partition, sent_batches))
                 .unwrap_or(0);
             if ack == ACK_RENEW {
@@ -3435,18 +3431,18 @@ impl ShareGroup {
                 let expiry = Instant::now().checked_add(Duration::from_millis(
                     u64::try_from(lock_timeout).unwrap_or(0),
                 ));
-                if let Some(parts) = self.acquisitions.get_mut(name.as_str()) {
+                if let Some(parts) = self.acquisitions.get_mut(name.as_ref()) {
                     renew_covered_acquisitions(parts, part.partition, sent_batches, expiry);
                 }
             } else {
-                let empty = if let Some(parts) = self.acquisitions.get_mut(name.as_str()) {
+                let empty = if let Some(parts) = self.acquisitions.get_mut(name.as_ref()) {
                     drop_covered_acquisitions(parts, part.partition, sent_batches);
                     parts.is_empty()
                 } else {
                     false
                 };
                 if empty {
-                    let _ = self.acquisitions.remove(name.as_str());
+                    let _ = self.acquisitions.remove(name.as_ref());
                 }
                 self.records_acknowledged = self
                     .records_acknowledged
@@ -3467,14 +3463,14 @@ impl ShareGroup {
             if part.error_code == error::INVALID_RECORD_STATE
                 || share_ack_ownership_lost(part.error_code)
             {
-                let empty = if let Some(parts) = self.acquisitions.get_mut(name.as_str()) {
+                let empty = if let Some(parts) = self.acquisitions.get_mut(name.as_ref()) {
                     drop_covered_acquisitions(parts, part.partition, sent_batches);
                     parts.is_empty()
                 } else {
                     false
                 };
                 if empty {
-                    let _ = self.acquisitions.remove(name.as_str());
+                    let _ = self.acquisitions.remove(name.as_ref());
                 }
             }
             let error = Error::broker(
@@ -3684,7 +3680,7 @@ impl ShareGroup {
                     if part.error_code == 0 {
                         let count = self
                             .acquisitions
-                            .get(name.as_str())
+                            .get(name.as_ref())
                             .map(|parts| count_covered_acquisitions(parts, part.partition, sent))
                             .unwrap_or(0);
                         if ack == ACK_RENEW {
@@ -3696,19 +3692,19 @@ impl ShareGroup {
                             let expiry = Instant::now().checked_add(Duration::from_millis(
                                 u64::try_from(lock_timeout).unwrap_or(0),
                             ));
-                            if let Some(parts) = self.acquisitions.get_mut(name.as_str()) {
+                            if let Some(parts) = self.acquisitions.get_mut(name.as_ref()) {
                                 renew_covered_acquisitions(parts, part.partition, sent, expiry);
                             }
                         } else {
                             let empty =
-                                if let Some(parts) = self.acquisitions.get_mut(name.as_str()) {
+                                if let Some(parts) = self.acquisitions.get_mut(name.as_ref()) {
                                     drop_covered_acquisitions(parts, part.partition, sent);
                                     parts.is_empty()
                                 } else {
                                     false
                                 };
                             if empty {
-                                let _ = self.acquisitions.remove(name.as_str());
+                                let _ = self.acquisitions.remove(name.as_ref());
                             }
                             self.records_acknowledged = self
                                 .records_acknowledged
@@ -3720,14 +3716,14 @@ impl ShareGroup {
                             || share_ack_ownership_lost(part.error_code)
                         {
                             let empty =
-                                if let Some(parts) = self.acquisitions.get_mut(name.as_str()) {
+                                if let Some(parts) = self.acquisitions.get_mut(name.as_ref()) {
                                     drop_covered_acquisitions(parts, part.partition, sent);
                                     parts.is_empty()
                                 } else {
                                     false
                                 };
                             if empty {
-                                let _ = self.acquisitions.remove(name.as_str());
+                                let _ = self.acquisitions.remove(name.as_ref());
                             }
                         }
                         let error = Error::broker(
@@ -5143,6 +5139,19 @@ mod tests {
             delivery_count: 1,
             leader_epoch: None,
         }
+    }
+
+    #[test]
+    fn a_share_ack_name_keeps_the_assignment_topic() {
+        let topic: Arc<str> = Arc::from("topic-name-longer-than-twenty-three");
+        let stored = Arc::as_ptr(&topic);
+        let id = [4u8; 16];
+        let mut ids = HashMap::new();
+        let _ = ids.insert(Arc::clone(&topic), id);
+        let name = share_topic_by_id(&ids, id)
+            .map(Arc::clone)
+            .expect("known id");
+        assert!(std::ptr::addr_eq(Arc::as_ptr(&name), stored));
     }
 
     #[test]
