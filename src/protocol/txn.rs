@@ -1898,22 +1898,23 @@ impl WriteTxnMarkersRequest {
         error_code: i16,
     ) -> Vec<WritableTxnMarkerResult> {
         let mut producer_order: Vec<i64> = Vec::new();
-        let mut by_producer: HashMap<i64, Vec<(String, i32)>> = HashMap::new();
+        let mut by_producer: HashMap<i64, Vec<(&str, i32)>> = HashMap::new();
         for marker in markers {
-            let mut partition_order: Vec<(String, i32)> = Vec::new();
+            let mut partition_order: Vec<(&str, i32)> = Vec::new();
             let mut seen: HashMap<&str, HashSet<i32>> = HashMap::new();
             for topic in &marker.topics {
-                if !seen.contains_key(topic.name.as_str()) {
-                    let _ = seen.insert(topic.name.as_str(), HashSet::new());
+                let name = topic.name.as_str();
+                if !seen.contains_key(name) {
+                    let _ = seen.insert(name, HashSet::new());
                 }
-                let Some(parts) = seen.get_mut(topic.name.as_str()) else {
+                let Some(parts) = seen.get_mut(name) else {
                     continue;
                 };
                 for &partition in &topic.partitions {
                     if !parts.insert(partition) {
                         continue;
                     }
-                    partition_order.push((topic.name.clone(), partition));
+                    partition_order.push((name, partition));
                 }
             }
             if by_producer
@@ -1923,26 +1924,20 @@ impl WriteTxnMarkersRequest {
                 producer_order.push(marker.producer_id);
             }
         }
-        let owned = producer_order
+        let grouped = producer_order
             .into_iter()
             .filter_map(|producer_id| {
-                by_producer.remove(&producer_id).map(|partitions| {
-                    (
-                        producer_id,
-                        partitions
-                            .into_iter()
-                            .map(|(topic, partition)| (topic, partition, error_code))
-                            .collect::<Vec<_>>(),
-                    )
-                })
+                by_producer
+                    .remove(&producer_id)
+                    .map(|parts| (producer_id, parts))
             })
             .collect::<Vec<_>>();
-        WriteTxnMarkersResponse::from_errors(owned.iter().map(|(producer_id, partitions)| {
+        WriteTxnMarkersResponse::from_errors(grouped.iter().map(|(producer_id, parts)| {
             (
                 *producer_id,
-                partitions
+                parts
                     .iter()
-                    .map(|(topic, partition, error)| (topic.as_str(), *partition, *error)),
+                    .map(|(topic, partition)| (*topic, *partition, error_code)),
             )
         }))
     }
