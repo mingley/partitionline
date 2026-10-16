@@ -3073,10 +3073,69 @@ impl Iterator for BatchListIntoIter {
 /// trailing partial batch is ignored), checking framing, magic, CRC32-C and
 /// codec without decompressing anything.
 pub(crate) fn split_record_batches(mut buf: Bytes) -> Result<BatchList> {
-    let mut out = BatchList::Empty;
-    while buf.remaining() >= 12 {
-        let len_bytes = buf
-            .get(8..12)
+    let Some(first) = next_framed_batch(&mut buf)? else {
+        return Ok(BatchList::Empty);
+    };
+    if buf.remaining() < 12 {
+        return Ok(BatchList::One(first));
+    }
+    let extra = count_framed_batches(&buf)?;
+    if extra == 0 {
+        return Ok(BatchList::One(first));
+    }
+    let mut many = Vec::new();
+    many.try_reserve_exact(extra.saturating_add(1))
+        .map_err(|_| Error::protocol("record batch reserve"))?;
+    many.push(first);
+    while let Some(batch) = next_framed_batch(&mut buf)? {
+        many.push(batch);
+    }
+    Ok(BatchList::Many(many))
+}
+
+fn next_framed_batch(buf: &mut Bytes) -> Result<Option<EncodedBatch>> {
+    if buf.remaining() < 12 {
+        return Ok(None);
+    }
+    let len_bytes = buf
+        .get(8..12)
+        .ok_or_else(|| Error::protocol("short batch length"))?;
+    let batch_len = i32::from_be_bytes(
+        len_bytes
+            .try_into()
+            .map_err(|_| Error::protocol("short batch length"))?,
+    );
+    if batch_len < 0 {
+        return Err(Error::protocol("negative record batch length"));
+    }
+    let need = 12usize.saturating_add(buf::usize_from_i32(batch_len)?);
+    if buf.remaining() < need {
+        return Ok(None);
+    }
+    let (base_offset, body) = take_checked_batch(buf)?;
+    let attr_bytes = body
+        .get(9..11)
+        .ok_or_else(|| Error::protocol("short batch attributes"))?;
+    let attributes = i16::from_be_bytes(
+        attr_bytes
+            .try_into()
+            .map_err(|_| Error::protocol("short batch attributes"))?,
+    );
+    Ok(Some(EncodedBatch {
+        base_offset,
+        attributes,
+        body,
+    }))
+}
+
+fn count_framed_batches(buf: &Bytes) -> Result<usize> {
+    let bytes = buf.as_ref();
+    let mut offset = 0usize;
+    let mut count = 0usize;
+    while bytes.len().saturating_sub(offset) >= 12 {
+        let len_at = offset.saturating_add(8);
+        let len_bytes = bytes
+            .get(len_at..len_at.saturating_add(4))
             .ok_or_else(|| Error::protocol("short batch length"))?;
         let batch_len = i32::from_be_bytes(
             len_bytes
@@ -3087,25 +3146,13 @@ pub(crate) fn split_record_batches(mut buf: Bytes) -> Result<BatchList> {
             return Err(Error::protocol("negative record batch length"));
         }
         let need = 12usize.saturating_add(buf::usize_from_i32(batch_len)?);
-        if buf.remaining() < need {
+        if bytes.len().saturating_sub(offset) < need {
             break;
         }
-        let (base_offset, body) = take_checked_batch(&mut buf)?;
-        let attr_bytes = body
-            .get(9..11)
-            .ok_or_else(|| Error::protocol("short batch attributes"))?;
-        let attributes = i16::from_be_bytes(
-            attr_bytes
-                .try_into()
-                .map_err(|_| Error::protocol("short batch attributes"))?,
-        );
-        out.push(EncodedBatch {
-            base_offset,
-            attributes,
-            body,
-        });
+        offset = offset.saturating_add(need);
+        count = count.saturating_add(1);
     }
-    Ok(out)
+    Ok(count)
 }
 
 /// Decode one magic-v2 batch (CRC32-C checked), enforcing [`DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES`].
@@ -4285,10 +4332,30 @@ mod tests {
         ));
         let mut two = BytesMut::new();
         encode_record_batch(&mut two, &RecordBatch::from_records(vec![rec.clone()])).unwrap();
-        encode_record_batch(&mut two, &RecordBatch::from_records(vec![rec])).unwrap();
+        encode_record_batch(&mut two, &RecordBatch::from_records(vec![rec.clone()])).unwrap();
         let split = split_record_batches(two.freeze()).unwrap();
         assert!(matches!(split, BatchList::Many(_)));
         assert_eq!(split.len(), 2);
+        let BatchList::Many(many) = split else {
+            panic!("two batches");
+        };
+        assert_eq!(
+            many.capacity(),
+            Vec::<EncodedBatch>::with_capacity(2).capacity()
+        );
+        let mut five = BytesMut::new();
+        for _ in 0..5 {
+            encode_record_batch(&mut five, &RecordBatch::from_records(vec![rec.clone()])).unwrap();
+        }
+        let split = split_record_batches(five.freeze()).unwrap();
+        let BatchList::Many(many) = split else {
+            panic!("five batches");
+        };
+        assert_eq!(many.len(), 5);
+        assert_eq!(
+            many.capacity(),
+            Vec::<EncodedBatch>::with_capacity(5).capacity()
+        );
         let mut slots = SlotList::Empty;
         assert!(slots.is_empty());
         slots.push(1);
