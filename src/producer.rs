@@ -1761,6 +1761,7 @@ impl Producer {
         let weak = Arc::downgrade(&shared);
         let meta_handle = tokio::spawn(async move {
             let mut meta_rx = meta_rx;
+            let mut queued = Vec::new();
             while let Some(topic) = meta_rx.recv().await {
                 let Some(shared) = weak.upgrade() else {
                     break;
@@ -1768,17 +1769,15 @@ impl Producer {
                 if shared.closed.load(Ordering::SeqCst) {
                     break;
                 }
-                if shared
-                    .cluster
-                    .lock()
-                    .topic_fresh(topic.as_ref(), shared.cfg.metadata_max_age)
-                {
-                    shared.cache_nudge.notify_waiters();
-                    continue;
+                queued.clear();
+                queued.push(topic);
+                while let Ok(topic) = meta_rx.try_recv() {
+                    queued.push(topic);
                 }
-                match partitions_for(&shared, &topic).await {
-                    Ok(_) => publish_meta_err(&shared, None),
-                    Err(e) => publish_meta_err(&shared, Some(clone_err(&e))),
+                match refresh_queued_topics(&shared, &queued).await {
+                    None => {}
+                    Some(Ok(())) => publish_meta_err(&shared, None),
+                    Some(Err(error)) => publish_meta_err(&shared, Some(clone_err(&error))),
                 }
                 shared.cache_nudge.notify_waiters();
             }
@@ -3980,8 +3979,84 @@ fn decode_shared_metadata(shared: &Shared, body: &mut bytes::Bytes, version: i16
     Ok(())
 }
 
-async fn partitions_for(shared: &Shared, topic: &Arc<str>) -> Result<i32> {
-    partitions_for_timeout(shared, topic, shared.cfg.request_timeout).await
+/// Refresh every stale topic that was already waiting.
+///
+/// `None` means each topic was still fresh, so a previous metadata error
+/// stays published. A later topic's broker error replaces an earlier one,
+/// matching a queue that refreshed those topics one after another.
+async fn refresh_queued_topics(shared: &Shared, topics: &[Arc<str>]) -> Option<Result<()>> {
+    let mut names = Vec::new();
+    for topic in topics {
+        let fresh = {
+            let cluster = shared.cluster.lock();
+            cluster.partition_count(topic.as_ref()).is_some()
+                && cluster.topic_fresh(topic.as_ref(), shared.cfg.metadata_max_age)
+        };
+        if fresh || names.iter().any(|name: &&str| *name == topic.as_ref()) {
+            continue;
+        }
+        names.push(topic.as_ref());
+    }
+    if names.is_empty() {
+        return None;
+    }
+    let timeout = shared.cfg.request_timeout;
+    if timeout.is_zero() {
+        return Some(Err(Error::Timeout));
+    }
+    let deadline = crate::net::Deadline::from_timeout(timeout);
+    let mut conn = match tokio::time::timeout(timeout, shared.meta.lock()).await {
+        Ok(guard) => guard,
+        Err(_) => return Some(Err(Error::Timeout)),
+    };
+    let version = shared.metadata_version;
+    let allow = shared.cfg.allow_auto_topic_creation;
+    let body = match conn
+        .roundtrip_deadline(
+            METADATA,
+            version,
+            |buf| encode_metadata_request_names(buf, version, Some(&names), allow),
+            deadline,
+        )
+        .await
+    {
+        Ok(body) => body,
+        Err(error) => return Some(Err(error)),
+    };
+    drop(conn);
+    let mut body = body;
+    if let Err(error) = decode_shared_metadata(shared, &mut body, version) {
+        return Some(Err(error));
+    }
+    let mut last = Ok(());
+    let mut succeeded = Vec::new();
+    {
+        let image = shared.metadata_image.lock();
+        for topic in &names {
+            let Some(found) = image
+                .topics
+                .iter()
+                .find(|item| item.name.as_deref() == Some(*topic))
+            else {
+                last = Err(Error::UnknownTopic((*topic).to_string()));
+                continue;
+            };
+            if found.error_code != 0 {
+                last = Err(Error::broker(found.error_code, (*topic).to_string()));
+                continue;
+            }
+            if found.partitions.is_empty() {
+                last = Err(Error::UnknownTopic((*topic).to_string()));
+                continue;
+            }
+            succeeded.push(*topic);
+            last = Ok(());
+        }
+    }
+    for topic in succeeded {
+        drop_fast_topic(shared, topic);
+    }
+    Some(last)
 }
 
 async fn partitions_for_timeout(

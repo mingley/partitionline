@@ -48,6 +48,40 @@ async fn ack_completes_while_the_next_batch_lingers() {
     producer.close().await.unwrap();
 }
 
+#[tokio::test(flavor = "current_thread")]
+async fn producer_metadata_refreshes_waiting_topics_together() {
+    let mock = common::Mock::start().await;
+    mock.set_topic_partitions("t", 1);
+    mock.set_topic_partitions("u", 1);
+    let mut cfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    cfg.linger = Duration::ZERO;
+    let producer = Producer::new(cfg).await.unwrap();
+    let before = mock.metadata_calls();
+    mock.set_metadata_delay(Duration::from_millis(150));
+    let _ = producer.try_send(ProduceRecord::to("t").value(&b"a"[..]));
+    let _ = producer.try_send(ProduceRecord::to("u").value(&b"b"[..]));
+    let started = Instant::now();
+    loop {
+        if mock.metadata_calls() > before {
+            break;
+        }
+        assert!(
+            started.elapsed() < Duration::from_secs(2),
+            "metadata was not requested"
+        );
+        tokio::time::sleep(Duration::from_millis(10)).await;
+    }
+    assert_eq!(
+        mock.metadata_calls(),
+        before + 1,
+        "topics already waiting should share one metadata request"
+    );
+    let mut names = mock.last_metadata_topics().unwrap().unwrap();
+    names.sort();
+    assert_eq!(names, ["t".to_string(), "u".to_string()]);
+    producer.close().await.unwrap();
+}
+
 #[tokio::test]
 async fn multi_broker_produce_dials_overlap() {
     let mock = common::Mock::start_two_node().await;
