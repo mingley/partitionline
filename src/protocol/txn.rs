@@ -415,13 +415,17 @@ impl AddPartitionsToTxnResponse {
     pub fn errors_for_transaction(
         topics: &[AddPartitionsToTxnTopicResult],
     ) -> HashMap<(String, i32), i16> {
-        let mut topic_results = HashMap::new();
+        let mut scratch: HashMap<&str, HashMap<i32, i16>> = HashMap::new();
         for topic in topics {
+            let parts = scratch.entry(topic.topic.as_str()).or_default();
             for partition in &topic.partitions {
-                let _prev = topic_results.insert(
-                    (topic.topic.clone(), partition.partition),
-                    partition.error_code,
-                );
+                let _prev = parts.insert(partition.partition, partition.error_code);
+            }
+        }
+        let mut topic_results = HashMap::new();
+        for (topic, parts) in scratch {
+            for (partition, error_code) in parts {
+                let _prev = topic_results.insert((topic.to_owned(), partition), error_code);
             }
         }
         topic_results
@@ -954,13 +958,17 @@ impl TxnOffsetCommitRequest {
     /// one for the same pair (Java `HashMap.put`).
     #[must_use]
     pub fn offsets(topics: &[TxnOffsetTopic]) -> HashMap<(String, i32), TxnOffsetPartition> {
-        let mut offset_map = HashMap::new();
+        let mut scratch: HashMap<&str, HashMap<i32, &TxnOffsetPartition>> = HashMap::new();
         for topic in topics {
+            let parts = scratch.entry(topic.topic.as_str()).or_default();
             for partition in &topic.partitions {
-                let _prev = offset_map.insert(
-                    (topic.topic.clone(), partition.partition),
-                    partition.clone(),
-                );
+                let _prev = parts.insert(partition.partition, partition);
+            }
+        }
+        let mut offset_map = HashMap::new();
+        for (topic, parts) in scratch {
+            for (partition, value) in parts {
+                let _prev = offset_map.insert((topic.to_owned(), partition), value.clone());
             }
         }
         offset_map
@@ -1053,13 +1061,17 @@ impl TxnOffsetCommitResponse {
     /// for the same pair (Java `HashMap.put`).
     #[must_use]
     pub fn errors(topics: &[TxnOffsetCommitResponseTopic]) -> HashMap<(String, i32), i16> {
-        let mut error_map = HashMap::new();
+        let mut scratch: HashMap<&str, HashMap<i32, i16>> = HashMap::new();
         for topic in topics {
+            let parts = scratch.entry(topic.topic.as_str()).or_default();
             for partition in &topic.partitions {
-                let _prev = error_map.insert(
-                    (topic.topic.clone(), partition.partition),
-                    partition.error_code,
-                );
+                let _prev = parts.insert(partition.partition, partition.error_code);
+            }
+        }
+        let mut error_map = HashMap::new();
+        for (topic, parts) in scratch {
+            for (partition, error_code) in parts {
+                let _prev = error_map.insert((topic.to_owned(), partition), error_code);
             }
         }
         error_map
@@ -2016,13 +2028,18 @@ impl WriteTxnMarkersResponse {
     ) -> HashMap<i64, HashMap<(String, i32), i16>> {
         let mut errors = HashMap::new();
         for marker in markers {
-            let mut topic_partition_errors = HashMap::new();
+            let mut scratch: HashMap<&str, HashMap<i32, i16>> = HashMap::new();
             for topic in &marker.topics {
+                let parts = scratch.entry(topic.name.as_str()).or_default();
                 for partition in &topic.partitions {
-                    let _prev = topic_partition_errors.insert(
-                        (topic.name.clone(), partition.partition_index),
-                        partition.error_code,
-                    );
+                    let _prev = parts.insert(partition.partition_index, partition.error_code);
+                }
+            }
+            let mut topic_partition_errors = HashMap::new();
+            for (topic, parts) in scratch {
+                for (partition, error_code) in parts {
+                    let _prev =
+                        topic_partition_errors.insert((topic.to_owned(), partition), error_code);
                 }
             }
             let _prev = errors.insert(marker.producer_id, topic_partition_errors);
