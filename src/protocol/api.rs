@@ -3525,6 +3525,12 @@ fn encode_produce_response_id_fields(
         }
     }
     let flexible = produce_flexible(version)?;
+    let body_start = buf.len();
+    let planned = produce_response_len(version, flexible, parts, &order, &slots, endpoints)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf::put_array_len(buf, flexible, Some(order.len()))?;
     for topic in &order {
         if version <= 12 {
@@ -3573,7 +3579,118 @@ fn encode_produce_response_id_fields(
     if flexible {
         encode_top_level_node_endpoints(buf, version >= 10, endpoints)?;
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn add_produce_len(total: usize, next: usize) -> Result<usize> {
+    total
+        .checked_add(next)
+        .ok_or_else(|| Error::protocol("produce response size overflow"))
+}
+
+fn produce_record_errors_len(flexible: bool, errors: &[ProduceRecordError]) -> Result<usize> {
+    let mut total = metadata_array_len(flexible, Some(errors.len()))?;
+    for error in errors {
+        total = add_produce_len(total, 4)?;
+        total = add_produce_len(
+            total,
+            metadata_string_len(flexible, error.message.as_deref())?,
+        )?;
+        if flexible {
+            total = add_produce_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    Ok(total)
+}
+
+fn produce_partition_tag_len(version: i16, leader_id: i32) -> Result<usize> {
+    if version < 10 || leader_id < 0 {
+        return Ok(buf::unsigned_varint_size(0));
+    }
+    let payload = 8 + buf::unsigned_varint_size(0);
+    Ok(buf::unsigned_varint_size(1)
+        + buf::unsigned_varint_size(0)
+        + buf::unsigned_varint_size(buf::u32_from_usize(payload)?)
+        + payload)
+}
+
+fn produce_endpoints_len(endpoints: &[NodeEndpoint]) -> Result<usize> {
+    let mut inner = metadata_array_len(true, Some(endpoints.len()))?;
+    for endpoint in endpoints {
+        inner = add_produce_len(inner, 4)?;
+        inner = add_produce_len(inner, metadata_string_len(true, Some(&endpoint.host))?)?;
+        inner = add_produce_len(inner, 4)?;
+        inner = add_produce_len(inner, metadata_string_len(true, endpoint.rack.as_deref())?)?;
+        inner = add_produce_len(inner, buf::unsigned_varint_size(0))?;
+    }
+    Ok(buf::unsigned_varint_size(1)
+        + buf::unsigned_varint_size(0)
+        + buf::unsigned_varint_size(buf::u32_from_usize(inner)?)
+        + inner)
+}
+
+fn produce_response_len(
+    version: i16,
+    flexible: bool,
+    parts: &[ProducePartitionResponse],
+    order: &[&str],
+    slots: &HashMap<&str, Vec<usize>>,
+    endpoints: &[NodeEndpoint],
+) -> Result<usize> {
+    let mut total = metadata_array_len(flexible, Some(order.len()))?;
+    for topic in order {
+        if version <= 12 {
+            total = add_produce_len(total, metadata_string_len(flexible, Some(topic))?)?;
+        } else {
+            total = add_produce_len(total, 16)?;
+        }
+        let grouped = slots.get(topic).map(Vec::as_slice).unwrap_or(&[]);
+        total = add_produce_len(total, metadata_array_len(flexible, Some(grouped.len()))?)?;
+        for index in grouped {
+            let Some(part) = parts.get(*index) else {
+                continue;
+            };
+            let mut fixed = 14usize;
+            if version >= 2 {
+                fixed += 8;
+            }
+            if version >= 5 {
+                fixed += 8;
+            }
+            total = add_produce_len(total, fixed)?;
+            if version >= 8 {
+                total = add_produce_len(
+                    total,
+                    produce_record_errors_len(flexible, &part.record_errors)?,
+                )?;
+                total = add_produce_len(
+                    total,
+                    metadata_string_len(flexible, part.error_message.as_deref())?,
+                )?;
+            }
+            if flexible {
+                total = add_produce_len(
+                    total,
+                    produce_partition_tag_len(version, part.current_leader_id)?,
+                )?;
+            }
+        }
+        if flexible {
+            total = add_produce_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    if version >= 1 {
+        total = add_produce_len(total, 4)?;
+    }
+    if flexible {
+        if version >= 10 && !endpoints.is_empty() {
+            total = add_produce_len(total, produce_endpoints_len(endpoints)?)?;
+        } else {
+            total = add_produce_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    Ok(total)
 }
 
 /// Decode Produce into per-partition results, v10+ NodeEndpoints, and
@@ -6354,6 +6471,55 @@ mod tests {
             encode_produce_request(&mut buf, 13, None, 1, 1500, &topics).is_err(),
             "name-only helpers require explicit topic IDs at Produce v13"
         );
+    }
+
+    #[test]
+    fn a_produce_response_sizes_its_body_once() {
+        let mut orders = ProducePartitionResponse::partition_response("orders", 0, 0);
+        orders.base_offset = 10;
+        orders.record_errors = vec![ProduceRecordError::new(1, Some("bad".into()))];
+        orders.error_message = Some("failed".into());
+        let mut payments = ProducePartitionResponse::partition_response("payments", 1, 0);
+        payments.base_offset = 4;
+        payments.current_leader_id = 2;
+        payments.current_leader_epoch = 3;
+        let parts = [orders, payments];
+        let endpoints = [NodeEndpoint::new(2, "broker-2", 9092, None)];
+        for version in [3_i16, 8, 9, 10] {
+            let mut buf = BytesMut::new();
+            encode_produce_response_with_throttle(&mut buf, version, &parts, 0).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_produce_response_with_throttle(&mut buf, version, &parts, 0).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+        }
+        let mut buf = BytesMut::new();
+        encode_produce_response_fields(&mut buf, 10, &parts, &endpoints, 0).unwrap();
+        let len = buf.len();
+        let capacity = buf.capacity();
+        assert!(capacity >= len);
+        buf.clear();
+        encode_produce_response_fields(&mut buf, 10, &parts, &endpoints, 0).unwrap();
+        assert_eq!(buf.len(), len);
+        assert_eq!(buf.capacity(), capacity);
+        let ids = [
+            ("orders".to_string(), [1u8; 16]),
+            ("payments".to_string(), [2u8; 16]),
+        ];
+        buf.clear();
+        encode_produce_response_with_topic_ids(&mut buf, &parts, &[], 0, &ids).unwrap();
+        let len = buf.len();
+        let capacity = buf.capacity();
+        assert!(capacity >= len);
+        assert!(capacity < 64 * 1024);
+        buf.clear();
+        encode_produce_response_with_topic_ids(&mut buf, &parts, &[], 0, &ids).unwrap();
+        assert_eq!(buf.len(), len);
+        assert_eq!(buf.capacity(), capacity);
     }
 
     #[test]
