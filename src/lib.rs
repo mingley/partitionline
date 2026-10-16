@@ -2141,7 +2141,7 @@
 //! partition `FENCED_STATE_EPOCH`, which fails that poll, and not
 //! piggyback `THROTTLING_QUOTA_EXCEEDED` or `FENCED_LEADER_EPOCH`). A piggybacked
 //! `PREFERRED_LEADER_NOT_AVAILABLE` still completes without retry,
-//! including when `AcknowledgeErrorMessage` is set (this is not
+//! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `PREFERRED_LEADER_NOT_AVAILABLE`, which fails that poll, and not
 //! piggyback `FENCED_STATE_EPOCH` or `LEADER_NOT_AVAILABLE`). A piggybacked
 //! `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a

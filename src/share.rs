@@ -826,7 +826,7 @@ pub enum ShareAcquireMode {
 /// `FENCED_STATE_EPOCH`, which fails that poll, and not piggyback
 /// `THROTTLING_QUOTA_EXCEEDED` or `FENCED_LEADER_EPOCH`). A piggybacked
 /// `PREFERRED_LEADER_NOT_AVAILABLE` still completes without retry,
-/// including when `AcknowledgeErrorMessage` is set (Java
+/// including when `AcknowledgeErrorMessage` is set or empty (Java
 /// `handleShareFetchSuccess` completes piggyback acks and still
 /// delivers the fetch; this is not partition
 /// `PREFERRED_LEADER_NOT_AVAILABLE`, which fails that poll, and not
@@ -2181,7 +2181,7 @@ impl ShareGroup {
     /// `THROTTLING_QUOTA_EXCEEDED` or `FENCED_LEADER_EPOCH`).
     /// A piggybacked `PREFERRED_LEADER_NOT_AVAILABLE` still completes
     /// without retry, including when `AcknowledgeErrorMessage` is set
-    /// (Java `handleShareFetchSuccess` completes piggyback acks and
+    /// or empty (Java `handleShareFetchSuccess` completes piggyback acks and
     /// still delivers the fetch; this is not partition
     /// `PREFERRED_LEADER_NOT_AVAILABLE`, which fails that poll, and not
     /// piggyback `FENCED_STATE_EPOCH` or `LEADER_NOT_AVAILABLE`).
