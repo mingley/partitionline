@@ -2293,7 +2293,7 @@ pub(crate) fn decode_fetch_response_raw<B: Buf>(
     if topics.len() > n {
         topics.truncate(n);
     }
-    let mut raw_records = SlotList::Empty;
+    let mut raw_records = SlotList::with_capacity(n);
     for topic_index in 0..n {
         let mut topic_name = if topic_index < topics.len() {
             topics
@@ -2321,7 +2321,7 @@ pub(crate) fn decode_fetch_response_raw<B: Buf>(
         if partitions.len() > pn {
             partitions.truncate(pn);
         }
-        let mut raw_partitions = SlotList::Empty;
+        let mut raw_partitions = SlotList::with_capacity(pn);
         for part_index in 0..pn {
             let partition = buf::get_i32(buf)?;
             let error_code = buf::get_i16(buf)?;

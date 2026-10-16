@@ -6101,9 +6101,9 @@ impl Consumer {
             let (topics, retained, raw, endpoints, _, _, throttle) =
                 decode_fetch_response_raw(&mut bytes, reply.version, scratch)?;
             retained_topics = retained;
-            let mut batches = SlotList::Empty;
+            let mut batches = SlotList::with_capacity(raw.len());
             for partitions in raw {
-                let mut split = SlotList::Empty;
+                let mut split = SlotList::with_capacity(partitions.len());
                 for bytes in partitions {
                     split.push(split_record_batches(bytes)?);
                 }
@@ -7529,7 +7529,7 @@ impl Consumer {
         }
         let mut drained = std::mem::replace(&mut self.retained, PartitionMap::new());
         let mut topics = Vec::new();
-        let mut all_batches = SlotList::Empty;
+        let mut all_batches = SlotList::with_capacity(drained.topics.len());
         let mut parked = Vec::new();
         for (topic, partitions) in drained.topics.drain() {
             if partitions
@@ -7540,7 +7540,7 @@ impl Consumer {
                 continue;
             }
             let mut parts = Vec::new();
-            let mut topic_batches = SlotList::Empty;
+            let mut topic_batches = SlotList::with_capacity(partitions.len());
             let mut keep = HashMap::new();
             for (partition, held) in partitions {
                 if self.paused.contains(&topic, partition) {

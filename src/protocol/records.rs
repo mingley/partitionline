@@ -2897,6 +2897,17 @@ pub(crate) enum SlotList<T> {
 }
 
 impl<T> SlotList<T> {
+    /// A list that can hold `count` items without growing.
+    ///
+    /// Zero and one stay inline. A longer list allocates that many slots once.
+    pub(crate) fn with_capacity(count: usize) -> Self {
+        if count <= 1 {
+            Self::Empty
+        } else {
+            Self::Many(Vec::with_capacity(count))
+        }
+    }
+
     /// Append one item. The second item moves the list into a vector.
     pub(crate) fn push(&mut self, item: T) {
         match std::mem::replace(self, Self::Empty) {
@@ -4356,7 +4367,16 @@ mod tests {
             many.capacity(),
             Vec::<EncodedBatch>::with_capacity(5).capacity()
         );
-        let mut slots = SlotList::Empty;
+        let mut sized = SlotList::with_capacity(5);
+        for value in 0..5 {
+            sized.push(value);
+        }
+        let SlotList::Many(values) = sized else {
+            panic!("five slots");
+        };
+        assert_eq!(values.len(), 5);
+        assert_eq!(values.capacity(), Vec::<i32>::with_capacity(5).capacity());
+        let mut slots = SlotList::with_capacity(1);
         assert!(slots.is_empty());
         slots.push(1);
         assert!(matches!(slots, SlotList::One(1)));
