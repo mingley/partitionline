@@ -4207,6 +4207,50 @@ async fn group_leave_closes_fetch_sessions_while_leaving() {
     );
 }
 
+/// Unsubscribe retires fetch sessions while LeaveGroup is in flight.
+#[tokio::test]
+async fn group_unsubscribe_closes_fetch_sessions_while_leaving() {
+    let mock = common::Mock::start_two_node().await;
+    mock.enable_fetch_sessions([2]);
+    mock.set_topic_partitions("t", 1);
+    mock.set_partition_leader("t", 0, 2);
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    let _ = producer
+        .send(ProduceRecord::to("t").value(&b"v"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+    let mut group = ConsumerGroup::join(
+        ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10),
+        "unsub-fetch",
+        "t",
+    )
+    .await
+    .unwrap();
+    let got = group.poll().await.unwrap();
+    assert_eq!(got.len(), 1);
+    mock.set_leave_group_delay(Duration::from_millis(250));
+    mock.set_fetch_delay_once(2, Duration::from_millis(250));
+    let started = Instant::now();
+    group.unsubscribe().await.unwrap();
+    assert!(
+        mock.fetch_session_requests()
+            .iter()
+            .any(|request| request.3.epoch()
+                == partitionline::protocol::fetch::FetchMetadata::FINAL_EPOCH),
+        "unsubscribe should retire the fetch session"
+    );
+    assert!(
+        started.elapsed() < Duration::from_millis(450),
+        "unsubscribe waited for the fetch session close: {:?}",
+        started.elapsed()
+    );
+    group.leave().await.unwrap();
+}
+
 /// An interval commit and a fetch-leader redial share one poll.
 #[tokio::test]
 async fn group_poll_commits_while_redialing_the_leader() {

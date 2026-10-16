@@ -2161,9 +2161,10 @@ impl ConsumerGroup {
 
     /// Leave the group and drop the subscription (Java `unsubscribe`).
     ///
-    /// Heartbeats stop and the assignment is cleared. Classic LeaveGroup v5
-    /// sends [`LEAVE_GROUP_REASON_UNSUBSCRIBED`]. [`Self::subscribe`] joins
-    /// again with a new topic list. [`Self::leave`] after this is a no-op.
+    /// Heartbeats stop, fetch sessions are retired, and the assignment is
+    /// cleared. Classic LeaveGroup v5 sends
+    /// [`LEAVE_GROUP_REASON_UNSUBSCRIBED`]. [`Self::subscribe`] joins again
+    /// with a new topic list. [`Self::leave`] after this is a no-op.
     ///
     /// Flushes queued `commitAsync` work only — does **not** auto-commit
     /// positions when [`ConsumerConfig::enable_auto_commit`] is on (KL-02).
@@ -2188,16 +2189,26 @@ impl ConsumerGroup {
         if self.kip848 {
             self.adopt_kip848_member_id();
         }
-        Self::leave_joined_member(
-            &mut self.coord,
-            &self.cfg,
-            &self.group_id,
-            &self.member_id,
-            self.kip848,
-            LEAVE_GROUP_REASON_UNSUBSCRIBED,
-            deadline,
-        )
-        .await?;
+        let timeout = deadline.saturating_duration_since(Instant::now());
+        let kip848 = self.kip848;
+        let group_id = self.group_id.clone();
+        let member_id = self.member_id.clone();
+        let coord = &mut self.coord;
+        let cfg = &self.cfg;
+        let consumer = &mut self.consumer;
+        let (left, _) = tokio::join!(
+            Self::leave_joined_member(
+                coord,
+                cfg,
+                &group_id,
+                &member_id,
+                kip848,
+                LEAVE_GROUP_REASON_UNSUBSCRIBED,
+                deadline,
+            ),
+            consumer.close_fetch_sessions(timeout),
+        );
+        left?;
         if !revoked.is_empty() {
             self.cfg.rebalance.call(&revoked, &[]);
         }
