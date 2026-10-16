@@ -1610,18 +1610,29 @@ pub fn encode_delete_topics_states_request(
     topics: &[DeleteTopicState],
     timeout_ms: i32,
 ) -> crate::error::Result<()> {
+    encode_delete_topic_list(buf, version, topics, timeout_ms)
+}
+
+pub(crate) fn encode_delete_topic_list<T: std::borrow::Borrow<DeleteTopicState>>(
+    buf: &mut BytesMut,
+    version: i16,
+    topics: &[T],
+    timeout_ms: i32,
+) -> crate::error::Result<()> {
     let flexible = delete_topics_flexible(version)?;
     if version >= 6 {
         buf::put_array_len(buf, true, Some(topics.len()))?;
-        for t in topics {
-            buf::put_compact_string(buf, t.name.as_deref())?;
-            buf.extend_from_slice(&t.topic_id);
+        for topic in topics {
+            let topic = topic.borrow();
+            buf::put_compact_string(buf, topic.name.as_deref())?;
+            buf.extend_from_slice(&topic.topic_id);
             buf::put_empty_tagged_fields(buf);
         }
     } else {
         buf::put_array_len(buf, flexible, Some(topics.len()))?;
-        for t in topics {
-            buf::put_string(buf, flexible, t.name.as_deref())?;
+        for topic in topics {
+            let topic = topic.borrow();
+            buf::put_string(buf, flexible, topic.name.as_deref())?;
         }
     }
     buf.put_i32(timeout_ms);

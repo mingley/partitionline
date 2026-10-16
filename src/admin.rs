@@ -52,10 +52,10 @@ use crate::protocol::admin::{
     encode_create_delegation_token_request, encode_create_partitions_request,
     encode_create_topics_request, encode_delete_groups_request,
     encode_delete_records_topics_request, encode_delete_share_group_offsets_request,
-    encode_delete_topics_states_request, encode_describe_client_quotas_request,
-    encode_describe_cluster_request, encode_describe_configs_request,
-    encode_describe_delegation_token_request, encode_describe_groups_request,
-    encode_describe_log_dirs_request, encode_describe_producers_topics_request,
+    encode_describe_client_quotas_request, encode_describe_cluster_request,
+    encode_describe_configs_request, encode_describe_delegation_token_request,
+    encode_describe_groups_request, encode_describe_log_dirs_request,
+    encode_describe_producers_topics_request,
     encode_describe_share_group_offsets_request_versioned,
     encode_describe_topic_partitions_request, encode_describe_transactions_request,
     encode_describe_user_scram_credentials_request, encode_expire_delegation_token_request,
@@ -3317,6 +3317,35 @@ struct DeletePendingIndex<'a> {
     by_id: HashMap<[u8; 16], usize>,
 }
 
+fn index_delete_selection<'a>(
+    topics: &'a [DeleteTopicState],
+    selected: &[usize],
+) -> DeletePendingIndex<'a> {
+    let mut by_name = HashMap::new();
+    let mut by_id = HashMap::new();
+    for &index in selected {
+        let Some(topic) = topics.get(index) else {
+            continue;
+        };
+        match topic.name.as_deref() {
+            Some(name) => {
+                if let std::collections::hash_map::Entry::Vacant(slot) = by_name.entry(name) {
+                    let _ = slot.insert(index);
+                }
+            }
+            None if topic.topic_id != [0; 16] => {
+                if let std::collections::hash_map::Entry::Vacant(slot) = by_id.entry(topic.topic_id)
+                {
+                    let _ = slot.insert(index);
+                }
+            }
+            None => {}
+        }
+    }
+    DeletePendingIndex { by_name, by_id }
+}
+
+#[cfg(test)]
 fn index_delete_pending(pending: &[DeleteTopicState]) -> DeletePendingIndex<'_> {
     let mut by_name = HashMap::new();
     let mut by_id = HashMap::new();
@@ -3350,17 +3379,6 @@ fn delete_pending_slot(index: &DeletePendingIndex<'_>, result: &TopicResult) -> 
         (None, Some(id)) => Some(id),
         (None, None) => None,
     }
-}
-
-fn matched_delete_pending<'a>(
-    pending: &'a [DeleteTopicState],
-    index: &DeletePendingIndex<'_>,
-    result: &TopicResult,
-) -> Option<&'a DeleteTopicState> {
-    let slot = delete_pending_slot(index, result)?;
-    pending
-        .get(slot)
-        .filter(|topic| delete_state_matches(topic, result))
 }
 
 fn delete_state_matches(topic: &DeleteTopicState, result: &TopicResult) -> bool {
@@ -4951,8 +4969,7 @@ impl Admin {
         retry_on_quota_violation: bool,
     ) -> Result<Vec<TopicResult>> {
         let original = topics;
-        let original_index = index_delete_pending(&original);
-        let mut pending = original.clone();
+        let mut pending: Vec<usize> = (0..original.len()).collect();
         let mut finished: Vec<Option<TopicResult>> = Vec::new();
         finished.resize_with(original.len(), || None);
         let version = self.delete_version;
@@ -4972,7 +4989,15 @@ impl Admin {
                 conn.roundtrip(
                     DELETE_TOPICS,
                     version,
-                    |buf| encode_delete_topics_states_request(buf, version, &pending, timeout_ms),
+                    |buf| {
+                        let requested: Vec<&DeleteTopicState> = pending
+                            .iter()
+                            .filter_map(|&index| original.get(index))
+                            .collect();
+                        crate::protocol::admin::encode_delete_topic_list(
+                            buf, version, &requested, timeout_ms,
+                        )
+                    },
                     deadline.saturating_duration_since(Instant::now()),
                 )
                 .await
@@ -4999,20 +5024,22 @@ impl Admin {
                 self.refresh_metadata_until(None, deadline).await?;
                 continue;
             }
-            let slots = index_delete_pending(&pending);
+            let slots = index_delete_selection(&original, &pending);
             let mut next_pending = Vec::new();
             for r in results {
-                let matched = matched_delete_pending(&pending, &slots, &r);
+                let Some(index) = delete_pending_slot(&slots, &r) else {
+                    continue;
+                };
+                let Some(topic) = original.get(index) else {
+                    continue;
+                };
+                if !delete_state_matches(topic, &r) {
+                    continue;
+                }
                 if retry_on_quota_violation && r.error_code == error::THROTTLING_QUOTA_EXCEEDED {
-                    if let Some(t) = matched {
-                        next_pending.push(t.clone());
-                    }
-                } else if matched.is_some() {
-                    if let Some(index) = delete_pending_slot(&original_index, &r) {
-                        if let Some(slot) = finished.get_mut(index) {
-                            *slot = Some(r);
-                        }
-                    }
+                    next_pending.push(index);
+                } else if let Some(slot) = finished.get_mut(index) {
+                    *slot = Some(r);
                 }
             }
             if next_pending.is_empty() {
