@@ -18,18 +18,23 @@ pub const ADD_OFFSETS_TO_TXN: i16 = 25;
 /// EndTxn (26).
 pub const END_TXN: i16 = 26;
 
-fn remember_topic<T>(
-    order: &mut Vec<String>,
-    by_topic: &mut HashMap<String, Vec<T>>,
-    topic: &str,
+/// Append `value` under `topic`. The name is copied once, into the group.
+/// Later values for that name append. `slots` borrows the caller's names.
+fn remember_topic<'a, T>(
+    groups: &mut Vec<(String, Vec<T>)>,
+    slots: &mut HashMap<&'a str, usize>,
+    topic: &'a str,
     value: T,
 ) {
-    if let Some(parts) = by_topic.get_mut(topic) {
-        parts.push(value);
-        return;
+    if let Some(&slot) = slots.get(topic) {
+        if let Some((_, parts)) = groups.get_mut(slot) {
+            parts.push(value);
+            return;
+        }
     }
-    order.push(topic.to_string());
-    let _ = by_topic.insert(topic.to_string(), vec![value]);
+    let slot = groups.len();
+    let _ = slots.insert(topic, slot);
+    groups.push((topic.to_owned(), vec![value]));
 }
 
 /// Java `EndTxnRequest` version helpers (KIP-890 transaction V2).
@@ -313,18 +318,14 @@ impl AddPartitionsToTxnRequest {
     where
         I: IntoIterator<Item = (&'a str, i32)>,
     {
-        let mut order: Vec<String> = Vec::new();
-        let mut by_topic: HashMap<String, Vec<i32>> = HashMap::new();
+        let mut groups: Vec<(String, Vec<i32>)> = Vec::new();
+        let mut slots = HashMap::new();
         for (topic, partition) in partitions {
-            remember_topic(&mut order, &mut by_topic, topic, partition);
+            remember_topic(&mut groups, &mut slots, topic, partition);
         }
-        order
+        groups
             .into_iter()
-            .filter_map(|topic| {
-                by_topic
-                    .remove(&topic)
-                    .map(|partitions| TxnPartitionsTopic { topic, partitions })
-            })
+            .map(|(topic, partitions)| TxnPartitionsTopic { topic, partitions })
             .collect()
     }
 
@@ -988,18 +989,14 @@ impl TxnOffsetCommitRequest {
     where
         I: IntoIterator<Item = (&'a str, TxnOffsetPartition)>,
     {
-        let mut order: Vec<String> = Vec::new();
-        let mut by_topic: HashMap<String, Vec<TxnOffsetPartition>> = HashMap::new();
+        let mut groups: Vec<(String, Vec<TxnOffsetPartition>)> = Vec::new();
+        let mut slots = HashMap::new();
         for (topic, partition) in pending_txn_offset_commits {
-            remember_topic(&mut order, &mut by_topic, topic, partition);
+            remember_topic(&mut groups, &mut slots, topic, partition);
         }
-        order
+        groups
             .into_iter()
-            .filter_map(|topic| {
-                by_topic
-                    .remove(&topic)
-                    .map(|partitions| TxnOffsetTopic { topic, partitions })
-            })
+            .map(|(topic, partitions)| TxnOffsetTopic { topic, partitions })
             .collect()
     }
 
@@ -1092,12 +1089,12 @@ impl TxnOffsetCommitResponse {
     where
         I: IntoIterator<Item = (&'a str, i32, i16)>,
     {
-        let mut order: Vec<String> = Vec::new();
-        let mut by_topic: HashMap<String, Vec<TxnOffsetCommitResponsePartition>> = HashMap::new();
+        let mut groups: Vec<(String, Vec<TxnOffsetCommitResponsePartition>)> = Vec::new();
+        let mut slots = HashMap::new();
         for (topic, partition, error_code) in response_data {
             remember_topic(
-                &mut order,
-                &mut by_topic,
+                &mut groups,
+                &mut slots,
                 topic,
                 TxnOffsetCommitResponsePartition {
                     partition,
@@ -1105,13 +1102,9 @@ impl TxnOffsetCommitResponse {
                 },
             );
         }
-        order
+        groups
             .into_iter()
-            .filter_map(|topic| {
-                by_topic
-                    .remove(&topic)
-                    .map(|partitions| TxnOffsetCommitResponseTopic { topic, partitions })
-            })
+            .map(|(topic, partitions)| TxnOffsetCommitResponseTopic { topic, partitions })
             .collect()
     }
 
@@ -1811,22 +1804,18 @@ impl WritableTxnMarker {
     where
         I: IntoIterator<Item = (&'a str, i32)>,
     {
-        let mut order: Vec<String> = Vec::new();
-        let mut by_topic: HashMap<String, Vec<i32>> = HashMap::new();
+        let mut groups: Vec<(String, Vec<i32>)> = Vec::new();
+        let mut slots = HashMap::new();
         for (topic, partition) in partitions {
-            remember_topic(&mut order, &mut by_topic, topic, partition);
+            remember_topic(&mut groups, &mut slots, topic, partition);
         }
         Self {
             producer_id,
             producer_epoch,
             transaction_result,
-            topics: order
+            topics: groups
                 .into_iter()
-                .filter_map(|name| {
-                    by_topic
-                        .remove(&name)
-                        .map(|partitions| WritableTxnMarkerTopic { name, partitions })
-                })
+                .map(|(name, partitions)| WritableTxnMarkerTopic { name, partitions })
                 .collect(),
             coordinator_epoch,
         }
@@ -2065,13 +2054,12 @@ impl WriteTxnMarkersResponse {
     {
         let mut markers = Vec::new();
         for (producer_id, partitions) in errors {
-            let mut topic_order: Vec<String> = Vec::new();
-            let mut by_topic: HashMap<String, Vec<WritableTxnMarkerPartitionResult>> =
-                HashMap::new();
+            let mut groups: Vec<(String, Vec<WritableTxnMarkerPartitionResult>)> = Vec::new();
+            let mut slots = HashMap::new();
             for (topic, partition_index, error_code) in partitions {
                 remember_topic(
-                    &mut topic_order,
-                    &mut by_topic,
+                    &mut groups,
+                    &mut slots,
                     topic,
                     WritableTxnMarkerPartitionResult {
                         partition_index,
@@ -2081,13 +2069,9 @@ impl WriteTxnMarkersResponse {
             }
             markers.push(WritableTxnMarkerResult {
                 producer_id,
-                topics: topic_order
+                topics: groups
                     .into_iter()
-                    .filter_map(|name| {
-                        by_topic
-                            .remove(&name)
-                            .map(|partitions| WritableTxnMarkerTopicResult { name, partitions })
-                    })
+                    .map(|(name, partitions)| WritableTxnMarkerTopicResult { name, partitions })
                     .collect(),
             });
         }

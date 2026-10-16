@@ -3182,33 +3182,38 @@ where
     topics
 }
 
-fn remember_topic_group<T>(
-    order: &mut Vec<String>,
-    by_topic: &mut HashMap<String, Vec<T>>,
-    topic: &str,
+/// Append `value` under `topic`. The name is copied once, into the group.
+/// Later values for that name append. `slots` borrows the caller's names.
+fn remember_topic_group<'a, T>(
+    groups: &mut Vec<(String, Vec<T>)>,
+    slots: &mut HashMap<&'a str, usize>,
+    topic: &'a str,
     value: T,
 ) {
-    if let Some(parts) = by_topic.get_mut(topic) {
-        parts.push(value);
-        return;
+    if let Some(&slot) = slots.get(topic) {
+        if let Some((_, parts)) = groups.get_mut(slot) {
+            parts.push(value);
+            return;
+        }
     }
-    order.push(topic.to_string());
-    let _ = by_topic.insert(topic.to_string(), vec![value]);
+    let slot = groups.len();
+    let _ = slots.insert(topic, slot);
+    groups.push((topic.to_owned(), vec![value]));
 }
 
 fn delete_records_topics(
     records: &[(crate::TopicPartition, i64)],
     idxs: &[usize],
 ) -> Vec<DeleteRecordsTopic> {
-    let mut by_topic: HashMap<String, Vec<DeleteRecordsPartition>> = HashMap::new();
-    let mut order: Vec<String> = Vec::new();
+    let mut groups: Vec<(String, Vec<DeleteRecordsPartition>)> = Vec::new();
+    let mut slots = HashMap::new();
     for &i in idxs {
         let Some((tp, offset)) = records.get(i) else {
             continue;
         };
         remember_topic_group(
-            &mut order,
-            &mut by_topic,
+            &mut groups,
+            &mut slots,
             &tp.topic,
             DeleteRecordsPartition {
                 partition: tp.partition,
@@ -3216,13 +3221,9 @@ fn delete_records_topics(
             },
         );
     }
-    order
+    groups
         .into_iter()
-        .filter_map(|topic| {
-            by_topic
-                .remove(&topic)
-                .map(|partitions| DeleteRecordsTopic { topic, partitions })
-        })
+        .map(|(topic, partitions)| DeleteRecordsTopic { topic, partitions })
         .collect()
 }
 
@@ -3230,23 +3231,19 @@ fn describe_producers_topics(
     partitions: &[crate::TopicPartition],
     idxs: &[usize],
 ) -> Vec<DescribeProducersTopicRequest> {
-    let mut by_topic: HashMap<String, Vec<i32>> = HashMap::new();
-    let mut order: Vec<String> = Vec::new();
+    let mut groups: Vec<(String, Vec<i32>)> = Vec::new();
+    let mut slots = HashMap::new();
     for &i in idxs {
         let Some(tp) = partitions.get(i) else {
             continue;
         };
-        remember_topic_group(&mut order, &mut by_topic, &tp.topic, tp.partition);
+        remember_topic_group(&mut groups, &mut slots, &tp.topic, tp.partition);
     }
-    order
+    groups
         .into_iter()
-        .filter_map(|name| {
-            by_topic
-                .remove(&name)
-                .map(|partition_indexes| DescribeProducersTopicRequest {
-                    name,
-                    partition_indexes,
-                })
+        .map(|(name, partition_indexes)| DescribeProducersTopicRequest {
+            name,
+            partition_indexes,
         })
         .collect()
 }
@@ -14279,37 +14276,31 @@ fn validate_reassignments(assignments: &[PartitionReassignment]) -> Result<()> {
 }
 
 fn group_reassignments(assignments: &[PartitionReassignment]) -> Vec<ReassignableTopic> {
-    let mut by_topic: HashMap<String, Vec<ReassignablePartition>> = HashMap::new();
-    let mut order: Vec<String> = Vec::new();
+    let mut groups: Vec<(String, Vec<ReassignablePartition>)> = Vec::new();
+    let mut slots = HashMap::new();
     for a in assignments {
         remember_topic_group(
-            &mut order,
-            &mut by_topic,
+            &mut groups,
+            &mut slots,
             &a.topic,
             ReassignablePartition::new(a.partition, a.replicas.clone()),
         );
     }
-    order
+    groups
         .into_iter()
-        .map(|name| {
-            let partitions = by_topic.remove(&name).unwrap_or_default();
-            ReassignableTopic::new(name, partitions)
-        })
+        .map(|(name, partitions)| ReassignableTopic::new(name, partitions))
         .collect()
 }
 
 fn group_list_reassignments(partitions: &[crate::TopicPartition]) -> Vec<ListReassignmentTopic> {
-    let mut by_topic: HashMap<String, Vec<i32>> = HashMap::new();
-    let mut order: Vec<String> = Vec::new();
+    let mut groups: Vec<(String, Vec<i32>)> = Vec::new();
+    let mut slots = HashMap::new();
     for tp in partitions {
-        remember_topic_group(&mut order, &mut by_topic, &tp.topic, tp.partition);
+        remember_topic_group(&mut groups, &mut slots, &tp.topic, tp.partition);
     }
-    order
+    groups
         .into_iter()
-        .map(|name| {
-            let partitions = by_topic.remove(&name).unwrap_or_default();
-            ListReassignmentTopic::new(name, partitions)
-        })
+        .map(|(name, partitions)| ListReassignmentTopic::new(name, partitions))
         .collect()
 }
 
@@ -14349,17 +14340,14 @@ fn flatten_reassignment_results(
 }
 
 fn offset_delete_topics(partitions: &[(String, i32)]) -> Vec<OffsetDeleteTopic> {
-    let mut by_topic: HashMap<String, Vec<i32>> = HashMap::new();
-    let mut order: Vec<String> = Vec::new();
+    let mut groups: Vec<(String, Vec<i32>)> = Vec::new();
+    let mut slots = HashMap::new();
     for (topic, part) in partitions {
-        remember_topic_group(&mut order, &mut by_topic, topic, *part);
+        remember_topic_group(&mut groups, &mut slots, topic, *part);
     }
-    order
+    groups
         .into_iter()
-        .map(|topic| OffsetDeleteTopic {
-            partitions: by_topic.remove(&topic).unwrap_or_default(),
-            topic,
-        })
+        .map(|(topic, partitions)| OffsetDeleteTopic { partitions, topic })
         .collect()
 }
 
@@ -14466,8 +14454,8 @@ fn list_offset_topic_requests(
     idxs: &[usize],
     cluster: &Cluster,
 ) -> Vec<ListOffsetsTopicRequest> {
-    let mut order: Vec<String> = Vec::new();
-    let mut by_topic: HashMap<String, Vec<ListOffsetsPartitionRequest>> = HashMap::new();
+    let mut groups: Vec<(String, Vec<ListOffsetsPartitionRequest>)> = Vec::new();
+    let mut slots = HashMap::new();
     let mut epochs = crate::cluster::EpochList::new();
     for &i in idxs {
         let Some((tp, ts)) = queries.get(i) else {
@@ -14478,14 +14466,11 @@ fn list_offset_topic_requests(
             current_leader_epoch: epochs.epoch(cluster, &tp.topic, tp.partition),
             timestamp: *ts,
         };
-        remember_topic_group(&mut order, &mut by_topic, &tp.topic, part);
+        remember_topic_group(&mut groups, &mut slots, &tp.topic, part);
     }
-    order
+    groups
         .into_iter()
-        .map(|name| ListOffsetsTopicRequest {
-            partitions: by_topic.remove(&name).unwrap_or_default(),
-            name,
-        })
+        .map(|(name, partitions)| ListOffsetsTopicRequest { partitions, name })
         .collect()
 }
 

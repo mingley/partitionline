@@ -9,18 +9,23 @@ use super::buf;
 use super::records::RecordBatch;
 use crate::error::{Error, Result};
 
-fn remember_topic<T>(
-    order: &mut Vec<String>,
-    by_topic: &mut HashMap<String, Vec<T>>,
-    topic: &str,
+/// Append `value` under `topic`. The name is copied once, into the group.
+/// Later values for that name append. `slots` borrows the caller's names.
+fn remember_topic<'a, T>(
+    groups: &mut Vec<(String, Vec<T>)>,
+    slots: &mut HashMap<&'a str, usize>,
+    topic: &'a str,
     value: T,
 ) {
-    if let Some(parts) = by_topic.get_mut(topic) {
-        parts.push(value);
-        return;
+    if let Some(&slot) = slots.get(topic) {
+        if let Some((_, parts)) = groups.get_mut(slot) {
+            parts.push(value);
+            return;
+        }
     }
-    order.push(topic.to_string());
-    let _ = by_topic.insert(topic.to_string(), vec![value]);
+    let slot = groups.len();
+    let _ = slots.insert(topic, slot);
+    groups.push((topic.to_owned(), vec![value]));
 }
 
 /// Log start (earliest).
@@ -384,18 +389,14 @@ impl ListOffsetsRequest {
     where
         I: IntoIterator<Item = (&'a str, ListOffsetsPartitionRequest)>,
     {
-        let mut order: Vec<String> = Vec::new();
-        let mut by_topic: HashMap<String, Vec<ListOffsetsPartitionRequest>> = HashMap::new();
+        let mut groups: Vec<(String, Vec<ListOffsetsPartitionRequest>)> = Vec::new();
+        let mut slots = HashMap::new();
         for (topic, partition) in timestamps_to_search {
-            remember_topic(&mut order, &mut by_topic, topic, partition);
+            remember_topic(&mut groups, &mut slots, topic, partition);
         }
-        order
+        groups
             .into_iter()
-            .filter_map(|name| {
-                by_topic
-                    .remove(&name)
-                    .map(|partitions| ListOffsetsTopicRequest { name, partitions })
-            })
+            .map(|(name, partitions)| ListOffsetsTopicRequest { name, partitions })
             .collect()
     }
 

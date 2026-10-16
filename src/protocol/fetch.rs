@@ -476,16 +476,13 @@ impl FetchRequest {
         R: IntoIterator<Item = ([u8; 16], &'a str, i32)>,
         S: IntoIterator<Item = ([u8; 16], &'a str, i32)>,
     {
-        let mut order: Vec<String> = Vec::new();
-        let mut by_name: HashMap<String, ForgottenTopic> = HashMap::new();
-        add_to_forgotten_topic_map(&mut order, &mut by_name, removed);
+        let mut groups = Vec::new();
+        let mut slots = HashMap::new();
+        add_to_forgotten_topic_map(&mut groups, &mut slots, removed);
         if version >= 13 {
-            add_to_forgotten_topic_map(&mut order, &mut by_name, replaced);
+            add_to_forgotten_topic_map(&mut groups, &mut slots, replaced);
         }
-        order
-            .into_iter()
-            .filter_map(|name| by_name.remove(&name))
-            .collect()
+        groups
     }
 
     /// Java `FetchRequest.Builder.build` Topics from fetchData.
@@ -709,27 +706,30 @@ impl FetchRequest {
     }
 }
 
+/// Append a forgotten partition under `topic`. The name is copied once.
+/// Later partitions for that name append, and the first topic id is kept.
+/// `slots` borrows the caller's names.
 fn add_to_forgotten_topic_map<'a, I>(
-    order: &mut Vec<String>,
-    by_name: &mut HashMap<String, ForgottenTopic>,
+    groups: &mut Vec<ForgottenTopic>,
+    slots: &mut HashMap<&'a str, usize>,
     to_forget: I,
 ) where
     I: IntoIterator<Item = ([u8; 16], &'a str, i32)>,
 {
     for (topic_id, topic, partition) in to_forget {
-        if let Some(existing) = by_name.get_mut(topic) {
-            existing.partitions.push(partition);
-            continue;
+        if let Some(&slot) = slots.get(topic) {
+            if let Some(existing) = groups.get_mut(slot) {
+                existing.partitions.push(partition);
+                continue;
+            }
         }
-        order.push(topic.to_string());
-        let _ = by_name.insert(
-            topic.to_string(),
-            ForgottenTopic {
-                topic: topic.to_string(),
-                topic_id,
-                partitions: vec![partition],
-            },
-        );
+        let slot = groups.len();
+        let _ = slots.insert(topic, slot);
+        groups.push(ForgottenTopic {
+            topic: topic.to_owned(),
+            topic_id,
+            partitions: vec![partition],
+        });
     }
 }
 

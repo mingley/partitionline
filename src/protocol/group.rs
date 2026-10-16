@@ -55,18 +55,23 @@ where
     out
 }
 
-fn remember_topic<T>(
-    order: &mut Vec<String>,
-    by_topic: &mut HashMap<String, Vec<T>>,
-    topic: &str,
+/// Append `value` under `topic`. The name is copied once, into the group.
+/// Later values for that name append. `slots` borrows the caller's names.
+fn remember_topic<'a, T>(
+    groups: &mut Vec<(String, Vec<T>)>,
+    slots: &mut HashMap<&'a str, usize>,
+    topic: &'a str,
     value: T,
 ) {
-    if let Some(parts) = by_topic.get_mut(topic) {
-        parts.push(value);
-        return;
+    if let Some(&slot) = slots.get(topic) {
+        if let Some((_, parts)) = groups.get_mut(slot) {
+            parts.push(value);
+            return;
+        }
     }
-    order.push(topic.to_string());
-    let _ = by_topic.insert(topic.to_string(), vec![value]);
+    let slot = groups.len();
+    let _ = slots.insert(topic, slot);
+    groups.push((topic.to_owned(), vec![value]));
 }
 
 /// FindCoordinator `key_type` for a consumer group.
@@ -3363,18 +3368,14 @@ impl OffsetFetchResponse {
     where
         I: IntoIterator<Item = (&'a str, FetchedOffset)>,
     {
-        let mut order: Vec<String> = Vec::new();
-        let mut by_topic: HashMap<String, Vec<FetchedOffset>> = HashMap::new();
+        let mut groups: Vec<(String, Vec<FetchedOffset>)> = Vec::new();
+        let mut slots = HashMap::new();
         for (topic, partition) in response_data {
-            remember_topic(&mut order, &mut by_topic, topic, partition);
+            remember_topic(&mut groups, &mut slots, topic, partition);
         }
-        order
+        groups
             .into_iter()
-            .filter_map(|topic| {
-                by_topic
-                    .remove(&topic)
-                    .map(|partitions| FetchedOffsetTopic { topic, partitions })
-            })
+            .map(|(topic, partitions)| FetchedOffsetTopic { topic, partitions })
             .collect()
     }
 
@@ -3722,18 +3723,14 @@ impl OffsetFetchRequest {
         I: IntoIterator<Item = (&'a str, i32)>,
     {
         partitions.map(|ps| {
-            let mut order: Vec<String> = Vec::new();
-            let mut by_topic: HashMap<String, Vec<i32>> = HashMap::new();
+            let mut groups: Vec<(String, Vec<i32>)> = Vec::new();
+            let mut slots = HashMap::new();
             for (topic, partition) in ps {
-                remember_topic(&mut order, &mut by_topic, topic, partition);
+                remember_topic(&mut groups, &mut slots, topic, partition);
             }
-            order
+            groups
                 .into_iter()
-                .filter_map(|topic| {
-                    by_topic
-                        .remove(&topic)
-                        .map(|partitions| OffsetFetchTopic { topic, partitions })
-                })
+                .map(|(topic, partitions)| OffsetFetchTopic { topic, partitions })
                 .collect()
         })
     }
@@ -3847,9 +3844,9 @@ impl OffsetFetchRequest {
     ) -> Result<Vec<OffsetFetchGroupResult>> {
         if version >= 8 {
             let mut order = Vec::new();
-            let mut seen = HashSet::new();
+            let mut seen: HashSet<&str> = HashSet::new();
             for group in groups {
-                if seen.insert(group.group_id.clone()) {
+                if seen.insert(group.group_id.as_str()) {
                     order.push(group.group_id.clone());
                 }
             }
@@ -3868,9 +3865,9 @@ impl OffsetFetchRequest {
                     "null Topics for OffsetFetch v{version} getErrorResponse"
                 )));
             };
-            let mut order = Vec::new();
-            let mut by_topic: HashMap<String, Vec<FetchedOffset>> = HashMap::new();
-            let mut seen: HashMap<String, HashSet<i32>> = HashMap::new();
+            let mut groups: Vec<(String, Vec<FetchedOffset>)> = Vec::new();
+            let mut slots = HashMap::new();
+            let mut seen: HashMap<&str, HashSet<i32>> = HashMap::new();
             for topic in topics {
                 for &partition in &topic.partitions {
                     let duplicate = if let Some(parts) = seen.get_mut(topic.topic.as_str()) {
@@ -3878,27 +3875,23 @@ impl OffsetFetchRequest {
                     } else {
                         let mut parts = HashSet::new();
                         let _ = parts.insert(partition);
-                        let _ = seen.insert(topic.topic.clone(), parts);
+                        let _ = seen.insert(topic.topic.as_str(), parts);
                         false
                     };
                     if duplicate {
                         continue;
                     }
                     remember_topic(
-                        &mut order,
-                        &mut by_topic,
+                        &mut groups,
+                        &mut slots,
                         &topic.topic,
                         FetchedOffset::error(partition, error_code),
                     );
                 }
             }
-            let topics = order
+            let topics = groups
                 .into_iter()
-                .filter_map(|topic| {
-                    by_topic
-                        .remove(&topic)
-                        .map(|partitions| FetchedOffsetTopic { topic, partitions })
-                })
+                .map(|(topic, partitions)| FetchedOffsetTopic { topic, partitions })
                 .collect();
             return Ok(vec![OffsetFetchGroupResult {
                 group_id: group.group_id.clone(),
@@ -4136,12 +4129,12 @@ impl OffsetCommitResponse {
     where
         I: IntoIterator<Item = (&'a str, i32, i16)>,
     {
-        let mut order: Vec<String> = Vec::new();
-        let mut by_topic: HashMap<String, Vec<OffsetCommitResponsePartition>> = HashMap::new();
+        let mut groups: Vec<(String, Vec<OffsetCommitResponsePartition>)> = Vec::new();
+        let mut slots = HashMap::new();
         for (topic, partition, error_code) in response_data {
             remember_topic(
-                &mut order,
-                &mut by_topic,
+                &mut groups,
+                &mut slots,
                 topic,
                 OffsetCommitResponsePartition {
                     partition,
@@ -4149,13 +4142,9 @@ impl OffsetCommitResponse {
                 },
             );
         }
-        order
+        groups
             .into_iter()
-            .filter_map(|topic| {
-                by_topic
-                    .remove(&topic)
-                    .map(|partitions| OffsetCommitResponseTopic { topic, partitions })
-            })
+            .map(|(topic, partitions)| OffsetCommitResponseTopic { topic, partitions })
             .collect()
     }
 
@@ -5266,20 +5255,18 @@ pub fn encode_offset_delete_response_with_throttle(
 ) -> crate::error::Result<()> {
     buf.put_i16(error_code);
     buf.put_i32(throttle_time_ms);
-    let mut by_topic: std::collections::HashMap<String, Vec<(i32, i16)>> =
-        std::collections::HashMap::new();
-    let mut order: Vec<String> = Vec::new();
+    let mut groups: Vec<(String, Vec<(i32, i16)>)> = Vec::new();
+    let mut slots = HashMap::new();
     for r in results {
         remember_topic(
-            &mut order,
-            &mut by_topic,
+            &mut groups,
+            &mut slots,
             &r.topic,
             (r.partition, r.error_code),
         );
     }
-    buf::put_array_len(buf, false, Some(order.len()))?;
-    for name in &order {
-        let parts = by_topic.get(name).map(Vec::as_slice).unwrap_or(&[]);
+    buf::put_array_len(buf, false, Some(groups.len()))?;
+    for (name, parts) in &groups {
         buf::put_classic_nullable_string(buf, Some(name))?;
         buf::put_array_len(buf, false, Some(parts.len()))?;
         for (partition, err) in parts {
