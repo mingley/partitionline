@@ -5528,6 +5528,9 @@ pub fn encode_offset_delete_request(
     group_id: &str,
     topics: &[OffsetDeleteTopic],
 ) -> crate::error::Result<()> {
+    let body_start = buf.len();
+    let planned = offset_delete_request_len(group_id, topics)?;
+    reserve_group_body(buf, planned);
     buf::put_classic_nullable_string(buf, Some(group_id))?;
     buf::put_array_len(buf, false, Some(topics.len()))?;
     for t in topics {
@@ -5537,7 +5540,26 @@ pub fn encode_offset_delete_request(
             buf.put_i32(*p);
         }
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn offset_delete_request_len(group_id: &str, topics: &[OffsetDeleteTopic]) -> Result<usize> {
+    let mut total = group_string_len(false, Some(group_id))?;
+    total = add_group_len(total, group_array_len(false, topics.len())?)?;
+    for topic in topics {
+        total = add_group_len(total, group_string_len(false, Some(&topic.topic))?)?;
+        total = add_group_len(total, group_array_len(false, topic.partitions.len())?)?;
+        total = add_group_len(
+            total,
+            topic
+                .partitions
+                .len()
+                .checked_mul(4)
+                .ok_or_else(|| Error::protocol("offset delete request size overflow"))?,
+        )?;
+    }
+    Ok(total)
 }
 
 /// Decode OffsetDelete: `(group_id, topics)`.
@@ -15289,6 +15311,21 @@ mod tests {
             &3_600_000_i32.to_be_bytes(),
             "v0 ThrottleTimeMs occupies bytes 2-5"
         );
+    }
+
+    #[test]
+    fn an_offset_delete_request_sizes_its_body_once() {
+        let topics = vec![OffsetDeleteTopic::new("orders", (0..8).collect())];
+        let mut buf = BytesMut::new();
+        encode_offset_delete_request(&mut buf, "group", &topics).unwrap();
+        let len = buf.len();
+        let capacity = buf.capacity();
+        assert!(capacity >= len);
+        assert!(capacity < 64 * 1024);
+        buf.clear();
+        encode_offset_delete_request(&mut buf, "group", &topics).unwrap();
+        assert_eq!(buf.len(), len);
+        assert_eq!(buf.capacity(), capacity);
     }
 
     #[test]
