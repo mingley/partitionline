@@ -2066,8 +2066,8 @@ fn reap_fetch_replies(
     set: &mut tokio::task::JoinSet<(FetchReply, BrokerConn, SessionFetchRequest)>,
     conns: &mut HashMap<i32, BrokerConn>,
     sessions: &mut HashMap<i32, BrokerFetchSession>,
-) -> Result<Vec<FetchReply>> {
-    let mut ready = Vec::new();
+    ready: &mut Vec<FetchReply>,
+) -> Result<()> {
     while let Some(joined) = set.try_join_next() {
         let (reply, conn, request) =
             joined.map_err(|error| Error::protocol(format!("fetch task: {error}")))?;
@@ -2077,8 +2077,7 @@ fn reap_fetch_replies(
         let _ = conns.insert(reply.node, conn);
         ready.push(reply);
     }
-    ready.sort_by_key(|reply| reply.node);
-    Ok(ready)
+    Ok(())
 }
 
 struct FetchBody {
@@ -5478,13 +5477,18 @@ impl Consumer {
         let Some(mut set) = self.inflight_fetches.take() else {
             return Err(Error::Timeout);
         };
-        let ready = match reap_fetch_replies(&mut set, &mut self.conns, &mut self.fetch_sessions) {
-            Ok(ready) => ready,
-            Err(error) => {
-                self.inflight_fetches = Some(set);
-                return Err(error);
-            }
-        };
+        let mut ready = self.take_replies(0);
+        if let Err(error) = reap_fetch_replies(
+            &mut set,
+            &mut self.conns,
+            &mut self.fetch_sessions,
+            &mut ready,
+        ) {
+            self.park_replies(ready);
+            self.inflight_fetches = Some(set);
+            return Err(error);
+        }
+        ready.sort_by_key(|reply| reply.node);
         for reply in &ready {
             let _ = self.inflight_nodes.remove(&reply.node);
         }
@@ -5494,6 +5498,7 @@ impl Consumer {
             self.inflight_fetches = Some(set);
         }
         if ready.is_empty() {
+            self.park_replies(ready);
             Err(Error::Timeout)
         } else {
             Ok(ready)
@@ -5881,8 +5886,14 @@ impl Consumer {
             let Some(joined) = joined else {
                 break;
             };
-            let (reply, conn, request) =
-                joined.map_err(|e| Error::protocol(format!("fetch task: {e}")))?;
+            let (reply, conn, request) = match joined {
+                Ok(joined) => joined,
+                Err(error) => {
+                    self.park_replies(out);
+                    inflight.park(self);
+                    return Err(Error::protocol(format!("fetch task: {error}")));
+                }
+            };
             if let Some(session) = self.fetch_sessions.get_mut(&reply.node) {
                 session.reclaim_request_partitions(request);
             }
@@ -5895,25 +5906,22 @@ impl Consumer {
         }
         // A reply can land in the instant the deadline ends the wait. Take it
         // before parking the brokers that are still running.
-        let reaped = if let Some(set) = inflight.set.as_mut() {
-            reap_fetch_replies(set, &mut self.conns, &mut self.fetch_sessions)
-        } else {
-            Ok(Vec::new())
-        };
-        match reaped {
-            Ok(ready) => {
-                for reply in &ready {
-                    let _ = inflight.pending.remove(&reply.node);
-                }
-                out.extend(ready);
-            }
-            Err(error) => {
+        let start = out.len();
+        if let Some(set) = inflight.set.as_mut() {
+            if let Err(error) =
+                reap_fetch_replies(set, &mut self.conns, &mut self.fetch_sessions, &mut out)
+            {
+                self.park_replies(out);
                 inflight.park(self);
                 return Err(error);
             }
         }
+        for reply in out.iter().skip(start) {
+            let _ = inflight.pending.remove(&reply.node);
+        }
         inflight.park(self);
         if out.is_empty() && Instant::now() >= deadline {
+            self.park_replies(out);
             return Err(Error::Timeout);
         }
         out.sort_by_key(|reply| reply.node);
