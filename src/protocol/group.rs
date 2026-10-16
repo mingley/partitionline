@@ -784,16 +784,43 @@ fn group_assigned_partitions(parts: &[(String, i32)]) -> Vec<(String, Vec<i32>)>
     by_topic
 }
 
+/// Group owned pairs. The first name of a topic is moved. Later copies are dropped.
+fn group_owned_assignment(parts: Vec<(String, i32)>) -> Vec<(String, Vec<i32>)> {
+    let mut by_topic: Vec<(String, Vec<i32>)> = Vec::new();
+    for (topic, part) in parts {
+        if let Some((_, partitions)) = by_topic.iter_mut().find(|(name, _)| name == &topic) {
+            partitions.push(part);
+            continue;
+        }
+        by_topic.push((topic, vec![part]));
+    }
+    by_topic
+}
+
 /// Group owned partitions by topic after sorting by topic then partition
 /// (Java `ConsumerProtocol.serializeSubscription`).
+///
+/// The topic name is copied once, into the group. Later partitions of that
+/// topic only record the index.
 fn group_sorted_owned_partitions(owned: &[(String, i32)]) -> Vec<(String, Vec<i32>)> {
-    let mut sorted = owned.to_vec();
-    sorted.sort_by(|a, b| a.0.cmp(&b.0).then(a.1.cmp(&b.1)));
+    let mut order: Vec<usize> = (0..owned.len()).collect();
+    order.sort_by(|&left, &right| {
+        let left = owned
+            .get(left)
+            .map(|(topic, partition)| (topic.as_str(), *partition));
+        let right = owned
+            .get(right)
+            .map(|(topic, partition)| (topic.as_str(), *partition));
+        left.cmp(&right)
+    });
     let mut by_topic: Vec<(String, Vec<i32>)> = Vec::new();
-    for (topic, part) in sorted {
+    for index in order {
+        let Some((topic, part)) = owned.get(index) else {
+            continue;
+        };
         match by_topic.last_mut() {
-            Some((t, ps)) if *t == topic => ps.push(part),
-            _ => by_topic.push((topic, vec![part])),
+            Some((name, partitions)) if name == topic => partitions.push(*part),
+            _ => by_topic.push((topic.clone(), vec![*part])),
         }
     }
     by_topic
@@ -5396,9 +5423,8 @@ pub fn encode_tp_assignment(parts: &[(String, i32)]) -> Result<Vec<u8>> {
 
 /// Decode ConsumerProtocol assignment: `(topic, partitions)` per topic.
 pub fn decode_assignment(bytes: &[u8]) -> Result<Vec<(String, Vec<i32>)>> {
-    Ok(group_assigned_partitions(
-        ConsumerProtocol::deserialize_assignment(bytes)?.partitions(),
-    ))
+    let assignment = ConsumerProtocol::deserialize_assignment(bytes)?;
+    Ok(group_owned_assignment(assignment.partitions))
 }
 
 #[cfg(test)]
@@ -8941,6 +8967,43 @@ mod tests {
             ConsumerProtocol::HIGHEST_SUPPORTED_VERSION
         );
         assert!(ConsumerProtocol::serialize_subscription_version(&sub, -1).is_err());
+    }
+
+    #[test]
+    fn a_decoded_assignment_keeps_the_first_topic_allocation() {
+        let encoded =
+            encode_owned_assignment(&[("orders-topic-name-is-long".into(), vec![1, 0])]).unwrap();
+        let flat = ConsumerProtocol::deserialize_assignment(&encoded).unwrap();
+        let kept = flat
+            .partitions
+            .first()
+            .map(|(topic, _)| topic.as_ptr())
+            .unwrap_or(std::ptr::null());
+        let grouped = group_owned_assignment(flat.partitions);
+        assert_eq!(
+            grouped
+                .first()
+                .map(|(topic, parts)| (topic.as_ptr(), parts.as_slice())),
+            Some((kept, [1, 0].as_slice()))
+        );
+        let owned = [
+            ("payments".to_string(), 1),
+            ("orders-topic-name-is-long".to_string(), 2),
+            ("orders-topic-name-is-long".to_string(), 0),
+        ];
+        let sorted = group_sorted_owned_partitions(&owned);
+        assert_eq!(
+            sorted
+                .first()
+                .map(|(topic, parts)| (topic.as_str(), parts.as_slice())),
+            Some(("orders-topic-name-is-long", [0, 2].as_slice()))
+        );
+        assert_eq!(
+            sorted
+                .get(1)
+                .map(|(topic, parts)| (topic.as_str(), parts.as_slice())),
+            Some(("payments", [1].as_slice()))
+        );
     }
 
     #[test]
