@@ -227,7 +227,20 @@ pub fn assign_range_topics(
     members: &[String],
     topics: &[(String, Vec<i32>)],
 ) -> HashMap<String, Vec<(String, i32)>> {
-    assign_range_subscribed(&all_subscribed(members, topics), topics)
+    let mut out: HashMap<String, Vec<(String, i32)>> = HashMap::new();
+    for member in members {
+        let _ = out.insert(member.clone(), Vec::new());
+    }
+    for (topic, parts) in topics {
+        for (member, ps) in assign_range(members, parts) {
+            if let Some(slot) = out.get_mut(&member) {
+                for p in ps {
+                    slot.push((topic.clone(), p));
+                }
+            }
+        }
+    }
+    out
 }
 
 /// Sticky-assign each topic independently across every member, then concatenate.
@@ -236,12 +249,22 @@ pub fn assign_sticky_topics(
     topics: &[(String, Vec<i32>)],
     prev: &HashMap<String, Vec<(String, i32)>>,
 ) -> HashMap<String, Vec<(String, i32)>> {
-    assign_sticky_subscribed(&all_subscribed(members, topics), topics, prev)
-}
-
-fn all_subscribed(members: &[String], topics: &[(String, Vec<i32>)]) -> Vec<(String, Vec<String>)> {
-    let names: Vec<String> = topics.iter().map(|(t, _)| t.clone()).collect();
-    members.iter().map(|m| (m.clone(), names.clone())).collect()
+    let mut out: HashMap<String, Vec<(String, i32)>> = HashMap::new();
+    for member in members {
+        let _ = out.insert(member.clone(), Vec::new());
+    }
+    let previous = previous_partitions_by_topic(prev);
+    for (topic, parts) in topics {
+        let prev_for_topic = owned_previous_partitions(previous.get(topic.as_str()));
+        for (member, ps) in assign_sticky(members, parts, &prev_for_topic) {
+            if let Some(slot) = out.get_mut(&member) {
+                for p in ps {
+                    slot.push((topic.clone(), p));
+                }
+            }
+        }
+    }
+    out
 }
 
 /// Range-assign each topic among the members subscribed to it (Java RangeAssignor).
