@@ -652,6 +652,8 @@ pub struct ConsumerGroup {
     commit_v10: OffsetCommitRequestData,
     /// Previous v10 OffsetFetch body, refilled on the next fetch.
     fetch_v10: OffsetFetchRequestData,
+    /// Previous classic OffsetCommit topics, refilled on the next commit.
+    classic_commit_topics: Vec<OffsetTopic>,
     /// Topic ids from the previous v10 OffsetFetch, reused for the response names.
     fetch_names: HashMap<[u8; 16], String>,
     last_poll: Arc<parking_lot::Mutex<Option<Instant>>>,
@@ -829,6 +831,7 @@ impl ConsumerGroup {
             last_delivered_topic_ids: HashMap::new(),
             commit_v10: OffsetCommitRequestData::default(),
             fetch_v10: OffsetFetchRequestData::default(),
+            classic_commit_topics: Vec::new(),
             fetch_names: HashMap::new(),
             last_poll: Arc::new(parking_lot::Mutex::new(None)),
             left_max_poll: Arc::new(AtomicBool::new(false)),
@@ -988,6 +991,7 @@ impl ConsumerGroup {
             last_delivered_topic_ids: HashMap::new(),
             commit_v10: OffsetCommitRequestData::default(),
             fetch_v10: OffsetFetchRequestData::default(),
+            classic_commit_topics: Vec::new(),
             fetch_names: HashMap::new(),
             last_poll: Arc::new(parking_lot::Mutex::new(None)),
             left_max_poll: Arc::new(AtomicBool::new(false)),
@@ -1787,13 +1791,17 @@ impl ConsumerGroup {
         let result = if self.coord.offset_commit_version == 10 {
             self.commit_shared_v10(positions, timeout).await
         } else {
-            let topics = group_shared_offset_topics(positions, |topic, partition| {
+            let mut topics = std::mem::take(&mut self.classic_commit_topics);
+            refill_shared_offset_topics(&mut topics, positions, |topic, partition| {
                 self.consumer.position_epoch(topic, partition)
             });
             if topics.is_empty() {
+                self.classic_commit_topics = topics;
                 return Ok(());
             }
-            self.commit_classic(&[], &topics, timeout).await
+            let committed = self.commit_classic(&[], &topics, timeout).await;
+            self.classic_commit_topics = topics;
+            committed
         };
         self.note_commit(result.is_ok());
         result
@@ -3642,34 +3650,55 @@ fn position_is_committable(offset: i64) -> bool {
     offset >= 0
 }
 
+#[cfg(test)]
 fn group_shared_offset_topics(
     items: &[(Arc<str>, i32, i64)],
     epoch_of: impl Fn(&str, i32) -> i32,
-) -> Vec<crate::protocol::group::OffsetTopic> {
-    let mut topics: Vec<(Arc<str>, Vec<crate::protocol::group::OffsetPartition>)> = Vec::new();
+) -> Vec<OffsetTopic> {
+    let mut topics = Vec::new();
+    refill_shared_offset_topics(&mut topics, items, epoch_of);
+    topics
+}
+
+fn refill_shared_offset_topics(
+    topics: &mut Vec<OffsetTopic>,
+    items: &[(Arc<str>, i32, i64)],
+    epoch_of: impl Fn(&str, i32) -> i32,
+) {
+    let mut used = 0usize;
     for (topic, partition, offset) in items {
-        let part = crate::protocol::group::OffsetPartition {
+        let part = OffsetPartition {
             partition: *partition,
             offset: *offset,
-            leader_epoch: epoch_of(topic, *partition),
+            leader_epoch: epoch_of(topic.as_ref(), *partition),
             metadata: String::new(),
         };
-        if let Some((_, partitions)) = topics
-            .iter_mut()
-            .find(|(name, _)| name.as_ref() == topic.as_ref())
-        {
-            partitions.push(part);
+        let existing = topics
+            .iter()
+            .take(used)
+            .position(|slot| slot.topic == topic.as_ref());
+        if let Some(index) = existing {
+            if let Some(slot) = topics.get_mut(index) {
+                slot.partitions.push(part);
+            }
             continue;
         }
-        topics.push((Arc::clone(topic), vec![part]));
+        if let Some(slot) = topics.get_mut(used) {
+            if slot.topic != topic.as_ref() {
+                slot.topic.clear();
+                slot.topic.push_str(topic.as_ref());
+            }
+            slot.partitions.clear();
+            slot.partitions.push(part);
+        } else {
+            topics.push(OffsetTopic {
+                topic: topic.as_ref().to_owned(),
+                partitions: vec![part],
+            });
+        }
+        used = used.saturating_add(1);
     }
-    topics
-        .into_iter()
-        .map(|(topic, partitions)| crate::protocol::group::OffsetTopic {
-            topic: String::from(topic.as_ref()),
-            partitions,
-        })
-        .collect()
+    topics.truncate(used);
 }
 
 pub(crate) fn group_offset_topics(
@@ -4940,6 +4969,22 @@ mod tests {
             ),
         ];
         let topics = group_shared_offset_topics(&items, |_, _| 3);
+        assert_eq!(topics.len(), 1);
+        let mut again = topics;
+        let name = again
+            .first()
+            .map(|topic| topic.topic.as_ptr())
+            .unwrap_or(std::ptr::null());
+        let capacity = again
+            .first()
+            .map(|topic| topic.partitions.capacity())
+            .unwrap_or(0);
+        refill_shared_offset_topics(&mut again, &items, |_, _| 3);
+        assert_eq!(again.first().map(|topic| topic.topic.as_ptr()), Some(name));
+        assert!(again
+            .first()
+            .is_some_and(|topic| topic.partitions.capacity() >= capacity));
+        let topics = again;
         assert_eq!(topics.len(), 1);
         assert_eq!(topics[0].topic.as_str(), topic.as_ref());
         assert_eq!(topics[0].partitions.len(), 3);
