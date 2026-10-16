@@ -313,6 +313,9 @@ struct State {
     add_partitions_error: Option<i16>,
     add_partitions_error_left: Option<u32>,
     log_start: HashMap<(String, i32), i64>,
+    /// Remaining Fetch responses that report offset-out-of-range with
+    /// unknown watermarks, so the client must resolve them with ListOffsets.
+    fetch_oor_left: Option<u32>,
     created_topics: HashMap<String, CreatedTopic>,
     topic_id_overrides: HashMap<String, [u8; 16]>,
     metadata_calls: u32,
@@ -807,6 +810,7 @@ fn new_state(
         add_partitions_error: None,
         add_partitions_error_left: None,
         log_start: HashMap::new(),
+        fetch_oor_left: None,
         created_topics,
         topic_id_overrides: HashMap::new(),
         metadata_calls: 0,
@@ -2030,6 +2034,12 @@ impl Mock {
     }
     pub fn last_produce_version(&self) -> Option<i16> {
         self.state.lock().last_produce_version
+    }
+
+    /// The next `responses` Fetch replies report offset-out-of-range and
+    /// unknown log bounds, one reply per leader.
+    pub fn set_fetch_offset_out_of_range_times(&self, responses: u32) {
+        self.state.lock().fetch_oor_left = Some(responses);
     }
 
     pub fn set_log_start(&self, topic: &str, partition: i32, offset: i64) {
@@ -7151,6 +7161,13 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     .and_then(|t| t.partitions.first())
                     .map(|p| p.partition_max_bytes)
                     .unwrap_or(0);
+                let force_oor = match st.fetch_oor_left {
+                    Some(0) | None => false,
+                    Some(left) => {
+                        st.fetch_oor_left = Some(left.saturating_sub(1));
+                        true
+                    }
+                };
                 let mut topics = Vec::new();
                 for t in req {
                     let topic = if t.topic.is_empty() {
@@ -7328,7 +7345,13 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                             }
                             aborted_transactions = first_off.into_iter().collect();
                         }
-                        let error_code = if p.fetch_offset < log_start { 1 } else { 0 };
+                        let error_code = if force_oor || p.fetch_offset < log_start {
+                            1
+                        } else {
+                            0
+                        };
+                        let log_start = if force_oor { -1 } else { log_start };
+                        let hw = if force_oor { -1 } else { hw };
                         let batches = if error_code != 0 || recs.is_empty() {
                             Vec::new()
                         } else {

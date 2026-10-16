@@ -3979,6 +3979,41 @@ async fn group_reset_lists_each_leaders_offsets_together() {
     group.leave().await.unwrap();
 }
 
+/// Unknown log bounds on an out-of-range fetch are resolved once per leader.
+#[tokio::test]
+async fn out_of_range_reset_lists_each_leaders_offsets_together() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_topic_partitions("t", 1);
+    mock.set_partition_leader("t", 0, 2);
+    mock.set_topic_partitions("u", 2);
+    mock.set_fetch_offset_out_of_range_times(2);
+    let mut consumer = Consumer::new(
+        ConsumerConfig::bootstrap([mock.addr.clone()])
+            .max_wait_ms(10)
+            .auto_offset_reset(AutoOffsetReset::Earliest),
+    )
+    .await
+    .unwrap();
+    consumer
+        .assign_many([(("t", 0), 0), (("u", 0), 0), (("u", 1), 0)])
+        .await
+        .unwrap();
+    let got = consumer.fetch().await.unwrap();
+    assert!(got.is_empty());
+    let mut by_node: Vec<(i32, usize)> = mock
+        .list_offsets_requests()
+        .into_iter()
+        .map(|(node, partitions, _, _)| (node, partitions))
+        .collect();
+    by_node.sort_unstable();
+    assert_eq!(
+        by_node,
+        vec![(1, 2), (2, 1)],
+        "t-0 is node 2; u-0 and u-1 share node 1"
+    );
+    consumer.close().await.unwrap();
+}
+
 /// Resubscribe consumes one pending wakeup before leaving and rejoining.
 #[tokio::test]
 async fn wakeup_interrupts_group_subscribe_once() {

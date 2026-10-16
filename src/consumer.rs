@@ -5713,42 +5713,33 @@ impl Consumer {
             }
             self.park_decoded(decoded);
             if !need_offsets.is_empty() {
-                for (topic, partition, timestamp) in need_offsets {
-                    let offset = match self
-                        .list_offset_at(
-                            &topic,
-                            partition,
-                            timestamp,
-                            remaining_offset_timeout(deadline, Instant::now()),
-                        )
-                        .await
-                        .map(|found| found.0)
-                    {
-                        Ok(offset) => offset,
-                        // Records already fetched stay delivered. Partitions
-                        // still out of range are placed on the next poll.
-                        Err(Error::Timeout) if !out.is_empty() => {
-                            return Ok(self.finish_fetch(out));
-                        }
-                        Err(error) => {
-                            self.park_fetch_records(out);
-                            return Err(error);
-                        }
-                    };
-                    let Some(offset) = reset_position(offset) else {
+                // One ListOffsets per leader. A timeout keeps resets that
+                // already landed and leaves the rest for the next poll.
+                let listed = self.list_offset_queries(&need_offsets, deadline).await;
+                for ((topic, partition, _), found) in need_offsets.iter().zip(&listed.values) {
+                    let Some(offset) = reset_position(found.0) else {
                         self.park_fetch_records(out);
                         return Err(Error::protocol(format!(
                             "ListOffsets returned no reset offset for {topic}-{partition}"
                         )));
                     };
-                    self.advance(&topic, partition, offset);
+                    self.advance(topic, *partition, offset);
                     self.set_last_fetched_epoch(
-                        &topic,
-                        partition,
+                        topic,
+                        *partition,
                         crate::RecordBatch::NO_PARTITION_LEADER_EPOCH,
                     );
-                    self.drop_pending_for(&topic, partition);
-                    let _ = completed.insert_shared(&topic, partition, ());
+                    self.drop_pending_for(topic, *partition);
+                    let _ = completed.insert_shared(topic, *partition, ());
+                }
+                if let Some(error) = listed.error {
+                    // Records already fetched stay delivered. Partitions
+                    // still out of range are placed on the next poll.
+                    if matches!(error, Error::Timeout) && !out.is_empty() {
+                        return Ok(self.finish_fetch(out));
+                    }
+                    self.park_fetch_records(out);
+                    return Err(error);
                 }
             }
             if !fenced.is_empty() {
