@@ -1594,6 +1594,17 @@ impl Writer {
         bytes.clear();
         Ok(Self { bytes, cap })
     }
+    fn reserve(&mut self, bytes: usize) -> Result<(), Error> {
+        if bytes > self.cap {
+            return Err(Error::ResponseLimit);
+        }
+        if self.bytes.capacity() < bytes {
+            self.bytes
+                .try_reserve_exact(bytes - self.bytes.capacity())
+                .map_err(|_| Error::ResponseLimit)?;
+        }
+        Ok(())
+    }
     fn put(&mut self, value: &[u8]) -> Result<(), Error> {
         if value.len() > self.cap.saturating_sub(self.bytes.len()) {
             return Err(Error::ResponseLimit);
@@ -1660,6 +1671,144 @@ impl Writer {
         self.i32(correlation)?;
         self.tags(flex)
     }
+}
+
+fn varint_len(mut value: u32) -> usize {
+    let mut len = 1usize;
+    while value >= 128 {
+        len = len.saturating_add(1);
+        value >>= 7;
+    }
+    len
+}
+
+fn count_len(count: usize, flex: bool) -> Result<usize, Error> {
+    if flex {
+        let count = u32::try_from(count).map_err(|_| Error::ResponseLimit)?;
+        Ok(varint_len(
+            count.checked_add(1).ok_or(Error::ResponseLimit)?,
+        ))
+    } else {
+        let _count = i32::try_from(count).map_err(|_| Error::ResponseLimit)?;
+        Ok(4)
+    }
+}
+
+fn string_len(value: Option<&str>, flex: bool, nullable: bool) -> Result<usize, Error> {
+    if let Some(value) = value {
+        if value.len() > 32767 {
+            return Err(Error::ResponseLimit);
+        }
+        let prefix = if flex {
+            varint_len((value.len() + 1) as u32)
+        } else {
+            2
+        };
+        Ok(prefix.saturating_add(value.len()))
+    } else if nullable {
+        Ok(if flex { 1 } else { 2 })
+    } else {
+        Err(Error::ResponseLimit)
+    }
+}
+
+fn add_len(total: usize, next: usize) -> Result<usize, Error> {
+    total.checked_add(next).ok_or(Error::ResponseLimit)
+}
+
+fn metadata_response_len(
+    config: &Config,
+    version: i16,
+    flex: bool,
+    semantic_error: bool,
+    results: &[MetadataTopic<'_>],
+) -> Result<usize, Error> {
+    let mut total = 4usize;
+    if flex {
+        total = add_len(total, 1)?;
+    }
+    if version >= 3 {
+        total = add_len(total, 4)?;
+    }
+    total = add_len(total, count_len(if semantic_error { 0 } else { 1 }, flex)?)?;
+    if !semantic_error {
+        total = add_len(total, 4)?;
+        total = add_len(
+            total,
+            string_len(wire_advertised_host(&config.advertised_host), flex, false)?,
+        )?;
+        total = add_len(total, 4)?;
+        if version >= 1 {
+            total = add_len(total, string_len(None, flex, true)?)?;
+        }
+        if flex {
+            total = add_len(total, 1)?;
+        }
+    }
+    if version >= 2 {
+        total = add_len(
+            total,
+            string_len(
+                if semantic_error {
+                    None
+                } else {
+                    Some(config.cluster_id.as_str())
+                },
+                flex,
+                true,
+            )?,
+        )?;
+    }
+    if version >= 1 {
+        total = add_len(total, 4)?;
+    }
+    total = add_len(total, count_len(results.len(), flex)?)?;
+    for result in results {
+        total = add_len(total, 2)?;
+        total = add_len(total, string_len(result.name, flex, version >= 12)?)?;
+        if version >= 10 {
+            total = add_len(total, result.id.len())?;
+        }
+        if version >= 1 {
+            total = add_len(total, 1)?;
+        }
+        let partitions = result.topic.map_or(0, Topic::partition_count) as usize;
+        total = add_len(total, count_len(partitions, flex)?)?;
+        let mut partition = 2 + 4 + 4;
+        if version >= 7 {
+            partition += 4;
+        }
+        partition += count_len(1, flex)? + 4;
+        partition += count_len(1, flex)? + 4;
+        if version >= 5 {
+            partition += count_len(0, flex)?;
+        }
+        if flex {
+            partition += 1;
+        }
+        total = add_len(
+            total,
+            partition
+                .checked_mul(partitions)
+                .ok_or(Error::ResponseLimit)?,
+        )?;
+        if version >= 8 {
+            total = add_len(total, 4)?;
+        }
+        if flex {
+            total = add_len(total, 1)?;
+        }
+    }
+    if (8..=10).contains(&version) {
+        total = add_len(total, 4)?;
+    }
+    if version >= 13 {
+        total = add_len(total, 2)?;
+    }
+    if flex {
+        total = add_len(total, 1)?;
+    }
+    Ok(total)
 }
 
 /// A few values stay on the stack. The seventeenth value allocates a set.
@@ -1830,7 +1979,9 @@ fn metadata(
             });
         }
     }
+    let planned = metadata_response_len(config, version, flex, semantic_error, &results)?;
     let mut writer = Writer::reusing(config.max_response_bytes, spare)?;
+    writer.reserve(planned)?;
     writer.header(header.correlation_id, flex)?;
     if version >= 3 {
         writer.i32(0)?;
@@ -1915,6 +2066,7 @@ fn metadata(
         writer.i16(if semantic_error { 42 } else { 0 })?;
     }
     writer.tags(flex)?;
+    debug_assert_eq!(writer.bytes.len(), planned);
     Ok(writer.bytes)
 }
 fn is_internal(name: &str) -> bool {
@@ -2546,6 +2698,49 @@ mod tests {
         assert_eq!(admitted.capacity(), admitted_capacity);
         assert_eq!(senders.capacity(), sender_capacity);
         assert_eq!(bodies.first().map(Vec::as_slice), Some([0].as_slice()));
+    }
+
+    #[test]
+    fn a_metadata_response_sizes_its_buffer_once() {
+        let path = std::env::temp_dir().join(format!(
+            "partitionline-metadata-size-{}-{}",
+            std::process::id(),
+            NEXT.fetch_add(1, Ordering::Relaxed)
+        ));
+        let (catalog, _) = Catalog::open(&path, catalog::Limits::default())
+            .unwrap_or_else(|error| panic!("{error}"));
+        let mut id_bytes = [0; 16];
+        id_bytes[15] = 9;
+        let id = TopicId::new(id_bytes).unwrap_or_else(|error| panic!("{error}"));
+        let mut catalog = catalog;
+        catalog
+            .create("orders", id, 8)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let config = Config::new(1, "127.0.0.1".into(), 9092, "meta".into());
+        let header = protocol::RequestHeader {
+            api_key: 3,
+            api_version: 9,
+            correlation_id: 7,
+            client_id: None,
+            header_version: 2,
+            tagged_fields: 0,
+        };
+        let request = || MetadataRequest {
+            topics: None,
+            cluster_ops: false,
+            topic_ops: false,
+        };
+        let first = metadata(&catalog, &config, header, request(), true, Vec::new())
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert!(first.len() > 8);
+        let capacity = first.capacity();
+        assert!(capacity >= first.len());
+        assert!(capacity < 64 * 1024);
+        let again = metadata(&catalog, &config, header, request(), true, first)
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(again.capacity(), capacity);
+        assert!(again.capacity() >= again.len());
+        let _ = std::fs::remove_file(&path);
     }
 
     #[test]
