@@ -8798,11 +8798,10 @@ impl AlterClientQuotasRequest {
 
     /// Java `AlterClientQuotasRequest.getErrorResponse`.
     ///
-    /// Copies each entry's entity type/name through
-    /// [`ClientQuotaAlterationResult::error_results`]. `ErrorMessage`
-    /// stays the JSON default (null); official Java also sets the English
-    /// `Errors.message` string. Request ops are not copied.
-    /// ThrottleTimeMs is written on every spoken version from
+    /// Each entry's entity type and name are written from the caller.
+    /// `ErrorMessage` stays the JSON default (null); official Java also
+    /// sets the English `Errors.message` string. Request ops are not
+    /// written. ThrottleTimeMs is written on every spoken version from
     /// `throttle_time_ms` (Java always calls `setThrottleTimeMs`).
     /// Convenience encode still writes `0`. This crate speaks 0–1. This
     /// is not [`Self::entries`] / [`ClientQuotaAlteration::error_result`]
@@ -8814,8 +8813,13 @@ impl AlterClientQuotasRequest {
         error_code: i16,
         throttle_time_ms: i32,
     ) -> crate::error::Result<()> {
-        let results = ClientQuotaAlterationResult::error_results(entries, error_code);
-        encode_alter_client_quotas_response_with_throttle(buf, version, &results, throttle_time_ms)
+        encode_alter_client_quotas_error_response(
+            buf,
+            version,
+            entries,
+            error_code,
+            throttle_time_ms,
+        )
     }
 }
 
@@ -9013,6 +9017,71 @@ pub fn encode_alter_client_quotas_response_with_throttle(
     }
     debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+/// AlterClientQuotas error body written from the request entries.
+///
+/// The bytes match [`ClientQuotaAlteration::error_result`]: null error
+/// message. Request ops are omitted.
+fn encode_alter_client_quotas_error_response(
+    buf: &mut BytesMut,
+    version: i16,
+    entries: &[ClientQuotaAlteration],
+    error_code: i16,
+    throttle_time_ms: i32,
+) -> crate::error::Result<()> {
+    let flexible = alter_client_quotas_flexible(version)?;
+    let body_start = buf.len();
+    let planned = alter_client_quotas_error_len(flexible, entries)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
+    buf.put_i32(throttle_time_ms);
+    buf::put_array_len(buf, flexible, Some(entries.len()))?;
+    for entry in entries {
+        buf.put_i16(error_code);
+        buf::put_string(buf, flexible, None)?;
+        buf::put_array_len(buf, flexible, Some(entry.entity.len()))?;
+        for entity in &entry.entity {
+            buf::put_string(buf, flexible, Some(&entity.entity_type))?;
+            buf::put_string(buf, flexible, entity.name.as_deref())?;
+            if flexible {
+                buf::put_empty_tagged_fields(buf);
+            }
+        }
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+    }
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+    Ok(())
+}
+
+fn alter_client_quotas_error_len(
+    flexible: bool,
+    entries: &[ClientQuotaAlteration],
+) -> Result<usize> {
+    let mut total = 4usize;
+    total = add_describe_len(total, describe_array_len(flexible, entries.len())?)?;
+    for entry in entries {
+        total = add_describe_len(total, 2)?;
+        total = add_describe_len(total, describe_string_len(flexible, None)?)?;
+        total = add_describe_len(total, describe_array_len(flexible, entry.entity.len())?)?;
+        for entity in &entry.entity {
+            total = add_describe_len(total, client_quota_entity_len(flexible, entity)?)?;
+        }
+        if flexible {
+            total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    if flexible {
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 fn alter_client_quotas_response_len(
@@ -30948,6 +31017,80 @@ mod tests {
             &with[..],
             &v1_with[..],
             "v1 adds compact arrays/strings plus tagged fields"
+        );
+    }
+
+    #[test]
+    fn alter_client_quotas_error_response_matches_named_results() {
+        let entries = [
+            ClientQuotaAlteration::new(
+                vec![
+                    ClientQuotaEntity::new(ClientQuotaEntity::USER, Some("alice".into())),
+                    ClientQuotaEntity::new(ClientQuotaEntity::CLIENT_ID, None),
+                ],
+                vec![ClientQuotaOp::set("producer_byte_rate", 1000.0)],
+            ),
+            ClientQuotaAlteration::new(
+                vec![ClientQuotaEntity::new(
+                    ClientQuotaEntity::IP,
+                    Some("10.0.0.1".into()),
+                )],
+                vec![ClientQuotaOp::remove("request_percentage")],
+            ),
+        ];
+        for version in [0_i16, 1] {
+            for throttle in [0_i32, 12] {
+                let results = ClientQuotaAlterationResult::error_results(
+                    &entries,
+                    crate::error::CLUSTER_AUTHORIZATION_FAILED,
+                );
+                let mut expected = BytesMut::new();
+                encode_alter_client_quotas_response_with_throttle(
+                    &mut expected,
+                    version,
+                    &results,
+                    throttle,
+                )
+                .unwrap();
+                let mut got = BytesMut::new();
+                AlterClientQuotasRequest::error_response(
+                    &mut got,
+                    version,
+                    &entries,
+                    crate::error::CLUSTER_AUTHORIZATION_FAILED,
+                    throttle,
+                )
+                .unwrap();
+                assert_eq!(
+                    got.as_ref(),
+                    expected.as_ref(),
+                    "version {version} throttle {throttle}"
+                );
+                let len = got.len();
+                let capacity = got.capacity();
+                assert!(capacity >= len);
+                assert!(capacity < 64 * 1024);
+                got.clear();
+                AlterClientQuotasRequest::error_response(
+                    &mut got,
+                    version,
+                    &entries,
+                    crate::error::CLUSTER_AUTHORIZATION_FAILED,
+                    throttle,
+                )
+                .unwrap();
+                assert_eq!(got.len(), len);
+                assert_eq!(got.capacity(), capacity);
+            }
+        }
+        let mut empty = BytesMut::new();
+        AlterClientQuotasRequest::error_response(&mut empty, 1, &[], 41, 1).unwrap();
+        let mut expected_empty = BytesMut::new();
+        encode_alter_client_quotas_response_with_throttle(&mut expected_empty, 1, &[], 1).unwrap();
+        assert_eq!(empty.as_ref(), expected_empty.as_ref());
+        assert!(
+            AlterClientQuotasRequest::error_response(&mut BytesMut::new(), 2, &entries, 41, 0)
+                .is_err()
         );
     }
 
