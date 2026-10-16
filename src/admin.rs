@@ -111,8 +111,8 @@ use crate::protocol::offsets::{
 };
 use crate::protocol::sasl;
 use crate::protocol::txn::{
-    decode_write_txn_markers_response, encode_write_txn_markers_request, TransactionResult,
-    WritableTxnMarker, WritableTxnMarkerTopic,
+    decode_write_txn_markers_response, encode_write_txn_markers_named, BorrowedTxnMarker,
+    BorrowedTxnMarkerTopic, TransactionResult,
 };
 use crate::TopicPartition;
 
@@ -7359,16 +7359,18 @@ impl Admin {
             .checked_add(timeout)
             .ok_or_else(|| Error::protocol("WriteTxnMarkers deadline overflow"))?;
         let mut attempt = 0u32;
-        let marker = WritableTxnMarker {
+        let partitions = [spec.partition];
+        let topics = [BorrowedTxnMarkerTopic {
+            name: spec.topic.as_str(),
+            partitions: &partitions,
+        }];
+        let marker = [BorrowedTxnMarker {
             producer_id: spec.producer_id,
             producer_epoch: spec.producer_epoch,
             transaction_result: TransactionResult::Abort.id(),
-            topics: vec![WritableTxnMarkerTopic {
-                name: spec.topic.clone(),
-                partitions: vec![spec.partition],
-            }],
+            topics: &topics,
             coordinator_epoch: spec.coordinator_epoch,
-        };
+        }];
         loop {
             if Instant::now() >= deadline {
                 return Err(Error::Timeout);
@@ -7387,13 +7389,7 @@ impl Admin {
                 conn.roundtrip(
                     WRITE_TXN_MARKERS,
                     version,
-                    |buf| {
-                        encode_write_txn_markers_request(
-                            buf,
-                            version,
-                            std::slice::from_ref(&marker),
-                        )
-                    },
+                    |buf| encode_write_txn_markers_named(buf, version, &marker),
                     deadline.saturating_duration_since(Instant::now()),
                 )
                 .await

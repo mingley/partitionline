@@ -2689,6 +2689,110 @@ fn write_txn_markers_flexible(version: i16) -> Result<bool> {
     }
 }
 
+/// One WriteTxnMarkers topic whose name is borrowed.
+pub(crate) struct BorrowedTxnMarkerTopic<'a> {
+    /// Topic name.
+    pub name: &'a str,
+    /// Partition indexes that receive the marker.
+    pub partitions: &'a [i32],
+}
+
+/// One WriteTxnMarkers marker whose topic names are borrowed.
+pub(crate) struct BorrowedTxnMarker<'a> {
+    /// Producer id.
+    pub producer_id: i64,
+    /// Producer epoch.
+    pub producer_epoch: i16,
+    /// `false` aborts the transaction.
+    pub transaction_result: bool,
+    /// Topics and partitions that receive the marker.
+    pub topics: &'a [BorrowedTxnMarkerTopic<'a>],
+    /// Transaction coordinator epoch.
+    pub coordinator_epoch: i32,
+}
+
+trait TxnMarkerTopicView {
+    fn txn_marker_topic(&self) -> &str;
+    fn txn_marker_partitions(&self) -> &[i32];
+}
+
+impl TxnMarkerTopicView for WritableTxnMarkerTopic {
+    fn txn_marker_topic(&self) -> &str {
+        &self.name
+    }
+
+    fn txn_marker_partitions(&self) -> &[i32] {
+        &self.partitions
+    }
+}
+
+impl TxnMarkerTopicView for BorrowedTxnMarkerTopic<'_> {
+    fn txn_marker_topic(&self) -> &str {
+        self.name
+    }
+
+    fn txn_marker_partitions(&self) -> &[i32] {
+        self.partitions
+    }
+}
+
+trait TxnMarkerView {
+    type Topic: TxnMarkerTopicView;
+    fn txn_marker_producer_id(&self) -> i64;
+    fn txn_marker_producer_epoch(&self) -> i16;
+    fn txn_marker_result(&self) -> bool;
+    fn txn_marker_topics(&self) -> &[Self::Topic];
+    fn txn_marker_coordinator_epoch(&self) -> i32;
+}
+
+impl TxnMarkerView for WritableTxnMarker {
+    type Topic = WritableTxnMarkerTopic;
+
+    fn txn_marker_producer_id(&self) -> i64 {
+        self.producer_id
+    }
+
+    fn txn_marker_producer_epoch(&self) -> i16 {
+        self.producer_epoch
+    }
+
+    fn txn_marker_result(&self) -> bool {
+        self.transaction_result
+    }
+
+    fn txn_marker_topics(&self) -> &[Self::Topic] {
+        &self.topics
+    }
+
+    fn txn_marker_coordinator_epoch(&self) -> i32 {
+        self.coordinator_epoch
+    }
+}
+
+impl<'a> TxnMarkerView for BorrowedTxnMarker<'a> {
+    type Topic = BorrowedTxnMarkerTopic<'a>;
+
+    fn txn_marker_producer_id(&self) -> i64 {
+        self.producer_id
+    }
+
+    fn txn_marker_producer_epoch(&self) -> i16 {
+        self.producer_epoch
+    }
+
+    fn txn_marker_result(&self) -> bool {
+        self.transaction_result
+    }
+
+    fn txn_marker_topics(&self) -> &[Self::Topic] {
+        self.topics
+    }
+
+    fn txn_marker_coordinator_epoch(&self) -> i32 {
+        self.coordinator_epoch
+    }
+}
+
 /// Encode legacy marker fields at version0/1, or version2 with default0.
 ///
 /// Use [`encode_write_txn_markers_request_with_transaction_versions`] to send
@@ -2698,6 +2802,20 @@ pub fn encode_write_txn_markers_request(
     buf: &mut BytesMut,
     version: i16,
     markers: &[WritableTxnMarker],
+) -> Result<()> {
+    encode_write_txn_markers_request_items(
+        buf,
+        version,
+        markers.len(),
+        markers.iter().map(|marker| (marker, 0)),
+    )
+}
+
+/// Encode WriteTxnMarkers from borrowed topic names. Version 2 writes transaction version 0.
+pub(crate) fn encode_write_txn_markers_named(
+    buf: &mut BytesMut,
+    version: i16,
+    markers: &[BorrowedTxnMarker<'_>],
 ) -> Result<()> {
     encode_write_txn_markers_request_items(
         buf,
@@ -2723,14 +2841,15 @@ pub fn encode_write_txn_markers_request_with_transaction_versions(
     )
 }
 
-fn encode_write_txn_markers_request_items<'a, I>(
+fn encode_write_txn_markers_request_items<'a, M, I>(
     buf: &mut BytesMut,
     version: i16,
     count: usize,
     markers: I,
 ) -> Result<()>
 where
-    I: IntoIterator<Item = (&'a WritableTxnMarker, i8)> + Clone,
+    M: TxnMarkerView + 'a,
+    I: IntoIterator<Item = (&'a M, i8)> + Clone,
 {
     let flexible = write_txn_markers_flexible(version)?;
     let body_start = buf.len();
@@ -2740,22 +2859,24 @@ where
         buf.reserve(needed - buf.capacity());
     }
     buf::put_array_len(buf, flexible, Some(count))?;
-    for (m, transaction_version) in markers {
-        buf.put_i64(m.producer_id);
-        buf.put_i16(m.producer_epoch);
-        buf.put_u8(u8::from(m.transaction_result));
-        buf::put_array_len(buf, flexible, Some(m.topics.len()))?;
-        for t in &m.topics {
-            buf::put_string(buf, flexible, Some(&t.name))?;
-            buf::put_array_len(buf, flexible, Some(t.partitions.len()))?;
-            for p in &t.partitions {
-                buf.put_i32(*p);
+    for (marker, transaction_version) in markers {
+        buf.put_i64(marker.txn_marker_producer_id());
+        buf.put_i16(marker.txn_marker_producer_epoch());
+        buf.put_u8(u8::from(marker.txn_marker_result()));
+        let topics = marker.txn_marker_topics();
+        buf::put_array_len(buf, flexible, Some(topics.len()))?;
+        for topic in topics {
+            buf::put_string(buf, flexible, Some(topic.txn_marker_topic()))?;
+            let partitions = topic.txn_marker_partitions();
+            buf::put_array_len(buf, flexible, Some(partitions.len()))?;
+            for partition in partitions {
+                buf.put_i32(*partition);
             }
             if flexible {
                 buf::put_empty_tagged_fields(buf);
             }
         }
-        buf.put_i32(m.coordinator_epoch);
+        buf.put_i32(marker.txn_marker_coordinator_epoch());
         if version >= 2 {
             buf.put_i8(transaction_version);
         }
@@ -2770,26 +2891,31 @@ where
     Ok(())
 }
 
-fn write_txn_markers_request_len<'a>(
+fn write_txn_markers_request_len<'a, M>(
     version: i16,
     flexible: bool,
     count: usize,
-    markers: impl IntoIterator<Item = (&'a WritableTxnMarker, i8)>,
-) -> Result<usize> {
+    markers: impl IntoIterator<Item = (&'a M, i8)>,
+) -> Result<usize>
+where
+    M: TxnMarkerView + 'a,
+{
     let mut total = txn_array_len(flexible, count)?;
     for (marker, _) in markers {
         total = add_txn_len(total, 11)?;
-        total = add_txn_len(total, txn_array_len(flexible, marker.topics.len())?)?;
-        for topic in &marker.topics {
-            total = add_txn_len(total, txn_string_len(flexible, &topic.name)?)?;
-            total = add_txn_len(total, txn_array_len(flexible, topic.partitions.len())?)?;
-            total =
-                add_txn_len(
-                    total,
-                    topic.partitions.len().checked_mul(4).ok_or_else(|| {
-                        Error::protocol("write txn markers request size overflow")
-                    })?,
-                )?;
+        let topics = marker.txn_marker_topics();
+        total = add_txn_len(total, txn_array_len(flexible, topics.len())?)?;
+        for topic in topics {
+            total = add_txn_len(total, txn_string_len(flexible, topic.txn_marker_topic())?)?;
+            let partitions = topic.txn_marker_partitions();
+            total = add_txn_len(total, txn_array_len(flexible, partitions.len())?)?;
+            total = add_txn_len(
+                total,
+                partitions
+                    .len()
+                    .checked_mul(4)
+                    .ok_or_else(|| Error::protocol("write txn markers request size overflow"))?,
+            )?;
             if flexible {
                 total = add_txn_len(total, buf::unsigned_varint_size(0))?;
             }
@@ -8030,6 +8156,39 @@ mod tests {
             .unwrap();
         assert_eq!(buf.len(), len);
         assert_eq!(buf.capacity(), capacity);
+    }
+
+    #[test]
+    fn write_txn_markers_named_topics_match_owned_topics() {
+        let partitions = [0_i32, 2];
+        let owned = [WritableTxnMarker {
+            producer_id: 1000,
+            producer_epoch: 2,
+            transaction_result: false,
+            topics: vec![WritableTxnMarkerTopic {
+                name: "orders-topic-name-is-long".into(),
+                partitions: partitions.to_vec(),
+            }],
+            coordinator_epoch: 4,
+        }];
+        let named_topics = [BorrowedTxnMarkerTopic {
+            name: "orders-topic-name-is-long",
+            partitions: &partitions,
+        }];
+        let named = [BorrowedTxnMarker {
+            producer_id: 1000,
+            producer_epoch: 2,
+            transaction_result: false,
+            topics: &named_topics,
+            coordinator_epoch: 4,
+        }];
+        for version in 0..=2 {
+            let mut expected = BytesMut::new();
+            encode_write_txn_markers_request(&mut expected, version, &owned).unwrap();
+            let mut got = BytesMut::new();
+            encode_write_txn_markers_named(&mut got, version, &named).unwrap();
+            assert_eq!(got.as_ref(), expected.as_ref(), "version {version}");
+        }
     }
 
     #[test]
