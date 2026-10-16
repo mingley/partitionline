@@ -6493,6 +6493,12 @@ pub fn encode_update_features_request(
             return Err(Error::protocol("Cannot specify a negative version level."));
         }
     }
+    let body_start = buf.len();
+    let planned = update_features_request_len(version, updates)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf.put_i32(timeout_ms);
     buf::put_array_len(buf, true, Some(updates.len()))?;
     for u in updates {
@@ -6509,7 +6515,22 @@ pub fn encode_update_features_request(
         buf.put_u8(u8::from(validate_only));
     }
     buf::put_empty_tagged_fields(buf);
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn update_features_request_len(version: i16, updates: &[FeatureUpdateKey]) -> Result<usize> {
+    let mut total = 4;
+    total = add_describe_len(total, describe_array_len(true, updates.len())?)?;
+    for update in updates {
+        total = add_describe_len(total, describe_string_len(true, Some(&update.name))?)?;
+        total = add_describe_len(total, 3)?;
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    if version >= 1 {
+        total = add_describe_len(total, 1)?;
+    }
+    add_describe_len(total, buf::unsigned_varint_size(0))
 }
 
 /// Decode an UpdateFeatures request.
@@ -6563,6 +6584,12 @@ pub fn encode_update_features_response(
     resp: &UpdateFeaturesResponse,
 ) -> crate::error::Result<()> {
     let _ = update_features_spoken(version)?;
+    let body_start = buf.len();
+    let planned = update_features_response_len(version, resp)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf.put_i32(resp.throttle_time_ms);
     buf.put_i16(resp.error_code);
     buf::put_compact_string(buf, resp.error_message.as_deref())?;
@@ -6576,7 +6603,29 @@ pub fn encode_update_features_response(
         }
     }
     buf::put_empty_tagged_fields(buf);
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn update_features_response_len(version: i16, resp: &UpdateFeaturesResponse) -> Result<usize> {
+    let mut total = 6;
+    total = add_describe_len(
+        total,
+        describe_string_len(true, resp.error_message.as_deref())?,
+    )?;
+    if version < 2 {
+        total = add_describe_len(total, describe_array_len(true, resp.results.len())?)?;
+        for result in &resp.results {
+            total = add_describe_len(total, describe_string_len(true, Some(&result.name))?)?;
+            total = add_describe_len(total, 2)?;
+            total = add_describe_len(
+                total,
+                describe_string_len(true, result.error_message.as_deref())?,
+            )?;
+            total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    add_describe_len(total, buf::unsigned_varint_size(0))
 }
 
 /// Decode an UpdateFeatures response.
@@ -27132,6 +27181,86 @@ mod tests {
             created.throttle_time_ms, 0,
             "UpdateFeaturesResponse::create_with_errors still fills ThrottleTimeMs 0"
         );
+    }
+
+    #[test]
+    fn a_update_features_request_sizes_its_body_once() {
+        let updates = vec![
+            FeatureUpdateKey {
+                name: "metadata.version".into(),
+                max_version_level: 5,
+                allow_downgrade: false,
+                upgrade_type: UPGRADE_TYPE_UPGRADE,
+            },
+            FeatureUpdateKey {
+                name: "kraft.version".into(),
+                max_version_level: 0,
+                allow_downgrade: true,
+                upgrade_type: UPGRADE_TYPE_SAFE_DOWNGRADE,
+            },
+        ];
+        for version in [0_i16, 1, 2] {
+            let mut buf = BytesMut::new();
+            encode_update_features_request(&mut buf, version, 5_000, &updates, false).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_update_features_request(&mut buf, version, 5_000, &updates, false).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+            let mut cur = &buf[..];
+            let (timeout, decoded, validate_only) =
+                decode_update_features_request(&mut cur, version).unwrap();
+            assert!(cur.is_empty());
+            assert_eq!(timeout, 5_000);
+            assert!(!validate_only);
+            assert_eq!(decoded, updates);
+        }
+    }
+
+    #[test]
+    fn a_update_features_response_sizes_its_body_once() {
+        let response = UpdateFeaturesResponse {
+            throttle_time_ms: 12,
+            error_code: 0,
+            error_message: Some("updated".into()),
+            results: vec![
+                UpdatableFeatureResult {
+                    name: "metadata.version".into(),
+                    error_code: 0,
+                    error_message: None,
+                },
+                UpdatableFeatureResult {
+                    name: "kraft.version".into(),
+                    error_code: 3,
+                    error_message: Some("busy".into()),
+                },
+            ],
+        };
+        for version in [0_i16, 1, 2] {
+            let mut buf = BytesMut::new();
+            encode_update_features_response(&mut buf, version, &response).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_update_features_response(&mut buf, version, &response).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+            let mut cur = &buf[..];
+            let decoded = decode_update_features_response(&mut cur, version).unwrap();
+            assert!(cur.is_empty());
+            assert_eq!(decoded.throttle_time_ms, 12);
+            assert_eq!(decoded.error_message.as_deref(), Some("updated"));
+            if version < 2 {
+                assert_eq!(decoded.results, response.results);
+            } else {
+                assert!(decoded.results.is_empty());
+            }
+        }
     }
 
     #[test]
