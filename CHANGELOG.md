@@ -300,7 +300,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   fails that poll, and not piggyback `TOPIC_AUTHORIZATION_FAILED` /
   `GROUP_AUTHORIZATION_FAILED`). A piggybacked `INVALID_FETCH_SIZE`
   still completes without retry, including when
-  `AcknowledgeErrorMessage` is set (Java `handleShareFetchSuccess`
+  `AcknowledgeErrorMessage` is set or empty (Java `handleShareFetchSuccess`
   completes piggyback acks and still delivers the fetch; this is not
   partition `INVALID_FETCH_SIZE`, which fails that poll). A
   piggybacked `TOPIC_AUTHORIZATION_FAILED` on
