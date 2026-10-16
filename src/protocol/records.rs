@@ -1797,8 +1797,13 @@ fn gzip_compress_into(src: &[u8], out: &mut Vec<u8>) -> Result<()> {
     Ok(())
 }
 
-fn read_bounded<R: Read>(reader: &mut R, max_bytes: usize) -> Result<Vec<u8>> {
+fn read_bounded<R: Read>(reader: &mut R, max_bytes: usize, reserve: usize) -> Result<Vec<u8>> {
     let mut out = Vec::new();
+    let hint = reserve.min(max_bytes);
+    if hint > 0 {
+        out.try_reserve(hint)
+            .map_err(|_| Error::protocol("decompressed batch reserve"))?;
+    }
     let mut chunk = [0u8; 8192];
     loop {
         let remaining_budget_plus_one = max_bytes.saturating_sub(out.len()).saturating_add(1);
@@ -1827,7 +1832,7 @@ fn read_bounded<R: Read>(reader: &mut R, max_bytes: usize) -> Result<Vec<u8>> {
 
 fn gzip_decompress(src: &[u8], max_bytes: usize) -> Result<Vec<u8>> {
     let mut decoder = flate2::read::GzDecoder::new(src);
-    read_bounded(&mut decoder, max_bytes)
+    read_bounded(&mut decoder, max_bytes, 0)
 }
 
 /// xerial snappy-java header used by the Java Kafka client.
@@ -1958,27 +1963,35 @@ fn lz4_compress_into(src: &[u8], out: &mut Vec<u8>) -> Result<()> {
     Ok(())
 }
 
+fn lz4_declared_size(src: &[u8]) -> Option<u64> {
+    if src.len() < 14 || !src.starts_with(&[0x04, 0x22, 0x4D, 0x18]) {
+        return None;
+    }
+    if src.get(4).is_none_or(|flg| flg & 0x08 == 0) {
+        return None;
+    }
+    let bytes = src.get(6..14)?.try_into().ok()?;
+    Some(u64::from_le_bytes(bytes))
+}
+
 fn lz4_decompress(src: &[u8], max_bytes: usize) -> Result<Vec<u8>> {
-    if src.len() >= 14 && src.starts_with(&[0x04, 0x22, 0x4D, 0x18]) {
-        if let Some(&flg) = src.get(4) {
-            if flg & 0x08 != 0 {
-                if let Some(slice) = src.get(6..14) {
-                    if let Ok(content_size_bytes) = slice.try_into() {
-                        let declared_size = u64::from_le_bytes(content_size_bytes);
-                        if let Ok(max_bytes_u64) = u64::try_from(max_bytes) {
-                            if declared_size > max_bytes_u64 {
-                                return Err(Error::protocol(
-                                    "Decompressed batch exceeds maximum allowable size",
-                                ));
-                            }
-                        }
-                    }
-                }
+    let mut reserve = 0usize;
+    if let Some(declared) = lz4_declared_size(src) {
+        if let Ok(max_bytes_u64) = u64::try_from(max_bytes) {
+            if declared > max_bytes_u64 {
+                return Err(Error::protocol(
+                    "Decompressed batch exceeds maximum allowable size",
+                ));
             }
+        }
+        if let Ok(declared) = usize::try_from(declared) {
+            // A tiny frame must not reserve a huge claimed size. Honest
+            // batches fit well inside 64 times the compressed length.
+            reserve = declared.min(src.len().saturating_mul(64));
         }
     }
     let mut decoder = lz4_flex::frame::FrameDecoder::new(src);
-    read_bounded(&mut decoder, max_bytes)
+    read_bounded(&mut decoder, max_bytes, reserve)
 }
 
 /// One record as borrowed slices for the produce encode path.
@@ -4258,10 +4271,9 @@ mod tests {
         let payload = vec![b'x'; 4096];
         let framed = Compression::Lz4.codec_compress(&payload).unwrap();
         assert_eq!(&framed[..4], &[0x04, 0x22, 0x4d, 0x18]);
-        assert_eq!(
-            lz4_decompress(&framed, DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES).unwrap(),
-            payload
-        );
+        let decoded = lz4_decompress(&framed, DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES).unwrap();
+        assert_eq!(decoded, payload);
+        assert!(decoded.capacity() >= payload.len());
     }
 
     fn one_batch(value: &'static [u8]) -> BytesMut {
