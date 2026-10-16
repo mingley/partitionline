@@ -369,7 +369,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   which fails that poll, and not piggyback `STALE_CONTROLLER_EPOCH`). A
   piggybacked `INVALID_TOPIC_EXCEPTION` still
   completes without retry, including when `AcknowledgeErrorMessage` is
-  set (Java `handleShareFetchSuccess` completes piggyback acks and still
+  set or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
   delivers the fetch; this is not partition `INVALID_TOPIC_EXCEPTION`,
   which fails that poll, and not piggyback `OFFSET_METADATA_TOO_LARGE` or
   `TOPIC_AUTHORIZATION_FAILED`). A
