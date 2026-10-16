@@ -3879,18 +3879,6 @@ impl Consumer {
         self.cluster.topic_fresh(topic, self.cfg.metadata_max_age)
     }
 
-    pub(crate) async fn ensure_topic_metadata_timeout(
-        &mut self,
-        topic: &str,
-        timeout: Duration,
-    ) -> Result<()> {
-        if self.topic_metadata_fresh(topic) {
-            return Ok(());
-        }
-        self.refresh_metadata_timeout_ref(Some(std::slice::from_ref(&topic)), timeout)
-            .await
-    }
-
     pub(crate) fn topic_id_names(&self) -> &HashMap<[u8; 16], Arc<str>> {
         &self.id_to_name
     }

@@ -3952,6 +3952,33 @@ async fn list_offsets_on_another_leader_negotiates_once() {
     consumer.close().await.unwrap();
 }
 
+/// A group with no committed offsets resets every new partition together.
+#[tokio::test]
+async fn group_reset_lists_each_leaders_offsets_together() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_topic_partitions("t", 1);
+    mock.set_partition_leader("t", 0, 2);
+    mock.set_topic_partitions("u", 2);
+    let mut cfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    cfg.max_wait_ms = 10;
+    let group = ConsumerGroup::join_topics(cfg, "reset-batch", ["t", "u"])
+        .await
+        .unwrap();
+    assert_eq!(group.assignment().len(), 3);
+    let mut by_node: Vec<(i32, usize)> = mock
+        .list_offsets_requests()
+        .into_iter()
+        .map(|(node, partitions, _, _)| (node, partitions))
+        .collect();
+    by_node.sort_unstable();
+    assert_eq!(
+        by_node,
+        vec![(1, 2), (2, 1)],
+        "t-0 is node 2; u-0 and u-1 share node 1"
+    );
+    group.leave().await.unwrap();
+}
+
 /// Resubscribe consumes one pending wakeup before leaving and rejoining.
 #[tokio::test]
 async fn wakeup_interrupts_group_subscribe_once() {

@@ -2714,36 +2714,6 @@ impl ConsumerGroup {
         Ok(())
     }
 
-    async fn listed_reset_offset(
-        &mut self,
-        topic: &str,
-        part: i32,
-        timestamp: i64,
-        deadline: Instant,
-    ) -> Result<i64> {
-        self.consumer
-            .ensure_topic_metadata_timeout(
-                topic,
-                crate::consumer::remaining_offset_timeout(deadline, Instant::now()),
-            )
-            .await?;
-        let offset = self
-            .consumer
-            .list_offset_at(
-                topic,
-                part,
-                timestamp,
-                crate::consumer::remaining_offset_timeout(deadline, Instant::now()),
-            )
-            .await?
-            .0;
-        crate::consumer::reset_position(offset).ok_or_else(|| {
-            Error::protocol(format!(
-                "ListOffsets returned no reset offset for {topic}-{part}"
-            ))
-        })
-    }
-
     async fn assign_committed(
         &mut self,
         wanted: &[(String, i32)],
@@ -2855,47 +2825,75 @@ impl ConsumerGroup {
         };
         check_fetched_offsets(&fetched)?;
         let reset = self.cfg.auto_offset_reset;
-        let reset_deadline = deadline;
-        let mut starts: Vec<(String, i32, i64)> = Vec::with_capacity(wanted.len());
+        let mut starts: Vec<Option<(String, i32, i64)>> = Vec::with_capacity(wanted.len());
+        let mut reset_slots = Vec::new();
         for (topic, part) in wanted {
             if let Some(offset) = nested_i64(&current, topic, *part) {
-                starts.push((topic.clone(), *part, offset));
+                starts.push(Some((topic.clone(), *part, offset)));
                 continue;
             }
             let committed = fetched_committed(&fetched, topic, *part)
                 .map(|part| part.offset)
                 .unwrap_or(OffsetAndMetadata::INVALID_OFFSET);
-            let start = if committed >= 0 {
-                committed
-            } else {
-                match reset {
-                    AutoOffsetReset::Earliest => {
-                        self.listed_reset_offset(
-                            topic,
-                            *part,
-                            crate::EARLIEST_TIMESTAMP,
-                            reset_deadline,
-                        )
+            if committed >= 0 {
+                starts.push(Some((topic.clone(), *part, committed)));
+                continue;
+            }
+            if matches!(reset, AutoOffsetReset::None) {
+                return Err(Error::protocol(format!(
+                    "no committed offset for {topic}-{part}"
+                )));
+            }
+            reset_slots.push(starts.len());
+            starts.push(None);
+        }
+        if !reset_slots.is_empty() {
+            let timeout = deadline.saturating_duration_since(Instant::now());
+            if timeout.is_zero() {
+                return Err(Error::Timeout);
+            }
+            let mut partitions = Vec::with_capacity(reset_slots.len());
+            for index in &reset_slots {
+                let Some((topic, part)) = wanted.get(*index) else {
+                    return Err(Error::protocol("ListOffsets returned no reset offset"));
+                };
+                partitions.push(TopicPartition::new(topic.as_str(), *part));
+            }
+            let listed = match reset {
+                AutoOffsetReset::Earliest => {
+                    self.consumer
+                        .beginning_offsets_timeout(partitions, timeout)
                         .await?
-                    }
-                    AutoOffsetReset::Latest => {
-                        self.listed_reset_offset(
-                            topic,
-                            *part,
-                            crate::LATEST_TIMESTAMP,
-                            reset_deadline,
-                        )
+                }
+                AutoOffsetReset::Latest => {
+                    self.consumer
+                        .end_offsets_timeout(partitions, timeout)
                         .await?
-                    }
-                    AutoOffsetReset::None => {
-                        return Err(Error::protocol(format!(
-                            "no committed offset for {topic}-{part}"
-                        )));
-                    }
+                }
+                AutoOffsetReset::None => {
+                    return Err(Error::protocol("no committed offset"));
                 }
             };
-            starts.push((topic.clone(), *part, start));
+            if listed.len() != reset_slots.len() {
+                return Err(Error::protocol("ListOffsets returned no reset offset"));
+            }
+            for (slot, (tp, offset)) in reset_slots.iter().copied().zip(listed) {
+                let start = crate::consumer::reset_position(offset).ok_or_else(|| {
+                    Error::protocol(format!(
+                        "ListOffsets returned no reset offset for {}-{}",
+                        tp.topic, tp.partition
+                    ))
+                })?;
+                let Some(entry) = starts.get_mut(slot) else {
+                    return Err(Error::protocol(format!(
+                        "ListOffsets returned no reset offset for {}-{}",
+                        tp.topic, tp.partition
+                    )));
+                };
+                *entry = Some((tp.topic, tp.partition, start));
+            }
         }
+        let starts: Vec<(String, i32, i64)> = starts.into_iter().flatten().collect();
         self.consumer.assign_all(&starts).await?;
         if wanted.iter().any(|(topic, partition)| {
             self.consumer.assigned_topic_id(topic, *partition)
