@@ -1824,6 +1824,12 @@ pub fn encode_txn_offset_commit_topics_response_with_throttle(
     throttle_time_ms: i32,
 ) -> Result<()> {
     let flexible = txn_offset_commit_flexible(version)?;
+    let body_start = buf.len();
+    let planned = txn_offset_commit_response_len(flexible, topics)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf.put_i32(throttle_time_ms);
     buf::put_array_len(buf, flexible, Some(topics.len()))?;
     for t in topics {
@@ -1843,7 +1849,37 @@ pub fn encode_txn_offset_commit_topics_response_with_throttle(
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn txn_offset_commit_response_len(
+    flexible: bool,
+    topics: &[TxnOffsetCommitResponseTopic],
+) -> Result<usize> {
+    let mut total = 4usize;
+    total = add_txn_len(total, txn_array_len(flexible, topics.len())?)?;
+    for topic in topics {
+        total = add_txn_len(total, txn_string_len(flexible, &topic.topic)?)?;
+        total = add_txn_len(total, txn_array_len(flexible, topic.partitions.len())?)?;
+        let mut partition = 6usize;
+        if flexible {
+            partition += buf::unsigned_varint_size(0);
+        }
+        total = add_txn_len(
+            total,
+            partition
+                .checked_mul(topic.partitions.len())
+                .ok_or_else(|| Error::protocol("txn offset commit response size overflow"))?,
+        )?;
+        if flexible {
+            total = add_txn_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    if flexible {
+        total = add_txn_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 /// Decode TxnOffsetCommit: first non-zero partition error, or `0`.
@@ -5582,6 +5618,31 @@ mod tests {
             &v5[..],
             "empty-Topics ProducerEpoch bodies: v4 == v5"
         );
+    }
+
+    #[test]
+    fn a_txn_offset_commit_response_sizes_its_body_once() {
+        let topics = vec![TxnOffsetCommitResponseTopic {
+            topic: "orders".into(),
+            partitions: (0..8)
+                .map(|partition| TxnOffsetCommitResponsePartition {
+                    partition,
+                    error_code: 0,
+                })
+                .collect(),
+        }];
+        for version in [0_i16, 2, 3, 5] {
+            let mut buf = BytesMut::new();
+            encode_txn_offset_commit_topics_response(&mut buf, version, &topics).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_txn_offset_commit_topics_response(&mut buf, version, &topics).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+        }
     }
 
     #[test]
