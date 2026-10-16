@@ -3077,26 +3077,34 @@ impl ShareGroup {
         ack: i8,
         deadline: Instant,
     ) -> Result<()> {
-        let grouped = group_acks_by_acquisition_node(
-            |topic, partition, offset| {
-                acquisition_node(&self.acquisitions, topic, partition, offset)
-            },
-            |topic, partition, first, last| {
-                acquisition_node_for_range(&self.acquisitions, topic, partition, first, last)
-            },
-            partitions,
-        )?;
-        // A split across brokers replaces the retry list with the batches that
-        // are sent. One broker already matches that list, so those batches move
-        // into the request without a second copy.
-        let one_leader = grouped.len() == 1;
-        let nodes: Vec<_> = grouped.into_iter().collect();
-        if !one_leader {
-            *partitions = nodes
-                .iter()
-                .flat_map(|(_, parts)| parts.iter().cloned())
-                .collect();
-        }
+        let direct = single_leader_ack(partitions, |topic, partition, first, last| {
+            acquisition_node_for_range(&self.acquisitions, topic, partition, first, last)
+        });
+        let nodes = if let Some((node, parts)) = direct {
+            vec![(node, parts)]
+        } else {
+            let grouped = group_acks_by_acquisition_node(
+                |topic, partition, offset| {
+                    acquisition_node(&self.acquisitions, topic, partition, offset)
+                },
+                |topic, partition, first, last| {
+                    acquisition_node_for_range(&self.acquisitions, topic, partition, first, last)
+                },
+                partitions,
+            )?;
+            // A split across brokers replaces the retry list with the batches
+            // that are sent. One broker already matches that list, so those
+            // batches move into the request without a second copy.
+            let one_leader = grouped.len() == 1;
+            let nodes: Vec<_> = grouped.into_iter().collect();
+            if !one_leader {
+                *partitions = nodes
+                    .iter()
+                    .flat_map(|(_, parts)| parts.iter().cloned())
+                    .collect();
+            }
+            nodes
+        };
         let mut first_error = None;
         for (node, node_tps) in nodes {
             if deadline.saturating_duration_since(Instant::now()).is_zero() {
@@ -4021,6 +4029,25 @@ fn drop_sent_ack_batches(
 /// partition's offsets came from two brokers.
 type AckRoute = BTreeMap<i32, Vec<AckPartition>>;
 
+fn single_leader_ack(
+    partitions: &[AckPartition],
+    range_node: impl Fn(&str, i32, i64, i64) -> Option<i32>,
+) -> Option<(i32, Vec<AckPartition>)> {
+    if partitions.len() != 1 {
+        return None;
+    }
+    let (topic, partition, batches) = partitions.first()?;
+    if batches.len() != 1 {
+        return None;
+    }
+    let batch = batches.first()?;
+    if batch.types.len() != 1 {
+        return None;
+    }
+    let node = range_node(topic, *partition, batch.first_offset, batch.last_offset)?;
+    Some((node, vec![(Arc::clone(topic), *partition, batches.clone())]))
+}
+
 fn group_acks_by_acquisition_node(
     node_of: impl Fn(&str, i32, i64) -> Option<i32>,
     range_node: impl Fn(&str, i32, i64, i64) -> Option<i32>,
@@ -4472,6 +4499,24 @@ mod tests {
             acquisition_at(&map, &again, 0, 2).map(|found| found.delivery_count),
             Some(1)
         );
+        let partitions = vec![(
+            Arc::<str>::from("orders"),
+            0,
+            vec![AcknowledgementBatch {
+                first_offset: 1,
+                last_offset: 2,
+                types: vec![ACK_ACCEPT],
+            }],
+        )];
+        let direct = single_leader_ack(&partitions, |topic, partition, first, last| {
+            acquisition_node_for_range(&map, topic, partition, first, last)
+        });
+        assert_eq!(direct.as_ref().map(|(node, _)| *node), Some(2));
+        assert_eq!(
+            direct.and_then(|(_, parts)| parts.into_iter().next()),
+            Some(partitions[0].clone())
+        );
+        assert!(single_leader_ack(&partitions, |_, _, _, _| None).is_none());
     }
 
     #[test]
