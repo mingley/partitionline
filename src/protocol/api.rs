@@ -1086,13 +1086,6 @@ pub(crate) fn get_compact_node_endpoints<B: Buf>(buf: &mut B) -> Result<Vec<Node
     Ok(out)
 }
 
-/// Compact array of NodeEndpoint (nested tagged fields). Leftover-empty.
-pub(crate) fn encode_node_endpoints(endpoints: &[NodeEndpoint]) -> Result<Bytes> {
-    let mut inner = BytesMut::new();
-    put_compact_node_endpoints(&mut inner, endpoints)?;
-    Ok(inner.freeze())
-}
-
 /// Decode compact NodeEndpoints. Nested tagged fields must be leftover-empty.
 pub(crate) fn decode_node_endpoints(value: &[u8]) -> Result<Vec<NodeEndpoint>> {
     let mut cur = value;
@@ -1101,13 +1094,38 @@ pub(crate) fn decode_node_endpoints(value: &[u8]) -> Result<Vec<NodeEndpoint>> {
     Ok(out)
 }
 
+pub(crate) fn compact_node_endpoints_len(endpoints: &[NodeEndpoint]) -> Result<usize> {
+    let mut total = metadata_array_len(true, Some(endpoints.len()))?;
+    for endpoint in endpoints {
+        total = add_endpoint_len(total, 4)?;
+        total = add_endpoint_len(
+            total,
+            metadata_string_len(true, Some(endpoint.host.as_str()))?,
+        )?;
+        total = add_endpoint_len(total, 4)?;
+        total = add_endpoint_len(total, metadata_string_len(true, endpoint.rack.as_deref())?)?;
+        total = add_endpoint_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
+}
+
+fn add_endpoint_len(total: usize, next: usize) -> Result<usize> {
+    total
+        .checked_add(next)
+        .ok_or_else(|| Error::protocol("node endpoint size overflow"))
+}
+
 pub(crate) fn encode_top_level_node_endpoints(
     buf: &mut BytesMut,
     include: bool,
     endpoints: &[NodeEndpoint],
 ) -> Result<()> {
     if include && !endpoints.is_empty() {
-        buf::put_tagged_fields(buf, &[(0, encode_node_endpoints(endpoints)?)])
+        let payload = compact_node_endpoints_len(endpoints)?;
+        buf::put_unsigned_varint(buf, 1);
+        buf::put_unsigned_varint(buf, 0);
+        buf::put_unsigned_varint(buf, buf::u32_from_usize(payload)?);
+        put_compact_node_endpoints(buf, endpoints)
     } else {
         buf::put_empty_tagged_fields(buf);
         Ok(())
@@ -3307,14 +3325,6 @@ fn produce_flexible(version: i16) -> Result<bool> {
     }
 }
 
-fn encode_current_leader(leader_id: i32, leader_epoch: i32) -> Bytes {
-    let mut inner = BytesMut::new();
-    inner.put_i32(leader_id);
-    inner.put_i32(leader_epoch);
-    buf::put_empty_tagged_fields(&mut inner);
-    inner.freeze()
-}
-
 fn decode_current_leader(value: &[u8]) -> Result<(i32, i32)> {
     let mut cur = value;
     let leader_id = buf::get_i32(&mut cur)?;
@@ -3331,13 +3341,14 @@ fn encode_produce_partition_tags(
     current_leader_epoch: i32,
 ) -> Result<()> {
     if version >= 10 && current_leader_id >= 0 {
-        buf::put_tagged_fields(
-            buf,
-            &[(
-                0,
-                encode_current_leader(current_leader_id, current_leader_epoch),
-            )],
-        )
+        // Tag 0 payload is leader id, leader epoch, and empty nested tags.
+        buf::put_unsigned_varint(buf, 1);
+        buf::put_unsigned_varint(buf, 0);
+        buf::put_unsigned_varint(buf, 9);
+        buf.put_i32(current_leader_id);
+        buf.put_i32(current_leader_epoch);
+        buf::put_empty_tagged_fields(buf);
+        Ok(())
     } else {
         buf::put_empty_tagged_fields(buf);
         Ok(())
@@ -3941,14 +3952,7 @@ fn produce_partition_tag_len(version: i16, leader_id: i32) -> Result<usize> {
 }
 
 fn produce_endpoints_len(endpoints: &[NodeEndpoint]) -> Result<usize> {
-    let mut inner = metadata_array_len(true, Some(endpoints.len()))?;
-    for endpoint in endpoints {
-        inner = add_produce_len(inner, 4)?;
-        inner = add_produce_len(inner, metadata_string_len(true, Some(&endpoint.host))?)?;
-        inner = add_produce_len(inner, 4)?;
-        inner = add_produce_len(inner, metadata_string_len(true, endpoint.rack.as_deref())?)?;
-        inner = add_produce_len(inner, buf::unsigned_varint_size(0))?;
-    }
+    let inner = compact_node_endpoints_len(endpoints)?;
     Ok(buf::unsigned_varint_size(1)
         + buf::unsigned_varint_size(0)
         + buf::unsigned_varint_size(buf::u32_from_usize(inner)?)

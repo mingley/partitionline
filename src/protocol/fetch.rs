@@ -1750,47 +1750,56 @@ where
         buf::put_string(buf, flexible, Some(rack_id.unwrap_or("")))?;
     }
     if flexible {
-        let mut tags: Vec<(u32, Bytes)> = Vec::new();
-        if version >= 12 {
-            if let Some(cluster_id) = cluster_id {
-                tags.push((0, encode_cluster_id(cluster_id)?));
-            }
-        }
-        if version >= 15
+        let cluster = version >= 12 && cluster_id.is_some();
+        let replica = version >= 15
             && (replica_state_replica_id != CONSUMER_REPLICA_ID
-                || replica_state_replica_epoch != -1)
-        {
-            tags.push((
-                1,
-                encode_replica_state(replica_state_replica_id, replica_state_replica_epoch),
-            ));
-        }
-        if tags.is_empty() {
-            buf::put_empty_tagged_fields(buf);
-        } else {
-            buf::put_tagged_fields(buf, &tags)?;
+                || replica_state_replica_epoch != -1);
+        match (cluster, replica) {
+            (false, false) => buf::put_empty_tagged_fields(buf),
+            (true, false) => {
+                let cluster_id = cluster_id.unwrap_or("");
+                let payload = fetch_string_len(true, cluster_id)?;
+                put_fetch_tag_count(buf, 1);
+                put_fetch_tag(buf, 0, payload)?;
+                buf::put_compact_string(buf, Some(cluster_id))?;
+            }
+            (false, true) => {
+                put_fetch_tag_count(buf, 1);
+                put_fetch_tag(buf, 1, 13)?;
+                write_replica_state(buf, replica_state_replica_id, replica_state_replica_epoch);
+            }
+            (true, true) => {
+                let cluster_id = cluster_id.unwrap_or("");
+                let payload = fetch_string_len(true, cluster_id)?;
+                put_fetch_tag_count(buf, 2);
+                put_fetch_tag(buf, 0, payload)?;
+                buf::put_compact_string(buf, Some(cluster_id))?;
+                put_fetch_tag(buf, 1, 13)?;
+                write_replica_state(buf, replica_state_replica_id, replica_state_replica_epoch);
+            }
         }
     }
     debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
 }
 
+fn put_fetch_tag_count(buf: &mut BytesMut, count: u32) {
+    buf::put_unsigned_varint(buf, count);
+}
+
+fn put_fetch_tag(buf: &mut BytesMut, tag: u32, payload: usize) -> Result<()> {
+    buf::put_unsigned_varint(buf, tag);
+    buf::put_unsigned_varint(buf, buf::u32_from_usize(payload)?);
+    Ok(())
+}
+
 /// ReplicaState inside Fetch request tagged field 1 (13 bytes when
 /// present: INT32 ReplicaId + INT64 ReplicaEpoch + empty nested tagged
 /// fields).
-fn encode_replica_state(replica_id: i32, replica_epoch: i64) -> Bytes {
-    let mut inner = BytesMut::new();
-    inner.put_i32(replica_id);
-    inner.put_i64(replica_epoch);
-    buf::put_empty_tagged_fields(&mut inner);
-    inner.freeze()
-}
-
-/// ClusterId inside Fetch request tagged field 0 (compact STRING).
-fn encode_cluster_id(cluster_id: &str) -> Result<Bytes> {
-    let mut inner = BytesMut::new();
-    buf::put_compact_string(&mut inner, Some(cluster_id))?;
-    Ok(inner.freeze())
+fn write_replica_state(buf: &mut BytesMut, replica_id: i32, replica_epoch: i64) {
+    buf.put_i32(replica_id);
+    buf.put_i64(replica_epoch);
+    buf::put_empty_tagged_fields(buf);
 }
 
 fn decode_replica_state(value: &[u8]) -> Result<(i32, i64)> {
@@ -1833,19 +1842,22 @@ fn put_fetch_request_partition_tags(
     match (directory, watermark) {
         (false, false) => buf::put_empty_tagged_fields(buf),
         (true, false) => {
-            buf::put_tagged_fields(buf, &[(0, Bytes::copy_from_slice(&directory_id))])?
+            put_fetch_tag_count(buf, 1);
+            put_fetch_tag(buf, 0, 16)?;
+            buf.extend_from_slice(&directory_id);
         }
-        (false, true) => buf::put_tagged_fields(
-            buf,
-            &[(1, Bytes::copy_from_slice(&high_watermark.to_be_bytes()))],
-        )?,
-        (true, true) => buf::put_tagged_fields(
-            buf,
-            &[
-                (0, Bytes::copy_from_slice(&directory_id)),
-                (1, Bytes::copy_from_slice(&high_watermark.to_be_bytes())),
-            ],
-        )?,
+        (false, true) => {
+            put_fetch_tag_count(buf, 1);
+            put_fetch_tag(buf, 1, 8)?;
+            buf.extend_from_slice(&high_watermark.to_be_bytes());
+        }
+        (true, true) => {
+            put_fetch_tag_count(buf, 2);
+            put_fetch_tag(buf, 0, 16)?;
+            buf.extend_from_slice(&directory_id);
+            put_fetch_tag(buf, 1, 8)?;
+            buf.extend_from_slice(&high_watermark.to_be_bytes());
+        }
     }
     Ok(())
 }
@@ -1957,16 +1969,6 @@ fn get_fetch_topic_identity<B: Buf>(
     }
 }
 
-/// EpochEndOffset inside Fetch partition tagged field 0 (13 bytes when
-/// present: INT32 + INT64 + empty nested tagged fields).
-fn encode_diverging_epoch(epoch: i32, end_offset: i64) -> Bytes {
-    let mut inner = BytesMut::new();
-    inner.put_i32(epoch);
-    inner.put_i64(end_offset);
-    buf::put_empty_tagged_fields(&mut inner);
-    inner.freeze()
-}
-
 fn decode_diverging_epoch(value: &[u8]) -> Result<(i32, i64)> {
     let mut cur = value;
     let epoch = buf::get_i32(&mut cur)?;
@@ -1976,16 +1978,6 @@ fn decode_diverging_epoch(value: &[u8]) -> Result<(i32, i64)> {
         return Err(Error::protocol("DivergingEpoch leftover bytes"));
     }
     Ok((epoch, end_offset))
-}
-
-/// LeaderIdAndEpoch inside Fetch partition tagged field 1 (9 bytes when
-/// present: INT32 + INT32 + empty nested tagged fields).
-fn encode_current_leader(leader_id: i32, leader_epoch: i32) -> Bytes {
-    let mut inner = BytesMut::new();
-    inner.put_i32(leader_id);
-    inner.put_i32(leader_epoch);
-    buf::put_empty_tagged_fields(&mut inner);
-    inner.freeze()
 }
 
 fn decode_current_leader(value: &[u8]) -> Result<(i32, i32)> {
@@ -2003,14 +1995,6 @@ fn decode_current_leader(value: &[u8]) -> Result<(i32, i32)> {
 /// present: INT64 EndOffset + INT32 Epoch + empty nested tagged fields).
 /// JSON field order is the reverse of DivergingEpoch (tag 0: Epoch then
 /// EndOffset).
-fn encode_snapshot_id(end_offset: i64, epoch: i32) -> Bytes {
-    let mut inner = BytesMut::new();
-    inner.put_i64(end_offset);
-    inner.put_i32(epoch);
-    buf::put_empty_tagged_fields(&mut inner);
-    inner.freeze()
-}
-
 fn decode_snapshot_id(value: &[u8]) -> Result<(i64, i32)> {
     let mut cur = value;
     let end_offset = buf::get_i64(&mut cur)?;
@@ -2031,30 +2015,35 @@ fn encode_fetch_partition_tags(
     snapshot_end_offset: i64,
     snapshot_epoch: i32,
 ) -> Result<()> {
-    let mut fields: Vec<(u32, Bytes)> = Vec::new();
-    if diverging_epoch >= 0 {
-        fields.push((
-            0,
-            encode_diverging_epoch(diverging_epoch, diverging_end_offset),
-        ));
-    }
-    if current_leader_id >= 0 {
-        fields.push((
-            1,
-            encode_current_leader(current_leader_id, current_leader_epoch),
-        ));
-    }
-    if snapshot_end_offset != EpochEndOffset::UNDEFINED_EPOCH_OFFSET
-        || snapshot_epoch != EpochEndOffset::UNDEFINED_EPOCH
-    {
-        fields.push((2, encode_snapshot_id(snapshot_end_offset, snapshot_epoch)));
-    }
-    if fields.is_empty() {
+    let diverging = diverging_epoch >= 0;
+    let leader = current_leader_id >= 0;
+    let snapshot = snapshot_end_offset != EpochEndOffset::UNDEFINED_EPOCH_OFFSET
+        || snapshot_epoch != EpochEndOffset::UNDEFINED_EPOCH;
+    let count = u32::from(diverging) + u32::from(leader) + u32::from(snapshot);
+    if count == 0 {
         buf::put_empty_tagged_fields(buf);
-        Ok(())
-    } else {
-        buf::put_tagged_fields(buf, &fields)
+        return Ok(());
     }
+    put_fetch_tag_count(buf, count);
+    if diverging {
+        put_fetch_tag(buf, 0, 13)?;
+        buf.put_i32(diverging_epoch);
+        buf.put_i64(diverging_end_offset);
+        buf::put_empty_tagged_fields(buf);
+    }
+    if leader {
+        put_fetch_tag(buf, 1, 9)?;
+        buf.put_i32(current_leader_id);
+        buf.put_i32(current_leader_epoch);
+        buf::put_empty_tagged_fields(buf);
+    }
+    if snapshot {
+        put_fetch_tag(buf, 2, 13)?;
+        buf.put_i64(snapshot_end_offset);
+        buf.put_i32(snapshot_epoch);
+        buf::put_empty_tagged_fields(buf);
+    }
+    Ok(())
 }
 
 fn decode_fetch_partition_tags<B: Buf>(buf: &mut B) -> Result<(i32, i64, i32, i32, i64, i32)> {
@@ -2470,55 +2459,42 @@ fn fetch_nullable_bytes_len(flexible: bool, len: Option<usize>) -> Result<usize>
     }
 }
 
-fn fetch_nullable_string_len(flexible: bool, value: Option<&str>) -> Result<usize> {
-    match value {
-        Some(value) => fetch_string_len(flexible, value),
-        None => Ok(if flexible {
-            buf::unsigned_varint_size(0)
-        } else {
-            2
-        }),
-    }
-}
-
 fn fetch_partition_response_tag_len(
     diverging_epoch: i32,
     current_leader_id: i32,
     snapshot_end_offset: i64,
     snapshot_epoch: i32,
 ) -> Result<usize> {
-    let mut fields = Vec::new();
+    let mut fields = [(0u32, 0usize); 3];
+    let mut count = 0usize;
     if diverging_epoch >= 0 {
-        fields.push((0, 13usize));
+        if let Some(slot) = fields.get_mut(count) {
+            *slot = (0, 13);
+            count += 1;
+        }
     }
     if current_leader_id >= 0 {
-        fields.push((1, 9usize));
+        if let Some(slot) = fields.get_mut(count) {
+            *slot = (1, 9);
+            count += 1;
+        }
     }
     if snapshot_end_offset != EpochEndOffset::UNDEFINED_EPOCH_OFFSET
         || snapshot_epoch != EpochEndOffset::UNDEFINED_EPOCH
     {
-        fields.push((2, 13usize));
+        if let Some(slot) = fields.get_mut(count) {
+            *slot = (2, 13);
+            count += 1;
+        }
     }
-    if fields.is_empty() {
-        Ok(buf::unsigned_varint_size(0))
-    } else {
-        fetch_tagged_len(&fields)
+    match fields.get(..count) {
+        Some(fields) if !fields.is_empty() => fetch_tagged_len(fields),
+        _ => Ok(buf::unsigned_varint_size(0)),
     }
 }
 
 fn fetch_endpoints_tag_len(endpoints: &[super::api::NodeEndpoint]) -> Result<usize> {
-    let mut inner = fetch_array_len(true, endpoints.len())?;
-    for endpoint in endpoints {
-        inner = add_fetch_len(inner, 4)?;
-        inner = add_fetch_len(inner, fetch_string_len(true, &endpoint.host)?)?;
-        inner = add_fetch_len(inner, 4)?;
-        inner = add_fetch_len(
-            inner,
-            fetch_nullable_string_len(true, endpoint.rack.as_deref())?,
-        )?;
-        inner = add_fetch_len(inner, buf::unsigned_varint_size(0))?;
-    }
-    fetch_tagged_len(&[(0, inner)])
+    fetch_tagged_len(&[(0, super::api::compact_node_endpoints_len(endpoints)?)])
 }
 
 fn fetch_records_are_compressed(batches: &[RecordBatch]) -> Result<bool> {
