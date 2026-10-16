@@ -1237,6 +1237,18 @@ pub struct MetadataResponse {
 }
 
 impl MetadataResponse {
+    pub(crate) fn blank() -> Self {
+        Self {
+            throttle_time_ms: 0,
+            brokers: Vec::new(),
+            cluster_id: None,
+            controller_id: Self::NO_CONTROLLER_ID,
+            topics: Vec::new(),
+            cluster_authorized_operations: Self::AUTHORIZED_OPERATIONS_OMITTED,
+            error_code: 0,
+        }
+    }
+
     /// Java `MetadataResponse.NO_CONTROLLER_ID`.
     pub const NO_CONTROLLER_ID: i32 = -1;
     /// Java `MetadataResponse.NO_LEADER_ID`.
@@ -1973,15 +1985,7 @@ fn put_int32_array(buf: &mut BytesMut, flexible: bool, items: &[i32]) -> crate::
 
 /// Decode Metadata.
 pub fn decode_metadata_response<B: Buf>(buf: &mut B, version: i16) -> Result<MetadataResponse> {
-    let mut out = MetadataResponse {
-        throttle_time_ms: 0,
-        brokers: Vec::new(),
-        cluster_id: None,
-        controller_id: MetadataResponse::NO_CONTROLLER_ID,
-        topics: Vec::new(),
-        cluster_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
-        error_code: 0,
-    };
+    let mut out = MetadataResponse::blank();
     decode_metadata_response_into(buf, version, &mut out)?;
     Ok(out)
 }

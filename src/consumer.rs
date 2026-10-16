@@ -3672,15 +3672,7 @@ impl Consumer {
                 crate::protocol::group::OffsetLimits::default(),
             )?;
         }
-        let mut md = self.metadata.take().unwrap_or(MetadataResponse {
-            throttle_time_ms: 0,
-            brokers: Vec::new(),
-            cluster_id: None,
-            controller_id: MetadataResponse::NO_CONTROLLER_ID,
-            topics: Vec::new(),
-            cluster_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
-            error_code: 0,
-        });
+        let mut md = self.metadata.take().unwrap_or_else(MetadataResponse::blank);
         decode_metadata_response_into(&mut body, version, &mut md)?;
         md.check()?;
         if self.preferred.is_empty() {

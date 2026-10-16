@@ -14,8 +14,8 @@ use crate::partitioner::{
     partition_for_key, to_positive, Partitioner, PartitionerBox, StickyState, StickyTag,
 };
 use crate::protocol::api::{
-    decode_metadata_response, decode_produce_acks_into, encode_metadata_request, ApiVersion,
-    ApiVersionsResponse, ProduceAck, ProduceRequest,
+    decode_metadata_response_into, decode_produce_acks_into, encode_metadata_request, ApiVersion,
+    ApiVersionsResponse, MetadataResponse, ProduceAck, ProduceRequest,
 };
 use crate::protocol::api_keys::{
     pick_version, ADD_OFFSETS_TO_TXN, ADD_PARTITIONS_TO_TXN, END_TXN, FIND_COORDINATOR,
@@ -971,6 +971,8 @@ struct Shared {
     /// Transaction coordinator. `None` when `transactional.id` is unset.
     txn: Mutex<Option<CoordinatorConnection>>,
     metadata_version: i16,
+    /// Last metadata image. The next refresh refills it.
+    metadata_image: parking_lot::Mutex<MetadataResponse>,
     /// Fixed at initialization: finalized transaction.version >= 2 and EndTxn v5.
     transaction_v2: bool,
     add_partitions_version: i16,
@@ -1690,6 +1692,7 @@ impl Producer {
             meta: Mutex::new(meta),
             txn: Mutex::new(txn),
             metadata_version,
+            metadata_image: parking_lot::Mutex::new(MetadataResponse::blank()),
             transaction_v2,
             add_partitions_version,
             add_offsets_version,
@@ -3249,13 +3252,12 @@ impl Producer {
             )
             .await?;
         drop(conn);
-        let resp = decode_metadata_response(&mut body.clone(), version)?;
-        resp.check()?;
-        {
-            let mut cluster = self.inner.shared.cluster.lock();
-            cluster.apply(&resp, version);
-        }
-        let infos = crate::consumer::partition_infos_from(&resp, Some(topic.as_str()))?;
+        let mut body = body;
+        decode_shared_metadata(&self.inner.shared, &mut body, version)?;
+        let infos = {
+            let image = self.inner.shared.metadata_image.lock();
+            crate::consumer::partition_infos_from(&image, Some(topic.as_str()))?
+        };
         if infos.is_empty() {
             return Err(Error::UnknownTopic(topic));
         }
@@ -3962,6 +3964,14 @@ async fn group_coord_roundtrip(
         .await
 }
 
+fn decode_shared_metadata(shared: &Shared, body: &mut bytes::Bytes, version: i16) -> Result<()> {
+    let mut image = shared.metadata_image.lock();
+    decode_metadata_response_into(body, version, &mut image)?;
+    image.check()?;
+    shared.cluster.lock().apply(&image, version);
+    Ok(())
+}
+
 async fn partitions_for(shared: &Shared, topic: &Arc<str>) -> Result<i32> {
     partitions_for_timeout(shared, topic, shared.cfg.request_timeout).await
 }
@@ -4004,24 +4014,24 @@ async fn partitions_for_timeout(
         )
         .await?;
     drop(conn);
-    let resp = decode_metadata_response(&mut body.clone(), version)?;
-    resp.check()?;
-    let t = resp
-        .topics
-        .iter()
-        .find(|t| t.name.as_deref() == Some(topic.as_ref()))
-        .ok_or_else(|| Error::UnknownTopic(topic.to_string()))?;
-    if t.error_code != 0 {
-        return Err(Error::broker(t.error_code, topic.to_string()));
-    }
-    let n = crate::protocol::buf::i32_from_usize(t.partitions.len())?;
-    if n <= 0 {
-        return Err(Error::UnknownTopic(topic.to_string()));
-    }
-    {
-        let mut cluster = shared.cluster.lock();
-        cluster.apply(&resp, version);
-    }
+    let mut body = body;
+    decode_shared_metadata(shared, &mut body, version)?;
+    let n = {
+        let image = shared.metadata_image.lock();
+        let t = image
+            .topics
+            .iter()
+            .find(|t| t.name.as_deref() == Some(topic.as_ref()))
+            .ok_or_else(|| Error::UnknownTopic(topic.to_string()))?;
+        if t.error_code != 0 {
+            return Err(Error::broker(t.error_code, topic.to_string()));
+        }
+        let n = crate::protocol::buf::i32_from_usize(t.partitions.len())?;
+        if n <= 0 {
+            return Err(Error::UnknownTopic(topic.to_string()));
+        }
+        n
+    };
     drop_fast_topic(shared, topic);
     Ok(n)
 }
