@@ -5140,7 +5140,7 @@ impl Consumer {
         max_wait_ms: i32,
     ) -> Result<Vec<FetchedRecord>> {
         let mut attempt = 0u32;
-        let mut out = sized_fetch_records(self.last_fetch_records);
+        let mut out = Vec::new();
         let mut out_bytes = 0usize;
         self.fetch_return_totals.clear();
         loop {
@@ -6199,14 +6199,13 @@ impl Consumer {
             batches,
             endpoints,
         } = body;
-        let declared = batches
-            .iter()
-            .flatten()
-            .flatten()
-            .fold(0usize, |sum, batch| {
-                sum.saturating_add(batch.reserve_hint())
-            });
-        out.reserve(declared);
+        let mut declared = 0usize;
+        let mut saw_batch = false;
+        for batch in batches.iter().flatten().flatten() {
+            saw_batch = true;
+            declared = declared.saturating_add(batch.reserve_hint());
+        }
+        reserve_fetch_records(out, declared, saw_batch, self.last_fetch_records);
         self.cluster.apply_node_endpoints(&endpoints);
         self.ensure_cursor_index();
         let mut retry = FetchRetry::None;
@@ -7837,14 +7836,17 @@ fn a_fetch_reply_list_keeps_its_capacity() {
 }
 
 #[test]
-fn a_fetch_buffer_reserves_the_previous_record_count() {
-    let mut previous = 0usize;
-    let first = sized_fetch_records(previous);
-    assert_eq!(first.capacity(), 0);
-    note_fetch_records(&mut previous, 4);
-    let second = sized_fetch_records(previous);
-    assert!(second.capacity() >= 4);
-    assert!(second.is_empty());
+fn an_empty_fetch_does_not_allocate_a_record_buffer() {
+    let mut out = Vec::new();
+    reserve_fetch_records(&mut out, 0, false, 4);
+    assert_eq!(out.capacity(), 0);
+    assert!(out.is_empty());
+    reserve_fetch_records(&mut out, 3, true, 4);
+    assert!(out.capacity() >= 3);
+    let mut compressed = Vec::new();
+    reserve_fetch_records(&mut compressed, 0, true, 4);
+    assert!(compressed.capacity() >= 4);
+    assert!(compressed.is_empty());
 }
 
 #[test]
@@ -8005,8 +8007,22 @@ fn park_spare<T>(spare: &mut Vec<T>, mut values: Vec<T>) {
     }
 }
 
-fn sized_fetch_records(previous: usize) -> Vec<FetchedRecord> {
-    Vec::with_capacity(previous)
+/// Reserve fetched records from this response.
+///
+/// An empty response leaves the buffer unallocated. A response that names
+/// record counts reserves that many. A compressed batch does not name a count,
+/// so it reserves the previous poll's record count.
+fn reserve_fetch_records(
+    out: &mut Vec<FetchedRecord>,
+    declared: usize,
+    saw_batch: bool,
+    previous: usize,
+) {
+    if declared > 0 {
+        out.reserve(declared);
+    } else if saw_batch && previous > 0 {
+        out.reserve(previous);
+    }
 }
 
 /// Topic stored on an assignment.
