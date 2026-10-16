@@ -954,7 +954,7 @@ pub enum ShareAcquireMode {
 /// `INVALID_PARTITIONS`, which fails that poll, and not piggyback
 /// `TOPIC_ALREADY_EXISTS`). A piggybacked
 /// `INVALID_REPLICATION_FACTOR` still completes without retry,
-/// including when `AcknowledgeErrorMessage` is set (Java
+/// including when `AcknowledgeErrorMessage` is set or empty (Java
 /// `handleShareFetchSuccess` completes piggyback acks and still
 /// delivers the fetch; this is not partition
 /// `INVALID_REPLICATION_FACTOR`, which fails that poll, and not piggyback
@@ -2500,7 +2500,7 @@ impl ShareGroup {
     /// `TOPIC_ALREADY_EXISTS`).
     /// A piggybacked `INVALID_REPLICATION_FACTOR` still completes
     /// without retry, including when `AcknowledgeErrorMessage` is set
-    /// (Java `handleShareFetchSuccess` completes piggyback acks and still
+    /// or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
     /// delivers the fetch; this is not partition
     /// `INVALID_REPLICATION_FACTOR`, which fails that poll, and not piggyback
     /// `INVALID_PARTITIONS`).
