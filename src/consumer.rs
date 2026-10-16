@@ -1896,9 +1896,6 @@ impl PendingRecords {
                         run.count -= 1;
                     }
                 }
-                if queue.is_empty() {
-                    let _removed = self.partitions.remove(&run.topic, run.partition);
-                }
             }
             if run.count == 0 {
                 let _removed = self.order.remove(index);
@@ -9187,6 +9184,35 @@ mod tests {
         let limited = pending.drain(&PartitionMap::new(), 2, &mut bytes);
         assert_eq!(limited.len(), 2);
         assert!(limited.capacity() >= 2);
+    }
+
+    #[test]
+    fn a_drained_fetch_keeps_the_partition_queue() {
+        let mut pending = PendingRecords::new();
+        pending.extend(vec![fetched_at("orders", 0, 1), fetched_at("orders", 0, 2)]);
+        let capacity = pending
+            .partitions
+            .get("orders", 0)
+            .map(|queue| queue.capacity())
+            .expect("queue");
+        let mut bytes = 0usize;
+        let drained = pending.drain(&PartitionMap::new(), 10, &mut bytes);
+        assert_eq!(drained.len(), 2);
+        assert!(pending.is_empty());
+        let kept = pending.partitions.get("orders", 0).expect("queue");
+        assert!(kept.is_empty());
+        assert!(kept.capacity() >= capacity);
+        pending.extend(vec![fetched_at("orders", 0, 3)]);
+        let again = pending.partitions.get("orders", 0).expect("queue");
+        assert_eq!(again.len(), 1);
+        assert!(again.capacity() >= capacity);
+        assert_eq!(again.front().map(|record| record.offset), Some(3));
+        let mut bytes = 0usize;
+        let next = pending.drain(&PartitionMap::new(), 10, &mut bytes);
+        assert_eq!(next.len(), 1);
+        assert_eq!(next.first().map(|record| record.offset), Some(3));
+        assert!(pending.is_empty());
+        assert!(pending.partitions.get("orders", 0).is_some());
     }
 
     #[test]
