@@ -794,7 +794,7 @@ pub enum ShareAcquireMode {
 /// still drops acquisitions but does not invalidate). A top-level
 /// ShareAcknowledge `SHARE_SESSION_LIMIT_REACHED` completes without
 /// retry and does not request Metadata, including when `ErrorMessage`
-/// is set (Java `handleShareAcknowledgeSuccess` has no
+/// is set or empty (Java `handleShareAcknowledgeSuccess` has no
 /// `metadata.requestUpdate`). Incremental
 /// ShareFetch sends Java
 /// `ShareSessionHandler` forgotten partitions when the assignment
@@ -2265,7 +2265,7 @@ impl ShareGroup {
     /// completes without retry and advances the session epoch (Java
     /// `ShareSessionHandler.handleResponse` `nextEpoch`), including
     /// when `ErrorMessage` is empty, and does not request Metadata
-    /// when `ErrorMessage` is set; it is not a
+    /// when `ErrorMessage` is set or empty; it is not a
     /// ShareAcknowledge session reset. Top-level
     /// `SHARE_SESSION_NOT_FOUND` / `INVALID_SHARE_SESSION_EPOCH`
     /// still reset, including when `ErrorMessage` is set or empty.

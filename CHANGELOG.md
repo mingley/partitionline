@@ -232,8 +232,8 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   ShareAcknowledge top-level `SHARE_SESSION_LIMIT_REACHED` completes
   without retry and advances the share session epoch (Java
   `handleResponse` `nextEpoch`), including when `ErrorMessage` is
-  empty, and does not request Metadata when `ErrorMessage` is set
-  (Java `handleShareAcknowledgeSuccess` has no
+  empty, and does not request Metadata when `ErrorMessage` is set or
+  empty (Java `handleShareAcknowledgeSuccess` has no
   `metadata.requestUpdate`); `SHARE_SESSION_NOT_FOUND` /
   `INVALID_SHARE_SESSION_EPOCH` still reset, including when
   `ErrorMessage` is set or empty. A non-empty top-level `ErrorMessage` is

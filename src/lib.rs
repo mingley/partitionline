@@ -2144,7 +2144,7 @@
 //! `SHARE_SESSION_LIMIT_REACHED` completes without retry and advances
 //! the session epoch (Java `ShareSessionHandler.handleResponse`
 //! `nextEpoch`), including when `ErrorMessage` is empty, and does not
-//! request Metadata when `ErrorMessage` is set;
+//! request Metadata when `ErrorMessage` is set or empty;
 //! `SHARE_SESSION_NOT_FOUND` /
 //! `INVALID_SHARE_SESSION_EPOCH` still reset, including when
 //! `ErrorMessage` is set or empty.
