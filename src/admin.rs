@@ -3914,20 +3914,18 @@ impl Admin {
         options: ElectLeadersOptions,
         deadline: Instant,
     ) -> Result<ElectLeadersResponse> {
+        let mut selection = ElectionSelection::default();
         let mut order = Vec::new();
-        let mut seen: HashMap<String, HashSet<i32>> = HashMap::new();
         let mut pending = options.partitions.map(|partitions| {
-            partitions
-                .into_iter()
-                .filter(|tp| {
-                    if claim_topic_partition(&mut seen, &tp.topic, tp.partition) {
-                        order.push(tp.clone());
-                        true
-                    } else {
-                        false
-                    }
-                })
-                .collect::<Vec<_>>()
+            let mut kept = Vec::new();
+            for tp in partitions {
+                let partition = tp.partition;
+                if let Some(index) = selection.adopt(tp.topic, partition) {
+                    order.push((index, partition));
+                    kept.push((index, partition));
+                }
+            }
+            kept
         });
         let mut finished: HashMap<String, HashMap<i32, ElectLeadersPartitionResult>> =
             HashMap::new();
@@ -3954,7 +3952,7 @@ impl Admin {
             }
             let topics = pending
                 .as_ref()
-                .map(|partitions| elect_leader_topics(partitions));
+                .map(|partitions| election_request_topics(&selection.names, partitions));
             let remaining = deadline.saturating_duration_since(Instant::now());
             if remaining.is_zero() {
                 return Err(Error::Timeout);
@@ -4003,55 +4001,58 @@ impl Admin {
                 };
                 // Keep earlier results when a retry receives a terminal global error.
                 let mut results: Vec<ElectLeadersResult> = Vec::new();
-                let mut slots: HashMap<&str, usize> = HashMap::new();
-                for tp in partitions {
+                let mut slots: Vec<Option<usize>> = Vec::new();
+                for &(index, partition) in partitions {
                     let part = ElectLeadersPartitionResult {
-                        partition_id: tp.partition,
+                        partition_id: partition,
                         error_code: response.error_code,
                         error_message: None,
                     };
-                    if let Some(&slot) = slots.get(tp.topic.as_str()) {
+                    if let Some(Some(slot)) = slots.get(index).copied() {
                         if let Some(topic) = results.get_mut(slot) {
                             topic.partitions.push(part);
                             continue;
                         }
                     }
+                    let Some(name) = selection.names.get(index) else {
+                        return Err(Error::protocol("missing ElectLeaders topic"));
+                    };
                     let slot = results.len();
-                    let _ = slots.insert(tp.topic.as_str(), slot);
+                    if slots.len() <= index {
+                        slots.resize_with(index.saturating_add(1), || None);
+                    }
+                    if let Some(entry) = slots.get_mut(index) {
+                        *entry = Some(slot);
+                    }
                     results.push(ElectLeadersResult {
-                        topic: tp.topic.clone(),
+                        topic: name.clone(),
                         partitions: vec![part],
                     });
                 }
                 response.results = results;
             }
-            let mut returned: HashMap<String, HashSet<i32>> = HashMap::new();
+            let mut returned: Vec<HashSet<i32>> = Vec::new();
             let mut retry = Vec::new();
             for topic in response.results {
                 let mut added = Vec::new();
                 for partition in topic.partitions {
-                    let duplicate =
-                        !claim_topic_partition(&mut returned, &topic.topic, partition.partition_id);
-                    let unexpected = pending.is_some()
-                        && seen
-                            .get(topic.topic.as_str())
-                            .is_none_or(|parts| !parts.contains(&partition.partition_id));
+                    let index = selection.name_index(&topic.topic);
+                    let duplicate = !mark_returned(&mut returned, index, partition.partition_id);
+                    let unexpected =
+                        pending.is_some() && !selection.contains(index, partition.partition_id);
                     if duplicate || unexpected {
                         return Err(Error::protocol(
                             "unexpected or duplicate ElectLeaders partition result",
                         ));
                     }
-                    if claim_topic_partition(&mut seen, &topic.topic, partition.partition_id) {
-                        order.push(TopicPartition::new(
-                            topic.topic.clone(),
-                            partition.partition_id,
-                        ));
+                    if !selection.contains(index, partition.partition_id) {
+                        if let Some(parts) = selection.parts.get_mut(index) {
+                            let _ = parts.insert(partition.partition_id);
+                        }
+                        order.push((index, partition.partition_id));
                     }
                     if partition.error_code == error::NOT_CONTROLLER {
-                        retry.push(TopicPartition::new(
-                            topic.topic.clone(),
-                            partition.partition_id,
-                        ));
+                        retry.push((index, partition.partition_id));
                     } else {
                         added.push(partition);
                     }
@@ -4072,10 +4073,10 @@ impl Admin {
                 }
             }
             if pending.as_ref().is_some_and(|ps| {
-                ps.iter().any(|tp| {
+                ps.iter().any(|&(index, partition)| {
                     returned
-                        .get(tp.topic.as_str())
-                        .is_none_or(|parts| !parts.contains(&tp.partition))
+                        .get(index)
+                        .is_none_or(|parts| !parts.contains(&partition))
                 })
             }) {
                 return Err(Error::protocol("missing ElectLeaders partition result"));
@@ -4089,29 +4090,40 @@ impl Admin {
             }
             let grouped = {
                 let mut grouped: Vec<(usize, Vec<ElectLeadersPartitionResult>)> = Vec::new();
-                let mut slots: HashMap<&str, usize> = HashMap::new();
-                for (index, tp) in order.iter().enumerate() {
-                    let partition = finished
-                        .get_mut(tp.topic.as_str())
-                        .and_then(|parts| parts.remove(&tp.partition))
+                let mut slots: Vec<Option<usize>> = Vec::new();
+                for &(name_index, partition_id) in &order {
+                    let name = selection
+                        .names
+                        .get(name_index)
+                        .map(String::as_str)
                         .ok_or_else(|| Error::protocol("missing final ElectLeaders result"))?;
-                    if let Some(&slot) = slots.get(tp.topic.as_str()) {
+                    let partition = finished
+                        .get_mut(name)
+                        .and_then(|parts| parts.remove(&partition_id))
+                        .ok_or_else(|| Error::protocol("missing final ElectLeaders result"))?;
+                    if let Some(Some(slot)) = slots.get(name_index).copied() {
                         if let Some((_, parts)) = grouped.get_mut(slot) {
                             parts.push(partition);
                             continue;
                         }
                     }
                     let slot = grouped.len();
-                    let _ = slots.insert(tp.topic.as_str(), slot);
-                    grouped.push((index, vec![partition]));
+                    if slots.len() <= name_index {
+                        slots.resize_with(name_index.saturating_add(1), || None);
+                    }
+                    if let Some(entry) = slots.get_mut(name_index) {
+                        *entry = Some(slot);
+                    }
+                    grouped.push((name_index, vec![partition]));
                 }
                 grouped
             };
             let mut results = Vec::with_capacity(grouped.len());
             for (index, partitions) in grouped {
-                let topic = order
+                let topic = selection
+                    .names
                     .get_mut(index)
-                    .map(|tp| std::mem::take(&mut tp.topic))
+                    .map(std::mem::take)
                     .ok_or_else(|| Error::protocol("missing final ElectLeaders result"))?;
                 results.push(ElectLeadersResult { topic, partitions });
             }
@@ -14722,33 +14734,76 @@ fn replica_log_dir_info_from(
     info
 }
 
-fn claim_topic_partition(
-    seen: &mut HashMap<String, HashSet<i32>>,
-    topic: &str,
-    partition: i32,
-) -> bool {
-    if let Some(parts) = seen.get_mut(topic) {
-        return parts.insert(partition);
-    }
-    let mut parts = HashSet::new();
-    let _ = parts.insert(partition);
-    let _ = seen.insert(topic.to_owned(), parts);
-    true
+/// Topic names for one election, stored once. Partitions remember the name's index.
+#[derive(Default)]
+struct ElectionSelection {
+    names: Vec<String>,
+    parts: Vec<HashSet<i32>>,
 }
 
-fn elect_leader_topics(partitions: &[TopicPartition]) -> Vec<ElectLeadersTopic> {
+impl ElectionSelection {
+    /// Keep `topic` when it is new. A repeated partition returns `None`.
+    fn adopt(&mut self, topic: String, partition: i32) -> Option<usize> {
+        let index = if let Some(index) = self.names.iter().position(|name| name == &topic) {
+            index
+        } else {
+            self.names.push(topic);
+            self.parts.push(HashSet::new());
+            self.names.len().saturating_sub(1)
+        };
+        let parts = self.parts.get_mut(index)?;
+        if !parts.insert(partition) {
+            return None;
+        }
+        Some(index)
+    }
+
+    fn name_index(&mut self, topic: &str) -> usize {
+        if let Some(index) = self.names.iter().position(|name| name == topic) {
+            return index;
+        }
+        self.names.push(topic.to_owned());
+        self.parts.push(HashSet::new());
+        self.names.len().saturating_sub(1)
+    }
+
+    fn contains(&self, index: usize, partition: i32) -> bool {
+        self.parts
+            .get(index)
+            .is_some_and(|parts| parts.contains(&partition))
+    }
+}
+
+fn mark_returned(returned: &mut Vec<HashSet<i32>>, index: usize, partition: i32) -> bool {
+    if returned.len() <= index {
+        returned.resize_with(index.saturating_add(1), HashSet::new);
+    }
+    returned
+        .get_mut(index)
+        .is_some_and(|parts| parts.insert(partition))
+}
+
+fn election_request_topics(names: &[String], pending: &[(usize, i32)]) -> Vec<ElectLeadersTopic> {
     let mut topics: Vec<ElectLeadersTopic> = Vec::new();
-    let mut slots: HashMap<&str, usize> = HashMap::new();
-    for tp in partitions {
-        if let Some(&slot) = slots.get(tp.topic.as_str()) {
+    let mut slots: Vec<Option<usize>> = Vec::new();
+    for &(index, partition) in pending {
+        if let Some(Some(slot)) = slots.get(index).copied() {
             if let Some(topic) = topics.get_mut(slot) {
-                topic.partitions.push(tp.partition);
+                topic.partitions.push(partition);
                 continue;
             }
         }
+        let Some(name) = names.get(index) else {
+            continue;
+        };
         let slot = topics.len();
-        let _ = slots.insert(tp.topic.as_str(), slot);
-        topics.push(ElectLeadersTopic::new(tp.topic.clone(), vec![tp.partition]));
+        if slots.len() <= index {
+            slots.resize_with(index.saturating_add(1), || None);
+        }
+        if let Some(entry) = slots.get_mut(index) {
+            *entry = Some(slot);
+        }
+        topics.push(ElectLeadersTopic::new(name.clone(), vec![partition]));
     }
     topics
 }
@@ -14764,16 +14819,40 @@ mod tests {
 
     #[test]
     fn elect_leader_topics_group_partitions_under_one_name() {
-        let partitions = [
-            TopicPartition::new("orders", 1),
-            TopicPartition::new("orders", 0),
-            TopicPartition::new("payments", 2),
-        ];
-        let topics = elect_leader_topics(&partitions);
+        let orders = "orders-topic-name-is-long".to_string();
+        let orders_ptr = orders.as_ptr();
+        let payments = "payments-topic-name-is-long".to_string();
+        let payments_ptr = payments.as_ptr();
+        let mut selection = ElectionSelection::default();
+        let mut order = Vec::new();
+        let mut kept = Vec::new();
+        for (topic, partition) in [
+            (orders, 1),
+            ("orders-topic-name-is-long".to_string(), 0),
+            (payments, 2),
+        ] {
+            if let Some(index) = selection.adopt(topic, partition) {
+                order.push((index, partition));
+                kept.push((index, partition));
+            }
+        }
+        assert!(selection
+            .adopt("orders-topic-name-is-long".to_string(), 1)
+            .is_none());
+        assert_eq!(
+            selection.names.first().map(|name| name.as_ptr()),
+            Some(orders_ptr)
+        );
+        assert_eq!(
+            selection.names.get(1).map(|name| name.as_ptr()),
+            Some(payments_ptr)
+        );
+        assert_eq!(order, vec![(0, 1), (0, 0), (1, 2)]);
+        let topics = election_request_topics(&selection.names, &kept);
         assert_eq!(topics.len(), 2);
         assert_eq!(
             topics.first().map(|topic| topic.topic.as_str()),
-            Some("orders")
+            Some("orders-topic-name-is-long")
         );
         assert_eq!(
             topics.first().map(|topic| topic.partitions.as_slice()),
@@ -14781,16 +14860,21 @@ mod tests {
         );
         assert_eq!(
             topics.get(1).map(|topic| topic.topic.as_str()),
-            Some("payments")
+            Some("payments-topic-name-is-long")
         );
         assert_eq!(
             topics.get(1).map(|topic| topic.partitions.as_slice()),
             Some([2].as_slice())
         );
-        let mut seen = std::collections::HashMap::new();
-        assert!(claim_topic_partition(&mut seen, "orders", 1));
-        assert!(claim_topic_partition(&mut seen, "orders", 0));
-        assert!(!claim_topic_partition(&mut seen, "orders", 1));
+        let mut returned = Vec::new();
+        let orders_index = selection.name_index("orders-topic-name-is-long");
+        assert!(mark_returned(&mut returned, orders_index, 1));
+        assert!(mark_returned(&mut returned, orders_index, 0));
+        assert!(!mark_returned(&mut returned, orders_index, 1));
+        assert_eq!(
+            selection.names.first().map(|name| name.as_ptr()),
+            Some(orders_ptr)
+        );
     }
 
     #[test]
