@@ -3401,32 +3401,35 @@ fn wanted_from_kip848(
     assignment: &[TopicPartitions],
 ) -> Vec<(String, i32)> {
     let mut out = Vec::new();
-    let mut seen: HashMap<String, HashSet<i32>> = HashMap::new();
+    let mut seen: HashMap<&str, HashSet<i32>> = HashMap::new();
     for tp in assignment {
-        let name = id_to_name.get(&tp.topic_id).cloned().or_else(|| {
-            // One subscription can name an id metadata has not indexed yet.
-            // A zero id is not a topic, so it must not be attached to the
-            // first name when several topics are subscribed.
-            if subscribed.len() == 1 {
-                subscribed.first().cloned()
-            } else {
-                None
-            }
-        });
+        let name = id_to_name
+            .get(&tp.topic_id)
+            .map(String::as_str)
+            .or_else(|| {
+                // One subscription can name an id metadata has not indexed yet.
+                // A zero id is not a topic, so it must not be attached to the
+                // first name when several topics are subscribed.
+                if subscribed.len() == 1 {
+                    subscribed.first().map(String::as_str)
+                } else {
+                    None
+                }
+            });
         let Some(name) = name else {
             continue;
         };
-        if !seen.contains_key(name.as_str()) {
-            let _ = seen.insert(name.clone(), HashSet::new());
+        if !seen.contains_key(name) {
+            let _ = seen.insert(name, HashSet::new());
         }
-        let Some(parts) = seen.get_mut(name.as_str()) else {
+        let Some(parts) = seen.get_mut(name) else {
             continue;
         };
         for p in &tp.partitions {
             if *p < 0 || !parts.insert(*p) {
                 continue;
             }
-            out.push((name.clone(), *p));
+            out.push((name.to_owned(), *p));
         }
     }
     out
