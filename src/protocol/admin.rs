@@ -19025,6 +19025,12 @@ pub fn encode_create_delegation_token_request(
     req: &CreateDelegationTokenRequest,
 ) -> crate::error::Result<()> {
     let flexible = create_delegation_token_flexible(version)?;
+    let body_start = buf.len();
+    let planned = create_delegation_token_request_len(version, flexible, req)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     if version >= 3 {
         buf::put_string(buf, flexible, req.owner_principal_type.as_deref())?;
         buf::put_string(buf, flexible, req.owner_principal_name.as_deref())?;
@@ -19041,7 +19047,45 @@ pub fn encode_create_delegation_token_request(
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn create_delegation_token_request_len(
+    version: i16,
+    flexible: bool,
+    req: &CreateDelegationTokenRequest,
+) -> Result<usize> {
+    let mut total = 0;
+    if version >= 3 {
+        total = add_describe_len(
+            total,
+            describe_string_len(flexible, req.owner_principal_type.as_deref())?,
+        )?;
+        total = add_describe_len(
+            total,
+            describe_string_len(flexible, req.owner_principal_name.as_deref())?,
+        )?;
+    }
+    total = add_describe_len(total, describe_array_len(flexible, req.renewers.len())?)?;
+    for renewer in &req.renewers {
+        total = add_describe_len(
+            total,
+            describe_string_len(flexible, Some(&renewer.principal_type))?,
+        )?;
+        total = add_describe_len(
+            total,
+            describe_string_len(flexible, Some(&renewer.principal_name))?,
+        )?;
+        if flexible {
+            total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    total = add_describe_len(total, 8)?;
+    if flexible {
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 /// Decode a CreateDelegationToken request.
@@ -19091,6 +19135,12 @@ pub fn encode_create_delegation_token_response(
     resp: &CreateDelegationTokenResponse,
 ) -> crate::error::Result<()> {
     let flexible = create_delegation_token_flexible(version)?;
+    let body_start = buf.len();
+    let planned = create_delegation_token_response_len(version, flexible, resp)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf.put_i16(resp.error_code);
     buf::put_string(buf, flexible, Some(&resp.principal_type))?;
     buf::put_string(buf, flexible, Some(&resp.principal_name))?;
@@ -19107,7 +19157,42 @@ pub fn encode_create_delegation_token_response(
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn create_delegation_token_response_len(
+    version: i16,
+    flexible: bool,
+    resp: &CreateDelegationTokenResponse,
+) -> Result<usize> {
+    let mut total = 2;
+    total = add_describe_len(
+        total,
+        describe_string_len(flexible, Some(&resp.principal_type))?,
+    )?;
+    total = add_describe_len(
+        total,
+        describe_string_len(flexible, Some(&resp.principal_name))?,
+    )?;
+    if version >= 3 {
+        total = add_describe_len(
+            total,
+            describe_string_len(flexible, Some(&resp.token_requester_principal_type))?,
+        )?;
+        total = add_describe_len(
+            total,
+            describe_string_len(flexible, Some(&resp.token_requester_principal_name))?,
+        )?;
+    }
+    total = add_describe_len(total, 24)?;
+    total = add_describe_len(total, describe_string_len(flexible, Some(&resp.token_id))?)?;
+    total = add_describe_len(total, describe_bytes_len(flexible, &resp.hmac)?)?;
+    total = add_describe_len(total, 4)?;
+    if flexible {
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 /// Decode a CreateDelegationToken response.
@@ -20189,6 +20274,12 @@ pub fn encode_describe_delegation_token_request(
     req: &DescribeDelegationTokenRequest,
 ) -> crate::error::Result<()> {
     let flexible = describe_delegation_token_flexible(version)?;
+    let body_start = buf.len();
+    let planned = describe_delegation_token_request_len(flexible, req)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf::put_array_len(buf, flexible, req.owners.as_ref().map(Vec::len))?;
     if let Some(owners) = &req.owners {
         for owner in owners {
@@ -20202,7 +20293,44 @@ pub fn encode_describe_delegation_token_request(
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn describe_delegation_token_request_len(
+    flexible: bool,
+    req: &DescribeDelegationTokenRequest,
+) -> Result<usize> {
+    let mut total = match &req.owners {
+        None => {
+            if flexible {
+                buf::unsigned_varint_size(0)
+            } else {
+                4
+            }
+        }
+        Some(owners) => {
+            let mut total = describe_array_len(flexible, owners.len())?;
+            for owner in owners {
+                total = add_describe_len(
+                    total,
+                    describe_string_len(flexible, Some(&owner.principal_type))?,
+                )?;
+                total = add_describe_len(
+                    total,
+                    describe_string_len(flexible, Some(&owner.principal_name))?,
+                )?;
+                if flexible {
+                    total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+                }
+            }
+            total
+        }
+    };
+    if flexible {
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 /// Decode a DescribeDelegationToken request.
@@ -20243,6 +20371,12 @@ pub fn encode_describe_delegation_token_response(
     resp: &DescribeDelegationTokenResponse,
 ) -> crate::error::Result<()> {
     let flexible = describe_delegation_token_flexible(version)?;
+    let body_start = buf.len();
+    let planned = describe_delegation_token_response_len(version, flexible, resp)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf.put_i16(resp.error_code);
     buf::put_array_len(buf, flexible, Some(resp.tokens.len()))?;
     for token in &resp.tokens {
@@ -20273,7 +20407,62 @@ pub fn encode_describe_delegation_token_response(
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn describe_delegation_token_response_len(
+    version: i16,
+    flexible: bool,
+    resp: &DescribeDelegationTokenResponse,
+) -> Result<usize> {
+    let mut total = 2;
+    total = add_describe_len(total, describe_array_len(flexible, resp.tokens.len())?)?;
+    for token in &resp.tokens {
+        total = add_describe_len(
+            total,
+            describe_string_len(flexible, Some(&token.principal_type))?,
+        )?;
+        total = add_describe_len(
+            total,
+            describe_string_len(flexible, Some(&token.principal_name))?,
+        )?;
+        if version >= 3 {
+            total = add_describe_len(
+                total,
+                describe_string_len(flexible, Some(&token.token_requester_principal_type))?,
+            )?;
+            total = add_describe_len(
+                total,
+                describe_string_len(flexible, Some(&token.token_requester_principal_name))?,
+            )?;
+        }
+        total = add_describe_len(total, 24)?;
+        total = add_describe_len(total, describe_string_len(flexible, Some(&token.token_id))?)?;
+        total = add_describe_len(total, describe_bytes_len(flexible, &token.hmac)?)?;
+        total = add_describe_len(total, describe_array_len(flexible, token.renewers.len())?)?;
+        for renewer in &token.renewers {
+            total = add_describe_len(
+                total,
+                describe_string_len(flexible, Some(&renewer.principal_type))?,
+            )?;
+            total = add_describe_len(
+                total,
+                describe_string_len(flexible, Some(&renewer.principal_name))?,
+            )?;
+            if flexible {
+                total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+            }
+        }
+        if flexible {
+            total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    total = add_describe_len(total, 4)?;
+    if flexible {
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 /// Decode a DescribeDelegationToken response.
@@ -39914,6 +40103,76 @@ mod tests {
     }
 
     #[test]
+    fn a_create_delegation_token_request_sizes_its_body_once() {
+        let request = CreateDelegationTokenRequest {
+            owner_principal_type: Some("User".into()),
+            owner_principal_name: Some("bob".into()),
+            renewers: vec![CreatableRenewer {
+                principal_type: "User".into(),
+                principal_name: "alice".into(),
+            }],
+            max_lifetime_ms: 1_000,
+        };
+        for version in [1_i16, 2, 3] {
+            let mut buf = BytesMut::new();
+            encode_create_delegation_token_request(&mut buf, version, &request).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_create_delegation_token_request(&mut buf, version, &request).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+            let mut cur = &buf[..];
+            let decoded = decode_create_delegation_token_request(&mut cur, version).unwrap();
+            assert!(cur.is_empty());
+            assert_eq!(decoded.renewers, request.renewers);
+            assert_eq!(decoded.max_lifetime_ms, 1_000);
+            if version >= 3 {
+                assert_eq!(decoded, request);
+            }
+        }
+    }
+
+    #[test]
+    fn a_create_delegation_token_response_sizes_its_body_once() {
+        let response = CreateDelegationTokenResponse {
+            error_code: 0,
+            principal_type: "User".into(),
+            principal_name: "alice".into(),
+            token_requester_principal_type: "User".into(),
+            token_requester_principal_name: "bob".into(),
+            issue_timestamp_ms: 1,
+            expiry_timestamp_ms: 2,
+            max_timestamp_ms: 3,
+            token_id: "token".into(),
+            hmac: vec![1, 2, 3, 4],
+            throttle_time_ms: 12,
+        };
+        for version in [1_i16, 3] {
+            let mut buf = BytesMut::new();
+            encode_create_delegation_token_response(&mut buf, version, &response).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_create_delegation_token_response(&mut buf, version, &response).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+            let mut cur = &buf[..];
+            let decoded = decode_create_delegation_token_response(&mut cur, version).unwrap();
+            assert!(cur.is_empty());
+            assert_eq!(decoded.token_id, "token");
+            assert_eq!(decoded.hmac, response.hmac);
+            if version >= 3 {
+                assert_eq!(decoded, response);
+            }
+        }
+    }
+
+    #[test]
     fn create_delegation_token_v3_matches_kafka_protocol_0_18() {
         assert!(!CreateDelegationTokenResponse::should_client_throttle(0));
         assert!(CreateDelegationTokenResponse::should_client_throttle(1));
@@ -42085,6 +42344,78 @@ mod tests {
             &zero_buf[..],
             "error_response still fills ThrottleTimeMs 0"
         );
+    }
+
+    #[test]
+    fn a_describe_delegation_token_request_sizes_its_body_once() {
+        let listed = DescribeDelegationTokenRequest {
+            owners: Some(vec![DescribeDelegationTokenOwner {
+                principal_type: "User".into(),
+                principal_name: "alice".into(),
+            }]),
+        };
+        let all = DescribeDelegationTokenRequest { owners: None };
+        for version in [1_i16, 2, 3] {
+            for request in [&listed, &all] {
+                let mut buf = BytesMut::new();
+                encode_describe_delegation_token_request(&mut buf, version, request).unwrap();
+                let len = buf.len();
+                let capacity = buf.capacity();
+                assert!(capacity >= len);
+                assert!(capacity < 64 * 1024);
+                buf.clear();
+                encode_describe_delegation_token_request(&mut buf, version, request).unwrap();
+                assert_eq!(buf.len(), len);
+                assert_eq!(buf.capacity(), capacity);
+                let mut cur = &buf[..];
+                let decoded = decode_describe_delegation_token_request(&mut cur, version).unwrap();
+                assert!(cur.is_empty());
+                assert_eq!(decoded, *request);
+            }
+        }
+    }
+
+    #[test]
+    fn a_describe_delegation_token_response_sizes_its_body_once() {
+        let response = DescribeDelegationTokenResponse {
+            error_code: 0,
+            tokens: vec![DescribedDelegationToken {
+                principal_type: "User".into(),
+                principal_name: "alice".into(),
+                token_requester_principal_type: "User".into(),
+                token_requester_principal_name: "bob".into(),
+                issue_timestamp: 1,
+                expiry_timestamp: 2,
+                max_timestamp: 3,
+                token_id: "token".into(),
+                hmac: vec![9, 8, 7],
+                renewers: vec![DescribedDelegationTokenRenewer {
+                    principal_type: "User".into(),
+                    principal_name: "carol".into(),
+                }],
+            }],
+            throttle_time_ms: 12,
+        };
+        for version in [1_i16, 3] {
+            let mut buf = BytesMut::new();
+            encode_describe_delegation_token_response(&mut buf, version, &response).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_describe_delegation_token_response(&mut buf, version, &response).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+            let mut cur = &buf[..];
+            let decoded = decode_describe_delegation_token_response(&mut cur, version).unwrap();
+            assert!(cur.is_empty());
+            assert_eq!(decoded.throttle_time_ms, 12);
+            assert_eq!(decoded.tokens.len(), 1);
+            if version >= 3 {
+                assert_eq!(decoded, response);
+            }
+        }
     }
 
     #[test]
