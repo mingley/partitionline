@@ -908,6 +908,12 @@ pub fn encode_list_offsets_topics_response_with_throttle(
     throttle_time_ms: i32,
 ) -> crate::error::Result<()> {
     let flexible = list_offsets_flexible(version)?;
+    let body_start = buf.len();
+    let planned = list_offsets_response_len(version, flexible, topics)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     if version >= 2 {
         buf.put_i32(throttle_time_ms);
     }
@@ -934,7 +940,44 @@ pub fn encode_list_offsets_topics_response_with_throttle(
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn list_offsets_response_len(
+    version: i16,
+    flexible: bool,
+    topics: &[ListOffsetsTopicResponse],
+) -> Result<usize> {
+    let mut total = if version >= 2 { 4usize } else { 0 };
+    total = add_list_offsets_len(total, list_offsets_array_len(flexible, topics.len())?)?;
+    for topic in topics {
+        total = add_list_offsets_len(total, list_offsets_string_len(flexible, &topic.name)?)?;
+        total = add_list_offsets_len(
+            total,
+            list_offsets_array_len(flexible, topic.partitions.len())?,
+        )?;
+        let mut partition = 22usize;
+        if version >= 4 {
+            partition += 4;
+        }
+        if flexible {
+            partition += buf::unsigned_varint_size(0);
+        }
+        total = add_list_offsets_len(
+            total,
+            partition
+                .checked_mul(topic.partitions.len())
+                .ok_or_else(|| Error::protocol("list offsets response size overflow"))?,
+        )?;
+        if flexible {
+            total = add_list_offsets_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    if flexible {
+        total = add_list_offsets_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 /// Decode a single-topic, single-partition ListOffsets response.
@@ -1541,6 +1584,28 @@ mod tests {
             "ListOffsets v6 toListOffsetsTopics leftover-empty; leftover {} bytes",
             cur.len()
         );
+    }
+
+    #[test]
+    fn a_list_offsets_response_sizes_its_body_once() {
+        let topics = vec![ListOffsetsTopicResponse::new(
+            "orders",
+            (0..8)
+                .map(|partition| ListOffsetsResponsePartition::error(partition, 0))
+                .collect(),
+        )];
+        for version in [1_i16, 4, 10] {
+            let mut buf = BytesMut::new();
+            encode_list_offsets_topics_response(&mut buf, version, &topics).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_list_offsets_topics_response(&mut buf, version, &topics).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+        }
     }
 
     #[test]
