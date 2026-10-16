@@ -276,42 +276,15 @@ impl ConsumerGroup {
         topics: &[OffsetFetchTopic],
         timeout: Duration,
     ) -> Result<Vec<FetchedOffsetTopic>> {
-        let names = self.consumer.topic_name_ids();
-        let mut reverse = HashMap::new();
-        let topics = topics
-            .iter()
-            .map(|topic| {
-                let id = names
-                    .get(topic.topic.as_str())
-                    .copied()
-                    .filter(|id| *id != [0; 16])
-                    .ok_or_else(|| {
-                        Error::Unsupported(
-                            "OffsetFetch v10 requires a captured nonzero topic UUID".into(),
-                        )
-                    })?;
-                if reverse.insert(id, topic.topic.clone()).is_some() {
-                    return Err(Error::protocol(
-                        "offset metadata maps multiple names to one UUID",
-                    ));
-                }
-                Ok(OffsetFetchTopicData {
-                    identity: OffsetTopicIdentity::Id(id),
-                    partition_indexes: topic.partitions.clone(),
-                })
-            })
-            .collect::<Result<Vec<_>>>()?;
-        let request = OffsetFetchRequestData {
-            groups: vec![OffsetFetchGroupData {
-                group_id: self.group_id.clone(),
-                member_id: self.kip848.then(|| self.member_id.clone()),
-                member_epoch: if self.kip848 { self.generation_id } else { -1 },
-                topics: Some(topics),
-            }],
-            require_stable: self.cfg.isolation_level == crate::IsolationLevel::ReadCommitted,
-        };
+        let mut request = std::mem::take(&mut self.fetch_v10);
+        let mut reverse = std::mem::take(&mut self.fetch_names);
+        if let Err(error) = self.fill_fetch_v10(&mut request, &mut reverse, topics) {
+            self.fetch_v10 = request;
+            self.fetch_names = reverse;
+            return Err(error);
+        }
         let limits = OffsetLimits::default();
-        let body = coord_offsets_v10(
+        let sent = coord_offsets_v10(
             &mut self.coord,
             &self.cfg,
             &self.group_id,
@@ -320,17 +293,34 @@ impl ConsumerGroup {
             |buf| encode_offset_fetch_request_into(buf, &request, 10, limits),
             timeout,
         )
-        .await?;
-        let response = decode_offset_fetch_response_data(&body, 10, limits)?;
-        let group = response
-            .groups
-            .into_iter()
-            .next()
-            .ok_or_else(|| Error::protocol("missing fetched group"))?;
+        .await;
+        self.fetch_v10 = request;
+        let body = match sent {
+            Ok(body) => body,
+            Err(error) => {
+                self.fetch_names = reverse;
+                return Err(error);
+            }
+        };
+        let response = match decode_offset_fetch_response_data(&body, 10, limits) {
+            Ok(response) => response,
+            Err(error) => {
+                self.fetch_names = reverse;
+                return Err(error);
+            }
+        };
+        let group = match response.groups.into_iter().next() {
+            Some(group) => group,
+            None => {
+                self.fetch_names = reverse;
+                return Err(Error::protocol("missing fetched group"));
+            }
+        };
         if group.error_code != 0 {
+            self.fetch_names = reverse;
             return Err(Error::broker(group.error_code, "OffsetFetch"));
         }
-        group
+        let fetched = group
             .topics
             .into_iter()
             .map(|topic| {
@@ -355,8 +345,80 @@ impl ConsumerGroup {
                         .collect(),
                 })
             })
-            .collect()
+            .collect();
+        self.fetch_names = reverse;
+        fetched
     }
+
+    fn fill_fetch_v10(
+        &self,
+        request: &mut OffsetFetchRequestData,
+        reverse: &mut HashMap<[u8; 16], String>,
+        topics: &[OffsetFetchTopic],
+    ) -> Result<()> {
+        request.require_stable = self.cfg.isolation_level == crate::IsolationLevel::ReadCommitted;
+        if request.groups.is_empty() {
+            request.groups.push(OffsetFetchGroupData {
+                group_id: String::new(),
+                member_id: None,
+                member_epoch: -1,
+                topics: Some(Vec::new()),
+            });
+        }
+        request.groups.truncate(1);
+        let Some(group) = request.groups.first_mut() else {
+            return Err(Error::protocol("missing offset fetch group"));
+        };
+        copy_text(&mut group.group_id, &self.group_id);
+        if self.kip848 {
+            match &mut group.member_id {
+                Some(slot) => copy_text(slot, &self.member_id),
+                None => group.member_id = Some(self.member_id.clone()),
+            }
+            group.member_epoch = self.generation_id;
+        } else {
+            group.member_id = None;
+            group.member_epoch = -1;
+        }
+        let slots = group.topics.get_or_insert_with(Vec::new);
+        let names = self.consumer.topic_name_ids();
+        refill_fetch_topics(slots, topics, |topic| names.get(topic).copied(), reverse)
+    }
+}
+
+fn refill_fetch_topics(
+    slots: &mut Vec<OffsetFetchTopicData>,
+    topics: &[OffsetFetchTopic],
+    mut id_of: impl FnMut(&str) -> Option<[u8; 16]>,
+    reverse: &mut HashMap<[u8; 16], String>,
+) -> Result<()> {
+    reverse.clear();
+    let mut used = 0usize;
+    for topic in topics {
+        let id = id_of(topic.topic.as_str())
+            .filter(|id| *id != [0; 16])
+            .ok_or_else(|| {
+                Error::Unsupported("OffsetFetch v10 requires a captured nonzero topic UUID".into())
+            })?;
+        if reverse.insert(id, topic.topic.clone()).is_some() {
+            return Err(Error::protocol(
+                "offset metadata maps multiple names to one UUID",
+            ));
+        }
+        if let Some(slot) = slots.get_mut(used) {
+            slot.identity = OffsetTopicIdentity::Id(id);
+            slot.partition_indexes.clear();
+            slot.partition_indexes.extend_from_slice(&topic.partitions);
+        } else {
+            slots.push(OffsetFetchTopicData {
+                identity: OffsetTopicIdentity::Id(id),
+                partition_indexes: topic.partitions.clone(),
+            });
+        }
+        used = used.saturating_add(1);
+    }
+    slots.truncate(used);
+    Ok(())
 }
 
 fn copy_text(slot: &mut String, text: &str) {
@@ -569,6 +631,37 @@ fn bounded_consumer_config(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::HashMap;
+
+    #[test]
+    fn a_repeated_v10_fetch_keeps_the_group_name() {
+        let mut group_id = String::new();
+        copy_text(&mut group_id, "orders");
+        let group = group_id.as_ptr();
+        copy_text(&mut group_id, "orders");
+        assert_eq!(group_id.as_ptr(), group);
+        let mut slots = Vec::new();
+        let mut reverse = HashMap::new();
+        let orders = [7u8; 16];
+        let topics = [OffsetFetchTopic {
+            topic: "orders".to_string(),
+            partitions: vec![0, 1],
+        }];
+        refill_fetch_topics(&mut slots, &topics, |_| Some(orders), &mut reverse).unwrap();
+        let group_slot = slots.first().expect("topic");
+        let indexes = group_slot.partition_indexes.as_ptr();
+        let capacity = group_slot.partition_indexes.capacity();
+        refill_fetch_topics(&mut slots, &topics, |_| Some(orders), &mut reverse).unwrap();
+        let group_slot = slots.first().expect("topic");
+        assert_eq!(group_slot.partition_indexes.as_ptr(), indexes);
+        assert!(group_slot.partition_indexes.capacity() >= capacity);
+        assert_eq!(group_slot.partition_indexes, [0, 1]);
+        assert!(matches!(
+            group_slot.identity,
+            OffsetTopicIdentity::Id(id) if id == orders
+        ));
+        assert_eq!(reverse.get(&orders).map(String::as_str), Some("orders"));
+    }
 
     #[test]
     fn a_repeated_v10_commit_keeps_the_group_name() {

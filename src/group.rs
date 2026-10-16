@@ -34,8 +34,9 @@ use crate::protocol::group::{
     encode_offset_commit_request, encode_offset_fetch_request, encode_sync_group_request,
     encode_tp_assignment, ConsumerProtocol, ConsumerProtocolSubscription, FetchedOffsetTopic,
     JoinGroupProtocol, JoinGroupProtocolsRequest, JoinGroupRequest, JoinGroupResponse,
-    LeaveGroupMember, OffsetCommitRequestData, OffsetFetchTopic, OffsetPartition, OffsetTopic,
-    SyncGroupRequest, Topic, COORDINATOR_GROUP, DEFAULT_RETENTION_TIME,
+    LeaveGroupMember, OffsetCommitRequestData, OffsetFetchRequestData, OffsetFetchTopic,
+    OffsetPartition, OffsetTopic, SyncGroupRequest, Topic, COORDINATOR_GROUP,
+    DEFAULT_RETENTION_TIME,
 };
 use crate::protocol::sasl;
 
@@ -649,6 +650,10 @@ pub struct ConsumerGroup {
     last_delivered_topic_ids: DeliveredTopicIds,
     /// Previous v10 OffsetCommit body, refilled on the next commit.
     commit_v10: OffsetCommitRequestData,
+    /// Previous v10 OffsetFetch body, refilled on the next fetch.
+    fetch_v10: OffsetFetchRequestData,
+    /// Topic ids from the previous v10 OffsetFetch, reused for the response names.
+    fetch_names: HashMap<[u8; 16], String>,
     last_poll: Arc<parking_lot::Mutex<Option<Instant>>>,
     /// Heartbeat thread left the group after `max.poll.interval.ms`.
     left_max_poll: Arc<AtomicBool>,
@@ -823,6 +828,8 @@ impl ConsumerGroup {
             last_delivered_positions: None,
             last_delivered_topic_ids: HashMap::new(),
             commit_v10: OffsetCommitRequestData::default(),
+            fetch_v10: OffsetFetchRequestData::default(),
+            fetch_names: HashMap::new(),
             last_poll: Arc::new(parking_lot::Mutex::new(None)),
             left_max_poll: Arc::new(AtomicBool::new(false)),
             m_rebalances: AtomicU64::new(0),
@@ -980,6 +987,8 @@ impl ConsumerGroup {
             last_delivered_positions: None,
             last_delivered_topic_ids: HashMap::new(),
             commit_v10: OffsetCommitRequestData::default(),
+            fetch_v10: OffsetFetchRequestData::default(),
+            fetch_names: HashMap::new(),
             last_poll: Arc::new(parking_lot::Mutex::new(None)),
             left_max_poll: Arc::new(AtomicBool::new(false)),
             m_rebalances: AtomicU64::new(0),
