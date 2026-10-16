@@ -288,6 +288,11 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `handleShareFetchSuccess` completes piggyback acks and still delivers
   the fetch; this is not partition `OFFSET_OUT_OF_RANGE`, which fails
   that poll, and not partition `OFFSET_NOT_AVAILABLE`, which skips). A
+  piggybacked `BROKER_NOT_AVAILABLE` still completes without retry,
+  including when `AcknowledgeErrorMessage` is set (Java
+  `handleShareFetchSuccess` completes piggyback acks and still delivers
+  the fetch; this is not partition `BROKER_NOT_AVAILABLE`, which fails
+  that poll, and not partition `REPLICA_NOT_AVAILABLE`, which skips). A
   piggybacked `TOPIC_AUTHORIZATION_FAILED` on
   one partition does not fail a sibling whose `AcknowledgeErrorCode`
   is none, including when `AcknowledgeErrorMessage` is set or empty. A
