@@ -166,27 +166,7 @@ impl ConsumerGroup {
                 })
                 .collect(),
         };
-        let response = self
-            .offset_client()?
-            .commit(
-                &request,
-                &OffsetOptions {
-                    topic_ids: true,
-                    timeout: Some(timeout),
-                    ..Default::default()
-                },
-            )
-            .await?;
-        if let Some(code) = response
-            .topics
-            .iter()
-            .flat_map(|topic| &topic.partitions)
-            .map(|partition| partition.error_code)
-            .find(|code| *code != 0)
-        {
-            return Err(Error::broker(code, "OffsetCommit"));
-        }
-        Ok(())
+        self.finish_commit_v10(request, timeout).await
     }
 
     pub(super) async fn commit_offsets_v10(
@@ -232,17 +212,32 @@ impl ConsumerGroup {
                 })
                 .collect(),
         };
-        let response = self
-            .offset_client()?
-            .commit(
-                &request,
-                &OffsetOptions {
-                    topic_ids: true,
-                    timeout: Some(timeout),
-                    ..Default::default()
-                },
-            )
-            .await?;
+        self.finish_commit_v10(request, timeout).await?;
+        self.cfg.interceptors.on_commit(offsets);
+        Ok(())
+    }
+
+    async fn finish_commit_v10(
+        &mut self,
+        request: OffsetCommitRequestData,
+        timeout: Duration,
+    ) -> Result<()> {
+        let limits = OffsetLimits::default();
+        let encoded = encode_offset_commit_request_data(&request, 10, limits)?;
+        let body = coord_offsets_v10(
+            &mut self.coord,
+            &self.cfg,
+            &self.group_id,
+            super::COORDINATOR_GROUP,
+            crate::protocol::api_keys::OFFSET_COMMIT,
+            |buf| {
+                buf.extend_from_slice(&encoded);
+                Ok(())
+            },
+            timeout,
+        )
+        .await?;
+        let response = decode_offset_commit_response_data(&body, 10, limits)?;
         if let Some(code) = response
             .topics
             .iter()
@@ -252,7 +247,6 @@ impl ConsumerGroup {
         {
             return Err(Error::broker(code, "OffsetCommit"));
         }
-        self.cfg.interceptors.on_commit(offsets);
         Ok(())
     }
 
@@ -344,6 +338,63 @@ impl ConsumerGroup {
     }
 }
 
+fn offset_commit_v10_code(body: &[u8]) -> Option<i16> {
+    let response = decode_offset_commit_response_data(body, 10, OffsetLimits::default()).ok()?;
+    response
+        .topics
+        .iter()
+        .flat_map(|topic| &topic.partitions)
+        .map(|partition| partition.error_code)
+        .find(|code| *code != 0)
+}
+
+/// OffsetCommit v10 on the group's coordinator.
+///
+/// The body is the typed UUID request. A coordinator error rediscovers that
+/// broker on the caller's deadline. Name-only v2–v9 stays on
+/// [`coord_offsets_legacy`].
+pub(super) async fn coord_offsets_v10(
+    coord: &mut BrokerConn,
+    cfg: &crate::ConsumerConfig,
+    group_id: &str,
+    key_type: i8,
+    api: i16,
+    mut encode: impl FnMut(&mut bytes::BytesMut) -> Result<()>,
+    timeout: Duration,
+) -> Result<bytes::Bytes> {
+    let target = std::time::Instant::now()
+        .checked_add(timeout)
+        .ok_or(Error::Timeout)?;
+    let deadline = Deadline::from_std(target);
+    if coord.idle_expired(cfg.connections_max_idle) {
+        let bounded = bounded_consumer_config(cfg, deadline)?;
+        *coord = super::open_coord_supporting(&bounded, coord.addr(), api, 10).await?;
+    }
+    let body = match coord
+        .roundtrip_deadline(api, 10, |buf| encode(buf), deadline)
+        .await
+    {
+        Ok(body) => body,
+        Err(Error::Io(_) | Error::Timeout) => {
+            let bounded = bounded_consumer_config(cfg, deadline)?;
+            *coord = super::open_coord_supporting(&bounded, coord.addr(), api, 10).await?;
+            coord
+                .roundtrip_deadline(api, 10, |buf| encode(buf), deadline)
+                .await?
+        }
+        Err(err) => return Err(err),
+    };
+    if offset_commit_v10_code(&body).is_some_and(crate::error::coordinator_retriable) {
+        let bounded = bounded_consumer_config(cfg, deadline)?;
+        *coord = super::discover_coord_supporting(&bounded, group_id, key_type, api, 10).await?;
+        coord
+            .roundtrip_deadline(api, 10, |buf| encode(buf), deadline)
+            .await
+    } else {
+        Ok(body)
+    }
+}
+
 #[expect(
     clippy::too_many_arguments,
     reason = "legacy offset RPC and coordinator discovery identity"
@@ -409,4 +460,61 @@ fn bounded_consumer_config(
     bounded.request_timeout = deadline.remaining()?;
     bounded.connect_timeout = bounded.connect_timeout.min(bounded.request_timeout);
     Ok(bounded)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_v10_group_commit_names_topic_ids() {
+        let id = [9u8; 16];
+        let request = OffsetCommitRequestData {
+            group_id: "g".into(),
+            generation_id_or_member_epoch: 3,
+            member_id: "m-1".into(),
+            group_instance_id: None,
+            topics: vec![OffsetCommitTopicData {
+                identity: OffsetTopicIdentity::Id(id),
+                partitions: vec![OffsetCommitPartitionData {
+                    partition_index: 1,
+                    committed_offset: 4,
+                    committed_leader_epoch: -1,
+                    committed_metadata: Some(String::new()),
+                }],
+            }],
+        };
+        let limits = OffsetLimits::default();
+        let bytes = encode_offset_commit_request_data(&request, 10, limits).unwrap();
+        let decoded = decode_offset_commit_request_data(&bytes, 10, limits).unwrap();
+        assert_eq!(decoded.group_id, "g");
+        assert_eq!(decoded.member_id, "m-1");
+        let topic = decoded.topics.first().expect("topic");
+        assert_eq!(topic.identity, OffsetTopicIdentity::Id(id));
+        assert!(!bytes.windows(8).any(|window| window == b"payments"));
+    }
+
+    #[test]
+    fn a_v10_commit_response_reports_a_coordinator_error() {
+        let limits = OffsetLimits::default();
+        let response = OffsetCommitResponseData {
+            throttle_time_ms: 0,
+            topics: vec![OffsetCommitTopicResponseData {
+                identity: OffsetTopicIdentity::Id([1u8; 16]),
+                partitions: vec![OffsetCommitPartitionResponseData {
+                    partition_index: 0,
+                    error_code: crate::error::NOT_COORDINATOR,
+                }],
+            }],
+        };
+        let bytes = encode_offset_commit_response_data(&response, 10, limits).unwrap();
+        assert_eq!(
+            offset_commit_v10_code(&bytes),
+            Some(crate::error::NOT_COORDINATOR)
+        );
+        let empty =
+            encode_offset_commit_response_data(&OffsetCommitResponseData::default(), 10, limits)
+                .unwrap();
+        assert_eq!(offset_commit_v10_code(&empty), None);
+    }
 }
