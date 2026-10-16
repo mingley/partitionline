@@ -4568,6 +4568,8 @@ struct ProduceGroupScratch {
     partition_slots: HashMap<i32, usize>,
     /// Emptied partition lists from a previous split batch.
     spare_parts: Vec<Vec<Pending>>,
+    /// Group list from the previous split batch.
+    spare_groups: Vec<(Arc<str>, i32, Vec<Pending>)>,
     /// Topic name to the group-list slot. Cleared on each mixed batch.
     topic_slots: HashMap<Arc<str>, usize>,
     /// First topic id for each name. Cleared when a multi-topic v13 body is encoded.
@@ -5710,7 +5712,8 @@ impl Worker {
         }
         let mut first_err: Option<Error> = None;
         let mut ack_tracker = None;
-        for (found_at, (topic, part, pendings)) in slots.drain(..).zip(inf.groups) {
+        let mut shell = inf.groups.into_vec();
+        for (found_at, (topic, part, pendings)) in slots.drain(..).zip(shell.drain(..)) {
             let found = found_at.and_then(|at| responses.get(at));
             match found {
                 None => {
@@ -5882,16 +5885,19 @@ impl Worker {
         }
         self.ack_slots = slots;
         self.spare_acks = responses;
+        self.stash_group_shell(shell);
         match first_err {
             Some(e) => Err(e),
             None => Ok(()),
         }
     }
 
-    fn requeue(&mut self, groups: impl IntoIterator<Item = (Arc<str>, i32, Vec<Pending>)>) {
-        for (_, _, pendings) in groups {
+    fn requeue(&mut self, groups: ProduceGroups) {
+        let mut shell = groups.into_vec();
+        for (_, _, pendings) in shell.drain(..) {
             self.requeue_pendings(pendings);
         }
+        self.stash_group_shell(shell);
     }
 
     async fn add_txn_partitions(&self, groups: &[(Arc<str>, i32, Vec<Pending>)]) -> Result<()> {
@@ -6030,6 +6036,13 @@ impl Worker {
         self.stash_part_list(batch);
     }
 
+    fn stash_group_shell(&mut self, mut groups: Vec<(Arc<str>, i32, Vec<Pending>)>) {
+        groups.clear();
+        if groups.capacity() > self.group_scratch.spare_groups.capacity() {
+            self.group_scratch.spare_groups = groups;
+        }
+    }
+
     fn stash_part_list(&mut self, batch: Vec<Pending>) {
         if batch.capacity() == 0 || self.group_scratch.spare_parts.len() >= 64 {
             return;
@@ -6044,33 +6057,37 @@ impl Worker {
     }
 
     /// Fail grouped records and keep the largest emptied batch list.
-    fn fail_kept_groups(
-        &mut self,
-        groups: impl IntoIterator<Item = (Arc<str>, i32, Vec<Pending>)>,
-        err: Error,
-    ) {
+    fn fail_kept_groups(&mut self, groups: ProduceGroups, err: Error) {
+        let mut shell = groups.into_vec();
         let mut best = Vec::new();
-        for (_, _, pendings) in groups {
+        for (_, _, pendings) in shell.drain(..) {
             let empty = fail_kept_pendings(&self.shared, pendings, clone_err(&err));
             if empty.capacity() > best.capacity() {
                 best = empty;
             }
         }
         self.park_batch(best);
+        self.stash_group_shell(shell);
     }
 
     /// Fail every in-flight batch and keep the largest emptied list.
     fn fail_kept_inflight(&mut self, err: Error) {
         let mut best = Vec::new();
+        let mut best_shell = Vec::new();
         while let Some(inflight) = self.in_flight.pop_front() {
-            for (_, _, pendings) in inflight.groups {
+            let mut shell = inflight.groups.into_vec();
+            for (_, _, pendings) in shell.drain(..) {
                 let empty = fail_kept_pendings(&self.shared, pendings, clone_err(&err));
                 if empty.capacity() > best.capacity() {
                     best = empty;
                 }
             }
+            if shell.capacity() > best_shell.capacity() {
+                best_shell = shell;
+            }
         }
         self.park_batch(best);
+        self.stash_group_shell(best_shell);
     }
 
     fn requeue_pendings(&mut self, mut pendings: Vec<Pending>) {
@@ -6299,6 +6316,12 @@ fn park_spare(spare: &mut Vec<Pending>, mut batch: Vec<Pending>) {
     }
 }
 
+fn take_group_shell(scratch: &mut ProduceGroupScratch) -> Vec<(Arc<str>, i32, Vec<Pending>)> {
+    let mut groups = std::mem::take(&mut scratch.spare_groups);
+    groups.clear();
+    groups
+}
+
 fn take_part_list(scratch: &mut ProduceGroupScratch) -> Vec<Pending> {
     let mut part = scratch.spare_parts.pop().unwrap_or_default();
     part.clear();
@@ -6342,31 +6365,23 @@ fn group_pending(
         return (ProduceGroups::One((topic0, part0, batch)), Vec::new());
     }
     if one_topic {
-        let mut order: Vec<(i32, Vec<Pending>)> = Vec::new();
+        let mut groups = take_group_shell(scratch);
         scratch.partition_slots.clear();
         for p in batch.drain(..) {
             let partition = p.rec.partition.unwrap_or(RecordMetadata::UNKNOWN_PARTITION);
             if let Some(&slot) = scratch.partition_slots.get(&partition) {
-                if let Some((_, pending)) = order.get_mut(slot) {
+                if let Some((_, _, pending)) = groups.get_mut(slot) {
                     pending.push(p);
                     continue;
                 }
             }
-            let slot = order.len();
+            let slot = groups.len();
             let _ = scratch.partition_slots.insert(partition, slot);
             let mut part = take_part_list(scratch);
             part.push(p);
-            order.push((partition, part));
+            groups.push((Arc::clone(&topic0), partition, part));
         }
-        return (
-            ProduceGroups::Many(
-                order
-                    .into_iter()
-                    .map(|(partition, pending)| (Arc::clone(&topic0), partition, pending))
-                    .collect(),
-            ),
-            batch,
-        );
+        return (ProduceGroups::Many(groups), batch);
     }
     let mut spare_parts = std::mem::take(&mut scratch.spare_parts);
     let mut order = Vec::new();
@@ -6406,7 +6421,7 @@ fn group_pending(
         }
     }
     scratch.spare_parts = spare_parts;
-    let mut out = Vec::new();
+    let mut out = take_group_shell(scratch);
     for topic in order {
         let Some(groups) = scratch.buckets.remove(topic.as_ref()) else {
             continue;
@@ -6440,6 +6455,14 @@ impl ProduceGroups {
         match self {
             Self::Empty => &mut [],
             Self::One(group) => std::slice::from_mut(group),
+            Self::Many(groups) => groups,
+        }
+    }
+
+    fn into_vec(self) -> Vec<(Arc<str>, i32, Vec<Pending>)> {
+        match self {
+            Self::Empty => Vec::new(),
+            Self::One(group) => vec![group],
             Self::Many(groups) => groups,
         }
     }
@@ -7804,6 +7827,20 @@ mod tests {
         assert!(split
             .first()
             .is_some_and(|(_, partition, pending)| *partition == 0 && pending.capacity() >= 8));
+        let mut grouped = ProduceGroupScratch::default();
+        let mut shell = Vec::with_capacity(4);
+        shell.push((Arc::<str>::from("old"), 0, Vec::new()));
+        shell.clear();
+        grouped.spare_groups = shell;
+        let (groups, _) = group_pending(
+            vec![queued("orders", Some(0)), queued("orders", Some(1))],
+            &mut grouped,
+        );
+        assert!(grouped.spare_groups.is_empty());
+        assert!(matches!(
+            &groups,
+            ProduceGroups::Many(items) if items.capacity() >= 4
+        ));
         assert_eq!((again[0].0.as_ref(), again[0].1), ("payments", 1));
         assert_eq!((again[1].0.as_ref(), again[1].1), ("orders", 0));
     }
