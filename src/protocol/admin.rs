@@ -9882,6 +9882,46 @@ pub fn encode_describe_producers_topics_request(
     buf: &mut BytesMut,
     topics: &[DescribeProducersTopicRequest],
 ) -> crate::error::Result<()> {
+    encode_describe_producers_topic_views(buf, topics)
+}
+
+/// Encode DescribeProducers topics whose names are borrowed from the caller.
+pub(crate) fn encode_describe_producers_named_topics(
+    buf: &mut BytesMut,
+    topics: &[(&str, Vec<i32>)],
+) -> crate::error::Result<()> {
+    encode_describe_producers_topic_views(buf, topics)
+}
+
+trait DescribeProducersTopicView {
+    fn describe_producers_name(&self) -> &str;
+    fn describe_producers_partitions(&self) -> &[i32];
+}
+
+impl DescribeProducersTopicView for DescribeProducersTopicRequest {
+    fn describe_producers_name(&self) -> &str {
+        &self.name
+    }
+
+    fn describe_producers_partitions(&self) -> &[i32] {
+        &self.partition_indexes
+    }
+}
+
+impl DescribeProducersTopicView for (&str, Vec<i32>) {
+    fn describe_producers_name(&self) -> &str {
+        self.0
+    }
+
+    fn describe_producers_partitions(&self) -> &[i32] {
+        &self.1
+    }
+}
+
+fn encode_describe_producers_topic_views<T: DescribeProducersTopicView>(
+    buf: &mut BytesMut,
+    topics: &[T],
+) -> crate::error::Result<()> {
     let body_start = buf.len();
     let planned = describe_producers_request_len(topics)?;
     let needed = body_start.saturating_add(planned);
@@ -9889,10 +9929,11 @@ pub fn encode_describe_producers_topics_request(
         buf.reserve(needed - buf.capacity());
     }
     buf::put_array_len(buf, true, Some(topics.len()))?;
-    for t in topics {
-        buf::put_compact_string(buf, Some(&t.name))?;
-        buf::put_array_len(buf, true, Some(t.partition_indexes.len()))?;
-        for p in &t.partition_indexes {
+    for topic in topics {
+        buf::put_compact_string(buf, Some(topic.describe_producers_name()))?;
+        let partitions = topic.describe_producers_partitions();
+        buf::put_array_len(buf, true, Some(partitions.len()))?;
+        for p in partitions {
             buf.put_i32(*p);
         }
         buf::put_empty_tagged_fields(buf);
@@ -9902,13 +9943,16 @@ pub fn encode_describe_producers_topics_request(
     Ok(())
 }
 
-fn describe_producers_request_len(topics: &[DescribeProducersTopicRequest]) -> Result<usize> {
+fn describe_producers_request_len<T: DescribeProducersTopicView>(topics: &[T]) -> Result<usize> {
     let mut total = describe_array_len(true, topics.len())?;
     for topic in topics {
-        total = add_describe_len(total, describe_string_len(true, Some(&topic.name))?)?;
         total = add_describe_len(
             total,
-            reassignment_replica_len(Some(&topic.partition_indexes))?,
+            describe_string_len(true, Some(topic.describe_producers_name()))?,
+        )?;
+        total = add_describe_len(
+            total,
+            reassignment_replica_len(Some(topic.describe_producers_partitions()))?,
         )?;
         total = add_describe_len(total, buf::unsigned_varint_size(0))?;
     }
@@ -34968,6 +35012,20 @@ mod tests {
         let decoded = decode_describe_producers_topics_request(&mut cur).unwrap();
         assert!(cur.is_empty());
         assert_eq!(decoded, topics);
+    }
+
+    #[test]
+    fn describe_producers_named_topics_match_owned_topics() {
+        let owned = [DescribeProducersTopicRequest {
+            name: "orders-topic-name-is-long".into(),
+            partition_indexes: vec![0, 2],
+        }];
+        let named = [("orders-topic-name-is-long", vec![0, 2])];
+        let mut expected = BytesMut::new();
+        encode_describe_producers_topics_request(&mut expected, &owned).unwrap();
+        let mut got = BytesMut::new();
+        encode_describe_producers_named_topics(&mut got, &named).unwrap();
+        assert_eq!(got.as_ref(), expected.as_ref());
     }
 
     #[test]

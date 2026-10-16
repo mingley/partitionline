@@ -54,7 +54,7 @@ use crate::protocol::admin::{
     encode_delete_share_group_offsets_request, encode_describe_client_quotas_request,
     encode_describe_cluster_request, encode_describe_configs_request,
     encode_describe_delegation_token_request, encode_describe_groups_request,
-    encode_describe_log_dirs_request, encode_describe_producers_topics_request,
+    encode_describe_log_dirs_request, encode_describe_producers_named_topics,
     encode_describe_share_group_offsets_request_versioned,
     encode_describe_topic_partitions_request, encode_describe_transactions_request,
     encode_describe_user_scram_credentials_request, encode_expire_delegation_token_request,
@@ -65,11 +65,10 @@ use crate::protocol::admin::{
     encode_share_group_describe_request, encode_unregister_broker_request,
     encode_update_features_request, AlterConfigsResource, AlterableResource, CreatableTopic,
     CreatePartitionsTopic, CreateTopicsRequest, DeleteRecordsPartition, DeleteTopicState,
-    DescribeConfigsResource, DescribeConfigsResult, DescribeProducersTopicRequest,
-    FeatureUpdateKey, ListReassignmentTopic, ReassignablePartition, ReassignableTopic,
-    ReplicaAssignment, ScramCredentialDeletion, ScramCredentialUpsertion, TopicConfig, TopicResult,
-    RESOURCE_BROKER, RESOURCE_BROKER_LOGGER, RESOURCE_CLIENT_METRICS, RESOURCE_GROUP,
-    RESOURCE_TOPIC,
+    DescribeConfigsResource, DescribeConfigsResult, FeatureUpdateKey, ListReassignmentTopic,
+    ReassignablePartition, ReassignableTopic, ReplicaAssignment, ScramCredentialDeletion,
+    ScramCredentialUpsertion, TopicConfig, TopicResult, RESOURCE_BROKER, RESOURCE_BROKER_LOGGER,
+    RESOURCE_CLIENT_METRICS, RESOURCE_GROUP, RESOURCE_TOPIC,
 };
 use crate::protocol::api::{
     decode_api_versions_response, decode_metadata_response, decode_metadata_response_into,
@@ -3230,25 +3229,28 @@ fn delete_records_topics<'a>(
     groups
 }
 
-fn describe_producers_topics(
-    partitions: &[crate::TopicPartition],
+fn describe_producers_topics<'a>(
+    partitions: &'a [crate::TopicPartition],
     idxs: &[usize],
-) -> Vec<DescribeProducersTopicRequest> {
-    let mut groups: Vec<(String, Vec<i32>)> = Vec::new();
-    let mut slots = HashMap::new();
+) -> Vec<(&'a str, Vec<i32>)> {
+    let mut groups: Vec<(&str, Vec<i32>)> = Vec::new();
+    let mut slots: HashMap<&str, usize> = HashMap::new();
     for &i in idxs {
         let Some(tp) = partitions.get(i) else {
             continue;
         };
-        remember_topic_group(&mut groups, &mut slots, &tp.topic, tp.partition);
+        let topic = tp.topic.as_str();
+        if let Some(&slot) = slots.get(topic) {
+            if let Some((_, parts)) = groups.get_mut(slot) {
+                parts.push(tp.partition);
+                continue;
+            }
+        }
+        let slot = groups.len();
+        let _ = slots.insert(topic, slot);
+        groups.push((topic, vec![tp.partition]));
     }
     groups
-        .into_iter()
-        .map(|(name, partition_indexes)| DescribeProducersTopicRequest {
-            name,
-            partition_indexes,
-        })
-        .collect()
 }
 
 type DescribeProducersNodeOutcome = (Vec<(usize, DescribeProducersPartition)>, Vec<usize>);
@@ -9554,7 +9556,7 @@ impl Admin {
                         let idxs = by_node.get(&node).map(Vec::as_slice).unwrap_or(&[]);
                         let topics = describe_producers_topics(&partitions, idxs);
                         let mut payload = BytesMut::new();
-                        encode_describe_producers_topics_request(&mut payload, &topics)?;
+                        encode_describe_producers_named_topics(&mut payload, &topics)?;
                         Ok(LeaderFrame {
                             api_key: DESCRIBE_PRODUCERS,
                             version,
@@ -9677,7 +9679,7 @@ impl Admin {
             conn.roundtrip(
                 DESCRIBE_PRODUCERS,
                 version,
-                |buf| encode_describe_producers_topics_request(buf, &topics),
+                |buf| encode_describe_producers_named_topics(buf, &topics),
                 timeout,
             )
             .await
@@ -16634,6 +16636,19 @@ mod tests {
         assert_eq!(info.future_offset_lag, 7);
         let missing = replica_log_dir_info_from(&TopicPartitionReplica::new("t", 9, 2), &dirs);
         assert_eq!(missing, ReplicaLogDirInfo::unknown());
+    }
+
+    #[test]
+    fn describe_producers_topics_keeps_duplicate_partitions() {
+        let partitions = [
+            crate::TopicPartition::new("t", 0),
+            crate::TopicPartition::new("t", 0),
+            crate::TopicPartition::new("t", 1),
+        ];
+        let topics = describe_producers_topics(&partitions, &[0, 1, 2]);
+        assert_eq!(topics.len(), 1);
+        assert_eq!(topics[0].0, "t");
+        assert_eq!(topics[0].1, vec![0, 0, 1]);
     }
 
     #[test]
