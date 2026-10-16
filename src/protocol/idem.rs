@@ -148,6 +148,12 @@ fn encode_request_fields(
         ));
     }
     InitProducerIdRequest::build(transaction_timeout_ms, transactional_id)?;
+    let body_start = buf.len();
+    let planned = init_producer_id_request_len(version, flexible, transactional_id)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf::put_string(buf, flexible, transactional_id)?;
     buf.put_i32(transaction_timeout_ms);
     if version >= 3 {
@@ -161,7 +167,27 @@ fn encode_request_fields(
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn init_producer_id_request_len(
+    version: i16,
+    flexible: bool,
+    transactional_id: Option<&str>,
+) -> Result<usize> {
+    let mut total = init_producer_id_string_len(flexible, transactional_id)?;
+    total = add_init_producer_id_len(total, 4)?;
+    if version >= 3 {
+        total = add_init_producer_id_len(total, 10)?;
+    }
+    if version >= 6 {
+        total = add_init_producer_id_len(total, 2)?;
+    }
+    if flexible {
+        total = add_init_producer_id_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 /// Encode ordinary v0–v6 allocation, with both two-phase flags false.
@@ -244,6 +270,12 @@ pub fn encode_init_producer_id_response_data(
             "InitProducerId ongoing transaction identity requires v6".into(),
         ));
     }
+    let body_start = buf.len();
+    let planned = init_producer_id_response_len(version, flexible);
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf.put_i32(d.throttle_time_ms);
     buf.put_i16(d.error_code);
     buf.put_i64(d.producer_id);
@@ -255,7 +287,46 @@ pub fn encode_init_producer_id_response_data(
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn init_producer_id_response_len(version: i16, flexible: bool) -> usize {
+    let mut total = 16;
+    if version >= 6 {
+        total += 10;
+    }
+    if flexible {
+        total += buf::unsigned_varint_size(0);
+    }
+    total
+}
+
+fn add_init_producer_id_len(total: usize, next: usize) -> Result<usize> {
+    total
+        .checked_add(next)
+        .ok_or_else(|| Error::protocol("init producer id size overflow"))
+}
+
+fn init_producer_id_string_len(flexible: bool, value: Option<&str>) -> Result<usize> {
+    match value {
+        None => Ok(if flexible {
+            buf::unsigned_varint_size(0)
+        } else {
+            2
+        }),
+        Some(value) => {
+            if flexible {
+                let encoded = buf::u32_from_usize(value.len())?
+                    .checked_add(1)
+                    .ok_or_else(|| Error::protocol("compact string overflow"))?;
+                Ok(buf::unsigned_varint_size(encoded).saturating_add(value.len()))
+            } else {
+                let _len = buf::i16_from_usize(value.len())?;
+                Ok(2usize.saturating_add(value.len()))
+            }
+        }
+    }
 }
 
 /// Decode a complete response, retaining both regular and ongoing identities.
@@ -348,6 +419,73 @@ mod tests {
     use super::*;
     use crate::error::Error;
     use std::collections::HashMap;
+
+    #[test]
+    fn a_init_producer_id_request_sizes_its_body_once() {
+        let data = InitProducerIdRequestData {
+            transactional_id: Some("tx-1".into()),
+            transaction_timeout_ms: 60_000,
+            producer_id: 7,
+            producer_epoch: 1,
+            enable_2pc: false,
+            keep_prepared_txn: false,
+        };
+        for version in [0_i16, 2, 3, 6] {
+            let mut encoded = data.clone();
+            if version >= 6 {
+                encoded.enable_2pc = true;
+            }
+            let mut buf = BytesMut::new();
+            encode_init_producer_id_request_data(&mut buf, version, &encoded).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_init_producer_id_request_data(&mut buf, version, &encoded).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+            let mut cur = &buf[..];
+            let decoded = decode_init_producer_id_request_data(&mut cur, version).unwrap();
+            assert!(cur.is_empty());
+            assert_eq!(decoded.transactional_id.as_deref(), Some("tx-1"));
+            assert_eq!(decoded.transaction_timeout_ms, 60_000);
+            if version >= 3 {
+                assert_eq!(decoded.producer_id, 7);
+            }
+            if version >= 6 {
+                assert!(decoded.enable_2pc);
+            }
+        }
+    }
+
+    #[test]
+    fn a_init_producer_id_response_sizes_its_body_once() {
+        for version in [0_i16, 2, 6] {
+            let data = InitProducerIdResponseData {
+                throttle_time_ms: 12,
+                error_code: 0,
+                producer_id: 7,
+                producer_epoch: 1,
+                ongoing_txn_producer_id: if version >= 6 { 8 } else { -1 },
+                ongoing_txn_producer_epoch: if version >= 6 { 2 } else { -1 },
+            };
+            let mut buf = BytesMut::new();
+            encode_init_producer_id_response_data(&mut buf, version, &data).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_init_producer_id_response_data(&mut buf, version, &data).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+            let mut cur = &buf[..];
+            let decoded = decode_init_producer_id_response_data(&mut cur, version).unwrap();
+            assert!(cur.is_empty());
+            assert_eq!(decoded, data);
+        }
+    }
 
     #[test]
     fn init_producer_id_v1_roundtrip() {
