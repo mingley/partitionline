@@ -778,7 +778,7 @@ pub enum ShareAcquireMode {
 /// delivers the fetch; this is not partition
 /// `INVALID_RECORD_STATE`, which fails that poll). A piggybacked
 /// `OFFSET_OUT_OF_RANGE` still completes without retry,
-/// including when `AcknowledgeErrorMessage` is set (Java
+/// including when `AcknowledgeErrorMessage` is set or empty (Java
 /// `handleShareFetchSuccess` completes piggyback acks and still
 /// delivers the fetch; this is not partition
 /// `OFFSET_OUT_OF_RANGE`, which fails that poll, and not partition
@@ -2061,7 +2061,7 @@ impl ShareGroup {
     /// `INVALID_RECORD_STATE`, which fails that poll).
     /// A piggybacked `OFFSET_OUT_OF_RANGE` still completes
     /// without retry, including when `AcknowledgeErrorMessage` is set
-    /// (Java `handleShareFetchSuccess` completes piggyback acks and
+    /// or empty (Java `handleShareFetchSuccess` completes piggyback acks and
     /// still delivers the fetch; this is not partition
     /// `OFFSET_OUT_OF_RANGE`, which fails that poll, and not partition
     /// `OFFSET_NOT_AVAILABLE`, which skips).
