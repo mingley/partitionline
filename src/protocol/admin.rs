@@ -16020,6 +16020,12 @@ pub fn encode_list_config_resources_request(
     resource_types: &[i8],
 ) -> crate::error::Result<()> {
     list_config_resources_spoken(version)?;
+    let body_start = buf.len();
+    let planned = list_config_resources_request_len(version, resource_types)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     if version >= 1 {
         buf::put_array_len(buf, true, Some(resource_types.len()))?;
         for ty in resource_types {
@@ -16027,7 +16033,17 @@ pub fn encode_list_config_resources_request(
         }
     }
     buf::put_empty_tagged_fields(buf);
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn list_config_resources_request_len(version: i16, resource_types: &[i8]) -> Result<usize> {
+    let mut total = 0;
+    if version >= 1 {
+        total = describe_array_len(true, resource_types.len())?;
+        total = add_describe_len(total, resource_types.len())?;
+    }
+    add_describe_len(total, buf::unsigned_varint_size(0))
 }
 
 /// Decode a ListConfigResources request.
@@ -16057,6 +16073,12 @@ pub fn encode_list_config_resources_response(
     resp: &ListConfigResourcesResponse,
 ) -> crate::error::Result<()> {
     list_config_resources_spoken(version)?;
+    let body_start = buf.len();
+    let planned = list_config_resources_response_len(version, resp)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf.put_i32(resp.throttle_time_ms);
     buf.put_i16(resp.error_code);
     buf::put_array_len(buf, true, Some(resp.config_resources.len()))?;
@@ -16068,7 +16090,30 @@ pub fn encode_list_config_resources_response(
         buf::put_empty_tagged_fields(buf);
     }
     buf::put_empty_tagged_fields(buf);
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn list_config_resources_response_len(
+    version: i16,
+    resp: &ListConfigResourcesResponse,
+) -> Result<usize> {
+    let mut total = 6;
+    total = add_describe_len(
+        total,
+        describe_array_len(true, resp.config_resources.len())?,
+    )?;
+    for resource in &resp.config_resources {
+        total = add_describe_len(
+            total,
+            describe_string_len(true, Some(&resource.resource_name))?,
+        )?;
+        if version >= 1 {
+            total = add_describe_len(total, 1)?;
+        }
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    add_describe_len(total, buf::unsigned_varint_size(0))
 }
 
 /// Decode a ListConfigResources response.
@@ -36611,6 +36656,64 @@ mod tests {
                 "ListConfigResources v{version} Builder.build leftover-empty; leftover {} bytes",
                 cur.len()
             );
+        }
+    }
+
+    #[test]
+    fn a_list_config_resources_request_sizes_its_body_once() {
+        let types = [RESOURCE_TOPIC, RESOURCE_BROKER];
+        for version in [0_i16, 1] {
+            let mut buf = BytesMut::new();
+            encode_list_config_resources_request(&mut buf, version, &types).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_list_config_resources_request(&mut buf, version, &types).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+            let mut cur = &buf[..];
+            let decoded = decode_list_config_resources_request(&mut cur, version).unwrap();
+            assert!(cur.is_empty());
+            if version >= 1 {
+                assert_eq!(decoded, types);
+            } else {
+                assert!(decoded.is_empty());
+            }
+        }
+    }
+
+    #[test]
+    fn a_list_config_resources_response_sizes_its_body_once() {
+        let response = ListConfigResourcesResponse {
+            throttle_time_ms: 12,
+            error_code: 0,
+            config_resources: vec![
+                ListedConfigResource::new("orders", RESOURCE_TOPIC),
+                ListedConfigResource::new("1", RESOURCE_BROKER),
+            ],
+        };
+        for version in [0_i16, 1] {
+            let mut buf = BytesMut::new();
+            encode_list_config_resources_response(&mut buf, version, &response).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_list_config_resources_response(&mut buf, version, &response).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+            let mut cur = &buf[..];
+            let decoded = decode_list_config_resources_response(&mut cur, version).unwrap();
+            assert!(cur.is_empty());
+            assert_eq!(decoded.throttle_time_ms, 12);
+            assert_eq!(decoded.config_resources.len(), 2);
+            assert_eq!(decoded.config_resources[0].resource_name, "orders");
+            if version >= 1 {
+                assert_eq!(decoded, response);
+            }
         }
     }
 
