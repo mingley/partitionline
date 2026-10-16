@@ -1277,6 +1277,81 @@ pub fn encode_share_fetch_request_with_options(
     )
 }
 
+fn add_share_len(total: usize, next: usize) -> Result<usize> {
+    total
+        .checked_add(next)
+        .ok_or_else(|| Error::protocol("share fetch request size overflow"))
+}
+
+fn share_array_len(len: usize) -> Result<usize> {
+    let value = buf::u32_from_usize(len)?
+        .checked_add(1)
+        .ok_or_else(|| Error::protocol("compact array overflow"))?;
+    Ok(buf::unsigned_varint_size(value))
+}
+
+fn share_string_len(value: &str) -> Result<usize> {
+    let encoded = buf::u32_from_usize(value.len())?
+        .checked_add(1)
+        .ok_or_else(|| Error::protocol("compact string overflow"))?;
+    Ok(buf::unsigned_varint_size(encoded).saturating_add(value.len()))
+}
+
+fn ack_batches_len(batches: &[AcknowledgementBatch]) -> Result<usize> {
+    let mut total = share_array_len(batches.len())?;
+    for batch in batches {
+        total = add_share_len(total, 16)?;
+        total = add_share_len(total, share_array_len(batch.types.len())?)?;
+        total = add_share_len(total, batch.types.len())?;
+        total = add_share_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
+}
+
+fn share_fetch_request_len(
+    version: i16,
+    group_id: &str,
+    member_id: &str,
+    topics: &[ShareFetchTopic],
+    forgotten: &[ShareForgottenTopic],
+) -> Result<usize> {
+    let mut total = share_string_len(group_id)?;
+    total = add_share_len(total, share_string_len(member_id)?)?;
+    total = add_share_len(total, 16)?;
+    if version >= 1 {
+        total = add_share_len(total, 8)?;
+    }
+    if version >= 2 {
+        total = add_share_len(total, 2)?;
+    }
+    total = add_share_len(total, share_array_len(topics.len())?)?;
+    for topic in topics {
+        total = add_share_len(total, 16)?;
+        total = add_share_len(total, share_array_len(topic.partitions.len())?)?;
+        for partition in &topic.partitions {
+            total = add_share_len(total, if version == 0 { 8 } else { 4 })?;
+            total = add_share_len(total, ack_batches_len(&partition.acknowledgements)?)?;
+            total = add_share_len(total, buf::unsigned_varint_size(0))?;
+        }
+        total = add_share_len(total, buf::unsigned_varint_size(0))?;
+    }
+    total = add_share_len(total, share_array_len(forgotten.len())?)?;
+    for topic in forgotten {
+        total = add_share_len(total, 16)?;
+        total = add_share_len(total, share_array_len(topic.partitions.len())?)?;
+        total = add_share_len(
+            total,
+            topic
+                .partitions
+                .len()
+                .checked_mul(4)
+                .ok_or_else(|| Error::protocol("share fetch request size overflow"))?,
+        )?;
+        total = add_share_len(total, buf::unsigned_varint_size(0))?;
+    }
+    add_share_len(total, buf::unsigned_varint_size(0))
+}
+
 #[expect(
     clippy::too_many_arguments,
     reason = "ShareFetch request body fields are a single wire encode"
@@ -1306,6 +1381,12 @@ fn encode_share_fetch_request_fields(
             })
         });
     check_renew_version(version, is_renew_ack)?;
+    let body_start = buf.len();
+    let planned = share_fetch_request_len(version, group_id, member_id, topics, forgotten)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf::put_string(buf, flexible, Some(group_id))?;
     buf::put_string(buf, flexible, Some(member_id))?;
     buf.put_i32(share_session_epoch);
@@ -1352,6 +1433,7 @@ fn encode_share_fetch_request_fields(
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
 }
 
@@ -6509,6 +6591,46 @@ mod tests {
                 "ShareFetch v{version} updateForgottenData empty leftover-empty; leftover {} bytes",
                 cur.remaining()
             );
+        }
+    }
+
+    #[test]
+    fn a_share_fetch_request_sizes_its_body_once() {
+        let topics = vec![ShareFetchTopic {
+            topic_id: [9; 16],
+            partitions: (0..6)
+                .map(|partition| ShareFetchPartition {
+                    partition,
+                    partition_max_bytes: 1024,
+                    acknowledgements: vec![AcknowledgementBatch {
+                        first_offset: 1,
+                        last_offset: 3,
+                        types: vec![ACK_ACCEPT, ACK_RELEASE, ACK_GAP],
+                    }],
+                })
+                .collect(),
+        }];
+        let forgotten = vec![ShareForgottenTopic {
+            topic_id: [8; 16],
+            partitions: vec![1, 2],
+        }];
+        for version in [0_i16, 1, 2] {
+            let mut buf = BytesMut::new();
+            encode_share_fetch_request_with_forgotten(
+                &mut buf, version, "group", "member", 1, 100, 1, 1024, 8, &topics, &forgotten,
+            )
+            .unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_share_fetch_request_with_forgotten(
+                &mut buf, version, "group", "member", 1, 100, 1, 1024, 8, &topics, &forgotten,
+            )
+            .unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
         }
     }
 
