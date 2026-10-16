@@ -2,7 +2,7 @@
 
 mod acquired;
 
-use std::collections::{BTreeMap, HashMap, HashSet, VecDeque};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fmt;
 use std::ops::Deref;
 use std::sync::atomic::{AtomicI16, AtomicI32, Ordering};
@@ -744,6 +744,15 @@ fn count_covered_acquisitions(
         .fold(0usize, usize::saturating_add)
 }
 
+fn take_delivery(pending: &mut Vec<ShareRecord>, count: usize) -> Vec<ShareRecord> {
+    let count = count.min(pending.len());
+    if count == pending.len() {
+        return std::mem::take(pending);
+    }
+    let rest = pending.split_off(count);
+    std::mem::replace(pending, rest)
+}
+
 fn take_record_buf(spare: &mut Vec<ShareRecord>) -> Vec<ShareRecord> {
     let mut incoming = std::mem::take(spare);
     incoming.clear();
@@ -869,7 +878,7 @@ pub struct ShareGroup {
     /// drops cached leaders, and these patches are put back afterward.
     leader_patches: Vec<ShareLeaderPatch>,
     acquisitions: AcquisitionMap,
-    pending_delivery: VecDeque<ShareRecord>,
+    pending_delivery: Vec<ShareRecord>,
     acquire_mode: ShareAcquireMode,
     acquisition_lock_timeout_ms: Option<i32>,
     hb_err: Arc<AtomicI16>,
@@ -1345,7 +1354,7 @@ impl ShareGroup {
             share_addresses: HashMap::new(),
             leader_patches: Vec::new(),
             acquisitions: HashMap::new(),
-            pending_delivery: VecDeque::new(),
+            pending_delivery: Vec::new(),
             acquire_mode: ShareAcquireMode::BatchOptimized,
             acquisition_lock_timeout_ms: None,
             hb_err,
@@ -1967,7 +1976,7 @@ impl ShareGroup {
             .max_poll_records
             .unwrap_or(usize::MAX)
             .min(self.pending_delivery.len());
-        self.pending_delivery.drain(..count).collect()
+        take_delivery(&mut self.pending_delivery, count)
     }
 
     /// Open missing share-leader sockets together. Failures stay for the
@@ -2837,7 +2846,7 @@ impl ShareGroup {
                         expires_at: expiry,
                     },
                 );
-                self.pending_delivery.push_back(record);
+                self.pending_delivery.push(record);
             }
             park_record_buf(&mut self.spare_incoming, incoming);
             self.park_share_ids(by_id);
@@ -4517,6 +4526,25 @@ mod tests {
             Some(partitions[0].clone())
         );
         assert!(single_leader_ack(&partitions, |_, _, _, _| None).is_none());
+    }
+
+    #[test]
+    fn share_delivery_returns_its_buffer_when_the_poll_takes_every_record() {
+        let mut pending = vec![rec(0, 1), rec(0, 2), rec(0, 3)];
+        let all = super::take_delivery(&mut pending, 3);
+        assert_eq!(all.len(), 3);
+        assert!(pending.is_empty());
+        assert_eq!(all.first().map(|record| record.offset), Some(1));
+        assert_eq!(all.get(2).map(|record| record.offset), Some(3));
+        let mut pending = vec![rec(0, 1), rec(0, 2), rec(0, 3)];
+        let head = super::take_delivery(&mut pending, 1);
+        assert_eq!(head.len(), 1);
+        assert_eq!(head.first().map(|record| record.offset), Some(1));
+        assert_eq!(pending.len(), 2);
+        assert_eq!(pending.first().map(|record| record.offset), Some(2));
+        assert_eq!(pending.get(1).map(|record| record.offset), Some(3));
+        assert!(super::take_delivery(&mut pending, 0).is_empty());
+        assert_eq!(pending.len(), 2);
     }
 
     #[test]
