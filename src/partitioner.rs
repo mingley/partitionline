@@ -859,7 +859,7 @@ mod sticky_tests {
 
     fn metadata(leaders: Vec<i32>) -> Cluster {
         let mut cluster = Cluster::default();
-        let _ = cluster.leaders.insert("t".to_owned(), leaders);
+        let _ = cluster.leaders.insert(Arc::from("t"), leaders);
         cluster
     }
 
@@ -981,7 +981,7 @@ mod sticky_tests {
     #[test]
     fn uuid_reset_and_removed_partition_preserve_old_delivery_rows_without_stale_rotation() {
         let mut cluster = metadata(vec![0, 0, 0]);
-        let _ = cluster.topic_ids.insert("t".to_owned(), [1; 16]);
+        let _ = cluster.topic_ids.insert(Arc::from("t"), [1; 16]);
         let mut state = StickyState::new(
             StickyPartitionerConfig {
                 seed: Some(9),
@@ -994,7 +994,7 @@ mod sticky_tests {
         let partition = state.route("t", &cluster).unwrap().partition;
         let old = append(&mut state, &cluster, &worker, partition, 139, true);
         let before = state.route("t", &cluster).unwrap();
-        let _ = cluster.topic_ids.insert("t".to_owned(), [2; 16]);
+        let _ = cluster.topic_ids.insert(Arc::from("t"), [2; 16]);
         let selected = state.route("t", &cluster).unwrap();
         assert_eq!(selected.generation, None);
         let _ = append(&mut state, &cluster, &worker, selected.partition, 139, true);
@@ -1003,7 +1003,7 @@ mod sticky_tests {
         state.drain(old, &cluster);
         state.release(old, 1, &cluster);
         assert_eq!(state.route("t", &cluster), Some(after));
-        let _ = cluster.leaders.insert("t".to_owned(), vec![0]);
+        let _ = cluster.leaders.insert(Arc::from("t"), vec![0]);
         assert_eq!(state.route("t", &cluster).unwrap().partition, 0);
     }
 
@@ -1053,7 +1053,7 @@ mod sticky_uniformity_tests {
         let mut cluster = Cluster::default();
         let _ = cluster
             .leaders
-            .insert("t".to_owned(), vec![0, -1, 0, -1, 0, -1]);
+            .insert(Arc::from("t"), vec![0, -1, 0, -1, 0, -1]);
         let topic: Arc<str> = Arc::from("t");
         let worker = Arc::new(());
         let mut state = StickyState::new(
@@ -1122,7 +1122,7 @@ mod sticky_rejection_tests {
             ),
         ] {
             let mut cluster = Cluster::default();
-            let _ = cluster.leaders.insert("t".to_owned(), vec![0; partitions]);
+            let _ = cluster.leaders.insert(Arc::from("t"), vec![0; partitions]);
             let topic: Arc<str> = Arc::from("t");
             let worker = Arc::new(());
             let mut state = StickyState::new(
@@ -1160,7 +1160,7 @@ mod sticky_rejection_tests {
         let mut cluster = Cluster::default();
         let _ = cluster
             .leaders
-            .insert("t".to_owned(), vec![0, -1, 0, -1, 0]);
+            .insert(Arc::from("t"), vec![0, -1, 0, -1, 0]);
         let topic: Arc<str> = Arc::from("t");
         let worker = Arc::new(());
         let mut state = StickyState::new(
@@ -1215,7 +1215,7 @@ mod sticky_pressure_rng_tests {
     #[test]
     fn cached_route_pressure_never_consumes_a_draw_that_was_not_used_for_selection() {
         let mut cluster = Cluster::default();
-        let _ = cluster.leaders.insert("t".to_owned(), vec![0, 0, 0]);
+        let _ = cluster.leaders.insert(Arc::from("t"), vec![0, 0, 0]);
         let topic: Arc<str> = Arc::from("t");
         let worker = Arc::new(());
         let mut state = StickyState::new(

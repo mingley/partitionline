@@ -1,6 +1,7 @@
 //! Cluster metadata: brokers and per-partition leaders.
 
 use std::collections::{HashMap, HashSet};
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use crate::error::{Error, Result};
@@ -96,15 +97,17 @@ pub(crate) struct Cluster {
     /// `node_id` → `host:port`.
     pub(crate) brokers: HashMap<i32, String>,
     /// Topic → leader `node_id` by partition index.
-    pub(crate) leaders: HashMap<String, Vec<i32>>,
+    ///
+    /// The name is one allocation shared with the id, epoch, and freshness maps.
+    pub(crate) leaders: HashMap<Arc<str>, Vec<i32>>,
     /// Nonzero Metadata v10+ topic identity, invalidated with leader metadata.
-    pub(crate) topic_ids: HashMap<String, [u8; 16]>,
+    pub(crate) topic_ids: HashMap<Arc<str>, [u8; 16]>,
     /// Topic → Metadata `leader_epoch` by partition index.
-    pub(crate) leader_epochs: HashMap<String, Vec<i32>>,
+    pub(crate) leader_epochs: HashMap<Arc<str>, Vec<i32>>,
     /// Metadata `controller_id`, or `None` until the first Metadata response.
     pub(crate) controller_id: Option<i32>,
     /// When each topic's leaders were last applied from Metadata.
-    topic_fetched_at: HashMap<String, Instant>,
+    topic_fetched_at: HashMap<Arc<str>, Instant>,
     /// Reused per-partition marks for the topic currently being applied.
     decided_scratch: Vec<bool>,
 }
@@ -163,7 +166,8 @@ impl Cluster {
                 if let Some(slot) = self.topic_fetched_at.get_mut(name.as_str()) {
                     *slot = Instant::now();
                 } else {
-                    let _prev = self.topic_fetched_at.insert(name.clone(), Instant::now());
+                    let key = self.topic_arc(name);
+                    let _prev = self.topic_fetched_at.insert(key, Instant::now());
                 }
                 if !lone_topic {
                     let _inserted = seen_topics.insert(name.as_str());
@@ -174,7 +178,7 @@ impl Cluster {
             // start over, so the previous generation's leader must not stick.
             let cached_topic_id = self
                 .topic_ids
-                .get(name)
+                .get(name.as_str())
                 .copied()
                 .filter(|id| *id != [0; 16]);
             let incoming_topic_id = (version >= 10 && t.topic_id != [0; 16]).then_some(t.topic_id);
@@ -183,18 +187,19 @@ impl Cluster {
                 _ => false,
             };
             if recreated {
-                let _removed = self.leaders.remove(name);
-                let _removed = self.leader_epochs.remove(name);
-                let _removed = self.topic_fetched_at.remove(name);
+                let _removed = self.leaders.remove(name.as_str());
+                let _removed = self.leader_epochs.remove(name.as_str());
+                let _removed = self.topic_fetched_at.remove(name.as_str());
             }
             if version >= 10 && t.topic_id != [0; 16] {
                 if let Some(slot) = self.topic_ids.get_mut(name.as_str()) {
                     *slot = t.topic_id;
                 } else {
-                    let _ = self.topic_ids.insert(name.clone(), t.topic_id);
+                    let key = self.topic_arc(name);
+                    let _ = self.topic_ids.insert(key, t.topic_id);
                 }
             } else if !repeated {
-                let _ = self.topic_ids.remove(name);
+                let _ = self.topic_ids.remove(name.as_str());
             }
             let mut max_idx = -1i32;
             for p in &t.partitions {
@@ -209,9 +214,9 @@ impl Cluster {
                 // current shape. An earlier copy in this same response already
                 // accepted partitions, so an empty later copy must not drop them.
                 if !repeated {
-                    let _removed = self.leaders.remove(name);
-                    let _removed = self.leader_epochs.remove(name);
-                    let _removed = self.topic_fetched_at.remove(name);
+                    let _removed = self.leaders.remove(name.as_str());
+                    let _removed = self.leader_epochs.remove(name.as_str());
+                    let _removed = self.topic_fetched_at.remove(name.as_str());
                 }
                 continue;
             }
@@ -354,17 +359,20 @@ impl Cluster {
             if let Some(slot) = self.leaders.get_mut(name.as_str()) {
                 *slot = leaders;
             } else {
-                let _prev = self.leaders.insert(name.clone(), leaders);
+                let key = self.topic_arc(name);
+                let _prev = self.leaders.insert(key, leaders);
             }
             if let Some(slot) = self.leader_epochs.get_mut(name.as_str()) {
                 *slot = epochs;
             } else {
-                let _prev = self.leader_epochs.insert(name.clone(), epochs);
+                let key = self.topic_arc(name);
+                let _prev = self.leader_epochs.insert(key, epochs);
             }
             if let Some(slot) = self.topic_fetched_at.get_mut(name.as_str()) {
                 *slot = Instant::now();
             } else {
-                let _prev = self.topic_fetched_at.insert(name.clone(), Instant::now());
+                let key = self.topic_arc(name);
+                let _prev = self.topic_fetched_at.insert(key, Instant::now());
             }
             if !lone_topic {
                 let _inserted = seen_topics.insert(name.as_str());
@@ -425,6 +433,22 @@ impl Cluster {
             leaders.get(idx).copied() == Some(partition.leader_id)
                 && epochs.get(idx).copied() == Some(expected_epoch)
         })
+    }
+
+    /// The allocation already stored for `name`, or a new one.
+    fn topic_arc(&self, name: &str) -> Arc<str> {
+        let existing = self
+            .leaders
+            .get_key_value(name)
+            .map(|(key, _)| key)
+            .or_else(|| self.topic_ids.get_key_value(name).map(|(key, _)| key))
+            .or_else(|| self.leader_epochs.get_key_value(name).map(|(key, _)| key))
+            .or_else(|| {
+                self.topic_fetched_at
+                    .get_key_value(name)
+                    .map(|(key, _)| key)
+            });
+        existing.map(Arc::clone).unwrap_or_else(|| Arc::from(name))
     }
 
     /// Drop cached leaders for `topic` so the next lookup refetches Metadata.
@@ -504,7 +528,8 @@ impl Cluster {
         if let Some(slot) = v.get_mut(idx) {
             *slot = epoch;
         }
-        let _prev = self.leader_epochs.insert(topic.to_string(), v);
+        let key = self.topic_arc(topic);
+        let _prev = self.leader_epochs.insert(key, v);
     }
 
     /// Insert Produce v10+ / Fetch v16+ NodeEndpoints into the broker map.
@@ -553,7 +578,8 @@ impl Cluster {
             return false;
         };
         if !self.leaders.contains_key(topic) {
-            let _ = self.leaders.insert(topic.to_string(), Vec::new());
+            let key = self.topic_arc(topic);
+            let _ = self.leaders.insert(key, Vec::new());
         }
         if let Some(leaders) = self.leaders.get_mut(topic) {
             if leaders.len() <= idx {
@@ -567,9 +593,8 @@ impl Cluster {
         if let Some(fetched_at) = self.topic_fetched_at.get_mut(topic) {
             *fetched_at = Instant::now();
         } else {
-            let _prev = self
-                .topic_fetched_at
-                .insert(topic.to_string(), Instant::now());
+            let key = self.topic_arc(topic);
+            let _prev = self.topic_fetched_at.insert(key, Instant::now());
         }
         true
     }
@@ -739,6 +764,84 @@ mod tests {
     use super::*;
     use crate::error;
     use crate::protocol::api::{Broker, MetadataResponse};
+
+    #[test]
+    fn a_cached_topic_is_one_allocation() {
+        use crate::protocol::api::{PartitionMetadata, TopicMetadata};
+
+        let name = "topic-name-longer-than-twenty-three";
+        let mut topic_id = [0u8; 16];
+        topic_id[0] = 7;
+        let topic = TopicMetadata {
+            error_code: 0,
+            name: Some(name.into()),
+            topic_id,
+            is_internal: false,
+            partitions: vec![PartitionMetadata {
+                error_code: 0,
+                partition_index: 0,
+                leader_id: 1,
+                leader_epoch: 3,
+                replica_nodes: vec![1],
+                isr_nodes: vec![1],
+                offline_replicas: Vec::new(),
+            }],
+            topic_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+        };
+        let mut cluster = Cluster::default();
+        cluster.apply(
+            &MetadataResponse {
+                throttle_time_ms: 0,
+                brokers: vec![Broker {
+                    node_id: 1,
+                    host: "127.0.0.1".into(),
+                    port: 9092,
+                    rack: None,
+                }],
+                cluster_id: None,
+                controller_id: 1,
+                topics: vec![topic],
+                cluster_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+                error_code: 0,
+            },
+            13,
+        );
+        let stored = cluster
+            .leaders
+            .get_key_value(name)
+            .map(|(key, _)| Arc::as_ptr(key));
+        assert!(stored.is_some());
+        assert_eq!(
+            cluster
+                .topic_ids
+                .get_key_value(name)
+                .map(|(key, _)| Arc::as_ptr(key)),
+            stored
+        );
+        assert_eq!(
+            cluster
+                .leader_epochs
+                .get_key_value(name)
+                .map(|(key, _)| Arc::as_ptr(key)),
+            stored
+        );
+        assert_eq!(
+            cluster
+                .topic_fetched_at
+                .get_key_value(name)
+                .map(|(key, _)| Arc::as_ptr(key)),
+            stored
+        );
+        assert!(cluster.apply_current_leader(name, 0, 1, 4));
+        assert_eq!(
+            cluster
+                .leaders
+                .get_key_value(name)
+                .map(|(key, _)| Arc::as_ptr(key)),
+            stored
+        );
+        assert_eq!(cluster.leader_epoch(name, 0), 4);
+    }
 
     #[test]
     fn a_leader_list_matches_a_direct_lookup() {

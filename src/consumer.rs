@@ -7971,7 +7971,7 @@ fn cap_fetch_cursor(next: i64, high_watermark: i64) -> i64 {
 /// taken from an earlier copy.
 fn resolved_topic_identities<'a>(
     topics: impl IntoIterator<Item = (&'a str, [u8; 16])>,
-    cached: &HashMap<String, [u8; 16]>,
+    cached: &HashMap<Arc<str>, [u8; 16]>,
     previous_names: &mut HashMap<String, [u8; 16]>,
     previous_ids: &mut HashMap<[u8; 16], String>,
 ) -> (HashMap<String, [u8; 16]>, HashMap<[u8; 16], String>) {
@@ -9175,7 +9175,7 @@ mod tests {
 
     #[test]
     fn a_later_zero_topic_id_does_not_erase_the_cached_id() {
-        let cached = HashMap::from([("t".to_string(), [1u8; 16])]);
+        let cached = HashMap::from([(std::sync::Arc::<str>::from("t"), [1u8; 16])]);
         let (by_name, by_id) = resolved_topic_identities(
             [("t", [1u8; 16]), ("t", [0u8; 16]), ("u", [2u8; 16])],
             &cached,
@@ -9403,7 +9403,9 @@ mod tests {
     #[test]
     fn offset_for_leader_epoch_resolves_the_fetched_epoch() {
         let mut cluster = Cluster::default();
-        let _ = cluster.leader_epochs.insert("t".into(), vec![4, 6]);
+        let _ = cluster
+            .leader_epochs
+            .insert(std::sync::Arc::from("t"), vec![4, 6]);
         let topics = offset_for_leader_epoch_topics(
             &cluster,
             &[2, crate::RecordBatch::NO_PARTITION_LEADER_EPOCH],
@@ -9416,7 +9418,9 @@ mod tests {
         assert_eq!(topics[0].partitions[1].partition, 1);
         assert_eq!(topics[0].partitions[1].current_leader_epoch, 6);
         assert_eq!(topics[0].partitions[1].leader_epoch, 6);
-        let _ = cluster.leader_epochs.insert("u".into(), vec![8]);
+        let _ = cluster
+            .leader_epochs
+            .insert(std::sync::Arc::from("u"), vec![8]);
         let mixed =
             offset_for_leader_epoch_topics(&cluster, &[1, 3, 5], &[("t", 1), ("u", 0), ("t", 0)]);
         assert_eq!(mixed.len(), 2);
