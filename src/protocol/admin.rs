@@ -21580,6 +21580,12 @@ pub fn encode_describe_quorum_request(
 ) -> crate::error::Result<()> {
     let flexible = describe_quorum_flexible(version)?;
     quorum_request_budget(req)?;
+    let body_start = buf.len();
+    let planned = describe_quorum_request_len(flexible, req)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf::put_array_len(buf, flexible, Some(req.topics.len()))?;
     for topic in &req.topics {
         buf::put_string(buf, flexible, Some(&topic.topic))?;
@@ -21597,7 +21603,29 @@ pub fn encode_describe_quorum_request(
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn describe_quorum_request_len(flexible: bool, req: &DescribeQuorumRequest) -> Result<usize> {
+    let mut total = describe_array_len(flexible, req.topics.len())?;
+    for topic in &req.topics {
+        total = add_describe_len(total, describe_string_len(flexible, Some(&topic.topic))?)?;
+        total = add_describe_len(total, describe_array_len(flexible, topic.partitions.len())?)?;
+        for _partition in &topic.partitions {
+            total = add_describe_len(total, 4)?;
+            if flexible {
+                total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+            }
+        }
+        if flexible {
+            total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    if flexible {
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 /// Decode a DescribeQuorum request (v0–2).
@@ -21722,6 +21750,12 @@ pub fn encode_describe_quorum_response(
 ) -> crate::error::Result<()> {
     let flexible = describe_quorum_flexible(version)?;
     quorum_response_budget(version, resp)?;
+    let body_start = buf.len();
+    let planned = describe_quorum_response_len(version, flexible, resp)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf.put_i16(resp.error_code);
     if version >= 2 {
         buf::put_string(buf, flexible, resp.error_message.as_deref())?;
@@ -21770,7 +21804,116 @@ pub fn encode_describe_quorum_response(
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn describe_quorum_response_len(
+    version: i16,
+    flexible: bool,
+    resp: &DescribeQuorumResponse,
+) -> Result<usize> {
+    let mut total = 2;
+    if version >= 2 {
+        total = add_describe_len(
+            total,
+            describe_string_len(flexible, resp.error_message.as_deref())?,
+        )?;
+    }
+    total = add_describe_len(total, describe_array_len(flexible, resp.topics.len())?)?;
+    for topic in &resp.topics {
+        total = add_describe_len(total, describe_string_len(flexible, Some(&topic.topic))?)?;
+        total = add_describe_len(total, describe_array_len(flexible, topic.partitions.len())?)?;
+        for partition in &topic.partitions {
+            total = add_describe_len(
+                total,
+                describe_quorum_partition_len(version, flexible, partition)?,
+            )?;
+        }
+        if flexible {
+            total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    if version >= 2 {
+        total = add_describe_len(total, describe_array_len(flexible, resp.nodes.len())?)?;
+        for node in &resp.nodes {
+            total = add_describe_len(total, 4)?;
+            total = add_describe_len(total, describe_array_len(flexible, node.listeners.len())?)?;
+            for listener in &node.listeners {
+                total =
+                    add_describe_len(total, describe_string_len(flexible, Some(&listener.name))?)?;
+                total =
+                    add_describe_len(total, describe_string_len(flexible, Some(&listener.host))?)?;
+                total = add_describe_len(total, 2)?;
+                if flexible {
+                    total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+                }
+            }
+            if flexible {
+                total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+            }
+        }
+    }
+    if flexible {
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
+}
+
+fn describe_quorum_partition_len(
+    version: i16,
+    flexible: bool,
+    partition: &DescribeQuorumPartition,
+) -> Result<usize> {
+    let mut total = 22;
+    if version >= 2 {
+        total = add_describe_len(
+            total,
+            describe_string_len(flexible, partition.error_message.as_deref())?,
+        )?;
+    }
+    total = add_describe_len(
+        total,
+        describe_quorum_replicas_len(version, flexible, &partition.current_voters)?,
+    )?;
+    total = add_describe_len(
+        total,
+        describe_quorum_replicas_len(version, flexible, &partition.observers)?,
+    )?;
+    if flexible {
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
+}
+
+fn describe_quorum_replicas_len(
+    version: i16,
+    flexible: bool,
+    replicas: &[DescribeQuorumReplicaState],
+) -> Result<usize> {
+    let total = describe_array_len(flexible, replicas.len())?;
+    let each = describe_quorum_replica_len(version, flexible)?;
+    add_describe_len(
+        total,
+        replicas
+            .len()
+            .checked_mul(each)
+            .ok_or_else(|| Error::protocol("describe quorum response size overflow"))?,
+    )
+}
+
+fn describe_quorum_replica_len(version: i16, flexible: bool) -> Result<usize> {
+    let mut total = 12;
+    if version >= 2 {
+        total = add_describe_len(total, 16)?;
+    }
+    if version >= 1 {
+        total = add_describe_len(total, 16)?;
+    }
+    if flexible {
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 /// Decode a DescribeQuorum response (v0–2).
@@ -43709,6 +43852,94 @@ mod tests {
             log_end_offset,
             last_fetch_timestamp,
             last_caught_up_timestamp,
+        }
+    }
+
+    #[test]
+    fn a_describe_quorum_request_sizes_its_body_once() {
+        let request = DescribeQuorumRequest {
+            topics: vec![DescribeQuorumTopic {
+                topic: "orders".into(),
+                partitions: vec![0, 1],
+            }],
+        };
+        for version in [0_i16, 1, 2] {
+            let mut buf = BytesMut::new();
+            encode_describe_quorum_request(&mut buf, version, &request).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_describe_quorum_request(&mut buf, version, &request).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+            let mut cur = &buf[..];
+            let decoded = decode_describe_quorum_request(&mut cur, version).unwrap();
+            assert!(cur.is_empty());
+            assert_eq!(decoded, request);
+        }
+    }
+
+    #[test]
+    fn a_describe_quorum_response_sizes_its_body_once() {
+        for version in [0_i16, 1, 2] {
+            let response = DescribeQuorumResponse {
+                error_code: 0,
+                error_message: if version >= 2 {
+                    Some("ok".into())
+                } else {
+                    None
+                },
+                topics: vec![DescribeQuorumResult {
+                    topic: "orders".into(),
+                    partitions: vec![DescribeQuorumPartition {
+                        partition_index: 0,
+                        error_code: 0,
+                        error_message: None,
+                        leader_id: 1,
+                        leader_epoch: 2,
+                        high_watermark: 10,
+                        current_voters: vec![DescribeQuorumReplicaState {
+                            replica_id: 1,
+                            replica_directory_id: if version >= 2 { [3; 16] } else { [0; 16] },
+                            log_end_offset: 10,
+                            last_fetch_timestamp: if version >= 1 { 4 } else { -1 },
+                            last_caught_up_timestamp: if version >= 1 { 5 } else { -1 },
+                        }],
+                        observers: vec![],
+                    }],
+                }],
+                nodes: if version >= 2 {
+                    vec![DescribeQuorumNode {
+                        node_id: 1,
+                        listeners: vec![DescribeQuorumListener {
+                            name: "CONTROLLER".into(),
+                            host: "a.example".into(),
+                            port: 9093,
+                        }],
+                    }]
+                } else {
+                    Vec::new()
+                },
+            };
+            let mut buf = BytesMut::new();
+            encode_describe_quorum_response(&mut buf, version, &response).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_describe_quorum_response(&mut buf, version, &response).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+            let mut cur = &buf[..];
+            let decoded = decode_describe_quorum_response(&mut cur, version).unwrap();
+            assert!(cur.is_empty());
+            assert_eq!(decoded.topics[0].topic, "orders");
+            if version >= 2 {
+                assert_eq!(decoded, response);
+            }
         }
     }
 
