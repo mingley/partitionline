@@ -76,8 +76,8 @@ use crate::protocol::admin::{
 };
 use crate::protocol::api::{
     decode_api_versions_response, decode_metadata_response, decode_metadata_response_into,
-    encode_api_versions_request, encode_metadata_request, encode_metadata_request_topics,
-    encode_metadata_request_with, ApiVersion, MetadataRequestTopic, MetadataResponse,
+    encode_api_versions_request, encode_metadata_request_topics, encode_metadata_request_with,
+    ApiVersion, MetadataRequestTopic, MetadataResponse,
 };
 use crate::protocol::api_keys::{
     pick_version, ALLOCATE_PRODUCER_IDS, ALTER_CLIENT_QUOTAS, ALTER_CONFIGS,
@@ -3172,7 +3172,7 @@ fn listed_group_offsets(
     }
 }
 
-fn unique_names<'a, I>(names: I) -> Vec<String>
+fn unique_names<'a, I>(names: I) -> Vec<&'a str>
 where
     I: IntoIterator<Item = &'a str>,
 {
@@ -3180,7 +3180,7 @@ where
     let mut topics = Vec::new();
     for name in names {
         if seen.insert(name) {
-            topics.push(name.to_owned());
+            topics.push(name);
         }
     }
     topics
@@ -7374,8 +7374,8 @@ impl Admin {
                 return Err(Error::Timeout);
             }
             if self.cluster.leader_id(&spec.topic, spec.partition).is_err() {
-                let topics = [spec.topic.clone()];
-                self.refresh_metadata_until(Some(&topics), deadline).await?;
+                let topics = [spec.topic.as_str()];
+                self.refresh_metadata_ref(Some(&topics), deadline).await?;
             }
             let node = self.cluster.leader_id(&spec.topic, spec.partition)?;
             self.connect_node_until(node, deadline).await?;
@@ -7456,8 +7456,8 @@ impl Admin {
                 self.cluster.invalidate_topic(&spec.topic);
                 let _ = self.conns.remove(&node);
                 self.wait_retry(&mut attempt, deadline).await?;
-                let topics = [spec.topic.clone()];
-                self.refresh_metadata_until(Some(&topics), deadline).await?;
+                let topics = [spec.topic.as_str()];
+                self.refresh_metadata_ref(Some(&topics), deadline).await?;
                 continue;
             }
             return Err(e);
@@ -8373,13 +8373,27 @@ impl Admin {
         topics: Option<&[String]>,
         deadline: Instant,
     ) -> Result<()> {
+        self.refresh_metadata_ref(topics, deadline).await
+    }
+
+    /// Refresh metadata for names the caller already holds.
+    async fn refresh_metadata_ref<T: AsRef<str>>(
+        &mut self,
+        topics: Option<&[T]>,
+        deadline: Instant,
+    ) -> Result<()> {
         let timeout = deadline.saturating_duration_since(Instant::now());
         if timeout.is_zero() {
             return Err(Error::Timeout);
         }
         let deadline = Instant::now().checked_add(timeout).ok_or(Error::Timeout)?;
         self.exchange_metadata(topics.is_some(), false, deadline, |buf, version| {
-            encode_metadata_request(buf, version, topics, version < 4 && topics.is_none())
+            crate::protocol::api::encode_metadata_request_ref(
+                buf,
+                version,
+                topics,
+                version < 4 && topics.is_none(),
+            )
         })
         .await
     }
@@ -8627,7 +8641,7 @@ impl Admin {
             if pending.is_empty() {
                 break;
             }
-            let mut need: Vec<String> = Vec::new();
+            let mut need: Vec<&str> = Vec::new();
             let mut seen_topics = HashSet::new();
             let mut leaders = LeaderList::new();
             for &i in &pending {
@@ -8639,11 +8653,11 @@ impl Admin {
                     .is_err()
                     && seen_topics.insert(tp.topic.as_str())
                 {
-                    need.push(tp.topic.clone());
+                    need.push(tp.topic.as_str());
                 }
             }
             if !need.is_empty() {
-                self.refresh_metadata_until(Some(&need), deadline).await?;
+                self.refresh_metadata_ref(Some(&need), deadline).await?;
             }
             let mut by_node: HashMap<i32, Vec<usize>> = HashMap::new();
             let mut nodes: Vec<i32> = Vec::new();
@@ -8749,7 +8763,7 @@ impl Admin {
                     .filter_map(|&i| records.get(i).map(|(tp, _)| tp.topic.as_str())),
             );
             if !topics.is_empty() {
-                self.refresh_metadata_until(Some(&topics), deadline).await?;
+                self.refresh_metadata_ref(Some(&topics), deadline).await?;
             }
         }
         out.into_iter()
@@ -8970,7 +8984,7 @@ impl Admin {
             if pending.is_empty() {
                 break;
             }
-            let mut need: Vec<String> = Vec::new();
+            let mut need: Vec<&str> = Vec::new();
             let mut seen_topics = HashSet::new();
             let mut leaders = LeaderList::new();
             for &i in &pending {
@@ -8982,11 +8996,11 @@ impl Admin {
                     .is_err()
                     && seen_topics.insert(tp.topic.as_str())
                 {
-                    need.push(tp.topic.clone());
+                    need.push(tp.topic.as_str());
                 }
             }
             if !need.is_empty() {
-                self.refresh_metadata_until(Some(&need), deadline).await?;
+                self.refresh_metadata_ref(Some(&need), deadline).await?;
             }
             let mut by_node: HashMap<i32, Vec<usize>> = HashMap::new();
             let mut nodes: Vec<i32> = Vec::new();
@@ -9051,7 +9065,7 @@ impl Admin {
                     .filter_map(|&i| queries.get(i).map(|(tp, _)| tp.topic.as_str())),
             );
             if !topics.is_empty() {
-                self.refresh_metadata_until(Some(&topics), deadline).await?;
+                self.refresh_metadata_ref(Some(&topics), deadline).await?;
             }
         }
         out.into_iter()
@@ -9540,7 +9554,7 @@ impl Admin {
                 break;
             }
             if !pin_broker {
-                let mut need: Vec<String> = Vec::new();
+                let mut need: Vec<&str> = Vec::new();
                 let mut seen_topics = HashSet::new();
                 let mut leaders = LeaderList::new();
                 for &i in &pending {
@@ -9552,11 +9566,11 @@ impl Admin {
                         .is_err()
                         && seen_topics.insert(tp.topic.as_str())
                     {
-                        need.push(tp.topic.clone());
+                        need.push(tp.topic.as_str());
                     }
                 }
                 if !need.is_empty() {
-                    self.refresh_metadata_until(Some(&need), deadline).await?;
+                    self.refresh_metadata_ref(Some(&need), deadline).await?;
                 }
             }
             let mut by_node: HashMap<i32, Vec<usize>> = HashMap::new();
@@ -9675,7 +9689,7 @@ impl Admin {
                     .filter_map(|&i| partitions.get(i).map(|tp| tp.topic.as_str())),
             );
             if !topics.is_empty() {
-                self.refresh_metadata_until(Some(&topics), deadline).await?;
+                self.refresh_metadata_ref(Some(&topics), deadline).await?;
             }
         }
         let mut grouped: Vec<DescribeProducersTopic> = Vec::new();
@@ -15046,7 +15060,7 @@ mod tests {
     fn unique_topic_names_keep_the_first_copy() {
         assert_eq!(
             unique_names(["orders", "payments", "orders"]),
-            ["orders".to_owned(), "payments".to_owned()]
+            ["orders", "payments"]
         );
         assert!(unique_names(std::iter::empty()).is_empty());
     }

@@ -2061,6 +2061,15 @@ pub(crate) fn encode_metadata_request_names(
     topics: Option<&[&str]>,
     allow_auto: bool,
 ) -> crate::error::Result<()> {
+    encode_metadata_request_ref(buf, version, topics, allow_auto)
+}
+
+pub(crate) fn encode_metadata_request_ref<T: AsRef<str>>(
+    buf: &mut BytesMut,
+    version: i16,
+    topics: Option<&[T]>,
+    allow_auto: bool,
+) -> crate::error::Result<()> {
     encode_named_metadata_request(buf, version, topics, allow_auto, false)
 }
 
