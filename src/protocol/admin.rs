@@ -21927,24 +21927,7 @@ impl DescribeQuorumRequest {
         error_code: i16,
         error_message: Option<&str>,
     ) -> crate::error::Result<()> {
-        let _flexible = describe_quorum_flexible(version)?;
-        if version >= 2 {
-            QuorumBudget::default().optional_string(error_message)?;
-        }
-        encode_describe_quorum_response(
-            buf,
-            version,
-            &DescribeQuorumResponse {
-                error_code,
-                error_message: if version >= 2 {
-                    error_message.map(str::to_owned)
-                } else {
-                    None
-                },
-                topics: Vec::new(),
-                nodes: Vec::new(),
-            },
-        )
+        encode_describe_quorum_top_level_error(buf, version, error_code, error_message)
     }
 
     /// Java `DescribeQuorumRequest.getPartitionLevelErrorResponse`.
@@ -22716,6 +22699,69 @@ fn describe_quorum_partition_error_len(
             total = add_describe_len(total, buf::unsigned_varint_size(0))?;
         }
     }
+    if version >= 2 {
+        total = add_describe_len(total, describe_array_len(flexible, 0)?)?;
+    }
+    if flexible {
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
+}
+
+/// DescribeQuorum top-level error written from the caller's message.
+///
+/// Topics and nodes stay empty. Below v2 the message is omitted.
+fn encode_describe_quorum_top_level_error(
+    buf: &mut BytesMut,
+    version: i16,
+    error_code: i16,
+    error_message: Option<&str>,
+) -> crate::error::Result<()> {
+    let flexible = describe_quorum_flexible(version)?;
+    if version >= 2 {
+        QuorumBudget::default().optional_string(error_message)?;
+    }
+    let mut budget = QuorumBudget::default();
+    budget.fixed(2)?;
+    if version >= 2 {
+        budget.optional_string(error_message)?;
+    }
+    budget.array_len::<DescribeQuorumResult>(0)?;
+    if version >= 2 {
+        budget.array_len::<DescribeQuorumNode>(0)?;
+    }
+    budget.fixed(1)?;
+    let body_start = buf.len();
+    let planned = describe_quorum_top_level_error_len(version, flexible, error_message)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
+    buf.put_i16(error_code);
+    if version >= 2 {
+        buf::put_string(buf, flexible, error_message)?;
+    }
+    buf::put_array_len(buf, flexible, Some(0))?;
+    if version >= 2 {
+        buf::put_array_len(buf, flexible, Some(0))?;
+    }
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+    Ok(())
+}
+
+fn describe_quorum_top_level_error_len(
+    version: i16,
+    flexible: bool,
+    error_message: Option<&str>,
+) -> Result<usize> {
+    let mut total = 2usize;
+    if version >= 2 {
+        total = add_describe_len(total, describe_string_len(flexible, error_message)?)?;
+    }
+    total = add_describe_len(total, describe_array_len(flexible, 0)?)?;
     if version >= 2 {
         total = add_describe_len(total, describe_array_len(flexible, 0)?)?;
     }
@@ -46245,6 +46291,58 @@ mod tests {
             !cur.has_remaining(),
             "DescribeQuorum v2 partition error must be leftover-empty"
         );
+    }
+
+    #[test]
+    fn describe_quorum_top_level_error_matches_named_results() {
+        for version in 0..=2 {
+            for message in [None, Some("Not controller")] {
+                let mut expected = BytesMut::new();
+                encode_describe_quorum_response(
+                    &mut expected,
+                    version,
+                    &DescribeQuorumResponse {
+                        error_code: crate::error::NOT_CONTROLLER,
+                        error_message: if version >= 2 {
+                            message.map(str::to_owned)
+                        } else {
+                            None
+                        },
+                        topics: Vec::new(),
+                        nodes: Vec::new(),
+                    },
+                )
+                .unwrap();
+                let mut got = BytesMut::new();
+                DescribeQuorumRequest::error_response(
+                    &mut got,
+                    version,
+                    crate::error::NOT_CONTROLLER,
+                    message,
+                )
+                .unwrap();
+                assert_eq!(
+                    got.as_ref(),
+                    expected.as_ref(),
+                    "version {version} message {message:?}"
+                );
+                let len = got.len();
+                let capacity = got.capacity();
+                assert!(capacity >= len);
+                assert!(capacity < 64 * 1024);
+                got.clear();
+                DescribeQuorumRequest::error_response(
+                    &mut got,
+                    version,
+                    crate::error::NOT_CONTROLLER,
+                    message,
+                )
+                .unwrap();
+                assert_eq!(got.len(), len);
+                assert_eq!(got.capacity(), capacity);
+            }
+        }
+        assert!(DescribeQuorumRequest::error_response(&mut BytesMut::new(), 3, 41, None).is_err());
     }
 
     #[test]
