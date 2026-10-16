@@ -2033,6 +2033,12 @@ pub fn encode_describe_configs_request(
     include_documentation: bool,
 ) -> crate::error::Result<()> {
     let flexible = describe_configs_flexible(version)?;
+    let body_start = buf.len();
+    let planned = describe_configs_request_len(version, flexible, resources)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf::put_array_len(buf, flexible, Some(resources.len()))?;
     for r in resources {
         buf.put_i8(r.resource_type);
@@ -2051,7 +2057,37 @@ pub fn encode_describe_configs_request(
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn describe_configs_request_len(
+    version: i16,
+    flexible: bool,
+    resources: &[DescribeConfigsResource],
+) -> Result<usize> {
+    let mut total = describe_array_len(flexible, resources.len())?;
+    for resource in resources {
+        total = add_describe_len(total, 1)?;
+        total = add_describe_len(total, describe_string_len(flexible, Some(&resource.name))?)?;
+        total = add_describe_len(
+            total,
+            describe_string_array_len(flexible, resource.keys.as_deref())?,
+        )?;
+        if flexible {
+            total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    if version >= 1 {
+        total = add_describe_len(total, 1)?;
+    }
+    if version >= 3 {
+        total = add_describe_len(total, 1)?;
+    }
+    if flexible {
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 /// Decode a DescribeConfigs request: `(resources, include_synonyms, include_documentation)`.
@@ -2141,6 +2177,12 @@ pub fn encode_describe_configs_response_with_throttle(
     throttle_time_ms: i32,
 ) -> crate::error::Result<()> {
     let flexible = describe_configs_flexible(version)?;
+    let body_start = buf.len();
+    let planned = describe_configs_response_len(version, flexible, results)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf.put_i32(throttle_time_ms);
     buf::put_array_len(buf, flexible, Some(results.len()))?;
     for r in results {
@@ -2185,7 +2227,70 @@ pub fn encode_describe_configs_response_with_throttle(
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn describe_configs_response_len(
+    version: i16,
+    flexible: bool,
+    results: &[DescribeConfigsResult],
+) -> Result<usize> {
+    let mut total = 4;
+    total = add_describe_len(total, describe_array_len(flexible, results.len())?)?;
+    for result in results {
+        total = add_describe_len(total, 2)?;
+        total = add_describe_len(
+            total,
+            describe_string_len(flexible, result.error_message.as_deref())?,
+        )?;
+        total = add_describe_len(total, 1)?;
+        total = add_describe_len(total, describe_string_len(flexible, Some(&result.name))?)?;
+        total = add_describe_len(total, describe_array_len(flexible, result.entries.len())?)?;
+        for entry in &result.entries {
+            total = add_describe_len(total, describe_string_len(flexible, Some(&entry.name))?)?;
+            total = add_describe_len(
+                total,
+                describe_string_len(flexible, entry.value.as_deref())?,
+            )?;
+            total = add_describe_len(total, 3)?;
+            if version >= 1 {
+                total =
+                    add_describe_len(total, describe_array_len(flexible, entry.synonyms.len())?)?;
+                for synonym in &entry.synonyms {
+                    total = add_describe_len(
+                        total,
+                        describe_string_len(flexible, Some(&synonym.name))?,
+                    )?;
+                    total = add_describe_len(
+                        total,
+                        describe_string_len(flexible, synonym.value.as_deref())?,
+                    )?;
+                    total = add_describe_len(total, 1)?;
+                    if flexible {
+                        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+                    }
+                }
+            }
+            if version >= 3 {
+                total = add_describe_len(total, 1)?;
+                total = add_describe_len(
+                    total,
+                    describe_string_len(flexible, entry.documentation.as_deref())?,
+                )?;
+            }
+            if flexible {
+                total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+            }
+        }
+        if flexible {
+            total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    if flexible {
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 /// Decode a DescribeConfigs response.
@@ -10712,6 +10817,23 @@ fn describe_string_len(flexible: bool, value: Option<&str>) -> Result<usize> {
                 let _len = buf::i16_from_usize(value.len())?;
                 Ok(2usize.saturating_add(value.len()))
             }
+        }
+    }
+}
+
+fn describe_string_array_len(flexible: bool, items: Option<&[String]>) -> Result<usize> {
+    match items {
+        None => Ok(if flexible {
+            buf::unsigned_varint_size(0)
+        } else {
+            4
+        }),
+        Some(items) => {
+            let mut total = describe_array_len(flexible, items.len())?;
+            for item in items {
+                total = add_describe_len(total, describe_string_len(flexible, Some(item))?)?;
+            }
+            Ok(total)
         }
     }
 }
@@ -24073,6 +24195,81 @@ mod tests {
             !cur.has_remaining(),
             "DeleteTopics v3 NOT_CONTROLLER must be leftover-empty"
         );
+    }
+
+    #[test]
+    fn a_describe_configs_request_sizes_its_body_once() {
+        let resources = vec![
+            DescribeConfigsResource {
+                resource_type: RESOURCE_TOPIC,
+                name: "orders".into(),
+                keys: Some(vec!["cleanup.policy".into(), "retention.ms".into()]),
+            },
+            DescribeConfigsResource {
+                resource_type: RESOURCE_BROKER,
+                name: "1".into(),
+                keys: None,
+            },
+        ];
+        for version in [0_i16, 1, 3, 4] {
+            let mut buf = BytesMut::new();
+            encode_describe_configs_request(&mut buf, version, &resources, true, true).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_describe_configs_request(&mut buf, version, &resources, true, true).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+            let mut cur = &buf[..];
+            let (decoded, _, _) = decode_describe_configs_request(&mut cur, version).unwrap();
+            assert!(cur.is_empty());
+            assert_eq!(decoded, resources);
+        }
+    }
+
+    #[test]
+    fn a_describe_configs_response_sizes_its_body_once() {
+        let results = vec![DescribeConfigsResult {
+            error_code: 0,
+            error_message: Some("ok".into()),
+            resource_type: RESOURCE_TOPIC,
+            name: "orders".into(),
+            entries: vec![ConfigEntry {
+                name: "cleanup.policy".into(),
+                value: Some("compact".into()),
+                read_only: false,
+                source: CONFIG_SOURCE_DYNAMIC_TOPIC,
+                is_sensitive: false,
+                synonyms: vec![ConfigSynonym {
+                    name: "cleanup.policy".into(),
+                    value: None,
+                    source: CONFIG_SOURCE_DEFAULT,
+                }],
+                config_type: CONFIG_TYPE_STRING,
+                documentation: Some("policy".into()),
+            }],
+        }];
+        for version in [0_i16, 1, 3, 4] {
+            let mut buf = BytesMut::new();
+            encode_describe_configs_response_with_throttle(&mut buf, version, &results, 12)
+                .unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_describe_configs_response_with_throttle(&mut buf, version, &results, 12)
+                .unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+            let mut cur = &buf[..];
+            let (decoded, throttle) = decode_describe_configs_response(&mut cur, version).unwrap();
+            assert!(cur.is_empty());
+            assert_eq!(decoded.len(), 1);
+            assert_eq!(throttle, 12);
+        }
     }
 
     #[test]
