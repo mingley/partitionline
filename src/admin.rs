@@ -56,23 +56,22 @@ use crate::protocol::admin::{
     encode_describe_configs_named, encode_describe_delegation_token_request,
     encode_describe_groups_request, encode_describe_log_dirs_named,
     encode_describe_log_dirs_request, encode_describe_producers_named_topics,
-    encode_describe_share_group_offsets_request_versioned,
-    encode_describe_topic_partitions_request, encode_describe_transactions_request,
-    encode_describe_user_scram_credentials_request, encode_expire_delegation_token_hmac,
-    encode_expire_delegation_token_request, encode_get_telemetry_subscriptions_request,
-    encode_incremental_alter_configs_named, encode_list_config_resources_request,
-    encode_list_groups_request, encode_list_partition_reassignments_named,
-    encode_list_transactions_request_with_pattern, encode_push_telemetry_metrics,
-    encode_renew_delegation_token_hmac, encode_renew_delegation_token_request,
-    encode_share_group_describe_request, encode_unregister_broker_request,
-    encode_update_features_named, AlterConfigsResource, BorrowedAlterConfig,
-    BorrowedAlterConfigsResource, BorrowedAlterReplicaLogDir, BorrowedAlterReplicaLogDirTopic,
-    BorrowedAlterableResource, BorrowedCreatableTopic, BorrowedCreatePartitionsTopic,
-    BorrowedDescribeConfigsResource, BorrowedFeatureUpdate, BorrowedReassignmentPartition,
-    BorrowedReplicaAssignment, BorrowedScramDeletion, BorrowedScramUpsertion, BorrowedTopicConfig,
-    CreateTopicsRequest, DeleteRecordsPartition, DeleteTopicState, DescribeConfigsResult,
-    TopicResult, RESOURCE_BROKER, RESOURCE_BROKER_LOGGER, RESOURCE_CLIENT_METRICS, RESOURCE_GROUP,
-    RESOURCE_TOPIC,
+    encode_describe_share_group_offsets_request_refs, encode_describe_topic_partitions_request,
+    encode_describe_transactions_request, encode_describe_user_scram_credentials_request,
+    encode_expire_delegation_token_hmac, encode_expire_delegation_token_request,
+    encode_get_telemetry_subscriptions_request, encode_incremental_alter_configs_named,
+    encode_list_config_resources_request, encode_list_groups_request,
+    encode_list_partition_reassignments_named, encode_list_transactions_request_with_pattern,
+    encode_push_telemetry_metrics, encode_renew_delegation_token_hmac,
+    encode_renew_delegation_token_request, encode_share_group_describe_request,
+    encode_unregister_broker_request, encode_update_features_named, AlterConfigsResource,
+    BorrowedAlterConfig, BorrowedAlterConfigsResource, BorrowedAlterReplicaLogDir,
+    BorrowedAlterReplicaLogDirTopic, BorrowedAlterableResource, BorrowedCreatableTopic,
+    BorrowedCreatePartitionsTopic, BorrowedDescribeConfigsResource, BorrowedFeatureUpdate,
+    BorrowedReassignmentPartition, BorrowedReplicaAssignment, BorrowedScramDeletion,
+    BorrowedScramUpsertion, BorrowedTopicConfig, CreateTopicsRequest, DeleteRecordsPartition,
+    DeleteTopicState, DescribeConfigsResult, TopicResult, RESOURCE_BROKER, RESOURCE_BROKER_LOGGER,
+    RESOURCE_CLIENT_METRICS, RESOURCE_GROUP, RESOURCE_TOPIC,
 };
 use crate::protocol::api::{
     decode_api_versions_response, decode_metadata_response, decode_metadata_response_into,
@@ -12210,7 +12209,7 @@ impl Admin {
         if groups.is_empty() {
             return Ok(Vec::new());
         }
-        let ids: Vec<String> = groups.iter().map(|g| g.group_id.clone()).collect();
+        let ids: Vec<&str> = groups.iter().map(|g| g.group_id.as_str()).collect();
         let version = self.describe_share_group_offsets_version.ok_or_else(|| {
             Error::Unsupported("broker does not support DescribeShareGroupOffsets".into())
         })?;
@@ -12235,12 +12234,10 @@ impl Admin {
                 let mut finished = self
                     .exchange_leaders(&nodes, deadline, |_admin, node, _conn, _timeout| {
                         let idxs = by_node.get(&node).map(Vec::as_slice).unwrap_or(&[]);
-                        let subset: Vec<DescribeShareGroupOffsetsGroup> = idxs
-                            .iter()
-                            .filter_map(|&i| groups.get(i).cloned())
-                            .collect();
+                        let subset: Vec<&DescribeShareGroupOffsetsGroup> =
+                            idxs.iter().filter_map(|&i| groups.get(i)).collect();
                         let mut payload = BytesMut::new();
-                        encode_describe_share_group_offsets_request_versioned(
+                        encode_describe_share_group_offsets_request_refs(
                             &mut payload,
                             version,
                             &subset,
@@ -13984,9 +13981,9 @@ impl Admin {
         }
     }
 
-    async fn group_coord_nodes(
+    async fn group_coord_nodes<T: AsRef<str>>(
         &mut self,
-        ids: &[String],
+        ids: &[T],
         pending: &[usize],
         deadline: Instant,
     ) -> Result<HashMap<i32, Vec<usize>>> {
@@ -13995,8 +13992,9 @@ impl Admin {
             let Some(id) = ids.get(i) else {
                 continue;
             };
-            if !self.group_coords.contains_key(id) && !need.contains(&id.as_str()) {
-                need.push(id.as_str());
+            let id = id.as_ref();
+            if !self.group_coords.contains_key(id) && !need.contains(&id) {
+                need.push(id);
             }
         }
         if !need.is_empty() {
@@ -14007,6 +14005,7 @@ impl Admin {
         for &i in pending {
             let id = ids
                 .get(i)
+                .map(AsRef::as_ref)
                 .ok_or_else(|| Error::protocol("missing group id"))?;
             let node = *self
                 .group_coords
@@ -14017,11 +14016,11 @@ impl Admin {
         Ok(by_node)
     }
 
-    fn invalidate_group_coord_idxs(&mut self, ids: &[String], idxs: &[usize], node: i32) {
+    fn invalidate_group_coord_idxs<T: AsRef<str>>(&mut self, ids: &[T], idxs: &[usize], node: i32) {
         let _ = self.conns.remove(&node);
         for &i in idxs {
             if let Some(id) = ids.get(i) {
-                let _ = self.group_coords.remove(id);
+                let _ = self.group_coords.remove(id.as_ref());
             }
         }
     }
@@ -14296,10 +14295,8 @@ impl Admin {
         idxs: &[usize],
         deadline: Instant,
     ) -> Result<Vec<(usize, DescribedShareGroupOffsetsWithLag)>> {
-        let subset: Vec<DescribeShareGroupOffsetsGroup> = idxs
-            .iter()
-            .filter_map(|&i| groups.get(i).cloned())
-            .collect();
+        let subset: Vec<&DescribeShareGroupOffsetsGroup> =
+            idxs.iter().filter_map(|&i| groups.get(i)).collect();
         self.connect_node_until(node, deadline).await?;
         let timeout = startup_remaining(deadline)?;
         let body = {
@@ -14310,7 +14307,7 @@ impl Admin {
             conn.roundtrip(
                 DESCRIBE_SHARE_GROUP_OFFSETS,
                 version,
-                |buf| encode_describe_share_group_offsets_request_versioned(buf, version, &subset),
+                |buf| encode_describe_share_group_offsets_request_refs(buf, version, &subset),
                 timeout,
             )
             .await

@@ -15701,6 +15701,51 @@ impl DescribeShareGroupOffsetsRequest {
     }
 }
 
+trait ShareOffsetsRequestTopic {
+    fn share_offsets_topic_name(&self) -> &str;
+    fn share_offsets_partitions(&self) -> &[i32];
+}
+
+impl ShareOffsetsRequestTopic for DescribeShareGroupOffsetsTopic {
+    fn share_offsets_topic_name(&self) -> &str {
+        &self.topic_name
+    }
+
+    fn share_offsets_partitions(&self) -> &[i32] {
+        &self.partitions
+    }
+}
+
+trait ShareOffsetsRequestGroup {
+    type Topic: ShareOffsetsRequestTopic;
+    fn share_offsets_group_id(&self) -> &str;
+    fn share_offsets_topics(&self) -> Option<&[Self::Topic]>;
+}
+
+impl ShareOffsetsRequestGroup for DescribeShareGroupOffsetsGroup {
+    type Topic = DescribeShareGroupOffsetsTopic;
+
+    fn share_offsets_group_id(&self) -> &str {
+        &self.group_id
+    }
+
+    fn share_offsets_topics(&self) -> Option<&[Self::Topic]> {
+        self.topics.as_deref()
+    }
+}
+
+impl ShareOffsetsRequestGroup for &DescribeShareGroupOffsetsGroup {
+    type Topic = DescribeShareGroupOffsetsTopic;
+
+    fn share_offsets_group_id(&self) -> &str {
+        &self.group_id
+    }
+
+    fn share_offsets_topics(&self) -> Option<&[Self::Topic]> {
+        self.topics.as_deref()
+    }
+}
+
 /// DescribeShareGroupOffsets v0 (flexible from v0; KIP-932).
 ///
 /// Official Apache JSON (`apiKey: 90`, request `listeners: ["broker"]`,
@@ -15748,6 +15793,13 @@ pub fn encode_describe_share_group_offsets_request(
     buf: &mut BytesMut,
     groups: &[DescribeShareGroupOffsetsGroup],
 ) -> crate::error::Result<()> {
+    encode_describe_share_group_offsets_request_views(buf, groups)
+}
+
+fn encode_describe_share_group_offsets_request_views<G: ShareOffsetsRequestGroup>(
+    buf: &mut BytesMut,
+    groups: &[G],
+) -> crate::error::Result<()> {
     let body_start = buf.len();
     let planned = describe_share_offsets_request_len(groups)?;
     let needed = body_start.saturating_add(planned);
@@ -15755,15 +15807,17 @@ pub fn encode_describe_share_group_offsets_request(
         buf.reserve(needed - buf.capacity());
     }
     buf::put_array_len(buf, true, Some(groups.len()))?;
-    for g in groups {
-        buf::put_compact_string(buf, Some(&g.group_id))?;
-        buf::put_array_len(buf, true, g.topics.as_ref().map(Vec::len))?;
-        if let Some(topics) = &g.topics {
-            for t in topics {
-                buf::put_compact_string(buf, Some(&t.topic_name))?;
-                buf::put_array_len(buf, true, Some(t.partitions.len()))?;
-                for p in &t.partitions {
-                    buf.put_i32(*p);
+    for group in groups {
+        buf::put_compact_string(buf, Some(group.share_offsets_group_id()))?;
+        let topics = group.share_offsets_topics();
+        buf::put_array_len(buf, true, topics.map(<[_]>::len))?;
+        if let Some(topics) = topics {
+            for topic in topics {
+                buf::put_compact_string(buf, Some(topic.share_offsets_topic_name()))?;
+                let partitions = topic.share_offsets_partitions();
+                buf::put_array_len(buf, true, Some(partitions.len()))?;
+                for partition in partitions {
+                    buf.put_i32(*partition);
                 }
                 buf::put_empty_tagged_fields(buf);
             }
@@ -15775,22 +15829,25 @@ pub fn encode_describe_share_group_offsets_request(
     Ok(())
 }
 
-fn describe_share_offsets_request_len(groups: &[DescribeShareGroupOffsetsGroup]) -> Result<usize> {
+fn describe_share_offsets_request_len<G: ShareOffsetsRequestGroup>(groups: &[G]) -> Result<usize> {
     let mut total = describe_array_len(true, groups.len())?;
     for group in groups {
-        total = add_describe_len(total, describe_string_len(true, Some(&group.group_id))?)?;
-        match &group.topics {
+        total = add_describe_len(
+            total,
+            describe_string_len(true, Some(group.share_offsets_group_id()))?,
+        )?;
+        match group.share_offsets_topics() {
             None => total = add_describe_len(total, buf::unsigned_varint_size(0))?,
             Some(topics) => {
                 total = add_describe_len(total, describe_array_len(true, topics.len())?)?;
                 for topic in topics {
                     total = add_describe_len(
                         total,
-                        describe_string_len(true, Some(&topic.topic_name))?,
+                        describe_string_len(true, Some(topic.share_offsets_topic_name()))?,
                     )?;
                     total = add_describe_len(
                         total,
-                        reassignment_replica_len(Some(&topic.partitions))?,
+                        reassignment_replica_len(Some(topic.share_offsets_partitions()))?,
                     )?;
                     total = add_describe_len(total, buf::unsigned_varint_size(0))?;
                 }
@@ -16056,6 +16113,16 @@ pub fn encode_describe_share_group_offsets_request_versioned(
 ) -> Result<()> {
     share_offsets_version(version)?;
     encode_describe_share_group_offsets_request(buf, groups)
+}
+
+/// Encode DescribeShareGroupOffsets v0–v1 from groups the caller already owns.
+pub(crate) fn encode_describe_share_group_offsets_request_refs(
+    buf: &mut BytesMut,
+    version: i16,
+    groups: &[&DescribeShareGroupOffsetsGroup],
+) -> Result<()> {
+    share_offsets_version(version)?;
+    encode_describe_share_group_offsets_request_views(buf, groups)
 }
 
 /// Encode a typed share-offset response at version0/1 with exact raw lag.
@@ -38782,6 +38849,29 @@ mod tests {
         let decoded = decode_describe_share_group_offsets_request(&mut cur).unwrap();
         assert!(cur.is_empty());
         assert_eq!(decoded, groups);
+    }
+
+    #[test]
+    fn describe_share_group_offsets_refs_match_owned_groups() {
+        let groups = vec![
+            DescribeShareGroupOffsetsGroup {
+                group_id: "orders-group".into(),
+                topics: Some(vec![DescribeShareGroupOffsetsTopic::new(
+                    "orders-topic-name-is-long",
+                    vec![0, 2],
+                )]),
+            },
+            DescribeShareGroupOffsetsGroup::all("payments-group"),
+        ];
+        let refs: Vec<&DescribeShareGroupOffsetsGroup> = groups.iter().collect();
+        for version in [0_i16, 1] {
+            let mut expected = BytesMut::new();
+            encode_describe_share_group_offsets_request_versioned(&mut expected, version, &groups)
+                .unwrap();
+            let mut got = BytesMut::new();
+            encode_describe_share_group_offsets_request_refs(&mut got, version, &refs).unwrap();
+            assert_eq!(got.as_ref(), expected.as_ref(), "version {version}");
+        }
     }
 
     #[test]
