@@ -15159,12 +15159,19 @@ impl AlterReplicaLogDirsRequest {
     /// `HashMap.put`).
     #[must_use]
     pub fn partition_dirs(&self) -> HashMap<(String, i32), String> {
-        let mut result = HashMap::new();
+        let mut scratch: HashMap<&str, HashMap<i32, &str>> = HashMap::new();
         for dir in &self.dirs {
             for topic in &dir.topics {
+                let parts = scratch.entry(topic.name.as_str()).or_default();
                 for &partition in &topic.partitions {
-                    let _prev = result.insert((topic.name.clone(), partition), dir.path.clone());
+                    let _prev = parts.insert(partition, dir.path.as_str());
                 }
+            }
+        }
+        let mut result = HashMap::new();
+        for (topic, parts) in scratch {
+            for (partition, path) in parts {
+                let _prev = result.insert((topic.to_owned(), partition), path.to_owned());
             }
         }
         result

@@ -9575,10 +9575,11 @@ impl Admin {
         pin_broker: bool,
     ) -> Result<DescribeProducersNodeOutcome> {
         let resp = decode_describe_producers_response(&mut body.clone())?;
-        let mut by_tp: HashMap<(String, i32), DescribeProducersPartition> = HashMap::new();
+        let mut by_tp: HashMap<String, HashMap<i32, DescribeProducersPartition>> = HashMap::new();
         for topic in resp.topics {
+            let parts = by_tp.entry(topic.name).or_default();
             for part in topic.partitions {
-                let _ = by_tp.insert((topic.name.clone(), part.partition_index), part);
+                let _ = parts.insert(part.partition_index, part);
             }
         }
         let mut done = Vec::new();
@@ -9588,7 +9589,8 @@ impl Admin {
                 .get(i)
                 .ok_or_else(|| Error::protocol("missing DescribeProducers query"))?;
             let part = by_tp
-                .remove(&(tp.topic.clone(), tp.partition))
+                .get_mut(tp.topic.as_str())
+                .and_then(|parts| parts.remove(&tp.partition))
                 .ok_or_else(|| {
                     Error::protocol(format!(
                         "DescribeProducers missing {}-{}",
