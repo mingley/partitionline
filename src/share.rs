@@ -930,7 +930,7 @@ pub enum ShareAcquireMode {
 /// `INVALID_TIMESTAMP`, which fails that poll, and not piggyback
 /// `INVALID_COMMIT_OFFSET_SIZE`). A piggybacked
 /// `UNSUPPORTED_SASL_MECHANISM` still completes without retry,
-/// including when `AcknowledgeErrorMessage` is set (Java
+/// including when `AcknowledgeErrorMessage` is set or empty (Java
 /// `handleShareFetchSuccess` completes piggyback acks and still
 /// delivers the fetch; this is not partition
 /// `UNSUPPORTED_SASL_MECHANISM`, which fails that poll, and not piggyback
@@ -2440,7 +2440,7 @@ impl ShareGroup {
     /// `INVALID_COMMIT_OFFSET_SIZE`).
     /// A piggybacked `UNSUPPORTED_SASL_MECHANISM` still completes
     /// without retry, including when `AcknowledgeErrorMessage` is set
-    /// (Java `handleShareFetchSuccess` completes piggyback acks and still
+    /// or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
     /// delivers the fetch; this is not partition
     /// `UNSUPPORTED_SASL_MECHANISM`, which fails that poll, and not piggyback
     /// `INVALID_TIMESTAMP`).

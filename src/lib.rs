@@ -2211,7 +2211,7 @@
 //! partition `INVALID_TIMESTAMP`, which fails that poll, and not
 //! piggyback `INVALID_COMMIT_OFFSET_SIZE`). A piggybacked
 //! `UNSUPPORTED_SASL_MECHANISM` still completes without retry,
-//! including when `AcknowledgeErrorMessage` is set (this is not
+//! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `UNSUPPORTED_SASL_MECHANISM`, which fails that poll, and not
 //! piggyback `INVALID_TIMESTAMP`). A piggybacked
 //! `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a
