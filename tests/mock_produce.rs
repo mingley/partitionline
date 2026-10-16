@@ -316,6 +316,48 @@ async fn retry_refreshes_metadata_once_per_batch() {
     producer.close().await.unwrap();
 }
 
+#[tokio::test(flavor = "current_thread")]
+async fn retry_refreshes_waiting_topics_together() {
+    use partitionline::error::NOT_LEADER_OR_FOLLOWER;
+
+    let mock = common::Mock::start().await;
+    mock.set_topic_partitions("t", 1);
+    mock.set_topic_partitions("u", 1);
+    let mut cfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    cfg.batch_records = 100_000;
+    cfg.linger = Duration::from_millis(50);
+    cfg.retry_backoff = Duration::from_millis(1);
+    cfg.retry_backoff_max = Duration::from_millis(1);
+    cfg.client_id = "retry-topics".into();
+    let producer = Producer::new(cfg).await.unwrap();
+    let _warm_t = producer
+        .send(ProduceRecord::to("t").value(&b"warm-t"[..]))
+        .await
+        .unwrap();
+    let _warm_u = producer
+        .send(ProduceRecord::to("u").value(&b"warm-u"[..]))
+        .await
+        .unwrap();
+    let base_meta = mock.metadata_calls();
+    mock.set_produce_error_times(NOT_LEADER_OR_FOLLOWER, 1);
+    producer
+        .try_send(ProduceRecord::to("t").value(&b"again-t"[..]))
+        .unwrap();
+    producer
+        .try_send(ProduceRecord::to("u").value(&b"again-u"[..]))
+        .unwrap();
+    producer.flush().await.unwrap();
+    assert_eq!(
+        mock.metadata_calls() - base_meta,
+        1,
+        "retried topics already waiting should share one metadata request"
+    );
+    let mut names = mock.last_metadata_topics().unwrap().unwrap();
+    names.sort();
+    assert_eq!(names, ["t".to_string(), "u".to_string()]);
+    producer.close().await.unwrap();
+}
+
 /// KL09-17: the route-cached tracker must produce metrics snapshots
 /// identical to the old per-record-lookup path: exact global counters,
 /// one sorted per-topic row per active topic with exact counts/bytes,

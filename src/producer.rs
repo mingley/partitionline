@@ -4373,15 +4373,53 @@ async fn retry_loop(weak: std::sync::Weak<Shared>, mut rx: mpsc::Receiver<Pendin
         let Some(shared) = weak.upgrade() else {
             break;
         };
+        let mut batch = vec![p];
+        while let Ok(next) = drainer.rx.try_recv() {
+            batch.push(next);
+        }
         if shared.closed.load(Ordering::SeqCst) {
-            let _ = shared.retries_out.fetch_sub(1, Ordering::SeqCst);
-            fail_pendings(&shared, vec![p], Error::Timeout);
+            let _ = shared.retries_out.fetch_sub(batch.len(), Ordering::SeqCst);
+            fail_pendings(&shared, batch, Error::Timeout);
             shared.cache_nudge.notify_waiters();
             continue;
         }
-        retry_one(&shared, p).await;
-        let _ = shared.retries_out.fetch_sub(1, Ordering::SeqCst);
-        shared.cache_nudge.notify_waiters();
+        let mut topics = Vec::new();
+        for pending in &batch {
+            if pending.skip_meta_refresh {
+                continue;
+            }
+            if topics
+                .iter()
+                .any(|topic: &Arc<str>| topic.as_ref() == pending.rec.topic.as_ref())
+            {
+                continue;
+            }
+            topics.push(Arc::clone(&pending.rec.topic));
+        }
+        let refreshed = if topics.is_empty() {
+            true
+        } else {
+            for topic in &topics {
+                invalidate_cached_topic(&shared, topic);
+            }
+            match refresh_queued_topics(&shared, &topics).await {
+                None | Some(Ok(())) => true,
+                Some(Err(error)) => {
+                    publish_meta_err(&shared, Some(clone_err(&error)));
+                    false
+                }
+            }
+        };
+        if refreshed {
+            for pending in &mut batch {
+                pending.skip_meta_refresh = true;
+            }
+        }
+        for pending in batch {
+            retry_one(&shared, pending).await;
+            let _ = shared.retries_out.fetch_sub(1, Ordering::SeqCst);
+            shared.cache_nudge.notify_waiters();
+        }
     }
 }
 
