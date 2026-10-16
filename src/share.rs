@@ -844,10 +844,11 @@ pub struct ShareGroup {
     last_match_refresh: Instant,
     /// Assigned partitions. Every partition of a topic shares that topic's name.
     assigned: Vec<(Arc<str>, i32)>,
-    /// Leader ids for the topic currently being routed. Cleared at the start
-    /// of each poll so a metadata refresh is visible, and kept so the next
-    /// poll does not allocate the list again.
-    leader_topic: String,
+    /// Topic whose leader list is loaded. Cleared at the start of each poll so
+    /// a metadata refresh is visible. The name is the assignment's allocation.
+    leader_topic: Option<Arc<str>>,
+    /// Leader ids for `leader_topic`. Kept so the next poll does not allocate
+    /// the list again.
     leader_ids: Vec<i32>,
     /// Topic names checked for metadata freshness. Cleared in place so a
     /// steady subscription does not allocate the name again.
@@ -1167,6 +1168,21 @@ fn clear_share_leader_plan(plan: &mut ShareLeaderPlan) {
     }
 }
 
+/// Record `topic` as the one whose leader list is loaded.
+///
+/// Returns whether the caller must load that list. The same name keeps the
+/// allocation already stored, including when `topic` is a different copy.
+fn remember_share_leader_topic(cached: &mut Option<Arc<str>>, topic: &Arc<str>) -> bool {
+    if cached
+        .as_ref()
+        .is_some_and(|stored| stored.as_ref() == topic.as_ref())
+    {
+        return false;
+    }
+    *cached = Some(Arc::clone(topic));
+    true
+}
+
 fn remember_share_leader(plan: &mut ShareLeaderPlan, node: i32, topic: &Arc<str>, partition: i32) {
     let topics = plan.entry(node).or_default();
     if let Some(parts) = topics.get_mut(topic.as_ref()) {
@@ -1387,7 +1403,7 @@ impl ShareGroup {
             topic_match,
             last_match_refresh: Instant::now(),
             assigned: Vec::new(),
-            leader_topic: String::new(),
+            leader_topic: None,
             leader_ids: Vec::new(),
             metadata_names: Vec::new(),
             leader_plan: HashMap::new(),
@@ -2404,14 +2420,12 @@ impl ShareGroup {
                 .await?;
         }
         clear_share_leader_plan(&mut self.leader_plan);
-        self.leader_topic.clear();
+        self.leader_topic = None;
         for (topic, partition) in &self.assigned {
-            if self.leader_topic.as_str() != topic.as_ref() {
+            if remember_share_leader_topic(&mut self.leader_topic, topic) {
                 let ids = self.consumer.leader_ids_of(topic)?;
                 self.leader_ids.clear();
                 self.leader_ids.extend_from_slice(ids);
-                self.leader_topic.clear();
-                self.leader_topic.push_str(topic);
             }
             let node = share_partition_leader(topic, *partition, &self.leader_ids)?;
             if !self.consumer.broker_known(node) {
@@ -4815,6 +4829,24 @@ mod tests {
         super::publish_member_id(&mut local, &mut shared, "member-2");
         assert_eq!(local, "member-2");
         assert_eq!(shared, "member-2");
+    }
+
+    #[test]
+    fn a_repeated_share_topic_keeps_the_loaded_name() {
+        let orders: Arc<str> = Arc::from("topic-name-longer-than-twenty-three");
+        let copy: Arc<str> = Arc::from("topic-name-longer-than-twenty-three");
+        let mut cached = None;
+        assert!(super::remember_share_leader_topic(&mut cached, &orders));
+        assert_eq!(cached.as_ref().map(Arc::as_ptr), Some(Arc::as_ptr(&orders)));
+        assert!(!super::remember_share_leader_topic(&mut cached, &orders));
+        assert!(!super::remember_share_leader_topic(&mut cached, &copy));
+        assert_eq!(cached.as_ref().map(Arc::as_ptr), Some(Arc::as_ptr(&orders)));
+        let payments: Arc<str> = Arc::from("payments");
+        assert!(super::remember_share_leader_topic(&mut cached, &payments));
+        assert_eq!(
+            cached.as_ref().map(Arc::as_ptr),
+            Some(Arc::as_ptr(&payments))
+        );
     }
 
     #[test]
