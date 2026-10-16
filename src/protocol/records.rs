@@ -2717,6 +2717,14 @@ pub fn decode_record_batches_with_limit<B: Buf>(
     max_decode_bytes: usize,
 ) -> Result<Vec<RecordBatch>> {
     let mut out = Vec::new();
+    if buf.chunk().len() == buf.remaining() {
+        if let Ok(count) = count_framed_batches(buf.chunk()) {
+            if count > 1 {
+                out.try_reserve_exact(count)
+                    .map_err(|_| Error::protocol("record batch reserve"))?;
+            }
+        }
+    }
     while buf.remaining() >= 12 {
         let chunk = buf.chunk();
         if chunk.len() < 12 {
@@ -3118,7 +3126,7 @@ pub(crate) fn split_record_batches(mut buf: Bytes) -> Result<BatchList> {
     if buf.remaining() < 12 {
         return Ok(BatchList::One(first));
     }
-    let extra = count_framed_batches(&buf)?;
+    let extra = count_framed_batches(buf.as_ref())?;
     if extra == 0 {
         return Ok(BatchList::One(first));
     }
@@ -3167,8 +3175,7 @@ fn next_framed_batch(buf: &mut Bytes) -> Result<Option<EncodedBatch>> {
     }))
 }
 
-fn count_framed_batches(buf: &Bytes) -> Result<usize> {
-    let bytes = buf.as_ref();
+fn count_framed_batches(bytes: &[u8]) -> Result<usize> {
     let mut offset = 0usize;
     let mut count = 0usize;
     while bytes.len().saturating_sub(offset) >= 12 {
@@ -4309,6 +4316,20 @@ mod tests {
         raw.extend_from_slice(&[0u8; 8]);
         let batches = decode_record_batches(&mut &raw[..]).unwrap();
         assert_eq!(batches.len(), 2);
+        assert_eq!(
+            batches.capacity(),
+            Vec::<RecordBatch>::with_capacity(2).capacity()
+        );
+        let mut five = one_batch(b"one");
+        for _ in 0..4 {
+            five.extend_from_slice(&one_batch(b"two"));
+        }
+        let batches = decode_record_batches(&mut &five[..]).unwrap();
+        assert_eq!(batches.len(), 5);
+        assert_eq!(
+            batches.capacity(),
+            Vec::<RecordBatch>::with_capacity(5).capacity()
+        );
         assert_eq!(batches[0].records[0].value.as_deref(), Some(&b"one"[..]));
         assert_eq!(batches[1].records[0].value.as_deref(), Some(&b"two"[..]));
     }
