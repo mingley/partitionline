@@ -2245,6 +2245,15 @@ pub fn decode_fetch_response<B: Buf>(
     Ok((topics, endpoints, error_code, session_id, throttle_time_ms))
 }
 
+fn reserve_fetch_slots<T>(items: &mut Vec<T>, count: usize) -> Result<()> {
+    if items.capacity() < count {
+        items
+            .try_reserve_exact(count - items.capacity())
+            .map_err(|_| Error::protocol("fetch response reserve"))?;
+    }
+    Ok(())
+}
+
 /// [`decode_fetch_response`] without decoding record batches: every
 /// partition's `records` is empty and its raw record-set bytes are returned
 /// alongside, indexed `[topic][partition]`, so callers can decode lazily.
@@ -2293,6 +2302,7 @@ pub(crate) fn decode_fetch_response_raw<B: Buf>(
     if topics.len() > n {
         topics.truncate(n);
     }
+    reserve_fetch_slots(&mut topics, n)?;
     let mut raw_records = SlotList::with_capacity(n);
     for topic_index in 0..n {
         let mut topic_name = if topic_index < topics.len() {
@@ -2321,6 +2331,7 @@ pub(crate) fn decode_fetch_response_raw<B: Buf>(
         if partitions.len() > pn {
             partitions.truncate(pn);
         }
+        reserve_fetch_slots(&mut partitions, pn)?;
         let mut raw_partitions = SlotList::with_capacity(pn);
         for part_index in 0..pn {
             let partition = buf::get_i32(buf)?;
@@ -6591,6 +6602,54 @@ mod tests {
                 .map(|part| part.log_start_offset),
             Some(10)
         );
+    }
+
+    #[test]
+    fn a_fetch_response_sizes_topic_and_partition_lists_once() {
+        let partition = |index: i32| FetchedPartition {
+            partition: index,
+            error_code: 0,
+            high_watermark: 1,
+            last_stable_offset: 1,
+            log_start_offset: 0,
+            aborted_transactions: Vec::new(),
+            preferred_read_replica: -1,
+            current_leader_id: -1,
+            current_leader_epoch: -1,
+            diverging_epoch: -1,
+            diverging_end_offset: -1,
+            snapshot_end_offset: -1,
+            snapshot_epoch: -1,
+            records: vec![],
+        };
+        let topic = |name: &str, count: i32| FetchedTopic {
+            topic: name.into(),
+            topic_id: [0; 16],
+            partitions: (0..count).map(partition).collect(),
+        };
+        let topics = vec![topic("orders", 4), topic("payments", 1), topic("trades", 2)];
+        let mut buf = BytesMut::new();
+        encode_fetch_response(&mut buf, 11, &topics).unwrap();
+        let (decoded, retained, _, _, _, _, _) =
+            decode_fetch_response_raw(&mut &buf[..], 11, Vec::new()).unwrap();
+        assert!(retained.is_empty());
+        let topic_capacity = decoded.capacity();
+        let part_capacity = decoded
+            .first()
+            .map(|topic| topic.partitions.capacity())
+            .unwrap_or(0);
+        assert!(topic_capacity >= 3);
+        assert!(part_capacity >= 4);
+        assert_eq!(decoded.len(), 3);
+        assert_eq!(decoded.first().map(|topic| topic.partitions.len()), Some(4));
+        let (again, retained, _, _, _, _, _) =
+            decode_fetch_response_raw(&mut &buf[..], 11, decoded).unwrap();
+        assert!(retained.is_empty());
+        assert_eq!(again.capacity(), topic_capacity);
+        assert!(again
+            .first()
+            .is_some_and(|topic| topic.partitions.capacity() == part_capacity));
+        assert_eq!(again.get(2).map(|topic| topic.partitions.len()), Some(2));
     }
 
     #[test]
