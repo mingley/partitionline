@@ -843,6 +843,31 @@ struct ShareNodeConnection {
     acknowledge_version: i16,
 }
 
+struct ShareDialConfig {
+    client_id: String,
+    connect_timeout: Duration,
+    tls: Option<crate::net::TlsConfig>,
+    sasl_plain: Option<(String, String)>,
+    sasl_scram: Option<(String, String)>,
+    sasl_scram_sha512: Option<(String, String)>,
+    sasl_oauthbearer: Option<String>,
+    sasl_oauthbearer_oidc: Option<crate::OidcConfig>,
+}
+
+type ShareDialAttempt = (
+    i32,
+    String,
+    Result<(BrokerConn, crate::protocol::api::ApiVersionsResponse)>,
+);
+
+struct OpenedShareDial {
+    node: i32,
+    addr: String,
+    conn: BrokerConn,
+    fetch_version: i16,
+    acknowledge_version: i16,
+}
+
 struct PreparedShareAck {
     node: i32,
     version: i16,
@@ -2275,7 +2300,27 @@ impl ShareGroup {
 
     /// Open missing share-leader sockets together. Failures stay for the
     /// per-node lookup, which reports them on the same deadline.
-    async fn warm_share_leaders(&mut self, nodes: &[i32], deadline: Instant) {
+    fn cached_share_nodes(&self) -> Vec<i32> {
+        let mut nodes = Vec::new();
+        for (topic, partition) in &self.assigned {
+            let Ok(ids) = self.consumer.leader_ids_of(topic) else {
+                continue;
+            };
+            let Some(node) = usize::try_from(*partition)
+                .ok()
+                .and_then(|index| ids.get(index))
+                .copied()
+            else {
+                continue;
+            };
+            if node >= 0 && !nodes.contains(&node) {
+                nodes.push(node);
+            }
+        }
+        nodes
+    }
+
+    fn share_dial_targets(&mut self, nodes: &[i32]) -> Vec<(i32, String)> {
         let mut dials = Vec::new();
         for &node in nodes {
             if self
@@ -2310,56 +2355,69 @@ impl ShareGroup {
             };
             dials.push((node, addr));
         }
-        if dials.is_empty() || Instant::now() >= deadline {
-            return;
+        dials
+    }
+
+    fn share_dial_config(&self) -> ShareDialConfig {
+        ShareDialConfig {
+            client_id: self.cfg.client_id.clone(),
+            connect_timeout: self.cfg.connect_timeout,
+            tls: self.cfg.tls.clone(),
+            sasl_plain: self.cfg.sasl_plain.clone(),
+            sasl_scram: self.cfg.sasl_scram.clone(),
+            sasl_scram_sha512: self.cfg.sasl_scram_sha512.clone(),
+            sasl_oauthbearer: self.cfg.sasl_oauthbearer.clone(),
+            sasl_oauthbearer_oidc: self.cfg.sasl_oauthbearer_oidc.clone(),
         }
-        let client_id = self.cfg.client_id.clone();
-        let connect_timeout = self.cfg.connect_timeout;
-        let tls = self.cfg.tls.clone();
-        let sasl_plain = self.cfg.sasl_plain.clone();
-        let sasl_scram = self.cfg.sasl_scram.clone();
-        let sasl_scram_sha512 = self.cfg.sasl_scram_sha512.clone();
-        let sasl_oauthbearer = self.cfg.sasl_oauthbearer.clone();
-        let sasl_oauthbearer_oidc = self.cfg.sasl_oauthbearer_oidc.clone();
+    }
+
+    async fn open_share_dials(
+        cfg: ShareDialConfig,
+        dials: Vec<(i32, String)>,
+        deadline: Instant,
+    ) -> Vec<OpenedShareDial> {
+        if dials.is_empty() || Instant::now() >= deadline {
+            return Vec::new();
+        }
         let mut waiting = dials.into_iter();
-        type ShareDial = (
-            i32,
-            String,
-            Result<(BrokerConn, crate::protocol::api::ApiVersionsResponse)>,
-        );
-        let mut inflight = tokio::task::JoinSet::<ShareDial>::new();
-        let spawn = |inflight: &mut tokio::task::JoinSet<ShareDial>, node: i32, addr: String| {
-            let client_id = client_id.clone();
-            let tls = tls.clone();
-            let sasl_plain = sasl_plain.clone();
-            let sasl_scram = sasl_scram.clone();
-            let sasl_scram_sha512 = sasl_scram_sha512.clone();
-            let sasl_oauthbearer = sasl_oauthbearer.clone();
-            let sasl_oauthbearer_oidc = sasl_oauthbearer_oidc.clone();
-            let addr_for_task = addr.clone();
-            let _ = inflight.spawn(async move {
-                let result = Consumer::open_fetch_conn(
-                    &addr_for_task,
-                    &client_id,
-                    connect_timeout,
-                    tls.as_ref(),
-                    sasl_plain.as_ref(),
-                    sasl_scram.as_ref(),
-                    sasl_scram_sha512.as_ref(),
-                    sasl_oauthbearer.as_deref(),
-                    sasl_oauthbearer_oidc.as_ref(),
-                    deadline,
-                )
-                .await;
-                (node, addr, result)
-            });
-        };
+        let mut inflight = tokio::task::JoinSet::<ShareDialAttempt>::new();
+        let spawn =
+            |inflight: &mut tokio::task::JoinSet<ShareDialAttempt>, node: i32, addr: String| {
+                let cfg = ShareDialConfig {
+                    client_id: cfg.client_id.clone(),
+                    connect_timeout: cfg.connect_timeout,
+                    tls: cfg.tls.clone(),
+                    sasl_plain: cfg.sasl_plain.clone(),
+                    sasl_scram: cfg.sasl_scram.clone(),
+                    sasl_scram_sha512: cfg.sasl_scram_sha512.clone(),
+                    sasl_oauthbearer: cfg.sasl_oauthbearer.clone(),
+                    sasl_oauthbearer_oidc: cfg.sasl_oauthbearer_oidc.clone(),
+                };
+                let addr_for_task = addr.clone();
+                let _ = inflight.spawn(async move {
+                    let result = Consumer::open_fetch_conn(
+                        &addr_for_task,
+                        &cfg.client_id,
+                        cfg.connect_timeout,
+                        cfg.tls.as_ref(),
+                        cfg.sasl_plain.as_ref(),
+                        cfg.sasl_scram.as_ref(),
+                        cfg.sasl_scram_sha512.as_ref(),
+                        cfg.sasl_oauthbearer.as_deref(),
+                        cfg.sasl_oauthbearer_oidc.as_ref(),
+                        deadline,
+                    )
+                    .await;
+                    (node, addr, result)
+                });
+            };
         while inflight.len() < 8 {
             let Some((node, addr)) = waiting.next() else {
                 break;
             };
             spawn(&mut inflight, node, addr);
         }
+        let mut opened = Vec::new();
         while !inflight.is_empty() {
             if Instant::now() >= deadline {
                 inflight.abort_all();
@@ -2399,15 +2457,13 @@ impl ShareGroup {
                         )
                     })
                     .unwrap_or(-1);
-                let _ = self.share_addresses.insert(node, addr);
-                let _ = self.share_conns.insert(
+                opened.push(OpenedShareDial {
                     node,
-                    ShareNodeConnection {
-                        conn,
-                        fetch_version,
-                        acknowledge_version,
-                    },
-                );
+                    addr,
+                    conn,
+                    fetch_version,
+                    acknowledge_version,
+                });
             }
             while inflight.len() < 8 {
                 let Some((node, addr)) = waiting.next() else {
@@ -2416,6 +2472,27 @@ impl ShareGroup {
                 spawn(&mut inflight, node, addr);
             }
         }
+        opened
+    }
+
+    fn store_opened_share_dials(&mut self, opened: Vec<OpenedShareDial>) {
+        for dial in opened {
+            let _ = self.share_addresses.insert(dial.node, dial.addr);
+            let _ = self.share_conns.insert(
+                dial.node,
+                ShareNodeConnection {
+                    conn: dial.conn,
+                    fetch_version: dial.fetch_version,
+                    acknowledge_version: dial.acknowledge_version,
+                },
+            );
+        }
+    }
+
+    async fn warm_share_leaders(&mut self, nodes: &[i32], deadline: Instant) {
+        let dials = self.share_dial_targets(nodes);
+        let opened = Self::open_share_dials(self.share_dial_config(), dials, deadline).await;
+        self.store_opened_share_dials(opened);
     }
 
     async fn node_share_version_until(
@@ -2626,12 +2703,25 @@ impl ShareGroup {
                 self.stale_metadata_names = stale;
                 return Err(Error::Timeout);
             }
-            let refreshed = self
-                .consumer
-                .refresh_metadata_timeout(Some(&stale), rest)
-                .await;
-            self.stale_metadata_names = stale;
-            refreshed?;
+            // Cached leaders can be dialed while metadata reloads. A leader
+            // that moves is opened afterward by the normal warm path.
+            let cached = self.cached_share_nodes();
+            let targets = self.share_dial_targets(&cached);
+            if targets.is_empty() {
+                let refreshed = self
+                    .consumer
+                    .refresh_metadata_timeout(Some(&stale), rest)
+                    .await;
+                self.stale_metadata_names = stale;
+                refreshed?;
+            } else {
+                let opened = Self::open_share_dials(self.share_dial_config(), targets, deadline);
+                let refreshed = self.consumer.refresh_metadata_timeout(Some(&stale), rest);
+                let (opened, refreshed) = tokio::join!(opened, refreshed);
+                self.store_opened_share_dials(opened);
+                self.stale_metadata_names = stale;
+                refreshed?;
+            }
         } else {
             self.stale_metadata_names = stale;
         }

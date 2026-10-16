@@ -479,6 +479,38 @@ async fn share_leader_dials_overlap() {
     group.leave().await.unwrap();
 }
 
+/// Stale share metadata reloads while idle leaders redial.
+#[tokio::test]
+async fn share_poll_dials_leaders_while_refreshing_metadata() {
+    let mock = common::Mock::start_two_node().await;
+    v2(&mock);
+    mock.set_topic_partitions("t", 2);
+    mock.set_partition_leader("t", 0, 1);
+    mock.set_partition_leader("t", 1, 2);
+    produce(&mock, &[(0, b"left"), (1, b"right")]).await;
+    let mut cfg = config(&mock);
+    cfg.metadata_max_age = Duration::ZERO;
+    cfg.connections_max_idle = Duration::from_millis(40);
+    let mut group = ShareGroup::join(cfg, "meta-dial", "t").await.unwrap();
+    let first = group.poll().await.unwrap();
+    assert_eq!(first.len(), 2, "both leaders must open a share session");
+    group.accept(&first).await.unwrap();
+    tokio::time::sleep(Duration::from_millis(60)).await;
+    // Refresh the member socket. The share leaders stay idle.
+    group.list_topics().await.unwrap();
+    let delay = Duration::from_millis(250);
+    mock.set_metadata_delay(delay);
+    mock.set_api_versions_delay(delay);
+    let started = Instant::now();
+    let _second = group.poll().await.unwrap();
+    let elapsed = started.elapsed();
+    assert!(
+        elapsed < Duration::from_millis(450),
+        "share poll refreshed metadata before redialing leaders: {elapsed:?}"
+    );
+    group.leave().await.unwrap();
+}
+
 #[tokio::test]
 async fn java_v2_batch_emits_only_acquired_offsets_and_buffers_poll_limit() {
     let mock = common::Mock::start().await;
