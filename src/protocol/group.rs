@@ -784,9 +784,9 @@ fn group_owned_assignment(parts: Vec<(String, i32)>) -> Vec<(String, Vec<i32>)> 
 /// Group owned partitions by topic after sorting by topic then partition
 /// (Java `ConsumerProtocol.serializeSubscription`).
 ///
-/// The topic name is copied once, into the group. Later partitions of that
+/// The topic name stays borrowed from `owned`. Later partitions of that
 /// topic only record the index.
-fn group_sorted_owned_partitions(owned: &[(String, i32)]) -> Vec<(String, Vec<i32>)> {
+fn group_sorted_owned_partitions(owned: &[(String, i32)]) -> Vec<(&str, Vec<i32>)> {
     let mut order: Vec<usize> = (0..owned.len()).collect();
     order.sort_by(|&left, &right| {
         let left = owned
@@ -797,14 +797,14 @@ fn group_sorted_owned_partitions(owned: &[(String, i32)]) -> Vec<(String, Vec<i3
             .map(|(topic, partition)| (topic.as_str(), *partition));
         left.cmp(&right)
     });
-    let mut by_topic: Vec<(String, Vec<i32>)> = Vec::new();
+    let mut by_topic: Vec<(&str, Vec<i32>)> = Vec::new();
     for index in order {
         let Some((topic, part)) = owned.get(index) else {
             continue;
         };
         match by_topic.last_mut() {
-            Some((name, partitions)) if name == topic => partitions.push(*part),
-            _ => by_topic.push((topic.clone(), vec![*part])),
+            Some((name, partitions)) if *name == topic.as_str() => partitions.push(*part),
+            _ => by_topic.push((topic.as_str(), vec![*part])),
         }
     }
     by_topic
@@ -6072,7 +6072,7 @@ fn write_subscription(
     if version >= 1 {
         buf::put_array_len(buf, false, Some(by_topic.len()))?;
         for (topic, parts) in &by_topic {
-            buf::put_classic_nullable_string(buf, Some(topic))?;
+            buf::put_classic_nullable_string(buf, Some(*topic))?;
             buf::put_array_len(buf, false, Some(parts.len()))?;
             for partition in parts {
                 buf.put_i32(*partition);
@@ -6094,7 +6094,7 @@ fn subscription_len(
     version: i16,
     topics: &[String],
     topic_order: &[usize],
-    owned: &[(String, Vec<i32>)],
+    owned: &[(&str, Vec<i32>)],
     rack_id: Option<&str>,
 ) -> Result<usize> {
     let mut total = 2usize;
@@ -6109,7 +6109,7 @@ fn subscription_len(
     if version >= 1 {
         total = add_group_len(total, group_array_len(false, owned.len())?)?;
         for (topic, parts) in owned {
-            total = add_group_len(total, group_string_len(false, Some(topic))?)?;
+            total = add_group_len(total, group_string_len(false, Some(*topic))?)?;
             total = add_group_len(total, group_array_len(false, parts.len())?)?;
             total = add_group_len(total, partition_indexes_len(parts.len())?)?;
         }
@@ -10013,13 +10013,13 @@ mod tests {
         assert_eq!(
             sorted
                 .first()
-                .map(|(topic, parts)| (topic.as_str(), parts.as_slice())),
+                .map(|(topic, parts)| (*topic, parts.as_slice())),
             Some(("orders-topic-name-is-long", [0, 2].as_slice()))
         );
         assert_eq!(
             sorted
                 .get(1)
-                .map(|(topic, parts)| (topic.as_str(), parts.as_slice())),
+                .map(|(topic, parts)| (*topic, parts.as_slice())),
             Some(("payments", [1].as_slice()))
         );
     }
