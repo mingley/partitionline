@@ -10344,6 +10344,12 @@ pub fn encode_describe_groups_response_with_throttle(
     throttle_time_ms: i32,
 ) -> crate::error::Result<()> {
     let flexible = describe_groups_flexible(version)?;
+    let body_start = buf.len();
+    let planned = describe_groups_response_len(version, flexible, groups)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     if version >= 1 {
         buf.put_i32(throttle_time_ms);
     }
@@ -10371,7 +10377,138 @@ pub fn encode_describe_groups_response_with_throttle(
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn add_describe_len(total: usize, next: usize) -> Result<usize> {
+    total
+        .checked_add(next)
+        .ok_or_else(|| Error::protocol("describe groups response size overflow"))
+}
+
+fn describe_array_len(flexible: bool, len: usize) -> Result<usize> {
+    if flexible {
+        let value = buf::u32_from_usize(len)?
+            .checked_add(1)
+            .ok_or_else(|| Error::protocol("compact array overflow"))?;
+        Ok(buf::unsigned_varint_size(value))
+    } else {
+        let _len = buf::i32_from_usize(len)?;
+        Ok(4)
+    }
+}
+
+fn describe_string_len(flexible: bool, value: Option<&str>) -> Result<usize> {
+    match value {
+        None => Ok(if flexible {
+            buf::unsigned_varint_size(0)
+        } else {
+            2
+        }),
+        Some(value) => {
+            if flexible {
+                let encoded = buf::u32_from_usize(value.len())?
+                    .checked_add(1)
+                    .ok_or_else(|| Error::protocol("compact string overflow"))?;
+                Ok(buf::unsigned_varint_size(encoded).saturating_add(value.len()))
+            } else {
+                let _len = buf::i16_from_usize(value.len())?;
+                Ok(2usize.saturating_add(value.len()))
+            }
+        }
+    }
+}
+
+fn describe_bytes_len(flexible: bool, value: &[u8]) -> Result<usize> {
+    if flexible {
+        let encoded = buf::u32_from_usize(value.len())?
+            .checked_add(1)
+            .ok_or_else(|| Error::protocol("compact bytes overflow"))?;
+        Ok(buf::unsigned_varint_size(encoded).saturating_add(value.len()))
+    } else {
+        let _len = buf::i32_from_usize(value.len())?;
+        Ok(4usize.saturating_add(value.len()))
+    }
+}
+
+fn describe_member_len(
+    version: i16,
+    flexible: bool,
+    member: &DescribedGroupMember,
+) -> Result<usize> {
+    let mut total = describe_string_len(flexible, Some(&member.member_id))?;
+    if version >= 4 {
+        total = add_describe_len(
+            total,
+            describe_string_len(flexible, member.group_instance_id.as_deref())?,
+        )?;
+    }
+    total = add_describe_len(
+        total,
+        describe_string_len(flexible, Some(&member.client_id))?,
+    )?;
+    total = add_describe_len(
+        total,
+        describe_string_len(flexible, Some(&member.client_host))?,
+    )?;
+    total = add_describe_len(
+        total,
+        describe_bytes_len(flexible, &member.member_metadata)?,
+    )?;
+    total = add_describe_len(
+        total,
+        describe_bytes_len(flexible, &member.member_assignment)?,
+    )?;
+    if flexible {
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
+}
+
+fn describe_groups_response_len(
+    version: i16,
+    flexible: bool,
+    groups: &[DescribedGroup],
+) -> Result<usize> {
+    let mut total = if version >= 1 { 4usize } else { 0 };
+    total = add_describe_len(total, describe_array_len(flexible, groups.len())?)?;
+    for group in groups {
+        total = add_describe_len(total, 2)?;
+        if version >= 6 {
+            total = add_describe_len(
+                total,
+                describe_string_len(flexible, group.error_message.as_deref())?,
+            )?;
+        }
+        total = add_describe_len(total, describe_string_len(flexible, Some(&group.group_id))?)?;
+        total = add_describe_len(
+            total,
+            describe_string_len(flexible, Some(&group.group_state))?,
+        )?;
+        total = add_describe_len(
+            total,
+            describe_string_len(flexible, Some(&group.protocol_type))?,
+        )?;
+        total = add_describe_len(
+            total,
+            describe_string_len(flexible, Some(&group.protocol_data))?,
+        )?;
+        total = add_describe_len(total, describe_array_len(flexible, group.members.len())?)?;
+        for member in &group.members {
+            total = add_describe_len(total, describe_member_len(version, flexible, member)?)?;
+        }
+        if version >= 3 {
+            total = add_describe_len(total, 4)?;
+        }
+        if flexible {
+            total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    if flexible {
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 /// Decode a DescribeGroups response.
@@ -19584,6 +19721,39 @@ mod tests {
                 (crate::error::UNKNOWN_TOPIC_OR_PARTITION, 1),
             ])
         );
+    }
+
+    #[test]
+    fn a_describe_groups_response_sizes_its_body_once() {
+        let groups = [DescribedGroup {
+            error_code: 0,
+            error_message: None,
+            group_id: "consumers".into(),
+            group_state: "Stable".into(),
+            protocol_type: "consumer".into(),
+            protocol_data: "range".into(),
+            members: vec![DescribedGroupMember {
+                member_id: "member-1".into(),
+                group_instance_id: Some("instance".into()),
+                client_id: "client".into(),
+                client_host: "/127.0.0.1".into(),
+                member_metadata: vec![1, 2, 3, 4],
+                member_assignment: vec![9; 32],
+            }],
+            authorized_operations: 0,
+        }];
+        for version in [0_i16, 3, 5, 6] {
+            let mut buf = BytesMut::new();
+            encode_describe_groups_response(&mut buf, version, &groups).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_describe_groups_response(&mut buf, version, &groups).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+        }
     }
 
     #[test]
