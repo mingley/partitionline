@@ -2131,6 +2131,8 @@ struct BrokerFetchSession {
     /// Partition lists from the previous incremental fetch. The next poll
     /// clears and refills one instead of allocating it again.
     spare_changed_parts: Vec<Vec<FetchPartition>>,
+    /// Topic list from the previous fetch request. The next poll refills it.
+    spare_request_topics: Vec<SessionFetchTopic>,
     /// Topic id to the stored topic name. Rebuilt when a partition is added,
     /// removed, or given a new id.
     id_names: SessionIdNames,
@@ -2147,6 +2149,7 @@ impl Default for BrokerFetchSession {
             stamp: 0,
             changed: HashMap::new(),
             spare_changed_parts: Vec::new(),
+            spare_request_topics: Vec::new(),
             id_names: HashMap::new(),
             id_names_dirty: false,
         }
@@ -2434,18 +2437,19 @@ impl BrokerFetchSession {
                 remember_forgotten(&mut forgotten, topic, id, partition);
             }
         }
-        let topics = if full {
-            topics.iter().map(planned_fetch_topic).collect()
+        let mut built = self.take_request_topics();
+        if full {
+            built.extend(topics.iter().map(planned_fetch_topic));
         } else {
-            self.changed
-                .drain()
-                .map(|(topic, (topic_id, partitions))| SessionFetchTopic {
+            built.extend(self.changed.drain().map(|(topic, (topic_id, partitions))| {
+                SessionFetchTopic {
                     topic,
                     topic_id,
                     partitions,
-                })
-                .collect()
-        };
+                }
+            }));
+        }
+        let topics = built;
         self.awaiting_response = true;
         let mut forgotten: Vec<_> = forgotten
             .into_iter()
@@ -2490,10 +2494,27 @@ impl BrokerFetchSession {
         self.spare_changed_parts.push(parts);
     }
 
-    fn reclaim_request_partitions(&mut self, request: SessionFetchRequest) {
-        for topic in request.topics {
+    fn take_request_topics(&mut self) -> Vec<SessionFetchTopic> {
+        let mut topics = std::mem::take(&mut self.spare_request_topics);
+        topics.clear();
+        topics
+    }
+
+    fn park_request_topics(&mut self, mut topics: Vec<SessionFetchTopic>) {
+        topics.clear();
+        if topics.capacity() == 0 {
+            return;
+        }
+        if topics.capacity() > self.spare_request_topics.capacity() {
+            self.spare_request_topics = topics;
+        }
+    }
+
+    fn reclaim_request_partitions(&mut self, mut request: SessionFetchRequest) {
+        for topic in request.topics.drain(..) {
             self.park_changed_parts(topic.partitions);
         }
+        self.park_request_topics(request.topics);
     }
 
     fn refresh_id_names(&mut self) {
@@ -9296,6 +9317,7 @@ mod tests {
             .first()
             .map(|item| item.partitions.as_ptr())
             .expect("partition list");
+        let kept_topics = incremental.topics.as_ptr();
         session.response(&session_header(0, 91), 12).unwrap();
         session.reclaim_request_partitions(incremental);
         let mut again = session_topic([1; 16], 6);
@@ -9305,6 +9327,7 @@ mod tests {
             next.topics.first().map(|item| item.partitions.as_ptr()),
             Some(kept)
         );
+        assert_eq!(next.topics.as_ptr(), kept_topics);
     }
 
     #[test]
