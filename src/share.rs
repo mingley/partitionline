@@ -896,6 +896,9 @@ pub struct ShareGroup {
     /// Topic names checked for metadata freshness. Cleared in place so a
     /// steady subscription does not allocate the name again.
     metadata_names: Vec<String>,
+    /// Stale topic names from the last metadata refresh. The strings stay
+    /// so the next poll does not allocate them again.
+    stale_metadata_names: Vec<String>,
     /// Leader to topic to partitions. Partition lists are cleared and refilled
     /// each poll; topic names stay when the assignment is unchanged.
     leader_plan: ShareLeaderPlan,
@@ -1255,6 +1258,25 @@ where
     })
 }
 
+fn refill_stale_names(dest: &mut Vec<String>, names: &[String], fresh: impl Fn(&str) -> bool) {
+    let mut used = 0usize;
+    for topic in names {
+        if fresh(topic) {
+            continue;
+        }
+        if let Some(slot) = dest.get_mut(used) {
+            if slot != topic {
+                slot.clear();
+                slot.push_str(topic);
+            }
+        } else {
+            dest.push(topic.clone());
+        }
+        used = used.saturating_add(1);
+    }
+    dest.truncate(used);
+}
+
 fn fill_unique_names<'a>(names: &mut Vec<String>, topics: impl Iterator<Item = &'a str>) {
     let mut used = 0usize;
     for topic in topics {
@@ -1531,6 +1553,7 @@ impl ShareGroup {
             leader_topic: None,
             leader_ids: Vec::new(),
             metadata_names: Vec::new(),
+            stale_metadata_names: Vec::new(),
             leader_plan: HashMap::new(),
             leader_nodes: Vec::new(),
             spare_fetch_topics: Vec::new(),
@@ -2529,23 +2552,24 @@ impl ShareGroup {
             &mut self.metadata_names,
             self.assigned.iter().map(|(topic, _)| topic.as_ref()),
         );
-        let count = self.metadata_names.len();
-        for index in 0..count {
-            let fresh = self
-                .metadata_names
-                .get(index)
-                .is_some_and(|topic| self.consumer.topic_metadata_fresh(topic));
-            if fresh {
-                continue;
-            }
+        let mut stale = std::mem::take(&mut self.stale_metadata_names);
+        refill_stale_names(&mut stale, &self.metadata_names, |topic| {
+            self.consumer.topic_metadata_fresh(topic)
+        });
+        if !stale.is_empty() {
             let rest = deadline.saturating_duration_since(Instant::now());
             if rest.is_zero() {
+                self.stale_metadata_names = stale;
                 return Err(Error::Timeout);
             }
-            let topic = self.metadata_names.get(index).cloned().unwrap_or_default();
-            self.consumer
-                .ensure_topic_metadata_timeout(&topic, rest)
-                .await?;
+            let refreshed = self
+                .consumer
+                .refresh_metadata_timeout(Some(&stale), rest)
+                .await;
+            self.stale_metadata_names = stale;
+            refreshed?;
+        } else {
+            self.stale_metadata_names = stale;
         }
         clear_share_leader_plan(&mut self.leader_plan);
         self.leader_topic = None;

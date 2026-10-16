@@ -170,6 +170,31 @@ async fn share_fetch_request_uses_configured_record_and_byte_limits() {
 }
 
 #[tokio::test]
+async fn share_metadata_refreshes_stale_topics_together() {
+    let mock = common::Mock::start().await;
+    v2(&mock);
+    mock.set_topic_partitions("t", 1);
+    mock.set_topic_partitions("u", 1);
+    let mut cfg = config(&mock);
+    cfg.metadata_max_age = Duration::ZERO;
+    let mut group = ShareGroup::join_topics(cfg, "stale-meta", ["t", "u"])
+        .await
+        .unwrap();
+    let before = mock.metadata_calls();
+    let got = group.poll().await.unwrap();
+    assert!(got.is_empty());
+    assert_eq!(
+        mock.metadata_calls(),
+        before + 1,
+        "stale topics should share one metadata request"
+    );
+    let mut names = mock.last_metadata_topics().unwrap().unwrap();
+    names.sort();
+    assert_eq!(names, ["t".to_string(), "u".to_string()]);
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn share_fetch_overlaps_two_leaders() {
     let mock = common::Mock::start_two_node().await;
     v2(&mock);
