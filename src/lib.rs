@@ -2137,7 +2137,7 @@
 //! partition `THROTTLING_QUOTA_EXCEEDED`, which fails that poll, and not
 //! piggyback `RECORD_LIST_TOO_LARGE`). A piggybacked
 //! `FENCED_STATE_EPOCH` still completes without retry,
-//! including when `AcknowledgeErrorMessage` is set (this is not
+//! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `FENCED_STATE_EPOCH`, which fails that poll, and not
 //! piggyback `THROTTLING_QUOTA_EXCEEDED` or `FENCED_LEADER_EPOCH`). A piggybacked
 //! `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a

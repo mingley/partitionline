@@ -820,7 +820,7 @@ pub enum ShareAcquireMode {
 /// `THROTTLING_QUOTA_EXCEEDED`, which fails that poll, and not piggyback
 /// `RECORD_LIST_TOO_LARGE`). A piggybacked
 /// `FENCED_STATE_EPOCH` still completes without retry,
-/// including when `AcknowledgeErrorMessage` is set (Java
+/// including when `AcknowledgeErrorMessage` is set or empty (Java
 /// `handleShareFetchSuccess` completes piggyback acks and still
 /// delivers the fetch; this is not partition
 /// `FENCED_STATE_EPOCH`, which fails that poll, and not piggyback
@@ -2166,7 +2166,7 @@ impl ShareGroup {
     /// `RECORD_LIST_TOO_LARGE`).
     /// A piggybacked `FENCED_STATE_EPOCH` still completes
     /// without retry, including when `AcknowledgeErrorMessage` is set
-    /// (Java `handleShareFetchSuccess` completes piggyback acks and
+    /// or empty (Java `handleShareFetchSuccess` completes piggyback acks and
     /// still delivers the fetch; this is not partition
     /// `FENCED_STATE_EPOCH`, which fails that poll, and not piggyback
     /// `THROTTLING_QUOTA_EXCEEDED` or `FENCED_LEADER_EPOCH`).
