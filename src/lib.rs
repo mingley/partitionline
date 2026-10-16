@@ -2089,6 +2089,10 @@
 //! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `NOT_ENOUGH_REPLICAS_AFTER_APPEND`, which fails that poll, and not
 //! standalone ShareAcknowledge `NOT_ENOUGH_REPLICAS_AFTER_APPEND`, which retries). A piggybacked
+//! `COORDINATOR_LOAD_IN_PROGRESS` still completes without retry,
+//! including when `AcknowledgeErrorMessage` is set (this is not
+//! partition `COORDINATOR_LOAD_IN_PROGRESS`, which fails that poll, and not
+//! standalone ShareAcknowledge `COORDINATOR_LOAD_IN_PROGRESS`, which retries). A piggybacked
 //! `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a
 //! sibling whose `AcknowledgeErrorCode` is none, including when
 //! `AcknowledgeErrorMessage` is set or empty. A piggybacked
