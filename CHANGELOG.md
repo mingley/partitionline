@@ -390,7 +390,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   which fails that poll, and not piggyback `INCONSISTENT_GROUP_PROTOCOL`). A
   piggybacked `UNKNOWN_MEMBER_ID` still
   completes without retry, including when `AcknowledgeErrorMessage` is
-  set (Java `handleShareFetchSuccess` completes piggyback acks and still
+  set or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
   delivers the fetch; this is not partition `UNKNOWN_MEMBER_ID`,
   which fails that poll, and not piggyback `INVALID_GROUP_ID`). A
   piggybacked `TOPIC_AUTHORIZATION_FAILED` on
