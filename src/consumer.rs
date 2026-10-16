@@ -4730,18 +4730,12 @@ impl Consumer {
                 let _ = self.m_fetch_rounds.fetch_add(1, Ordering::Relaxed);
                 let n = u64::try_from(recs.len()).unwrap_or(u64::MAX);
                 let _ = self.m_records.fetch_add(n, Ordering::Relaxed);
-                let (accounted, mut staged) =
-                    stage_returned_totals(&mut self.fetch_return_totals, recs.len());
-                let bytes = if let Some(bytes) = accounted {
-                    for (topic, (n, topic_bytes)) in staged.drain() {
-                        if let Some(tracker) = self.topic_metrics.get_mut(topic.as_ref()) {
-                            tracker.note_fetched(n, topic_bytes, elapsed);
-                        } else {
-                            let tracker = crate::metrics::FetchTopicTracker::new();
-                            tracker.note_fetched(n, topic_bytes, elapsed);
-                            let _ = self.topic_metrics.insert(topic, tracker);
-                        }
-                    }
+                let bytes = if let Some(bytes) = note_returned_totals(
+                    &mut self.fetch_return_totals,
+                    &mut self.topic_metrics,
+                    recs.len(),
+                    elapsed,
+                ) {
                     bytes
                 } else {
                     let bytes = recs.iter().map(fetched_bytes).fold(0, u64::saturating_add);
@@ -4752,7 +4746,6 @@ impl Consumer {
                     );
                     bytes
                 };
-                self.fetch_return_totals = staged;
                 let _ = self.m_bytes.fetch_add(bytes, Ordering::Relaxed);
                 let recs = if intercept {
                     self.cfg.interceptors.on_consume(recs)
@@ -5050,7 +5043,7 @@ impl Consumer {
 
     async fn fetch_assigned(&mut self, max_wait_ms: i32) -> Result<Vec<FetchedRecord>> {
         if let Some(ready) = self.take_ready() {
-            self.fetch_return_totals.clear();
+            reset_fetch_totals(&mut self.fetch_return_totals);
             return Ok(ready);
         }
         if self.assigned.is_empty() {
@@ -5142,7 +5135,7 @@ impl Consumer {
         let mut attempt = 0u32;
         let mut out = Vec::new();
         let mut out_bytes = 0usize;
-        self.fetch_return_totals.clear();
+        reset_fetch_totals(&mut self.fetch_return_totals);
         loop {
             if self.woken() {
                 return Err(Error::Wakeup);
@@ -7772,23 +7765,55 @@ type FetchTotals = HashMap<Arc<str>, (u64, u64)>;
 /// The map's allocation comes back with the staged entries removed, so the next
 /// poll reuses it. A count that does not match the returned records is discarded
 /// the same way and the caller sums the records instead.
-fn stage_returned_totals(
+fn reset_fetch_totals(totals: &mut FetchTotals) {
+    for value in totals.values_mut() {
+        *value = (0, 0);
+    }
+}
+
+/// Record per-topic fetch totals when they match `record_count`.
+///
+/// Matching totals keep each topic key and reset the counts, so the next poll
+/// updates the same map entry. A mismatch zeros the counts and returns none;
+/// the caller sums the returned records instead.
+fn note_returned_totals(
     totals: &mut FetchTotals,
+    metrics: &mut HashMap<Arc<str>, crate::metrics::FetchTopicTracker>,
     record_count: usize,
-) -> (Option<u64>, FetchTotals) {
-    let mut staged = std::mem::take(totals);
+    elapsed: Duration,
+) -> Option<u64> {
     let mut staged_records = 0u64;
     let mut staged_bytes = 0u64;
-    for (count, topic_bytes) in staged.values() {
+    for (count, topic_bytes) in totals.values() {
         staged_records = staged_records.saturating_add(*count);
         staged_bytes = staged_bytes.saturating_add(*topic_bytes);
     }
-    if staged_records == u64::try_from(record_count).unwrap_or(u64::MAX) {
-        (Some(staged_bytes), staged)
-    } else {
-        staged.clear();
-        (None, staged)
+    if staged_records != u64::try_from(record_count).unwrap_or(u64::MAX) {
+        reset_fetch_totals(totals);
+        return None;
     }
+    let mut fresh = Vec::new();
+    for (topic, (count, topic_bytes)) in totals.iter() {
+        if *count == 0 {
+            continue;
+        }
+        if let Some(tracker) = metrics.get_mut(topic.as_ref()) {
+            tracker.note_fetched(*count, *topic_bytes, elapsed);
+        } else {
+            fresh.push((Arc::clone(topic), *count, *topic_bytes));
+        }
+    }
+    for (topic, count, topic_bytes) in fresh {
+        let tracker = crate::metrics::FetchTopicTracker::new();
+        tracker.note_fetched(count, topic_bytes, elapsed);
+        let _ = metrics.insert(topic, tracker);
+    }
+    totals.retain(|_, value| {
+        let keep = value.0 > 0;
+        *value = (0, 0);
+        keep
+    });
+    Some(staged_bytes)
 }
 
 #[test]
@@ -7799,20 +7824,29 @@ fn fetch_totals_keep_their_buckets() {
     let _ = totals.insert(Arc::clone(&orders), (2, 8));
     let _ = totals.insert(Arc::clone(&payments), (1, 4));
     let capacity = totals.capacity();
-    let (bytes, mut staged) = stage_returned_totals(&mut totals, 3);
+    let orders_key = totals
+        .get_key_value(orders.as_ref())
+        .map(|(key, _)| Arc::clone(key));
+    let mut metrics = HashMap::new();
+    let bytes = note_returned_totals(&mut totals, &mut metrics, 3, Duration::from_millis(1));
     assert_eq!(bytes, Some(12));
-    assert!(totals.is_empty());
-    assert_eq!(staged.drain().count(), 2);
-    totals = staged;
     assert!(totals.capacity() >= capacity);
-    let _ = totals.insert(orders, (1, 1));
-    let _ = totals.insert(payments, (1, 1));
-    assert!(totals.capacity() >= capacity);
+    assert_eq!(totals.get(orders.as_ref()), Some(&(0, 0)));
+    assert_eq!(totals.get(payments.as_ref()), Some(&(0, 0)));
+    assert!(orders_key.is_some_and(|key| totals
+        .get_key_value(orders.as_ref())
+        .is_some_and(|(kept, _)| Arc::ptr_eq(&key, kept))));
+    assert_eq!(
+        metrics
+            .get(orders.as_ref())
+            .map(|tracker| tracker.snapshot(String::new()).records_fetched),
+        Some(2)
+    );
     let kept = totals.capacity();
-    let (bytes, staged) = stage_returned_totals(&mut totals, 0);
+    let bytes = note_returned_totals(&mut totals, &mut metrics, 1, Duration::from_millis(1));
     assert_eq!(bytes, None);
-    assert!(staged.is_empty());
-    assert!(staged.capacity() >= kept);
+    assert_eq!(totals.get(orders.as_ref()), Some(&(0, 0)));
+    assert!(totals.capacity() >= kept);
 }
 
 #[test]
