@@ -1701,11 +1701,54 @@ pub fn encode_delete_topics_request(
     names: &[String],
     timeout_ms: i32,
 ) -> crate::error::Result<()> {
-    let topics: Vec<DeleteTopicState> = names
-        .iter()
-        .map(|name| DeleteTopicState::by_name(name.clone()))
-        .collect();
-    encode_delete_topics_states_request(buf, version, &topics, timeout_ms)
+    let flexible = delete_topics_flexible(version)?;
+    let body_start = buf.len();
+    let planned = delete_topics_names_len(version, flexible, names)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
+    if version >= 6 {
+        buf::put_array_len(buf, true, Some(names.len()))?;
+        for name in names {
+            buf::put_compact_string(buf, Some(name))?;
+            buf.extend_from_slice(&[0u8; 16]);
+            buf::put_empty_tagged_fields(buf);
+        }
+    } else {
+        buf::put_array_len(buf, flexible, Some(names.len()))?;
+        for name in names {
+            buf::put_string(buf, flexible, Some(name))?;
+        }
+    }
+    buf.put_i32(timeout_ms);
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+    Ok(())
+}
+
+fn delete_topics_names_len(version: i16, flexible: bool, names: &[String]) -> Result<usize> {
+    let mut total = if version >= 6 {
+        describe_array_len(true, names.len())?
+    } else {
+        describe_array_len(flexible, names.len())?
+    };
+    for name in names {
+        if version >= 6 {
+            total = add_describe_len(total, describe_string_len(true, Some(name.as_str()))?)?;
+            total = add_describe_len(total, 16)?;
+            total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+        } else {
+            total = add_describe_len(total, describe_string_len(flexible, Some(name.as_str()))?)?;
+        }
+    }
+    total = add_describe_len(total, 4)?;
+    if flexible {
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 /// DeleteTopics Topics of N (v6 Name + TopicId; v0–5 TopicNames).
