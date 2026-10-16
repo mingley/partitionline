@@ -3096,7 +3096,10 @@ impl ConsumerGroup {
                             }
                         } else {
                             heartbeat.subscribed_topic_names = None;
-                            heartbeat.topic_partitions = hb_ack.lock().clone();
+                            reuse_topic_partitions(
+                                &mut heartbeat.topic_partitions,
+                                &hb_ack.lock(),
+                            );
                         }
                         let res = c
                             .roundtrip(
@@ -3316,6 +3319,15 @@ fn reuse_topic_names(dest: &mut Option<Vec<String>>, topics: &[String]) {
     }
 }
 
+fn reuse_topic_partitions(
+    dest: &mut Option<Vec<TopicPartitions>>,
+    next: &Option<Vec<TopicPartitions>>,
+) {
+    if dest.as_ref() != next.as_ref() {
+        *dest = next.clone();
+    }
+}
+
 #[cfg(test)]
 mod member_id_tests {
     use super::copy_member_id;
@@ -3342,6 +3354,26 @@ mod member_id_tests {
         let changed = ["payments".to_string()];
         super::reuse_topic_names(&mut names, &changed);
         assert_eq!(names.as_deref(), Some(changed.as_slice()));
+    }
+
+    #[test]
+    fn an_unchanged_heartbeat_assignment_keeps_its_buffer() {
+        let owned = vec![super::TopicPartitions {
+            topic_id: [1; 16],
+            partitions: vec![0, 1],
+        }];
+        let mut dest = Some(owned.clone());
+        let ptr = dest.as_ref().map(Vec::as_ptr);
+        super::reuse_topic_partitions(&mut dest, &Some(owned));
+        assert_eq!(dest.as_ref().map(Vec::as_ptr), ptr);
+        let changed = Some(vec![super::TopicPartitions {
+            topic_id: [2; 16],
+            partitions: vec![3],
+        }]);
+        super::reuse_topic_partitions(&mut dest, &changed);
+        assert_eq!(dest, changed);
+        super::reuse_topic_partitions(&mut dest, &None);
+        assert!(dest.is_none());
     }
 }
 
