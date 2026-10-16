@@ -17613,6 +17613,12 @@ pub fn encode_alter_replica_log_dirs_request(
     req: &AlterReplicaLogDirsRequest,
 ) -> crate::error::Result<()> {
     let flexible = alter_replica_log_dirs_flexible(version)?;
+    let body_start = buf.len();
+    let planned = alter_replica_log_dirs_request_len(flexible, req)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf::put_array_len(buf, flexible, Some(req.dirs.len()))?;
     for dir in &req.dirs {
         buf::put_string(buf, flexible, Some(&dir.path))?;
@@ -17634,7 +17640,47 @@ pub fn encode_alter_replica_log_dirs_request(
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn alter_replica_log_dirs_request_len(
+    flexible: bool,
+    req: &AlterReplicaLogDirsRequest,
+) -> Result<usize> {
+    let mut total = describe_array_len(flexible, req.dirs.len())?;
+    for directory in &req.dirs {
+        total = add_describe_len(total, describe_string_len(flexible, Some(&directory.path))?)?;
+        total = add_describe_len(total, describe_array_len(flexible, directory.topics.len())?)?;
+        for topic in &directory.topics {
+            total = add_describe_len(total, describe_string_len(flexible, Some(&topic.name))?)?;
+            total = add_describe_len(
+                total,
+                replica_log_dirs_i32s_len(flexible, &topic.partitions)?,
+            )?;
+            if flexible {
+                total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+            }
+        }
+        if flexible {
+            total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    if flexible {
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
+}
+
+fn replica_log_dirs_i32s_len(flexible: bool, items: &[i32]) -> Result<usize> {
+    let total = describe_array_len(flexible, items.len())?;
+    add_describe_len(
+        total,
+        items
+            .len()
+            .checked_mul(4)
+            .ok_or_else(|| Error::protocol("alter replica log dirs request size overflow"))?,
+    )
 }
 
 /// Decode an AlterReplicaLogDirs request.
@@ -17683,6 +17729,12 @@ pub fn encode_alter_replica_log_dirs_response(
     resp: &AlterReplicaLogDirsResponse,
 ) -> crate::error::Result<()> {
     let flexible = alter_replica_log_dirs_flexible(version)?;
+    let body_start = buf.len();
+    let planned = alter_replica_log_dirs_response_len(flexible, resp)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf.put_i32(resp.throttle_time_ms);
     buf::put_array_len(buf, flexible, Some(resp.results.len()))?;
     for topic in &resp.results {
@@ -17702,7 +17754,36 @@ pub fn encode_alter_replica_log_dirs_response(
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn alter_replica_log_dirs_response_len(
+    flexible: bool,
+    resp: &AlterReplicaLogDirsResponse,
+) -> Result<usize> {
+    let mut total = 4;
+    total = add_describe_len(total, describe_array_len(flexible, resp.results.len())?)?;
+    for topic in &resp.results {
+        total = add_describe_len(
+            total,
+            describe_string_len(flexible, Some(&topic.topic_name))?,
+        )?;
+        total = add_describe_len(total, describe_array_len(flexible, topic.partitions.len())?)?;
+        for _partition in &topic.partitions {
+            total = add_describe_len(total, 6)?;
+            if flexible {
+                total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+            }
+        }
+        if flexible {
+            total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    if flexible {
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 /// Decode an AlterReplicaLogDirs response.
@@ -38330,6 +38411,68 @@ mod tests {
             zero.throttle_time_ms, 0,
             "AlterReplicaLogDirsResponse::new still fills ThrottleTimeMs 0"
         );
+    }
+
+    #[test]
+    fn a_alter_replica_log_dirs_request_sizes_its_body_once() {
+        let request = AlterReplicaLogDirsRequest {
+            dirs: vec![AlterReplicaLogDirsDirectory {
+                path: "/data/kafka".into(),
+                topics: vec![AlterReplicaLogDirsTopic::new("orders", vec![0, 1])],
+            }],
+        };
+        for version in [1_i16, 2] {
+            let mut buf = BytesMut::new();
+            encode_alter_replica_log_dirs_request(&mut buf, version, &request).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_alter_replica_log_dirs_request(&mut buf, version, &request).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+            let mut cur = &buf[..];
+            let decoded = decode_alter_replica_log_dirs_request(&mut cur, version).unwrap();
+            assert!(cur.is_empty());
+            assert_eq!(decoded, request);
+        }
+    }
+
+    #[test]
+    fn a_alter_replica_log_dirs_response_sizes_its_body_once() {
+        let response = AlterReplicaLogDirsResponse {
+            throttle_time_ms: 12,
+            results: vec![AlterReplicaLogDirsResponseTopic {
+                topic_name: "orders".into(),
+                partitions: vec![
+                    AlterReplicaLogDirsResponsePartition {
+                        partition_index: 0,
+                        error_code: 0,
+                    },
+                    AlterReplicaLogDirsResponsePartition {
+                        partition_index: 1,
+                        error_code: 3,
+                    },
+                ],
+            }],
+        };
+        for version in [1_i16, 2] {
+            let mut buf = BytesMut::new();
+            encode_alter_replica_log_dirs_response(&mut buf, version, &response).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_alter_replica_log_dirs_response(&mut buf, version, &response).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+            let mut cur = &buf[..];
+            let decoded = decode_alter_replica_log_dirs_response(&mut cur, version).unwrap();
+            assert!(cur.is_empty());
+            assert_eq!(decoded, response);
+        }
     }
 
     #[test]
