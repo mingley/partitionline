@@ -825,7 +825,10 @@ pub enum ShareAcquireMode {
 }
 
 /// Leader node to the topics and partitions it serves.
-type ShareLeaderPlan = HashMap<i32, HashMap<String, Vec<i32>>>;
+///
+/// A topic name is the assignment's allocation. Later polls refill the
+/// partition list and leave that name in place.
+type ShareLeaderPlan = HashMap<i32, HashMap<Arc<str>, Vec<i32>>>;
 
 /// KIP-932 share group member (`ShareGroupHeartbeat` v0–v1 / ShareFetch v0–v2 / ShareAcknowledge v0–v2).
 pub struct ShareGroup {
@@ -1164,13 +1167,13 @@ fn clear_share_leader_plan(plan: &mut ShareLeaderPlan) {
     }
 }
 
-fn remember_share_leader(plan: &mut ShareLeaderPlan, node: i32, topic: &str, partition: i32) {
+fn remember_share_leader(plan: &mut ShareLeaderPlan, node: i32, topic: &Arc<str>, partition: i32) {
     let topics = plan.entry(node).or_default();
-    if let Some(parts) = topics.get_mut(topic) {
+    if let Some(parts) = topics.get_mut(topic.as_ref()) {
         parts.push(partition);
         return;
     }
-    let _ = topics.insert(topic.to_string(), vec![partition]);
+    let _ = topics.insert(Arc::clone(topic), vec![partition]);
 }
 
 fn prune_share_leader_plan(plan: &mut ShareLeaderPlan) {
@@ -1202,7 +1205,7 @@ fn refill_share_partitions(dest: &mut Vec<ShareFetchPartition>, parts: &[i32], m
 fn refill_share_fetch(
     by_id: &mut BTreeMap<[u8; 16], Vec<i32>>,
     topics: &mut Vec<ShareFetchTopic>,
-    groups: &HashMap<String, Vec<i32>>,
+    groups: &HashMap<Arc<str>, Vec<i32>>,
     topic_ids: &HashMap<Arc<str>, [u8; 16]>,
     max_partition_bytes: i32,
 ) -> Result<()> {
@@ -1211,7 +1214,7 @@ fn refill_share_fetch(
     }
     for (topic, parts) in groups {
         let id = topic_ids
-            .get(topic.as_str())
+            .get(topic.as_ref())
             .copied()
             .filter(|id| *id != [0; 16])
             .ok_or_else(|| {
@@ -4826,24 +4829,25 @@ mod tests {
         assert_eq!(names.as_slice(), ["orders".to_string()].as_slice());
         assert_eq!(names.first().map(|name| name.as_ptr()), ptr);
 
+        let orders: Arc<str> = Arc::from("orders");
+        let again: Arc<str> = Arc::from("orders");
         let mut plan = HashMap::new();
         super::clear_share_leader_plan(&mut plan);
-        for (topic, partition) in &assigned {
-            super::remember_share_leader(&mut plan, 2, topic, *partition);
-        }
+        super::remember_share_leader(&mut plan, 2, &orders, 0);
+        super::remember_share_leader(&mut plan, 2, &again, 1);
         super::prune_share_leader_plan(&mut plan);
         let key_ptr = plan
             .get(&2)
             .and_then(|topics| topics.get_key_value("orders"))
-            .map(|(key, _)| key.as_ptr());
+            .map(|(key, _)| Arc::as_ptr(key));
+        assert_eq!(key_ptr, Some(Arc::as_ptr(&orders)));
         let parts_ptr = plan
             .get(&2)
             .and_then(|topics| topics.get("orders"))
             .map(Vec::as_ptr);
         super::clear_share_leader_plan(&mut plan);
-        for (topic, partition) in &assigned {
-            super::remember_share_leader(&mut plan, 2, topic, *partition);
-        }
+        super::remember_share_leader(&mut plan, 2, &again, 0);
+        super::remember_share_leader(&mut plan, 2, &orders, 1);
         super::prune_share_leader_plan(&mut plan);
         assert_eq!(
             plan.get(&2)
@@ -4854,7 +4858,7 @@ mod tests {
         assert_eq!(
             plan.get(&2)
                 .and_then(|topics| topics.get_key_value("orders"))
-                .map(|(key, _)| key.as_ptr()),
+                .map(|(key, _)| Arc::as_ptr(key)),
             key_ptr
         );
         assert_eq!(
@@ -4864,7 +4868,7 @@ mod tests {
             parts_ptr
         );
         super::clear_share_leader_plan(&mut plan);
-        super::remember_share_leader(&mut plan, 2, "orders", 0);
+        super::remember_share_leader(&mut plan, 2, &again, 0);
         super::prune_share_leader_plan(&mut plan);
         assert_eq!(
             plan.get(&2)
@@ -4875,7 +4879,7 @@ mod tests {
         assert_eq!(
             plan.get(&2)
                 .and_then(|topics| topics.get_key_value("orders"))
-                .map(|(key, _)| key.as_ptr()),
+                .map(|(key, _)| Arc::as_ptr(key)),
             key_ptr
         );
     }
@@ -4885,7 +4889,7 @@ mod tests {
         let mut by_id = BTreeMap::new();
         let mut topics = Vec::new();
         let mut groups = HashMap::new();
-        let _ = groups.insert("orders".to_string(), vec![0, 1]);
+        let _ = groups.insert(Arc::<str>::from("orders"), vec![0, 1]);
         let mut topic_ids = HashMap::new();
         let _ = topic_ids.insert(Arc::<str>::from("orders"), [9u8; 16]);
         super::refill_share_fetch(&mut by_id, &mut topics, &groups, &topic_ids, 1024)
@@ -4905,7 +4909,7 @@ mod tests {
         );
         assert_eq!(topics.first().map(|topic| topic.topic_id), Some([9u8; 16]));
         let mut fewer = HashMap::new();
-        let _ = fewer.insert("orders".to_string(), vec![1]);
+        let _ = fewer.insert(Arc::<str>::from("orders"), vec![1]);
         super::refill_share_fetch(&mut by_id, &mut topics, &fewer, &topic_ids, 2048)
             .unwrap_or_else(|error| panic!("{error}"));
         assert_eq!(
