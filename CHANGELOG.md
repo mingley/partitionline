@@ -162,6 +162,11 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   when `ErrorMessage` is set or empty (Java
   `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`; a
   partition `NOT_LEADER_OR_FOLLOWER` still invalidates when
+  CurrentLeader is unused). A top-level ShareAcknowledge
+  `UNKNOWN_TOPIC_OR_PARTITION` completes without retry and does not
+  request Metadata, including when `ErrorMessage` is set (Java
+  `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`; a
+  partition `UNKNOWN_TOPIC_OR_PARTITION` still invalidates when
   CurrentLeader is unused). A piggybacked ShareFetch
   `AcknowledgeErrorMessage` that is empty uses
   `ShareFetch acknowledgement {topic}-{partition}`. A piggybacked
