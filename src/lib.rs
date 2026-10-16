@@ -2170,6 +2170,10 @@
 //! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `STALE_CONTROLLER_EPOCH`, which fails that poll, and not
 //! piggyback `INVALID_UPDATE_VERSION` or `NOT_CONTROLLER`). A piggybacked
+//! `OFFSET_METADATA_TOO_LARGE` still completes without retry,
+//! including when `AcknowledgeErrorMessage` is set (this is not
+//! partition `OFFSET_METADATA_TOO_LARGE`, which fails that poll, and not
+//! piggyback `STALE_CONTROLLER_EPOCH`). A piggybacked
 //! `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a
 //! sibling whose `AcknowledgeErrorCode` is none, including when
 //! `AcknowledgeErrorMessage` is set or empty. A piggybacked
