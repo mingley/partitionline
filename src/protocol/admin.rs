@@ -23709,13 +23709,39 @@ impl QuorumBudget {
     }
 }
 
-fn quorum_request_budget(request: &DescribeQuorumRequest) -> Result<()> {
+trait DescribeQuorumTopicView {
+    fn quorum_topic_name(&self) -> &str;
+    fn quorum_partitions(&self) -> &[i32];
+}
+
+impl DescribeQuorumTopicView for DescribeQuorumTopic {
+    fn quorum_topic_name(&self) -> &str {
+        &self.topic
+    }
+
+    fn quorum_partitions(&self) -> &[i32] {
+        &self.partitions
+    }
+}
+
+impl DescribeQuorumTopicView for (&str, &[i32]) {
+    fn quorum_topic_name(&self) -> &str {
+        self.0
+    }
+
+    fn quorum_partitions(&self) -> &[i32] {
+        self.1
+    }
+}
+
+fn quorum_topics_budget<T: DescribeQuorumTopicView>(topics: &[T]) -> Result<()> {
     let mut budget = QuorumBudget::default();
-    budget.array_len::<DescribeQuorumTopic>(request.topics.len())?;
-    for topic in &request.topics {
-        budget.string_len(topic.topic.len())?;
-        budget.array_len::<i32>(topic.partitions.len())?;
-        budget.fixed(topic.partitions.len() * 5 + 1)?;
+    budget.array_len::<DescribeQuorumTopic>(topics.len())?;
+    for topic in topics {
+        budget.string_len(topic.quorum_topic_name().len())?;
+        let partitions = topic.quorum_partitions();
+        budget.array_len::<i32>(partitions.len())?;
+        budget.fixed(partitions.len().saturating_mul(5).saturating_add(1))?;
     }
     budget.fixed(1)
 }
@@ -23803,19 +23829,37 @@ pub fn encode_describe_quorum_request(
     version: i16,
     req: &DescribeQuorumRequest,
 ) -> crate::error::Result<()> {
+    encode_describe_quorum_topic_views(buf, version, &req.topics)
+}
+
+/// Encode DescribeQuorum topics whose names are borrowed from the caller.
+pub(crate) fn encode_describe_quorum_topics(
+    buf: &mut BytesMut,
+    version: i16,
+    topics: &[(&str, &[i32])],
+) -> crate::error::Result<()> {
+    encode_describe_quorum_topic_views(buf, version, topics)
+}
+
+fn encode_describe_quorum_topic_views<T: DescribeQuorumTopicView>(
+    buf: &mut BytesMut,
+    version: i16,
+    topics: &[T],
+) -> crate::error::Result<()> {
     let flexible = describe_quorum_flexible(version)?;
-    quorum_request_budget(req)?;
+    quorum_topics_budget(topics)?;
     let body_start = buf.len();
-    let planned = describe_quorum_request_len(flexible, req)?;
+    let planned = describe_quorum_request_len(flexible, topics)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
         buf.reserve(needed - buf.capacity());
     }
-    buf::put_array_len(buf, flexible, Some(req.topics.len()))?;
-    for topic in &req.topics {
-        buf::put_string(buf, flexible, Some(&topic.topic))?;
-        buf::put_array_len(buf, flexible, Some(topic.partitions.len()))?;
-        for partition in &topic.partitions {
+    buf::put_array_len(buf, flexible, Some(topics.len()))?;
+    for topic in topics {
+        buf::put_string(buf, flexible, Some(topic.quorum_topic_name()))?;
+        let partitions = topic.quorum_partitions();
+        buf::put_array_len(buf, flexible, Some(partitions.len()))?;
+        for partition in partitions {
             buf.put_i32(*partition);
             if flexible {
                 buf::put_empty_tagged_fields(buf);
@@ -23832,12 +23876,19 @@ pub fn encode_describe_quorum_request(
     Ok(())
 }
 
-fn describe_quorum_request_len(flexible: bool, req: &DescribeQuorumRequest) -> Result<usize> {
-    let mut total = describe_array_len(flexible, req.topics.len())?;
-    for topic in &req.topics {
-        total = add_describe_len(total, describe_string_len(flexible, Some(&topic.topic))?)?;
-        total = add_describe_len(total, describe_array_len(flexible, topic.partitions.len())?)?;
-        for _partition in &topic.partitions {
+fn describe_quorum_request_len<T: DescribeQuorumTopicView>(
+    flexible: bool,
+    topics: &[T],
+) -> Result<usize> {
+    let mut total = describe_array_len(flexible, topics.len())?;
+    for topic in topics {
+        total = add_describe_len(
+            total,
+            describe_string_len(flexible, Some(topic.quorum_topic_name()))?,
+        )?;
+        let partitions = topic.quorum_partitions();
+        total = add_describe_len(total, describe_array_len(flexible, partitions.len())?)?;
+        for _partition in partitions {
             total = add_describe_len(total, 4)?;
             if flexible {
                 total = add_describe_len(total, buf::unsigned_varint_size(0))?;
@@ -47883,6 +47934,21 @@ mod tests {
             log_end_offset,
             last_fetch_timestamp,
             last_caught_up_timestamp,
+        }
+    }
+
+    #[test]
+    fn describe_quorum_borrowed_topics_match_owned_topics() {
+        let topic = "__cluster_metadata";
+        let partitions = [0];
+        let borrowed = [(topic, partitions.as_slice())];
+        let owned = DescribeQuorumRequest::singleton(topic, 0);
+        for version in [0_i16, 1, 2] {
+            let mut expected = BytesMut::new();
+            encode_describe_quorum_request(&mut expected, version, &owned).unwrap();
+            let mut got = BytesMut::new();
+            encode_describe_quorum_topics(&mut got, version, &borrowed).unwrap();
+            assert_eq!(got.as_ref(), expected.as_ref(), "version {version}");
         }
     }
 

@@ -3911,18 +3911,16 @@ impl Admin {
                 if remaining.is_zero() {
                     return Err(Error::Timeout);
                 }
-                let request = crate::protocol::admin::DescribeQuorumRequest::singleton(
-                    "__cluster_metadata",
-                    0,
-                );
+                let partitions = [0];
+                let topics = [("__cluster_metadata", partitions.as_slice())];
                 let mut body = self
                     .conn
                     .roundtrip(
                         crate::protocol::api_keys::DESCRIBE_QUORUM,
                         version,
                         |buf| {
-                            crate::protocol::admin::encode_describe_quorum_request(
-                                buf, version, &request,
+                            crate::protocol::admin::encode_describe_quorum_topics(
+                                buf, version, &topics,
                             )
                         },
                         remaining,
