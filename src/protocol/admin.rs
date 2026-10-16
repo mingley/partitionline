@@ -2581,6 +2581,12 @@ pub fn encode_create_partitions_request(
     validate_only: bool,
 ) -> crate::error::Result<()> {
     let flexible = create_partitions_flexible(version)?;
+    let body_start = buf.len();
+    let planned = create_partitions_request_len(flexible, topics)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf::put_array_len(buf, flexible, Some(topics.len()))?;
     for t in topics {
         buf::put_string(buf, flexible, Some(&t.name))?;
@@ -2606,7 +2612,59 @@ pub fn encode_create_partitions_request(
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn create_partitions_request_len(
+    flexible: bool,
+    topics: &[CreatePartitionsTopic],
+) -> Result<usize> {
+    let mut total = describe_array_len(flexible, topics.len())?;
+    for topic in topics {
+        total = add_describe_len(total, describe_string_len(flexible, Some(&topic.name))?)?;
+        total = add_describe_len(total, 4)?;
+        total = add_describe_len(
+            total,
+            create_partitions_assignments_len(flexible, topic.assignments.as_deref())?,
+        )?;
+        if flexible {
+            total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    total = add_describe_len(total, 5)?;
+    if flexible {
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
+}
+
+fn create_partitions_assignments_len(
+    flexible: bool,
+    assignments: Option<&[Vec<i32>]>,
+) -> Result<usize> {
+    let Some(assignments) = assignments else {
+        return Ok(if flexible {
+            buf::unsigned_varint_size(0)
+        } else {
+            4
+        });
+    };
+    let mut total = describe_array_len(flexible, assignments.len())?;
+    for brokers in assignments {
+        total = add_describe_len(total, describe_array_len(flexible, brokers.len())?)?;
+        total = add_describe_len(
+            total,
+            brokers
+                .len()
+                .checked_mul(4)
+                .ok_or_else(|| Error::protocol("create partitions request size overflow"))?,
+        )?;
+        if flexible {
+            total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    Ok(total)
 }
 
 /// Decode a CreatePartitions request: topics, TimeoutMs, and
@@ -2677,6 +2735,12 @@ pub fn encode_create_partitions_response_with_throttle(
     throttle_time_ms: i32,
 ) -> crate::error::Result<()> {
     let flexible = create_partitions_flexible(version)?;
+    let body_start = buf.len();
+    let planned = create_partitions_response_len(flexible, results)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf.put_i32(throttle_time_ms);
     buf::put_array_len(buf, flexible, Some(results.len()))?;
     for r in results {
@@ -2690,7 +2754,28 @@ pub fn encode_create_partitions_response_with_throttle(
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn create_partitions_response_len(flexible: bool, results: &[TopicResult]) -> Result<usize> {
+    let mut total = 4;
+    total = add_describe_len(total, describe_array_len(flexible, results.len())?)?;
+    for result in results {
+        total = add_describe_len(total, describe_string_len(flexible, Some(&result.name))?)?;
+        total = add_describe_len(total, 2)?;
+        total = add_describe_len(
+            total,
+            describe_string_len(flexible, result.error_message.as_deref())?,
+        )?;
+        if flexible {
+            total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    if flexible {
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 /// Decode a CreatePartitions response.
@@ -23482,6 +23567,64 @@ mod tests {
             _ => "CreatePartitions getErrorResponse leftover-empty",
         };
         assert!(cur.is_empty(), "{msg}; leftover {} bytes", cur.len());
+    }
+
+    #[test]
+    fn a_create_partitions_request_sizes_its_body_once() {
+        let topics = vec![
+            CreatePartitionsTopic {
+                name: "orders".into(),
+                count: 6,
+                assignments: Some(vec![vec![1, 2], vec![2, 3]]),
+            },
+            CreatePartitionsTopic::new("payments", 4),
+        ];
+        for version in [0_i16, 1, 2, 3] {
+            let mut buf = BytesMut::new();
+            encode_create_partitions_request(&mut buf, version, &topics, 5_000, true).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_create_partitions_request(&mut buf, version, &topics, 5_000, true).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+            let mut cur = &buf[..];
+            let (decoded, timeout, validate_only) =
+                decode_create_partitions_request(&mut cur, version).unwrap();
+            assert!(cur.is_empty());
+            assert_eq!(decoded, topics);
+            assert_eq!(timeout, 5_000);
+            assert!(validate_only);
+        }
+    }
+
+    #[test]
+    fn a_create_partitions_response_sizes_its_body_once() {
+        let results = vec![
+            TopicResult::new("orders", 0, None),
+            TopicResult::new("payments", 3, Some("busy".into())),
+        ];
+        for version in [0_i16, 2, 3] {
+            let mut buf = BytesMut::new();
+            encode_create_partitions_response_with_throttle(&mut buf, version, &results, 12)
+                .unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_create_partitions_response_with_throttle(&mut buf, version, &results, 12)
+                .unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+            let mut cur = &buf[..];
+            let (decoded, throttle) = decode_create_partitions_response(&mut cur, version).unwrap();
+            assert!(cur.is_empty());
+            assert_eq!(decoded, results);
+            assert_eq!(throttle, 12);
+        }
     }
 
     #[test]
