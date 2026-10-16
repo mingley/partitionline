@@ -3175,7 +3175,10 @@ fn next_framed_batch(buf: &mut Bytes) -> Result<Option<EncodedBatch>> {
     }))
 }
 
-fn count_framed_batches(bytes: &[u8]) -> Result<usize> {
+/// How many complete magic-v2 batches `bytes` holds.
+///
+/// A truncated tail is not counted. A negative batch length is an error.
+pub(crate) fn count_framed_batches(bytes: &[u8]) -> Result<usize> {
     let mut offset = 0usize;
     let mut count = 0usize;
     while bytes.len().saturating_sub(offset) >= 12 {

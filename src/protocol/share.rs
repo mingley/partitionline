@@ -1917,6 +1917,14 @@ pub(crate) fn decode_share_fetch_response_reusing<B: Buf>(
             };
             let mut used_batches = 0usize;
             if !rec_bytes.is_empty() {
+                if let Ok(count) = records::count_framed_batches(&rec_bytes) {
+                    if count > records.capacity() {
+                        let extra = count - records.capacity();
+                        records
+                            .try_reserve_exact(extra)
+                            .map_err(|_| Error::protocol("ShareFetch response reserve"))?;
+                    }
+                }
                 let mut rec_buf = rec_bytes;
                 while rec_buf.has_remaining() {
                     let count_bytes = rec_buf
@@ -4521,6 +4529,48 @@ mod tests {
                 .and_then(|part| part.records.first())
                 .map(|batch| batch.records.as_ptr()),
             list_ptr
+        );
+    }
+
+    #[test]
+    fn a_share_fetch_with_several_batches_sizes_the_batch_list_once() {
+        let batch = || {
+            RecordBatch::from_records(vec![Record {
+                offset: 0,
+                timestamp: 1,
+                key: None,
+                value: Some(Bytes::from_static(b"s")),
+                headers: Vec::new(),
+            }])
+        };
+        let topics = vec![ShareFetchedTopic {
+            topic_id: [7u8; 16],
+            partitions: vec![ShareFetchedPartition {
+                partition: 3,
+                error_code: 0,
+                error_message: None,
+                acknowledge_error_code: 0,
+                acknowledge_error_message: None,
+                current_leader_id: 0,
+                current_leader_epoch: 0,
+                records: vec![batch(), batch(), batch(), batch(), batch()],
+                acquired: Vec::new(),
+            }],
+        }];
+        let mut buf = BytesMut::new();
+        encode_share_fetch_response(&mut buf, 1, &topics).unwrap();
+        let mut cur = buf.freeze();
+        let ((decoded, _, _, _, _, _), _, _) =
+            decode_share_fetch_response_reusing(&mut cur, 1, usize::MAX, Vec::new()).unwrap();
+        let batches = decoded
+            .first()
+            .and_then(|topic| topic.partitions.first())
+            .map(|part| &part.records)
+            .expect("batches");
+        assert_eq!(batches.len(), 5);
+        assert_eq!(
+            batches.capacity(),
+            Vec::<RecordBatch>::with_capacity(5).capacity()
         );
     }
 
