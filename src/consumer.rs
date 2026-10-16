@@ -7774,8 +7774,9 @@ fn reset_fetch_totals(totals: &mut FetchTotals) {
 /// Record per-topic fetch totals when they match `record_count`.
 ///
 /// Matching totals keep each topic key and reset the counts, so the next poll
-/// updates the same map entry. A mismatch zeros the counts and returns none;
-/// the caller sums the returned records instead.
+/// updates the same map entry. An empty poll keeps every key. A poll that
+/// returned records drops topics that contributed nothing. A mismatch zeros
+/// the counts and returns none; the caller sums the returned records instead.
 fn note_returned_totals(
     totals: &mut FetchTotals,
     metrics: &mut HashMap<Arc<str>, crate::metrics::FetchTopicTracker>,
@@ -7807,6 +7808,9 @@ fn note_returned_totals(
         let tracker = crate::metrics::FetchTopicTracker::new();
         tracker.note_fetched(count, topic_bytes, elapsed);
         let _ = metrics.insert(topic, tracker);
+    }
+    if staged_records == 0 {
+        return Some(staged_bytes);
     }
     totals.retain(|_, value| {
         let keep = value.0 > 0;
@@ -7843,6 +7847,11 @@ fn fetch_totals_keep_their_buckets() {
         Some(2)
     );
     let kept = totals.capacity();
+    let bytes = note_returned_totals(&mut totals, &mut metrics, 0, Duration::from_millis(1));
+    assert_eq!(bytes, Some(0));
+    assert_eq!(totals.get(orders.as_ref()), Some(&(0, 0)));
+    assert_eq!(totals.get(payments.as_ref()), Some(&(0, 0)));
+    assert!(totals.capacity() >= kept);
     let bytes = note_returned_totals(&mut totals, &mut metrics, 1, Duration::from_millis(1));
     assert_eq!(bytes, None);
     assert_eq!(totals.get(orders.as_ref()), Some(&(0, 0)));
