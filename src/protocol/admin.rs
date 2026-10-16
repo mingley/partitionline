@@ -11085,6 +11085,12 @@ pub fn encode_list_groups_response_with_throttle(
     throttle_time_ms: i32,
 ) -> crate::error::Result<()> {
     let flexible = list_groups_flexible(version)?;
+    let body_start = buf.len();
+    let planned = list_groups_response_len(version, flexible, resp)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     if version >= 1 {
         buf.put_i32(throttle_time_ms);
     }
@@ -11106,7 +11112,44 @@ pub fn encode_list_groups_response_with_throttle(
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn list_groups_response_len(
+    version: i16,
+    flexible: bool,
+    resp: &ListGroupsResponse,
+) -> Result<usize> {
+    let mut total = if version >= 1 { 4usize } else { 0 };
+    total = add_describe_len(total, 2)?;
+    total = add_describe_len(total, describe_array_len(flexible, resp.groups.len())?)?;
+    for group in &resp.groups {
+        total = add_describe_len(total, describe_string_len(flexible, Some(&group.group_id))?)?;
+        total = add_describe_len(
+            total,
+            describe_string_len(flexible, Some(&group.protocol_type))?,
+        )?;
+        if version >= 4 {
+            total = add_describe_len(
+                total,
+                describe_string_len(flexible, Some(&group.group_state))?,
+            )?;
+        }
+        if version >= 5 {
+            total = add_describe_len(
+                total,
+                describe_string_len(flexible, Some(&group.group_type))?,
+            )?;
+        }
+        if flexible {
+            total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    if flexible {
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 /// Decode a ListGroups response.
@@ -19961,6 +20004,33 @@ mod tests {
                 (crate::error::NOT_COORDINATOR, 1),
             ])
         );
+    }
+
+    #[test]
+    fn a_list_groups_response_sizes_its_body_once() {
+        let resp = ListGroupsResponse {
+            error_code: 0,
+            groups: (0..8)
+                .map(|index| ListedGroup {
+                    group_id: format!("group-{index}"),
+                    protocol_type: "consumer".into(),
+                    group_state: "Stable".into(),
+                    group_type: "classic".into(),
+                })
+                .collect(),
+        };
+        for version in [0_i16, 2, 4, 5] {
+            let mut buf = BytesMut::new();
+            encode_list_groups_response(&mut buf, version, &resp).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_list_groups_response(&mut buf, version, &resp).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+        }
     }
 
     #[test]
