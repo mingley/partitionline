@@ -2182,6 +2182,10 @@
 //! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `ILLEGAL_GENERATION`, which fails that poll, and not
 //! piggyback `INVALID_TOPIC_EXCEPTION`). A piggybacked
+//! `INCONSISTENT_GROUP_PROTOCOL` still completes without retry,
+//! including when `AcknowledgeErrorMessage` is set (this is not
+//! partition `INCONSISTENT_GROUP_PROTOCOL`, which fails that poll, and not
+//! piggyback `ILLEGAL_GENERATION`). A piggybacked
 //! `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a
 //! sibling whose `AcknowledgeErrorCode` is none, including when
 //! `AcknowledgeErrorMessage` is set or empty. A piggybacked
