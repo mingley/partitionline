@@ -9337,9 +9337,16 @@ pub fn encode_allocate_producer_ids_request(
     broker_id: i32,
     broker_epoch: i64,
 ) -> crate::error::Result<()> {
+    let body_start = buf.len();
+    let planned = 12 + buf::unsigned_varint_size(0);
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf.put_i32(broker_id);
     buf.put_i64(broker_epoch);
     buf::put_empty_tagged_fields(buf);
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
 }
 
@@ -9360,11 +9367,18 @@ pub fn encode_allocate_producer_ids_response(
     buf: &mut BytesMut,
     resp: &AllocateProducerIdsResponse,
 ) -> crate::error::Result<()> {
+    let body_start = buf.len();
+    let planned = 18 + buf::unsigned_varint_size(0);
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf.put_i32(resp.throttle_time_ms);
     buf.put_i16(resp.error_code);
     buf.put_i64(resp.producer_id_start);
     buf.put_i32(resp.producer_id_len);
     buf::put_empty_tagged_fields(buf);
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
 }
 
@@ -10359,8 +10373,15 @@ pub fn encode_unregister_broker_request(
     buf: &mut BytesMut,
     broker_id: i32,
 ) -> crate::error::Result<()> {
+    let body_start = buf.len();
+    let planned = 4 + buf::unsigned_varint_size(0);
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf.put_i32(broker_id);
     buf::put_empty_tagged_fields(buf);
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
 }
 
@@ -10380,11 +10401,26 @@ pub fn encode_unregister_broker_response(
     buf: &mut BytesMut,
     resp: &UnregisterBrokerResponse,
 ) -> crate::error::Result<()> {
+    let body_start = buf.len();
+    let planned = unregister_broker_response_len(resp.error_message.as_deref())?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf.put_i32(resp.throttle_time_ms);
     buf.put_i16(resp.error_code);
     buf::put_compact_string(buf, resp.error_message.as_deref())?;
     buf::put_empty_tagged_fields(buf);
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn unregister_broker_response_len(message: Option<&str>) -> Result<usize> {
+    let mut total = 6 + describe_string_len(true, message)?;
+    total = total
+        .checked_add(buf::unsigned_varint_size(0))
+        .ok_or_else(|| Error::protocol("unregister broker response size overflow"))?;
+    Ok(total)
 }
 
 /// Decode an UnregisterBroker response.
@@ -31806,6 +31842,73 @@ mod tests {
             &zero_buf[..],
             "error_response still fills ThrottleTimeMs 0"
         );
+    }
+
+    #[test]
+    fn a_allocate_and_unregister_broker_size_their_bodies_once() {
+        let mut buf = BytesMut::new();
+        encode_allocate_producer_ids_request(&mut buf, 7, 42).unwrap();
+        let len = buf.len();
+        let capacity = buf.capacity();
+        assert!(capacity >= len);
+        assert!(capacity < 64 * 1024);
+        buf.clear();
+        encode_allocate_producer_ids_request(&mut buf, 7, 42).unwrap();
+        assert_eq!(buf.len(), len);
+        assert_eq!(buf.capacity(), capacity);
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_allocate_producer_ids_request(&mut cur).unwrap(),
+            (7, 42)
+        );
+        assert!(cur.is_empty());
+
+        let allocated = AllocateProducerIdsResponse::new(0, 1000, 100);
+        let mut out = BytesMut::new();
+        encode_allocate_producer_ids_response(&mut out, &allocated).unwrap();
+        let out_len = out.len();
+        let out_capacity = out.capacity();
+        out.clear();
+        encode_allocate_producer_ids_response(&mut out, &allocated).unwrap();
+        assert_eq!(out.len(), out_len);
+        assert_eq!(out.capacity(), out_capacity);
+        let mut cur = &out[..];
+        assert_eq!(
+            decode_allocate_producer_ids_response(&mut cur).unwrap(),
+            allocated
+        );
+        assert!(cur.is_empty());
+
+        buf.clear();
+        encode_unregister_broker_request(&mut buf, 7).unwrap();
+        let req_len = buf.len();
+        let req_capacity = buf.capacity();
+        buf.clear();
+        encode_unregister_broker_request(&mut buf, 7).unwrap();
+        assert_eq!(buf.len(), req_len);
+        assert_eq!(buf.capacity(), req_capacity);
+        let mut cur = &buf[..];
+        assert_eq!(decode_unregister_broker_request(&mut cur).unwrap(), 7);
+        assert!(cur.is_empty());
+
+        let mut unregistered = UnregisterBrokerResponse::new(0, Some("gone".into()));
+        unregistered.throttle_time_ms = 5;
+        out.clear();
+        encode_unregister_broker_response(&mut out, &unregistered).unwrap();
+        let msg_len = out.len();
+        let msg_capacity = out.capacity();
+        assert!(msg_capacity >= msg_len);
+        assert!(msg_capacity < 64 * 1024);
+        out.clear();
+        encode_unregister_broker_response(&mut out, &unregistered).unwrap();
+        assert_eq!(out.len(), msg_len);
+        assert_eq!(out.capacity(), msg_capacity);
+        let mut cur = &out[..];
+        assert_eq!(
+            decode_unregister_broker_response(&mut cur).unwrap(),
+            unregistered
+        );
+        assert!(cur.is_empty());
     }
 
     #[test]
