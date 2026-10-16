@@ -20016,21 +20016,66 @@ pub fn encode_describe_log_dirs_request(
     version: i16,
     req: &DescribeLogDirsRequest,
 ) -> crate::error::Result<()> {
+    encode_describe_log_dirs_topic_views(buf, version, req.topics.as_deref())
+}
+
+/// Encode DescribeLogDirs topics whose names are borrowed from the caller.
+///
+/// `topics = None` describes every topic-partition.
+pub(crate) fn encode_describe_log_dirs_named(
+    buf: &mut BytesMut,
+    version: i16,
+    topics: Option<&[(&str, Vec<i32>)]>,
+) -> crate::error::Result<()> {
+    encode_describe_log_dirs_topic_views(buf, version, topics)
+}
+
+trait DescribableLogDirTopicView {
+    fn log_dir_topic_name(&self) -> &str;
+    fn log_dir_topic_partitions(&self) -> &[i32];
+}
+
+impl DescribableLogDirTopicView for DescribableLogDirTopic {
+    fn log_dir_topic_name(&self) -> &str {
+        &self.name
+    }
+
+    fn log_dir_topic_partitions(&self) -> &[i32] {
+        &self.partitions
+    }
+}
+
+impl DescribableLogDirTopicView for (&str, Vec<i32>) {
+    fn log_dir_topic_name(&self) -> &str {
+        self.0
+    }
+
+    fn log_dir_topic_partitions(&self) -> &[i32] {
+        &self.1
+    }
+}
+
+fn encode_describe_log_dirs_topic_views<T: DescribableLogDirTopicView>(
+    buf: &mut BytesMut,
+    version: i16,
+    topics: Option<&[T]>,
+) -> crate::error::Result<()> {
     let flexible = describe_log_dirs_flexible(version)?;
     let body_start = buf.len();
-    let planned = describe_log_dirs_request_len(flexible, req)?;
+    let planned = describe_log_dirs_request_len(flexible, topics)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
         buf.reserve(needed - buf.capacity());
     }
-    match &req.topics {
+    match topics {
         None => buf::put_array_len(buf, flexible, None)?,
         Some(topics) => {
             buf::put_array_len(buf, flexible, Some(topics.len()))?;
             for topic in topics {
-                buf::put_string(buf, flexible, Some(&topic.name))?;
-                buf::put_array_len(buf, flexible, Some(topic.partitions.len()))?;
-                for part in &topic.partitions {
+                buf::put_string(buf, flexible, Some(topic.log_dir_topic_name()))?;
+                let partitions = topic.log_dir_topic_partitions();
+                buf::put_array_len(buf, flexible, Some(partitions.len()))?;
+                for part in partitions {
                     buf.put_i32(*part);
                 }
                 if flexible {
@@ -20046,8 +20091,11 @@ pub fn encode_describe_log_dirs_request(
     Ok(())
 }
 
-fn describe_log_dirs_request_len(flexible: bool, req: &DescribeLogDirsRequest) -> Result<usize> {
-    let mut total = match &req.topics {
+fn describe_log_dirs_request_len<T: DescribableLogDirTopicView>(
+    flexible: bool,
+    topics: Option<&[T]>,
+) -> Result<usize> {
+    let mut total = match topics {
         None => {
             if flexible {
                 buf::unsigned_varint_size(0)
@@ -20058,10 +20106,13 @@ fn describe_log_dirs_request_len(flexible: bool, req: &DescribeLogDirsRequest) -
         Some(topics) => {
             let mut total = describe_array_len(flexible, topics.len())?;
             for topic in topics {
-                total = add_describe_len(total, describe_string_len(flexible, Some(&topic.name))?)?;
                 total = add_describe_len(
                     total,
-                    replica_log_dirs_i32s_len(flexible, &topic.partitions)?,
+                    describe_string_len(flexible, Some(topic.log_dir_topic_name()))?,
+                )?;
+                total = add_describe_len(
+                    total,
+                    replica_log_dirs_i32s_len(flexible, topic.log_dir_topic_partitions())?,
                 )?;
                 if flexible {
                     total = add_describe_len(total, buf::unsigned_varint_size(0))?;
@@ -42961,6 +43012,30 @@ mod tests {
                 let decoded = decode_describe_log_dirs_request(&mut cur, version).unwrap();
                 assert!(cur.is_empty());
                 assert_eq!(decoded, *request);
+            }
+        }
+    }
+
+    #[test]
+    fn describe_log_dirs_named_topics_match_owned_topics() {
+        let owned = [DescribableLogDirTopic::new(
+            "orders-topic-name-is-long",
+            vec![0, 1],
+        )];
+        let named = [("orders-topic-name-is-long", vec![0, 1])];
+        for version in 1..=5 {
+            for (owned_topics, named_topics) in [
+                (None, None),
+                (Some(owned.as_slice()), Some(named.as_slice())),
+            ] {
+                let request = DescribeLogDirsRequest {
+                    topics: owned_topics.map(<[DescribableLogDirTopic]>::to_vec),
+                };
+                let mut expected = BytesMut::new();
+                encode_describe_log_dirs_request(&mut expected, version, &request).unwrap();
+                let mut got = BytesMut::new();
+                encode_describe_log_dirs_named(&mut got, version, named_topics).unwrap();
+                assert_eq!(got.as_ref(), expected.as_ref(), "version {version}");
             }
         }
     }

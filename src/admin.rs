@@ -54,8 +54,8 @@ use crate::protocol::admin::{
     encode_delete_share_group_offsets_request, encode_describe_client_quotas_request,
     encode_describe_cluster_request, encode_describe_configs_named,
     encode_describe_delegation_token_request, encode_describe_groups_request,
-    encode_describe_log_dirs_request, encode_describe_producers_named_topics,
-    encode_describe_share_group_offsets_request_versioned,
+    encode_describe_log_dirs_named, encode_describe_log_dirs_request,
+    encode_describe_producers_named_topics, encode_describe_share_group_offsets_request_versioned,
     encode_describe_topic_partitions_request, encode_describe_transactions_request,
     encode_describe_user_scram_credentials_request, encode_expire_delegation_token_request,
     encode_get_telemetry_subscriptions_request, encode_incremental_alter_configs_named,
@@ -13205,7 +13205,9 @@ impl Admin {
         for broker_id in replica_broker_ids(&replicas) {
             let topics = describable_topics_for_broker(&replicas, broker_id);
             let resp = self
-                .describe_log_dirs_on(broker_id, Some(topics), timeout)
+                .describe_log_dirs_with(Some(broker_id), timeout, |output, version| {
+                    encode_describe_log_dirs_named(output, version, Some(topics.as_slice()))
+                })
                 .await?;
             if resp.error_code != 0 {
                 return Err(Error::broker(resp.error_code, "DescribeLogDirs"));
@@ -13297,6 +13299,19 @@ impl Admin {
         topics: Option<Vec<DescribableLogDirTopic>>,
         timeout: Duration,
     ) -> Result<DescribeLogDirsResponse> {
+        let request = DescribeLogDirsRequest::new(topics);
+        self.describe_log_dirs_with(node, timeout, |output, version| {
+            encode_describe_log_dirs_request(output, version, &request)
+        })
+        .await
+    }
+
+    async fn describe_log_dirs_with(
+        &mut self,
+        node: Option<i32>,
+        timeout: Duration,
+        encode: impl Fn(&mut BytesMut, i16) -> Result<()>,
+    ) -> Result<DescribeLogDirsResponse> {
         if timeout.is_zero() {
             return Err(Error::Timeout);
         }
@@ -13306,7 +13321,6 @@ impl Admin {
         if let Some(node) = node {
             self.ensure_broker(node, deadline).await?;
         }
-        let request = DescribeLogDirsRequest::new(topics);
         let mut attempt = 0;
         loop {
             if Instant::now() >= deadline {
@@ -13339,7 +13353,7 @@ impl Admin {
                     .roundtrip(
                         DESCRIBE_LOG_DIRS,
                         version,
-                        |output| encode_describe_log_dirs_request(output, version, &request),
+                        |output| encode(output, version),
                         deadline.saturating_duration_since(Instant::now()),
                     )
                     .await?;
@@ -14774,14 +14788,15 @@ fn alter_replica_partition_error(
 fn describable_topics_for_broker(
     replicas: &[TopicPartitionReplica],
     broker_id: i32,
-) -> Vec<DescribableLogDirTopic> {
-    let mut groups: Vec<(String, Vec<i32>)> = Vec::new();
+) -> Vec<(&str, Vec<i32>)> {
+    let mut groups: Vec<(&str, Vec<i32>)> = Vec::new();
     let mut slots: HashMap<&str, usize> = HashMap::new();
     for r in replicas {
         if r.broker_id != broker_id {
             continue;
         }
-        if let Some(&slot) = slots.get(r.topic.as_str()) {
+        let topic = r.topic.as_str();
+        if let Some(&slot) = slots.get(topic) {
             if let Some((_, parts)) = groups.get_mut(slot) {
                 if !parts.contains(&r.partition) {
                     parts.push(r.partition);
@@ -14790,13 +14805,10 @@ fn describable_topics_for_broker(
             }
         }
         let slot = groups.len();
-        let _ = slots.insert(r.topic.as_str(), slot);
-        groups.push((r.topic.clone(), vec![r.partition]));
+        let _ = slots.insert(topic, slot);
+        groups.push((topic, vec![r.partition]));
     }
     groups
-        .into_iter()
-        .map(|(name, partitions)| DescribableLogDirTopic { partitions, name })
-        .collect()
 }
 
 fn replica_log_dir_info_from(
@@ -16653,12 +16665,12 @@ mod tests {
         assert_eq!(replica_broker_ids(&replicas), vec![2, 1]);
         let on_two = describable_topics_for_broker(&replicas, 2);
         assert_eq!(on_two.len(), 1);
-        assert_eq!(on_two[0].name, "t");
-        assert_eq!(on_two[0].partitions, vec![0, 1]);
+        assert_eq!(on_two[0].0, "t");
+        assert_eq!(on_two[0].1, vec![0, 1]);
         let on_one = describable_topics_for_broker(&replicas, 1);
         assert_eq!(on_one.len(), 1);
-        assert_eq!(on_one[0].name, "u");
-        assert_eq!(on_one[0].partitions, vec![0]);
+        assert_eq!(on_one[0].0, "u");
+        assert_eq!(on_one[0].1, vec![0]);
 
         let dirs = vec![
             DescribeLogDirsResult::new(
