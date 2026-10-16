@@ -4757,6 +4757,7 @@ impl Consumer {
     ) -> Result<()> {
         let mut prepared = Vec::new();
         let mut parts_of: HashMap<i32, Vec<(&str, i32)>> = HashMap::new();
+        self.warm_leader_conns(nodes, deadline).await;
         for node in nodes {
             let Some(parts) = by_leader.remove(node) else {
                 continue;
@@ -7512,6 +7513,120 @@ impl Consumer {
         Ok(())
     }
 
+    /// Open dedicated leader sockets together.
+    ///
+    /// The bootstrap socket stays on its own connection. A dial that fails is
+    /// left for [`Self::connect_node`], which reports that error and retries.
+    async fn warm_leader_conns(&mut self, nodes: &[i32], deadline: Instant) {
+        let mut dials = Vec::new();
+        for &node in nodes {
+            if Instant::now() >= deadline || self.woken() {
+                break;
+            }
+            if self
+                .conns
+                .get(&node)
+                .is_some_and(|conn| conn.idle_expired(self.cfg.connections_max_idle))
+            {
+                let _ = self.conns.remove(&node);
+                let _ = self.list_offsets_ranges.remove(&node);
+                let _ = self.leader_epoch_ranges.remove(&node);
+                if let Some(session) = self.fetch_sessions.get_mut(&node) {
+                    session.reset();
+                }
+            }
+            if self.conns.contains_key(&node) {
+                continue;
+            }
+            let Some(addr) = self.cluster.brokers.get(&node).cloned() else {
+                continue;
+            };
+            if self.conn.fetch_version() >= 0 && addr == self.conn.addr() {
+                continue;
+            }
+            if let Some(session) = self.fetch_sessions.get_mut(&node) {
+                session.reset();
+            }
+            dials.push((node, addr));
+        }
+        if dials.is_empty() {
+            return;
+        }
+        let client_id = self.cfg.client_id.clone();
+        let connect_timeout = self.cfg.connect_timeout;
+        let tls = self.cfg.tls.clone();
+        let sasl_plain = self.cfg.sasl_plain.clone();
+        let sasl_scram = self.cfg.sasl_scram.clone();
+        let sasl_scram_sha512 = self.cfg.sasl_scram_sha512.clone();
+        let sasl_oauthbearer = self.cfg.sasl_oauthbearer.clone();
+        let sasl_oauthbearer_oidc = self.cfg.sasl_oauthbearer_oidc.clone();
+        let mut waiting: VecDeque<(i32, String)> = dials.into();
+        let mut inflight = tokio::task::JoinSet::new();
+        let spawn = |inflight: &mut tokio::task::JoinSet<(
+            i32,
+            Result<(BrokerConn, ApiVersionsResponse)>,
+        )>,
+                     node: i32,
+                     addr: String| {
+            let client_id = client_id.clone();
+            let tls = tls.clone();
+            let sasl_plain = sasl_plain.clone();
+            let sasl_scram = sasl_scram.clone();
+            let sasl_scram_sha512 = sasl_scram_sha512.clone();
+            let sasl_oauthbearer = sasl_oauthbearer.clone();
+            let sasl_oauthbearer_oidc = sasl_oauthbearer_oidc.clone();
+            let _ = inflight.spawn(async move {
+                let result = Consumer::open_fetch_conn(
+                    &addr,
+                    &client_id,
+                    connect_timeout,
+                    tls.as_ref(),
+                    sasl_plain.as_ref(),
+                    sasl_scram.as_ref(),
+                    sasl_scram_sha512.as_ref(),
+                    sasl_oauthbearer.as_deref(),
+                    sasl_oauthbearer_oidc.as_ref(),
+                    deadline,
+                )
+                .await;
+                (node, result)
+            });
+        };
+        while inflight.len() < Self::FETCH_DIAL_PARALLELISM {
+            let Some((node, addr)) = waiting.pop_front() else {
+                break;
+            };
+            spawn(&mut inflight, node, addr);
+        }
+        while !inflight.is_empty() {
+            if self.woken() || Instant::now() >= deadline {
+                inflight.abort_all();
+                break;
+            }
+            let rest = deadline.saturating_duration_since(Instant::now());
+            let joined = tokio::select! {
+                joined = inflight.join_next() => joined,
+                () = tokio::time::sleep(rest) => {
+                    inflight.abort_all();
+                    break;
+                }
+            };
+            let Some(Ok((node, result))) = joined else {
+                break;
+            };
+            if let Ok((conn, versions)) = result {
+                let _ = self.reconnect_fails.remove(&node);
+                self.remember_opened_conn(node, conn, &versions);
+            }
+            while inflight.len() < Self::FETCH_DIAL_PARALLELISM {
+                let Some((node, addr)) = waiting.pop_front() else {
+                    break;
+                };
+                spawn(&mut inflight, node, addr);
+            }
+        }
+    }
+
     /// Ask every leader at once. One slow broker does not hold the others.
     async fn list_offsets_leaders_parallel<T: AsRef<str>>(
         &mut self,
@@ -7521,6 +7636,7 @@ impl Consumer {
         deadline: Instant,
         slots: &mut [OffsetSlot],
     ) {
+        self.warm_leader_conns(nodes, deadline).await;
         let isolation = self.cfg.isolation_level.as_i8();
         let mut prepared = Vec::new();
         for node in nodes {
