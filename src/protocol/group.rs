@@ -4038,11 +4038,17 @@ impl OffsetCommitRequest {
     /// `HashMap.put`).
     #[must_use]
     pub fn offsets(topics: &[OffsetTopic]) -> HashMap<(String, i32), i64> {
-        let mut offsets = HashMap::new();
+        let mut scratch: HashMap<&str, HashMap<i32, i64>> = HashMap::new();
         for topic in topics {
+            let parts = scratch.entry(topic.topic.as_str()).or_default();
             for partition in &topic.partitions {
-                let _prev =
-                    offsets.insert((topic.topic.clone(), partition.partition), partition.offset);
+                let _prev = parts.insert(partition.partition, partition.offset);
+            }
+        }
+        let mut offsets = HashMap::new();
+        for (topic, parts) in scratch {
+            for (partition, offset) in parts {
+                let _prev = offsets.insert((topic.to_owned(), partition), offset);
             }
         }
         offsets

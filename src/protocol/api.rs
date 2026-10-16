@@ -2765,14 +2765,21 @@ impl ProduceRequest {
     /// partition with the same pair adds (Java `Map.compute` sums). Java
     /// `int` overflow wraps.
     pub fn partition_sizes(topics: &[ProduceTopicData]) -> Result<HashMap<(String, i32), i32>> {
-        let mut sizes: HashMap<(String, i32), i32> = HashMap::new();
+        let mut scratch: HashMap<&str, HashMap<i32, i32>> = HashMap::new();
         for topic in topics {
             for partition in &topic.partitions {
                 let size = partition.records.size_in_bytes()?;
-                let _size = sizes
-                    .entry((topic.topic.clone(), partition.index))
+                let parts = scratch.entry(topic.topic.as_str()).or_default();
+                let _size = parts
+                    .entry(partition.index)
                     .and_modify(|prev| *prev = prev.wrapping_add(size))
                     .or_insert(size);
+            }
+        }
+        let mut sizes = HashMap::new();
+        for (topic, parts) in scratch {
+            for (index, size) in parts {
+                let _prev = sizes.insert((topic.to_owned(), index), size);
             }
         }
         Ok(sizes)
