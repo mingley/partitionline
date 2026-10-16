@@ -29,7 +29,7 @@ mod common;
 
 use std::sync::atomic::{AtomicI32, AtomicUsize, Ordering};
 use std::sync::Arc;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use bytes::{Bytes, BytesMut};
 use partitionline::error::{NOT_LEADER_OR_FOLLOWER, OFFSET_OUT_OF_RANGE};
@@ -3976,6 +3976,36 @@ async fn group_reset_lists_each_leaders_offsets_together() {
         vec![(1, 2), (2, 1)],
         "t-0 is node 2; u-0 and u-1 share node 1"
     );
+    group.leave().await.unwrap();
+}
+
+/// The leader's partition counts come from the metadata refresh that loaded the subscription.
+#[tokio::test]
+async fn group_join_reads_every_topic_from_one_metadata() {
+    let mock = common::Mock::start().await;
+    mock.set_topic_partitions("t", 1);
+    mock.set_topic_partitions("u", 2);
+    let cfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    let before = mock.metadata_calls();
+    mock.set_metadata_delay(Duration::from_millis(200));
+    let started = Instant::now();
+    let group = ConsumerGroup::join_topics(cfg, "meta-once", ["t", "u"])
+        .await
+        .unwrap();
+    assert_eq!(group.assignment().len(), 3);
+    assert!(
+        started.elapsed() < Duration::from_millis(450),
+        "join waited for a metadata request per topic: {:?}",
+        started.elapsed()
+    );
+    assert_eq!(
+        mock.metadata_calls(),
+        before + 1,
+        "subscribed topics should share one metadata request"
+    );
+    let mut names = mock.last_metadata_topics().unwrap().unwrap();
+    names.sort();
+    assert_eq!(names, ["t".to_string(), "u".to_string()]);
     group.leave().await.unwrap();
 }
 

@@ -3490,12 +3490,19 @@ impl Consumer {
             self.buffered_bytes = 0;
             return Ok(());
         }
-        if let Err(error) = self.refresh_metadata(Some(&topics)).await {
-            self.assigned = previous_assigned;
-            self.assigned_topic_ids = old_ids;
-            self.fetched_epochs = previous_epochs;
-            self.aborted = previous_aborted;
-            return Err(error);
+        // A join already loaded this topic set. Refresh only when a name is
+        // still stale, so assignment does not repeat that metadata request.
+        if !topics
+            .iter()
+            .all(|topic| self.cluster.topic_fresh(topic, self.cfg.metadata_max_age))
+        {
+            if let Err(error) = self.refresh_metadata(Some(&topics)).await {
+                self.assigned = previous_assigned;
+                self.assigned_topic_ids = old_ids;
+                self.fetched_epochs = previous_epochs;
+                self.aborted = previous_aborted;
+                return Err(error);
+            }
         }
         let cached = &self.name_to_id;
         let mut names: HashMap<&str, Arc<str>> = HashMap::new();
@@ -3578,9 +3585,11 @@ impl Consumer {
             .copied()
     }
 
-    pub(crate) async fn partition_ids(&mut self, topic: &str) -> Result<Vec<i32>> {
-        self.refresh_metadata_ref(Some(std::slice::from_ref(&topic)))
-            .await?;
+    /// Partition indexes from the metadata image already loaded for `topic`.
+    ///
+    /// The caller refreshes that image. This does not send another Metadata
+    /// request.
+    pub(crate) fn partition_ids(&self, topic: &str) -> Result<Vec<i32>> {
         let Some(md) = self.metadata.as_ref() else {
             return Err(Error::UnknownTopic(topic.to_string()));
         };
@@ -3728,11 +3737,6 @@ impl Consumer {
 
     async fn refresh_metadata(&mut self, topics: Option<&[String]>) -> Result<()> {
         self.refresh_metadata_timeout(topics, self.cfg.request_timeout)
-            .await
-    }
-
-    async fn refresh_metadata_ref<T: AsRef<str>>(&mut self, topics: Option<&[T]>) -> Result<()> {
-        self.refresh_metadata_timeout_ref(topics, self.cfg.request_timeout)
             .await
     }
 

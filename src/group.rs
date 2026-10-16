@@ -2463,7 +2463,7 @@ impl ConsumerGroup {
             .await?;
         let mut by_topic = Vec::with_capacity(topic_set.len());
         for topic in &topic_set {
-            by_topic.push((topic.clone(), self.consumer.partition_ids(topic).await?));
+            by_topic.push((topic.clone(), self.consumer.partition_ids(topic)?));
         }
         let assignments =
             if JoinGroupResponse::is_leader(&self.member_id, &leader) && !skip_assignment {
