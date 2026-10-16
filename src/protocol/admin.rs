@@ -19392,21 +19392,111 @@ pub fn encode_alter_replica_log_dirs_request(
     version: i16,
     req: &AlterReplicaLogDirsRequest,
 ) -> crate::error::Result<()> {
+    encode_alter_replica_log_dir_views(buf, version, &req.dirs)
+}
+
+/// One AlterReplicaLogDirs topic whose name is borrowed.
+pub(crate) struct BorrowedAlterReplicaLogDirTopic<'a> {
+    /// Topic name.
+    pub name: &'a str,
+    /// Partitions in this topic.
+    pub partitions: Vec<i32>,
+}
+
+/// One AlterReplicaLogDirs directory whose path and topic names are borrowed.
+pub(crate) struct BorrowedAlterReplicaLogDir<'a> {
+    /// Log directory path.
+    pub path: &'a str,
+    /// Topics in this directory.
+    pub topics: Vec<BorrowedAlterReplicaLogDirTopic<'a>>,
+}
+
+trait AlterReplicaLogDirTopicView {
+    fn alter_log_dir_topic_name(&self) -> &str;
+    fn alter_log_dir_partitions(&self) -> &[i32];
+}
+
+impl AlterReplicaLogDirTopicView for AlterReplicaLogDirsTopic {
+    fn alter_log_dir_topic_name(&self) -> &str {
+        &self.name
+    }
+
+    fn alter_log_dir_partitions(&self) -> &[i32] {
+        &self.partitions
+    }
+}
+
+impl AlterReplicaLogDirTopicView for BorrowedAlterReplicaLogDirTopic<'_> {
+    fn alter_log_dir_topic_name(&self) -> &str {
+        self.name
+    }
+
+    fn alter_log_dir_partitions(&self) -> &[i32] {
+        &self.partitions
+    }
+}
+
+trait AlterReplicaLogDirView {
+    type Topic: AlterReplicaLogDirTopicView;
+    fn alter_log_dir_path(&self) -> &str;
+    fn alter_log_dir_topics(&self) -> &[Self::Topic];
+}
+
+impl AlterReplicaLogDirView for AlterReplicaLogDirsDirectory {
+    type Topic = AlterReplicaLogDirsTopic;
+
+    fn alter_log_dir_path(&self) -> &str {
+        &self.path
+    }
+
+    fn alter_log_dir_topics(&self) -> &[Self::Topic] {
+        &self.topics
+    }
+}
+
+impl<'a> AlterReplicaLogDirView for BorrowedAlterReplicaLogDir<'a> {
+    type Topic = BorrowedAlterReplicaLogDirTopic<'a>;
+
+    fn alter_log_dir_path(&self) -> &str {
+        self.path
+    }
+
+    fn alter_log_dir_topics(&self) -> &[Self::Topic] {
+        &self.topics
+    }
+}
+
+/// Encode AlterReplicaLogDirs directories whose paths and topic names are borrowed.
+pub(crate) fn encode_alter_replica_log_dirs_named(
+    buf: &mut BytesMut,
+    version: i16,
+    dirs: &[BorrowedAlterReplicaLogDir<'_>],
+) -> crate::error::Result<()> {
+    encode_alter_replica_log_dir_views(buf, version, dirs)
+}
+
+fn encode_alter_replica_log_dir_views<T: AlterReplicaLogDirView>(
+    buf: &mut BytesMut,
+    version: i16,
+    dirs: &[T],
+) -> crate::error::Result<()> {
     let flexible = alter_replica_log_dirs_flexible(version)?;
     let body_start = buf.len();
-    let planned = alter_replica_log_dirs_request_len(flexible, req)?;
+    let planned = alter_replica_log_dirs_request_len(flexible, dirs)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
         buf.reserve(needed - buf.capacity());
     }
-    buf::put_array_len(buf, flexible, Some(req.dirs.len()))?;
-    for dir in &req.dirs {
-        buf::put_string(buf, flexible, Some(&dir.path))?;
-        buf::put_array_len(buf, flexible, Some(dir.topics.len()))?;
-        for topic in &dir.topics {
-            buf::put_string(buf, flexible, Some(&topic.name))?;
-            buf::put_array_len(buf, flexible, Some(topic.partitions.len()))?;
-            for part in &topic.partitions {
+    buf::put_array_len(buf, flexible, Some(dirs.len()))?;
+    for directory in dirs {
+        buf::put_string(buf, flexible, Some(directory.alter_log_dir_path()))?;
+        let topics = directory.alter_log_dir_topics();
+        buf::put_array_len(buf, flexible, Some(topics.len()))?;
+        for topic in topics {
+            buf::put_string(buf, flexible, Some(topic.alter_log_dir_topic_name()))?;
+            let partitions = topic.alter_log_dir_partitions();
+            buf::put_array_len(buf, flexible, Some(partitions.len()))?;
+            for part in partitions {
                 buf.put_i32(*part);
             }
             if flexible {
@@ -19424,19 +19514,26 @@ pub fn encode_alter_replica_log_dirs_request(
     Ok(())
 }
 
-fn alter_replica_log_dirs_request_len(
+fn alter_replica_log_dirs_request_len<T: AlterReplicaLogDirView>(
     flexible: bool,
-    req: &AlterReplicaLogDirsRequest,
+    dirs: &[T],
 ) -> Result<usize> {
-    let mut total = describe_array_len(flexible, req.dirs.len())?;
-    for directory in &req.dirs {
-        total = add_describe_len(total, describe_string_len(flexible, Some(&directory.path))?)?;
-        total = add_describe_len(total, describe_array_len(flexible, directory.topics.len())?)?;
-        for topic in &directory.topics {
-            total = add_describe_len(total, describe_string_len(flexible, Some(&topic.name))?)?;
+    let mut total = describe_array_len(flexible, dirs.len())?;
+    for directory in dirs {
+        total = add_describe_len(
+            total,
+            describe_string_len(flexible, Some(directory.alter_log_dir_path()))?,
+        )?;
+        let topics = directory.alter_log_dir_topics();
+        total = add_describe_len(total, describe_array_len(flexible, topics.len())?)?;
+        for topic in topics {
             total = add_describe_len(
                 total,
-                replica_log_dirs_i32s_len(flexible, &topic.partitions)?,
+                describe_string_len(flexible, Some(topic.alter_log_dir_topic_name()))?,
+            )?;
+            total = add_describe_len(
+                total,
+                replica_log_dirs_i32s_len(flexible, topic.alter_log_dir_partitions())?,
             )?;
             if flexible {
                 total = add_describe_len(total, buf::unsigned_varint_size(0))?;
@@ -42326,6 +42423,34 @@ mod tests {
             let decoded = decode_alter_replica_log_dirs_request(&mut cur, version).unwrap();
             assert!(cur.is_empty());
             assert_eq!(decoded, request);
+        }
+    }
+
+    #[test]
+    fn alter_replica_log_dirs_named_dirs_match_owned_dirs() {
+        let owned = [AlterReplicaLogDirsDirectory {
+            path: "/data/kafka-log".into(),
+            topics: vec![AlterReplicaLogDirsTopic::new(
+                "orders-topic-name-is-long",
+                vec![0, 1],
+            )],
+        }];
+        let named = [BorrowedAlterReplicaLogDir {
+            path: "/data/kafka-log",
+            topics: vec![BorrowedAlterReplicaLogDirTopic {
+                name: "orders-topic-name-is-long",
+                partitions: vec![0, 1],
+            }],
+        }];
+        for version in 1..=2 {
+            let request = AlterReplicaLogDirsRequest {
+                dirs: owned.to_vec(),
+            };
+            let mut expected = BytesMut::new();
+            encode_alter_replica_log_dirs_request(&mut expected, version, &request).unwrap();
+            let mut got = BytesMut::new();
+            encode_alter_replica_log_dirs_named(&mut got, version, &named).unwrap();
+            assert_eq!(got.as_ref(), expected.as_ref(), "version {version}");
         }
     }
 

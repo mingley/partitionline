@@ -46,16 +46,17 @@ use crate::protocol::admin::{
     decode_share_group_describe_response, decode_unregister_broker_response,
     decode_update_features_response, encode_allocate_producer_ids_request,
     encode_alter_client_quotas_request, encode_alter_configs_named,
-    encode_alter_partition_reassignments_named, encode_alter_replica_log_dirs_request,
-    encode_alter_share_group_offsets_request, encode_alter_user_scram_credentials_named,
-    encode_assign_replicas_to_dirs_request, encode_consumer_group_describe_request,
-    encode_create_delegation_token_request, encode_create_partitions_named,
-    encode_create_topics_named, encode_delete_groups_request, encode_delete_records_named_topics,
-    encode_delete_share_group_offsets_request, encode_describe_client_quotas_request,
-    encode_describe_cluster_request, encode_describe_configs_named,
-    encode_describe_delegation_token_request, encode_describe_groups_request,
-    encode_describe_log_dirs_named, encode_describe_log_dirs_request,
-    encode_describe_producers_named_topics, encode_describe_share_group_offsets_request_versioned,
+    encode_alter_partition_reassignments_named, encode_alter_replica_log_dirs_named,
+    encode_alter_replica_log_dirs_request, encode_alter_share_group_offsets_request,
+    encode_alter_user_scram_credentials_named, encode_assign_replicas_to_dirs_request,
+    encode_consumer_group_describe_request, encode_create_delegation_token_request,
+    encode_create_partitions_named, encode_create_topics_named, encode_delete_groups_request,
+    encode_delete_records_named_topics, encode_delete_share_group_offsets_request,
+    encode_describe_client_quotas_request, encode_describe_cluster_request,
+    encode_describe_configs_named, encode_describe_delegation_token_request,
+    encode_describe_groups_request, encode_describe_log_dirs_named,
+    encode_describe_log_dirs_request, encode_describe_producers_named_topics,
+    encode_describe_share_group_offsets_request_versioned,
     encode_describe_topic_partitions_request, encode_describe_transactions_request,
     encode_describe_user_scram_credentials_request, encode_expire_delegation_token_request,
     encode_get_telemetry_subscriptions_request, encode_incremental_alter_configs_named,
@@ -64,12 +65,13 @@ use crate::protocol::admin::{
     encode_push_telemetry_request, encode_renew_delegation_token_request,
     encode_share_group_describe_request, encode_unregister_broker_request,
     encode_update_features_named, AlterConfigsResource, BorrowedAlterConfig,
-    BorrowedAlterConfigsResource, BorrowedAlterableResource, BorrowedCreatableTopic,
-    BorrowedCreatePartitionsTopic, BorrowedDescribeConfigsResource, BorrowedFeatureUpdate,
-    BorrowedReassignmentPartition, BorrowedReplicaAssignment, BorrowedScramDeletion,
-    BorrowedScramUpsertion, BorrowedTopicConfig, CreateTopicsRequest, DeleteRecordsPartition,
-    DeleteTopicState, DescribeConfigsResult, TopicResult, RESOURCE_BROKER, RESOURCE_BROKER_LOGGER,
-    RESOURCE_CLIENT_METRICS, RESOURCE_GROUP, RESOURCE_TOPIC,
+    BorrowedAlterConfigsResource, BorrowedAlterReplicaLogDir, BorrowedAlterReplicaLogDirTopic,
+    BorrowedAlterableResource, BorrowedCreatableTopic, BorrowedCreatePartitionsTopic,
+    BorrowedDescribeConfigsResource, BorrowedFeatureUpdate, BorrowedReassignmentPartition,
+    BorrowedReplicaAssignment, BorrowedScramDeletion, BorrowedScramUpsertion, BorrowedTopicConfig,
+    CreateTopicsRequest, DeleteRecordsPartition, DeleteTopicState, DescribeConfigsResult,
+    TopicResult, RESOURCE_BROKER, RESOURCE_BROKER_LOGGER, RESOURCE_CLIENT_METRICS, RESOURCE_GROUP,
+    RESOURCE_TOPIC,
 };
 use crate::protocol::api::{
     decode_api_versions_response, decode_metadata_response, decode_metadata_response_into,
@@ -13098,7 +13100,7 @@ impl Admin {
                 return Err(Error::Timeout);
             }
             let resp = self
-                .alter_replica_log_dirs_on(broker_id, dirs, remaining)
+                .alter_replica_log_dirs_on(broker_id, &dirs, remaining)
                 .await?;
             for (replica, _) in assignment.iter().filter(|(r, _)| r.broker_id == broker_id) {
                 let code = alter_replica_partition_error(
@@ -13380,7 +13382,7 @@ impl Admin {
     async fn alter_replica_log_dirs_on(
         &mut self,
         node: i32,
-        dirs: Vec<AlterReplicaLogDirsDirectory>,
+        dirs: &[BorrowedAlterReplicaLogDir<'_>],
         timeout: Duration,
     ) -> Result<AlterReplicaLogDirsResponse> {
         let version = self.alter_replica_log_dirs_version.ok_or_else(|| {
@@ -13388,7 +13390,6 @@ impl Admin {
         })?;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
-        let req = AlterReplicaLogDirsRequest::new(dirs);
         loop {
             self.connect_node_until(node, deadline).await?;
             let body = {
@@ -13399,7 +13400,7 @@ impl Admin {
                 conn.roundtrip(
                     ALTER_REPLICA_LOG_DIRS,
                     version,
-                    |buf| encode_alter_replica_log_dirs_request(buf, version, &req),
+                    |buf| encode_alter_replica_log_dirs_named(buf, version, dirs),
                     deadline.saturating_duration_since(Instant::now()),
                 )
                 .await
@@ -14678,10 +14679,14 @@ fn replica_broker_ids(replicas: &[TopicPartitionReplica]) -> Vec<i32> {
 
 fn group_alter_replica_log_dirs(
     assignment: &[(TopicPartitionReplica, String)],
-) -> Vec<(i32, Vec<AlterReplicaLogDirsDirectory>)> {
-    let replicas: Vec<TopicPartitionReplica> = assignment.iter().map(|(r, _)| r.clone()).collect();
-    replica_broker_ids(&replicas)
-        .into_iter()
+) -> Vec<(i32, Vec<BorrowedAlterReplicaLogDir<'_>>)> {
+    let mut ids = Vec::new();
+    for (replica, _) in assignment {
+        if !ids.contains(&replica.broker_id) {
+            ids.push(replica.broker_id);
+        }
+    }
+    ids.into_iter()
         .map(|broker_id| {
             (
                 broker_id,
@@ -14691,21 +14696,11 @@ fn group_alter_replica_log_dirs(
         .collect()
 }
 
-struct ReplicaDirGroup {
-    path: String,
-    topics: Vec<ReplicaDirTopic>,
-}
-
-struct ReplicaDirTopic {
-    name: String,
-    partitions: Vec<i32>,
-}
-
-fn alter_replica_dirs_for_broker(
-    assignment: &[(TopicPartitionReplica, String)],
+fn alter_replica_dirs_for_broker<'a>(
+    assignment: &'a [(TopicPartitionReplica, String)],
     broker_id: i32,
-) -> Vec<AlterReplicaLogDirsDirectory> {
-    let mut directories: Vec<ReplicaDirGroup> = Vec::new();
+) -> Vec<BorrowedAlterReplicaLogDir<'a>> {
+    let mut directories: Vec<BorrowedAlterReplicaLogDir<'a>> = Vec::new();
     let mut path_slots: HashMap<&str, usize> = HashMap::new();
     let mut topic_slots: HashMap<(&str, &str), usize> = HashMap::new();
     for (replica, path) in assignment {
@@ -14732,8 +14727,8 @@ fn alter_replica_dirs_for_broker(
         } else {
             let slot = directories.len();
             let _ = path_slots.insert(path_name, slot);
-            directories.push(ReplicaDirGroup {
-                path: path.clone(),
+            directories.push(BorrowedAlterReplicaLogDir {
+                path: path_name,
                 topics: Vec::new(),
             });
             slot
@@ -14742,29 +14737,13 @@ fn alter_replica_dirs_for_broker(
             continue;
         };
         let topic_index = directory.topics.len();
-        directory.topics.push(ReplicaDirTopic {
-            name: replica.topic.clone(),
+        directory.topics.push(BorrowedAlterReplicaLogDirTopic {
+            name: topic_name,
             partitions: vec![replica.partition],
         });
         let _ = topic_slots.insert((path_name, topic_name), topic_index);
     }
     directories
-        .into_iter()
-        .map(|directory| {
-            let topics = directory
-                .topics
-                .into_iter()
-                .map(|topic| AlterReplicaLogDirsTopic {
-                    name: topic.name,
-                    partitions: topic.partitions,
-                })
-                .collect();
-            AlterReplicaLogDirsDirectory {
-                path: directory.path,
-                topics,
-            }
-        })
-        .collect()
 }
 
 fn alter_replica_partition_error(
@@ -15067,19 +15046,19 @@ mod tests {
             (TopicPartitionReplica::new("orders", 0, 1), "/b".to_owned()),
         ];
         let grouped = alter_replica_dirs_for_broker(&assignment, 2);
-        assert_eq!(grouped.first().map(|dir| dir.path.as_str()), Some("/a"));
+        assert_eq!(grouped.first().map(|dir| dir.path), Some("/a"));
         assert_eq!(grouped.len(), 1);
         let topics = grouped.first().map(|dir| dir.topics.as_slice());
         assert_eq!(
             topics
                 .and_then(|topics| topics.first())
-                .map(|topic| { (topic.name.as_str(), topic.partitions.as_slice()) }),
+                .map(|topic| { (topic.name, topic.partitions.as_slice()) }),
             Some(("orders", &[1, 0][..]))
         );
         assert_eq!(
             topics
                 .and_then(|topics| topics.get(1))
-                .map(|topic| { (topic.name.as_str(), topic.partitions.as_slice()) }),
+                .map(|topic| { (topic.name, topic.partitions.as_slice()) }),
             Some(("payments", &[0][..]))
         );
     }
@@ -15292,19 +15271,20 @@ mod tests {
             .total_bytes(),
             None
         );
-        let grouped = group_alter_replica_log_dirs(&[
-            (TopicPartitionReplica::new("t", 0, 2), "/d1".into()),
-            (TopicPartitionReplica::new("u", 1, 2), "/d1".into()),
-            (TopicPartitionReplica::new("t", 0, 1), "/d2".into()),
-        ]);
+        let assignment = [
+            (TopicPartitionReplica::new("t", 0, 2), "/d1".to_owned()),
+            (TopicPartitionReplica::new("u", 1, 2), "/d1".to_owned()),
+            (TopicPartitionReplica::new("t", 0, 1), "/d2".to_owned()),
+        ];
+        let grouped = group_alter_replica_log_dirs(&assignment);
         assert_eq!(grouped.len(), 2);
         assert_eq!(grouped[0].0, 2);
-        assert_eq!(grouped[0].1[0].path(), "/d1");
-        assert_eq!(grouped[0].1[0].topics()[0].name(), "t");
-        assert_eq!(grouped[0].1[0].topics()[0].partitions(), &[0]);
-        assert_eq!(grouped[0].1[0].topics()[1].name(), "u");
+        assert_eq!(grouped[0].1[0].path, "/d1");
+        assert_eq!(grouped[0].1[0].topics[0].name, "t");
+        assert_eq!(grouped[0].1[0].topics[0].partitions, &[0]);
+        assert_eq!(grouped[0].1[0].topics[1].name, "u");
         assert_eq!(grouped[1].0, 1);
-        assert_eq!(grouped[1].1[0].path(), "/d2");
+        assert_eq!(grouped[1].1[0].path, "/d2");
         let dir = AssignReplicasToDirsDirectory::new(
             Uuid::from_bytes([0x11; 16]),
             vec![AssignReplicasToDirsTopic::new(
