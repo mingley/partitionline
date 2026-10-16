@@ -611,14 +611,16 @@ impl ShareFetchResponse {
     ) -> HashMap<([u8; 16], String, i32), ShareFetchedPartition> {
         let mut response_data = HashMap::new();
         for topic in topics {
-            let Some(name) = topic_names.get(&topic.topic_id) else {
+            let Some(name) = topic_names.get(&topic.topic_id).map(String::as_str) else {
                 continue;
             };
+            let mut parts: HashMap<i32, &ShareFetchedPartition> = HashMap::new();
             for partition in &topic.partitions {
-                let _prev = response_data.insert(
-                    (topic.topic_id, name.clone(), partition.partition),
-                    partition.clone(),
-                );
+                let _prev = parts.insert(partition.partition, partition);
+            }
+            for (partition, data) in parts {
+                let _prev = response_data
+                    .insert((topic.topic_id, name.to_owned(), partition), data.clone());
             }
         }
         response_data
