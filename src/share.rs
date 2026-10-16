@@ -953,6 +953,12 @@ pub enum ShareAcquireMode {
 /// delivers the fetch; this is not partition
 /// `INVALID_PARTITIONS`, which fails that poll, and not piggyback
 /// `TOPIC_ALREADY_EXISTS`). A piggybacked
+/// `INVALID_REPLICATION_FACTOR` still completes without retry,
+/// including when `AcknowledgeErrorMessage` is set (Java
+/// `handleShareFetchSuccess` completes piggyback acks and still
+/// delivers the fetch; this is not partition
+/// `INVALID_REPLICATION_FACTOR`, which fails that poll, and not piggyback
+/// `INVALID_PARTITIONS`). A piggybacked
 /// `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a
 /// sibling partition whose `AcknowledgeErrorCode` is none, including
 /// when `AcknowledgeErrorMessage` is set or empty. A piggybacked
@@ -2492,6 +2498,12 @@ impl ShareGroup {
     /// delivers the fetch; this is not partition
     /// `INVALID_PARTITIONS`, which fails that poll, and not piggyback
     /// `TOPIC_ALREADY_EXISTS`).
+    /// A piggybacked `INVALID_REPLICATION_FACTOR` still completes
+    /// without retry, including when `AcknowledgeErrorMessage` is set
+    /// (Java `handleShareFetchSuccess` completes piggyback acks and still
+    /// delivers the fetch; this is not partition
+    /// `INVALID_REPLICATION_FACTOR`, which fails that poll, and not piggyback
+    /// `INVALID_PARTITIONS`).
     /// A piggybacked `TOPIC_AUTHORIZATION_FAILED` on one partition
     /// does not fail a sibling whose `AcknowledgeErrorCode` is none,
     /// including when `AcknowledgeErrorMessage` is set or empty.
