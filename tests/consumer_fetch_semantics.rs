@@ -4141,6 +4141,29 @@ async fn group_join_loads_metadata_while_finding_the_coordinator() {
     group.leave().await.unwrap();
 }
 
+/// A pattern join lists topics while the coordinator is still being found.
+#[tokio::test]
+async fn group_pattern_join_lists_topics_while_finding_the_coordinator() {
+    let mock = common::Mock::start().await;
+    mock.set_topic_partitions("t", 1);
+    mock.set_find_coordinator_delay(Duration::from_millis(250));
+    mock.set_metadata_delay(Duration::from_millis(250));
+    let before = mock.metadata_calls();
+    let cfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    let started = Instant::now();
+    let group = ConsumerGroup::join_matching(cfg, "pattern-meta", |name| name == "t")
+        .await
+        .unwrap();
+    assert_eq!(group.assignment().len(), 1);
+    assert_eq!(mock.metadata_calls(), before + 1);
+    assert!(
+        started.elapsed() < Duration::from_millis(450),
+        "pattern join listed topics after coordinator discovery: {:?}",
+        started.elapsed()
+    );
+    group.leave().await.unwrap();
+}
+
 /// The leader's partition counts come from the metadata refresh that loaded the subscription.
 #[tokio::test]
 async fn group_join_reads_every_topic_from_one_metadata() {

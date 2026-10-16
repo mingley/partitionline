@@ -1496,6 +1496,7 @@ impl ShareGroup {
             &cfg,
             &group_id,
             &topics,
+            topic_match.is_some(),
             discovery_deadline,
         )
         .await?;

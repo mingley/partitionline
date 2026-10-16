@@ -793,8 +793,14 @@ impl ConsumerGroup {
         let started = Instant::now()
             .checked_add(cfg.request_timeout)
             .ok_or(Error::Timeout)?;
-        let (consumer, coord) =
-            connect_member_and_coordinator(&cfg, &group_id, &topics, started).await?;
+        let (consumer, coord) = connect_member_and_coordinator(
+            &cfg,
+            &group_id,
+            &topics,
+            topic_match.is_some(),
+            started,
+        )
+        .await?;
         let coord = coord?;
 
         let hb_err = Arc::new(AtomicI16::new(0));
@@ -954,8 +960,14 @@ impl ConsumerGroup {
         let started = Instant::now()
             .checked_add(cfg.request_timeout)
             .ok_or(Error::Timeout)?;
-        let (consumer, coord) =
-            connect_member_and_coordinator(&cfg, &group_id, &topics, started).await?;
+        let (consumer, coord) = connect_member_and_coordinator(
+            &cfg,
+            &group_id,
+            &topics,
+            topic_match.is_some(),
+            started,
+        )
+        .await?;
         let coord = coord?;
         let hb_err = Arc::new(AtomicI16::new(0));
         let hb_generation = Arc::new(AtomicI32::new(
@@ -4288,6 +4300,7 @@ pub(crate) async fn connect_member_and_coordinator(
     cfg: &ConsumerConfig,
     group_id: &str,
     topics: &[String],
+    prefetch_all: bool,
     deadline: Instant,
 ) -> Result<(Consumer, Result<BrokerConn>)> {
     let member = Consumer::connect_within(cfg.clone(), deadline);
@@ -4315,12 +4328,16 @@ pub(crate) async fn connect_member_and_coordinator(
         }
     }
     let mut consumer = opened_member.ok_or_else(|| Error::protocol("member connection"))?;
-    if !topics.is_empty() {
+    if !topics.is_empty() || prefetch_all {
         let timeout = deadline.saturating_duration_since(Instant::now());
         if timeout.is_zero() {
             return Err(Error::Timeout);
         }
-        let refresh = consumer.refresh_metadata_timeout(Some(topics), timeout);
+        let refresh = if topics.is_empty() {
+            consumer.refresh_metadata_timeout(None, timeout)
+        } else {
+            consumer.refresh_metadata_timeout(Some(topics), timeout)
+        };
         tokio::pin!(refresh);
         let mut metadata = None;
         loop {

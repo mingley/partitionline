@@ -2016,6 +2016,8 @@ pub struct Consumer {
     versions: HashMap<i16, ApiVersion>,
     metadata_version: i16,
     metadata: Option<MetadataResponse>,
+    /// When the cached image is a full topic listing, and it is still fresh.
+    full_metadata_at: Option<Instant>,
     /// Name and id maps for `metadata`. Rebuilt when metadata is replaced.
     name_to_id: HashMap<Arc<str>, [u8; 16]>,
     id_to_name: HashMap<[u8; 16], Arc<str>>,
@@ -2905,6 +2907,7 @@ impl Consumer {
             versions,
             metadata_version,
             metadata: None,
+            full_metadata_at: None,
             name_to_id: HashMap::new(),
             id_to_name: HashMap::new(),
             cluster: Cluster::default(),
@@ -3770,6 +3773,8 @@ impl Consumer {
         topics: Option<&[T]>,
         deadline: Instant,
     ) -> Result<()> {
+        let full_listing = topics.is_none();
+        self.full_metadata_at = None;
         if self.metadata_version == 0 {
             // A rejected body must fail here. Encode failure inside roundtrip
             // closes the bootstrap socket.
@@ -3828,6 +3833,9 @@ impl Consumer {
         let mut md = self.metadata.take().unwrap_or_else(MetadataResponse::blank);
         decode_metadata_response_into(&mut body, version, &mut md)?;
         md.check()?;
+        if full_listing {
+            self.full_metadata_at = Some(Instant::now());
+        }
         if self.preferred.is_empty() {
             self.cluster.apply(&md, version);
         } else {
@@ -8175,7 +8183,8 @@ impl Consumer {
 
     /// Cluster Metadata for every topic (Java `listTopics`).
     ///
-    /// Waits up to [`ConsumerConfig::request_timeout`]. For a one-shot
+    /// A full listing still inside [`ConsumerConfig::metadata_max_age`] is
+    /// reused. Waits up to [`ConsumerConfig::request_timeout`]. For a one-shot
     /// timeout, use [`Self::list_topics_timeout`].
     pub async fn list_topics(&mut self) -> Result<Vec<PartitionInfo>> {
         let timeout = self.cfg.request_timeout;
@@ -8185,7 +8194,12 @@ impl Consumer {
     /// [`Self::list_topics`] with a one-shot timeout (Java `listTopics(Duration)`).
     pub async fn list_topics_timeout(&mut self, timeout: Duration) -> Result<Vec<PartitionInfo>> {
         self.reject_pending_wakeup()?;
-        self.refresh_metadata_timeout(None, timeout).await?;
+        let fresh = self.full_metadata_at.is_some_and(|at| {
+            !self.cfg.metadata_max_age.is_zero() && at.elapsed() < self.cfg.metadata_max_age
+        });
+        if !fresh {
+            self.refresh_metadata_timeout(None, timeout).await?;
+        }
         self.partition_infos(None)
     }
 
