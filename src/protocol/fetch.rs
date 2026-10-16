@@ -1444,6 +1444,184 @@ pub fn encode_fetch_request_with_replica_high_watermarks(
     )
 }
 
+fn add_fetch_len(total: usize, next: usize) -> Result<usize> {
+    total
+        .checked_add(next)
+        .ok_or_else(|| Error::protocol("fetch request size overflow"))
+}
+
+fn fetch_array_len(flexible: bool, len: usize) -> Result<usize> {
+    if flexible {
+        let value = buf::u32_from_usize(len)?
+            .checked_add(1)
+            .ok_or_else(|| Error::protocol("compact array overflow"))?;
+        Ok(buf::unsigned_varint_size(value))
+    } else {
+        let _len = buf::i32_from_usize(len)?;
+        Ok(4)
+    }
+}
+
+fn fetch_string_len(flexible: bool, value: &str) -> Result<usize> {
+    if flexible {
+        let encoded = buf::u32_from_usize(value.len())?
+            .checked_add(1)
+            .ok_or_else(|| Error::protocol("compact string overflow"))?;
+        Ok(buf::unsigned_varint_size(encoded).saturating_add(value.len()))
+    } else {
+        let _len = buf::i16_from_usize(value.len())?;
+        Ok(2usize.saturating_add(value.len()))
+    }
+}
+
+fn fetch_topic_len(version: i16, flexible: bool, name: &str) -> Result<usize> {
+    if version >= 13 {
+        Ok(16)
+    } else {
+        fetch_string_len(flexible, name)
+    }
+}
+
+fn fetch_tagged_len(fields: &[(u32, usize)]) -> Result<usize> {
+    let mut total = buf::unsigned_varint_size(buf::u32_from_usize(fields.len())?);
+    for (tag, len) in fields {
+        total = add_fetch_len(total, buf::unsigned_varint_size(*tag))?;
+        total = add_fetch_len(total, buf::unsigned_varint_size(buf::u32_from_usize(*len)?))?;
+        total = add_fetch_len(total, *len)?;
+    }
+    Ok(total)
+}
+
+fn fetch_partition_tag_len(
+    version: i16,
+    directory_id: [u8; 16],
+    high_watermark: i64,
+) -> Result<usize> {
+    if version < 12 {
+        return Ok(0);
+    }
+    let directory = version >= 17 && directory_id != [0; 16];
+    let watermark = version >= 18 && high_watermark != REPLICA_HIGH_WATERMARK_NOT_SUPPORTED;
+    match (directory, watermark) {
+        (false, false) => Ok(buf::unsigned_varint_size(0)),
+        (true, false) => fetch_tagged_len(&[(0, 16)]),
+        (false, true) => fetch_tagged_len(&[(1, 8)]),
+        (true, true) => fetch_tagged_len(&[(0, 16), (1, 8)]),
+    }
+}
+
+#[expect(
+    clippy::too_many_arguments,
+    reason = "the fetch request length uses the same fields as the encoder"
+)]
+fn fetch_request_body_len<T, F>(
+    version: i16,
+    flexible: bool,
+    topics: &[T],
+    rack_id: Option<&str>,
+    forgotten: &[F],
+    replica_state_replica_id: i32,
+    replica_state_replica_epoch: i64,
+    cluster_id: Option<&str>,
+    high_watermarks: Option<&[Vec<i64>]>,
+) -> Result<usize>
+where
+    T: FetchRequestTopic,
+    F: FetchForgottenTopic,
+{
+    let mut total = if version <= 14 { 4usize } else { 0 };
+    total = add_fetch_len(total, 12 + 1)?;
+    if version >= 7 {
+        total = add_fetch_len(total, 8)?;
+    }
+    total = add_fetch_len(total, fetch_array_len(flexible, topics.len())?)?;
+    for (topic_index, topic) in topics.iter().enumerate() {
+        total = add_fetch_len(
+            total,
+            fetch_topic_len(version, flexible, topic.request_topic_name())?,
+        )?;
+        let partitions = topic.request_partitions();
+        total = add_fetch_len(total, fetch_array_len(flexible, partitions.len())?)?;
+        let mut partition: usize = 4 + 8 + 4;
+        if version >= 9 {
+            partition += 4;
+        }
+        if version >= 12 {
+            partition += 4;
+        }
+        if version >= 5 {
+            partition += 8;
+        }
+        total = add_fetch_len(
+            total,
+            partition
+                .checked_mul(partitions.len())
+                .ok_or_else(|| Error::protocol("fetch request size overflow"))?,
+        )?;
+        if flexible {
+            for (partition_index, part) in partitions.iter().enumerate() {
+                let high_watermark = high_watermarks
+                    .and_then(|values| values.get(topic_index))
+                    .and_then(|values| values.get(partition_index))
+                    .copied()
+                    .unwrap_or(REPLICA_HIGH_WATERMARK_NOT_SUPPORTED);
+                total = add_fetch_len(
+                    total,
+                    fetch_partition_tag_len(version, part.replica_directory_id, high_watermark)?,
+                )?;
+            }
+        }
+        if flexible {
+            total = add_fetch_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    if version >= 7 {
+        total = add_fetch_len(total, fetch_array_len(flexible, forgotten.len())?)?;
+        for topic in forgotten {
+            total = add_fetch_len(
+                total,
+                fetch_topic_len(version, flexible, topic.forgotten_name())?,
+            )?;
+            let partitions = topic.forgotten_partitions();
+            total = add_fetch_len(total, fetch_array_len(flexible, partitions.len())?)?;
+            total = add_fetch_len(
+                total,
+                partitions
+                    .len()
+                    .checked_mul(4)
+                    .ok_or_else(|| Error::protocol("fetch request size overflow"))?,
+            )?;
+            if flexible {
+                total = add_fetch_len(total, buf::unsigned_varint_size(0))?;
+            }
+        }
+    }
+    if version >= 11 {
+        total = add_fetch_len(total, fetch_string_len(flexible, rack_id.unwrap_or(""))?)?;
+    }
+    if flexible {
+        let cluster = version >= 12 && cluster_id.is_some();
+        let replica = version >= 15
+            && (replica_state_replica_id != CONSUMER_REPLICA_ID
+                || replica_state_replica_epoch != -1);
+        total = add_fetch_len(
+            total,
+            match (cluster, replica) {
+                (false, false) => buf::unsigned_varint_size(0),
+                (true, false) => {
+                    fetch_tagged_len(&[(0, fetch_string_len(true, cluster_id.unwrap_or(""))?)])?
+                }
+                (false, true) => fetch_tagged_len(&[(1, 13)])?,
+                (true, true) => fetch_tagged_len(&[
+                    (0, fetch_string_len(true, cluster_id.unwrap_or(""))?),
+                    (1, 13),
+                ])?,
+            },
+        )?;
+    }
+    Ok(total)
+}
+
 #[expect(
     clippy::too_many_arguments,
     reason = "shared complete Fetch request fields and optional replica sidecar"
@@ -1481,6 +1659,22 @@ where
                 "Fetch HighWatermark sidecar shape does not match topics",
             ));
         }
+    }
+    let body_start = buf.len();
+    let planned = fetch_request_body_len(
+        version,
+        flexible,
+        topics,
+        rack_id,
+        forgotten,
+        replica_state_replica_id,
+        replica_state_replica_epoch,
+        cluster_id,
+        high_watermarks,
+    )?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
     }
     // ReplicaId is untagged only through v14. v15+ uses ReplicaState tagged
     // field 1 (KIP-903). Consumers omit it (ReplicaId / ReplicaEpoch default
@@ -1577,6 +1771,7 @@ where
             buf::put_tagged_fields(buf, &tags)?;
         }
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
 }
 
@@ -2679,6 +2874,38 @@ mod tests {
             let topic = again.first().expect("topic");
             assert_eq!(topic.topic, "orders");
             assert_eq!(topic.topic.as_ptr(), kept, "v{version} topic buffer");
+        }
+    }
+
+    #[test]
+    fn a_fetch_request_sizes_its_body_once() {
+        let partitions: Vec<_> = (0..8)
+            .map(|partition| FetchPartition {
+                partition,
+                current_leader_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+                fetch_offset: 0,
+                last_fetched_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+                log_start_offset: INVALID_LOG_START_OFFSET,
+                partition_max_bytes: 1024,
+                replica_directory_id: [0; 16],
+            })
+            .collect();
+        let topics = vec![FetchTopic {
+            topic: "orders".into(),
+            topic_id: [1; 16],
+            partitions,
+        }];
+        for version in [11_i16, 12] {
+            let mut buf = BytesMut::new();
+            encode_fetch_request(&mut buf, version, 10, 1, 1024, 0, &topics, Some("rack")).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_fetch_request(&mut buf, version, 10, 1, 1024, 0, &topics, Some("rack")).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
         }
     }
 
