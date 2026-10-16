@@ -1608,6 +1608,53 @@ impl Writer {
     }
 }
 
+/// A few values stay on the stack. The seventeenth value allocates a set.
+struct ShortSet<T> {
+    stack: [Option<T>; 16],
+    filled: usize,
+    heap: HashSet<T>,
+}
+
+impl<T: Copy + Eq + std::hash::Hash> ShortSet<T> {
+    fn new() -> Self {
+        Self {
+            stack: [None; 16],
+            filled: 0,
+            heap: HashSet::new(),
+        }
+    }
+
+    fn contains(&self, value: &T) -> bool {
+        if self.heap.is_empty() {
+            self.stack
+                .iter()
+                .take(self.filled)
+                .any(|slot| slot.as_ref() == Some(value))
+        } else {
+            self.heap.contains(value)
+        }
+    }
+
+    fn insert(&mut self, value: T) -> bool {
+        if self.contains(&value) {
+            return false;
+        }
+        if self.heap.capacity() == 0 && self.filled < self.stack.len() {
+            if let Some(slot) = self.stack.get_mut(self.filled) {
+                *slot = Some(value);
+            }
+            self.filled = self.filled.saturating_add(1);
+            return true;
+        }
+        if self.heap.is_empty() {
+            for seen in self.stack.iter().take(self.filled).copied().flatten() {
+                let _ = self.heap.insert(seen);
+            }
+        }
+        self.heap.insert(value)
+    }
+}
+
 fn collect_metadata_topics<'a>(
     catalog: &'a Catalog,
     semantic_error: bool,
@@ -1616,8 +1663,8 @@ fn collect_metadata_topics<'a>(
 ) -> Result<(), Error> {
     // One target cannot repeat. A larger request remembers names and ids already emitted.
     let track = !semantic_error && targets.len() > 1;
-    let mut seen_names: HashSet<Option<&str>> = HashSet::new();
-    let mut seen_ids: HashSet<[u8; 16]> = HashSet::new();
+    let mut seen_names: ShortSet<Option<&str>> = ShortSet::new();
+    let mut seen_ids: ShortSet<[u8; 16]> = ShortSet::new();
     for target in targets {
         // Each topic is resolved on its own. A non-zero id is an id lookup.
         // A zero id is a name lookup, including when the same request also
@@ -2553,6 +2600,28 @@ mod tests {
         assert_eq!(results[3].id, [9u8; 16]);
         assert_eq!(results[3].error, 100);
         let _ = std::fs::remove_file(&path);
+    }
+
+    #[test]
+    fn a_short_metadata_target_list_does_not_allocate_a_set() {
+        let mut names: ShortSet<Option<&str>> = ShortSet::new();
+        assert!(names.insert(Some("orders")));
+        assert!(names.insert(Some("payments")));
+        assert!(!names.insert(Some("orders")));
+        assert!(names.contains(&Some("payments")));
+        assert!(!names.contains(&Some("trades")));
+        assert_eq!(names.heap.capacity(), 0);
+        let mut ids: ShortSet<[u8; 16]> = ShortSet::new();
+        for index in 0..17u8 {
+            let mut id = [0u8; 16];
+            id[0] = index;
+            assert!(ids.insert(id));
+        }
+        assert!(ids.heap.capacity() > 0);
+        assert!(ids.contains(&[0u8; 16]));
+        let mut last = [0u8; 16];
+        last[0] = 16;
+        assert!(ids.contains(&last));
     }
 
     #[test]
