@@ -2149,7 +2149,7 @@
 //! `ErrorMessage` is set or empty, and does not request Metadata
 //! when `ErrorMessage` is set or empty; `INVALID_SHARE_SESSION_EPOCH` still
 //! resets, including when `ErrorMessage` is set or empty, and does not
-//! request Metadata when `ErrorMessage` is set.
+//! request Metadata when `ErrorMessage` is set or empty.
 //! [`ShareGroup::group_metadata`] is Java `ShareConsumer.groupMetadata()`
 //! ([`ConsumerGroupMetadata`]; `generationId` is the share member epoch).
 //! [`ShareGroup::set_acknowledgement_commit_callback`] is Java
