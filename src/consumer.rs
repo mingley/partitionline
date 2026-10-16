@@ -22,8 +22,8 @@ use crate::protocol::api_keys::{
     OFFSET_FOR_LEADER_EPOCH,
 };
 use crate::protocol::epoch::{
-    decode_offset_for_leader_epoch_topics_response, encode_offset_for_leader_epoch_topics_request,
-    OffsetForLeaderPartition, OffsetForLeaderTopic, OffsetForLeaderTopicResult,
+    decode_offset_for_leader_epoch_topics_response, encode_borrowed_offset_for_leader_epoch_topics,
+    OffsetForLeaderPartition, OffsetForLeaderTopicResult,
 };
 use crate::protocol::fetch::{
     decode_fetch_response_raw, encode_fetch_request_topics, FetchForgottenTopic, FetchMetadata,
@@ -2039,6 +2039,8 @@ pub struct Consumer {
     metadata_topics: Vec<String>,
     /// Topic names for OffsetForLeaderEpoch recovery. Refilled in place.
     epoch_topics: Vec<String>,
+    /// Fetched epochs for the same recovery. Refilled in place.
+    epoch_fetched: Vec<i32>,
     reconnect_fails: HashMap<i32, u32>,
     /// Leaders whose Fetch was sent and not yet applied. A multi-leader round
     /// returns after [`MULTI_LEADER_COLLECTION_WINDOW`] once any peer has
@@ -2889,6 +2891,7 @@ impl Consumer {
             spare_fetch_topics: Vec::new(),
             metadata_topics: Vec::new(),
             epoch_topics: Vec::new(),
+            epoch_fetched: Vec::new(),
             reconnect_fails: HashMap::new(),
             inflight_fetches: None,
             inflight_nodes: HashSet::new(),
@@ -4493,16 +4496,19 @@ impl Consumer {
         deadline: Instant,
     ) -> Result<()> {
         let mut names = std::mem::take(&mut self.epoch_topics);
+        let mut fetched = std::mem::take(&mut self.epoch_fetched);
         let result = self
-            .recover_leader_epochs_with(&mut names, coords, deadline)
+            .recover_leader_epochs_with(&mut names, &mut fetched, coords, deadline)
             .await;
         self.restore_epoch_topics(names);
+        keep_buf(&mut self.epoch_fetched, fetched);
         result
     }
 
     async fn recover_leader_epochs_with(
         &mut self,
         names: &mut Vec<String>,
+        fetched: &mut Vec<i32>,
         coords: &[(Arc<str>, i32)],
         deadline: Instant,
     ) -> Result<()> {
@@ -4572,18 +4578,20 @@ impl Consumer {
                 }
                 self.connect_node(node, deadline).await?;
                 let version = self.offset_for_leader_epoch_version(node)?;
-                let fetched_epochs: Vec<i32> = parts
-                    .iter()
-                    .map(|(topic, partition)| self.last_fetched_epoch(topic, *partition))
-                    .collect();
-                let topics = offset_for_leader_epoch_topics(&self.cluster, &fetched_epochs, &parts);
+                fetched.clear();
+                fetched.extend(
+                    parts
+                        .iter()
+                        .map(|(topic, partition)| self.last_fetched_epoch(topic, *partition)),
+                );
+                let topics = offset_for_leader_epoch_topics(&self.cluster, fetched, &parts);
                 let timeout = remaining_offset_timeout(deadline, Instant::now());
                 let body = {
                     let conn = self.broker_conn_mut(node)?;
                     conn.roundtrip(
                         OFFSET_FOR_LEADER_EPOCH,
                         version,
-                        |buf| encode_offset_for_leader_epoch_topics_request(buf, version, &topics),
+                        |buf| encode_borrowed_offset_for_leader_epoch_topics(buf, version, &topics),
                         timeout,
                     )
                     .await
@@ -8230,9 +8238,9 @@ fn restore_kept_held(
     }
 }
 
-fn keep_topic_buf(slot: &mut Vec<String>, topics: Vec<String>) {
-    if topics.capacity() >= slot.capacity() {
-        *slot = topics;
+fn keep_buf<T>(slot: &mut Vec<T>, values: Vec<T>) {
+    if values.capacity() >= slot.capacity() {
+        *slot = values;
     }
 }
 
@@ -8258,11 +8266,11 @@ fn fill_reused_topics<'a>(topics: &mut Vec<String>, names: impl IntoIterator<Ite
 
 impl Consumer {
     fn restore_metadata_topics(&mut self, topics: Vec<String>) {
-        keep_topic_buf(&mut self.metadata_topics, topics);
+        keep_buf(&mut self.metadata_topics, topics);
     }
 
     fn restore_epoch_topics(&mut self, topics: Vec<String>) {
-        keep_topic_buf(&mut self.epoch_topics, topics);
+        keep_buf(&mut self.epoch_topics, topics);
     }
 }
 
@@ -8545,13 +8553,13 @@ fn truncated_fetch_offset(position: i64, end_offset: i64) -> Option<i64> {
     }
 }
 
-fn offset_for_leader_epoch_topics(
+fn offset_for_leader_epoch_topics<'a>(
     cluster: &Cluster,
     last_fetched: &[i32],
-    parts: &[(&str, i32)],
-) -> Vec<OffsetForLeaderTopic> {
+    parts: &[(&'a str, i32)],
+) -> Vec<(&'a str, Vec<OffsetForLeaderPartition>)> {
     let mut epochs = crate::cluster::EpochList::new();
-    let mut groups: Vec<(String, Vec<OffsetForLeaderPartition>)> = Vec::new();
+    let mut groups: Vec<(&str, Vec<OffsetForLeaderPartition>)> = Vec::new();
     let mut slots: HashMap<&str, usize> = HashMap::new();
     for (index, (topic, partition)) in parts.iter().enumerate() {
         let current = epochs.epoch(cluster, topic, *partition);
@@ -8571,16 +8579,13 @@ fn offset_for_leader_epoch_topics(
             }
         }
         let slot = groups.len();
-        groups.push(((*topic).to_owned(), vec![part]));
+        groups.push((*topic, vec![part]));
         let _ = slots.insert(*topic, slot);
     }
+    for (_, partitions) in &mut groups {
+        partitions.sort_by_key(|partition| partition.partition);
+    }
     groups
-        .into_iter()
-        .map(|(name, mut partitions)| {
-            partitions.sort_by_key(|p| p.partition);
-            OffsetForLeaderTopic::new(name, partitions)
-        })
-        .collect()
 }
 
 fn record_bytes(rec: &FetchedRecord) -> usize {
@@ -9525,26 +9530,27 @@ mod tests {
             &[("t", 0), ("t", 1)],
         );
         assert_eq!(topics.len(), 1);
-        assert_eq!(topics[0].partitions[0].partition, 0);
-        assert_eq!(topics[0].partitions[0].current_leader_epoch, 4);
-        assert_eq!(topics[0].partitions[0].leader_epoch, 2);
-        assert_eq!(topics[0].partitions[1].partition, 1);
-        assert_eq!(topics[0].partitions[1].current_leader_epoch, 6);
-        assert_eq!(topics[0].partitions[1].leader_epoch, 6);
+        assert!(std::ptr::eq(topics[0].0, "t"));
+        assert_eq!(topics[0].1[0].partition, 0);
+        assert_eq!(topics[0].1[0].current_leader_epoch, 4);
+        assert_eq!(topics[0].1[0].leader_epoch, 2);
+        assert_eq!(topics[0].1[1].partition, 1);
+        assert_eq!(topics[0].1[1].current_leader_epoch, 6);
+        assert_eq!(topics[0].1[1].leader_epoch, 6);
         let _ = cluster
             .leader_epochs
             .insert(std::sync::Arc::from("u"), vec![8]);
         let mixed =
             offset_for_leader_epoch_topics(&cluster, &[1, 3, 5], &[("t", 1), ("u", 0), ("t", 0)]);
         assert_eq!(mixed.len(), 2);
-        assert_eq!(mixed[0].topic, "t");
-        assert_eq!(mixed[0].partitions[0].partition, 0);
-        assert_eq!(mixed[0].partitions[0].leader_epoch, 5);
-        assert_eq!(mixed[0].partitions[1].partition, 1);
-        assert_eq!(mixed[0].partitions[1].leader_epoch, 1);
-        assert_eq!(mixed[1].topic, "u");
-        assert_eq!(mixed[1].partitions[0].partition, 0);
-        assert_eq!(mixed[1].partitions[0].leader_epoch, 3);
+        assert_eq!(mixed[0].0, "t");
+        assert_eq!(mixed[0].1[0].partition, 0);
+        assert_eq!(mixed[0].1[0].leader_epoch, 5);
+        assert_eq!(mixed[0].1[1].partition, 1);
+        assert_eq!(mixed[0].1[1].leader_epoch, 1);
+        assert_eq!(mixed[1].0, "u");
+        assert_eq!(mixed[1].1[0].partition, 0);
+        assert_eq!(mixed[1].1[0].leader_epoch, 3);
     }
 
     #[test]

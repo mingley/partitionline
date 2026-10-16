@@ -281,15 +281,50 @@ pub fn encode_offset_for_leader_epoch_topics_request_with_replica_id(
     topics: &[OffsetForLeaderTopic],
     replica_id: i32,
 ) -> crate::error::Result<()> {
+    write_offset_for_leader_topics(
+        buf,
+        version,
+        replica_id,
+        topics.len(),
+        topics
+            .iter()
+            .map(|topic| (topic.topic.as_str(), topic.partitions.as_slice())),
+    )
+}
+
+/// Encode an OffsetForLeaderEpoch request from borrowed topic names.
+pub(crate) fn encode_borrowed_offset_for_leader_epoch_topics(
+    buf: &mut BytesMut,
+    version: i16,
+    topics: &[(&str, Vec<OffsetForLeaderPartition>)],
+) -> crate::error::Result<()> {
+    write_offset_for_leader_topics(
+        buf,
+        version,
+        CONSUMER_REPLICA_ID,
+        topics.len(),
+        topics
+            .iter()
+            .map(|(topic, partitions)| (*topic, partitions.as_slice())),
+    )
+}
+
+fn write_offset_for_leader_topics<'a>(
+    buf: &mut BytesMut,
+    version: i16,
+    replica_id: i32,
+    topic_count: usize,
+    topics: impl IntoIterator<Item = (&'a str, &'a [OffsetForLeaderPartition])>,
+) -> crate::error::Result<()> {
     let flexible = offset_for_leader_epoch_flexible(version)?;
     if version >= 3 {
         buf.put_i32(replica_id);
     }
-    buf::put_array_len(buf, flexible, Some(topics.len()))?;
-    for t in topics {
-        buf::put_string(buf, flexible, Some(&t.topic))?;
-        buf::put_array_len(buf, flexible, Some(t.partitions.len()))?;
-        for p in &t.partitions {
+    buf::put_array_len(buf, flexible, Some(topic_count))?;
+    for (topic, partitions) in topics {
+        buf::put_string(buf, flexible, Some(topic))?;
+        buf::put_array_len(buf, flexible, Some(partitions.len()))?;
+        for p in partitions {
             buf.put_i32(p.partition);
             if version >= 2 {
                 buf.put_i32(p.current_leader_epoch);
