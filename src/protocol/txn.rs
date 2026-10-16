@@ -513,6 +513,65 @@ impl AddPartitionsToTxnResponse {
     }
 }
 
+fn add_txn_len(total: usize, next: usize) -> Result<usize> {
+    total
+        .checked_add(next)
+        .ok_or_else(|| Error::protocol("add partitions request size overflow"))
+}
+
+fn txn_array_len(flexible: bool, len: usize) -> Result<usize> {
+    if flexible {
+        let value = buf::u32_from_usize(len)?
+            .checked_add(1)
+            .ok_or_else(|| Error::protocol("compact array overflow"))?;
+        Ok(buf::unsigned_varint_size(value))
+    } else {
+        let _len = buf::i32_from_usize(len)?;
+        Ok(4)
+    }
+}
+
+fn txn_string_len(flexible: bool, value: &str) -> Result<usize> {
+    if flexible {
+        let encoded = buf::u32_from_usize(value.len())?
+            .checked_add(1)
+            .ok_or_else(|| Error::protocol("compact string overflow"))?;
+        Ok(buf::unsigned_varint_size(encoded).saturating_add(value.len()))
+    } else {
+        let _len = buf::i16_from_usize(value.len())?;
+        Ok(2usize.saturating_add(value.len()))
+    }
+}
+
+fn add_partitions_request_len(
+    flexible: bool,
+    transactional_id: &str,
+    topics: &[TxnPartitionsTopic],
+) -> Result<usize> {
+    let mut total = txn_string_len(flexible, transactional_id)?;
+    total = add_txn_len(total, 8 + 2)?;
+    total = add_txn_len(total, txn_array_len(flexible, topics.len())?)?;
+    for topic in topics {
+        total = add_txn_len(total, txn_string_len(flexible, &topic.topic)?)?;
+        total = add_txn_len(total, txn_array_len(flexible, topic.partitions.len())?)?;
+        total = add_txn_len(
+            total,
+            topic
+                .partitions
+                .len()
+                .checked_mul(4)
+                .ok_or_else(|| Error::protocol("add partitions request size overflow"))?,
+        )?;
+        if flexible {
+            total = add_txn_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    if flexible {
+        total = add_txn_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
+}
+
 /// Encode AddPartitionsToTxn v0–v2 (classic) or v3 (flexible).
 pub fn encode_add_partitions_to_txn_request(
     buf: &mut BytesMut,
@@ -523,6 +582,12 @@ pub fn encode_add_partitions_to_txn_request(
     topics: &[TxnPartitionsTopic],
 ) -> crate::error::Result<()> {
     let flexible = add_partitions_to_txn_flexible(version)?;
+    let body_start = buf.len();
+    let planned = add_partitions_request_len(flexible, transactional_id, topics)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf::put_string(buf, flexible, Some(transactional_id))?;
     buf.put_i64(producer_id);
     buf.put_i16(producer_epoch);
@@ -540,6 +605,7 @@ pub fn encode_add_partitions_to_txn_request(
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
 }
 
@@ -6180,6 +6246,34 @@ mod tests {
             "AddPartitionsToTxn v3 from_partitions leftover-empty; leftover {} bytes",
             cur.remaining()
         );
+    }
+
+    #[test]
+    fn an_add_partitions_request_sizes_its_body_once() {
+        let topics = vec![
+            TxnPartitionsTopic {
+                topic: "orders".into(),
+                partitions: (0..8).collect(),
+            },
+            TxnPartitionsTopic {
+                topic: "payments".into(),
+                partitions: vec![0, 1, 2],
+            },
+        ];
+        for version in [2_i16, 3] {
+            let mut buf = BytesMut::new();
+            encode_add_partitions_to_txn_request(&mut buf, version, "txn-1", 9, 1, &topics)
+                .unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_add_partitions_to_txn_request(&mut buf, version, "txn-1", 9, 1, &topics)
+                .unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+        }
     }
 
     #[test]
