@@ -4069,6 +4069,12 @@ pub fn encode_delete_records_topics_request(
     timeout_ms: i32,
 ) -> crate::error::Result<()> {
     let flexible = delete_records_flexible(version)?;
+    let body_start = buf.len();
+    let planned = delete_records_request_len(flexible, topics)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf::put_array_len(buf, flexible, Some(topics.len()))?;
     for t in topics {
         buf::put_string(buf, flexible, Some(&t.topic))?;
@@ -4088,7 +4094,30 @@ pub fn encode_delete_records_topics_request(
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn delete_records_request_len(flexible: bool, topics: &[DeleteRecordsTopic]) -> Result<usize> {
+    let mut total = describe_array_len(flexible, topics.len())?;
+    for topic in topics {
+        total = add_describe_len(total, describe_string_len(flexible, Some(&topic.topic))?)?;
+        total = add_describe_len(total, describe_array_len(flexible, topic.partitions.len())?)?;
+        for _partition in &topic.partitions {
+            total = add_describe_len(total, 12)?;
+            if flexible {
+                total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+            }
+        }
+        if flexible {
+            total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    total = add_describe_len(total, 4)?;
+    if flexible {
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 /// Decode a DeleteRecords request (first topic/partition).
@@ -4192,6 +4221,12 @@ pub fn encode_delete_records_topics_response_with_throttle(
     throttle_time_ms: i32,
 ) -> crate::error::Result<()> {
     let flexible = delete_records_flexible(version)?;
+    let body_start = buf.len();
+    let planned = delete_records_response_len(flexible, topics)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf.put_i32(throttle_time_ms);
     buf::put_array_len(buf, flexible, Some(topics.len()))?;
     for t in topics {
@@ -4212,7 +4247,30 @@ pub fn encode_delete_records_topics_response_with_throttle(
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn delete_records_response_len(flexible: bool, topics: &[DeletedRecordsTopic]) -> Result<usize> {
+    let mut total = 4;
+    total = add_describe_len(total, describe_array_len(flexible, topics.len())?)?;
+    for topic in topics {
+        total = add_describe_len(total, describe_string_len(flexible, Some(&topic.topic))?)?;
+        total = add_describe_len(total, describe_array_len(flexible, topic.partitions.len())?)?;
+        for _partition in &topic.partitions {
+            total = add_describe_len(total, 14)?;
+            if flexible {
+                total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+            }
+        }
+        if flexible {
+            total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    if flexible {
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 /// Decode a DeleteRecords response (first partition).
@@ -25440,6 +25498,95 @@ mod tests {
                 cur.is_empty(),
                 "AlterConfigs v{version} getErrorResponse leftover-empty"
             );
+        }
+    }
+
+    #[test]
+    fn a_delete_records_request_sizes_its_body_once() {
+        let topics = vec![
+            DeleteRecordsTopic {
+                topic: "orders".into(),
+                partitions: vec![
+                    DeleteRecordsPartition {
+                        partition: 0,
+                        offset: 10,
+                    },
+                    DeleteRecordsPartition {
+                        partition: 1,
+                        offset: 20,
+                    },
+                ],
+            },
+            DeleteRecordsTopic {
+                topic: "payments".into(),
+                partitions: vec![DeleteRecordsPartition {
+                    partition: 0,
+                    offset: 5,
+                }],
+            },
+        ];
+        for version in [0_i16, 1, 2] {
+            let mut buf = BytesMut::new();
+            encode_delete_records_topics_request(&mut buf, version, &topics, 1_000).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_delete_records_topics_request(&mut buf, version, &topics, 1_000).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+            let mut cur = &buf[..];
+            let (decoded, timeout) =
+                decode_delete_records_topics_request(&mut cur, version).unwrap();
+            assert!(cur.is_empty());
+            assert_eq!(decoded, topics);
+            assert_eq!(timeout, 1_000);
+        }
+    }
+
+    #[test]
+    fn a_delete_records_response_sizes_its_body_once() {
+        let topics = vec![
+            DeletedRecordsTopic {
+                topic: "orders".into(),
+                partitions: vec![
+                    DeletedRecordsPartition {
+                        partition: 0,
+                        low_watermark: 10,
+                        error_code: 0,
+                    },
+                    DeletedRecordsPartition {
+                        partition: 1,
+                        low_watermark: -1,
+                        error_code: 1,
+                    },
+                ],
+            },
+            DeletedRecordsTopic {
+                topic: "payments".into(),
+                partitions: vec![DeletedRecordsPartition::error(0, 3)],
+            },
+        ];
+        for version in [0_i16, 1, 2] {
+            let mut buf = BytesMut::new();
+            encode_delete_records_topics_response_with_throttle(&mut buf, version, &topics, 12)
+                .unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_delete_records_topics_response_with_throttle(&mut buf, version, &topics, 12)
+                .unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+            let mut cur = &buf[..];
+            let (decoded, throttle) =
+                decode_delete_records_topics_response(&mut cur, version).unwrap();
+            assert!(cur.is_empty());
+            assert_eq!(decoded, topics);
+            assert_eq!(throttle, 12);
         }
     }
 
