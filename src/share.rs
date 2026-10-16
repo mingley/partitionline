@@ -1704,6 +1704,13 @@ impl ShareGroup {
     /// Records acquired under the previous id belong to the deleted topic.
     /// A zero metadata id does not clear a stored id.
     fn refresh_share_topic_ids(&mut self) {
+        if share_topic_ids_current(
+            &self.topic_ids,
+            &self.assigned,
+            self.consumer.topic_name_ids(),
+        ) {
+            return;
+        }
         let metadata = self.consumer.topic_name_ids();
         let mut names: Vec<String> = self.topic_ids.keys().cloned().collect();
         let known: HashSet<&str> = names.iter().map(String::as_str).collect();
@@ -4256,6 +4263,33 @@ fn share_ack_retriable(error: &Error) -> bool {
     })
 }
 
+/// True when a refresh would leave every stored id unchanged.
+///
+/// A steady poll then skips cloning the topic-name list.
+fn share_topic_ids_current(
+    stored_map: &HashMap<String, [u8; 16]>,
+    assigned: &[(String, i32)],
+    metadata: &HashMap<String, [u8; 16]>,
+) -> bool {
+    for (name, stored) in stored_map {
+        let next = metadata.get(name.as_str()).copied();
+        if let Some(id) = refreshed_share_topic_id(Some(*stored), next) {
+            if id != *stored {
+                return false;
+            }
+        }
+    }
+    for (topic, _) in assigned {
+        if stored_map.contains_key(topic.as_str()) {
+            continue;
+        }
+        if refreshed_share_topic_id(None, metadata.get(topic.as_str()).copied()).is_some() {
+            return false;
+        }
+    }
+    true
+}
+
 /// Metadata id when it is present, otherwise the id stored at assignment.
 fn refreshed_share_topic_id(
     stored: Option<[u8; 16]>,
@@ -5054,6 +5088,20 @@ mod tests {
             refreshed_share_topic_id(None, Some([4u8; 16])),
             Some([4u8; 16])
         );
+        let mut stored = HashMap::new();
+        let _ = stored.insert("orders".to_owned(), [1u8; 16]);
+        let mut metadata = HashMap::new();
+        let _ = metadata.insert("orders".to_owned(), [1u8; 16]);
+        let assigned = [("orders".to_owned(), 0)];
+        assert!(share_topic_ids_current(&stored, &assigned, &metadata));
+        let _ = metadata.insert("orders".to_owned(), [2u8; 16]);
+        assert!(!share_topic_ids_current(&stored, &assigned, &metadata));
+        metadata.clear();
+        assert!(share_topic_ids_current(&stored, &assigned, &metadata));
+        let assigned = [("payments".to_owned(), 1)];
+        assert!(share_topic_ids_current(&stored, &assigned, &metadata));
+        let _ = metadata.insert("payments".to_owned(), [4u8; 16]);
+        assert!(!share_topic_ids_current(&stored, &assigned, &metadata));
     }
 
     #[test]
