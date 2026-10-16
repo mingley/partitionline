@@ -793,8 +793,8 @@ impl ConsumerGroup {
         let started = Instant::now()
             .checked_add(cfg.request_timeout)
             .ok_or(Error::Timeout)?;
-        let consumer = Consumer::connect_within(cfg.clone(), started).await?;
-        let coord = discover_coord_within(&cfg, &group_id, COORDINATOR_GROUP, started).await?;
+        let (consumer, coord) = connect_member_and_coordinator(&cfg, &group_id, started).await?;
+        let coord = coord?;
 
         let hb_err = Arc::new(AtomicI16::new(0));
         let hb_generation = Arc::new(AtomicI32::new(0));
@@ -953,8 +953,8 @@ impl ConsumerGroup {
         let started = Instant::now()
             .checked_add(cfg.request_timeout)
             .ok_or(Error::Timeout)?;
-        let consumer = Consumer::connect_within(cfg.clone(), started).await?;
-        let coord = discover_coord_within(&cfg, &group_id, COORDINATOR_GROUP, started).await?;
+        let (consumer, coord) = connect_member_and_coordinator(&cfg, &group_id, started).await?;
+        let coord = coord?;
         let hb_err = Arc::new(AtomicI16::new(0));
         let hb_generation = Arc::new(AtomicI32::new(
             ConsumerGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH,
@@ -4240,6 +4240,58 @@ pub(crate) async fn discover_coord(
 }
 
 /// Find a coordinator using only the time still left on `deadline`.
+/// Open the member socket and find the group coordinator together.
+///
+/// The member dial is required first when both fail. A coordinator error is
+/// returned only after the member socket has connected.
+pub(crate) async fn connect_member_and_coordinator(
+    cfg: &ConsumerConfig,
+    group_id: &str,
+    deadline: Instant,
+) -> Result<(Consumer, Result<BrokerConn>)> {
+    let member = Consumer::connect_within(cfg.clone(), deadline);
+    let coordinator = discover_coord_within(cfg, group_id, COORDINATOR_GROUP, deadline);
+    tokio::pin!(member);
+    tokio::pin!(coordinator);
+    let mut opened_member = None;
+    let mut opened_coordinator = None;
+    let mut coordinator_error = None;
+    loop {
+        if opened_member.is_some() {
+            if let Some(error) = coordinator_error.take() {
+                return Ok((
+                    opened_member
+                        .take()
+                        .ok_or_else(|| Error::protocol("member connection"))?,
+                    Err(error),
+                ));
+            }
+            if opened_coordinator.is_some() {
+                return Ok((
+                    opened_member
+                        .take()
+                        .ok_or_else(|| Error::protocol("member connection"))?,
+                    Ok(opened_coordinator
+                        .take()
+                        .ok_or_else(|| Error::protocol("coordinator connection"))?),
+                ));
+            }
+        }
+        tokio::select! {
+            biased;
+            result = &mut member, if opened_member.is_none() => {
+                opened_member = Some(result?);
+            }
+            result = &mut coordinator, if opened_coordinator.is_none() && coordinator_error.is_none() => {
+                match result {
+                    Ok(coord) => opened_coordinator = Some(coord),
+                    Err(error) => coordinator_error = Some(error),
+                }
+            }
+        }
+    }
+}
+
 pub(crate) async fn discover_coord_within(
     cfg: &ConsumerConfig,
     group_id: &str,

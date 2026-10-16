@@ -3979,6 +3979,26 @@ async fn group_reset_lists_each_leaders_offsets_together() {
     group.leave().await.unwrap();
 }
 
+/// The member socket and the group coordinator dial together.
+#[tokio::test]
+async fn group_join_dials_the_coordinator_with_the_member() {
+    let mock = common::Mock::start().await;
+    mock.set_topic_partitions("t", 1);
+    mock.set_api_versions_delay(Duration::from_millis(200));
+    let cfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    let started = Instant::now();
+    let group = ConsumerGroup::join(cfg, "dial-together", "t")
+        .await
+        .unwrap();
+    assert_eq!(group.assignment().len(), 1);
+    assert!(
+        started.elapsed() < Duration::from_millis(450),
+        "join dialed the member and the coordinator one after another: {:?}",
+        started.elapsed()
+    );
+    group.leave().await.unwrap();
+}
+
 /// The leader's partition counts come from the metadata refresh that loaded the subscription.
 #[tokio::test]
 async fn group_join_reads_every_topic_from_one_metadata() {

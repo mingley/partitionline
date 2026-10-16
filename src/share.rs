@@ -1492,7 +1492,9 @@ impl ShareGroup {
         let mut cfg = cfg;
         cfg.bootstrap = crate::net::parse_and_validate_addresses(&cfg.bootstrap)?;
         let discovery_deadline = Instant::now() + cfg.request_timeout;
-        let consumer = Consumer::connect_within(cfg.clone(), discovery_deadline).await?;
+        let (consumer, first_coordinator) =
+            crate::group::connect_member_and_coordinator(&cfg, &group_id, discovery_deadline)
+                .await?;
         // Membership uses the group coordinator (Java ShareConsumer / DescribeShareGroups).
         // CoordinatorType.SHARE is only for share-partition state keys
         // (`groupId:topicId:partition`), not the group id alone (KIP-932).
@@ -1500,27 +1502,43 @@ impl ShareGroup {
             .retry_backoff
             .min(cfg.retry_backoff_max)
             .max(Duration::from_millis(1));
-        let coord = loop {
-            if Instant::now() >= discovery_deadline {
-                return Err(Error::Timeout);
-            }
-            let result =
-                discover_coord_within(&cfg, &group_id, COORDINATOR_GROUP, discovery_deadline).await;
-            match result {
-                Ok(coord) => break coord,
-                Err(error)
-                    if error
-                        .broker_code()
-                        .is_some_and(error::coordinator_retriable) =>
-                {
-                    let remaining = discovery_deadline.saturating_duration_since(Instant::now());
-                    if remaining.is_zero() {
+        let coord = match first_coordinator {
+            Ok(coord) => coord,
+            Err(error)
+                if error
+                    .broker_code()
+                    .is_some_and(error::coordinator_retriable) =>
+            {
+                loop {
+                    if Instant::now() >= discovery_deadline {
                         return Err(Error::Timeout);
                     }
-                    tokio::time::sleep(discovery_backoff.min(remaining)).await;
+                    let result = discover_coord_within(
+                        &cfg,
+                        &group_id,
+                        COORDINATOR_GROUP,
+                        discovery_deadline,
+                    )
+                    .await;
+                    match result {
+                        Ok(coord) => break coord,
+                        Err(error)
+                            if error
+                                .broker_code()
+                                .is_some_and(error::coordinator_retriable) =>
+                        {
+                            let remaining =
+                                discovery_deadline.saturating_duration_since(Instant::now());
+                            if remaining.is_zero() {
+                                return Err(Error::Timeout);
+                            }
+                            tokio::time::sleep(discovery_backoff.min(remaining)).await;
+                        }
+                        Err(error) => return Err(error),
+                    }
                 }
-                Err(error) => return Err(error),
             }
+            Err(error) => return Err(error),
         };
 
         // Kafka 4.1 ShareGroupHeartbeat requires a client-generated member id
