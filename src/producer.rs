@@ -4578,6 +4578,8 @@ struct ProduceGroupScratch {
     partition_slots: HashMap<i32, usize>,
     /// First-seen partitions for a one-topic batch. Cleared on each use.
     partition_order: Vec<i32>,
+    /// Record counts copied out while a mixed batch sizes its partition lists.
+    record_counts: Vec<usize>,
     /// Emptied partition lists from a previous split batch.
     spare_parts: Vec<Vec<Pending>>,
     /// Group list from the previous split batch.
@@ -6483,47 +6485,112 @@ fn group_pending(
     let mut spare_slots = std::mem::take(&mut scratch.spare_slots);
     let mut spare_orders = std::mem::take(&mut scratch.spare_orders);
     let mut order = std::mem::take(&mut scratch.spare_topic_order);
+    let mut counts = std::mem::take(&mut scratch.record_counts);
     order.clear();
     {
         let buckets = &mut scratch.buckets;
-        for p in batch.drain(..) {
-            let partition = p.rec.partition.unwrap_or(RecordMetadata::UNKNOWN_PARTITION);
-            if let Some(groups) = buckets.get_mut(p.rec.topic.as_ref()) {
+        for pending in &batch {
+            let partition = pending
+                .rec
+                .partition
+                .unwrap_or(RecordMetadata::UNKNOWN_PARTITION);
+            if let Some(groups) = buckets.get_mut(pending.rec.topic.as_ref()) {
+                if let Some(count) = groups.slots.get_mut(&partition) {
+                    *count = count.saturating_add(1);
+                    continue;
+                }
+                let _inserted = groups.slots.insert(partition, 1);
+                let mut part = spare_parts.pop().unwrap_or_default();
+                part.clear();
+                groups.order.push((partition, part));
+                continue;
+            }
+            let topic = Arc::clone(&pending.rec.topic);
+            order.push(Arc::clone(&topic));
+            let mut slots = spare_slots.pop().unwrap_or_default();
+            slots.clear();
+            let _inserted = slots.insert(partition, 1);
+            let mut part = spare_parts.pop().unwrap_or_default();
+            part.clear();
+            let mut topic_order = spare_orders.pop().unwrap_or_default();
+            topic_order.clear();
+            topic_order.push((partition, part));
+            let _inserted = buckets.insert(
+                topic,
+                PendingParts {
+                    order: topic_order,
+                    slots,
+                },
+            );
+        }
+        for topic in &order {
+            let Some(groups) = buckets.get_mut(topic.as_ref()) else {
+                continue;
+            };
+            counts.clear();
+            reserve_len(&mut counts, groups.order.len());
+            for (partition, _) in &groups.order {
+                counts.push(groups.slots.get(partition).copied().unwrap_or(0));
+            }
+            for ((_, records), count) in groups.order.iter_mut().zip(counts.iter().copied()) {
+                reserve_len(records, count);
+            }
+            for (index, (partition, _)) in groups.order.iter().enumerate() {
+                let _inserted = groups.slots.insert(*partition, index);
+            }
+        }
+        for pending in batch.drain(..) {
+            let partition = pending
+                .rec
+                .partition
+                .unwrap_or(RecordMetadata::UNKNOWN_PARTITION);
+            if let Some(groups) = buckets.get_mut(pending.rec.topic.as_ref()) {
                 if let Some(&slot) = groups.slots.get(&partition) {
-                    if let Some((_, pending)) = groups.order.get_mut(slot) {
-                        pending.push(p);
+                    if let Some((_, records)) = groups.order.get_mut(slot) {
+                        records.push(pending);
                         continue;
                     }
                 }
-                let slot = groups.order.len();
-                let _ = groups.slots.insert(partition, slot);
+                let _inserted = groups.slots.insert(partition, groups.order.len());
                 let mut part = spare_parts.pop().unwrap_or_default();
                 part.clear();
-                part.push(p);
+                part.push(pending);
                 groups.order.push((partition, part));
-            } else {
-                let topic = Arc::clone(&p.rec.topic);
-                order.push(Arc::clone(&topic));
-                let mut slots = spare_slots.pop().unwrap_or_default();
-                slots.clear();
-                let _ = slots.insert(partition, 0);
-                let mut part = spare_parts.pop().unwrap_or_default();
-                part.clear();
-                part.push(p);
-                let mut topic_order = spare_orders.pop().unwrap_or_default();
-                topic_order.clear();
-                topic_order.push((partition, part));
-                let _ = buckets.insert(
-                    topic,
-                    PendingParts {
-                        order: topic_order,
-                        slots,
-                    },
-                );
+                continue;
             }
+            let topic = Arc::clone(&pending.rec.topic);
+            order.push(Arc::clone(&topic));
+            let mut slots = spare_slots.pop().unwrap_or_default();
+            slots.clear();
+            let _inserted = slots.insert(partition, 0);
+            let mut part = spare_parts.pop().unwrap_or_default();
+            part.clear();
+            part.push(pending);
+            let mut topic_order = spare_orders.pop().unwrap_or_default();
+            topic_order.clear();
+            topic_order.push((partition, part));
+            let _inserted = buckets.insert(
+                topic,
+                PendingParts {
+                    order: topic_order,
+                    slots,
+                },
+            );
         }
     }
+    scratch.record_counts = counts;
+    let mut total = 0usize;
+    for topic in &order {
+        total = total.saturating_add(
+            scratch
+                .buckets
+                .get(topic.as_ref())
+                .map(|groups| groups.order.len())
+                .unwrap_or(0),
+        );
+    }
     let mut out = take_group_shell(scratch);
+    reserve_len(&mut out, total);
     for topic in order.drain(..) {
         let Some(mut groups) = scratch.buckets.remove(topic.as_ref()) else {
             continue;
@@ -8028,6 +8095,15 @@ mod tests {
             ("payments", 0, 1)
         );
         assert!(Arc::ptr_eq(&groups[2].0, &payments));
+        assert!(groups
+            .first()
+            .is_some_and(|(_, _, records)| records.capacity() >= 2));
+        assert!(groups
+            .get(1)
+            .is_some_and(|(_, _, records)| records.capacity() >= 1));
+        assert!(groups
+            .get(2)
+            .is_some_and(|(_, _, records)| records.capacity() >= 1));
         assert!(scratch.buckets.is_empty());
 
         let mut indexed = ProduceGroupScratch::default();
