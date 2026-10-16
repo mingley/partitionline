@@ -58,11 +58,12 @@ use crate::protocol::admin::{
     encode_describe_log_dirs_request, encode_describe_producers_named_topics,
     encode_describe_share_group_offsets_request_versioned,
     encode_describe_topic_partitions_request, encode_describe_transactions_request,
-    encode_describe_user_scram_credentials_request, encode_expire_delegation_token_request,
-    encode_get_telemetry_subscriptions_request, encode_incremental_alter_configs_named,
-    encode_list_config_resources_request, encode_list_groups_request,
-    encode_list_partition_reassignments_named, encode_list_transactions_request_with_pattern,
-    encode_push_telemetry_metrics, encode_renew_delegation_token_request,
+    encode_describe_user_scram_credentials_request, encode_expire_delegation_token_hmac,
+    encode_expire_delegation_token_request, encode_get_telemetry_subscriptions_request,
+    encode_incremental_alter_configs_named, encode_list_config_resources_request,
+    encode_list_groups_request, encode_list_partition_reassignments_named,
+    encode_list_transactions_request_with_pattern, encode_push_telemetry_metrics,
+    encode_renew_delegation_token_hmac, encode_renew_delegation_token_request,
     encode_share_group_describe_request, encode_unregister_broker_request,
     encode_update_features_named, AlterConfigsResource, BorrowedAlterConfig,
     BorrowedAlterConfigsResource, BorrowedAlterReplicaLogDir, BorrowedAlterReplicaLogDirTopic,
@@ -13591,11 +13592,19 @@ impl Admin {
         hmac: impl AsRef<[u8]>,
         timeout: Duration,
     ) -> Result<RenewDelegationTokenResponse> {
-        self.renew_delegation_token_timeout(
-            RenewDelegationTokenRequest::new(hmac.as_ref().to_vec(), -1),
-            timeout,
-        )
-        .await
+        let version = self.renew_delegation_token_version.ok_or_else(|| {
+            Error::Unsupported("broker does not support RenewDelegationToken".into())
+        })?;
+        let hmac = hmac.as_ref();
+        let body = self
+            .roundtrip_bootstrap(
+                RENEW_DELEGATION_TOKEN,
+                version,
+                |buf| encode_renew_delegation_token_hmac(buf, version, hmac, -1),
+                timeout,
+            )
+            .await?;
+        decode_renew_delegation_token_response(&mut body.clone(), version)
     }
 
     /// Expire a delegation token (ExpireDelegationToken api 40, KIP-48 /
@@ -13676,11 +13685,19 @@ impl Admin {
         hmac: impl AsRef<[u8]>,
         timeout: Duration,
     ) -> Result<ExpireDelegationTokenResponse> {
-        self.expire_delegation_token_timeout(
-            ExpireDelegationTokenRequest::new(hmac.as_ref().to_vec(), -1),
-            timeout,
-        )
-        .await
+        let version = self.expire_delegation_token_version.ok_or_else(|| {
+            Error::Unsupported("broker does not support ExpireDelegationToken".into())
+        })?;
+        let hmac = hmac.as_ref();
+        let body = self
+            .roundtrip_bootstrap(
+                EXPIRE_DELEGATION_TOKEN,
+                version,
+                |buf| encode_expire_delegation_token_hmac(buf, version, hmac, -1),
+                timeout,
+            )
+            .await?;
+        decode_expire_delegation_token_response(&mut body.clone(), version)
     }
 
     /// Describe delegation tokens (DescribeDelegationToken api 41,

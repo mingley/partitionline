@@ -21378,15 +21378,34 @@ pub fn encode_renew_delegation_token_request(
     version: i16,
     req: &RenewDelegationTokenRequest,
 ) -> crate::error::Result<()> {
+    encode_renew_delegation_token_hmac(buf, version, &req.hmac, req.renew_period_ms)
+}
+
+/// Encode RenewDelegationToken from a borrowed HMAC.
+pub(crate) fn encode_renew_delegation_token_hmac(
+    buf: &mut BytesMut,
+    version: i16,
+    hmac: &[u8],
+    renew_period_ms: i64,
+) -> crate::error::Result<()> {
     let flexible = renew_delegation_token_flexible(version)?;
+    encode_delegation_token_hmac_request(buf, flexible, hmac, renew_period_ms)
+}
+
+fn encode_delegation_token_hmac_request(
+    buf: &mut BytesMut,
+    flexible: bool,
+    hmac: &[u8],
+    period_ms: i64,
+) -> crate::error::Result<()> {
     let body_start = buf.len();
-    let planned = delegation_token_hmac_request_len(flexible, &req.hmac)?;
+    let planned = delegation_token_hmac_request_len(flexible, hmac)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
         buf.reserve(needed - buf.capacity());
     }
-    buf::put_bytes(buf, flexible, Some(&req.hmac))?;
-    buf.put_i64(req.renew_period_ms);
+    buf::put_bytes(buf, flexible, Some(hmac))?;
+    buf.put_i64(period_ms);
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
@@ -21666,20 +21685,18 @@ pub fn encode_expire_delegation_token_request(
     version: i16,
     req: &ExpireDelegationTokenRequest,
 ) -> crate::error::Result<()> {
+    encode_expire_delegation_token_hmac(buf, version, &req.hmac, req.expiry_time_period_ms)
+}
+
+/// Encode ExpireDelegationToken from a borrowed HMAC.
+pub(crate) fn encode_expire_delegation_token_hmac(
+    buf: &mut BytesMut,
+    version: i16,
+    hmac: &[u8],
+    expiry_time_period_ms: i64,
+) -> crate::error::Result<()> {
     let flexible = expire_delegation_token_flexible(version)?;
-    let body_start = buf.len();
-    let planned = delegation_token_hmac_request_len(flexible, &req.hmac)?;
-    let needed = body_start.saturating_add(planned);
-    if buf.capacity() < needed {
-        buf.reserve(needed - buf.capacity());
-    }
-    buf::put_bytes(buf, flexible, Some(&req.hmac))?;
-    buf.put_i64(req.expiry_time_period_ms);
-    if flexible {
-        buf::put_empty_tagged_fields(buf);
-    }
-    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
-    Ok(())
+    encode_delegation_token_hmac_request(buf, flexible, hmac, expiry_time_period_ms)
 }
 
 /// Decode an ExpireDelegationToken request.
@@ -44899,6 +44916,26 @@ mod tests {
             let decoded = decode_renew_delegation_token_response(&mut cur, version).unwrap();
             assert!(cur.is_empty());
             assert_eq!(decoded, response);
+        }
+    }
+
+    #[test]
+    fn delegation_token_borrowed_hmac_matches_owned_hmac() {
+        let hmac = [9_u8, 8, 7, 6, 5, 4];
+        let renew = RenewDelegationTokenRequest::new(hmac.to_vec(), -1);
+        let expire = ExpireDelegationTokenRequest::new(hmac.to_vec(), -1);
+        for version in 1..=2 {
+            let mut expected = BytesMut::new();
+            encode_renew_delegation_token_request(&mut expected, version, &renew).unwrap();
+            let mut got = BytesMut::new();
+            encode_renew_delegation_token_hmac(&mut got, version, &hmac, -1).unwrap();
+            assert_eq!(got.as_ref(), expected.as_ref(), "renew version {version}");
+
+            let mut expected = BytesMut::new();
+            encode_expire_delegation_token_request(&mut expected, version, &expire).unwrap();
+            let mut got = BytesMut::new();
+            encode_expire_delegation_token_hmac(&mut got, version, &hmac, -1).unwrap();
+            assert_eq!(got.as_ref(), expected.as_ref(), "expire version {version}");
         }
     }
 
