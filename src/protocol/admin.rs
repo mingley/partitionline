@@ -4795,6 +4795,12 @@ pub fn encode_describe_cluster_request(
     include_fenced_brokers: bool,
 ) -> crate::error::Result<()> {
     let _ = describe_cluster_spoken(version)?;
+    let body_start = buf.len();
+    let planned = describe_cluster_request_len(version);
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf.put_u8(u8::from(include_authorized_operations));
     if version >= 1 {
         buf.put_i8(endpoint_type);
@@ -4803,7 +4809,19 @@ pub fn encode_describe_cluster_request(
         buf.put_u8(u8::from(include_fenced_brokers));
     }
     buf::put_empty_tagged_fields(buf);
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn describe_cluster_request_len(version: i16) -> usize {
+    let mut total = 1;
+    if version >= 1 {
+        total += 1;
+    }
+    if version >= 2 {
+        total += 1;
+    }
+    total + buf::unsigned_varint_size(0)
 }
 
 /// Decode a DescribeCluster request.
@@ -4841,6 +4859,12 @@ pub fn encode_describe_cluster_response(
     desc: &ClusterDescription,
 ) -> crate::error::Result<()> {
     let _ = describe_cluster_spoken(version)?;
+    let body_start = buf.len();
+    let planned = describe_cluster_response_len(version, desc)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf.put_i32(desc.throttle_time_ms);
     buf.put_i16(desc.error_code);
     buf::put_compact_string(buf, desc.error_message.as_deref())?;
@@ -4862,7 +4886,37 @@ pub fn encode_describe_cluster_response(
     }
     buf.put_i32(desc.cluster_authorized_operations);
     buf::put_empty_tagged_fields(buf);
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn describe_cluster_response_len(version: i16, desc: &ClusterDescription) -> Result<usize> {
+    let mut total = 6;
+    total = add_describe_len(
+        total,
+        describe_string_len(true, desc.error_message.as_deref())?,
+    )?;
+    if version >= 1 {
+        total = add_describe_len(total, 1)?;
+    }
+    total = add_describe_len(
+        total,
+        describe_string_len(true, Some(desc.cluster_id.as_deref().unwrap_or("")))?,
+    )?;
+    total = add_describe_len(total, 4)?;
+    total = add_describe_len(total, describe_array_len(true, desc.brokers.len())?)?;
+    for broker in &desc.brokers {
+        total = add_describe_len(total, 4)?;
+        total = add_describe_len(total, describe_string_len(true, Some(&broker.host))?)?;
+        total = add_describe_len(total, 4)?;
+        total = add_describe_len(total, describe_string_len(true, broker.rack.as_deref())?)?;
+        if version >= 2 {
+            total = add_describe_len(total, 1)?;
+        }
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    total = add_describe_len(total, 4)?;
+    add_describe_len(total, buf::unsigned_varint_size(0))
 }
 
 /// One partition in AlterPartitionReassignments v0 (flexible).
@@ -25911,6 +25965,82 @@ mod tests {
             zero.throttle_time_ms, 0,
             "ClusterDescription::new still fills ThrottleTimeMs 0"
         );
+    }
+
+    #[test]
+    fn a_describe_cluster_request_sizes_its_body_once() {
+        for version in [0_i16, 1, 2] {
+            let mut buf = BytesMut::new();
+            encode_describe_cluster_request(
+                &mut buf,
+                version,
+                true,
+                ENDPOINT_TYPE_CONTROLLERS,
+                true,
+            )
+            .unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_describe_cluster_request(
+                &mut buf,
+                version,
+                true,
+                ENDPOINT_TYPE_CONTROLLERS,
+                true,
+            )
+            .unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+            let mut cur = &buf[..];
+            let (include, endpoint_type, fenced) =
+                decode_describe_cluster_request(&mut cur, version).unwrap();
+            assert!(cur.is_empty());
+            assert!(include);
+            if version >= 1 {
+                assert_eq!(endpoint_type, ENDPOINT_TYPE_CONTROLLERS);
+            }
+            if version >= 2 {
+                assert!(fenced);
+            }
+        }
+    }
+
+    #[test]
+    fn a_describe_cluster_response_sizes_its_body_once() {
+        let desc = ClusterDescription {
+            throttle_time_ms: 12,
+            error_code: 0,
+            error_message: Some("ok".into()),
+            cluster_id: Some("cluster-1".into()),
+            controller_id: 1,
+            endpoint_type: ENDPOINT_TYPE_BROKERS,
+            cluster_authorized_operations: 7,
+            brokers: vec![
+                DescribeClusterBroker::new(1, "a.example", 9092, Some("rack-a".into()), false),
+                DescribeClusterBroker::new(2, "b.example", 9092, None, true),
+            ],
+        };
+        for version in [0_i16, 1, 2] {
+            let mut buf = BytesMut::new();
+            encode_describe_cluster_response(&mut buf, version, &desc).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_describe_cluster_response(&mut buf, version, &desc).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+            let mut cur = &buf[..];
+            let decoded = decode_describe_cluster_response(&mut cur, version).unwrap();
+            assert!(cur.is_empty());
+            assert_eq!(decoded.throttle_time_ms, 12);
+            assert_eq!(decoded.cluster_id.as_deref(), Some("cluster-1"));
+            assert_eq!(decoded.brokers.len(), 2);
+        }
     }
 
     #[test]
