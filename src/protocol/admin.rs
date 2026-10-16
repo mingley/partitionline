@@ -14693,6 +14693,12 @@ pub fn encode_alter_share_group_offsets_request(
     group_id: &str,
     topics: &[AlterShareGroupOffsetsTopic],
 ) -> crate::error::Result<()> {
+    let body_start = buf.len();
+    let planned = alter_share_offsets_request_len(group_id, topics)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf::put_compact_string(buf, Some(group_id))?;
     buf::put_array_len(buf, true, Some(topics.len()))?;
     for t in topics {
@@ -14706,7 +14712,26 @@ pub fn encode_alter_share_group_offsets_request(
         buf::put_empty_tagged_fields(buf);
     }
     buf::put_empty_tagged_fields(buf);
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn alter_share_offsets_request_len(
+    group_id: &str,
+    topics: &[AlterShareGroupOffsetsTopic],
+) -> Result<usize> {
+    let mut total = describe_string_len(true, Some(group_id))?;
+    total = add_describe_len(total, describe_array_len(true, topics.len())?)?;
+    for topic in topics {
+        total = add_describe_len(total, describe_string_len(true, Some(&topic.topic_name))?)?;
+        total = add_describe_len(total, describe_array_len(true, topic.partitions.len())?)?;
+        for _partition in &topic.partitions {
+            total = add_describe_len(total, 12)?;
+            total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+        }
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    add_describe_len(total, buf::unsigned_varint_size(0))
 }
 
 /// Decode an AlterShareGroupOffsets request.
@@ -14747,6 +14772,12 @@ pub fn encode_alter_share_group_offsets_response(
     buf: &mut BytesMut,
     resp: &AlteredShareGroupOffsets,
 ) -> crate::error::Result<()> {
+    let body_start = buf.len();
+    let planned = alter_share_offsets_response_len(resp)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf.put_i32(resp.throttle_time_ms);
     buf.put_i16(resp.error_code);
     buf::put_compact_string(buf, resp.error_message.as_deref())?;
@@ -14764,7 +14795,32 @@ pub fn encode_alter_share_group_offsets_response(
         buf::put_empty_tagged_fields(buf);
     }
     buf::put_empty_tagged_fields(buf);
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn alter_share_offsets_response_len(resp: &AlteredShareGroupOffsets) -> Result<usize> {
+    let mut total = 6;
+    total = add_describe_len(
+        total,
+        describe_string_len(true, resp.error_message.as_deref())?,
+    )?;
+    total = add_describe_len(total, describe_array_len(true, resp.topics.len())?)?;
+    for topic in &resp.topics {
+        total = add_describe_len(total, describe_string_len(true, Some(&topic.topic_name))?)?;
+        total = add_describe_len(total, 16)?;
+        total = add_describe_len(total, describe_array_len(true, topic.partitions.len())?)?;
+        for partition in &topic.partitions {
+            total = add_describe_len(total, 6)?;
+            total = add_describe_len(
+                total,
+                describe_string_len(true, partition.error_message.as_deref())?,
+            )?;
+            total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+        }
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    add_describe_len(total, buf::unsigned_varint_size(0))
 }
 
 /// Decode an AlterShareGroupOffsets response.
@@ -15015,6 +15071,12 @@ pub fn encode_delete_share_group_offsets_request(
     group_id: &str,
     topics: &[DeleteShareGroupOffsetsTopic],
 ) -> crate::error::Result<()> {
+    let body_start = buf.len();
+    let planned = delete_share_offsets_request_len(group_id, topics)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf::put_compact_string(buf, Some(group_id))?;
     buf::put_array_len(buf, true, Some(topics.len()))?;
     for t in topics {
@@ -15022,7 +15084,21 @@ pub fn encode_delete_share_group_offsets_request(
         buf::put_empty_tagged_fields(buf);
     }
     buf::put_empty_tagged_fields(buf);
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn delete_share_offsets_request_len(
+    group_id: &str,
+    topics: &[DeleteShareGroupOffsetsTopic],
+) -> Result<usize> {
+    let mut total = describe_string_len(true, Some(group_id))?;
+    total = add_describe_len(total, describe_array_len(true, topics.len())?)?;
+    for topic in topics {
+        total = add_describe_len(total, describe_string_len(true, Some(&topic.topic_name))?)?;
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    add_describe_len(total, buf::unsigned_varint_size(0))
 }
 
 /// Decode a DeleteShareGroupOffsets request.
@@ -15049,6 +15125,12 @@ pub fn encode_delete_share_group_offsets_response(
     buf: &mut BytesMut,
     resp: &DeletedShareGroupOffsets,
 ) -> crate::error::Result<()> {
+    let body_start = buf.len();
+    let planned = delete_share_offsets_response_len(resp)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf.put_i32(resp.throttle_time_ms);
     buf.put_i16(resp.error_code);
     buf::put_compact_string(buf, resp.error_message.as_deref())?;
@@ -15061,7 +15143,27 @@ pub fn encode_delete_share_group_offsets_response(
         buf::put_empty_tagged_fields(buf);
     }
     buf::put_empty_tagged_fields(buf);
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn delete_share_offsets_response_len(resp: &DeletedShareGroupOffsets) -> Result<usize> {
+    let mut total = 6;
+    total = add_describe_len(
+        total,
+        describe_string_len(true, resp.error_message.as_deref())?,
+    )?;
+    total = add_describe_len(total, describe_array_len(true, resp.topics.len())?)?;
+    for topic in &resp.topics {
+        total = add_describe_len(total, describe_string_len(true, Some(&topic.topic_name))?)?;
+        total = add_describe_len(total, 18)?;
+        total = add_describe_len(
+            total,
+            describe_string_len(true, topic.error_message.as_deref())?,
+        )?;
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    add_describe_len(total, buf::unsigned_varint_size(0))
 }
 
 /// Decode a DeleteShareGroupOffsets response.
@@ -35026,6 +35128,71 @@ mod tests {
     }
 
     #[test]
+    fn a_alter_share_group_offsets_request_sizes_its_body_once() {
+        let topics = vec![AlterShareGroupOffsetsTopic {
+            topic_name: "orders".into(),
+            partitions: vec![
+                AlterShareGroupOffsetsPartition::new(0, 10),
+                AlterShareGroupOffsetsPartition::new(1, 20),
+            ],
+        }];
+        let mut buf = BytesMut::new();
+        encode_alter_share_group_offsets_request(&mut buf, "orders", &topics).unwrap();
+        let len = buf.len();
+        let capacity = buf.capacity();
+        assert!(capacity >= len);
+        assert!(capacity < 64 * 1024);
+        buf.clear();
+        encode_alter_share_group_offsets_request(&mut buf, "orders", &topics).unwrap();
+        assert_eq!(buf.len(), len);
+        assert_eq!(buf.capacity(), capacity);
+        let mut cur = &buf[..];
+        let (group_id, decoded) = decode_alter_share_group_offsets_request(&mut cur).unwrap();
+        assert!(cur.is_empty());
+        assert_eq!(group_id, "orders");
+        assert_eq!(decoded, topics);
+    }
+
+    #[test]
+    fn a_alter_share_group_offsets_response_sizes_its_body_once() {
+        let response = AlteredShareGroupOffsets {
+            throttle_time_ms: 12,
+            error_code: 0,
+            error_message: Some("altered".into()),
+            topics: vec![AlteredShareGroupOffsetsTopic {
+                topic_name: "orders".into(),
+                topic_id: [0; 16],
+                partitions: vec![
+                    AlteredShareGroupOffsetsPartition {
+                        partition_index: 0,
+                        error_code: 0,
+                        error_message: None,
+                    },
+                    AlteredShareGroupOffsetsPartition {
+                        partition_index: 1,
+                        error_code: 3,
+                        error_message: Some("busy".into()),
+                    },
+                ],
+            }],
+        };
+        let mut buf = BytesMut::new();
+        encode_alter_share_group_offsets_response(&mut buf, &response).unwrap();
+        let len = buf.len();
+        let capacity = buf.capacity();
+        assert!(capacity >= len);
+        assert!(capacity < 64 * 1024);
+        buf.clear();
+        encode_alter_share_group_offsets_response(&mut buf, &response).unwrap();
+        assert_eq!(buf.len(), len);
+        assert_eq!(buf.capacity(), capacity);
+        let mut cur = &buf[..];
+        let decoded = decode_alter_share_group_offsets_response(&mut cur).unwrap();
+        assert!(cur.is_empty());
+        assert_eq!(decoded, response);
+    }
+
+    #[test]
     fn alter_share_group_offsets_v0_matches_kafka_protocol_0_18() {
         // Independent encode from kafka-protocol 0.18.0 (client encodes
         // the request; broker encodes the response). Apache JSON api 91
@@ -35380,6 +35547,66 @@ mod tests {
             &zero_buf[..],
             "error_response still fills ThrottleTimeMs 0"
         );
+    }
+
+    #[test]
+    fn a_delete_share_group_offsets_request_sizes_its_body_once() {
+        let topics = vec![
+            DeleteShareGroupOffsetsTopic::new("orders"),
+            DeleteShareGroupOffsetsTopic::new("payments"),
+        ];
+        let mut buf = BytesMut::new();
+        encode_delete_share_group_offsets_request(&mut buf, "orders", &topics).unwrap();
+        let len = buf.len();
+        let capacity = buf.capacity();
+        assert!(capacity >= len);
+        assert!(capacity < 64 * 1024);
+        buf.clear();
+        encode_delete_share_group_offsets_request(&mut buf, "orders", &topics).unwrap();
+        assert_eq!(buf.len(), len);
+        assert_eq!(buf.capacity(), capacity);
+        let mut cur = &buf[..];
+        let (group_id, decoded) = decode_delete_share_group_offsets_request(&mut cur).unwrap();
+        assert!(cur.is_empty());
+        assert_eq!(group_id, "orders");
+        assert_eq!(decoded, topics);
+    }
+
+    #[test]
+    fn a_delete_share_group_offsets_response_sizes_its_body_once() {
+        let response = DeletedShareGroupOffsets {
+            throttle_time_ms: 12,
+            error_code: 0,
+            error_message: Some("deleted".into()),
+            topics: vec![
+                DeletedShareGroupOffsetsTopic {
+                    topic_name: "orders".into(),
+                    topic_id: [0; 16],
+                    error_code: 0,
+                    error_message: None,
+                },
+                DeletedShareGroupOffsetsTopic {
+                    topic_name: "payments".into(),
+                    topic_id: [1; 16],
+                    error_code: 3,
+                    error_message: Some("busy".into()),
+                },
+            ],
+        };
+        let mut buf = BytesMut::new();
+        encode_delete_share_group_offsets_response(&mut buf, &response).unwrap();
+        let len = buf.len();
+        let capacity = buf.capacity();
+        assert!(capacity >= len);
+        assert!(capacity < 64 * 1024);
+        buf.clear();
+        encode_delete_share_group_offsets_response(&mut buf, &response).unwrap();
+        assert_eq!(buf.len(), len);
+        assert_eq!(buf.capacity(), capacity);
+        let mut cur = &buf[..];
+        let decoded = decode_delete_share_group_offsets_response(&mut cur).unwrap();
+        assert!(cur.is_empty());
+        assert_eq!(decoded, response);
     }
 
     #[test]
