@@ -742,9 +742,9 @@ pub enum ShareAcquireMode {
 /// partition `NOT_LEADER_OR_FOLLOWER` still invalidates when
 /// CurrentLeader is unused). A top-level ShareAcknowledge
 /// `UNKNOWN_TOPIC_OR_PARTITION` completes without retry and does not
-/// request Metadata, including when `ErrorMessage` is set (a partition
-/// `UNKNOWN_TOPIC_OR_PARTITION` still invalidates when CurrentLeader
-/// is unused). Incremental ShareFetch sends Java
+/// request Metadata, including when `ErrorMessage` is set or empty (a
+/// partition `UNKNOWN_TOPIC_OR_PARTITION` still invalidates when
+/// CurrentLeader is unused). Incremental ShareFetch sends Java
 /// `ShareSessionHandler` forgotten partitions when the assignment
 /// shrinks or a topic id is replaced on a node this poll still
 /// contacts (remaining assigned partitions or leftover acknowledgements).
@@ -2159,7 +2159,7 @@ impl ShareGroup {
     /// unused).
     /// A top-level ShareAcknowledge `UNKNOWN_TOPIC_OR_PARTITION`
     /// completes without retry and does not request Metadata, including
-    /// when `ErrorMessage` is set (a partition
+    /// when `ErrorMessage` is set or empty (a partition
     /// `UNKNOWN_TOPIC_OR_PARTITION` still invalidates when CurrentLeader
     /// is unused).
     /// Top-level `SHARE_SESSION_LIMIT_REACHED`
