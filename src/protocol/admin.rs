@@ -19432,12 +19432,28 @@ pub fn encode_renew_delegation_token_request(
     req: &RenewDelegationTokenRequest,
 ) -> crate::error::Result<()> {
     let flexible = renew_delegation_token_flexible(version)?;
+    let body_start = buf.len();
+    let planned = delegation_token_hmac_request_len(flexible, &req.hmac)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf::put_bytes(buf, flexible, Some(&req.hmac))?;
     buf.put_i64(req.renew_period_ms);
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn delegation_token_hmac_request_len(flexible: bool, hmac: &[u8]) -> Result<usize> {
+    let mut total = describe_bytes_len(flexible, hmac)?;
+    total = add_describe_len(total, 8)?;
+    if flexible {
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 /// Decode a RenewDelegationToken request.
@@ -19464,13 +19480,28 @@ pub fn encode_renew_delegation_token_response(
     resp: &RenewDelegationTokenResponse,
 ) -> crate::error::Result<()> {
     let flexible = renew_delegation_token_flexible(version)?;
+    let body_start = buf.len();
+    let planned = delegation_token_timestamp_response_len(flexible)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf.put_i16(resp.error_code);
     buf.put_i64(resp.expiry_timestamp_ms);
     buf.put_i32(resp.throttle_time_ms);
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn delegation_token_timestamp_response_len(flexible: bool) -> Result<usize> {
+    let mut total = 14;
+    if flexible {
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 /// Decode a RenewDelegationToken response.
@@ -19689,11 +19720,18 @@ pub fn encode_expire_delegation_token_request(
     req: &ExpireDelegationTokenRequest,
 ) -> crate::error::Result<()> {
     let flexible = expire_delegation_token_flexible(version)?;
+    let body_start = buf.len();
+    let planned = delegation_token_hmac_request_len(flexible, &req.hmac)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf::put_bytes(buf, flexible, Some(&req.hmac))?;
     buf.put_i64(req.expiry_time_period_ms);
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
 }
 
@@ -19721,12 +19759,19 @@ pub fn encode_expire_delegation_token_response(
     resp: &ExpireDelegationTokenResponse,
 ) -> crate::error::Result<()> {
     let flexible = expire_delegation_token_flexible(version)?;
+    let body_start = buf.len();
+    let planned = delegation_token_timestamp_response_len(flexible)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf.put_i16(resp.error_code);
     buf.put_i64(resp.expiry_timestamp_ms);
     buf.put_i32(resp.throttle_time_ms);
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
 }
 
@@ -41071,6 +41116,48 @@ mod tests {
     }
 
     #[test]
+    fn a_renew_delegation_token_sizes_its_body_once() {
+        let request = RenewDelegationTokenRequest {
+            hmac: vec![1, 2, 3, 4, 5],
+            renew_period_ms: 1_000,
+        };
+        let response = RenewDelegationTokenResponse {
+            error_code: 0,
+            expiry_timestamp_ms: 9,
+            throttle_time_ms: 12,
+        };
+        for version in [1_i16, 2] {
+            let mut buf = BytesMut::new();
+            encode_renew_delegation_token_request(&mut buf, version, &request).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_renew_delegation_token_request(&mut buf, version, &request).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+            let mut cur = &buf[..];
+            let decoded = decode_renew_delegation_token_request(&mut cur, version).unwrap();
+            assert!(cur.is_empty());
+            assert_eq!(decoded, request);
+
+            let mut out = BytesMut::new();
+            encode_renew_delegation_token_response(&mut out, version, &response).unwrap();
+            let out_len = out.len();
+            let out_capacity = out.capacity();
+            out.clear();
+            encode_renew_delegation_token_response(&mut out, version, &response).unwrap();
+            assert_eq!(out.len(), out_len);
+            assert_eq!(out.capacity(), out_capacity);
+            let mut cur = &out[..];
+            let decoded = decode_renew_delegation_token_response(&mut cur, version).unwrap();
+            assert!(cur.is_empty());
+            assert_eq!(decoded, response);
+        }
+    }
+
+    #[test]
     fn renew_delegation_token_v2_matches_kafka_protocol_0_18() {
         assert!(!RenewDelegationTokenResponse::should_client_throttle(0));
         assert!(RenewDelegationTokenResponse::should_client_throttle(1));
@@ -41684,6 +41771,48 @@ mod tests {
             &zero_buf[..],
             "error_response still fills ThrottleTimeMs 0"
         );
+    }
+
+    #[test]
+    fn a_expire_delegation_token_sizes_its_body_once() {
+        let request = ExpireDelegationTokenRequest {
+            hmac: vec![9, 8, 7, 6],
+            expiry_time_period_ms: -1,
+        };
+        let response = ExpireDelegationTokenResponse {
+            error_code: 0,
+            expiry_timestamp_ms: 4,
+            throttle_time_ms: 12,
+        };
+        for version in [1_i16, 2] {
+            let mut buf = BytesMut::new();
+            encode_expire_delegation_token_request(&mut buf, version, &request).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_expire_delegation_token_request(&mut buf, version, &request).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+            let mut cur = &buf[..];
+            let decoded = decode_expire_delegation_token_request(&mut cur, version).unwrap();
+            assert!(cur.is_empty());
+            assert_eq!(decoded, request);
+
+            let mut out = BytesMut::new();
+            encode_expire_delegation_token_response(&mut out, version, &response).unwrap();
+            let out_len = out.len();
+            let out_capacity = out.capacity();
+            out.clear();
+            encode_expire_delegation_token_response(&mut out, version, &response).unwrap();
+            assert_eq!(out.len(), out_len);
+            assert_eq!(out.capacity(), out_capacity);
+            let mut cur = &out[..];
+            let decoded = decode_expire_delegation_token_response(&mut cur, version).unwrap();
+            assert!(cur.is_empty());
+            assert_eq!(decoded, response);
+        }
     }
 
     #[test]
