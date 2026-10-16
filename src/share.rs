@@ -3731,6 +3731,7 @@ fn group_acks_by_acquisition_node(
     let mut by_node: AckRoute = BTreeMap::new();
     for (topic, partition, batches) in partitions {
         let mut node_batches: BTreeMap<i32, Vec<AcknowledgementBatch>> = BTreeMap::new();
+        let mut run_types = Vec::new();
         for batch in batches {
             let span = batch
                 .last_offset
@@ -3751,11 +3752,20 @@ fn group_acks_by_acquisition_node(
                     "share acknowledgement type count does not match the range",
                 ));
             };
+            // One type covers the whole range. Splits still walk each offset
+            // for its broker, without storing that type once per offset.
+            let single_type = if per_offset.is_none() {
+                Some(batch.types.first().copied().ok_or_else(|| {
+                    Error::protocol("share acknowledgement type count does not match the range")
+                })?)
+            } else {
+                None
+            };
             let mut offset = batch.first_offset;
             let mut index = 0usize;
             let mut run_node = None;
             let mut run_first = offset;
-            let mut run_types = Vec::new();
+            run_types.clear();
             while index < span {
                 let node = node_of(topic, *partition, offset).ok_or_else(|| {
                     Error::broker(
@@ -3767,26 +3777,26 @@ fn group_acks_by_acquisition_node(
                     Some(types) => *types.get(index).ok_or_else(|| {
                         Error::protocol("share acknowledgement type count does not match the range")
                     })?,
-                    None => *batch.types.first().ok_or_else(|| {
+                    None => single_type.ok_or_else(|| {
                         Error::protocol("share acknowledgement type count does not match the range")
                     })?,
                 };
                 if run_node.is_some_and(|current| current != node) {
                     if let Some(current) = run_node {
-                        node_batches
-                            .entry(current)
-                            .or_default()
-                            .push(finish_ack_run(
-                                run_first,
-                                offset.saturating_sub(1),
-                                &run_types,
-                            ));
+                        node_batches.entry(current).or_default().push(ack_run(
+                            run_first,
+                            offset.saturating_sub(1),
+                            single_type,
+                            &run_types,
+                        ));
                     }
                     run_first = offset;
                     run_types.clear();
                 }
                 run_node = Some(node);
-                run_types.push(ack_type);
+                if single_type.is_none() {
+                    run_types.push(ack_type);
+                }
                 if offset == i64::MAX {
                     break;
                 }
@@ -3794,10 +3804,12 @@ fn group_acks_by_acquisition_node(
                 index += 1;
             }
             if let Some(current) = run_node {
-                node_batches
-                    .entry(current)
-                    .or_default()
-                    .push(finish_ack_run(run_first, batch.last_offset, &run_types));
+                node_batches.entry(current).or_default().push(ack_run(
+                    run_first,
+                    batch.last_offset,
+                    single_type,
+                    &run_types,
+                ));
             }
         }
         for (node, batches) in node_batches {
@@ -3808,6 +3820,17 @@ fn group_acks_by_acquisition_node(
         }
     }
     Ok(by_node)
+}
+
+fn ack_run(first: i64, last: i64, single_type: Option<i8>, types: &[i8]) -> AcknowledgementBatch {
+    if let Some(kind) = single_type {
+        return AcknowledgementBatch {
+            first_offset: first,
+            last_offset: last,
+            types: vec![kind],
+        };
+    }
+    finish_ack_run(first, last, types)
 }
 
 fn finish_ack_run(first: i64, last: i64, types: &[i8]) -> AcknowledgementBatch {
@@ -4476,9 +4499,53 @@ mod tests {
                     .map(|batch| batch.last_offset),
                 Some(3)
             );
+            assert_eq!(
+                first
+                    .and_then(|part| part.2.first())
+                    .map(|batch| batch.types.as_slice()),
+                Some([ACK_ACCEPT].as_slice())
+            );
+            assert_eq!(
+                second
+                    .and_then(|part| part.2.first())
+                    .map(|batch| batch.types.as_slice()),
+                Some([ACK_ACCEPT].as_slice())
+            );
         }
         let missing = group_acks_by_acquisition_node(|_, _, _| None, &partitions);
         assert!(missing.is_err());
+        let mixed = vec![(
+            Arc::<str>::from("orders"),
+            0,
+            vec![AcknowledgementBatch {
+                first_offset: 1,
+                last_offset: 2,
+                types: vec![ACK_ACCEPT, ACK_REJECT],
+            }],
+        )];
+        let mixed = group_acks_by_acquisition_node(
+            |_topic, _partition, offset| Some(if offset == 1 { 4 } else { 9 }),
+            &mixed,
+        );
+        assert!(mixed.is_ok());
+        if let Ok(mixed) = mixed {
+            assert_eq!(
+                mixed
+                    .get(&4)
+                    .and_then(|parts| parts.first())
+                    .and_then(|part| part.2.first())
+                    .map(|batch| batch.types.as_slice()),
+                Some([ACK_ACCEPT].as_slice())
+            );
+            assert_eq!(
+                mixed
+                    .get(&9)
+                    .and_then(|parts| parts.first())
+                    .and_then(|part| part.2.first())
+                    .map(|batch| batch.types.as_slice()),
+                Some([ACK_REJECT].as_slice())
+            );
+        }
         let mut pending = vec![
             (
                 Arc::<str>::from("orders"),
