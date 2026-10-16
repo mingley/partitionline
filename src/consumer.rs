@@ -14,8 +14,8 @@ use crate::cluster::Cluster;
 use crate::error::{self, Error, Result};
 use crate::net::BrokerConn;
 use crate::protocol::api::{
-    decode_metadata_response, encode_metadata_request, ApiVersion, ApiVersionsResponse,
-    MetadataResponse, PartitionMetadata,
+    decode_metadata_response, encode_metadata_request, metadata_v0_names_acceptable, ApiVersion,
+    ApiVersionsResponse, MetadataResponse, PartitionMetadata,
 };
 use crate::protocol::api_keys::{
     pick_version, FETCH, GET_TELEMETRY_SUBSCRIPTIONS, LIST_OFFSETS, METADATA,
@@ -3556,9 +3556,10 @@ impl Consumer {
         deadline: Instant,
     ) -> Result<()> {
         if self.metadata_version == 0 {
-            let mut encoded = bytes::BytesMut::new();
+            // A rejected body must fail here. Encode failure inside roundtrip
+            // closes the bootstrap socket.
             let allow = self.cfg.allow_auto_topic_creation || topics.is_none();
-            encode_metadata_request(&mut encoded, 0, topics, allow)?;
+            metadata_v0_names_acceptable(topics, allow)?;
         }
         if self.conn.idle_expired(self.cfg.connections_max_idle) {
             self.reconnect_bootstrap(deadline).await?;

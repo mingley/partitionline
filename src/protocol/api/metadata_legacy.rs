@@ -311,6 +311,13 @@ fn put_name(output: &mut BytesMut, name: &str) -> Result<()> {
     output.extend_from_slice(name.as_bytes());
     Ok(())
 }
+pub(super) fn accept_names(names: Option<&[String]>, allow: bool) -> Result<()> {
+    request_policy(allow, false, false)?;
+    let names = names.unwrap_or(&[]);
+    let (_count, _bytes) = names_size(names.iter().map(String::as_str))?;
+    Ok(())
+}
+
 pub(super) fn encode_names(
     output: &mut BytesMut,
     names: Option<&[String]>,

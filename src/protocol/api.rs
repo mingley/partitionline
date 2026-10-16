@@ -1700,6 +1700,18 @@ impl MetadataRequest {
     }
 }
 
+/// Reject a Metadata v0 name list that [`encode_metadata_request`] would reject.
+///
+/// Authorization flags stay unset, matching [`encode_metadata_request`].
+/// The check does not write a body, so a caller can fail before a round-trip
+/// that would close the socket on an encode error.
+pub(crate) fn metadata_v0_names_acceptable(
+    topics: Option<&[String]>,
+    allow_auto: bool,
+) -> crate::error::Result<()> {
+    metadata_legacy::accept_names(topics, allow_auto)
+}
+
 /// Encode Metadata. `topics = None` asks for all topics.
 ///
 /// `IncludeTopicAuthorizedOperations` is false (Java default). Use
@@ -7629,6 +7641,17 @@ mod tests {
         );
         assert!(err.to_string().contains("older than 1"), "got {err}");
         encode_metadata_request(&mut BytesMut::new(), 0, Some(&names), true).unwrap();
+        metadata_v0_names_acceptable(Some(&names), true).unwrap();
+        metadata_v0_names_acceptable(None, true).unwrap();
+        let denied = metadata_v0_names_acceptable(Some(&names), false).unwrap_err();
+        let encoded =
+            encode_metadata_request(&mut BytesMut::new(), 0, Some(&names), false).unwrap_err();
+        assert_eq!(denied.to_string(), encoded.to_string());
+        let too_long = ["x".repeat(usize::try_from(i16::MAX).unwrap() + 1)];
+        let denied = metadata_v0_names_acceptable(Some(&too_long), true).unwrap_err();
+        let encoded =
+            encode_metadata_request(&mut BytesMut::new(), 0, Some(&too_long), true).unwrap_err();
+        assert_eq!(denied.to_string(), encoded.to_string());
         encode_metadata_request(&mut BytesMut::new(), 3, Some(&names), true).unwrap();
         let err =
             encode_metadata_request(&mut BytesMut::new(), 3, Some(&names), false).unwrap_err();
