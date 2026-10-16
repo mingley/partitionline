@@ -2801,14 +2801,19 @@ impl ProduceRequest {
             return None;
         }
         let mut order: Vec<(String, i32)> = Vec::new();
-        let mut seen: HashSet<(String, i32)> = HashSet::new();
+        let mut seen: HashMap<&str, HashSet<i32>> = HashMap::new();
         for topic in topics {
+            if !seen.contains_key(topic.topic.as_str()) {
+                let _ = seen.insert(topic.topic.as_str(), HashSet::new());
+            }
+            let Some(parts) = seen.get_mut(topic.topic.as_str()) else {
+                continue;
+            };
             for partition in &topic.partitions {
-                let key = (topic.topic.clone(), partition.index);
-                if !seen.insert(key.clone()) {
+                if !parts.insert(partition.index) {
                     continue;
                 }
-                order.push(key);
+                order.push((topic.topic.clone(), partition.index));
             }
         }
         Some(
@@ -2833,11 +2838,17 @@ impl ProduceRequest {
     /// codes on a response.
     #[must_use]
     pub fn error_counts(topics: &[ProduceTopicData], error_code: i16) -> HashMap<i16, i32> {
-        let mut seen: HashSet<(String, i32)> = HashSet::new();
+        let mut seen: HashMap<&str, HashSet<i32>> = HashMap::new();
         let mut n = 0i32;
         for topic in topics {
+            if !seen.contains_key(topic.topic.as_str()) {
+                let _ = seen.insert(topic.topic.as_str(), HashSet::new());
+            }
+            let Some(parts) = seen.get_mut(topic.topic.as_str()) else {
+                continue;
+            };
             for partition in &topic.partitions {
-                if seen.insert((topic.topic.clone(), partition.index)) {
+                if parts.insert(partition.index) {
                     n = n.wrapping_add(1);
                 }
             }

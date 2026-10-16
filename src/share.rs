@@ -1073,7 +1073,7 @@ fn next_share_assignment(
     }
     let mut assigned = Vec::new();
     let mut topic_ids = HashMap::new();
-    let mut seen = HashSet::new();
+    let mut seen: HashMap<String, HashSet<i32>> = HashMap::new();
     let mut resolved_topic = false;
     for tp in incoming {
         if tp.topic_id == [0u8; 16] {
@@ -1097,8 +1097,14 @@ fn next_share_assignment(
         }
         resolved_topic = true;
         let _ = topic_ids.insert(name.clone(), topic_id);
+        if !seen.contains_key(name.as_str()) {
+            let _ = seen.insert(name.clone(), HashSet::new());
+        }
+        let Some(parts) = seen.get_mut(name.as_str()) else {
+            continue;
+        };
         for partition in &tp.partitions {
-            if *partition < 0 || !seen.insert((name.clone(), *partition)) {
+            if *partition < 0 || !parts.insert(*partition) {
                 continue;
             }
             assigned.push((name.clone(), *partition));
@@ -5040,6 +5046,10 @@ mod tests {
                     partitions: vec![1, -1, 1, 0],
                 },
                 ShareTopicPartitions {
+                    topic_id: orders,
+                    partitions: vec![0, 3],
+                },
+                ShareTopicPartitions {
                     topic_id: unknown,
                     partitions: vec![3],
                 },
@@ -5051,7 +5061,11 @@ mod tests {
         .expect("known topic replaces the assignment");
         assert_eq!(
             resolved.assigned,
-            vec![("orders".to_owned(), 1), ("orders".to_owned(), 0)]
+            vec![
+                ("orders".to_owned(), 1),
+                ("orders".to_owned(), 0),
+                ("orders".to_owned(), 3)
+            ]
         );
         let only = vec!["orders".to_owned()];
         let mapped = next_share_assignment(

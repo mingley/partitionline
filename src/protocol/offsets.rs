@@ -352,14 +352,20 @@ impl ListOffsetsRequest {
     /// occurrence is not a duplicate (Java `Set.add`).
     #[must_use]
     pub fn duplicate_partitions(topics: &[ListOffsetsTopicRequest]) -> HashSet<(String, i32)> {
-        let mut seen = HashSet::new();
+        let mut seen: HashMap<&str, HashSet<i32>> = HashMap::new();
         let mut duplicates = HashSet::new();
         for topic in topics {
+            if !seen.contains_key(topic.name.as_str()) {
+                let _ = seen.insert(topic.name.as_str(), HashSet::new());
+            }
+            let Some(parts) = seen.get_mut(topic.name.as_str()) else {
+                continue;
+            };
             for partition in &topic.partitions {
-                let tp = (topic.name.clone(), partition.partition);
-                if !seen.insert(tp.clone()) {
-                    let _inserted = duplicates.insert(tp);
+                if parts.insert(partition.partition) {
+                    continue;
                 }
+                let _inserted = duplicates.insert((topic.name.clone(), partition.partition));
             }
         }
         duplicates
