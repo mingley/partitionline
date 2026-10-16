@@ -2821,11 +2821,76 @@ impl CreatePartitionsRequest {
 /// Topics, TimeoutMs, and ValidateOnly from a CreatePartitions request.
 type CreatePartitionsDecoded = (Vec<CreatePartitionsTopic>, i32, bool);
 
+/// One CreatePartitions topic whose name and replica lists are borrowed.
+pub(crate) struct BorrowedCreatePartitionsTopic<'a> {
+    /// Topic name.
+    pub name: &'a str,
+    /// New total partition count (not a delta).
+    pub count: i32,
+    /// Replica assignments for the new partitions, or `None` (null).
+    pub assignments: Option<&'a [Vec<i32>]>,
+}
+
 /// CreatePartitions v0–3 (classic through v1; flexible from v2).
 pub fn encode_create_partitions_request(
     buf: &mut BytesMut,
     version: i16,
     topics: &[CreatePartitionsTopic],
+    timeout_ms: i32,
+    validate_only: bool,
+) -> crate::error::Result<()> {
+    encode_create_partitions_topic_views(buf, version, topics, timeout_ms, validate_only)
+}
+
+/// Encode CreatePartitions topics whose names and assignments are borrowed.
+pub(crate) fn encode_create_partitions_named(
+    buf: &mut BytesMut,
+    version: i16,
+    topics: &[BorrowedCreatePartitionsTopic<'_>],
+    timeout_ms: i32,
+    validate_only: bool,
+) -> crate::error::Result<()> {
+    encode_create_partitions_topic_views(buf, version, topics, timeout_ms, validate_only)
+}
+
+trait CreatePartitionsTopicView {
+    fn create_partitions_name(&self) -> &str;
+    fn create_partitions_count(&self) -> i32;
+    fn create_partitions_assignments(&self) -> Option<&[Vec<i32>]>;
+}
+
+impl CreatePartitionsTopicView for CreatePartitionsTopic {
+    fn create_partitions_name(&self) -> &str {
+        &self.name
+    }
+
+    fn create_partitions_count(&self) -> i32 {
+        self.count
+    }
+
+    fn create_partitions_assignments(&self) -> Option<&[Vec<i32>]> {
+        self.assignments.as_deref()
+    }
+}
+
+impl CreatePartitionsTopicView for BorrowedCreatePartitionsTopic<'_> {
+    fn create_partitions_name(&self) -> &str {
+        self.name
+    }
+
+    fn create_partitions_count(&self) -> i32 {
+        self.count
+    }
+
+    fn create_partitions_assignments(&self) -> Option<&[Vec<i32>]> {
+        self.assignments
+    }
+}
+
+fn encode_create_partitions_topic_views<T: CreatePartitionsTopicView>(
+    buf: &mut BytesMut,
+    version: i16,
+    topics: &[T],
     timeout_ms: i32,
     validate_only: bool,
 ) -> crate::error::Result<()> {
@@ -2837,10 +2902,10 @@ pub fn encode_create_partitions_request(
         buf.reserve(needed - buf.capacity());
     }
     buf::put_array_len(buf, flexible, Some(topics.len()))?;
-    for t in topics {
-        buf::put_string(buf, flexible, Some(&t.name))?;
-        buf.put_i32(t.count);
-        match &t.assignments {
+    for topic in topics {
+        buf::put_string(buf, flexible, Some(topic.create_partitions_name()))?;
+        buf.put_i32(topic.create_partitions_count());
+        match topic.create_partitions_assignments() {
             None => buf::put_array_len(buf, flexible, None)?,
             Some(assignments) => {
                 buf::put_array_len(buf, flexible, Some(assignments.len()))?;
@@ -2865,17 +2930,20 @@ pub fn encode_create_partitions_request(
     Ok(())
 }
 
-fn create_partitions_request_len(
+fn create_partitions_request_len<T: CreatePartitionsTopicView>(
     flexible: bool,
-    topics: &[CreatePartitionsTopic],
+    topics: &[T],
 ) -> Result<usize> {
     let mut total = describe_array_len(flexible, topics.len())?;
     for topic in topics {
-        total = add_describe_len(total, describe_string_len(flexible, Some(&topic.name))?)?;
+        total = add_describe_len(
+            total,
+            describe_string_len(flexible, Some(topic.create_partitions_name()))?,
+        )?;
         total = add_describe_len(total, 4)?;
         total = add_describe_len(
             total,
-            create_partitions_assignments_len(flexible, topic.assignments.as_deref())?,
+            create_partitions_assignments_len(flexible, topic.create_partitions_assignments())?,
         )?;
         if flexible {
             total = add_describe_len(total, buf::unsigned_varint_size(0))?;
@@ -27327,6 +27395,38 @@ mod tests {
             assert_eq!(decoded, topics);
             assert_eq!(timeout, 5_000);
             assert!(validate_only);
+        }
+    }
+
+    #[test]
+    fn create_partitions_named_topics_match_owned_topics() {
+        let assignments = vec![vec![1, 2], vec![2, 3]];
+        let owned = [
+            CreatePartitionsTopic {
+                name: "orders-topic-name-is-long".into(),
+                count: 6,
+                assignments: Some(assignments.clone()),
+            },
+            CreatePartitionsTopic::new("payments", 4),
+        ];
+        let named = [
+            BorrowedCreatePartitionsTopic {
+                name: "orders-topic-name-is-long",
+                count: 6,
+                assignments: Some(assignments.as_slice()),
+            },
+            BorrowedCreatePartitionsTopic {
+                name: "payments",
+                count: 4,
+                assignments: None,
+            },
+        ];
+        for version in 0..=3 {
+            let mut expected = BytesMut::new();
+            encode_create_partitions_request(&mut expected, version, &owned, 5_000, true).unwrap();
+            let mut got = BytesMut::new();
+            encode_create_partitions_named(&mut got, version, &named, 5_000, true).unwrap();
+            assert_eq!(got.as_ref(), expected.as_ref(), "version {version}");
         }
     }
 

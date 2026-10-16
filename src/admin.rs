@@ -49,7 +49,7 @@ use crate::protocol::admin::{
     encode_alter_partition_reassignments_named, encode_alter_replica_log_dirs_request,
     encode_alter_share_group_offsets_request, encode_alter_user_scram_credentials_request,
     encode_assign_replicas_to_dirs_request, encode_consumer_group_describe_request,
-    encode_create_delegation_token_request, encode_create_partitions_request,
+    encode_create_delegation_token_request, encode_create_partitions_named,
     encode_create_topics_request, encode_delete_groups_request, encode_delete_records_named_topics,
     encode_delete_share_group_offsets_request, encode_describe_client_quotas_request,
     encode_describe_cluster_request, encode_describe_configs_request,
@@ -64,11 +64,11 @@ use crate::protocol::admin::{
     encode_push_telemetry_request, encode_renew_delegation_token_request,
     encode_share_group_describe_request, encode_unregister_broker_request,
     encode_update_features_request, AlterConfigsResource, AlterableResource,
-    BorrowedReassignmentPartition, CreatableTopic, CreatePartitionsTopic, CreateTopicsRequest,
-    DeleteRecordsPartition, DeleteTopicState, DescribeConfigsResource, DescribeConfigsResult,
-    FeatureUpdateKey, ReplicaAssignment, ScramCredentialDeletion, ScramCredentialUpsertion,
-    TopicConfig, TopicResult, RESOURCE_BROKER, RESOURCE_BROKER_LOGGER, RESOURCE_CLIENT_METRICS,
-    RESOURCE_GROUP, RESOURCE_TOPIC,
+    BorrowedCreatePartitionsTopic, BorrowedReassignmentPartition, CreatableTopic,
+    CreateTopicsRequest, DeleteRecordsPartition, DeleteTopicState, DescribeConfigsResource,
+    DescribeConfigsResult, FeatureUpdateKey, ReplicaAssignment, ScramCredentialDeletion,
+    ScramCredentialUpsertion, TopicConfig, TopicResult, RESOURCE_BROKER, RESOURCE_BROKER_LOGGER,
+    RESOURCE_CLIENT_METRICS, RESOURCE_GROUP, RESOURCE_TOPIC,
 };
 use crate::protocol::api::{
     decode_api_versions_response, decode_metadata_response, decode_metadata_response_into,
@@ -3378,13 +3378,13 @@ fn delete_state_matches(topic: &DeleteTopicState, result: &TopicResult) -> bool 
 
 fn partitions_from_new<'a>(
     topics: impl IntoIterator<Item = &'a NewPartitions>,
-) -> Vec<CreatePartitionsTopic> {
+) -> Vec<BorrowedCreatePartitionsTopic<'a>> {
     topics
         .into_iter()
-        .map(|t| CreatePartitionsTopic {
-            name: t.name.clone(),
+        .map(|t| BorrowedCreatePartitionsTopic {
+            name: t.name.as_str(),
             count: t.total_count,
-            assignments: t.assignments.clone(),
+            assignments: t.assignments.as_deref(),
         })
         .collect()
 }
@@ -5602,7 +5602,7 @@ impl Admin {
                     CREATE_PARTITIONS,
                     version,
                     |buf| {
-                        encode_create_partitions_request(
+                        encode_create_partitions_named(
                             buf,
                             version,
                             &encoded,
