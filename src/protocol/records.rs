@@ -1830,9 +1830,22 @@ fn read_bounded<R: Read>(reader: &mut R, max_bytes: usize, reserve: usize) -> Re
     Ok(out)
 }
 
+fn gzip_isize(src: &[u8]) -> Option<usize> {
+    if src.len() < 18 || src.get(..2) != Some(&[0x1f, 0x8b]) {
+        return None;
+    }
+    let tail = src.get(src.len().saturating_sub(4)..)?;
+    let bytes: [u8; 4] = tail.try_into().ok()?;
+    usize::try_from(u32::from_le_bytes(bytes)).ok()
+}
+
 fn gzip_decompress(src: &[u8], max_bytes: usize) -> Result<Vec<u8>> {
+    let reserve = gzip_isize(src)
+        .filter(|size| *size <= max_bytes)
+        .map(|size| size.min(src.len().saturating_mul(64)))
+        .unwrap_or(0);
     let mut decoder = flate2::read::GzDecoder::new(src);
-    read_bounded(&mut decoder, max_bytes, 0)
+    read_bounded(&mut decoder, max_bytes, reserve)
 }
 
 /// xerial snappy-java header used by the Java Kafka client.
