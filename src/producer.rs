@@ -4594,6 +4594,9 @@ async fn retry_loop(weak: std::sync::Weak<Shared>, mut rx: mpsc::Receiver<Pendin
             for pending in &mut batch {
                 pending.skip_meta_refresh = true;
             }
+            // The sockets start while each record still waits for retry_after.
+            // Nothing is sent until that per-record deadline.
+            nudge_retry_leaders(&shared, &batch);
         }
         for pending in batch {
             retry_one(&shared, pending).await;
@@ -4613,6 +4616,31 @@ impl Drop for RetryGuard<'_> {
         if let Some(p) = self.p.take() {
             fail_pendings(self.shared, vec![p], Error::Timeout);
         }
+    }
+}
+
+/// Open a leader socket for every retried partition whose leader is known.
+fn nudge_retry_leaders(shared: &Shared, batch: &[Pending]) {
+    if shared.sticky.is_some() {
+        return;
+    }
+    let n_conn = shared.cfg.connections.max(1);
+    let mut slots = HashSet::new();
+    {
+        let cluster = shared.cluster.lock();
+        for pending in batch {
+            let Some(part) = pending.rec.partition else {
+                continue;
+            };
+            let Ok(node) = cluster.leader_id(pending.rec.topic.as_ref(), part) else {
+                continue;
+            };
+            let slot = usize::try_from(part).unwrap_or(0) % n_conn;
+            let _ = slots.insert((node, slot));
+        }
+    }
+    for (node, slot) in slots {
+        try_nudge_slot(&shared.connect_tx, node, slot);
     }
 }
 

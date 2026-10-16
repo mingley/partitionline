@@ -468,6 +468,57 @@ async fn retry_refreshes_waiting_topics_together() {
     producer.close().await.unwrap();
 }
 
+/// After a retriable produce error, the new leaders are dialed together.
+#[tokio::test(flavor = "current_thread")]
+async fn retry_dials_moved_leaders_together() {
+    use partitionline::error::NOT_LEADER_OR_FOLLOWER;
+
+    let mock = common::Mock::start_three_node().await;
+    mock.set_topic_partitions("t", 1);
+    mock.set_topic_partitions("u", 1);
+    mock.set_partition_leader("t", 0, 1);
+    mock.set_partition_leader("u", 0, 1);
+    let mut cfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    cfg.linger = Duration::from_millis(40);
+    cfg.batch_records = 100_000;
+    cfg.retry_backoff = Duration::from_millis(1);
+    cfg.retry_backoff_max = Duration::from_millis(1);
+    let producer = Producer::new(cfg).await.unwrap();
+    let _warm = producer
+        .send_all([
+            ProduceRecord::to("t").partition(0).value(&b"warm-t"[..]),
+            ProduceRecord::to("u").partition(0).value(&b"warm-u"[..]),
+        ])
+        .await
+        .unwrap();
+    mock.set_partition_leader("t", 0, 2);
+    mock.set_partition_leader("u", 0, 3);
+    mock.set_produce_error_times(NOT_LEADER_OR_FOLLOWER, 1);
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let started = Instant::now();
+    let acks = producer
+        .send_all([
+            ProduceRecord::to("t").partition(0).value(&b"a"[..]),
+            ProduceRecord::to("u").partition(0).value(&b"b"[..]),
+        ])
+        .await
+        .unwrap();
+    assert_eq!(acks.len(), 2);
+    assert!(
+        started.elapsed() < Duration::from_millis(450),
+        "retry waited for one moved leader handshake at a time: {:?}",
+        started.elapsed()
+    );
+    let mut nodes = mock.produce_request_nodes();
+    nodes.sort_unstable();
+    nodes.dedup();
+    assert!(
+        nodes.contains(&2) && nodes.contains(&3),
+        "retries should reach both new leaders, got {nodes:?}"
+    );
+    producer.close().await.unwrap();
+}
+
 /// KL09-17: the route-cached tracker must produce metrics snapshots
 /// identical to the old per-record-lookup path: exact global counters,
 /// one sorted per-topic row per active topic with exact counts/bytes,
