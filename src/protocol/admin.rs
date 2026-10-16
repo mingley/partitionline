@@ -21949,14 +21949,15 @@ impl DescribeQuorumRequest {
 
     /// Java `DescribeQuorumRequest.getPartitionLevelErrorResponse`.
     ///
-    /// Copies each request topic name and partition id into the results;
-    /// every partition entry carries `error_code` with `error_message`,
-    /// and leader/epoch/watermark stay at the Java fresh-object zeros with
-    /// empty voter/observer lists (verified against the pinned 4.1.0
-    /// class). The top-level code stays `0`; the top-level message is the
-    /// Java ignorable-field empty-string default, which encodes as an
-    /// empty (not null) string on v2+. Below v2 the messages are omitted
-    /// from the wire; decode fills `None`.
+    /// Each request topic name and partition id is written from the
+    /// caller. Every partition entry carries `error_code` with
+    /// `error_message`, and leader/epoch/watermark stay at the Java
+    /// fresh-object zeros with empty voter/observer lists (verified
+    /// against the pinned 4.1.0 class). The top-level code stays `0`;
+    /// the top-level message is the Java ignorable-field empty-string
+    /// default, which encodes as an empty (not null) string on v2+.
+    /// Below v2 the messages are omitted from the wire; decode fills
+    /// `None`.
     pub fn partition_error_response(
         buf: &mut BytesMut,
         version: i16,
@@ -21964,59 +21965,7 @@ impl DescribeQuorumRequest {
         error_code: i16,
         error_message: Option<&str>,
     ) -> crate::error::Result<()> {
-        let _flexible = describe_quorum_flexible(version)?;
-        let mut budget = QuorumBudget::default();
-        budget.fixed(2)?;
-        if version >= 2 {
-            budget.string_len(0)?;
-        }
-        budget.array_len::<DescribeQuorumResult>(topics.len())?;
-        for topic in topics {
-            budget.string_len(topic.topic.len())?;
-            budget.array_len::<DescribeQuorumPartition>(topic.partitions.len())?;
-            for _ in &topic.partitions {
-                budget.fixed(25)?;
-                if version >= 2 {
-                    budget.optional_string(error_message)?;
-                }
-            }
-            budget.fixed(1)?;
-        }
-        budget.fixed(if version >= 2 { 2 } else { 1 })?;
-        let results: Vec<DescribeQuorumResult> = topics
-            .iter()
-            .map(|topic| DescribeQuorumResult {
-                topic: topic.topic.clone(),
-                partitions: topic
-                    .partitions
-                    .iter()
-                    .map(|partition_index| DescribeQuorumPartition {
-                        partition_index: *partition_index,
-                        error_code,
-                        error_message: if version >= 2 {
-                            error_message.map(str::to_owned)
-                        } else {
-                            None
-                        },
-                        leader_id: 0,
-                        leader_epoch: 0,
-                        high_watermark: 0,
-                        current_voters: Vec::new(),
-                        observers: Vec::new(),
-                    })
-                    .collect(),
-            })
-            .collect();
-        encode_describe_quorum_response(
-            buf,
-            version,
-            &DescribeQuorumResponse {
-                error_code: 0,
-                error_message: Some(String::new()),
-                topics: results,
-                nodes: Vec::new(),
-            },
-        )
+        encode_describe_quorum_partition_errors(buf, version, topics, error_code, error_message)
     }
 }
 
@@ -22629,6 +22578,151 @@ pub fn encode_describe_quorum_response(
     }
     debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+/// DescribeQuorum partition-error body written from the request topics.
+///
+/// The bytes match a response whose top-level error is `0`, whose
+/// top-level message is empty on v2+, and whose partitions carry
+/// `error_code` with empty voter and observer lists.
+fn encode_describe_quorum_partition_errors(
+    buf: &mut BytesMut,
+    version: i16,
+    topics: &[DescribeQuorumTopic],
+    error_code: i16,
+    error_message: Option<&str>,
+) -> crate::error::Result<()> {
+    let flexible = describe_quorum_flexible(version)?;
+    let mut budget = QuorumBudget::default();
+    budget.fixed(2)?;
+    if version >= 2 {
+        budget.string_len(0)?;
+    }
+    budget.array_len::<DescribeQuorumResult>(topics.len())?;
+    for topic in topics {
+        budget.string_len(topic.topic.len())?;
+        budget.array_len::<DescribeQuorumPartition>(topic.partitions.len())?;
+        for _ in &topic.partitions {
+            budget.fixed(25)?;
+            if version >= 2 {
+                budget.optional_string(error_message)?;
+            }
+        }
+        budget.fixed(1)?;
+    }
+    budget.fixed(if version >= 2 { 2 } else { 1 })?;
+    let mut response_budget = QuorumBudget::default();
+    response_budget.fixed(2)?;
+    if version >= 2 {
+        response_budget.optional_string(Some(""))?;
+    }
+    response_budget.array_len::<DescribeQuorumResult>(topics.len())?;
+    for topic in topics {
+        response_budget.string_len(topic.topic.len())?;
+        response_budget.array_len::<DescribeQuorumPartition>(topic.partitions.len())?;
+        for _ in &topic.partitions {
+            response_budget.fixed(22)?;
+            if version >= 2 {
+                response_budget.optional_string(error_message)?;
+            }
+            response_budget.array_len::<DescribeQuorumReplicaState>(0)?;
+            response_budget.fixed(0)?;
+            response_budget.array_len::<DescribeQuorumReplicaState>(0)?;
+            response_budget.fixed(0)?;
+            response_budget.fixed(1)?;
+        }
+        response_budget.fixed(1)?;
+    }
+    if version >= 2 {
+        response_budget.array_len::<DescribeQuorumNode>(0)?;
+    }
+    response_budget.fixed(1)?;
+    let body_start = buf.len();
+    let planned = describe_quorum_partition_error_len(version, flexible, topics, error_message)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
+    buf.put_i16(0);
+    if version >= 2 {
+        buf::put_string(buf, flexible, Some(""))?;
+    }
+    buf::put_array_len(buf, flexible, Some(topics.len()))?;
+    for topic in topics {
+        buf::put_string(buf, flexible, Some(&topic.topic))?;
+        buf::put_array_len(buf, flexible, Some(topic.partitions.len()))?;
+        for partition_index in &topic.partitions {
+            buf.put_i32(*partition_index);
+            buf.put_i16(error_code);
+            if version >= 2 {
+                buf::put_string(buf, flexible, error_message)?;
+            }
+            buf.put_i32(0);
+            buf.put_i32(0);
+            buf.put_i64(0);
+            encode_describe_quorum_replicas(buf, version, flexible, &[])?;
+            encode_describe_quorum_replicas(buf, version, flexible, &[])?;
+            if flexible {
+                buf::put_empty_tagged_fields(buf);
+            }
+        }
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+    }
+    if version >= 2 {
+        buf::put_array_len(buf, flexible, Some(0))?;
+    }
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+    Ok(())
+}
+
+fn describe_quorum_partition_error_len(
+    version: i16,
+    flexible: bool,
+    topics: &[DescribeQuorumTopic],
+    error_message: Option<&str>,
+) -> Result<usize> {
+    let mut total = 2usize;
+    if version >= 2 {
+        total = add_describe_len(total, describe_string_len(flexible, Some(""))?)?;
+    }
+    total = add_describe_len(total, describe_array_len(flexible, topics.len())?)?;
+    let message = if version >= 2 {
+        describe_string_len(flexible, error_message)?
+    } else {
+        0
+    };
+    let voters = describe_quorum_replicas_len(version, flexible, &[])?;
+    for topic in topics {
+        total = add_describe_len(total, describe_string_len(flexible, Some(&topic.topic))?)?;
+        total = add_describe_len(total, describe_array_len(flexible, topic.partitions.len())?)?;
+        let mut one = 22usize;
+        one = add_describe_len(one, message)?;
+        one = add_describe_len(one, voters)?;
+        one = add_describe_len(one, voters)?;
+        if flexible {
+            one = add_describe_len(one, buf::unsigned_varint_size(0))?;
+        }
+        total = add_describe_len(
+            total,
+            one.checked_mul(topic.partitions.len())
+                .ok_or_else(|| Error::protocol("describe quorum response size overflow"))?,
+        )?;
+        if flexible {
+            total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    if version >= 2 {
+        total = add_describe_len(total, describe_array_len(flexible, 0)?)?;
+    }
+    if flexible {
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 fn describe_quorum_response_len(
@@ -46006,6 +46100,106 @@ mod tests {
         )
         .unwrap();
         assert_eq!(&buf[..], RESP);
+    }
+
+    #[test]
+    fn describe_quorum_partition_error_matches_named_results() {
+        let topics = [
+            DescribeQuorumTopic::new("orders-topic-name-is-long", vec![0, 2]),
+            DescribeQuorumTopic::new("t", Vec::new()),
+        ];
+        for version in 0..=2 {
+            for message in [None, Some("Not controller")] {
+                let results: Vec<DescribeQuorumResult> = topics
+                    .iter()
+                    .map(|topic| DescribeQuorumResult {
+                        topic: topic.topic.clone(),
+                        partitions: topic
+                            .partitions
+                            .iter()
+                            .map(|partition_index| DescribeQuorumPartition {
+                                partition_index: *partition_index,
+                                error_code: crate::error::NOT_CONTROLLER,
+                                error_message: if version >= 2 {
+                                    message.map(str::to_owned)
+                                } else {
+                                    None
+                                },
+                                leader_id: 0,
+                                leader_epoch: 0,
+                                high_watermark: 0,
+                                current_voters: Vec::new(),
+                                observers: Vec::new(),
+                            })
+                            .collect(),
+                    })
+                    .collect();
+                let mut expected = BytesMut::new();
+                encode_describe_quorum_response(
+                    &mut expected,
+                    version,
+                    &DescribeQuorumResponse {
+                        error_code: 0,
+                        error_message: Some(String::new()),
+                        topics: results,
+                        nodes: Vec::new(),
+                    },
+                )
+                .unwrap();
+                let mut got = BytesMut::new();
+                DescribeQuorumRequest::partition_error_response(
+                    &mut got,
+                    version,
+                    &topics,
+                    crate::error::NOT_CONTROLLER,
+                    message,
+                )
+                .unwrap();
+                assert_eq!(
+                    got.as_ref(),
+                    expected.as_ref(),
+                    "version {version} message {message:?}"
+                );
+                let len = got.len();
+                let capacity = got.capacity();
+                assert!(capacity >= len);
+                assert!(capacity < 64 * 1024);
+                got.clear();
+                DescribeQuorumRequest::partition_error_response(
+                    &mut got,
+                    version,
+                    &topics,
+                    crate::error::NOT_CONTROLLER,
+                    message,
+                )
+                .unwrap();
+                assert_eq!(got.len(), len);
+                assert_eq!(got.capacity(), capacity);
+            }
+        }
+        let mut empty = BytesMut::new();
+        DescribeQuorumRequest::partition_error_response(&mut empty, 2, &[], 41, None).unwrap();
+        let mut expected_empty = BytesMut::new();
+        encode_describe_quorum_response(
+            &mut expected_empty,
+            2,
+            &DescribeQuorumResponse {
+                error_code: 0,
+                error_message: Some(String::new()),
+                topics: Vec::new(),
+                nodes: Vec::new(),
+            },
+        )
+        .unwrap();
+        assert_eq!(empty.as_ref(), expected_empty.as_ref());
+        assert!(DescribeQuorumRequest::partition_error_response(
+            &mut BytesMut::new(),
+            3,
+            &topics,
+            41,
+            None
+        )
+        .is_err());
     }
 
     #[test]
