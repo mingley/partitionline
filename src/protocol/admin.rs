@@ -8204,6 +8204,12 @@ pub fn encode_alter_client_quotas_request(
     validate_only: bool,
 ) -> crate::error::Result<()> {
     let flexible = alter_client_quotas_flexible(version)?;
+    let body_start = buf.len();
+    let planned = alter_client_quotas_request_len(flexible, entries)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf::put_array_len(buf, flexible, Some(entries.len()))?;
     for e in entries {
         buf::put_array_len(buf, flexible, Some(e.entity.len()))?;
@@ -8231,7 +8237,49 @@ pub fn encode_alter_client_quotas_request(
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn alter_client_quotas_request_len(
+    flexible: bool,
+    entries: &[ClientQuotaAlteration],
+) -> Result<usize> {
+    let mut total = describe_array_len(flexible, entries.len())?;
+    for entry in entries {
+        total = add_describe_len(total, describe_array_len(flexible, entry.entity.len())?)?;
+        for entity in &entry.entity {
+            total = add_describe_len(total, client_quota_entity_len(flexible, entity)?)?;
+        }
+        total = add_describe_len(total, describe_array_len(flexible, entry.ops.len())?)?;
+        for op in &entry.ops {
+            total = add_describe_len(total, describe_string_len(flexible, Some(&op.key))?)?;
+            total = add_describe_len(total, 9)?;
+            if flexible {
+                total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+            }
+        }
+        if flexible {
+            total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    total = add_describe_len(total, 1)?;
+    if flexible {
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
+}
+
+fn client_quota_entity_len(flexible: bool, entity: &ClientQuotaEntity) -> Result<usize> {
+    let mut total = describe_string_len(flexible, Some(&entity.entity_type))?;
+    total = add_describe_len(
+        total,
+        describe_string_len(flexible, entity.name.as_deref())?,
+    )?;
+    if flexible {
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 /// Decode an AlterClientQuotas request.
@@ -8300,6 +8348,12 @@ pub fn encode_alter_client_quotas_response_with_throttle(
     throttle_time_ms: i32,
 ) -> crate::error::Result<()> {
     let flexible = alter_client_quotas_flexible(version)?;
+    let body_start = buf.len();
+    let planned = alter_client_quotas_response_len(flexible, results)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf.put_i32(throttle_time_ms);
     buf::put_array_len(buf, flexible, Some(results.len()))?;
     for r in results {
@@ -8320,7 +8374,34 @@ pub fn encode_alter_client_quotas_response_with_throttle(
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn alter_client_quotas_response_len(
+    flexible: bool,
+    results: &[ClientQuotaAlterationResult],
+) -> Result<usize> {
+    let mut total = 4;
+    total = add_describe_len(total, describe_array_len(flexible, results.len())?)?;
+    for result in results {
+        total = add_describe_len(total, 2)?;
+        total = add_describe_len(
+            total,
+            describe_string_len(flexible, result.error_message.as_deref())?,
+        )?;
+        total = add_describe_len(total, describe_array_len(flexible, result.entity.len())?)?;
+        for entity in &result.entity {
+            total = add_describe_len(total, client_quota_entity_len(flexible, entity)?)?;
+        }
+        if flexible {
+            total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    if flexible {
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 /// Decode an AlterClientQuotas response.
@@ -8400,6 +8481,12 @@ pub fn encode_describe_client_quotas_request(
     strict: bool,
 ) -> crate::error::Result<()> {
     let flexible = describe_client_quotas_flexible(version)?;
+    let body_start = buf.len();
+    let planned = describe_client_quotas_request_len(flexible, components)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf::put_array_len(buf, flexible, Some(components.len()))?;
     for c in components {
         buf::put_string(buf, flexible, Some(&c.entity_type))?;
@@ -8413,7 +8500,34 @@ pub fn encode_describe_client_quotas_request(
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn describe_client_quotas_request_len(
+    flexible: bool,
+    components: &[ClientQuotaFilterComponent],
+) -> Result<usize> {
+    let mut total = describe_array_len(flexible, components.len())?;
+    for component in components {
+        total = add_describe_len(
+            total,
+            describe_string_len(flexible, Some(&component.entity_type))?,
+        )?;
+        total = add_describe_len(total, 1)?;
+        total = add_describe_len(
+            total,
+            describe_string_len(flexible, component.match_value.as_deref())?,
+        )?;
+        if flexible {
+            total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    total = add_describe_len(total, 1)?;
+    if flexible {
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 /// Decode a DescribeClientQuotas request.
@@ -8455,6 +8569,12 @@ pub fn encode_describe_client_quotas_response(
     resp: &DescribeClientQuotasResponse,
 ) -> crate::error::Result<()> {
     let flexible = describe_client_quotas_flexible(version)?;
+    let body_start = buf.len();
+    let planned = describe_client_quotas_response_len(flexible, resp)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf.put_i32(resp.throttle_time_ms);
     buf.put_i16(resp.error_code);
     buf::put_string(buf, flexible, resp.error_message.as_deref())?;
@@ -8488,7 +8608,56 @@ pub fn encode_describe_client_quotas_response(
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn describe_client_quotas_response_len(
+    flexible: bool,
+    resp: &DescribeClientQuotasResponse,
+) -> Result<usize> {
+    let mut total = 6;
+    total = add_describe_len(
+        total,
+        describe_string_len(flexible, resp.error_message.as_deref())?,
+    )?;
+    match &resp.entries {
+        None => {
+            total = add_describe_len(
+                total,
+                if flexible {
+                    buf::unsigned_varint_size(0)
+                } else {
+                    4
+                },
+            )?
+        }
+        Some(entries) => {
+            total = add_describe_len(total, describe_array_len(flexible, entries.len())?)?;
+            for entry in entries {
+                total = add_describe_len(total, describe_array_len(flexible, entry.entity.len())?)?;
+                for entity in &entry.entity {
+                    total = add_describe_len(total, client_quota_entity_len(flexible, entity)?)?;
+                }
+                total = add_describe_len(total, describe_array_len(flexible, entry.values.len())?)?;
+                for value in &entry.values {
+                    total =
+                        add_describe_len(total, describe_string_len(flexible, Some(&value.key))?)?;
+                    total = add_describe_len(total, 8)?;
+                    if flexible {
+                        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+                    }
+                }
+                if flexible {
+                    total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+                }
+            }
+        }
+    }
+    if flexible {
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 /// Decode a DescribeClientQuotas response.
@@ -28284,6 +28453,78 @@ mod tests {
     }
 
     #[test]
+    fn a_alter_client_quotas_request_sizes_its_body_once() {
+        let entries = vec![ClientQuotaAlteration {
+            entity: vec![
+                ClientQuotaEntity::new(ClientQuotaEntity::USER, Some("alice".into())),
+                ClientQuotaEntity::new(ClientQuotaEntity::CLIENT_ID, None),
+            ],
+            ops: vec![
+                ClientQuotaOp {
+                    key: "producer_byte_rate".into(),
+                    value: 1024.0,
+                    remove: false,
+                },
+                ClientQuotaOp {
+                    key: "consumer_byte_rate".into(),
+                    value: 0.0,
+                    remove: true,
+                },
+            ],
+        }];
+        for version in [0_i16, 1] {
+            let mut buf = BytesMut::new();
+            encode_alter_client_quotas_request(&mut buf, version, &entries, true).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_alter_client_quotas_request(&mut buf, version, &entries, true).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+            let mut cur = &buf[..];
+            let (decoded, validate_only) =
+                decode_alter_client_quotas_request(&mut cur, version).unwrap();
+            assert!(cur.is_empty());
+            assert_eq!(decoded, entries);
+            assert!(validate_only);
+        }
+    }
+
+    #[test]
+    fn a_alter_client_quotas_response_sizes_its_body_once() {
+        let results = vec![ClientQuotaAlterationResult {
+            error_code: 0,
+            error_message: Some("updated".into()),
+            entity: vec![ClientQuotaEntity::new(
+                ClientQuotaEntity::USER,
+                Some("alice".into()),
+            )],
+        }];
+        for version in [0_i16, 1] {
+            let mut buf = BytesMut::new();
+            encode_alter_client_quotas_response_with_throttle(&mut buf, version, &results, 12)
+                .unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_alter_client_quotas_response_with_throttle(&mut buf, version, &results, 12)
+                .unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+            let mut cur = &buf[..];
+            let (decoded, throttle) =
+                decode_alter_client_quotas_response(&mut cur, version).unwrap();
+            assert!(cur.is_empty());
+            assert_eq!(decoded, results);
+            assert_eq!(throttle, 12);
+        }
+    }
+
+    #[test]
     fn alter_client_quotas_v1_matches_kafka_protocol_0_18() {
         // Independent encode from kafka-protocol 0.18.0 (client encodes the
         // request; broker encodes the response). Apache JSON api 49
@@ -29531,6 +29772,83 @@ mod tests {
                 "DescribeClientQuotas v{version} errorCounts leftover-empty; leftover {} bytes",
                 cur.len()
             );
+        }
+    }
+
+    #[test]
+    fn a_describe_client_quotas_request_sizes_its_body_once() {
+        let components = vec![
+            ClientQuotaFilterComponent {
+                entity_type: ClientQuotaEntity::USER.into(),
+                match_type: QUOTA_MATCH_EXACT,
+                match_value: Some("alice".into()),
+            },
+            ClientQuotaFilterComponent {
+                entity_type: ClientQuotaEntity::CLIENT_ID.into(),
+                match_type: QUOTA_MATCH_ANY,
+                match_value: None,
+            },
+        ];
+        for version in [0_i16, 1] {
+            let mut buf = BytesMut::new();
+            encode_describe_client_quotas_request(&mut buf, version, &components, true).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_describe_client_quotas_request(&mut buf, version, &components, true).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+            let mut cur = &buf[..];
+            let (decoded, strict) =
+                decode_describe_client_quotas_request(&mut cur, version).unwrap();
+            assert!(cur.is_empty());
+            assert_eq!(decoded, components);
+            assert!(strict);
+        }
+    }
+
+    #[test]
+    fn a_describe_client_quotas_response_sizes_its_body_once() {
+        let listed = DescribeClientQuotasResponse {
+            throttle_time_ms: 12,
+            error_code: 0,
+            error_message: Some("listed".into()),
+            entries: Some(vec![ClientQuotaEntry {
+                entity: vec![ClientQuotaEntity::new(
+                    ClientQuotaEntity::USER,
+                    Some("alice".into()),
+                )],
+                values: vec![ClientQuotaValue {
+                    key: "producer_byte_rate".into(),
+                    value: 1024.0,
+                }],
+            }]),
+        };
+        let empty = DescribeClientQuotasResponse {
+            throttle_time_ms: 12,
+            error_code: 0,
+            error_message: None,
+            entries: None,
+        };
+        for version in [0_i16, 1] {
+            for response in [&listed, &empty] {
+                let mut buf = BytesMut::new();
+                encode_describe_client_quotas_response(&mut buf, version, response).unwrap();
+                let len = buf.len();
+                let capacity = buf.capacity();
+                assert!(capacity >= len);
+                assert!(capacity < 64 * 1024);
+                buf.clear();
+                encode_describe_client_quotas_response(&mut buf, version, response).unwrap();
+                assert_eq!(buf.len(), len);
+                assert_eq!(buf.capacity(), capacity);
+                let mut cur = &buf[..];
+                let decoded = decode_describe_client_quotas_response(&mut cur, version).unwrap();
+                assert!(cur.is_empty());
+                assert_eq!(decoded, *response);
+            }
         }
     }
 
