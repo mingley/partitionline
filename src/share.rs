@@ -789,6 +789,13 @@ pub enum ShareAcquireMode {
 /// delivers the fetch; this is not partition
 /// `BROKER_NOT_AVAILABLE`, which fails that poll, and not partition
 /// `REPLICA_NOT_AVAILABLE`, which skips). A piggybacked
+/// `CLUSTER_AUTHORIZATION_FAILED` still completes without retry,
+/// including when `AcknowledgeErrorMessage` is set (Java
+/// `handleShareFetchSuccess` completes piggyback acks and still
+/// delivers the fetch; this is not partition
+/// `CLUSTER_AUTHORIZATION_FAILED`, which fails that poll, and not
+/// piggyback `TOPIC_AUTHORIZATION_FAILED` /
+/// `GROUP_AUTHORIZATION_FAILED`). A piggybacked
 /// `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a
 /// sibling partition whose `AcknowledgeErrorCode` is none, including
 /// when `AcknowledgeErrorMessage` is set or empty. A piggybacked
@@ -2083,6 +2090,13 @@ impl ShareGroup {
     /// still delivers the fetch; this is not partition
     /// `BROKER_NOT_AVAILABLE`, which fails that poll, and not partition
     /// `REPLICA_NOT_AVAILABLE`, which skips).
+    /// A piggybacked `CLUSTER_AUTHORIZATION_FAILED` still completes
+    /// without retry, including when `AcknowledgeErrorMessage` is set
+    /// (Java `handleShareFetchSuccess` completes piggyback acks and
+    /// still delivers the fetch; this is not partition
+    /// `CLUSTER_AUTHORIZATION_FAILED`, which fails that poll, and not
+    /// piggyback `TOPIC_AUTHORIZATION_FAILED` /
+    /// `GROUP_AUTHORIZATION_FAILED`).
     /// A piggybacked `TOPIC_AUTHORIZATION_FAILED` on one partition
     /// does not fail a sibling whose `AcknowledgeErrorCode` is none,
     /// including when `AcknowledgeErrorMessage` is set or empty.
