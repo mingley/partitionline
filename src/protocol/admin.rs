@@ -15625,6 +15625,12 @@ pub fn encode_describe_topic_partitions_request(
     response_partition_limit: i32,
     cursor: Option<&TopicPartitionCursor>,
 ) -> crate::error::Result<()> {
+    let body_start = buf.len();
+    let planned = describe_topic_partitions_request_len(topics, cursor)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf::put_array_len(buf, true, Some(topics.len()))?;
     for name in topics {
         buf::put_compact_string(buf, Some(name))?;
@@ -15633,7 +15639,32 @@ pub fn encode_describe_topic_partitions_request(
     buf.put_i32(response_partition_limit);
     put_nullable_cursor(buf, cursor)?;
     buf::put_empty_tagged_fields(buf);
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn describe_topic_partitions_request_len(
+    topics: &[String],
+    cursor: Option<&TopicPartitionCursor>,
+) -> Result<usize> {
+    let mut total = describe_array_len(true, topics.len())?;
+    for name in topics {
+        total = add_describe_len(total, describe_string_len(true, Some(name))?)?;
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    total = add_describe_len(total, 4)?;
+    total = add_describe_len(total, topic_partition_cursor_len(cursor)?)?;
+    add_describe_len(total, buf::unsigned_varint_size(0))
+}
+
+fn topic_partition_cursor_len(cursor: Option<&TopicPartitionCursor>) -> Result<usize> {
+    let Some(cursor) = cursor else {
+        return Ok(1);
+    };
+    let mut total = 1;
+    total = add_describe_len(total, describe_string_len(true, Some(&cursor.topic_name))?)?;
+    total = add_describe_len(total, 4)?;
+    add_describe_len(total, buf::unsigned_varint_size(0))
 }
 
 /// Decode a DescribeTopicPartitions request.
@@ -15661,6 +15692,12 @@ pub fn encode_describe_topic_partitions_response(
     buf: &mut BytesMut,
     resp: &DescribeTopicPartitionsResponse,
 ) -> crate::error::Result<()> {
+    let body_start = buf.len();
+    let planned = describe_topic_partitions_response_len(resp)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf.put_i32(resp.throttle_time_ms);
     buf::put_array_len(buf, true, Some(resp.topics.len()))?;
     for t in &resp.topics {
@@ -15686,7 +15723,47 @@ pub fn encode_describe_topic_partitions_response(
     }
     put_nullable_cursor(buf, resp.next_cursor.as_ref())?;
     buf::put_empty_tagged_fields(buf);
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn describe_topic_partitions_response_len(resp: &DescribeTopicPartitionsResponse) -> Result<usize> {
+    let mut total = 4;
+    total = add_describe_len(total, describe_array_len(true, resp.topics.len())?)?;
+    for topic in &resp.topics {
+        total = add_describe_len(total, 2)?;
+        total = add_describe_len(total, describe_string_len(true, topic.name.as_deref())?)?;
+        total = add_describe_len(total, 17)?;
+        total = add_describe_len(total, describe_array_len(true, topic.partitions.len())?)?;
+        for partition in &topic.partitions {
+            total = add_describe_len(total, 14)?;
+            total = add_describe_len(
+                total,
+                reassignment_replica_len(Some(&partition.replica_nodes))?,
+            )?;
+            total = add_describe_len(total, reassignment_replica_len(Some(&partition.isr_nodes))?)?;
+            total = add_describe_len(
+                total,
+                reassignment_replica_len(partition.eligible_leader_replicas.as_deref())?,
+            )?;
+            total = add_describe_len(
+                total,
+                reassignment_replica_len(partition.last_known_elr.as_deref())?,
+            )?;
+            total = add_describe_len(
+                total,
+                reassignment_replica_len(Some(&partition.offline_replicas))?,
+            )?;
+            total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+        }
+        total = add_describe_len(total, 4)?;
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    total = add_describe_len(
+        total,
+        topic_partition_cursor_len(resp.next_cursor.as_ref())?,
+    )?;
+    add_describe_len(total, buf::unsigned_varint_size(0))
 }
 
 /// Decode a DescribeTopicPartitions response.
@@ -35951,6 +36028,70 @@ mod tests {
             &zero_buf[..],
             "error_response still fills ThrottleTimeMs 0"
         );
+    }
+
+    #[test]
+    fn a_describe_topic_partitions_request_sizes_its_body_once() {
+        let topics = vec!["orders".to_string(), "payments".to_string()];
+        let cursor = TopicPartitionCursor::new("orders", 1);
+        for listed in [None, Some(&cursor)] {
+            let mut buf = BytesMut::new();
+            encode_describe_topic_partitions_request(&mut buf, &topics, 100, listed).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_describe_topic_partitions_request(&mut buf, &topics, 100, listed).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+            let mut cur = &buf[..];
+            let (decoded, limit, got) = decode_describe_topic_partitions_request(&mut cur).unwrap();
+            assert!(cur.is_empty());
+            assert_eq!(decoded, topics);
+            assert_eq!(limit, 100);
+            assert_eq!(got.as_ref(), listed);
+        }
+    }
+
+    #[test]
+    fn a_describe_topic_partitions_response_sizes_its_body_once() {
+        let response = DescribeTopicPartitionsResponse {
+            throttle_time_ms: 12,
+            topics: vec![DescribedTopicPartitions {
+                error_code: 0,
+                name: Some("orders".into()),
+                topic_id: [0; 16],
+                is_internal: false,
+                partitions: vec![DescribedTopicPartition {
+                    error_code: 0,
+                    partition_index: 0,
+                    leader_id: 1,
+                    leader_epoch: 2,
+                    replica_nodes: vec![1, 2],
+                    isr_nodes: vec![1],
+                    eligible_leader_replicas: None,
+                    last_known_elr: Some(vec![2]),
+                    offline_replicas: vec![],
+                }],
+                topic_authorized_operations: 7,
+            }],
+            next_cursor: Some(TopicPartitionCursor::new("orders", 1)),
+        };
+        let mut buf = BytesMut::new();
+        encode_describe_topic_partitions_response(&mut buf, &response).unwrap();
+        let len = buf.len();
+        let capacity = buf.capacity();
+        assert!(capacity >= len);
+        assert!(capacity < 64 * 1024);
+        buf.clear();
+        encode_describe_topic_partitions_response(&mut buf, &response).unwrap();
+        assert_eq!(buf.len(), len);
+        assert_eq!(buf.capacity(), capacity);
+        let mut cur = &buf[..];
+        let decoded = decode_describe_topic_partitions_response(&mut cur).unwrap();
+        assert!(cur.is_empty());
+        assert_eq!(decoded, response);
     }
 
     #[test]
