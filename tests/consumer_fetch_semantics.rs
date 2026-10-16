@@ -4081,6 +4081,28 @@ async fn group_join_reads_every_topic_from_one_metadata() {
     group.leave().await.unwrap();
 }
 
+/// Resubscribing to a topic already in the metadata image does not fetch it again.
+#[tokio::test]
+async fn group_rejoin_reuses_fresh_topic_metadata() {
+    let mock = common::Mock::start().await;
+    mock.set_topic_partitions("t", 1);
+    mock.set_topic_partitions("u", 2);
+    let cfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    let mut group = ConsumerGroup::join_topics(cfg, "meta-rejoin", ["t", "u"])
+        .await
+        .unwrap();
+    assert_eq!(group.assignment().len(), 3);
+    let calls = mock.metadata_calls();
+    group.subscribe(["t"]).await.unwrap();
+    assert_eq!(group.assignment().len(), 1);
+    assert_eq!(
+        mock.metadata_calls(),
+        calls,
+        "a fresh topic should not be fetched again on rejoin"
+    );
+    group.leave().await.unwrap();
+}
+
 /// Unknown log bounds on an out-of-range fetch are resolved once per leader.
 #[tokio::test]
 async fn out_of_range_reset_lists_each_leaders_offsets_together() {

@@ -2458,12 +2458,32 @@ impl ConsumerGroup {
         if timeout.is_zero() {
             return Err(Error::Timeout);
         }
-        self.consumer
-            .refresh_metadata_timeout(Some(&topic_set), timeout)
-            .await?;
+        // A rejoin of topics already in the metadata image does not ask again.
+        // Any missing or stale name refreshes the whole set: a subset response
+        // would replace the image `partition_ids` reads.
         let mut by_topic = Vec::with_capacity(topic_set.len());
+        let mut loaded = true;
         for topic in &topic_set {
-            by_topic.push((topic.clone(), self.consumer.partition_ids(topic)?));
+            if !self.consumer.topic_metadata_fresh(topic) {
+                loaded = false;
+                break;
+            }
+            match self.consumer.partition_ids(topic) {
+                Ok(ids) => by_topic.push((topic.clone(), ids)),
+                Err(_) => {
+                    loaded = false;
+                    break;
+                }
+            }
+        }
+        if !loaded {
+            self.consumer
+                .refresh_metadata_timeout(Some(&topic_set), timeout)
+                .await?;
+            by_topic.clear();
+            for topic in &topic_set {
+                by_topic.push((topic.clone(), self.consumer.partition_ids(topic)?));
+            }
         }
         let assignments =
             if JoinGroupResponse::is_leader(&self.member_id, &leader) && !skip_assignment {
