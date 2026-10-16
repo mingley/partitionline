@@ -3266,6 +3266,43 @@ async fn fetch_mixed_version_preferred_replica_uses_replica_version() {
     }
 }
 
+/// Rack replicas on different brokers open their handshakes together.
+#[tokio::test]
+async fn preferred_replica_dials_overlap() {
+    let mock = common::Mock::start_three_node().await;
+    mock.set_topic_partitions("t", 1);
+    mock.set_topic_partitions("u", 1);
+    mock.set_partition_leader("t", 0, 1);
+    mock.set_partition_leader("u", 0, 1);
+    mock.set_preferred_read_replica("t", 0, 2);
+    mock.set_preferred_read_replica("u", 0, 3);
+    let mut consumer = Consumer::new(
+        ConsumerConfig::bootstrap([mock.addr.clone()])
+            .max_wait_ms(10)
+            .rack("r1"),
+    )
+    .await
+    .unwrap();
+    consumer
+        .assign_many([(("t", 0), 0), (("u", 0), 0)])
+        .await
+        .unwrap();
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let started = Instant::now();
+    let got = consumer.fetch().await.unwrap();
+    assert!(got.is_empty());
+    assert!(
+        started.elapsed() < Duration::from_millis(450),
+        "preferred replicas waited for one handshake at a time: {:?}",
+        started.elapsed()
+    );
+    let mut nodes = mock.fetch_nodes();
+    nodes.sort_unstable();
+    nodes.dedup();
+    assert_eq!(nodes, vec![2, 3]);
+    consumer.close().await.unwrap();
+}
+
 /// A successful response's quota applies to the next request, not delivery of
 /// the records already returned by that response.
 #[tokio::test]

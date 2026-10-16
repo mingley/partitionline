@@ -347,6 +347,8 @@ struct State {
     /// [`Mock::set_api_max`], which clamps to the key's min version).
     hidden_apis: HashSet<i16>,
     partition_leaders: HashMap<(String, i32), i32>,
+    /// Leader fetch returns this preferred replica instead of the rack follower.
+    preferred_replicas: HashMap<(String, i32), i32>,
     partition_epochs: HashMap<(String, i32), i32>,
     last_epoch_req: Option<(String, i32, i32)>,
     last_epoch_node: Option<i32>,
@@ -834,6 +836,7 @@ fn new_state(
         last_fetch_version_by_node: HashMap::new(),
         hidden_apis: HashSet::new(),
         partition_leaders: HashMap::new(),
+        preferred_replicas: HashMap::new(),
         partition_epochs: HashMap::new(),
         last_epoch_req: None,
         last_epoch_node: None,
@@ -1791,6 +1794,46 @@ impl Mock {
         }
     }
 
+    /// Three brokers. Node 1 is `r1` at [`Self::addr`], node 2 is `r2`, node 3 is `r3`.
+    pub async fn start_three_node() -> Self {
+        let l1 = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let l2 = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let l3 = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let a1 = l1.local_addr().unwrap();
+        let a2 = l2.local_addr().unwrap();
+        let a3 = l3.local_addr().unwrap();
+        let mut st = new_state(None, None, None);
+        st.brokers = vec![
+            Broker {
+                node_id: 1,
+                host: "127.0.0.1".into(),
+                port: a1.port() as i32,
+                rack: Some("r1".into()),
+            },
+            Broker {
+                node_id: 2,
+                host: "127.0.0.1".into(),
+                port: a2.port() as i32,
+                rack: Some("r2".into()),
+            },
+            Broker {
+                node_id: 3,
+                host: "127.0.0.1".into(),
+                port: a3.port() as i32,
+                rack: Some("r3".into()),
+            },
+        ];
+        st.partition_leaders.insert(("t".into(), 0), 1);
+        let state = Arc::new(Mutex::new(st));
+        spawn_plain(l1, 1, state.clone());
+        spawn_plain(l2, 2, state.clone());
+        spawn_plain(l3, 3, state.clone());
+        Self {
+            addr: format!("127.0.0.1:{}", a1.port()),
+            state,
+        }
+    }
+
     pub async fn start_with_scram(creds: (String, String)) -> Self {
         let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
         let addr = listener.local_addr().unwrap();
@@ -2305,6 +2348,15 @@ impl Mock {
             .lock()
             .share_accepted
             .contains(&(group.into(), topic.into(), partition, offset))
+    }
+
+    /// The next leader fetch for this partition names `node_id` as the preferred replica.
+    pub fn set_preferred_read_replica(&self, topic: &str, partition: i32, node_id: i32) {
+        let _ = self
+            .state
+            .lock()
+            .preferred_replicas
+            .insert((topic.to_string(), partition), node_id);
     }
 
     pub fn set_partition_leader(&self, topic: &str, partition: i32, node_id: i32) {
@@ -7252,6 +7304,35 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                 records: Vec::new(),
                             });
                             continue;
+                        }
+                        if leader == node_id {
+                            let preferred = st.preferred_replicas.iter().find_map(
+                                |((name, partition), replica)| {
+                                    (*partition == p.partition
+                                        && name == &topic
+                                        && *replica != node_id)
+                                        .then_some(*replica)
+                                },
+                            );
+                            if let Some(preferred) = preferred {
+                                parts.push(FetchedPartition {
+                                    partition: p.partition,
+                                    error_code: 0,
+                                    high_watermark: 0,
+                                    last_stable_offset: 0,
+                                    log_start_offset: 0,
+                                    aborted_transactions: Vec::new(),
+                                    preferred_read_replica: preferred,
+                                    current_leader_id: -1,
+                                    current_leader_epoch: -1,
+                                    diverging_epoch: -1,
+                                    diverging_end_offset: -1,
+                                    snapshot_end_offset: -1,
+                                    snapshot_epoch: -1,
+                                    records: Vec::new(),
+                                });
+                                continue;
+                            }
                         }
                         if leader == node_id && !rack.is_empty() {
                             let follower = st.brokers.iter().find(|b| {

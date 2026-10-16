@@ -4236,6 +4236,7 @@ impl Consumer {
         deadline: Instant,
     ) -> Result<()> {
         let mut dials = Vec::new();
+        let mut preferred_dials = HashSet::new();
         while let Some(node) = queue.pop() {
             if connected.contains(&node) || dials.iter().any(|(id, _)| *id == node) {
                 continue;
@@ -4243,33 +4244,10 @@ impl Consumer {
             if Instant::now() >= deadline {
                 break;
             }
-            if is_preferred_only_target(&self.preferred, &self.cluster, node, by_leader) {
-                match self.connect_preferred_once(node, deadline).await {
-                    Ok(()) => connected.push(node),
-                    Err(error) => {
-                        if !reroute_unreachable_preferred(
-                            &mut self.preferred,
-                            &self.cluster,
-                            node,
-                            by_leader,
-                        ) {
-                            if matches!(error, Error::Timeout) {
-                                break;
-                            }
-                            return Err(Error::Timeout);
-                        }
-                        for leader in by_leader.keys().copied() {
-                            if !connected.contains(&leader)
-                                && !queue.contains(&leader)
-                                && dials.iter().all(|(id, _)| *id != leader)
-                            {
-                                queue.push(leader);
-                            }
-                        }
-                    }
-                }
-                continue;
-            }
+            // A rack replica dials with the other leaders. One slow handshake
+            // must not hold the rest of the fetch.
+            let preferred_only =
+                is_preferred_only_target(&self.preferred, &self.cluster, node, by_leader);
             if self
                 .conns
                 .get(&node)
@@ -4293,6 +4271,9 @@ impl Consumer {
             if let Some(session) = self.fetch_sessions.get_mut(&node) {
                 session.reset();
             }
+            if preferred_only {
+                let _ = preferred_dials.insert(node);
+            }
             dials.push((node, addr));
         }
         self.park_leaders(queue);
@@ -4310,8 +4291,10 @@ impl Consumer {
         let sasl_scram_sha512 = self.cfg.sasl_scram_sha512.clone();
         let sasl_oauthbearer = self.cfg.sasl_oauthbearer.clone();
         let sasl_oauthbearer_oidc = self.cfg.sasl_oauthbearer_oidc.clone();
-        let mut waiting = dials.into_iter();
+        let mut waiting: VecDeque<(i32, String)> = dials.into();
         let mut inflight = tokio::task::JoinSet::new();
+        let mut inflight_ids = HashSet::new();
+        let mut stop_scheduling = false;
         let spawn = |inflight: &mut tokio::task::JoinSet<(
             i32,
             Result<(BrokerConn, ApiVersionsResponse)>,
@@ -4343,9 +4326,10 @@ impl Consumer {
             });
         };
         while inflight.len() < Self::FETCH_DIAL_PARALLELISM {
-            let Some((node, addr)) = waiting.next() else {
+            let Some((node, addr)) = waiting.pop_front() else {
                 break;
             };
+            let _ = inflight_ids.insert(node);
             spawn(&mut inflight, node, addr);
         }
         let mut retry = Vec::new();
@@ -4371,11 +4355,48 @@ impl Consumer {
             };
             let (node, result) =
                 joined.map_err(|error| Error::protocol(format!("fetch dial task: {error}")))?;
+            let _ = inflight_ids.remove(&node);
             match result {
                 Ok((conn, versions)) => {
                     let _ = self.reconnect_fails.remove(&node);
                     self.remember_opened_conn(node, conn, &versions);
                     connected.push(node);
+                }
+                Err(error) if preferred_dials.contains(&node) => {
+                    self.note_reconnect_failure(node);
+                    if reroute_unreachable_preferred(
+                        &mut self.preferred,
+                        &self.cluster,
+                        node,
+                        by_leader,
+                    ) {
+                        let leaders: Vec<i32> = by_leader.keys().copied().collect();
+                        for leader in leaders {
+                            if connected.contains(&leader)
+                                || inflight_ids.contains(&leader)
+                                || waiting.iter().any(|(id, _)| *id == leader)
+                            {
+                                continue;
+                            }
+                            if self.conns.contains_key(&leader) {
+                                connected.push(leader);
+                                continue;
+                            }
+                            let Some(addr) = self.cluster.brokers.get(&leader).cloned() else {
+                                inflight.abort_all();
+                                return Err(Error::protocol(format!("unknown broker {leader}")));
+                            };
+                            if let Some(session) = self.fetch_sessions.get_mut(&leader) {
+                                session.reset();
+                            }
+                            waiting.push_back((leader, addr));
+                        }
+                    } else if matches!(error, Error::Timeout) {
+                        stop_scheduling = true;
+                    } else {
+                        inflight.abort_all();
+                        return Err(Error::Timeout);
+                    }
                 }
                 Err(error) if error.is_retriable() || matches!(error, Error::Timeout) => {
                     self.note_reconnect_failure(node);
@@ -4386,10 +4407,14 @@ impl Consumer {
                     return Err(error);
                 }
             }
+            if stop_scheduling {
+                continue;
+            }
             while inflight.len() < Self::FETCH_DIAL_PARALLELISM {
-                let Some((node, addr)) = waiting.next() else {
+                let Some((node, addr)) = waiting.pop_front() else {
                     break;
                 };
+                let _ = inflight_ids.insert(node);
                 spawn(&mut inflight, node, addr);
             }
         }
