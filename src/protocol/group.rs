@@ -2081,6 +2081,17 @@ fn encode_join_group_response_fields(
     skip_assignment: bool,
 ) -> crate::error::Result<()> {
     let flexible = join_group_flexible(version)?;
+    let body_start = buf.len();
+    let planned = join_group_response_len(
+        version,
+        flexible,
+        protocol_name,
+        leader,
+        member_id,
+        members,
+        protocol_type,
+    )?;
+    reserve_group_body(buf, planned);
     buf.put_i32(throttle_time_ms);
     buf.put_i16(error_code);
     buf.put_i32(generation_id);
@@ -2112,7 +2123,52 @@ fn encode_join_group_response_fields(
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn join_group_response_len(
+    version: i16,
+    flexible: bool,
+    protocol_name: &str,
+    leader: &str,
+    member_id: &str,
+    members: &[JoinMember],
+    protocol_type: Option<&str>,
+) -> Result<usize> {
+    let mut total = 10usize;
+    if version >= 7 {
+        total = add_group_len(total, group_string_len(true, protocol_type)?)?;
+    }
+    let protocol_name = if version >= 7 && protocol_name.is_empty() {
+        None
+    } else {
+        Some(protocol_name)
+    };
+    total = add_group_len(total, group_string_len(flexible, protocol_name)?)?;
+    total = add_group_len(total, group_string_len(flexible, Some(leader))?)?;
+    if JoinGroupRequest::supports_skipping_assignment(version) {
+        total = add_group_len(total, 1)?;
+    }
+    total = add_group_len(total, group_string_len(flexible, Some(member_id))?)?;
+    total = add_group_len(total, group_array_len(flexible, members.len())?)?;
+    for member in members {
+        total = add_group_len(total, group_string_len(flexible, Some(&member.member_id))?)?;
+        if version >= 5 {
+            total = add_group_len(
+                total,
+                group_string_len(flexible, member.group_instance_id.as_deref())?,
+            )?;
+        }
+        total = add_group_len(total, group_bytes_len(flexible, &member.metadata)?)?;
+        if flexible {
+            total = add_group_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    if flexible {
+        total = add_group_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 /// Decode JoinGroup: `(error, generation, protocol, leader, member_id, skip_assignment, members, protocol_type, throttle_time_ms)`.
@@ -10626,6 +10682,40 @@ mod tests {
         let mut buf = BytesMut::new();
         encode_join_group_response(&mut buf, 6, 0, 7, "range", "l", "m1", &[]).unwrap();
         assert_eq!(&buf[..], RESP);
+    }
+
+    #[test]
+    fn a_join_group_response_sizes_its_body_once() {
+        let members = vec![
+            JoinMember {
+                member_id: "member-1".into(),
+                group_instance_id: Some("instance".into()),
+                metadata: vec![1, 2, 3, 4],
+            },
+            JoinMember {
+                member_id: "member-2".into(),
+                group_instance_id: None,
+                metadata: Vec::new(),
+            },
+        ];
+        for version in [2_i16, 5, 7, 9] {
+            let mut buf = BytesMut::new();
+            encode_join_group_response_with_throttle(
+                &mut buf, version, 0, 4, "range", "member-1", "member-1", &members, 0,
+            )
+            .unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_join_group_response_with_throttle(
+                &mut buf, version, 0, 4, "range", "member-1", "member-1", &members, 0,
+            )
+            .unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+        }
     }
 
     #[test]
