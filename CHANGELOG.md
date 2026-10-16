@@ -230,8 +230,8 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   empty (Java `handleShareFetchSuccess` completes piggyback acks and
   still delivers the fetch). A piggybacked `KAFKA_STORAGE_ERROR` still
   completes without retry, including when `AcknowledgeErrorMessage` is
-  set (Java `handleShareFetchSuccess` completes piggyback acks and still
-  delivers the fetch). A
+  set or empty (Java `handleShareFetchSuccess` completes piggyback acks
+  and still delivers the fetch). A
   piggybacked `TOPIC_AUTHORIZATION_FAILED` on
   one partition does not fail a sibling whose `AcknowledgeErrorCode`
   is none, including when `AcknowledgeErrorMessage` is set or empty. A

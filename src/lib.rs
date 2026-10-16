@@ -2068,7 +2068,7 @@
 //! `OFFSET_NOT_AVAILABLE` still completes without retry,
 //! including when `AcknowledgeErrorMessage` is set or empty. A piggybacked
 //! `KAFKA_STORAGE_ERROR` still completes without retry,
-//! including when `AcknowledgeErrorMessage` is set. A piggybacked
+//! including when `AcknowledgeErrorMessage` is set or empty. A piggybacked
 //! `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a
 //! sibling whose `AcknowledgeErrorCode` is none, including when
 //! `AcknowledgeErrorMessage` is set or empty. A piggybacked
