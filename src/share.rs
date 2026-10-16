@@ -862,6 +862,8 @@ pub struct ShareGroup {
     ack_offsets: Vec<i64>,
     /// Short topic name shared by successive acknowledgements of that name.
     ack_topic: Option<Arc<str>>,
+    /// Acknowledge-type lists from the previous call. A one-type range refills one.
+    spare_ack_types: Vec<Vec<i8>>,
     /// Partition and offset pairs for a one-topic acknowledgement. Reused
     /// across calls.
     ack_pairs: Vec<(i32, i64)>,
@@ -1364,6 +1366,7 @@ impl ShareGroup {
             spare_fetch_ids: Vec::new(),
             ack_offsets: Vec::new(),
             ack_topic: None,
+            spare_ack_types: Vec::new(),
             ack_pairs: Vec::new(),
             fetch_cursors: Vec::new(),
             spare_incoming: Vec::new(),
@@ -3035,6 +3038,18 @@ impl ShareGroup {
         Ok(crate::consumer::TopicName::from(self.topic_name_ref(id)?))
     }
 
+    fn reclaim_ack_types(&mut self, topics: Vec<crate::protocol::share::ShareAckTopic>) {
+        for topic in topics {
+            for (_, batches) in topic.partitions {
+                for batch in batches {
+                    if batch.types.capacity() > 0 {
+                        self.spare_ack_types.push(batch.types);
+                    }
+                }
+            }
+        }
+    }
+
     fn name_for_topic_id(&self, id: [u8; 16]) -> Result<String> {
         self.topic_name_ref(id).map(str::to_owned)
     }
@@ -3082,6 +3097,7 @@ impl ShareGroup {
             &mut self.ack_offsets,
             &mut self.ack_pairs,
             &mut self.ack_topic,
+            &mut self.spare_ack_types,
         );
         let deadline = Instant::now() + self.cfg.request_timeout;
         let mut attempt = 0u32;
@@ -3361,6 +3377,7 @@ impl ShareGroup {
                     }
                 }
             }
+            self.reclaim_ack_types(topics);
         }
         first_error.map_or(Ok(()), Err)
     }
@@ -4089,6 +4106,7 @@ fn group_acks_by_acquisition_node(
     partitions: &[AckPartition],
 ) -> Result<AckRoute> {
     let mut by_node: AckRoute = BTreeMap::new();
+    let mut spare_types = Vec::new();
     for (topic, partition, batches) in partitions {
         let mut node_batches: BTreeMap<i32, Vec<AcknowledgementBatch>> = BTreeMap::new();
         let mut run_types = Vec::new();
@@ -4131,7 +4149,7 @@ fn group_acks_by_acquisition_node(
                         .push(AcknowledgementBatch {
                             first_offset: batch.first_offset,
                             last_offset: batch.last_offset,
-                            types: vec![kind],
+                            types: reused_one_ack_type(&mut spare_types, kind),
                         });
                     continue;
                 }
@@ -4163,6 +4181,7 @@ fn group_acks_by_acquisition_node(
                             offset.saturating_sub(1),
                             single_type,
                             &run_types,
+                            &mut spare_types,
                         ));
                     }
                     run_first = offset;
@@ -4184,6 +4203,7 @@ fn group_acks_by_acquisition_node(
                     batch.last_offset,
                     single_type,
                     &run_types,
+                    &mut spare_types,
                 ));
             }
         }
@@ -4197,28 +4217,39 @@ fn group_acks_by_acquisition_node(
     Ok(by_node)
 }
 
-fn ack_run(first: i64, last: i64, single_type: Option<i8>, types: &[i8]) -> AcknowledgementBatch {
+fn ack_run(
+    first: i64,
+    last: i64,
+    single_type: Option<i8>,
+    types: &[i8],
+    spare: &mut Vec<Vec<i8>>,
+) -> AcknowledgementBatch {
     if let Some(kind) = single_type {
         return AcknowledgementBatch {
             first_offset: first,
             last_offset: last,
-            types: vec![kind],
+            types: reused_one_ack_type(spare, kind),
         };
     }
-    finish_ack_run(first, last, types)
+    finish_ack_run(first, last, types, spare)
 }
 
-fn finish_ack_run(first: i64, last: i64, types: &[i8]) -> AcknowledgementBatch {
+fn finish_ack_run(
+    first: i64,
+    last: i64,
+    types: &[i8],
+    spare: &mut Vec<Vec<i8>>,
+) -> AcknowledgementBatch {
     let collapsed = types
         .first()
         .is_some_and(|kind| types.iter().all(|item| item == kind));
     AcknowledgementBatch {
         first_offset: first,
         last_offset: last,
-        types: if collapsed {
-            types.first().copied().into_iter().collect()
+        types: if let Some(kind) = types.first().copied().filter(|_| collapsed) {
+            reused_one_ack_type(spare, kind)
         } else {
-            types.to_vec()
+            reused_ack_types(spare, types)
         },
     }
 }
@@ -4233,7 +4264,22 @@ fn acknowledgement_batches(recs: &[ShareRecord], ack: i8) -> Vec<AckPartition> {
     let mut offsets = Vec::new();
     let mut pairs = Vec::new();
     let mut topic = None;
-    acknowledgement_batches_with(recs, ack, &mut offsets, &mut pairs, &mut topic)
+    let mut types = Vec::new();
+    acknowledgement_batches_with(recs, ack, &mut offsets, &mut pairs, &mut topic, &mut types)
+}
+
+fn reused_one_ack_type(spare: &mut Vec<Vec<i8>>, kind: i8) -> Vec<i8> {
+    let mut types = spare.pop().unwrap_or_default();
+    types.clear();
+    types.push(kind);
+    types
+}
+
+fn reused_ack_types(spare: &mut Vec<Vec<i8>>, values: &[i8]) -> Vec<i8> {
+    let mut types = spare.pop().unwrap_or_default();
+    types.clear();
+    types.extend_from_slice(values);
+    types
 }
 
 fn share_topic_arc(topic: &crate::consumer::TopicName, cached: &mut Option<Arc<str>>) -> Arc<str> {
@@ -4256,6 +4302,7 @@ fn acknowledgement_batches_with(
     offsets: &mut Vec<i64>,
     pairs: &mut Vec<(i32, i64)>,
     topic_name: &mut Option<Arc<str>>,
+    ack_types: &mut Vec<Vec<i8>>,
 ) -> Vec<AckPartition> {
     if let Some(first) = recs.first() {
         if recs
@@ -4265,7 +4312,7 @@ fn acknowledgement_batches_with(
         {
             offsets.clear();
             offsets.extend(recs.iter().map(|rec| rec.offset));
-            let batches = collapse_ack_offsets(offsets, ack);
+            let batches = collapse_ack_offsets(offsets, ack, ack_types);
             if batches.is_empty() {
                 return Vec::new();
             }
@@ -4294,7 +4341,7 @@ fn acknowledgement_batches_with(
                 if let Some(group) = pairs.get(start..end) {
                     offsets.extend(group.iter().map(|(_, offset)| *offset));
                 }
-                let batches = collapse_ack_offsets(offsets, ack);
+                let batches = collapse_ack_offsets(offsets, ack, ack_types);
                 if !batches.is_empty() {
                     out.push((Arc::clone(&name), partition, batches));
                 }
@@ -4318,7 +4365,7 @@ fn acknowledgement_batches_with(
     for (topic, parts) in by_part {
         let name = share_topic_arc(&topic, topic_name);
         for (partition, mut offs) in parts {
-            let batches = collapse_ack_offsets(&mut offs, ack);
+            let batches = collapse_ack_offsets(&mut offs, ack, ack_types);
             if !batches.is_empty() {
                 out.push((Arc::clone(&name), partition, batches));
             }
@@ -4327,7 +4374,11 @@ fn acknowledgement_batches_with(
     out
 }
 
-fn collapse_ack_offsets(offsets: &mut Vec<i64>, ack: i8) -> Vec<AcknowledgementBatch> {
+fn collapse_ack_offsets(
+    offsets: &mut Vec<i64>,
+    ack: i8,
+    ack_types: &mut Vec<Vec<i8>>,
+) -> Vec<AcknowledgementBatch> {
     offsets.sort_unstable();
     offsets.dedup();
     let mut batches = Vec::new();
@@ -4340,7 +4391,7 @@ fn collapse_ack_offsets(offsets: &mut Vec<i64>, ack: i8) -> Vec<AcknowledgementB
                 batches.push(AcknowledgementBatch {
                     first_offset: start,
                     last_offset: end,
-                    types: vec![ack],
+                    types: reused_one_ack_type(ack_types, ack),
                 });
                 Some((off, off))
             }
@@ -4350,7 +4401,7 @@ fn collapse_ack_offsets(offsets: &mut Vec<i64>, ack: i8) -> Vec<AcknowledgementB
         batches.push(AcknowledgementBatch {
             first_offset: start,
             last_offset: end,
-            types: vec![ack],
+            types: reused_one_ack_type(ack_types, ack),
         });
     }
     batches
@@ -4895,24 +4946,37 @@ mod tests {
         let mut offsets = Vec::new();
         let mut pairs = Vec::new();
         let mut topic = None;
+        let mut ack_types = Vec::new();
         let first = super::acknowledgement_batches_with(
             &recs,
             ACK_ACCEPT,
             &mut offsets,
             &mut pairs,
             &mut topic,
+            &mut ack_types,
         );
         let ptr = offsets.as_ptr();
         let kept = first
             .first()
             .map(|part| Arc::clone(&part.0))
             .expect("partition");
+        let kept_types = first
+            .first()
+            .and_then(|part| part.2.first())
+            .map(|batch| batch.types.as_ptr())
+            .expect("ack type");
+        for (_, _, batches) in first {
+            for batch in batches {
+                ack_types.push(batch.types);
+            }
+        }
         let again = super::acknowledgement_batches_with(
             &recs,
             ACK_ACCEPT,
             &mut offsets,
             &mut pairs,
             &mut topic,
+            &mut ack_types,
         );
         assert_eq!(offsets.as_ptr(), ptr);
         let again_name = again
@@ -4920,16 +4984,21 @@ mod tests {
             .map(|part| Arc::clone(&part.0))
             .expect("partition");
         assert!(Arc::ptr_eq(&kept, &again_name));
-        assert_eq!(first.len(), 1);
+        assert_eq!(
+            again
+                .first()
+                .and_then(|part| part.2.first())
+                .map(|batch| batch.types.as_ptr()),
+            Some(kept_types)
+        );
         assert_eq!(again.len(), 1);
         assert_eq!(
-            first
+            again
                 .first()
                 .and_then(|part| part.2.first())
                 .map(|batch| { (batch.first_offset, batch.last_offset) }),
             Some((1, 3))
         );
-        assert_eq!(first, again);
     }
 
     #[test]
@@ -4938,12 +5007,14 @@ mod tests {
         let mut offsets = Vec::new();
         let mut pairs = Vec::new();
         let mut topic = None;
+        let mut ack_types = Vec::new();
         let first = super::acknowledgement_batches_with(
             &recs,
             ACK_ACCEPT,
             &mut offsets,
             &mut pairs,
             &mut topic,
+            &mut ack_types,
         );
         let ptr = pairs.as_ptr();
         let again = super::acknowledgement_batches_with(
@@ -4952,6 +5023,7 @@ mod tests {
             &mut offsets,
             &mut pairs,
             &mut topic,
+            &mut ack_types,
         );
         assert_eq!(pairs.as_ptr(), ptr);
         assert_eq!(first.len(), 2);
