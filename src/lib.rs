@@ -2174,6 +2174,10 @@
 //! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `OFFSET_METADATA_TOO_LARGE`, which fails that poll, and not
 //! piggyback `STALE_CONTROLLER_EPOCH`). A piggybacked
+//! `INVALID_TOPIC_EXCEPTION` still completes without retry,
+//! including when `AcknowledgeErrorMessage` is set (this is not
+//! partition `INVALID_TOPIC_EXCEPTION`, which fails that poll, and not
+//! piggyback `OFFSET_METADATA_TOO_LARGE` or `TOPIC_AUTHORIZATION_FAILED`). A piggybacked
 //! `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a
 //! sibling whose `AcknowledgeErrorCode` is none, including when
 //! `AcknowledgeErrorMessage` is set or empty. A piggybacked
