@@ -223,17 +223,13 @@ impl ConsumerGroup {
         timeout: Duration,
     ) -> Result<()> {
         let limits = OffsetLimits::default();
-        let encoded = encode_offset_commit_request_data(&request, 10, limits)?;
         let body = coord_offsets_v10(
             &mut self.coord,
             &self.cfg,
             &self.group_id,
             super::COORDINATOR_GROUP,
             crate::protocol::api_keys::OFFSET_COMMIT,
-            |buf| {
-                buf.extend_from_slice(&encoded);
-                Ok(())
-            },
+            |buf| encode_offset_commit_request_into(buf, &request, 10, limits),
             timeout,
         )
         .await?;
@@ -290,17 +286,13 @@ impl ConsumerGroup {
             require_stable: self.cfg.isolation_level == crate::IsolationLevel::ReadCommitted,
         };
         let limits = OffsetLimits::default();
-        let encoded = encode_offset_fetch_request_data(&request, 10, limits)?;
         let body = coord_offsets_v10(
             &mut self.coord,
             &self.cfg,
             &self.group_id,
             super::COORDINATOR_GROUP,
             crate::protocol::api_keys::OFFSET_FETCH,
-            |buf| {
-                buf.extend_from_slice(&encoded);
-                Ok(())
-            },
+            |buf| encode_offset_fetch_request_into(buf, &request, 10, limits),
             timeout,
         )
         .await?;
@@ -517,6 +509,9 @@ mod tests {
         };
         let limits = OffsetLimits::default();
         let bytes = encode_offset_commit_request_data(&request, 10, limits).unwrap();
+        let mut direct = bytes::BytesMut::new();
+        encode_offset_commit_request_into(&mut direct, &request, 10, limits).unwrap();
+        assert_eq!(&direct[..], &bytes[..]);
         let decoded = decode_offset_commit_request_data(&bytes, 10, limits).unwrap();
         assert_eq!(decoded.group_id, "g");
         assert_eq!(decoded.member_id, "m-1");

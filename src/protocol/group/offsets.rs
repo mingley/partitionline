@@ -143,7 +143,7 @@ impl Budget {
 trait Wire: Sized {
     const MIN_BYTES: usize;
     fn read(reader: &mut Reader<'_>) -> Result<Self>;
-    fn write(&self, writer: &mut Writer) -> Result<()>;
+    fn write(&self, writer: &mut Writer<'_>) -> Result<()>;
 }
 
 struct Reader<'a> {
@@ -296,19 +296,40 @@ impl<'a> Reader<'a> {
     }
 }
 
-struct Writer {
+enum Sink<'a> {
+    Count,
+    Fresh(Vec<u8>),
+    Buf(&'a mut bytes::BytesMut),
+}
+
+struct Writer<'a> {
     version: i16,
-    output: Option<Vec<u8>>,
+    sink: Sink<'a>,
     length: usize,
     budget: Budget,
 }
 
-impl Writer {
+impl Writer<'static> {
     fn new(limits: OffsetLimits, capacity: Option<usize>, version: i16) -> Result<Self> {
         let budget = Budget::new(limits)?;
         Ok(Self {
             version,
-            output: capacity.map(Vec::with_capacity),
+            sink: match capacity {
+                Some(capacity) => Sink::Fresh(Vec::with_capacity(capacity)),
+                None => Sink::Count,
+            },
+            length: 0,
+            budget,
+        })
+    }
+}
+
+impl<'a> Writer<'a> {
+    fn appending(buf: &'a mut bytes::BytesMut, limits: OffsetLimits, version: i16) -> Result<Self> {
+        let budget = Budget::new(limits)?;
+        Ok(Self {
+            version,
+            sink: Sink::Buf(buf),
             length: 0,
             budget,
         })
@@ -321,8 +342,10 @@ impl Writer {
             self.budget.limits.wire_bytes,
             "Offset output exceeds wire limit",
         )?;
-        if let Some(output) = &mut self.output {
-            output.extend_from_slice(raw);
+        match &mut self.sink {
+            Sink::Count => {}
+            Sink::Fresh(output) => output.extend_from_slice(raw),
+            Sink::Buf(output) => output.extend_from_slice(raw),
         }
         Ok(())
     }
@@ -402,7 +425,7 @@ macro_rules! integer_codec {
                 Ok(<$type>::from_be_bytes(value))
             }
         }
-        impl Writer {
+        impl Writer<'_> {
             fn $method(&mut self, value: &$type) -> Result<()> {
                 self.put(&value.to_be_bytes())
             }
@@ -412,7 +435,7 @@ macro_rules! integer_codec {
             fn read(reader: &mut Reader<'_>) -> Result<Self> {
                 reader.$method()
             }
-            fn write(&self, writer: &mut Writer) -> Result<()> {
+            fn write(&self, writer: &mut Writer<'_>) -> Result<()> {
                 writer.$method(self)
             }
         }
@@ -427,7 +450,7 @@ impl Wire for String {
     fn read(reader: &mut Reader<'_>) -> Result<Self> {
         reader.string()
     }
-    fn write(&self, writer: &mut Writer) -> Result<()> {
+    fn write(&self, writer: &mut Writer<'_>) -> Result<()> {
         writer.string(self)
     }
 }
@@ -450,7 +473,7 @@ macro_rules! wire_struct {
                 reader.tags()?;
                 Ok(value)
             }
-            fn write(&self, writer: &mut Writer) -> Result<()> {
+            fn write(&self, writer: &mut Writer<'_>) -> Result<()> {
                 $(writer.$method$(::<$inner>)?(&self.$field)?;)*
                 writer.tags()
             }
@@ -482,9 +505,21 @@ fn encode<T: Wire>(value: &T, version: i16, limits: OffsetLimits) -> Result<Vec<
     if writer.length != measure.length {
         return Err(Error::protocol("Offset encoded size mismatch"));
     }
-    writer
-        .output
-        .ok_or_else(|| Error::protocol("Offset output missing"))
+    match writer.sink {
+        Sink::Fresh(output) => Ok(output),
+        Sink::Count | Sink::Buf(_) => Err(Error::protocol("Offset output missing")),
+    }
+}
+
+fn encode_into<T: Wire>(
+    buf: &mut bytes::BytesMut,
+    value: &T,
+    version: i16,
+    limits: OffsetLimits,
+) -> Result<()> {
+    version_range(version)?;
+    let mut writer = Writer::appending(buf, limits, version)?;
+    value.write(&mut writer)
 }
 
 fn validate<T: Wire>(value: &T, version: i16, limits: OffsetLimits) -> Result<()> {
@@ -528,7 +563,7 @@ pub(crate) fn encode_offset_metadata_names(
             "offset UUID resolution requires Metadata v10-13".into(),
         ));
     }
-    fn write(writer: &mut Writer, names: Option<&[String]>, version: i16) -> Result<()> {
+    fn write(writer: &mut Writer<'_>, names: Option<&[String]>, version: i16) -> Result<()> {
         match names {
             None => writer.byte(0)?,
             Some(names) => {
@@ -557,9 +592,10 @@ pub(crate) fn encode_offset_metadata_names(
     write(&mut measure, names, version)?;
     let mut writer = Writer::new(limits, Some(measure.length), version)?;
     write(&mut writer, names, version)?;
-    writer
-        .output
-        .ok_or_else(|| Error::protocol("missing offset metadata output"))
+    match writer.sink {
+        Sink::Fresh(output) => Ok(output),
+        Sink::Count | Sink::Buf(_) => Err(Error::protocol("missing offset metadata output")),
+    }
 }
 
 /// Decode just bounded name/UUID bindings, while validating all Metadata
@@ -728,7 +764,7 @@ impl Wire for OffsetTopicIdentity {
             Ok(Self::Name(reader.string()?))
         }
     }
-    fn write(&self, writer: &mut Writer) -> Result<()> {
+    fn write(&self, writer: &mut Writer<'_>) -> Result<()> {
         match (writer.version, self) {
             (10, Self::Id(id)) => writer.put(id),
             (8 | 9, Self::Name(name)) => writer.string(name),
@@ -852,7 +888,7 @@ impl Wire for OffsetFetchGroupData {
             topics,
         })
     }
-    fn write(&self, writer: &mut Writer) -> Result<()> {
+    fn write(&self, writer: &mut Writer<'_>) -> Result<()> {
         if writer.version == 8 && (self.member_id.is_some() || self.member_epoch != -1) {
             return Err(Error::Unsupported(
                 "OffsetFetch8 cannot represent requested member identity/epoch".into(),
@@ -936,6 +972,19 @@ pub fn encode_offset_commit_request_data(
 ) -> Result<Vec<u8>> {
     encode(value, version, limits)
 }
+
+/// Write one OffsetCommit8..10 request into `buf`.
+///
+/// The bytes match [`encode_offset_commit_request_data`]. A caller that already
+/// holds the connection buffer does not allocate a second copy of the body.
+pub(crate) fn encode_offset_commit_request_into(
+    buf: &mut bytes::BytesMut,
+    value: &OffsetCommitRequestData,
+    version: i16,
+    limits: OffsetLimits,
+) -> Result<()> {
+    encode_into(buf, value, version, limits)
+}
 /// Decode one whole bounded OffsetCommit8..10 response.
 pub fn decode_offset_commit_response_data(
     input: &[u8],
@@ -967,6 +1016,18 @@ pub fn encode_offset_fetch_request_data(
     limits: OffsetLimits,
 ) -> Result<Vec<u8>> {
     encode(value, version, limits)
+}
+
+/// Write one OffsetFetch8..10 request into `buf`.
+///
+/// The bytes match [`encode_offset_fetch_request_data`].
+pub(crate) fn encode_offset_fetch_request_into(
+    buf: &mut bytes::BytesMut,
+    value: &OffsetFetchRequestData,
+    version: i16,
+    limits: OffsetLimits,
+) -> Result<()> {
+    encode_into(buf, value, version, limits)
 }
 /// Decode one whole bounded OffsetFetch8..10 response.
 pub fn decode_offset_fetch_response_data(
