@@ -4566,6 +4566,8 @@ struct ProduceGroupScratch {
     parts: Vec<Vec<usize>>,
     /// Partition slots for a one-topic batch. Cleared on each use.
     partition_slots: HashMap<i32, usize>,
+    /// Emptied partition lists from a previous split batch.
+    spare_parts: Vec<Vec<Pending>>,
     /// Topic name to the group-list slot. Cleared on each mixed batch.
     topic_slots: HashMap<Arc<str>, usize>,
     /// First topic id for each name. Cleared when a multi-topic v13 body is encoded.
@@ -6015,8 +6017,24 @@ impl Worker {
         Ok(())
     }
 
-    fn park_batch(&mut self, batch: Vec<Pending>) {
-        park_spare(&mut self.spare_batch, batch);
+    fn park_batch(&mut self, mut batch: Vec<Pending>) {
+        batch.clear();
+        if batch.capacity() == 0 {
+            return;
+        }
+        if batch.capacity() > self.spare_batch.capacity() {
+            let previous = std::mem::replace(&mut self.spare_batch, batch);
+            self.stash_part_list(previous);
+            return;
+        }
+        self.stash_part_list(batch);
+    }
+
+    fn stash_part_list(&mut self, batch: Vec<Pending>) {
+        if batch.capacity() == 0 || self.group_scratch.spare_parts.len() >= 64 {
+            return;
+        }
+        self.group_scratch.spare_parts.push(batch);
     }
 
     /// Fail every record and keep the batch allocation for the next send.
@@ -6273,11 +6291,18 @@ fn fill_spare(spare: &mut Vec<Pending>, pending: &mut Vec<Pending>, n: usize) ->
     batch
 }
 
+#[cfg(test)]
 fn park_spare(spare: &mut Vec<Pending>, mut batch: Vec<Pending>) {
     batch.clear();
     if batch.capacity() > spare.capacity() {
         *spare = batch;
     }
+}
+
+fn take_part_list(scratch: &mut ProduceGroupScratch) -> Vec<Pending> {
+    let mut part = scratch.spare_parts.pop().unwrap_or_default();
+    part.clear();
+    part
 }
 
 fn group_pending(
@@ -6329,7 +6354,9 @@ fn group_pending(
             }
             let slot = order.len();
             let _ = scratch.partition_slots.insert(partition, slot);
-            order.push((partition, vec![p]));
+            let mut part = take_part_list(scratch);
+            part.push(p);
+            order.push((partition, part));
         }
         return (
             ProduceGroups::Many(
@@ -6341,36 +6368,47 @@ fn group_pending(
             batch,
         );
     }
-    let buckets = &mut scratch.buckets;
-    let mut order: Vec<Arc<str>> = Vec::new();
-    for p in batch.drain(..) {
-        let partition = p.rec.partition.unwrap_or(RecordMetadata::UNKNOWN_PARTITION);
-        if let Some(groups) = buckets.get_mut(p.rec.topic.as_ref()) {
-            if let Some(&slot) = groups.slots.get(&partition) {
-                if let Some((_, pending)) = groups.order.get_mut(slot) {
-                    pending.push(p);
-                    continue;
+    let mut spare_parts = std::mem::take(&mut scratch.spare_parts);
+    let mut order = Vec::new();
+    {
+        let buckets = &mut scratch.buckets;
+        for p in batch.drain(..) {
+            let partition = p.rec.partition.unwrap_or(RecordMetadata::UNKNOWN_PARTITION);
+            if let Some(groups) = buckets.get_mut(p.rec.topic.as_ref()) {
+                if let Some(&slot) = groups.slots.get(&partition) {
+                    if let Some((_, pending)) = groups.order.get_mut(slot) {
+                        pending.push(p);
+                        continue;
+                    }
                 }
+                let slot = groups.order.len();
+                let _ = groups.slots.insert(partition, slot);
+                let mut part = spare_parts.pop().unwrap_or_default();
+                part.clear();
+                part.push(p);
+                groups.order.push((partition, part));
+            } else {
+                let topic = Arc::clone(&p.rec.topic);
+                order.push(Arc::clone(&topic));
+                let mut slots = HashMap::new();
+                let _ = slots.insert(partition, 0);
+                let mut part = spare_parts.pop().unwrap_or_default();
+                part.clear();
+                part.push(p);
+                let _ = buckets.insert(
+                    topic,
+                    PendingParts {
+                        order: vec![(partition, part)],
+                        slots,
+                    },
+                );
             }
-            let slot = groups.order.len();
-            let _ = groups.slots.insert(partition, slot);
-            groups.order.push((partition, vec![p]));
-        } else {
-            order.push(Arc::clone(&p.rec.topic));
-            let mut slots = HashMap::new();
-            let _ = slots.insert(partition, 0);
-            let _ = buckets.insert(
-                Arc::clone(&p.rec.topic),
-                PendingParts {
-                    order: vec![(partition, vec![p])],
-                    slots,
-                },
-            );
         }
     }
+    scratch.spare_parts = spare_parts;
     let mut out = Vec::new();
     for topic in order {
-        let Some(groups) = buckets.remove(topic.as_ref()) else {
+        let Some(groups) = scratch.buckets.remove(topic.as_ref()) else {
             continue;
         };
         for (partition, pending) in groups.order {
@@ -7756,6 +7794,16 @@ mod tests {
         assert!(shell.is_empty());
         assert!(shell.capacity() >= 2);
         assert_eq!(again.len(), 2);
+        let mut reused = ProduceGroupScratch::default();
+        reused.spare_parts.push(Vec::with_capacity(8));
+        let (split, _) = group_pending(
+            vec![queued("orders", Some(0)), queued("orders", Some(1))],
+            &mut reused,
+        );
+        assert!(reused.spare_parts.is_empty());
+        assert!(split
+            .first()
+            .is_some_and(|(_, partition, pending)| *partition == 0 && pending.capacity() >= 8));
         assert_eq!((again[0].0.as_ref(), again[0].1), ("payments", 1));
         assert_eq!((again[1].0.as_ref(), again[1].1), ("orders", 0));
     }
