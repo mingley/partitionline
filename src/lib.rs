@@ -2223,7 +2223,7 @@
 //! partition `TOPIC_ALREADY_EXISTS`, which fails that poll, and not
 //! piggyback `ILLEGAL_SASL_STATE`). A piggybacked
 //! `INVALID_PARTITIONS` still completes without retry,
-//! including when `AcknowledgeErrorMessage` is set (this is not
+//! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `INVALID_PARTITIONS`, which fails that poll, and not
 //! piggyback `TOPIC_ALREADY_EXISTS`). A piggybacked
 //! `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a
