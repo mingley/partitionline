@@ -1099,10 +1099,13 @@ pub fn encode_find_coordinator_response_coordinators_with_throttle(
         ));
     }
     let flexible = find_coordinator_flexible(version)?;
-    if version >= 1 {
-        buf.put_i32(throttle_time_ms);
-    }
+    let body_start = buf.len();
     if find_coordinator_batched(version) {
+        let planned = find_coordinator_batched_response_len(coordinators)?;
+        reserve_group_body(buf, planned);
+        if version >= 1 {
+            buf.put_i32(throttle_time_ms);
+        }
         buf::put_array_len(buf, true, Some(coordinators.len()))?;
         for c in coordinators {
             buf::put_compact_string(buf, Some(&c.key))?;
@@ -1114,9 +1117,13 @@ pub fn encode_find_coordinator_response_coordinators_with_throttle(
             buf::put_empty_tagged_fields(buf);
         }
         buf::put_empty_tagged_fields(buf);
+        debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
         return Ok(());
     }
     if coordinators.len() != 1 {
+        if version >= 1 {
+            buf.put_i32(throttle_time_ms);
+        }
         return Err(Error::protocol(format!(
             "FindCoordinator version {version} does not support Coordinators"
         )));
@@ -1124,6 +1131,11 @@ pub fn encode_find_coordinator_response_coordinators_with_throttle(
     let c = coordinators
         .first()
         .ok_or_else(|| Error::protocol("missing FindCoordinator Coordinators"))?;
+    let planned = find_coordinator_single_response_len(version, flexible, c)?;
+    reserve_group_body(buf, planned);
+    if version >= 1 {
+        buf.put_i32(throttle_time_ms);
+    }
     buf.put_i16(c.error_code);
     if version >= 1 {
         buf::put_string(buf, flexible, c.error_message.as_deref())?;
@@ -1134,7 +1146,47 @@ pub fn encode_find_coordinator_response_coordinators_with_throttle(
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn find_coordinator_batched_response_len(coordinators: &[CoordinatorResult]) -> Result<usize> {
+    let mut total = 4usize;
+    total = add_group_len(total, group_array_len(true, coordinators.len())?)?;
+    for coordinator in coordinators {
+        total = add_group_len(total, group_string_len(true, Some(&coordinator.key))?)?;
+        total = add_group_len(total, 4)?;
+        total = add_group_len(total, group_string_len(true, Some(&coordinator.host))?)?;
+        total = add_group_len(total, 6)?;
+        total = add_group_len(
+            total,
+            group_string_len(true, coordinator.error_message.as_deref())?,
+        )?;
+        total = add_group_len(total, buf::unsigned_varint_size(0))?;
+    }
+    add_group_len(total, buf::unsigned_varint_size(0))
+}
+
+fn find_coordinator_single_response_len(
+    version: i16,
+    flexible: bool,
+    coordinator: &CoordinatorResult,
+) -> Result<usize> {
+    let mut total = if version >= 1 { 4usize } else { 0 };
+    total = add_group_len(total, 2)?;
+    if version >= 1 {
+        total = add_group_len(
+            total,
+            group_string_len(flexible, coordinator.error_message.as_deref())?,
+        )?;
+    }
+    total = add_group_len(total, 4)?;
+    total = add_group_len(total, group_string_len(flexible, Some(&coordinator.host))?)?;
+    total = add_group_len(total, 4)?;
+    if flexible {
+        total = add_group_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 /// Decode FindCoordinator: `(error_code, node_id, host, port)` (first
@@ -8980,6 +9032,51 @@ mod tests {
             "FindCoordinator v4 getErrorResponse leftover-empty; leftover {} bytes",
             cur.len()
         );
+    }
+
+    #[test]
+    fn a_find_coordinator_response_sizes_its_body_once() {
+        let one = [CoordinatorResult {
+            key: "orders".into(),
+            node_id: 2,
+            host: "broker-2".into(),
+            port: 9092,
+            error_code: 0,
+            error_message: None,
+        }];
+        for version in [0_i16, 1, 3] {
+            let mut buf = BytesMut::new();
+            encode_find_coordinator_response_coordinators(&mut buf, version, &one).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_find_coordinator_response_coordinators(&mut buf, version, &one).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+        }
+        let many = [
+            one[0].clone(),
+            CoordinatorResult {
+                key: "payments".into(),
+                node_id: 3,
+                host: "broker-3".into(),
+                port: 9092,
+                error_code: 15,
+                error_message: Some("missing".into()),
+            },
+        ];
+        let mut buf = BytesMut::new();
+        encode_find_coordinator_response_coordinators(&mut buf, 4, &many).unwrap();
+        let len = buf.len();
+        let capacity = buf.capacity();
+        assert!(capacity >= len);
+        assert!(capacity < 64 * 1024);
+        buf.clear();
+        encode_find_coordinator_response_coordinators(&mut buf, 4, &many).unwrap();
+        assert_eq!(buf.len(), len);
+        assert_eq!(buf.capacity(), capacity);
     }
 
     #[test]
