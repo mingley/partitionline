@@ -2947,6 +2947,9 @@ pub fn encode_leave_group_response_with_throttle(
     throttle_time_ms: i32,
 ) -> crate::error::Result<()> {
     let flexible = leave_group_flexible(version)?;
+    let body_start = buf.len();
+    let planned = leave_group_response_len(version, flexible, members)?;
+    reserve_group_body(buf, planned);
     if version >= 1 {
         buf.put_i32(throttle_time_ms);
     }
@@ -2965,7 +2968,35 @@ pub fn encode_leave_group_response_with_throttle(
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn leave_group_response_len(
+    version: i16,
+    flexible: bool,
+    members: &[LeaveGroupMemberResult],
+) -> Result<usize> {
+    let mut total = if version >= 1 { 4usize } else { 0 };
+    total = add_group_len(total, 2)?;
+    if version >= 3 {
+        total = add_group_len(total, group_array_len(flexible, members.len())?)?;
+        for member in members {
+            total = add_group_len(total, group_string_len(flexible, Some(&member.member_id))?)?;
+            total = add_group_len(
+                total,
+                group_string_len(flexible, member.group_instance_id.as_deref())?,
+            )?;
+            total = add_group_len(total, 2)?;
+            if flexible {
+                total = add_group_len(total, buf::unsigned_varint_size(0))?;
+            }
+        }
+    }
+    if flexible {
+        total = add_group_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 /// Decode LeaveGroup v0: error code.
@@ -16013,6 +16044,34 @@ mod tests {
             "LeaveGroup v3 response leftover {} bytes",
             cur.len()
         );
+    }
+
+    #[test]
+    fn a_leave_group_response_sizes_its_body_once() {
+        let members = vec![
+            LeaveGroupMemberResult {
+                member_id: "member-1".into(),
+                group_instance_id: Some("instance".into()),
+                error_code: 0,
+            },
+            LeaveGroupMemberResult {
+                member_id: "member-2".into(),
+                group_instance_id: None,
+                error_code: 0,
+            },
+        ];
+        for version in [0_i16, 1, 3, 4, 5] {
+            let mut buf = BytesMut::new();
+            encode_leave_group_response_version(&mut buf, version, 0, &members).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_leave_group_response_version(&mut buf, version, 0, &members).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+        }
     }
 
     #[test]
