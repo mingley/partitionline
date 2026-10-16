@@ -555,6 +555,8 @@ struct State {
     assign_replicas_to_dirs_not_controller: u32,
     last_assign_replicas_to_dirs: Option<AssignReplicasToDirsRequest>,
     last_alter_replica_log_dirs_node: Option<i32>,
+    alter_replica_log_dirs_nodes: Vec<i32>,
+    alter_replica_log_dirs_delay: Option<std::time::Duration>,
     last_alter_replica_log_dirs_version: Option<i16>,
     last_alter_replica_log_dirs: Option<AlterReplicaLogDirsRequest>,
     last_describe_log_dirs_node: Option<i32>,
@@ -1035,6 +1037,8 @@ fn new_state(
         assign_replicas_to_dirs_not_controller: 0,
         last_assign_replicas_to_dirs: None,
         last_alter_replica_log_dirs_node: None,
+        alter_replica_log_dirs_nodes: Vec::new(),
+        alter_replica_log_dirs_delay: None,
         last_alter_replica_log_dirs_version: None,
         last_alter_replica_log_dirs: None,
         last_describe_log_dirs_node: None,
@@ -3370,6 +3374,14 @@ impl Mock {
 
     pub fn last_alter_replica_log_dirs_node(&self) -> Option<i32> {
         self.state.lock().last_alter_replica_log_dirs_node
+    }
+
+    pub fn alter_replica_log_dirs_nodes(&self) -> Vec<i32> {
+        self.state.lock().alter_replica_log_dirs_nodes.clone()
+    }
+
+    pub fn set_alter_replica_log_dirs_delay(&self, delay: std::time::Duration) {
+        self.state.lock().alter_replica_log_dirs_delay = Some(delay);
     }
 
     pub fn last_alter_replica_log_dirs_version(&self) -> Option<i16> {
@@ -8843,6 +8855,10 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 }
             }
             ALTER_REPLICA_LOG_DIRS => {
+                let delay = state.lock().alter_replica_log_dirs_delay;
+                if let Some(delay) = delay {
+                    tokio::time::sleep(delay).await;
+                }
                 let version = header.api_version;
                 let req = decode_alter_replica_log_dirs_request(&mut frame, version).unwrap();
                 let mut st = state.lock();
@@ -8853,6 +8869,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 // or NOT_CONTROLLER (41), so the wrong node does not
                 // return 16 or 41.
                 st.last_alter_replica_log_dirs_node = Some(node_id);
+                st.alter_replica_log_dirs_nodes.push(node_id);
                 st.last_alter_replica_log_dirs_version = Some(version);
                 let results = req
                     .dirs

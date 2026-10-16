@@ -13090,8 +13090,8 @@ impl Admin {
     /// [`Self::alter_replica_log_dirs_for`] with a one-shot RPC deadline
     /// (Java `alterReplicaLogDirs` plus `AlterReplicaLogDirsOptions.timeoutMs`).
     ///
-    /// AlterReplicaLogDirs has no TimeoutMs; `timeout` is the RPC deadline
-    /// for each replica-broker hop.
+    /// AlterReplicaLogDirs has no TimeoutMs. Distinct replica brokers are
+    /// queried together under `timeout`.
     pub async fn alter_replica_log_dirs_for_timeout<I, Dir>(
         &mut self,
         replica_assignment: I,
@@ -13109,25 +13109,63 @@ impl Admin {
             return Ok(Vec::new());
         }
         let mut errors: HashMap<TopicPartitionReplica, i16> = HashMap::new();
-        for (broker_id, dirs) in group_alter_replica_log_dirs(&assignment) {
+        let grouped = group_alter_replica_log_dirs(&assignment);
+        if grouped.len() <= 1 {
+            for (broker_id, dirs) in grouped {
+                let deadline = Instant::now()
+                    .checked_add(timeout)
+                    .ok_or_else(|| Error::protocol("AlterReplicaLogDirs deadline overflow"))?;
+                self.ensure_broker(broker_id, deadline).await?;
+                let remaining = deadline.saturating_duration_since(Instant::now());
+                if remaining.is_zero() {
+                    return Err(Error::Timeout);
+                }
+                let resp = self
+                    .alter_replica_log_dirs_on(broker_id, &dirs, remaining)
+                    .await?;
+                record_alter_replica_errors(&mut errors, &assignment, broker_id, &resp);
+            }
+        } else {
+            let version = self.alter_replica_log_dirs_version.ok_or_else(|| {
+                Error::Unsupported("broker does not support AlterReplicaLogDirs".into())
+            })?;
             let deadline = Instant::now()
                 .checked_add(timeout)
                 .ok_or_else(|| Error::protocol("AlterReplicaLogDirs deadline overflow"))?;
-            self.ensure_broker(broker_id, deadline).await?;
-            let remaining = deadline.saturating_duration_since(Instant::now());
-            if remaining.is_zero() {
-                return Err(Error::Timeout);
+            let ids: Vec<i32> = grouped.iter().map(|(broker_id, _)| *broker_id).collect();
+            for id in &ids {
+                self.ensure_broker(*id, deadline).await?;
             }
-            let resp = self
-                .alter_replica_log_dirs_on(broker_id, &dirs, remaining)
-                .await?;
-            for (replica, _) in assignment.iter().filter(|(r, _)| r.broker_id == broker_id) {
-                let code = alter_replica_partition_error(
-                    &resp.results,
-                    replica.topic(),
-                    replica.partition,
-                );
-                let _ = errors.insert(replica.clone(), code);
+            let mut finished = self
+                .exchange_leaders(&ids, deadline, |_admin, node, _conn, _timeout| {
+                    let dirs = grouped
+                        .iter()
+                        .find(|(broker_id, _)| *broker_id == node)
+                        .map(|(_, dirs)| dirs.as_slice())
+                        .unwrap_or(&[]);
+                    let mut payload = BytesMut::new();
+                    encode_alter_replica_log_dirs_named(&mut payload, version, dirs)?;
+                    Ok(LeaderFrame {
+                        api_key: ALTER_REPLICA_LOG_DIRS,
+                        version,
+                        body: payload.freeze(),
+                    })
+                })
+                .await;
+            for (broker_id, dirs) in grouped {
+                let Some((spoken, body)) = finished.remove(&broker_id) else {
+                    return Err(Error::Timeout);
+                };
+                let resp = match body {
+                    Err(error) if error.is_retriable() && !matches!(error, Error::Timeout) => {
+                        let _ = self.conns.remove(&broker_id);
+                        self.alter_replica_log_dirs_on(broker_id, &dirs, timeout)
+                            .await?
+                    }
+                    Err(error) => return Err(error),
+                    Ok(body) => decode_alter_replica_log_dirs_response(&mut body.clone(), spoken)?,
+                };
+                record_alter_replica_errors(&mut errors, &assignment, broker_id, &resp);
             }
         }
         let mut out = Vec::with_capacity(assignment.len());
@@ -14873,6 +14911,21 @@ fn alter_replica_dirs_for_broker<'a>(
         let _ = topic_slots.insert((path_name, topic_name), topic_index);
     }
     directories
+}
+
+fn record_alter_replica_errors(
+    errors: &mut HashMap<TopicPartitionReplica, i16>,
+    assignment: &[(TopicPartitionReplica, String)],
+    broker_id: i32,
+    resp: &AlterReplicaLogDirsResponse,
+) {
+    for (replica, _) in assignment
+        .iter()
+        .filter(|(replica, _)| replica.broker_id == broker_id)
+    {
+        let code = alter_replica_partition_error(&resp.results, replica.topic(), replica.partition);
+        let _ = errors.insert(replica.clone(), code);
+    }
 }
 
 fn alter_replica_partition_error(

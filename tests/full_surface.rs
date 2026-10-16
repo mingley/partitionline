@@ -11451,6 +11451,35 @@ async fn alter_replica_log_dirs_follows_broker() {
 }
 
 #[tokio::test]
+async fn alter_replica_log_dirs_overlaps_brokers() {
+    let mock = common::Mock::start_two_node().await;
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    mock.set_alter_replica_log_dirs_delay(Duration::from_millis(200));
+    let started = std::time::Instant::now();
+    let moved = admin
+        .alter_replica_log_dirs_for([
+            (TopicPartitionReplica::new("t", 0, 1), "/a"),
+            (TopicPartitionReplica::new("u", 0, 2), "/b"),
+        ])
+        .await
+        .unwrap();
+    assert_eq!(moved.len(), 2);
+    assert_eq!(moved[0].0.broker_id, 1);
+    assert_eq!(moved[1].0.broker_id, 2);
+    assert_eq!(moved[0].1, 0);
+    assert_eq!(moved[1].1, 0);
+    assert!(
+        started.elapsed() < Duration::from_millis(450),
+        "replica log directory moves waited for one broker at a time: {:?}",
+        started.elapsed()
+    );
+    let mut nodes = mock.alter_replica_log_dirs_nodes();
+    nodes.sort_unstable();
+    assert_eq!(nodes, vec![1, 2]);
+    admin.close().await.unwrap();
+}
+
+#[tokio::test]
 async fn alter_replica_log_dirs_negotiates_v1_when_broker_caps() {
     let mock = common::Mock::start().await;
     mock.set_api_max(ALTER_REPLICA_LOG_DIRS, 1);
