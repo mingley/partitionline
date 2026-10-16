@@ -29,7 +29,7 @@ use tokio::sync::{mpsc, oneshot, Mutex, OwnedSemaphorePermit, Semaphore};
 
 const MAGIC: &[u8; 8] = b"PLSASL01";
 const RECORD_BYTES: usize = 4096;
-type Records = HashMap<(String, Algorithm), Credential>;
+type Records = HashMap<String, HashMap<Algorithm, Credential>>;
 
 /// Fixed redacted storage/admin failure categories.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -502,13 +502,17 @@ impl Actor {
                         let mut rows: Vec<_> = self
                             .records
                             .iter()
-                            .filter(|((user, _), _)| {
-                                users.as_ref().is_none_or(|users| users.contains(user))
+                            .filter(|(user, _)| {
+                                users.as_ref().is_none_or(|users| users.contains(*user))
                             })
-                            .map(|((user, algorithm), credential)| CredentialInfo {
-                                user: user.clone(),
-                                algorithm: *algorithm,
-                                iterations: credential.iterations(),
+                            .flat_map(|(user, mechanisms)| {
+                                mechanisms
+                                    .iter()
+                                    .map(|(algorithm, credential)| CredentialInfo {
+                                        user: user.clone(),
+                                        algorithm: *algorithm,
+                                        iterations: credential.iterations(),
+                                    })
                             })
                             .collect();
                         rows.sort_by(|a, b| {
@@ -532,8 +536,12 @@ impl Actor {
             let algorithm = change.algorithm();
             match change {
                 Change::Delete(_) => {
-                    if next.remove(&(user.clone(), algorithm)).is_none() {
+                    let mechanisms = next.get_mut(&user).ok_or(Error::NotFound)?;
+                    if mechanisms.remove(&algorithm).is_none() {
                         return Err(Error::NotFound);
+                    }
+                    if mechanisms.is_empty() {
+                        let _removed = next.remove(&user);
                     }
                     stored.push((algorithm, None));
                 }
@@ -552,11 +560,17 @@ impl Actor {
                     )
                     .map_err(|_| Error::Invalid)?;
                     stored.push((algorithm, Some(credential.form())));
-                    next.insert((user.clone(), algorithm), credential);
+                    if let Some(mechanisms) = next.get_mut(&user) {
+                        let _previous = mechanisms.insert(algorithm, credential);
+                    } else {
+                        let mut mechanisms = HashMap::new();
+                        let _previous = mechanisms.insert(algorithm, credential);
+                        let _previous = next.insert(user.clone(), mechanisms);
+                    }
                 }
             }
         }
-        if next.len() > self.limits.sasl.credentials {
+        if credential_count(&next) > self.limits.sasl.credentials {
             return Err(Error::Budget);
         }
         write(&mut self.encoded, &user, &stored);
@@ -597,10 +611,18 @@ impl Actor {
         self.service.disable();
     }
 }
+fn credential_count(records: &Records) -> usize {
+    records.values().map(HashMap::len).sum()
+}
+
 fn export(records: &Records) -> Vec<(String, Credential)> {
     records
         .iter()
-        .map(|((user, _), credential)| (user.clone(), credential.clone()))
+        .flat_map(|(user, mechanisms)| {
+            mechanisms
+                .values()
+                .map(|credential| (user.clone(), credential.clone()))
+        })
         .collect()
 }
 fn storage_error(error: journal::Error) -> Error {
@@ -706,8 +728,12 @@ fn decode_apply(payload: &[u8], records: &mut Records, limits: Limits) -> Result
         previous = Some(algorithm);
         match decoder.byte()? {
             0 => {
-                if records.remove(&(user.clone(), algorithm)).is_none() {
+                let mechanisms = records.get_mut(&user).ok_or(Error::Corrupt)?;
+                if mechanisms.remove(&algorithm).is_none() {
                     return Err(Error::Corrupt);
+                }
+                if mechanisms.is_empty() {
+                    let _removed = records.remove(&user);
                 }
             }
             1 => {
@@ -731,12 +757,18 @@ fn decode_apply(payload: &[u8], records: &mut Records, limits: Limits) -> Result
                     limits.sasl,
                 )
                 .map_err(|_| Error::Corrupt)?;
-                records.insert((user.clone(), algorithm), credential);
+                if let Some(mechanisms) = records.get_mut(&user) {
+                    let _previous = mechanisms.insert(algorithm, credential);
+                } else {
+                    let mut mechanisms = HashMap::new();
+                    let _previous = mechanisms.insert(algorithm, credential);
+                    let _previous = records.insert(user.clone(), mechanisms);
+                }
             }
             _ => return Err(Error::Corrupt),
         }
     }
-    if decoder.cursor != payload.len() || records.len() > limits.sasl.credentials {
+    if decoder.cursor != payload.len() || credential_count(records) > limits.sasl.credentials {
         return Err(Error::Corrupt);
     }
     Ok(())
