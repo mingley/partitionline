@@ -864,7 +864,7 @@ pub enum ShareAcquireMode {
 /// `INVALID_UPDATE_VERSION`, which fails that poll, and not piggyback
 /// `UNSUPPORTED_VERSION`). A piggybacked
 /// `STALE_CONTROLLER_EPOCH` still completes without retry,
-/// including when `AcknowledgeErrorMessage` is set (Java
+/// including when `AcknowledgeErrorMessage` is set or empty (Java
 /// `handleShareFetchSuccess` completes piggyback acks and still
 /// delivers the fetch; this is not partition
 /// `STALE_CONTROLLER_EPOCH`, which fails that poll, and not piggyback
@@ -2275,7 +2275,7 @@ impl ShareGroup {
     /// `UNSUPPORTED_VERSION`).
     /// A piggybacked `STALE_CONTROLLER_EPOCH` still completes
     /// without retry, including when `AcknowledgeErrorMessage` is set
-    /// (Java `handleShareFetchSuccess` completes piggyback acks and
+    /// or empty (Java `handleShareFetchSuccess` completes piggyback acks and
     /// still delivers the fetch; this is not partition
     /// `STALE_CONTROLLER_EPOCH`, which fails that poll, and not piggyback
     /// `INVALID_UPDATE_VERSION` or `NOT_CONTROLLER`).
