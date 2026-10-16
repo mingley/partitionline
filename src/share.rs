@@ -936,7 +936,7 @@ pub enum ShareAcquireMode {
 /// `UNSUPPORTED_SASL_MECHANISM`, which fails that poll, and not piggyback
 /// `INVALID_TIMESTAMP`). A piggybacked
 /// `ILLEGAL_SASL_STATE` still completes without retry,
-/// including when `AcknowledgeErrorMessage` is set (Java
+/// including when `AcknowledgeErrorMessage` is set or empty (Java
 /// `handleShareFetchSuccess` completes piggyback acks and still
 /// delivers the fetch; this is not partition
 /// `ILLEGAL_SASL_STATE`, which fails that poll, and not piggyback
@@ -2455,7 +2455,7 @@ impl ShareGroup {
     /// `INVALID_TIMESTAMP`).
     /// A piggybacked `ILLEGAL_SASL_STATE` still completes
     /// without retry, including when `AcknowledgeErrorMessage` is set
-    /// (Java `handleShareFetchSuccess` completes piggyback acks and still
+    /// or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
     /// delivers the fetch; this is not partition
     /// `ILLEGAL_SASL_STATE`, which fails that poll, and not piggyback
     /// `UNSUPPORTED_SASL_MECHANISM`).
