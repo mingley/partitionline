@@ -2154,7 +2154,7 @@
 //! `commitSync(Duration)` (`Map<TopicIdPartition, Optional<KafkaException>>`,
 //! [`AcknowledgementCommitResults`]). Top-level ShareAcknowledge
 //! `TOPIC_AUTHORIZATION_FAILED` completes without retry and does not
-//! request Metadata, including when `ErrorMessage` is set (Java
+//! request Metadata, including when `ErrorMessage` is set or empty (Java
 //! `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`).
 //! Top-level ShareAcknowledge
 //! `SHARE_SESSION_LIMIT_REACHED` completes without retry and advances
