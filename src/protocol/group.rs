@@ -5057,6 +5057,9 @@ pub fn encode_offset_fetch_groups_response_with_throttle(
             "Version {version} of OffsetFetchResponse only supports one group."
         )));
     }
+    let body_start = buf.len();
+    let planned = offset_fetch_response_len(version, flexible, groups)?;
+    reserve_group_body(buf, planned);
     if version >= 3 {
         buf.put_i32(throttle_time_ms);
     }
@@ -5080,7 +5083,73 @@ pub fn encode_offset_fetch_groups_response_with_throttle(
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn fetched_offset_topics_len(
+    version: i16,
+    flexible: bool,
+    topics: &[FetchedOffsetTopic],
+) -> Result<usize> {
+    let mut total = group_array_len(flexible, topics.len())?;
+    for topic in topics {
+        total = add_group_len(total, group_string_len(flexible, Some(&topic.topic))?)?;
+        total = add_group_len(total, group_array_len(flexible, topic.partitions.len())?)?;
+        for partition in &topic.partitions {
+            let mut fixed = 14usize;
+            if version >= 5 {
+                fixed += 4;
+            }
+            total = add_group_len(total, fixed)?;
+            let metadata = if partition.metadata.is_empty() {
+                None
+            } else {
+                Some(partition.metadata.as_str())
+            };
+            total = add_group_len(total, group_string_len(flexible, metadata)?)?;
+            if flexible {
+                total = add_group_len(total, buf::unsigned_varint_size(0))?;
+            }
+        }
+        if flexible {
+            total = add_group_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    Ok(total)
+}
+
+fn offset_fetch_response_len(
+    version: i16,
+    flexible: bool,
+    groups: &[OffsetFetchGroupResult],
+) -> Result<usize> {
+    let mut total = if version >= 3 { 4usize } else { 0 };
+    if version <= 7 {
+        let topics = groups
+            .first()
+            .map(|group| group.topics.as_slice())
+            .unwrap_or(&[]);
+        total = add_group_len(total, fetched_offset_topics_len(version, flexible, topics)?)?;
+        if version >= 2 {
+            total = add_group_len(total, 2)?;
+        }
+    } else {
+        total = add_group_len(total, group_array_len(true, groups.len())?)?;
+        for group in groups {
+            total = add_group_len(total, group_string_len(true, Some(&group.group_id))?)?;
+            total = add_group_len(
+                total,
+                fetched_offset_topics_len(version, true, &group.topics)?,
+            )?;
+            total = add_group_len(total, 2)?;
+            total = add_group_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    if flexible {
+        total = add_group_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 /// Decode OffsetFetch. Top-level / group error is [`crate::error::Error::Broker`].
@@ -12226,6 +12295,61 @@ mod tests {
         assert_eq!(crate::protocol::api_keys::pick_version(1, 9, 1, 9), Some(9));
         assert_eq!(crate::protocol::api_keys::pick_version(0, 0, 1, 9), None);
         assert_eq!(crate::protocol::api_keys::pick_version(10, 10, 1, 9), None);
+    }
+
+    #[test]
+    fn an_offset_fetch_response_sizes_its_body_once() {
+        let topics = vec![FetchedOffsetTopic {
+            topic: "orders".into(),
+            partitions: (0..8)
+                .map(|partition| FetchedOffset {
+                    partition,
+                    offset: 10,
+                    leader_epoch: 3,
+                    metadata: if partition == 0 {
+                        String::new()
+                    } else {
+                        "meta".into()
+                    },
+                    error_code: 0,
+                })
+                .collect(),
+        }];
+        let one = [OffsetFetchGroupResult {
+            group_id: "group".into(),
+            topics: topics.clone(),
+            error_code: 0,
+        }];
+        for version in [1_i16, 5, 6] {
+            let mut buf = BytesMut::new();
+            encode_offset_fetch_groups_response(&mut buf, version, &one).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_offset_fetch_groups_response(&mut buf, version, &one).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+        }
+        let groups = [
+            one[0].clone(),
+            OffsetFetchGroupResult {
+                group_id: "other".into(),
+                topics,
+                error_code: 0,
+            },
+        ];
+        let mut buf = BytesMut::new();
+        encode_offset_fetch_groups_response(&mut buf, 8, &groups).unwrap();
+        let len = buf.len();
+        let capacity = buf.capacity();
+        assert!(capacity >= len);
+        assert!(capacity < 64 * 1024);
+        buf.clear();
+        encode_offset_fetch_groups_response(&mut buf, 8, &groups).unwrap();
+        assert_eq!(buf.len(), len);
+        assert_eq!(buf.capacity(), capacity);
     }
 
     #[test]
