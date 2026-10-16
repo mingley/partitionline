@@ -10323,6 +10323,12 @@ pub fn encode_describe_groups_request(
     include_authorized_operations: bool,
 ) -> crate::error::Result<()> {
     let flexible = describe_groups_flexible(version)?;
+    let body_start = buf.len();
+    let planned = describe_groups_request_len(version, flexible, group_ids)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf::put_array_len(buf, flexible, Some(group_ids.len()))?;
     for id in group_ids {
         buf::put_string(buf, flexible, Some(id))?;
@@ -10333,7 +10339,26 @@ pub fn encode_describe_groups_request(
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn describe_groups_request_len(
+    version: i16,
+    flexible: bool,
+    group_ids: &[String],
+) -> Result<usize> {
+    let mut total = describe_array_len(flexible, group_ids.len())?;
+    for id in group_ids {
+        total = add_describe_len(total, describe_string_len(flexible, Some(id))?)?;
+    }
+    if version >= 3 {
+        total = add_describe_len(total, 1)?;
+    }
+    if flexible {
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 /// Decode a DescribeGroups request.
@@ -29876,6 +29901,23 @@ mod tests {
             err.to_string().contains("not implemented"),
             "v2+ is not spoken, got {err}"
         );
+    }
+
+    #[test]
+    fn a_describe_groups_request_sizes_its_body_once() {
+        let group_ids: Vec<String> = (0..8).map(|index| format!("group-{index}")).collect();
+        for version in [0_i16, 3, 5] {
+            let mut buf = BytesMut::new();
+            encode_describe_groups_request(&mut buf, version, &group_ids, true).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_describe_groups_request(&mut buf, version, &group_ids, true).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+        }
     }
 
     #[test]
