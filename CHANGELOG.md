@@ -364,7 +364,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `NOT_CONTROLLER`). A
   piggybacked `OFFSET_METADATA_TOO_LARGE` still
   completes without retry, including when `AcknowledgeErrorMessage` is
-  set (Java `handleShareFetchSuccess` completes piggyback acks and still
+  set or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
   delivers the fetch; this is not partition `OFFSET_METADATA_TOO_LARGE`,
   which fails that poll, and not piggyback `STALE_CONTROLLER_EPOCH`). A
   piggybacked `TOPIC_AUTHORIZATION_FAILED` on
