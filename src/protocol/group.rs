@@ -4529,10 +4529,12 @@ impl OffsetCommitRequest {
 
     /// Java `OffsetCommitRequest.getErrorResponse`.
     ///
-    /// Topics copy names and partition indexes with `error_code` (Java
-    /// `getErrorResponse(data, error)`). ThrottleTimeMs is written on v3+
-    /// from `throttle_time_ms`. Below v3 the field is omitted even when
-    /// that value is non-zero. Decode fills `0`.
+    /// Each topic name and partition index is written from the caller
+    /// with `error_code` (Java `getErrorResponse(data, error)`). Committed
+    /// offsets, metadata, and leader epochs are not written.
+    /// ThrottleTimeMs is written on v3+ from `throttle_time_ms`. Below v3
+    /// the field is omitted even when that value is non-zero. Decode fills
+    /// `0`.
     pub fn error_response(
         buf: &mut BytesMut,
         version: i16,
@@ -4540,12 +4542,7 @@ impl OffsetCommitRequest {
         error_code: i16,
         throttle_time_ms: i32,
     ) -> crate::error::Result<()> {
-        encode_offset_commit_topics_response_with_throttle(
-            buf,
-            version,
-            &OffsetTopic::error_results(topics, error_code),
-            throttle_time_ms,
-        )
+        encode_offset_commit_error_response(buf, version, topics, error_code, throttle_time_ms)
     }
 }
 
@@ -4924,15 +4921,15 @@ pub fn decode_offset_commit_request<B: Buf>(
 
 /// Encode OffsetCommit v2–v9. Throttle is `0` on v3+.
 ///
-/// Applies `error` on every request partition via
-/// [`OffsetTopic::error_results`].
+/// Applies `error` on every request partition. Topic names and partition
+/// indexes are written from the caller. Throttle is `0` on v3+.
 pub fn encode_offset_commit_response(
     buf: &mut BytesMut,
     version: i16,
     topics: &[OffsetTopic],
     error: i16,
 ) -> crate::error::Result<()> {
-    encode_offset_commit_topics_response(buf, version, &OffsetTopic::error_results(topics, error))
+    encode_offset_commit_error_response(buf, version, topics, error, 0)
 }
 
 /// Encode OffsetCommit v2–v9 from response Topics.
@@ -4985,6 +4982,72 @@ pub fn encode_offset_commit_topics_response_with_throttle(
     }
     debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+/// OffsetCommit error body written from the request topics.
+///
+/// The bytes match [`OffsetTopic::error_result`]: partition index and
+/// error code. Offsets, metadata, and leader epochs are omitted.
+fn encode_offset_commit_error_response(
+    buf: &mut BytesMut,
+    version: i16,
+    topics: &[OffsetTopic],
+    error_code: i16,
+    throttle_time_ms: i32,
+) -> Result<()> {
+    let flexible = offset_commit_flexible(version)?;
+    let body_start = buf.len();
+    let planned = offset_commit_error_len(version, flexible, topics)?;
+    reserve_group_body(buf, planned);
+    if version >= 3 {
+        buf.put_i32(throttle_time_ms);
+    }
+    buf::put_array_len(buf, flexible, Some(topics.len()))?;
+    for topic in topics {
+        buf::put_string(buf, flexible, Some(&topic.topic))?;
+        buf::put_array_len(buf, flexible, Some(topic.partitions.len()))?;
+        for partition in &topic.partitions {
+            buf.put_i32(partition.partition);
+            buf.put_i16(error_code);
+            if flexible {
+                buf::put_empty_tagged_fields(buf);
+            }
+        }
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+    }
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+    Ok(())
+}
+
+fn offset_commit_error_len(version: i16, flexible: bool, topics: &[OffsetTopic]) -> Result<usize> {
+    let mut total = if version >= 3 { 4usize } else { 0 };
+    total = add_group_len(total, group_array_len(flexible, topics.len())?)?;
+    for topic in topics {
+        total = add_group_len(total, group_string_len(flexible, Some(&topic.topic))?)?;
+        total = add_group_len(total, group_array_len(flexible, topic.partitions.len())?)?;
+        let mut partition = 6usize;
+        if flexible {
+            partition += buf::unsigned_varint_size(0);
+        }
+        total = add_group_len(
+            total,
+            partition
+                .checked_mul(topic.partitions.len())
+                .ok_or_else(|| Error::protocol("offset commit response size overflow"))?,
+        )?;
+        if flexible {
+            total = add_group_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    if flexible {
+        total = add_group_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 fn offset_commit_response_len(
@@ -12758,6 +12821,98 @@ mod tests {
                 0
             );
         }
+    }
+
+    #[test]
+    fn offset_commit_error_response_matches_named_results() {
+        let topics = [
+            OffsetTopic {
+                topic: "orders-topic-name-is-long".into(),
+                partitions: vec![
+                    OffsetPartition::new(0, 10),
+                    OffsetPartition {
+                        partition: 2,
+                        offset: 40,
+                        leader_epoch: 7,
+                        metadata: "keep".into(),
+                    },
+                ],
+            },
+            OffsetTopic {
+                topic: "t".into(),
+                partitions: Vec::new(),
+            },
+        ];
+        for version in 2..=9 {
+            for throttle in [0_i32, 12] {
+                let results = OffsetTopic::error_results(&topics, crate::error::NOT_COORDINATOR);
+                let mut expected = BytesMut::new();
+                encode_offset_commit_topics_response_with_throttle(
+                    &mut expected,
+                    version,
+                    &results,
+                    throttle,
+                )
+                .unwrap();
+                let mut got = BytesMut::new();
+                OffsetCommitRequest::error_response(
+                    &mut got,
+                    version,
+                    &topics,
+                    crate::error::NOT_COORDINATOR,
+                    throttle,
+                )
+                .unwrap();
+                assert_eq!(
+                    got.as_ref(),
+                    expected.as_ref(),
+                    "version {version} throttle {throttle}"
+                );
+                let len = got.len();
+                let capacity = got.capacity();
+                assert!(capacity >= len);
+                assert!(capacity < 64 * 1024);
+                got.clear();
+                OffsetCommitRequest::error_response(
+                    &mut got,
+                    version,
+                    &topics,
+                    crate::error::NOT_COORDINATOR,
+                    throttle,
+                )
+                .unwrap();
+                assert_eq!(got.len(), len);
+                assert_eq!(got.capacity(), capacity);
+            }
+            let mut convenience = BytesMut::new();
+            encode_offset_commit_response(
+                &mut convenience,
+                version,
+                &topics,
+                crate::error::NOT_COORDINATOR,
+            )
+            .unwrap();
+            let mut zero = BytesMut::new();
+            encode_offset_commit_topics_response_with_throttle(
+                &mut zero,
+                version,
+                &OffsetTopic::error_results(&topics, crate::error::NOT_COORDINATOR),
+                0,
+            )
+            .unwrap();
+            assert_eq!(convenience.as_ref(), zero.as_ref(), "version {version}");
+        }
+        let mut empty = BytesMut::new();
+        OffsetCommitRequest::error_response(&mut empty, 9, &[], 41, 1).unwrap();
+        let mut expected_empty = BytesMut::new();
+        encode_offset_commit_topics_response_with_throttle(&mut expected_empty, 9, &[], 1).unwrap();
+        assert_eq!(empty.as_ref(), expected_empty.as_ref());
+        assert!(
+            OffsetCommitRequest::error_response(&mut BytesMut::new(), 1, &topics, 41, 0).is_err()
+        );
+        assert!(
+            OffsetCommitRequest::error_response(&mut BytesMut::new(), 10, &topics, 41, 0).is_err()
+        );
     }
 
     #[test]
