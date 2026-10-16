@@ -376,12 +376,13 @@ impl CreateTopicsRequest {
 
     /// Java `CreateTopicsRequest.getErrorResponse`.
     ///
-    /// Copies each topic name through [`CreatableTopic::error_result`].
+    /// Each topic name is written from the caller. TopicId stays zero.
     /// `ErrorMessage` stays the JSON default (null); official Java also
-    /// sets the English `Errors.message` string. ThrottleTimeMs is
-    /// written on v2+ from `throttle_time_ms`. Below v2 the field is
-    /// omitted even when that value is non-zero (Java only calls
-    /// `setThrottleTimeMs` when `version() >= 2`). Decode fills `0`.
+    /// sets the English `Errors.message` string. v5+ `NumPartitions` /
+    /// `ReplicationFactor` stay `-1` and Configs stay empty.
+    /// ThrottleTimeMs is written on v2+ from `throttle_time_ms`. Below v2
+    /// the field is omitted even when that value is non-zero (Java only
+    /// calls `setThrottleTimeMs` when `version() >= 2`). Decode fills `0`.
     pub fn error_response(
         buf: &mut BytesMut,
         version: i16,
@@ -389,11 +390,7 @@ impl CreateTopicsRequest {
         error_code: i16,
         throttle_time_ms: i32,
     ) -> crate::error::Result<()> {
-        let results: Vec<TopicResult> = topics
-            .iter()
-            .map(|topic| topic.error_result(error_code))
-            .collect();
-        encode_create_topics_response_with_throttle(buf, version, &results, throttle_time_ms)
+        encode_create_topics_error_response(buf, version, topics, error_code, throttle_time_ms)
     }
 
     /// Java `CreateTopicsRequest.Builder.build`.
@@ -1400,6 +1397,79 @@ fn create_topics_response_len(
                 total = add_describe_len(total, 3)?;
                 total = add_describe_len(total, buf::unsigned_varint_size(0))?;
             }
+            total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    if flexible {
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
+}
+
+/// CreateTopics error body written from the request names.
+///
+/// The bytes match [`CreatableTopic::error_result`]: zero topic id, null
+/// error message, and the v5+ partition, replication, and config defaults.
+fn encode_create_topics_error_response(
+    buf: &mut BytesMut,
+    version: i16,
+    topics: &[CreatableTopic],
+    error_code: i16,
+    throttle_time_ms: i32,
+) -> crate::error::Result<()> {
+    let flexible = create_topics_flexible(version)?;
+    let body_start = buf.len();
+    let planned = create_topics_error_len(version, flexible, topics)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
+    if version >= 2 {
+        buf.put_i32(throttle_time_ms);
+    }
+    buf::put_array_len(buf, flexible, Some(topics.len()))?;
+    for topic in topics {
+        buf::put_string(buf, flexible, Some(&topic.name))?;
+        if version >= 7 {
+            buf.extend_from_slice(&[0u8; 16]);
+        }
+        buf.put_i16(error_code);
+        if version >= 1 {
+            buf::put_string(buf, flexible, None)?;
+        }
+        if version >= 5 {
+            buf.put_i32(CreateTopicsRequest::NO_NUM_PARTITIONS);
+            buf.put_i16(CreateTopicsRequest::NO_REPLICATION_FACTOR);
+            buf::put_array_len(buf, true, Some(0))?;
+            buf::put_empty_tagged_fields(buf);
+        }
+    }
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+    Ok(())
+}
+
+fn create_topics_error_len(
+    version: i16,
+    flexible: bool,
+    topics: &[CreatableTopic],
+) -> Result<usize> {
+    let mut total = if version >= 2 { 4 } else { 0 };
+    total = add_describe_len(total, describe_array_len(flexible, topics.len())?)?;
+    for topic in topics {
+        total = add_describe_len(total, describe_string_len(flexible, Some(&topic.name))?)?;
+        if version >= 7 {
+            total = add_describe_len(total, 16)?;
+        }
+        total = add_describe_len(total, 2)?;
+        if version >= 1 {
+            total = add_describe_len(total, describe_string_len(flexible, None)?)?;
+        }
+        if version >= 5 {
+            total = add_describe_len(total, 6)?;
+            total = add_describe_len(total, describe_array_len(true, 0)?)?;
             total = add_describe_len(total, buf::unsigned_varint_size(0))?;
         }
     }
@@ -25004,6 +25074,85 @@ mod tests {
         let mut v6 = BytesMut::new();
         encode_create_topics_response(&mut v6, 6, &results).unwrap();
         assert_eq!(&v5[..], &v6[..], "CreateTopics v6 response matches v5");
+    }
+
+    #[test]
+    fn create_topics_error_response_matches_named_results() {
+        let topics = [
+            CreatableTopic {
+                name: "orders-topic-name-is-long".into(),
+                num_partitions: 3,
+                replication_factor: 2,
+                assignments: vec![ReplicaAssignment {
+                    partition_index: 0,
+                    broker_ids: vec![1, 2],
+                }],
+                configs: vec![TopicConfig {
+                    name: "cleanup.policy".into(),
+                    value: Some("compact".into()),
+                }],
+            },
+            CreatableTopic {
+                name: "t".into(),
+                num_partitions: -1,
+                replication_factor: -1,
+                assignments: Vec::new(),
+                configs: Vec::new(),
+            },
+        ];
+        for version in 0..=7 {
+            for throttle in [0_i32, 12] {
+                let results: Vec<TopicResult> = topics
+                    .iter()
+                    .map(|topic| topic.error_result(crate::error::NOT_CONTROLLER))
+                    .collect();
+                let mut expected = BytesMut::new();
+                encode_create_topics_response_with_throttle(
+                    &mut expected,
+                    version,
+                    &results,
+                    throttle,
+                )
+                .unwrap();
+                let mut got = BytesMut::new();
+                CreateTopicsRequest::error_response(
+                    &mut got,
+                    version,
+                    &topics,
+                    crate::error::NOT_CONTROLLER,
+                    throttle,
+                )
+                .unwrap();
+                assert_eq!(
+                    got.as_ref(),
+                    expected.as_ref(),
+                    "version {version} throttle {throttle}"
+                );
+                let len = got.len();
+                let capacity = got.capacity();
+                assert!(capacity >= len);
+                assert!(capacity < 64 * 1024);
+                got.clear();
+                CreateTopicsRequest::error_response(
+                    &mut got,
+                    version,
+                    &topics,
+                    crate::error::NOT_CONTROLLER,
+                    throttle,
+                )
+                .unwrap();
+                assert_eq!(got.len(), len);
+                assert_eq!(got.capacity(), capacity);
+            }
+        }
+        let mut empty = BytesMut::new();
+        CreateTopicsRequest::error_response(&mut empty, 7, &[], 41, 1).unwrap();
+        let mut expected_empty = BytesMut::new();
+        encode_create_topics_response_with_throttle(&mut expected_empty, 7, &[], 1).unwrap();
+        assert_eq!(empty.as_ref(), expected_empty.as_ref());
+        assert!(
+            CreateTopicsRequest::error_response(&mut BytesMut::new(), 8, &topics, 41, 0).is_err()
+        );
     }
 
     #[test]
