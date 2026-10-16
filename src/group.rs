@@ -654,6 +654,8 @@ pub struct ConsumerGroup {
     fetch_v10: OffsetFetchRequestData,
     /// Previous classic OffsetCommit topics, refilled on the next commit.
     classic_commit_topics: Vec<OffsetTopic>,
+    /// Previous classic OffsetFetch topics, refilled on the next fetch.
+    classic_fetch_topics: Vec<OffsetFetchTopic>,
     /// Topic ids from the previous v10 OffsetFetch, reused for the response names.
     fetch_names: HashMap<[u8; 16], String>,
     last_poll: Arc<parking_lot::Mutex<Option<Instant>>>,
@@ -832,6 +834,7 @@ impl ConsumerGroup {
             commit_v10: OffsetCommitRequestData::default(),
             fetch_v10: OffsetFetchRequestData::default(),
             classic_commit_topics: Vec::new(),
+            classic_fetch_topics: Vec::new(),
             fetch_names: HashMap::new(),
             last_poll: Arc::new(parking_lot::Mutex::new(None)),
             left_max_poll: Arc::new(AtomicBool::new(false)),
@@ -992,6 +995,7 @@ impl ConsumerGroup {
             commit_v10: OffsetCommitRequestData::default(),
             fetch_v10: OffsetFetchRequestData::default(),
             classic_commit_topics: Vec::new(),
+            classic_fetch_topics: Vec::new(),
             fetch_names: HashMap::new(),
             last_poll: Arc::new(parking_lot::Mutex::new(None)),
             left_max_poll: Arc::new(AtomicBool::new(false)),
@@ -1299,14 +1303,18 @@ impl ConsumerGroup {
         if partitions.is_empty() {
             return Ok(Vec::new());
         }
-        let topics = group_offset_fetch_topics(
+        let mut topics = std::mem::take(&mut self.classic_fetch_topics);
+        refill_offset_fetch_topics(
+            &mut topics,
             partitions
                 .iter()
                 .map(|tp| (tp.topic.as_str(), tp.partition)),
         );
         let fetched = self
             .offset_fetch(&topics, timeout.saturating_sub(started.elapsed()))
-            .await?;
+            .await;
+        self.classic_fetch_topics = topics;
+        let fetched = fetched?;
         let map = committed_offset_map(&fetched)?;
         Ok(partitions
             .into_iter()
@@ -1812,14 +1820,17 @@ impl ConsumerGroup {
         offsets: &[(TopicPartition, OffsetAndMetadata)],
         timeout: Duration,
     ) -> Result<()> {
-        let topics = group_offset_topics(offsets);
-        if topics.is_empty() {
+        if offsets.is_empty() {
             return Ok(());
         }
         let result = if self.coord.offset_commit_version == 10 {
             self.commit_offsets_v10(offsets, timeout, None).await
         } else {
-            self.commit_classic(offsets, &topics, timeout).await
+            let mut topics = std::mem::take(&mut self.classic_commit_topics);
+            refill_offset_topics(&mut topics, offsets);
+            let committed = self.commit_classic(offsets, &topics, timeout).await;
+            self.classic_commit_topics = topics;
+            committed
         };
         self.note_commit(result.is_ok());
         result
@@ -2820,16 +2831,21 @@ impl ConsumerGroup {
         let fetched = if added.is_empty() {
             Vec::new()
         } else {
-            let topics = group_offset_fetch_topics(
+            let mut topics = std::mem::take(&mut self.classic_fetch_topics);
+            refill_offset_fetch_topics(
+                &mut topics,
                 added
                     .iter()
                     .map(|(topic, partition)| (topic.as_str(), *partition)),
             );
             let timeout = deadline.saturating_duration_since(Instant::now());
             if timeout.is_zero() {
+                self.classic_fetch_topics = topics;
                 return Err(Error::Timeout);
             }
-            self.offset_fetch(&topics, timeout).await?
+            let fetched = self.offset_fetch(&topics, timeout).await;
+            self.classic_fetch_topics = topics;
+            fetched?
         };
         let map = committed_offset_map(&fetched)?;
         let reset = self.cfg.auto_offset_reset;
@@ -3704,60 +3720,103 @@ fn refill_shared_offset_topics(
 pub(crate) fn group_offset_topics(
     items: &[(TopicPartition, OffsetAndMetadata)],
 ) -> Vec<OffsetTopic> {
-    let mut by_topic: HashMap<String, (HashSet<i32>, Vec<OffsetPartition>)> = HashMap::new();
+    let mut topics = Vec::new();
+    refill_offset_topics(&mut topics, items);
+    topics
+}
+
+fn refill_offset_topics(
+    topics: &mut Vec<OffsetTopic>,
+    items: &[(TopicPartition, OffsetAndMetadata)],
+) {
+    let mut used = 0usize;
     for (tp, md) in items {
-        if let Some((seen, parts)) = by_topic.get_mut(tp.topic.as_str()) {
-            if !seen.insert(tp.partition) {
+        let part = OffsetPartition {
+            partition: tp.partition,
+            offset: md.offset,
+            leader_epoch: md.wire_epoch(),
+            metadata: md.metadata.clone(),
+        };
+        let existing = topics
+            .iter()
+            .take(used)
+            .position(|slot| slot.topic == tp.topic);
+        if let Some(index) = existing {
+            let Some(slot) = topics.get_mut(index) else {
+                continue;
+            };
+            if slot
+                .partitions
+                .iter()
+                .any(|saved| saved.partition == tp.partition)
+            {
                 continue;
             }
-            parts.push(OffsetPartition {
-                partition: tp.partition,
-                offset: md.offset,
-                leader_epoch: md.wire_epoch(),
-                metadata: md.metadata.clone(),
-            });
+            slot.partitions.push(part);
             continue;
         }
-        let mut seen = HashSet::new();
-        let _ = seen.insert(tp.partition);
-        let _ = by_topic.insert(
-            tp.topic.clone(),
-            (
-                seen,
-                vec![OffsetPartition {
-                    partition: tp.partition,
-                    offset: md.offset,
-                    leader_epoch: md.wire_epoch(),
-                    metadata: md.metadata.clone(),
-                }],
-            ),
-        );
+        if let Some(slot) = topics.get_mut(used) {
+            if slot.topic != tp.topic {
+                slot.topic.clear();
+                slot.topic.push_str(&tp.topic);
+            }
+            slot.partitions.clear();
+            slot.partitions.push(part);
+        } else {
+            topics.push(OffsetTopic {
+                topic: tp.topic.clone(),
+                partitions: vec![part],
+            });
+        }
+        used = used.saturating_add(1);
     }
-    by_topic
-        .into_iter()
-        .map(|(topic, (_, partitions))| OffsetTopic { topic, partitions })
-        .collect()
+    topics.truncate(used);
 }
 
 pub(crate) fn group_offset_fetch_topics<'a>(
     wanted: impl IntoIterator<Item = (&'a str, i32)>,
 ) -> Vec<OffsetFetchTopic> {
-    let mut by_topic: HashMap<String, (HashSet<i32>, Vec<i32>)> = HashMap::new();
+    let mut topics = Vec::new();
+    refill_offset_fetch_topics(&mut topics, wanted);
+    topics
+}
+
+fn refill_offset_fetch_topics<'a>(
+    topics: &mut Vec<OffsetFetchTopic>,
+    wanted: impl IntoIterator<Item = (&'a str, i32)>,
+) {
+    let mut used = 0usize;
     for (topic, part) in wanted {
-        if let Some((seen, parts)) = by_topic.get_mut(topic) {
-            if seen.insert(part) {
-                parts.push(part);
+        let existing = topics
+            .iter()
+            .take(used)
+            .position(|slot| slot.topic == topic);
+        if let Some(index) = existing {
+            let Some(slot) = topics.get_mut(index) else {
+                continue;
+            };
+            if slot.partitions.contains(&part) {
+                continue;
             }
-        } else {
-            let mut seen = HashSet::new();
-            let _ = seen.insert(part);
-            let _ = by_topic.insert(topic.to_owned(), (seen, vec![part]));
+            slot.partitions.push(part);
+            continue;
         }
+        if let Some(slot) = topics.get_mut(used) {
+            if slot.topic != topic {
+                slot.topic.clear();
+                slot.topic.push_str(topic);
+            }
+            slot.partitions.clear();
+            slot.partitions.push(part);
+        } else {
+            topics.push(OffsetFetchTopic {
+                topic: topic.to_owned(),
+                partitions: vec![part],
+            });
+        }
+        used = used.saturating_add(1);
     }
-    by_topic
-        .into_iter()
-        .map(|(topic, (_, partitions))| OffsetFetchTopic { topic, partitions })
-        .collect()
+    topics.truncate(used);
 }
 
 fn index_revoked(revoked: &[(String, i32)]) -> HashMap<&str, HashSet<i32>> {
@@ -5011,10 +5070,18 @@ mod tests {
             (TopicPartition::new("t", 0), OffsetAndMetadata::new(1)),
             (TopicPartition::new("t", 0), OffsetAndMetadata::new(8)),
         ];
-        let topics = group_offset_topics(&repeated);
+        let mut topics = group_offset_topics(&repeated);
         assert_eq!(topics[0].partitions.len(), 1);
         assert_eq!(topics[0].partitions[0].offset, 1);
-        let fetched = group_offset_fetch_topics([("t", 0), ("t", 0), ("t", 1)]);
+        let name = topics[0].topic.as_ptr();
+        refill_offset_topics(&mut topics, &repeated);
+        assert_eq!(topics[0].topic.as_ptr(), name);
+        assert_eq!(topics[0].partitions[0].offset, 1);
+        let mut fetched = group_offset_fetch_topics([("t", 0), ("t", 0), ("t", 1)]);
+        assert_eq!(fetched[0].partitions, vec![0, 1]);
+        let fetch_name = fetched[0].topic.as_ptr();
+        refill_offset_fetch_topics(&mut fetched, [("t", 0), ("t", 0), ("t", 1)]);
+        assert_eq!(fetched[0].topic.as_ptr(), fetch_name);
         assert_eq!(fetched[0].partitions, vec![0, 1]);
     }
 
