@@ -1961,8 +1961,14 @@ impl ConsumerGroup {
                 Err(Error::protocol(
                     "queued offset identity differs from the current assignment",
                 ))
-            } else {
+            } else if callback.is_some() {
                 self.commit_metadata_offsets(offsets.clone(), timeout).await
+            } else {
+                let sent = self.commit_metadata_offsets(offsets, timeout).await;
+                if let Err(err) = sent {
+                    let _err = err;
+                }
+                continue;
             };
             if let Some(callback) = callback {
                 callback(send.map(|()| offsets));
