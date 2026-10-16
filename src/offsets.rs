@@ -735,7 +735,9 @@ pub(crate) fn collect_bounded_commits(
     let limits = OffsetLimits::default();
     let mut out = Vec::new();
     let mut strings = 0;
-    let mut seen: HashMap<String, HashSet<i32>> = HashMap::new();
+    // Topic names stay on the commits. The slot list only remembers which
+    // commit owns each name.
+    let mut seen: Vec<(usize, HashSet<i32>)> = Vec::new();
     for (tp, md) in offsets {
         if out.len() >= limits.array_elements {
             return Err(Error::protocol("too many committed partitions"));
@@ -748,9 +750,14 @@ pub(crate) fn collect_bounded_commits(
             ));
         }
         crate::protocol::group::Topic::validate(&tp.topic)?;
-        if !claim_partition(&mut seen, &tp.topic, tp.partition) {
+        out.push((tp, md));
+        let index = out.len().saturating_sub(1);
+        if !claim_commit_topic(&mut seen, &out, index) {
             return Err(Error::protocol("duplicate committed partition"));
         }
+        let Some((tp, md)) = out.get(index) else {
+            return Err(Error::protocol("duplicate committed partition"));
+        };
         if tp.topic.len() > limits.string_bytes || md.metadata.len() > limits.string_bytes {
             return Err(Error::protocol(
                 "offset topic/metadata string exceeds limit",
@@ -758,7 +765,6 @@ pub(crate) fn collect_bounded_commits(
         }
         charge_bytes(&mut strings, tp.topic.len(), limits.total_string_bytes)?;
         charge_bytes(&mut strings, md.metadata.len(), limits.total_string_bytes)?;
-        out.push((tp, md));
     }
     Ok(out)
 }
@@ -769,7 +775,7 @@ pub(crate) fn collect_bounded_partitions(
     let limits = OffsetLimits::default();
     let mut out = Vec::new();
     let mut strings = 0;
-    let mut seen: HashMap<String, HashSet<i32>> = HashMap::new();
+    let mut seen: Vec<(usize, HashSet<i32>)> = Vec::new();
     for partition in partitions {
         if out.len() >= limits.array_elements {
             return Err(Error::protocol("too many offset partitions"));
@@ -781,9 +787,14 @@ pub(crate) fn collect_bounded_partitions(
             ));
         }
         crate::protocol::group::Topic::validate(&partition.topic)?;
-        if !claim_partition(&mut seen, &partition.topic, partition.partition) {
+        out.push(partition);
+        let index = out.len().saturating_sub(1);
+        if !claim_listed_topic(&mut seen, &out, index) {
             return Err(Error::protocol("duplicate offset partition"));
         }
+        let Some(partition) = out.get(index) else {
+            return Err(Error::protocol("duplicate offset partition"));
+        };
         if partition.topic.len() > limits.string_bytes {
             return Err(Error::protocol("offset topic string exceeds limit"));
         }
@@ -792,19 +803,55 @@ pub(crate) fn collect_bounded_partitions(
             partition.topic.len(),
             limits.total_string_bytes,
         )?;
-        out.push(partition);
     }
     Ok(out)
 }
 
-/// Remember one topic name and reject a repeated partition of that topic.
-fn claim_partition(seen: &mut HashMap<String, HashSet<i32>>, topic: &str, partition: i32) -> bool {
-    if let Some(parts) = seen.get_mut(topic) {
-        return parts.insert(partition);
+/// Reject a repeated partition. `index` names the commit that already stores the topic.
+fn claim_commit_topic(
+    seen: &mut Vec<(usize, HashSet<i32>)>,
+    commits: &[(crate::TopicPartition, crate::OffsetAndMetadata)],
+    index: usize,
+) -> bool {
+    let Some(partition) = commits.get(index).map(|(tp, _)| tp.partition) else {
+        return false;
+    };
+    claim_named(seen, index, partition, |slot| {
+        commits.get(slot).map(|(tp, _)| tp.topic.as_str())
+    })
+}
+
+/// Reject a repeated partition. `index` names the partition that already stores the topic.
+fn claim_listed_topic(
+    seen: &mut Vec<(usize, HashSet<i32>)>,
+    partitions: &[crate::TopicPartition],
+    index: usize,
+) -> bool {
+    let Some(partition) = partitions.get(index).map(|tp| tp.partition) else {
+        return false;
+    };
+    claim_named(seen, index, partition, |slot| {
+        partitions.get(slot).map(|tp| tp.topic.as_str())
+    })
+}
+
+fn claim_named<'a>(
+    seen: &mut Vec<(usize, HashSet<i32>)>,
+    index: usize,
+    partition: i32,
+    name_at: impl Fn(usize) -> Option<&'a str>,
+) -> bool {
+    let found = seen
+        .iter()
+        .position(|(slot, _)| name_at(*slot) == name_at(index) && name_at(index).is_some());
+    if let Some(found) = found {
+        if let Some((_, parts)) = seen.get_mut(found) {
+            return parts.insert(partition);
+        }
     }
     let mut parts = HashSet::new();
     let _ = parts.insert(partition);
-    let _ = seen.insert(topic.to_owned(), parts);
+    seen.push((index, parts));
     true
 }
 
@@ -1015,5 +1062,49 @@ mod tests {
         assert!(invalid.contains("Topic name is invalid"), "{invalid}");
         assert!(collect_bounded_partitions([TopicPartition::new("", 0)]).is_err());
         assert!(collect_bounded_partitions([TopicPartition::new("orders", 0)]).is_ok());
+        let orders = "orders-topic-name-is-long".to_string();
+        let orders_ptr = orders.as_ptr();
+        let payments = "payments-topic-name-is-long".to_string();
+        let payments_ptr = payments.as_ptr();
+        let collected = collect_bounded_commits([
+            (TopicPartition::new(orders, 0), OffsetAndMetadata::new(1)),
+            (
+                TopicPartition::new("orders-topic-name-is-long", 3),
+                OffsetAndMetadata::new(4),
+            ),
+            (TopicPartition::new(payments, 1), OffsetAndMetadata::new(5)),
+        ])
+        .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(collected.len(), 3);
+        assert_eq!(
+            collected
+                .first()
+                .map(|(tp, md)| (tp.topic.as_ptr(), tp.partition, md.offset)),
+            Some((orders_ptr, 0, 1))
+        );
+        assert_eq!(
+            collected.get(1).map(|(tp, _)| tp.topic.as_str()),
+            Some("orders-topic-name-is-long")
+        );
+        assert_eq!(
+            collected
+                .get(2)
+                .map(|(tp, md)| (tp.topic.as_ptr(), tp.partition, md.offset)),
+            Some((payments_ptr, 1, 5))
+        );
+        let listed = "orders-topic-name-is-long".to_string();
+        let listed_ptr = listed.as_ptr();
+        let partitions = collect_bounded_partitions([
+            TopicPartition::new(listed, 0),
+            TopicPartition::new("orders-topic-name-is-long", 2),
+        ])
+        .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(
+            partitions
+                .first()
+                .map(|tp| (tp.topic.as_ptr(), tp.partition)),
+            Some((listed_ptr, 0))
+        );
+        assert_eq!(partitions.get(1).map(|tp| tp.partition), Some(2));
     }
 }
