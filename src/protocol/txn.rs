@@ -638,6 +638,35 @@ pub fn decode_add_partitions_to_txn_request<B: Buf>(
     Ok((tid, pid, epoch, topics))
 }
 
+fn add_partitions_response_len(
+    flexible: bool,
+    topics: &[AddPartitionsToTxnTopicResult],
+) -> Result<usize> {
+    let mut total = 4usize;
+    total = add_txn_len(total, txn_array_len(flexible, topics.len())?)?;
+    for topic in topics {
+        total = add_txn_len(total, txn_string_len(flexible, &topic.topic)?)?;
+        total = add_txn_len(total, txn_array_len(flexible, topic.partitions.len())?)?;
+        let mut partition = 6usize;
+        if flexible {
+            partition += buf::unsigned_varint_size(0);
+        }
+        total = add_txn_len(
+            total,
+            partition
+                .checked_mul(topic.partitions.len())
+                .ok_or_else(|| Error::protocol("add partitions response size overflow"))?,
+        )?;
+        if flexible {
+            total = add_txn_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    if flexible {
+        total = add_txn_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
+}
+
 /// Encode AddPartitionsToTxn: one error code applied to every partition.
 ///
 /// Applies `error` on every request partition via
@@ -682,6 +711,12 @@ pub fn encode_add_partitions_to_txn_topics_response_with_throttle(
     throttle_time_ms: i32,
 ) -> Result<()> {
     let flexible = add_partitions_to_txn_flexible(version)?;
+    let body_start = buf.len();
+    let planned = add_partitions_response_len(flexible, topics)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf.put_i32(throttle_time_ms);
     buf::put_array_len(buf, flexible, Some(topics.len()))?;
     for t in topics {
@@ -701,6 +736,7 @@ pub fn encode_add_partitions_to_txn_topics_response_with_throttle(
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
 }
 
@@ -6271,6 +6307,31 @@ mod tests {
             buf.clear();
             encode_add_partitions_to_txn_request(&mut buf, version, "txn-1", 9, 1, &topics)
                 .unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+        }
+    }
+
+    #[test]
+    fn an_add_partitions_response_sizes_its_body_once() {
+        let topics = vec![AddPartitionsToTxnTopicResult {
+            topic: "orders".into(),
+            partitions: (0..8)
+                .map(|partition| AddPartitionsToTxnPartitionResult {
+                    partition,
+                    error_code: 0,
+                })
+                .collect(),
+        }];
+        for version in [2_i16, 3] {
+            let mut buf = BytesMut::new();
+            encode_add_partitions_to_txn_topics_response(&mut buf, version, &topics).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_add_partitions_to_txn_topics_response(&mut buf, version, &topics).unwrap();
             assert_eq!(buf.len(), len);
             assert_eq!(buf.capacity(), capacity);
         }
