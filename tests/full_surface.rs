@@ -11789,6 +11789,41 @@ async fn describe_replica_log_dirs_follows_replica_broker() {
 }
 
 #[tokio::test]
+async fn describe_replica_log_dirs_overlaps_brokers() {
+    let mock = common::Mock::start_two_node().await;
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    mock.set_describe_log_dirs_delay(Duration::from_millis(200));
+    let started = std::time::Instant::now();
+    let described = admin
+        .describe_replica_log_dirs([
+            TopicPartitionReplica::new("t", 0, 1),
+            TopicPartitionReplica::new("u", 0, 2),
+        ])
+        .await
+        .unwrap();
+    assert_eq!(described.len(), 2);
+    assert_eq!(described[0].0.broker_id, 1);
+    assert_eq!(described[1].0.broker_id, 2);
+    assert_eq!(
+        described[0].1,
+        ReplicaLogDirInfo::new(Some("/d".into()), 0, None, -1)
+    );
+    assert_eq!(
+        described[1].1,
+        ReplicaLogDirInfo::new(Some("/d".into()), 0, None, -1)
+    );
+    assert!(
+        started.elapsed() < Duration::from_millis(450),
+        "replica log directories waited for one broker at a time: {:?}",
+        started.elapsed()
+    );
+    let mut nodes = mock.describe_log_dirs_nodes();
+    nodes.sort_unstable();
+    assert_eq!(nodes, vec![1, 2]);
+    admin.close().await.unwrap();
+}
+
+#[tokio::test]
 async fn describe_broker_log_dirs_follows_each_broker() {
     let mock = common::Mock::start_two_node().await;
     mock.move_coordinator();

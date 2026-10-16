@@ -13211,8 +13211,8 @@ impl Admin {
     /// [`Self::describe_replica_log_dirs`] with a one-shot RPC deadline
     /// (Java `describeReplicaLogDirs` plus `DescribeLogDirsOptions.timeoutMs`).
     ///
-    /// DescribeLogDirs has no TimeoutMs; `timeout` is the RPC deadline
-    /// for each replica-broker hop.
+    /// DescribeLogDirs has no TimeoutMs. Distinct replica brokers are
+    /// queried together under `timeout`.
     pub async fn describe_replica_log_dirs_timeout(
         &mut self,
         replicas: impl IntoIterator<Item = TopicPartitionReplica>,
@@ -13223,24 +13223,67 @@ impl Admin {
             return Ok(Vec::new());
         }
         let mut infos: HashMap<String, HashMap<(i32, i32), ReplicaLogDirInfo>> = HashMap::new();
-        for broker_id in replica_broker_ids(&replicas) {
-            let topics = describable_topics_for_broker(&replicas, broker_id);
-            let resp = self
-                .describe_log_dirs_with(Some(broker_id), timeout, |output, version| {
-                    encode_describe_log_dirs_named(output, version, Some(topics.as_slice()))
-                })
-                .await?;
-            if resp.error_code != 0 {
-                return Err(Error::broker(resp.error_code, "DescribeLogDirs"));
+        let ids = replica_broker_ids(&replicas);
+        if ids.len() <= 1 {
+            for broker_id in ids {
+                let topics = describable_topics_for_broker(&replicas, broker_id);
+                let resp = self
+                    .describe_log_dirs_with(Some(broker_id), timeout, |output, version| {
+                        encode_describe_log_dirs_named(output, version, Some(topics.as_slice()))
+                    })
+                    .await?;
+                remember_replica_dirs(&mut infos, &replicas, broker_id, &resp)?;
             }
-            for r in replicas.iter().filter(|r| r.broker_id == broker_id) {
-                let info = replica_log_dir_info_from(r, &resp.results);
-                if !infos.contains_key(r.topic.as_str()) {
-                    let _ = infos.insert(r.topic.clone(), HashMap::new());
-                }
-                if let Some(parts) = infos.get_mut(r.topic.as_str()) {
-                    let _ = parts.insert((r.partition, r.broker_id), info);
-                }
+        } else {
+            let deadline = Instant::now()
+                .checked_add(timeout)
+                .ok_or_else(|| Error::protocol("DescribeLogDirs deadline overflow"))?;
+            for id in &ids {
+                self.ensure_broker(*id, deadline).await?;
+            }
+            let topics_of: HashMap<i32, Vec<(&str, Vec<i32>)>> = ids
+                .iter()
+                .map(|id| (*id, describable_topics_for_broker(&replicas, *id)))
+                .collect();
+            let mut finished = self
+                .exchange_leaders(&ids, deadline, |_admin, node, conn, _timeout| {
+                    let version = conn.negotiated(DESCRIBE_LOG_DIRS, 1, 5).ok_or_else(|| {
+                        Error::Unsupported("broker does not support DescribeLogDirs v1-5".into())
+                    })?;
+                    let topics = topics_of.get(&node).map(Vec::as_slice).unwrap_or(&[]);
+                    let mut payload = BytesMut::new();
+                    encode_describe_log_dirs_named(&mut payload, version, Some(topics))?;
+                    Ok(LeaderFrame {
+                        api_key: DESCRIBE_LOG_DIRS,
+                        version,
+                        body: payload.freeze(),
+                    })
+                })
+                .await;
+            for broker_id in ids {
+                let Some((version, body)) = finished.remove(&broker_id) else {
+                    return Err(Error::Timeout);
+                };
+                let resp = match body {
+                    Err(error) if error.is_retriable() && !matches!(error, Error::Timeout) => {
+                        let _ = self.conns.remove(&broker_id);
+                        let topics = describable_topics_for_broker(&replicas, broker_id);
+                        self.describe_log_dirs_with(Some(broker_id), timeout, |output, version| {
+                            encode_describe_log_dirs_named(output, version, Some(topics.as_slice()))
+                        })
+                        .await?
+                    }
+                    Err(error) => return Err(error),
+                    Ok(body) => {
+                        let mut cursor = body.as_ref();
+                        let response = decode_describe_log_dirs_response(&mut cursor, version)?;
+                        if !cursor.is_empty() {
+                            return Err(Error::protocol("trailing DescribeLogDirs response bytes"));
+                        }
+                        response
+                    }
+                };
+                remember_replica_dirs(&mut infos, &replicas, broker_id, &resp)?;
             }
         }
         let mut out = Vec::with_capacity(replicas.len());
@@ -14874,6 +14917,31 @@ fn describable_topics_for_broker(
         groups.push((topic, vec![r.partition]));
     }
     groups
+}
+
+fn remember_replica_dirs(
+    infos: &mut HashMap<String, HashMap<(i32, i32), ReplicaLogDirInfo>>,
+    replicas: &[TopicPartitionReplica],
+    broker_id: i32,
+    resp: &DescribeLogDirsResponse,
+) -> Result<()> {
+    if resp.error_code != 0 {
+        return Err(Error::broker(resp.error_code, "DescribeLogDirs"));
+    }
+    for replica in replicas
+        .iter()
+        .filter(|replica| replica.broker_id == broker_id)
+    {
+        let info = replica_log_dir_info_from(replica, &resp.results);
+        if let Some(parts) = infos.get_mut(replica.topic.as_str()) {
+            let _ = parts.insert((replica.partition, replica.broker_id), info);
+            continue;
+        }
+        let mut parts = HashMap::new();
+        let _ = parts.insert((replica.partition, replica.broker_id), info);
+        let _ = infos.insert(replica.topic.clone(), parts);
+    }
+    Ok(())
 }
 
 fn replica_log_dir_info_from(
