@@ -18237,6 +18237,12 @@ pub fn encode_describe_log_dirs_request(
     req: &DescribeLogDirsRequest,
 ) -> crate::error::Result<()> {
     let flexible = describe_log_dirs_flexible(version)?;
+    let body_start = buf.len();
+    let planned = describe_log_dirs_request_len(flexible, req)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     match &req.topics {
         None => buf::put_array_len(buf, flexible, None)?,
         Some(topics) => {
@@ -18256,7 +18262,38 @@ pub fn encode_describe_log_dirs_request(
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn describe_log_dirs_request_len(flexible: bool, req: &DescribeLogDirsRequest) -> Result<usize> {
+    let mut total = match &req.topics {
+        None => {
+            if flexible {
+                buf::unsigned_varint_size(0)
+            } else {
+                4
+            }
+        }
+        Some(topics) => {
+            let mut total = describe_array_len(flexible, topics.len())?;
+            for topic in topics {
+                total = add_describe_len(total, describe_string_len(flexible, Some(&topic.name))?)?;
+                total = add_describe_len(
+                    total,
+                    replica_log_dirs_i32s_len(flexible, &topic.partitions)?,
+                )?;
+                if flexible {
+                    total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+                }
+            }
+            total
+        }
+    };
+    if flexible {
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 /// Decode a DescribeLogDirs request.
@@ -18302,6 +18339,12 @@ pub fn encode_describe_log_dirs_response(
     resp: &DescribeLogDirsResponse,
 ) -> crate::error::Result<()> {
     let flexible = describe_log_dirs_flexible(version)?;
+    let body_start = buf.len();
+    let planned = describe_log_dirs_response_len(version, flexible, resp)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf.put_i32(resp.throttle_time_ms);
     if version >= 3 {
         buf.put_i16(resp.error_code);
@@ -18341,7 +18384,54 @@ pub fn encode_describe_log_dirs_response(
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn describe_log_dirs_response_len(
+    version: i16,
+    flexible: bool,
+    resp: &DescribeLogDirsResponse,
+) -> Result<usize> {
+    let mut total = 4;
+    if version >= 3 {
+        total = add_describe_len(total, 2)?;
+    }
+    total = add_describe_len(total, describe_array_len(flexible, resp.results.len())?)?;
+    for directory in &resp.results {
+        total = add_describe_len(total, 2)?;
+        total = add_describe_len(
+            total,
+            describe_string_len(flexible, Some(&directory.log_dir))?,
+        )?;
+        total = add_describe_len(total, describe_array_len(flexible, directory.topics.len())?)?;
+        for topic in &directory.topics {
+            total = add_describe_len(total, describe_string_len(flexible, Some(&topic.name))?)?;
+            total = add_describe_len(total, describe_array_len(flexible, topic.partitions.len())?)?;
+            for _partition in &topic.partitions {
+                total = add_describe_len(total, 21)?;
+                if flexible {
+                    total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+                }
+            }
+            if flexible {
+                total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+            }
+        }
+        if version >= 4 {
+            total = add_describe_len(total, 16)?;
+        }
+        if version >= 5 {
+            total = add_describe_len(total, 1)?;
+        }
+        if flexible {
+            total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    if flexible {
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 /// Decode a DescribeLogDirs response.
@@ -39098,6 +39188,76 @@ mod tests {
             &zero_buf[..],
             "error_response still fills ThrottleTimeMs 0"
         );
+    }
+
+    #[test]
+    fn a_describe_log_dirs_request_sizes_its_body_once() {
+        let listed = DescribeLogDirsRequest {
+            topics: Some(vec![DescribableLogDirTopic::new("orders", vec![0, 1])]),
+        };
+        let all = DescribeLogDirsRequest { topics: None };
+        for version in [1_i16, 2, 4] {
+            for request in [&listed, &all] {
+                let mut buf = BytesMut::new();
+                encode_describe_log_dirs_request(&mut buf, version, request).unwrap();
+                let len = buf.len();
+                let capacity = buf.capacity();
+                assert!(capacity >= len);
+                assert!(capacity < 64 * 1024);
+                buf.clear();
+                encode_describe_log_dirs_request(&mut buf, version, request).unwrap();
+                assert_eq!(buf.len(), len);
+                assert_eq!(buf.capacity(), capacity);
+                let mut cur = &buf[..];
+                let decoded = decode_describe_log_dirs_request(&mut cur, version).unwrap();
+                assert!(cur.is_empty());
+                assert_eq!(decoded, *request);
+            }
+        }
+    }
+
+    #[test]
+    fn a_describe_log_dirs_response_sizes_its_body_once() {
+        let response = DescribeLogDirsResponse {
+            throttle_time_ms: 12,
+            error_code: 7,
+            results: vec![DescribeLogDirsResult {
+                error_code: 0,
+                log_dir: "/data/kafka".into(),
+                topics: vec![DescribeLogDirsTopic {
+                    name: "orders".into(),
+                    partitions: vec![DescribeLogDirsPartition {
+                        partition_index: 0,
+                        partition_size: 100,
+                        offset_lag: 2,
+                        is_future_key: false,
+                    }],
+                }],
+                total_bytes: 1_000,
+                usable_bytes: 800,
+                is_cordoned: true,
+            }],
+        };
+        for version in [1_i16, 3, 5] {
+            let mut buf = BytesMut::new();
+            encode_describe_log_dirs_response(&mut buf, version, &response).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_describe_log_dirs_response(&mut buf, version, &response).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+            let mut cur = &buf[..];
+            let decoded = decode_describe_log_dirs_response(&mut cur, version).unwrap();
+            assert!(cur.is_empty());
+            assert_eq!(decoded.throttle_time_ms, 12);
+            assert_eq!(decoded.results.len(), 1);
+            if version >= 5 {
+                assert_eq!(decoded, response);
+            }
+        }
     }
 
     #[test]
