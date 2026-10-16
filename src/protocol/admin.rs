@@ -1330,6 +1330,12 @@ pub fn encode_create_topics_response_with_throttle(
     throttle_time_ms: i32,
 ) -> crate::error::Result<()> {
     let flexible = create_topics_flexible(version)?;
+    let body_start = buf.len();
+    let planned = create_topics_response_len(version, flexible, results)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     if version >= 2 {
         buf.put_i32(throttle_time_ms);
     }
@@ -1361,7 +1367,46 @@ pub fn encode_create_topics_response_with_throttle(
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn create_topics_response_len(
+    version: i16,
+    flexible: bool,
+    results: &[TopicResult],
+) -> Result<usize> {
+    let mut total = if version >= 2 { 4 } else { 0 };
+    total = add_describe_len(total, describe_array_len(flexible, results.len())?)?;
+    for result in results {
+        total = add_describe_len(total, describe_string_len(flexible, Some(&result.name))?)?;
+        if version >= 7 {
+            total = add_describe_len(total, 16)?;
+        }
+        total = add_describe_len(total, 2)?;
+        if version >= 1 {
+            total = add_describe_len(
+                total,
+                describe_string_len(flexible, result.error_message.as_deref())?,
+            )?;
+        }
+        if version >= 5 {
+            total = add_describe_len(total, 6)?;
+            total = add_describe_len(total, describe_array_len(true, result.configs.len())?)?;
+            for config in &result.configs {
+                total = add_describe_len(total, describe_string_len(true, Some(&config.name))?)?;
+                total =
+                    add_describe_len(total, describe_string_len(true, config.value.as_deref())?)?;
+                total = add_describe_len(total, 3)?;
+                total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+            }
+            total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    if flexible {
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 /// Decode a CreateTopics response.
@@ -22160,6 +22205,53 @@ mod tests {
             "CreateTopics v{version} Builder.build {empty}leftover-empty; leftover {} bytes",
             cur.len()
         );
+    }
+
+    #[test]
+    fn a_create_topics_response_sizes_its_body_once() {
+        let mut topic_id = [0u8; 16];
+        topic_id[15] = 7;
+        let results = vec![TopicResult {
+            name: "orders".into(),
+            error_code: 0,
+            error_message: Some("created".into()),
+            topic_id,
+            num_partitions: 3,
+            replication_factor: 2,
+            configs: vec![
+                CreatedTopicConfig {
+                    name: "cleanup.policy".into(),
+                    value: Some("compact".into()),
+                    read_only: false,
+                    config_source: 1,
+                    is_sensitive: false,
+                },
+                CreatedTopicConfig {
+                    name: "retention.ms".into(),
+                    value: None,
+                    read_only: true,
+                    config_source: 5,
+                    is_sensitive: true,
+                },
+            ],
+        }];
+        for version in [0_i16, 2, 5, 7] {
+            let mut buf = BytesMut::new();
+            encode_create_topics_response_with_throttle(&mut buf, version, &results, 12).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_create_topics_response_with_throttle(&mut buf, version, &results, 12).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+            let mut cur = &buf[..];
+            let (decoded, throttle) = decode_create_topics_response(&mut cur, version).unwrap();
+            assert!(cur.is_empty());
+            assert_eq!(decoded[0].name, results[0].name);
+            assert_eq!(throttle, if version >= 2 { 12 } else { 0 });
+        }
     }
 
     #[test]
