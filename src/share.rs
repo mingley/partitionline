@@ -800,7 +800,11 @@ pub enum ShareAcquireMode {
 /// share session, and does not request Metadata, including when
 /// `ErrorMessage` is set or empty (Java
 /// `handleShareAcknowledgeSuccess` has no
-/// `metadata.requestUpdate`). Incremental
+/// `metadata.requestUpdate`). A top-level ShareAcknowledge
+/// `INVALID_SHARE_SESSION_EPOCH` completes without retry, resets
+/// the share session, and does not request Metadata, including when
+/// `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has
+/// no `metadata.requestUpdate`). Incremental
 /// ShareFetch sends Java
 /// `ShareSessionHandler` forgotten partitions when the assignment
 /// shrinks or a topic id is replaced on a node this poll still
@@ -2276,7 +2280,8 @@ impl ShareGroup {
     /// `ErrorMessage` is set or empty, and does not request Metadata
     /// when `ErrorMessage` is set or empty. Top-level
     /// `INVALID_SHARE_SESSION_EPOCH` still resets, including when
-    /// `ErrorMessage` is set or empty.
+    /// `ErrorMessage` is set or empty, and does not request Metadata
+    /// when `ErrorMessage` is set.
     pub async fn commit_sync(&mut self) -> Result<AcknowledgementCommitResults> {
         if !self.has_pending_acknowledgements() {
             return Ok(Vec::new());

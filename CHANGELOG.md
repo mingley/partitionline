@@ -239,7 +239,9 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   not request Metadata when `ErrorMessage` is set or empty (Java
   `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`);
   `INVALID_SHARE_SESSION_EPOCH` still resets, including when
-  `ErrorMessage` is set or empty. A non-empty top-level `ErrorMessage` is
+  `ErrorMessage` is set or empty, and does not request Metadata
+  when `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess`
+  has no `metadata.requestUpdate`). A non-empty top-level `ErrorMessage` is
   preferred on that path; empty uses `ShareAcknowledge`. ShareFetch top-level
   `SHARE_SESSION_LIMIT_REACHED` / `INVALID_SHARE_SESSION_EPOCH` /
   `SHARE_SESSION_NOT_FOUND` still reset the session (Java
