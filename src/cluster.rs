@@ -132,7 +132,9 @@ impl Cluster {
         }
         let retain_epochs = MetadataResponse::has_reliable_leader_epochs(version);
         // A topic named twice in one response is one image. A later copy must
-        // not drop partitions the earlier copy already accepted.
+        // not drop partitions the earlier copy already accepted. One topic
+        // cannot repeat, so that response skips the set.
+        let lone_topic = md.topics.len() <= 1;
         let mut seen_topics: HashSet<&str> = HashSet::new();
         for t in &md.topics {
             let Some(name) = t.name.as_ref() else {
@@ -143,7 +145,7 @@ impl Cluster {
                 // errors are transient, so the last good leaders stay cached.
                 // A later copy must not drop a leader this response already
                 // accepted.
-                if !seen_topics.contains(name.as_str())
+                if (lone_topic || !seen_topics.contains(name.as_str()))
                     && (t.error_code == crate::error::UNKNOWN_TOPIC_OR_PARTITION
                         || t.error_code == crate::error::UNKNOWN_TOPIC_ID)
                 {
@@ -156,14 +158,16 @@ impl Cluster {
             // rewrite every partition slot. A newer CurrentLeader epoch, a
             // recreated topic id, or a second copy of the topic in this
             // response still takes the full merge below.
-            let repeated = seen_topics.contains(name.as_str());
+            let repeated = !lone_topic && seen_topics.contains(name.as_str());
             if !repeated && self.topic_image_unchanged(name, t, version, retain_epochs) {
                 if let Some(slot) = self.topic_fetched_at.get_mut(name.as_str()) {
                     *slot = Instant::now();
                 } else {
                     let _prev = self.topic_fetched_at.insert(name.clone(), Instant::now());
                 }
-                let _inserted = seen_topics.insert(name.as_str());
+                if !lone_topic {
+                    let _inserted = seen_topics.insert(name.as_str());
+                }
                 continue;
             }
             // A new topic id is a deleted-and-recreated topic. Its epochs
@@ -362,7 +366,9 @@ impl Cluster {
             } else {
                 let _prev = self.topic_fetched_at.insert(name.clone(), Instant::now());
             }
-            let _inserted = seen_topics.insert(name.as_str());
+            if !lone_topic {
+                let _inserted = seen_topics.insert(name.as_str());
+            }
             self.decided_scratch = decided;
         }
     }
