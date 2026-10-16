@@ -873,6 +873,9 @@ pub struct ShareGroup {
     /// Record list from the previous ShareFetch. Cleared and refilled so a
     /// steady poll does not allocate the list again.
     spare_incoming: Vec<ShareRecord>,
+    /// Prepared ShareFetch jobs from the previous poll. The jobs are drained;
+    /// the list itself is refilled.
+    spare_prepared: Vec<PreparedShareFetch>,
     topic_ids: HashMap<String, [u8; 16]>,
     /// Share session epoch per share-partition leader (KIP-932).
     share_epochs: HashMap<i32, i32>,
@@ -1370,6 +1373,7 @@ impl ShareGroup {
             ack_pairs: Vec::new(),
             fetch_cursors: Vec::new(),
             spare_incoming: Vec::new(),
+            spare_prepared: Vec::new(),
             topic_ids: HashMap::new(),
             share_epochs: HashMap::new(),
             share_conns: HashMap::new(),
@@ -2315,6 +2319,17 @@ impl ShareGroup {
         }
     }
 
+    fn take_prepared(&mut self) -> Vec<PreparedShareFetch> {
+        std::mem::take(&mut self.spare_prepared)
+    }
+
+    fn keep_prepared(&mut self, mut prepared: Vec<PreparedShareFetch>) {
+        self.park_prepared(&mut prepared);
+        if prepared.capacity() > self.spare_prepared.capacity() {
+            self.spare_prepared = prepared;
+        }
+    }
+
     async fn leaders_of(&mut self, deadline: Instant) -> Result<()> {
         // One stored name per topic. A fresh topic skips the metadata RPC
         // without copying that name again.
@@ -2376,7 +2391,7 @@ impl ShareGroup {
     /// A poll with nothing ready returns a timeout.
     async fn collect_share_fetches(
         &mut self,
-        mut prepared: Vec<PreparedShareFetch>,
+        prepared: &mut Vec<PreparedShareFetch>,
         deadline: Instant,
     ) -> Result<Vec<ReadyShareFetch>> {
         let mut inflight = InflightShareFetches {
@@ -2387,9 +2402,9 @@ impl ShareGroup {
         let group_id = shared_text(&mut self.fetch_group_id, self.group_id.as_str());
         let member_id = shared_text(&mut self.fetch_member_id, self.member_id.as_str());
         if timeout.is_zero() {
-            self.park_prepared(&mut prepared);
+            self.park_prepared(prepared);
         } else if let Some(set) = inflight.set.as_mut() {
-            for mut job in prepared {
+            for mut job in prepared.drain(..) {
                 if inflight.pending.contains_key(&job.node) {
                     self.park_share_ids(job.by_id);
                     self.park_share_topics(job.topics);
@@ -2426,7 +2441,7 @@ impl ShareGroup {
                 });
             }
         } else {
-            self.park_prepared(&mut prepared);
+            self.park_prepared(prepared);
             return Err(Error::protocol("inflight share fetch set missing"));
         }
         let mut ready = Vec::new();
@@ -2537,7 +2552,7 @@ impl ShareGroup {
             self.leader_nodes = nodes;
         }
         let node_count = self.leader_nodes.len();
-        let mut prepared = Vec::new();
+        let mut prepared = self.take_prepared();
         for index in 0..node_count {
             let Some(node) = self.leader_nodes.get(index).copied() else {
                 continue;
@@ -2556,12 +2571,12 @@ impl ShareGroup {
                 Ok(version) => version,
                 Err(Error::Timeout) => break,
                 Err(error) => {
-                    self.park_prepared(&mut prepared);
+                    self.keep_prepared(prepared);
                     return Err(error);
                 }
             };
             if self.acquire_mode == ShareAcquireMode::RecordLimit && version < 2 {
-                self.park_prepared(&mut prepared);
+                self.keep_prepared(prepared);
                 return Err(Error::Unsupported(format!(
                     "share broker {node} does not support record-limit acquisition"
                 )));
@@ -2582,9 +2597,9 @@ impl ShareGroup {
                 &self.topic_ids,
                 max_partition_bytes,
             ) {
-                self.park_prepared(&mut prepared);
                 self.park_share_ids(by_id);
                 self.park_share_topics(topics);
+                self.keep_prepared(prepared);
                 return Err(error);
             }
             let max_records =
@@ -2607,18 +2622,22 @@ impl ShareGroup {
             .as_ref()
             .is_some_and(|set| !set.is_empty());
         let ready = if prepared.len() > 1 || parked {
-            self.collect_share_fetches(prepared, deadline).await?
+            let ready = self.collect_share_fetches(&mut prepared, deadline).await;
+            self.keep_prepared(prepared);
+            ready?
         } else if let Some(job) = prepared.pop() {
             let timeout = deadline.saturating_duration_since(Instant::now());
             if timeout.is_zero() {
                 self.park_share_ids(job.by_id);
                 self.park_share_topics(job.topics);
+                self.keep_prepared(prepared);
                 return Err(Error::Timeout);
             }
             let node = job.node;
             let Some(mut peer) = self.share_conns.remove(&node) else {
                 self.park_share_ids(job.by_id);
                 self.park_share_topics(job.topics);
+                self.keep_prepared(prepared);
                 return Err(Error::protocol("missing share connection"));
             };
             let body = peer
@@ -2632,15 +2651,19 @@ impl ShareGroup {
                 .await;
             let _ = self.share_conns.insert(node, peer);
             self.park_share_topics(job.topics);
-            vec![ReadyShareFetch {
+            let ready = vec![ReadyShareFetch {
                 node,
                 version: job.version,
                 by_id: job.by_id,
                 body,
-            }]
+            }];
+            self.keep_prepared(prepared);
+            ready
         } else if Instant::now() >= deadline {
+            self.keep_prepared(prepared);
             return Err(Error::Timeout);
         } else {
+            self.keep_prepared(prepared);
             Vec::new()
         };
         for ReadyShareFetch {
