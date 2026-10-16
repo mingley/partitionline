@@ -2078,7 +2078,7 @@
 //! partition `REQUEST_TIMED_OUT`, which fails that poll, and not
 //! standalone ShareAcknowledge `REQUEST_TIMED_OUT`, which retries). A piggybacked
 //! `NETWORK_EXCEPTION` still completes without retry,
-//! including when `AcknowledgeErrorMessage` is set (this is not
+//! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `NETWORK_EXCEPTION`, which fails that poll, and not
 //! standalone ShareAcknowledge `NETWORK_EXCEPTION`, which retries). A piggybacked
 //! `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a

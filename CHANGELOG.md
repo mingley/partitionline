@@ -243,7 +243,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   the fetch; this is not partition `REQUEST_TIMED_OUT`, which fails
   that poll, and not standalone ShareAcknowledge `REQUEST_TIMED_OUT`,
   which retries). A piggybacked `NETWORK_EXCEPTION` still completes
-  without retry, including when `AcknowledgeErrorMessage` is set (Java
+  without retry, including when `AcknowledgeErrorMessage` is set or empty (Java
   `handleShareFetchSuccess` completes piggyback acks and still delivers
   the fetch; this is not partition `NETWORK_EXCEPTION`, which fails
   that poll, and not standalone ShareAcknowledge `NETWORK_EXCEPTION`,
