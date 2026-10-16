@@ -1294,13 +1294,18 @@ impl Shared {
         self.topic_tracker(topic).note_queued(n, bytes);
     }
 
+    /// True when two topic handles name the same metrics row.
+    fn same_tracked_topic(cached: &Arc<str>, topic: &Arc<str>) -> bool {
+        Arc::ptr_eq(cached, topic) || cached.as_ref() == topic.as_ref()
+    }
+
     fn topic_tracker_cached(
         &self,
         cache: &mut Option<(Arc<str>, Arc<crate::metrics::ProduceTopicTracker>)>,
         topic: &Arc<str>,
     ) -> Arc<crate::metrics::ProduceTopicTracker> {
         if let Some((cached, tracker)) = cache.as_ref() {
-            if Arc::ptr_eq(cached, topic) {
+            if Self::same_tracked_topic(cached, topic) {
                 return Arc::clone(tracker);
             }
         }
@@ -4258,6 +4263,7 @@ async fn spawn_slot_worker(
         spare_acks: Vec::new(),
         ack_requested: HashMap::new(),
         ack_seen: HashMap::new(),
+        ack_tracker: None,
     };
     let handle = tokio::spawn(worker.run());
     Ok(WorkerHandle {
@@ -4557,6 +4563,8 @@ struct Worker {
     ack_requested: HashMap<Arc<str>, HashSet<i32>>,
     /// Partitions already accepted in that acknowledgement.
     ack_seen: HashMap<Arc<str>, HashSet<i32>>,
+    /// Topic metrics from the previous acknowledgement on this connection.
+    ack_tracker: Option<(Arc<str>, Arc<crate::metrics::ProduceTopicTracker>)>,
 }
 
 #[derive(Default)]
@@ -5540,7 +5548,7 @@ impl Worker {
         }
 
         if acks == 0 {
-            complete_acks0(&self.shared, groups);
+            complete_acks0(&self.shared, groups, &mut self.ack_tracker);
             return Ok(());
         }
         self.in_flight.push_back(InFlight {
@@ -5746,7 +5754,6 @@ impl Worker {
             }
         }
         let mut first_err: Option<Error> = None;
-        let mut ack_tracker = None;
         let OpenedProduceGroups { one, mut shell } = inf.groups.into_one_many();
         {
             let mut grouped = one.into_iter().chain(shell.drain(..));
@@ -5865,7 +5872,9 @@ impl Worker {
                         let n = u64::try_from(pendings.len()).unwrap_or(u64::MAX);
                         self.shared.retire_sticky(&pendings, false);
                         self.shared.release_buffer(pendings_bytes(&pendings));
-                        let tracker = self.shared.topic_tracker_cached(&mut ack_tracker, &topic);
+                        let tracker = self
+                            .shared
+                            .topic_tracker_cached(&mut self.ack_tracker, &topic);
                         self.shared.note_acked_on(&tracker, n);
                         // KL09-18: one clock read per batch; per-record
                         // latencies fold locally (no atomics, no lookups).
@@ -7375,13 +7384,13 @@ fn encode_pendings(
 fn complete_acks0(
     shared: &Shared,
     groups: impl IntoIterator<Item = (Arc<str>, i32, Vec<Pending>)>,
+    ack_tracker: &mut Option<(Arc<str>, Arc<crate::metrics::ProduceTopicTracker>)>,
 ) {
-    let mut ack_tracker = None;
     for (topic, part, pendings) in groups {
         shared.retire_sticky(&pendings, false);
         shared.release_buffer(pendings_bytes(&pendings));
         let n = u64::try_from(pendings.len()).unwrap_or(u64::MAX);
-        let tracker = shared.topic_tracker_cached(&mut ack_tracker, &topic);
+        let tracker = shared.topic_tracker_cached(ack_tracker, &topic);
         shared.note_acked_on(&tracker, n);
         // KL09-18: one clock read per batch; per-record latencies
         // fold locally (no atomics, no lookups).
@@ -8140,6 +8149,9 @@ mod tests {
         let ids = HashMap::new();
         let matched = first_matching_ack(9, &[ack(4), ack(3)], &orders, 3, &[], &ids).unwrap();
         assert_eq!(matched, Some(1));
+        let again = Arc::<str>::from("orders");
+        assert!(Shared::same_tracked_topic(&orders, &again));
+        assert!(!Arc::ptr_eq(&orders, &again));
         let missing = first_matching_ack(9, &[], &orders, 3, &[], &ids).unwrap();
         assert_eq!(missing, None);
         let bad = ProduceAck {
