@@ -4002,12 +4002,11 @@ impl Consumer {
 
     async fn connect_parallel_fetch_nodes(
         &mut self,
-        nodes: Vec<i32>,
+        mut queue: Vec<i32>,
+        connected: &mut Vec<i32>,
         by_leader: &mut HashMap<i32, HashMap<Arc<str>, Vec<FetchPartition>>>,
         deadline: Instant,
-    ) -> Result<Vec<i32>> {
-        let mut queue = nodes;
-        let mut connected = Vec::new();
+    ) -> Result<()> {
         let mut dials = Vec::new();
         while let Some(node) = queue.pop() {
             if connected.contains(&node) || dials.iter().any(|(id, _)| *id == node) {
@@ -4060,6 +4059,7 @@ impl Consumer {
                 continue;
             }
             let Some(addr) = self.cluster.brokers.get(&node).cloned() else {
+                self.park_leaders(queue);
                 return Err(Error::protocol(format!("unknown broker {node}")));
             };
             if let Some(session) = self.fetch_sessions.get_mut(&node) {
@@ -4067,11 +4067,12 @@ impl Consumer {
             }
             dials.push((node, addr));
         }
+        self.park_leaders(queue);
         if dials.is_empty() {
             if connected.is_empty() {
                 return Err(Error::Timeout);
             }
-            return Ok(connected);
+            return Ok(());
         }
         let client_id = self.cfg.client_id.clone();
         let connect_timeout = self.cfg.connect_timeout;
@@ -4178,7 +4179,7 @@ impl Consumer {
         if connected.is_empty() {
             return Err(Error::Timeout);
         }
-        Ok(connected)
+        Ok(())
     }
 
     /// One dial for a rack replica. A refusal must leave time to fetch from the leader.
@@ -5494,20 +5495,22 @@ impl Consumer {
         }
         let collect_parallel = nodes.len() > 1 || self.inflight_fetches.is_some();
         let mut queue = nodes;
-        let mut connected = if collect_parallel {
-            Vec::new()
-        } else {
-            self.take_connected(queue.len())
-        };
+        let mut connected = self.take_connected(queue.len());
         if collect_parallel {
-            connected = match self
-                .connect_parallel_fetch_nodes(queue, by_leader, deadline)
+            match self
+                .connect_parallel_fetch_nodes(queue, &mut connected, by_leader, deadline)
                 .await
             {
-                Ok(nodes) => nodes,
-                Err(Error::Timeout) => return self.ready_fetches_or_timeout(),
-                Err(error) => return Err(error),
-            };
+                Ok(()) => {}
+                Err(Error::Timeout) => {
+                    self.park_connected(connected);
+                    return self.ready_fetches_or_timeout();
+                }
+                Err(error) => {
+                    self.park_connected(connected);
+                    return Err(error);
+                }
+            }
         } else {
             while let Some(node) = queue.pop() {
                 if connected.contains(&node) {
@@ -5675,7 +5678,11 @@ impl Consumer {
             set: Some(self.inflight_fetches.take().unwrap_or_default()),
             pending: std::mem::take(&mut self.inflight_nodes),
         };
-        for node in nodes {
+        let node_count = nodes.len();
+        for index in 0..node_count {
+            let Some(node) = nodes.get(index).copied() else {
+                continue;
+            };
             if inflight.pending.contains(&node) {
                 continue;
             }
@@ -5684,22 +5691,23 @@ impl Consumer {
             };
             let topics = fetch_topics(by_topic, &name_ids, &self.name_to_id);
             let fetch_version = {
-                let conn = self
-                    .conns
-                    .get(&node)
-                    .ok_or_else(|| Error::protocol("missing fetch conn"))?;
+                let Some(conn) = self.conns.get(&node) else {
+                    self.park_connected(nodes);
+                    return Err(Error::protocol("missing fetch conn"));
+                };
                 if conn.fetch_version() < 0 {
+                    let addr = conn.addr().to_string();
+                    self.park_connected(nodes);
                     return Err(Error::Unsupported(format!(
-                        "broker at {} does not support Fetch v4-17",
-                        conn.addr()
+                        "broker at {addr} does not support Fetch v4-17"
                     )));
                 }
                 conn.fetch_version()
             };
-            let mut conn = self
-                .conns
-                .remove(&node)
-                .ok_or_else(|| Error::protocol("missing fetch conn"))?;
+            let Some(mut conn) = self.conns.remove(&node) else {
+                self.park_connected(nodes);
+                return Err(Error::protocol("missing fetch conn"));
+            };
             let request = self
                 .fetch_sessions
                 .entry(node)
@@ -5708,6 +5716,7 @@ impl Consumer {
             let rack = rack.clone();
             let _ = inflight.pending.insert(node);
             let Some(set) = inflight.set.as_mut() else {
+                self.park_connected(nodes);
                 return Err(Error::protocol("inflight fetch set missing"));
             };
             let _ = set.spawn(async move {
@@ -5743,6 +5752,7 @@ impl Consumer {
                 )
             });
         }
+        self.park_connected(nodes);
         let mut out = self.take_replies(inflight.pending.len());
         let mut first_reply: Option<Instant> = None;
         while let Some(set) = inflight.set.as_mut().filter(|set| !set.is_empty()) {
