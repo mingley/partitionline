@@ -1984,6 +1984,9 @@ impl Producer {
                     }
                 }
             }
+            // Start every known leader handshake before this record waits
+            // for its own worker, so a later leader is already dialing.
+            self.nudge_known_leaders(std::iter::once(&rec).chain(pending.iter()));
             rxs.push(self.enqueue_one(rec).await?);
         }
         let mut out = Vec::with_capacity(rxs.len());
@@ -1991,6 +1994,43 @@ impl Producer {
             out.push(rx.await.map_err(|_| Error::Closed)??);
         }
         Ok(out)
+    }
+
+    /// Nudge a connection for every record whose leader is already known.
+    fn nudge_known_leaders<'a>(&self, recs: impl Iterator<Item = &'a ProduceRecord>) {
+        if self.inner.shared.sticky.is_some() {
+            return;
+        }
+        let shared = &self.inner.shared;
+        let n_conn = shared.cfg.connections.max(1);
+        let max_age = shared.cfg.metadata_max_age;
+        let mut slots = HashSet::new();
+        {
+            let cluster = shared.cluster.lock();
+            for rec in recs {
+                if !cluster.topic_fresh(rec.topic.as_ref(), max_age) {
+                    continue;
+                }
+                let Some(np) = cluster.partition_count(rec.topic.as_ref()) else {
+                    continue;
+                };
+                if np <= 0 {
+                    continue;
+                }
+                let partition = match rec.partition {
+                    Some(partition) => partition,
+                    None => pick_part(rec, np, shared.partitioner.as_ref()),
+                };
+                let Ok(node) = cluster.leader_id(rec.topic.as_ref(), partition) else {
+                    continue;
+                };
+                let slot = usize::try_from(partition).unwrap_or(0) % n_conn;
+                let _ = slots.insert((node, slot));
+            }
+        }
+        for (node, slot) in slots {
+            try_nudge_slot(&shared.connect_tx, node, slot);
+        }
     }
 
     fn ensure_send_open(&self) -> Result<()> {

@@ -119,6 +119,39 @@ async fn send_all_refreshes_topics_together() {
     producer.close().await.unwrap();
 }
 
+/// Records for two leaders start both handshakes before the first ack.
+#[tokio::test(flavor = "current_thread")]
+async fn send_all_dials_leaders_together() {
+    let mock = common::Mock::start_three_node().await;
+    mock.set_topic_partitions("t", 1);
+    mock.set_topic_partitions("u", 1);
+    mock.set_partition_leader("t", 0, 2);
+    mock.set_partition_leader("u", 0, 3);
+    let mut cfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    cfg.linger = Duration::ZERO;
+    let producer = Producer::new(cfg).await.unwrap();
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let started = Instant::now();
+    let acks = producer
+        .send_all([
+            ProduceRecord::to("t").partition(0).value(&b"a"[..]),
+            ProduceRecord::to("u").partition(0).value(&b"b"[..]),
+        ])
+        .await
+        .unwrap();
+    assert_eq!(acks.len(), 2);
+    assert!(
+        started.elapsed() < Duration::from_millis(450),
+        "send_all waited for one leader handshake at a time: {:?}",
+        started.elapsed()
+    );
+    let mut nodes = mock.produce_request_nodes();
+    nodes.sort_unstable();
+    nodes.dedup();
+    assert_eq!(nodes, vec![2, 3]);
+    producer.close().await.unwrap();
+}
+
 #[tokio::test(flavor = "current_thread")]
 async fn send_offsets_refreshes_topics_together() {
     let mock = common::Mock::start().await;
