@@ -4509,21 +4509,13 @@ fn drop_sent_ack_batches(
     partition: i32,
     sent: &[AcknowledgementBatch],
 ) {
-    let mut kept = Vec::new();
-    for (name, part, batches) in partitions.drain(..) {
-        if name.as_ref() != topic || part != partition {
-            kept.push((name, part, batches));
-            continue;
+    partitions.retain_mut(|(name, part, batches)| {
+        if name.as_ref() != topic || *part != partition {
+            return true;
         }
-        let remaining = batches
-            .into_iter()
-            .filter(|batch| !sent.contains(batch))
-            .collect::<Vec<_>>();
-        if !remaining.is_empty() {
-            kept.push((name, part, remaining));
-        }
-    }
-    *partitions = kept;
+        batches.retain(|batch| !sent.contains(batch));
+        !batches.is_empty()
+    });
 }
 
 /// Route each acknowledgement to the broker that acquired those offsets.
@@ -5927,6 +5919,8 @@ mod tests {
                 }],
             ),
         ];
+        let partition_buf = pending.as_ptr();
+        let kept_batches = pending.get(1).map(|part| part.2.as_ptr());
         drop_sent_ack_batches(
             &mut pending,
             "orders",
@@ -5945,6 +5939,8 @@ mod tests {
                 .map(|batch| batch.first_offset),
             Some(3)
         );
+        assert_eq!(pending.as_ptr(), partition_buf);
+        assert_eq!(pending.first().map(|part| part.2.as_ptr()), kept_batches);
     }
 
     #[test]
