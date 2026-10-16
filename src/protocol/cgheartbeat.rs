@@ -186,6 +186,12 @@ pub fn encode_consumer_group_heartbeat_request(
 ) -> crate::error::Result<()> {
     let _ = consumer_group_heartbeat_spoken(version)?;
     ConsumerGroupHeartbeatRequest::build(version, req.subscribed_topic_regex.as_deref())?;
+    let body_start = buf.len();
+    let planned = consumer_group_heartbeat_request_len(version, req)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf::put_compact_string(buf, Some(&req.group_id))?;
     buf::put_compact_string(buf, Some(&req.member_id))?;
     buf.put_i32(req.member_epoch);
@@ -207,7 +213,30 @@ pub fn encode_consumer_group_heartbeat_request(
     buf::put_compact_string(buf, req.server_assignor.as_deref())?;
     encode_topic_partitions(buf, req.topic_partitions.as_deref())?;
     buf::put_empty_tagged_fields(buf);
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn consumer_group_heartbeat_request_len(
+    version: i16,
+    req: &ConsumerGroupHeartbeatRequest,
+) -> Result<usize> {
+    let mut total = hb_string_len(Some(&req.group_id))?;
+    total = add_hb_len(total, hb_string_len(Some(&req.member_id))?)?;
+    total = add_hb_len(total, 4)?;
+    total = add_hb_len(total, hb_string_len(req.instance_id.as_deref())?)?;
+    total = add_hb_len(total, hb_string_len(req.rack_id.as_deref())?)?;
+    total = add_hb_len(total, 4)?;
+    total = add_hb_len(total, hb_names_len(req.subscribed_topic_names.as_deref())?)?;
+    if version >= 1 {
+        total = add_hb_len(total, hb_string_len(req.subscribed_topic_regex.as_deref())?)?;
+    }
+    total = add_hb_len(total, hb_string_len(req.server_assignor.as_deref())?)?;
+    total = add_hb_len(
+        total,
+        hb_topic_partitions_len(req.topic_partitions.as_deref())?,
+    )?;
+    add_hb_len(total, buf::unsigned_varint_size(0))
 }
 
 /// Decode a flexible v0–v1 ConsumerGroupHeartbeat request.
@@ -267,6 +296,12 @@ pub fn encode_consumer_group_heartbeat_response(
     resp: &ConsumerGroupHeartbeatResponse,
 ) -> crate::error::Result<()> {
     let _ = consumer_group_heartbeat_spoken(version)?;
+    let body_start = buf.len();
+    let planned = consumer_group_heartbeat_response_len(resp)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf.put_i32(resp.throttle_time_ms);
     buf.put_i16(resp.error_code);
     buf::put_compact_string(buf, resp.error_message.as_deref())?;
@@ -282,7 +317,83 @@ pub fn encode_consumer_group_heartbeat_response(
         }
     }
     buf::put_empty_tagged_fields(buf);
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn consumer_group_heartbeat_response_len(resp: &ConsumerGroupHeartbeatResponse) -> Result<usize> {
+    let mut total = 6;
+    total = add_hb_len(total, hb_string_len(resp.error_message.as_deref())?)?;
+    total = add_hb_len(total, hb_string_len(resp.member_id.as_deref())?)?;
+    total = add_hb_len(total, 8)?;
+    total = add_hb_len(total, hb_assignment_len(resp.assignment.as_deref())?)?;
+    add_hb_len(total, buf::unsigned_varint_size(0))
+}
+
+fn hb_assignment_len(parts: Option<&[TopicPartitions]>) -> Result<usize> {
+    let Some(parts) = parts else {
+        return Ok(1);
+    };
+    let mut total = 1;
+    total = add_hb_len(total, hb_topic_partitions_len(Some(parts))?)?;
+    add_hb_len(total, buf::unsigned_varint_size(0))
+}
+
+fn hb_topic_partitions_len(parts: Option<&[TopicPartitions]>) -> Result<usize> {
+    let Some(parts) = parts else {
+        return Ok(buf::unsigned_varint_size(0));
+    };
+    let mut total = hb_array_len(parts.len())?;
+    for topic in parts {
+        total = add_hb_len(total, 16)?;
+        total = add_hb_len(total, hb_array_len(topic.partitions.len())?)?;
+        total = add_hb_len(
+            total,
+            topic
+                .partitions
+                .len()
+                .checked_mul(4)
+                .ok_or_else(|| Error::protocol("consumer group heartbeat size overflow"))?,
+        )?;
+        total = add_hb_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
+}
+
+fn hb_names_len(names: Option<&[String]>) -> Result<usize> {
+    let Some(names) = names else {
+        return Ok(buf::unsigned_varint_size(0));
+    };
+    let mut total = hb_array_len(names.len())?;
+    for name in names {
+        total = add_hb_len(total, hb_string_len(Some(name))?)?;
+    }
+    Ok(total)
+}
+
+fn add_hb_len(total: usize, next: usize) -> Result<usize> {
+    total
+        .checked_add(next)
+        .ok_or_else(|| Error::protocol("consumer group heartbeat size overflow"))
+}
+
+fn hb_array_len(len: usize) -> Result<usize> {
+    let value = buf::u32_from_usize(len)?
+        .checked_add(1)
+        .ok_or_else(|| Error::protocol("compact array overflow"))?;
+    Ok(buf::unsigned_varint_size(value))
+}
+
+fn hb_string_len(value: Option<&str>) -> Result<usize> {
+    match value {
+        None => Ok(buf::unsigned_varint_size(0)),
+        Some(value) => {
+            let encoded = buf::u32_from_usize(value.len())?
+                .checked_add(1)
+                .ok_or_else(|| Error::protocol("compact string overflow"))?;
+            Ok(buf::unsigned_varint_size(encoded).saturating_add(value.len()))
+        }
+    }
 }
 
 /// Decode a flexible v0–v1 ConsumerGroupHeartbeat response.
@@ -427,6 +538,74 @@ mod tests {
         let decoded = decode_consumer_group_heartbeat_response(&mut &buf[..], 0).unwrap();
         assert_eq!(decoded.error_code, 42);
         assert!(decoded.assignment.is_none());
+    }
+
+    #[test]
+    fn a_consumer_group_heartbeat_sizes_its_body_once() {
+        let mut topic_id = [0u8; 16];
+        topic_id[15] = 4;
+        let request = ConsumerGroupHeartbeatRequest {
+            group_id: "orders".into(),
+            member_id: "member".into(),
+            member_epoch: 3,
+            instance_id: Some("worker-1".into()),
+            rack_id: None,
+            rebalance_timeout_ms: 45_000,
+            subscribed_topic_names: Some(vec!["orders".into(), "payments".into()]),
+            subscribed_topic_regex: Some("orders.*".into()),
+            server_assignor: Some("range".into()),
+            topic_partitions: Some(vec![TopicPartitions {
+                topic_id,
+                partitions: vec![0, 1],
+            }]),
+        };
+        for version in [0_i16, 1] {
+            let mut encoded = request.clone();
+            if version < 1 {
+                encoded.subscribed_topic_regex = None;
+            }
+            let mut buf = BytesMut::new();
+            encode_consumer_group_heartbeat_request(&mut buf, version, &encoded).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_consumer_group_heartbeat_request(&mut buf, version, &encoded).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+            let mut cur = &buf[..];
+            let decoded = decode_consumer_group_heartbeat_request(&mut cur, version).unwrap();
+            assert!(cur.is_empty());
+            assert_eq!(decoded, encoded);
+        }
+
+        let response = ConsumerGroupHeartbeatResponse {
+            throttle_time_ms: 12,
+            error_code: 0,
+            error_message: None,
+            member_id: Some("member".into()),
+            member_epoch: 3,
+            heartbeat_interval_ms: 5_000,
+            assignment: Some(vec![TopicPartitions {
+                topic_id,
+                partitions: vec![0, 1],
+            }]),
+        };
+        let mut buf = BytesMut::new();
+        encode_consumer_group_heartbeat_response(&mut buf, 1, &response).unwrap();
+        let len = buf.len();
+        let capacity = buf.capacity();
+        assert!(capacity >= len);
+        assert!(capacity < 64 * 1024);
+        buf.clear();
+        encode_consumer_group_heartbeat_response(&mut buf, 1, &response).unwrap();
+        assert_eq!(buf.len(), len);
+        assert_eq!(buf.capacity(), capacity);
+        let mut cur = &buf[..];
+        let decoded = decode_consumer_group_heartbeat_response(&mut cur, 1).unwrap();
+        assert!(cur.is_empty());
+        assert_eq!(decoded, response);
     }
 
     #[test]
