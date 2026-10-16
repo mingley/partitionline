@@ -172,7 +172,7 @@ impl Limits {
 pub struct Table {
     limits: Limits,
     controller_epoch: i64,
-    placements: BTreeMap<(String, i32), Placement>,
+    placements: BTreeMap<String, BTreeMap<i32, Placement>>,
     journal: Journal,
     records: usize,
     poisoned: bool,
@@ -211,7 +211,7 @@ impl Table {
                     .ok_or(Error::InvalidAssignment)?;
             }
         }
-        if table.placements.len() > table.limits.max_partitions
+        if table.partition_count() > table.limits.max_partitions
             || table.records > table.limits.max_records
         {
             return Err(Error::Budget);
@@ -226,7 +226,7 @@ impl Table {
 
     /// Recovered placement, if this partition has one.
     pub fn placement(&self, topic: &str, partition: i32) -> Option<&Placement> {
-        self.placements.get(&(topic.to_owned(), partition))
+        self.placements.get(topic)?.get(&partition)
     }
 
     /// Move the controller lineage forward. A smaller or equal epoch is stale.
@@ -249,11 +249,10 @@ impl Table {
             return Err(Error::InvalidAssignment);
         }
         validate_set(&create.replicas, Some(create.leader), &create.isr)?;
-        let key = (create.topic.clone(), create.partition);
-        if self.placements.contains_key(&key) {
+        if self.placement(&create.topic, create.partition).is_some() {
             return Err(Error::InvalidAssignment);
         }
-        if self.placements.len() >= self.limits.max_partitions {
+        if self.partition_count() >= self.limits.max_partitions {
             return Err(Error::Budget);
         }
         let placement = Placement {
@@ -265,7 +264,7 @@ impl Table {
             leader_epoch: 0,
         };
         self.persist(&encode_placement(controller_epoch, &placement)?)?;
-        self.placements.insert(key, placement.clone());
+        self.put_placement(placement.clone());
         Ok(placement)
     }
 
@@ -278,8 +277,7 @@ impl Table {
     ) -> Result<Placement, Error> {
         self.ready()?;
         self.require_controller(controller_epoch)?;
-        let key = (election.topic.clone(), election.partition);
-        let Some(current) = self.placements.get(&key).cloned() else {
+        let Some(current) = self.placement(&election.topic, election.partition).cloned() else {
             return Err(Error::UnknownPartition);
         };
         if election.expected_leader_epoch != current.leader_epoch {
@@ -308,7 +306,7 @@ impl Table {
             ..current
         };
         self.persist(&encode_placement(controller_epoch, &placement)?)?;
-        self.placements.insert(key, placement.clone());
+        self.put_placement(placement.clone());
         Ok(placement)
     }
 
@@ -321,8 +319,7 @@ impl Table {
     ) -> Result<Placement, Error> {
         self.ready()?;
         self.require_controller(controller_epoch)?;
-        let key = (change.topic.clone(), change.partition);
-        let Some(current) = self.placements.get(&key).cloned() else {
+        let Some(current) = self.placement(&change.topic, change.partition).cloned() else {
             return Err(Error::UnknownPartition);
         };
         if change.expected_leader_epoch != current.leader_epoch {
@@ -350,7 +347,7 @@ impl Table {
             ..current
         };
         self.persist(&encode_placement(controller_epoch, &placement)?)?;
-        self.placements.insert(key, placement.clone());
+        self.put_placement(placement.clone());
         Ok(placement)
     }
 
@@ -385,14 +382,30 @@ impl Table {
                 if controller_epoch < 0 || controller_epoch != self.controller_epoch {
                     return Err(Error::InvalidAssignment);
                 }
-                let key = (placement.topic.clone(), placement.partition);
-                if accept_recovered_placement(self.placements.get(&key), &placement)? {
-                    self.placements.insert(key, placement);
+                let current = self.placement(&placement.topic, placement.partition);
+                if accept_recovered_placement(current, &placement)? {
+                    self.put_placement(placement);
                 }
             }
             _ => return Err(Error::InvalidAssignment),
         }
         Ok(())
+    }
+
+    fn put_placement(&mut self, placement: Placement) {
+        let partition = placement.partition;
+        if let Some(parts) = self.placements.get_mut(placement.topic.as_str()) {
+            let _previous = parts.insert(partition, placement);
+            return;
+        }
+        let mut parts = BTreeMap::new();
+        let topic = placement.topic.clone();
+        parts.insert(partition, placement);
+        let _previous = self.placements.insert(topic, parts);
+    }
+
+    fn partition_count(&self) -> usize {
+        self.placements.values().map(BTreeMap::len).sum()
     }
 
     fn persist(&mut self, payload: &[u8]) -> Result<(), Error> {
