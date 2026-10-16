@@ -758,16 +758,20 @@ fn frame_from_vec(bytes: Vec<u8>) -> Frame {
     }
 }
 
+/// Wipe a SASL or handshake body, including spare capacity, and drop its length.
+///
+/// [`park_request`] only clears. Produce and fetch bodies are not credentials,
+/// so they keep the allocation without a second pass over the payload.
+#[cfg(feature = "sasl")]
+fn wipe_credential(bytes: &mut Vec<u8>) {
+    use zeroize::Zeroize;
+    bytes.zeroize();
+}
+
 fn park_request(mut bytes: Vec<u8>) -> Frame {
-    #[cfg(feature = "sasl")]
-    {
-        use zeroize::Zeroize;
-        bytes.zeroize();
-    }
-    #[cfg(not(feature = "sasl"))]
-    {
-        bytes.clear();
-    }
+    // Produce and fetch bodies are not credentials. The connection clears
+    // this buffer and refills it. A control reply is wiped before it is parked.
+    bytes.clear();
     frame_from_vec(bytes)
 }
 
@@ -1210,9 +1214,11 @@ async fn exchange<H: Handler, S: AsyncRead + AsyncWrite + Unpin>(
                             close = terminal;
                             peer.identity = auth.identity();
                             drop(permit);
+                            let mut request = dispatch_frame(request);
+                            wipe_credential(&mut request);
                             return Ok(ExchangeOutcome {
                                 response: Some(bytes),
-                                request: dispatch_frame(request),
+                                request,
                                 spare: response_buf,
                             });
                         }
@@ -1420,6 +1426,19 @@ mod read_ahead_tests {
         assert!(matches!(take_complete_frame(&mut ahead, 64), Ok(None)));
         assert!(!ahead.is_empty());
     }
+
+    #[test]
+    fn a_parked_request_keeps_its_capacity() {
+        let mut bytes = Vec::new();
+        bytes.extend_from_slice(&[9, 8, 7, 6]);
+        bytes
+            .try_reserve_exact(128)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let capacity = bytes.capacity();
+        let parked = super::park_request(bytes);
+        assert!(parked.is_empty());
+        assert!(parked.capacity() >= capacity);
+    }
 }
 
 #[cfg(all(test, feature = "sasl"))]
@@ -1431,5 +1450,17 @@ mod sasl_frame_tests {
         let text = format!("{frame:?}");
         assert!(!text.contains("synthetic-principal"));
         assert!(!text.contains("synthetic-password"));
+    }
+
+    #[test]
+    fn a_control_reply_is_wiped_before_the_buffer_is_cleared() {
+        let mut bytes = b"synthetic-password".to_vec();
+        let capacity = bytes.capacity();
+        super::wipe_credential(&mut bytes);
+        assert!(bytes.is_empty());
+        assert!(bytes.capacity() >= capacity);
+        let parked = super::park_request(bytes);
+        assert!(parked.is_empty());
+        assert!(parked.capacity() >= capacity);
     }
 }
