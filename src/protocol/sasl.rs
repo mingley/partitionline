@@ -86,7 +86,14 @@ pub fn encode_sasl_handshake_request(
     mechanism: &str,
 ) -> crate::error::Result<()> {
     let flexible = sasl_handshake_flexible(version)?;
+    let body_start = buf.len();
+    let planned = sasl_string_len(flexible, Some(mechanism))?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf::put_string(buf, flexible, Some(mechanism))?;
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
 }
 
@@ -104,12 +111,28 @@ pub fn encode_sasl_handshake_response(
     mechanisms: &[&str],
 ) -> crate::error::Result<()> {
     let flexible = sasl_handshake_flexible(version)?;
+    let body_start = buf.len();
+    let planned = sasl_handshake_response_len(flexible, mechanisms)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf.put_i16(error_code);
     buf::put_array_len(buf, flexible, Some(mechanisms.len()))?;
     for m in mechanisms {
         buf::put_string(buf, flexible, Some(m))?;
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn sasl_handshake_response_len(flexible: bool, mechanisms: &[&str]) -> Result<usize> {
+    let mut total = 2;
+    total = add_sasl_len(total, sasl_array_len(flexible, mechanisms.len())?)?;
+    for mechanism in mechanisms {
+        total = add_sasl_len(total, sasl_string_len(flexible, Some(mechanism))?)?;
+    }
+    Ok(total)
 }
 
 /// Decode SaslHandshake v0–v1: `(error_code, mechanisms)`.
@@ -169,11 +192,26 @@ pub fn encode_sasl_authenticate_request(
     auth_bytes: &[u8],
 ) -> crate::error::Result<()> {
     let flexible = sasl_authenticate_flexible(version)?;
+    let body_start = buf.len();
+    let planned = sasl_authenticate_request_len(flexible, auth_bytes)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf::put_bytes(buf, flexible, Some(auth_bytes))?;
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn sasl_authenticate_request_len(flexible: bool, auth_bytes: &[u8]) -> Result<usize> {
+    let mut total = sasl_bytes_len(flexible, auth_bytes)?;
+    if flexible {
+        total = add_sasl_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 /// Decode SaslAuthenticate v0–v2: client/server SASL bytes.
@@ -200,6 +238,12 @@ pub fn encode_sasl_authenticate_response(
     session_lifetime_ms: i64,
 ) -> crate::error::Result<()> {
     let flexible = sasl_authenticate_flexible(version)?;
+    let body_start = buf.len();
+    let planned = sasl_authenticate_response_len(version, flexible, message, auth_bytes)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf.put_i16(error_code);
     buf::put_string(buf, flexible, message)?;
     buf::put_bytes(buf, flexible, Some(auth_bytes))?;
@@ -209,7 +253,77 @@ pub fn encode_sasl_authenticate_response(
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn sasl_authenticate_response_len(
+    version: i16,
+    flexible: bool,
+    message: Option<&str>,
+    auth_bytes: &[u8],
+) -> Result<usize> {
+    let mut total = 2;
+    total = add_sasl_len(total, sasl_string_len(flexible, message)?)?;
+    total = add_sasl_len(total, sasl_bytes_len(flexible, auth_bytes)?)?;
+    if version >= 1 {
+        total = add_sasl_len(total, 8)?;
+    }
+    if flexible {
+        total = add_sasl_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
+}
+
+fn add_sasl_len(total: usize, next: usize) -> Result<usize> {
+    total
+        .checked_add(next)
+        .ok_or_else(|| Error::protocol("sasl response size overflow"))
+}
+
+fn sasl_array_len(flexible: bool, len: usize) -> Result<usize> {
+    if flexible {
+        let value = buf::u32_from_usize(len)?
+            .checked_add(1)
+            .ok_or_else(|| Error::protocol("compact array overflow"))?;
+        Ok(buf::unsigned_varint_size(value))
+    } else {
+        let _len = buf::i32_from_usize(len)?;
+        Ok(4)
+    }
+}
+
+fn sasl_string_len(flexible: bool, value: Option<&str>) -> Result<usize> {
+    match value {
+        None => Ok(if flexible {
+            buf::unsigned_varint_size(0)
+        } else {
+            2
+        }),
+        Some(value) => {
+            if flexible {
+                let encoded = buf::u32_from_usize(value.len())?
+                    .checked_add(1)
+                    .ok_or_else(|| Error::protocol("compact string overflow"))?;
+                Ok(buf::unsigned_varint_size(encoded).saturating_add(value.len()))
+            } else {
+                let _len = buf::i16_from_usize(value.len())?;
+                Ok(2usize.saturating_add(value.len()))
+            }
+        }
+    }
+}
+
+fn sasl_bytes_len(flexible: bool, value: &[u8]) -> Result<usize> {
+    if flexible {
+        let encoded = buf::u32_from_usize(value.len())?
+            .checked_add(1)
+            .ok_or_else(|| Error::protocol("compact bytes overflow"))?;
+        Ok(buf::unsigned_varint_size(encoded).saturating_add(value.len()))
+    } else {
+        let _len = buf::i32_from_usize(value.len())?;
+        Ok(4usize.saturating_add(value.len()))
+    }
 }
 
 /// Decode SaslAuthenticate v0–v2: `(error_code, error_message, auth_bytes,
@@ -1057,6 +1171,80 @@ mod tests {
                 "SaslAuthenticate v{version} errorCounts leftover-empty; leftover {} bytes",
                 cur.len()
             );
+        }
+    }
+
+    #[test]
+    fn a_sasl_handshake_sizes_its_body_once() {
+        for version in [0_i16, 1] {
+            let mut buf = BytesMut::new();
+            encode_sasl_handshake_request(&mut buf, version, "SCRAM-SHA-256").unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_sasl_handshake_request(&mut buf, version, "SCRAM-SHA-256").unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+
+            let mechanisms = ["PLAIN", "SCRAM-SHA-256"];
+            let mut out = BytesMut::new();
+            encode_sasl_handshake_response(&mut out, version, 0, &mechanisms).unwrap();
+            let out_len = out.len();
+            let out_capacity = out.capacity();
+            out.clear();
+            encode_sasl_handshake_response(&mut out, version, 0, &mechanisms).unwrap();
+            assert_eq!(out.len(), out_len);
+            assert_eq!(out.capacity(), out_capacity);
+            let mut cur = &out[..];
+            let (error, decoded) = decode_sasl_handshake_response(&mut cur, version).unwrap();
+            assert!(cur.is_empty());
+            assert_eq!(error, 0);
+            assert_eq!(
+                decoded,
+                vec!["PLAIN".to_string(), "SCRAM-SHA-256".to_string()]
+            );
+        }
+    }
+
+    #[test]
+    fn a_sasl_authenticate_sizes_its_body_once() {
+        let auth = b"n,,n=alice,r=client";
+        for version in [0_i16, 1, 2] {
+            let mut buf = BytesMut::new();
+            encode_sasl_authenticate_request(&mut buf, version, auth).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_sasl_authenticate_request(&mut buf, version, auth).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+            let mut cur = &buf[..];
+            let decoded = decode_sasl_authenticate_request(&mut cur, version).unwrap();
+            assert!(cur.is_empty());
+            assert_eq!(decoded, auth);
+
+            let mut out = BytesMut::new();
+            encode_sasl_authenticate_response(&mut out, version, 0, Some("ok"), auth, 1_000)
+                .unwrap();
+            let out_len = out.len();
+            let out_capacity = out.capacity();
+            out.clear();
+            encode_sasl_authenticate_response(&mut out, version, 0, Some("ok"), auth, 1_000)
+                .unwrap();
+            assert_eq!(out.len(), out_len);
+            assert_eq!(out.capacity(), out_capacity);
+            let mut cur = &out[..];
+            let (error, message, bytes, lifetime) =
+                decode_sasl_authenticate_response(&mut cur, version).unwrap();
+            assert!(cur.is_empty());
+            assert_eq!(error, 0);
+            assert_eq!(message.as_deref(), Some("ok"));
+            assert_eq!(bytes, auth);
+            assert_eq!(lifetime, if version >= 1 { 1_000 } else { 0 });
         }
     }
 
