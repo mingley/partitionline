@@ -2069,6 +2069,10 @@
 //! including when `AcknowledgeErrorMessage` is set or empty. A piggybacked
 //! `KAFKA_STORAGE_ERROR` still completes without retry,
 //! including when `AcknowledgeErrorMessage` is set or empty. A piggybacked
+//! `LEADER_NOT_AVAILABLE` still completes without retry,
+//! including when `AcknowledgeErrorMessage` is set (this is not
+//! partition `LEADER_NOT_AVAILABLE`, which fails that poll, and not
+//! standalone ShareAcknowledge `LEADER_NOT_AVAILABLE`, which retries). A piggybacked
 //! `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a
 //! sibling whose `AcknowledgeErrorCode` is none, including when
 //! `AcknowledgeErrorMessage` is set or empty. A piggybacked
