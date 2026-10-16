@@ -3989,13 +3989,17 @@ fn offset_fetch_v1_top_level_error(topics: &[FetchedOffsetTopic]) -> i16 {
 fn offset_fetch_partition_data_map(
     topics: &[FetchedOffsetTopic],
 ) -> HashMap<(String, i32), FetchedOffset> {
-    let mut response_data = HashMap::new();
+    let mut scratch: HashMap<&str, HashMap<i32, &FetchedOffset>> = HashMap::new();
     for topic in topics {
+        let parts = scratch.entry(topic.topic.as_str()).or_default();
         for partition in &topic.partitions {
-            let _prev = response_data.insert(
-                (topic.topic.clone(), partition.partition),
-                partition.clone(),
-            );
+            let _prev = parts.insert(partition.partition, partition);
+        }
+    }
+    let mut response_data = HashMap::new();
+    for (topic, parts) in scratch {
+        for (partition, value) in parts {
+            let _prev = response_data.insert((topic.to_owned(), partition), value.clone());
         }
     }
     response_data
