@@ -11818,8 +11818,10 @@ async fn describe_broker_log_dirs_follows_each_broker() {
     assert_eq!(dirs[0].1.error_code, 0);
     assert_eq!(dirs[1].1.error_code, 0);
     assert_eq!(dirs[0].1.results[0].log_dir, "/d");
+    let mut nodes = mock.describe_log_dirs_nodes();
+    nodes.sort_unstable();
     assert_eq!(
-        mock.describe_log_dirs_nodes(),
+        nodes,
         vec![1, 2],
         "describeLogDirs must send one DescribeLogDirs to each broker"
     );
@@ -11851,6 +11853,27 @@ async fn describe_broker_log_dirs_follows_each_broker() {
         .unwrap();
     assert_eq!(timed.len(), 1);
     assert_eq!(timed[0].0, 1);
+    admin.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn describe_broker_log_dirs_overlaps_brokers() {
+    let mock = common::Mock::start_two_node().await;
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    mock.set_describe_log_dirs_delay(Duration::from_millis(200));
+    let started = std::time::Instant::now();
+    let dirs = admin.describe_broker_log_dirs([1, 2]).await.unwrap();
+    assert_eq!(dirs.len(), 2);
+    assert_eq!(dirs[0].0, 1);
+    assert_eq!(dirs[1].0, 2);
+    assert!(
+        started.elapsed() < Duration::from_millis(450),
+        "log directories waited for one broker at a time: {:?}",
+        started.elapsed()
+    );
+    let mut nodes = mock.describe_log_dirs_nodes();
+    nodes.sort_unstable();
+    assert_eq!(nodes, vec![1, 2]);
     admin.close().await.unwrap();
 }
 

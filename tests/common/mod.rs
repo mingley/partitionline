@@ -560,6 +560,7 @@ struct State {
     last_describe_log_dirs_node: Option<i32>,
     last_describe_log_dirs_version: Option<i16>,
     describe_log_dirs_nodes: Vec<i32>,
+    describe_log_dirs_delay: Option<std::time::Duration>,
     last_describe_log_dirs: Option<DescribeLogDirsRequest>,
     describe_log_dirs_cordoned_nodes: HashSet<i32>,
     describe_log_dirs_raw_responses: HashMap<i32, VecDeque<Vec<u8>>>,
@@ -1039,6 +1040,7 @@ fn new_state(
         last_describe_log_dirs_node: None,
         last_describe_log_dirs_version: None,
         describe_log_dirs_nodes: Vec::new(),
+        describe_log_dirs_delay: None,
         last_describe_log_dirs: None,
         describe_log_dirs_cordoned_nodes: HashSet::new(),
         describe_log_dirs_raw_responses: HashMap::new(),
@@ -3388,6 +3390,10 @@ impl Mock {
 
     pub fn describe_log_dirs_nodes(&self) -> Vec<i32> {
         self.state.lock().describe_log_dirs_nodes.clone()
+    }
+
+    pub fn set_describe_log_dirs_delay(&self, delay: std::time::Duration) {
+        self.state.lock().describe_log_dirs_delay = Some(delay);
     }
 
     pub fn last_describe_log_dirs(&self) -> Option<DescribeLogDirsRequest> {
@@ -8871,6 +8877,10 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 .unwrap();
             }
             DESCRIBE_LOG_DIRS => {
+                let delay = state.lock().describe_log_dirs_delay;
+                if let Some(delay) = delay {
+                    tokio::time::sleep(delay).await;
+                }
                 let version = header.api_version;
                 let req = decode_describe_log_dirs_request(&mut frame, version).unwrap();
                 let mut st = state.lock();

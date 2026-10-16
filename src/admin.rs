@@ -13295,10 +13295,56 @@ impl Admin {
         if ids.is_empty() {
             return Ok(Vec::new());
         }
+        if ids.len() == 1 {
+            let mut out = Vec::with_capacity(1);
+            for broker_id in ids {
+                let resp = self.describe_log_dirs_on(broker_id, None, timeout).await?;
+                out.push((broker_id, resp));
+            }
+            return Ok(out);
+        }
+        let deadline = Instant::now()
+            .checked_add(timeout)
+            .ok_or_else(|| Error::protocol("DescribeLogDirs deadline overflow"))?;
+        for id in &ids {
+            self.ensure_broker(*id, deadline).await?;
+        }
+        let request = DescribeLogDirsRequest::new(None);
+        let mut finished = self
+            .exchange_leaders(&ids, deadline, |_admin, _node, conn, _timeout| {
+                let version = conn.negotiated(DESCRIBE_LOG_DIRS, 1, 5).ok_or_else(|| {
+                    Error::Unsupported("broker does not support DescribeLogDirs v1-5".into())
+                })?;
+                let mut payload = BytesMut::new();
+                encode_describe_log_dirs_request(&mut payload, version, &request)?;
+                Ok(LeaderFrame {
+                    api_key: DESCRIBE_LOG_DIRS,
+                    version,
+                    body: payload.freeze(),
+                })
+            })
+            .await;
         let mut out = Vec::with_capacity(ids.len());
         for broker_id in ids {
-            let resp = self.describe_log_dirs_on(broker_id, None, timeout).await?;
-            out.push((broker_id, resp));
+            let Some((version, body)) = finished.remove(&broker_id) else {
+                return Err(Error::Timeout);
+            };
+            match body {
+                Err(error) if error.is_retriable() && !matches!(error, Error::Timeout) => {
+                    let _ = self.conns.remove(&broker_id);
+                    let resp = self.describe_log_dirs_on(broker_id, None, timeout).await?;
+                    out.push((broker_id, resp));
+                }
+                Err(error) => return Err(error),
+                Ok(body) => {
+                    let mut cursor = body.as_ref();
+                    let response = decode_describe_log_dirs_response(&mut cursor, version)?;
+                    if !cursor.is_empty() {
+                        return Err(Error::protocol("trailing DescribeLogDirs response bytes"));
+                    }
+                    out.push((broker_id, response));
+                }
+            }
         }
         Ok(out)
     }
