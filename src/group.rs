@@ -2922,16 +2922,6 @@ impl ConsumerGroup {
                         let epoch = hb_generation.load(Ordering::SeqCst);
                         let joining =
                             epoch == ConsumerGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH;
-                        let topic_partitions = if joining {
-                            Some(Vec::new())
-                        } else {
-                            hb_ack.lock().clone()
-                        };
-                        let subscribed_topic_names = if joining {
-                            Some(hb_topics.lock().clone())
-                        } else {
-                            None
-                        };
                         let rebalance_timeout_ms = if joining {
                             if cfg.max_poll_interval.is_zero() {
                                 i32::MAX
@@ -2953,8 +2943,22 @@ impl ConsumerGroup {
                         copy_member_id(&mut heartbeat.member_id, &member_id);
                         heartbeat.member_epoch = epoch;
                         heartbeat.rebalance_timeout_ms = rebalance_timeout_ms;
-                        heartbeat.subscribed_topic_names = subscribed_topic_names;
-                        heartbeat.topic_partitions = topic_partitions;
+                        if joining {
+                            reuse_topic_names(
+                                &mut heartbeat.subscribed_topic_names,
+                                &hb_topics.lock(),
+                            );
+                            if heartbeat
+                                .topic_partitions
+                                .as_ref()
+                                .is_none_or(|parts| !parts.is_empty())
+                            {
+                                heartbeat.topic_partitions = Some(Vec::new());
+                            }
+                        } else {
+                            heartbeat.subscribed_topic_names = None;
+                            heartbeat.topic_partitions = hb_ack.lock().clone();
+                        }
                         let res = c
                             .roundtrip(
                                 CONSUMER_GROUP_HEARTBEAT,
@@ -2997,7 +3001,7 @@ impl ConsumerGroup {
                                             if id != member_id {
                                                 copy_member_id(&mut member_id, id);
                                                 copy_member_id(&mut heartbeat.member_id, id);
-                                                *hb_member_id.lock() = member_id.clone();
+                                                copy_member_id(&mut hb_member_id.lock(), &member_id);
                                             }
                                         }
                                         if resp.error_code == 0 {
@@ -3164,6 +3168,15 @@ pub(crate) fn copy_member_id(dest: &mut String, source: &str) {
     }
 }
 
+fn reuse_topic_names(dest: &mut Option<Vec<String>>, topics: &[String]) {
+    let same = dest
+        .as_ref()
+        .is_some_and(|names| names.as_slice() == topics);
+    if !same {
+        *dest = Some(topics.to_vec());
+    }
+}
+
 #[cfg(test)]
 mod member_id_tests {
     use super::copy_member_id;
@@ -3178,6 +3191,18 @@ mod member_id_tests {
         assert!(dest.capacity() >= capacity);
         copy_member_id(&mut dest, "member-2");
         assert_eq!(dest, "member-2");
+    }
+
+    #[test]
+    fn an_unchanged_join_subscription_keeps_its_buffer() {
+        let topics = vec!["orders".to_string()];
+        let mut names = Some(topics.clone());
+        let ptr = names.as_ref().map(Vec::as_ptr);
+        super::reuse_topic_names(&mut names, &topics);
+        assert_eq!(names.as_ref().map(Vec::as_ptr), ptr);
+        let changed = ["payments".to_string()];
+        super::reuse_topic_names(&mut names, &changed);
+        assert_eq!(names.as_deref(), Some(changed.as_slice()));
     }
 }
 
