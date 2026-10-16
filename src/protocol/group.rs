@@ -2776,6 +2776,12 @@ pub fn encode_heartbeat_response_with_throttle(
     throttle_time_ms: i32,
 ) -> crate::error::Result<()> {
     let flexible = heartbeat_flexible(version)?;
+    let body_start = buf.len();
+    let planned = heartbeat_response_len(version, flexible)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     if version >= 1 {
         buf.put_i32(throttle_time_ms);
     }
@@ -2783,7 +2789,19 @@ pub fn encode_heartbeat_response_with_throttle(
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn heartbeat_response_len(version: i16, flexible: bool) -> Result<usize> {
+    let mut total = 2usize;
+    if version >= 1 {
+        total = add_group_len(total, 4)?;
+    }
+    if flexible {
+        total = add_group_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 /// Decode Heartbeat: `(error_code, throttle_time_ms)`.
@@ -14696,6 +14714,27 @@ mod tests {
             0x03, 0x02, 0x61, 0x00, 0x00, 0x02, 0x62, 0x00, 0x00, 0x01, 0x00,
         ];
         assert_eq!(&buf[..], REQ);
+    }
+
+    #[test]
+    fn a_heartbeat_response_sizes_its_body_once() {
+        for version in [0_i16, 1, 3, 4] {
+            let mut buf = BytesMut::new();
+            encode_heartbeat_response_with_throttle(&mut buf, version, 0, 5).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_heartbeat_response_with_throttle(&mut buf, version, 0, 5).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+            let mut cur = &buf[..];
+            let (error, throttle) = decode_heartbeat_response(&mut cur, version).unwrap();
+            assert!(cur.is_empty());
+            assert_eq!(error, 0);
+            assert_eq!(throttle, if version >= 1 { 5 } else { 0 });
+        }
     }
 
     #[test]

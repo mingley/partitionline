@@ -2740,6 +2740,12 @@ pub fn encode_share_fetch_error_with_throttle(
     throttle_time_ms: i32,
 ) -> crate::error::Result<()> {
     let flexible = share_fetch_flexible(version)?;
+    let body_start = buf.len();
+    let planned = share_fetch_error_len(version)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf.put_i32(throttle_time_ms);
     buf.put_i16(error_code);
     buf::put_string(buf, flexible, None)?;
@@ -2751,7 +2757,19 @@ pub fn encode_share_fetch_error_with_throttle(
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn share_fetch_error_len(version: i16) -> Result<usize> {
+    let mut total = 6usize;
+    total = add_share_len(total, share_nullable_string_len(None)?)?;
+    if version >= 1 {
+        total = add_share_len(total, 4)?;
+    }
+    total = add_share_len(total, share_array_len(0)?)?;
+    total = add_share_len(total, share_array_len(0)?)?;
+    add_share_len(total, buf::unsigned_varint_size(0))
 }
 
 #[expect(
@@ -3921,6 +3939,22 @@ mod tests {
             &conv[..],
             "getErrorResponse ThrottleTimeMs is not always the JSON default 0"
         );
+    }
+
+    #[test]
+    fn a_share_fetch_error_sizes_its_body_once() {
+        for version in [0_i16, 1, 2] {
+            let mut buf = BytesMut::new();
+            encode_share_fetch_error_with_throttle(&mut buf, version, 0, 5).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_share_fetch_error_with_throttle(&mut buf, version, 0, 5).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+        }
     }
 
     fn leftover_share_fetch_error_response(version: i16, error_code: i16, throttle_time_ms: i32) {
