@@ -696,7 +696,7 @@ pub enum ShareAcquireMode {
 /// reset the share session (Java
 /// `nextCloseExistingAttemptNew`), including when `ErrorMessage` is
 /// empty. Top-level `SHARE_SESSION_LIMIT_REACHED` does not request
-/// Metadata when `ErrorMessage` is set (Java
+/// Metadata when `ErrorMessage` is set or empty (Java
 /// `handleShareFetchSuccess` only `requestUpdate`s for
 /// `UNKNOWN_TOPIC_ID`). A ShareFetch
 /// transport / timeout / decode failure completes those acknowledgements
@@ -752,8 +752,8 @@ pub enum ShareAcquireMode {
 /// Metadata, including when `ErrorMessage` is set or empty (a
 /// partition `CORRUPT_MESSAGE` still throws). Top-level
 /// `SHARE_SESSION_LIMIT_REACHED` resets the share session and does
-/// not request Metadata, including when `ErrorMessage` is set (Java
-/// `handleShareFetchSuccess` only `requestUpdate`s for
+/// not request Metadata, including when `ErrorMessage` is set or
+/// empty (Java `handleShareFetchSuccess` only `requestUpdate`s for
 /// `UNKNOWN_TOPIC_ID`). A top-level
 /// ShareAcknowledge `UNKNOWN_TOPIC_ID` completes without retry and
 /// does not request Metadata, including when `ErrorMessage` is set
@@ -1934,8 +1934,8 @@ impl ShareGroup {
     /// `CORRUPT_MESSAGE` still throws). Top-level
     /// `SHARE_SESSION_LIMIT_REACHED` resets the share session and
     /// does not request Metadata, including when `ErrorMessage` is
-    /// set (Java `handleShareFetchSuccess` only `requestUpdate`s for
-    /// `UNKNOWN_TOPIC_ID`). A sole
+    /// set or empty (Java `handleShareFetchSuccess` only
+    /// `requestUpdate`s for `UNKNOWN_TOPIC_ID`). A sole
     /// partition `NOT_LEADER_OR_FOLLOWER` collects empty (Java)
     /// `testFetchError`). A ShareFetch topic id that is
     /// not in this request — including a real cluster topic that is

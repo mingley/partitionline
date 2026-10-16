@@ -2061,7 +2061,7 @@
 //! reset the share session (Java
 //! `nextCloseExistingAttemptNew`), including when `ErrorMessage` is
 //! empty. Top-level `SHARE_SESSION_LIMIT_REACHED` does not request
-//! Metadata when `ErrorMessage` is set (Java
+//! Metadata when `ErrorMessage` is set or empty (Java
 //! `handleShareFetchSuccess` only `requestUpdate`s for
 //! `UNKNOWN_TOPIC_ID`); the initial share
 //! session does not piggyback and those acknowledgements complete with
