@@ -297,6 +297,27 @@ pub fn assign_range_subscribed(
 /// [`resolve_sticky_owned_partitions`].
 type StickyOwnedClaim = (String, Vec<(String, i32)>, i32);
 
+#[derive(Clone, Copy)]
+struct StickyOwner<'a> {
+    member: &'a str,
+    generation: i32,
+}
+
+fn remember_sticky_owner<'a>(
+    owner: &mut HashMap<&'a str, HashMap<i32, StickyOwner<'a>>>,
+    topic: &'a str,
+    partition: i32,
+    claim: StickyOwner<'a>,
+) {
+    if let Some(parts) = owner.get_mut(topic) {
+        let _ = parts.insert(partition, claim);
+        return;
+    }
+    let mut parts = HashMap::new();
+    let _ = parts.insert(partition, claim);
+    let _ = owner.insert(topic, parts);
+}
+
 /// Resolve overlapping owned partitions the way Java
 /// `AbstractStickyAssignor.allSubscriptionsEqual` does.
 ///
@@ -314,36 +335,48 @@ pub fn resolve_sticky_owned_partitions(
             let _ = out.insert(member.clone(), Vec::new());
         }
     }
-    let mut owner: HashMap<(String, i32), (String, i32)> = HashMap::new();
+    let mut owner: HashMap<&str, HashMap<i32, StickyOwner<'_>>> = HashMap::new();
     for (member, owned, generation) in claims {
-        for tp in owned {
-            match owner.get(tp).cloned() {
+        for (topic, partition) in owned {
+            let current = owner
+                .get(topic.as_str())
+                .and_then(|parts| parts.get(partition))
+                .copied();
+            let claim = StickyOwner {
+                member: member.as_str(),
+                generation: *generation,
+            };
+            match current {
                 None => {
-                    if let Some(slot) = out.get_mut(member) {
-                        slot.push(tp.clone());
+                    if let Some(slot) = out.get_mut(member.as_str()) {
+                        slot.push((topic.clone(), *partition));
                     }
-                    let _ = owner.insert(tp.clone(), (member.clone(), *generation));
+                    remember_sticky_owner(&mut owner, topic.as_str(), *partition, claim);
                 }
-                Some((other, other_generation)) => match generation.cmp(&other_generation) {
+                Some(StickyOwner {
+                    member: other,
+                    generation: other_generation,
+                }) => match generation.cmp(&other_generation) {
                     std::cmp::Ordering::Equal => {
                         // A member repeating its own claim keeps the partition.
                         // The same generation from a different member revokes
                         // it from both (KAFKA-13081).
-                        if other != *member {
-                            if let Some(other_slot) = out.get_mut(&other) {
-                                other_slot.retain(|p| p != tp);
+                        if other != member.as_str() {
+                            if let Some(other_slot) = out.get_mut(other) {
+                                other_slot
+                                    .retain(|(name, part)| name != topic || *part != *partition);
                             }
-                            let _ = owner.insert(tp.clone(), (member.clone(), *generation));
+                            remember_sticky_owner(&mut owner, topic.as_str(), *partition, claim);
                         }
                     }
                     std::cmp::Ordering::Greater => {
-                        if let Some(other_slot) = out.get_mut(&other) {
-                            other_slot.retain(|p| p != tp);
+                        if let Some(other_slot) = out.get_mut(other) {
+                            other_slot.retain(|(name, part)| name != topic || *part != *partition);
                         }
-                        if let Some(slot) = out.get_mut(member) {
-                            slot.push(tp.clone());
+                        if let Some(slot) = out.get_mut(member.as_str()) {
+                            slot.push((topic.clone(), *partition));
                         }
-                        let _ = owner.insert(tp.clone(), (member.clone(), *generation));
+                        remember_sticky_owner(&mut owner, topic.as_str(), *partition, claim);
                     }
                     std::cmp::Ordering::Less => {}
                 },
