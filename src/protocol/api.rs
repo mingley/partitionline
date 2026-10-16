@@ -2593,6 +2593,9 @@ pub fn encode_metadata_response(
         metadata_legacy::validate_response(resp)?;
     }
     let flexible = version >= 9;
+    let body_start = buf.len();
+    let planned = metadata_response_len(version, flexible, resp)?;
+    reserve_metadata_body(buf, planned);
     if version >= 3 {
         buf.put_i32(resp.throttle_time_ms);
     }
@@ -2657,7 +2660,118 @@ pub fn encode_metadata_response(
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn metadata_response_len(version: i16, flexible: bool, resp: &MetadataResponse) -> Result<usize> {
+    let mut total = 0usize;
+    if version >= 3 {
+        total = add_metadata_response_len(total, 4)?;
+    }
+    total = add_metadata_response_len(
+        total,
+        metadata_array_len(flexible, Some(resp.brokers.len()))?,
+    )?;
+    for broker in &resp.brokers {
+        total = add_metadata_response_len(total, 8)?;
+        total =
+            add_metadata_response_len(total, metadata_string_len(flexible, Some(&broker.host))?)?;
+        if version >= 1 {
+            total = add_metadata_response_len(
+                total,
+                metadata_string_len(flexible, broker.rack.as_deref())?,
+            )?;
+        }
+        if flexible {
+            total = add_metadata_response_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    if version >= 2 {
+        total = add_metadata_response_len(
+            total,
+            metadata_string_len(flexible, resp.cluster_id.as_deref())?,
+        )?;
+    }
+    if version >= 1 {
+        total = add_metadata_response_len(total, 4)?;
+    }
+    total = add_metadata_response_len(
+        total,
+        metadata_array_len(flexible, Some(resp.topics.len()))?,
+    )?;
+    for topic in &resp.topics {
+        total = add_metadata_response_len(total, 2)?;
+        total = add_metadata_response_len(
+            total,
+            metadata_string_len(flexible, topic.name.as_deref())?,
+        )?;
+        if version >= 10 {
+            total = add_metadata_response_len(total, 16)?;
+        }
+        if version >= 1 {
+            total = add_metadata_response_len(total, 1)?;
+        }
+        total = add_metadata_response_len(
+            total,
+            metadata_array_len(flexible, Some(topic.partitions.len()))?,
+        )?;
+        for partition in &topic.partitions {
+            let mut fixed = 10usize;
+            if version >= 7 {
+                fixed += 4;
+            }
+            total = add_metadata_response_len(total, fixed)?;
+            total = add_metadata_response_len(
+                total,
+                metadata_i32_array_len(flexible, &partition.replica_nodes)?,
+            )?;
+            total = add_metadata_response_len(
+                total,
+                metadata_i32_array_len(flexible, &partition.isr_nodes)?,
+            )?;
+            if version >= 5 {
+                total = add_metadata_response_len(
+                    total,
+                    metadata_i32_array_len(flexible, &partition.offline_replicas)?,
+                )?;
+            }
+            if flexible {
+                total = add_metadata_response_len(total, buf::unsigned_varint_size(0))?;
+            }
+        }
+        if version >= 8 {
+            total = add_metadata_response_len(total, 4)?;
+        }
+        if flexible {
+            total = add_metadata_response_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    if (8..=10).contains(&version) {
+        total = add_metadata_response_len(total, 4)?;
+    }
+    if version >= 13 {
+        total = add_metadata_response_len(total, 2)?;
+    }
+    if flexible {
+        total = add_metadata_response_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
+}
+
+fn metadata_i32_array_len(flexible: bool, items: &[i32]) -> Result<usize> {
+    let header = metadata_array_len(flexible, Some(items.len()))?;
+    let payload = items
+        .len()
+        .checked_mul(4)
+        .ok_or_else(|| Error::protocol("metadata response size overflow"))?;
+    add_metadata_response_len(header, payload)
+}
+
+fn add_metadata_response_len(total: usize, next: usize) -> Result<usize> {
+    total
+        .checked_add(next)
+        .ok_or_else(|| Error::protocol("metadata response size overflow"))
 }
 
 /// One topic in a Produce request.
@@ -7169,6 +7283,65 @@ mod tests {
         let empty_ep = NodeEndpoint::no_node();
         assert!(empty_ep.is_empty());
         assert_eq!(empty_ep.to_string(), empty.to_string());
+    }
+
+    #[test]
+    fn a_metadata_response_sizes_its_body_once() {
+        let resp = MetadataResponse {
+            throttle_time_ms: 5,
+            brokers: vec![Broker {
+                node_id: 1,
+                host: "127.0.0.1".into(),
+                port: 9092,
+                rack: Some("rack-a".into()),
+            }],
+            cluster_id: Some("cid".into()),
+            controller_id: 1,
+            topics: vec![TopicMetadata {
+                error_code: 0,
+                name: Some("orders".into()),
+                topic_id: [1u8; 16],
+                is_internal: false,
+                partitions: vec![PartitionMetadata {
+                    error_code: 0,
+                    partition_index: 0,
+                    leader_id: 1,
+                    leader_epoch: 3,
+                    replica_nodes: vec![1, 2],
+                    isr_nodes: vec![1],
+                    offline_replicas: vec![2],
+                }],
+                topic_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+            }],
+            cluster_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+            error_code: 0,
+        };
+        for version in [1_i16, 7, 9, 12, 13] {
+            let mut buf = BytesMut::new();
+            encode_metadata_response(&mut buf, version, &resp).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_metadata_response(&mut buf, version, &resp).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+            let mut cur = &buf[..];
+            let decoded = decode_metadata_response(&mut cur, version).unwrap();
+            assert!(cur.is_empty());
+            assert_eq!(
+                decoded.brokers.first().map(|broker| broker.host.as_str()),
+                Some("127.0.0.1")
+            );
+            assert_eq!(
+                decoded
+                    .topics
+                    .first()
+                    .and_then(|topic| topic.name.as_deref()),
+                Some("orders")
+            );
+        }
     }
 
     #[test]
