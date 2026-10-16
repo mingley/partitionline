@@ -838,9 +838,9 @@ fn frame_mut(frame: &mut Frame) -> &mut Vec<u8> {
 
 /// Bytes already read from the socket and not yet handed to a handler.
 ///
-/// `start` is the first unconsumed byte. Taking a frame copies that body out
-/// and advances `start`. The bytes behind `start` stay put until the next
-/// socket read, so a pipeline of N frames is not recopied for every frame.
+/// `start` is the first unconsumed byte. A buffer that holds exactly one frame
+/// is moved to the handler. A later frame in the same buffer is copied out and
+/// `start` advances, so a pipeline of N frames is not recopied for every frame.
 struct ReadAhead {
     bytes: Frame,
     start: usize,
@@ -905,6 +905,16 @@ fn fill_complete_frame(
             let length =
                 usize::try_from(i32::from_be_bytes(prefix)).map_err(|_| Exit::InvalidLength)?;
             let total = 4usize.checked_add(length).ok_or(Exit::InvalidLength)?;
+            // One complete frame owns the buffer. Move it and drop the length prefix.
+            if ahead.start == 0 && frame_mut(&mut ahead.bytes).len() == total {
+                frame_mut(body).clear();
+                let spare = std::mem::take(frame_mut(body));
+                let mut taken = std::mem::replace(frame_mut(&mut ahead.bytes), spare);
+                drop(taken.drain(..4));
+                *frame_mut(body) = taken;
+                ahead.start = 0;
+                return Ok(true);
+            }
             {
                 let payload = ahead.pending().get(4..total).ok_or(Exit::InvalidLength)?;
                 let dest = frame_mut(body);
@@ -1346,6 +1356,19 @@ mod read_ahead_tests {
         let second = take_complete_frame(&mut ahead, 64);
         assert!(matches!(second, Ok(Some(body)) if body.as_slice() == b"xy"));
         assert!(ahead.is_empty());
+    }
+
+    #[test]
+    fn one_buffered_frame_keeps_its_allocation() {
+        let mut ahead = ReadAhead::new();
+        extend_frame(&mut ahead, b"payload");
+        let kept = ahead.bytes.as_ptr();
+        let body = take_complete_frame(&mut ahead, 64);
+        assert!(
+            matches!(body, Ok(Some(body)) if body.as_slice() == b"payload" && body.as_ptr() == kept)
+        );
+        assert!(ahead.is_empty());
+        assert_eq!(ahead.start, 0);
     }
 
     #[test]
