@@ -194,6 +194,14 @@ pub struct Partition {
     poisoned: bool,
     next_offset: i64,
 }
+/// Offsets collected while a payload is still borrowed for validation.
+enum Stamp {
+    /// One batch, patched at the first byte.
+    One(u32, i64),
+    /// Several batches, each start remembered before the payload is patched.
+    Many(u32, i64, usize, Vec<(usize, i64)>),
+}
+
 impl Partition {
     /// Recover and validate every complete entry, including its assigned range.
     ///
@@ -302,44 +310,76 @@ impl Partition {
             }
         }
         let base_offset = self.next_offset();
-        let (record_count, next_offset, batch_count, spans) = {
+        // One batch always starts at the first byte, so its offset is stamped
+        // without a span list. Several batches remember each start first.
+        let stamped = {
             let checked = records::validate(bytes, self.record_limits)?;
             let record_count =
                 u32::try_from(checked.record_count()).map_err(|_| Error::OffsetOverflow)?;
             let next_offset = base_offset
                 .checked_add(i64::from(record_count))
                 .ok_or(Error::OffsetOverflow)?;
-            let mut spans = Vec::new();
-            spans
-                .try_reserve_exact(checked.batch_count())
-                .map_err(|_| Error::AllocationFailed)?;
-            let mut cursor = 0usize;
-            let mut offset = base_offset;
-            for batch in checked.batches() {
-                let batch = batch?;
-                let len = batch.bytes.len();
-                if bytes.get(cursor..cursor.saturating_add(len)).is_none() {
+            if checked.batch_count() == 1 {
+                let mut batches = checked.batches();
+                let (len, count) = {
+                    let batch = batches.next().ok_or(Error::CorruptPayload)??;
+                    (batch.bytes.len(), batch.record_count)
+                };
+                if batches.next().is_some() || len != bytes.len() {
                     return Err(Error::CorruptPayload);
                 }
-                spans.push((cursor, offset));
-                cursor = cursor.checked_add(len).ok_or(Error::CorruptPayload)?;
-                offset = offset
-                    .checked_add(i64::from(batch.record_count))
+                let advanced = base_offset
+                    .checked_add(i64::from(count))
                     .ok_or(Error::OffsetOverflow)?;
+                if advanced != next_offset {
+                    return Err(Error::CorruptPayload);
+                }
+                Stamp::One(record_count, next_offset)
+            } else {
+                let batch_count = checked.batch_count();
+                let mut spans = Vec::new();
+                spans
+                    .try_reserve_exact(batch_count)
+                    .map_err(|_| Error::AllocationFailed)?;
+                let mut cursor = 0usize;
+                let mut offset = base_offset;
+                for batch in checked.batches() {
+                    let batch = batch?;
+                    let len = batch.bytes.len();
+                    if bytes.get(cursor..cursor.saturating_add(len)).is_none() {
+                        return Err(Error::CorruptPayload);
+                    }
+                    spans.push((cursor, offset));
+                    cursor = cursor.checked_add(len).ok_or(Error::CorruptPayload)?;
+                    offset = offset
+                        .checked_add(i64::from(batch.record_count))
+                        .ok_or(Error::OffsetOverflow)?;
+                }
+                if offset != next_offset || cursor != bytes.len() {
+                    return Err(Error::CorruptPayload);
+                }
+                Stamp::Many(record_count, next_offset, batch_count, spans)
             }
-            if offset != next_offset || cursor != bytes.len() {
-                return Err(Error::CorruptPayload);
-            }
-            (record_count, next_offset, checked.batch_count(), spans)
         };
-        for (start, assigned) in spans {
-            let end = start.checked_add(8).ok_or(Error::CorruptPayload)?;
-            bytes
-                .get_mut(start..end)
-                .ok_or(Error::CorruptPayload)?
-                .copy_from_slice(&assigned.to_be_bytes());
+        match stamped {
+            Stamp::One(record_count, next_offset) => {
+                bytes
+                    .get_mut(..8)
+                    .ok_or(Error::CorruptPayload)?
+                    .copy_from_slice(&base_offset.to_be_bytes());
+                Ok((record_count, base_offset, next_offset, 1))
+            }
+            Stamp::Many(record_count, next_offset, batch_count, spans) => {
+                for (start, assigned) in spans {
+                    let end = start.checked_add(8).ok_or(Error::CorruptPayload)?;
+                    bytes
+                        .get_mut(start..end)
+                        .ok_or(Error::CorruptPayload)?
+                        .copy_from_slice(&assigned.to_be_bytes());
+                }
+                Ok((record_count, base_offset, next_offset, batch_count))
+            }
         }
-        Ok((record_count, base_offset, next_offset, batch_count))
     }
 
     /// One already-validated batch: patch its base offset and read `numRecords`.
