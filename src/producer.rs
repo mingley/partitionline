@@ -3010,13 +3010,34 @@ impl Producer {
             }
         }
         let topics = unique_offset_topics(&offsets);
-        for topic in topics {
-            let name = Arc::<str>::from(topic);
-            if partitions_for_timeout(&self.inner.shared, &name, timeout_remaining(deadline)?)
-                .await?
-                <= 0
-            {
-                return Err(Error::UnknownTopic(topic.to_owned()));
+        if topics.len() > 1 {
+            let names: Vec<Arc<str>> = topics.iter().copied().map(Arc::<str>::from).collect();
+            let requested =
+                refresh_topics_within(&self.inner.shared, &names, timeout_remaining(deadline)?)
+                    .await?;
+            for topic in topics {
+                let n = if requested.iter().any(|name| name.as_ref() == topic) {
+                    partition_count_from_image(&self.inner.shared, topic)?
+                } else if let Some(n) = fresh_partition_count(&self.inner.shared, topic) {
+                    n
+                } else {
+                    let name = Arc::<str>::from(topic);
+                    partitions_for_timeout(&self.inner.shared, &name, timeout_remaining(deadline)?)
+                        .await?
+                };
+                if n <= 0 {
+                    return Err(Error::UnknownTopic(topic.to_owned()));
+                }
+            }
+        } else {
+            for topic in topics {
+                let name = Arc::<str>::from(topic);
+                if partitions_for_timeout(&self.inner.shared, &name, timeout_remaining(deadline)?)
+                    .await?
+                    <= 0
+                {
+                    return Err(Error::UnknownTopic(topic.to_owned()));
+                }
             }
         }
         let grouped = {
@@ -4208,23 +4229,33 @@ async fn partitions_for_timeout(
     drop(conn);
     let mut body = body;
     decode_shared_metadata(shared, &mut body, version)?;
-    let n = {
-        let image = shared.metadata_image.lock();
-        let t = image
-            .topics
-            .iter()
-            .find(|t| t.name.as_deref() == Some(topic.as_ref()))
-            .ok_or_else(|| Error::UnknownTopic(topic.to_string()))?;
-        if t.error_code != 0 {
-            return Err(Error::broker(t.error_code, topic.to_string()));
-        }
-        let n = crate::protocol::buf::i32_from_usize(t.partitions.len())?;
-        if n <= 0 {
-            return Err(Error::UnknownTopic(topic.to_string()));
-        }
-        n
-    };
+    let n = partition_count_from_image(shared, topic.as_ref())?;
     drop_fast_topic(shared, topic);
+    Ok(n)
+}
+
+fn fresh_partition_count(shared: &Shared, topic: &str) -> Option<i32> {
+    let cluster = shared.cluster.lock();
+    match cluster.partition_count(topic) {
+        Some(n) if cluster.topic_fresh(topic, shared.cfg.metadata_max_age) => Some(n),
+        _ => None,
+    }
+}
+
+fn partition_count_from_image(shared: &Shared, topic: &str) -> Result<i32> {
+    let image = shared.metadata_image.lock();
+    let found = image
+        .topics
+        .iter()
+        .find(|item| item.name.as_deref() == Some(topic))
+        .ok_or_else(|| Error::UnknownTopic(topic.to_string()))?;
+    if found.error_code != 0 {
+        return Err(Error::broker(found.error_code, topic.to_string()));
+    }
+    let n = crate::protocol::buf::i32_from_usize(found.partitions.len())?;
+    if n <= 0 {
+        return Err(Error::UnknownTopic(topic.to_string()));
+    }
     Ok(n)
 }
 

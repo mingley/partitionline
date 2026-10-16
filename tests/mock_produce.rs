@@ -2,7 +2,9 @@
 
 mod common;
 
-use partitionline::{Admin, AdminConfig, Error, NewTopic, ProduceRecord, Producer, ProducerConfig};
+use partitionline::{
+    Admin, AdminConfig, Error, NewTopic, ProduceRecord, Producer, ProducerConfig, TopicPartition,
+};
 use std::time::{Duration, Instant};
 
 #[tokio::test(flavor = "current_thread")]
@@ -114,6 +116,46 @@ async fn send_all_refreshes_topics_together() {
     let mut names = mock.last_metadata_topics().unwrap().unwrap();
     names.sort();
     assert_eq!(names, ["t".to_string(), "u".to_string()]);
+    producer.close().await.unwrap();
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn send_offsets_refreshes_topics_together() {
+    let mock = common::Mock::start().await;
+    mock.set_topic_partitions("t", 1);
+    mock.set_topic_partitions("u", 1);
+    let mut cfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    cfg.linger = Duration::ZERO;
+    cfg.transactional_id = Some("tx-offsets-meta".into());
+    let producer = Producer::new(cfg).await.unwrap();
+    producer.begin_transaction().await.unwrap();
+    let before = mock.metadata_calls();
+    mock.set_metadata_delay(Duration::from_millis(200));
+    let started = Instant::now();
+    producer
+        .send_offsets_to_transaction(
+            "g",
+            [
+                (TopicPartition::new("t", 0), 1),
+                (TopicPartition::new("u", 0), 2),
+            ],
+        )
+        .await
+        .unwrap();
+    assert!(
+        started.elapsed() < Duration::from_millis(450),
+        "offset metadata waited once per topic: {:?}",
+        started.elapsed()
+    );
+    assert_eq!(
+        mock.metadata_calls(),
+        before + 1,
+        "offset topics should share one metadata request"
+    );
+    let mut names = mock.last_metadata_topics().unwrap().unwrap();
+    names.sort();
+    assert_eq!(names, ["t".to_string(), "u".to_string()]);
+    producer.abort_transaction().await.unwrap();
     producer.close().await.unwrap();
 }
 
