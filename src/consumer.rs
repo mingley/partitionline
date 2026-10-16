@@ -2917,7 +2917,7 @@ impl Consumer {
         {
             self.remove_assigned_at(pos);
         }
-        let topic: Arc<str> = Arc::from(topic_name);
+        let topic = assigned_topic_name(&self.name_to_id, &topic_name);
         self.push_assigned(Arc::clone(&topic), partition, offset);
         self.cursor_index = None;
         self.cursor_slots = None;
@@ -3035,7 +3035,7 @@ impl Consumer {
         };
         self.retain_assigned_topics(|name| name != topic.as_str());
         let _removed = self.assigned_topic_ids.remove(topic.as_str());
-        let name: Arc<str> = Arc::from(topic.as_str());
+        let name = assigned_topic_name(&self.name_to_id, &topic);
         for p in parts {
             self.drop_pending_for(&topic, p);
             self.push_assigned(Arc::clone(&name), p, offset);
@@ -3431,13 +3431,14 @@ impl Consumer {
             self.aborted = previous_aborted;
             return Err(error);
         }
+        let cached = &self.name_to_id;
         let mut names: HashMap<&str, Arc<str>> = HashMap::new();
         self.assigned
             .extend(starts.iter().map(|(topic, part, offset)| {
                 let name = if let Some(existing) = names.get(topic.as_str()) {
                     Arc::clone(existing)
                 } else {
-                    let name = Arc::<str>::from(topic.as_str());
+                    let name = assigned_topic_name(cached, topic);
                     let _previous = names.insert(topic.as_str(), Arc::clone(&name));
                     name
                 };
@@ -7904,6 +7905,18 @@ fn shared_topic_inserts_keep_the_callers_allocation() {
     assert!(matches!(inline, Some(TopicName::Inline(_, _))));
 }
 
+#[test]
+fn an_assignment_keeps_the_cached_topic_name() {
+    let topic: Arc<str> = Arc::from("topic-name-longer-than-twenty-three");
+    let stored = Arc::as_ptr(&topic);
+    let mut cached = HashMap::new();
+    let _ = cached.insert(Arc::clone(&topic), [1u8; 16]);
+    let assigned = assigned_topic_name(&cached, topic.as_ref());
+    assert!(std::ptr::addr_eq(Arc::as_ptr(&assigned), stored));
+    let missing = assigned_topic_name(&HashMap::<Arc<str>, [u8; 16]>::new(), "payments");
+    assert_eq!(missing.as_ref(), "payments");
+}
+
 #[cfg(test)]
 fn heap_topic_ptr<V>(map: &PartitionMap<V>) -> *const str {
     let topic = map
@@ -7976,6 +7989,17 @@ fn park_spare<T>(spare: &mut Vec<T>, mut values: Vec<T>) {
 
 fn sized_fetch_records(previous: usize) -> Vec<FetchedRecord> {
     Vec::with_capacity(previous)
+}
+
+/// Topic stored on an assignment.
+///
+/// Metadata that already holds the name is shared. A name the cache has not
+/// seen is copied once.
+fn assigned_topic_name(cached: &HashMap<Arc<str>, [u8; 16]>, topic: &str) -> Arc<str> {
+    cached
+        .get_key_value(topic)
+        .map(|(name, _)| Arc::clone(name))
+        .unwrap_or_else(|| Arc::from(topic))
 }
 
 fn note_fetch_records(previous: &mut usize, count: usize) {
