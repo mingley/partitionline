@@ -7375,9 +7375,10 @@ impl Consumer {
     fn retain_held_assigned(&mut self, assigned: &PartitionMap<()>) {
         let topics = std::mem::take(&mut self.retained.topics);
         for (topic, partitions) in topics {
+            let mut kept = Vec::new();
             for (partition, held) in partitions {
                 if assigned.contains(&topic, partition) {
-                    let _previous = self.retained.insert(&topic, partition, held);
+                    kept.push((partition, held));
                 } else {
                     for batch in held.batches {
                         self.retained_bytes =
@@ -7385,6 +7386,7 @@ impl Consumer {
                     }
                 }
             }
+            restore_kept_held(&mut self.retained, topic, kept);
         }
     }
 
@@ -7401,10 +7403,10 @@ impl Consumer {
         last_stable_offset: i64,
         batches: impl IntoIterator<Item = EncodedBatch>,
     ) {
-        let incoming: Vec<EncodedBatch> = batches.into_iter().collect();
-        if incoming.is_empty() {
+        let mut incoming = batches.into_iter();
+        let Some(first) = incoming.next() else {
             return;
-        }
+        };
         if self.retained.get(topic, partition).is_none() {
             let _previous = self.retained.insert(
                 topic,
@@ -7429,7 +7431,7 @@ impl Consumer {
                 .buffer_memory
                 .max(usize::try_from(self.cfg.max_bytes.max(0)).unwrap_or(usize::MAX))
         };
-        for batch in incoming {
+        for batch in std::iter::once(first).chain(incoming) {
             let size = batch.framed_len();
             let fits = cap == 0 || self.retained_bytes.saturating_add(size) <= cap;
             if !fits && !held.batches.is_empty() {
@@ -7810,6 +7812,42 @@ fn a_fetch_completion_map_keeps_its_buckets() {
 }
 
 #[test]
+fn retained_topics_share_a_long_name() {
+    let mut retained = PartitionMap::new();
+    let long = TopicName::from("topic-name-longer-than-twenty-three");
+    let TopicName::Heap(stored) = &long else {
+        panic!("long topic");
+    };
+    let stored = Arc::as_ptr(stored);
+    let held = || HeldFetch {
+        last_stable_offset: 1,
+        batches: std::collections::VecDeque::new(),
+    };
+    restore_kept_held(&mut retained, long, vec![(0, held()), (1, held())]);
+    let groups = retained.topic_groups();
+    let Some((topic, partitions)) = groups.first() else {
+        panic!("missing topic");
+    };
+    let TopicName::Heap(shared) = topic else {
+        panic!("long topic was copied");
+    };
+    assert_eq!(Arc::as_ptr(shared), stored);
+    assert_eq!(partitions.len(), 2);
+    assert_eq!(
+        retained
+            .get("topic-name-longer-than-twenty-three", 0)
+            .map(|held| held.last_stable_offset),
+        Some(1)
+    );
+    assert_eq!(
+        retained
+            .get("topic-name-longer-than-twenty-three", 1)
+            .map(|held| held.last_stable_offset),
+        Some(1)
+    );
+}
+
+#[test]
 fn retained_topics_keep_their_table_when_a_paused_partition_stays() {
     let mut retained = PartitionMap::new();
     let mut paused = PartitionMap::new();
@@ -8052,6 +8090,22 @@ fn unique_assigned_topics(assigned: &[(Arc<str>, i32, i64)]) -> Vec<String> {
 ///
 /// A name that is already in its slot is left on that allocation. A different
 /// name reuses the slot's buffer.
+fn restore_kept_held(
+    retained: &mut PartitionMap<HeldFetch>,
+    mut topic: TopicName,
+    kept: Vec<(i32, HeldFetch)>,
+) {
+    let count = kept.len();
+    for (index, (partition, held)) in kept.into_iter().enumerate() {
+        let name = if index.saturating_add(1) == count {
+            std::mem::replace(&mut topic, TopicName::from(""))
+        } else {
+            topic.clone()
+        };
+        let _previous = retained.insert_owned(name, partition, held);
+    }
+}
+
 fn fill_reused_topics<'a>(topics: &mut Vec<String>, names: impl IntoIterator<Item = &'a str>) {
     let mut used = 0usize;
     let mut seen = HashSet::new();
