@@ -6063,12 +6063,12 @@ impl Consumer {
 
     fn reset_fetched_offset(
         &mut self,
-        name: &str,
+        name: &Arc<str>,
         partition: i32,
         log_start: i64,
         high_watermark: i64,
         completed: &mut PartitionMap<()>,
-        need_offsets: &mut Vec<(String, i32, i64)>,
+        need_offsets: &mut Vec<(Arc<str>, i32, i64)>,
     ) -> Result<()> {
         if log_boundary_conflict(log_start, high_watermark) {
             return Err(Error::protocol(format!(
@@ -6091,7 +6091,7 @@ impl Consumer {
                     self.drop_pending_for(name, partition);
                     let _ = completed.insert(name, partition, ());
                 } else {
-                    need_offsets.push((name.to_owned(), partition, crate::EARLIEST_TIMESTAMP));
+                    need_offsets.push((Arc::clone(name), partition, crate::EARLIEST_TIMESTAMP));
                 }
                 Ok(())
             }
@@ -6106,7 +6106,7 @@ impl Consumer {
                     self.drop_pending_for(name, partition);
                     let _ = completed.insert(name, partition, ());
                 } else {
-                    need_offsets.push((name.to_owned(), partition, crate::LATEST_TIMESTAMP));
+                    need_offsets.push((Arc::clone(name), partition, crate::LATEST_TIMESTAMP));
                 }
                 Ok(())
             }
@@ -6124,7 +6124,7 @@ impl Consumer {
         out: &mut Vec<FetchedRecord>,
         out_bytes: &mut usize,
         fenced: &mut Vec<(Arc<str>, i32)>,
-        need_offsets: &mut Vec<(String, i32, i64)>,
+        need_offsets: &mut Vec<(Arc<str>, i32, i64)>,
         completed: &mut PartitionMap<()>,
         budget_reached: &mut bool,
     ) -> Result<FetchRetry> {
