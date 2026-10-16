@@ -70,12 +70,12 @@ use crate::protocol::admin::{
     BorrowedDeleteTopic, BorrowedDescribeConfigsResource, BorrowedFeatureUpdate,
     BorrowedReassignmentPartition, BorrowedReplicaAssignment, BorrowedScramDeletion,
     BorrowedScramUpsertion, BorrowedTopicConfig, CreateTopicsRequest, DeleteRecordsPartition,
-    DeleteTopicView, DescribeConfigsResult, TopicResult, RESOURCE_BROKER, RESOURCE_BROKER_LOGGER,
-    RESOURCE_CLIENT_METRICS, RESOURCE_GROUP, RESOURCE_TOPIC,
+    DeleteTopicView, DescribeConfigsResult, TopicResult, RESOURCE_BROKER,
+    RESOURCE_BROKER_LOGGER, RESOURCE_CLIENT_METRICS, RESOURCE_GROUP, RESOURCE_TOPIC,
 };
 use crate::protocol::api::{
     decode_api_versions_response, decode_metadata_response, decode_metadata_response_into,
-    encode_api_versions_request, encode_metadata_request_topics, encode_metadata_request_with,
+    encode_api_versions_request, encode_metadata_request_named, encode_metadata_request_topics,
     ApiVersion, MetadataRequestTopic, MetadataResponse,
 };
 use crate::protocol::api_keys::{
@@ -3463,6 +3463,9 @@ fn index_delete_selection<'a, T: DeleteTopicView>(
 }
 
 #[cfg(test)]
+use crate::protocol::admin::DeleteTopicState;
+
+#[cfg(test)]
 fn index_delete_pending(pending: &[DeleteTopicState]) -> DeletePendingIndex<'_> {
     let mut by_name = HashMap::new();
     let mut by_id = HashMap::new();
@@ -5265,20 +5268,26 @@ impl Admin {
     /// DescribeTopicPartitions and Metadata have no TimeoutMs; the RPC
     /// deadline is [`AdminConfig::request_timeout`]. For a one-shot
     /// deadline, use [`Self::describe_topics_timeout`].
-    pub async fn describe_topics(
+    pub async fn describe_topics<'a, S>(
         &mut self,
-        topics: impl IntoIterator<Item = impl AsRef<str>>,
-    ) -> Result<Vec<TopicDescription>> {
+        topics: impl IntoIterator<Item = &'a S>,
+    ) -> Result<Vec<TopicDescription>>
+    where
+        S: AsRef<str> + ?Sized + 'a,
+    {
         self.describe_topics_with(topics, false).await
     }
 
     /// [`Self::describe_topics`] with a one-shot RPC deadline (Java
     /// `DescribeTopicsOptions.timeoutMs`).
-    pub async fn describe_topics_timeout(
+    pub async fn describe_topics_timeout<'a, S>(
         &mut self,
-        topics: impl IntoIterator<Item = impl AsRef<str>>,
+        topics: impl IntoIterator<Item = &'a S>,
         timeout: Duration,
-    ) -> Result<Vec<TopicDescription>> {
+    ) -> Result<Vec<TopicDescription>>
+    where
+        S: AsRef<str> + ?Sized + 'a,
+    {
         self.describe_topics_with_timeout(topics, false, timeout)
             .await
     }
@@ -5291,11 +5300,14 @@ impl Admin {
     /// [`AUTHORIZED_OPERATIONS_OMITTED`] (Java Metadata path omits the
     /// request flag; DTP has no equivalent field). The Metadata fallback
     /// sends IncludeTopicAuthorizedOperations when the flag is true.
-    pub async fn describe_topics_with(
+    pub async fn describe_topics_with<'a, S>(
         &mut self,
-        topics: impl IntoIterator<Item = impl AsRef<str>>,
+        topics: impl IntoIterator<Item = &'a S>,
         include_authorized_operations: bool,
-    ) -> Result<Vec<TopicDescription>> {
+    ) -> Result<Vec<TopicDescription>>
+    where
+        S: AsRef<str> + ?Sized + 'a,
+    {
         let timeout = self.cfg.request_timeout;
         self.describe_topics_with_timeout(topics, include_authorized_operations, timeout)
             .await
@@ -5310,12 +5322,15 @@ impl Admin {
     /// `DescribeTopicsOptions.partitionSizeLimitPerResponse` default).
     /// For a custom limit, use
     /// [`Self::describe_topics_with_partition_limit_timeout`].
-    pub async fn describe_topics_with_timeout(
+    pub async fn describe_topics_with_timeout<'a, S>(
         &mut self,
-        topics: impl IntoIterator<Item = impl AsRef<str>>,
+        topics: impl IntoIterator<Item = &'a S>,
         include_authorized_operations: bool,
         timeout: Duration,
-    ) -> Result<Vec<TopicDescription>> {
+    ) -> Result<Vec<TopicDescription>>
+    where
+        S: AsRef<str> + ?Sized + 'a,
+    {
         self.describe_topics_with_partition_limit_timeout(
             topics,
             include_authorized_operations,
@@ -5333,12 +5348,15 @@ impl Admin {
     /// it at `max.request.partition.size.limit`. Ignored on the Metadata
     /// fallback when api 75 is not advertised. Topic-id describes
     /// ([`Self::describe_topics_by_id`]) stay on Metadata (KAFKA-19628).
-    pub async fn describe_topics_with_partition_limit(
+    pub async fn describe_topics_with_partition_limit<'a, S>(
         &mut self,
-        topics: impl IntoIterator<Item = impl AsRef<str>>,
+        topics: impl IntoIterator<Item = &'a S>,
         include_authorized_operations: bool,
         partition_size_limit: i32,
-    ) -> Result<Vec<TopicDescription>> {
+    ) -> Result<Vec<TopicDescription>>
+    where
+        S: AsRef<str> + ?Sized + 'a,
+    {
         let timeout = self.cfg.request_timeout;
         self.describe_topics_with_partition_limit_timeout(
             topics,
@@ -5354,14 +5372,17 @@ impl Admin {
     ///
     /// DescribeTopicPartitions and Metadata have no TimeoutMs; `timeout`
     /// is the RPC deadline (and the DTP NextCursor loop budget).
-    pub async fn describe_topics_with_partition_limit_timeout(
+    pub async fn describe_topics_with_partition_limit_timeout<'a, S>(
         &mut self,
-        topics: impl IntoIterator<Item = impl AsRef<str>>,
+        topics: impl IntoIterator<Item = &'a S>,
         include_authorized_operations: bool,
         partition_size_limit: i32,
         timeout: Duration,
-    ) -> Result<Vec<TopicDescription>> {
-        let names: Vec<String> = topics.into_iter().map(|s| s.as_ref().to_string()).collect();
+    ) -> Result<Vec<TopicDescription>>
+    where
+        S: AsRef<str> + ?Sized + 'a,
+    {
+        let names: Vec<&str> = topics.into_iter().map(AsRef::as_ref).collect();
         if names.is_empty() {
             return Ok(Vec::new());
         }
@@ -12612,9 +12633,9 @@ impl Admin {
         decode_describe_topic_partitions_response(&mut body.clone())
     }
 
-    async fn describe_topics_dtp(
+    async fn describe_topics_dtp<T: AsRef<str>>(
         &mut self,
-        names: &[String],
+        names: &[T],
         include_authorized_operations: bool,
         response_partition_limit: i32,
         timeout: Duration,
@@ -12650,9 +12671,9 @@ impl Admin {
         Ok(out)
     }
 
-    async fn describe_topics_metadata(
+    async fn describe_topics_metadata<T: AsRef<str>>(
         &mut self,
-        names: &[String],
+        names: &[T],
         include_authorized_operations: bool,
         timeout: Duration,
     ) -> Result<Vec<TopicDescription>> {
@@ -12662,7 +12683,7 @@ impl Admin {
             include_authorized_operations,
             deadline,
             |buf, version| {
-                encode_metadata_request_with(
+                encode_metadata_request_named(
                     buf,
                     version,
                     Some(names),
@@ -14582,17 +14603,21 @@ fn topic_descriptions_including_unnamed(md: &MetadataResponse) -> Vec<TopicDescr
     md.topics.iter().map(topic_description_from).collect()
 }
 
-fn topic_descriptions_for_names(md: &MetadataResponse, names: &[String]) -> Vec<TopicDescription> {
+fn topic_descriptions_for_names<T: AsRef<str>>(
+    md: &MetadataResponse,
+    names: &[T],
+) -> Vec<TopicDescription> {
     names
         .iter()
         .map(|name| {
+            let name = name.as_ref();
             md.topics
                 .iter()
-                .find(|t| t.name.as_deref() == Some(name.as_str()))
+                .find(|t| t.name.as_deref() == Some(name))
                 .map(topic_description_from)
                 .unwrap_or_else(|| {
                     TopicDescription::new(
-                        name.clone(),
+                        name,
                         [0; 16],
                         false,
                         error::UNKNOWN_TOPIC_OR_PARTITION,
@@ -16645,8 +16670,10 @@ mod tests {
         assert_eq!(described[3].name(), "__consumer_offsets");
         assert!(described[3].is_internal);
         assert!(described[3].is_internal());
-        let named =
-            topic_descriptions_for_names(&md, &["ok".into(), "gone".into(), "missing".into()]);
+        let named = topic_descriptions_for_names(
+            &md,
+            &["ok".to_string(), "gone".to_string(), "missing".to_string()],
+        );
         assert_eq!(named.len(), 3);
         assert_eq!(named[0].name, "ok");
         assert_eq!(named[0].error_code, 0);

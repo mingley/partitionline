@@ -2073,6 +2073,23 @@ pub(crate) fn encode_metadata_request_ref<T: AsRef<str>>(
     encode_named_metadata_request(buf, version, topics, allow_auto, false)
 }
 
+/// Encode Metadata from caller topic names, including the authorized-operations flag.
+pub(crate) fn encode_metadata_request_named<T: AsRef<str>>(
+    buf: &mut BytesMut,
+    version: i16,
+    topics: Option<&[T]>,
+    allow_auto: bool,
+    include_topic_authorized_operations: bool,
+) -> crate::error::Result<()> {
+    encode_named_metadata_request(
+        buf,
+        version,
+        topics,
+        allow_auto,
+        include_topic_authorized_operations,
+    )
+}
+
 fn encode_named_metadata_request<T: AsRef<str>>(
     buf: &mut BytesMut,
     version: i16,
@@ -8880,6 +8897,15 @@ mod tests {
                 .unwrap_err();
         assert_eq!(named_err.to_string(), owned_err.to_string());
         assert_eq!(borrowed_err.to_string(), owned_err.to_string());
+        for version in [8_i16, 11, 12] {
+            let mut owned_ops = BytesMut::new();
+            let mut borrowed_ops = BytesMut::new();
+            encode_metadata_request_with(&mut owned_ops, version, Some(&names), false, true)
+                .unwrap();
+            encode_metadata_request_named(&mut borrowed_ops, version, Some(&borrowed), false, true)
+                .unwrap();
+            assert_eq!(owned_ops, borrowed_ops, "version {version}");
+        }
     }
 
     #[test]
