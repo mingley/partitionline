@@ -3420,16 +3420,17 @@ pub fn encode_incremental_alter_configs_response(
     error_code: i16,
     name: &str,
 ) -> crate::error::Result<()> {
-    encode_incremental_alter_configs_resource_results(
-        buf,
-        version,
-        &[AlterConfigsResourceResult {
-            error_code,
-            error_message: None,
-            resource_type: RESOURCE_TOPIC,
-            name: name.to_string(),
-        }],
-    )
+    let flexible = incremental_alter_configs_flexible(version)?;
+    let body_start = buf.len();
+    let planned = alter_configs_one_response_len(flexible, name)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
+    buf.put_i32(0);
+    encode_one_alter_configs_result(buf, flexible, error_code, RESOURCE_TOPIC, name)?;
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+    Ok(())
 }
 
 /// Encode IncrementalAlterConfigs Responses of N.
@@ -3897,16 +3898,50 @@ pub fn encode_alter_configs_response(
     error_code: i16,
     name: &str,
 ) -> crate::error::Result<()> {
-    encode_alter_configs_resource_results(
-        buf,
-        version,
-        &[AlterConfigsResourceResult {
-            error_code,
-            error_message: None,
-            resource_type: RESOURCE_TOPIC,
-            name: name.to_string(),
-        }],
-    )
+    let flexible = alter_configs_flexible(version)?;
+    let body_start = buf.len();
+    let planned = alter_configs_one_response_len(flexible, name)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
+    buf.put_i32(0);
+    encode_one_alter_configs_result(buf, flexible, error_code, RESOURCE_TOPIC, name)?;
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+    Ok(())
+}
+
+fn encode_one_alter_configs_result(
+    buf: &mut BytesMut,
+    flexible: bool,
+    error_code: i16,
+    resource_type: i8,
+    name: &str,
+) -> Result<()> {
+    buf::put_array_len(buf, flexible, Some(1))?;
+    buf.put_i16(error_code);
+    buf::put_string(buf, flexible, None)?;
+    buf.put_i8(resource_type);
+    buf::put_string(buf, flexible, Some(name))?;
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+        buf::put_empty_tagged_fields(buf);
+    }
+    Ok(())
+}
+
+fn alter_configs_one_response_len(flexible: bool, name: &str) -> Result<usize> {
+    let mut total = 4;
+    total = add_describe_len(total, describe_array_len(flexible, 1)?)?;
+    total = add_describe_len(total, 2)?;
+    total = add_describe_len(total, describe_string_len(flexible, None)?)?;
+    total = add_describe_len(total, 1)?;
+    total = add_describe_len(total, describe_string_len(flexible, Some(name))?)?;
+    if flexible {
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 /// Encode AlterConfigs Responses of N.
@@ -4345,18 +4380,41 @@ pub fn encode_delete_records_response(
     low_watermark: i64,
     error_code: i16,
 ) -> crate::error::Result<()> {
-    encode_delete_records_topics_response(
-        buf,
-        version,
-        &[DeletedRecordsTopic {
-            topic: topic.to_string(),
-            partitions: vec![DeletedRecordsPartition {
-                partition,
-                low_watermark,
-                error_code,
-            }],
-        }],
-    )
+    let flexible = delete_records_flexible(version)?;
+    let body_start = buf.len();
+    let planned = delete_records_one_response_len(flexible, topic)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
+    buf.put_i32(0);
+    buf::put_array_len(buf, flexible, Some(1))?;
+    buf::put_string(buf, flexible, Some(topic))?;
+    buf::put_array_len(buf, flexible, Some(1))?;
+    buf.put_i32(partition);
+    buf.put_i64(low_watermark);
+    buf.put_i16(error_code);
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+        buf::put_empty_tagged_fields(buf);
+        buf::put_empty_tagged_fields(buf);
+    }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+    Ok(())
+}
+
+fn delete_records_one_response_len(flexible: bool, topic: &str) -> Result<usize> {
+    let mut total = 4;
+    total = add_describe_len(total, describe_array_len(flexible, 1)?)?;
+    total = add_describe_len(total, describe_string_len(flexible, Some(topic))?)?;
+    total = add_describe_len(total, describe_array_len(flexible, 1)?)?;
+    total = add_describe_len(total, 14)?;
+    if flexible {
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 /// Encode DeleteRecords v0–2 for every topic/partition.
