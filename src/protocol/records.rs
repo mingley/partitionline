@@ -1895,15 +1895,17 @@ fn snappy_decompress(src: &[u8], max_bytes: usize) -> Result<Vec<u8>> {
                     "Decompressed batch exceeds maximum allowable size",
                 ));
             }
-            let chunk = decoder
-                .decompress_vec(block)
+            let start = out.len();
+            out.resize(start.saturating_add(chunk_len), 0);
+            let dest = out
+                .get_mut(start..)
+                .ok_or_else(|| Error::protocol("snappy output short"))?;
+            let written = decoder
+                .decompress(block, dest)
                 .map_err(|e| Error::protocol(e.to_string()))?;
-            if out.len().saturating_add(chunk.len()) > max_bytes {
-                return Err(Error::protocol(
-                    "Decompressed batch exceeds maximum allowable size",
-                ));
+            if written != chunk_len {
+                return Err(Error::protocol("snappy decompressed length mismatch"));
             }
-            out.extend_from_slice(&chunk);
             cur = cur.get(clen..).unwrap_or(&[]);
         }
         if !cur.is_empty() {
