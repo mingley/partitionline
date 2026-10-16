@@ -6001,24 +6001,89 @@ fn reassignment_version(version: i16) -> Result<()> {
     Ok(())
 }
 
-pub(crate) fn validate_reassignment_topics(topics: &[ReassignableTopic]) -> Result<()> {
+trait ReassignmentPartitionView {
+    fn reassignment_index(&self) -> i32;
+    fn reassignment_replicas(&self) -> Option<&[i32]>;
+}
+
+impl ReassignmentPartitionView for ReassignablePartition {
+    fn reassignment_index(&self) -> i32 {
+        self.partition_index
+    }
+
+    fn reassignment_replicas(&self) -> Option<&[i32]> {
+        self.replicas.as_deref()
+    }
+}
+
+/// One AlterPartitionReassignments partition whose replica list is borrowed.
+pub(crate) struct BorrowedReassignmentPartition<'a> {
+    /// Partition index.
+    pub partition_index: i32,
+    /// Target replica broker ids, or `None` to cancel.
+    pub replicas: Option<&'a [i32]>,
+}
+
+impl ReassignmentPartitionView for BorrowedReassignmentPartition<'_> {
+    fn reassignment_index(&self) -> i32 {
+        self.partition_index
+    }
+
+    fn reassignment_replicas(&self) -> Option<&[i32]> {
+        self.replicas
+    }
+}
+
+trait ReassignmentTopicView {
+    type Part: ReassignmentPartitionView;
+    fn reassignment_name(&self) -> &str;
+    fn reassignment_parts(&self) -> &[Self::Part];
+}
+
+impl ReassignmentTopicView for ReassignableTopic {
+    type Part = ReassignablePartition;
+
+    fn reassignment_name(&self) -> &str {
+        &self.name
+    }
+
+    fn reassignment_parts(&self) -> &[Self::Part] {
+        &self.partitions
+    }
+}
+
+impl<'a> ReassignmentTopicView for (&'a str, Vec<BorrowedReassignmentPartition<'a>>) {
+    type Part = BorrowedReassignmentPartition<'a>;
+
+    fn reassignment_name(&self) -> &str {
+        self.0
+    }
+
+    fn reassignment_parts(&self) -> &[Self::Part] {
+        &self.1
+    }
+}
+
+fn validate_reassignment_topics<T: ReassignmentTopicView>(topics: &[T]) -> Result<()> {
     if topics.len() > MAX_REASSIGNMENT_PARTITIONS {
         return Err(crate::Error::protocol("too many reassignment topics"));
     }
     let mut partitions = 0usize;
     let mut replicas = 0usize;
     for topic in topics {
-        if topic.name.len() > 249 {
+        if topic.reassignment_name().len() > 249 {
             return Err(crate::Error::protocol(
                 "reassignment topic name exceeds249 bytes",
             ));
         }
-        partitions = partitions.saturating_add(topic.partitions.len());
+        let parts = topic.reassignment_parts();
+        partitions = partitions.saturating_add(parts.len());
         if partitions > MAX_REASSIGNMENT_PARTITIONS {
             return Err(crate::Error::protocol("too many reassignment partitions"));
         }
-        for partition in &topic.partitions {
-            replicas = replicas.saturating_add(partition.replicas.as_ref().map_or(0, Vec::len));
+        for partition in parts {
+            replicas =
+                replicas.saturating_add(partition.reassignment_replicas().map_or(0, <[i32]>::len));
             if replicas > MAX_REASSIGNMENT_REPLICAS {
                 return Err(crate::Error::protocol("too many reassignment replica IDs"));
             }
@@ -6033,6 +6098,28 @@ fn encode_reassignment_request_fields(
     timeout_ms: i32,
     allow: bool,
     topics: &[ReassignableTopic],
+) -> Result<()> {
+    encode_reassignment_topic_views(buf, version, timeout_ms, allow, topics)
+}
+
+/// Encode AlterPartitionReassignments topics whose names and replica lists
+/// are borrowed from the caller.
+pub(crate) fn encode_alter_partition_reassignments_named(
+    buf: &mut BytesMut,
+    version: i16,
+    timeout_ms: i32,
+    allow: bool,
+    topics: &[(&str, Vec<BorrowedReassignmentPartition<'_>>)],
+) -> Result<()> {
+    encode_reassignment_topic_views(buf, version, timeout_ms, allow, topics)
+}
+
+fn encode_reassignment_topic_views<T: ReassignmentTopicView>(
+    buf: &mut BytesMut,
+    version: i16,
+    timeout_ms: i32,
+    allow: bool,
+    topics: &[T],
 ) -> Result<()> {
     reassignment_version(version)?;
     if version == 0 && !allow {
@@ -6052,12 +6139,13 @@ fn encode_reassignment_request_fields(
         buf.put_u8(u8::from(allow));
     }
     buf::put_array_len(buf, true, Some(topics.len()))?;
-    for t in topics {
-        buf::put_compact_string(buf, Some(&t.name))?;
-        buf::put_array_len(buf, true, Some(t.partitions.len()))?;
-        for p in &t.partitions {
-            buf.put_i32(p.partition_index);
-            put_compact_nullable_i32_array(buf, p.replicas.as_deref())?;
+    for topic in topics {
+        buf::put_compact_string(buf, Some(topic.reassignment_name()))?;
+        let parts = topic.reassignment_parts();
+        buf::put_array_len(buf, true, Some(parts.len()))?;
+        for partition in parts {
+            buf.put_i32(partition.reassignment_index());
+            put_compact_nullable_i32_array(buf, partition.reassignment_replicas())?;
             buf::put_empty_tagged_fields(buf);
         }
         buf::put_empty_tagged_fields(buf);
@@ -6067,20 +6155,24 @@ fn encode_reassignment_request_fields(
     Ok(())
 }
 
-fn reassignment_request_len(version: i16, topics: &[ReassignableTopic]) -> Result<usize> {
+fn reassignment_request_len<T: ReassignmentTopicView>(version: i16, topics: &[T]) -> Result<usize> {
     let mut total = 4;
     if version >= 1 {
         total = add_describe_len(total, 1)?;
     }
     total = add_describe_len(total, describe_array_len(true, topics.len())?)?;
     for topic in topics {
-        total = add_describe_len(total, describe_string_len(true, Some(&topic.name))?)?;
-        total = add_describe_len(total, describe_array_len(true, topic.partitions.len())?)?;
-        for partition in &topic.partitions {
+        total = add_describe_len(
+            total,
+            describe_string_len(true, Some(topic.reassignment_name()))?,
+        )?;
+        let parts = topic.reassignment_parts();
+        total = add_describe_len(total, describe_array_len(true, parts.len())?)?;
+        for partition in parts {
             total = add_describe_len(total, 4)?;
             total = add_describe_len(
                 total,
-                reassignment_replica_len(partition.replicas.as_deref())?,
+                reassignment_replica_len(partition.reassignment_replicas())?,
             )?;
             total = add_describe_len(total, buf::unsigned_varint_size(0))?;
         }
@@ -30154,6 +30246,54 @@ mod tests {
                 decode_alter_partition_reassignments_request_data(&mut cur, version).unwrap();
             assert!(cur.is_empty());
             assert_eq!(decoded, request);
+        }
+    }
+
+    #[test]
+    fn alter_partition_reassignments_named_topics_match_owned_topics() {
+        let replicas = [1_i32, 2];
+        let owned = [ReassignableTopic::new(
+            "orders-topic-name-is-long",
+            vec![
+                ReassignablePartition::new(0, Some(replicas.to_vec())),
+                ReassignablePartition::new(1, None),
+            ],
+        )];
+        let named = [(
+            "orders-topic-name-is-long",
+            vec![
+                BorrowedReassignmentPartition {
+                    partition_index: 0,
+                    replicas: Some(replicas.as_slice()),
+                },
+                BorrowedReassignmentPartition {
+                    partition_index: 1,
+                    replicas: None,
+                },
+            ],
+        )];
+        let request = AlterPartitionReassignmentsRequestData {
+            timeout_ms: 5_000,
+            allow_replication_factor_change: false,
+            topics: owned.to_vec(),
+        };
+        for version in [0_i16, 1] {
+            let allow = version == 0;
+            let mut expected = BytesMut::new();
+            let owned_request = AlterPartitionReassignmentsRequestData {
+                allow_replication_factor_change: allow,
+                ..request.clone()
+            };
+            encode_alter_partition_reassignments_request_data(
+                &mut expected,
+                version,
+                &owned_request,
+            )
+            .unwrap();
+            let mut got = BytesMut::new();
+            encode_alter_partition_reassignments_named(&mut got, version, 5_000, allow, &named)
+                .unwrap();
+            assert_eq!(got.as_ref(), expected.as_ref(), "version {version}");
         }
     }
 

@@ -46,7 +46,7 @@ use crate::protocol::admin::{
     decode_share_group_describe_response, decode_unregister_broker_response,
     decode_update_features_response, encode_allocate_producer_ids_request,
     encode_alter_client_quotas_request, encode_alter_configs_resources_request,
-    encode_alter_partition_reassignments_request_data, encode_alter_replica_log_dirs_request,
+    encode_alter_partition_reassignments_named, encode_alter_replica_log_dirs_request,
     encode_alter_share_group_offsets_request, encode_alter_user_scram_credentials_request,
     encode_assign_replicas_to_dirs_request, encode_consumer_group_describe_request,
     encode_create_delegation_token_request, encode_create_partitions_request,
@@ -63,10 +63,10 @@ use crate::protocol::admin::{
     encode_list_partition_reassignments_named, encode_list_transactions_request_with_pattern,
     encode_push_telemetry_request, encode_renew_delegation_token_request,
     encode_share_group_describe_request, encode_unregister_broker_request,
-    encode_update_features_request, AlterConfigsResource, AlterableResource, CreatableTopic,
-    CreatePartitionsTopic, CreateTopicsRequest, DeleteRecordsPartition, DeleteTopicState,
-    DescribeConfigsResource, DescribeConfigsResult, FeatureUpdateKey, ReassignablePartition,
-    ReassignableTopic, ReplicaAssignment, ScramCredentialDeletion, ScramCredentialUpsertion,
+    encode_update_features_request, AlterConfigsResource, AlterableResource,
+    BorrowedReassignmentPartition, CreatableTopic, CreatePartitionsTopic, CreateTopicsRequest,
+    DeleteRecordsPartition, DeleteTopicState, DescribeConfigsResource, DescribeConfigsResult,
+    FeatureUpdateKey, ReplicaAssignment, ScramCredentialDeletion, ScramCredentialUpsertion,
     TopicConfig, TopicResult, RESOURCE_BROKER, RESOURCE_BROKER_LOGGER, RESOURCE_CLIENT_METRICS,
     RESOURCE_GROUP, RESOURCE_TOPIC,
 };
@@ -3182,25 +3182,6 @@ where
     topics
 }
 
-/// Append `value` under `topic`. The name is copied once, into the group.
-/// Later values for that name append. `slots` borrows the caller's names.
-fn remember_topic_group<'a, T>(
-    groups: &mut Vec<(String, Vec<T>)>,
-    slots: &mut HashMap<&'a str, usize>,
-    topic: &'a str,
-    value: T,
-) {
-    if let Some(&slot) = slots.get(topic) {
-        if let Some((_, parts)) = groups.get_mut(slot) {
-            parts.push(value);
-            return;
-        }
-    }
-    let slot = groups.len();
-    let _ = slots.insert(topic, slot);
-    groups.push((topic.to_owned(), vec![value]));
-}
-
 fn delete_records_topics<'a>(
     records: &'a [(crate::TopicPartition, i64)],
     idxs: &[usize],
@@ -6045,21 +6026,18 @@ impl Admin {
     ) -> Result<Vec<ReassignmentResult>> {
         let deadline = Instant::now() + timeout;
         validate_reassignments(assignments)?;
-        let request = crate::protocol::admin::AlterPartitionReassignmentsRequestData {
-            timeout_ms,
-            allow_replication_factor_change: allow,
-            topics: group_reassignments(assignments),
-        };
-        self.alter_partition_reassignments_until(request, deadline)
+        let topics = group_reassignments(assignments);
+        self.alter_partition_reassignments_until(&topics, timeout_ms, allow, deadline)
             .await
     }
 
     async fn alter_partition_reassignments_until(
         &mut self,
-        mut request: crate::protocol::admin::AlterPartitionReassignmentsRequestData,
+        topics: &[(&str, Vec<BorrowedReassignmentPartition<'_>>)],
+        original_timeout_ms: i32,
+        allow: bool,
         deadline: Instant,
     ) -> Result<Vec<ReassignmentResult>> {
-        let original_timeout_ms = request.timeout_ms;
         let mut attempt = 0;
         loop {
             if Instant::now() >= deadline {
@@ -6089,17 +6067,22 @@ impl Admin {
                     })?;
                 let conn = self.conns.get_mut(&node)
                     .ok_or_else(|| Error::protocol("missing reassignment controller connection"))?;
-                if version == 0 && !request.allow_replication_factor_change {
+                if version == 0 && !allow {
                     return Err(Error::Unsupported("AllowReplicationFactorChange=false requires AlterPartitionReassignments v1".into()));
                 }
                 let remaining = deadline.saturating_duration_since(Instant::now());
                 if remaining.is_zero() {
                     return Err(Error::Timeout);
                 }
-                request.timeout_ms = original_timeout_ms.min(crate::consumer::duration_millis_i32(remaining));
+                let timeout_ms =
+                    original_timeout_ms.min(crate::consumer::duration_millis_i32(remaining));
                 let body = conn.roundtrip(
                     ALTER_PARTITION_REASSIGNMENTS, version,
-                    |buf| encode_alter_partition_reassignments_request_data(buf, version, &request),
+                    |buf| {
+                        encode_alter_partition_reassignments_named(
+                            buf, version, timeout_ms, allow, topics,
+                        )
+                    },
                     remaining,
                 ).await?;
                 let response = decode_alter_partition_reassignments_response_data(&mut body.as_ref(), version)?.response;
@@ -14395,21 +14378,28 @@ fn validate_reassignments(assignments: &[PartitionReassignment]) -> Result<()> {
     Ok(())
 }
 
-fn group_reassignments(assignments: &[PartitionReassignment]) -> Vec<ReassignableTopic> {
-    let mut groups: Vec<(String, Vec<ReassignablePartition>)> = Vec::new();
-    let mut slots = HashMap::new();
+fn group_reassignments(
+    assignments: &[PartitionReassignment],
+) -> Vec<(&str, Vec<BorrowedReassignmentPartition<'_>>)> {
+    let mut groups: Vec<(&str, Vec<BorrowedReassignmentPartition<'_>>)> = Vec::new();
+    let mut slots: HashMap<&str, usize> = HashMap::new();
     for a in assignments {
-        remember_topic_group(
-            &mut groups,
-            &mut slots,
-            &a.topic,
-            ReassignablePartition::new(a.partition, a.replicas.clone()),
-        );
+        let part = BorrowedReassignmentPartition {
+            partition_index: a.partition,
+            replicas: a.replicas.as_deref(),
+        };
+        let topic = a.topic.as_str();
+        if let Some(&slot) = slots.get(topic) {
+            if let Some((_, parts)) = groups.get_mut(slot) {
+                parts.push(part);
+                continue;
+            }
+        }
+        let slot = groups.len();
+        let _ = slots.insert(topic, slot);
+        groups.push((topic, vec![part]));
     }
     groups
-        .into_iter()
-        .map(|(name, partitions)| ReassignableTopic::new(name, partitions))
-        .collect()
 }
 
 fn group_list_reassignments(partitions: &[crate::TopicPartition]) -> Vec<(&str, Vec<i32>)> {
@@ -16648,6 +16638,25 @@ mod tests {
         assert_eq!(info.future_offset_lag, 7);
         let missing = replica_log_dir_info_from(&TopicPartitionReplica::new("t", 9, 2), &dirs);
         assert_eq!(missing, ReplicaLogDirInfo::unknown());
+    }
+
+    #[test]
+    fn group_reassignments_keeps_duplicate_partitions() {
+        let assignments = [
+            PartitionReassignment::assign(crate::TopicPartition::new("t", 0), [1, 2]),
+            PartitionReassignment::cancel(crate::TopicPartition::new("t", 0)),
+            PartitionReassignment::assign(crate::TopicPartition::new("t", 1), [3]),
+        ];
+        let topics = group_reassignments(&assignments);
+        assert_eq!(topics.len(), 1);
+        assert_eq!(topics[0].0, "t");
+        assert_eq!(topics[0].1.len(), 3);
+        assert_eq!(topics[0].1[0].partition_index, 0);
+        assert_eq!(topics[0].1[0].replicas, Some(&[1, 2][..]));
+        assert_eq!(topics[0].1[1].partition_index, 0);
+        assert_eq!(topics[0].1[1].replicas, None);
+        assert_eq!(topics[0].1[2].partition_index, 1);
+        assert_eq!(topics[0].1[2].replicas, Some(&[3][..]));
     }
 
     #[test]
