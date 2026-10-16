@@ -2113,7 +2113,7 @@
 //! partition `OFFSET_OUT_OF_RANGE`, which fails that poll, and not
 //! partition `OFFSET_NOT_AVAILABLE`, which skips). A piggybacked
 //! `BROKER_NOT_AVAILABLE` still completes without retry,
-//! including when `AcknowledgeErrorMessage` is set (this is not
+//! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `BROKER_NOT_AVAILABLE`, which fails that poll, and not
 //! partition `REPLICA_NOT_AVAILABLE`, which skips). A piggybacked
 //! `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a
