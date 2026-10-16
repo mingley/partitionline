@@ -2199,7 +2199,7 @@
 //! partition `INVALID_SESSION_TIMEOUT`, which fails that poll, and not
 //! piggyback `UNKNOWN_MEMBER_ID`). A piggybacked
 //! `REBALANCE_IN_PROGRESS` still completes without retry,
-//! including when `AcknowledgeErrorMessage` is set (this is not
+//! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `REBALANCE_IN_PROGRESS`, which fails that poll, and not
 //! piggyback `INVALID_SESSION_TIMEOUT`). A piggybacked
 //! `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a
