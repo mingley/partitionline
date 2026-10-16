@@ -196,15 +196,15 @@ pub fn assign_cooperative_sticky(
     cooperative_filter(assign_sticky(members, partitions, prev), prev)
 }
 
-fn cooperative_filter<T: Clone + Eq + std::hash::Hash>(
+fn cooperative_filter<T: Eq + std::hash::Hash>(
     computed: HashMap<String, Vec<T>>,
     prev: &HashMap<String, Vec<T>>,
 ) -> HashMap<String, Vec<T>> {
-    let mut owner: HashMap<T, String> = HashMap::new();
-    for (m, tps) in prev {
-        for tp in tps {
-            if !owner.contains_key(tp) {
-                let _ = owner.insert(tp.clone(), m.clone());
+    let mut owner: HashMap<&T, &str> = HashMap::new();
+    for (member, partitions) in prev {
+        for partition in partitions {
+            if let std::collections::hash_map::Entry::Vacant(slot) = owner.entry(partition) {
+                let _ = slot.insert(member.as_str());
             }
         }
     }
@@ -212,9 +212,11 @@ fn cooperative_filter<T: Clone + Eq + std::hash::Hash>(
     for (member, owned) in computed {
         let mut kept = Vec::with_capacity(owned.len());
         for partition in owned {
-            match owner.get(&partition) {
-                Some(current) if current != &member => {}
-                _ => kept.push(partition),
+            let revoked = owner
+                .get(&partition)
+                .is_some_and(|current| *current != member.as_str());
+            if !revoked {
+                kept.push(partition);
             }
         }
         let _ = out.insert(member, kept);
