@@ -503,16 +503,7 @@ impl ConsumerProtocol {
         let version = check_assignment_version(version)?;
         let by_topic = group_assigned_partitions(&assignment.partitions);
         let mut buf = BytesMut::new();
-        buf.put_i16(version);
-        buf::put_array_len(&mut buf, false, Some(by_topic.len()))?;
-        for (topic, parts) in &by_topic {
-            buf::put_classic_nullable_string(&mut buf, Some(topic))?;
-            buf::put_array_len(&mut buf, false, Some(parts.len()))?;
-            for p in parts {
-                buf.put_i32(*p);
-            }
-        }
-        buf::put_classic_bytes(&mut buf, None)?;
+        write_assignment_topics(&mut buf, version, &by_topic)?;
         Ok(buf.to_vec())
     }
 
@@ -531,10 +522,13 @@ impl ConsumerProtocol {
         let n = buf::get_array_len(&mut bytes, false)?.unwrap_or(0);
         let mut partitions = Vec::new();
         for _ in 0..n {
-            let topic = buf::get_classic_nullable_string(&mut bytes)?.unwrap_or_default();
+            let mut topic = buf::get_classic_nullable_string(&mut bytes)?.unwrap_or_default();
             let pn = buf::get_array_len(&mut bytes, false)?.unwrap_or(0);
-            for _ in 0..pn {
-                partitions.push((topic.clone(), buf::get_i32(&mut bytes)?));
+            for index in 0..pn {
+                partitions.push((
+                    named_partition(&mut topic, index, pn),
+                    buf::get_i32(&mut bytes)?,
+                ));
             }
         }
         if !bytes.is_empty() {
@@ -576,10 +570,13 @@ impl ConsumerProtocol {
         if ver >= 1 && !bytes.is_empty() {
             let tn = buf::get_array_len(&mut bytes, false)?.unwrap_or(0);
             for _ in 0..tn {
-                let topic = buf::get_classic_nullable_string(&mut bytes)?.unwrap_or_default();
+                let mut topic = buf::get_classic_nullable_string(&mut bytes)?.unwrap_or_default();
                 let pn = buf::get_array_len(&mut bytes, false)?.unwrap_or(0);
-                for _ in 0..pn {
-                    owned.push((topic.clone(), buf::get_i32(&mut bytes)?));
+                for index in 0..pn {
+                    owned.push((
+                        named_partition(&mut topic, index, pn),
+                        buf::get_i32(&mut bytes)?,
+                    ));
                 }
             }
         }
@@ -5349,13 +5346,40 @@ pub fn encode_assignment(topic: &str, partitions: &[i32]) -> Result<Vec<u8>> {
 
 /// ConsumerProtocol assignment for one member, several topics.
 pub fn encode_owned_assignment(topics: &[(String, Vec<i32>)]) -> Result<Vec<u8>> {
-    let mut partitions = Vec::new();
-    for (topic, parts) in topics {
+    let mut buf = BytesMut::new();
+    write_assignment_topics(
+        &mut buf,
+        ConsumerProtocol::HIGHEST_SUPPORTED_VERSION,
+        topics,
+    )?;
+    Ok(buf.to_vec())
+}
+
+fn write_assignment_topics(
+    buf: &mut BytesMut,
+    version: i16,
+    by_topic: &[(String, Vec<i32>)],
+) -> Result<()> {
+    buf.put_i16(version);
+    buf::put_array_len(buf, false, Some(by_topic.len()))?;
+    for (topic, parts) in by_topic {
+        buf::put_classic_nullable_string(buf, Some(topic))?;
+        buf::put_array_len(buf, false, Some(parts.len()))?;
         for partition in parts {
-            partitions.push((topic.clone(), *partition));
+            buf.put_i32(*partition);
         }
     }
-    ConsumerProtocol::serialize_assignment(&ConsumerProtocolAssignment::new(partitions))
+    buf::put_classic_bytes(buf, None)?;
+    Ok(())
+}
+
+/// The last partition keeps `topic`. Earlier partitions copy it.
+fn named_partition(topic: &mut String, index: usize, count: usize) -> String {
+    if index.saturating_add(1) == count {
+        std::mem::take(topic)
+    } else {
+        topic.clone()
+    }
 }
 
 /// Group `(topic, partition)` pairs by topic, preserving first-seen order.
@@ -8952,6 +8976,25 @@ mod tests {
         assert_eq!(
             encode_tp_assignment(&[("u".into(), 1), ("t".into(), 2), ("t".into(), 0)]).unwrap(),
             bytes
+        );
+
+        let grouped =
+            encode_owned_assignment(&[("u".into(), vec![1]), ("t".into(), vec![2, 0])]).unwrap();
+        assert_eq!(grouped, bytes);
+        let mut topic = "orders-topic-name-is-long".to_string();
+        let ptr = topic.as_ptr();
+        let first = named_partition(&mut topic, 0, 2);
+        let last = named_partition(&mut topic, 1, 2);
+        assert_eq!(last.as_ptr(), ptr);
+        assert_eq!(first, "orders-topic-name-is-long");
+        assert_eq!(last, first);
+        assert!(topic.is_empty());
+        let encoded =
+            encode_owned_assignment(&[("orders-topic-name-is-long".into(), vec![4])]).unwrap();
+        let decoded = ConsumerProtocol::deserialize_assignment(&encoded).unwrap();
+        assert_eq!(
+            decoded.partitions,
+            vec![("orders-topic-name-is-long".into(), 4)]
         );
 
         let v0 = ConsumerProtocol::serialize_assignment_version(&asg, 0).unwrap();
