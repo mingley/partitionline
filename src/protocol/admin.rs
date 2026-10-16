@@ -7856,6 +7856,61 @@ fn update_features_spoken(version: i16) -> Result<i16> {
     }
 }
 
+/// One UpdateFeatures entry whose feature name is borrowed.
+pub(crate) struct BorrowedFeatureUpdate<'a> {
+    /// Feature name.
+    pub name: &'a str,
+    /// Maximum feature version to set.
+    pub max_version_level: i16,
+    /// When true, the broker may lower the feature level (v0 `AllowDowngrade`).
+    pub allow_downgrade: bool,
+    /// Upgrade type (v1+ `UpgradeType`).
+    pub upgrade_type: i8,
+}
+
+trait FeatureUpdateView {
+    fn feature_name(&self) -> &str;
+    fn feature_max_version_level(&self) -> i16;
+    fn feature_allow_downgrade(&self) -> bool;
+    fn feature_upgrade_type(&self) -> i8;
+}
+
+impl FeatureUpdateView for FeatureUpdateKey {
+    fn feature_name(&self) -> &str {
+        &self.name
+    }
+
+    fn feature_max_version_level(&self) -> i16 {
+        self.max_version_level
+    }
+
+    fn feature_allow_downgrade(&self) -> bool {
+        self.allow_downgrade
+    }
+
+    fn feature_upgrade_type(&self) -> i8 {
+        self.upgrade_type
+    }
+}
+
+impl FeatureUpdateView for BorrowedFeatureUpdate<'_> {
+    fn feature_name(&self) -> &str {
+        self.name
+    }
+
+    fn feature_max_version_level(&self) -> i16 {
+        self.max_version_level
+    }
+
+    fn feature_allow_downgrade(&self) -> bool {
+        self.allow_downgrade
+    }
+
+    fn feature_upgrade_type(&self) -> i8 {
+        self.upgrade_type
+    }
+}
+
 /// Encode an UpdateFeatures request (v0–2; flexible from v0).
 ///
 /// Java `FeatureUpdate` constructor rejects maxVersionLevel 0 with
@@ -7867,20 +7922,43 @@ pub fn encode_update_features_request(
     updates: &[FeatureUpdateKey],
     validate_only: bool,
 ) -> crate::error::Result<()> {
+    encode_feature_update_views(buf, version, timeout_ms, updates, validate_only)
+}
+
+/// Encode UpdateFeatures entries whose feature names are borrowed.
+pub(crate) fn encode_update_features_named(
+    buf: &mut BytesMut,
+    version: i16,
+    timeout_ms: i32,
+    updates: &[BorrowedFeatureUpdate<'_>],
+    validate_only: bool,
+) -> crate::error::Result<()> {
+    encode_feature_update_views(buf, version, timeout_ms, updates, validate_only)
+}
+
+fn encode_feature_update_views<T: FeatureUpdateView>(
+    buf: &mut BytesMut,
+    version: i16,
+    timeout_ms: i32,
+    updates: &[T],
+    validate_only: bool,
+) -> crate::error::Result<()> {
     let _ = update_features_spoken(version)?;
     if version == 0 && validate_only {
         return Err(Error::Unsupported(
             "validateOnly is not supported in version 0 of UpdateFeaturesRequest".into(),
         ));
     }
-    for u in updates {
-        if u.max_version_level == 0 && u.upgrade_type == UPGRADE_TYPE_UPGRADE {
+    for update in updates {
+        if update.feature_max_version_level() == 0
+            && update.feature_upgrade_type() == UPGRADE_TYPE_UPGRADE
+        {
             return Err(Error::protocol(format!(
                 "The upgradeType flag should be set to SAFE_DOWNGRADE or UNSAFE_DOWNGRADE when the provided maxVersionLevel:{} is < 1.",
-                u.max_version_level
+                update.feature_max_version_level()
             )));
         }
-        if u.max_version_level < 0 {
+        if update.feature_max_version_level() < 0 {
             return Err(Error::protocol("Cannot specify a negative version level."));
         }
     }
@@ -7892,13 +7970,13 @@ pub fn encode_update_features_request(
     }
     buf.put_i32(timeout_ms);
     buf::put_array_len(buf, true, Some(updates.len()))?;
-    for u in updates {
-        buf::put_compact_string(buf, Some(&u.name))?;
-        buf.put_i16(u.max_version_level);
+    for update in updates {
+        buf::put_compact_string(buf, Some(update.feature_name()))?;
+        buf.put_i16(update.feature_max_version_level());
         if version == 0 {
-            buf.put_u8(u8::from(u.allow_downgrade));
+            buf.put_u8(u8::from(update.feature_allow_downgrade()));
         } else {
-            buf.put_i8(u.upgrade_type);
+            buf.put_i8(update.feature_upgrade_type());
         }
         buf::put_empty_tagged_fields(buf);
     }
@@ -7910,11 +7988,14 @@ pub fn encode_update_features_request(
     Ok(())
 }
 
-fn update_features_request_len(version: i16, updates: &[FeatureUpdateKey]) -> Result<usize> {
+fn update_features_request_len<T: FeatureUpdateView>(version: i16, updates: &[T]) -> Result<usize> {
     let mut total = 4;
     total = add_describe_len(total, describe_array_len(true, updates.len())?)?;
     for update in updates {
-        total = add_describe_len(total, describe_string_len(true, Some(&update.name))?)?;
+        total = add_describe_len(
+            total,
+            describe_string_len(true, Some(update.feature_name()))?,
+        )?;
         total = add_describe_len(total, 3)?;
         total = add_describe_len(total, buf::unsigned_varint_size(0))?;
     }
@@ -31633,6 +31714,29 @@ mod tests {
             assert_eq!(timeout, 5_000);
             assert!(!validate_only);
             assert_eq!(decoded, updates);
+        }
+    }
+
+    #[test]
+    fn update_features_named_updates_match_owned_updates() {
+        let owned = [FeatureUpdateKey {
+            name: "metadata.version".into(),
+            max_version_level: 5,
+            allow_downgrade: false,
+            upgrade_type: UPGRADE_TYPE_UPGRADE,
+        }];
+        let named = [BorrowedFeatureUpdate {
+            name: "metadata.version",
+            max_version_level: 5,
+            allow_downgrade: false,
+            upgrade_type: UPGRADE_TYPE_UPGRADE,
+        }];
+        for version in 0..=2 {
+            let mut expected = BytesMut::new();
+            encode_update_features_request(&mut expected, version, 5_000, &owned, false).unwrap();
+            let mut got = BytesMut::new();
+            encode_update_features_named(&mut got, version, 5_000, &named, false).unwrap();
+            assert_eq!(got.as_ref(), expected.as_ref(), "version {version}");
         }
     }
 

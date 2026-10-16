@@ -63,13 +63,13 @@ use crate::protocol::admin::{
     encode_list_partition_reassignments_named, encode_list_transactions_request_with_pattern,
     encode_push_telemetry_request, encode_renew_delegation_token_request,
     encode_share_group_describe_request, encode_unregister_broker_request,
-    encode_update_features_request, AlterConfigsResource, BorrowedAlterConfig,
+    encode_update_features_named, AlterConfigsResource, BorrowedAlterConfig,
     BorrowedAlterConfigsResource, BorrowedAlterableResource, BorrowedCreatableTopic,
-    BorrowedCreatePartitionsTopic, BorrowedDescribeConfigsResource, BorrowedReassignmentPartition,
-    BorrowedReplicaAssignment, BorrowedTopicConfig, CreateTopicsRequest, DeleteRecordsPartition,
-    DeleteTopicState, DescribeConfigsResult, FeatureUpdateKey, ScramCredentialDeletion,
-    ScramCredentialUpsertion, TopicResult, RESOURCE_BROKER, RESOURCE_BROKER_LOGGER,
-    RESOURCE_CLIENT_METRICS, RESOURCE_GROUP, RESOURCE_TOPIC,
+    BorrowedCreatePartitionsTopic, BorrowedDescribeConfigsResource, BorrowedFeatureUpdate,
+    BorrowedReassignmentPartition, BorrowedReplicaAssignment, BorrowedTopicConfig,
+    CreateTopicsRequest, DeleteRecordsPartition, DeleteTopicState, DescribeConfigsResult,
+    ScramCredentialDeletion, ScramCredentialUpsertion, TopicResult, RESOURCE_BROKER,
+    RESOURCE_BROKER_LOGGER, RESOURCE_CLIENT_METRICS, RESOURCE_GROUP, RESOURCE_TOPIC,
 };
 use crate::protocol::api::{
     decode_api_versions_response, decode_metadata_response, decode_metadata_response_into,
@@ -3245,6 +3245,18 @@ struct LeaderFrame {
 
 type LeaderExchange = HashMap<i32, (i16, Result<Bytes>)>;
 
+fn borrowed_feature_updates(updates: &[FeatureUpdate]) -> Vec<BorrowedFeatureUpdate<'_>> {
+    updates
+        .iter()
+        .map(|update| BorrowedFeatureUpdate {
+            name: update.name.as_str(),
+            max_version_level: update.max_version_level,
+            allow_downgrade: update.allow_downgrade,
+            upgrade_type: update.upgrade_type,
+        })
+        .collect()
+}
+
 fn borrowed_describe_configs_resources(
     resources: &[ConfigResource],
 ) -> Vec<BorrowedDescribeConfigsResource<'_>> {
@@ -6403,15 +6415,7 @@ impl Admin {
         let deadline = Instant::now()
             .checked_add(timeout)
             .ok_or_else(|| Error::protocol("UpdateFeatures deadline overflow"))?;
-        let keys: Vec<FeatureUpdateKey> = updates
-            .iter()
-            .map(|u| FeatureUpdateKey {
-                name: u.name.clone(),
-                max_version_level: u.max_version_level,
-                allow_downgrade: u.allow_downgrade,
-                upgrade_type: u.upgrade_type,
-            })
-            .collect();
+        let keys = borrowed_feature_updates(updates);
         let version = self.update_features_version.ok_or_else(|| {
             Error::Unsupported("broker does not support UpdateFeatures v0-2".into())
         })?;
@@ -6443,7 +6447,7 @@ impl Admin {
                     UPDATE_FEATURES,
                     version,
                     |buf| {
-                        encode_update_features_request(
+                        encode_update_features_named(
                             buf,
                             version,
                             wire_timeout_ms,
@@ -6478,10 +6482,10 @@ impl Admin {
                 return Err(Error::broker(resp.error_code, "UpdateFeatures"));
             }
             if version >= 2 || resp.results.is_empty() {
-                return Ok(keys
+                return Ok(updates
                     .iter()
-                    .map(|k| FeatureUpdateResult {
-                        name: k.name.clone(),
+                    .map(|update| FeatureUpdateResult {
+                        name: update.name.clone(),
                         error_code: 0,
                         error_message: None,
                     })
