@@ -4569,6 +4569,9 @@ pub fn encode_offset_commit_topics_response_with_throttle(
     throttle_time_ms: i32,
 ) -> crate::error::Result<()> {
     let flexible = offset_commit_flexible(version)?;
+    let body_start = buf.len();
+    let planned = offset_commit_response_len(version, flexible, topics)?;
+    reserve_group_body(buf, planned);
     if version >= 3 {
         buf.put_i32(throttle_time_ms);
     }
@@ -4590,7 +4593,38 @@ pub fn encode_offset_commit_topics_response_with_throttle(
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn offset_commit_response_len(
+    version: i16,
+    flexible: bool,
+    topics: &[OffsetCommitResponseTopic],
+) -> Result<usize> {
+    let mut total = if version >= 3 { 4usize } else { 0 };
+    total = add_group_len(total, group_array_len(flexible, topics.len())?)?;
+    for topic in topics {
+        total = add_group_len(total, group_string_len(flexible, Some(&topic.topic))?)?;
+        total = add_group_len(total, group_array_len(flexible, topic.partitions.len())?)?;
+        let mut partition = 6usize;
+        if flexible {
+            partition += buf::unsigned_varint_size(0);
+        }
+        total = add_group_len(
+            total,
+            partition
+                .checked_mul(topic.partitions.len())
+                .ok_or_else(|| Error::protocol("offset commit response size overflow"))?,
+        )?;
+        if flexible {
+            total = add_group_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    if flexible {
+        total = add_group_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 /// Decode OffsetCommit: first non-zero partition error, or `0`.
@@ -11638,6 +11672,31 @@ mod tests {
             .is_err(),
             "OffsetCommit v10+ is not spoken"
         );
+    }
+
+    #[test]
+    fn an_offset_commit_response_sizes_its_body_once() {
+        let topics = vec![OffsetCommitResponseTopic {
+            topic: "orders".into(),
+            partitions: (0..8)
+                .map(|partition| OffsetCommitResponsePartition {
+                    partition,
+                    error_code: 0,
+                })
+                .collect(),
+        }];
+        for version in [2_i16, 3, 8] {
+            let mut buf = BytesMut::new();
+            encode_offset_commit_topics_response(&mut buf, version, &topics).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_offset_commit_topics_response(&mut buf, version, &topics).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+        }
     }
 
     #[test]
