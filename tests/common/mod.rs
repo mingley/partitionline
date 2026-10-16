@@ -622,6 +622,8 @@ struct State {
     sync_group_calls: u32,
     share_heartbeat_calls: u32,
     share_heartbeat_interval_ms: i32,
+    /// Epoch-0 share heartbeats return no assignment while this is set.
+    share_hold_assignment: bool,
     share_fetch_calls: u32,
     share_ack_calls: u32,
     share_accepted: HashSet<MockShareRecordKey>,
@@ -1117,6 +1119,7 @@ fn new_state(
         sync_group_calls: 0,
         share_heartbeat_calls: 0,
         share_heartbeat_interval_ms: 150,
+        share_hold_assignment: false,
         share_fetch_calls: 0,
         share_ack_calls: 0,
         share_accepted: HashSet::new(),
@@ -3648,6 +3651,11 @@ impl Mock {
 
     pub fn set_share_heartbeat_interval_ms(&self, ms: i32) {
         self.state.lock().share_heartbeat_interval_ms = ms;
+    }
+
+    /// While held, epoch-0 ShareGroupHeartbeat responses omit the assignment.
+    pub fn set_share_hold_assignment(&self, hold: bool) {
+        self.state.lock().share_hold_assignment = hold;
     }
 
     pub fn share_heartbeat_interval_ms(&self) -> i32 {
@@ -7885,26 +7893,30 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 let (member_id, epoch, assignment) = match req.member_epoch.cmp(&0) {
                     std::cmp::Ordering::Less => (req.member_id, -1, None),
                     std::cmp::Ordering::Equal => {
-                        let names = match &req.subscribed_topic_names {
-                            Some(n) if n.is_empty() => Vec::new(),
-                            Some(n) => n.clone(),
-                            None => vec!["t".into()],
-                        };
-                        let assignment = names
-                            .iter()
-                            .map(|name| {
-                                let npart = st
-                                    .created_topics
-                                    .get(name)
-                                    .map(|s| s.num_partitions)
-                                    .unwrap_or(1);
-                                ShareTopicPartitions {
-                                    topic_id: mock_topic_id(name),
-                                    partitions: (0..npart).collect(),
-                                }
-                            })
-                            .collect();
-                        (req.member_id, 1, Some(assignment))
+                        if st.share_hold_assignment {
+                            (req.member_id, 0, None)
+                        } else {
+                            let names = match &req.subscribed_topic_names {
+                                Some(n) if n.is_empty() => Vec::new(),
+                                Some(n) => n.clone(),
+                                None => vec!["t".into()],
+                            };
+                            let assignment = names
+                                .iter()
+                                .map(|name| {
+                                    let npart = st
+                                        .created_topics
+                                        .get(name)
+                                        .map(|s| s.num_partitions)
+                                        .unwrap_or(1);
+                                    ShareTopicPartitions {
+                                        topic_id: mock_topic_id(name),
+                                        partitions: (0..npart).collect(),
+                                    }
+                                })
+                                .collect();
+                            (req.member_id, 1, Some(assignment))
+                        }
                     }
                     std::cmp::Ordering::Greater => (req.member_id, req.member_epoch, None),
                 };

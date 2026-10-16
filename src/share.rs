@@ -1925,10 +1925,6 @@ impl ShareGroup {
         }
     }
 
-    async fn refresh_share_topics_within(&mut self, deadline: Instant) -> Result<()> {
-        Self::refresh_topic_names_within(&mut self.consumer, &self.topics, deadline).await
-    }
-
     /// Metadata for `topics` when any name is stale.
     ///
     /// An empty list and a fully fresh list skip the RPC. A zero remaining
@@ -2055,7 +2051,6 @@ impl ShareGroup {
             if !self.assigned.is_empty() {
                 return Ok(());
             }
-            self.refresh_share_topics_within(deadline).await?;
             let timeout = deadline.saturating_duration_since(Instant::now());
             if timeout.is_zero() {
                 return Err(Error::Timeout);
@@ -2063,16 +2058,44 @@ impl ShareGroup {
             crate::group::copy_member_id(&mut req.member_id, &self.member_id);
             req.member_epoch = self.member_epoch;
             reuse_share_subscription(&mut req, &self.topics);
-            let (version, body) = coord_roundtrip(
-                &mut self.coord,
-                &self.cfg,
-                &self.group_id,
-                COORDINATOR_GROUP,
-                SHARE_GROUP_HEARTBEAT,
-                |version, buf| encode_share_group_heartbeat_request(buf, version, &req),
-                timeout,
-            )
-            .await?;
+            // The heartbeat carries topic names. A stale image loads on the
+            // member socket while the coordinator answers.
+            let stale = self
+                .topics
+                .iter()
+                .any(|topic| !self.consumer.topic_metadata_fresh(topic));
+            let (version, body, metadata_refresh) = if stale {
+                let coord = &mut self.coord;
+                let consumer = &mut self.consumer;
+                let topics = &self.topics;
+                let cfg = &self.cfg;
+                let group_id = self.group_id.as_str();
+                let refresh = Self::refresh_topic_names_within(consumer, topics, deadline);
+                let rpc = coord_roundtrip(
+                    coord,
+                    cfg,
+                    group_id,
+                    COORDINATOR_GROUP,
+                    SHARE_GROUP_HEARTBEAT,
+                    |version, buf| encode_share_group_heartbeat_request(buf, version, &req),
+                    timeout,
+                );
+                let (refresh, rpc) = tokio::join!(refresh, rpc);
+                let (version, body) = rpc?;
+                (version, body, Some(refresh))
+            } else {
+                let (version, body) = coord_roundtrip(
+                    &mut self.coord,
+                    &self.cfg,
+                    &self.group_id,
+                    COORDINATOR_GROUP,
+                    SHARE_GROUP_HEARTBEAT,
+                    |version, buf| encode_share_group_heartbeat_request(buf, version, &req),
+                    timeout,
+                )
+                .await?;
+                (version, body, None)
+            };
             let resp = decode_share_group_heartbeat_response(&mut body.clone(), version)?;
             if resp.error_code != 0 {
                 return Err(Error::broker(resp.error_code, "ShareGroupHeartbeat"));
@@ -2096,6 +2119,9 @@ impl ShareGroup {
             if resp.member_epoch > 0 {
                 self.member_epoch = resp.member_epoch;
                 self.hb_epoch.store(self.member_epoch, Ordering::SeqCst);
+            }
+            if let Some(Err(error)) = metadata_refresh {
+                return Err(error);
             }
             self.apply_share_assignment(resp.assignment.as_deref());
             if !self.assigned.is_empty() {

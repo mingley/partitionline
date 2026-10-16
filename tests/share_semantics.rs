@@ -539,6 +539,37 @@ async fn share_fetch_redials_while_refreshing_after_not_leader() {
     group.leave().await.unwrap();
 }
 
+/// An empty share assignment loads topic metadata while the join heartbeat runs.
+#[tokio::test]
+async fn share_assignment_loads_metadata_while_heartbeating() {
+    let mock = common::Mock::start().await;
+    v2(&mock);
+    mock.set_topic_partitions("t", 1);
+    mock.set_share_heartbeat_interval_ms(60_000);
+    mock.set_share_hold_assignment(true);
+    let mut cfg = config(&mock);
+    cfg.metadata_max_age = Duration::ZERO;
+    cfg.request_timeout = Duration::from_millis(800);
+    let mut group = ShareGroup::join(cfg, "share-assign-meta", "t")
+        .await
+        .unwrap();
+    assert!(group.assignment().is_empty());
+    mock.set_share_hold_assignment(false);
+    let delay = Duration::from_millis(250);
+    mock.set_metadata_delay(delay);
+    mock.delay_share_reply_once(SHARE_GROUP_HEARTBEAT, delay);
+    let started = Instant::now();
+    let got = group.poll().await.unwrap();
+    let elapsed = started.elapsed();
+    assert!(got.is_empty());
+    assert_eq!(group.assignment().len(), 1);
+    assert!(
+        elapsed < Duration::from_millis(650),
+        "share assignment refreshed metadata before the heartbeat: {elapsed:?}"
+    );
+    group.leave().await.unwrap();
+}
+
 #[tokio::test]
 async fn java_v2_batch_emits_only_acquired_offsets_and_buffers_poll_limit() {
     let mock = common::Mock::start().await;
