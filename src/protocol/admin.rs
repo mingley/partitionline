@@ -13,7 +13,7 @@
 //!
 //! ACL codecs live in [`crate::protocol::acl`].
 
-use std::collections::{BTreeSet, HashMap};
+use std::collections::{BTreeSet, HashMap, HashSet};
 use std::fmt;
 
 use bytes::{Buf, BufMut, BytesMut};
@@ -2738,45 +2738,33 @@ impl IncrementalAlterConfigsRequest {
     where
         I: IntoIterator<Item = (i8, &'a str)>,
     {
-        let mut order: Vec<(i8, String)> = Vec::new();
-        let mut by_resource: HashMap<(i8, String), Vec<AlterConfig>> = HashMap::new();
+        let mut built = Vec::new();
+        let mut seen_resources: HashSet<(i8, &str)> = HashSet::new();
         for (resource_type, name) in resources {
-            let key = (resource_type, name.to_string());
+            let key = (resource_type, name.to_owned());
             let Some(ops) = configs.get(&key) else {
                 return Err(Error::protocol(format!(
                     "no IncrementalAlterConfigs ops for resource type {resource_type} name {name}"
                 )));
             };
-            if by_resource.contains_key(&key) {
+            if !seen_resources.insert((resource_type, name)) {
                 continue;
             }
-            let mut op_order: Vec<(String, i8)> = Vec::new();
-            let mut by_op: HashMap<(String, i8), AlterConfig> = HashMap::new();
+            let mut seen_ops: HashSet<(&str, i8)> = HashSet::new();
+            let mut deduped = Vec::new();
             for op in ops {
-                let op_key = (op.name.clone(), op.op);
-                if by_op.contains_key(&op_key) {
+                if !seen_ops.insert((op.name.as_str(), op.op)) {
                     continue;
                 }
-                op_order.push(op_key.clone());
-                let _prev = by_op.insert(op_key, op.clone());
+                deduped.push(op.clone());
             }
-            let deduped = op_order
-                .into_iter()
-                .filter_map(|op_key| by_op.remove(&op_key))
-                .collect();
-            order.push(key.clone());
-            let _prev = by_resource.insert(key, deduped);
+            built.push(AlterableResource {
+                resource_type,
+                name: key.1,
+                configs: deduped,
+            });
         }
-        Ok(order
-            .into_iter()
-            .filter_map(|key| {
-                by_resource.remove(&key).map(|configs| AlterableResource {
-                    resource_type: key.0,
-                    name: key.1,
-                    configs,
-                })
-            })
-            .collect())
+        Ok(built)
     }
 
     /// Java `IncrementalAlterConfigsRequest.getErrorResponse`.
@@ -3067,47 +3055,48 @@ impl AlterConfigsRequest {
     where
         I: IntoIterator<Item = (i8, &'a str, Vec<TopicConfig>)>,
     {
-        let mut order: Vec<(i8, String)> = Vec::new();
-        let mut by_resource: HashMap<(i8, String), Vec<TopicConfig>> = HashMap::new();
+        let mut built = Vec::new();
+        let mut seen_resources: HashSet<(i8, &str)> = HashSet::new();
         for (resource_type, name, entries) in configs {
-            let mut cfg_order: Vec<String> = Vec::new();
-            let mut by_name: HashMap<String, TopicConfig> = HashMap::new();
-            for entry in entries {
+            for entry in &entries {
                 if entry.value.is_none() {
                     return Err(Error::protocol(format!(
                         "AlterConfigs ConfigEntry value for {} is null",
                         entry.name
                     )));
                 }
-                if by_name.contains_key(&entry.name) {
-                    continue;
-                }
-                cfg_order.push(entry.name.clone());
-                let _prev = by_name.insert(entry.name.clone(), entry);
             }
-            let deduped = cfg_order
-                .into_iter()
-                .filter_map(|n| by_name.remove(&n))
-                .collect();
-            let key = (resource_type, name.to_string());
-            if by_resource.contains_key(&key) {
+            if !seen_resources.insert((resource_type, name)) {
                 continue;
             }
-            order.push(key.clone());
-            let _prev = by_resource.insert(key, deduped);
+            let indexes = {
+                let mut seen_names: HashSet<&str> = HashSet::new();
+                let mut indexes = Vec::new();
+                for (index, entry) in entries.iter().enumerate() {
+                    if seen_names.insert(entry.name.as_str()) {
+                        indexes.push(index);
+                    }
+                }
+                indexes
+            };
+            let mut entries = entries;
+            let mut deduped = Vec::with_capacity(indexes.len());
+            for index in indexes {
+                let Some(entry) = entries.get_mut(index) else {
+                    continue;
+                };
+                deduped.push(TopicConfig {
+                    name: std::mem::take(&mut entry.name),
+                    value: entry.value.take(),
+                });
+            }
+            built.push(AlterConfigsResource {
+                resource_type,
+                name: name.to_owned(),
+                configs: deduped,
+            });
         }
-        Ok(order
-            .into_iter()
-            .filter_map(|key| {
-                by_resource
-                    .remove(&key)
-                    .map(|configs| AlterConfigsResource {
-                        resource_type: key.0,
-                        name: key.1,
-                        configs,
-                    })
-            })
-            .collect())
+        Ok(built)
     }
 
     /// Java `AlterConfigsRequest.getErrorResponse`.
