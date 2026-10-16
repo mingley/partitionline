@@ -2098,7 +2098,7 @@
 //! partition `COORDINATOR_NOT_AVAILABLE`, which fails that poll, and not
 //! standalone ShareAcknowledge `COORDINATOR_NOT_AVAILABLE`, which retries). A piggybacked
 //! `NOT_COORDINATOR` still completes without retry,
-//! including when `AcknowledgeErrorMessage` is set (this is not
+//! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `NOT_COORDINATOR`, which fails that poll, and not
 //! standalone ShareAcknowledge `NOT_COORDINATOR`, which retries). A piggybacked
 //! `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a

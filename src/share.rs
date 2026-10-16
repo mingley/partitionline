@@ -759,7 +759,7 @@ pub enum ShareAcquireMode {
 /// standalone ShareAcknowledge `COORDINATOR_NOT_AVAILABLE`,
 /// which retries). A piggybacked
 /// `NOT_COORDINATOR` still completes without retry,
-/// including when `AcknowledgeErrorMessage` is set (Java
+/// including when `AcknowledgeErrorMessage` is set or empty (Java
 /// `handleShareFetchSuccess` completes piggyback acks and still
 /// delivers the fetch; this is not partition
 /// `NOT_COORDINATOR`, which fails that poll, and not
@@ -2015,7 +2015,7 @@ impl ShareGroup {
     /// which retries).
     /// A piggybacked `NOT_COORDINATOR` still completes
     /// without retry, including when `AcknowledgeErrorMessage` is set
-    /// (Java `handleShareFetchSuccess` completes piggyback acks and
+    /// or empty (Java `handleShareFetchSuccess` completes piggyback acks and
     /// still delivers the fetch; this is not partition
     /// `NOT_COORDINATOR`, which fails that poll, and not
     /// standalone ShareAcknowledge `NOT_COORDINATOR`,
