@@ -60,15 +60,15 @@ use crate::protocol::admin::{
     encode_describe_user_scram_credentials_request, encode_expire_delegation_token_request,
     encode_get_telemetry_subscriptions_request, encode_incremental_alter_configs_resources_request,
     encode_list_config_resources_request, encode_list_groups_request,
-    encode_list_partition_reassignments_request, encode_list_transactions_request_with_pattern,
+    encode_list_partition_reassignments_named, encode_list_transactions_request_with_pattern,
     encode_push_telemetry_request, encode_renew_delegation_token_request,
     encode_share_group_describe_request, encode_unregister_broker_request,
     encode_update_features_request, AlterConfigsResource, AlterableResource, CreatableTopic,
     CreatePartitionsTopic, CreateTopicsRequest, DeleteRecordsPartition, DeleteTopicState,
-    DescribeConfigsResource, DescribeConfigsResult, FeatureUpdateKey, ListReassignmentTopic,
-    ReassignablePartition, ReassignableTopic, ReplicaAssignment, ScramCredentialDeletion,
-    ScramCredentialUpsertion, TopicConfig, TopicResult, RESOURCE_BROKER, RESOURCE_BROKER_LOGGER,
-    RESOURCE_CLIENT_METRICS, RESOURCE_GROUP, RESOURCE_TOPIC,
+    DescribeConfigsResource, DescribeConfigsResult, FeatureUpdateKey, ReassignablePartition,
+    ReassignableTopic, ReplicaAssignment, ScramCredentialDeletion, ScramCredentialUpsertion,
+    TopicConfig, TopicResult, RESOURCE_BROKER, RESOURCE_BROKER_LOGGER, RESOURCE_CLIENT_METRICS,
+    RESOURCE_GROUP, RESOURCE_TOPIC,
 };
 use crate::protocol::api::{
     decode_api_versions_response, decode_metadata_response, decode_metadata_response_into,
@@ -6231,7 +6231,7 @@ impl Admin {
                     LIST_PARTITION_REASSIGNMENTS,
                     version,
                     |buf| {
-                        encode_list_partition_reassignments_request(
+                        encode_list_partition_reassignments_named(
                             buf,
                             timeout_ms,
                             topics.as_deref(),
@@ -14412,16 +14412,22 @@ fn group_reassignments(assignments: &[PartitionReassignment]) -> Vec<Reassignabl
         .collect()
 }
 
-fn group_list_reassignments(partitions: &[crate::TopicPartition]) -> Vec<ListReassignmentTopic> {
-    let mut groups: Vec<(String, Vec<i32>)> = Vec::new();
-    let mut slots = HashMap::new();
+fn group_list_reassignments(partitions: &[crate::TopicPartition]) -> Vec<(&str, Vec<i32>)> {
+    let mut groups: Vec<(&str, Vec<i32>)> = Vec::new();
+    let mut slots: HashMap<&str, usize> = HashMap::new();
     for tp in partitions {
-        remember_topic_group(&mut groups, &mut slots, &tp.topic, tp.partition);
+        let topic = tp.topic.as_str();
+        if let Some(&slot) = slots.get(topic) {
+            if let Some((_, parts)) = groups.get_mut(slot) {
+                parts.push(tp.partition);
+                continue;
+            }
+        }
+        let slot = groups.len();
+        let _ = slots.insert(topic, slot);
+        groups.push((topic, vec![tp.partition]));
     }
     groups
-        .into_iter()
-        .map(|(name, partitions)| ListReassignmentTopic::new(name, partitions))
-        .collect()
 }
 
 fn flatten_list_reassignments(
@@ -16642,6 +16648,19 @@ mod tests {
         assert_eq!(info.future_offset_lag, 7);
         let missing = replica_log_dir_info_from(&TopicPartitionReplica::new("t", 9, 2), &dirs);
         assert_eq!(missing, ReplicaLogDirInfo::unknown());
+    }
+
+    #[test]
+    fn group_list_reassignments_keeps_duplicate_partitions() {
+        let partitions = [
+            crate::TopicPartition::new("t", 0),
+            crate::TopicPartition::new("t", 0),
+            crate::TopicPartition::new("t", 1),
+        ];
+        let topics = group_list_reassignments(&partitions);
+        assert_eq!(topics.len(), 1);
+        assert_eq!(topics[0].0, "t");
+        assert_eq!(topics[0].1, vec![0, 0, 1]);
     }
 
     #[test]

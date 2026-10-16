@@ -6662,6 +6662,50 @@ pub fn encode_list_partition_reassignments_request(
     timeout_ms: i32,
     topics: Option<&[ListReassignmentTopic]>,
 ) -> crate::error::Result<()> {
+    encode_list_reassignment_topic_views(buf, timeout_ms, topics)
+}
+
+/// Encode ListPartitionReassignments topics whose names are borrowed.
+///
+/// `topics = None` lists every ongoing reassignment.
+pub(crate) fn encode_list_partition_reassignments_named(
+    buf: &mut BytesMut,
+    timeout_ms: i32,
+    topics: Option<&[(&str, Vec<i32>)]>,
+) -> crate::error::Result<()> {
+    encode_list_reassignment_topic_views(buf, timeout_ms, topics)
+}
+
+trait ListReassignmentTopicView {
+    fn list_reassignment_name(&self) -> &str;
+    fn list_reassignment_partitions(&self) -> &[i32];
+}
+
+impl ListReassignmentTopicView for ListReassignmentTopic {
+    fn list_reassignment_name(&self) -> &str {
+        &self.name
+    }
+
+    fn list_reassignment_partitions(&self) -> &[i32] {
+        &self.partition_indexes
+    }
+}
+
+impl ListReassignmentTopicView for (&str, Vec<i32>) {
+    fn list_reassignment_name(&self) -> &str {
+        self.0
+    }
+
+    fn list_reassignment_partitions(&self) -> &[i32] {
+        &self.1
+    }
+}
+
+fn encode_list_reassignment_topic_views<T: ListReassignmentTopicView>(
+    buf: &mut BytesMut,
+    timeout_ms: i32,
+    topics: Option<&[T]>,
+) -> crate::error::Result<()> {
     let body_start = buf.len();
     let planned = list_reassignments_request_len(topics)?;
     let needed = body_start.saturating_add(planned);
@@ -6673,9 +6717,9 @@ pub fn encode_list_partition_reassignments_request(
         None => buf::put_array_len(buf, true, None)?,
         Some(topics) => {
             buf::put_array_len(buf, true, Some(topics.len()))?;
-            for t in topics {
-                buf::put_compact_string(buf, Some(&t.name))?;
-                put_compact_i32_array(buf, &t.partition_indexes)?;
+            for topic in topics {
+                buf::put_compact_string(buf, Some(topic.list_reassignment_name()))?;
+                put_compact_i32_array(buf, topic.list_reassignment_partitions())?;
                 buf::put_empty_tagged_fields(buf);
             }
         }
@@ -6685,17 +6729,22 @@ pub fn encode_list_partition_reassignments_request(
     Ok(())
 }
 
-fn list_reassignments_request_len(topics: Option<&[ListReassignmentTopic]>) -> Result<usize> {
+fn list_reassignments_request_len<T: ListReassignmentTopicView>(
+    topics: Option<&[T]>,
+) -> Result<usize> {
     let mut total = 4;
     match topics {
         None => total = add_describe_len(total, buf::unsigned_varint_size(0))?,
         Some(topics) => {
             total = add_describe_len(total, describe_array_len(true, topics.len())?)?;
             for topic in topics {
-                total = add_describe_len(total, describe_string_len(true, Some(&topic.name))?)?;
                 total = add_describe_len(
                     total,
-                    reassignment_replica_len(Some(&topic.partition_indexes))?,
+                    describe_string_len(true, Some(topic.list_reassignment_name()))?,
+                )?;
+                total = add_describe_len(
+                    total,
+                    reassignment_replica_len(Some(topic.list_reassignment_partitions()))?,
                 )?;
                 total = add_describe_len(total, buf::unsigned_varint_size(0))?;
             }
@@ -30348,6 +30397,23 @@ mod tests {
             assert!(cur.is_empty());
             assert_eq!(timeout, 5_000);
             assert_eq!(decoded.as_deref(), listed);
+        }
+    }
+
+    #[test]
+    fn list_partition_reassignments_named_topics_match_owned_topics() {
+        let owned = [ListReassignmentTopic::new(
+            "orders-topic-name-is-long",
+            vec![0, 2],
+        )];
+        let named = [("orders-topic-name-is-long", vec![0, 2])];
+        for listed in [None, Some(owned.as_slice())] {
+            let mut expected = BytesMut::new();
+            encode_list_partition_reassignments_request(&mut expected, 5_000, listed).unwrap();
+            let mut got = BytesMut::new();
+            let named_listed = listed.map(|_| named.as_slice());
+            encode_list_partition_reassignments_named(&mut got, 5_000, named_listed).unwrap();
+            assert_eq!(got.as_ref(), expected.as_ref());
         }
     }
 
