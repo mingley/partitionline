@@ -1045,11 +1045,7 @@ impl ShareGroup {
     }
 
     fn note_share_member_id(&mut self, id: &str) {
-        if id.is_empty() {
-            return;
-        }
-        self.member_id = id.to_string();
-        *self.hb_member_id.lock() = self.member_id.clone();
+        publish_member_id(&mut self.member_id, &mut self.hb_member_id.lock(), id);
     }
 
     fn adopt_share_member_id(&mut self) {
@@ -3110,8 +3106,11 @@ impl ShareGroup {
                         crate::group::copy_member_id(&mut member_id, &hb_member_id.lock());
                         crate::group::copy_member_id(&mut heartbeat.member_id, &member_id);
                         heartbeat.member_epoch = epoch;
-                        heartbeat.subscribed_topic_names =
-                            share_heartbeat_subscription(epoch, &hb_topics.lock());
+                        if epoch == ShareGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH {
+                            reuse_share_subscription(&mut heartbeat, &hb_topics.lock());
+                        } else {
+                            heartbeat.subscribed_topic_names = None;
+                        }
                         let res = c
                             .roundtrip(
                                 SHARE_GROUP_HEARTBEAT,
@@ -3138,12 +3137,15 @@ impl ShareGroup {
                                         hb_err.store(resp.error_code, Ordering::SeqCst);
                                         if let Some(id) = resp.member_id.as_deref() {
                                             if !id.is_empty() && id != member_id {
-                                                crate::group::copy_member_id(&mut member_id, id);
-                                                crate::group::copy_member_id(
-                                                    &mut heartbeat.member_id,
+                                                publish_member_id(
+                                                    &mut member_id,
+                                                    &mut hb_member_id.lock(),
                                                     id,
                                                 );
-                                                *hb_member_id.lock() = member_id.clone();
+                                                crate::group::copy_member_id(
+                                                    &mut heartbeat.member_id,
+                                                    &member_id,
+                                                );
                                             }
                                         }
                                         hb_epoch.store(
@@ -3207,6 +3209,18 @@ fn reuse_share_subscription(req: &mut ShareGroupHeartbeatRequest, topics: &[Stri
     }
 }
 
+/// Copy `id` into the local member and the heartbeat task's copy.
+///
+/// An empty id is ignored. An unchanged id keeps both buffers.
+fn publish_member_id(local: &mut String, shared: &mut String, id: &str) {
+    if id.is_empty() {
+        return;
+    }
+    crate::group::copy_member_id(local, id);
+    crate::group::copy_member_id(shared, local);
+}
+
+#[cfg(test)]
 fn share_heartbeat_subscription(epoch: i32, topics: &[String]) -> Option<Vec<String>> {
     if epoch == ShareGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH {
         Some(topics.to_vec())
@@ -3702,6 +3716,23 @@ mod tests {
             req.subscribed_topic_names.as_deref(),
             Some(changed.as_slice())
         );
+    }
+
+    #[test]
+    fn an_unchanged_share_member_id_keeps_both_buffers() {
+        let mut local = String::from("member-1");
+        let mut shared = String::from("member-1");
+        let local_ptr = local.as_ptr();
+        let shared_ptr = shared.as_ptr();
+        super::publish_member_id(&mut local, &mut shared, "member-1");
+        assert_eq!(local.as_ptr(), local_ptr);
+        assert_eq!(shared.as_ptr(), shared_ptr);
+        super::publish_member_id(&mut local, &mut shared, "");
+        assert_eq!(local, "member-1");
+        assert_eq!(shared, "member-1");
+        super::publish_member_id(&mut local, &mut shared, "member-2");
+        assert_eq!(local, "member-2");
+        assert_eq!(shared, "member-2");
     }
 
     #[test]
