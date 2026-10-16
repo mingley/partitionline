@@ -11035,6 +11035,12 @@ pub fn encode_list_groups_request(
     types_filter: &[String],
 ) -> crate::error::Result<()> {
     let flexible = list_groups_flexible(version)?;
+    let body_start = buf.len();
+    let planned = list_groups_request_len(version, flexible, states_filter, types_filter)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     if version >= 4 {
         buf::put_array_len(buf, flexible, Some(states_filter.len()))?;
         for state in states_filter {
@@ -11050,7 +11056,35 @@ pub fn encode_list_groups_request(
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn list_groups_filter_len(flexible: bool, values: &[String]) -> Result<usize> {
+    let mut total = describe_array_len(flexible, values.len())?;
+    for value in values {
+        total = add_describe_len(total, describe_string_len(flexible, Some(value))?)?;
+    }
+    Ok(total)
+}
+
+fn list_groups_request_len(
+    version: i16,
+    flexible: bool,
+    states_filter: &[String],
+    types_filter: &[String],
+) -> Result<usize> {
+    let mut total = 0usize;
+    if version >= 4 {
+        total = add_describe_len(total, list_groups_filter_len(flexible, states_filter)?)?;
+    }
+    if version >= 5 {
+        total = add_describe_len(total, list_groups_filter_len(flexible, types_filter)?)?;
+    }
+    if flexible {
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 /// Decode a ListGroups request.
@@ -30374,6 +30408,24 @@ mod tests {
                 cur.is_empty(),
                 "DescribeGroups v{version} getErrorResponse leftover-empty"
             );
+        }
+    }
+
+    #[test]
+    fn a_list_groups_request_sizes_its_body_once() {
+        let states = ["Stable".to_string(), "Empty".to_string()];
+        let types = ["classic".to_string(), "consumer".to_string()];
+        for version in [0_i16, 3, 4, 5] {
+            let mut buf = BytesMut::new();
+            encode_list_groups_request(&mut buf, version, &states, &types).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_list_groups_request(&mut buf, version, &states, &types).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
         }
     }
 
