@@ -2059,7 +2059,7 @@
 //! `GROUP_AUTHORIZATION_FAILED` still completes without retry,
 //! including when `AcknowledgeErrorMessage` is set or empty. A piggybacked
 //! `CORRUPT_MESSAGE` still completes without retry,
-//! including when `AcknowledgeErrorMessage` is set (this is not
+//! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `CORRUPT_MESSAGE`, which throws). A piggybacked
 //! `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a
 //! sibling whose `AcknowledgeErrorCode` is none, including when
