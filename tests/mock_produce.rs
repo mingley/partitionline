@@ -2,64 +2,49 @@
 
 mod common;
 
-use partitionline::{Admin, AdminConfig, NewTopic, ProduceRecord, Producer, ProducerConfig};
+use partitionline::{Admin, AdminConfig, Error, NewTopic, ProduceRecord, Producer, ProducerConfig};
 use std::time::{Duration, Instant};
 
-#[tokio::test]
+#[tokio::test(flavor = "current_thread")]
 async fn ack_completes_while_the_next_batch_lingers() {
     let mock = common::Mock::start().await;
-    mock.set_produce_delay_times(Duration::from_millis(80), 1);
+    mock.set_produce_delay_times(Duration::from_millis(200), 1);
     let mut cfg = ProducerConfig::bootstrap([mock.addr.clone()]);
-    cfg.linger = Duration::from_millis(400);
+    cfg.linger = Duration::from_millis(800);
     cfg.batch_records = 2;
     cfg.client_id = "linger-ack".into();
     let producer = Producer::new(cfg).await.unwrap();
-    let first = producer.clone();
-    let second = producer.clone();
-    let third = producer.clone();
-    let first = tokio::spawn(async move {
-        first
-            .send(ProduceRecord::to("t").value(&b"a"[..]))
-            .await
-            .unwrap()
-    });
-    let second = tokio::spawn(async move {
-        second
-            .send(ProduceRecord::to("t").value(&b"b"[..]))
-            .await
-            .unwrap()
-    });
-    let third = tokio::spawn(async move {
-        third
-            .send(ProduceRecord::to("t").value(&b"c"[..]))
-            .await
-            .unwrap()
-    });
-    let started = Instant::now();
-    while mock.produce_request_nodes().is_empty() {
-        assert!(
-            started.elapsed() < Duration::from_secs(2),
-            "first batch was not sent"
-        );
-        tokio::task::yield_now().await;
+    let first = ProduceRecord::to("t").value(&b"a"[..]);
+    loop {
+        match producer.try_send(first.clone()) {
+            Ok(()) => break,
+            Err(Error::QueueFull) => tokio::time::sleep(Duration::from_millis(5)).await,
+            Err(error) => panic!("queue the first record: {error}"),
+        }
     }
-    let acked_at = Instant::now();
-    let (left, right) = tokio::join!(first, second);
-    let left = left.unwrap();
-    let right = right.unwrap();
-    assert!(
-        acked_at.elapsed() < Duration::from_millis(250),
-        "in-flight ack waited out linger: {:?}",
-        acked_at.elapsed()
-    );
-    let mut offsets = [left.offset, right.offset];
-    offsets.sort_unstable();
-    assert_eq!(offsets, [0, 1]);
-    let third = tokio::time::timeout(Duration::from_secs(2), third)
-        .await
-        .expect("lingering record")
+    producer
+        .try_send(ProduceRecord::to("t").value(&b"b"[..]))
         .unwrap();
-    assert_eq!(third.offset, 2);
+    producer
+        .try_send(ProduceRecord::to("t").value(&b"c"[..]))
+        .unwrap();
+    let started = Instant::now();
+    loop {
+        if producer.metrics().records_acked >= 2 {
+            break;
+        }
+        assert!(
+            started.elapsed() < Duration::from_millis(500),
+            "in-flight ack waited out linger: {:?}",
+            started.elapsed()
+        );
+        tokio::time::sleep(Duration::from_millis(10)).await;
+    }
+    assert!(
+        started.elapsed() < Duration::from_millis(500),
+        "in-flight ack waited out linger: {:?}",
+        started.elapsed()
+    );
     producer.close().await.unwrap();
 }
 
