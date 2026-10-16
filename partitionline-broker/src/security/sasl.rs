@@ -333,7 +333,7 @@ fn keys_from_salted(
 
 struct Snapshot {
     generation: u64,
-    records: HashMap<(String, Algorithm), Arc<Credential>>,
+    records: HashMap<String, HashMap<Algorithm, Arc<Credential>>>,
 }
 struct Inner {
     limits: Limits,
@@ -428,21 +428,26 @@ impl Service {
     fn validated_records(
         &self,
         records: Vec<(String, Credential)>,
-    ) -> Result<HashMap<(String, Algorithm), Arc<Credential>>, Error> {
+    ) -> Result<HashMap<String, HashMap<Algorithm, Arc<Credential>>>, Error> {
         if records.len() > self.0.limits.credentials {
             return Err(Error::InvalidCredential);
         }
-        let mut map = HashMap::with_capacity(records.len());
+        let mut map: HashMap<String, HashMap<Algorithm, Arc<Credential>>> = HashMap::new();
         for (identity, credential) in records {
             if !self.0.limits.identity(&identity) {
                 return Err(Error::InvalidCredential);
             }
             let credential = Credential::from_form(credential.form(), self.0.limits)?;
-            if map
-                .insert((identity, credential.algorithm), Arc::new(credential))
-                .is_some()
-            {
-                return Err(Error::InvalidCredential);
+            let algorithm = credential.algorithm;
+            let stored = Arc::new(credential);
+            if let Some(mechanisms) = map.get_mut(identity.as_str()) {
+                if mechanisms.insert(algorithm, stored).is_some() {
+                    return Err(Error::InvalidCredential);
+                }
+            } else {
+                let mut mechanisms = HashMap::new();
+                let _previous = mechanisms.insert(algorithm, stored);
+                let _previous = map.insert(identity, mechanisms);
             }
         }
         Ok(map)
@@ -594,10 +599,13 @@ impl PlainSession {
                 if !authz.is_empty() && authz != name {
                     return Err(Error::AuthenticationFailed);
                 }
-                let credential = snapshot
+                let mechanisms = snapshot
                     .records
-                    .get(&(name.to_owned(), Algorithm::Sha256))
-                    .or_else(|| snapshot.records.get(&(name.to_owned(), Algorithm::Sha512)))
+                    .get(name)
+                    .ok_or(Error::AuthenticationFailed)?;
+                let credential = mechanisms
+                    .get(&Algorithm::Sha256)
+                    .or_else(|| mechanisms.get(&Algorithm::Sha512))
                     .ok_or(Error::AuthenticationFailed)?;
                 let candidate = derive(
                     credential.algorithm,
@@ -759,7 +767,8 @@ impl ScramSession {
         let credential = self
             .snapshot
             .records
-            .get(&(name.clone(), self.algorithm))
+            .get(name.as_str())
+            .and_then(|mechanisms| mechanisms.get(&self.algorithm))
             .ok_or(Error::AuthenticationFailed)?
             .clone();
         let nonce = format!("{client_nonce}{suffix}");
