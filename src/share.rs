@@ -734,7 +734,7 @@ pub enum ShareAcquireMode {
 /// `ErrorMessage` is set or empty (a partition
 /// `UNKNOWN_LEADER_EPOCH` still skips without Metadata). Top-level
 /// `REPLICA_NOT_AVAILABLE` still fails that poll and does not request
-/// Metadata, including when `ErrorMessage` is set (a partition
+/// Metadata, including when `ErrorMessage` is set or empty (a partition
 /// `REPLICA_NOT_AVAILABLE` still skips and requests Metadata). A top-level
 /// ShareAcknowledge `UNKNOWN_TOPIC_ID` completes without retry and
 /// does not request Metadata, including when `ErrorMessage` is set
@@ -1859,7 +1859,7 @@ impl ShareGroup {
     /// including when `ErrorMessage` is set or empty (a partition
     /// `UNKNOWN_LEADER_EPOCH` still skips without Metadata). Top-level
     /// `REPLICA_NOT_AVAILABLE` still fails that poll without Metadata,
-    /// including when `ErrorMessage` is set (a partition
+    /// including when `ErrorMessage` is set or empty (a partition
     /// `REPLICA_NOT_AVAILABLE` still skips and requests Metadata). A sole
     /// partition `NOT_LEADER_OR_FOLLOWER` collects empty (Java)
     /// `testFetchError`). A ShareFetch topic id that is
