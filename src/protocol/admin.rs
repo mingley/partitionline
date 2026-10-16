@@ -3960,12 +3960,11 @@ impl AlterConfigsRequest {
 
     /// Java `AlterConfigsRequest.getErrorResponse`.
     ///
-    /// Copies each resource name and type through
-    /// [`AlterConfigsResource::error_result`]. `ErrorMessage` stays the
-    /// JSON default (null); official Java also sets the English
-    /// `Errors.message` string. ThrottleTimeMs is written on every
-    /// spoken version from `throttle_time_ms` (Java always calls
-    /// `setThrottleTimeMs`).
+    /// Each resource name and type is written from the caller.
+    /// `ErrorMessage` stays the JSON default (null); official Java also
+    /// sets the English `Errors.message` string. Request configs are not
+    /// written. ThrottleTimeMs is written on every spoken version from
+    /// `throttle_time_ms` (Java always calls `setThrottleTimeMs`).
     pub fn error_response(
         buf: &mut BytesMut,
         version: i16,
@@ -3973,13 +3972,7 @@ impl AlterConfigsRequest {
         error_code: i16,
         throttle_time_ms: i32,
     ) -> crate::error::Result<()> {
-        let results = AlterConfigsResource::error_results(resources, error_code);
-        encode_alter_configs_resource_results_with_throttle(
-            buf,
-            version,
-            &results,
-            throttle_time_ms,
-        )
+        encode_alter_configs_error_response(buf, version, resources, error_code, throttle_time_ms)
     }
 }
 
@@ -4318,6 +4311,60 @@ fn alter_configs_response_len(
         )?;
         total = add_describe_len(total, 1)?;
         total = add_describe_len(total, describe_string_len(flexible, Some(&result.name))?)?;
+        if flexible {
+            total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    if flexible {
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
+}
+
+/// AlterConfigs error body written from the request resources.
+///
+/// The bytes match [`AlterConfigsResource::error_result`]. Request configs
+/// are omitted.
+fn encode_alter_configs_error_response(
+    buf: &mut BytesMut,
+    version: i16,
+    resources: &[AlterConfigsResource],
+    error_code: i16,
+    throttle_time_ms: i32,
+) -> crate::error::Result<()> {
+    let flexible = alter_configs_flexible(version)?;
+    let body_start = buf.len();
+    let planned = alter_configs_error_len(flexible, resources)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
+    buf.put_i32(throttle_time_ms);
+    buf::put_array_len(buf, flexible, Some(resources.len()))?;
+    for resource in resources {
+        buf.put_i16(error_code);
+        buf::put_string(buf, flexible, None)?;
+        buf.put_i8(resource.resource_type);
+        buf::put_string(buf, flexible, Some(&resource.name))?;
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+    }
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+    Ok(())
+}
+
+fn alter_configs_error_len(flexible: bool, resources: &[AlterConfigsResource]) -> Result<usize> {
+    let mut total = 4usize;
+    total = add_describe_len(total, describe_array_len(flexible, resources.len())?)?;
+    for resource in resources {
+        total = add_describe_len(total, 2)?;
+        total = add_describe_len(total, describe_string_len(flexible, None)?)?;
+        total = add_describe_len(total, 1)?;
+        total = add_describe_len(total, describe_string_len(flexible, Some(&resource.name))?)?;
         if flexible {
             total = add_describe_len(total, buf::unsigned_varint_size(0))?;
         }
@@ -28288,6 +28335,78 @@ mod tests {
             !cur.has_remaining(),
             "AlterConfigs empty getErrorResponse leftover-empty; leftover {} bytes",
             cur.remaining()
+        );
+    }
+
+    #[test]
+    fn alter_configs_error_response_matches_named_results() {
+        let resources = [
+            AlterConfigsResource {
+                resource_type: RESOURCE_TOPIC,
+                name: "orders-topic-name-is-long".into(),
+                configs: vec![TopicConfig {
+                    name: "cleanup.policy".into(),
+                    value: Some("compact".into()),
+                }],
+            },
+            AlterConfigsResource {
+                resource_type: RESOURCE_BROKER,
+                name: "1".into(),
+                configs: Vec::new(),
+            },
+        ];
+        for version in 0..=2 {
+            for throttle in [0_i32, 12] {
+                let results =
+                    AlterConfigsResource::error_results(&resources, crate::error::NOT_CONTROLLER);
+                let mut expected = BytesMut::new();
+                encode_alter_configs_resource_results_with_throttle(
+                    &mut expected,
+                    version,
+                    &results,
+                    throttle,
+                )
+                .unwrap();
+                let mut got = BytesMut::new();
+                AlterConfigsRequest::error_response(
+                    &mut got,
+                    version,
+                    &resources,
+                    crate::error::NOT_CONTROLLER,
+                    throttle,
+                )
+                .unwrap();
+                assert_eq!(
+                    got.as_ref(),
+                    expected.as_ref(),
+                    "version {version} throttle {throttle}"
+                );
+                let len = got.len();
+                let capacity = got.capacity();
+                assert!(capacity >= len);
+                assert!(capacity < 64 * 1024);
+                got.clear();
+                AlterConfigsRequest::error_response(
+                    &mut got,
+                    version,
+                    &resources,
+                    crate::error::NOT_CONTROLLER,
+                    throttle,
+                )
+                .unwrap();
+                assert_eq!(got.len(), len);
+                assert_eq!(got.capacity(), capacity);
+            }
+        }
+        let mut empty = BytesMut::new();
+        AlterConfigsRequest::error_response(&mut empty, 2, &[], 41, 1).unwrap();
+        let mut expected_empty = BytesMut::new();
+        encode_alter_configs_resource_results_with_throttle(&mut expected_empty, 2, &[], 1)
+            .unwrap();
+        assert_eq!(empty.as_ref(), expected_empty.as_ref());
+        assert!(
+            AlterConfigsRequest::error_response(&mut BytesMut::new(), 3, &resources, 41, 0)
+                .is_err()
         );
     }
 
