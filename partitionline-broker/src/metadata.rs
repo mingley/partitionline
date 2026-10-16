@@ -879,6 +879,39 @@ impl Handler for Router {
         })
     }
 }
+fn reserve_count<T>(items: &mut Vec<T>, count: usize) {
+    if items.capacity() < count {
+        items.reserve(count - items.capacity());
+    }
+}
+
+/// Move one queued produce batch into the parallel lists [`produce::process_queued`] walks.
+///
+/// Each list is sized for every job before the first request is moved.
+fn take_queued_produce(
+    jobs: &mut Vec<DataJob>,
+    bodies: &mut Vec<Vec<u8>>,
+    spares: &mut Vec<Vec<u8>>,
+    admitted: &mut Vec<Instant>,
+    senders: &mut Vec<oneshot::Sender<Result<DataReply, Error>>>,
+) {
+    let count = jobs.len();
+    bodies.clear();
+    spares.clear();
+    admitted.clear();
+    senders.clear();
+    reserve_count(bodies, count);
+    reserve_count(spares, count);
+    reserve_count(admitted, count);
+    reserve_count(senders, count);
+    for mut queued in jobs.drain(..) {
+        bodies.push(std::mem::take(&mut queued.request));
+        spares.push(std::mem::take(&mut queued.spare));
+        admitted.push(queued.admitted);
+        senders.push(queued.reply);
+    }
+}
+
 fn actor(
     mut catalog: Catalog,
     mut store: Option<produce::Store>,
@@ -962,6 +995,7 @@ fn actor(
                 let produce_key = job.request.get(..2) == Some(&[0, 0]);
                 grouped.clear();
                 if produce_key {
+                    reserve_count(&mut grouped, 7);
                     while grouped.len() < 7 {
                         match receiver.try_recv() {
                             Ok(Command::Data(next))
@@ -1015,19 +1049,18 @@ fn actor(
                             Err(error) => Err(error.into()),
                         }
                     } else if produce_key {
+                        let count = grouped.len().saturating_add(1);
                         queued_jobs.clear();
+                        reserve_count(&mut queued_jobs, count);
                         queued_jobs.push(job);
                         queued_jobs.append(&mut grouped);
-                        queued_bodies.clear();
-                        queued_spares.clear();
-                        queued_admitted.clear();
-                        queued_senders.clear();
-                        for mut queued in queued_jobs.drain(..) {
-                            queued_bodies.push(std::mem::take(&mut queued.request));
-                            queued_spares.push(std::mem::take(&mut queued.spare));
-                            queued_admitted.push(queued.admitted);
-                            queued_senders.push(queued.reply);
-                        }
+                        take_queued_produce(
+                            &mut queued_jobs,
+                            &mut queued_bodies,
+                            &mut queued_spares,
+                            &mut queued_admitted,
+                            &mut queued_senders,
+                        );
                         let mut results = produce::process_queued(
                             &catalog,
                             store,
@@ -2452,6 +2485,68 @@ fn delete(
 mod tests {
     use super::*;
     use std::{error::Error as StdError, sync::atomic::AtomicU64};
+
+    #[test]
+    fn a_queued_produce_sizes_its_job_lists_once() {
+        let mut jobs = Vec::new();
+        let mut parked = Vec::new();
+        for index in 0..4 {
+            let (reply, receiver) = oneshot::channel();
+            parked.push(receiver);
+            jobs.push(DataJob {
+                request: vec![index],
+                spare: vec![index],
+                admitted: Instant::now(),
+                reply,
+            });
+        }
+        let mut bodies = Vec::new();
+        let mut spares = Vec::new();
+        let mut admitted = Vec::new();
+        let mut senders = Vec::new();
+        take_queued_produce(
+            &mut jobs,
+            &mut bodies,
+            &mut spares,
+            &mut admitted,
+            &mut senders,
+        );
+        assert!(jobs.is_empty());
+        assert_eq!(bodies.len(), 4);
+        assert_eq!(spares.len(), 4);
+        assert_eq!(admitted.len(), 4);
+        assert_eq!(senders.len(), 4);
+        let body_capacity = bodies.capacity();
+        let spare_capacity = spares.capacity();
+        let admitted_capacity = admitted.capacity();
+        let sender_capacity = senders.capacity();
+        assert!(body_capacity >= 4);
+        assert!(spare_capacity >= 4);
+        assert!(admitted_capacity >= 4);
+        assert!(sender_capacity >= 4);
+        for index in 0..4 {
+            let (reply, receiver) = oneshot::channel();
+            parked.push(receiver);
+            jobs.push(DataJob {
+                request: vec![index],
+                spare: vec![index],
+                admitted: Instant::now(),
+                reply,
+            });
+        }
+        take_queued_produce(
+            &mut jobs,
+            &mut bodies,
+            &mut spares,
+            &mut admitted,
+            &mut senders,
+        );
+        assert_eq!(bodies.capacity(), body_capacity);
+        assert_eq!(spares.capacity(), spare_capacity);
+        assert_eq!(admitted.capacity(), admitted_capacity);
+        assert_eq!(senders.capacity(), sender_capacity);
+        assert_eq!(bodies.first().map(Vec::as_slice), Some([0].as_slice()));
+    }
 
     #[test]
     fn a_metadata_response_does_not_reserve_the_maximum() {
