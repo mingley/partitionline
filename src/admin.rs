@@ -7244,24 +7244,165 @@ impl Admin {
     /// [`Self::fence_producers`] with a one-shot timeout (Java
     /// `fenceProducers` plus `FenceProducersOptions.timeoutMs`).
     ///
-    /// `timeout` is the RPC deadline and InitProducerId
-    /// `transaction.timeout.ms`.
+    /// `timeout` is the shared deadline and InitProducerId
+    /// `transaction.timeout.ms`. Distinct coordinators are fenced together.
     pub async fn fence_producers_timeout(
         &mut self,
         transactional_ids: impl IntoIterator<Item = impl Into<String>>,
         timeout: Duration,
     ) -> Result<Vec<FencedProducer>> {
-        let mut out = Vec::new();
-        for id in transactional_ids {
-            let transactional_id = id.into();
-            let (producer_id, epoch) = self.fence_one(&transactional_id, timeout).await?;
-            out.push(FencedProducer {
-                transactional_id,
-                producer_id,
-                epoch,
-            });
+        let ids: Vec<String> = transactional_ids.into_iter().map(Into::into).collect();
+        if ids.len() <= 1 {
+            let mut out = Vec::new();
+            for id in &ids {
+                let (producer_id, epoch) = self.fence_one(id, timeout).await?;
+                out.push(FencedProducer {
+                    transactional_id: id.clone(),
+                    producer_id,
+                    epoch,
+                });
+            }
+            return Ok(out);
         }
-        Ok(out)
+        if timeout.is_zero() {
+            return Err(Error::Timeout);
+        }
+        let deadline = Instant::now()
+            .checked_add(timeout)
+            .ok_or_else(|| Error::protocol("fenceProducers deadline overflow"))?;
+        let version = self
+            .versions
+            .get(&INIT_PRODUCER_ID)
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 5))
+            .ok_or_else(|| Error::Unsupported("broker does not support InitProducerId".into()))?;
+        let txn_timeout_ms = crate::consumer::duration_millis_i32(timeout);
+        let refs: Vec<&str> = ids.iter().map(String::as_str).collect();
+        let mut pending: Vec<usize> = (0..ids.len()).collect();
+        let mut out: Vec<Option<(i64, i16)>> = vec![None; ids.len()];
+        let mut attempt = 0u32;
+        while !pending.is_empty() {
+            if Instant::now() >= deadline {
+                return Err(Error::Timeout);
+            }
+            let by_node = self.txn_coord_nodes(&refs, &pending, deadline).await?;
+            let mut nodes: Vec<i32> = by_node.keys().copied().collect();
+            nodes.sort_unstable();
+            let mut wave: Vec<(i32, usize)> = Vec::new();
+            let mut later = Vec::new();
+            for node in &nodes {
+                let Some(idxs) = by_node.get(node) else {
+                    continue;
+                };
+                let mut first = true;
+                for &index in idxs {
+                    if first {
+                        wave.push((*node, index));
+                        first = false;
+                    } else {
+                        later.push(index);
+                    }
+                }
+            }
+            if wave.len() <= 1 {
+                let Some((_, index)) = wave.pop() else {
+                    break;
+                };
+                let id = refs
+                    .get(index)
+                    .copied()
+                    .ok_or_else(|| Error::protocol("missing transactional id"))?;
+                let (producer_id, epoch) =
+                    self.fence_one_until(id, txn_timeout_ms, deadline).await?;
+                if let Some(slot) = out.get_mut(index) {
+                    *slot = Some((producer_id, epoch));
+                }
+                pending = later;
+                continue;
+            }
+            let mut node_index: HashMap<i32, usize> = HashMap::new();
+            for (node, index) in &wave {
+                let _ = node_index.insert(*node, *index);
+            }
+            let wave_nodes: Vec<i32> = wave.iter().map(|(node, _)| *node).collect();
+            let mut finished = self
+                .exchange_leaders(&wave_nodes, deadline, |_admin, node, _conn, _timeout| {
+                    let index = node_index
+                        .get(&node)
+                        .copied()
+                        .ok_or_else(|| Error::protocol("missing transactional id"))?;
+                    let id = refs
+                        .get(index)
+                        .copied()
+                        .ok_or_else(|| Error::protocol("missing transactional id"))?;
+                    let mut payload = BytesMut::new();
+                    encode_init_producer_id_request(
+                        &mut payload,
+                        version,
+                        Some(id),
+                        txn_timeout_ms,
+                        crate::RecordBatch::NO_PRODUCER_ID,
+                        crate::RecordBatch::NO_PRODUCER_EPOCH,
+                    )?;
+                    Ok(LeaderFrame {
+                        api_key: INIT_PRODUCER_ID,
+                        version,
+                        body: payload.freeze(),
+                    })
+                })
+                .await;
+            let mut again = Vec::new();
+            for (node, index) in wave {
+                if refs.get(index).is_none() {
+                    return Err(Error::protocol("missing transactional id"));
+                }
+                let Some((spoken, body)) = finished.remove(&node) else {
+                    self.invalidate_txn_coord_idxs(&refs, &[index], node);
+                    again.push(index);
+                    continue;
+                };
+                match body {
+                    Err(error) if matches!(error, Error::Timeout) => return Err(error),
+                    Err(error) if error.is_retriable() => {
+                        self.invalidate_txn_coord_idxs(&refs, &[index], node);
+                        again.push(index);
+                    }
+                    Err(error) => return Err(error),
+                    Ok(body) => {
+                        let (err, producer_id, epoch, ..) =
+                            decode_init_producer_id_response(&mut body.clone(), spoken)?;
+                        if err == 0 {
+                            if let Some(slot) = out.get_mut(index) {
+                                *slot = Some((producer_id, epoch));
+                            }
+                        } else if error::coordinator_retriable(err) {
+                            self.invalidate_txn_coord_idxs(&refs, &[index], node);
+                            again.push(index);
+                        } else {
+                            return Err(Error::broker(err, "InitProducerId"));
+                        }
+                    }
+                }
+            }
+            let retry = !again.is_empty();
+            pending = later;
+            pending.extend(again);
+            if retry {
+                self.wait_retry(&mut attempt, deadline).await?;
+            }
+        }
+        out.into_iter()
+            .zip(ids)
+            .map(|(fenced, transactional_id)| {
+                let (producer_id, epoch) = fenced.ok_or_else(|| {
+                    Error::protocol(format!("InitProducerId missing {transactional_id}"))
+                })?;
+                Ok(FencedProducer {
+                    transactional_id,
+                    producer_id,
+                    epoch,
+                })
+            })
+            .collect()
     }
 
     /// Force-terminate a transactional id (Java
@@ -7299,13 +7440,23 @@ impl Admin {
     }
 
     async fn fence_one(&mut self, transactional_id: &str, timeout: Duration) -> Result<(i64, i16)> {
+        let txn_timeout_ms = crate::consumer::duration_millis_i32(timeout);
+        let deadline = Instant::now() + timeout;
+        self.fence_one_until(transactional_id, txn_timeout_ms, deadline)
+            .await
+    }
+
+    async fn fence_one_until(
+        &mut self,
+        transactional_id: &str,
+        txn_timeout_ms: i32,
+        deadline: Instant,
+    ) -> Result<(i64, i16)> {
         let version = self
             .versions
             .get(&INIT_PRODUCER_ID)
             .and_then(|v| pick_version(v.min_version, v.max_version, 0, 5))
             .ok_or_else(|| Error::Unsupported("broker does not support InitProducerId".into()))?;
-        let txn_timeout_ms = crate::consumer::duration_millis_i32(timeout);
-        let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         loop {
             let stale = self

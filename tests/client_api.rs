@@ -26,7 +26,7 @@ use partitionline::{
     EARLIEST_TIMESTAMP, LATEST_TIERED_TIMESTAMP, LATEST_TIMESTAMP, LEAVE_GROUP_REASON_CLOSED,
     LEAVE_GROUP_REASON_POLL_TIMEOUT, LEAVE_GROUP_REASON_UNSUBSCRIBED, MAX_TIMESTAMP,
 };
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 #[tokio::test]
 async fn invalid_raw_acks_are_rejected_before_bootstrap_or_network_io() {
@@ -3954,6 +3954,32 @@ async fn admin_fence_producers_inits_on_txn_coordinator() {
         Some(12_000),
         "fence_producers_timeout must send transaction.timeout.ms"
     );
+    admin.close().await.unwrap();
+}
+
+/// Two transactional ids on different coordinators are fenced together.
+#[tokio::test]
+async fn fence_producers_overlaps_coordinators() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_txn_id_coordinator("ta", 1);
+    mock.set_txn_id_coordinator("tb", 2);
+    let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    mock.set_init_producer_id_delay(Duration::from_millis(250));
+    let started = Instant::now();
+    let fenced = admin.fence_producers(["ta", "tb"]).await.unwrap();
+    assert_eq!(fenced.len(), 2);
+    assert_eq!(fenced[0].transactional_id, "ta");
+    assert_eq!(fenced[1].transactional_id, "tb");
+    assert!(
+        started.elapsed() < Duration::from_millis(450),
+        "fence waited for one coordinator at a time: {:?}",
+        started.elapsed()
+    );
+    let mut nodes = mock.init_producer_id_nodes();
+    nodes.sort_unstable();
+    assert_eq!(nodes, vec![1, 2]);
     admin.close().await.unwrap();
 }
 

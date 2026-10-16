@@ -6373,7 +6373,13 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         RecordBatch::NO_PRODUCER_EPOCH,
                     )
                     .unwrap();
-                } else if tid.is_some() && st.txn_coord_node != node_id {
+                } else if tid.as_ref().is_some_and(|id| {
+                    st.txn_coord_overrides
+                        .get(id)
+                        .copied()
+                        .unwrap_or(st.txn_coord_node)
+                        != node_id
+                }) {
                     st.init_producer_id_not_coordinator =
                         st.init_producer_id_not_coordinator.saturating_add(1);
                     encode_init_producer_id_response(
