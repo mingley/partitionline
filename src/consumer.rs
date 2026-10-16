@@ -1665,6 +1665,20 @@ impl<V> PartitionMap<V> {
         previous
     }
 
+    /// Insert `value` under a topic name that is already owned.
+    ///
+    /// A long name stays on its existing allocation. [`Self::insert`] only has
+    /// borrowed text, so it would copy that name again.
+    fn insert_owned(&mut self, topic: TopicName, partition: i32, value: V) -> Option<V> {
+        if let Some(partitions) = self.topics.get_mut(topic.as_str()) {
+            return partitions.insert(partition, value);
+        }
+        let mut partitions = HashMap::new();
+        let previous = partitions.insert(partition, value);
+        let _previous_topic = self.topics.insert(topic, partitions);
+        previous
+    }
+
     fn remove(&mut self, topic: &str, partition: i32) -> Option<V> {
         let partitions = self.topics.get_mut(topic)?;
         let removed = partitions.remove(&partition);
@@ -1768,7 +1782,7 @@ impl PendingRecords {
                 let topic = rec.topic.clone();
                 let _previous =
                     self.partitions
-                        .insert(&topic, rec.partition, VecDeque::from([rec]));
+                        .insert_owned(topic, rec.partition, VecDeque::from([rec]));
             }
         }
         while let Some(run) = runs.pop_back() {
@@ -1797,7 +1811,7 @@ impl PendingRecords {
                 let topic = rec.topic.clone();
                 let _previous =
                     self.partitions
-                        .insert(&topic, rec.partition, VecDeque::from([rec]));
+                        .insert_owned(topic, rec.partition, VecDeque::from([rec]));
             }
         }
     }
