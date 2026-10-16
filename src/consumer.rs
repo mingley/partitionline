@@ -1814,6 +1814,7 @@ impl PendingRecords {
 
     /// Move `records` into the queues and return the emptied buffer.
     fn extend_reusing(&mut self, mut records: Vec<FetchedRecord>) -> Vec<FetchedRecord> {
+        self.reserve_record_runs(&records);
         for rec in records.drain(..) {
             if let Some(run) = self
                 .order
@@ -1838,6 +1839,34 @@ impl PendingRecords {
             }
         }
         records
+    }
+
+    /// Size each partition queue for the next contiguous run before records move.
+    fn reserve_record_runs(&mut self, records: &[FetchedRecord]) {
+        let mut index = 0usize;
+        while index < records.len() {
+            let Some(first) = records.get(index) else {
+                break;
+            };
+            let mut end = index.saturating_add(1);
+            while records.get(end).is_some_and(|record| {
+                record.partition == first.partition && record.topic == first.topic
+            }) {
+                end = end.saturating_add(1);
+            }
+            let count = end.saturating_sub(index);
+            if let Some(queue) = self.partitions.get_mut(&first.topic, first.partition) {
+                queue.reserve(count);
+            } else {
+                let topic = first.topic.clone();
+                let _previous = self.partitions.insert_owned(
+                    topic,
+                    first.partition,
+                    VecDeque::with_capacity(count),
+                );
+            }
+            index = end;
+        }
     }
 
     fn drop_for(&mut self, topic: &str, partition: i32) -> usize {
@@ -9257,6 +9286,59 @@ mod tests {
         assert_eq!(next.first().map(|record| record.offset), Some(3));
         assert!(pending.is_empty());
         assert!(pending.partitions.get("orders", 0).is_some());
+    }
+
+    #[test]
+    fn a_fetch_sizes_each_partition_queue_once() {
+        let mut pending = PendingRecords::new();
+        pending.extend(vec![
+            fetched_at("orders", 0, 1),
+            fetched_at("orders", 0, 2),
+            fetched_at("orders", 0, 3),
+            fetched_at("orders", 0, 4),
+            fetched_at("payments", 1, 8),
+            fetched_at("payments", 1, 9),
+        ]);
+        let orders = pending
+            .partitions
+            .get("orders", 0)
+            .map(|queue| queue.capacity())
+            .expect("orders");
+        let payments = pending
+            .partitions
+            .get("payments", 1)
+            .map(|queue| queue.capacity())
+            .expect("payments");
+        assert!(orders >= 4);
+        assert!(payments >= 2);
+        assert_eq!(
+            pending.partitions.get("orders", 0).map(|queue| queue.len()),
+            Some(4)
+        );
+        let mut bytes = 0usize;
+        let _drained = pending.drain(&PartitionMap::new(), 10, &mut bytes);
+        pending.extend(vec![
+            fetched_at("orders", 0, 5),
+            fetched_at("orders", 0, 6),
+            fetched_at("orders", 0, 7),
+            fetched_at("orders", 0, 8),
+            fetched_at("payments", 1, 10),
+            fetched_at("payments", 1, 11),
+        ]);
+        assert_eq!(
+            pending
+                .partitions
+                .get("orders", 0)
+                .map(|queue| queue.capacity()),
+            Some(orders)
+        );
+        assert_eq!(
+            pending
+                .partitions
+                .get("payments", 1)
+                .map(|queue| queue.capacity()),
+            Some(payments)
+        );
     }
 
     #[test]
