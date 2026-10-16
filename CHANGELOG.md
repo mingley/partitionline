@@ -278,7 +278,11 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   including when `ErrorMessage` is set or empty (Java
   `handleShareFetchSuccess` only `requestUpdate`s for top-level
   `UNKNOWN_TOPIC_ID`; a partition `UNKNOWN_SERVER_ERROR` still skips
-  without Metadata). A non-empty
+  without Metadata). Top-level `CORRUPT_MESSAGE` still fails that
+  poll without Metadata, including when `ErrorMessage` is set (Java
+  `handleShareFetchSuccess` only `requestUpdate`s for top-level
+  `UNKNOWN_TOPIC_ID`; a partition `CORRUPT_MESSAGE` still throws).
+  A non-empty
   throwable partition or top-level ShareFetch `ErrorMessage` is
   preferred; empty uses `ShareFetch {topic}-{partition}` or
   `ShareFetch`. A sole partition

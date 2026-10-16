@@ -744,7 +744,10 @@ pub enum ShareAcquireMode {
 /// `KAFKA_STORAGE_ERROR` still skips and requests Metadata). Top-level
 /// `UNKNOWN_SERVER_ERROR` still fails that poll and does not request
 /// Metadata, including when `ErrorMessage` is set or empty (a partition
-/// `UNKNOWN_SERVER_ERROR` still skips without Metadata). A top-level
+/// `UNKNOWN_SERVER_ERROR` still skips without Metadata). Top-level
+/// `CORRUPT_MESSAGE` still fails that poll and does not request
+/// Metadata, including when `ErrorMessage` is set (a partition
+/// `CORRUPT_MESSAGE` still throws). A top-level
 /// ShareAcknowledge `UNKNOWN_TOPIC_ID` completes without retry and
 /// does not request Metadata, including when `ErrorMessage` is set
 /// or empty (Java `handleShareAcknowledgeSuccess` has no
@@ -1904,7 +1907,10 @@ impl ShareGroup {
     /// `KAFKA_STORAGE_ERROR` still skips and requests Metadata). Top-level
     /// `UNKNOWN_SERVER_ERROR` still fails that poll without Metadata,
     /// including when `ErrorMessage` is set or empty (a partition
-    /// `UNKNOWN_SERVER_ERROR` still skips without Metadata). A sole
+    /// `UNKNOWN_SERVER_ERROR` still skips without Metadata). Top-level
+    /// `CORRUPT_MESSAGE` still fails that poll without Metadata,
+    /// including when `ErrorMessage` is set (a partition
+    /// `CORRUPT_MESSAGE` still throws). A sole
     /// partition `NOT_LEADER_OR_FOLLOWER` collects empty (Java)
     /// `testFetchError`). A ShareFetch topic id that is
     /// not in this request — including a real cluster topic that is
