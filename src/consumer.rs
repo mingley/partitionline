@@ -4634,6 +4634,27 @@ impl Consumer {
             }
             let mut nodes: Vec<i32> = by_leader.keys().copied().collect();
             nodes.sort_unstable();
+            if nodes.len() > 1 {
+                self.recover_epochs_parallel(&mut by_leader, &nodes, deadline, &mut retry)
+                    .await?;
+                remaining = retry;
+                remaining.sort();
+                remaining.dedup();
+                if remaining.is_empty() {
+                    return Ok(());
+                }
+                if Instant::now() >= deadline {
+                    return Err(Error::Timeout);
+                }
+                fill_reused_topics(names, remaining.iter().map(|(topic, _)| *topic));
+                names.sort();
+                self.refresh_metadata_timeout(
+                    Some(names),
+                    remaining_offset_timeout(deadline, Instant::now()),
+                )
+                .await?;
+                continue;
+            }
             for node in nodes {
                 let Some(parts) = by_leader.remove(&node) else {
                     continue;
@@ -4702,6 +4723,83 @@ impl Consumer {
             )
             .await?;
         }
+    }
+
+    async fn recover_epochs_parallel<'a>(
+        &mut self,
+        by_leader: &mut HashMap<i32, Vec<(&'a str, i32)>>,
+        nodes: &[i32],
+        deadline: Instant,
+        retry: &mut Vec<(&'a str, i32)>,
+    ) -> Result<()> {
+        let mut prepared = Vec::new();
+        let mut parts_of: HashMap<i32, Vec<(&str, i32)>> = HashMap::new();
+        for node in nodes {
+            let Some(parts) = by_leader.remove(node) else {
+                continue;
+            };
+            if Instant::now() >= deadline {
+                return Err(Error::Timeout);
+            }
+            self.connect_node(*node, deadline).await?;
+            let version = self.offset_for_leader_epoch_version(*node)?;
+            let fetched: Vec<i32> = parts
+                .iter()
+                .map(|(topic, partition)| self.last_fetched_epoch(topic, *partition))
+                .collect();
+            let topics = offset_for_leader_epoch_topics(&self.cluster, &fetched, &parts);
+            let timeout = remaining_offset_timeout(deadline, Instant::now());
+            let mut payload = bytes::BytesMut::new();
+            encode_borrowed_offset_for_leader_epoch_topics(&mut payload, version, &topics)?;
+            let uses_bootstrap = !self.conns.contains_key(node)
+                && self
+                    .cluster
+                    .brokers
+                    .get(node)
+                    .is_some_and(|addr| addr == self.conn.addr());
+            let _ = parts_of.insert(*node, parts);
+            prepared.push(PreparedListOffsets {
+                node: *node,
+                api_key: OFFSET_FOR_LEADER_EPOCH,
+                version,
+                indexes: Vec::new(),
+                payload: payload.freeze(),
+                timeout,
+                uses_bootstrap,
+            });
+        }
+        let mut flights = self.exchange_list_offsets(prepared).await;
+        flights.sort_by_key(|flight| flight.node);
+        for flight in flights {
+            let Some(parts) = parts_of.remove(&flight.node) else {
+                continue;
+            };
+            let body = match flight.body {
+                Ok(body) => body,
+                Err(error) if error.is_retriable() => {
+                    self.drop_broker_conn(flight.node);
+                    retry.extend(parts);
+                    continue;
+                }
+                Err(error) => return Err(error),
+            };
+            match decode_offset_for_leader_epoch_topics_response(&mut body.clone(), flight.version)
+            {
+                Ok((got, ..)) => {
+                    let more = self.apply_epoch_end_offsets(&parts, &got)?;
+                    if !more.is_empty() {
+                        self.drop_broker_conn(flight.node);
+                        retry.extend(more);
+                    }
+                }
+                Err(error) if error.is_retriable() => {
+                    self.drop_broker_conn(flight.node);
+                    retry.extend(parts);
+                }
+                Err(error) => return Err(error),
+            }
+        }
+        Ok(())
     }
 
     fn apply_epoch_end_offsets<'a>(
@@ -7397,6 +7495,7 @@ impl Consumer {
                     .is_some_and(|addr| addr == self.conn.addr());
             prepared.push(PreparedListOffsets {
                 node: *node,
+                api_key: LIST_OFFSETS,
                 version,
                 indexes,
                 payload: payload.freeze(),
@@ -7492,6 +7591,7 @@ impl Consumer {
                 continue;
             };
             let node = item.node;
+            let api_key = item.api_key;
             let version = item.version;
             let indexes = item.indexes;
             let payload = item.payload;
@@ -7499,7 +7599,7 @@ impl Consumer {
             let _ = set.spawn(async move {
                 let body = conn
                     .roundtrip(
-                        LIST_OFFSETS,
+                        api_key,
                         version,
                         |buf| {
                             buf.extend_from_slice(&payload);
@@ -7516,7 +7616,7 @@ impl Consumer {
             let body = self
                 .conn
                 .roundtrip(
-                    LIST_OFFSETS,
+                    item.api_key,
                     item.version,
                     |buf| {
                         buf.extend_from_slice(&item.payload);
@@ -9234,6 +9334,7 @@ type OffsetSlot = Option<Result<(i64, i64, i32)>>;
 
 struct PreparedListOffsets {
     node: i32,
+    api_key: i16,
     version: i16,
     indexes: Vec<usize>,
     payload: Bytes,

@@ -2252,6 +2252,50 @@ async fn offset_for_leader_epoch_batches_fenced_partitions() {
 }
 
 #[tokio::test]
+async fn offset_for_leader_epoch_asks_every_leader_together() {
+    let mock = common::Mock::start_two_node().await;
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let created = admin
+        .create_topics(&[NewTopic::new("u", 1, 1)], 10_000, false)
+        .await
+        .unwrap();
+    assert_eq!(created[0].error_code, 0);
+    admin.close().await.unwrap();
+
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    let producer = Producer::new(pcfg).await.unwrap();
+    producer
+        .send(ProduceRecord::to("t").value(&b"lead"[..]))
+        .await
+        .unwrap();
+    producer
+        .send(ProduceRecord::to("u").value(&b"other"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let mut consumer = Consumer::new(ccfg).await.unwrap();
+    consumer.assign("t", 0, 0).await.unwrap();
+    consumer.assign("u", 0, 0).await.unwrap();
+    let _ = mock.bump_leader_epoch("t", 0);
+    let _ = mock.bump_leader_epoch("u", 0);
+    let recs = consumer.fetch().await.unwrap();
+    assert_eq!(recs.len(), 2);
+    let mut nodes = mock.offset_for_leader_epoch_nodes();
+    nodes.sort_unstable();
+    nodes.dedup();
+    assert_eq!(
+        nodes,
+        vec![1, 2],
+        "fenced partitions on different leaders each get OffsetForLeaderEpoch, got {nodes:?}"
+    );
+    consumer.close().await.unwrap();
+}
+
+#[tokio::test]
 async fn offset_for_leader_epoch_negotiates_v3_when_broker_caps() {
     let mock = common::Mock::start().await;
     mock.set_api_max(OFFSET_FOR_LEADER_EPOCH, 3);

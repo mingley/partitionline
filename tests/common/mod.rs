@@ -347,6 +347,7 @@ struct State {
     partition_epochs: HashMap<(String, i32), i32>,
     last_epoch_req: Option<(String, i32, i32)>,
     last_epoch_node: Option<i32>,
+    epoch_nodes: Vec<i32>,
     last_epoch_version: Option<i16>,
     last_epoch_n: Option<usize>,
     epoch_calls: u32,
@@ -829,6 +830,7 @@ fn new_state(
         partition_epochs: HashMap::new(),
         last_epoch_req: None,
         last_epoch_node: None,
+        epoch_nodes: Vec::new(),
         last_epoch_version: None,
         last_epoch_n: None,
         epoch_calls: 0,
@@ -2519,6 +2521,11 @@ impl Mock {
 
     pub fn offset_for_leader_epoch_calls(&self) -> u32 {
         self.state.lock().epoch_calls
+    }
+
+    /// Broker nodes that received OffsetForLeaderEpoch, in arrival order.
+    pub fn offset_for_leader_epoch_nodes(&self) -> Vec<i32> {
+        self.state.lock().epoch_nodes.clone()
     }
 
     pub fn offset_for_leader_epoch_not_leader(&self) -> u32 {
@@ -7426,6 +7433,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         .unwrap();
                 let mut st = state.lock();
                 st.epoch_calls = st.epoch_calls.saturating_add(1);
+                st.epoch_nodes.push(node_id);
                 st.last_epoch_n = Some(topics.iter().map(|t| t.partitions.len()).sum());
                 st.last_epoch_version = Some(header.api_version);
                 let mut results = Vec::with_capacity(topics.len());
