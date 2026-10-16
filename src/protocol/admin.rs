@@ -9569,12 +9569,27 @@ pub fn encode_describe_transactions_request(
     buf: &mut BytesMut,
     transactional_ids: &[String],
 ) -> crate::error::Result<()> {
+    let body_start = buf.len();
+    let planned = describe_transactions_request_len(transactional_ids)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf::put_array_len(buf, true, Some(transactional_ids.len()))?;
     for id in transactional_ids {
         buf::put_compact_string(buf, Some(id))?;
     }
     buf::put_empty_tagged_fields(buf);
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn describe_transactions_request_len(transactional_ids: &[String]) -> Result<usize> {
+    let mut total = describe_array_len(true, transactional_ids.len())?;
+    for id in transactional_ids {
+        total = add_describe_len(total, describe_string_len(true, Some(id))?)?;
+    }
+    add_describe_len(total, buf::unsigned_varint_size(0))
 }
 
 /// Decode a DescribeTransactions request.
@@ -9608,6 +9623,12 @@ pub fn encode_describe_transactions_response_with_throttle(
     states: &[TransactionState],
     throttle_time_ms: i32,
 ) -> crate::error::Result<()> {
+    let body_start = buf.len();
+    let planned = describe_transactions_response_len(states)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf.put_i32(throttle_time_ms);
     buf::put_array_len(buf, true, Some(states.len()))?;
     for s in states {
@@ -9630,7 +9651,33 @@ pub fn encode_describe_transactions_response_with_throttle(
         buf::put_empty_tagged_fields(buf);
     }
     buf::put_empty_tagged_fields(buf);
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn describe_transactions_response_len(states: &[TransactionState]) -> Result<usize> {
+    let mut total = 4;
+    total = add_describe_len(total, describe_array_len(true, states.len())?)?;
+    for state in states {
+        total = add_describe_len(total, 2)?;
+        total = add_describe_len(
+            total,
+            describe_string_len(true, Some(&state.transactional_id))?,
+        )?;
+        total = add_describe_len(
+            total,
+            describe_string_len(true, Some(&state.transaction_state))?,
+        )?;
+        total = add_describe_len(total, 22)?;
+        total = add_describe_len(total, describe_array_len(true, state.topics.len())?)?;
+        for topic in &state.topics {
+            total = add_describe_len(total, describe_string_len(true, Some(&topic.name))?)?;
+            total = add_describe_len(total, reassignment_replica_len(Some(&topic.partitions))?)?;
+            total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+        }
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    add_describe_len(total, buf::unsigned_varint_size(0))
 }
 
 /// Decode a DescribeTransactions response.
@@ -9964,6 +10011,13 @@ pub fn encode_list_transactions_request_with_pattern(
             "ListTransactions request exceeds local filter limits",
         ));
     }
+    let body_start = buf.len();
+    let planned =
+        list_transactions_request_len(version, state_filters, producer_id_filters, pattern)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf::put_array_len(buf, true, Some(state_filters.len()))?;
     for state in state_filters {
         buf::put_compact_string(buf, Some(state))?;
@@ -9979,7 +10033,35 @@ pub fn encode_list_transactions_request_with_pattern(
         buf::put_compact_string(buf, pattern)?;
     }
     buf::put_empty_tagged_fields(buf);
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn list_transactions_request_len(
+    version: i16,
+    state_filters: &[String],
+    producer_id_filters: &[i64],
+    pattern: Option<&str>,
+) -> Result<usize> {
+    let mut total = describe_array_len(true, state_filters.len())?;
+    for state in state_filters {
+        total = add_describe_len(total, describe_string_len(true, Some(state))?)?;
+    }
+    total = add_describe_len(total, describe_array_len(true, producer_id_filters.len())?)?;
+    total = add_describe_len(
+        total,
+        producer_id_filters
+            .len()
+            .checked_mul(8)
+            .ok_or_else(|| Error::protocol("list transactions request size overflow"))?,
+    )?;
+    if version >= 1 {
+        total = add_describe_len(total, 8)?;
+    }
+    if version >= 2 {
+        total = add_describe_len(total, describe_string_len(true, pattern)?)?;
+    }
+    add_describe_len(total, buf::unsigned_varint_size(0))
 }
 
 /// Decode a ListTransactions request: `(states, producer_ids, duration_ms)`.
@@ -10089,6 +10171,12 @@ pub fn encode_list_transactions_response(
     resp: &ListTransactionsResponse,
 ) -> crate::error::Result<()> {
     let _flexible = list_transactions_flexible(version)?;
+    let body_start = buf.len();
+    let planned = list_transactions_response_len(resp)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf.put_i32(resp.throttle_time_ms);
     buf.put_i16(resp.error_code);
     buf::put_array_len(buf, true, Some(resp.unknown_state_filters.len()))?;
@@ -10103,7 +10191,36 @@ pub fn encode_list_transactions_response(
         buf::put_empty_tagged_fields(buf);
     }
     buf::put_empty_tagged_fields(buf);
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn list_transactions_response_len(resp: &ListTransactionsResponse) -> Result<usize> {
+    let mut total = 6;
+    total = add_describe_len(
+        total,
+        describe_array_len(true, resp.unknown_state_filters.len())?,
+    )?;
+    for state in &resp.unknown_state_filters {
+        total = add_describe_len(total, describe_string_len(true, Some(state))?)?;
+    }
+    total = add_describe_len(
+        total,
+        describe_array_len(true, resp.transaction_states.len())?,
+    )?;
+    for listing in &resp.transaction_states {
+        total = add_describe_len(
+            total,
+            describe_string_len(true, Some(&listing.transactional_id))?,
+        )?;
+        total = add_describe_len(total, 8)?;
+        total = add_describe_len(
+            total,
+            describe_string_len(true, Some(&listing.transaction_state))?,
+        )?;
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    add_describe_len(total, buf::unsigned_varint_size(0))
 }
 
 /// Decode a ListTransactions response.
@@ -30542,6 +30659,63 @@ mod tests {
     }
 
     #[test]
+    fn a_describe_transactions_request_sizes_its_body_once() {
+        let ids = vec!["tx-a".to_string(), "tx-b".to_string()];
+        let mut buf = BytesMut::new();
+        encode_describe_transactions_request(&mut buf, &ids).unwrap();
+        let len = buf.len();
+        let capacity = buf.capacity();
+        assert!(capacity >= len);
+        assert!(capacity < 64 * 1024);
+        buf.clear();
+        encode_describe_transactions_request(&mut buf, &ids).unwrap();
+        assert_eq!(buf.len(), len);
+        assert_eq!(buf.capacity(), capacity);
+        let mut cur = &buf[..];
+        let decoded = decode_describe_transactions_request(&mut cur).unwrap();
+        assert!(cur.is_empty());
+        assert_eq!(decoded, ids);
+    }
+
+    #[test]
+    fn a_describe_transactions_response_sizes_its_body_once() {
+        let states = vec![TransactionState {
+            error_code: 0,
+            transactional_id: "tx-a".into(),
+            transaction_state: "Ongoing".into(),
+            transaction_timeout_ms: 1_000,
+            transaction_start_time_ms: 9,
+            producer_id: 7,
+            producer_epoch: 1,
+            topics: vec![
+                TransactionTopic {
+                    name: "orders".into(),
+                    partitions: vec![0, 1],
+                },
+                TransactionTopic {
+                    name: "payments".into(),
+                    partitions: vec![],
+                },
+            ],
+        }];
+        let mut buf = BytesMut::new();
+        encode_describe_transactions_response_with_throttle(&mut buf, &states, 12).unwrap();
+        let len = buf.len();
+        let capacity = buf.capacity();
+        assert!(capacity >= len);
+        assert!(capacity < 64 * 1024);
+        buf.clear();
+        encode_describe_transactions_response_with_throttle(&mut buf, &states, 12).unwrap();
+        assert_eq!(buf.len(), len);
+        assert_eq!(buf.capacity(), capacity);
+        let mut cur = &buf[..];
+        let (decoded, throttle) = decode_describe_transactions_response(&mut cur).unwrap();
+        assert!(cur.is_empty());
+        assert_eq!(decoded, states);
+        assert_eq!(throttle, 12);
+    }
+
+    #[test]
     fn describe_transactions_v0_matches_kafka_protocol_0_18() {
         // Independent encode from kafka-protocol 0.18.0 (client encodes the
         // request; broker encodes the response). Apache JSON api 65
@@ -30903,6 +31077,69 @@ mod tests {
             "ListTransactions v{version} Builder.build {empty}leftover-empty; leftover {} bytes",
             cur.len()
         );
+    }
+
+    #[test]
+    fn a_list_transactions_request_sizes_its_body_once() {
+        let states = vec!["Ongoing".to_string(), "PrepareCommit".to_string()];
+        let producers = vec![7_i64, 8];
+        for version in [0_i16, 1, 2] {
+            let duration = if version == 0 { -1 } else { 1_000 };
+            let pattern = if version >= 2 { Some("tx-.*") } else { None };
+            let mut buf = BytesMut::new();
+            encode_list_transactions_request_with_pattern(
+                &mut buf, version, &states, &producers, duration, pattern,
+            )
+            .unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_list_transactions_request_with_pattern(
+                &mut buf, version, &states, &producers, duration, pattern,
+            )
+            .unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+            let mut cur = &buf[..];
+            let decoded = decode_list_transactions_request_data(&mut cur, version).unwrap();
+            assert!(cur.is_empty());
+            assert_eq!(decoded.state_filters, states);
+            assert_eq!(decoded.producer_id_filters, producers);
+            assert_eq!(decoded.duration_ms, duration);
+            assert_eq!(decoded.transactional_id_pattern.as_deref(), pattern);
+        }
+    }
+
+    #[test]
+    fn a_list_transactions_response_sizes_its_body_once() {
+        let response = ListTransactionsResponse {
+            throttle_time_ms: 12,
+            error_code: 0,
+            unknown_state_filters: vec!["Nope".into()],
+            transaction_states: vec![TransactionListing {
+                transactional_id: "tx-a".into(),
+                producer_id: 7,
+                transaction_state: "Ongoing".into(),
+            }],
+        };
+        for version in [0_i16, 1, 2] {
+            let mut buf = BytesMut::new();
+            encode_list_transactions_response(&mut buf, version, &response).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_list_transactions_response(&mut buf, version, &response).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+            let mut cur = &buf[..];
+            let decoded = decode_list_transactions_response(&mut cur, version).unwrap();
+            assert!(cur.is_empty());
+            assert_eq!(decoded, response);
+        }
     }
 
     #[test]
