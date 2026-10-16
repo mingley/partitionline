@@ -8152,9 +8152,9 @@ impl Consumer {
                 .map(|(tp, _)| (tp.topic.as_str(), tp.partition)),
         )?;
         let deadline = offset_lookup_deadline(timeout)?;
-        let looked: Vec<(String, i32, i64)> = queries
+        let looked: Vec<(&str, i32, i64)> = queries
             .iter()
-            .map(|(tp, timestamp)| (tp.topic.clone(), tp.partition, *timestamp))
+            .map(|(tp, timestamp)| (tp.topic.as_str(), tp.partition, *timestamp))
             .collect();
         let listed = self.list_offset_queries(&looked, deadline).await;
         if let Some(error) = listed.error {
@@ -8189,9 +8189,9 @@ impl Consumer {
                 .map(|tp| (tp.topic.as_str(), tp.partition)),
         )?;
         let deadline = offset_lookup_deadline(timeout)?;
-        let queries: Vec<(String, i32, i64)> = partitions
+        let queries: Vec<(&str, i32, i64)> = partitions
             .iter()
-            .map(|tp| (tp.topic.clone(), tp.partition, timestamp))
+            .map(|tp| (tp.topic.as_str(), tp.partition, timestamp))
             .collect();
         let listed = self.list_offset_queries(&queries, deadline).await;
         if let Some(error) = listed.error {
