@@ -269,6 +269,11 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   completes piggyback acks and still delivers the fetch; this is not
   partition `COORDINATOR_NOT_AVAILABLE`, which fails that poll, and not
   standalone ShareAcknowledge `COORDINATOR_NOT_AVAILABLE`, which
+  retries). A piggybacked `NOT_COORDINATOR` still completes without
+  retry, including when `AcknowledgeErrorMessage` is set (Java
+  `handleShareFetchSuccess` completes piggyback acks and still delivers
+  the fetch; this is not partition `NOT_COORDINATOR`, which fails that
+  poll, and not standalone ShareAcknowledge `NOT_COORDINATOR`, which
   retries). A
   piggybacked `TOPIC_AUTHORIZATION_FAILED` on
   one partition does not fail a sibling whose `AcknowledgeErrorCode`
