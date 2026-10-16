@@ -4945,9 +4945,10 @@ impl Admin {
         retry_on_quota_violation: bool,
     ) -> Result<Vec<TopicResult>> {
         let original = topics;
+        let original_index = index_delete_pending(&original);
         let mut pending = original.clone();
-        let mut finished_names: HashMap<String, TopicResult> = HashMap::new();
-        let mut finished_ids: HashMap<[u8; 16], TopicResult> = HashMap::new();
+        let mut finished: Vec<Option<TopicResult>> = Vec::new();
+        finished.resize_with(original.len(), || None);
         let version = self.delete_version;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
@@ -5000,28 +5001,26 @@ impl Admin {
                     if let Some(t) = matched {
                         next_pending.push(t.clone());
                     }
-                } else if let Some(t) = matched {
-                    if let Some(n) = &t.name {
-                        let _prev = finished_names.insert(n.clone(), r);
-                    } else {
-                        let _prev = finished_ids.insert(t.topic_id, r);
+                } else if matched.is_some() {
+                    if let Some(index) = delete_pending_slot(&original_index, &r) {
+                        if let Some(slot) = finished.get_mut(index) {
+                            *slot = Some(r);
+                        }
                     }
                 }
             }
             if next_pending.is_empty() {
                 let mut out = Vec::with_capacity(original.len());
-                for t in &original {
-                    let r = if let Some(n) = &t.name {
-                        finished_names.remove(n)
-                    } else {
-                        finished_ids.remove(&t.topic_id)
-                    }
-                    .ok_or_else(|| {
-                        Error::protocol(format!(
-                            "missing delete_topics result for {}",
-                            t.name.as_deref().unwrap_or("topic id")
-                        ))
-                    })?;
+                for (index, t) in original.iter().enumerate() {
+                    let r = finished
+                        .get_mut(index)
+                        .and_then(Option::take)
+                        .ok_or_else(|| {
+                            Error::protocol(format!(
+                                "missing delete_topics result for {}",
+                                t.name.as_deref().unwrap_or("topic id")
+                            ))
+                        })?;
                     out.push(r);
                 }
                 return Ok(out);
