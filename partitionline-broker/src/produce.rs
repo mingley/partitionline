@@ -1582,6 +1582,10 @@ fn latest_sync_slots(
 ) {
     reps.clear();
     slots.clear();
+    let upper = captured.iter().flatten().fold(0usize, |sum, item| {
+        sum.saturating_add(item.pending_sync.len())
+    });
+    reserve_count(reps, upper);
     for (state_index, item) in captured.iter().enumerate() {
         let Some(item) = item else {
             continue;
@@ -2501,8 +2505,11 @@ mod tests {
         let mut slots = HashMap::new();
         latest_sync_slots(&captured, &mut reps, &mut slots);
         assert_eq!(reps, vec![(2, 0), (0, 1), (2, 1)]);
+        assert!(reps.capacity() >= 4);
+        let kept = reps.capacity();
         latest_sync_slots(&captured, &mut reps, &mut slots);
         assert_eq!(reps, vec![(2, 0), (0, 1), (2, 1)]);
+        assert_eq!(reps.capacity(), kept);
         assert!(slots.capacity() > 0);
     }
 }
