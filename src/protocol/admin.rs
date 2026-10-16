@@ -7201,22 +7201,22 @@ impl AlterClientQuotasRequest {
         entries
             .iter()
             .map(|entry| {
-                let mut order: Vec<String> = Vec::new();
-                let mut by_type: HashMap<String, Option<String>> = HashMap::new();
+                let mut entity: Vec<ClientQuotaEntity> = Vec::new();
+                let mut slots: HashMap<&str, usize> = HashMap::new();
                 for ent in &entry.entity {
-                    if !by_type.contains_key(&ent.entity_type) {
-                        order.push(ent.entity_type.clone());
+                    if let Some(&slot) = slots.get(ent.entity_type.as_str()) {
+                        if let Some(stored) = entity.get_mut(slot) {
+                            stored.name = ent.name.clone();
+                            continue;
+                        }
                     }
-                    let _prev = by_type.insert(ent.entity_type.clone(), ent.name.clone());
+                    let slot = entity.len();
+                    let _ = slots.insert(ent.entity_type.as_str(), slot);
+                    entity.push(ClientQuotaEntity::new(
+                        ent.entity_type.clone(),
+                        ent.name.clone(),
+                    ));
                 }
-                let entity = order
-                    .into_iter()
-                    .filter_map(|entity_type| {
-                        by_type
-                            .remove(&entity_type)
-                            .map(|name| ClientQuotaEntity::new(entity_type, name))
-                    })
-                    .collect();
                 let ops = entry
                     .ops
                     .iter()
