@@ -3014,8 +3014,11 @@ impl ShareGroup {
         *self.hb_deadline.lock() = None;
         self.hb_interval_ms.store(0, Ordering::SeqCst);
         let deadline = Instant::now() + self.cfg.request_timeout;
-        let close = self.close_share_session(deadline).await;
-        let leave = self.leave_coordinator(deadline).await;
+        self.abort_inflight_share_fetches();
+        let (set, prepare_error) = self.spawn_final_share_acks(deadline);
+        let close = Self::finish_final_share_acks(set, prepare_error);
+        let leave = self.leave_coordinator(deadline);
+        let (close, leave) = tokio::join!(close, leave);
         self.assigned.clear();
         self.topics.clear();
         self.publish_hb_topics();
@@ -4215,6 +4218,97 @@ impl ShareGroup {
         }
     }
 
+    /// Final share acknowledgements for the open sessions.
+    ///
+    /// The sockets are taken first so the coordinator leave can run while
+    /// those acknowledgements are in flight.
+    fn spawn_final_share_acks(
+        &mut self,
+        deadline: Instant,
+    ) -> (tokio::task::JoinSet<(Result<Bytes>, i16)>, Option<Error>) {
+        let open: Vec<i32> = self
+            .share_epochs
+            .iter()
+            .filter(|(_, epoch)| **epoch > 0)
+            .map(|(node, _)| *node)
+            .collect();
+        self.share_epochs.clear();
+        let mut conns = std::mem::take(&mut self.share_conns);
+        self.acquisitions.clear();
+        self.pending_delivery.clear();
+        let mut set = tokio::task::JoinSet::new();
+        let mut prepare_error = None;
+        let timeout = deadline.saturating_duration_since(Instant::now());
+        if timeout.is_zero() {
+            return (set, Some(Error::Timeout));
+        }
+        for node in open {
+            let Some(peer) = conns.remove(&node) else {
+                prepare_error = Some(Error::protocol("missing share connection"));
+                continue;
+            };
+            let version = match spoken_share_acknowledge(peer.acknowledge_version) {
+                Ok(version) => version,
+                Err(error) => {
+                    prepare_error = Some(error);
+                    continue;
+                }
+            };
+            let mut body = BytesMut::new();
+            if let Err(error) = encode_share_acknowledge_request(
+                &mut body,
+                version,
+                &self.group_id,
+                &self.member_id,
+                ShareRequestMetadata::FINAL_EPOCH,
+                [0; 16],
+                &[],
+            ) {
+                prepare_error = Some(error);
+                continue;
+            }
+            let payload = body.freeze();
+            let _ = set.spawn(async move {
+                let mut peer = peer;
+                let sent = peer
+                    .conn
+                    .roundtrip(
+                        SHARE_ACKNOWLEDGE,
+                        version,
+                        |buf| {
+                            buf.extend_from_slice(&payload);
+                            Ok(())
+                        },
+                        timeout,
+                    )
+                    .await;
+                (sent, version)
+            });
+        }
+        (set, prepare_error)
+    }
+
+    async fn finish_final_share_acks(
+        mut set: tokio::task::JoinSet<(Result<Bytes>, i16)>,
+        prepare_error: Option<Error>,
+    ) -> Result<()> {
+        let mut last = match prepare_error {
+            Some(error) => Err(error),
+            None => Ok(()),
+        };
+        while let Some(joined) = set.join_next().await {
+            match joined {
+                Ok((sent, version)) => {
+                    if let Some(error) = Self::share_close_error(sent, version) {
+                        last = Err(error);
+                    }
+                }
+                Err(_) => last = Err(Error::protocol("share acknowledge close task")),
+            }
+        }
+        last
+    }
+
     async fn close_share_session(&mut self, deadline: Instant) -> Result<()> {
         self.abort_inflight_share_fetches();
         let open: Vec<_> = self
@@ -4428,8 +4522,11 @@ impl ShareGroup {
         }
         self.hb_stop.send(true).unwrap_or(());
         *self.hb_deadline.lock() = None;
-        let close = self.close_share_session(deadline).await;
-        let out = self.leave_coordinator(deadline).await;
+        self.abort_inflight_share_fetches();
+        let (set, prepare_error) = self.spawn_final_share_acks(deadline);
+        let close = Self::finish_final_share_acks(set, prepare_error);
+        let out = self.leave_coordinator(deadline);
+        let (close, out) = tokio::join!(close, out);
         self.consumer.close_interceptors();
         close.and(out)
     }

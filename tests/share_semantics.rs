@@ -14,7 +14,7 @@ mod common;
 use std::time::{Duration, Instant};
 
 use bytes::{Bytes, BytesMut};
-use partitionline::protocol::api_keys::{SHARE_ACKNOWLEDGE, SHARE_FETCH};
+use partitionline::protocol::api_keys::{SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_HEARTBEAT};
 use partitionline::protocol::records::{Header, Record, RecordBatch};
 use partitionline::protocol::share::{
     decode_share_fetch_response, decode_share_fetch_response_with_limit,
@@ -310,6 +310,39 @@ async fn share_ack_overlaps_two_leaders() {
         "share acknowledgements ran one leader after another: {elapsed:?}"
     );
     group.leave().await.unwrap();
+}
+
+/// The final share acknowledgement and the coordinator leave run together.
+#[tokio::test]
+async fn share_leave_closes_sessions_while_leaving() {
+    let mock = common::Mock::start_two_node().await;
+    v2(&mock);
+    mock.set_topic_partitions("t", 2);
+    mock.set_partition_leader("t", 0, 1);
+    mock.set_partition_leader("t", 1, 2);
+    produce(&mock, &[(0, b"left"), (1, b"right")]).await;
+    let mut group = ShareGroup::join(config(&mock), "leave-overlap", "t")
+        .await
+        .unwrap();
+    let got = group.poll().await.unwrap();
+    assert_eq!(got.len(), 2);
+    let delay = Duration::from_millis(250);
+    mock.delay_share_reply_once(SHARE_ACKNOWLEDGE, delay);
+    mock.delay_share_reply_once(SHARE_ACKNOWLEDGE, delay);
+    mock.delay_share_reply_once(SHARE_GROUP_HEARTBEAT, delay);
+    let started = Instant::now();
+    group.leave().await.unwrap();
+    assert!(
+        mock.share_ack_history()
+            .iter()
+            .any(|(_, epoch)| *epoch == ShareRequestMetadata::FINAL_EPOCH),
+        "leave should retire the share sessions"
+    );
+    assert!(
+        started.elapsed() < Duration::from_millis(450),
+        "share leave closed sessions after the coordinator: {:?}",
+        started.elapsed()
+    );
 }
 
 /// Idle share sockets are opened together before the acknowledgements.
