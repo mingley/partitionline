@@ -2798,11 +2798,10 @@ pub struct CreatePartitionsRequest;
 impl CreatePartitionsRequest {
     /// Java `CreatePartitionsRequest.getErrorResponse`.
     ///
-    /// Copies each topic name through
-    /// [`CreatePartitionsTopic::error_result`]. `ErrorMessage` stays the
-    /// JSON default (null); official Java also sets the English
+    /// Each topic name is written from the caller. `ErrorMessage` stays
+    /// the JSON default (null); official Java also sets the English
     /// `Errors.message` string. Request count and assignments are not
-    /// copied. ThrottleTimeMs is written on every spoken version from
+    /// written. ThrottleTimeMs is written on every spoken version from
     /// `throttle_time_ms` (Java always calls `setThrottleTimeMs`).
     /// Convenience encode still writes `0`. This crate speaks 0–3. This
     /// is not [`CreatePartitionsTopic::error_result`] /
@@ -2815,8 +2814,7 @@ impl CreatePartitionsRequest {
         error_code: i16,
         throttle_time_ms: i32,
     ) -> crate::error::Result<()> {
-        let results = CreatePartitionsTopic::error_results(topics, error_code);
-        encode_create_partitions_response_with_throttle(buf, version, &results, throttle_time_ms)
+        encode_create_partitions_error_response(buf, version, topics, error_code, throttle_time_ms)
     }
 }
 
@@ -3019,6 +3017,58 @@ fn create_partitions_response_len(flexible: bool, results: &[TopicResult]) -> Re
             total,
             describe_string_len(flexible, result.error_message.as_deref())?,
         )?;
+        if flexible {
+            total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    if flexible {
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
+}
+
+/// CreatePartitions error body written from the request topic names.
+///
+/// The bytes match [`CreatePartitionsTopic::error_result`]: null error
+/// message. Request counts and assignments are omitted.
+fn encode_create_partitions_error_response(
+    buf: &mut BytesMut,
+    version: i16,
+    topics: &[CreatePartitionsTopic],
+    error_code: i16,
+    throttle_time_ms: i32,
+) -> crate::error::Result<()> {
+    let flexible = create_partitions_flexible(version)?;
+    let body_start = buf.len();
+    let planned = create_partitions_error_len(flexible, topics)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
+    buf.put_i32(throttle_time_ms);
+    buf::put_array_len(buf, flexible, Some(topics.len()))?;
+    for topic in topics {
+        buf::put_string(buf, flexible, Some(&topic.name))?;
+        buf.put_i16(error_code);
+        buf::put_string(buf, flexible, None)?;
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+    }
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+    Ok(())
+}
+
+fn create_partitions_error_len(flexible: bool, topics: &[CreatePartitionsTopic]) -> Result<usize> {
+    let mut total = 4usize;
+    total = add_describe_len(total, describe_array_len(flexible, topics.len())?)?;
+    for topic in topics {
+        total = add_describe_len(total, describe_string_len(flexible, Some(&topic.name))?)?;
+        total = add_describe_len(total, 2)?;
+        total = add_describe_len(total, describe_string_len(flexible, None)?)?;
         if flexible {
             total = add_describe_len(total, buf::unsigned_varint_size(0))?;
         }
@@ -26244,6 +26294,70 @@ mod tests {
             &v2_with[..],
             &v3_with[..],
             "empty-Results ThrottleTimeMs bodies: v2 == v3"
+        );
+    }
+
+    #[test]
+    fn create_partitions_error_response_matches_named_results() {
+        let topics = [
+            CreatePartitionsTopic::new("orders-topic-name-is-long", 8),
+            CreatePartitionsTopic {
+                name: "t".into(),
+                count: 4,
+                assignments: Some(vec![vec![1, 2], vec![3]]),
+            },
+        ];
+        for version in 0..=3 {
+            for throttle in [0_i32, 12] {
+                let results =
+                    CreatePartitionsTopic::error_results(&topics, crate::error::NOT_CONTROLLER);
+                let mut expected = BytesMut::new();
+                encode_create_partitions_response_with_throttle(
+                    &mut expected,
+                    version,
+                    &results,
+                    throttle,
+                )
+                .unwrap();
+                let mut got = BytesMut::new();
+                CreatePartitionsRequest::error_response(
+                    &mut got,
+                    version,
+                    &topics,
+                    crate::error::NOT_CONTROLLER,
+                    throttle,
+                )
+                .unwrap();
+                assert_eq!(
+                    got.as_ref(),
+                    expected.as_ref(),
+                    "version {version} throttle {throttle}"
+                );
+                let len = got.len();
+                let capacity = got.capacity();
+                assert!(capacity >= len);
+                assert!(capacity < 64 * 1024);
+                got.clear();
+                CreatePartitionsRequest::error_response(
+                    &mut got,
+                    version,
+                    &topics,
+                    crate::error::NOT_CONTROLLER,
+                    throttle,
+                )
+                .unwrap();
+                assert_eq!(got.len(), len);
+                assert_eq!(got.capacity(), capacity);
+            }
+        }
+        let mut empty = BytesMut::new();
+        CreatePartitionsRequest::error_response(&mut empty, 3, &[], 41, 1).unwrap();
+        let mut expected_empty = BytesMut::new();
+        encode_create_partitions_response_with_throttle(&mut expected_empty, 3, &[], 1).unwrap();
+        assert_eq!(empty.as_ref(), expected_empty.as_ref());
+        assert!(
+            CreatePartitionsRequest::error_response(&mut BytesMut::new(), 4, &topics, 41, 0)
+                .is_err()
         );
     }
 
