@@ -10904,13 +10904,29 @@ pub fn encode_consumer_group_describe_request(
     include_authorized_operations: bool,
 ) -> crate::error::Result<()> {
     consumer_group_describe_spoken(version)?;
+    let body_start = buf.len();
+    let planned = consumer_group_describe_request_len(group_ids)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf::put_array_len(buf, true, Some(group_ids.len()))?;
     for id in group_ids {
         buf::put_compact_string(buf, Some(id))?;
     }
     buf.put_u8(u8::from(include_authorized_operations));
     buf::put_empty_tagged_fields(buf);
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn consumer_group_describe_request_len(group_ids: &[String]) -> Result<usize> {
+    let mut total = describe_array_len(true, group_ids.len())?;
+    for id in group_ids {
+        total = add_describe_len(total, describe_string_len(true, Some(id))?)?;
+    }
+    total = add_describe_len(total, 1)?;
+    add_describe_len(total, buf::unsigned_varint_size(0))
 }
 
 /// Decode a ConsumerGroupDescribe request.
@@ -13247,6 +13263,12 @@ pub fn encode_share_group_describe_request(
     include_authorized_operations: bool,
 ) -> crate::error::Result<()> {
     let flexible = share_group_describe_flexible(version)?;
+    let body_start = buf.len();
+    let planned = share_group_describe_request_len(flexible, group_ids)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf::put_array_len(buf, flexible, Some(group_ids.len()))?;
     for id in group_ids {
         buf::put_string(buf, flexible, Some(id))?;
@@ -13255,7 +13277,20 @@ pub fn encode_share_group_describe_request(
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn share_group_describe_request_len(flexible: bool, group_ids: &[String]) -> Result<usize> {
+    let mut total = describe_array_len(flexible, group_ids.len())?;
+    for id in group_ids {
+        total = add_describe_len(total, describe_string_len(flexible, Some(id))?)?;
+    }
+    total = add_describe_len(total, 1)?;
+    if flexible {
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 /// Decode a ShareGroupDescribe request (`version` 0–1).
@@ -32156,6 +32191,29 @@ mod tests {
     }
 
     #[test]
+    fn a_consumer_group_describe_request_sizes_its_body_once() {
+        let groups = vec!["orders".to_string(), "payments".to_string()];
+        for version in [0_i16, 1] {
+            let mut buf = BytesMut::new();
+            encode_consumer_group_describe_request(&mut buf, version, &groups, true).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_consumer_group_describe_request(&mut buf, version, &groups, true).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+            let mut cur = &buf[..];
+            let (decoded, include) =
+                decode_consumer_group_describe_request(&mut cur, version).unwrap();
+            assert!(cur.is_empty());
+            assert_eq!(decoded, groups);
+            assert!(include);
+        }
+    }
+
+    #[test]
     fn consumer_group_describe_v1_matches_kafka_protocol_0_18() {
         // Independent encode from kafka-protocol 0.18.0 (client encodes
         // the request; broker encodes the response). Apache JSON api 69
@@ -33750,6 +33808,29 @@ mod tests {
             !cur.has_remaining(),
             "DeleteGroups v2 ErrorCode body must be leftover-empty"
         );
+    }
+
+    #[test]
+    fn a_share_group_describe_request_sizes_its_body_once() {
+        let groups = vec!["orders".to_string(), "payments".to_string()];
+        for version in [0_i16, 1] {
+            let mut buf = BytesMut::new();
+            encode_share_group_describe_request(&mut buf, version, &groups, true).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_share_group_describe_request(&mut buf, version, &groups, true).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+            let mut cur = &buf[..];
+            let (decoded, include) =
+                decode_share_group_describe_request(&mut cur, version).unwrap();
+            assert!(cur.is_empty());
+            assert_eq!(decoded, groups);
+            assert!(include);
+        }
     }
 
     #[test]
