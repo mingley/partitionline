@@ -3826,27 +3826,18 @@ impl Consumer {
     }
 
     fn refresh_topic_identities(&mut self) {
-        let rebuilt = if let Some(md) = self.metadata.as_ref() {
-            Some(resolved_topic_identities(
+        if let Some(md) = self.metadata.as_ref() {
+            resolved_topic_identities(
                 md.topics
                     .iter()
                     .filter_map(|topic| topic.name.as_deref().map(|name| (name, topic.topic_id))),
                 &self.cluster.topic_ids,
                 &mut self.name_to_id,
                 &mut self.id_to_name,
-            ))
+            );
         } else {
-            None
-        };
-        match rebuilt {
-            Some((by_name, by_id)) => {
-                self.name_to_id = by_name;
-                self.id_to_name = by_id;
-            }
-            None => {
-                self.name_to_id.clear();
-                self.id_to_name.clear();
-            }
+            self.name_to_id.clear();
+            self.id_to_name.clear();
         }
     }
 
@@ -8057,11 +8048,11 @@ type IdNames = HashMap<[u8; 16], Arc<str>>;
 fn resolved_topic_identities<'a>(
     topics: impl IntoIterator<Item = (&'a str, [u8; 16])>,
     cached: &NameIds,
-    previous_names: &mut NameIds,
-    previous_ids: &mut IdNames,
-) -> (NameIds, IdNames) {
-    let mut by_name = HashMap::new();
-    let mut by_id = HashMap::new();
+    names: &mut NameIds,
+    ids: &mut IdNames,
+) {
+    let mut seen_names: HashSet<&str> = HashSet::new();
+    let mut seen_ids: HashSet<[u8; 16]> = HashSet::new();
     let mut ambiguous = HashSet::new();
     for (name, metadata_id) in topics {
         let id = cached
@@ -8069,43 +8060,46 @@ fn resolved_topic_identities<'a>(
             .copied()
             .filter(|id| *id != [0; 16])
             .unwrap_or(metadata_id);
-        if id == [0; 16] && by_name.get(name).is_some_and(|current| *current != [0; 16]) {
+        if id == [0; 16]
+            && seen_names.contains(name)
+            && names.get(name).is_some_and(|current| *current != [0; 16])
+        {
             continue;
         }
-        if let Some(slot) = by_name.get_mut(name) {
+        if let Some(slot) = names.get_mut(name) {
             *slot = id;
         } else {
-            let key = match previous_names.remove_entry(name) {
-                Some((key, _)) => key,
-                None => cached
-                    .get_key_value(name)
-                    .map(|(key, _)| Arc::clone(key))
-                    .unwrap_or_else(|| Arc::from(name)),
-            };
-            let _previous = by_name.insert(key, id);
+            let key = cached
+                .get_key_value(name)
+                .map(|(key, _)| Arc::clone(key))
+                .unwrap_or_else(|| Arc::from(name));
+            let _previous = names.insert(key, id);
         }
+        let _ = seen_names.insert(name);
         if id == [0; 16] || ambiguous.contains(&id) {
             continue;
         }
-        match by_id.get(&id).map(|existing: &Arc<str>| existing.as_ref()) {
-            Some(existing) if existing != name => {
-                let _removed = by_id.remove(&id);
+        match ids.get(&id).map(|existing: &Arc<str>| existing.as_ref()) {
+            Some(existing) if seen_ids.contains(&id) && existing != name => {
+                let _removed = ids.remove(&id);
+                let _ = seen_ids.remove(&id);
                 let _inserted = ambiguous.insert(id);
             }
-            Some(_) => {}
-            None => {
-                let owned = match previous_ids.remove(&id) {
-                    Some(existing) if existing.as_ref() == name => existing,
-                    _ => cached
-                        .get_key_value(name)
-                        .map(|(key, _)| Arc::clone(key))
-                        .unwrap_or_else(|| Arc::from(name)),
-                };
-                let _previous = by_id.insert(id, owned);
+            Some(existing) if existing == name => {
+                let _ = seen_ids.insert(id);
+            }
+            _ => {
+                let owned = names
+                    .get_key_value(name)
+                    .map(|(key, _)| Arc::clone(key))
+                    .unwrap_or_else(|| Arc::from(name));
+                let _previous = ids.insert(id, owned);
+                let _ = seen_ids.insert(id);
             }
         }
     }
-    (by_name, by_id)
+    names.retain(|name, _| seen_names.contains(name.as_ref()));
+    ids.retain(|id, _| seen_ids.contains(id) && !ambiguous.contains(id));
 }
 
 /// Name to use for one Fetch topic.
@@ -9235,11 +9229,13 @@ mod tests {
 
     #[test]
     fn a_topic_id_shared_by_two_names_is_not_resolved() {
-        let (by_name, by_id) = resolved_topic_identities(
+        let mut by_name = HashMap::new();
+        let mut by_id = HashMap::new();
+        resolved_topic_identities(
             [("orders", [7u8; 16]), ("trades", [7u8; 16])],
             &HashMap::new(),
-            &mut HashMap::new(),
-            &mut HashMap::new(),
+            &mut by_name,
+            &mut by_id,
         );
         assert_eq!(by_name.get("orders").copied(), Some([7u8; 16]));
         assert_eq!(by_name.get("trades").copied(), Some([7u8; 16]));
@@ -9276,11 +9272,13 @@ mod tests {
         let name: Arc<str> = Arc::from("topic-name-longer-than-twenty-three");
         let stored = Arc::as_ptr(&name);
         let cached = HashMap::from([(Arc::clone(&name), [1u8; 16])]);
-        let (by_name, by_id) = resolved_topic_identities(
+        let mut by_name = HashMap::new();
+        let mut by_id = HashMap::new();
+        resolved_topic_identities(
             [(name.as_ref(), [1u8; 16])],
             &cached,
-            &mut HashMap::new(),
-            &mut HashMap::new(),
+            &mut by_name,
+            &mut by_id,
         );
         assert_eq!(
             by_name
@@ -9294,19 +9292,22 @@ mod tests {
     #[test]
     fn a_later_zero_topic_id_does_not_erase_the_cached_id() {
         let cached = HashMap::from([(std::sync::Arc::<str>::from("t"), [1u8; 16])]);
-        let (by_name, by_id) = resolved_topic_identities(
+        let mut by_name = HashMap::new();
+        let mut by_id = HashMap::new();
+        resolved_topic_identities(
             [("t", [1u8; 16]), ("t", [0u8; 16]), ("u", [2u8; 16])],
             &cached,
-            &mut HashMap::new(),
-            &mut HashMap::new(),
+            &mut by_name,
+            &mut by_id,
         );
         assert_eq!(by_name.get("t").copied(), Some([1u8; 16]));
         assert_eq!(by_name.get("u").copied(), Some([2u8; 16]));
         assert_eq!(by_id.get(&[1u8; 16]).map(|name| name.as_ref()), Some("t"));
-        let (by_name, _) = resolved_topic_identities(
+        let mut by_name = HashMap::new();
+        resolved_topic_identities(
             [("t", [4u8; 16]), ("t", [0u8; 16])],
             &HashMap::new(),
-            &mut HashMap::new(),
+            &mut by_name,
             &mut HashMap::new(),
         );
         assert_eq!(
@@ -9316,7 +9317,7 @@ mod tests {
         );
         let mut names = HashMap::new();
         let mut ids = HashMap::new();
-        let (names, mut ids) = resolved_topic_identities(
+        resolved_topic_identities(
             [("orders", [1u8; 16])],
             &HashMap::new(),
             &mut names,
@@ -9330,13 +9331,14 @@ mod tests {
             .get(&[1u8; 16])
             .map(|name| name.as_ptr())
             .unwrap_or(std::ptr::null());
-        let mut names = names;
-        let (names, ids) = resolved_topic_identities(
+        let buckets = names.capacity();
+        resolved_topic_identities(
             [("orders", [1u8; 16])],
             &HashMap::new(),
             &mut names,
             &mut ids,
         );
+        assert!(names.capacity() >= buckets);
         assert_eq!(
             names.get_key_value("orders").map(|(name, _)| name.as_ptr()),
             Some(name_ptr)
