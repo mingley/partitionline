@@ -8466,12 +8466,15 @@ pub(crate) fn partition_infos_from(
     md: &MetadataResponse,
     only: Option<&str>,
 ) -> Result<Vec<PartitionInfo>> {
-    let mut order = Vec::new();
-    let mut parts: HashMap<String, Vec<PartitionMetadata>> = HashMap::new();
-    let mut topic_error: HashMap<String, i16> = HashMap::new();
-    let mut first_error: Option<(String, i16)> = None;
+    // Names stay borrowed from the metadata image until each kept partition
+    // copies its topic into PartitionInfo.
+    let mut order: Vec<&str> = Vec::new();
+    let mut parts: Vec<Vec<&PartitionMetadata>> = Vec::new();
+    let mut slots: HashMap<&str, usize> = HashMap::new();
+    let mut topic_error: HashMap<&str, i16> = HashMap::new();
+    let mut first_error: Option<(&str, i16)> = None;
     for tmd in &md.topics {
-        let Some(name) = tmd.name.as_ref() else {
+        let Some(name) = tmd.name.as_deref() else {
             continue;
         };
         if only.is_some_and(|wanted| name != wanted) {
@@ -8479,51 +8482,57 @@ pub(crate) fn partition_infos_from(
         }
         if tmd.error_code != 0 {
             if first_error.is_none() {
-                first_error = Some((name.clone(), tmd.error_code));
+                first_error = Some((name, tmd.error_code));
             }
-            if !topic_error.contains_key(name.as_str()) {
-                let _ = topic_error.insert(name.clone(), tmd.error_code);
+            if let std::collections::hash_map::Entry::Vacant(slot) = topic_error.entry(name) {
+                let _ = slot.insert(tmd.error_code);
             }
             continue;
         }
-        if !parts.contains_key(name.as_str()) {
-            order.push(name.clone());
-            let _ = parts.insert(name.clone(), Vec::new());
-        }
-        let Some(slot) = parts.get_mut(name.as_str()) else {
+        let slot = if let Some(&slot) = slots.get(name) {
+            slot
+        } else {
+            let slot = parts.len();
+            let _ = slots.insert(name, slot);
+            order.push(name);
+            parts.push(Vec::new());
+            slot
+        };
+        let Some(stored) = parts.get_mut(slot) else {
             continue;
         };
         for partition in &tmd.partitions {
             if partition.partition_index < 0 {
                 continue;
             }
-            if slot
+            if stored
                 .iter()
                 .any(|existing| existing.partition_index == partition.partition_index)
             {
                 continue;
             }
-            slot.push(partition.clone());
+            stored.push(partition);
         }
     }
     if let Some(wanted) = only {
-        if !parts.contains_key(wanted) {
+        if !slots.contains_key(wanted) {
             if let Some(code) = topic_error.get(wanted) {
-                return Err(Error::broker(*code, wanted.to_string()));
+                return Err(Error::broker(*code, wanted.to_owned()));
             }
             return Ok(Vec::new());
         }
     } else if parts.is_empty() {
         if let Some((name, code)) = first_error {
-            return Err(Error::broker(code, name));
+            return Err(Error::broker(code, name.to_owned()));
         }
     }
     let mut out = Vec::new();
-    for name in order {
-        if let Some(partitions) = parts.get(&name) {
-            for partition in partitions {
-                out.push(PartitionInfo::from_partition_metadata(&name, partition));
-            }
+    for (index, name) in order.into_iter().enumerate() {
+        let Some(partitions) = parts.get(index) else {
+            continue;
+        };
+        for partition in partitions {
+            out.push(PartitionInfo::from_partition_metadata(name, partition));
         }
     }
     Ok(out)
