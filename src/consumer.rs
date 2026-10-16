@@ -31,7 +31,10 @@ use crate::protocol::fetch::{
     INVALID_LOG_START_OFFSET,
 };
 use crate::protocol::group::Topic;
-use crate::protocol::offsets::{decode_list_offsets_topics_response, encode_list_offsets_request};
+use crate::protocol::offsets::{
+    decode_list_offsets_topics_response, encode_list_offsets_named_topics,
+    encode_list_offsets_request, minimum_version_for_timestamp, ListOffsetsPartitionRequest,
+};
 use crate::protocol::records::{
     split_record_batches, write_java_optional, write_java_optional_bytes,
     write_java_record_headers, BatchList, EncodedBatch, Header, SlotList, TimestampType,
@@ -6973,32 +6976,8 @@ impl Consumer {
             };
             self.connect_node(node, deadline).await?;
             let isolation = self.cfg.isolation_level.as_i8();
-            let minimum =
-                crate::protocol::offsets::minimum_version_for_timestamp(timestamp, isolation);
-            let uses_bootstrap = !self.conns.contains_key(&node)
-                && self
-                    .cluster
-                    .brokers
-                    .get(&node)
-                    .is_some_and(|addr| addr == self.conn.addr());
-            let version = if uses_bootstrap {
-                    self.versions.get(&LIST_OFFSETS).and_then(|v| {
-                        pick_version(v.min_version, v.max_version, minimum, 11)
-                    })
-                } else if let Some((min_version, max_version)) =
-                    self.list_offsets_ranges.get(&node).copied()
-                {
-                    pick_version(min_version, max_version, minimum, 11)
-                } else {
-                    // `connect_node` already stored the leader handshake. A missing
-                    // range means that handshake omitted ListOffsets.
-                    None
-                }
-                .ok_or_else(|| {
-                    Error::Unsupported(format!(
-                        "broker does not support requested ListOffsets selector/isolation (requires v{minimum}+)"
-                    ))
-                })?;
+            let minimum = minimum_version_for_timestamp(timestamp, isolation);
+            let version = self.list_offsets_version(node, minimum)?;
             let timeout = deadline.saturating_duration_since(Instant::now());
             if timeout.is_zero() {
                 return Err(Error::Timeout);
@@ -7093,6 +7072,297 @@ impl Consumer {
                 Err(e) => return Err(e),
             }
         }
+    }
+
+    fn list_offsets_version(&self, node: i32, minimum: i16) -> Result<i16> {
+        let uses_bootstrap = !self.conns.contains_key(&node)
+            && self
+                .cluster
+                .brokers
+                .get(&node)
+                .is_some_and(|addr| addr == self.conn.addr());
+        let version = if uses_bootstrap {
+            self.versions
+                .get(&LIST_OFFSETS)
+                .and_then(|range| pick_version(range.min_version, range.max_version, minimum, 11))
+        } else if let Some((min_version, max_version)) =
+            self.list_offsets_ranges.get(&node).copied()
+        {
+            pick_version(min_version, max_version, minimum, 11)
+        } else {
+            // `connect_node` already stored the leader handshake. A missing
+            // range means that handshake omitted ListOffsets.
+            None
+        };
+        version.ok_or_else(|| {
+            Error::Unsupported(format!(
+                "broker does not support requested ListOffsets selector/isolation (requires v{minimum}+)"
+            ))
+        })
+    }
+
+    /// ListOffsets for every query, one request per leader.
+    ///
+    /// `values` is the successful prefix in query order. `error` is the first
+    /// failure after that prefix. A shared leader sends one request.
+    async fn list_offset_queries<T: AsRef<str>>(
+        &mut self,
+        queries: &[(T, i32, i64)],
+        deadline: Instant,
+    ) -> ListedOffsets {
+        let mut slots: Vec<OffsetSlot> = Vec::new();
+        slots.resize_with(queries.len(), || None);
+        let mut pending: Vec<usize> = (0..queries.len()).collect();
+        let mut stop: Option<Error> = None;
+        while !pending.is_empty() && stop.is_none() && !prefix_failed(&slots) {
+            if let Err(error) = self.reject_pending_wakeup() {
+                stop = Some(error);
+                break;
+            }
+            if Instant::now() >= deadline {
+                stop = Some(Error::Timeout);
+                break;
+            }
+            self.resolve_list_offset_leaders(queries, &pending, deadline, &mut slots)
+                .await;
+            if prefix_failed(&slots) {
+                break;
+            }
+            let mut by_node: HashMap<i32, Vec<usize>> = HashMap::new();
+            for index in &pending {
+                let Some((topic, partition, _)) = queries.get(*index) else {
+                    continue;
+                };
+                match self.cluster.leader_id(topic.as_ref(), *partition) {
+                    Ok(node) => by_node.entry(node).or_default().push(*index),
+                    Err(error) => {
+                        if let Some(slot) = slots.get_mut(*index) {
+                            *slot = Some(Err(error));
+                        }
+                    }
+                }
+            }
+            pending.retain(|&index| matches!(slots.get(index), Some(None)));
+            if prefix_failed(&slots) {
+                break;
+            }
+            let mut nodes: Vec<i32> = by_node.keys().copied().collect();
+            nodes.sort_unstable();
+            for node in nodes {
+                let Some(indexes) = by_node.get(&node).cloned() else {
+                    continue;
+                };
+                if Instant::now() >= deadline {
+                    stop = Some(Error::Timeout);
+                    break;
+                }
+                if let Err(error) = self
+                    .list_offsets_on_leader(queries, &indexes, node, deadline, &mut slots)
+                    .await
+                {
+                    for index in &indexes {
+                        if matches!(slots.get(*index), Some(None)) {
+                            if let Some(slot) = slots.get_mut(*index) {
+                                *slot = Some(Err(error.clone()));
+                            }
+                        }
+                    }
+                    if prefix_failed(&slots) {
+                        break;
+                    }
+                }
+            }
+            pending.retain(|&index| matches!(slots.get(index), Some(None)));
+        }
+        listed_prefix(&slots, stop)
+    }
+
+    async fn resolve_list_offset_leaders<T: AsRef<str>>(
+        &mut self,
+        queries: &[(T, i32, i64)],
+        pending: &[usize],
+        deadline: Instant,
+        slots: &mut [OffsetSlot],
+    ) {
+        let Some(first) = pending.iter().copied().min() else {
+            return;
+        };
+        let mut missing_names = Vec::new();
+        let mut missing_indexes = Vec::new();
+        for index in pending {
+            let Some((topic, partition, _)) = queries.get(*index) else {
+                continue;
+            };
+            if self.cluster.leader_id(topic.as_ref(), *partition).is_err() {
+                missing_indexes.push(*index);
+                if !missing_names.iter().any(|name| *name == topic.as_ref()) {
+                    missing_names.push(topic.as_ref());
+                }
+            }
+        }
+        if missing_names.is_empty() {
+            return;
+        }
+        let earliest_missing = missing_indexes.iter().copied().min().unwrap_or(first);
+        if Instant::now() >= deadline {
+            if let Some(slot) = slots.get_mut(earliest_missing) {
+                *slot = Some(Err(Error::Timeout));
+            }
+            return;
+        }
+        if let Err(error) = self
+            .refresh_metadata_timeout_ref(
+                Some(missing_names.as_slice()),
+                remaining_offset_timeout(deadline, Instant::now()),
+            )
+            .await
+        {
+            if let Some(slot) = slots.get_mut(earliest_missing) {
+                *slot = Some(Err(error));
+            }
+            return;
+        }
+        for index in missing_indexes {
+            let Some((topic, partition, _)) = queries.get(index) else {
+                continue;
+            };
+            if let Err(error) = self.cluster.leader_id(topic.as_ref(), *partition) {
+                if let Some(slot) = slots.get_mut(index) {
+                    *slot = Some(Err(error));
+                }
+            }
+        }
+    }
+
+    async fn list_offsets_on_leader<T: AsRef<str>>(
+        &mut self,
+        queries: &[(T, i32, i64)],
+        indexes: &[usize],
+        node: i32,
+        deadline: Instant,
+        slots: &mut [OffsetSlot],
+    ) -> Result<()> {
+        self.connect_node(node, deadline).await?;
+        let isolation = self.cfg.isolation_level.as_i8();
+        let mut minimum = 1i16;
+        for index in indexes {
+            let Some((_, _, timestamp)) = queries.get(*index) else {
+                continue;
+            };
+            minimum = minimum.max(minimum_version_for_timestamp(*timestamp, isolation));
+        }
+        let version = self.list_offsets_version(node, minimum)?;
+        let timeout = deadline.saturating_duration_since(Instant::now());
+        if timeout.is_zero() {
+            return Err(Error::Timeout);
+        }
+        let topics = list_offset_topic_groups(queries, indexes, &self.cluster);
+        let body = {
+            let conn = self.broker_conn_mut(node)?;
+            conn.roundtrip(
+                LIST_OFFSETS,
+                version,
+                |buf| {
+                    encode_list_offsets_named_topics(
+                        buf,
+                        version,
+                        isolation,
+                        &topics,
+                        duration_millis_i32(timeout),
+                    )
+                },
+                timeout,
+            )
+            .await
+        };
+        let body = match body {
+            Ok(body) => body,
+            Err(error) if error.is_retriable() => {
+                self.drop_broker_conn(node);
+                return Ok(());
+            }
+            Err(error) => return Err(error),
+        };
+        let mut cursor = body.as_ref();
+        let (response, _) = decode_list_offsets_topics_response(&mut cursor, version)?;
+        if !cursor.is_empty() {
+            return Err(Error::protocol("trailing ListOffsets response bytes"));
+        }
+        let mut by_topic: HashMap<String, HashMap<i32, VecDeque<_>>> = HashMap::new();
+        for topic in response {
+            let parts = by_topic.entry(topic.name).or_default();
+            for partition in topic.partitions {
+                parts
+                    .entry(partition.partition_index)
+                    .or_default()
+                    .push_back(partition);
+            }
+        }
+        let mut fenced = Vec::new();
+        let mut fenced_indexes = Vec::new();
+        for index in indexes {
+            let Some((topic, partition, _)) = queries.get(*index) else {
+                continue;
+            };
+            let topic_name = topic.as_ref();
+            let Some(part) = by_topic
+                .get_mut(topic_name)
+                .and_then(|parts| parts.get_mut(partition))
+                .and_then(VecDeque::pop_front)
+            else {
+                if let Some(slot) = slots.get_mut(*index) {
+                    *slot = Some(Err(Error::protocol(
+                        "ListOffsets missing requested partition",
+                    )));
+                }
+                continue;
+            };
+            if by_topic
+                .get(topic_name)
+                .and_then(|parts| parts.get(partition))
+                .is_some_and(|left| !left.is_empty())
+            {
+                if let Some(slot) = slots.get_mut(*index) {
+                    *slot = Some(Err(Error::protocol("duplicate ListOffsets result")));
+                }
+                continue;
+            }
+            if part.error_code == 0 {
+                if let Some(slot) = slots.get_mut(*index) {
+                    *slot = Some(Ok((part.offset, part.timestamp, part.leader_epoch)));
+                }
+                continue;
+            }
+            let error = Error::broker(part.error_code, "ListOffsets");
+            if matches!(
+                part.error_code,
+                error::FENCED_LEADER_EPOCH | error::UNKNOWN_LEADER_EPOCH
+            ) {
+                fenced.push((Arc::<str>::from(topic_name), *partition));
+                fenced_indexes.push(*index);
+                continue;
+            }
+            if error.is_retriable() {
+                self.cluster.invalidate_topic(topic_name);
+                self.drop_broker_conn(node);
+                continue;
+            }
+            if let Some(slot) = slots.get_mut(*index) {
+                *slot = Some(Err(error));
+            }
+        }
+        if !fenced.is_empty() {
+            if let Err(error) = self.recover_leader_epochs(&fenced, deadline).await {
+                for index in fenced_indexes {
+                    if let Some(slot) = slots.get_mut(index) {
+                        if slot.is_none() {
+                            *slot = Some(Err(error.clone()));
+                        }
+                    }
+                }
+            }
+        }
+        Ok(())
     }
 
     /// Set the next fetch offset for an assigned partition (Java
@@ -7194,25 +7464,19 @@ impl Consumer {
                 .map(|(topic, partition, _)| (topic.as_ref(), *partition)),
         )?;
         let deadline = offset_lookup_deadline(self.cfg.request_timeout)?;
-        let count = self.assigned.len();
-        for index in 0..count {
-            let Some((topic, partition, _)) = self.assigned.get(index) else {
-                continue;
-            };
-            let topic = Arc::clone(topic);
-            let partition = *partition;
-            let offset = self
-                .list_offset_at(
-                    topic.as_ref(),
-                    partition,
-                    timestamp,
-                    remaining_offset_timeout(deadline, Instant::now()),
-                )
-                .await?
-                .0;
-            self.seek(topic.as_ref(), partition, offset)?;
+        let queries: Vec<(Arc<str>, i32, i64)> = self
+            .assigned
+            .iter()
+            .map(|(topic, partition, _)| (Arc::clone(topic), *partition, timestamp))
+            .collect();
+        let listed = self.list_offset_queries(&queries, deadline).await;
+        for ((topic, partition, _), (offset, _, _)) in queries.iter().zip(&listed.values) {
+            self.seek(topic.as_ref(), *partition, *offset)?;
         }
-        Ok(())
+        match listed.error {
+            Some(error) => Err(error),
+            None => Ok(()),
+        }
     }
 
     async fn seek_partitions(
@@ -7237,19 +7501,18 @@ impl Consumer {
                 .map(|(topic, partition)| (topic.as_str(), *partition)),
         )?;
         let deadline = offset_lookup_deadline(self.cfg.request_timeout)?;
-        for (topic, partition) in partitions {
-            let offset = self
-                .list_offset_at(
-                    &topic,
-                    partition,
-                    timestamp,
-                    remaining_offset_timeout(deadline, Instant::now()),
-                )
-                .await?
-                .0;
-            self.seek(&topic, partition, offset)?;
+        let queries: Vec<(String, i32, i64)> = partitions
+            .into_iter()
+            .map(|(topic, partition)| (topic, partition, timestamp))
+            .collect();
+        let listed = self.list_offset_queries(&queries, deadline).await;
+        for ((topic, partition, _), (offset, _, _)) in queries.iter().zip(&listed.values) {
+            self.seek(topic, *partition, *offset)?;
         }
-        Ok(())
+        match listed.error {
+            Some(error) => Err(error),
+            None => Ok(()),
+        }
     }
 
     /// Partition metadata for `topic` (Java `partitionsFor`: leader, replicas, ISR, offline replicas, leader epoch).
@@ -7425,16 +7688,16 @@ impl Consumer {
                 .map(|(tp, _)| (tp.topic.as_str(), tp.partition)),
         )?;
         let deadline = offset_lookup_deadline(timeout)?;
+        let looked: Vec<(String, i32, i64)> = queries
+            .iter()
+            .map(|(tp, timestamp)| (tp.topic.clone(), tp.partition, *timestamp))
+            .collect();
+        let listed = self.list_offset_queries(&looked, deadline).await;
+        if let Some(error) = listed.error {
+            return Err(error);
+        }
         let mut out = Vec::new();
-        for (tp, timestamp) in queries {
-            let (offset, ts, epoch) = self
-                .list_offset_at(
-                    &tp.topic,
-                    tp.partition,
-                    timestamp,
-                    remaining_offset_timeout(deadline, Instant::now()),
-                )
-                .await?;
+        for ((tp, _), (offset, ts, epoch)) in queries.into_iter().zip(listed.values) {
             let found = if offset < 0 {
                 None
             } else {
@@ -7462,20 +7725,19 @@ impl Consumer {
                 .map(|tp| (tp.topic.as_str(), tp.partition)),
         )?;
         let deadline = offset_lookup_deadline(timeout)?;
-        let mut out = Vec::new();
-        for tp in partitions {
-            let offset = self
-                .list_offset_at(
-                    &tp.topic,
-                    tp.partition,
-                    timestamp,
-                    remaining_offset_timeout(deadline, Instant::now()),
-                )
-                .await?
-                .0;
-            out.push((tp, offset));
+        let queries: Vec<(String, i32, i64)> = partitions
+            .iter()
+            .map(|tp| (tp.topic.clone(), tp.partition, timestamp))
+            .collect();
+        let listed = self.list_offset_queries(&queries, deadline).await;
+        if let Some(error) = listed.error {
+            return Err(error);
         }
-        Ok(out)
+        Ok(partitions
+            .into_iter()
+            .zip(listed.values)
+            .map(|(tp, (offset, _, _))| (tp, offset))
+            .collect())
     }
 
     fn drop_pending_for(&mut self, topic: &str, partition: i32) {
@@ -8681,6 +8943,81 @@ fn require_fetch_offset(offset: i64) -> Result<()> {
 ///
 /// Java `beginningOffsets`, `endOffsets`, and `offsetsForTimes` spend the
 /// caller timeout once. A later partition sees only the time still left.
+type OffsetSlot = Option<Result<(i64, i64, i32)>>;
+
+struct ListedOffsets {
+    values: Vec<(i64, i64, i32)>,
+    error: Option<Error>,
+}
+
+fn prefix_failed(slots: &[OffsetSlot]) -> bool {
+    let mut saw_gap = false;
+    for slot in slots {
+        match slot {
+            Some(Err(_)) => return !saw_gap,
+            Some(Ok(_)) if saw_gap => return false,
+            Some(Ok(_)) => {}
+            None => saw_gap = true,
+        }
+    }
+    false
+}
+
+fn listed_prefix(slots: &[OffsetSlot], stop: Option<Error>) -> ListedOffsets {
+    let mut values = Vec::new();
+    for slot in slots {
+        match slot {
+            Some(Ok(value)) => values.push(*value),
+            Some(Err(error)) => {
+                return ListedOffsets {
+                    values,
+                    error: Some(error.clone()),
+                };
+            }
+            None => {
+                return ListedOffsets {
+                    values,
+                    error: Some(stop.unwrap_or(Error::Timeout)),
+                };
+            }
+        }
+    }
+    ListedOffsets {
+        values,
+        error: None,
+    }
+}
+
+fn list_offset_topic_groups<'a, T: AsRef<str>>(
+    queries: &'a [(T, i32, i64)],
+    indexes: &[usize],
+    cluster: &Cluster,
+) -> Vec<(&'a str, Vec<ListOffsetsPartitionRequest>)> {
+    let mut groups: Vec<(&str, Vec<ListOffsetsPartitionRequest>)> = Vec::new();
+    let mut slots: HashMap<&str, usize> = HashMap::new();
+    for index in indexes {
+        let Some((topic, partition, timestamp)) = queries.get(*index) else {
+            continue;
+        };
+        let topic = topic.as_ref();
+        let part = ListOffsetsPartitionRequest::new(
+            *partition,
+            cluster.leader_epoch(topic, *partition),
+            *timestamp,
+        );
+        if let Some(&slot) = slots.get(topic) {
+            if let Some((_, parts)) = groups.get_mut(slot) {
+                parts.push(part);
+                continue;
+            }
+        }
+        let slot = groups.len();
+        let _ = slots.insert(topic, slot);
+        groups.push((topic, vec![part]));
+    }
+    groups
+}
+
 pub(crate) fn offset_lookup_deadline(timeout: Duration) -> Result<Instant> {
     Instant::now()
         .checked_add(timeout)

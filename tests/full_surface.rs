@@ -3366,6 +3366,42 @@ async fn admin_list_offsets_batches_by_leader() {
 }
 
 #[tokio::test]
+async fn consumer_end_offsets_batches_by_leader() {
+    let mock = common::Mock::start_two_node().await;
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let created = admin
+        .create_topics(&[NewTopic::new("u", 2, 1)], 10_000, false)
+        .await
+        .unwrap();
+    assert_eq!(created[0].error_code, 0);
+    admin.close().await.unwrap();
+
+    let mut consumer = Consumer::new(ConsumerConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    let listed = consumer
+        .end_offsets([("t", 0), ("u", 0), ("u", 1)])
+        .await
+        .unwrap();
+    assert_eq!(listed.len(), 3);
+    assert_eq!(listed[0].0, TopicPartition::new("t", 0));
+    assert_eq!(listed[1].0, TopicPartition::new("u", 0));
+    assert_eq!(listed[2].0, TopicPartition::new("u", 1));
+    let requests = mock.list_offsets_requests();
+    assert!(
+        requests.iter().any(|(node, n, _, _)| *node == 2 && *n == 1),
+        "t-0 must be a one-partition ListOffsets on its leader, got {requests:?}"
+    );
+    assert!(
+        requests
+            .iter()
+            .any(|(node, n, isolation, _)| *node == 1 && *n == 2 && *isolation == 0),
+        "both u partitions must share one ListOffsets on node 1, got {requests:?}"
+    );
+    consumer.close().await.unwrap();
+}
+
+#[tokio::test]
 async fn fetch_offset_out_of_range_jumps_to_log_start() {
     let mock = common::Mock::start().await;
     mock.set_log_start("t", 0, 10);
