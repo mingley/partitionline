@@ -4481,11 +4481,79 @@ fn alter_configs_one_len(flexible: bool, name: &str, configs: &[TopicConfig]) ->
     Ok(total)
 }
 
+/// One AlterConfigs resource whose name and config entries are borrowed.
+pub(crate) struct BorrowedAlterConfigsResource<'a> {
+    /// Resource type (`RESOURCE_TOPIC`, …).
+    pub resource_type: i8,
+    /// Resource name.
+    pub name: &'a str,
+    /// Replacement configs for this resource.
+    pub configs: Vec<BorrowedTopicConfig<'a>>,
+}
+
+trait AlterConfigsResourceView {
+    type Config: TopicConfigView;
+    fn alter_configs_type(&self) -> i8;
+    fn alter_configs_name(&self) -> &str;
+    fn alter_configs_entries(&self) -> &[Self::Config];
+}
+
+impl AlterConfigsResourceView for AlterConfigsResource {
+    type Config = TopicConfig;
+
+    fn alter_configs_type(&self) -> i8 {
+        self.resource_type
+    }
+
+    fn alter_configs_name(&self) -> &str {
+        &self.name
+    }
+
+    fn alter_configs_entries(&self) -> &[Self::Config] {
+        &self.configs
+    }
+}
+
+impl<'a> AlterConfigsResourceView for BorrowedAlterConfigsResource<'a> {
+    type Config = BorrowedTopicConfig<'a>;
+
+    fn alter_configs_type(&self) -> i8 {
+        self.resource_type
+    }
+
+    fn alter_configs_name(&self) -> &str {
+        self.name
+    }
+
+    fn alter_configs_entries(&self) -> &[Self::Config] {
+        &self.configs
+    }
+}
+
 /// AlterConfigs Resources of N (Java `alterConfigs(Map)`).
 pub fn encode_alter_configs_resources_request(
     buf: &mut BytesMut,
     version: i16,
     resources: &[AlterConfigsResource],
+    validate_only: bool,
+) -> crate::error::Result<()> {
+    encode_alter_configs_resource_views(buf, version, resources, validate_only)
+}
+
+/// Encode AlterConfigs resources whose names and config entries are borrowed.
+pub(crate) fn encode_alter_configs_named(
+    buf: &mut BytesMut,
+    version: i16,
+    resources: &[BorrowedAlterConfigsResource<'_>],
+    validate_only: bool,
+) -> crate::error::Result<()> {
+    encode_alter_configs_resource_views(buf, version, resources, validate_only)
+}
+
+fn encode_alter_configs_resource_views<T: AlterConfigsResourceView>(
+    buf: &mut BytesMut,
+    version: i16,
+    resources: &[T],
     validate_only: bool,
 ) -> crate::error::Result<()> {
     let flexible = alter_configs_flexible(version)?;
@@ -4496,13 +4564,14 @@ pub fn encode_alter_configs_resources_request(
         buf.reserve(needed - buf.capacity());
     }
     buf::put_array_len(buf, flexible, Some(resources.len()))?;
-    for r in resources {
-        buf.put_i8(r.resource_type);
-        buf::put_string(buf, flexible, Some(&r.name))?;
-        buf::put_array_len(buf, flexible, Some(r.configs.len()))?;
-        for c in &r.configs {
-            buf::put_string(buf, flexible, Some(&c.name))?;
-            buf::put_string(buf, flexible, c.value.as_deref())?;
+    for resource in resources {
+        buf.put_i8(resource.alter_configs_type());
+        buf::put_string(buf, flexible, Some(resource.alter_configs_name()))?;
+        let configs = resource.alter_configs_entries();
+        buf::put_array_len(buf, flexible, Some(configs.len()))?;
+        for config in configs {
+            buf::put_string(buf, flexible, Some(config.topic_config_name()))?;
+            buf::put_string(buf, flexible, config.topic_config_value())?;
             if flexible {
                 buf::put_empty_tagged_fields(buf);
             }
@@ -4519,17 +4588,27 @@ pub fn encode_alter_configs_resources_request(
     Ok(())
 }
 
-fn alter_configs_request_len(flexible: bool, resources: &[AlterConfigsResource]) -> Result<usize> {
+fn alter_configs_request_len<T: AlterConfigsResourceView>(
+    flexible: bool,
+    resources: &[T],
+) -> Result<usize> {
     let mut total = describe_array_len(flexible, resources.len())?;
     for resource in resources {
         total = add_describe_len(total, 1)?;
-        total = add_describe_len(total, describe_string_len(flexible, Some(&resource.name))?)?;
-        total = add_describe_len(total, describe_array_len(flexible, resource.configs.len())?)?;
-        for config in &resource.configs {
-            total = add_describe_len(total, describe_string_len(flexible, Some(&config.name))?)?;
+        total = add_describe_len(
+            total,
+            describe_string_len(flexible, Some(resource.alter_configs_name()))?,
+        )?;
+        let configs = resource.alter_configs_entries();
+        total = add_describe_len(total, describe_array_len(flexible, configs.len())?)?;
+        for config in configs {
             total = add_describe_len(
                 total,
-                describe_string_len(flexible, config.value.as_deref())?,
+                describe_string_len(flexible, Some(config.topic_config_name()))?,
+            )?;
+            total = add_describe_len(
+                total,
+                describe_string_len(flexible, config.topic_config_value())?,
             )?;
             if flexible {
                 total = add_describe_len(total, buf::unsigned_varint_size(0))?;
@@ -29300,6 +29379,45 @@ mod tests {
             assert!(cur.is_empty());
             assert_eq!(decoded, resources);
             assert!(validate_only);
+        }
+    }
+
+    #[test]
+    fn alter_configs_named_resources_match_owned_resources() {
+        let owned = [AlterConfigsResource {
+            resource_type: RESOURCE_TOPIC,
+            name: "orders-topic-name-is-long".into(),
+            configs: vec![
+                TopicConfig {
+                    name: "cleanup.policy".into(),
+                    value: Some("compact".into()),
+                },
+                TopicConfig {
+                    name: "retention.ms".into(),
+                    value: None,
+                },
+            ],
+        }];
+        let named = [BorrowedAlterConfigsResource {
+            resource_type: RESOURCE_TOPIC,
+            name: "orders-topic-name-is-long",
+            configs: vec![
+                BorrowedTopicConfig {
+                    name: "cleanup.policy",
+                    value: Some("compact"),
+                },
+                BorrowedTopicConfig {
+                    name: "retention.ms",
+                    value: None,
+                },
+            ],
+        }];
+        for version in 0..=2 {
+            let mut expected = BytesMut::new();
+            encode_alter_configs_resources_request(&mut expected, version, &owned, true).unwrap();
+            let mut got = BytesMut::new();
+            encode_alter_configs_named(&mut got, version, &named, true).unwrap();
+            assert_eq!(got.as_ref(), expected.as_ref(), "version {version}");
         }
     }
 

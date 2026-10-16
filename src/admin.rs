@@ -45,7 +45,7 @@ use crate::protocol::admin::{
     decode_push_telemetry_response, decode_renew_delegation_token_response,
     decode_share_group_describe_response, decode_unregister_broker_response,
     decode_update_features_response, encode_allocate_producer_ids_request,
-    encode_alter_client_quotas_request, encode_alter_configs_resources_request,
+    encode_alter_client_quotas_request, encode_alter_configs_named,
     encode_alter_partition_reassignments_named, encode_alter_replica_log_dirs_request,
     encode_alter_share_group_offsets_request, encode_alter_user_scram_credentials_request,
     encode_assign_replicas_to_dirs_request, encode_consumer_group_describe_request,
@@ -64,12 +64,12 @@ use crate::protocol::admin::{
     encode_push_telemetry_request, encode_renew_delegation_token_request,
     encode_share_group_describe_request, encode_unregister_broker_request,
     encode_update_features_request, AlterConfigsResource, BorrowedAlterConfig,
-    BorrowedAlterableResource, BorrowedCreatableTopic, BorrowedCreatePartitionsTopic,
-    BorrowedReassignmentPartition, BorrowedReplicaAssignment, BorrowedTopicConfig,
-    CreateTopicsRequest, DeleteRecordsPartition, DeleteTopicState, DescribeConfigsResource,
-    DescribeConfigsResult, FeatureUpdateKey, ScramCredentialDeletion, ScramCredentialUpsertion,
-    TopicConfig, TopicResult, RESOURCE_BROKER, RESOURCE_BROKER_LOGGER, RESOURCE_CLIENT_METRICS,
-    RESOURCE_GROUP, RESOURCE_TOPIC,
+    BorrowedAlterConfigsResource, BorrowedAlterableResource, BorrowedCreatableTopic,
+    BorrowedCreatePartitionsTopic, BorrowedReassignmentPartition, BorrowedReplicaAssignment,
+    BorrowedTopicConfig, CreateTopicsRequest, DeleteRecordsPartition, DeleteTopicState,
+    DescribeConfigsResource, DescribeConfigsResult, FeatureUpdateKey, ScramCredentialDeletion,
+    ScramCredentialUpsertion, TopicResult, RESOURCE_BROKER, RESOURCE_BROKER_LOGGER,
+    RESOURCE_CLIENT_METRICS, RESOURCE_GROUP, RESOURCE_TOPIC,
 };
 use crate::protocol::api::{
     decode_api_versions_response, decode_metadata_response, decode_metadata_response_into,
@@ -3244,6 +3244,26 @@ struct LeaderFrame {
 }
 
 type LeaderExchange = HashMap<i32, (i16, Result<Bytes>)>;
+
+fn borrowed_alter_configs_resources(
+    updates: &[ConfigReplacement],
+) -> Vec<BorrowedAlterConfigsResource<'_>> {
+    updates
+        .iter()
+        .map(|update| BorrowedAlterConfigsResource {
+            resource_type: update.resource.resource_type,
+            name: update.resource.name.as_str(),
+            configs: update
+                .configs
+                .iter()
+                .map(|(name, value)| BorrowedTopicConfig {
+                    name: name.as_str(),
+                    value: value.as_deref(),
+                })
+                .collect(),
+        })
+        .collect()
+}
 
 fn borrowed_alterable_resources(
     updates: &[ConfigResourceUpdate],
@@ -8235,21 +8255,7 @@ impl Admin {
         if updates.is_empty() {
             return Ok(Vec::new());
         }
-        let resources: Vec<AlterConfigsResource> = updates
-            .iter()
-            .map(|u| AlterConfigsResource {
-                resource_type: u.resource.resource_type,
-                name: u.resource.name.clone(),
-                configs: u
-                    .configs
-                    .iter()
-                    .map(|(n, v)| TopicConfig {
-                        name: n.clone(),
-                        value: v.clone(),
-                    })
-                    .collect(),
-            })
-            .collect();
+        let resources = borrowed_alter_configs_resources(updates);
         let version = self.legacy_alter_version.ok_or_else(|| {
             Error::Unsupported("broker does not support AlterConfigs v0-2".into())
         })?;
@@ -8257,9 +8263,7 @@ impl Admin {
             .roundtrip_bootstrap(
                 ALTER_CONFIGS,
                 version,
-                |buf| {
-                    encode_alter_configs_resources_request(buf, version, &resources, validate_only)
-                },
+                |buf| encode_alter_configs_named(buf, version, &resources, validate_only),
                 timeout,
             )
             .await?;
@@ -14885,7 +14889,7 @@ mod tests {
     use super::*;
     use crate::protocol::admin::{
         decode_list_config_resources_response, encode_list_config_resources_response,
-        CreatedTopicConfig, ListConfigResourcesResponse,
+        CreatedTopicConfig, ListConfigResourcesResponse, TopicConfig,
     };
     use bytes::BytesMut;
 
