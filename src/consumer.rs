@@ -5437,7 +5437,7 @@ impl Consumer {
                         crate::RecordBatch::NO_PARTITION_LEADER_EPOCH,
                     );
                     self.drop_pending_for(&topic, partition);
-                    let _ = completed.insert(&topic, partition, ());
+                    let _ = completed.insert_shared(&topic, partition, ());
                 }
             }
             if !fenced.is_empty() {
@@ -6105,7 +6105,7 @@ impl Consumer {
                         crate::RecordBatch::NO_PARTITION_LEADER_EPOCH,
                     );
                     self.drop_pending_for(name, partition);
-                    let _ = completed.insert(name, partition, ());
+                    let _ = completed.insert_shared(name, partition, ());
                 } else {
                     need_offsets.push((Arc::clone(name), partition, crate::EARLIEST_TIMESTAMP));
                 }
@@ -6120,7 +6120,7 @@ impl Consumer {
                         crate::RecordBatch::NO_PARTITION_LEADER_EPOCH,
                     );
                     self.drop_pending_for(name, partition);
-                    let _ = completed.insert(name, partition, ());
+                    let _ = completed.insert_shared(name, partition, ());
                 } else {
                     need_offsets.push((Arc::clone(name), partition, crate::LATEST_TIMESTAMP));
                 }
@@ -6293,7 +6293,8 @@ impl Consumer {
                 if self.cfg.rack.is_some() {
                     if let Some(replica) = part.preferred_read_replica() {
                         if replica != node {
-                            let _prev = self.preferred.insert(&name, part.partition, replica);
+                            let _prev =
+                                self.preferred.insert_shared(&name, part.partition, replica);
                             retry = retry.merge(FetchRetry::Redirect);
                             continue;
                         }
@@ -6391,9 +6392,11 @@ impl Consumer {
                 let isolation = self.cfg.isolation_level;
                 let mut aborted = if isolation == crate::IsolationLevel::ReadCommitted {
                     if !self.aborted.contains(&name, part.partition) {
-                        let _previous =
-                            self.aborted
-                                .insert(&name, part.partition, AbortedIntervals::default());
+                        let _previous = self.aborted.insert_shared(
+                            &name,
+                            part.partition,
+                            AbortedIntervals::default(),
+                        );
                     }
                     self.aborted.get_mut(&name, part.partition)
                 } else {
@@ -6704,9 +6707,9 @@ impl Consumer {
                 if let Some(n) = next {
                     self.advance_indexed(&name, part.partition, n);
                     self.set_last_fetched_epoch(&name, part.partition, last_epoch);
-                    let _ = completed.insert(name.as_ref(), part.partition, ());
+                    let _ = completed.insert_shared(&name, part.partition, ());
                 } else if !*budget_reached {
-                    let _ = completed.insert(name.as_ref(), part.partition, ());
+                    let _ = completed.insert_shared(&name, part.partition, ());
                 }
                 if *budget_reached {
                     break;
@@ -7845,6 +7848,42 @@ fn retained_topics_share_a_long_name() {
             .map(|held| held.last_stable_offset),
         Some(1)
     );
+}
+
+#[test]
+fn shared_topic_inserts_keep_the_callers_allocation() {
+    let long: Arc<str> = Arc::from("topic-name-longer-than-twenty-three");
+    let stored = Arc::as_ptr(&long);
+    let mut completed = PartitionMap::new();
+    let _ = completed.insert_shared(&long, 0, ());
+    let _ = completed.insert_shared(&long, 1, ());
+    let mut preferred = PartitionMap::new();
+    let _ = preferred.insert_shared(&long, 2, 7i32);
+    assert_eq!(heap_topic_ptr(&completed), stored);
+    assert_eq!(heap_topic_ptr(&preferred), stored);
+    assert!(completed.contains(long.as_ref(), 0));
+    assert!(completed.contains(long.as_ref(), 1));
+    assert_eq!(preferred.get(long.as_ref(), 2).copied(), Some(7));
+    let short: Arc<str> = Arc::from("orders");
+    let _ = completed.insert_shared(&short, 0, ());
+    let inline = completed
+        .topics
+        .keys()
+        .find(|topic| topic.as_str() == "orders");
+    assert!(matches!(inline, Some(TopicName::Inline(_, _))));
+}
+
+#[cfg(test)]
+fn heap_topic_ptr<V>(map: &PartitionMap<V>) -> *const str {
+    let topic = map
+        .topics
+        .keys()
+        .find(|topic| topic.as_str().len() > 23)
+        .expect("long topic");
+    let TopicName::Heap(shared) = topic else {
+        panic!("long topic was copied");
+    };
+    Arc::as_ptr(shared)
 }
 
 #[test]
