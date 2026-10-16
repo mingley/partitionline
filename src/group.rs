@@ -71,7 +71,12 @@ pub(crate) fn truncate_group_reason(reason: &str) -> String {
 
 /// Split `partitions` across sorted `members` (Java range assignor).
 pub fn assign_range(members: &[String], partitions: &[i32]) -> HashMap<String, Vec<i32>> {
-    let mut order: Vec<&str> = members.iter().map(String::as_str).collect();
+    let members: Vec<&str> = members.iter().map(String::as_str).collect();
+    assign_range_names(&members, partitions)
+}
+
+fn assign_range_names(members: &[&str], partitions: &[i32]) -> HashMap<String, Vec<i32>> {
+    let mut order = members.to_vec();
     order.sort_unstable();
     order.dedup();
     let mut partitions: Vec<i32> = partitions.iter().copied().filter(|p| *p >= 0).collect();
@@ -109,8 +114,9 @@ pub fn assign_sticky(
     partitions: &[i32],
     prev: &HashMap<String, Vec<i32>>,
 ) -> HashMap<String, Vec<i32>> {
+    let members: Vec<&str> = members.iter().map(String::as_str).collect();
     assign_sticky_from(
-        members,
+        &members,
         partitions,
         prev.iter()
             .map(|(member, parts)| (member.as_str(), parts.as_slice())),
@@ -118,16 +124,16 @@ pub fn assign_sticky(
 }
 
 fn assign_sticky_from<'a>(
-    members: &[String],
+    members: &[&str],
     partitions: &[i32],
     prev: impl IntoIterator<Item = (&'a str, &'a [i32])>,
 ) -> HashMap<String, Vec<i32>> {
-    let member_set: std::collections::HashSet<&str> = members.iter().map(String::as_str).collect();
+    let member_set: std::collections::HashSet<&str> = members.iter().copied().collect();
     let part_set: std::collections::HashSet<i32> =
         partitions.iter().copied().filter(|p| *p >= 0).collect();
     let mut out: HashMap<String, Vec<i32>> = HashMap::new();
     for m in members {
-        let _ = out.insert(m.clone(), Vec::new());
+        let _ = out.insert((*m).to_owned(), Vec::new());
     }
     let mut used = std::collections::HashSet::new();
     for (m, parts) in prev {
@@ -268,10 +274,11 @@ pub fn assign_sticky_topics(
     for member in members {
         let _ = out.insert(member.clone(), Vec::new());
     }
+    let names: Vec<&str> = members.iter().map(String::as_str).collect();
     let previous = previous_partitions_by_topic(prev);
     for (topic, parts) in topics {
         let prev_for_topic = sticky_previous(previous.get(topic.as_str()));
-        for (member, ps) in assign_sticky_from(members, parts, prev_for_topic) {
+        for (member, ps) in assign_sticky_from(&names, parts, prev_for_topic) {
             if let Some(slot) = out.get_mut(&member) {
                 for p in ps {
                     slot.push((topic.clone(), p));
@@ -297,7 +304,7 @@ pub fn assign_range_subscribed(
             .get(topic.as_str())
             .map(Vec::as_slice)
             .unwrap_or(&[]);
-        for (member, ps) in assign_range(members, parts) {
+        for (member, ps) in assign_range_names(members, parts) {
             if let Some(slot) = out.get_mut(&member) {
                 for p in ps {
                     slot.push((topic.clone(), p));
@@ -439,8 +446,8 @@ pub fn assign_cooperative_sticky_subscribed(
     cooperative_filter(assign_sticky_subscribed(member_subs, topics, prev), prev)
 }
 
-fn members_by_topic(member_subs: &[(String, Vec<String>)]) -> HashMap<&str, Vec<String>> {
-    let mut out: HashMap<&str, Vec<String>> = HashMap::new();
+fn members_by_topic(member_subs: &[(String, Vec<String>)]) -> HashMap<&str, Vec<&str>> {
+    let mut out: HashMap<&str, Vec<&str>> = HashMap::new();
     for (id, subs) in member_subs {
         let mut seen = HashSet::new();
         for topic in subs {
@@ -448,9 +455,9 @@ fn members_by_topic(member_subs: &[(String, Vec<String>)]) -> HashMap<&str, Vec<
                 continue;
             }
             if let Some(members) = out.get_mut(topic.as_str()) {
-                members.push(id.clone());
+                members.push(id.as_str());
             } else {
-                let _ = out.insert(topic.as_str(), vec![id.clone()]);
+                let _ = out.insert(topic.as_str(), vec![id.as_str()]);
             }
         }
     }
