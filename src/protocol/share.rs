@@ -1894,7 +1894,6 @@ pub(crate) fn decode_share_fetch_response_reusing<B: Buf>(
             } else {
                 (Vec::new(), Vec::new())
             };
-            records.clear();
             acquired.clear();
             let partition = buf::get_i32(buf)?;
             let error_code = buf::get_i16(buf)?;
@@ -1916,6 +1915,7 @@ pub(crate) fn decode_share_fetch_response_reusing<B: Buf>(
                     ));
                 }
             };
+            let mut used_batches = 0usize;
             if !rec_bytes.is_empty() {
                 let mut rec_buf = rec_bytes;
                 while rec_buf.has_remaining() {
@@ -1934,9 +1934,18 @@ pub(crate) fn decode_share_fetch_response_reusing<B: Buf>(
                     {
                         return Err(Error::protocol("ShareFetch decoded-record budget exceeded"));
                     }
-                    let batch = records::decode_record_batch_with_limit(
+                    let spare_records = if used_batches < records.len() {
+                        records
+                            .get_mut(used_batches)
+                            .map(|batch| std::mem::take(&mut batch.records))
+                            .unwrap_or_default()
+                    } else {
+                        Vec::new()
+                    };
+                    let batch = records::decode_record_batch_reusing(
                         &mut rec_buf,
                         remaining_decode_bytes,
+                        spare_records,
                     )?;
                     let mut logical_bytes = 61usize;
                     for record in &batch.records {
@@ -1965,9 +1974,17 @@ pub(crate) fn decode_share_fetch_response_reusing<B: Buf>(
                         .ok_or_else(|| {
                             Error::protocol("ShareFetch decoded-record budget exceeded")
                         })?;
-                    records.push(batch);
+                    if used_batches < records.len() {
+                        if let Some(slot) = records.get_mut(used_batches) {
+                            *slot = batch;
+                        }
+                    } else {
+                        records.push(batch);
+                    }
+                    used_batches = used_batches.saturating_add(1);
                 }
             }
+            records.truncate(used_batches);
             let an = buf::get_array_len(buf, flexible)?.unwrap_or(0);
             charge_share_storage(
                 &mut remaining_decode_bytes,
@@ -4445,6 +4462,65 @@ mod tests {
             err.to_string()
                 .contains("ShareFetch decoded-record budget exceeded"),
             "{err}"
+        );
+    }
+
+    #[test]
+    fn a_second_share_fetch_response_reuses_its_record_list() {
+        let topics = vec![ShareFetchedTopic {
+            topic_id: [7u8; 16],
+            partitions: vec![ShareFetchedPartition {
+                partition: 3,
+                error_code: 0,
+                error_message: None,
+                acknowledge_error_code: 0,
+                acknowledge_error_message: None,
+                current_leader_id: 0,
+                current_leader_epoch: 0,
+                records: vec![RecordBatch::from_records(vec![Record {
+                    offset: 4,
+                    timestamp: 9,
+                    key: None,
+                    value: Some(Bytes::from_static(b"s")),
+                    headers: Vec::new(),
+                }])],
+                acquired: vec![AcquiredRange {
+                    first_offset: 4,
+                    last_offset: 4,
+                    delivery_count: 1,
+                }],
+            }],
+        }];
+        let mut buf = BytesMut::new();
+        encode_share_fetch_response(&mut buf, 1, &topics).unwrap();
+        let bytes = buf.freeze();
+        let mut first_cur = bytes.clone();
+        let ((mut first, _, _, _, _, _), _, _) =
+            decode_share_fetch_response_reusing(&mut first_cur, 1, usize::MAX, Vec::new()).unwrap();
+        assert_eq!(first, topics);
+        let list_ptr = first
+            .first()
+            .and_then(|topic| topic.partitions.first())
+            .and_then(|part| part.records.first())
+            .map(|batch| batch.records.as_ptr());
+        for topic in &mut first {
+            for part in &mut topic.partitions {
+                for batch in &mut part.records {
+                    batch.records.clear();
+                }
+            }
+        }
+        let mut second_cur = bytes.clone();
+        let ((second, _, _, _, _, _), _, _) =
+            decode_share_fetch_response_reusing(&mut second_cur, 1, usize::MAX, first).unwrap();
+        assert_eq!(second, topics);
+        assert_eq!(
+            second
+                .first()
+                .and_then(|topic| topic.partitions.first())
+                .and_then(|part| part.records.first())
+                .map(|batch| batch.records.as_ptr()),
+            list_ptr
         );
     }
 

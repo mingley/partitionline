@@ -3172,13 +3172,13 @@ impl ShareGroup {
                 }
                 {
                     let mut range_lookup = acquired::AcquisitionRanges::new(acquired);
-                    for batch in records.drain(..) {
+                    for batch in records.iter_mut() {
                         let timestamp_type = batch.timestamp_type();
                         let log_append_timestamp = (timestamp_type == TimestampType::LogAppendTime)
                             .then_some(batch.max_timestamp());
                         let leader_epoch = (batch.partition_leader_epoch >= 0)
                             .then_some(batch.partition_leader_epoch);
-                        for record in batch.records {
+                        for record in batch.records.drain(..) {
                             let Some(delivery_count) = range_lookup.delivery_count(record.offset)
                             else {
                                 continue;

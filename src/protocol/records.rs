@@ -2747,6 +2747,7 @@ impl EncodedBatch {
             self.base_offset,
             self.body.clone(),
             DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES,
+            Vec::new(),
         )
     }
 
@@ -3126,8 +3127,17 @@ pub fn decode_record_batch_with_limit<B: Buf>(
     buf: &mut B,
     max_decode_bytes: usize,
 ) -> Result<RecordBatch> {
+    decode_record_batch_reusing(buf, max_decode_bytes, Vec::new())
+}
+
+/// Decode one batch, refilling `records` when that buffer already has room.
+pub(crate) fn decode_record_batch_reusing<B: Buf>(
+    buf: &mut B,
+    max_decode_bytes: usize,
+    records: Vec<Record>,
+) -> Result<RecordBatch> {
     let (base_offset, body) = take_checked_batch(buf)?;
-    decode_checked_batch(base_offset, body, max_decode_bytes)
+    decode_checked_batch(base_offset, body, max_decode_bytes, records)
 }
 
 /// Frame one magic-v2 batch and check its size, magic, CRC32-C and codec
@@ -3169,6 +3179,7 @@ fn decode_checked_batch(
     base_offset: i64,
     mut body: Bytes,
     max_decode_bytes: usize,
+    mut records: Vec<Record>,
 ) -> Result<RecordBatch> {
     let partition_leader_epoch = buf::get_i32(&mut body)?;
     let magic = buf::get_i8(&mut body)?;
@@ -3208,7 +3219,17 @@ fn decode_checked_batch(
             "Incorrect declared record count, exceeds remaining bytes",
         ));
     }
-    let mut records = Vec::with_capacity(count_usize);
+    records.clear();
+    if records.capacity() < count_usize {
+        if records.capacity() == 0 {
+            records = Vec::with_capacity(count_usize);
+        } else {
+            let extra = count_usize - records.capacity();
+            records
+                .try_reserve_exact(extra)
+                .map_err(|_| Error::protocol("record batch reserve"))?;
+        }
+    }
     for _ in 0..count_usize {
         if !records_cur.has_remaining() {
             return Err(Error::protocol(
@@ -4969,13 +4990,13 @@ mod tests {
         empty[4] = 2;
         let crc = crc32c::crc32c(&empty[9..]);
         empty[5..9].copy_from_slice(&crc.to_be_bytes());
-        assert!(decode_checked_batch(0, Bytes::from(empty.clone()), 1024).is_ok());
+        assert!(decode_checked_batch(0, Bytes::from(empty.clone()), 1024, Vec::new()).is_ok());
         let mut trailing = empty;
         trailing.push(1);
         let crc = crc32c::crc32c(&trailing[9..]);
         trailing[5..9].copy_from_slice(&crc.to_be_bytes());
         let body = Bytes::from(trailing);
-        assert!(decode_checked_batch(0, body.clone(), 1024).is_err());
+        assert!(decode_checked_batch(0, body.clone(), 1024, Vec::new()).is_err());
         let framed = EncodedBatch {
             base_offset: 0,
             attributes: 0,
