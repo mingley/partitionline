@@ -1932,8 +1932,9 @@ impl Producer {
 
     /// Queue every record, then wait for every offset.
     ///
-    /// Records are handed to workers as soon as metadata is ready, so batches
-    /// fill while later records are still being partitioned. Empty input
+    /// Records that already have metadata are handed to workers before a
+    /// later topic is resolved, so batches fill while that lookup runs.
+    /// Topics that still need metadata share one request. Empty input
     /// returns an empty vec.
     pub async fn send_all(
         &self,
@@ -1944,8 +1945,45 @@ impl Producer {
         if recs.is_empty() {
             return Ok(Vec::new());
         }
-        let mut rxs = Vec::with_capacity(recs.len());
-        for rec in recs {
+        let mut pending: VecDeque<ProduceRecord> = recs.into();
+        let mut rxs = Vec::with_capacity(pending.len());
+        let mut failed: Vec<(Arc<str>, Error)> = Vec::new();
+        while let Some(rec) = pending.pop_front() {
+            if let Some(error) = prepared_topic_error(&failed, &rec.topic) {
+                return Err(error);
+            }
+            if topic_needs_metadata(&self.inner.shared, &rec.topic) {
+                let mut topics = vec![Arc::clone(&rec.topic)];
+                for later in &pending {
+                    if topic_needs_metadata(&self.inner.shared, &later.topic)
+                        && topics
+                            .iter()
+                            .all(|topic| topic.as_ref() != later.topic.as_ref())
+                    {
+                        topics.push(Arc::clone(&later.topic));
+                    }
+                }
+                if topics.len() > 1 {
+                    let budget = self.inner.shared.cfg.max_block;
+                    if budget.is_zero() {
+                        return Err(Error::Timeout);
+                    }
+                    let timeout = self.inner.shared.cfg.request_timeout.min(budget);
+                    let requested =
+                        refresh_topics_within(&self.inner.shared, &topics, timeout).await?;
+                    for topic in &requested {
+                        if prepared_topic_error(&failed, topic).is_some() {
+                            continue;
+                        }
+                        if let Some(error) = unfresh_topic_error(&self.inner.shared, topic) {
+                            failed.push((Arc::clone(topic), error));
+                        }
+                    }
+                    if let Some(error) = prepared_topic_error(&failed, &rec.topic) {
+                        return Err(error);
+                    }
+                }
+            }
             rxs.push(self.enqueue_one(rec).await?);
         }
         let mut out = Vec::with_capacity(rxs.len());
@@ -3979,84 +4017,155 @@ fn decode_shared_metadata(shared: &Shared, body: &mut bytes::Bytes, version: i16
     Ok(())
 }
 
+fn topic_needs_metadata(shared: &Shared, topic: &Arc<str>) -> bool {
+    if shared.cfg.metadata_max_age.is_zero() || peek_meta_err(shared).is_some() {
+        return false;
+    }
+    let cluster = shared.cluster.lock();
+    !(cluster.partition_count(topic.as_ref()).is_some()
+        && cluster.topic_fresh(topic.as_ref(), shared.cfg.metadata_max_age))
+}
+
+fn prepared_topic_error(failed: &[(Arc<str>, Error)], topic: &Arc<str>) -> Option<Error> {
+    failed
+        .iter()
+        .find(|(name, _)| name.as_ref() == topic.as_ref())
+        .map(|(_, error)| clone_err(error))
+}
+
+/// Broker error for a topic that a shared metadata response did not make fresh.
+fn unfresh_topic_error(shared: &Shared, topic: &Arc<str>) -> Option<Error> {
+    let ready = {
+        let cluster = shared.cluster.lock();
+        cluster.partition_count(topic.as_ref()).is_some()
+            && cluster.topic_fresh(topic.as_ref(), shared.cfg.metadata_max_age)
+    };
+    if ready {
+        return None;
+    }
+    let image = shared.metadata_image.lock();
+    match image
+        .topics
+        .iter()
+        .find(|item| item.name.as_deref() == Some(topic.as_ref()))
+    {
+        Some(found) if found.error_code != 0 => {
+            Some(Error::broker(found.error_code, topic.to_string()))
+        }
+        Some(found) if !found.partitions.is_empty() => None,
+        _ => Some(Error::UnknownTopic(topic.to_string())),
+    }
+}
+
 /// Refresh every stale topic that was already waiting.
 ///
 /// `None` means each topic was still fresh, so a previous metadata error
 /// stays published. A later topic's broker error replaces an earlier one,
 /// matching a queue that refreshed those topics one after another.
 async fn refresh_queued_topics(shared: &Shared, topics: &[Arc<str>]) -> Option<Result<()>> {
-    let mut names = Vec::new();
+    let requested = match refresh_topics_within(shared, topics, shared.cfg.request_timeout).await {
+        Ok(names) if names.is_empty() => return None,
+        Ok(names) => names,
+        Err(error) => return Some(Err(error)),
+    };
+    let mut last = Ok(());
+    {
+        let image = shared.metadata_image.lock();
+        for topic in &requested {
+            let Some(found) = image
+                .topics
+                .iter()
+                .find(|item| item.name.as_deref() == Some(topic.as_ref()))
+            else {
+                last = Err(Error::UnknownTopic(topic.to_string()));
+                continue;
+            };
+            if found.error_code != 0 {
+                last = Err(Error::broker(found.error_code, topic.to_string()));
+                continue;
+            }
+            if found.partitions.is_empty() {
+                last = Err(Error::UnknownTopic(topic.to_string()));
+                continue;
+            }
+            last = Ok(());
+        }
+    }
+    Some(last)
+}
+
+/// Fetch every stale name in `topics` with one Metadata request.
+///
+/// The returned names are the topics that were requested. An empty vector
+/// means each topic was already fresh. Per-topic broker errors stay in the
+/// metadata image; only timeout, transport, and decode failures return `Err`.
+async fn refresh_topics_within(
+    shared: &Shared,
+    topics: &[Arc<str>],
+    timeout: Duration,
+) -> Result<Vec<Arc<str>>> {
+    let mut requested = Vec::new();
     for topic in topics {
         let fresh = {
             let cluster = shared.cluster.lock();
             cluster.partition_count(topic.as_ref()).is_some()
                 && cluster.topic_fresh(topic.as_ref(), shared.cfg.metadata_max_age)
         };
-        if fresh || names.iter().any(|name: &&str| *name == topic.as_ref()) {
+        if fresh
+            || requested
+                .iter()
+                .any(|name: &Arc<str>| name.as_ref() == topic.as_ref())
+        {
             continue;
         }
-        names.push(topic.as_ref());
+        requested.push(Arc::clone(topic));
     }
-    if names.is_empty() {
-        return None;
+    if requested.is_empty() {
+        return Ok(requested);
     }
-    let timeout = shared.cfg.request_timeout;
     if timeout.is_zero() {
-        return Some(Err(Error::Timeout));
+        return Err(Error::Timeout);
     }
     let deadline = crate::net::Deadline::from_timeout(timeout);
     let mut conn = match tokio::time::timeout(timeout, shared.meta.lock()).await {
         Ok(guard) => guard,
-        Err(_) => return Some(Err(Error::Timeout)),
+        Err(_) => return Err(Error::Timeout),
     };
     let version = shared.metadata_version;
     let allow = shared.cfg.allow_auto_topic_creation;
-    let body = match conn
+    let names: Vec<&str> = requested.iter().map(|topic| topic.as_ref()).collect();
+    let body = conn
         .roundtrip_deadline(
             METADATA,
             version,
             |buf| encode_metadata_request_names(buf, version, Some(&names), allow),
             deadline,
         )
-        .await
-    {
-        Ok(body) => body,
-        Err(error) => return Some(Err(error)),
-    };
+        .await?;
     drop(conn);
     let mut body = body;
-    if let Err(error) = decode_shared_metadata(shared, &mut body, version) {
-        return Some(Err(error));
-    }
-    let mut last = Ok(());
+    decode_shared_metadata(shared, &mut body, version)?;
     let mut succeeded = Vec::new();
     {
         let image = shared.metadata_image.lock();
-        for topic in &names {
+        for topic in &requested {
             let Some(found) = image
                 .topics
                 .iter()
-                .find(|item| item.name.as_deref() == Some(*topic))
+                .find(|item| item.name.as_deref() == Some(topic.as_ref()))
             else {
-                last = Err(Error::UnknownTopic((*topic).to_string()));
                 continue;
             };
-            if found.error_code != 0 {
-                last = Err(Error::broker(found.error_code, (*topic).to_string()));
+            if found.error_code != 0 || found.partitions.is_empty() {
                 continue;
             }
-            if found.partitions.is_empty() {
-                last = Err(Error::UnknownTopic((*topic).to_string()));
-                continue;
-            }
-            succeeded.push(*topic);
-            last = Ok(());
+            succeeded.push(topic.as_ref());
         }
     }
     for topic in succeeded {
         drop_fast_topic(shared, topic);
     }
-    Some(last)
+    Ok(requested)
 }
 
 async fn partitions_for_timeout(
