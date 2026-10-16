@@ -1053,9 +1053,9 @@ impl ShareGroup {
     }
 
     fn adopt_share_member_id(&mut self) {
-        let id = self.hb_member_id.lock().clone();
+        let id = self.hb_member_id.lock();
         if !id.is_empty() {
-            self.member_id = id;
+            crate::group::copy_member_id(&mut self.member_id, &id);
         }
     }
 
@@ -1086,24 +1086,27 @@ impl ShareGroup {
         let version = spoken_share_group_heartbeat(self.coord.share_group_heartbeat_version)?;
 
         let mut first = true;
+        let mut req = ShareGroupHeartbeatRequest {
+            group_id: self.group_id.clone(),
+            member_id: self.member_id.clone(),
+            member_epoch: ShareGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH,
+            rack_id: self.cfg.rack.clone(),
+            // Re-send subscription until assignment arrives so the
+            // coordinator can resolve topic ids (KIP-932).
+            subscribed_topic_names: Some(self.topics.clone()),
+        };
         loop {
             let timeout = deadline.saturating_duration_since(Instant::now());
             if timeout.is_zero() {
                 return if first { Err(Error::Timeout) } else { Ok(()) };
             }
-            let req = ShareGroupHeartbeatRequest {
-                group_id: self.group_id.clone(),
-                member_id: self.member_id.clone(),
-                member_epoch: if first {
-                    ShareGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH
-                } else {
-                    self.member_epoch
-                },
-                rack_id: self.cfg.rack.clone(),
-                // Re-send subscription until assignment arrives so the
-                // coordinator can resolve topic ids (KIP-932).
-                subscribed_topic_names: Some(self.topics.clone()),
+            crate::group::copy_member_id(&mut req.member_id, &self.member_id);
+            req.member_epoch = if first {
+                ShareGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH
+            } else {
+                self.member_epoch
             };
+            reuse_share_subscription(&mut req, &self.topics);
             let body = self
                 .coord
                 .roundtrip(
@@ -1246,6 +1249,13 @@ impl ShareGroup {
         if !self.assigned.is_empty() {
             return Ok(());
         }
+        let mut req = ShareGroupHeartbeatRequest {
+            group_id: self.group_id.clone(),
+            member_id: self.member_id.clone(),
+            member_epoch: self.member_epoch,
+            rack_id: self.cfg.rack.clone(),
+            subscribed_topic_names: Some(self.topics.clone()),
+        };
         while self.assigned.is_empty() {
             let timeout = deadline.saturating_duration_since(Instant::now());
             if timeout.is_zero() {
@@ -1264,13 +1274,9 @@ impl ShareGroup {
             if timeout.is_zero() {
                 return Err(Error::Timeout);
             }
-            let req = ShareGroupHeartbeatRequest {
-                group_id: self.group_id.clone(),
-                member_id: self.member_id.clone(),
-                member_epoch: self.member_epoch,
-                rack_id: self.cfg.rack.clone(),
-                subscribed_topic_names: Some(self.topics.clone()),
-            };
+            crate::group::copy_member_id(&mut req.member_id, &self.member_id);
+            req.member_epoch = self.member_epoch;
+            reuse_share_subscription(&mut req, &self.topics);
             let (version, body) = coord_roundtrip(
                 &mut self.coord,
                 &self.cfg,
@@ -3191,6 +3197,16 @@ impl ShareGroup {
     }
 }
 
+fn reuse_share_subscription(req: &mut ShareGroupHeartbeatRequest, topics: &[String]) {
+    let same = req
+        .subscribed_topic_names
+        .as_ref()
+        .is_some_and(|names| names.as_slice() == topics);
+    if !same {
+        req.subscribed_topic_names = Some(topics.to_vec());
+    }
+}
+
 fn share_heartbeat_subscription(epoch: i32, topics: &[String]) -> Option<Vec<String>> {
     if epoch == ShareGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH {
         Some(topics.to_vec())
@@ -3665,6 +3681,28 @@ mod tests {
     use std::sync::Arc;
 
     use super::*;
+
+    #[test]
+    fn an_unchanged_share_subscription_keeps_its_buffer() {
+        let topics = vec!["orders".to_string()];
+        let mut req = crate::protocol::share::ShareGroupHeartbeatRequest {
+            group_id: "group".to_string(),
+            member_id: "member".to_string(),
+            member_epoch: 1,
+            rack_id: None,
+            subscribed_topic_names: Some(topics.clone()),
+        };
+        super::reuse_share_subscription(&mut req, &topics);
+        let ptr = req.subscribed_topic_names.as_ref().map(Vec::as_ptr);
+        super::reuse_share_subscription(&mut req, &topics);
+        assert_eq!(req.subscribed_topic_names.as_ref().map(Vec::as_ptr), ptr);
+        let changed = ["payments".to_string()];
+        super::reuse_share_subscription(&mut req, &changed);
+        assert_eq!(
+            req.subscribed_topic_names.as_deref(),
+            Some(changed.as_slice())
+        );
+    }
 
     #[test]
     fn a_share_topic_keeps_one_acquisition_entry() {
