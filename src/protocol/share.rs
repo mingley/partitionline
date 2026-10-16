@@ -1805,6 +1805,24 @@ pub(crate) fn decode_share_fetch_response_with_budget<B: Buf>(
     version: i16,
     max_decode_bytes: usize,
 ) -> Result<(ShareFetchDecoded, usize)> {
+    let (decoded, used, _spare) =
+        decode_share_fetch_response_reusing(buf, version, max_decode_bytes, Vec::new())?;
+    Ok((decoded, used))
+}
+
+/// Decode a ShareFetch response, refilling `topics` when it already has room.
+///
+/// An empty topic array leaves `topics` untouched and returns it as the spare
+/// so the next response can refill those shells. A non-empty array reuses
+/// topic, partition, record-batch, and acquired-range buffers and returns an
+/// empty spare. The decoded-byte budget matches
+/// [`decode_share_fetch_response_with_budget`].
+pub(crate) fn decode_share_fetch_response_reusing<B: Buf>(
+    buf: &mut B,
+    version: i16,
+    max_decode_bytes: usize,
+    mut topics: Vec<ShareFetchedTopic>,
+) -> Result<(ShareFetchDecoded, usize, Vec<ShareFetchedTopic>)> {
     let mut remaining_decode_bytes =
         max_decode_bytes.min(records::DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES);
     let flexible = share_fetch_flexible(version)?;
@@ -1818,8 +1836,31 @@ pub(crate) fn decode_share_fetch_response_with_budget<B: Buf>(
         n,
         std::mem::size_of::<ShareFetchedTopic>(),
     )?;
-    let mut topics = Vec::with_capacity(n);
-    for _ in 0..n {
+    let used = max_decode_bytes.min(records::DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES)
+        - remaining_decode_bytes;
+    if n == 0 {
+        let endpoints = super::api::get_compact_node_endpoints(buf)?;
+        if flexible {
+            buf::skip_tagged_fields(buf)?;
+        }
+        return Ok((
+            (
+                Vec::new(),
+                endpoints,
+                throttle_time_ms,
+                error_message,
+                acquisition_lock_timeout_ms,
+                error_code,
+            ),
+            used,
+            topics,
+        ));
+    }
+    if topics.len() > n {
+        topics.truncate(n);
+    }
+    reserve_share_slots(&mut topics, n)?;
+    for topic_index in 0..n {
         let topic_id = buf::get_uuid(buf)?;
         let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
         charge_share_storage(
@@ -1827,8 +1868,34 @@ pub(crate) fn decode_share_fetch_response_with_budget<B: Buf>(
             pn,
             std::mem::size_of::<ShareFetchedPartition>(),
         )?;
-        let mut partitions = Vec::with_capacity(pn);
-        for _ in 0..pn {
+        let mut partitions = if topic_index < topics.len() {
+            topics
+                .get_mut(topic_index)
+                .map(|topic| std::mem::take(&mut topic.partitions))
+                .unwrap_or_default()
+        } else {
+            Vec::new()
+        };
+        if partitions.len() > pn {
+            partitions.truncate(pn);
+        }
+        reserve_share_slots(&mut partitions, pn)?;
+        for part_index in 0..pn {
+            let (mut records, mut acquired) = if part_index < partitions.len() {
+                partitions.get_mut(part_index).map_or_else(
+                    || (Vec::new(), Vec::new()),
+                    |part| {
+                        (
+                            std::mem::take(&mut part.records),
+                            std::mem::take(&mut part.acquired),
+                        )
+                    },
+                )
+            } else {
+                (Vec::new(), Vec::new())
+            };
+            records.clear();
+            acquired.clear();
             let partition = buf::get_i32(buf)?;
             let error_code = buf::get_i16(buf)?;
             let error_message = buf::get_string(buf, flexible)?;
@@ -1849,11 +1916,8 @@ pub(crate) fn decode_share_fetch_response_with_budget<B: Buf>(
                     ));
                 }
             };
-            let records = if rec_bytes.is_empty() {
-                Vec::new()
-            } else {
+            if !rec_bytes.is_empty() {
                 let mut rec_buf = rec_bytes;
-                let mut batches = Vec::new();
                 while rec_buf.has_remaining() {
                     let count_bytes = rec_buf
                         .get(57..61)
@@ -1901,17 +1965,16 @@ pub(crate) fn decode_share_fetch_response_with_budget<B: Buf>(
                         .ok_or_else(|| {
                             Error::protocol("ShareFetch decoded-record budget exceeded")
                         })?;
-                    batches.push(batch);
+                    records.push(batch);
                 }
-                batches
-            };
+            }
             let an = buf::get_array_len(buf, flexible)?.unwrap_or(0);
             charge_share_storage(
                 &mut remaining_decode_bytes,
                 an,
                 std::mem::size_of::<AcquiredRange>(),
             )?;
-            let mut acquired = Vec::with_capacity(an);
+            reserve_share_slots(&mut acquired, an)?;
             for _ in 0..an {
                 let first_offset = buf::get_i64(buf)?;
                 let last_offset = buf::get_i64(buf)?;
@@ -1928,7 +1991,7 @@ pub(crate) fn decode_share_fetch_response_with_budget<B: Buf>(
             if flexible {
                 buf::skip_tagged_fields(buf)?;
             }
-            partitions.push(ShareFetchedPartition {
+            let built = ShareFetchedPartition {
                 partition,
                 error_code,
                 error_message,
@@ -1938,15 +2001,29 @@ pub(crate) fn decode_share_fetch_response_with_budget<B: Buf>(
                 current_leader_epoch,
                 records,
                 acquired,
-            });
+            };
+            if part_index < partitions.len() {
+                if let Some(slot) = partitions.get_mut(part_index) {
+                    *slot = built;
+                }
+            } else {
+                partitions.push(built);
+            }
         }
         if flexible {
             buf::skip_tagged_fields(buf)?;
         }
-        topics.push(ShareFetchedTopic {
-            topic_id,
-            partitions,
-        });
+        if topic_index < topics.len() {
+            if let Some(slot) = topics.get_mut(topic_index) {
+                slot.topic_id = topic_id;
+                slot.partitions = partitions;
+            }
+        } else {
+            topics.push(ShareFetchedTopic {
+                topic_id,
+                partitions,
+            });
+        }
     }
     let endpoints = super::api::get_compact_node_endpoints(buf)?;
     if flexible {
@@ -1963,7 +2040,18 @@ pub(crate) fn decode_share_fetch_response_with_budget<B: Buf>(
         ),
         max_decode_bytes.min(records::DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES)
             - remaining_decode_bytes,
+        Vec::new(),
     ))
+}
+
+fn reserve_share_slots<T>(slots: &mut Vec<T>, needed: usize) -> Result<()> {
+    if slots.capacity() < needed {
+        let extra = needed - slots.capacity();
+        slots
+            .try_reserve_exact(extra)
+            .map_err(|_| Error::protocol("ShareFetch response reserve"))?;
+    }
+    Ok(())
 }
 
 fn charge_share_storage(remaining: &mut usize, count: usize, width: usize) -> Result<()> {
@@ -4277,6 +4365,86 @@ mod tests {
             &v0_with[..],
             &with[..],
             "v1 adds AcquisitionLockTimeoutMs after ErrorMessage"
+        );
+    }
+
+    #[test]
+    fn a_second_share_fetch_response_reuses_its_shells() {
+        let topics = vec![ShareFetchedTopic {
+            topic_id: [7u8; 16],
+            partitions: vec![ShareFetchedPartition {
+                partition: 3,
+                error_code: 0,
+                error_message: None,
+                acknowledge_error_code: 0,
+                acknowledge_error_message: None,
+                current_leader_id: 0,
+                current_leader_epoch: 0,
+                records: Vec::new(),
+                acquired: vec![AcquiredRange {
+                    first_offset: 1,
+                    last_offset: 4,
+                    delivery_count: 1,
+                }],
+            }],
+        }];
+        let mut buf = BytesMut::new();
+        encode_share_fetch_response(&mut buf, 1, &topics).unwrap();
+        let bytes = buf.freeze();
+        let mut first_cur = bytes.clone();
+        let ((first, _, _, _, _, _), _, spare) =
+            decode_share_fetch_response_reusing(&mut first_cur, 1, usize::MAX, Vec::new()).unwrap();
+        assert!(spare.is_empty());
+        assert!(first_cur.is_empty());
+        assert_eq!(first, topics);
+        let topics_ptr = first.as_ptr();
+        let parts_ptr = first.first().map(|topic| topic.partitions.as_ptr());
+        let acquired_ptr = first
+            .first()
+            .and_then(|topic| topic.partitions.first())
+            .map(|part| part.acquired.as_ptr());
+        let mut second_cur = bytes.clone();
+        let ((second, _, _, _, _, _), _, spare) =
+            decode_share_fetch_response_reusing(&mut second_cur, 1, usize::MAX, first).unwrap();
+        assert!(spare.is_empty());
+        assert_eq!(second, topics);
+        assert_eq!(second.as_ptr(), topics_ptr);
+        assert_eq!(
+            second.first().map(|topic| topic.partitions.as_ptr()),
+            parts_ptr
+        );
+        assert_eq!(
+            second
+                .first()
+                .and_then(|topic| topic.partitions.first())
+                .map(|part| part.acquired.as_ptr()),
+            acquired_ptr
+        );
+        let mut empty = BytesMut::new();
+        encode_share_fetch_response(&mut empty, 1, &[]).unwrap();
+        let mut empty_cur = empty.freeze();
+        let ((decoded, _, _, _, _, _), _, kept) =
+            decode_share_fetch_response_reusing(&mut empty_cur, 1, usize::MAX, second).unwrap();
+        assert!(decoded.is_empty());
+        assert_eq!(decoded.capacity(), 0);
+        assert_eq!(kept.as_ptr(), topics_ptr);
+        assert_eq!(
+            kept.first().map(|topic| topic.partitions.as_ptr()),
+            parts_ptr
+        );
+        assert_eq!(
+            kept.first()
+                .and_then(|topic| topic.partitions.first())
+                .map(|part| part.acquired.as_ptr()),
+            acquired_ptr
+        );
+        let mut limited = bytes.clone();
+        let err = decode_share_fetch_response_with_limit(&mut limited, 1, 0)
+            .expect_err("a zero budget cannot hold a topic");
+        assert!(
+            err.to_string()
+                .contains("ShareFetch decoded-record budget exceeded"),
+            "{err}"
         );
     }
 

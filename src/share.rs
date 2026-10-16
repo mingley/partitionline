@@ -29,12 +29,12 @@ use crate::protocol::records::{
 };
 use crate::protocol::share::{
     decode_share_acknowledge_response, decode_share_acknowledge_topics_response_with_lock_timeout,
-    decode_share_fetch_response_with_budget, decode_share_group_heartbeat_response,
+    decode_share_fetch_response_reusing, decode_share_group_heartbeat_response,
     encode_one_share_acknowledge, encode_share_acknowledge_request,
     encode_share_acknowledge_topics, encode_share_fetch_request_with_options,
     encode_share_group_heartbeat_request, AcknowledgementBatch, ShareAckTopic, ShareFetchPartition,
-    ShareFetchRequestOptions, ShareFetchTopic, ShareGroupHeartbeatRequest, ShareTopicPartitions,
-    ACK_ACCEPT, ACK_REJECT, ACK_RELEASE, ACK_RENEW,
+    ShareFetchRequestOptions, ShareFetchTopic, ShareFetchedTopic, ShareGroupHeartbeatRequest,
+    ShareTopicPartitions, ACK_ACCEPT, ACK_REJECT, ACK_RELEASE, ACK_RENEW,
 };
 use crate::Uuid;
 
@@ -782,6 +782,12 @@ fn park_record_buf(spare: &mut Vec<ShareRecord>, incoming: Vec<ShareRecord>) {
     }
 }
 
+fn park_fetched_topics(spare: &mut Vec<ShareFetchedTopic>, topics: Vec<ShareFetchedTopic>) {
+    if topics.capacity() > spare.capacity() {
+        *spare = topics;
+    }
+}
+
 fn note_share_offset(
     cursors: &mut Vec<(i32, i64)>,
     spilled: &mut Vec<(i32, HashSet<i64>)>,
@@ -905,6 +911,9 @@ pub struct ShareGroup {
     /// Finished ShareFetch replies from the previous poll. Drained after they
     /// are applied, then refilled.
     spare_ready: Vec<ReadyShareFetch>,
+    /// ShareFetch response shells from the previous poll. Topic, partition,
+    /// record-batch, and acquired-range buffers are refilled in place.
+    spare_fetched: Vec<ShareFetchedTopic>,
     /// Subscribed topic id by name. A long name is the allocation fetched records share.
     topic_ids: HashMap<Arc<str>, [u8; 16]>,
     /// Share session epoch per share-partition leader (KIP-932).
@@ -960,6 +969,17 @@ struct ReadyShareFetch {
     version: i16,
     by_id: BTreeMap<[u8; 16], Vec<i32>>,
     body: Result<Bytes>,
+}
+
+struct DecodedShareFetch<'a> {
+    node: i32,
+    version: i16,
+    by_id: &'a BTreeMap<[u8; 16], Vec<i32>>,
+    fetched: &'a mut Vec<ShareFetchedTopic>,
+    lock_timeout: i32,
+    error_code: i16,
+    decoded_bytes: usize,
+    remaining: &'a mut usize,
 }
 
 /// One finished or in-flight ShareFetch. The topic list rides with the task so
@@ -1497,6 +1517,7 @@ impl ShareGroup {
             spare_incoming: Vec::new(),
             spare_prepared: Vec::new(),
             spare_ready: Vec::new(),
+            spare_fetched: Vec::new(),
             topic_ids: HashMap::new(),
             share_epochs: HashMap::new(),
             share_conns: HashMap::new(),
@@ -2835,8 +2856,14 @@ impl ShareGroup {
                     return Err(error);
                 }
             };
-            let ((fetched, endpoints, _, _, lock_timeout, error_code), decoded_bytes) =
-                match decode_share_fetch_response_with_budget(&mut body, version, remaining_bytes) {
+            let scratch = std::mem::take(&mut self.spare_fetched);
+            let ((mut fetched, endpoints, _, _, lock_timeout, error_code), decoded_bytes, retained) =
+                match decode_share_fetch_response_reusing(
+                    &mut body,
+                    version,
+                    remaining_bytes,
+                    scratch,
+                ) {
                     Ok(reply) => reply,
                     Err(error) => {
                         self.reset_node_session(node);
@@ -2845,208 +2872,24 @@ impl ShareGroup {
                 };
             self.consumer.apply_node_endpoints(&endpoints);
             if !body.is_empty() {
+                park_fetched_topics(&mut self.spare_fetched, fetched);
+                park_fetched_topics(&mut self.spare_fetched, retained);
                 self.reset_node_session(node);
                 return Err(Error::protocol("trailing ShareFetch response bytes"));
             }
-            if error_code != 0 {
-                let error = Error::broker(error_code, "ShareFetch");
-                if share_fetch_session_reset(&error) || share_leader_retriable(&error) {
-                    self.reset_node_session(node);
-                } else {
-                    self.advance_node_epoch(node);
-                }
-                return Err(error);
-            }
-            // A well-formed response consumed this epoch even when a later
-            // partition outcome fails. Initial sessions must also be closable.
-            self.advance_node_epoch(node);
-            if version >= 1 {
-                self.acquisition_lock_timeout_ms = Some(lock_timeout);
-            }
-            let received_at = Instant::now();
-            let expiry = if version >= 1 {
-                if fetched
-                    .iter()
-                    .any(|t| t.partitions.iter().any(|p| !p.acquired.is_empty()))
-                    && lock_timeout <= 0
-                {
-                    self.reset_node_session(node);
-                    return Err(Error::protocol(
-                        "non-positive ShareFetch acquisition lock timeout",
-                    ));
-                }
-                u64::try_from(lock_timeout)
-                    .ok()
-                    .and_then(|ms| received_at.checked_add(Duration::from_millis(ms)))
-            } else {
-                None
-            };
-            let mut incoming = take_record_buf(&mut self.spare_incoming);
-            self.fetch_cursors.clear();
-            let mut spilled_offsets: Vec<(i32, HashSet<i64>)> = Vec::new();
-            for topic in fetched {
-                let requested = by_id.get(&topic.topic_id).ok_or_else(|| {
-                    Error::protocol("ShareFetch returned an unrequested topic id")
-                })?;
-                let topic_name = self.fetched_topic_name(topic.topic_id)?;
-                let name = topic_name.as_str();
-                for part in topic.partitions {
-                    if !requested.contains(&part.partition) {
-                        return Err(Error::protocol(
-                            "ShareFetch returned an unrequested partition",
-                        ));
-                    }
-                    if part.error_code != 0 {
-                        let leader_moved = share_leader_moved(part.error_code);
-                        let patched = leader_moved
-                            && !name.is_empty()
-                            && self.consumer.apply_share_leader(
-                                name,
-                                part.partition,
-                                part.current_leader_id,
-                                part.current_leader_epoch,
-                            );
-                        if let Some(patch) = share_leader_patch(
-                            patched,
-                            name,
-                            part.partition,
-                            part.error_code,
-                            part.current_leader_id,
-                            part.current_leader_epoch,
-                        ) {
-                            remember_share_leader_patch(&mut self.leader_patches, patch);
-                        } else if share_ack_ownership_lost(part.error_code) {
-                            self.consumer.invalidate_topic(name);
-                            self.leader_patches.retain(|patch| {
-                                patch.topic != name || patch.partition != part.partition
-                            });
-                        }
-                        let error = Error::broker(
-                            part.error_code,
-                            format!("ShareFetch {name}-{}", part.partition),
-                        );
-                        if share_session_reset(&error) || share_leader_retriable(&error) {
-                            self.reset_node_session(node);
-                        }
-                        return Err(error);
-                    }
-                    if part.acknowledge_error_code != 0 {
-                        return Err(Error::broker(
-                            part.acknowledge_error_code,
-                            format!("ShareFetch acknowledgement {name}-{}", part.partition),
-                        ));
-                    }
-                    let mut acquired = part.acquired;
-                    acquired.sort_unstable_by_key(|range| range.first_offset);
-                    for range in &acquired {
-                        if range.first_offset < 0
-                            || range.last_offset < range.first_offset
-                            || range.delivery_count <= 0
-                        {
-                            return Err(Error::protocol("invalid ShareFetch acquired range"));
-                        }
-                    }
-                    if acquired.windows(2).any(|pair| {
-                        pair.first()
-                            .zip(pair.get(1))
-                            .is_some_and(|(a, b)| a.last_offset >= b.first_offset)
-                    }) {
-                        return Err(Error::protocol("overlapping ShareFetch acquisition ranges"));
-                    }
-                    let mut range_lookup = acquired::AcquisitionRanges::new(&acquired);
-                    for batch in part.records {
-                        let timestamp_type = batch.timestamp_type();
-                        let log_append_timestamp = (timestamp_type == TimestampType::LogAppendTime)
-                            .then_some(batch.max_timestamp());
-                        let leader_epoch = (batch.partition_leader_epoch >= 0)
-                            .then_some(batch.partition_leader_epoch);
-                        for record in batch.records {
-                            let Some(delivery_count) = range_lookup.delivery_count(record.offset)
-                            else {
-                                continue;
-                            };
-                            if !note_share_offset(
-                                &mut self.fetch_cursors,
-                                &mut spilled_offsets,
-                                part.partition,
-                                record.offset,
-                            ) {
-                                return Err(Error::protocol("duplicate ShareFetch record offset"));
-                            }
-                            if let Some(previous) = acquisition_at(
-                                &self.acquisitions,
-                                &topic_name,
-                                part.partition,
-                                record.offset,
-                            ) {
-                                if delivery_count < previous.delivery_count {
-                                    return Err(Error::protocol(
-                                        "ShareFetch delivery count regressed",
-                                    ));
-                                }
-                                if delivery_count == previous.delivery_count {
-                                    continue;
-                                }
-                            }
-                            incoming.push(ShareRecord {
-                                topic: topic_name.clone(),
-                                partition: part.partition,
-                                offset: record.offset,
-                                timestamp: log_append_timestamp.unwrap_or(record.timestamp),
-                                timestamp_type,
-                                key: record.key,
-                                value: record.value,
-                                headers: record.headers,
-                                delivery_count,
-                                leader_epoch,
-                            });
-                        }
-                    }
-                }
-            }
-            let incoming_bytes = incoming
-                .iter()
-                .map(share_record_storage_bytes)
-                .fold(0usize, usize::saturating_add);
-            let new_metadata_bytes = incoming
-                .iter()
-                .filter(|record| {
-                    acquisition_at(
-                        &self.acquisitions,
-                        &record.topic,
-                        record.partition,
-                        record.offset,
-                    )
-                    .is_none()
-                })
-                .map(|record| acquisition_storage_bytes(&record.topic))
-                .fold(0usize, usize::saturating_add);
-            let retained_bytes = incoming_bytes.saturating_add(new_metadata_bytes);
-            remaining_bytes = match remaining_bytes.checked_sub(retained_bytes.max(decoded_bytes)) {
-                Some(remaining) => remaining,
-                None => {
-                    self.reset_node_session(node);
-                    park_record_buf(&mut self.spare_incoming, incoming);
-                    return Err(Error::protocol(
-                        "ShareFetch retained-record budget exceeded",
-                    ));
-                }
-            };
-            for record in incoming.drain(..) {
-                remember_acquisition(
-                    &mut self.acquisitions,
-                    &record.topic,
-                    record.partition,
-                    record.offset,
-                    Acquisition {
-                        node,
-                        delivery_count: record.delivery_count,
-                        expires_at: expiry,
-                    },
-                );
-                self.pending_delivery.push(record);
-            }
-            park_record_buf(&mut self.spare_incoming, incoming);
+            let applied = self.apply_decoded_share_fetch(DecodedShareFetch {
+                node,
+                version,
+                by_id: &by_id,
+                fetched: &mut fetched,
+                lock_timeout,
+                error_code,
+                decoded_bytes,
+                remaining: &mut remaining_bytes,
+            });
+            park_fetched_topics(&mut self.spare_fetched, fetched);
+            park_fetched_topics(&mut self.spare_fetched, retained);
+            applied?;
             self.park_share_ids(by_id);
         }
         self.keep_share_ready(ready);
@@ -3207,6 +3050,224 @@ impl ShareGroup {
         let topics = self.matching_topic_names_within(deadline).await?;
         self.last_match_refresh = Instant::now();
         self.apply_topics_within(topics, deadline).await
+    }
+
+    fn apply_decoded_share_fetch(&mut self, fetch: DecodedShareFetch<'_>) -> Result<()> {
+        let DecodedShareFetch {
+            node,
+            version,
+            by_id,
+            fetched,
+            lock_timeout,
+            error_code,
+            decoded_bytes,
+            remaining,
+        } = fetch;
+        if error_code != 0 {
+            let error = Error::broker(error_code, "ShareFetch");
+            if share_fetch_session_reset(&error) || share_leader_retriable(&error) {
+                self.reset_node_session(node);
+            } else {
+                self.advance_node_epoch(node);
+            }
+            return Err(error);
+        }
+        // A well-formed response consumed this epoch even when a later
+        // partition outcome fails. Initial sessions must also be closable.
+        self.advance_node_epoch(node);
+        if version >= 1 {
+            self.acquisition_lock_timeout_ms = Some(lock_timeout);
+        }
+        let received_at = Instant::now();
+        let expiry = if version >= 1 {
+            if fetched
+                .iter()
+                .any(|t| t.partitions.iter().any(|p| !p.acquired.is_empty()))
+                && lock_timeout <= 0
+            {
+                self.reset_node_session(node);
+                return Err(Error::protocol(
+                    "non-positive ShareFetch acquisition lock timeout",
+                ));
+            }
+            u64::try_from(lock_timeout)
+                .ok()
+                .and_then(|ms| received_at.checked_add(Duration::from_millis(ms)))
+        } else {
+            None
+        };
+        let mut incoming = take_record_buf(&mut self.spare_incoming);
+        self.fetch_cursors.clear();
+        let mut spilled_offsets: Vec<(i32, HashSet<i64>)> = Vec::new();
+        for topic in fetched.iter_mut() {
+            let requested = by_id
+                .get(&topic.topic_id)
+                .ok_or_else(|| Error::protocol("ShareFetch returned an unrequested topic id"))?;
+            let topic_name = self.fetched_topic_name(topic.topic_id)?;
+            let name = topic_name.as_str();
+            for part in &mut topic.partitions {
+                if !requested.contains(&part.partition) {
+                    return Err(Error::protocol(
+                        "ShareFetch returned an unrequested partition",
+                    ));
+                }
+                if part.error_code != 0 {
+                    let leader_moved = share_leader_moved(part.error_code);
+                    let patched = leader_moved
+                        && !name.is_empty()
+                        && self.consumer.apply_share_leader(
+                            name,
+                            part.partition,
+                            part.current_leader_id,
+                            part.current_leader_epoch,
+                        );
+                    if let Some(patch) = share_leader_patch(
+                        patched,
+                        name,
+                        part.partition,
+                        part.error_code,
+                        part.current_leader_id,
+                        part.current_leader_epoch,
+                    ) {
+                        remember_share_leader_patch(&mut self.leader_patches, patch);
+                    } else if share_ack_ownership_lost(part.error_code) {
+                        self.consumer.invalidate_topic(name);
+                        self.leader_patches.retain(|patch| {
+                            patch.topic != name || patch.partition != part.partition
+                        });
+                    }
+                    let error = Error::broker(
+                        part.error_code,
+                        format!("ShareFetch {name}-{}", part.partition),
+                    );
+                    if share_session_reset(&error) || share_leader_retriable(&error) {
+                        self.reset_node_session(node);
+                    }
+                    return Err(error);
+                }
+                if part.acknowledge_error_code != 0 {
+                    return Err(Error::broker(
+                        part.acknowledge_error_code,
+                        format!("ShareFetch acknowledgement {name}-{}", part.partition),
+                    ));
+                }
+                let partition_index = part.partition;
+                let records = &mut part.records;
+                let acquired = &mut part.acquired;
+                acquired.sort_unstable_by_key(|range| range.first_offset);
+                for range in acquired.iter() {
+                    if range.first_offset < 0
+                        || range.last_offset < range.first_offset
+                        || range.delivery_count <= 0
+                    {
+                        return Err(Error::protocol("invalid ShareFetch acquired range"));
+                    }
+                }
+                if acquired.windows(2).any(|pair| {
+                    pair.first()
+                        .zip(pair.get(1))
+                        .is_some_and(|(a, b)| a.last_offset >= b.first_offset)
+                }) {
+                    return Err(Error::protocol("overlapping ShareFetch acquisition ranges"));
+                }
+                {
+                    let mut range_lookup = acquired::AcquisitionRanges::new(acquired);
+                    for batch in records.drain(..) {
+                        let timestamp_type = batch.timestamp_type();
+                        let log_append_timestamp = (timestamp_type == TimestampType::LogAppendTime)
+                            .then_some(batch.max_timestamp());
+                        let leader_epoch = (batch.partition_leader_epoch >= 0)
+                            .then_some(batch.partition_leader_epoch);
+                        for record in batch.records {
+                            let Some(delivery_count) = range_lookup.delivery_count(record.offset)
+                            else {
+                                continue;
+                            };
+                            if !note_share_offset(
+                                &mut self.fetch_cursors,
+                                &mut spilled_offsets,
+                                partition_index,
+                                record.offset,
+                            ) {
+                                return Err(Error::protocol("duplicate ShareFetch record offset"));
+                            }
+                            if let Some(previous) = acquisition_at(
+                                &self.acquisitions,
+                                &topic_name,
+                                partition_index,
+                                record.offset,
+                            ) {
+                                if delivery_count < previous.delivery_count {
+                                    return Err(Error::protocol(
+                                        "ShareFetch delivery count regressed",
+                                    ));
+                                }
+                                if delivery_count == previous.delivery_count {
+                                    continue;
+                                }
+                            }
+                            incoming.push(ShareRecord {
+                                topic: topic_name.clone(),
+                                partition: partition_index,
+                                offset: record.offset,
+                                timestamp: log_append_timestamp.unwrap_or(record.timestamp),
+                                timestamp_type,
+                                key: record.key,
+                                value: record.value,
+                                headers: record.headers,
+                                delivery_count,
+                                leader_epoch,
+                            });
+                        }
+                    }
+                }
+                acquired.clear();
+            }
+        }
+        let incoming_bytes = incoming
+            .iter()
+            .map(share_record_storage_bytes)
+            .fold(0usize, usize::saturating_add);
+        let new_metadata_bytes = incoming
+            .iter()
+            .filter(|record| {
+                acquisition_at(
+                    &self.acquisitions,
+                    &record.topic,
+                    record.partition,
+                    record.offset,
+                )
+                .is_none()
+            })
+            .map(|record| acquisition_storage_bytes(&record.topic))
+            .fold(0usize, usize::saturating_add);
+        let retained_bytes = incoming_bytes.saturating_add(new_metadata_bytes);
+        *remaining = match remaining.checked_sub(retained_bytes.max(decoded_bytes)) {
+            Some(left) => left,
+            None => {
+                self.reset_node_session(node);
+                park_record_buf(&mut self.spare_incoming, incoming);
+                return Err(Error::protocol(
+                    "ShareFetch retained-record budget exceeded",
+                ));
+            }
+        };
+        for record in incoming.drain(..) {
+            remember_acquisition(
+                &mut self.acquisitions,
+                &record.topic,
+                record.partition,
+                record.offset,
+                Acquisition {
+                    node,
+                    delivery_count: record.delivery_count,
+                    expires_at: expiry,
+                },
+            );
+            self.pending_delivery.push(record);
+        }
+        park_record_buf(&mut self.spare_incoming, incoming);
+        Ok(())
     }
 
     fn fetched_topic_name(&self, id: [u8; 16]) -> Result<crate::consumer::TopicName> {
