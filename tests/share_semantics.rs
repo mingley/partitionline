@@ -11626,6 +11626,70 @@ async fn implicit_piggyback_invalid_record_state_empty_message_does_not_retry() 
 }
 
 #[tokio::test]
+async fn implicit_piggyback_offset_out_of_range_message_does_not_retry() {
+    let mock = common::Mock::start().await;
+    produce(&mock, &[(0, b"first"), (0, b"second")]).await;
+    let mut cfg = config(&mock);
+    cfg.max_poll_records = Some(1);
+    cfg.share_acknowledgement_mode = ShareAcknowledgementMode::Implicit;
+    let mut group = ShareGroup::join(cfg, "ack-oor-piggy-msg", "t")
+        .await
+        .unwrap();
+    let first = group.poll().await.unwrap();
+    assert_eq!(first.len(), 1);
+    let first_off = first[0].offset;
+    let seen = Arc::new(Mutex::new(Vec::new()));
+    let seen_cb = seen.clone();
+    group.set_acknowledgement_commit_callback(move |_, exception| {
+        seen_cb.lock().push(
+            exception
+                .as_ref()
+                .map(|error| (error.code(), error.message().to_owned())),
+        );
+    });
+    let version = mock.last_share_fetch_version().unwrap_or(1);
+    let mut part = ShareFetchedPartition::partition_response(0, 0);
+    part.acknowledge_error_code = error::OFFSET_OUT_OF_RANGE;
+    part.acknowledge_error_message = Some("piggyback offset out of range".into());
+    let topics = vec![ShareFetchedTopic {
+        topic_id: mock.topic_id("t"),
+        partitions: vec![part],
+    }];
+    let mut injected = BytesMut::new();
+    encode_share_fetch_response(&mut injected, version, &topics).unwrap();
+    mock.inject_share_fetch_response_once(&injected);
+    assert!(
+        group.poll().await.unwrap().is_empty(),
+        "Java poll still delivers the ShareFetch after a piggyback ack error"
+    );
+    assert_eq!(
+        *seen.lock(),
+        vec![Some((
+            Some(error::OFFSET_OUT_OF_RANGE),
+            "piggyback offset out of range".into()
+        ))]
+    );
+    assert!(
+        !mock.share_accepted("ack-oor-piggy-msg", "t", 0, first_off),
+        "injected OFFSET_OUT_OF_RANGE piggyback must not apply ACCEPT"
+    );
+    assert_eq!(
+        mock.share_ack_calls(),
+        0,
+        "non-empty AcknowledgeErrorMessage must not retry OFFSET_OUT_OF_RANGE"
+    );
+    let third = group.poll().await.unwrap();
+    assert_eq!(third.len(), 1);
+    assert_ne!(third[0].offset, first_off);
+    assert_eq!(
+        mock.share_ack_calls(),
+        0,
+        "completed piggyback OFFSET_OUT_OF_RANGE must not send standalone ShareAcknowledge"
+    );
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn implicit_piggyback_topic_authorization_failed_sibling_message_does_not_retry() {
     let mock = common::Mock::start().await;
     v2(&mock);
