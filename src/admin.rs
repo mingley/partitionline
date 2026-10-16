@@ -4046,25 +4046,33 @@ impl Admin {
                 self.wait_retry(&mut attempt, deadline).await?;
                 continue;
             }
-            let mut results: Vec<ElectLeadersResult> = Vec::new();
-            let mut slots: HashMap<String, usize> = HashMap::new();
-            for tp in order {
-                let partition = finished
-                    .get_mut(tp.topic.as_str())
-                    .and_then(|parts| parts.remove(&tp.partition))
-                    .ok_or_else(|| Error::protocol("missing final ElectLeaders result"))?;
-                if let Some(&slot) = slots.get(tp.topic.as_str()) {
-                    if let Some(topic) = results.get_mut(slot) {
-                        topic.partitions.push(partition);
-                        continue;
+            let grouped = {
+                let mut grouped: Vec<(usize, Vec<ElectLeadersPartitionResult>)> = Vec::new();
+                let mut slots: HashMap<&str, usize> = HashMap::new();
+                for (index, tp) in order.iter().enumerate() {
+                    let partition = finished
+                        .get_mut(tp.topic.as_str())
+                        .and_then(|parts| parts.remove(&tp.partition))
+                        .ok_or_else(|| Error::protocol("missing final ElectLeaders result"))?;
+                    if let Some(&slot) = slots.get(tp.topic.as_str()) {
+                        if let Some((_, parts)) = grouped.get_mut(slot) {
+                            parts.push(partition);
+                            continue;
+                        }
                     }
+                    let slot = grouped.len();
+                    let _ = slots.insert(tp.topic.as_str(), slot);
+                    grouped.push((index, vec![partition]));
                 }
-                let slot = results.len();
-                let _ = slots.insert(tp.topic.clone(), slot);
-                results.push(ElectLeadersResult {
-                    topic: tp.topic,
-                    partitions: vec![partition],
-                });
+                grouped
+            };
+            let mut results = Vec::with_capacity(grouped.len());
+            for (index, partitions) in grouped {
+                let topic = order
+                    .get_mut(index)
+                    .map(|tp| std::mem::take(&mut tp.topic))
+                    .ok_or_else(|| Error::protocol("missing final ElectLeaders result"))?;
+                results.push(ElectLeadersResult { topic, partitions });
             }
             return Ok(ElectLeadersResponse::new(throttle_time_ms, 0, results));
         }
