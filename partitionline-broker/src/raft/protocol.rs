@@ -24,7 +24,7 @@ use super::election::{
 };
 use crate::{
     protocol::{self, ApiVersion, ApiVersionsHandler, RequestHeader},
-    transport::Handler,
+    transport::{ExchangeOutcome, Handler, Peer},
 };
 use std::{
     path::Path,
@@ -370,6 +370,16 @@ impl Controller {
     /// top-level or partition error fields. No state mutates before full parsing
     /// and the supported static-profile checks succeed.
     pub fn respond(&mut self, input: &[u8], now_ms: u64) -> Result<Vec<u8>, Error> {
+        self.respond_into(input, now_ms, Vec::new())
+    }
+
+    /// Like [`Self::respond`], writing the body into `spare` when it fits.
+    fn respond_into(
+        &mut self,
+        input: &[u8],
+        now_ms: u64,
+        spare: Vec<u8>,
+    ) -> Result<Vec<u8>, Error> {
         if self.election.membership_context().is_some() {
             return Err(Error::UnsupportedVersion);
         }
@@ -405,33 +415,36 @@ impl Controller {
         }
         let request = parse_request(key, body, &self.config)?;
         if request.cluster.is_some_and(|c| c != self.config.cluster_id) {
-            return response(
+            return response_into(
                 key,
                 header.correlation_id,
                 CLUSTER_MISMATCH,
                 None,
                 &self.config,
                 self.state(),
+                spare,
             );
         }
         if !request.partition_matches {
-            return response(
+            return response_into(
                 key,
                 header.correlation_id,
                 INVALID_REQUEST,
                 None,
                 &self.config,
                 self.state(),
+                spare,
             );
         }
         let error = self.apply(key, &request, now_ms)?;
-        response(
+        response_into(
             key,
             header.correlation_id,
             0,
             Some(error),
             &self.config,
             self.state(),
+            spare,
         )
     }
     fn apply(&mut self, key: i16, r: &Request<'_>, now: u64) -> Result<(i16, bool), Error> {
@@ -946,6 +959,7 @@ fn string(out: &mut Vec<u8>, value: &str, flexible: bool) -> Result<(), Error> {
     out.extend_from_slice(value.as_bytes());
     Ok(())
 }
+#[cfg(test)]
 fn response(
     key: i16,
     correlation: i32,
@@ -954,8 +968,34 @@ fn response(
     config: &Config,
     state: State,
 ) -> Result<Vec<u8>, Error> {
+    response_into(
+        key,
+        correlation,
+        top,
+        partition_error,
+        config,
+        state,
+        Vec::new(),
+    )
+}
+
+fn response_into(
+    key: i16,
+    correlation: i32,
+    top: i16,
+    partition_error: Option<(i16, bool)>,
+    config: &Config,
+    state: State,
+    mut out: Vec<u8>,
+) -> Result<Vec<u8>, Error> {
     let flexible = key == 52;
-    let mut out = allocate(config.topic.len() + 64)?;
+    out.clear();
+    let need = config.topic.len().saturating_add(64);
+    let extra = need.saturating_sub(out.capacity());
+    if extra > 0 {
+        out.try_reserve_exact(extra)
+            .map_err(|_| Error::Allocation)?;
+    }
     out.extend_from_slice(&correlation.to_be_bytes());
     if flexible {
         out.push(0);
@@ -3617,8 +3657,16 @@ fn write_count(out: &mut Vec<u8>, count: u32, flexible: bool) -> Result<(), Erro
     Ok(())
 }
 
+type ControllerReply = Result<(Vec<u8>, Vec<u8>), Error>;
+
+struct ControllerJob {
+    request: Vec<u8>,
+    spare: Vec<u8>,
+    reply: oneshot::Sender<ControllerReply>,
+}
+
 enum Command {
-    Request(Vec<u8>, oneshot::Sender<Result<Vec<u8>, Error>>),
+    Request(ControllerJob),
     Stop,
 }
 /// Async transport handler with one joined bounded durable election actor.
@@ -3650,13 +3698,19 @@ impl ControllerHandler {
                 }
                 match command {
                     Command::Stop => break,
-                    Command::Request(request, reply) => {
+                    Command::Request(job) => {
+                        let ControllerJob {
+                            request,
+                            spare,
+                            reply,
+                        } = job;
                         if reply.is_closed() {
                             continue;
                         }
                         let result = u64::try_from(start.elapsed().as_millis())
                             .map_err(|_| Error::EpochOverflow)
-                            .and_then(|now| controller.respond(&request, now));
+                            .and_then(|now| controller.respond_into(&request, now, spare))
+                            .map(|response| (response, request));
                         drop(reply.send(result));
                     }
                 }
@@ -3684,9 +3738,8 @@ impl ControllerHandler {
         Ok(())
     }
 }
-impl Handler for ControllerHandler {
-    type Error = Error;
-    async fn handle(&self, request: Vec<u8>) -> Result<Option<Vec<u8>>, Error> {
+impl ControllerHandler {
+    async fn submit(&self, request: Vec<u8>, spare: Vec<u8>) -> ControllerReply {
         if self.stopping.load(Ordering::Acquire) {
             return Err(Error::Stopped);
         }
@@ -3695,12 +3748,37 @@ impl Handler for ControllerHandler {
         }
         let (sender, receiver) = oneshot::channel();
         self.sender
-            .try_send(Command::Request(request, sender))
+            .try_send(Command::Request(ControllerJob {
+                request,
+                spare,
+                reply: sender,
+            }))
             .map_err(|e| match e {
                 mpsc::error::TrySendError::Full(_) => Error::Busy,
                 mpsc::error::TrySendError::Closed(_) => Error::Stopped,
             })?;
-        Ok(Some(receiver.await.map_err(|_| Error::Actor)??))
+        receiver.await.map_err(|_| Error::Actor)?
+    }
+}
+impl Handler for ControllerHandler {
+    type Error = Error;
+    async fn handle(&self, request: Vec<u8>) -> Result<Option<Vec<u8>>, Error> {
+        let (response, _) = self.submit(request, Vec::new()).await?;
+        Ok(Some(response))
+    }
+
+    async fn exchange_request(
+        &self,
+        _peer: &Peer,
+        request: Vec<u8>,
+        spare: Vec<u8>,
+    ) -> Result<ExchangeOutcome, Error> {
+        let (response, request) = self.submit(request, spare).await?;
+        Ok(ExchangeOutcome {
+            response: Some(response),
+            request,
+            spare: Vec::new(),
+        })
     }
 }
 impl Drop for ControllerHandler {
@@ -3956,6 +4034,46 @@ pub fn evaluate_prevote(
         return Err(PreVoteRefusal::StaleLog);
     }
     Ok(true)
+}
+
+#[cfg(test)]
+mod response_buffer_tests {
+    use super::*;
+
+    fn state() -> State {
+        State {
+            persistent: election::PersistentState {
+                term: 1,
+                voted_for: None,
+                log: election::LogPosition { term: 0, index: 0 },
+            },
+            role: Role::Follower,
+            leader: None,
+            deadline_ms: 0,
+            granted_votes: 0,
+            poisoned: false,
+        }
+    }
+
+    #[test]
+    fn a_controller_response_reuses_its_buffer() {
+        let config =
+            Config::new(1, vec![1], "cluster".into()).unwrap_or_else(|error| panic!("{error:?}"));
+        let mut spare = Vec::new();
+        spare
+            .try_reserve_exact(128)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let capacity = spare.capacity();
+        let first = response_into(53, 7, 0, None, &config, state(), spare)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(first.capacity() >= capacity);
+        assert!(!first.is_empty());
+        let kept = first.capacity();
+        let second = response_into(53, 8, 0, None, &config, state(), first)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(second.capacity() >= kept);
+        assert!(!second.is_empty());
+    }
 }
 
 #[cfg(test)]
