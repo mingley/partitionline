@@ -472,12 +472,26 @@ impl<'a> IntoIterator for &'a ShareRecords {
 const SHARE_FETCH_RUNTIME_MAX_VERSION: i16 = 2;
 const SHARE_ACKNOWLEDGE_RUNTIME_MAX_VERSION: i16 = 2;
 
-type AcquisitionMap = HashMap<crate::consumer::TopicName, HashMap<(i32, i64), Acquisition>>;
+type AcquisitionMap = HashMap<crate::consumer::TopicName, Vec<AcquisitionRun>>;
 
+#[derive(Clone, Copy)]
 struct Acquisition {
     node: i32,
     delivery_count: i16,
     expires_at: Option<Instant>,
+}
+
+struct AcquisitionRun {
+    partition: i32,
+    first: i64,
+    last: i64,
+    acquisition: Acquisition,
+}
+
+fn same_acquisition(left: &Acquisition, right: &Acquisition) -> bool {
+    left.node == right.node
+        && left.delivery_count == right.delivery_count
+        && left.expires_at == right.expires_at
 }
 
 fn remember_acquisition(
@@ -487,14 +501,98 @@ fn remember_acquisition(
     offset: i64,
     acquisition: Acquisition,
 ) {
-    let key = (partition, offset);
-    if let Some(parts) = map.get_mut(topic.as_str()) {
-        let _ = parts.insert(key, acquisition);
+    if map.get(topic.as_str()).is_none() {
+        let _ = map.insert(topic.clone(), Vec::new());
+    }
+    let Some(runs) = map.get_mut(topic.as_str()) else {
+        return;
+    };
+    if let Some(run) = runs.iter_mut().find(|run| {
+        run.partition == partition
+            && run.last < i64::MAX
+            && run.last.saturating_add(1) == offset
+            && same_acquisition(&run.acquisition, &acquisition)
+    }) {
+        run.last = offset;
         return;
     }
-    let mut parts = HashMap::new();
-    let _ = parts.insert(key, acquisition);
-    let _ = map.insert(topic.clone(), parts);
+    if let Some(run) = runs.iter_mut().find(|run| {
+        run.partition == partition
+            && run.first > i64::MIN
+            && run.first.saturating_sub(1) == offset
+            && same_acquisition(&run.acquisition, &acquisition)
+    }) {
+        run.first = offset;
+        return;
+    }
+    if runs.iter().any(|run| {
+        run.partition == partition
+            && run.first <= offset
+            && offset <= run.last
+            && same_acquisition(&run.acquisition, &acquisition)
+    }) {
+        return;
+    }
+    if let Some(position) = runs
+        .iter()
+        .position(|run| run.partition == partition && run.first <= offset && offset <= run.last)
+    {
+        replace_acquired_offset(runs, position, offset, acquisition);
+        return;
+    }
+    runs.push(AcquisitionRun {
+        partition,
+        first: offset,
+        last: offset,
+        acquisition,
+    });
+}
+
+fn replace_acquired_offset(
+    runs: &mut Vec<AcquisitionRun>,
+    position: usize,
+    offset: i64,
+    acquisition: Acquisition,
+) {
+    let Some(run) = runs.get(position) else {
+        return;
+    };
+    let partition = run.partition;
+    let first = run.first;
+    let last = run.last;
+    let old = run.acquisition;
+    let _ = runs.swap_remove(position);
+    if first < offset {
+        runs.push(AcquisitionRun {
+            partition,
+            first,
+            last: offset.saturating_sub(1),
+            acquisition: old,
+        });
+    }
+    runs.push(AcquisitionRun {
+        partition,
+        first: offset,
+        last: offset,
+        acquisition,
+    });
+    if offset < last {
+        runs.push(AcquisitionRun {
+            partition,
+            first: offset.saturating_add(1),
+            last,
+            acquisition: old,
+        });
+    }
+}
+
+fn acquisition_run(
+    runs: &[AcquisitionRun],
+    partition: i32,
+    offset: i64,
+) -> Option<&AcquisitionRun> {
+    runs.iter()
+        .find(|run| run.partition == partition && run.first <= offset && offset <= run.last)
 }
 
 fn acquisition_at<'a>(
@@ -503,11 +601,157 @@ fn acquisition_at<'a>(
     partition: i32,
     offset: i64,
 ) -> Option<&'a Acquisition> {
-    map.get(topic)?.get(&(partition, offset))
+    acquisition_run(map.get(topic)?, partition, offset).map(|run| &run.acquisition)
+}
+
+fn acquisition_node(map: &AcquisitionMap, topic: &str, partition: i32, offset: i64) -> Option<i32> {
+    acquisition_run(map.get(topic)?, partition, offset).map(|run| run.acquisition.node)
+}
+
+fn acquisition_node_for_range(
+    map: &AcquisitionMap,
+    topic: &str,
+    partition: i32,
+    first: i64,
+    last: i64,
+) -> Option<i32> {
+    if last < first {
+        return None;
+    }
+    let runs = map.get(topic)?;
+    let mut cursor = first;
+    let mut node = None;
+    while cursor <= last {
+        let covering = runs
+            .iter()
+            .find(|run| run.partition == partition && run.first <= cursor && cursor <= run.last)?;
+        if node.is_some_and(|current| current != covering.acquisition.node) {
+            return None;
+        }
+        node = Some(covering.acquisition.node);
+        if covering.last >= last {
+            return node;
+        }
+        if covering.last == i64::MAX {
+            return node;
+        }
+        cursor = covering.last.saturating_add(1);
+    }
+    node
+}
+
+fn span_len(first: i64, last: i64) -> usize {
+    if last < first {
+        return 0;
+    }
+    match last
+        .checked_sub(first)
+        .and_then(|delta| delta.checked_add(1))
+    {
+        Some(len) => usize::try_from(len).unwrap_or(usize::MAX),
+        None => usize::MAX,
+    }
+}
+
+fn covered_len(run: &AcquisitionRun, sent: &[AcknowledgementBatch]) -> usize {
+    sent.iter()
+        .map(|batch| {
+            let start = batch.first_offset.max(run.first);
+            let end = batch.last_offset.min(run.last);
+            if start > end {
+                0
+            } else {
+                span_len(start, end)
+            }
+        })
+        .fold(0usize, usize::saturating_add)
+}
+
+fn expand_partial_runs(
+    runs: &mut Vec<AcquisitionRun>,
+    partition: i32,
+    sent: &[AcknowledgementBatch],
+) {
+    let partial = runs.iter().any(|run| {
+        if run.partition != partition {
+            return false;
+        }
+        let covered = covered_len(run, sent);
+        let whole = span_len(run.first, run.last);
+        covered > 0 && covered < whole
+    });
+    if !partial {
+        return;
+    }
+    let mut next = Vec::new();
+    for run in runs.drain(..) {
+        let whole = span_len(run.first, run.last);
+        let covered = covered_len(&run, sent);
+        if run.partition != partition || covered == 0 || covered >= whole {
+            next.push(run);
+            continue;
+        }
+        let mut offset = run.first;
+        loop {
+            next.push(AcquisitionRun {
+                partition: run.partition,
+                first: offset,
+                last: offset,
+                acquisition: run.acquisition,
+            });
+            if offset == run.last || offset == i64::MAX {
+                break;
+            }
+            offset = offset.saturating_add(1);
+        }
+    }
+    *runs = next;
+}
+
+fn drop_covered_acquisitions(
+    runs: &mut Vec<AcquisitionRun>,
+    partition: i32,
+    sent: &[AcknowledgementBatch],
+) {
+    expand_partial_runs(runs, partition, sent);
+    runs.retain(|run| {
+        run.partition != partition || covered_len(run, sent) < span_len(run.first, run.last)
+    });
+}
+
+fn renew_covered_acquisitions(
+    runs: &mut Vec<AcquisitionRun>,
+    partition: i32,
+    sent: &[AcknowledgementBatch],
+    expiry: Option<Instant>,
+) {
+    expand_partial_runs(runs, partition, sent);
+    for run in runs.iter_mut() {
+        if run.partition == partition && covered_len(run, sent) >= span_len(run.first, run.last) {
+            run.acquisition.expires_at = expiry;
+        }
+    }
+}
+
+fn count_covered_acquisitions(
+    runs: &[AcquisitionRun],
+    partition: i32,
+    sent: &[AcknowledgementBatch],
+) -> usize {
+    runs.iter()
+        .filter(|run| run.partition == partition)
+        .map(|run| covered_len(run, sent))
+        .fold(0usize, usize::saturating_add)
 }
 
 fn acquisition_count(map: &AcquisitionMap) -> usize {
-    map.values().map(HashMap::len).sum()
+    map.values()
+        .map(|runs| {
+            runs.iter()
+                .map(|run| span_len(run.first, run.last))
+                .fold(0usize, usize::saturating_add)
+        })
+        .sum()
 }
 
 struct ShareNodeConnection {
@@ -1354,7 +1598,7 @@ impl ShareGroup {
             .map(|(topic, partition)| (topic.as_str(), *partition))
             .collect();
         self.acquisitions.retain(|topic, parts| {
-            parts.retain(|(part, _), _| still_assigned.contains(&(topic.as_str(), *part)));
+            parts.retain(|run| still_assigned.contains(&(topic.as_str(), run.partition)));
             !parts.is_empty()
         });
         self.pending_delivery.retain(|r| {
@@ -1656,7 +1900,7 @@ impl ShareGroup {
         }
         let now = Instant::now();
         self.acquisitions.retain(|_, parts| {
-            parts.retain(|_, acquisition| acquisition.expires_at.is_none_or(|expiry| expiry > now));
+            parts.retain(|run| run.acquisition.expires_at.is_none_or(|expiry| expiry > now));
             !parts.is_empty()
         });
         self.pending_delivery.retain(|r| {
@@ -1942,7 +2186,7 @@ impl ShareGroup {
         let _ = self.share_epochs.remove(&node);
         let _ = self.share_conns.remove(&node);
         self.acquisitions.retain(|_, parts| {
-            parts.retain(|_, acquisition| acquisition.node != node);
+            parts.retain(|run| run.acquisition.node != node);
             !parts.is_empty()
         });
         self.pending_delivery.retain(|r| {
@@ -2771,10 +3015,10 @@ impl ShareGroup {
     ) -> Result<()> {
         let grouped = group_acks_by_acquisition_node(
             |topic, partition, offset| {
-                self.acquisitions
-                    .get(topic)
-                    .and_then(|parts| parts.get(&(partition, offset)))
-                    .map(|acquired| acquired.node)
+                acquisition_node(&self.acquisitions, topic, partition, offset)
+            },
+            |topic, partition, first, last| {
+                acquisition_node_for_range(&self.acquisitions, topic, partition, first, last)
             },
             partitions,
         )?;
@@ -2948,14 +3192,7 @@ impl ShareGroup {
                         let count = self
                             .acquisitions
                             .get(name.as_str())
-                            .map(|parts| {
-                                parts
-                                    .iter()
-                                    .filter(|((partition, offset), _)| {
-                                        *partition == part.partition && batch_covers(sent, *offset)
-                                    })
-                                    .count()
-                            })
+                            .map(|parts| count_covered_acquisitions(parts, part.partition, sent))
                             .unwrap_or(0);
                         if ack == ACK_RENEW {
                             if lock_timeout <= 0 {
@@ -2967,23 +3204,16 @@ impl ShareGroup {
                                 u64::try_from(lock_timeout).unwrap_or(0),
                             ));
                             if let Some(parts) = self.acquisitions.get_mut(name.as_str()) {
-                                for ((partition, offset), acquired) in parts.iter_mut() {
-                                    if *partition == part.partition && batch_covers(sent, *offset) {
-                                        acquired.expires_at = expiry;
-                                    }
-                                }
+                                renew_covered_acquisitions(parts, part.partition, sent, expiry);
                             }
                         } else {
-                            let empty = if let Some(parts) =
-                                self.acquisitions.get_mut(name.as_str())
-                            {
-                                parts.retain(|(partition, offset), _| {
-                                    !(*partition == part.partition && batch_covers(sent, *offset))
-                                });
-                                parts.is_empty()
-                            } else {
-                                false
-                            };
+                            let empty =
+                                if let Some(parts) = self.acquisitions.get_mut(name.as_str()) {
+                                    drop_covered_acquisitions(parts, part.partition, sent);
+                                    parts.is_empty()
+                                } else {
+                                    false
+                                };
                             if empty {
                                 let _ = self.acquisitions.remove(name.as_str());
                             }
@@ -2996,16 +3226,13 @@ impl ShareGroup {
                         if part.error_code == error::INVALID_RECORD_STATE
                             || share_ack_ownership_lost(part.error_code)
                         {
-                            let empty = if let Some(parts) =
-                                self.acquisitions.get_mut(name.as_str())
-                            {
-                                parts.retain(|(partition, offset), _| {
-                                    !(*partition == part.partition && batch_covers(sent, *offset))
-                                });
-                                parts.is_empty()
-                            } else {
-                                false
-                            };
+                            let empty =
+                                if let Some(parts) = self.acquisitions.get_mut(name.as_str()) {
+                                    drop_covered_acquisitions(parts, part.partition, sent);
+                                    parts.is_empty()
+                                } else {
+                                    false
+                                };
                             if empty {
                                 let _ = self.acquisitions.remove(name.as_str());
                             }
@@ -3685,12 +3912,6 @@ fn reject_java_acknowledge_before_poll() -> Error {
     Error::protocol("Acknowledge called before poll.")
 }
 
-fn batch_covers(batches: &[AcknowledgementBatch], offset: i64) -> bool {
-    batches
-        .iter()
-        .any(|batch| offset >= batch.first_offset && offset <= batch.last_offset)
-}
-
 /// One topic name is shared by every partition acknowledged for that topic.
 type AckPartition = (Arc<str>, i32, Vec<AcknowledgementBatch>);
 
@@ -3739,6 +3960,7 @@ type AckRoute = BTreeMap<i32, Vec<AckPartition>>;
 
 fn group_acks_by_acquisition_node(
     node_of: impl Fn(&str, i32, i64) -> Option<i32>,
+    range_node: impl Fn(&str, i32, i64, i64) -> Option<i32>,
     partitions: &[AckPartition],
 ) -> Result<AckRoute> {
     let mut by_node: AckRoute = BTreeMap::new();
@@ -3774,6 +3996,21 @@ fn group_acks_by_acquisition_node(
             } else {
                 None
             };
+            if let Some(kind) = single_type {
+                if let Some(node) =
+                    range_node(topic, *partition, batch.first_offset, batch.last_offset)
+                {
+                    node_batches
+                        .entry(node)
+                        .or_default()
+                        .push(AcknowledgementBatch {
+                            first_offset: batch.first_offset,
+                            last_offset: batch.last_offset,
+                            types: vec![kind],
+                        });
+                    continue;
+                }
+            }
             let mut offset = batch.first_offset;
             let mut index = 0usize;
             let mut run_node = None;
@@ -4160,7 +4397,10 @@ mod tests {
             },
         );
         assert_eq!(map.len(), 1);
-        assert_eq!(map.get("orders").map(HashMap::len), Some(2));
+        assert_eq!(map.get("orders").map(Vec::len), Some(1));
+        assert_eq!(acquisition_count(&map), 2);
+        assert_eq!(acquisition_node_for_range(&map, "orders", 0, 1, 2), Some(2));
+        assert_eq!(acquisition_node_for_range(&map, "orders", 0, 1, 3), None);
         assert_eq!(
             acquisition_at(&map, &topic, 0, 1).map(|found| found.node),
             Some(2)
@@ -4597,6 +4837,7 @@ mod tests {
                 3 => Some(9),
                 _ => None,
             },
+            |_, _, _, _| None,
             &partitions,
         );
         assert!(grouped.is_ok());
@@ -4641,7 +4882,8 @@ mod tests {
                 Some([ACK_ACCEPT].as_slice())
             );
         }
-        let missing = group_acks_by_acquisition_node(|_, _, _| None, &partitions);
+        let missing =
+            group_acks_by_acquisition_node(|_, _, _| None, |_, _, _, _| None, &partitions);
         assert!(missing.is_err());
         let same = vec![(
             Arc::<str>::from("orders"),
@@ -4652,7 +4894,7 @@ mod tests {
                 types: vec![ACK_ACCEPT],
             }],
         )];
-        let same_node = group_acks_by_acquisition_node(|_, _, _| Some(4), &same);
+        let same_node = group_acks_by_acquisition_node(|_, _, _| Some(4), |_, _, _, _| None, &same);
         assert!(same_node.is_ok());
         if let Ok(same_node) = same_node {
             assert_eq!(same_node.get(&4).map(Vec::as_slice), Some(same.as_slice()));
@@ -4668,6 +4910,7 @@ mod tests {
         )];
         let mixed = group_acks_by_acquisition_node(
             |_topic, _partition, offset| Some(if offset == 1 { 4 } else { 9 }),
+            |_, _, _, _| None,
             &mixed,
         );
         assert!(mixed.is_ok());
