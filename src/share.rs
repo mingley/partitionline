@@ -772,6 +772,11 @@ pub enum ShareAcquireMode {
 /// `NOT_CONTROLLER`, which fails that poll, and not
 /// standalone ShareAcknowledge `NOT_CONTROLLER`,
 /// which retries). A piggybacked
+/// `INVALID_RECORD_STATE` still completes without retry,
+/// including when `AcknowledgeErrorMessage` is set (Java
+/// `handleShareFetchSuccess` completes piggyback acks and still
+/// delivers the fetch; this is not partition
+/// `INVALID_RECORD_STATE`, which fails that poll). A piggybacked
 /// `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a
 /// sibling partition whose `AcknowledgeErrorCode` is none, including
 /// when `AcknowledgeErrorMessage` is set or empty. A piggybacked
@@ -2040,6 +2045,11 @@ impl ShareGroup {
     /// `NOT_CONTROLLER`, which fails that poll, and not
     /// standalone ShareAcknowledge `NOT_CONTROLLER`,
     /// which retries).
+    /// A piggybacked `INVALID_RECORD_STATE` still completes
+    /// without retry, including when `AcknowledgeErrorMessage` is set
+    /// (Java `handleShareFetchSuccess` completes piggyback acks and
+    /// still delivers the fetch; this is not partition
+    /// `INVALID_RECORD_STATE`, which fails that poll).
     /// A piggybacked `TOPIC_AUTHORIZATION_FAILED` on one partition
     /// does not fail a sibling whose `AcknowledgeErrorCode` is none,
     /// including when `AcknowledgeErrorMessage` is set or empty.
