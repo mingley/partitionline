@@ -860,6 +860,8 @@ pub struct ShareGroup {
     spare_fetch_ids: Vec<BTreeMap<[u8; 16], Vec<i32>>>,
     /// Offsets for a one-partition acknowledgement. Reused across calls.
     ack_offsets: Vec<i64>,
+    /// Short topic name shared by successive acknowledgements of that name.
+    ack_topic: Option<Arc<str>>,
     /// Partition and offset pairs for a one-topic acknowledgement. Reused
     /// across calls.
     ack_pairs: Vec<(i32, i64)>,
@@ -1361,6 +1363,7 @@ impl ShareGroup {
             spare_fetch_topics: Vec::new(),
             spare_fetch_ids: Vec::new(),
             ack_offsets: Vec::new(),
+            ack_topic: None,
             ack_pairs: Vec::new(),
             fetch_cursors: Vec::new(),
             spare_incoming: Vec::new(),
@@ -3073,8 +3076,13 @@ impl ShareGroup {
                 ));
             }
         }
-        let mut partitions =
-            acknowledgement_batches_with(recs, ack, &mut self.ack_offsets, &mut self.ack_pairs);
+        let mut partitions = acknowledgement_batches_with(
+            recs,
+            ack,
+            &mut self.ack_offsets,
+            &mut self.ack_pairs,
+            &mut self.ack_topic,
+        );
         let deadline = Instant::now() + self.cfg.request_timeout;
         let mut attempt = 0u32;
         loop {
@@ -4224,14 +4232,22 @@ fn finish_ack_run(first: i64, last: i64, types: &[i8]) -> AcknowledgementBatch {
 fn acknowledgement_batches(recs: &[ShareRecord], ack: i8) -> Vec<AckPartition> {
     let mut offsets = Vec::new();
     let mut pairs = Vec::new();
-    acknowledgement_batches_with(recs, ack, &mut offsets, &mut pairs)
+    let mut topic = None;
+    acknowledgement_batches_with(recs, ack, &mut offsets, &mut pairs, &mut topic)
 }
 
-fn share_topic_arc(topic: &crate::consumer::TopicName) -> Arc<str> {
-    match topic {
-        crate::consumer::TopicName::Heap(shared) => Arc::clone(shared),
-        inline => Arc::from(inline.as_str()),
+fn share_topic_arc(topic: &crate::consumer::TopicName, cached: &mut Option<Arc<str>>) -> Arc<str> {
+    if let crate::consumer::TopicName::Heap(shared) = topic {
+        return Arc::clone(shared);
     }
+    if let Some(name) = cached.as_ref() {
+        if name.as_ref() == topic.as_str() {
+            return Arc::clone(name);
+        }
+    }
+    let shared = Arc::<str>::from(topic.as_str());
+    *cached = Some(Arc::clone(&shared));
+    shared
 }
 
 fn acknowledgement_batches_with(
@@ -4239,6 +4255,7 @@ fn acknowledgement_batches_with(
     ack: i8,
     offsets: &mut Vec<i64>,
     pairs: &mut Vec<(i32, i64)>,
+    topic_name: &mut Option<Arc<str>>,
 ) -> Vec<AckPartition> {
     if let Some(first) = recs.first() {
         if recs
@@ -4252,13 +4269,17 @@ fn acknowledgement_batches_with(
             if batches.is_empty() {
                 return Vec::new();
             }
-            return vec![(share_topic_arc(&first.topic), first.partition, batches)];
+            return vec![(
+                share_topic_arc(&first.topic, topic_name),
+                first.partition,
+                batches,
+            )];
         }
         if recs.iter().skip(1).all(|rec| rec.topic == first.topic) {
             pairs.clear();
             pairs.extend(recs.iter().map(|rec| (rec.partition, rec.offset)));
             pairs.sort_unstable();
-            let name = share_topic_arc(&first.topic);
+            let name = share_topic_arc(&first.topic, topic_name);
             let mut out = Vec::new();
             let mut start = 0usize;
             while start < pairs.len() {
@@ -4295,10 +4316,7 @@ fn acknowledgement_batches_with(
     }
     let mut out = Vec::new();
     for (topic, parts) in by_part {
-        let name = match topic {
-            crate::consumer::TopicName::Heap(shared) => shared,
-            inline => Arc::from(inline.as_str()),
-        };
+        let name = share_topic_arc(&topic, topic_name);
         for (partition, mut offs) in parts {
             let batches = collapse_ack_offsets(&mut offs, ack);
             if !batches.is_empty() {
@@ -4876,12 +4894,32 @@ mod tests {
         let recs = [rec(0, 3), rec(0, 1), rec(0, 2), rec(0, 2)];
         let mut offsets = Vec::new();
         let mut pairs = Vec::new();
-        let first =
-            super::acknowledgement_batches_with(&recs, ACK_ACCEPT, &mut offsets, &mut pairs);
+        let mut topic = None;
+        let first = super::acknowledgement_batches_with(
+            &recs,
+            ACK_ACCEPT,
+            &mut offsets,
+            &mut pairs,
+            &mut topic,
+        );
         let ptr = offsets.as_ptr();
-        let again =
-            super::acknowledgement_batches_with(&recs, ACK_ACCEPT, &mut offsets, &mut pairs);
+        let kept = first
+            .first()
+            .map(|part| Arc::clone(&part.0))
+            .expect("partition");
+        let again = super::acknowledgement_batches_with(
+            &recs,
+            ACK_ACCEPT,
+            &mut offsets,
+            &mut pairs,
+            &mut topic,
+        );
         assert_eq!(offsets.as_ptr(), ptr);
+        let again_name = again
+            .first()
+            .map(|part| Arc::clone(&part.0))
+            .expect("partition");
+        assert!(Arc::ptr_eq(&kept, &again_name));
         assert_eq!(first.len(), 1);
         assert_eq!(again.len(), 1);
         assert_eq!(
@@ -4899,11 +4937,22 @@ mod tests {
         let recs = [rec(1, 4), rec(0, 2), rec(0, 1), rec(1, 5)];
         let mut offsets = Vec::new();
         let mut pairs = Vec::new();
-        let first =
-            super::acknowledgement_batches_with(&recs, ACK_ACCEPT, &mut offsets, &mut pairs);
+        let mut topic = None;
+        let first = super::acknowledgement_batches_with(
+            &recs,
+            ACK_ACCEPT,
+            &mut offsets,
+            &mut pairs,
+            &mut topic,
+        );
         let ptr = pairs.as_ptr();
-        let again =
-            super::acknowledgement_batches_with(&recs, ACK_ACCEPT, &mut offsets, &mut pairs);
+        let again = super::acknowledgement_batches_with(
+            &recs,
+            ACK_ACCEPT,
+            &mut offsets,
+            &mut pairs,
+            &mut topic,
+        );
         assert_eq!(pairs.as_ptr(), ptr);
         assert_eq!(first.len(), 2);
         assert_eq!(
