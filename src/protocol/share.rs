@@ -2442,20 +2442,63 @@ pub fn encode_share_acknowledge_request(
     partitions: &[(i32, Vec<AcknowledgementBatch>)],
 ) -> crate::error::Result<()> {
     if partitions.is_empty() {
-        encode_share_acknowledge_topics(buf, version, group_id, member_id, share_session_epoch, &[])
-    } else {
-        encode_share_acknowledge_topics(
+        return encode_share_acknowledge_topics(
             buf,
             version,
             group_id,
             member_id,
             share_session_epoch,
-            &[ShareAckTopic {
-                topic_id,
-                partitions: partitions.to_vec(),
-            }],
-        )
+            &[],
+        );
     }
+    let flexible = share_acknowledge_flexible(version)?;
+    let is_renew_ack = partitions
+        .iter()
+        .any(|(_, batches)| batches.iter().any(|batch| batch.types.contains(&ACK_RENEW)));
+    check_renew_version(version, is_renew_ack)?;
+    let body_start = buf.len();
+    let planned = add_share_len(
+        share_acknowledge_header_len(version, group_id, member_id)?,
+        one_share_acknowledge_topic_len(partitions)?,
+    )?;
+    reserve_share_body(buf, planned);
+    buf::put_string(buf, flexible, Some(group_id))?;
+    buf::put_string(buf, flexible, Some(member_id))?;
+    buf.put_i32(share_session_epoch);
+    if version >= 2 {
+        buf.put_u8(u8::from(is_renew_ack));
+    }
+    buf::put_array_len(buf, flexible, Some(1))?;
+    buf.extend_from_slice(&topic_id);
+    buf::put_array_len(buf, flexible, Some(partitions.len()))?;
+    for (partition, batches) in partitions {
+        buf.put_i32(*partition);
+        encode_ack_batches(buf, batches)?;
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+    }
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+        buf::put_empty_tagged_fields(buf);
+    }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+    Ok(())
+}
+
+fn one_share_acknowledge_topic_len(
+    partitions: &[(i32, Vec<AcknowledgementBatch>)],
+) -> Result<usize> {
+    let mut total = share_array_len(1)?;
+    total = add_share_len(total, 16)?;
+    total = add_share_len(total, share_array_len(partitions.len())?)?;
+    for (_, batches) in partitions {
+        total = add_share_len(total, 4)?;
+        total = add_share_len(total, ack_batches_len(batches)?)?;
+        total = add_share_len(total, buf::unsigned_varint_size(0))?;
+    }
+    total = add_share_len(total, buf::unsigned_varint_size(0))?;
+    add_share_len(total, buf::unsigned_varint_size(0))
 }
 
 /// One topic in a multi-topic ShareAcknowledge request.
