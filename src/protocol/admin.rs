@@ -2385,11 +2385,88 @@ impl DescribeConfigsResponse {
     }
 }
 
+/// One DescribeConfigs resource whose name and configuration keys are borrowed.
+pub(crate) struct BorrowedDescribeConfigsResource<'a> {
+    /// Kafka resource type (`CONFIG_RESOURCE_TOPIC`, …).
+    pub resource_type: i8,
+    /// Resource name (topic, broker id, …).
+    pub name: &'a str,
+    /// Keys to return, or `None` for every key on the resource.
+    pub keys: Option<&'a [String]>,
+}
+
+trait DescribeConfigsResourceView {
+    fn describe_configs_type(&self) -> i8;
+    fn describe_configs_name(&self) -> &str;
+    fn describe_configs_keys(&self) -> Option<&[String]>;
+}
+
+impl DescribeConfigsResourceView for DescribeConfigsResource {
+    fn describe_configs_type(&self) -> i8 {
+        self.resource_type
+    }
+
+    fn describe_configs_name(&self) -> &str {
+        &self.name
+    }
+
+    fn describe_configs_keys(&self) -> Option<&[String]> {
+        self.keys.as_deref()
+    }
+}
+
+impl DescribeConfigsResourceView for BorrowedDescribeConfigsResource<'_> {
+    fn describe_configs_type(&self) -> i8 {
+        self.resource_type
+    }
+
+    fn describe_configs_name(&self) -> &str {
+        self.name
+    }
+
+    fn describe_configs_keys(&self) -> Option<&[String]> {
+        self.keys
+    }
+}
+
 /// DescribeConfigs v0–4 (classic through v3; flexible from v4).
 pub fn encode_describe_configs_request(
     buf: &mut BytesMut,
     version: i16,
     resources: &[DescribeConfigsResource],
+    include_synonyms: bool,
+    include_documentation: bool,
+) -> crate::error::Result<()> {
+    encode_describe_configs_resource_views(
+        buf,
+        version,
+        resources,
+        include_synonyms,
+        include_documentation,
+    )
+}
+
+/// Encode DescribeConfigs resources whose names and keys are borrowed.
+pub(crate) fn encode_describe_configs_named(
+    buf: &mut BytesMut,
+    version: i16,
+    resources: &[BorrowedDescribeConfigsResource<'_>],
+    include_synonyms: bool,
+    include_documentation: bool,
+) -> crate::error::Result<()> {
+    encode_describe_configs_resource_views(
+        buf,
+        version,
+        resources,
+        include_synonyms,
+        include_documentation,
+    )
+}
+
+fn encode_describe_configs_resource_views<T: DescribeConfigsResourceView>(
+    buf: &mut BytesMut,
+    version: i16,
+    resources: &[T],
     include_synonyms: bool,
     include_documentation: bool,
 ) -> crate::error::Result<()> {
@@ -2401,10 +2478,10 @@ pub fn encode_describe_configs_request(
         buf.reserve(needed - buf.capacity());
     }
     buf::put_array_len(buf, flexible, Some(resources.len()))?;
-    for r in resources {
-        buf.put_i8(r.resource_type);
-        buf::put_string(buf, flexible, Some(&r.name))?;
-        put_string_array(buf, flexible, r.keys.as_deref())?;
+    for resource in resources {
+        buf.put_i8(resource.describe_configs_type());
+        buf::put_string(buf, flexible, Some(resource.describe_configs_name()))?;
+        put_string_array(buf, flexible, resource.describe_configs_keys())?;
         if flexible {
             buf::put_empty_tagged_fields(buf);
         }
@@ -2422,18 +2499,21 @@ pub fn encode_describe_configs_request(
     Ok(())
 }
 
-fn describe_configs_request_len(
+fn describe_configs_request_len<T: DescribeConfigsResourceView>(
     version: i16,
     flexible: bool,
-    resources: &[DescribeConfigsResource],
+    resources: &[T],
 ) -> Result<usize> {
     let mut total = describe_array_len(flexible, resources.len())?;
     for resource in resources {
         total = add_describe_len(total, 1)?;
-        total = add_describe_len(total, describe_string_len(flexible, Some(&resource.name))?)?;
         total = add_describe_len(
             total,
-            describe_string_array_len(flexible, resource.keys.as_deref())?,
+            describe_string_len(flexible, Some(resource.describe_configs_name()))?,
+        )?;
+        total = add_describe_len(
+            total,
+            describe_string_array_len(flexible, resource.describe_configs_keys())?,
         )?;
         if flexible {
             total = add_describe_len(total, buf::unsigned_varint_size(0))?;
@@ -28826,6 +28906,42 @@ mod tests {
             let (decoded, _, _) = decode_describe_configs_request(&mut cur, version).unwrap();
             assert!(cur.is_empty());
             assert_eq!(decoded, resources);
+        }
+    }
+
+    #[test]
+    fn describe_configs_named_resources_match_owned_resources() {
+        let keys = vec!["cleanup.policy".to_string(), "retention.ms".to_string()];
+        let owned = [
+            DescribeConfigsResource {
+                resource_type: RESOURCE_TOPIC,
+                name: "orders-topic-name-is-long".into(),
+                keys: Some(keys.clone()),
+            },
+            DescribeConfigsResource {
+                resource_type: RESOURCE_BROKER,
+                name: "1".into(),
+                keys: None,
+            },
+        ];
+        let named = [
+            BorrowedDescribeConfigsResource {
+                resource_type: RESOURCE_TOPIC,
+                name: "orders-topic-name-is-long",
+                keys: Some(keys.as_slice()),
+            },
+            BorrowedDescribeConfigsResource {
+                resource_type: RESOURCE_BROKER,
+                name: "1",
+                keys: None,
+            },
+        ];
+        for version in [0_i16, 1, 3, 4] {
+            let mut expected = BytesMut::new();
+            encode_describe_configs_request(&mut expected, version, &owned, true, true).unwrap();
+            let mut got = BytesMut::new();
+            encode_describe_configs_named(&mut got, version, &named, true, true).unwrap();
+            assert_eq!(got.as_ref(), expected.as_ref(), "version {version}");
         }
     }
 

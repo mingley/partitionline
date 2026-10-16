@@ -52,7 +52,7 @@ use crate::protocol::admin::{
     encode_create_delegation_token_request, encode_create_partitions_named,
     encode_create_topics_named, encode_delete_groups_request, encode_delete_records_named_topics,
     encode_delete_share_group_offsets_request, encode_describe_client_quotas_request,
-    encode_describe_cluster_request, encode_describe_configs_request,
+    encode_describe_cluster_request, encode_describe_configs_named,
     encode_describe_delegation_token_request, encode_describe_groups_request,
     encode_describe_log_dirs_request, encode_describe_producers_named_topics,
     encode_describe_share_group_offsets_request_versioned,
@@ -65,9 +65,9 @@ use crate::protocol::admin::{
     encode_share_group_describe_request, encode_unregister_broker_request,
     encode_update_features_request, AlterConfigsResource, BorrowedAlterConfig,
     BorrowedAlterConfigsResource, BorrowedAlterableResource, BorrowedCreatableTopic,
-    BorrowedCreatePartitionsTopic, BorrowedReassignmentPartition, BorrowedReplicaAssignment,
-    BorrowedTopicConfig, CreateTopicsRequest, DeleteRecordsPartition, DeleteTopicState,
-    DescribeConfigsResource, DescribeConfigsResult, FeatureUpdateKey, ScramCredentialDeletion,
+    BorrowedCreatePartitionsTopic, BorrowedDescribeConfigsResource, BorrowedReassignmentPartition,
+    BorrowedReplicaAssignment, BorrowedTopicConfig, CreateTopicsRequest, DeleteRecordsPartition,
+    DeleteTopicState, DescribeConfigsResult, FeatureUpdateKey, ScramCredentialDeletion,
     ScramCredentialUpsertion, TopicResult, RESOURCE_BROKER, RESOURCE_BROKER_LOGGER,
     RESOURCE_CLIENT_METRICS, RESOURCE_GROUP, RESOURCE_TOPIC,
 };
@@ -3245,6 +3245,19 @@ struct LeaderFrame {
 
 type LeaderExchange = HashMap<i32, (i16, Result<Bytes>)>;
 
+fn borrowed_describe_configs_resources(
+    resources: &[ConfigResource],
+) -> Vec<BorrowedDescribeConfigsResource<'_>> {
+    resources
+        .iter()
+        .map(|resource| BorrowedDescribeConfigsResource {
+            resource_type: resource.resource_type,
+            name: resource.name.as_str(),
+            keys: resource.keys.as_deref(),
+        })
+        .collect()
+}
+
 fn borrowed_alter_configs_resources(
     updates: &[ConfigReplacement],
 ) -> Vec<BorrowedAlterConfigsResource<'_>> {
@@ -5500,14 +5513,7 @@ impl Admin {
         include_documentation: bool,
         timeout: Duration,
     ) -> Result<Vec<DescribeConfigsResult>> {
-        let req: Vec<DescribeConfigsResource> = resources
-            .iter()
-            .map(|r| DescribeConfigsResource {
-                resource_type: r.resource_type,
-                name: r.name.clone(),
-                keys: r.keys.clone(),
-            })
-            .collect();
+        let req = borrowed_describe_configs_resources(resources);
         let version = self.describe_version.ok_or_else(|| {
             Error::Unsupported("broker does not support DescribeConfigs v0-4".into())
         })?;
@@ -5516,7 +5522,7 @@ impl Admin {
                 DESCRIBE_CONFIGS,
                 version,
                 |buf| {
-                    encode_describe_configs_request(
+                    encode_describe_configs_named(
                         buf,
                         version,
                         &req,
