@@ -518,8 +518,18 @@ fn encode_into<T: Wire>(
     limits: OffsetLimits,
 ) -> Result<()> {
     version_range(version)?;
+    let mut measure = Writer::new(limits, None, version)?;
+    value.write(&mut measure)?;
+    let needed = buf.len().saturating_add(measure.length);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     let mut writer = Writer::appending(buf, limits, version)?;
-    value.write(&mut writer)
+    value.write(&mut writer)?;
+    if writer.length != measure.length {
+        return Err(Error::protocol("Offset encoded size mismatch"));
+    }
+    Ok(())
 }
 
 fn validate<T: Wire>(value: &T, version: i16, limits: OffsetLimits) -> Result<()> {

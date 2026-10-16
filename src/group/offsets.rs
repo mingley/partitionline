@@ -736,6 +736,32 @@ mod tests {
         let mut direct = bytes::BytesMut::new();
         encode_offset_commit_request_into(&mut direct, &request, 10, limits).unwrap();
         assert_eq!(&direct[..], &bytes[..]);
+        let wide = OffsetCommitRequestData {
+            group_id: "g".into(),
+            generation_id_or_member_epoch: 3,
+            member_id: "m-1".into(),
+            group_instance_id: None,
+            topics: vec![OffsetCommitTopicData {
+                identity: OffsetTopicIdentity::Id(id),
+                partitions: (0..8)
+                    .map(|partition| OffsetCommitPartitionData {
+                        partition_index: partition,
+                        committed_offset: 4,
+                        committed_leader_epoch: -1,
+                        committed_metadata: Some("cursor".into()),
+                    })
+                    .collect(),
+            }],
+        };
+        let mut sized = bytes::BytesMut::new();
+        encode_offset_commit_request_into(&mut sized, &wide, 10, limits).unwrap();
+        let len = sized.len();
+        let capacity = sized.capacity();
+        assert!(capacity >= len);
+        sized.clear();
+        encode_offset_commit_request_into(&mut sized, &wide, 10, limits).unwrap();
+        assert_eq!(sized.len(), len);
+        assert_eq!(sized.capacity(), capacity);
         let names = ["orders".to_string()];
         let metadata = encode_offset_metadata_names(Some(&names), 12, limits).unwrap();
         validate_offset_metadata_names(Some(&names), 12, limits).unwrap();
