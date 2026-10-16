@@ -481,6 +481,7 @@ struct Acquisition {
     expires_at: Option<Instant>,
 }
 
+#[derive(Clone, Copy)]
 struct AcquisitionRun {
     partition: i32,
     first: i64,
@@ -672,40 +673,56 @@ fn expand_partial_runs(
     partition: i32,
     sent: &[AcknowledgementBatch],
 ) {
-    let partial = runs.iter().any(|run| {
+    let mut extra = 0usize;
+    for run in runs.iter() {
         if run.partition != partition {
-            return false;
+            continue;
         }
         let covered = covered_len(run, sent);
         let whole = span_len(run.first, run.last);
-        covered > 0 && covered < whole
-    });
-    if !partial {
+        if covered > 0 && covered < whole {
+            extra = extra.saturating_add(whole.saturating_sub(1));
+        }
+    }
+    if extra == 0 {
         return;
     }
-    let mut next = Vec::new();
-    for run in runs.drain(..) {
+    let Some(dummy) = runs.first().copied() else {
+        return;
+    };
+    let old = runs.len();
+    runs.resize(old.saturating_add(extra), dummy);
+    let mut write = runs.len();
+    for read in (0..old).rev() {
+        let Some(run) = runs.get(read).copied() else {
+            continue;
+        };
         let whole = span_len(run.first, run.last);
         let covered = covered_len(&run, sent);
         if run.partition != partition || covered == 0 || covered >= whole {
-            next.push(run);
+            write = write.saturating_sub(1);
+            if let Some(slot) = runs.get_mut(write) {
+                *slot = run;
+            }
             continue;
         }
-        let mut offset = run.first;
+        let mut offset = run.last;
         loop {
-            next.push(AcquisitionRun {
-                partition: run.partition,
-                first: offset,
-                last: offset,
-                acquisition: run.acquisition,
-            });
-            if offset == run.last || offset == i64::MAX {
+            write = write.saturating_sub(1);
+            if let Some(slot) = runs.get_mut(write) {
+                *slot = AcquisitionRun {
+                    partition: run.partition,
+                    first: offset,
+                    last: offset,
+                    acquisition: run.acquisition,
+                };
+            }
+            if offset == run.first || offset == i64::MIN {
                 break;
             }
-            offset = offset.saturating_add(1);
+            offset = offset.saturating_sub(1);
         }
     }
-    *runs = next;
 }
 
 fn drop_covered_acquisitions(
@@ -5071,6 +5088,36 @@ mod tests {
             topics.first().map(|topic| topic.partitions.as_ptr()),
             topic_parts_ptr
         );
+    }
+
+    #[test]
+    fn a_partial_ack_keeps_the_acquisition_buffer() {
+        let acquisition = Acquisition {
+            node: 1,
+            delivery_count: 1,
+            expires_at: None,
+        };
+        let mut runs = Vec::with_capacity(8);
+        runs.push(AcquisitionRun {
+            partition: 0,
+            first: 1,
+            last: 4,
+            acquisition,
+        });
+        let stored = runs.as_ptr();
+        drop_covered_acquisitions(
+            &mut runs,
+            0,
+            &[AcknowledgementBatch {
+                first_offset: 2,
+                last_offset: 3,
+                types: vec![ACK_ACCEPT],
+            }],
+        );
+        assert_eq!(runs.as_ptr(), stored);
+        assert_eq!(runs.len(), 2);
+        assert_eq!(runs.first().map(|run| (run.first, run.last)), Some((1, 1)));
+        assert_eq!(runs.get(1).map(|run| (run.first, run.last)), Some((4, 4)));
     }
 
     #[test]
