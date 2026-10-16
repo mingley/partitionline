@@ -2541,6 +2541,10 @@ fn write_sync_group_response(
     throttle_time_ms: i32,
 ) -> crate::error::Result<()> {
     let flexible = sync_group_flexible(version)?;
+    let body_start = buf.len();
+    let planned =
+        sync_group_response_len(version, flexible, assignment, protocol_type, protocol_name)?;
+    reserve_group_body(buf, planned);
     if version >= 1 {
         buf.put_i32(throttle_time_ms);
     }
@@ -2553,7 +2557,28 @@ fn write_sync_group_response(
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn sync_group_response_len(
+    version: i16,
+    flexible: bool,
+    assignment: &[u8],
+    protocol_type: Option<&str>,
+    protocol_name: Option<&str>,
+) -> Result<usize> {
+    let mut total = if version >= 1 { 4usize } else { 0 };
+    total = add_group_len(total, 2)?;
+    if version >= 5 {
+        total = add_group_len(total, group_string_len(true, protocol_type)?)?;
+        total = add_group_len(total, group_string_len(true, protocol_name)?)?;
+    }
+    total = add_group_len(total, group_bytes_len(flexible, assignment)?)?;
+    if flexible {
+        total = add_group_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 /// Decode SyncGroup: `(error_code, assignment, protocol_type, protocol_name, throttle_time_ms)`.
@@ -15432,6 +15457,49 @@ mod tests {
             &v4[..],
             "SyncGroup v5 must include ProtocolType / ProtocolName"
         );
+    }
+
+    #[test]
+    fn a_sync_group_response_sizes_its_body_once() {
+        let assignment = vec![1u8, 2, 3, 4, 5, 6, 7, 8];
+        for version in [0_i16, 1, 4] {
+            let mut buf = BytesMut::new();
+            encode_sync_group_response(&mut buf, version, 0, &assignment).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_sync_group_response(&mut buf, version, 0, &assignment).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+        }
+        let mut buf = BytesMut::new();
+        encode_sync_group_response_with_protocol(
+            &mut buf,
+            5,
+            0,
+            &assignment,
+            Some("consumer"),
+            Some("range"),
+        )
+        .unwrap();
+        let len = buf.len();
+        let capacity = buf.capacity();
+        assert!(capacity >= len);
+        assert!(capacity < 64 * 1024);
+        buf.clear();
+        encode_sync_group_response_with_protocol(
+            &mut buf,
+            5,
+            0,
+            &assignment,
+            Some("consumer"),
+            Some("range"),
+        )
+        .unwrap();
+        assert_eq!(buf.len(), len);
+        assert_eq!(buf.capacity(), capacity);
     }
 
     #[test]
