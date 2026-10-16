@@ -138,7 +138,7 @@ struct Resource {
 /// Durable dynamic configuration for broker and topic resources.
 pub struct ConfigStore {
     limits: Limits,
-    resources: BTreeMap<(ResourceKind, String), Resource>,
+    resources: BTreeMap<ResourceKind, BTreeMap<String, Resource>>,
     inflight_tasks: u64,
     budget_bytes: u64,
     journal: Journal,
@@ -201,10 +201,7 @@ impl ConfigStore {
     /// Effective configs for one resource. Sensitive values are omitted.
     pub fn describe(&self, kind: ResourceKind, name: &str) -> Result<Vec<Entry>, Error> {
         validate_name(kind, name)?;
-        let dynamic = self
-            .resources
-            .get(&(kind, name.to_owned()))
-            .map(|resource| &resource.values);
+        let dynamic = self.resource(kind, name).map(|resource| &resource.values);
         let mut entries = Vec::new();
         for spec in schema(kind) {
             let stored = dynamic.and_then(|values| values.get(spec.name));
@@ -239,8 +236,7 @@ impl ConfigStore {
         if ops.is_empty() || ops.len() > 64 {
             return Err(Error::InvalidRequest);
         }
-        let key = (kind, name.to_owned());
-        let mut next = self.resources.get(&key).cloned().unwrap_or(Resource {
+        let mut next = self.resource(kind, name).cloned().unwrap_or(Resource {
             values: BTreeMap::new(),
         });
         for op in ops {
@@ -249,13 +245,18 @@ impl ConfigStore {
         if validate_only {
             return Ok(());
         }
-        if self.resources.len() >= self.limits.max_resources && !self.resources.contains_key(&key) {
+        if self.resource_count() >= self.limits.max_resources && self.resource(kind, name).is_none()
+        {
             return Err(Error::InvalidLimits);
         }
         let tasks = self.inflight_tasks;
         let budget = self.budget_bytes;
         self.persist(&encode_resource(kind, name, &next)?)?;
-        self.resources.insert(key, next);
+        let _previous = self
+            .resources
+            .entry(kind)
+            .or_default()
+            .insert(name.to_owned(), next);
         self.inflight_tasks = tasks;
         self.budget_bytes = budget;
         Ok(())
@@ -272,12 +273,25 @@ impl ConfigStore {
     fn apply(&mut self, bytes: &[u8]) -> Result<(), Error> {
         let (kind, name, resource) = decode_resource(bytes)?;
         validate_stored(kind, &name, &resource)?;
-        let key = (kind, name);
-        if self.resources.len() >= self.limits.max_resources && !self.resources.contains_key(&key) {
+        if self.resource_count() >= self.limits.max_resources
+            && self.resource(kind, &name).is_none()
+        {
             return Err(Error::InvalidLimits);
         }
-        self.resources.insert(key, resource);
+        let _previous = self
+            .resources
+            .entry(kind)
+            .or_default()
+            .insert(name, resource);
         Ok(())
+    }
+
+    fn resource(&self, kind: ResourceKind, name: &str) -> Option<&Resource> {
+        self.resources.get(&kind)?.get(name)
+    }
+
+    fn resource_count(&self) -> usize {
+        self.resources.values().map(BTreeMap::len).sum()
     }
 
     fn persist(&mut self, payload: &[u8]) -> Result<(), Error> {
