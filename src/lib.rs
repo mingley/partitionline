@@ -2149,7 +2149,7 @@
 //! partition `INVALID_REQUIRED_ACKS`, which fails that poll, and not
 //! piggyback `PREFERRED_LEADER_NOT_AVAILABLE`). A piggybacked
 //! `UNSUPPORTED_FOR_MESSAGE_FORMAT` still completes without retry,
-//! including when `AcknowledgeErrorMessage` is set (this is not
+//! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `UNSUPPORTED_FOR_MESSAGE_FORMAT`, which fails that poll, and not
 //! piggyback `INVALID_REQUIRED_ACKS`). A piggybacked
 //! `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a
