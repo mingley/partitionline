@@ -4303,6 +4303,34 @@ async fn group_rejoin_reuses_fresh_topic_metadata() {
     group.leave().await.unwrap();
 }
 
+/// Resubscribe loads a new topic while JoinGroup is still in flight.
+#[tokio::test]
+async fn group_resubscribe_loads_metadata_while_joining() {
+    let mock = common::Mock::start().await;
+    mock.set_topic_partitions("t", 1);
+    let cfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    let mut group = ConsumerGroup::join(cfg, "meta-join", "t").await.unwrap();
+    assert_eq!(group.assignment().len(), 1);
+    mock.set_topic_partitions("u", 1);
+    let delay = Duration::from_millis(250);
+    mock.set_join_group_delay(delay);
+    mock.set_metadata_delay(delay);
+    let before = mock.metadata_calls();
+    let started = Instant::now();
+    group.subscribe(["t", "u"]).await.unwrap();
+    let elapsed = started.elapsed();
+    assert_eq!(group.assignment().len(), 2);
+    assert!(
+        mock.metadata_calls() > before,
+        "resubscribe should load metadata for the new topic"
+    );
+    assert!(
+        elapsed < Duration::from_millis(450),
+        "resubscribe joined before loading metadata: {elapsed:?}"
+    );
+    group.leave().await.unwrap();
+}
+
 /// Unknown log bounds on an out-of-range fetch are resolved once per leader.
 #[tokio::test]
 async fn out_of_range_reset_lists_each_leaders_offsets_together() {

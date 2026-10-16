@@ -520,6 +520,7 @@ struct State {
     last_leave_group_members: Option<Vec<LeaveGroupMember>>,
     last_leave_group_version: Option<i16>,
     leave_group_delay: Option<Duration>,
+    join_group_delay: Option<Duration>,
     last_sasl_handshake_version: Option<i16>,
     last_sasl_handshake_correlation: Option<i32>,
     last_sasl_authenticate_version: Option<i16>,
@@ -1006,6 +1007,7 @@ fn new_state(
         last_leave_group_members: None,
         last_leave_group_version: None,
         leave_group_delay: None,
+        join_group_delay: None,
         last_sasl_handshake_version: None,
         last_sasl_handshake_correlation: None,
         last_sasl_authenticate_version: None,
@@ -3941,6 +3943,10 @@ impl Mock {
 
     pub fn set_leave_group_delay(&self, delay: Duration) {
         self.state.lock().leave_group_delay = Some(delay);
+    }
+
+    pub fn set_join_group_delay(&self, delay: Duration) {
+        self.state.lock().join_group_delay = Some(delay);
     }
 
     pub fn set_offset_commit_delay(&self, delay: Duration) {
@@ -8234,6 +8240,10 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
             JOIN_GROUP => {
                 let (gid, member_id, instance, protocols, reason, ..) =
                     decode_join_group_request_protocols(&mut frame, header.api_version).unwrap();
+                let delay = state.lock().join_group_delay;
+                if let Some(delay) = delay {
+                    tokio::time::sleep(delay).await;
+                }
                 let protocol_name = protocols
                     .first()
                     .map(|p| p.name.as_str())

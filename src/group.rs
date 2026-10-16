@@ -2506,40 +2506,89 @@ impl ConsumerGroup {
             .map(|(n, m)| JoinGroupProtocol::new(n, m))
             .collect();
         let reason = self.rebalance_reason.take();
+        let session_timeout_ms = self.cfg.session_timeout_ms;
+        let rebalance_timeout_ms = if self.cfg.max_poll_interval.is_zero() {
+            i32::MAX
+        } else {
+            duration_millis_i32(self.cfg.max_poll_interval)
+        };
+        // Metadata for this member's topics overlaps the first JoinGroup.
+        // Other members' topics are still loaded after the response.
+        let mut metadata_prefetch: Option<Result<()>> = None;
         let (error, generation, protocol, leader, assigned_id, skip_assignment, members, ..) = loop {
             let timeout = deadline.saturating_duration_since(Instant::now());
             if timeout.is_zero() {
                 return Err(Error::Timeout);
             }
-            let (version, body) = coord_roundtrip(
-                &mut self.coord,
-                &self.cfg,
-                &self.group_id,
-                COORDINATOR_GROUP,
-                JOIN_GROUP,
-                |version, buf| {
-                    encode_join_group_protocols_request(
-                        buf,
-                        version,
-                        &JoinGroupProtocolsRequest {
-                            group_id: &self.group_id,
-                            session_timeout_ms: self.cfg.session_timeout_ms,
-                            rebalance_timeout_ms: if self.cfg.max_poll_interval.is_zero() {
-                                i32::MAX
-                            } else {
-                                duration_millis_i32(self.cfg.max_poll_interval)
+            let prefetch = metadata_prefetch.is_none()
+                && self
+                    .topics
+                    .iter()
+                    .any(|topic| !self.consumer.topic_metadata_fresh(topic));
+            let (version, body) = if prefetch {
+                let group_id = self.group_id.as_str();
+                let member_id = self.member_id.as_str();
+                let instance = self.cfg.group_instance_id.as_deref();
+                let reason = reason.as_deref();
+                let coord = &mut self.coord;
+                let cfg = &self.cfg;
+                let consumer = &mut self.consumer;
+                let topics = &self.topics;
+                let refresh = consumer.refresh_metadata_timeout(Some(topics), timeout);
+                let rpc = coord_roundtrip(
+                    coord,
+                    cfg,
+                    group_id,
+                    COORDINATOR_GROUP,
+                    JOIN_GROUP,
+                    |version, buf| {
+                        encode_join_group_protocols_request(
+                            buf,
+                            version,
+                            &JoinGroupProtocolsRequest {
+                                group_id,
+                                session_timeout_ms,
+                                rebalance_timeout_ms,
+                                member_id,
+                                group_instance_id: instance,
+                                protocol_type: ConsumerProtocol::PROTOCOL_TYPE,
+                                protocols: &protocols,
+                                reason,
                             },
-                            member_id: &self.member_id,
-                            group_instance_id: self.cfg.group_instance_id.as_deref(),
-                            protocol_type: ConsumerProtocol::PROTOCOL_TYPE,
-                            protocols: &protocols,
-                            reason: reason.as_deref(),
-                        },
-                    )
-                },
-                timeout,
-            )
-            .await?;
+                        )
+                    },
+                    timeout,
+                );
+                let (refresh, rpc) = tokio::join!(refresh, rpc);
+                metadata_prefetch = Some(refresh);
+                rpc?
+            } else {
+                coord_roundtrip(
+                    &mut self.coord,
+                    &self.cfg,
+                    &self.group_id,
+                    COORDINATOR_GROUP,
+                    JOIN_GROUP,
+                    |version, buf| {
+                        encode_join_group_protocols_request(
+                            buf,
+                            version,
+                            &JoinGroupProtocolsRequest {
+                                group_id: &self.group_id,
+                                session_timeout_ms,
+                                rebalance_timeout_ms,
+                                member_id: &self.member_id,
+                                group_instance_id: self.cfg.group_instance_id.as_deref(),
+                                protocol_type: ConsumerProtocol::PROTOCOL_TYPE,
+                                protocols: &protocols,
+                                reason: reason.as_deref(),
+                            },
+                        )
+                    },
+                    timeout,
+                )
+                .await?
+            };
             let decoded = decode_join_group_response(&mut body.clone(), version)
                 .map_err(|e| group_decode_context(e, "JoinGroup", version, body.len()))?;
             if decoded.0 == error::MEMBER_ID_REQUIRED
@@ -2553,6 +2602,9 @@ impl ConsumerGroup {
         };
         if error != 0 {
             return Err(Error::broker(error, "JoinGroup"));
+        }
+        if let Some(Err(error)) = metadata_prefetch {
+            return Err(error);
         }
         self.member_id = assigned_id;
         self.generation_id = generation;
