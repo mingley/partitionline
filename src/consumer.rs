@@ -1779,15 +1779,18 @@ impl PendingRecords {
         if records.is_empty() {
             return;
         }
-        let mut runs: VecDeque<PendingRun> = VecDeque::new();
+        let runs = self.reserve_record_runs(&records);
+        self.order.reserve(runs);
+        let mut staged: VecDeque<PendingRun> = VecDeque::new();
+        staged.reserve(runs);
         for rec in records.into_iter().rev() {
-            if let Some(run) = runs
+            if let Some(run) = staged
                 .front_mut()
                 .filter(|run| run.topic == rec.topic && run.partition == rec.partition)
             {
                 run.count += 1;
             } else {
-                runs.push_front(PendingRun {
+                staged.push_front(PendingRun {
                     topic: rec.topic.clone(),
                     partition: rec.partition,
                     count: 1,
@@ -1802,7 +1805,7 @@ impl PendingRecords {
                         .insert_owned(topic, rec.partition, VecDeque::from([rec]));
             }
         }
-        while let Some(run) = runs.pop_back() {
+        while let Some(run) = staged.pop_back() {
             self.order.push_front(run);
         }
     }
@@ -1814,7 +1817,18 @@ impl PendingRecords {
 
     /// Move `records` into the queues and return the emptied buffer.
     fn extend_reusing(&mut self, mut records: Vec<FetchedRecord>) -> Vec<FetchedRecord> {
-        self.reserve_record_runs(&records);
+        let runs = self.reserve_record_runs(&records);
+        let continued = records.first().is_some_and(|first| {
+            self.order
+                .back()
+                .is_some_and(|run| run.topic == first.topic && run.partition == first.partition)
+        });
+        let added = if continued {
+            runs.saturating_sub(1)
+        } else {
+            runs
+        };
+        self.order.reserve(added);
         for rec in records.drain(..) {
             if let Some(run) = self
                 .order
@@ -1842,7 +1856,11 @@ impl PendingRecords {
     }
 
     /// Size each partition queue for the next contiguous run before records move.
-    fn reserve_record_runs(&mut self, records: &[FetchedRecord]) {
+    ///
+    /// Returns the number of runs. The caller sizes the delivery-order list
+    /// from that count.
+    fn reserve_record_runs(&mut self, records: &[FetchedRecord]) -> usize {
+        let mut runs = 0usize;
         let mut index = 0usize;
         while index < records.len() {
             let Some(first) = records.get(index) else {
@@ -1855,6 +1873,7 @@ impl PendingRecords {
                 end = end.saturating_add(1);
             }
             let count = end.saturating_sub(index);
+            runs = runs.saturating_add(1);
             if let Some(queue) = self.partitions.get_mut(&first.topic, first.partition) {
                 queue.reserve(count);
             } else {
@@ -1867,6 +1886,7 @@ impl PendingRecords {
             }
             index = end;
         }
+        runs
     }
 
     fn drop_for(&mut self, topic: &str, partition: i32) -> usize {
@@ -9311,6 +9331,8 @@ mod tests {
             .expect("payments");
         assert!(orders >= 4);
         assert!(payments >= 2);
+        let order_capacity = pending.order.capacity();
+        assert!(order_capacity >= 2);
         assert_eq!(
             pending.partitions.get("orders", 0).map(|queue| queue.len()),
             Some(4)
@@ -9339,6 +9361,7 @@ mod tests {
                 .map(|queue| queue.capacity()),
             Some(payments)
         );
+        assert_eq!(pending.order.capacity(), order_capacity);
     }
 
     #[test]
