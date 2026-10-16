@@ -775,7 +775,11 @@ pub enum ShareAcquireMode {
 /// `REPLICA_NOT_AVAILABLE` completes without retry and does not
 /// request Metadata, including when `ErrorMessage` is set or empty
 /// (Java `handleShareAcknowledgeSuccess` has no
-/// `metadata.requestUpdate`). Incremental ShareFetch sends Java
+/// `metadata.requestUpdate`). A top-level ShareAcknowledge
+/// `OFFSET_NOT_AVAILABLE` completes without retry and does not
+/// request Metadata, including when `ErrorMessage` is set (Java
+/// `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`).
+/// Incremental ShareFetch sends Java
 /// `ShareSessionHandler` forgotten partitions when the assignment
 /// shrinks or a topic id is replaced on a node this poll still
 /// contacts (remaining assigned partitions or leftover acknowledgements).
@@ -2223,6 +2227,10 @@ impl ShareGroup {
     /// without retry and does not request Metadata, including when
     /// `ErrorMessage` is set or empty (Java
     /// `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`).
+    /// A top-level ShareAcknowledge `OFFSET_NOT_AVAILABLE` completes
+    /// without retry and does not request Metadata, including when
+    /// `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess`
+    /// has no `metadata.requestUpdate`).
     /// Top-level `SHARE_SESSION_LIMIT_REACHED`
     /// completes without retry and advances the session epoch (Java
     /// `ShareSessionHandler.handleResponse` `nextEpoch`), including
