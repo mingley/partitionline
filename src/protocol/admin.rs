@@ -17081,6 +17081,12 @@ pub fn encode_assign_replicas_to_dirs_request(
     buf: &mut BytesMut,
     req: &AssignReplicasToDirsRequest,
 ) -> crate::error::Result<()> {
+    let body_start = buf.len();
+    let planned = assign_replicas_request_len(req)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf.put_i32(req.broker_id);
     buf.put_i64(req.broker_epoch);
     buf::put_array_len(buf, true, Some(req.directories.len()))?;
@@ -17099,7 +17105,28 @@ pub fn encode_assign_replicas_to_dirs_request(
         buf::put_empty_tagged_fields(buf);
     }
     buf::put_empty_tagged_fields(buf);
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn assign_replicas_request_len(req: &AssignReplicasToDirsRequest) -> Result<usize> {
+    let mut total = 12;
+    total = add_describe_len(total, describe_array_len(true, req.directories.len())?)?;
+    for directory in &req.directories {
+        total = add_describe_len(total, 16)?;
+        total = add_describe_len(total, describe_array_len(true, directory.topics.len())?)?;
+        for topic in &directory.topics {
+            total = add_describe_len(total, 16)?;
+            total = add_describe_len(total, describe_array_len(true, topic.partitions.len())?)?;
+            for _partition in &topic.partitions {
+                total = add_describe_len(total, 4)?;
+                total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+            }
+            total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+        }
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    add_describe_len(total, buf::unsigned_varint_size(0))
 }
 
 /// Decode an AssignReplicasToDirs request.
@@ -17148,6 +17175,12 @@ pub fn encode_assign_replicas_to_dirs_response(
     buf: &mut BytesMut,
     resp: &AssignReplicasToDirsResponse,
 ) -> crate::error::Result<()> {
+    let body_start = buf.len();
+    let planned = assign_replicas_response_len(resp)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf.put_i32(resp.throttle_time_ms);
     buf.put_i16(resp.error_code);
     buf::put_array_len(buf, true, Some(resp.directories.len()))?;
@@ -17167,7 +17200,28 @@ pub fn encode_assign_replicas_to_dirs_response(
         buf::put_empty_tagged_fields(buf);
     }
     buf::put_empty_tagged_fields(buf);
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn assign_replicas_response_len(resp: &AssignReplicasToDirsResponse) -> Result<usize> {
+    let mut total = 6;
+    total = add_describe_len(total, describe_array_len(true, resp.directories.len())?)?;
+    for directory in &resp.directories {
+        total = add_describe_len(total, 16)?;
+        total = add_describe_len(total, describe_array_len(true, directory.topics.len())?)?;
+        for topic in &directory.topics {
+            total = add_describe_len(total, 16)?;
+            total = add_describe_len(total, describe_array_len(true, topic.partitions.len())?)?;
+            for _partition in &topic.partitions {
+                total = add_describe_len(total, 6)?;
+                total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+            }
+            total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+        }
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    add_describe_len(total, buf::unsigned_varint_size(0))
 }
 
 /// Decode an AssignReplicasToDirs response.
@@ -37841,6 +37895,76 @@ mod tests {
             zero.throttle_time_ms, 0,
             "AssignReplicasToDirsResponse::new still fills ThrottleTimeMs 0"
         );
+    }
+
+    #[test]
+    fn a_assign_replicas_to_dirs_request_sizes_its_body_once() {
+        let request = AssignReplicasToDirsRequest {
+            broker_id: 1,
+            broker_epoch: 9,
+            directories: vec![AssignReplicasToDirsDirectory {
+                id: [2; 16],
+                topics: vec![AssignReplicasToDirsTopic {
+                    topic_id: [3; 16],
+                    partitions: vec![
+                        AssignReplicasToDirsPartition::new(0),
+                        AssignReplicasToDirsPartition::new(1),
+                    ],
+                }],
+            }],
+        };
+        let mut buf = BytesMut::new();
+        encode_assign_replicas_to_dirs_request(&mut buf, &request).unwrap();
+        let len = buf.len();
+        let capacity = buf.capacity();
+        assert!(capacity >= len);
+        assert!(capacity < 64 * 1024);
+        buf.clear();
+        encode_assign_replicas_to_dirs_request(&mut buf, &request).unwrap();
+        assert_eq!(buf.len(), len);
+        assert_eq!(buf.capacity(), capacity);
+        let mut cur = &buf[..];
+        let decoded = decode_assign_replicas_to_dirs_request(&mut cur).unwrap();
+        assert!(cur.is_empty());
+        assert_eq!(decoded, request);
+    }
+
+    #[test]
+    fn a_assign_replicas_to_dirs_response_sizes_its_body_once() {
+        let response = AssignReplicasToDirsResponse {
+            throttle_time_ms: 12,
+            error_code: 0,
+            directories: vec![AssignReplicasToDirsResponseDirectory {
+                id: [2; 16],
+                topics: vec![AssignReplicasToDirsResponseTopic {
+                    topic_id: [3; 16],
+                    partitions: vec![
+                        AssignReplicasToDirsResponsePartition {
+                            partition_index: 0,
+                            error_code: 0,
+                        },
+                        AssignReplicasToDirsResponsePartition {
+                            partition_index: 1,
+                            error_code: 3,
+                        },
+                    ],
+                }],
+            }],
+        };
+        let mut buf = BytesMut::new();
+        encode_assign_replicas_to_dirs_response(&mut buf, &response).unwrap();
+        let len = buf.len();
+        let capacity = buf.capacity();
+        assert!(capacity >= len);
+        assert!(capacity < 64 * 1024);
+        buf.clear();
+        encode_assign_replicas_to_dirs_response(&mut buf, &response).unwrap();
+        assert_eq!(buf.len(), len);
+        assert_eq!(buf.capacity(), capacity);
+        let mut cur = &buf[..];
+        let decoded = decode_assign_replicas_to_dirs_response(&mut cur).unwrap();
+        assert!(cur.is_empty());
+        assert_eq!(decoded, response);
     }
 
     #[test]
