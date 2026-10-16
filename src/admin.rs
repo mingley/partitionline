@@ -50,12 +50,11 @@ use crate::protocol::admin::{
     encode_alter_share_group_offsets_request, encode_alter_user_scram_credentials_request,
     encode_assign_replicas_to_dirs_request, encode_consumer_group_describe_request,
     encode_create_delegation_token_request, encode_create_partitions_request,
-    encode_create_topics_request, encode_delete_groups_request,
-    encode_delete_records_topics_request, encode_delete_share_group_offsets_request,
-    encode_describe_client_quotas_request, encode_describe_cluster_request,
-    encode_describe_configs_request, encode_describe_delegation_token_request,
-    encode_describe_groups_request, encode_describe_log_dirs_request,
-    encode_describe_producers_topics_request,
+    encode_create_topics_request, encode_delete_groups_request, encode_delete_records_named_topics,
+    encode_delete_share_group_offsets_request, encode_describe_client_quotas_request,
+    encode_describe_cluster_request, encode_describe_configs_request,
+    encode_describe_delegation_token_request, encode_describe_groups_request,
+    encode_describe_log_dirs_request, encode_describe_producers_topics_request,
     encode_describe_share_group_offsets_request_versioned,
     encode_describe_topic_partitions_request, encode_describe_transactions_request,
     encode_describe_user_scram_credentials_request, encode_expire_delegation_token_request,
@@ -65,12 +64,12 @@ use crate::protocol::admin::{
     encode_push_telemetry_request, encode_renew_delegation_token_request,
     encode_share_group_describe_request, encode_unregister_broker_request,
     encode_update_features_request, AlterConfigsResource, AlterableResource, CreatableTopic,
-    CreatePartitionsTopic, CreateTopicsRequest, DeleteRecordsPartition, DeleteRecordsTopic,
-    DeleteTopicState, DescribeConfigsResource, DescribeConfigsResult,
-    DescribeProducersTopicRequest, FeatureUpdateKey, ListReassignmentTopic, ReassignablePartition,
-    ReassignableTopic, ReplicaAssignment, ScramCredentialDeletion, ScramCredentialUpsertion,
-    TopicConfig, TopicResult, RESOURCE_BROKER, RESOURCE_BROKER_LOGGER, RESOURCE_CLIENT_METRICS,
-    RESOURCE_GROUP, RESOURCE_TOPIC,
+    CreatePartitionsTopic, CreateTopicsRequest, DeleteRecordsPartition, DeleteTopicState,
+    DescribeConfigsResource, DescribeConfigsResult, DescribeProducersTopicRequest,
+    FeatureUpdateKey, ListReassignmentTopic, ReassignablePartition, ReassignableTopic,
+    ReplicaAssignment, ScramCredentialDeletion, ScramCredentialUpsertion, TopicConfig, TopicResult,
+    RESOURCE_BROKER, RESOURCE_BROKER_LOGGER, RESOURCE_CLIENT_METRICS, RESOURCE_GROUP,
+    RESOURCE_TOPIC,
 };
 use crate::protocol::api::{
     decode_api_versions_response, decode_metadata_response, decode_metadata_response_into,
@@ -3203,30 +3202,32 @@ fn remember_topic_group<'a, T>(
     groups.push((topic.to_owned(), vec![value]));
 }
 
-fn delete_records_topics(
-    records: &[(crate::TopicPartition, i64)],
+fn delete_records_topics<'a>(
+    records: &'a [(crate::TopicPartition, i64)],
     idxs: &[usize],
-) -> Vec<DeleteRecordsTopic> {
-    let mut groups: Vec<(String, Vec<DeleteRecordsPartition>)> = Vec::new();
-    let mut slots = HashMap::new();
+) -> Vec<(&'a str, Vec<DeleteRecordsPartition>)> {
+    let mut groups: Vec<(&str, Vec<DeleteRecordsPartition>)> = Vec::new();
+    let mut slots: HashMap<&str, usize> = HashMap::new();
     for &i in idxs {
         let Some((tp, offset)) = records.get(i) else {
             continue;
         };
-        remember_topic_group(
-            &mut groups,
-            &mut slots,
-            &tp.topic,
-            DeleteRecordsPartition {
-                partition: tp.partition,
-                offset: *offset,
-            },
-        );
+        let part = DeleteRecordsPartition {
+            partition: tp.partition,
+            offset: *offset,
+        };
+        let topic = tp.topic.as_str();
+        if let Some(&slot) = slots.get(topic) {
+            if let Some((_, parts)) = groups.get_mut(slot) {
+                parts.push(part);
+                continue;
+            }
+        }
+        let slot = groups.len();
+        let _ = slots.insert(topic, slot);
+        groups.push((topic, vec![part]));
     }
     groups
-        .into_iter()
-        .map(|(topic, partitions)| DeleteRecordsTopic { topic, partitions })
-        .collect()
 }
 
 fn describe_producers_topics(
@@ -8634,7 +8635,7 @@ impl Admin {
                         let idxs = by_node.get(&node).map(Vec::as_slice).unwrap_or(&[]);
                         let topics = delete_records_topics(&records, idxs);
                         let mut payload = BytesMut::new();
-                        encode_delete_records_topics_request(
+                        encode_delete_records_named_topics(
                             &mut payload,
                             version,
                             &topics,
@@ -8748,7 +8749,7 @@ impl Admin {
             conn.roundtrip(
                 DELETE_RECORDS,
                 version,
-                |buf| encode_delete_records_topics_request(buf, version, &topics, timeout_ms),
+                |buf| encode_delete_records_named_topics(buf, version, &topics, timeout_ms),
                 timeout,
             )
             .await
@@ -16633,6 +16634,22 @@ mod tests {
         assert_eq!(info.future_offset_lag, 7);
         let missing = replica_log_dir_info_from(&TopicPartitionReplica::new("t", 9, 2), &dirs);
         assert_eq!(missing, ReplicaLogDirInfo::unknown());
+    }
+
+    #[test]
+    fn delete_records_topics_keeps_duplicate_partitions() {
+        let records = [
+            (crate::TopicPartition::new("t", 0), 10),
+            (crate::TopicPartition::new("t", 0), 20),
+            (crate::TopicPartition::new("t", 1), 30),
+        ];
+        let topics = delete_records_topics(&records, &[0, 1, 2]);
+        assert_eq!(topics.len(), 1);
+        assert_eq!(topics[0].0, "t");
+        assert_eq!(topics[0].1.len(), 3);
+        assert_eq!(topics[0].1[0].offset, 10);
+        assert_eq!(topics[0].1[1].offset, 20);
+        assert_eq!(topics[0].1[2].partition, 1);
     }
 
     #[test]

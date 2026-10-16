@@ -4658,6 +4658,50 @@ pub fn encode_delete_records_topics_request(
     topics: &[DeleteRecordsTopic],
     timeout_ms: i32,
 ) -> crate::error::Result<()> {
+    encode_delete_records_topic_views(buf, version, topics, timeout_ms)
+}
+
+/// Encode DeleteRecords topics whose names are borrowed from the caller.
+pub(crate) fn encode_delete_records_named_topics(
+    buf: &mut BytesMut,
+    version: i16,
+    topics: &[(&str, Vec<DeleteRecordsPartition>)],
+    timeout_ms: i32,
+) -> crate::error::Result<()> {
+    encode_delete_records_topic_views(buf, version, topics, timeout_ms)
+}
+
+trait DeleteRecordsTopicView {
+    fn delete_records_name(&self) -> &str;
+    fn delete_records_partitions(&self) -> &[DeleteRecordsPartition];
+}
+
+impl DeleteRecordsTopicView for DeleteRecordsTopic {
+    fn delete_records_name(&self) -> &str {
+        &self.topic
+    }
+
+    fn delete_records_partitions(&self) -> &[DeleteRecordsPartition] {
+        &self.partitions
+    }
+}
+
+impl DeleteRecordsTopicView for (&str, Vec<DeleteRecordsPartition>) {
+    fn delete_records_name(&self) -> &str {
+        self.0
+    }
+
+    fn delete_records_partitions(&self) -> &[DeleteRecordsPartition] {
+        &self.1
+    }
+}
+
+fn encode_delete_records_topic_views<T: DeleteRecordsTopicView>(
+    buf: &mut BytesMut,
+    version: i16,
+    topics: &[T],
+    timeout_ms: i32,
+) -> crate::error::Result<()> {
     let flexible = delete_records_flexible(version)?;
     let body_start = buf.len();
     let planned = delete_records_request_len(flexible, topics)?;
@@ -4666,10 +4710,11 @@ pub fn encode_delete_records_topics_request(
         buf.reserve(needed - buf.capacity());
     }
     buf::put_array_len(buf, flexible, Some(topics.len()))?;
-    for t in topics {
-        buf::put_string(buf, flexible, Some(&t.topic))?;
-        buf::put_array_len(buf, flexible, Some(t.partitions.len()))?;
-        for p in &t.partitions {
+    for topic in topics {
+        buf::put_string(buf, flexible, Some(topic.delete_records_name()))?;
+        let partitions = topic.delete_records_partitions();
+        buf::put_array_len(buf, flexible, Some(partitions.len()))?;
+        for p in partitions {
             buf.put_i32(p.partition);
             buf.put_i64(p.offset);
             if flexible {
@@ -4688,12 +4733,19 @@ pub fn encode_delete_records_topics_request(
     Ok(())
 }
 
-fn delete_records_request_len(flexible: bool, topics: &[DeleteRecordsTopic]) -> Result<usize> {
+fn delete_records_request_len<T: DeleteRecordsTopicView>(
+    flexible: bool,
+    topics: &[T],
+) -> Result<usize> {
     let mut total = describe_array_len(flexible, topics.len())?;
     for topic in topics {
-        total = add_describe_len(total, describe_string_len(flexible, Some(&topic.topic))?)?;
-        total = add_describe_len(total, describe_array_len(flexible, topic.partitions.len())?)?;
-        for _partition in &topic.partitions {
+        total = add_describe_len(
+            total,
+            describe_string_len(flexible, Some(topic.delete_records_name()))?,
+        )?;
+        let partitions = topic.delete_records_partitions();
+        total = add_describe_len(total, describe_array_len(flexible, partitions.len())?)?;
+        for _partition in partitions {
             total = add_describe_len(total, 12)?;
             if flexible {
                 total = add_describe_len(total, buf::unsigned_varint_size(0))?;
@@ -28983,6 +29035,43 @@ mod tests {
             assert!(cur.is_empty());
             assert_eq!(decoded, topics);
             assert_eq!(timeout, 1_000);
+        }
+    }
+
+    #[test]
+    fn delete_records_named_topics_match_owned_topics() {
+        let owned = [DeleteRecordsTopic {
+            topic: "orders-topic-name-is-long".into(),
+            partitions: vec![
+                DeleteRecordsPartition {
+                    partition: 0,
+                    offset: 10,
+                },
+                DeleteRecordsPartition {
+                    partition: 2,
+                    offset: 40,
+                },
+            ],
+        }];
+        let named = [(
+            "orders-topic-name-is-long",
+            vec![
+                DeleteRecordsPartition {
+                    partition: 0,
+                    offset: 10,
+                },
+                DeleteRecordsPartition {
+                    partition: 2,
+                    offset: 40,
+                },
+            ],
+        )];
+        for version in 0..=2 {
+            let mut expected = BytesMut::new();
+            encode_delete_records_topics_request(&mut expected, version, &owned, 1_000).unwrap();
+            let mut got = BytesMut::new();
+            encode_delete_records_named_topics(&mut got, version, &named, 1_000).unwrap();
+            assert_eq!(got.as_ref(), expected.as_ref(), "version {version}");
         }
     }
 
