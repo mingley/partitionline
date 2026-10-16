@@ -254,7 +254,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   that poll, and not standalone ShareAcknowledge `NOT_ENOUGH_REPLICAS`,
   which retries). A piggybacked `NOT_ENOUGH_REPLICAS_AFTER_APPEND` still
   completes without retry, including when `AcknowledgeErrorMessage` is
-  set (Java `handleShareFetchSuccess` completes piggyback acks and still
+  set or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
   delivers the fetch; this is not partition
   `NOT_ENOUGH_REPLICAS_AFTER_APPEND`, which fails that poll, and not
   standalone ShareAcknowledge `NOT_ENOUGH_REPLICAS_AFTER_APPEND`, which
