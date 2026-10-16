@@ -1679,6 +1679,20 @@ impl<V> PartitionMap<V> {
         previous
     }
 
+    /// Insert `value` under a topic the caller already shares.
+    ///
+    /// A short name is stored inline. A long name clones the caller's
+    /// allocation instead of copying the text again.
+    fn insert_shared(&mut self, topic: &Arc<str>, partition: i32, value: V) -> Option<V> {
+        if let Some(partitions) = self.topics.get_mut(topic.as_ref()) {
+            return partitions.insert(partition, value);
+        }
+        let mut partitions = HashMap::new();
+        let previous = partitions.insert(partition, value);
+        let _previous_topic = self.topics.insert(TopicName::shared(topic), partitions);
+        previous
+    }
+
     fn remove(&mut self, topic: &str, partition: i32) -> Option<V> {
         let partitions = self.topics.get_mut(topic)?;
         let removed = partitions.remove(&partition);
@@ -3361,7 +3375,7 @@ impl Consumer {
         let old_ids = std::mem::take(&mut self.assigned_topic_ids);
         let mut old_assigned = PartitionMap::new();
         for (topic, partition, offset) in &self.assigned {
-            let _previous = old_assigned.insert(topic, *partition, *offset);
+            let _previous = old_assigned.insert_shared(topic, *partition, *offset);
         }
         let previous_assigned = std::mem::take(&mut self.assigned);
         self.cursor_index = None;
@@ -7291,7 +7305,7 @@ impl Consumer {
     fn retain_pending_assigned(&mut self) {
         let mut assigned = PartitionMap::new();
         for (topic, partition, _) in &self.assigned {
-            let _previous = assigned.insert(topic, *partition, ());
+            let _previous = assigned.insert_shared(topic, *partition, ());
         }
         self.buffered_bytes = self
             .buffered_bytes
