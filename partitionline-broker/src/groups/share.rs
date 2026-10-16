@@ -258,10 +258,16 @@ impl Groups {
             return Err(Error::InvalidLimits);
         }
         let mut next = self.state.clone();
-        next.topics.insert(topic.to_owned(), partitions);
-        let counts = next.topics.clone();
-        for group in next.groups.values_mut() {
-            reassign(group, &counts)?;
+        if let Some(count) = next.topics.get_mut(topic) {
+            *count = partitions;
+        } else {
+            let _ = next.topics.insert(topic.to_owned(), partitions);
+        }
+        {
+            let State { topics, groups, .. } = &mut next;
+            for group in groups.values_mut() {
+                reassign(group, topics)?;
+            }
         }
         self.commit(next)
     }
@@ -317,11 +323,11 @@ impl Groups {
         self.ready()?;
         let timeout = self.limits.session_timeout_ms;
         let mut next = self.state.clone();
-        let counts = next.topics.clone();
         let mut removed = 0usize;
         let ids: Vec<String> = next.groups.keys().cloned().collect();
         for id in ids {
-            let Some(group) = next.groups.get_mut(&id) else {
+            let State { topics, groups, .. } = &mut next;
+            let Some(group) = groups.get_mut(&id) else {
                 continue;
             };
             let stale: Vec<String> = group
@@ -338,9 +344,9 @@ impl Groups {
                 removed = removed.saturating_add(1);
             }
             if group.members.is_empty() {
-                next.groups.remove(&id);
-            } else if let Some(group) = next.groups.get_mut(&id) {
-                reassign(group, &counts)?;
+                groups.remove(&id);
+            } else if let Some(group) = groups.get_mut(&id) {
+                reassign(group, topics)?;
             }
         }
         if removed > 0 {
@@ -359,42 +365,48 @@ impl Groups {
         if request.member_id.is_empty() {
             next.next_member = next.next_member.saturating_add(1);
         }
-        let counts = next.topics.clone();
-        let group = super::occupy(&mut next.groups, request.group_id, || Group {
-            epoch: -1,
-            assignment_epoch: -1,
-            version: request.version,
-            members: BTreeMap::new(),
-        })
-        .ok_or(Error::InvalidRequest)?;
-        let member_id = if request.member_id.is_empty() {
-            format!("s-{member_number}")
-        } else if group.members.contains_key(request.member_id) {
-            return Err(Error::Fenced);
-        } else {
-            request.member_id.to_owned()
-        };
-        if group.members.len() >= self.limits.max_members {
-            return Err(Error::InvalidLimits);
-        }
-        group.members.insert(
-            member_id.clone(),
-            Member {
-                epoch: 0,
-                last_seen_ms: request.now_ms,
-                acked: true,
+        let result = {
+            let State {
+                topics: counts,
+                groups,
+                ..
+            } = &mut next;
+            let group = super::occupy(groups, request.group_id, || Group {
+                epoch: -1,
+                assignment_epoch: -1,
                 version: request.version,
-                topics,
-                assignment: Arc::new(BTreeMap::new()),
-            },
-        );
-        group.epoch = advance_epoch(group.epoch)?;
-        reassign(group, &counts)?;
-        if let Some(member) = group.members.get_mut(&member_id) {
-            member.acked = true;
-            member.epoch = 0;
-        }
-        let result = result_from(group, &member_id, self.limits.heartbeat_interval_ms, true)?;
+                members: BTreeMap::new(),
+            })
+            .ok_or(Error::InvalidRequest)?;
+            let member_id = if request.member_id.is_empty() {
+                format!("s-{member_number}")
+            } else if group.members.contains_key(request.member_id) {
+                return Err(Error::Fenced);
+            } else {
+                request.member_id.to_owned()
+            };
+            if group.members.len() >= self.limits.max_members {
+                return Err(Error::InvalidLimits);
+            }
+            group.members.insert(
+                member_id.clone(),
+                Member {
+                    epoch: 0,
+                    last_seen_ms: request.now_ms,
+                    acked: true,
+                    version: request.version,
+                    topics,
+                    assignment: Arc::new(BTreeMap::new()),
+                },
+            );
+            group.epoch = advance_epoch(group.epoch)?;
+            reassign(group, counts)?;
+            if let Some(member) = group.members.get_mut(&member_id) {
+                member.acked = true;
+                member.epoch = 0;
+            }
+            result_from(group, &member_id, self.limits.heartbeat_interval_ms, true)?
+        };
         self.commit(next)?;
         Ok(result)
     }
@@ -404,48 +416,54 @@ impl Groups {
             return self.commit_seen(request);
         }
         let mut next = self.state.clone();
-        let counts = next.topics.clone();
-        let Some(group) = next.groups.get_mut(request.group_id) else {
-            return Err(Error::UnknownMember);
-        };
-        let Some(member) = group.members.get_mut(request.member_id) else {
-            return Err(Error::UnknownMember);
-        };
-        if request.member_epoch < member.epoch {
-            return Err(Error::Fenced);
-        }
-        if request.member_epoch > member.epoch {
-            return Err(Error::Stale);
-        }
-        member.last_seen_ms = later_seen(member.last_seen_ms, request.now_ms);
-        if let Some(names) = request.subscribed_topics {
-            let topics = topic_set(names, &counts)?;
-            if member.topics != topics {
-                member.topics = topics;
+        let result = {
+            let State {
+                topics: counts,
+                groups,
+                ..
+            } = &mut next;
+            let Some(group) = groups.get_mut(request.group_id) else {
+                return Err(Error::UnknownMember);
+            };
+            let Some(member) = group.members.get_mut(request.member_id) else {
+                return Err(Error::UnknownMember);
+            };
+            if request.member_epoch < member.epoch {
+                return Err(Error::Fenced);
+            }
+            if request.member_epoch > member.epoch {
+                return Err(Error::Stale);
+            }
+            member.last_seen_ms = later_seen(member.last_seen_ms, request.now_ms);
+            if let Some(names) = request.subscribed_topics {
+                let topics = topic_set(names, counts)?;
+                if member.topics != topics {
+                    member.topics = topics;
+                    group.epoch = advance_epoch(group.epoch)?;
+                }
+            }
+            if member.version != request.version {
                 group.epoch = advance_epoch(group.epoch)?;
             }
-        }
-        if member.version != request.version {
-            group.epoch = advance_epoch(group.epoch)?;
-        }
-        member.version = request.version;
-        reassign(group, &counts)?;
-        let changed = if let Some(member) = group.members.get_mut(request.member_id) {
-            let changed = !member.acked;
-            if changed {
-                member.epoch = advance_epoch(member.epoch)?;
-                member.acked = true;
-            }
-            changed
-        } else {
-            return Err(Error::UnknownMember);
+            member.version = request.version;
+            reassign(group, counts)?;
+            let changed = if let Some(member) = group.members.get_mut(request.member_id) {
+                let changed = !member.acked;
+                if changed {
+                    member.epoch = advance_epoch(member.epoch)?;
+                    member.acked = true;
+                }
+                changed
+            } else {
+                return Err(Error::UnknownMember);
+            };
+            result_from(
+                group,
+                request.member_id,
+                self.limits.heartbeat_interval_ms,
+                changed,
+            )?
         };
-        let result = result_from(
-            group,
-            request.member_id,
-            self.limits.heartbeat_interval_ms,
-            changed,
-        )?;
         self.commit(next)?;
         Ok(result)
     }
@@ -455,9 +473,13 @@ impl Groups {
             return Err(Error::UnknownMember);
         }
         let mut next = self.state.clone();
-        let counts = next.topics.clone();
         let (epoch, assignment_epoch, version, empty) = {
-            let Some(group) = next.groups.get_mut(request.group_id) else {
+            let State {
+                topics: counts,
+                groups,
+                ..
+            } = &mut next;
+            let Some(group) = groups.get_mut(request.group_id) else {
                 return Err(Error::UnknownMember);
             };
             if group.members.remove(request.member_id).is_none() {
@@ -466,7 +488,7 @@ impl Groups {
             group.epoch = advance_epoch(group.epoch)?;
             let empty = group.members.is_empty();
             if !empty {
-                reassign(group, &counts)?;
+                reassign(group, counts)?;
             }
             (group.epoch, group.assignment_epoch, group.version, empty)
         };
@@ -707,22 +729,17 @@ fn reassign(group: &mut Group, topics: &BTreeMap<String, i32>) -> Result<(), Err
     for member in group.members.values_mut() {
         member.assignment = Arc::new(BTreeMap::new());
     }
-    let names: BTreeSet<String> = group
-        .members
-        .values()
-        .flat_map(|member| member.topics.iter().cloned())
-        .collect();
-    for topic in names {
-        let Some(count) = topics.get(&topic).copied().filter(|count| *count > 0) else {
+    for (topic, count) in topics {
+        if *count <= 0 {
             continue;
-        };
+        }
         let subscribers: Vec<String> = group
             .members
             .iter()
-            .filter(|(_, member)| member.topics.contains(&topic))
+            .filter(|(_, member)| member.topics.contains(topic))
             .map(|(id, _)| id.clone())
             .collect();
-        assign(group, &topic, count, &subscribers);
+        assign(group, topic, *count, &subscribers);
     }
     let mut changed = false;
     for (id, member) in &mut group.members {
