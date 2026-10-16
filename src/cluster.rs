@@ -91,6 +91,56 @@ fn stored_address_matches(current: &str, host: &str, port: i32) -> bool {
     stored_host == host && stored_port.parse::<i32>().ok() == Some(port)
 }
 
+/// Topic names already applied from the Metadata response being merged.
+///
+/// A short response stays on the stack. A longer one uses a set.
+struct SeenTopics<'a> {
+    stack: [&'a str; 16],
+    filled: usize,
+    heap: HashSet<&'a str>,
+}
+
+impl<'a> SeenTopics<'a> {
+    fn new(topics: usize) -> Self {
+        Self {
+            stack: [""; 16],
+            filled: 0,
+            heap: if topics > 16 {
+                HashSet::with_capacity(topics)
+            } else {
+                HashSet::new()
+            },
+        }
+    }
+
+    fn contains(&self, name: &str) -> bool {
+        if self.heap.is_empty() {
+            self.stack
+                .iter()
+                .take(self.filled)
+                .any(|seen| *seen == name)
+        } else {
+            self.heap.contains(name)
+        }
+    }
+
+    fn insert(&mut self, name: &'a str) {
+        if self.heap.capacity() == 0 && self.filled < self.stack.len() {
+            if let Some(slot) = self.stack.get_mut(self.filled) {
+                *slot = name;
+            }
+            self.filled = self.filled.saturating_add(1);
+            return;
+        }
+        if self.heap.is_empty() {
+            for seen in self.stack.iter().take(self.filled).copied() {
+                let _ = self.heap.insert(seen);
+            }
+        }
+        let _ = self.heap.insert(name);
+    }
+}
+
 /// Snapshot of brokers and partition leaders from Metadata.
 #[derive(Debug, Clone, Default)]
 pub(crate) struct Cluster {
@@ -138,7 +188,7 @@ impl Cluster {
         // not drop partitions the earlier copy already accepted. One topic
         // cannot repeat, so that response skips the set.
         let lone_topic = md.topics.len() <= 1;
-        let mut seen_topics: HashSet<&str> = HashSet::new();
+        let mut seen_topics = SeenTopics::new(md.topics.len());
         for t in &md.topics {
             let Some(name) = t.name.as_ref() else {
                 continue;
@@ -148,7 +198,7 @@ impl Cluster {
                 // errors are transient, so the last good leaders stay cached.
                 // A later copy must not drop a leader this response already
                 // accepted.
-                if (lone_topic || !seen_topics.contains(name.as_str()))
+                if (lone_topic || !seen_topics.contains(name))
                     && (t.error_code == crate::error::UNKNOWN_TOPIC_OR_PARTITION
                         || t.error_code == crate::error::UNKNOWN_TOPIC_ID)
                 {
@@ -161,7 +211,7 @@ impl Cluster {
             // rewrite every partition slot. A newer CurrentLeader epoch, a
             // recreated topic id, or a second copy of the topic in this
             // response still takes the full merge below.
-            let repeated = !lone_topic && seen_topics.contains(name.as_str());
+            let repeated = !lone_topic && seen_topics.contains(name);
             if !repeated && self.topic_image_unchanged(name, t, version, retain_epochs) {
                 if let Some(slot) = self.topic_fetched_at.get_mut(name.as_str()) {
                     *slot = Instant::now();
@@ -170,7 +220,7 @@ impl Cluster {
                     let _prev = self.topic_fetched_at.insert(key, Instant::now());
                 }
                 if !lone_topic {
-                    let _inserted = seen_topics.insert(name.as_str());
+                    seen_topics.insert(name);
                 }
                 continue;
             }
@@ -375,7 +425,7 @@ impl Cluster {
                 let _prev = self.topic_fetched_at.insert(key, Instant::now());
             }
             if !lone_topic {
-                let _inserted = seen_topics.insert(name.as_str());
+                seen_topics.insert(name);
             }
             self.decided_scratch = decided;
         }
@@ -2075,5 +2125,90 @@ mod tests {
         assert_eq!(cluster.leader_epoch("u", 1), 2);
         cluster.set_leader_epoch("u", 1, 4);
         assert_eq!(cluster.leader_epoch("u", 1), 4);
+    }
+
+    #[test]
+    fn a_short_metadata_response_remembers_topics_without_a_set() {
+        let mut seen = SeenTopics::new(2);
+        assert!(!seen.contains("orders"));
+        seen.insert("orders");
+        seen.insert("payments");
+        assert!(seen.contains("orders"));
+        assert!(seen.contains("payments"));
+        assert!(!seen.contains("trades"));
+        assert_eq!(seen.heap.capacity(), 0);
+    }
+
+    #[test]
+    fn a_later_empty_topic_copy_keeps_the_first_leader() {
+        use crate::protocol::api::{PartitionMetadata, TopicMetadata};
+
+        let partition = PartitionMetadata {
+            error_code: 0,
+            partition_index: 0,
+            leader_id: 1,
+            leader_epoch: 4,
+            replica_nodes: vec![1],
+            isr_nodes: vec![1],
+            offline_replicas: Vec::new(),
+        };
+        let mut cluster = Cluster::default();
+        cluster.apply(
+            &MetadataResponse {
+                throttle_time_ms: 0,
+                brokers: vec![Broker {
+                    node_id: 1,
+                    host: "127.0.0.1".into(),
+                    port: 9092,
+                    rack: None,
+                }],
+                cluster_id: Some("mock".into()),
+                controller_id: 1,
+                topics: vec![
+                    TopicMetadata {
+                        error_code: 0,
+                        name: Some("orders".into()),
+                        topic_id: [0; 16],
+                        is_internal: false,
+                        partitions: vec![partition],
+                        topic_authorized_operations:
+                            MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+                    },
+                    TopicMetadata {
+                        error_code: 0,
+                        name: Some("payments".into()),
+                        topic_id: [0; 16],
+                        is_internal: false,
+                        partitions: vec![PartitionMetadata {
+                            error_code: 0,
+                            partition_index: 0,
+                            leader_id: 1,
+                            leader_epoch: 2,
+                            replica_nodes: vec![1],
+                            isr_nodes: vec![1],
+                            offline_replicas: Vec::new(),
+                        }],
+                        topic_authorized_operations:
+                            MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+                    },
+                    TopicMetadata {
+                        error_code: 0,
+                        name: Some("orders".into()),
+                        topic_id: [0; 16],
+                        is_internal: false,
+                        partitions: Vec::new(),
+                        topic_authorized_operations:
+                            MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+                    },
+                ],
+                cluster_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+                error_code: 0,
+            },
+            13,
+        );
+        assert_eq!(cluster.leader("orders", 0).unwrap().0, 1);
+        assert_eq!(cluster.leader_epoch("orders", 0), 4);
+        assert_eq!(cluster.leader("payments", 0).unwrap().0, 1);
+        assert_eq!(cluster.leader_epoch("payments", 0), 2);
     }
 }
