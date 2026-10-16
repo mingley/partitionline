@@ -2125,7 +2125,7 @@
 //! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `INVALID_FETCH_SIZE`, which fails that poll). A piggybacked
 //! `MESSAGE_TOO_LARGE` still completes without retry,
-//! including when `AcknowledgeErrorMessage` is set (this is not
+//! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `MESSAGE_TOO_LARGE`, which fails that poll, and not
 //! `RECORD_LIST_TOO_LARGE`). A piggybacked
 //! `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a
