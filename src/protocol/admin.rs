@@ -3227,16 +3227,64 @@ pub fn encode_incremental_alter_configs_request(
     configs: &[AlterConfig],
     validate_only: bool,
 ) -> crate::error::Result<()> {
-    encode_incremental_alter_configs_resources_request(
-        buf,
-        version,
-        &[AlterableResource {
-            resource_type,
-            name: name.to_string(),
-            configs: configs.to_vec(),
-        }],
-        validate_only,
-    )
+    let flexible = incremental_alter_configs_flexible(version)?;
+    let body_start = buf.len();
+    let planned = incremental_alter_configs_one_len(flexible, name, configs)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
+    buf::put_array_len(buf, flexible, Some(1))?;
+    buf.put_i8(resource_type);
+    buf::put_string(buf, flexible, Some(name))?;
+    buf::put_array_len(buf, flexible, Some(configs.len()))?;
+    for config in configs {
+        buf::put_string(buf, flexible, Some(&config.name))?;
+        buf.put_i8(config.op);
+        buf::put_string(buf, flexible, config.value.as_deref())?;
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+    }
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
+    buf.put_u8(u8::from(validate_only));
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+    Ok(())
+}
+
+fn incremental_alter_configs_one_len(
+    flexible: bool,
+    name: &str,
+    configs: &[AlterConfig],
+) -> Result<usize> {
+    let mut total = describe_array_len(flexible, 1)?;
+    total = add_describe_len(total, 1)?;
+    total = add_describe_len(total, describe_string_len(flexible, Some(name))?)?;
+    total = add_describe_len(total, describe_array_len(flexible, configs.len())?)?;
+    for config in configs {
+        total = add_describe_len(total, describe_string_len(flexible, Some(&config.name))?)?;
+        total = add_describe_len(total, 1)?;
+        total = add_describe_len(
+            total,
+            describe_string_len(flexible, config.value.as_deref())?,
+        )?;
+        if flexible {
+            total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    if flexible {
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    total = add_describe_len(total, 1)?;
+    if flexible {
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 /// IncrementalAlterConfigs Resources of N (Java `incrementalAlterConfigs(Map)`).
@@ -3671,16 +3719,58 @@ pub fn encode_alter_configs_request(
     configs: &[TopicConfig],
     validate_only: bool,
 ) -> crate::error::Result<()> {
-    encode_alter_configs_resources_request(
-        buf,
-        version,
-        &[AlterConfigsResource {
-            resource_type,
-            name: name.to_string(),
-            configs: configs.to_vec(),
-        }],
-        validate_only,
-    )
+    let flexible = alter_configs_flexible(version)?;
+    let body_start = buf.len();
+    let planned = alter_configs_one_len(flexible, name, configs)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
+    buf::put_array_len(buf, flexible, Some(1))?;
+    buf.put_i8(resource_type);
+    buf::put_string(buf, flexible, Some(name))?;
+    buf::put_array_len(buf, flexible, Some(configs.len()))?;
+    for config in configs {
+        buf::put_string(buf, flexible, Some(&config.name))?;
+        buf::put_string(buf, flexible, config.value.as_deref())?;
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+    }
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
+    buf.put_u8(u8::from(validate_only));
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+    Ok(())
+}
+
+fn alter_configs_one_len(flexible: bool, name: &str, configs: &[TopicConfig]) -> Result<usize> {
+    let mut total = describe_array_len(flexible, 1)?;
+    total = add_describe_len(total, 1)?;
+    total = add_describe_len(total, describe_string_len(flexible, Some(name))?)?;
+    total = add_describe_len(total, describe_array_len(flexible, configs.len())?)?;
+    for config in configs {
+        total = add_describe_len(total, describe_string_len(flexible, Some(&config.name))?)?;
+        total = add_describe_len(
+            total,
+            describe_string_len(flexible, config.value.as_deref())?,
+        )?;
+        if flexible {
+            total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    if flexible {
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    total = add_describe_len(total, 1)?;
+    if flexible {
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 /// AlterConfigs Resources of N (Java `alterConfigs(Map)`).
