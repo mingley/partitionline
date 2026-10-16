@@ -832,7 +832,7 @@ pub enum ShareAcquireMode {
 /// `PREFERRED_LEADER_NOT_AVAILABLE`, which fails that poll, and not
 /// piggyback `FENCED_STATE_EPOCH` or `LEADER_NOT_AVAILABLE`). A piggybacked
 /// `INVALID_REQUIRED_ACKS` still completes without retry,
-/// including when `AcknowledgeErrorMessage` is set (Java
+/// including when `AcknowledgeErrorMessage` is set or empty (Java
 /// `handleShareFetchSuccess` completes piggyback acks and still
 /// delivers the fetch; this is not partition
 /// `INVALID_REQUIRED_ACKS`, which fails that poll, and not piggyback
@@ -2196,7 +2196,7 @@ impl ShareGroup {
     /// piggyback `FENCED_STATE_EPOCH` or `LEADER_NOT_AVAILABLE`).
     /// A piggybacked `INVALID_REQUIRED_ACKS` still completes
     /// without retry, including when `AcknowledgeErrorMessage` is set
-    /// (Java `handleShareFetchSuccess` completes piggyback acks and
+    /// or empty (Java `handleShareFetchSuccess` completes piggyback acks and
     /// still delivers the fetch; this is not partition
     /// `INVALID_REQUIRED_ACKS`, which fails that poll, and not piggyback
     /// `PREFERRED_LEADER_NOT_AVAILABLE`).
