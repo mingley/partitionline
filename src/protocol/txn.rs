@@ -574,21 +574,57 @@ fn txn_nullable_string_len(flexible: bool, value: Option<&str>) -> Result<usize>
     }
 }
 
-fn add_partitions_request_len(
+/// One AddPartitionsToTxn topic whose name is borrowed from the caller.
+pub(crate) struct BorrowedTxnTopic<'a> {
+    /// Topic name.
+    pub topic: &'a str,
+    /// Partition indexes.
+    pub partitions: Vec<i32>,
+}
+
+trait AddPartitionsTopicView {
+    fn add_partitions_topic(&self) -> &str;
+    fn add_partitions(&self) -> &[i32];
+}
+
+impl AddPartitionsTopicView for TxnPartitionsTopic {
+    fn add_partitions_topic(&self) -> &str {
+        &self.topic
+    }
+
+    fn add_partitions(&self) -> &[i32] {
+        &self.partitions
+    }
+}
+
+impl AddPartitionsTopicView for BorrowedTxnTopic<'_> {
+    fn add_partitions_topic(&self) -> &str {
+        self.topic
+    }
+
+    fn add_partitions(&self) -> &[i32] {
+        &self.partitions
+    }
+}
+
+fn add_partitions_request_len<T: AddPartitionsTopicView>(
     flexible: bool,
     transactional_id: &str,
-    topics: &[TxnPartitionsTopic],
+    topics: &[T],
 ) -> Result<usize> {
     let mut total = txn_string_len(flexible, transactional_id)?;
     total = add_txn_len(total, 8 + 2)?;
     total = add_txn_len(total, txn_array_len(flexible, topics.len())?)?;
     for topic in topics {
-        total = add_txn_len(total, txn_string_len(flexible, &topic.topic)?)?;
-        total = add_txn_len(total, txn_array_len(flexible, topic.partitions.len())?)?;
         total = add_txn_len(
             total,
-            topic
-                .partitions
+            txn_string_len(flexible, topic.add_partitions_topic())?,
+        )?;
+        let partitions = topic.add_partitions();
+        total = add_txn_len(total, txn_array_len(flexible, partitions.len())?)?;
+        total = add_txn_len(
+            total,
+            partitions
                 .len()
                 .checked_mul(4)
                 .ok_or_else(|| Error::protocol("add partitions request size overflow"))?,
@@ -612,6 +648,43 @@ pub fn encode_add_partitions_to_txn_request(
     producer_epoch: i16,
     topics: &[TxnPartitionsTopic],
 ) -> crate::error::Result<()> {
+    encode_add_partitions_to_txn_views(
+        buf,
+        version,
+        transactional_id,
+        producer_id,
+        producer_epoch,
+        topics,
+    )
+}
+
+/// Encode AddPartitionsToTxn from topic names the caller already holds.
+pub(crate) fn encode_add_partitions_to_txn_borrowed(
+    buf: &mut BytesMut,
+    version: i16,
+    transactional_id: &str,
+    producer_id: i64,
+    producer_epoch: i16,
+    topics: &[BorrowedTxnTopic<'_>],
+) -> crate::error::Result<()> {
+    encode_add_partitions_to_txn_views(
+        buf,
+        version,
+        transactional_id,
+        producer_id,
+        producer_epoch,
+        topics,
+    )
+}
+
+fn encode_add_partitions_to_txn_views<T: AddPartitionsTopicView>(
+    buf: &mut BytesMut,
+    version: i16,
+    transactional_id: &str,
+    producer_id: i64,
+    producer_epoch: i16,
+    topics: &[T],
+) -> crate::error::Result<()> {
     let flexible = add_partitions_to_txn_flexible(version)?;
     let body_start = buf.len();
     let planned = add_partitions_request_len(flexible, transactional_id, topics)?;
@@ -623,11 +696,12 @@ pub fn encode_add_partitions_to_txn_request(
     buf.put_i64(producer_id);
     buf.put_i16(producer_epoch);
     buf::put_array_len(buf, flexible, Some(topics.len()))?;
-    for t in topics {
-        buf::put_string(buf, flexible, Some(&t.topic))?;
-        buf::put_array_len(buf, flexible, Some(t.partitions.len()))?;
-        for p in &t.partitions {
-            buf.put_i32(*p);
+    for topic in topics {
+        buf::put_string(buf, flexible, Some(topic.add_partitions_topic()))?;
+        let partitions = topic.add_partitions();
+        buf::put_array_len(buf, flexible, Some(partitions.len()))?;
+        for partition in partitions {
+            buf.put_i32(*partition);
         }
         if flexible {
             buf::put_empty_tagged_fields(buf);
@@ -7405,6 +7479,39 @@ mod tests {
             "AddPartitionsToTxn v3 from_partitions leftover-empty; leftover {} bytes",
             cur.remaining()
         );
+    }
+
+    #[test]
+    fn add_partitions_borrowed_topics_match_owned_topics() {
+        let owned = [
+            TxnPartitionsTopic {
+                topic: "orders-topic-name-is-long".into(),
+                partitions: vec![1, 0],
+            },
+            TxnPartitionsTopic {
+                topic: "payments".into(),
+                partitions: vec![0],
+            },
+        ];
+        let borrowed = [
+            BorrowedTxnTopic {
+                topic: "orders-topic-name-is-long",
+                partitions: vec![1, 0],
+            },
+            BorrowedTxnTopic {
+                topic: "payments",
+                partitions: vec![0],
+            },
+        ];
+        for version in [0_i16, 3] {
+            let mut expected = BytesMut::new();
+            encode_add_partitions_to_txn_request(&mut expected, version, "tx", 9, 1, &owned)
+                .unwrap();
+            let mut got = BytesMut::new();
+            encode_add_partitions_to_txn_borrowed(&mut got, version, "tx", 9, 1, &borrowed)
+                .unwrap();
+            assert_eq!(got.as_ref(), expected.as_ref(), "version {version}");
+        }
     }
 
     #[test]

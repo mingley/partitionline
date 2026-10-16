@@ -39,9 +39,10 @@ use crate::protocol::txn::{
     client_epoch_bump_capable, decode_add_offsets_to_txn_response,
     decode_add_partitions_to_txn_response, decode_end_txn_response,
     decode_txn_offset_commit_response, encode_add_offsets_to_txn_request,
-    encode_add_partitions_to_txn_request, encode_end_txn_request, encode_txn_offset_commit_request,
-    EndTxnRequest, TransactionResult, TxnErrorDisposition, TxnOffsetCommitMember,
-    TxnOffsetCommitRequest, TxnOffsetPartition, TxnOffsetTopic, TxnPartitionsTopic,
+    encode_add_partitions_to_txn_borrowed, encode_end_txn_request,
+    encode_txn_offset_commit_request, BorrowedTxnTopic, EndTxnRequest, TransactionResult,
+    TxnErrorDisposition, TxnOffsetCommitMember, TxnOffsetCommitRequest, TxnOffsetPartition,
+    TxnOffsetTopic,
 };
 
 /// Pre-send failure injection point for testing buffer ownership and resource contracts.
@@ -6015,7 +6016,9 @@ impl Worker {
                 &self.shared,
                 ADD_PARTITIONS_TO_TXN,
                 version,
-                |buf| encode_add_partitions_to_txn_request(buf, version, &tid, pid, epoch, &topics),
+                |buf| {
+                    encode_add_partitions_to_txn_borrowed(buf, version, &tid, pid, epoch, &topics)
+                },
                 remaining,
                 |body| decode_add_partitions_to_txn_response(&mut { body }, version),
             )
@@ -6298,8 +6301,8 @@ fn retry_topic_groups(pendings: &[Pending]) -> (Vec<usize>, Vec<(Arc<str>, u32)>
     (group_of, groups)
 }
 
-fn group_txn_partitions(parts: &[(Arc<str>, i32)]) -> Vec<TxnPartitionsTopic> {
-    let mut topics: Vec<TxnPartitionsTopic> = Vec::new();
+fn group_txn_partitions(parts: &[(Arc<str>, i32)]) -> Vec<BorrowedTxnTopic<'_>> {
+    let mut topics: Vec<BorrowedTxnTopic<'_>> = Vec::new();
     let mut slots: HashMap<&str, usize> = HashMap::new();
     for (topic, part) in parts {
         if let Some(&slot) = slots.get(topic.as_ref()) {
@@ -6310,8 +6313,8 @@ fn group_txn_partitions(parts: &[(Arc<str>, i32)]) -> Vec<TxnPartitionsTopic> {
         }
         let slot = topics.len();
         let _ = slots.insert(topic.as_ref(), slot);
-        topics.push(TxnPartitionsTopic {
-            topic: topic.to_string(),
+        topics.push(BorrowedTxnTopic {
+            topic: topic.as_ref(),
             partitions: vec![*part],
         });
     }
@@ -8086,23 +8089,18 @@ mod tests {
         forget_txn_part(&mut set, &orders_again, 1);
         assert!(set.get("orders").is_none());
         assert!(txn_part_present(&set, &payments, 3));
-        let grouped = group_txn_partitions(&[
+        let parts = [
             (Arc::clone(&orders), 1),
             (Arc::clone(&payments), 0),
             (Arc::clone(&orders), 0),
-        ]);
-        assert_eq!(
-            grouped.first().map(|topic| topic.topic.as_str()),
-            Some("orders")
-        );
+        ];
+        let grouped = group_txn_partitions(&parts);
+        assert_eq!(grouped.first().map(|topic| topic.topic), Some("orders"));
         assert_eq!(
             grouped.first().map(|topic| topic.partitions.as_slice()),
             Some(&[1, 0][..])
         );
-        assert_eq!(
-            grouped.get(1).map(|topic| topic.topic.as_str()),
-            Some("payments")
-        );
+        assert_eq!(grouped.get(1).map(|topic| topic.topic), Some("payments"));
         assert_eq!(
             grouped.get(1).map(|topic| topic.partitions.as_slice()),
             Some(&[0][..])
