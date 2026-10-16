@@ -876,6 +876,9 @@ pub struct ShareGroup {
     /// Prepared ShareFetch jobs from the previous poll. The jobs are drained;
     /// the list itself is refilled.
     spare_prepared: Vec<PreparedShareFetch>,
+    /// Finished ShareFetch replies from the previous poll. Drained after they
+    /// are applied, then refilled.
+    spare_ready: Vec<ReadyShareFetch>,
     topic_ids: HashMap<String, [u8; 16]>,
     /// Share session epoch per share-partition leader (KIP-932).
     share_epochs: HashMap<i32, i32>,
@@ -1374,6 +1377,7 @@ impl ShareGroup {
             fetch_cursors: Vec::new(),
             spare_incoming: Vec::new(),
             spare_prepared: Vec::new(),
+            spare_ready: Vec::new(),
             topic_ids: HashMap::new(),
             share_epochs: HashMap::new(),
             share_conns: HashMap::new(),
@@ -2330,6 +2334,19 @@ impl ShareGroup {
         }
     }
 
+    fn take_share_ready(&mut self) -> Vec<ReadyShareFetch> {
+        std::mem::take(&mut self.spare_ready)
+    }
+
+    fn keep_share_ready(&mut self, mut ready: Vec<ReadyShareFetch>) {
+        for reply in ready.drain(..) {
+            self.park_share_ids(reply.by_id);
+        }
+        if ready.capacity() > self.spare_ready.capacity() {
+            self.spare_ready = ready;
+        }
+    }
+
     async fn leaders_of(&mut self, deadline: Instant) -> Result<()> {
         // One stored name per topic. A fresh topic skips the metadata RPC
         // without copying that name again.
@@ -2392,8 +2409,9 @@ impl ShareGroup {
     async fn collect_share_fetches(
         &mut self,
         prepared: &mut Vec<PreparedShareFetch>,
+        ready: &mut Vec<ReadyShareFetch>,
         deadline: Instant,
-    ) -> Result<Vec<ReadyShareFetch>> {
+    ) -> Result<()> {
         let mut inflight = InflightShareFetches {
             set: Some(self.inflight_share_fetches.take().unwrap_or_default()),
             pending: std::mem::take(&mut self.inflight_share_nodes),
@@ -2444,7 +2462,6 @@ impl ShareGroup {
             self.park_prepared(prepared);
             return Err(Error::protocol("inflight share fetch set missing"));
         }
-        let mut ready = Vec::new();
         let mut first_reply: Option<Instant> = None;
         while inflight.set.as_ref().is_some_and(|set| !set.is_empty()) {
             let wait = if let Some(started) = first_reply {
@@ -2518,7 +2535,7 @@ impl ShareGroup {
             return Err(Error::Timeout);
         }
         ready.sort_by_key(|reply| reply.node);
-        Ok(ready)
+        Ok(())
     }
 
     async fn poll_leaders(
@@ -2621,16 +2638,20 @@ impl ShareGroup {
             .inflight_share_fetches
             .as_ref()
             .is_some_and(|set| !set.is_empty());
-        let ready = if prepared.len() > 1 || parked {
-            let ready = self.collect_share_fetches(&mut prepared, deadline).await;
+        let mut ready = self.take_share_ready();
+        let fetched = if prepared.len() > 1 || parked {
+            let fetched = self
+                .collect_share_fetches(&mut prepared, &mut ready, deadline)
+                .await;
             self.keep_prepared(prepared);
-            ready?
+            fetched
         } else if let Some(job) = prepared.pop() {
             let timeout = deadline.saturating_duration_since(Instant::now());
             if timeout.is_zero() {
                 self.park_share_ids(job.by_id);
                 self.park_share_topics(job.topics);
                 self.keep_prepared(prepared);
+                self.keep_share_ready(ready);
                 return Err(Error::Timeout);
             }
             let node = job.node;
@@ -2638,6 +2659,7 @@ impl ShareGroup {
                 self.park_share_ids(job.by_id);
                 self.park_share_topics(job.topics);
                 self.keep_prepared(prepared);
+                self.keep_share_ready(ready);
                 return Err(Error::protocol("missing share connection"));
             };
             let body = peer
@@ -2651,27 +2673,32 @@ impl ShareGroup {
                 .await;
             let _ = self.share_conns.insert(node, peer);
             self.park_share_topics(job.topics);
-            let ready = vec![ReadyShareFetch {
+            ready.push(ReadyShareFetch {
                 node,
                 version: job.version,
                 by_id: job.by_id,
                 body,
-            }];
+            });
             self.keep_prepared(prepared);
-            ready
+            Ok(())
         } else if Instant::now() >= deadline {
             self.keep_prepared(prepared);
+            self.keep_share_ready(ready);
             return Err(Error::Timeout);
         } else {
             self.keep_prepared(prepared);
-            Vec::new()
+            Ok(())
         };
+        if let Err(error) = fetched {
+            self.keep_share_ready(ready);
+            return Err(error);
+        }
         for ReadyShareFetch {
             node,
             version,
             by_id,
             body,
-        } in ready
+        } in ready.drain(..)
         {
             let mut body = match body {
                 Ok(body) => body,
@@ -2898,6 +2925,7 @@ impl ShareGroup {
             park_record_buf(&mut self.spare_incoming, incoming);
             self.park_share_ids(by_id);
         }
+        self.keep_share_ready(ready);
         Ok(self.drain_pending_delivery())
     }
 
