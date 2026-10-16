@@ -1442,11 +1442,7 @@ impl ConsumerGroup {
         }
         let flush_deadline = Instant::now() + self.cfg.request_timeout;
         self.flush_async_commits(flush_deadline).await;
-        self.commit_interval_while_dialing().await?;
-        let recs = match wait {
-            Some(t) => self.consumer.fetch_allow_unassigned_timeout(t).await?,
-            None => self.consumer.fetch_allow_unassigned().await?,
-        };
+        let recs = self.fetch_while_interval_commits(wait).await?;
         if !recs.is_empty()
             && self.cfg.enable_auto_commit
             && self.cfg.auto_commit_interval.is_zero()
@@ -1992,21 +1988,26 @@ impl ConsumerGroup {
         }
     }
 
-    /// Commit due interval offsets while fetch leaders reconnect.
+    /// Fetch while a due interval commit is in flight.
     ///
-    /// The commit uses the group coordinator. Leader sockets are a different
-    /// set of connections, so a slow commit does not hold the handshakes.
-    async fn commit_interval_while_dialing(&mut self) -> Result<()> {
+    /// The commit uses the group coordinator. The fetch uses the leader
+    /// sockets, so one slow commit does not hold the records. A failed
+    /// commit puts any fetched batch back in front of the buffer.
+    async fn fetch_while_interval_commits(
+        &mut self,
+        wait: Option<Duration>,
+    ) -> Result<ConsumerRecords> {
         if !self.cfg.enable_auto_commit
             || self.cfg.auto_commit_interval.is_zero()
             || self.last_auto_commit.elapsed() < self.cfg.auto_commit_interval
             || self.coord.offset_commit_version == 10
             || !self.cfg.interceptors.is_empty()
         {
-            return self.maybe_auto_commit_interval().await;
+            self.maybe_auto_commit_interval().await?;
+            return self.fetch_for_poll(wait).await;
         }
         let Some(mut to_commit) = self.last_delivered_positions.clone() else {
-            return Ok(());
+            return self.fetch_for_poll(wait).await;
         };
         to_commit.retain(|(topic, partition, offset)| {
             position_is_committable(*offset)
@@ -2019,18 +2020,16 @@ impl ConsumerGroup {
                     == self.consumer.assigned_topic_id(topic, *partition)
         });
         if to_commit.is_empty() {
-            return Ok(());
+            return self.fetch_for_poll(wait).await;
         }
-        let leaders = self.consumer.assigned_leader_nodes();
         let timeout = self.cfg.request_timeout;
-        let deadline = Instant::now() + timeout;
         let mut topics = std::mem::take(&mut self.classic_commit_topics);
         refill_shared_offset_topics(&mut topics, &to_commit, |topic, partition| {
             self.consumer.position_epoch(topic, partition)
         });
         if topics.is_empty() {
             self.classic_commit_topics = topics;
-            return Ok(());
+            return self.fetch_for_poll(wait).await;
         }
         let generation_id = self.generation_id;
         let group_id = self.group_id.clone();
@@ -2039,7 +2038,7 @@ impl ConsumerGroup {
         let coord = &mut self.coord;
         let cfg = &self.cfg;
         let consumer = &mut self.consumer;
-        let (committed, _) = tokio::join!(
+        let (committed, fetched) = tokio::join!(
             coord_roundtrip(
                 coord,
                 cfg,
@@ -2060,17 +2059,48 @@ impl ConsumerGroup {
                 },
                 timeout,
             ),
-            consumer.warm_leader_conns(&leaders, deadline),
+            async {
+                match wait {
+                    Some(timeout) => consumer.fetch_allow_unassigned_timeout(timeout).await,
+                    None => consumer.fetch_allow_unassigned().await,
+                }
+            },
         );
         self.classic_commit_topics = topics;
-        let (version, body) = committed?;
-        let err = decode_offset_commit_response(&mut body.clone(), version)?;
+        let (version, body) = match committed {
+            Ok(committed) => committed,
+            Err(error) => {
+                if let Ok(recs) = fetched {
+                    self.consumer.restore_fetched(recs);
+                }
+                return Err(error);
+            }
+        };
+        let err = match decode_offset_commit_response(&mut body.clone(), version) {
+            Ok(err) => err,
+            Err(error) => {
+                if let Ok(recs) = fetched {
+                    self.consumer.restore_fetched(recs);
+                }
+                return Err(error);
+            }
+        };
         self.note_commit(err == 0);
         if err != 0 {
+            if let Ok(recs) = fetched {
+                self.consumer.restore_fetched(recs);
+            }
             return Err(Error::broker(err, "OffsetCommit"));
         }
         self.last_auto_commit = Instant::now();
-        Ok(())
+        fetched
+    }
+
+    async fn fetch_for_poll(&mut self, wait: Option<Duration>) -> Result<ConsumerRecords> {
+        match wait {
+            Some(timeout) => self.consumer.fetch_allow_unassigned_timeout(timeout).await,
+            None => self.consumer.fetch_allow_unassigned().await,
+        }
     }
 
     async fn maybe_auto_commit_interval(&mut self) -> Result<()> {
