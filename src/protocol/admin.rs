@@ -11447,6 +11447,12 @@ pub fn encode_delete_groups_response_with_throttle(
     throttle_time_ms: i32,
 ) -> crate::error::Result<()> {
     let flexible = delete_groups_flexible(version)?;
+    let body_start = buf.len();
+    let planned = delete_groups_response_len(flexible, results)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf.put_i32(throttle_time_ms);
     buf::put_array_len(buf, flexible, Some(results.len()))?;
     for r in results {
@@ -11459,7 +11465,27 @@ pub fn encode_delete_groups_response_with_throttle(
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn delete_groups_response_len(flexible: bool, results: &[DeletableGroupResult]) -> Result<usize> {
+    let mut total = 4usize;
+    total = add_describe_len(total, describe_array_len(flexible, results.len())?)?;
+    for result in results {
+        total = add_describe_len(
+            total,
+            describe_string_len(flexible, Some(&result.group_id))?,
+        )?;
+        total = add_describe_len(total, 2)?;
+        if flexible {
+            total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    if flexible {
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 /// Decode a DeleteGroups response.
@@ -30730,6 +30756,28 @@ mod tests {
             !cur.has_remaining(),
             "ListGroups v5 ErrorCode body must be leftover-empty"
         );
+    }
+
+    #[test]
+    fn a_delete_groups_response_sizes_its_body_once() {
+        let results: Vec<DeletableGroupResult> = (0..8)
+            .map(|index| DeletableGroupResult {
+                group_id: format!("group-{index}"),
+                error_code: 0,
+            })
+            .collect();
+        for version in [0_i16, 1, 2] {
+            let mut buf = BytesMut::new();
+            encode_delete_groups_response(&mut buf, version, &results).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_delete_groups_response(&mut buf, version, &results).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+        }
     }
 
     #[test]
