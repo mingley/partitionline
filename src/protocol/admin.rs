@@ -5933,6 +5933,12 @@ pub fn encode_list_partition_reassignments_request(
     timeout_ms: i32,
     topics: Option<&[ListReassignmentTopic]>,
 ) -> crate::error::Result<()> {
+    let body_start = buf.len();
+    let planned = list_reassignments_request_len(topics)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf.put_i32(timeout_ms);
     match topics {
         None => buf::put_array_len(buf, true, None)?,
@@ -5946,7 +5952,27 @@ pub fn encode_list_partition_reassignments_request(
         }
     }
     buf::put_empty_tagged_fields(buf);
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn list_reassignments_request_len(topics: Option<&[ListReassignmentTopic]>) -> Result<usize> {
+    let mut total = 4;
+    match topics {
+        None => total = add_describe_len(total, buf::unsigned_varint_size(0))?,
+        Some(topics) => {
+            total = add_describe_len(total, describe_array_len(true, topics.len())?)?;
+            for topic in topics {
+                total = add_describe_len(total, describe_string_len(true, Some(&topic.name))?)?;
+                total = add_describe_len(
+                    total,
+                    reassignment_replica_len(Some(&topic.partition_indexes))?,
+                )?;
+                total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+            }
+        }
+    }
+    add_describe_len(total, buf::unsigned_varint_size(0))
 }
 
 /// Decode a ListPartitionReassignments request.
@@ -5979,6 +6005,12 @@ pub fn encode_list_partition_reassignments_response(
     buf: &mut BytesMut,
     resp: &ListPartitionReassignmentsResponse,
 ) -> crate::error::Result<()> {
+    let body_start = buf.len();
+    let planned = list_reassignments_response_len(resp)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf.put_i32(resp.throttle_time_ms);
     buf.put_i16(resp.error_code);
     buf::put_compact_string(buf, resp.error_message.as_deref())?;
@@ -5996,7 +6028,36 @@ pub fn encode_list_partition_reassignments_response(
         buf::put_empty_tagged_fields(buf);
     }
     buf::put_empty_tagged_fields(buf);
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn list_reassignments_response_len(resp: &ListPartitionReassignmentsResponse) -> Result<usize> {
+    let mut total = 6;
+    total = add_describe_len(
+        total,
+        describe_string_len(true, resp.error_message.as_deref())?,
+    )?;
+    total = add_describe_len(total, describe_array_len(true, resp.topics.len())?)?;
+    for topic in &resp.topics {
+        total = add_describe_len(total, describe_string_len(true, Some(&topic.name))?)?;
+        total = add_describe_len(total, describe_array_len(true, topic.partitions.len())?)?;
+        for partition in &topic.partitions {
+            total = add_describe_len(total, 4)?;
+            total = add_describe_len(total, reassignment_replica_len(Some(&partition.replicas))?)?;
+            total = add_describe_len(
+                total,
+                reassignment_replica_len(Some(&partition.adding_replicas))?,
+            )?;
+            total = add_describe_len(
+                total,
+                reassignment_replica_len(Some(&partition.removing_replicas))?,
+            )?;
+            total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+        }
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    add_describe_len(total, buf::unsigned_varint_size(0))
 }
 
 /// Decode a ListPartitionReassignments response.
@@ -26805,6 +26866,63 @@ mod tests {
             err.throttle_time_ms, 0,
             "ListPartitionReassignmentsResponse::error still fills ThrottleTimeMs 0"
         );
+    }
+
+    #[test]
+    fn a_list_partition_reassignments_request_sizes_its_body_once() {
+        let topics = vec![
+            ListReassignmentTopic::new("orders", vec![0, 1]),
+            ListReassignmentTopic::new("payments", vec![]),
+        ];
+        for listed in [None, Some(topics.as_slice())] {
+            let mut buf = BytesMut::new();
+            encode_list_partition_reassignments_request(&mut buf, 5_000, listed).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_list_partition_reassignments_request(&mut buf, 5_000, listed).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+            let mut cur = &buf[..];
+            let (timeout, decoded) = decode_list_partition_reassignments_request(&mut cur).unwrap();
+            assert!(cur.is_empty());
+            assert_eq!(timeout, 5_000);
+            assert_eq!(decoded.as_deref(), listed);
+        }
+    }
+
+    #[test]
+    fn a_list_partition_reassignments_response_sizes_its_body_once() {
+        let response = ListPartitionReassignmentsResponse {
+            throttle_time_ms: 12,
+            error_code: 0,
+            error_message: Some("listing".into()),
+            topics: vec![OngoingTopicReassignment::new(
+                "orders",
+                vec![OngoingPartitionReassignment {
+                    partition_index: 0,
+                    replicas: vec![1, 2],
+                    adding_replicas: vec![2],
+                    removing_replicas: vec![3],
+                }],
+            )],
+        };
+        let mut buf = BytesMut::new();
+        encode_list_partition_reassignments_response(&mut buf, &response).unwrap();
+        let len = buf.len();
+        let capacity = buf.capacity();
+        assert!(capacity >= len);
+        assert!(capacity < 64 * 1024);
+        buf.clear();
+        encode_list_partition_reassignments_response(&mut buf, &response).unwrap();
+        assert_eq!(buf.len(), len);
+        assert_eq!(buf.capacity(), capacity);
+        let mut cur = &buf[..];
+        let decoded = decode_list_partition_reassignments_response(&mut cur).unwrap();
+        assert!(cur.is_empty());
+        assert_eq!(decoded, response);
     }
 
     #[test]
