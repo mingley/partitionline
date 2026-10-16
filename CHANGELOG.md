@@ -233,7 +233,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   set or empty (Java `handleShareFetchSuccess` completes piggyback acks
   and still delivers the fetch). A piggybacked `LEADER_NOT_AVAILABLE`
   still completes without retry, including when
-  `AcknowledgeErrorMessage` is set (Java `handleShareFetchSuccess`
+  `AcknowledgeErrorMessage` is set or empty (Java `handleShareFetchSuccess`
   completes piggyback acks and still delivers the fetch; this is not
   partition `LEADER_NOT_AVAILABLE`, which fails that poll, and not
   standalone ShareAcknowledge `LEADER_NOT_AVAILABLE`, which retries). A
