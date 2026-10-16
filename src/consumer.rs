@@ -7054,12 +7054,31 @@ impl Consumer {
     }
 
     async fn seek_assigned(&mut self, timestamp: i64) -> Result<()> {
-        let assigned: Vec<(String, i32)> = self
-            .assigned
-            .iter()
-            .map(|(t, p, _)| (t.as_ref().to_owned(), *p))
-            .collect();
-        self.seek_listed(timestamp, assigned).await
+        require_unique_offset_partitions(
+            self.assigned
+                .iter()
+                .map(|(topic, partition, _)| (topic.as_ref(), *partition)),
+        )?;
+        let deadline = offset_lookup_deadline(self.cfg.request_timeout)?;
+        let count = self.assigned.len();
+        for index in 0..count {
+            let Some((topic, partition, _)) = self.assigned.get(index) else {
+                continue;
+            };
+            let topic = Arc::clone(topic);
+            let partition = *partition;
+            let offset = self
+                .list_offset_at(
+                    topic.as_ref(),
+                    partition,
+                    timestamp,
+                    remaining_offset_timeout(deadline, Instant::now()),
+                )
+                .await?
+                .0;
+            self.seek(topic.as_ref(), partition, offset)?;
+        }
+        Ok(())
     }
 
     async fn seek_partitions(
