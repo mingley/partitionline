@@ -20795,6 +20795,12 @@ pub fn encode_elect_leaders_request(
     req: &ElectLeadersRequest,
 ) -> crate::error::Result<()> {
     let flexible = elect_leaders_flexible(version)?;
+    let body_start = buf.len();
+    let planned = elect_leaders_request_len(version, flexible, req)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     if version >= 1 {
         buf.put_i8(req.election_type);
     }
@@ -20813,7 +20819,47 @@ pub fn encode_elect_leaders_request(
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn elect_leaders_request_len(
+    version: i16,
+    flexible: bool,
+    req: &ElectLeadersRequest,
+) -> Result<usize> {
+    let mut total = if version >= 1 { 1 } else { 0 };
+    total = add_describe_len(
+        total,
+        elect_leaders_topics_len(flexible, req.topics.as_deref())?,
+    )?;
+    total = add_describe_len(total, 4)?;
+    if flexible {
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
+}
+
+fn elect_leaders_topics_len(flexible: bool, topics: Option<&[ElectLeadersTopic]>) -> Result<usize> {
+    let Some(topics) = topics else {
+        return Ok(if flexible {
+            buf::unsigned_varint_size(0)
+        } else {
+            4
+        });
+    };
+    let mut total = describe_array_len(flexible, topics.len())?;
+    for topic in topics {
+        total = add_describe_len(total, describe_string_len(flexible, Some(&topic.topic))?)?;
+        total = add_describe_len(
+            total,
+            replica_log_dirs_i32s_len(flexible, &topic.partitions)?,
+        )?;
+        if flexible {
+            total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    Ok(total)
 }
 
 /// Decode an ElectLeaders request (v0–2).
@@ -20883,6 +20929,12 @@ fn encode_elect_leaders_response_with_throttle(
     resp: &ElectLeadersResponse,
 ) -> crate::error::Result<()> {
     let flexible = elect_leaders_flexible(version)?;
+    let body_start = buf.len();
+    let planned = elect_leaders_response_len(version, flexible, resp)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf.put_i32(resp.throttle_time_ms);
     if version >= 1 {
         buf.put_i16(resp.error_code);
@@ -20906,7 +20958,44 @@ fn encode_elect_leaders_response_with_throttle(
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn elect_leaders_response_len(
+    version: i16,
+    flexible: bool,
+    resp: &ElectLeadersResponse,
+) -> Result<usize> {
+    let mut total = 4;
+    if version >= 1 {
+        total = add_describe_len(total, 2)?;
+    }
+    total = add_describe_len(total, describe_array_len(flexible, resp.results.len())?)?;
+    for result in &resp.results {
+        total = add_describe_len(total, describe_string_len(flexible, Some(&result.topic))?)?;
+        total = add_describe_len(
+            total,
+            describe_array_len(flexible, result.partitions.len())?,
+        )?;
+        for partition in &result.partitions {
+            total = add_describe_len(total, 6)?;
+            total = add_describe_len(
+                total,
+                describe_string_len(flexible, partition.error_message.as_deref())?,
+            )?;
+            if flexible {
+                total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+            }
+        }
+        if flexible {
+            total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    if flexible {
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 /// Decode an ElectLeaders response (v0–2).
@@ -43165,6 +43254,88 @@ mod tests {
             partition_id,
             error_code,
             error_message: error_message.map(str::to_owned),
+        }
+    }
+
+    #[test]
+    fn a_elect_leaders_request_sizes_its_body_once() {
+        let listed = ElectLeadersRequest {
+            election_type: ELECTION_UNCLEAN,
+            topics: Some(vec![ElectLeadersTopic {
+                topic: "orders".into(),
+                partitions: vec![0, 1],
+            }]),
+            timeout_ms: 1_000,
+        };
+        let all = ElectLeadersRequest {
+            election_type: ELECTION_PREFERRED,
+            topics: None,
+            timeout_ms: 1_000,
+        };
+        for version in [0_i16, 1, 2] {
+            for request in [&listed, &all] {
+                let mut buf = BytesMut::new();
+                encode_elect_leaders_request(&mut buf, version, request).unwrap();
+                let len = buf.len();
+                let capacity = buf.capacity();
+                assert!(capacity >= len);
+                assert!(capacity < 64 * 1024);
+                buf.clear();
+                encode_elect_leaders_request(&mut buf, version, request).unwrap();
+                assert_eq!(buf.len(), len);
+                assert_eq!(buf.capacity(), capacity);
+                let mut cur = &buf[..];
+                let decoded = decode_elect_leaders_request(&mut cur, version).unwrap();
+                assert!(cur.is_empty());
+                assert_eq!(decoded.topics, request.topics);
+                assert_eq!(decoded.timeout_ms, 1_000);
+                if version >= 1 {
+                    assert_eq!(decoded.election_type, request.election_type);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn a_elect_leaders_response_sizes_its_body_once() {
+        let response = ElectLeadersResponse {
+            throttle_time_ms: 12,
+            error_code: 7,
+            results: vec![ElectLeadersResult {
+                topic: "orders".into(),
+                partitions: vec![
+                    ElectLeadersPartitionResult {
+                        partition_id: 0,
+                        error_code: 0,
+                        error_message: None,
+                    },
+                    ElectLeadersPartitionResult {
+                        partition_id: 1,
+                        error_code: 3,
+                        error_message: Some("busy".into()),
+                    },
+                ],
+            }],
+        };
+        for version in [0_i16, 1, 2] {
+            let mut buf = BytesMut::new();
+            encode_elect_leaders_response(&mut buf, version, &response).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_elect_leaders_response(&mut buf, version, &response).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+            let mut cur = &buf[..];
+            let decoded = decode_elect_leaders_response(&mut cur, version).unwrap();
+            assert!(cur.is_empty());
+            assert_eq!(decoded.results, response.results);
+            assert_eq!(decoded.throttle_time_ms, 12);
+            if version >= 1 {
+                assert_eq!(decoded.error_code, 7);
+            }
         }
     }
 
