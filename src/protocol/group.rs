@@ -2796,6 +2796,9 @@ pub fn encode_leave_group_request_members(
             members.len()
         )));
     }
+    let body_start = buf.len();
+    let planned = leave_group_request_len(version, flexible, group_id, members)?;
+    reserve_group_body(buf, planned);
     buf::put_string(buf, flexible, Some(group_id))?;
     if version >= 3 {
         buf::put_array_len(buf, flexible, Some(members.len()))?;
@@ -2812,11 +2815,47 @@ pub fn encode_leave_group_request_members(
         if flexible {
             buf::put_empty_tagged_fields(buf);
         }
+        debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
         return Ok(());
     }
     let member_id = members.first().map(|m| m.member_id.as_str()).unwrap_or("");
     buf::put_string(buf, flexible, Some(member_id))?;
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn leave_group_request_len(
+    version: i16,
+    flexible: bool,
+    group_id: &str,
+    members: &[LeaveGroupMember],
+) -> Result<usize> {
+    let mut total = group_string_len(flexible, Some(group_id))?;
+    if version < 3 {
+        let member_id = members
+            .first()
+            .map(|member| member.member_id.as_str())
+            .unwrap_or("");
+        return add_group_len(total, group_string_len(flexible, Some(member_id))?);
+    }
+    total = add_group_len(total, group_array_len(flexible, members.len())?)?;
+    for member in members {
+        total = add_group_len(total, group_string_len(flexible, Some(&member.member_id))?)?;
+        total = add_group_len(
+            total,
+            group_string_len(flexible, member.group_instance_id.as_deref())?,
+        )?;
+        if version >= 5 {
+            total = add_group_len(total, group_string_len(flexible, member.reason.as_deref())?)?;
+        }
+        if flexible {
+            total = add_group_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    if flexible {
+        total = add_group_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 /// Decode LeaveGroup: `(group_id, member_id)` (v0 body).
@@ -15974,6 +16013,44 @@ mod tests {
             "LeaveGroup v3 response leftover {} bytes",
             cur.len()
         );
+    }
+
+    #[test]
+    fn a_leave_group_request_sizes_its_body_once() {
+        let members = vec![
+            LeaveGroupMember {
+                member_id: "member-1".into(),
+                group_instance_id: Some("instance".into()),
+                reason: Some("rebalance".into()),
+            },
+            LeaveGroupMember {
+                member_id: "member-2".into(),
+                group_instance_id: None,
+                reason: None,
+            },
+        ];
+        let mut buf = BytesMut::new();
+        encode_leave_group_request_members(&mut buf, 0, "group", &members[..1]).unwrap();
+        let len = buf.len();
+        let capacity = buf.capacity();
+        assert!(capacity >= len);
+        assert!(capacity < 64 * 1024);
+        buf.clear();
+        encode_leave_group_request_members(&mut buf, 0, "group", &members[..1]).unwrap();
+        assert_eq!(buf.len(), len);
+        assert_eq!(buf.capacity(), capacity);
+        for version in [3_i16, 4, 5] {
+            let mut buf = BytesMut::new();
+            encode_leave_group_request_members(&mut buf, version, "group", &members).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_leave_group_request_members(&mut buf, version, "group", &members).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+        }
     }
 
     #[test]
