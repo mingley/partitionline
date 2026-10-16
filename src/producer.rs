@@ -7393,6 +7393,7 @@ fn encode_flexible_partition(
         base_sequence,
         transactional,
     )?;
+    reserve_compressed_section(&header, pendings, now, scratch)?;
     let batch_len = crate::protocol::records::pack_compressed_batch(
         &header,
         pendings.iter().map(|pending| EncodeRecord {
@@ -7473,6 +7474,28 @@ fn sequence_of(map: &mut SequenceMap, topic: &Arc<str>, partition: i32, count: u
     0
 }
 
+fn reserve_compressed_section(
+    header: &BatchHeader,
+    pendings: &[Pending],
+    now: i64,
+    scratch: &mut CompressScratch,
+) -> Result<()> {
+    if Compression::from_attributes(header.attributes)? == Compression::None {
+        return Ok(());
+    }
+    let section = crate::protocol::records::uncompressed_section_len(
+        header,
+        pendings.iter().map(|pending| EncodeRecord {
+            timestamp: pending.rec.timestamp.unwrap_or(now),
+            key: pending.rec.key.as_deref(),
+            value: pending.rec.value.as_deref(),
+            headers: &pending.rec.headers,
+        }),
+    )?;
+    scratch.reserve_section(section);
+    Ok(())
+}
+
 fn encode_pendings(
     buf: &mut BytesMut,
     pendings: &[Pending],
@@ -7480,6 +7503,7 @@ fn encode_pendings(
     now: i64,
     scratch: &mut CompressScratch,
 ) -> Result<()> {
+    reserve_compressed_section(header, pendings, now, scratch)?;
     write_record_batch_scratch(
         buf,
         header,

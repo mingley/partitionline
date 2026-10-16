@@ -2157,6 +2157,12 @@ impl CompressScratch {
         self.zstd_max_batch_bytes = bytes;
     }
 
+    pub(crate) fn reserve_section(&mut self, bytes: usize) {
+        if self.section.capacity() < bytes {
+            self.section.reserve(bytes - self.section.capacity());
+        }
+    }
+
     pub(crate) fn shrink_to_caps(&mut self) {
         #[cfg(feature = "zstd")]
         if self.section.capacity() > self.section_cap.saturating_mul(2)
@@ -2394,6 +2400,18 @@ where
             .ok_or_else(|| Error::protocol("batch size overflow"))?;
     }
     Ok(size)
+}
+
+/// Uncompressed record bytes that a compressed batch writes before packing.
+///
+/// This is [`uncompressed_batch_len`] without [`RecordBatch::RECORD_BATCH_OVERHEAD`].
+pub(crate) fn uncompressed_section_len<'a, I>(header: &BatchHeader, records: I) -> Result<usize>
+where
+    I: IntoIterator<Item = EncodeRecord<'a>>,
+{
+    let total = uncompressed_batch_len(header, records)?;
+    let overhead = buf::usize_from_i32(RecordBatch::RECORD_BATCH_OVERHEAD)?;
+    Ok(total.saturating_sub(overhead))
 }
 
 fn start_record_batch(buf: &mut BytesMut, header: &BatchHeader) -> (usize, usize, usize, usize) {
@@ -5434,6 +5452,50 @@ mod tests {
         .unwrap();
         assert_eq!(plain_scratch.section.capacity(), 0);
         assert_eq!(plain_scratch.packed.capacity(), 0);
+    }
+
+    #[test]
+    fn a_compressed_section_is_sized_once() {
+        let rec = Record {
+            offset: 0,
+            timestamp: 5,
+            key: Some(Bytes::from_static(b"key-key!")),
+            value: Some(Bytes::from_static(
+                b"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+            )),
+            headers: vec![],
+        };
+        let records = vec![rec; 200];
+        let header = BatchHeader {
+            attributes: Compression::Snappy as i16,
+            base_timestamp: 0,
+            max_timestamp: 5,
+            count: 200,
+            ..BatchHeader::default()
+        };
+        let encoded = records.iter().map(EncodeRecord::from_record);
+        let section = uncompressed_section_len(&header, encoded).unwrap();
+        assert!(section > 1024);
+        let mut scratch = CompressScratch::new();
+        scratch.reserve_section(section);
+        let capacity = scratch.section.capacity();
+        assert!(capacity >= section);
+        let _framed = pack_compressed_batch(
+            &header,
+            records.iter().map(EncodeRecord::from_record),
+            &mut scratch,
+        )
+        .unwrap();
+        assert_eq!(scratch.section.capacity(), capacity);
+        scratch.reserve_section(section);
+        assert_eq!(scratch.section.capacity(), capacity);
+        let _again = pack_compressed_batch(
+            &header,
+            records.iter().map(EncodeRecord::from_record),
+            &mut scratch,
+        )
+        .unwrap();
+        assert_eq!(scratch.section.capacity(), capacity);
     }
 
     #[test]
