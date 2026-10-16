@@ -553,11 +553,13 @@ impl FetchRequest {
 
     /// Java `FetchRequest.getErrorResponse` encode.
     ///
-    /// Responses from [`Self::error_response`]. ThrottleTimeMs is written
-    /// on every spoken version from `throttle_time_ms` (JSON `1+`; this
-    /// crate speaks 4–18). ErrorCode and SessionId are written on v7+
-    /// from `error_code` / `session_id`; below v7 they are omitted even
-    /// when non-zero and decode fills `0` /
+    /// Each topic name and partition index is written from the caller
+    /// below v13. v13+ writes an empty Responses array. Partition bodies
+    /// use the invalid watermark sentinels and null records. ThrottleTimeMs
+    /// is written on every spoken version from `throttle_time_ms` (JSON
+    /// `1+`; this crate speaks 4–18). ErrorCode and SessionId are written
+    /// on v7+ from `error_code` / `session_id`; below v7 they are omitted
+    /// even when non-zero and decode fills `0` /
     /// [`FetchMetadata::INVALID_SESSION_ID`]. NodeEndpoints stay empty.
     /// Convenience encode still writes throttle `0`, ErrorCode `0`, and
     /// SessionId [`FetchMetadata::INVALID_SESSION_ID`]. This crate speaks
@@ -573,14 +575,12 @@ impl FetchRequest {
         session_id: i32,
         throttle_time_ms: i32,
     ) -> Result<()> {
-        let responses = Self::error_response(version, topics, error_code);
-        encode_fetch_response_fields(
+        encode_fetch_error_response(
             buf,
             version,
-            &responses,
+            topics,
             error_code,
             session_id,
-            &[],
             throttle_time_ms,
         )
     }
@@ -2319,6 +2319,118 @@ pub fn encode_fetch_response_with_endpoints(
     endpoints: &[super::api::NodeEndpoint],
 ) -> Result<()> {
     encode_fetch_response_fields(buf, version, topics, error_code, session_id, endpoints, 0)
+}
+
+/// Fetch error body written from the request topics.
+///
+/// The bytes match [`FetchRequest::error_response`] encoded with empty
+/// node endpoints. v13+ omits every topic.
+fn encode_fetch_error_response(
+    buf: &mut BytesMut,
+    version: i16,
+    topics: &[FetchTopic],
+    error_code: i16,
+    session_id: i32,
+    throttle_time_ms: i32,
+) -> Result<()> {
+    let flexible = fetch_flexible(version)?;
+    let body_start = buf.len();
+    let planned = fetch_error_len(version, flexible, topics)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
+    buf.put_i32(throttle_time_ms);
+    if version >= 7 {
+        buf.put_i16(error_code);
+        buf.put_i32(session_id);
+    }
+    let topics = if version < 13 { topics } else { &[] };
+    buf::put_array_len(buf, flexible, Some(topics.len()))?;
+    for topic in topics {
+        put_fetch_topic_identity(buf, version, flexible, &topic.topic, &topic.topic_id)?;
+        buf::put_array_len(buf, flexible, Some(topic.partitions.len()))?;
+        for partition in &topic.partitions {
+            buf.put_i32(partition.partition);
+            buf.put_i16(error_code);
+            buf.put_i64(FetchedPartition::INVALID_HIGH_WATERMARK);
+            buf.put_i64(FetchedPartition::INVALID_LAST_STABLE_OFFSET);
+            if version >= 5 {
+                buf.put_i64(FetchedPartition::INVALID_LOG_START_OFFSET);
+            }
+            buf::put_array_len(buf, flexible, Some(0))?;
+            if version >= 11 {
+                buf.put_i32(FetchedPartition::INVALID_PREFERRED_REPLICA_ID);
+            }
+            buf::put_bytes(buf, flexible, None)?;
+            if flexible {
+                buf::put_empty_tagged_fields(buf);
+            }
+        }
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+    }
+    if flexible {
+        super::api::encode_top_level_node_endpoints(buf, version >= 16, &[])?;
+    }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+    Ok(())
+}
+
+fn fetch_error_len(version: i16, flexible: bool, topics: &[FetchTopic]) -> Result<usize> {
+    let mut total = 4usize;
+    if version >= 7 {
+        total = add_fetch_len(total, 6)?;
+    }
+    let written = if version < 13 { topics.len() } else { 0 };
+    total = add_fetch_len(total, fetch_array_len(flexible, written)?)?;
+    if version < 13 {
+        for topic in topics {
+            total = add_fetch_len(total, fetch_topic_len(version, flexible, &topic.topic)?)?;
+            total = add_fetch_len(total, fetch_array_len(flexible, topic.partitions.len())?)?;
+            let mut fixed = 22usize;
+            if version >= 5 {
+                fixed += 8;
+            }
+            if version >= 11 {
+                fixed += 4;
+            }
+            total = add_fetch_len(
+                total,
+                fixed
+                    .checked_mul(topic.partitions.len())
+                    .ok_or_else(|| Error::protocol("fetch response size overflow"))?,
+            )?;
+            let aborted = fetch_array_len(flexible, 0)?;
+            total = add_fetch_len(
+                total,
+                aborted
+                    .checked_mul(topic.partitions.len())
+                    .ok_or_else(|| Error::protocol("fetch response size overflow"))?,
+            )?;
+            let records = fetch_nullable_bytes_len(flexible, None)?;
+            total = add_fetch_len(
+                total,
+                records
+                    .checked_mul(topic.partitions.len())
+                    .ok_or_else(|| Error::protocol("fetch response size overflow"))?,
+            )?;
+            if flexible {
+                let tag = buf::unsigned_varint_size(0);
+                total = add_fetch_len(
+                    total,
+                    tag.checked_mul(topic.partitions.len())
+                        .ok_or_else(|| Error::protocol("fetch response size overflow"))?,
+                )?;
+                total = add_fetch_len(total, tag)?;
+            }
+        }
+    }
+    if flexible {
+        total = add_fetch_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 fn encode_fetch_response_fields(
@@ -5951,6 +6063,72 @@ mod tests {
                 cur.remaining()
             );
         }
+    }
+
+    #[test]
+    fn fetch_error_response_matches_named_results() {
+        let topics = [
+            FetchTopic {
+                topic: "orders-topic-name-is-long".into(),
+                topic_id: [1u8; 16],
+                partitions: vec![
+                    FetchPartition::partition_data(0, 4, INVALID_LOG_START_OFFSET, 100, None, None),
+                    FetchPartition::partition_data(2, 5, 9, 200, Some(3), Some(8)),
+                ],
+            },
+            FetchTopic {
+                topic: "t".into(),
+                topic_id: [0u8; 16],
+                partitions: Vec::new(),
+            },
+        ];
+        let err = crate::error::UNKNOWN_TOPIC_OR_PARTITION;
+        for version in 4..=FETCH_CRATE_MAX_VERSION {
+            for throttle in [0_i32, 12] {
+                let responses = FetchRequest::error_response(version, &topics, err);
+                let mut expected = BytesMut::new();
+                encode_fetch_response_fields(
+                    &mut expected,
+                    version,
+                    &responses,
+                    err,
+                    7,
+                    &[],
+                    throttle,
+                )
+                .unwrap();
+                let mut got = BytesMut::new();
+                FetchRequest::encode_error_response(&mut got, version, &topics, err, 7, throttle)
+                    .unwrap();
+                assert_eq!(
+                    got.as_ref(),
+                    expected.as_ref(),
+                    "version {version} throttle {throttle}"
+                );
+                let len = got.len();
+                let capacity = got.capacity();
+                assert!(capacity >= len);
+                assert!(capacity < 64 * 1024);
+                got.clear();
+                FetchRequest::encode_error_response(&mut got, version, &topics, err, 7, throttle)
+                    .unwrap();
+                assert_eq!(got.len(), len);
+                assert_eq!(got.capacity(), capacity);
+            }
+        }
+        let mut empty = BytesMut::new();
+        FetchRequest::encode_error_response(&mut empty, 18, &[], err, 1, 1).unwrap();
+        let mut expected_empty = BytesMut::new();
+        encode_fetch_response_fields(&mut expected_empty, 18, &[], err, 1, &[], 1).unwrap();
+        assert_eq!(empty.as_ref(), expected_empty.as_ref());
+        assert!(
+            FetchRequest::encode_error_response(&mut BytesMut::new(), 3, &topics, err, 0, 0)
+                .is_err()
+        );
+        assert!(
+            FetchRequest::encode_error_response(&mut BytesMut::new(), 19, &topics, err, 0, 0)
+                .is_err()
+        );
     }
 
     #[test]
