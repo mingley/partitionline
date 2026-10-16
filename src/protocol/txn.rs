@@ -532,14 +532,27 @@ fn txn_array_len(flexible: bool, len: usize) -> Result<usize> {
 }
 
 fn txn_string_len(flexible: bool, value: &str) -> Result<usize> {
-    if flexible {
-        let encoded = buf::u32_from_usize(value.len())?
-            .checked_add(1)
-            .ok_or_else(|| Error::protocol("compact string overflow"))?;
-        Ok(buf::unsigned_varint_size(encoded).saturating_add(value.len()))
-    } else {
-        let _len = buf::i16_from_usize(value.len())?;
-        Ok(2usize.saturating_add(value.len()))
+    txn_nullable_string_len(flexible, Some(value))
+}
+
+fn txn_nullable_string_len(flexible: bool, value: Option<&str>) -> Result<usize> {
+    match value {
+        None => Ok(if flexible {
+            buf::unsigned_varint_size(0)
+        } else {
+            2
+        }),
+        Some(value) => {
+            if flexible {
+                let encoded = buf::u32_from_usize(value.len())?
+                    .checked_add(1)
+                    .ok_or_else(|| Error::protocol("compact string overflow"))?;
+                Ok(buf::unsigned_varint_size(encoded).saturating_add(value.len()))
+            } else {
+                let _len = buf::i16_from_usize(value.len())?;
+                Ok(2usize.saturating_add(value.len()))
+            }
+        }
     }
 }
 
@@ -1597,6 +1610,19 @@ pub fn encode_txn_offset_commit_request(
             "Broker doesn't support group metadata commit API on version {version}, minimum supported request version is 3 which requires brokers to be on version 2.5 or above."
         )));
     }
+    let body_start = buf.len();
+    let planned = txn_offset_commit_request_len(
+        version,
+        flexible,
+        transactional_id,
+        group_id,
+        member,
+        topics,
+    )?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf::put_string(buf, flexible, Some(transactional_id))?;
     buf::put_string(buf, flexible, Some(group_id))?;
     buf.put_i64(producer_id);
@@ -1633,7 +1659,57 @@ pub fn encode_txn_offset_commit_request(
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn txn_offset_commit_request_len(
+    version: i16,
+    flexible: bool,
+    transactional_id: &str,
+    group_id: &str,
+    member: &TxnOffsetCommitMember,
+    topics: &[TxnOffsetTopic],
+) -> Result<usize> {
+    let mut total = txn_string_len(flexible, transactional_id)?;
+    total = add_txn_len(total, txn_string_len(flexible, group_id)?)?;
+    total = add_txn_len(total, 10)?;
+    if version >= 3 {
+        total = add_txn_len(total, 4)?;
+        total = add_txn_len(total, txn_string_len(flexible, &member.member_id)?)?;
+        total = add_txn_len(
+            total,
+            txn_nullable_string_len(flexible, member.group_instance_id.as_deref())?,
+        )?;
+    }
+    total = add_txn_len(total, txn_array_len(flexible, topics.len())?)?;
+    for topic in topics {
+        total = add_txn_len(total, txn_string_len(flexible, &topic.topic)?)?;
+        total = add_txn_len(total, txn_array_len(flexible, topic.partitions.len())?)?;
+        for partition in &topic.partitions {
+            let mut fixed = 12usize;
+            if version >= 2 {
+                fixed += 4;
+            }
+            total = add_txn_len(total, fixed)?;
+            let metadata = if partition.metadata.is_empty() {
+                None
+            } else {
+                Some(partition.metadata.as_str())
+            };
+            total = add_txn_len(total, txn_nullable_string_len(flexible, metadata)?)?;
+            if flexible {
+                total = add_txn_len(total, buf::unsigned_varint_size(0))?;
+            }
+        }
+        if flexible {
+            total = add_txn_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    if flexible {
+        total = add_txn_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 /// Decode TxnOffsetCommit: `(transactional_id, group_id, member, topics, producer_id, producer_epoch)`.
@@ -5506,6 +5582,50 @@ mod tests {
             &v5[..],
             "empty-Topics ProducerEpoch bodies: v4 == v5"
         );
+    }
+
+    #[test]
+    fn a_txn_offset_commit_request_sizes_its_body_once() {
+        let known = TxnOffsetCommitMember {
+            generation_id: 7,
+            member_id: "member-1".into(),
+            group_instance_id: Some("instance".into()),
+        };
+        let topics = vec![TxnOffsetTopic {
+            topic: "orders".into(),
+            partitions: (0..8)
+                .map(|partition| TxnOffsetPartition {
+                    partition,
+                    offset: 100,
+                    leader_epoch: 3,
+                    metadata: if partition == 0 {
+                        String::new()
+                    } else {
+                        "meta".into()
+                    },
+                })
+                .collect(),
+        }];
+        let unknown = TxnOffsetCommitMember::unknown();
+        for version in [0_i16, 2, 3, 5] {
+            let member = if version >= 3 { &known } else { &unknown };
+            let mut buf = BytesMut::new();
+            encode_txn_offset_commit_request(
+                &mut buf, version, "txn-1", "group", 9, 1, member, &topics,
+            )
+            .unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_txn_offset_commit_request(
+                &mut buf, version, "txn-1", "group", 9, 1, member, &topics,
+            )
+            .unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+        }
     }
 
     #[test]
