@@ -10323,9 +10323,9 @@ impl Admin {
                     if Instant::now() >= deadline {
                         return Err(Error::Timeout);
                     }
-                    let group_ids: Vec<String> = remaining
+                    let group_ids: Vec<&str> = remaining
                         .iter()
-                        .filter_map(|&i| jobs.get(i).map(|j| j.0.clone()))
+                        .filter_map(|&i| jobs.get(i).map(|j| j.0.as_str()))
                         .collect();
                     let coords = self.discover_group_coords(&group_ids, deadline).await?;
                     let mut by_node: HashMap<i32, Vec<usize>> = HashMap::new();
@@ -10334,8 +10334,8 @@ impl Admin {
                             .get(i)
                             .ok_or_else(|| Error::protocol("missing group spec"))?
                             .0
-                            .clone();
-                        let node = *coords.get(&group_id).ok_or_else(|| {
+                            .as_str();
+                        let node = *coords.get(group_id).ok_or_else(|| {
                             Error::protocol(format!("missing coordinator for {group_id}"))
                         })?;
                         by_node.entry(node).or_default().push(i);
@@ -13874,7 +13874,7 @@ impl Admin {
 
     async fn discover_group_coords(
         &mut self,
-        group_ids: &[String],
+        group_ids: &[&str],
         deadline: Instant,
     ) -> Result<HashMap<String, i32>> {
         self.discover_coords(group_ids, COORDINATOR_GROUP, deadline)
@@ -13883,7 +13883,7 @@ impl Admin {
 
     async fn discover_txn_coords(
         &mut self,
-        transactional_ids: &[String],
+        transactional_ids: &[&str],
         deadline: Instant,
     ) -> Result<HashMap<String, i32>> {
         self.discover_coords(transactional_ids, COORDINATOR_TRANSACTION, deadline)
@@ -13892,14 +13892,14 @@ impl Admin {
 
     async fn discover_coords(
         &mut self,
-        keys: &[String],
+        keys: &[&str],
         key_type: i8,
         deadline: Instant,
     ) -> Result<HashMap<String, i32>> {
-        let mut uniq: Vec<String> = Vec::new();
+        let mut uniq: Vec<&str> = Vec::new();
         for k in keys {
-            if !uniq.iter().any(|u| u == k) {
-                uniq.push(k.clone());
+            if !uniq.contains(k) {
+                uniq.push(*k);
             }
         }
         if uniq.is_empty() {
@@ -13916,7 +13916,7 @@ impl Admin {
                 } else {
                     self.discover_group_coord(k, deadline).await?
                 };
-                let _prev = out.insert(k.clone(), node);
+                let _prev = out.insert((*k).to_owned(), node);
             }
             return Ok(out);
         }
@@ -13928,12 +13928,11 @@ impl Admin {
             if Instant::now() >= deadline {
                 return Err(Error::Timeout);
             }
-            let key_refs: Vec<&str> = uniq.iter().map(String::as_str).collect();
             let body = self
                 .roundtrip_bootstrap(
                     FIND_COORDINATOR,
                     version,
-                    |buf| encode_find_coordinator_request_keys(buf, version, &key_refs, key_type),
+                    |buf| encode_find_coordinator_request_keys(buf, version, &uniq, key_type),
                     deadline.saturating_duration_since(Instant::now()),
                 )
                 .await;
@@ -13955,21 +13954,21 @@ impl Admin {
             let mut out = HashMap::new();
             for k in &uniq {
                 let (err, node) = by_key
-                    .get(k)
+                    .get(*k)
                     .copied()
                     .ok_or_else(|| Error::protocol(format!("FindCoordinator missing {k}")))?;
                 if err == 0 {
                     if !self.cluster.brokers.contains_key(&node) {
                         self.refresh_metadata_until(None, deadline).await?;
                     }
-                    let _prev = out.insert(k.clone(), node);
+                    let _prev = out.insert((*k).to_owned(), node);
                     continue;
                 }
                 if error::coordinator_retriable(err) {
                     retry = true;
                     continue;
                 }
-                return Err(Error::broker(err, k.clone()));
+                return Err(Error::broker(err, (*k).to_owned()));
             }
             if retry {
                 self.wait_retry(&mut attempt, deadline).await?;
@@ -13985,13 +13984,13 @@ impl Admin {
         pending: &[usize],
         deadline: Instant,
     ) -> Result<HashMap<i32, Vec<usize>>> {
-        let mut need: Vec<String> = Vec::new();
+        let mut need: Vec<&str> = Vec::new();
         for &i in pending {
             let Some(id) = ids.get(i) else {
                 continue;
             };
-            if !self.group_coords.contains_key(id) && !need.iter().any(|k| k == id) {
-                need.push(id.clone());
+            if !self.group_coords.contains_key(id) && !need.contains(&id.as_str()) {
+                need.push(id.as_str());
             }
         }
         if !need.is_empty() {
@@ -14027,13 +14026,13 @@ impl Admin {
         pending: &[usize],
         deadline: Instant,
     ) -> Result<HashMap<i32, Vec<usize>>> {
-        let mut need: Vec<String> = Vec::new();
+        let mut need: Vec<&str> = Vec::new();
         for &i in pending {
             let Some(id) = ids.get(i) else {
                 continue;
             };
-            if !self.txn_coords.contains_key(id) && !need.iter().any(|k| k == id) {
-                need.push(id.clone());
+            if !self.txn_coords.contains_key(id) && !need.contains(&id.as_str()) {
+                need.push(id.as_str());
             }
         }
         if !need.is_empty() {
