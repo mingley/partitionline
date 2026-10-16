@@ -879,7 +879,8 @@ pub struct ShareGroup {
     /// Finished ShareFetch replies from the previous poll. Drained after they
     /// are applied, then refilled.
     spare_ready: Vec<ReadyShareFetch>,
-    topic_ids: HashMap<String, [u8; 16]>,
+    /// Subscribed topic id by name. A long name is the allocation fetched records share.
+    topic_ids: HashMap<Arc<str>, [u8; 16]>,
     /// Share session epoch per share-partition leader (KIP-932).
     share_epochs: HashMap<i32, i32>,
     share_conns: HashMap<i32, ShareNodeConnection>,
@@ -1051,7 +1052,7 @@ fn encode_prepared_share_fetch(
 
 struct ShareAssignmentUpdate {
     assigned: Vec<(String, i32)>,
-    topic_ids: HashMap<String, [u8; 16]>,
+    topic_ids: HashMap<Arc<str>, [u8; 16]>,
 }
 
 /// Resolve a share-group assignment.
@@ -1102,7 +1103,7 @@ fn next_share_assignment(
         if let Some(stored) = topic_ids.get_mut(name) {
             *stored = topic_id;
         } else {
-            let _ = topic_ids.insert(name.to_owned(), topic_id);
+            let _ = topic_ids.insert(Arc::from(name), topic_id);
         }
         if !seen.contains_key(name) {
             let _ = seen.insert(name, HashSet::new());
@@ -1195,7 +1196,7 @@ fn refill_share_fetch(
     by_id: &mut BTreeMap<[u8; 16], Vec<i32>>,
     topics: &mut Vec<ShareFetchTopic>,
     groups: &HashMap<String, Vec<i32>>,
-    topic_ids: &HashMap<String, [u8; 16]>,
+    topic_ids: &HashMap<Arc<str>, [u8; 16]>,
     max_partition_bytes: i32,
 ) -> Result<()> {
     for parts in by_id.values_mut() {
@@ -1725,26 +1726,26 @@ impl ShareGroup {
             return;
         }
         let metadata = self.consumer.topic_name_ids();
-        let mut names: Vec<String> = self.topic_ids.keys().cloned().collect();
-        let known: HashSet<&str> = names.iter().map(String::as_str).collect();
+        let mut names: Vec<Arc<str>> = self.topic_ids.keys().cloned().collect();
+        let known: HashSet<&str> = names.iter().map(|name| name.as_ref()).collect();
         let mut added = HashSet::new();
         let mut extra = Vec::new();
         for (topic, _) in &self.assigned {
             if !known.contains(topic.as_str()) && added.insert(topic.as_str()) {
-                extra.push(topic.clone());
+                extra.push(Arc::from(topic.as_str()));
             }
         }
         names.extend(extra);
         for topic in names {
-            let stored = self.topic_ids.get(&topic).copied();
-            let next = metadata.get(&topic).copied();
+            let stored = self.topic_ids.get(topic.as_ref()).copied();
+            let next = metadata.get(topic.as_ref()).copied();
             let Some(id) = refreshed_share_topic_id(stored, next) else {
                 continue;
             };
             if stored.is_some_and(|stored| share_topic_recreated(stored, next)) {
-                let _ = self.acquisitions.remove(topic.as_str());
+                let _ = self.acquisitions.remove(topic.as_ref());
                 self.pending_delivery
-                    .retain(|record| record.topic.as_str() != topic);
+                    .retain(|record| record.topic.as_str() != topic.as_ref());
             }
             let _previous = self.topic_ids.insert(topic, id);
         }
@@ -3106,7 +3107,7 @@ impl ShareGroup {
     }
 
     fn fetched_topic_name(&self, id: [u8; 16]) -> Result<crate::consumer::TopicName> {
-        Ok(crate::consumer::TopicName::from(self.topic_name_ref(id)?))
+        topic_name_for_fetch(&self.topic_ids, id)
     }
 
     fn reclaim_ack_types(&mut self, topics: Vec<crate::protocol::share::ShareAckTopic>) {
@@ -3126,10 +3127,7 @@ impl ShareGroup {
     }
 
     fn topic_name_ref(&self, id: [u8; 16]) -> Result<&str> {
-        share_topic_name(
-            self.topic_ids.iter().map(|(name, id)| (name.as_str(), id)),
-            id,
-        )
+        share_topic_by_id(&self.topic_ids, id).map(|name| name.as_ref())
     }
 
     async fn send_acknowledgements(&mut self, recs: &[ShareRecord], ack: i8) -> Result<()> {
@@ -4221,14 +4219,39 @@ fn reapply_share_leader_patches_on(
     }
 }
 
-/// The subscribed name for one topic id.
-///
-/// An id that matches nothing is not guessed from the first subscription.
-/// An id that matches two names is ambiguous and must not label records.
+#[cfg(test)]
 fn share_topic_name<'a>(
     names: impl IntoIterator<Item = (&'a str, &'a [u8; 16])>,
     id: [u8; 16],
 ) -> Result<&'a str> {
+    share_named(names, id, |name| name.is_empty())
+}
+
+/// The subscribed name for one topic id.
+///
+/// An id that matches nothing is not guessed from the first subscription.
+/// An id that matches two names is ambiguous and must not label records.
+fn share_topic_by_id(topic_ids: &HashMap<Arc<str>, [u8; 16]>, id: [u8; 16]) -> Result<&Arc<str>> {
+    share_named(topic_ids.iter(), id, |name| name.is_empty())
+}
+
+/// Topic stored for a fetched share record.
+///
+/// A short name is copied inline. A long name clones the assignment's allocation.
+fn topic_name_for_fetch(
+    topic_ids: &HashMap<Arc<str>, [u8; 16]>,
+    id: [u8; 16],
+) -> Result<crate::consumer::TopicName> {
+    Ok(crate::consumer::TopicName::shared(share_topic_by_id(
+        topic_ids, id,
+    )?))
+}
+
+fn share_named<'a, N>(
+    names: impl IntoIterator<Item = (N, &'a [u8; 16])>,
+    id: [u8; 16],
+    empty: impl Fn(&N) -> bool,
+) -> Result<N> {
     let mut found = None;
     for (name, stored) in names {
         if *stored != id {
@@ -4239,9 +4262,10 @@ fn share_topic_name<'a>(
         }
         found = Some(name);
     }
-    found
-        .filter(|name| !name.is_empty())
-        .ok_or_else(|| Error::protocol("share topic id has no subscribed name"))
+    match found {
+        Some(name) if !empty(&name) => Ok(name),
+        _ => Err(Error::protocol("share topic id has no subscribed name")),
+    }
 }
 
 fn share_leader_retriable(e: &Error) -> bool {
@@ -4280,12 +4304,12 @@ fn share_ack_retriable(error: &Error) -> bool {
 ///
 /// A steady poll then skips cloning the topic-name list.
 fn share_topic_ids_current(
-    stored_map: &HashMap<String, [u8; 16]>,
+    stored_map: &HashMap<Arc<str>, [u8; 16]>,
     assigned: &[(String, i32)],
     metadata: &HashMap<String, [u8; 16]>,
 ) -> bool {
     for (name, stored) in stored_map {
-        let next = metadata.get(name.as_str()).copied();
+        let next = metadata.get(name.as_ref()).copied();
         if let Some(id) = refreshed_share_topic_id(Some(*stored), next) {
             if id != *stored {
                 return false;
@@ -4855,7 +4879,7 @@ mod tests {
         let mut groups = HashMap::new();
         let _ = groups.insert("orders".to_string(), vec![0, 1]);
         let mut topic_ids = HashMap::new();
-        let _ = topic_ids.insert("orders".to_string(), [9u8; 16]);
+        let _ = topic_ids.insert(Arc::<str>::from("orders"), [9u8; 16]);
         super::refill_share_fetch(&mut by_id, &mut topics, &groups, &topic_ids, 1024)
             .unwrap_or_else(|error| panic!("{error}"));
         let parts_ptr = by_id.get(&[9u8; 16]).map(Vec::as_ptr);
@@ -5110,7 +5134,7 @@ mod tests {
             Some([4u8; 16])
         );
         let mut stored = HashMap::new();
-        let _ = stored.insert("orders".to_owned(), [1u8; 16]);
+        let _ = stored.insert(Arc::<str>::from("orders"), [1u8; 16]);
         let mut metadata = HashMap::new();
         let _ = metadata.insert("orders".to_owned(), [1u8; 16]);
         let assigned = [("orders".to_owned(), 0)];
@@ -5483,6 +5507,30 @@ mod tests {
         assert!(share_topic_name(names, [9u8; 16]).is_err());
         assert!(share_topic_name([("orders", &orders), ("other", &orders)], orders).is_err());
         assert!(share_topic_name([("", &orders)], orders).is_err());
+    }
+
+    #[test]
+    fn a_fetched_share_topic_keeps_the_stored_name() {
+        let long: Arc<str> = Arc::from("topic-name-longer-than-twenty-three");
+        let stored = Arc::as_ptr(&long);
+        let id = [7u8; 16];
+        let mut topic_ids = HashMap::new();
+        let _ = topic_ids.insert(Arc::clone(&long), id);
+        let topic = super::topic_name_for_fetch(&topic_ids, id).expect("long name");
+        let crate::consumer::TopicName::Heap(shared) = &topic else {
+            panic!("long topic was copied");
+        };
+        assert_eq!(Arc::as_ptr(shared), stored);
+        let again = super::topic_name_for_fetch(&topic_ids, id).expect("long name");
+        let crate::consumer::TopicName::Heap(second) = &again else {
+            panic!("long topic was copied");
+        };
+        assert_eq!(Arc::as_ptr(second), stored);
+        let short_id = [8u8; 16];
+        let _ = topic_ids.insert(Arc::<str>::from("orders"), short_id);
+        let inline = super::topic_name_for_fetch(&topic_ids, short_id).expect("short name");
+        assert!(matches!(inline, crate::consumer::TopicName::Inline(_, _)));
+        assert!(super::topic_name_for_fetch(&topic_ids, [9u8; 16]).is_err());
     }
 
     #[test]

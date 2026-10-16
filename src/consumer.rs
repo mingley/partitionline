@@ -575,7 +575,7 @@ pub enum TopicName {
 
 impl TopicName {
     /// Reuse `topic` when it is too long to store inline.
-    fn shared(topic: &Arc<str>) -> Self {
+    pub(crate) fn shared(topic: &Arc<str>) -> Self {
         if topic.len() <= 23 {
             Self::from(topic.as_ref())
         } else {
