@@ -4608,7 +4608,8 @@ impl OffsetCommitResponse {
 
     /// Java `OffsetCommitResponse(int, Map)` encode.
     ///
-    /// Topics are [`Self::from_errors`]. ThrottleTimeMs is written on
+    /// Topics are grouped from the caller's names. A topic that owns
+    /// several partitions is written once. ThrottleTimeMs is written on
     /// v3+ from `throttle_time_ms`. Below v3 the field is omitted even
     /// when that value is non-zero. Decode fills `0`. Convenience
     /// [`encode_offset_commit_topics_response`] still writes throttle
@@ -4623,12 +4624,46 @@ impl OffsetCommitResponse {
     where
         I: IntoIterator<Item = (&'a str, i32, i16)>,
     {
-        encode_offset_commit_topics_response_with_throttle(
-            buf,
-            version,
-            &Self::from_errors(response_data),
-            throttle_time_ms,
-        )
+        let flexible = offset_commit_flexible(version)?;
+        let mut groups: Vec<(&str, Vec<(i32, i16)>)> = Vec::new();
+        let mut slots: HashMap<&str, usize> = HashMap::new();
+        for (topic, partition, error_code) in response_data {
+            if let Some(&slot) = slots.get(topic) {
+                if let Some((_, parts)) = groups.get_mut(slot) {
+                    parts.push((partition, error_code));
+                    continue;
+                }
+            }
+            let slot = groups.len();
+            let _ = slots.insert(topic, slot);
+            groups.push((topic, vec![(partition, error_code)]));
+        }
+        let body_start = buf.len();
+        let planned = offset_commit_grouped_error_len(version, flexible, &groups)?;
+        reserve_group_body(buf, planned);
+        if version >= 3 {
+            buf.put_i32(throttle_time_ms);
+        }
+        buf::put_array_len(buf, flexible, Some(groups.len()))?;
+        for (topic, parts) in &groups {
+            buf::put_string(buf, flexible, Some(topic))?;
+            buf::put_array_len(buf, flexible, Some(parts.len()))?;
+            for (partition, error_code) in parts {
+                buf.put_i32(*partition);
+                buf.put_i16(*error_code);
+                if flexible {
+                    buf::put_empty_tagged_fields(buf);
+                }
+            }
+            if flexible {
+                buf::put_empty_tagged_fields(buf);
+            }
+        }
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+        debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+        Ok(())
     }
 
     /// Java `OffsetCommitResponse.Builder.addPartition`.
@@ -5038,6 +5073,36 @@ fn offset_commit_error_len(version: i16, flexible: bool, topics: &[OffsetTopic])
             total,
             partition
                 .checked_mul(topic.partitions.len())
+                .ok_or_else(|| Error::protocol("offset commit response size overflow"))?,
+        )?;
+        if flexible {
+            total = add_group_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    if flexible {
+        total = add_group_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
+}
+
+fn offset_commit_grouped_error_len(
+    version: i16,
+    flexible: bool,
+    groups: &[(&str, Vec<(i32, i16)>)],
+) -> Result<usize> {
+    let mut total = if version >= 3 { 4usize } else { 0 };
+    total = add_group_len(total, group_array_len(flexible, groups.len())?)?;
+    for (topic, parts) in groups {
+        total = add_group_len(total, group_string_len(flexible, Some(topic))?)?;
+        total = add_group_len(total, group_array_len(flexible, parts.len())?)?;
+        let mut partition = 6usize;
+        if flexible {
+            partition += buf::unsigned_varint_size(0);
+        }
+        total = add_group_len(
+            total,
+            partition
+                .checked_mul(parts.len())
                 .ok_or_else(|| Error::protocol("offset commit response size overflow"))?,
         )?;
         if flexible {
@@ -7250,6 +7315,52 @@ mod tests {
             cur.is_empty(),
             "OffsetCommit v8 from_errors leftover-empty; leftover {} bytes",
             cur.len()
+        );
+    }
+
+    #[test]
+    fn offset_commit_encode_from_errors_matches_grouped_results() {
+        let rows = [
+            ("orders-topic-name-is-long", 2, 0i16),
+            ("payments", 1, 16),
+            ("orders-topic-name-is-long", 0, 0),
+            ("orders-topic-name-is-long", 2, 42),
+        ];
+        for version in 2..=9 {
+            for throttle in [0_i32, 12] {
+                let grouped = OffsetCommitResponse::from_errors(rows);
+                let mut expected = BytesMut::new();
+                encode_offset_commit_topics_response_with_throttle(
+                    &mut expected,
+                    version,
+                    &grouped,
+                    throttle,
+                )
+                .unwrap();
+                let mut got = BytesMut::new();
+                OffsetCommitResponse::encode_from_errors(&mut got, version, rows, throttle)
+                    .unwrap();
+                assert_eq!(
+                    got.as_ref(),
+                    expected.as_ref(),
+                    "version {version} throttle {throttle}"
+                );
+                let len = got.len();
+                let capacity = got.capacity();
+                assert!(capacity >= len);
+                assert!(capacity < 64 * 1024);
+                got.clear();
+                OffsetCommitResponse::encode_from_errors(&mut got, version, rows, throttle)
+                    .unwrap();
+                assert_eq!(got.len(), len);
+                assert_eq!(got.capacity(), capacity);
+            }
+        }
+        assert!(
+            OffsetCommitResponse::encode_from_errors(&mut BytesMut::new(), 1, rows, 0).is_err()
+        );
+        assert!(
+            OffsetCommitResponse::encode_from_errors(&mut BytesMut::new(), 10, rows, 0).is_err()
         );
     }
 
