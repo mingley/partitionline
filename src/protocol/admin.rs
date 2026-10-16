@@ -21387,10 +21387,10 @@ pub struct ElectLeadersRequest {
 impl ElectLeadersRequest {
     /// Java `ElectLeadersRequest.getErrorResponse`.
     ///
-    /// Copies each request topic name and partition id into the results;
-    /// every partition entry (and the top-level code on v1+) carries
-    /// `error_code` with `error_message` (Java `ApiError.message`, which
-    /// is null when the throwable has no message). A null (`None`)
+    /// Each request topic name and partition id is written from the
+    /// caller. Every partition entry (and the top-level code on v1+)
+    /// carries `error_code` with `error_message` (Java `ApiError.message`,
+    /// which is null when the throwable has no message). A null (`None`)
     /// TopicPartitions yields empty results (Java skips the loop).
     /// ThrottleTimeMs is written on all versions from
     /// `throttle_time_ms`. Below v1 the top-level ErrorCode is omitted
@@ -21404,30 +21404,13 @@ impl ElectLeadersRequest {
         error_message: Option<&str>,
         throttle_time_ms: i32,
     ) -> crate::error::Result<()> {
-        let results: Vec<ElectLeadersResult> = topics
-            .unwrap_or(&[])
-            .iter()
-            .map(|topic| ElectLeadersResult {
-                topic: topic.topic.clone(),
-                partitions: topic
-                    .partitions
-                    .iter()
-                    .map(|partition_id| ElectLeadersPartitionResult {
-                        partition_id: *partition_id,
-                        error_code,
-                        error_message: error_message.map(str::to_owned),
-                    })
-                    .collect(),
-            })
-            .collect();
-        encode_elect_leaders_response_with_throttle(
+        encode_elect_leaders_error_response(
             buf,
             version,
-            &ElectLeadersResponse {
-                throttle_time_ms,
-                error_code,
-                results,
-            },
+            topics.unwrap_or(&[]),
+            error_code,
+            error_message,
+            throttle_time_ms,
         )
     }
 }
@@ -21719,6 +21702,87 @@ fn encode_elect_leaders_response_with_throttle(
     }
     debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+/// ElectLeaders error body written from the request topics.
+///
+/// The bytes match the previous result list: the same error code and
+/// message on every partition, and a top-level error code on v1+.
+fn encode_elect_leaders_error_response(
+    buf: &mut BytesMut,
+    version: i16,
+    topics: &[ElectLeadersTopic],
+    error_code: i16,
+    error_message: Option<&str>,
+    throttle_time_ms: i32,
+) -> crate::error::Result<()> {
+    let flexible = elect_leaders_flexible(version)?;
+    let body_start = buf.len();
+    let planned = elect_leaders_error_len(version, flexible, topics, error_message)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
+    buf.put_i32(throttle_time_ms);
+    if version >= 1 {
+        buf.put_i16(error_code);
+    }
+    buf::put_array_len(buf, flexible, Some(topics.len()))?;
+    for topic in topics {
+        buf::put_string(buf, flexible, Some(&topic.topic))?;
+        buf::put_array_len(buf, flexible, Some(topic.partitions.len()))?;
+        for partition_id in &topic.partitions {
+            buf.put_i32(*partition_id);
+            buf.put_i16(error_code);
+            buf::put_string(buf, flexible, error_message)?;
+            if flexible {
+                buf::put_empty_tagged_fields(buf);
+            }
+        }
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+    }
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+    Ok(())
+}
+
+fn elect_leaders_error_len(
+    version: i16,
+    flexible: bool,
+    topics: &[ElectLeadersTopic],
+    error_message: Option<&str>,
+) -> Result<usize> {
+    let mut total = 4usize;
+    if version >= 1 {
+        total = add_describe_len(total, 2)?;
+    }
+    total = add_describe_len(total, describe_array_len(flexible, topics.len())?)?;
+    let message = describe_string_len(flexible, error_message)?;
+    for topic in topics {
+        total = add_describe_len(total, describe_string_len(flexible, Some(&topic.topic))?)?;
+        total = add_describe_len(total, describe_array_len(flexible, topic.partitions.len())?)?;
+        let mut one = 6usize;
+        one = add_describe_len(one, message)?;
+        if flexible {
+            one = add_describe_len(one, buf::unsigned_varint_size(0))?;
+        }
+        total = add_describe_len(
+            total,
+            one.checked_mul(topic.partitions.len())
+                .ok_or_else(|| Error::protocol("elect leaders response size overflow"))?,
+        )?;
+        if flexible {
+            total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    if flexible {
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 fn elect_leaders_response_len(
@@ -45197,6 +45261,100 @@ mod tests {
                 "ElectLeaders v{version} empty-topics request must be leftover-empty"
             );
         }
+    }
+
+    #[test]
+    fn elect_leaders_error_response_matches_named_results() {
+        let topics = [
+            ElectLeadersTopic::new("orders-topic-name-is-long", vec![0, 2]),
+            ElectLeadersTopic::new("t", Vec::new()),
+        ];
+        for version in 0..=2 {
+            for throttle in [0_i32, 12] {
+                for message in [None, Some("Not controller")] {
+                    let results: Vec<ElectLeadersResult> = topics
+                        .iter()
+                        .map(|topic| ElectLeadersResult {
+                            topic: topic.topic.clone(),
+                            partitions: topic
+                                .partitions
+                                .iter()
+                                .map(|partition_id| ElectLeadersPartitionResult {
+                                    partition_id: *partition_id,
+                                    error_code: crate::error::NOT_CONTROLLER,
+                                    error_message: message.map(str::to_owned),
+                                })
+                                .collect(),
+                        })
+                        .collect();
+                    let mut expected = BytesMut::new();
+                    encode_elect_leaders_response_with_throttle(
+                        &mut expected,
+                        version,
+                        &ElectLeadersResponse {
+                            throttle_time_ms: throttle,
+                            error_code: crate::error::NOT_CONTROLLER,
+                            results,
+                        },
+                    )
+                    .unwrap();
+                    let mut got = BytesMut::new();
+                    ElectLeadersRequest::error_response(
+                        &mut got,
+                        version,
+                        Some(&topics),
+                        crate::error::NOT_CONTROLLER,
+                        message,
+                        throttle,
+                    )
+                    .unwrap();
+                    assert_eq!(
+                        got.as_ref(),
+                        expected.as_ref(),
+                        "version {version} throttle {throttle} message {message:?}"
+                    );
+                    let len = got.len();
+                    let capacity = got.capacity();
+                    assert!(capacity >= len);
+                    assert!(capacity < 64 * 1024);
+                    got.clear();
+                    ElectLeadersRequest::error_response(
+                        &mut got,
+                        version,
+                        Some(&topics),
+                        crate::error::NOT_CONTROLLER,
+                        message,
+                        throttle,
+                    )
+                    .unwrap();
+                    assert_eq!(got.len(), len);
+                    assert_eq!(got.capacity(), capacity);
+                }
+            }
+        }
+        let mut empty = BytesMut::new();
+        ElectLeadersRequest::error_response(&mut empty, 2, None, 41, None, 1).unwrap();
+        let mut expected_empty = BytesMut::new();
+        encode_elect_leaders_response(
+            &mut expected_empty,
+            2,
+            &ElectLeadersResponse {
+                throttle_time_ms: 1,
+                error_code: 41,
+                results: Vec::new(),
+            },
+        )
+        .unwrap();
+        assert_eq!(empty.as_ref(), expected_empty.as_ref());
+        assert!(ElectLeadersRequest::error_response(
+            &mut BytesMut::new(),
+            3,
+            Some(&topics),
+            41,
+            None,
+            0
+        )
+        .is_err());
     }
 
     #[test]
