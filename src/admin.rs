@@ -56,12 +56,12 @@ use crate::protocol::admin::{
     encode_describe_configs_named, encode_describe_delegation_token_request,
     encode_describe_groups_ids, encode_describe_log_dirs_named, encode_describe_log_dirs_request,
     encode_describe_producers_named_topics, encode_describe_share_group_offsets_request_refs,
-    encode_describe_topic_partitions_request, encode_describe_transactions_ids,
-    encode_describe_user_scram_credentials_request, encode_expire_delegation_token_hmac,
+    encode_describe_topic_partitions_names, encode_describe_transactions_ids,
+    encode_describe_user_scram_credentials_ids, encode_expire_delegation_token_hmac,
     encode_expire_delegation_token_request, encode_get_telemetry_subscriptions_request,
     encode_incremental_alter_configs_named, encode_list_config_resources_request,
-    encode_list_groups_request, encode_list_partition_reassignments_named,
-    encode_list_transactions_request_with_pattern, encode_push_telemetry_metrics,
+    encode_list_groups_filters, encode_list_partition_reassignments_named,
+    encode_list_transactions_states, encode_push_telemetry_metrics,
     encode_renew_delegation_token_hmac, encode_renew_delegation_token_request,
     encode_share_group_describe_ids, encode_unregister_broker_request,
     encode_update_features_named, AlterConfigsResource, BorrowedAlterConfig,
@@ -2967,8 +2967,8 @@ pub struct BrokerTransactionListings {
 /// for serialization that preserves an explicitly empty pattern.
 pub type ListTransactionsOptions = crate::protocol::admin::ListTransactionsRequestData;
 
-struct ListTransactionsQuery<'a> {
-    states: &'a [String],
+struct ListTransactionsQuery<'a, S: AsRef<str>> {
+    states: &'a [S],
     producer_ids: &'a [i64],
     duration_ms: i64,
     pattern: Option<&'a str>,
@@ -6788,12 +6788,7 @@ impl Admin {
         users: &[&str],
         timeout: Duration,
     ) -> Result<Vec<DescribeUserScramCredentialsResult>> {
-        let users: Vec<String> = users.iter().map(|s| (*s).to_string()).collect();
-        let users_wire: Option<&[String]> = if users.is_empty() {
-            None
-        } else {
-            Some(users.as_slice())
-        };
+        let users_wire = if users.is_empty() { None } else { Some(users) };
         let version = self.describe_user_scram_version.ok_or_else(|| {
             Error::Unsupported("broker does not support DescribeUserScramCredentials".into())
         })?;
@@ -6812,7 +6807,7 @@ impl Admin {
                 conn.roundtrip(
                     DESCRIBE_USER_SCRAM_CREDENTIALS,
                     version,
-                    |buf| encode_describe_user_scram_credentials_request(buf, users_wire),
+                    |buf| encode_describe_user_scram_credentials_ids(buf, users_wire),
                     deadline.saturating_duration_since(Instant::now()),
                 )
                 .await
@@ -7882,12 +7877,8 @@ impl Admin {
                 "ListTransactions filter text exceeds local limit",
             ));
         }
-        let states: Vec<String> = state_filters
-            .iter()
-            .map(|s| s.as_ref().to_owned())
-            .collect();
         let query = ListTransactionsQuery {
-            states: &states,
+            states: state_filters,
             producer_ids: producer_id_filters,
             duration_ms,
             pattern,
@@ -7954,10 +7945,10 @@ impl Admin {
         Ok(nodes)
     }
 
-    async fn list_transactions_on_broker(
+    async fn list_transactions_on_broker<S: AsRef<str>>(
         &mut self,
         node: i32,
-        query: &ListTransactionsQuery<'_>,
+        query: &ListTransactionsQuery<'_, S>,
         deadline: Instant,
         budget: &mut ListTransactionsBudget,
     ) -> Result<Vec<TransactionListing>> {
@@ -7996,7 +7987,7 @@ impl Admin {
                         LIST_TRANSACTIONS,
                         version,
                         |buf| {
-                            encode_list_transactions_request_with_pattern(
+                            encode_list_transactions_states(
                                 buf,
                                 version,
                                 query.states,
@@ -11319,15 +11310,14 @@ impl Admin {
         types_filter: &[&str],
         timeout: Duration,
     ) -> Result<Vec<ListedGroup>> {
-        let states: Vec<String> = states_filter.iter().map(|s| (*s).to_string()).collect();
-        let types: Vec<String> = types_filter.iter().map(|s| (*s).to_string()).collect();
-        self.list_groups_owned(states, types, timeout).await
+        self.list_groups_filters(states_filter, types_filter, timeout)
+            .await
     }
 
-    async fn list_groups_owned(
+    async fn list_groups_filters<S: AsRef<str>, T: AsRef<str>>(
         &mut self,
-        states: Vec<String>,
-        types: Vec<String>,
+        states: &[S],
+        types: &[T],
         timeout: Duration,
     ) -> Result<Vec<ListedGroup>> {
         let version = self
@@ -11337,7 +11327,7 @@ impl Admin {
             .roundtrip_bootstrap(
                 LIST_GROUPS,
                 version,
-                |buf| encode_list_groups_request(buf, version, &states, &types),
+                |buf| encode_list_groups_filters(buf, version, states, types),
                 timeout,
             )
             .await?;
@@ -11374,9 +11364,9 @@ impl Admin {
         types: impl IntoIterator<Item = GroupType>,
         timeout: Duration,
     ) -> Result<Vec<ListedGroup>> {
-        let states: Vec<String> = states.into_iter().map(String::from).collect();
-        let types: Vec<String> = types.into_iter().map(String::from).collect();
-        self.list_groups_owned(states, types, timeout).await
+        let states: Vec<&str> = states.into_iter().map(GroupState::as_str).collect();
+        let types: Vec<&str> = types.into_iter().map(GroupType::as_str).collect();
+        self.list_groups_filters(&states, &types, timeout).await
     }
 
     /// List every group (Java `Admin.listGroups()`).
@@ -12587,14 +12577,13 @@ impl Admin {
         cursor: Option<&TopicPartitionCursor>,
         timeout: Duration,
     ) -> Result<DescribeTopicPartitionsResponse> {
-        let names: Vec<String> = topics.iter().map(|s| (*s).to_string()).collect();
-        self.describe_topic_partitions_once(&names, response_partition_limit, cursor, timeout)
+        self.describe_topic_partitions_once(topics, response_partition_limit, cursor, timeout)
             .await
     }
 
-    async fn describe_topic_partitions_once(
+    async fn describe_topic_partitions_once<T: AsRef<str>>(
         &mut self,
-        names: &[String],
+        names: &[T],
         response_partition_limit: i32,
         cursor: Option<&TopicPartitionCursor>,
         timeout: Duration,
@@ -12607,7 +12596,7 @@ impl Admin {
                 DESCRIBE_TOPIC_PARTITIONS,
                 version,
                 |buf| {
-                    encode_describe_topic_partitions_request(
+                    encode_describe_topic_partitions_names(
                         buf,
                         names,
                         response_partition_limit,

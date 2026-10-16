@@ -8829,16 +8829,24 @@ pub fn encode_describe_user_scram_credentials_request(
     buf: &mut BytesMut,
     users: Option<&[String]>,
 ) -> crate::error::Result<()> {
+    encode_describe_user_scram_credentials_ids(buf, users)
+}
+
+/// Encode DescribeUserScramCredentials from caller user names.
+pub(crate) fn encode_describe_user_scram_credentials_ids<T: AsRef<str>>(
+    buf: &mut BytesMut,
+    users: Option<&[T]>,
+) -> crate::error::Result<()> {
     let body_start = buf.len();
     let planned = describe_user_scram_request_len(users)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
         buf.reserve(needed - buf.capacity());
     }
-    buf::put_array_len(buf, true, users.map(|u| u.len()))?;
+    buf::put_array_len(buf, true, users.map(<[_]>::len))?;
     if let Some(users) = users {
         for name in users {
-            buf::put_compact_string(buf, Some(name))?;
+            buf::put_compact_string(buf, Some(name.as_ref()))?;
             buf::put_empty_tagged_fields(buf);
         }
     }
@@ -8847,13 +8855,13 @@ pub fn encode_describe_user_scram_credentials_request(
     Ok(())
 }
 
-fn describe_user_scram_request_len(users: Option<&[String]>) -> Result<usize> {
+fn describe_user_scram_request_len<T: AsRef<str>>(users: Option<&[T]>) -> Result<usize> {
     let total = match users {
         None => buf::unsigned_varint_size(0),
         Some(users) => {
             let mut total = describe_array_len(true, users.len())?;
             for name in users {
-                total = add_describe_len(total, describe_string_len(true, Some(name))?)?;
+                total = add_describe_len(total, describe_string_len(true, Some(name.as_ref()))?)?;
                 total = add_describe_len(total, buf::unsigned_varint_size(0))?;
             }
             total
@@ -11763,11 +11771,30 @@ pub fn encode_list_transactions_request_with_pattern(
     duration_ms: i64,
     pattern: Option<&str>,
 ) -> Result<()> {
+    encode_list_transactions_states(
+        buf,
+        version,
+        state_filters,
+        producer_id_filters,
+        duration_ms,
+        pattern,
+    )
+}
+
+/// Encode ListTransactions from caller state-filter names.
+pub(crate) fn encode_list_transactions_states<T: AsRef<str>>(
+    buf: &mut BytesMut,
+    version: i16,
+    state_filters: &[T],
+    producer_id_filters: &[i64],
+    duration_ms: i64,
+    pattern: Option<&str>,
+) -> Result<()> {
     let _flexible = list_transactions_flexible(version)?;
     ListTransactionsRequest::build_with_pattern(version, duration_ms, pattern)?;
     let text_bytes = state_filters
         .iter()
-        .try_fold(0usize, |sum, state| sum.checked_add(state.len()));
+        .try_fold(0usize, |sum, state| sum.checked_add(state.as_ref().len()));
     if state_filters.len() > 8_192
         || producer_id_filters.len() > 8_192
         || text_bytes.is_none_or(|n| n > 256 * 1024)
@@ -11786,7 +11813,7 @@ pub fn encode_list_transactions_request_with_pattern(
     }
     buf::put_array_len(buf, true, Some(state_filters.len()))?;
     for state in state_filters {
-        buf::put_compact_string(buf, Some(state))?;
+        buf::put_compact_string(buf, Some(state.as_ref()))?;
     }
     buf::put_array_len(buf, true, Some(producer_id_filters.len()))?;
     for id in producer_id_filters {
@@ -11803,15 +11830,15 @@ pub fn encode_list_transactions_request_with_pattern(
     Ok(())
 }
 
-fn list_transactions_request_len(
+fn list_transactions_request_len<T: AsRef<str>>(
     version: i16,
-    state_filters: &[String],
+    state_filters: &[T],
     producer_id_filters: &[i64],
     pattern: Option<&str>,
 ) -> Result<usize> {
     let mut total = describe_array_len(true, state_filters.len())?;
     for state in state_filters {
-        total = add_describe_len(total, describe_string_len(true, Some(state))?)?;
+        total = add_describe_len(total, describe_string_len(true, Some(state.as_ref()))?)?;
     }
     total = add_describe_len(total, describe_array_len(true, producer_id_filters.len())?)?;
     total = add_describe_len(
@@ -14135,6 +14162,16 @@ pub fn encode_list_groups_request(
     states_filter: &[String],
     types_filter: &[String],
 ) -> crate::error::Result<()> {
+    encode_list_groups_filters(buf, version, states_filter, types_filter)
+}
+
+/// Encode ListGroups from caller state and type filter names.
+pub(crate) fn encode_list_groups_filters<S: AsRef<str>, T: AsRef<str>>(
+    buf: &mut BytesMut,
+    version: i16,
+    states_filter: &[S],
+    types_filter: &[T],
+) -> crate::error::Result<()> {
     let flexible = list_groups_flexible(version)?;
     let body_start = buf.len();
     let planned = list_groups_request_len(version, flexible, states_filter, types_filter)?;
@@ -14145,13 +14182,13 @@ pub fn encode_list_groups_request(
     if version >= 4 {
         buf::put_array_len(buf, flexible, Some(states_filter.len()))?;
         for state in states_filter {
-            buf::put_string(buf, flexible, Some(state))?;
+            buf::put_string(buf, flexible, Some(state.as_ref()))?;
         }
     }
     if version >= 5 {
         buf::put_array_len(buf, flexible, Some(types_filter.len()))?;
         for ty in types_filter {
-            buf::put_string(buf, flexible, Some(ty))?;
+            buf::put_string(buf, flexible, Some(ty.as_ref()))?;
         }
     }
     if flexible {
@@ -14161,19 +14198,19 @@ pub fn encode_list_groups_request(
     Ok(())
 }
 
-fn list_groups_filter_len(flexible: bool, values: &[String]) -> Result<usize> {
+fn list_groups_filter_len<T: AsRef<str>>(flexible: bool, values: &[T]) -> Result<usize> {
     let mut total = describe_array_len(flexible, values.len())?;
     for value in values {
-        total = add_describe_len(total, describe_string_len(flexible, Some(value))?)?;
+        total = add_describe_len(total, describe_string_len(flexible, Some(value.as_ref()))?)?;
     }
     Ok(total)
 }
 
-fn list_groups_request_len(
+fn list_groups_request_len<S: AsRef<str>, T: AsRef<str>>(
     version: i16,
     flexible: bool,
-    states_filter: &[String],
-    types_filter: &[String],
+    states_filter: &[S],
+    types_filter: &[T],
 ) -> Result<usize> {
     let mut total = 0usize;
     if version >= 4 {
@@ -17522,6 +17559,16 @@ pub fn encode_describe_topic_partitions_request(
     response_partition_limit: i32,
     cursor: Option<&TopicPartitionCursor>,
 ) -> crate::error::Result<()> {
+    encode_describe_topic_partitions_names(buf, topics, response_partition_limit, cursor)
+}
+
+/// Encode DescribeTopicPartitions from caller topic names.
+pub(crate) fn encode_describe_topic_partitions_names<T: AsRef<str>>(
+    buf: &mut BytesMut,
+    topics: &[T],
+    response_partition_limit: i32,
+    cursor: Option<&TopicPartitionCursor>,
+) -> crate::error::Result<()> {
     let body_start = buf.len();
     let planned = describe_topic_partitions_request_len(topics, cursor)?;
     let needed = body_start.saturating_add(planned);
@@ -17530,7 +17577,7 @@ pub fn encode_describe_topic_partitions_request(
     }
     buf::put_array_len(buf, true, Some(topics.len()))?;
     for name in topics {
-        buf::put_compact_string(buf, Some(name))?;
+        buf::put_compact_string(buf, Some(name.as_ref()))?;
         buf::put_empty_tagged_fields(buf);
     }
     buf.put_i32(response_partition_limit);
@@ -17540,13 +17587,13 @@ pub fn encode_describe_topic_partitions_request(
     Ok(())
 }
 
-fn describe_topic_partitions_request_len(
-    topics: &[String],
+fn describe_topic_partitions_request_len<T: AsRef<str>>(
+    topics: &[T],
     cursor: Option<&TopicPartitionCursor>,
 ) -> Result<usize> {
     let mut total = describe_array_len(true, topics.len())?;
     for name in topics {
-        total = add_describe_len(total, describe_string_len(true, Some(name))?)?;
+        total = add_describe_len(total, describe_string_len(true, Some(name.as_ref()))?)?;
         total = add_describe_len(total, buf::unsigned_varint_size(0))?;
     }
     total = add_describe_len(total, 4)?;
@@ -35407,6 +35454,60 @@ mod tests {
             encode_delete_groups_ids(&mut got, version, &borrowed).unwrap();
             assert_eq!(got.as_ref(), expected.as_ref(), "delete groups {version}");
         }
+    }
+
+    #[test]
+    fn borrowed_filter_names_match_owned_names() {
+        let owned = vec!["Stable".to_string(), "Empty".to_string()];
+        let borrowed = ["Stable", "Empty"];
+        let types_owned = vec!["Classic".to_string()];
+        let types_borrowed = ["Classic"];
+        let mut expected = BytesMut::new();
+        let mut got = BytesMut::new();
+        encode_describe_user_scram_credentials_request(&mut expected, Some(&owned)).unwrap();
+        encode_describe_user_scram_credentials_ids(&mut got, Some(&borrowed)).unwrap();
+        assert_eq!(got.as_ref(), expected.as_ref(), "scram users");
+        expected.clear();
+        got.clear();
+        encode_describe_user_scram_credentials_request(&mut expected, None).unwrap();
+        encode_describe_user_scram_credentials_ids::<&str>(&mut got, None).unwrap();
+        assert_eq!(got.as_ref(), expected.as_ref(), "scram null users");
+        for version in [0_i16, 1, 2] {
+            expected.clear();
+            got.clear();
+            encode_list_transactions_request_with_pattern(
+                &mut expected,
+                version,
+                &owned,
+                &[7],
+                -1,
+                None,
+            )
+            .unwrap();
+            encode_list_transactions_states(&mut got, version, &borrowed, &[7], -1, None).unwrap();
+            assert_eq!(
+                got.as_ref(),
+                expected.as_ref(),
+                "list transactions {version}"
+            );
+        }
+        for version in [0_i16, 4, 5] {
+            expected.clear();
+            got.clear();
+            encode_list_groups_request(&mut expected, version, &owned, &types_owned).unwrap();
+            encode_list_groups_filters(&mut got, version, &borrowed, &types_borrowed).unwrap();
+            assert_eq!(got.as_ref(), expected.as_ref(), "list groups {version}");
+        }
+        let cursor = TopicPartitionCursor {
+            topic_name: "orders".into(),
+            partition_index: 1,
+        };
+        expected.clear();
+        got.clear();
+        encode_describe_topic_partitions_request(&mut expected, &owned, 2000, Some(&cursor))
+            .unwrap();
+        encode_describe_topic_partitions_names(&mut got, &borrowed, 2000, Some(&cursor)).unwrap();
+        assert_eq!(got.as_ref(), expected.as_ref(), "describe topic partitions");
     }
 
     #[test]
