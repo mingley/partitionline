@@ -4729,7 +4729,7 @@ impl Drop for Worker {
             }
         } else {
             if !self.in_flight.is_empty() {
-                fail_inflight(&self.shared, &mut self.in_flight, Error::Timeout);
+                self.fail_kept_inflight(Error::Timeout);
             }
             if !self.pending.is_empty() {
                 let pendings = std::mem::take(&mut self.pending);
@@ -5113,7 +5113,7 @@ impl Worker {
                     && (self.pending.is_empty() || self.throttle.remaining().is_some()))
             {
                 if let Err(e) = self.wait_one().await {
-                    fail_inflight(&self.shared, &mut self.in_flight, clone_err(&e));
+                    self.fail_kept_inflight(clone_err(&e));
                     self.note_fail(e);
                 }
                 continue;
@@ -5200,7 +5200,7 @@ impl Worker {
                         Err(error) => Err(error),
                     };
                     if let Err(error) = read {
-                        fail_inflight(&self.shared, &mut self.in_flight, clone_err(&error));
+                        self.fail_kept_inflight(clone_err(&error));
                         self.note_fail(error);
                     }
                 }
@@ -5222,7 +5222,7 @@ impl Worker {
             };
             if !self.in_flight.is_empty() {
                 if let Err(e) = self.wait_one().await {
-                    fail_inflight(&self.shared, &mut self.in_flight, clone_err(&e));
+                    self.fail_kept_inflight(clone_err(&e));
                     return Err(e);
                 }
                 continue;
@@ -5355,7 +5355,7 @@ impl Worker {
             match identities {
                 Ok(ids) => ids,
                 Err(error) => {
-                    fail_groups(&self.shared, groups, clone_err(&error));
+                    self.fail_kept_groups(groups, clone_err(&error));
                     self.note_fail(error.clone());
                     return Err(error);
                 }
@@ -5392,13 +5392,13 @@ impl Worker {
                 "injected transaction partition failure",
             );
             rollback_sequences(&groups, producer_id, &self.shared.seqs);
-            fail_groups(&self.shared, groups, clone_err(&e));
+            self.fail_kept_groups(groups, clone_err(&e));
             self.note_fail(e.clone());
             return Err(e);
         }
         if let Err(e) = self.add_txn_partitions(&groups).await {
             rollback_sequences(&groups, producer_id, &self.shared.seqs);
-            fail_groups(&self.shared, groups, clone_err(&e));
+            self.fail_kept_groups(groups, clone_err(&e));
             self.note_fail(e.clone());
             return Err(e);
         }
@@ -5426,7 +5426,7 @@ impl Worker {
         if fault == Some(PreSendFault::Encode) {
             let e = Error::protocol("injected produce encode failure");
             rollback_sequences(&groups, producer_id, &self.shared.seqs);
-            fail_groups(&self.shared, groups, clone_err(&e));
+            self.fail_kept_groups(groups, clone_err(&e));
             self.note_fail(e.clone());
             return Err(e);
         }
@@ -5438,7 +5438,7 @@ impl Worker {
             Some(self.conn.client_id()),
         ) {
             rollback_sequences(&groups, producer_id, &self.shared.seqs);
-            fail_groups(&self.shared, groups, clone_err(&e));
+            self.fail_kept_groups(groups, clone_err(&e));
             self.note_fail(e.clone());
             return Err(e);
         }
@@ -5458,7 +5458,7 @@ impl Worker {
             &mut self.group_scratch,
         ) {
             rollback_sequences(&groups, producer_id, &self.shared.seqs);
-            fail_groups(&self.shared, groups, clone_err(&e));
+            self.fail_kept_groups(groups, clone_err(&e));
             self.note_fail(e.clone());
             return Err(e);
         }
@@ -5467,14 +5467,14 @@ impl Worker {
                 Ok(s) => s,
                 Err(e) => {
                     rollback_sequences(&groups, producer_id, &self.shared.seqs);
-                    fail_groups(&self.shared, groups, clone_err(&e));
+                    self.fail_kept_groups(groups, clone_err(&e));
                     self.note_fail(e.clone());
                     return Err(e);
                 }
             };
         if let Err(e) = crate::protocol::buf::patch_i32(&mut self.write_buf, 0, size) {
             rollback_sequences(&groups, producer_id, &self.shared.seqs);
-            fail_groups(&self.shared, groups, clone_err(&e));
+            self.fail_kept_groups(groups, clone_err(&e));
             self.note_fail(e.clone());
             return Err(e);
         }
@@ -5485,7 +5485,7 @@ impl Worker {
                 "injected socket write failure",
             ));
             rollback_sequences(&groups, producer_id, &self.shared.seqs);
-            fail_groups(&self.shared, groups, clone_err(&e));
+            self.fail_kept_groups(groups, clone_err(&e));
             self.note_fail(e.clone());
             return Err(e);
         }
@@ -5497,7 +5497,7 @@ impl Worker {
         let now_inst = Instant::now();
         if now_inst >= batch_deadline {
             rollback_sequences(&groups, producer_id, &self.shared.seqs);
-            fail_groups(&self.shared, groups, Error::Timeout);
+            self.fail_kept_groups(groups, Error::Timeout);
             return Ok(());
         }
         let write_timeout = self
@@ -5521,7 +5521,7 @@ impl Worker {
                 return Ok(());
             }
             rollback_sequences(&groups, producer_id, &self.shared.seqs);
-            fail_groups(&self.shared, groups, clone_err(&e));
+            self.fail_kept_groups(groups, clone_err(&e));
             self.note_fail(e.clone());
             return Err(e);
         }
@@ -5591,7 +5591,7 @@ impl Worker {
                         self.requeue_pendings(pending);
                         return Ok(());
                     }
-                    fail_groups(&self.shared, inf.groups, clone_err(&e));
+                    self.fail_kept_groups(inf.groups, clone_err(&e));
                 }
                 return Err(e);
             }
@@ -5659,7 +5659,7 @@ impl Worker {
             Err(e) => {
                 self.spare_acks = acks;
                 if let Some(inf) = guard.inf.take() {
-                    fail_groups(&self.shared, inf.groups, clone_err(&e));
+                    self.fail_kept_groups(inf.groups, clone_err(&e));
                 }
                 return Err(e);
             }
@@ -5691,7 +5691,7 @@ impl Worker {
                     let e = Error::protocol("produce response topic is not utf-8");
                     self.ack_slots = slots;
                     self.spare_acks = responses;
-                    fail_groups(&self.shared, inf.groups, clone_err(&e));
+                    self.fail_kept_groups(inf.groups, clone_err(&e));
                     return Err(e);
                 }
                 continue;
@@ -6024,6 +6024,36 @@ impl Worker {
         self.park_batch(empty);
     }
 
+    /// Fail grouped records and keep the largest emptied batch list.
+    fn fail_kept_groups(
+        &mut self,
+        groups: impl IntoIterator<Item = (Arc<str>, i32, Vec<Pending>)>,
+        err: Error,
+    ) {
+        let mut best = Vec::new();
+        for (_, _, pendings) in groups {
+            let empty = fail_kept_pendings(&self.shared, pendings, clone_err(&err));
+            if empty.capacity() > best.capacity() {
+                best = empty;
+            }
+        }
+        self.park_batch(best);
+    }
+
+    /// Fail every in-flight batch and keep the largest emptied list.
+    fn fail_kept_inflight(&mut self, err: Error) {
+        let mut best = Vec::new();
+        while let Some(inflight) = self.in_flight.pop_front() {
+            for (_, _, pendings) in inflight.groups {
+                let empty = fail_kept_pendings(&self.shared, pendings, clone_err(&err));
+                if empty.capacity() > best.capacity() {
+                    best = empty;
+                }
+            }
+        }
+        self.park_batch(best);
+    }
+
     fn requeue_pendings(&mut self, mut pendings: Vec<Pending>) {
         if let Some(policy) = &self.shared.sticky {
             let mut policy = policy.lock();
@@ -6094,7 +6124,7 @@ impl Worker {
             if !self.pending.is_empty() {
                 while self.in_flight.len() >= self.shared.cfg.max_in_flight {
                     if let Err(e) = self.wait_one().await {
-                        fail_inflight(&self.shared, &mut self.in_flight, clone_err(&e));
+                        self.fail_kept_inflight(clone_err(&e));
                         self.note_fail(e);
                     }
                 }
@@ -6102,7 +6132,7 @@ impl Worker {
                     self.note_fail(e);
                 }
             } else if let Err(e) = self.wait_one().await {
-                fail_inflight(&self.shared, &mut self.in_flight, clone_err(&e));
+                self.fail_kept_inflight(clone_err(&e));
                 self.note_fail(e);
             }
         }
@@ -7215,12 +7245,6 @@ fn complete_acks0(
                 sample_ns,
             },
         );
-    }
-}
-
-fn fail_inflight(shared: &Shared, in_flight: &mut VecDeque<InFlight>, err: Error) {
-    while let Some(inf) = in_flight.pop_front() {
-        fail_groups(shared, inf.groups, clone_err(&err));
     }
 }
 
