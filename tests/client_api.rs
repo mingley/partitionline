@@ -3987,10 +3987,7 @@ async fn admin_delete_share_groups_uses_delete_groups() {
     let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
         .await
         .unwrap();
-    let empty = admin
-        .delete_share_groups(Vec::<String>::new())
-        .await
-        .unwrap();
+    let empty = admin.delete_share_groups(Vec::<&str>::new()).await.unwrap();
     assert!(empty.is_empty());
     assert_eq!(mock.last_delete_groups_node(), None);
     let deleted = admin.delete_share_groups(["g-share"]).await.unwrap();
@@ -4160,7 +4157,7 @@ async fn admin_delete_consumer_groups_uses_delete_groups() {
         .await
         .unwrap();
     let empty = admin
-        .delete_consumer_groups(Vec::<String>::new())
+        .delete_consumer_groups(Vec::<&str>::new())
         .await
         .unwrap();
     assert!(empty.is_empty());

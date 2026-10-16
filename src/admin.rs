@@ -70,8 +70,8 @@ use crate::protocol::admin::{
     BorrowedDeleteTopic, BorrowedDescribeConfigsResource, BorrowedFeatureUpdate,
     BorrowedReassignmentPartition, BorrowedReplicaAssignment, BorrowedScramDeletion,
     BorrowedScramUpsertion, BorrowedTopicConfig, CreateTopicsRequest, DeleteRecordsPartition,
-    DeleteTopicView, DescribeConfigsResult, TopicResult, RESOURCE_BROKER,
-    RESOURCE_BROKER_LOGGER, RESOURCE_CLIENT_METRICS, RESOURCE_GROUP, RESOURCE_TOPIC,
+    DeleteTopicView, DescribeConfigsResult, TopicResult, RESOURCE_BROKER, RESOURCE_BROKER_LOGGER,
+    RESOURCE_CLIENT_METRICS, RESOURCE_GROUP, RESOURCE_TOPIC,
 };
 use crate::protocol::api::{
     decode_api_versions_response, decode_metadata_response, decode_metadata_response_into,
@@ -11625,10 +11625,13 @@ impl Admin {
     /// input is a no-op. DeleteGroups has no TimeoutMs; the RPC deadline
     /// is [`AdminConfig::request_timeout`]. For a one-shot deadline, use
     /// [`Self::delete_share_groups_timeout`].
-    pub async fn delete_share_groups(
+    pub async fn delete_share_groups<'a, S>(
         &mut self,
-        group_ids: impl IntoIterator<Item = impl AsRef<str>>,
-    ) -> Result<Vec<DeletableGroupResult>> {
+        group_ids: impl IntoIterator<Item = &'a S>,
+    ) -> Result<Vec<DeletableGroupResult>>
+    where
+        S: AsRef<str> + ?Sized + 'a,
+    {
         let timeout = self.cfg.request_timeout;
         self.delete_share_groups_timeout(group_ids, timeout).await
     }
@@ -11638,15 +11641,15 @@ impl Admin {
     ///
     /// DeleteGroups has no TimeoutMs; `timeout` is the RPC deadline and
     /// the coordinator retry budget.
-    pub async fn delete_share_groups_timeout(
+    pub async fn delete_share_groups_timeout<'a, S>(
         &mut self,
-        group_ids: impl IntoIterator<Item = impl AsRef<str>>,
+        group_ids: impl IntoIterator<Item = &'a S>,
         timeout: Duration,
-    ) -> Result<Vec<DeletableGroupResult>> {
-        let ids: Vec<String> = group_ids
-            .into_iter()
-            .map(|s| s.as_ref().to_string())
-            .collect();
+    ) -> Result<Vec<DeletableGroupResult>>
+    where
+        S: AsRef<str> + ?Sized + 'a,
+    {
+        let ids: Vec<&str> = group_ids.into_iter().map(AsRef::as_ref).collect();
         self.delete_group_ids(&ids, timeout).await
     }
 
@@ -11658,10 +11661,13 @@ impl Admin {
     /// input is a no-op. DeleteGroups has no TimeoutMs; the RPC deadline
     /// is [`AdminConfig::request_timeout`]. For a one-shot deadline, use
     /// [`Self::delete_consumer_groups_timeout`].
-    pub async fn delete_consumer_groups(
+    pub async fn delete_consumer_groups<'a, S>(
         &mut self,
-        group_ids: impl IntoIterator<Item = impl AsRef<str>>,
-    ) -> Result<Vec<DeletableGroupResult>> {
+        group_ids: impl IntoIterator<Item = &'a S>,
+    ) -> Result<Vec<DeletableGroupResult>>
+    where
+        S: AsRef<str> + ?Sized + 'a,
+    {
         let timeout = self.cfg.request_timeout;
         self.delete_consumer_groups_timeout(group_ids, timeout)
             .await
@@ -11672,15 +11678,15 @@ impl Admin {
     ///
     /// DeleteGroups has no TimeoutMs; `timeout` is the RPC deadline and
     /// the coordinator retry budget.
-    pub async fn delete_consumer_groups_timeout(
+    pub async fn delete_consumer_groups_timeout<'a, S>(
         &mut self,
-        group_ids: impl IntoIterator<Item = impl AsRef<str>>,
+        group_ids: impl IntoIterator<Item = &'a S>,
         timeout: Duration,
-    ) -> Result<Vec<DeletableGroupResult>> {
-        let ids: Vec<String> = group_ids
-            .into_iter()
-            .map(|s| s.as_ref().to_string())
-            .collect();
+    ) -> Result<Vec<DeletableGroupResult>>
+    where
+        S: AsRef<str> + ?Sized + 'a,
+    {
+        let ids: Vec<&str> = group_ids.into_iter().map(AsRef::as_ref).collect();
         self.delete_group_ids(&ids, timeout).await
     }
 

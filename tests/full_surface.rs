@@ -12364,10 +12364,7 @@ async fn delete_share_groups_follows_group_coordinator() {
     mock.move_coordinator();
     let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
 
-    let empty = admin
-        .delete_share_groups(Vec::<String>::new())
-        .await
-        .unwrap();
+    let empty = admin.delete_share_groups(Vec::<&str>::new()).await.unwrap();
     assert!(empty.is_empty());
     assert_eq!(
         mock.last_delete_groups_node(),
@@ -12404,7 +12401,7 @@ async fn delete_consumer_groups_follows_group_coordinator() {
     let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
 
     let empty = admin
-        .delete_consumer_groups(Vec::<String>::new())
+        .delete_consumer_groups(Vec::<&str>::new())
         .await
         .unwrap();
     assert!(empty.is_empty());
