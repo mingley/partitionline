@@ -937,18 +937,9 @@ pub fn encode_list_offsets_response(
     partition: i32,
     result: ListOffsetsPartition,
 ) -> crate::error::Result<()> {
-    encode_list_offsets_topics_response(
-        buf,
-        version,
-        &[ListOffsetsResponse::singleton_list_offsets_topic_response(
-            topic,
-            partition,
-            result.error_code,
-            result.timestamp,
-            result.offset,
-            result.leader_epoch,
-        )],
-    )
+    let partitions = [ListOffsetsResponsePartition::new(partition, result)];
+    let topics = [(topic, partitions.as_slice())];
+    encode_list_offsets_response_views(buf, version, &topics, 0)
 }
 
 /// Encode ListOffsets with one or more topics (v1–v5 classic, v6–v11 flexible).
@@ -972,6 +963,40 @@ pub fn encode_list_offsets_topics_response_with_throttle(
     topics: &[ListOffsetsTopicResponse],
     throttle_time_ms: i32,
 ) -> crate::error::Result<()> {
+    encode_list_offsets_response_views(buf, version, topics, throttle_time_ms)
+}
+
+trait ListOffsetsResponseView {
+    fn response_name(&self) -> &str;
+    fn response_partitions(&self) -> &[ListOffsetsResponsePartition];
+}
+
+impl ListOffsetsResponseView for ListOffsetsTopicResponse {
+    fn response_name(&self) -> &str {
+        &self.name
+    }
+
+    fn response_partitions(&self) -> &[ListOffsetsResponsePartition] {
+        &self.partitions
+    }
+}
+
+impl ListOffsetsResponseView for (&str, &[ListOffsetsResponsePartition]) {
+    fn response_name(&self) -> &str {
+        self.0
+    }
+
+    fn response_partitions(&self) -> &[ListOffsetsResponsePartition] {
+        self.1
+    }
+}
+
+fn encode_list_offsets_response_views<T: ListOffsetsResponseView>(
+    buf: &mut BytesMut,
+    version: i16,
+    topics: &[T],
+    throttle_time_ms: i32,
+) -> crate::error::Result<()> {
     let flexible = list_offsets_flexible(version)?;
     let body_start = buf.len();
     let planned = list_offsets_response_len(version, flexible, topics)?;
@@ -983,16 +1008,17 @@ pub fn encode_list_offsets_topics_response_with_throttle(
         buf.put_i32(throttle_time_ms);
     }
     buf::put_array_len(buf, flexible, Some(topics.len()))?;
-    for t in topics {
-        buf::put_string(buf, flexible, Some(&t.name))?;
-        buf::put_array_len(buf, flexible, Some(t.partitions.len()))?;
-        for p in &t.partitions {
-            buf.put_i32(p.partition_index);
-            buf.put_i16(p.error_code);
-            buf.put_i64(p.timestamp);
-            buf.put_i64(p.offset);
+    for topic in topics {
+        buf::put_string(buf, flexible, Some(topic.response_name()))?;
+        let partitions = topic.response_partitions();
+        buf::put_array_len(buf, flexible, Some(partitions.len()))?;
+        for partition in partitions {
+            buf.put_i32(partition.partition_index);
+            buf.put_i16(partition.error_code);
+            buf.put_i64(partition.timestamp);
+            buf.put_i64(partition.offset);
             if version >= 4 {
-                buf.put_i32(p.leader_epoch);
+                buf.put_i32(partition.leader_epoch);
             }
             if flexible {
                 buf::put_empty_tagged_fields(buf);
@@ -1093,19 +1119,20 @@ fn list_offsets_error_len(
     Ok(total)
 }
 
-fn list_offsets_response_len(
+fn list_offsets_response_len<T: ListOffsetsResponseView>(
     version: i16,
     flexible: bool,
-    topics: &[ListOffsetsTopicResponse],
+    topics: &[T],
 ) -> Result<usize> {
     let mut total = if version >= 2 { 4usize } else { 0 };
     total = add_list_offsets_len(total, list_offsets_array_len(flexible, topics.len())?)?;
     for topic in topics {
-        total = add_list_offsets_len(total, list_offsets_string_len(flexible, &topic.name)?)?;
         total = add_list_offsets_len(
             total,
-            list_offsets_array_len(flexible, topic.partitions.len())?,
+            list_offsets_string_len(flexible, topic.response_name())?,
         )?;
+        let partitions = topic.response_partitions();
+        total = add_list_offsets_len(total, list_offsets_array_len(flexible, partitions.len())?)?;
         let mut partition = 22usize;
         if version >= 4 {
             partition += 4;
@@ -1116,7 +1143,7 @@ fn list_offsets_response_len(
         total = add_list_offsets_len(
             total,
             partition
-                .checked_mul(topic.partitions.len())
+                .checked_mul(partitions.len())
                 .ok_or_else(|| Error::protocol("list offsets response size overflow"))?,
         )?;
         if flexible {
@@ -1779,6 +1806,23 @@ mod tests {
             encode_list_offsets_topics_response(&mut buf, version, &topics).unwrap();
             assert_eq!(buf.len(), len);
             assert_eq!(buf.capacity(), capacity);
+        }
+    }
+
+    #[test]
+    fn list_offsets_one_partition_response_matches_the_owned_topic_encoder() {
+        let topic = "orders-topic-name-is-long";
+        let result = ListOffsetsPartition::ok(9, 40, 3);
+        let owned = [ListOffsetsTopicResponse::new(
+            topic,
+            vec![ListOffsetsResponsePartition::new(1, result)],
+        )];
+        for version in [1_i16, 4, 6, 10, 11] {
+            let mut expected = BytesMut::new();
+            encode_list_offsets_topics_response(&mut expected, version, &owned).unwrap();
+            let mut got = BytesMut::new();
+            encode_list_offsets_response(&mut got, version, topic, 1, result).unwrap();
+            assert_eq!(got.as_ref(), expected.as_ref(), "version {version}");
         }
     }
 
