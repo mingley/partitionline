@@ -932,12 +932,16 @@ pub fn encode_find_coordinator_request_keys(
         ));
     }
     if find_coordinator_batched(version) {
+        let body_start = buf.len();
+        let planned = find_coordinator_batched_request_len(keys)?;
+        reserve_group_body(buf, planned);
         buf.put_i8(key_type);
         buf::put_array_len(buf, true, Some(keys.len()))?;
         for key in keys {
             buf::put_compact_string(buf, Some(key))?;
         }
         buf::put_empty_tagged_fields(buf);
+        debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
         return Ok(());
     }
     if keys.len() > 1 {
@@ -950,6 +954,9 @@ pub fn encode_find_coordinator_request_keys(
             "FindCoordinator version {version} does not support CoordinatorKeys"
         )));
     };
+    let body_start = buf.len();
+    let planned = find_coordinator_single_request_len(version, flexible, key)?;
+    reserve_group_body(buf, planned);
     buf::put_string(buf, flexible, Some(key))?;
     if version >= 1 {
         buf.put_i8(key_type);
@@ -957,7 +964,28 @@ pub fn encode_find_coordinator_request_keys(
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn find_coordinator_batched_request_len(keys: &[&str]) -> Result<usize> {
+    let mut total = 1usize;
+    total = add_group_len(total, group_array_len(true, keys.len())?)?;
+    for key in keys {
+        total = add_group_len(total, group_string_len(true, Some(key))?)?;
+    }
+    add_group_len(total, buf::unsigned_varint_size(0))
+}
+
+fn find_coordinator_single_request_len(version: i16, flexible: bool, key: &str) -> Result<usize> {
+    let mut total = group_string_len(flexible, Some(key))?;
+    if version >= 1 {
+        total = add_group_len(total, 1)?;
+    }
+    if flexible {
+        total = add_group_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 /// Decode FindCoordinator: `(key, key_type)` (first CoordinatorKey).
@@ -8952,6 +8980,35 @@ mod tests {
             "FindCoordinator v4 getErrorResponse leftover-empty; leftover {} bytes",
             cur.len()
         );
+    }
+
+    #[test]
+    fn a_find_coordinator_request_sizes_its_body_once() {
+        let keys = ["orders", "payments", "shipments"];
+        for version in [0_i16, 1, 3] {
+            let mut buf = BytesMut::new();
+            encode_find_coordinator_request_typed(&mut buf, version, "orders", COORDINATOR_GROUP)
+                .unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_find_coordinator_request_typed(&mut buf, version, "orders", COORDINATOR_GROUP)
+                .unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+        }
+        let mut buf = BytesMut::new();
+        encode_find_coordinator_request_keys(&mut buf, 4, &keys, COORDINATOR_GROUP).unwrap();
+        let len = buf.len();
+        let capacity = buf.capacity();
+        assert!(capacity >= len);
+        assert!(capacity < 64 * 1024);
+        buf.clear();
+        encode_find_coordinator_request_keys(&mut buf, 4, &keys, COORDINATOR_GROUP).unwrap();
+        assert_eq!(buf.len(), len);
+        assert_eq!(buf.capacity(), capacity);
     }
 
     #[test]
