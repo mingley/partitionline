@@ -18,6 +18,7 @@
 //! transactional visibility, segment retention or production qualification is
 //! implied. File-system/hardware synchronization guarantees still apply.
 
+use std::collections::VecDeque;
 use std::fs::{File, OpenOptions};
 use std::io::{self, IoSlice, Read, Seek, SeekFrom, Write};
 use std::mem::size_of;
@@ -619,7 +620,7 @@ struct Engine<S> {
     file_bytes: u64,
     index: Vec<Index>,
     poisoned: bool,
-    staged: Vec<Staged>,
+    staged: VecDeque<Staged>,
     /// File position after the last successful read or append. The next
     /// contiguous read skips `seek`.
     read_pos: Option<u64>,
@@ -1029,7 +1030,7 @@ impl<S: Storage> Engine<S> {
             file_bytes: FILE_HEADER as u64,
             index: Vec::new(),
             poisoned: false,
-            staged: Vec::new(),
+            staged: VecDeque::new(),
             read_pos: None,
             length_ok: false,
         };
@@ -1132,7 +1133,7 @@ impl<S: Storage> Engine<S> {
         if self.index.len().saturating_add(self.staged.len()) >= self.limits.max_index_entries {
             return Err(Error::IndexBudgetExceeded);
         }
-        let (origin_offset, origin_bytes) = match self.staged.last() {
+        let (origin_offset, origin_bytes) = match self.staged.back() {
             Some(staged) => (staged.index.next_offset, staged.file_bytes),
             None => (self.next_offset, self.file_bytes),
         };
@@ -1233,15 +1234,14 @@ impl<S: Storage> Engine<S> {
             self.poisoned = true;
             return Err(error);
         }
-        self.staged.push(Staged { index, file_bytes });
+        self.staged.push_back(Staged { index, file_bytes });
         Ok(())
     }
     fn commit_staged(&mut self) -> Result<Append, Error> {
-        if self.staged.is_empty() {
+        let Some(staged) = self.staged.pop_front() else {
             self.poisoned = true;
             return Err(Error::Poisoned);
-        }
-        let staged = self.staged.remove(0);
+        };
         Ok(self.publish(staged.index, staged.file_bytes))
     }
     fn abort_staged(&mut self) {
@@ -1251,7 +1251,7 @@ impl<S: Storage> Engine<S> {
         }
     }
     fn unstage_last(&mut self) -> Result<u64, Error> {
-        let Some(staged) = self.staged.pop() else {
+        let Some(staged) = self.staged.pop_back() else {
             self.poisoned = true;
             return Err(Error::Poisoned);
         };
