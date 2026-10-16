@@ -5690,33 +5690,58 @@ impl Worker {
         if !endpoints.is_empty() {
             self.shared.cluster.lock().apply_node_endpoints(&endpoints);
         }
-        self.ack_index.fill(&inf.groups);
         let mut slots = std::mem::take(&mut self.ack_slots);
         slots.clear();
-        slots.resize_with(inf.groups.len(), || None);
-        let ack_ids = (version >= 13 && inf.topic_ids.len() > 1).then_some(&self.ack_index.by_uuid);
-        for (ack_at, ack) in responses.iter().enumerate() {
-            let topic = if version >= 13 {
-                name_for_topic_id(inf.topic_ids.as_slice(), ack_ids, ack.topic_id)
-            } else {
-                std::str::from_utf8(&ack.topic).ok()
-            };
-            let Some(topic) = topic else {
-                if version < 13 {
-                    let e = Error::protocol("produce response topic is not utf-8");
-                    self.ack_slots = slots;
-                    self.spare_acks = responses;
-                    self.fail_kept_groups(inf.groups, clone_err(&e));
-                    return Err(e);
+        if inf.groups.len() == 1 {
+            let found = if let Some((topic, part, _)) = inf.groups.first() {
+                match first_matching_ack(
+                    version,
+                    &responses,
+                    topic,
+                    *part,
+                    inf.topic_ids.as_slice(),
+                    &self.ack_index.by_uuid,
+                ) {
+                    Ok(found) => found,
+                    Err(error) => {
+                        self.ack_slots = slots;
+                        self.spare_acks = responses;
+                        self.fail_kept_groups(inf.groups, clone_err(&error));
+                        return Err(error);
+                    }
                 }
-                continue;
+            } else {
+                None
             };
-            let Some(slot) = self.ack_index.get(topic, ack.partition) else {
-                continue;
-            };
-            if let Some(entry) = slots.get_mut(slot) {
-                if entry.is_none() {
-                    *entry = Some(ack_at);
+            slots.push(found);
+        } else {
+            self.ack_index.fill(&inf.groups);
+            slots.resize_with(inf.groups.len(), || None);
+            let ack_ids =
+                (version >= 13 && inf.topic_ids.len() > 1).then_some(&self.ack_index.by_uuid);
+            for (ack_at, ack) in responses.iter().enumerate() {
+                let topic = if version >= 13 {
+                    name_for_topic_id(inf.topic_ids.as_slice(), ack_ids, ack.topic_id)
+                } else {
+                    std::str::from_utf8(&ack.topic).ok()
+                };
+                let Some(topic) = topic else {
+                    if version < 13 {
+                        let e = Error::protocol("produce response topic is not utf-8");
+                        self.ack_slots = slots;
+                        self.spare_acks = responses;
+                        self.fail_kept_groups(inf.groups, clone_err(&e));
+                        return Err(e);
+                    }
+                    continue;
+                };
+                let Some(slot) = self.ack_index.get(topic, ack.partition) else {
+                    continue;
+                };
+                if let Some(entry) = slots.get_mut(slot) {
+                    if entry.is_none() {
+                        *entry = Some(ack_at);
+                    }
                 }
             }
         }
@@ -6879,6 +6904,35 @@ fn fill_ids_by_uuid(ids: &[(Arc<str>, [u8; 16])], index: &mut HashMap<[u8; 16], 
             let _ = index.insert(*id, Arc::clone(name));
         }
     }
+}
+
+/// First acknowledgement for one sent partition.
+///
+/// A name-based response with a non-UTF-8 topic is an error. A later copy of
+/// the same partition is ignored, matching the indexed acknowledgement path.
+fn first_matching_ack(
+    version: i16,
+    acks: &[ProduceAck],
+    topic: &Arc<str>,
+    partition: i32,
+    topic_ids: &[(Arc<str>, [u8; 16])],
+    by_uuid: &HashMap<[u8; 16], Arc<str>>,
+) -> Result<Option<usize>> {
+    for (ack_at, ack) in acks.iter().enumerate() {
+        let name = if version >= 13 {
+            let index = (topic_ids.len() > 1).then_some(by_uuid);
+            name_for_topic_id(topic_ids, index, ack.topic_id)
+        } else {
+            Some(
+                std::str::from_utf8(&ack.topic)
+                    .map_err(|_| Error::protocol("produce response topic is not utf-8"))?,
+            )
+        };
+        if ack.partition == partition && name.is_some_and(|name| name == topic.as_ref()) {
+            return Ok(Some(ack_at));
+        }
+    }
+    Ok(None)
 }
 
 fn name_for_topic_id<'a>(
@@ -8068,6 +8122,37 @@ mod tests {
         assert!(requested
             .get(payments.as_ref())
             .is_none_or(|parts| parts.is_empty()));
+    }
+
+    #[test]
+    fn a_single_partition_ack_matches_without_the_topic_index() {
+        let orders = Arc::<str>::from("orders");
+        let ack = |partition| ProduceAck {
+            topic: Bytes::from_static(b"orders"),
+            topic_id: [0; 16],
+            partition,
+            error_code: 0,
+            base_offset: 8,
+            log_append_time_ms: -1,
+            current_leader_id: -1,
+            current_leader_epoch: -1,
+        };
+        let ids = HashMap::new();
+        let matched = first_matching_ack(9, &[ack(4), ack(3)], &orders, 3, &[], &ids).unwrap();
+        assert_eq!(matched, Some(1));
+        let missing = first_matching_ack(9, &[], &orders, 3, &[], &ids).unwrap();
+        assert_eq!(missing, None);
+        let bad = ProduceAck {
+            topic: Bytes::from_static(b"\xff"),
+            topic_id: [0; 16],
+            partition: 3,
+            error_code: 0,
+            base_offset: 0,
+            log_append_time_ms: -1,
+            current_leader_id: -1,
+            current_leader_epoch: -1,
+        };
+        assert!(first_matching_ack(9, &[bad], &orders, 3, &[], &ids).is_err());
     }
 
     #[test]
