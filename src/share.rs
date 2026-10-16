@@ -732,7 +732,7 @@ pub enum ShareAcquireMode {
 /// which fails that poll, and not standalone ShareAcknowledge
 /// `NETWORK_EXCEPTION`, which retries). A piggybacked
 /// `NOT_ENOUGH_REPLICAS` still completes without retry,
-/// including when `AcknowledgeErrorMessage` is set (Java
+/// including when `AcknowledgeErrorMessage` is set or empty (Java
 /// `handleShareFetchSuccess` completes piggyback acks and still
 /// delivers the fetch; this is not partition `NOT_ENOUGH_REPLICAS`,
 /// which fails that poll, and not standalone ShareAcknowledge
@@ -1948,7 +1948,7 @@ impl ShareGroup {
     /// standalone ShareAcknowledge `NETWORK_EXCEPTION`, which retries).
     /// A piggybacked `NOT_ENOUGH_REPLICAS` still completes
     /// without retry, including when `AcknowledgeErrorMessage` is set
-    /// (Java `handleShareFetchSuccess` completes piggyback acks and
+    /// or empty (Java `handleShareFetchSuccess` completes piggyback acks and
     /// still delivers the fetch; this is not partition
     /// `NOT_ENOUGH_REPLICAS`, which fails that poll, and not
     /// standalone ShareAcknowledge `NOT_ENOUGH_REPLICAS`, which retries).
