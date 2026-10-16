@@ -551,6 +551,12 @@ pub fn encode_offset_for_leader_epoch_topics_response_with_throttle(
     throttle_time_ms: i32,
 ) -> crate::error::Result<()> {
     let flexible = offset_for_leader_epoch_flexible(version)?;
+    let body_start = buf.len();
+    let planned = offset_for_leader_response_len(version, flexible, topics)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     if version >= 2 {
         buf.put_i32(throttle_time_ms);
     }
@@ -576,7 +582,38 @@ pub fn encode_offset_for_leader_epoch_topics_response_with_throttle(
     if flexible {
         buf::put_empty_tagged_fields(buf); // top-level
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn offset_for_leader_response_len(
+    version: i16,
+    flexible: bool,
+    topics: &[OffsetForLeaderTopicResult],
+) -> Result<usize> {
+    let mut total = if version >= 2 { 4usize } else { 0 };
+    total = add_epoch_len(total, epoch_array_len(flexible, topics.len())?)?;
+    for topic in topics {
+        total = add_epoch_len(total, epoch_string_len(flexible, &topic.topic)?)?;
+        total = add_epoch_len(total, epoch_array_len(flexible, topic.partitions.len())?)?;
+        let mut partition = if version >= 1 { 18usize } else { 14 };
+        if flexible {
+            partition += buf::unsigned_varint_size(0);
+        }
+        total = add_epoch_len(
+            total,
+            partition
+                .checked_mul(topic.partitions.len())
+                .ok_or_else(|| Error::protocol("offset for leader epoch response size overflow"))?,
+        )?;
+        if flexible {
+            total = add_epoch_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    if flexible {
+        total = add_epoch_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 /// Decode a single-topic, single-partition OffsetForLeaderEpoch response.
@@ -903,6 +940,28 @@ mod tests {
             &v2_consumer[..],
             "v2 omits ReplicaId even when the body is non-default"
         );
+    }
+
+    #[test]
+    fn an_offset_for_leader_epoch_response_sizes_its_body_once() {
+        let topics = vec![OffsetForLeaderTopicResult::new(
+            "orders",
+            (0..8)
+                .map(|partition| EpochEndOffset::new(0, partition, 3, 40))
+                .collect(),
+        )];
+        for version in [0_i16, 1, 2, 4] {
+            let mut buf = BytesMut::new();
+            encode_offset_for_leader_epoch_topics_response(&mut buf, version, &topics).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_offset_for_leader_epoch_topics_response(&mut buf, version, &topics).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+        }
     }
 
     #[test]
