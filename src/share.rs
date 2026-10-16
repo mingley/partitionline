@@ -942,7 +942,7 @@ pub enum ShareAcquireMode {
 /// `ILLEGAL_SASL_STATE`, which fails that poll, and not piggyback
 /// `UNSUPPORTED_SASL_MECHANISM`). A piggybacked
 /// `TOPIC_ALREADY_EXISTS` still completes without retry,
-/// including when `AcknowledgeErrorMessage` is set (Java
+/// including when `AcknowledgeErrorMessage` is set or empty (Java
 /// `handleShareFetchSuccess` completes piggyback acks and still
 /// delivers the fetch; this is not partition
 /// `TOPIC_ALREADY_EXISTS`, which fails that poll, and not piggyback
@@ -2470,7 +2470,7 @@ impl ShareGroup {
     /// `UNSUPPORTED_SASL_MECHANISM`).
     /// A piggybacked `TOPIC_ALREADY_EXISTS` still completes
     /// without retry, including when `AcknowledgeErrorMessage` is set
-    /// (Java `handleShareFetchSuccess` completes piggyback acks and still
+    /// or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
     /// delivers the fetch; this is not partition
     /// `TOPIC_ALREADY_EXISTS`, which fails that poll, and not piggyback
     /// `ILLEGAL_SASL_STATE`).
