@@ -10,13 +10,17 @@ use std::time::Duration;
 
 impl ConsumerGroup {
     pub(super) fn snapshot_delivered_positions(&mut self) {
-        let positions = self.consumer.delivered_positions_shared();
-        let mut ids = HashMap::new();
+        let mut positions = self.last_delivered_positions.take().unwrap_or_default();
+        self.consumer
+            .fill_delivered_positions_shared(&mut positions);
+        let mut ids = std::mem::take(&mut self.last_delivered_topic_ids);
+        super::clear_delivered_topic_ids(&mut ids);
         for (topic, partition, _) in &positions {
             if let Some(id) = self.consumer.assigned_topic_id(topic, *partition) {
                 super::remember_shared_topic_id(&mut ids, topic, *partition, id);
             }
         }
+        ids.retain(|_, parts| !parts.is_empty());
         self.last_delivered_topic_ids = ids;
         self.last_delivered_positions = Some(positions);
     }

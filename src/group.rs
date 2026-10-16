@@ -1947,22 +1947,19 @@ impl ConsumerGroup {
         if self.last_auto_commit.elapsed() < self.cfg.auto_commit_interval {
             return Ok(());
         }
-        let Some(stored) = self.last_delivered_positions.clone() else {
+        let Some(mut to_commit) = self.last_delivered_positions.clone() else {
             return Ok(());
         };
-        let to_commit: Vec<(Arc<str>, i32, i64)> = stored
-            .into_iter()
-            .filter(|(topic, partition, offset)| {
-                position_is_committable(*offset)
-                    && self.consumer.is_assigned(topic, *partition)
-                    && self
-                        .last_delivered_topic_ids
-                        .get(topic.as_ref())
-                        .and_then(|parts| parts.get(partition))
-                        .copied()
-                        == self.consumer.assigned_topic_id(topic, *partition)
-            })
-            .collect();
+        to_commit.retain(|(topic, partition, offset)| {
+            position_is_committable(*offset)
+                && self.consumer.is_assigned(topic, *partition)
+                && self
+                    .last_delivered_topic_ids
+                    .get(topic.as_ref())
+                    .and_then(|parts| parts.get(partition))
+                    .copied()
+                    == self.consumer.assigned_topic_id(topic, *partition)
+        });
         if !to_commit.is_empty() {
             let timeout = self.cfg.request_timeout;
             if self.cfg.interceptors.is_empty() {
@@ -3807,6 +3804,12 @@ fn remember_topic_id(map: &mut DeliveredTopicIds, topic: &str, partition: i32, i
     let _ = map.insert(Arc::from(topic), parts);
 }
 
+fn clear_delivered_topic_ids(map: &mut DeliveredTopicIds) {
+    for parts in map.values_mut() {
+        parts.clear();
+    }
+}
+
 fn remember_shared_topic_id(
     map: &mut DeliveredTopicIds,
     topic: &Arc<str>,
@@ -4860,6 +4863,32 @@ mod tests {
         assert!(position_is_committable(0));
         assert!(position_is_committable(4));
         assert!(!position_is_committable(-1));
+    }
+
+    #[test]
+    fn a_delivered_topic_id_map_keeps_its_buckets() {
+        let topic: Arc<str> = Arc::from("topic-name-longer-than-twenty-three");
+        let stored = Arc::as_ptr(&topic);
+        let other: Arc<str> = Arc::from("another-topic-name-longer-than-twenty-three");
+        let mut ids = HashMap::new();
+        remember_shared_topic_id(&mut ids, &topic, 0, [1u8; 16]);
+        remember_shared_topic_id(&mut ids, &topic, 1, [1u8; 16]);
+        remember_shared_topic_id(&mut ids, &other, 0, [2u8; 16]);
+        let buckets = ids.capacity();
+        let inner = ids.get(topic.as_ref()).map(HashMap::capacity);
+        clear_delivered_topic_ids(&mut ids);
+        remember_shared_topic_id(&mut ids, &topic, 0, [3u8; 16]);
+        ids.retain(|_, parts| !parts.is_empty());
+        assert!(ids.capacity() >= buckets);
+        assert!(ids.get(topic.as_ref()).map(HashMap::capacity) >= inner);
+        assert_eq!(
+            ids.get_key_value(topic.as_ref())
+                .map(|(name, _)| Arc::as_ptr(name)),
+            Some(stored)
+        );
+        assert_eq!(nested_topic_id(&ids, topic.as_ref(), 0), Some([3u8; 16]));
+        assert_eq!(nested_topic_id(&ids, topic.as_ref(), 1), None);
+        assert_eq!(nested_topic_id(&ids, other.as_ref(), 0), None);
     }
 
     #[test]

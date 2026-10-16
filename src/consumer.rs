@@ -3064,12 +3064,13 @@ impl Consumer {
     /// Delivered positions that can be committed, with the leader epoch for each.
     ///
     /// Partitions of one topic share that topic's leader-epoch list and pending
-    /// queue. A negative delivered offset is omitted.
-    pub(crate) fn delivered_positions_shared(&self) -> Vec<(Arc<str>, i32, i64)> {
+    /// queue. A negative delivered offset is omitted. `out` is cleared and
+    /// refilled so a poll can keep the previous allocation.
+    pub(crate) fn fill_delivered_positions_shared(&self, out: &mut Vec<(Arc<str>, i32, i64)>) {
+        out.clear();
         let mut cached_topic = std::ptr::null::<u8>();
         let mut cached_name: Option<&str> = None;
         let mut pending_parts: Option<&HashMap<i32, VecDeque<FetchedRecord>>> = None;
-        let mut out = Vec::new();
         for (topic, partition, offset) in &self.assigned {
             if !reuse_topic_cache(&mut cached_topic, &mut cached_name, topic) {
                 pending_parts = self.pending.partitions.topic_partitions(topic.as_ref());
@@ -3083,7 +3084,6 @@ impl Consumer {
             };
             out.push((Arc::clone(topic), *partition, position));
         }
-        out
     }
 
     pub(crate) fn delivered_commit_offsets(&self) -> Vec<(TopicPartition, OffsetAndMetadata)> {
