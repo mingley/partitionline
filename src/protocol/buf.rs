@@ -1052,6 +1052,87 @@ pub fn get_tagged_fields<B: Buf>(buf: &mut B) -> Result<Vec<(u32, Bytes)>> {
     Ok(out)
 }
 
+/// Walk tagged fields without collecting them.
+///
+/// The payload is valid only for the callback. A field that sits in one
+/// buffer chunk is borrowed. A field that crosses a chunk is copied onto
+/// the stack when it is at most 64 bytes, and into a fresh buffer otherwise.
+/// Tag order and the empty-count rule match [`get_tagged_fields`].
+pub(crate) fn visit_tagged_fields<B: Buf>(
+    buf: &mut B,
+    mut visit: impl FnMut(u32, &[u8]) -> Result<()>,
+) -> Result<()> {
+    let n = usize_from_u32(get_unsigned_varint(buf)?)?;
+    if n > buf.remaining() {
+        return Err(Error::protocol(
+            "tagged field count exceeds remaining bytes",
+        ));
+    }
+    let mut prev: Option<u32> = None;
+    for _ in 0..n {
+        let tag = get_unsigned_varint(buf)?;
+        if prev.is_some_and(|p| tag <= p) {
+            return Err(Error::protocol(
+                "tagged fields must be in ascending tag order",
+            ));
+        }
+        prev = Some(tag);
+        let size = usize_from_u32(get_unsigned_varint(buf)?)?;
+        need(buf, size)?;
+        if buf.chunk().len() >= size {
+            let bytes = buf.chunk().get(..size).ok_or_else(|| {
+                Error::protocol(format!("need {size} bytes, have {}", buf.chunk().len()))
+            })?;
+            visit(tag, bytes)?;
+            buf.advance(size);
+            continue;
+        }
+        if size <= 64 {
+            let mut stack = [0u8; 64];
+            let dest = stack
+                .get_mut(..size)
+                .ok_or_else(|| Error::protocol("tagged field stack overflow"))?;
+            fill_exact(buf, dest)?;
+            visit(tag, dest)?;
+            continue;
+        }
+        let owned = copy_exact(buf, size)?;
+        visit(tag, &owned)?;
+    }
+    Ok(())
+}
+
+fn fill_exact<B: Buf>(buf: &mut B, dest: &mut [u8]) -> Result<()> {
+    let mut filled = 0usize;
+    while filled < dest.len() {
+        let chunk = buf.chunk();
+        let take = chunk.len().min(dest.len() - filled);
+        if take == 0 {
+            return Err(Error::protocol(format!(
+                "need {} bytes, have {filled}",
+                dest.len()
+            )));
+        }
+        let Some(piece) = chunk.get(..take) else {
+            return Err(Error::protocol(format!(
+                "need {} bytes, have {filled}",
+                dest.len()
+            )));
+        };
+        let end = filled.saturating_add(take);
+        let Some(slot) = dest.get_mut(filled..end) else {
+            return Err(Error::protocol(format!(
+                "need {} bytes, have {filled}",
+                dest.len()
+            )));
+        };
+        slot.copy_from_slice(piece);
+        buf.advance(take);
+        filled = end;
+    }
+    Ok(())
+}
+
 /// Write an empty tagged-fields count (`0`).
 pub fn put_empty_tagged_fields(buf: &mut BytesMut) {
     put_unsigned_varint(buf, 0);
@@ -1673,6 +1754,48 @@ mod tests {
 
         let mut bad = BytesMut::new();
         assert!(put_tagged_fields(&mut bad, &[(2, &b"x"[..]), (1, &b"y"[..])]).is_err());
+    }
+
+    #[test]
+    fn visit_tagged_fields_borrows_one_chunk_and_copies_a_split() {
+        let mut buf = BytesMut::new();
+        put_empty_tagged_fields(&mut buf);
+        let mut empty = &buf[..];
+        let mut seen = Vec::new();
+        visit_tagged_fields(&mut empty, |tag, value| {
+            seen.push((tag, value.to_vec()));
+            Ok(())
+        })
+        .unwrap();
+        assert!(seen.is_empty());
+        assert_eq!(empty.remaining(), 0);
+
+        buf.clear();
+        put_tagged_fields(&mut buf, &[(0, &b"aa"[..]), (2, &b"bbb"[..])]).unwrap();
+        let frozen = buf.freeze();
+        let mut whole = frozen.clone();
+        seen.clear();
+        visit_tagged_fields(&mut whole, |tag, value| {
+            seen.push((tag, value.to_vec()));
+            Ok(())
+        })
+        .unwrap();
+        assert_eq!(seen, vec![(0, b"aa".to_vec()), (2, b"bbb".to_vec())]);
+        assert_eq!(whole.remaining(), 0);
+
+        let mid = frozen.len() / 2;
+        let mut split = frozen.slice(..mid).chain(frozen.slice(mid..));
+        seen.clear();
+        visit_tagged_fields(&mut split, |tag, value| {
+            seen.push((tag, value.to_vec()));
+            Ok(())
+        })
+        .unwrap();
+        assert_eq!(seen, vec![(0, b"aa".to_vec()), (2, b"bbb".to_vec())]);
+        assert_eq!(split.remaining(), 0);
+
+        let mut descending = &b"\x02\x02\x01x\x01\x01y"[..];
+        assert!(visit_tagged_fields(&mut descending, |_, _| Ok(())).is_err());
     }
 
     #[test]

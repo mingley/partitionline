@@ -1598,8 +1598,8 @@ fn encode_cluster_id(cluster_id: &str) -> Result<Bytes> {
     Ok(inner.freeze())
 }
 
-fn decode_replica_state(value: &Bytes) -> Result<(i32, i64)> {
-    let mut cur = value.as_ref();
+fn decode_replica_state(value: &[u8]) -> Result<(i32, i64)> {
+    let mut cur = value;
     let replica_id = buf::get_i32(&mut cur)?;
     let replica_epoch = buf::get_i64(&mut cur)?;
     buf::skip_tagged_fields(&mut cur)?;
@@ -1609,8 +1609,8 @@ fn decode_replica_state(value: &Bytes) -> Result<(i32, i64)> {
     Ok((replica_id, replica_epoch))
 }
 
-fn decode_cluster_id(value: &Bytes) -> Result<Option<String>> {
-    let mut cur = value.as_ref();
+fn decode_cluster_id(value: &[u8]) -> Result<Option<String>> {
+    let mut cur = value;
     let cluster_id = buf::get_compact_string(&mut cur)?;
     if !cur.is_empty() {
         return Err(Error::protocol("ClusterId leftover bytes"));
@@ -1618,8 +1618,8 @@ fn decode_cluster_id(value: &Bytes) -> Result<Option<String>> {
     Ok(cluster_id)
 }
 
-fn decode_replica_directory_id(value: &Bytes) -> Result<[u8; 16]> {
-    let mut cur = value.as_ref();
+fn decode_replica_directory_id(value: &[u8]) -> Result<[u8; 16]> {
+    let mut cur = value;
     let directory_id = buf::get_uuid(&mut cur)?;
     if !cur.is_empty() {
         return Err(Error::protocol("ReplicaDirectoryId leftover bytes"));
@@ -1659,23 +1659,23 @@ fn decode_fetch_request_partition_tags<B: Buf>(
     buf: &mut B,
     version: i16,
 ) -> Result<([u8; 16], i64)> {
-    let tags = buf::get_tagged_fields(buf)?;
     let mut directory_id = [0u8; 16];
     let mut high_watermark = REPLICA_HIGH_WATERMARK_NOT_SUPPORTED;
-    for (tag, value) in tags {
+    buf::visit_tagged_fields(buf, |tag, value| {
         match tag {
             0 if version >= 17 => {
-                directory_id = decode_replica_directory_id(&value)?;
+                directory_id = decode_replica_directory_id(value)?;
             }
             1 if version >= 18 => {
-                let bytes: [u8; 8] = value.as_ref().try_into().map_err(|_| {
+                let bytes: [u8; 8] = value.try_into().map_err(|_| {
                     Error::protocol("Fetch HighWatermark tag must contain exactly eight bytes")
                 })?;
                 high_watermark = i64::from_be_bytes(bytes);
             }
             _ => {}
         }
-    }
+        Ok(())
+    })?;
     Ok((directory_id, high_watermark))
 }
 
@@ -1683,21 +1683,21 @@ fn decode_fetch_request_tags<B: Buf>(
     buf: &mut B,
     version: i16,
 ) -> Result<(i32, i64, Option<String>)> {
-    let tags = buf::get_tagged_fields(buf)?;
     let mut replica_id = CONSUMER_REPLICA_ID;
     let mut replica_epoch = -1i64;
     let mut cluster_id = None;
-    for (tag, value) in tags {
+    buf::visit_tagged_fields(buf, |tag, value| {
         match tag {
             0 if version >= 12 => {
-                cluster_id = decode_cluster_id(&value)?;
+                cluster_id = decode_cluster_id(value)?;
             }
             1 if version >= 15 => {
-                (replica_id, replica_epoch) = decode_replica_state(&value)?;
+                (replica_id, replica_epoch) = decode_replica_state(value)?;
             }
             _ => {}
         }
-    }
+        Ok(())
+    })?;
     Ok((replica_id, replica_epoch, cluster_id))
 }
 
@@ -1772,8 +1772,8 @@ fn encode_diverging_epoch(epoch: i32, end_offset: i64) -> Bytes {
     inner.freeze()
 }
 
-fn decode_diverging_epoch(value: &Bytes) -> Result<(i32, i64)> {
-    let mut cur = value.as_ref();
+fn decode_diverging_epoch(value: &[u8]) -> Result<(i32, i64)> {
+    let mut cur = value;
     let epoch = buf::get_i32(&mut cur)?;
     let end_offset = buf::get_i64(&mut cur)?;
     buf::skip_tagged_fields(&mut cur)?;
@@ -1793,8 +1793,8 @@ fn encode_current_leader(leader_id: i32, leader_epoch: i32) -> Bytes {
     inner.freeze()
 }
 
-fn decode_current_leader(value: &Bytes) -> Result<(i32, i32)> {
-    let mut cur = value.as_ref();
+fn decode_current_leader(value: &[u8]) -> Result<(i32, i32)> {
+    let mut cur = value;
     let leader_id = buf::get_i32(&mut cur)?;
     let leader_epoch = buf::get_i32(&mut cur)?;
     buf::skip_tagged_fields(&mut cur)?;
@@ -1816,8 +1816,8 @@ fn encode_snapshot_id(end_offset: i64, epoch: i32) -> Bytes {
     inner.freeze()
 }
 
-fn decode_snapshot_id(value: &Bytes) -> Result<(i64, i32)> {
-    let mut cur = value.as_ref();
+fn decode_snapshot_id(value: &[u8]) -> Result<(i64, i32)> {
+    let mut cur = value;
     let end_offset = buf::get_i64(&mut cur)?;
     let epoch = buf::get_i32(&mut cur)?;
     buf::skip_tagged_fields(&mut cur)?;
@@ -1863,21 +1863,21 @@ fn encode_fetch_partition_tags(
 }
 
 fn decode_fetch_partition_tags<B: Buf>(buf: &mut B) -> Result<(i32, i64, i32, i32, i64, i32)> {
-    let tags = buf::get_tagged_fields(buf)?;
     let mut diverging_epoch = EpochEndOffset::UNDEFINED_EPOCH;
     let mut diverging_end_offset = EpochEndOffset::UNDEFINED_EPOCH_OFFSET;
     let mut current_leader_id = MetadataResponse::NO_LEADER_ID;
     let mut current_leader_epoch = RecordBatch::NO_PARTITION_LEADER_EPOCH;
     let mut snapshot_end_offset = EpochEndOffset::UNDEFINED_EPOCH_OFFSET;
     let mut snapshot_epoch = EpochEndOffset::UNDEFINED_EPOCH;
-    for (tag, value) in tags {
+    buf::visit_tagged_fields(buf, |tag, value| {
         match tag {
-            0 => (diverging_epoch, diverging_end_offset) = decode_diverging_epoch(&value)?,
-            1 => (current_leader_id, current_leader_epoch) = decode_current_leader(&value)?,
-            2 => (snapshot_end_offset, snapshot_epoch) = decode_snapshot_id(&value)?,
+            0 => (diverging_epoch, diverging_end_offset) = decode_diverging_epoch(value)?,
+            1 => (current_leader_id, current_leader_epoch) = decode_current_leader(value)?,
+            2 => (snapshot_end_offset, snapshot_epoch) = decode_snapshot_id(value)?,
             _ => {}
         }
-    }
+        Ok(())
+    })?;
     Ok((
         diverging_epoch,
         diverging_end_offset,

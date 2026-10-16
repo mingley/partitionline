@@ -919,8 +919,8 @@ pub(crate) fn encode_node_endpoints(endpoints: &[NodeEndpoint]) -> Result<Bytes>
 }
 
 /// Decode compact NodeEndpoints. Nested tagged fields must be leftover-empty.
-pub(crate) fn decode_node_endpoints(value: &Bytes) -> Result<Vec<NodeEndpoint>> {
-    let mut cur = value.as_ref();
+pub(crate) fn decode_node_endpoints(value: &[u8]) -> Result<Vec<NodeEndpoint>> {
+    let mut cur = value;
     let out = get_compact_node_endpoints(&mut cur)?;
     leftover_empty(&cur, "NodeEndpoints")?;
     Ok(out)
@@ -943,13 +943,13 @@ pub(crate) fn decode_top_level_node_endpoints<B: Buf>(
     buf: &mut B,
     include: bool,
 ) -> Result<Vec<NodeEndpoint>> {
-    let tags = buf::get_tagged_fields(buf)?;
     let mut endpoints = Vec::new();
-    for (tag, value) in tags {
+    buf::visit_tagged_fields(buf, |tag, value| {
         if include && tag == 0 {
-            endpoints = decode_node_endpoints(&value)?;
+            endpoints = decode_node_endpoints(value)?;
         }
-    }
+        Ok(())
+    })?;
     Ok(endpoints)
 }
 
@@ -3003,8 +3003,8 @@ fn encode_current_leader(leader_id: i32, leader_epoch: i32) -> Bytes {
     inner.freeze()
 }
 
-fn decode_current_leader(value: &Bytes) -> Result<(i32, i32)> {
-    let mut cur = value.as_ref();
+fn decode_current_leader(value: &[u8]) -> Result<(i32, i32)> {
+    let mut cur = value;
     let leader_id = buf::get_i32(&mut cur)?;
     let leader_epoch = buf::get_i32(&mut cur)?;
     buf::skip_tagged_fields(&mut cur)?;
@@ -3033,16 +3033,14 @@ fn encode_produce_partition_tags(
 }
 
 fn decode_produce_partition_tags<B: Buf>(buf: &mut B, version: i16) -> Result<(i32, i32)> {
-    let tags = buf::get_tagged_fields(buf)?;
     let mut current_leader_id = MetadataResponse::NO_LEADER_ID;
     let mut current_leader_epoch = RecordBatch::NO_PARTITION_LEADER_EPOCH;
-    if version >= 10 {
-        for (tag, value) in tags {
-            if tag == 0 {
-                (current_leader_id, current_leader_epoch) = decode_current_leader(&value)?;
-            }
+    buf::visit_tagged_fields(buf, |tag, value| {
+        if version >= 10 && tag == 0 {
+            (current_leader_id, current_leader_epoch) = decode_current_leader(value)?;
         }
-    }
+        Ok(())
+    })?;
     Ok((current_leader_id, current_leader_epoch))
 }
 
