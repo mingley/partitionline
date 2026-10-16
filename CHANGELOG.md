@@ -213,7 +213,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   empty (Java `handleShareFetchSuccess` completes piggyback acks and still
   delivers the fetch). A piggybacked `GROUP_AUTHORIZATION_FAILED` still
   completes without retry, including when `AcknowledgeErrorMessage` is
-  set (Java `handleShareFetchSuccess` completes piggyback acks and still
+  set or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
   delivers the fetch). A piggybacked `FENCED_LEADER_EPOCH` /
   `NOT_LEADER_OR_FOLLOWER` / `UNKNOWN_TOPIC_OR_PARTITION` /
   `UNKNOWN_TOPIC_ID` / `INCONSISTENT_TOPIC_ID` on one

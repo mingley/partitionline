@@ -689,7 +689,7 @@ pub enum ShareAcquireMode {
 /// `handleShareFetchSuccess` completes piggyback acks and still
 /// delivers the fetch). A piggybacked
 /// `GROUP_AUTHORIZATION_FAILED` still completes without retry,
-/// including when `AcknowledgeErrorMessage` is set (Java
+/// including when `AcknowledgeErrorMessage` is set or empty (Java
 /// `handleShareFetchSuccess` completes piggyback acks and still
 /// delivers the fetch). A piggybacked
 /// `FENCED_LEADER_EPOCH` / `NOT_LEADER_OR_FOLLOWER` /
@@ -1826,8 +1826,8 @@ impl ShareGroup {
     /// acks and still delivers the fetch).
     /// A piggybacked `GROUP_AUTHORIZATION_FAILED` still completes
     /// without retry, including when `AcknowledgeErrorMessage` is set
-    /// (Java `handleShareFetchSuccess` completes piggyback acks and
-    /// still delivers the fetch).
+    /// or empty (Java `handleShareFetchSuccess` completes piggyback
+    /// acks and still delivers the fetch).
     /// After [`Self::subscribe`] replaces the topic list, leftover
     /// acknowledgements for a previous topic still piggyback on that
     /// topic's leader while the new assignment is fetched (Java
