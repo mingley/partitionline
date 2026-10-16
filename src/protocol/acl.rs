@@ -1821,6 +1821,12 @@ pub fn encode_create_acls_request(
     reject_create_acls_java_constructors(acls)?;
     reject_v0_non_literal_acl_patterns(version, acls.iter())?;
     reject_create_acls_unknown_elements(acls)?;
+    let body_start = buf.len();
+    let planned = create_acls_request_len(version, flexible, acls)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf::put_array_len(buf, flexible, Some(acls.len()))?;
     for a in acls {
         buf.put_i8(a.resource_type);
@@ -1839,7 +1845,29 @@ pub fn encode_create_acls_request(
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn create_acls_request_len(version: i16, flexible: bool, acls: &[AclBinding]) -> Result<usize> {
+    let mut total = acl_array_len(flexible, acls.len())?;
+    for acl in acls {
+        total = add_acl_len(total, 1)?;
+        total = add_acl_len(total, acl_string_len(flexible, Some(&acl.resource_name))?)?;
+        if version >= 1 {
+            total = add_acl_len(total, 1)?;
+        }
+        total = add_acl_len(total, acl_string_len(flexible, Some(&acl.principal))?)?;
+        total = add_acl_len(total, acl_string_len(flexible, Some(&acl.host))?)?;
+        total = add_acl_len(total, 2)?;
+        if flexible {
+            total = add_acl_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    if flexible {
+        total = add_acl_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 /// Decode CreateAcls (all creations).
@@ -1905,6 +1933,12 @@ pub fn encode_create_acls_response_with_throttle(
     throttle_time_ms: i32,
 ) -> Result<()> {
     let flexible = acl_api_flexible(version)?;
+    let body_start = buf.len();
+    let planned = create_acls_response_len(flexible, results)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf.put_i32(throttle_time_ms);
     buf::put_array_len(buf, flexible, Some(results.len()))?;
     for r in results {
@@ -1917,7 +1951,27 @@ pub fn encode_create_acls_response_with_throttle(
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn create_acls_response_len(flexible: bool, results: &[AclCreationResult]) -> Result<usize> {
+    let mut total = 4;
+    total = add_acl_len(total, acl_array_len(flexible, results.len())?)?;
+    for result in results {
+        total = add_acl_len(total, 2)?;
+        total = add_acl_len(
+            total,
+            acl_string_len(flexible, result.error_message.as_deref())?,
+        )?;
+        if flexible {
+            total = add_acl_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    if flexible {
+        total = add_acl_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 /// Decode CreateAcls: per-binding [`AclCreationResult`]s.
@@ -1973,10 +2027,17 @@ pub fn encode_describe_acls_request(
         ));
     }
     reject_describe_acls_unknown_elements(filter)?;
+    let body_start = buf.len();
+    let planned = describe_acls_request_len(version, flexible, filter)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     put_acl_filter_fields(buf, version, flexible, filter)?;
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
 }
 
@@ -2078,6 +2139,12 @@ fn encode_describe_acls_response_body(
     reject_v0_non_literal_acl_patterns(version, acls.iter())?;
     reject_describe_acls_response_unknown_elements(acls)?;
     let resources = DescribeAclsResponse::acls_resources(acls);
+    let body_start = buf.len();
+    let planned = describe_acls_response_len(version, flexible, error_message, &resources)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf.put_i32(throttle_time_ms);
     buf.put_i16(error_code);
     buf::put_string(buf, flexible, error_message)?;
@@ -2105,7 +2172,109 @@ fn encode_describe_acls_response_body(
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn describe_acls_request_len(
+    version: i16,
+    flexible: bool,
+    filter: &AclBindingFilter,
+) -> Result<usize> {
+    let mut total = 1;
+    total = add_acl_len(
+        total,
+        acl_string_len(flexible, filter.resource_name.as_deref())?,
+    )?;
+    if version >= 1 {
+        total = add_acl_len(total, 1)?;
+    }
+    total = add_acl_len(
+        total,
+        acl_string_len(flexible, filter.principal.as_deref())?,
+    )?;
+    total = add_acl_len(total, acl_string_len(flexible, filter.host.as_deref())?)?;
+    total = add_acl_len(total, 2)?;
+    if flexible {
+        total = add_acl_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
+}
+
+fn describe_acls_response_len(
+    version: i16,
+    flexible: bool,
+    error_message: Option<&str>,
+    resources: &[DescribeAclsResource],
+) -> Result<usize> {
+    let mut total = 6;
+    total = add_acl_len(total, acl_string_len(flexible, error_message)?)?;
+    total = add_acl_len(total, acl_array_len(flexible, resources.len())?)?;
+    for resource in resources {
+        total = add_acl_len(total, 1)?;
+        total = add_acl_len(
+            total,
+            acl_string_len(flexible, Some(&resource.resource_name))?,
+        )?;
+        if version >= 1 {
+            total = add_acl_len(total, 1)?;
+        }
+        total = add_acl_len(total, acl_array_len(flexible, resource.acls.len())?)?;
+        for ace in &resource.acls {
+            total = add_acl_len(total, acl_string_len(flexible, Some(&ace.principal))?)?;
+            total = add_acl_len(total, acl_string_len(flexible, Some(&ace.host))?)?;
+            total = add_acl_len(total, 2)?;
+            if flexible {
+                total = add_acl_len(total, buf::unsigned_varint_size(0))?;
+            }
+        }
+        if flexible {
+            total = add_acl_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    if flexible {
+        total = add_acl_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
+}
+
+fn add_acl_len(total: usize, next: usize) -> Result<usize> {
+    total
+        .checked_add(next)
+        .ok_or_else(|| Error::protocol("acl response size overflow"))
+}
+
+fn acl_array_len(flexible: bool, len: usize) -> Result<usize> {
+    if flexible {
+        let value = buf::u32_from_usize(len)?
+            .checked_add(1)
+            .ok_or_else(|| Error::protocol("compact array overflow"))?;
+        Ok(buf::unsigned_varint_size(value))
+    } else {
+        let _len = buf::i32_from_usize(len)?;
+        Ok(4)
+    }
+}
+
+fn acl_string_len(flexible: bool, value: Option<&str>) -> Result<usize> {
+    match value {
+        None => Ok(if flexible {
+            buf::unsigned_varint_size(0)
+        } else {
+            2
+        }),
+        Some(value) => {
+            if flexible {
+                let encoded = buf::u32_from_usize(value.len())?
+                    .checked_add(1)
+                    .ok_or_else(|| Error::protocol("compact string overflow"))?;
+                Ok(buf::unsigned_varint_size(encoded).saturating_add(value.len()))
+            } else {
+                let _len = buf::i16_from_usize(value.len())?;
+                Ok(2usize.saturating_add(value.len()))
+            }
+        }
+    }
 }
 
 /// Decode DescribeAcls bindings. Top-level error returns an empty list.
@@ -3483,6 +3652,123 @@ mod tests {
             Some(0x02),
             "v2 grouped Resources compact length is 1"
         );
+    }
+
+    #[test]
+    fn a_create_acls_request_sizes_its_body_once() {
+        let acls = vec![
+            AclBinding::allow_topic("orders", "User:alice"),
+            AclBinding::allow_topic("payments", "User:bob"),
+        ];
+        for version in [0_i16, 1, 2] {
+            let mut buf = BytesMut::new();
+            encode_create_acls_request(&mut buf, version, &acls).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_create_acls_request(&mut buf, version, &acls).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+            let mut cur = &buf[..];
+            let decoded = decode_create_acls_request(&mut cur, version).unwrap();
+            assert!(cur.is_empty());
+            assert_eq!(decoded, acls);
+        }
+    }
+
+    #[test]
+    fn a_create_acls_response_sizes_its_body_once() {
+        let results = vec![
+            AclCreationResult {
+                error_code: 0,
+                error_message: None,
+            },
+            AclCreationResult {
+                error_code: 3,
+                error_message: Some("busy".into()),
+            },
+        ];
+        for version in [0_i16, 2] {
+            let mut buf = BytesMut::new();
+            encode_create_acls_response_with_throttle(&mut buf, version, &results, 12).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_create_acls_response_with_throttle(&mut buf, version, &results, 12).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+            let mut cur = &buf[..];
+            let (decoded, throttle) = decode_create_acls_response(&mut cur, version).unwrap();
+            assert!(cur.is_empty());
+            assert_eq!(decoded, results);
+            assert_eq!(throttle, 12);
+        }
+    }
+
+    #[test]
+    fn a_describe_acls_request_sizes_its_body_once() {
+        let filter = AclBindingFilter::resource_type(ACL_RESOURCE_TOPIC);
+        for version in [0_i16, 1, 2] {
+            let mut buf = BytesMut::new();
+            encode_describe_acls_request(&mut buf, version, &filter).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_describe_acls_request(&mut buf, version, &filter).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+            let mut cur = &buf[..];
+            let decoded = decode_describe_acls_request(&mut cur, version).unwrap();
+            assert!(cur.is_empty());
+            assert_eq!(decoded.resource_type, filter.resource_type);
+        }
+    }
+
+    #[test]
+    fn a_describe_acls_response_sizes_its_body_once() {
+        let acls = vec![
+            AclBinding::allow_topic("orders", "User:alice"),
+            AclBinding::allow_topic("orders", "User:bob"),
+            AclBinding::allow_topic("payments", "User:alice"),
+        ];
+        for version in [0_i16, 1, 2] {
+            let mut buf = BytesMut::new();
+            encode_describe_acls_response_with_error_message(
+                &mut buf,
+                version,
+                &acls,
+                Some("listed"),
+            )
+            .unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_describe_acls_response_with_error_message(
+                &mut buf,
+                version,
+                &acls,
+                Some("listed"),
+            )
+            .unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+            let mut cur = &buf[..];
+            let (decoded, throttle, message, error) =
+                decode_describe_acls_response(&mut cur, version).unwrap();
+            assert!(cur.is_empty());
+            assert_eq!(throttle, 0);
+            assert_eq!(message.as_deref(), Some("listed"));
+            assert_eq!(error, 0);
+            assert_eq!(decoded.len(), 3);
+        }
     }
 
     #[test]
