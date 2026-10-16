@@ -3456,13 +3456,12 @@ impl IncrementalAlterConfigsRequest {
 
     /// Java `IncrementalAlterConfigsRequest.getErrorResponse`.
     ///
-    /// Copies each resource name and type through
-    /// [`AlterableResource::error_result`]. `ErrorMessage` stays the JSON
-    /// default (null); official Java also sets the English
-    /// `Errors.message` string. Request configs are not copied.
-    /// ThrottleTimeMs stays the JSON default (`0`); official Java does
-    /// not set `ThrottleTimeMs` from the argument. Convenience encode
-    /// still writes `0`. This crate speaks 0–1. This is not
+    /// Each resource name and type is written from the caller.
+    /// `ErrorMessage` stays the JSON default (null); official Java also
+    /// sets the English `Errors.message` string. Request configs are not
+    /// written. ThrottleTimeMs stays the JSON default (`0`); official
+    /// Java does not set `ThrottleTimeMs` from the argument. Convenience
+    /// encode still writes `0`. This crate speaks 0–1. This is not
     /// [`Self::from_configs`] / [`AlterableResource::error_result`]
     /// leftover / [`IncrementalAlterConfigsResponse::from_errors`].
     pub fn error_response(
@@ -3471,8 +3470,7 @@ impl IncrementalAlterConfigsRequest {
         resources: &[AlterableResource],
         error_code: i16,
     ) -> crate::error::Result<()> {
-        let results = AlterConfigsResourceResult::error_results(resources, error_code);
-        encode_incremental_alter_configs_resource_results(buf, version, &results)
+        encode_incremental_alter_configs_error_response(buf, version, resources, error_code)
     }
 }
 
@@ -3753,6 +3751,62 @@ fn incremental_alter_configs_response_len(
         )?;
         total = add_describe_len(total, 1)?;
         total = add_describe_len(total, describe_string_len(flexible, Some(&result.name))?)?;
+        if flexible {
+            total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    if flexible {
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
+}
+
+/// IncrementalAlterConfigs error body written from the request resources.
+///
+/// The bytes match [`AlterableResource::error_result`] with ThrottleTimeMs
+/// `0`. Request configs are omitted.
+fn encode_incremental_alter_configs_error_response(
+    buf: &mut BytesMut,
+    version: i16,
+    resources: &[AlterableResource],
+    error_code: i16,
+) -> crate::error::Result<()> {
+    let flexible = incremental_alter_configs_flexible(version)?;
+    let body_start = buf.len();
+    let planned = incremental_alter_configs_error_len(flexible, resources)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
+    buf.put_i32(0);
+    buf::put_array_len(buf, flexible, Some(resources.len()))?;
+    for resource in resources {
+        buf.put_i16(error_code);
+        buf::put_string(buf, flexible, None)?;
+        buf.put_i8(resource.resource_type);
+        buf::put_string(buf, flexible, Some(&resource.name))?;
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+    }
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+    Ok(())
+}
+
+fn incremental_alter_configs_error_len(
+    flexible: bool,
+    resources: &[AlterableResource],
+) -> Result<usize> {
+    let mut total = 4usize;
+    total = add_describe_len(total, describe_array_len(flexible, resources.len())?)?;
+    for resource in resources {
+        total = add_describe_len(total, 2)?;
+        total = add_describe_len(total, describe_string_len(flexible, None)?)?;
+        total = add_describe_len(total, 1)?;
+        total = add_describe_len(total, describe_string_len(flexible, Some(&resource.name))?)?;
         if flexible {
             total = add_describe_len(total, buf::unsigned_varint_size(0))?;
         }
@@ -26833,6 +26887,64 @@ mod tests {
             &v1_with[..],
             "v1 adds compact arrays/strings plus tagged fields"
         );
+    }
+
+    #[test]
+    fn incremental_alter_configs_error_response_matches_named_results() {
+        let resources = [
+            AlterableResource {
+                resource_type: RESOURCE_TOPIC,
+                name: "orders-topic-name-is-long".into(),
+                configs: vec![AlterConfig::set("cleanup.policy", "compact")],
+            },
+            AlterableResource {
+                resource_type: RESOURCE_BROKER,
+                name: "1".into(),
+                configs: vec![AlterConfig::delete("log.retention.ms")],
+            },
+        ];
+        for version in [0_i16, 1] {
+            let results =
+                AlterConfigsResourceResult::error_results(&resources, crate::error::NOT_CONTROLLER);
+            let mut expected = BytesMut::new();
+            encode_incremental_alter_configs_resource_results(&mut expected, version, &results)
+                .unwrap();
+            let mut got = BytesMut::new();
+            IncrementalAlterConfigsRequest::error_response(
+                &mut got,
+                version,
+                &resources,
+                crate::error::NOT_CONTROLLER,
+            )
+            .unwrap();
+            assert_eq!(got.as_ref(), expected.as_ref(), "version {version}");
+            let len = got.len();
+            let capacity = got.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            got.clear();
+            IncrementalAlterConfigsRequest::error_response(
+                &mut got,
+                version,
+                &resources,
+                crate::error::NOT_CONTROLLER,
+            )
+            .unwrap();
+            assert_eq!(got.len(), len);
+            assert_eq!(got.capacity(), capacity);
+        }
+        let mut empty = BytesMut::new();
+        IncrementalAlterConfigsRequest::error_response(&mut empty, 1, &[], 41).unwrap();
+        let mut expected_empty = BytesMut::new();
+        encode_incremental_alter_configs_resource_results(&mut expected_empty, 1, &[]).unwrap();
+        assert_eq!(empty.as_ref(), expected_empty.as_ref());
+        assert!(IncrementalAlterConfigsRequest::error_response(
+            &mut BytesMut::new(),
+            2,
+            &resources,
+            41
+        )
+        .is_err());
     }
 
     #[test]
