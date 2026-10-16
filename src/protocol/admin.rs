@@ -4439,10 +4439,11 @@ impl DeleteRecordsRequest {
 
     /// Java `DeleteRecordsRequest.getErrorResponse`.
     ///
-    /// Copies each topic name and partition index. Each partition is
-    /// [`DeletedRecordsPartition::error`] (`INVALID_LOW_WATERMARK`).
-    /// ThrottleTimeMs is written on every spoken version from
-    /// `throttle_time_ms` (Java always calls `setThrottleTimeMs`).
+    /// Each topic name and partition index is written from the caller.
+    /// Each partition low watermark is
+    /// [`DeletedRecordsPartition::INVALID_LOW_WATERMARK`]. Request offsets
+    /// are not written. ThrottleTimeMs is written on every spoken version
+    /// from `throttle_time_ms` (Java always calls `setThrottleTimeMs`).
     pub fn error_response(
         buf: &mut BytesMut,
         version: i16,
@@ -4450,14 +4451,7 @@ impl DeleteRecordsRequest {
         error_code: i16,
         throttle_time_ms: i32,
     ) -> crate::error::Result<()> {
-        let results: Vec<DeletedRecordsTopic> =
-            topics.iter().map(|t| t.error_result(error_code)).collect();
-        encode_delete_records_topics_response_with_throttle(
-            buf,
-            version,
-            &results,
-            throttle_time_ms,
-        )
+        encode_delete_records_error_response(buf, version, topics, error_code, throttle_time_ms)
     }
 }
 
@@ -4832,6 +4826,70 @@ pub fn encode_delete_records_topics_response_with_throttle(
 
 fn delete_records_response_len(flexible: bool, topics: &[DeletedRecordsTopic]) -> Result<usize> {
     let mut total = 4;
+    total = add_describe_len(total, describe_array_len(flexible, topics.len())?)?;
+    for topic in topics {
+        total = add_describe_len(total, describe_string_len(flexible, Some(&topic.topic))?)?;
+        total = add_describe_len(total, describe_array_len(flexible, topic.partitions.len())?)?;
+        for _partition in &topic.partitions {
+            total = add_describe_len(total, 14)?;
+            if flexible {
+                total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+            }
+        }
+        if flexible {
+            total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    if flexible {
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
+}
+
+/// DeleteRecords error body written from the request topics.
+///
+/// The bytes match [`DeleteRecordsTopic::error_result`]: each partition
+/// low watermark is [`DeletedRecordsPartition::INVALID_LOW_WATERMARK`].
+fn encode_delete_records_error_response(
+    buf: &mut BytesMut,
+    version: i16,
+    topics: &[DeleteRecordsTopic],
+    error_code: i16,
+    throttle_time_ms: i32,
+) -> crate::error::Result<()> {
+    let flexible = delete_records_flexible(version)?;
+    let body_start = buf.len();
+    let planned = delete_records_error_len(flexible, topics)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
+    buf.put_i32(throttle_time_ms);
+    buf::put_array_len(buf, flexible, Some(topics.len()))?;
+    for topic in topics {
+        buf::put_string(buf, flexible, Some(&topic.topic))?;
+        buf::put_array_len(buf, flexible, Some(topic.partitions.len()))?;
+        for partition in &topic.partitions {
+            buf.put_i32(partition.partition);
+            buf.put_i64(DeletedRecordsPartition::INVALID_LOW_WATERMARK);
+            buf.put_i16(error_code);
+            if flexible {
+                buf::put_empty_tagged_fields(buf);
+            }
+        }
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+    }
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+    Ok(())
+}
+
+fn delete_records_error_len(flexible: bool, topics: &[DeleteRecordsTopic]) -> Result<usize> {
+    let mut total = 4usize;
     total = add_describe_len(total, describe_array_len(flexible, topics.len())?)?;
     for topic in topics {
         total = add_describe_len(total, describe_string_len(flexible, Some(&topic.topic))?)?;
@@ -28745,6 +28803,83 @@ mod tests {
         assert!(
             !cur.has_remaining(),
             "DeleteRecords v2 Topics-of-2 response leftover-empty"
+        );
+    }
+
+    #[test]
+    fn delete_records_error_response_matches_named_results() {
+        let topics = [
+            DeleteRecordsTopic {
+                topic: "orders-topic-name-is-long".into(),
+                partitions: vec![
+                    DeleteRecordsPartition {
+                        partition: 0,
+                        offset: 10,
+                    },
+                    DeleteRecordsPartition {
+                        partition: 2,
+                        offset: 40,
+                    },
+                ],
+            },
+            DeleteRecordsTopic {
+                topic: "t".into(),
+                partitions: Vec::new(),
+            },
+        ];
+        for version in 0..=2 {
+            for throttle in [0_i32, 12] {
+                let results: Vec<DeletedRecordsTopic> = topics
+                    .iter()
+                    .map(|topic| topic.error_result(crate::error::NOT_CONTROLLER))
+                    .collect();
+                let mut expected = BytesMut::new();
+                encode_delete_records_topics_response_with_throttle(
+                    &mut expected,
+                    version,
+                    &results,
+                    throttle,
+                )
+                .unwrap();
+                let mut got = BytesMut::new();
+                DeleteRecordsRequest::error_response(
+                    &mut got,
+                    version,
+                    &topics,
+                    crate::error::NOT_CONTROLLER,
+                    throttle,
+                )
+                .unwrap();
+                assert_eq!(
+                    got.as_ref(),
+                    expected.as_ref(),
+                    "version {version} throttle {throttle}"
+                );
+                let len = got.len();
+                let capacity = got.capacity();
+                assert!(capacity >= len);
+                assert!(capacity < 64 * 1024);
+                got.clear();
+                DeleteRecordsRequest::error_response(
+                    &mut got,
+                    version,
+                    &topics,
+                    crate::error::NOT_CONTROLLER,
+                    throttle,
+                )
+                .unwrap();
+                assert_eq!(got.len(), len);
+                assert_eq!(got.capacity(), capacity);
+            }
+        }
+        let mut empty = BytesMut::new();
+        DeleteRecordsRequest::error_response(&mut empty, 2, &[], 41, 1).unwrap();
+        let mut expected_empty = BytesMut::new();
+        encode_delete_records_topics_response_with_throttle(&mut expected_empty, 2, &[], 1)
+            .unwrap();
+        assert_eq!(empty.as_ref(), expected_empty.as_ref());
+        assert!(
+            DeleteRecordsRequest::error_response(&mut BytesMut::new(), 3, &topics, 41, 0).is_err()
         );
     }
 
