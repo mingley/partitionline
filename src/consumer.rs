@@ -2007,7 +2007,7 @@ pub struct Consumer {
     /// Leaders whose Fetch was sent and not yet applied. A multi-leader round
     /// returns after [`MULTI_LEADER_COLLECTION_WINDOW`] once any peer has
     /// responded, and these tasks finish on a later `fetch`.
-    inflight_fetches: Option<tokio::task::JoinSet<(FetchReply, BrokerConn)>>,
+    inflight_fetches: Option<tokio::task::JoinSet<(FetchReply, BrokerConn, SessionFetchRequest)>>,
     inflight_nodes: HashSet<i32>,
 }
 
@@ -2035,7 +2035,7 @@ struct FetchReply {
 /// Aborts parked leader tasks if this round is cancelled before they are
 /// stored back on the consumer.
 struct InflightFetches {
-    set: Option<tokio::task::JoinSet<(FetchReply, BrokerConn)>>,
+    set: Option<tokio::task::JoinSet<(FetchReply, BrokerConn, SessionFetchRequest)>>,
     pending: HashSet<i32>,
 }
 
@@ -2063,13 +2063,17 @@ impl InflightFetches {
 
 /// Take fetch replies that have already finished. Does not wait.
 fn reap_fetch_replies(
-    set: &mut tokio::task::JoinSet<(FetchReply, BrokerConn)>,
+    set: &mut tokio::task::JoinSet<(FetchReply, BrokerConn, SessionFetchRequest)>,
     conns: &mut HashMap<i32, BrokerConn>,
+    sessions: &mut HashMap<i32, BrokerFetchSession>,
 ) -> Result<Vec<FetchReply>> {
     let mut ready = Vec::new();
     while let Some(joined) = set.try_join_next() {
-        let (reply, conn) =
+        let (reply, conn, request) =
             joined.map_err(|error| Error::protocol(format!("fetch task: {error}")))?;
+        if let Some(session) = sessions.get_mut(&reply.node) {
+            session.reclaim_request_partitions(request);
+        }
         let _ = conns.insert(reply.node, conn);
         ready.push(reply);
     }
@@ -2124,6 +2128,9 @@ struct BrokerFetchSession {
     stamp: u64,
     /// Reused incremental-request scratch. Drained into the request.
     changed: ChangedFetch,
+    /// Partition lists from the previous incremental fetch. The next poll
+    /// clears and refills one instead of allocating it again.
+    spare_changed_parts: Vec<Vec<FetchPartition>>,
     /// Topic id to the stored topic name. Rebuilt when a partition is added,
     /// removed, or given a new id.
     id_names: SessionIdNames,
@@ -2139,6 +2146,7 @@ impl Default for BrokerFetchSession {
             awaiting_response: false,
             stamp: 0,
             changed: HashMap::new(),
+            spare_changed_parts: Vec::new(),
             id_names: HashMap::new(),
             id_names_dirty: false,
         }
@@ -2323,7 +2331,7 @@ impl BrokerFetchSession {
             self.reset();
         }
         self.version = Some(version);
-        self.changed.clear();
+        self.recycle_changed();
         self.stamp = self.stamp.wrapping_add(1);
         if self.stamp == 0 {
             for parts in self.partitions.values_mut() {
@@ -2342,7 +2350,7 @@ impl BrokerFetchSession {
                     .partitions
                     .insert(Arc::clone(topic.topic), SessionParts::new());
             }
-            let mut changed_parts = Vec::new();
+            let mut changed_parts = self.take_changed_parts();
             let mut replaced_here: Vec<([u8; 16], i32)> = Vec::new();
             if let Some(slot) = self.partitions.get_mut(topic.topic.as_ref()) {
                 for partition in topic.partitions {
@@ -2380,13 +2388,18 @@ impl BrokerFetchSession {
                     }
                 }
             }
-            if let Some(entry) = self.changed.get_mut(topic.topic.as_ref()) {
-                entry.0 = topic.topic_id;
-                entry.1.append(&mut changed_parts);
+            if self.changed.contains_key(topic.topic.as_ref()) {
+                if let Some(entry) = self.changed.get_mut(topic.topic.as_ref()) {
+                    entry.0 = topic.topic_id;
+                    entry.1.append(&mut changed_parts);
+                }
+                self.park_changed_parts(changed_parts);
             } else if !changed_parts.is_empty() {
                 let _ = self
                     .changed
                     .insert(Arc::clone(topic.topic), (topic.topic_id, changed_parts));
+            } else {
+                self.park_changed_parts(changed_parts);
             }
             if !replaced_here.is_empty() {
                 if let Some((name, _)) = self.partitions.get_key_value(topic.topic.as_ref()) {
@@ -2452,6 +2465,34 @@ impl BrokerFetchSession {
             metadata: self.metadata,
             topics,
             forgotten,
+        }
+    }
+
+    fn recycle_changed(&mut self) {
+        let mut drained = std::mem::take(&mut self.changed);
+        for (_, (_, parts)) in drained.drain() {
+            self.park_changed_parts(parts);
+        }
+        self.changed = drained;
+    }
+
+    fn take_changed_parts(&mut self) -> Vec<FetchPartition> {
+        let mut parts = self.spare_changed_parts.pop().unwrap_or_default();
+        parts.clear();
+        parts
+    }
+
+    fn park_changed_parts(&mut self, mut parts: Vec<FetchPartition>) {
+        parts.clear();
+        if parts.capacity() == 0 {
+            return;
+        }
+        self.spare_changed_parts.push(parts);
+    }
+
+    fn reclaim_request_partitions(&mut self, request: SessionFetchRequest) {
+        for topic in request.topics {
+            self.park_changed_parts(topic.partitions);
         }
     }
 
@@ -5415,7 +5456,7 @@ impl Consumer {
         let Some(mut set) = self.inflight_fetches.take() else {
             return Err(Error::Timeout);
         };
-        let ready = match reap_fetch_replies(&mut set, &mut self.conns) {
+        let ready = match reap_fetch_replies(&mut set, &mut self.conns, &mut self.fetch_sessions) {
             Ok(ready) => ready,
             Err(error) => {
                 self.inflight_fetches = Some(set);
@@ -5682,12 +5723,17 @@ impl Consumer {
                             .roundtrip(FETCH, fetch_version, encode, timeout)
                             .await
                     } else {
-                        let conn = self
-                            .conns
-                            .get_mut(&node)
-                            .ok_or_else(|| Error::protocol("missing fetch conn"))?;
+                        let Some(conn) = self.conns.get_mut(&node) else {
+                            if let Some(session) = self.fetch_sessions.get_mut(&node) {
+                                session.reclaim_request_partitions(request);
+                            }
+                            return Err(Error::protocol("missing fetch conn"));
+                        };
                         conn.roundtrip(FETCH, fetch_version, encode, timeout).await
                     };
+                    if let Some(session) = self.fetch_sessions.get_mut(&node) {
+                        session.reclaim_request_partitions(request);
+                    }
                     (fetch_version, body)
                 };
                 out.push(FetchReply {
@@ -5742,6 +5788,9 @@ impl Consumer {
             let rack = rack.clone();
             let _ = inflight.pending.insert(node);
             let Some(set) = inflight.set.as_mut() else {
+                if let Some(session) = self.fetch_sessions.get_mut(&node) {
+                    session.reclaim_request_partitions(request);
+                }
                 self.park_connected(nodes);
                 return Err(Error::protocol("inflight fetch set missing"));
             };
@@ -5775,6 +5824,7 @@ impl Consumer {
                         body: result,
                     },
                     conn,
+                    request,
                 )
             });
         }
@@ -5809,7 +5859,11 @@ impl Consumer {
             let Some(joined) = joined else {
                 break;
             };
-            let (reply, conn) = joined.map_err(|e| Error::protocol(format!("fetch task: {e}")))?;
+            let (reply, conn, request) =
+                joined.map_err(|e| Error::protocol(format!("fetch task: {e}")))?;
+            if let Some(session) = self.fetch_sessions.get_mut(&reply.node) {
+                session.reclaim_request_partitions(request);
+            }
             let _ = inflight.pending.remove(&reply.node);
             let _ = self.conns.insert(reply.node, conn);
             if first_reply.is_none() {
@@ -5820,7 +5874,7 @@ impl Consumer {
         // A reply can land in the instant the deadline ends the wait. Take it
         // before parking the brokers that are still running.
         let reaped = if let Some(set) = inflight.set.as_mut() {
-            reap_fetch_replies(set, &mut self.conns)
+            reap_fetch_replies(set, &mut self.conns, &mut self.fetch_sessions)
         } else {
             Ok(Vec::new())
         };
@@ -9236,6 +9290,20 @@ mod tests {
                 .first()
                 .map(|item| Arc::as_ptr(&item.topic)),
             Some(Arc::as_ptr(&topic.topic))
+        );
+        let kept = incremental
+            .topics
+            .first()
+            .map(|item| item.partitions.as_ptr())
+            .expect("partition list");
+        session.response(&session_header(0, 91), 12).unwrap();
+        session.reclaim_request_partitions(incremental);
+        let mut again = session_topic([1; 16], 6);
+        again.topic = Arc::clone(&topic.topic);
+        let next = session.prepare(&[again.as_plan()], 12);
+        assert_eq!(
+            next.topics.first().map(|item| item.partitions.as_ptr()),
+            Some(kept)
         );
     }
 
