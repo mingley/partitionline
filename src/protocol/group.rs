@@ -754,12 +754,15 @@ fn check_assignment_version(version: i16) -> Result<i16> {
 
 /// Group assigned partitions by first-seen topic (Java
 /// `ConsumerProtocol.serializeAssignment`; not sorted).
-fn group_assigned_partitions(parts: &[(String, i32)]) -> Vec<(String, Vec<i32>)> {
-    let mut by_topic: Vec<(String, Vec<i32>)> = Vec::new();
+fn group_assigned_partitions(parts: &[(String, i32)]) -> Vec<(&str, Vec<i32>)> {
+    let mut by_topic: Vec<(&str, Vec<i32>)> = Vec::new();
     for (topic, part) in parts {
-        match by_topic.iter_mut().find(|(t, _)| t == topic) {
-            Some((_, ps)) => ps.push(*part),
-            None => by_topic.push((topic.clone(), vec![*part])),
+        match by_topic
+            .iter_mut()
+            .find(|(name, _)| *name == topic.as_str())
+        {
+            Some((_, partitions)) => partitions.push(*part),
+            None => by_topic.push((topic.as_str(), vec![*part])),
         }
     }
     by_topic
@@ -6187,10 +6190,10 @@ pub fn encode_owned_assignment(topics: &[(String, Vec<i32>)]) -> Result<Vec<u8>>
     Ok(Vec::from(buf))
 }
 
-fn write_assignment_topics(
+fn write_assignment_topics<T: AsRef<str>>(
     buf: &mut BytesMut,
     version: i16,
-    by_topic: &[(String, Vec<i32>)],
+    by_topic: &[(T, Vec<i32>)],
 ) -> Result<()> {
     let body_start = buf.len();
     let planned = assignment_topics_len(by_topic)?;
@@ -6201,7 +6204,7 @@ fn write_assignment_topics(
     buf.put_i16(version);
     buf::put_array_len(buf, false, Some(by_topic.len()))?;
     for (topic, parts) in by_topic {
-        buf::put_classic_nullable_string(buf, Some(topic))?;
+        buf::put_classic_nullable_string(buf, Some(topic.as_ref()))?;
         buf::put_array_len(buf, false, Some(parts.len()))?;
         for partition in parts {
             buf.put_i32(*partition);
@@ -6212,11 +6215,11 @@ fn write_assignment_topics(
     Ok(())
 }
 
-fn assignment_topics_len(by_topic: &[(String, Vec<i32>)]) -> Result<usize> {
+fn assignment_topics_len<T: AsRef<str>>(by_topic: &[(T, Vec<i32>)]) -> Result<usize> {
     let mut total = 2usize;
     total = add_group_len(total, group_array_len(false, by_topic.len())?)?;
     for (topic, parts) in by_topic {
-        total = add_group_len(total, group_string_len(false, Some(topic))?)?;
+        total = add_group_len(total, group_string_len(false, Some(topic.as_ref()))?)?;
         total = add_group_len(total, group_array_len(false, parts.len())?)?;
         total = add_group_len(total, partition_indexes_len(parts.len())?)?;
     }
@@ -6234,7 +6237,14 @@ fn named_partition(topic: &mut String, index: usize, count: usize) -> String {
 
 /// Group `(topic, partition)` pairs by topic, preserving first-seen order.
 pub fn encode_tp_assignment(parts: &[(String, i32)]) -> Result<Vec<u8>> {
-    ConsumerProtocol::serialize_assignment(&ConsumerProtocolAssignment::new(parts.to_vec()))
+    let by_topic = group_assigned_partitions(parts);
+    let mut buf = BytesMut::new();
+    write_assignment_topics(
+        &mut buf,
+        ConsumerProtocol::HIGHEST_SUPPORTED_VERSION,
+        &by_topic,
+    )?;
+    Ok(Vec::from(buf))
 }
 
 /// Decode ConsumerProtocol assignment: `(topic, partitions)` per topic.
@@ -9811,6 +9821,18 @@ mod tests {
         assert!(direct.capacity() < 64 * 1024);
         assert!(owned_asg.capacity() >= owned_asg.len());
         assert!(owned_asg.capacity() < 64 * 1024);
+        let flat = [
+            ("orders".into(), 2),
+            ("payments".into(), 1),
+            ("orders".into(), 0),
+        ];
+        let grouped = encode_tp_assignment(&flat).unwrap();
+        let via =
+            ConsumerProtocol::serialize_assignment(&ConsumerProtocolAssignment::new(flat.to_vec()))
+                .unwrap();
+        assert_eq!(grouped, via);
+        assert!(grouped.capacity() >= grouped.len());
+        assert!(grouped.capacity() < 64 * 1024);
     }
 
     #[test]
