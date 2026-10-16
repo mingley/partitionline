@@ -3479,6 +3479,16 @@ pub fn decode_produce_response_with_topic_ids<B: Buf>(
     decode_produce_response_fields(buf, 13)
 }
 
+fn reserve_additional<T>(items: &mut Vec<T>, additional: usize) -> Result<()> {
+    let need = items.len().saturating_add(additional);
+    if items.capacity() < need {
+        items
+            .try_reserve_exact(need - items.capacity())
+            .map_err(|_| Error::protocol("produce response reserve"))?;
+    }
+    Ok(())
+}
+
 fn decode_produce_response_fields<B: Buf>(
     buf: &mut B,
     version: i16,
@@ -3496,6 +3506,10 @@ fn decode_produce_response_fields<B: Buf>(
             String::new()
         };
         let part_count = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+        reserve_additional(&mut out, part_count)?;
+        if version >= 13 {
+            reserve_additional(&mut identities, part_count)?;
+        }
         for index in 0..part_count {
             let partition = buf::get_i32(buf)?;
             let error_code = buf::get_i16(buf)?;
@@ -3629,6 +3643,7 @@ pub(crate) fn decode_produce_acks_into(
             Bytes::new()
         };
         let part_count = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+        reserve_additional(acks, part_count)?;
         for index in 0..part_count {
             let partition = buf::get_i32(buf)?;
             let error_code = buf::get_i16(buf)?;
@@ -3746,6 +3761,34 @@ mod tests {
         assert_eq!(decoded.get(1).map(|part| part.topic.as_str()), Some(topic));
         assert_eq!(decoded.first().map(|part| part.partition), Some(0));
         assert_eq!(decoded.get(1).map(|part| part.partition), Some(3));
+    }
+
+    #[test]
+    fn a_produce_ack_sizes_every_partition_once() {
+        let parts: Vec<_> = (0..5)
+            .map(|partition| {
+                ProducePartitionResponse::partition_response_with_offsets(
+                    "orders", partition, 0, 10, 20, 1,
+                )
+            })
+            .collect();
+        let mut buf = BytesMut::new();
+        encode_produce_response(&mut buf, 9, &parts).unwrap();
+        let encoded = buf.freeze();
+        let mut raw = encoded.clone();
+        let mut acks = Vec::new();
+        let (_endpoints, _throttle) = decode_produce_acks_into(&mut raw, 9, &mut acks).unwrap();
+        assert_eq!(acks.len(), 5);
+        let capacity = acks.capacity();
+        assert!(capacity >= 5);
+        let mut again = encoded.clone();
+        let (_endpoints, _throttle) = decode_produce_acks_into(&mut again, 9, &mut acks).unwrap();
+        assert_eq!(acks.capacity(), capacity);
+        assert_eq!(acks.len(), 5);
+        let mut named = encoded;
+        let (decoded, _, _) = decode_produce_response(&mut named, 9).unwrap();
+        assert_eq!(decoded.len(), 5);
+        assert!(decoded.capacity() >= 5);
     }
 
     #[test]
