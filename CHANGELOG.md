@@ -227,7 +227,11 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `INCONSISTENT_TOPIC_ID` still fails that poll without Metadata,
   including when `ErrorMessage` is set or empty (Java
   `handleShareFetchSuccess` only `requestUpdate`s for top-level
-  `UNKNOWN_TOPIC_ID`). A non-empty
+  `UNKNOWN_TOPIC_ID`). Top-level `FENCED_LEADER_EPOCH` still fails that
+  poll without Metadata, including when `ErrorMessage` is set (Java
+  `handleShareFetchSuccess` only `requestUpdate`s for top-level
+  `UNKNOWN_TOPIC_ID`; a partition `FENCED_LEADER_EPOCH` still skips
+  and requests Metadata when CurrentLeader is unused). A non-empty
   throwable partition or top-level ShareFetch `ErrorMessage` is
   preferred; empty uses `ShareFetch {topic}-{partition}` or
   `ShareFetch`. A sole partition
