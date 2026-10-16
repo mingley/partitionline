@@ -873,6 +873,12 @@ pub fn encode_add_offsets_to_txn_request(
     group_id: &str,
 ) -> crate::error::Result<()> {
     let flexible = add_offsets_to_txn_flexible(version)?;
+    let body_start = buf.len();
+    let planned = add_offsets_request_len(flexible, transactional_id, group_id)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf::put_string(buf, flexible, Some(transactional_id))?;
     buf.put_i64(producer_id);
     buf.put_i16(producer_epoch);
@@ -880,7 +886,22 @@ pub fn encode_add_offsets_to_txn_request(
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn add_offsets_request_len(
+    flexible: bool,
+    transactional_id: &str,
+    group_id: &str,
+) -> Result<usize> {
+    let mut total = txn_string_len(flexible, transactional_id)?;
+    total = add_txn_len(total, 10)?;
+    total = add_txn_len(total, txn_string_len(flexible, group_id)?)?;
+    if flexible {
+        total = add_txn_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 /// Decode AddOffsetsToTxn: `(transactional_id, group_id, producer_id, producer_epoch)`.
@@ -925,12 +946,27 @@ pub fn encode_add_offsets_to_txn_response_with_throttle(
     throttle_time_ms: i32,
 ) -> Result<()> {
     let flexible = add_offsets_to_txn_flexible(version)?;
+    let body_start = buf.len();
+    let planned = add_offsets_response_len(flexible)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf.put_i32(throttle_time_ms);
     buf.put_i16(error);
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn add_offsets_response_len(flexible: bool) -> Result<usize> {
+    let mut total = 6usize;
+    if flexible {
+        total = add_txn_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 /// Decode AddOffsetsToTxn: `(error_code, throttle_time_ms)`.
@@ -974,6 +1010,12 @@ pub fn encode_end_txn_request(
     committed: bool,
 ) -> crate::error::Result<()> {
     let flexible = end_txn_flexible(version)?;
+    let body_start = buf.len();
+    let planned = end_txn_request_len(flexible, transactional_id)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf::put_string(buf, flexible, Some(transactional_id))?;
     buf.put_i64(producer_id);
     buf.put_i16(producer_epoch);
@@ -981,7 +1023,17 @@ pub fn encode_end_txn_request(
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn end_txn_request_len(flexible: bool, transactional_id: &str) -> Result<usize> {
+    let mut total = txn_string_len(flexible, transactional_id)?;
+    total = add_txn_len(total, 11)?;
+    if flexible {
+        total = add_txn_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 /// Decode EndTxn: `(transactional_id, producer_id, producer_epoch, committed)`.
@@ -1032,6 +1084,12 @@ pub fn encode_end_txn_response_with_throttle(
     throttle_time_ms: i32,
 ) -> Result<()> {
     let flexible = end_txn_flexible(version)?;
+    let body_start = buf.len();
+    let planned = end_txn_response_len(version, flexible)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf.put_i32(throttle_time_ms);
     buf.put_i16(error);
     if version > EndTxnRequest::LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2 {
@@ -1041,7 +1099,19 @@ pub fn encode_end_txn_response_with_throttle(
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn end_txn_response_len(version: i16, flexible: bool) -> Result<usize> {
+    let mut total = 6usize;
+    if version > EndTxnRequest::LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2 {
+        total = add_txn_len(total, 10)?;
+    }
+    if flexible {
+        total = add_txn_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 /// Decode EndTxn: `(error, producer_id, producer_epoch, throttle_time_ms)`.
@@ -7070,6 +7140,86 @@ mod tests {
         let mut buf = BytesMut::new();
         encode_add_offsets_to_txn_response(&mut buf, 3, 0).unwrap();
         assert_eq!(&buf[..], RESP);
+    }
+
+    #[test]
+    fn a_add_offsets_and_end_txn_size_their_bodies_once() {
+        for version in [0_i16, 2, 3, 4] {
+            let mut buf = BytesMut::new();
+            encode_add_offsets_to_txn_request(&mut buf, version, "txn-1", 9, 1, "group").unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_add_offsets_to_txn_request(&mut buf, version, "txn-1", 9, 1, "group").unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+            let mut cur = &buf[..];
+            let (tid, gid, producer_id, epoch) =
+                decode_add_offsets_to_txn_request(&mut cur, version).unwrap();
+            assert!(cur.is_empty());
+            assert_eq!(tid, "txn-1");
+            assert_eq!(gid, "group");
+            assert_eq!(producer_id, 9);
+            assert_eq!(epoch, 1);
+
+            let mut out = BytesMut::new();
+            encode_add_offsets_to_txn_response_with_throttle(&mut out, version, 0, 5).unwrap();
+            let out_len = out.len();
+            let out_capacity = out.capacity();
+            out.clear();
+            encode_add_offsets_to_txn_response_with_throttle(&mut out, version, 0, 5).unwrap();
+            assert_eq!(out.len(), out_len);
+            assert_eq!(out.capacity(), out_capacity);
+            let mut cur = &out[..];
+            let (error, throttle) = decode_add_offsets_to_txn_response(&mut cur, version).unwrap();
+            assert!(cur.is_empty());
+            assert_eq!(error, 0);
+            assert_eq!(throttle, 5);
+        }
+        for version in [0_i16, 2, 3, 5] {
+            let mut buf = BytesMut::new();
+            encode_end_txn_request(&mut buf, version, "txn-1", 9, 1, true).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_end_txn_request(&mut buf, version, "txn-1", 9, 1, true).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+            let mut cur = &buf[..];
+            let (tid, producer_id, epoch, committed) =
+                decode_end_txn_request(&mut cur, version).unwrap();
+            assert!(cur.is_empty());
+            assert_eq!(tid, "txn-1");
+            assert_eq!(producer_id, 9);
+            assert_eq!(epoch, 1);
+            assert!(committed);
+
+            let mut out = BytesMut::new();
+            encode_end_txn_response_with_throttle(&mut out, version, 0, 9, 2, 5).unwrap();
+            let out_len = out.len();
+            let out_capacity = out.capacity();
+            out.clear();
+            encode_end_txn_response_with_throttle(&mut out, version, 0, 9, 2, 5).unwrap();
+            assert_eq!(out.len(), out_len);
+            assert_eq!(out.capacity(), out_capacity);
+            let mut cur = &out[..];
+            let (error, producer_id, epoch, throttle) =
+                decode_end_txn_response(&mut cur, version).unwrap();
+            assert!(cur.is_empty());
+            assert_eq!(error, 0);
+            assert_eq!(throttle, 5);
+            if version > EndTxnRequest::LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2 {
+                assert_eq!(producer_id, 9);
+                assert_eq!(epoch, 2);
+            } else {
+                assert_eq!(producer_id, RecordBatch::NO_PRODUCER_ID);
+                assert_eq!(epoch, RecordBatch::NO_PRODUCER_EPOCH);
+            }
+        }
     }
 
     #[test]
