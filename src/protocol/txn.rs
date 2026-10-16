@@ -1852,8 +1852,8 @@ pub fn decode_txn_offset_commit_request<B: Buf>(
 
 /// Encode TxnOffsetCommit: one error code applied to every partition.
 ///
-/// Applies `error` on every request partition via
-/// [`TxnOffsetTopic::error_results`]. ThrottleTimeMs is the JSON
+/// Applies `error` on every request partition. Topic names and partition
+/// indexes are written from the caller. ThrottleTimeMs is the JSON
 /// default (`0`) on every spoken version (JSON `0+`).
 pub fn encode_txn_offset_commit_response(
     buf: &mut BytesMut,
@@ -1861,11 +1861,7 @@ pub fn encode_txn_offset_commit_response(
     topics: &[TxnOffsetTopic],
     error: i16,
 ) -> Result<()> {
-    encode_txn_offset_commit_topics_response(
-        buf,
-        version,
-        &TxnOffsetTopic::error_results(topics, error),
-    )
+    encode_txn_offset_commit_error_response(buf, version, topics, error, 0)
 }
 
 /// Encode TxnOffsetCommit v0–5 from response Topics.
@@ -1921,6 +1917,73 @@ pub fn encode_txn_offset_commit_topics_response_with_throttle(
     }
     debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+/// TxnOffsetCommit error body written from the request topics.
+///
+/// The bytes match [`TxnOffsetTopic::error_result`]: partition index and
+/// error code. Offsets, metadata, and leader epochs are omitted.
+fn encode_txn_offset_commit_error_response(
+    buf: &mut BytesMut,
+    version: i16,
+    topics: &[TxnOffsetTopic],
+    error_code: i16,
+    throttle_time_ms: i32,
+) -> Result<()> {
+    let flexible = txn_offset_commit_flexible(version)?;
+    let body_start = buf.len();
+    let planned = txn_offset_commit_error_len(flexible, topics)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
+    buf.put_i32(throttle_time_ms);
+    buf::put_array_len(buf, flexible, Some(topics.len()))?;
+    for topic in topics {
+        buf::put_string(buf, flexible, Some(&topic.topic))?;
+        buf::put_array_len(buf, flexible, Some(topic.partitions.len()))?;
+        for partition in &topic.partitions {
+            buf.put_i32(partition.partition);
+            buf.put_i16(error_code);
+            if flexible {
+                buf::put_empty_tagged_fields(buf);
+            }
+        }
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+    }
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+    Ok(())
+}
+
+fn txn_offset_commit_error_len(flexible: bool, topics: &[TxnOffsetTopic]) -> Result<usize> {
+    let mut total = 4usize;
+    total = add_txn_len(total, txn_array_len(flexible, topics.len())?)?;
+    for topic in topics {
+        total = add_txn_len(total, txn_string_len(flexible, &topic.topic)?)?;
+        total = add_txn_len(total, txn_array_len(flexible, topic.partitions.len())?)?;
+        let mut partition = 6usize;
+        if flexible {
+            partition += buf::unsigned_varint_size(0);
+        }
+        total = add_txn_len(
+            total,
+            partition
+                .checked_mul(topic.partitions.len())
+                .ok_or_else(|| Error::protocol("txn offset commit response size overflow"))?,
+        )?;
+        if flexible {
+            total = add_txn_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    if flexible {
+        total = add_txn_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 fn txn_offset_commit_response_len(
@@ -5966,6 +6029,57 @@ mod tests {
         let mut buf = BytesMut::new();
         encode_txn_offset_commit_response(&mut buf, 3, &topics, 0).unwrap();
         assert_eq!(&buf[..], RESP);
+    }
+
+    #[test]
+    fn txn_offset_commit_error_response_matches_named_results() {
+        let topics = [
+            TxnOffsetTopic {
+                topic: "orders-topic-name-is-long".into(),
+                partitions: vec![
+                    TxnOffsetPartition::new(0, 10, 1, "m0"),
+                    TxnOffsetPartition::new(2, 40, 7, "keep"),
+                ],
+            },
+            TxnOffsetTopic {
+                topic: "t".into(),
+                partitions: Vec::new(),
+            },
+        ];
+        for version in 0..=5 {
+            let results = TxnOffsetTopic::error_results(&topics, crate::error::NOT_COORDINATOR);
+            let mut expected = BytesMut::new();
+            encode_txn_offset_commit_topics_response(&mut expected, version, &results).unwrap();
+            let mut got = BytesMut::new();
+            encode_txn_offset_commit_response(
+                &mut got,
+                version,
+                &topics,
+                crate::error::NOT_COORDINATOR,
+            )
+            .unwrap();
+            assert_eq!(got.as_ref(), expected.as_ref(), "version {version}");
+            let len = got.len();
+            let capacity = got.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            got.clear();
+            encode_txn_offset_commit_response(
+                &mut got,
+                version,
+                &topics,
+                crate::error::NOT_COORDINATOR,
+            )
+            .unwrap();
+            assert_eq!(got.len(), len);
+            assert_eq!(got.capacity(), capacity);
+        }
+        let mut empty = BytesMut::new();
+        encode_txn_offset_commit_response(&mut empty, 5, &[], 41).unwrap();
+        let mut expected_empty = BytesMut::new();
+        encode_txn_offset_commit_topics_response(&mut expected_empty, 5, &[]).unwrap();
+        assert_eq!(empty.as_ref(), expected_empty.as_ref());
+        assert!(encode_txn_offset_commit_response(&mut BytesMut::new(), 6, &topics, 41).is_err());
     }
 
     #[test]
