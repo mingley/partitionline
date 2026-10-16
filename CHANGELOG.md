@@ -403,6 +403,11 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   set or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
   delivers the fetch; this is not partition `REBALANCE_IN_PROGRESS`,
   which fails that poll, and not piggyback `INVALID_SESSION_TIMEOUT`). A
+  piggybacked `INVALID_COMMIT_OFFSET_SIZE` still
+  completes without retry, including when `AcknowledgeErrorMessage` is
+  set (Java `handleShareFetchSuccess` completes piggyback acks and still
+  delivers the fetch; this is not partition `INVALID_COMMIT_OFFSET_SIZE`,
+  which fails that poll, and not piggyback `REBALANCE_IN_PROGRESS`). A
   piggybacked `TOPIC_AUTHORIZATION_FAILED` on
   one partition does not fail a sibling whose `AcknowledgeErrorCode`
   is none, including when `AcknowledgeErrorMessage` is set or empty. A
