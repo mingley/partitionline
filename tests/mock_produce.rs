@@ -153,6 +153,47 @@ async fn send_all_dials_leaders_together() {
     producer.close().await.unwrap();
 }
 
+/// Stale topic metadata reloads while idle leaders redial.
+#[tokio::test(flavor = "current_thread")]
+async fn send_all_redials_leaders_while_refreshing_metadata() {
+    let mock = common::Mock::start_three_node().await;
+    mock.set_topic_partitions("t", 1);
+    mock.set_topic_partitions("u", 1);
+    mock.set_partition_leader("t", 0, 2);
+    mock.set_partition_leader("u", 0, 3);
+    let mut cfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    cfg.linger = Duration::ZERO;
+    cfg.metadata_max_age = Duration::from_millis(30);
+    cfg.connections_max_idle = Duration::from_millis(40);
+    let producer = Producer::new(cfg).await.unwrap();
+    let _warm = producer
+        .send_all([
+            ProduceRecord::to("t").partition(0).value(&b"a"[..]),
+            ProduceRecord::to("u").partition(0).value(&b"b"[..]),
+        ])
+        .await
+        .unwrap();
+    tokio::time::sleep(Duration::from_millis(60)).await;
+    let delay = Duration::from_millis(250);
+    mock.set_metadata_delay(delay);
+    mock.set_api_versions_delay(delay);
+    let started = Instant::now();
+    let acks = producer
+        .send_all([
+            ProduceRecord::to("t").partition(0).value(&b"c"[..]),
+            ProduceRecord::to("u").partition(0).value(&b"d"[..]),
+        ])
+        .await
+        .unwrap();
+    let elapsed = started.elapsed();
+    assert_eq!(acks.len(), 2);
+    assert!(
+        elapsed < Duration::from_millis(450),
+        "send_all refreshed metadata before redialing leaders: {elapsed:?}"
+    );
+    producer.close().await.unwrap();
+}
+
 #[tokio::test(flavor = "current_thread")]
 async fn send_offsets_refreshes_topics_together() {
     let mock = common::Mock::start().await;

@@ -879,6 +879,8 @@ struct Pending {
 enum Ctrl {
     Flush(oneshot::Sender<Result<()>>),
     Close(oneshot::Sender<Result<()>>),
+    /// Redial an idle leader socket. Ignored when a produce is already in flight.
+    Reconnect,
 }
 
 #[derive(Clone)]
@@ -1866,6 +1868,7 @@ impl Producer {
                 if rest.is_zero() {
                     return Err(Error::Timeout);
                 }
+                self.reconnect_cached_leaders(std::iter::once(&*rec));
                 let timeout = self.inner.shared.cfg.request_timeout.min(rest);
                 let _ = partitions_for_timeout(&self.inner.shared, &rec.topic, timeout).await?;
             }
@@ -1969,6 +1972,7 @@ impl Producer {
                         return Err(Error::Timeout);
                     }
                     let timeout = self.inner.shared.cfg.request_timeout.min(budget);
+                    self.reconnect_cached_leaders(std::iter::once(&rec).chain(pending.iter()));
                     let requested =
                         refresh_topics_within(&self.inner.shared, &topics, timeout).await?;
                     for topic in &requested {
@@ -1994,6 +1998,47 @@ impl Producer {
             out.push(rx.await.map_err(|_| Error::Closed)??);
         }
         Ok(out)
+    }
+
+    /// Redial idle leader sockets while a metadata refresh is still running.
+    fn reconnect_cached_leaders<'a>(&self, recs: impl Iterator<Item = &'a ProduceRecord>) {
+        if self.inner.shared.sticky.is_some() {
+            return;
+        }
+        let shared = &self.inner.shared;
+        let n_conn = shared.cfg.connections.max(1);
+        let mut slots = HashSet::new();
+        {
+            let cluster = shared.cluster.lock();
+            for rec in recs {
+                let Some(np) = cluster.partition_count(rec.topic.as_ref()) else {
+                    continue;
+                };
+                if np <= 0 {
+                    continue;
+                }
+                let partition = match rec.partition {
+                    Some(partition) => partition,
+                    None => pick_part(rec, np, shared.partitioner.as_ref()),
+                };
+                let Ok(node) = cluster.leader_id(rec.topic.as_ref(), partition) else {
+                    continue;
+                };
+                let slot = usize::try_from(partition).unwrap_or(0) % n_conn;
+                let _ = slots.insert((node, slot));
+            }
+        }
+        let nodes = shared.nodes.lock();
+        for (node, slot) in slots {
+            let Some(handle) = nodes
+                .get(&node)
+                .and_then(|slots| slots.get(slot))
+                .and_then(|handle| handle.as_ref())
+            else {
+                continue;
+            };
+            handle.ctrl.try_send(Ctrl::Reconnect).unwrap_or(());
+        }
     }
 
     /// Nudge a connection for every record whose leader is already known.
@@ -5116,6 +5161,7 @@ impl Drop for Worker {
                 Ctrl::Flush(tx) | Ctrl::Close(tx) => {
                     drop(tx.send(self.take_fail()));
                 }
+                Ctrl::Reconnect => {}
             }
         }
     }
@@ -5543,6 +5589,9 @@ impl Worker {
                             self.drain_inflight().await;
                             break;
                         }
+                        Some(Ctrl::Reconnect) => {
+                            self.reconnect_if_idle().await;
+                        }
                         Some(c) => {
                             let close = matches!(&c, Ctrl::Close(_));
                             self.pull_ready();
@@ -5551,6 +5600,7 @@ impl Worker {
                                 Ctrl::Flush(tx) | Ctrl::Close(tx) => {
                                     drop(tx.send(self.take_fail()));
                                 }
+                                Ctrl::Reconnect => {}
                             }
                             linger_start = None;
                             if close {
@@ -5572,6 +5622,21 @@ impl Worker {
                         self.note_fail(error);
                     }
                 }
+            }
+        }
+    }
+
+    async fn reconnect_if_idle(&mut self) {
+        if !self.in_flight.is_empty()
+            || self.conn.is_closed()
+            || !self.conn.idle_expired(self.shared.cfg.connections_max_idle)
+        {
+            return;
+        }
+        let addr = self.conn.addr().to_string();
+        if let Ok(conn) = open_conn(&addr, &self.shared.cfg, self.shared.transaction_v2).await {
+            if conn.produce_version() >= 0 {
+                self.conn = conn;
             }
         }
     }
