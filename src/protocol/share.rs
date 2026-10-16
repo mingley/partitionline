@@ -2154,6 +2154,46 @@ pub fn encode_share_acknowledge_topics_with_renew(
     Ok(())
 }
 
+/// Encode one ShareAcknowledge topic partition from batches the caller still owns.
+///
+/// The bytes match [`encode_share_acknowledge_topics`] for a single topic and
+/// partition. The caller can retry from the same batches.
+#[expect(
+    clippy::too_many_arguments,
+    reason = "one ShareAcknowledge partition is encoded from the caller's existing batches"
+)]
+pub(crate) fn encode_one_share_acknowledge(
+    buf: &mut BytesMut,
+    version: i16,
+    group_id: &str,
+    member_id: &str,
+    share_session_epoch: i32,
+    topic_id: &[u8; 16],
+    partition: i32,
+    batches: &[AcknowledgementBatch],
+) -> crate::error::Result<()> {
+    let flexible = share_acknowledge_flexible(version)?;
+    let is_renew_ack = batches.iter().any(|batch| batch.types.contains(&ACK_RENEW));
+    check_renew_version(version, is_renew_ack)?;
+    buf::put_string(buf, flexible, Some(group_id))?;
+    buf::put_string(buf, flexible, Some(member_id))?;
+    buf.put_i32(share_session_epoch);
+    if version >= 2 {
+        buf.put_u8(u8::from(is_renew_ack));
+    }
+    buf::put_array_len(buf, flexible, Some(1))?;
+    buf.extend_from_slice(topic_id);
+    buf::put_array_len(buf, flexible, Some(1))?;
+    buf.put_i32(partition);
+    encode_ack_batches(buf, batches)?;
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+        buf::put_empty_tagged_fields(buf);
+        buf::put_empty_tagged_fields(buf);
+    }
+    Ok(())
+}
+
 /// Top-level ShareFetch error (session not found / bad epoch).
 ///
 /// ThrottleTimeMs is the JSON default (`0`). Official Java
@@ -5361,6 +5401,37 @@ mod tests {
         leftover_share_ack_for_consumer(0, &[]);
         leftover_share_ack_for_consumer(1, &grouped);
         leftover_share_ack_for_consumer(1, &[]);
+    }
+
+    #[test]
+    fn one_share_acknowledge_matches_the_topic_encoder() {
+        let topic_id = [9u8; 16];
+        let batches = [AcknowledgementBatch {
+            first_offset: 1,
+            last_offset: 3,
+            types: vec![ACK_ACCEPT],
+        }];
+        let topics = [ShareAckTopic {
+            topic_id,
+            partitions: vec![(0, batches.to_vec())],
+        }];
+        for version in [0_i16, 1, 2] {
+            let mut owned = BytesMut::new();
+            encode_share_acknowledge_topics(&mut owned, version, "g", "m", 4, &topics).unwrap();
+            let mut borrowed = BytesMut::new();
+            encode_one_share_acknowledge(
+                &mut borrowed,
+                version,
+                "g",
+                "m",
+                4,
+                &topic_id,
+                0,
+                &batches,
+            )
+            .unwrap();
+            assert_eq!(&owned[..], &borrowed[..], "v{version}");
+        }
     }
 
     fn leftover_share_ack_for_consumer(version: i16, topics: &[ShareAckTopic]) {

@@ -30,11 +30,11 @@ use crate::protocol::records::{
 use crate::protocol::share::{
     decode_share_acknowledge_response, decode_share_acknowledge_topics_response_with_lock_timeout,
     decode_share_fetch_response_with_budget, decode_share_group_heartbeat_response,
-    encode_share_acknowledge_request, encode_share_acknowledge_topics,
-    encode_share_fetch_request_with_options, encode_share_group_heartbeat_request,
-    AcknowledgementBatch, ShareAckTopic, ShareFetchPartition, ShareFetchRequestOptions,
-    ShareFetchTopic, ShareGroupHeartbeatRequest, ShareTopicPartitions, ACK_ACCEPT, ACK_REJECT,
-    ACK_RELEASE, ACK_RENEW,
+    encode_one_share_acknowledge, encode_share_acknowledge_request,
+    encode_share_acknowledge_topics, encode_share_fetch_request_with_options,
+    encode_share_group_heartbeat_request, AcknowledgementBatch, ShareAckTopic, ShareFetchPartition,
+    ShareFetchRequestOptions, ShareFetchTopic, ShareGroupHeartbeatRequest, ShareTopicPartitions,
+    ACK_ACCEPT, ACK_REJECT, ACK_RELEASE, ACK_RENEW,
 };
 use crate::Uuid;
 
@@ -3122,18 +3122,239 @@ impl ShareGroup {
         }
     }
 
+    async fn acknowledge_single_leader(
+        &mut self,
+        node: i32,
+        partitions: &mut Vec<AckPartition>,
+        ack: i8,
+        deadline: Instant,
+    ) -> Result<()> {
+        if deadline.saturating_duration_since(Instant::now()).is_zero() {
+            return Err(Error::Timeout);
+        }
+        let Some((topic_name, partition, _)) = partitions.first() else {
+            return Ok(());
+        };
+        let topic_name = Arc::clone(topic_name);
+        let partition = *partition;
+        let version = self
+            .node_share_version_until(node, SHARE_ACKNOWLEDGE, deadline)
+            .await?;
+        if ack == ACK_RENEW && version < 2 {
+            return Err(Error::Unsupported(format!(
+                "share broker {node} does not support Renew"
+            )));
+        }
+        let epoch = self.session_epoch(node);
+        if epoch <= 0 {
+            return Err(Error::broker(
+                error::SHARE_SESSION_NOT_FOUND,
+                "ShareAcknowledge requires a poll on the current leader",
+            ));
+        }
+        let topic_id = self
+            .topic_ids
+            .get(topic_name.as_ref())
+            .copied()
+            .filter(|id| *id != [0; 16])
+            .ok_or_else(|| Error::protocol(format!("missing share topic id for {topic_name}")))?;
+        let timeout = deadline.saturating_duration_since(Instant::now());
+        if timeout.is_zero() {
+            return Err(Error::Timeout);
+        }
+        let Some(mut peer) = self.share_conns.remove(&node) else {
+            self.reset_node_session(node);
+            return Err(Error::protocol("missing share connection"));
+        };
+        let mut encode_failed = false;
+        let sent = peer
+            .conn
+            .roundtrip(
+                SHARE_ACKNOWLEDGE,
+                version,
+                |buf| {
+                    let batches = partitions
+                        .first()
+                        .map(|part| part.2.as_slice())
+                        .unwrap_or(&[]);
+                    encode_one_share_acknowledge(
+                        buf,
+                        version,
+                        &self.group_id,
+                        &self.member_id,
+                        epoch,
+                        &topic_id,
+                        partition,
+                        batches,
+                    )
+                    .inspect_err(|_| encode_failed = true)
+                },
+                timeout,
+            )
+            .await;
+        let _ = self.share_conns.insert(node, peer);
+        if encode_failed {
+            return match sent {
+                Err(error) => Err(error),
+                Ok(_) => Err(Error::protocol("share acknowledge encode")),
+            };
+        }
+        let mut body = match sent {
+            Ok(body) => body,
+            Err(error) => {
+                self.reset_node_session(node);
+                return Err(error);
+            }
+        };
+        let (code, responses, endpoints, _, _, lock_timeout) =
+            match decode_share_acknowledge_topics_response_with_lock_timeout(&mut body, version) {
+                Ok(reply) => reply,
+                Err(error) => {
+                    self.reset_node_session(node);
+                    return Err(error);
+                }
+            };
+        self.consumer.apply_node_endpoints(&endpoints);
+        if !body.is_empty() {
+            self.reset_node_session(node);
+            return Err(Error::protocol("trailing ShareAcknowledge response bytes"));
+        }
+        if code != 0 {
+            let error = Error::broker(code, "ShareAcknowledge");
+            if share_session_reset(&error) {
+                self.reset_node_session(node);
+            } else {
+                self.advance_node_epoch(node);
+            }
+            return Err(error);
+        }
+        let response = responses.first();
+        let part = response.and_then(|topic| topic.partitions.first());
+        if response.is_none_or(|topic| topic.topic_id != topic_id)
+            || part.is_none_or(|part| part.partition != partition)
+            || responses.len() != 1
+            || response.is_some_and(|topic| topic.partitions.len() != 1)
+        {
+            return Err(Error::protocol(
+                "unrequested or duplicate ShareAcknowledge partition response",
+            ));
+        }
+        let Some(part) = part else {
+            return Err(Error::protocol(
+                "ShareAcknowledge omitted a requested partition outcome",
+            ));
+        };
+        self.advance_node_epoch(node);
+        if version >= 2 && lock_timeout > 0 {
+            self.acquisition_lock_timeout_ms = Some(lock_timeout);
+        }
+        let name = self.name_for_topic_id(topic_id)?;
+        if part.error_code != 0 && !name.is_empty() && share_leader_moved(part.error_code) {
+            let patched = self.consumer.apply_share_leader(
+                &name,
+                part.partition,
+                part.current_leader_id,
+                part.current_leader_epoch,
+            );
+            if let Some(patch) = share_leader_patch(
+                patched,
+                &name,
+                part.partition,
+                part.error_code,
+                part.current_leader_id,
+                part.current_leader_epoch,
+            ) {
+                remember_share_leader_patch(&mut self.leader_patches, patch);
+            }
+        }
+        let sent_batches = partitions
+            .first()
+            .map(|item| item.2.as_slice())
+            .unwrap_or(&[]);
+        if part.error_code == 0 {
+            let count = self
+                .acquisitions
+                .get(name.as_str())
+                .map(|parts| count_covered_acquisitions(parts, part.partition, sent_batches))
+                .unwrap_or(0);
+            if ack == ACK_RENEW {
+                if lock_timeout <= 0 {
+                    return Err(Error::protocol(
+                        "non-positive Renew acquisition lock timeout",
+                    ));
+                }
+                let expiry = Instant::now().checked_add(Duration::from_millis(
+                    u64::try_from(lock_timeout).unwrap_or(0),
+                ));
+                if let Some(parts) = self.acquisitions.get_mut(name.as_str()) {
+                    renew_covered_acquisitions(parts, part.partition, sent_batches, expiry);
+                }
+            } else {
+                let empty = if let Some(parts) = self.acquisitions.get_mut(name.as_str()) {
+                    drop_covered_acquisitions(parts, part.partition, sent_batches);
+                    parts.is_empty()
+                } else {
+                    false
+                };
+                if empty {
+                    let _ = self.acquisitions.remove(name.as_str());
+                }
+                self.records_acknowledged = self
+                    .records_acknowledged
+                    .saturating_add(u64::try_from(count).unwrap_or(u64::MAX));
+            }
+            let batches = partitions
+                .first_mut()
+                .map(|item| std::mem::take(&mut item.2))
+                .unwrap_or_default();
+            for batch in batches {
+                if batch.types.capacity() > 0 {
+                    self.spare_ack_types.push(batch.types);
+                }
+            }
+            partitions.clear();
+            Ok(())
+        } else {
+            if part.error_code == error::INVALID_RECORD_STATE
+                || share_ack_ownership_lost(part.error_code)
+            {
+                let empty = if let Some(parts) = self.acquisitions.get_mut(name.as_str()) {
+                    drop_covered_acquisitions(parts, part.partition, sent_batches);
+                    parts.is_empty()
+                } else {
+                    false
+                };
+                if empty {
+                    let _ = self.acquisitions.remove(name.as_str());
+                }
+            }
+            let error = Error::broker(
+                part.error_code,
+                format!("ShareAcknowledge {name}-{}", part.partition),
+            );
+            if part.error_code == error::SHARE_SESSION_NOT_FOUND
+                || part.error_code == error::INVALID_SHARE_SESSION_EPOCH
+            {
+                self.reset_node_session(node);
+            }
+            Err(error)
+        }
+    }
+
     async fn acknowledge_leaders(
         &mut self,
         partitions: &mut Vec<AckPartition>,
         ack: i8,
         deadline: Instant,
     ) -> Result<()> {
-        let direct = single_leader_ack(partitions, |topic, partition, first, last| {
+        if let Some(node) = single_leader_node(partitions, |topic, partition, first, last| {
             acquisition_node_for_range(&self.acquisitions, topic, partition, first, last)
-        });
-        let nodes = if let Some((node, parts)) = direct {
-            vec![(node, parts)]
-        } else {
+        }) {
+            return self
+                .acknowledge_single_leader(node, partitions, ack, deadline)
+                .await;
+        }
+        let nodes = {
             let grouped = group_acks_by_acquisition_node(
                 |topic, partition, offset| {
                     acquisition_node(&self.acquisitions, topic, partition, offset)
@@ -4081,10 +4302,10 @@ fn drop_sent_ack_batches(
 /// partition's offsets came from two brokers.
 type AckRoute = BTreeMap<i32, Vec<AckPartition>>;
 
-fn single_leader_ack(
+fn single_leader_node(
     partitions: &[AckPartition],
     range_node: impl Fn(&str, i32, i64, i64) -> Option<i32>,
-) -> Option<(i32, Vec<AckPartition>)> {
+) -> Option<i32> {
     if partitions.len() != 1 {
         return None;
     }
@@ -4096,8 +4317,7 @@ fn single_leader_ack(
     if batch.types.len() != 1 {
         return None;
     }
-    let node = range_node(topic, *partition, batch.first_offset, batch.last_offset)?;
-    Some((node, vec![(Arc::clone(topic), *partition, batches.clone())]))
+    range_node(topic, *partition, batch.first_offset, batch.last_offset)
 }
 
 fn group_acks_by_acquisition_node(
@@ -4616,15 +4836,23 @@ mod tests {
                 types: vec![ACK_ACCEPT],
             }],
         )];
-        let direct = single_leader_ack(&partitions, |topic, partition, first, last| {
+        let kept = partitions
+            .first()
+            .and_then(|part| part.2.first())
+            .map(|batch| batch.types.as_ptr())
+            .expect("ack type");
+        let direct = single_leader_node(&partitions, |topic, partition, first, last| {
             acquisition_node_for_range(&map, topic, partition, first, last)
         });
-        assert_eq!(direct.as_ref().map(|(node, _)| *node), Some(2));
+        assert_eq!(direct, Some(2));
         assert_eq!(
-            direct.and_then(|(_, parts)| parts.into_iter().next()),
-            Some(partitions[0].clone())
+            partitions
+                .first()
+                .and_then(|part| part.2.first())
+                .map(|batch| batch.types.as_ptr()),
+            Some(kept)
         );
-        assert!(single_leader_ack(&partitions, |_, _, _, _| None).is_none());
+        assert!(single_leader_node(&partitions, |_, _, _, _| None).is_none());
     }
 
     #[test]
