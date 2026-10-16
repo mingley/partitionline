@@ -8051,8 +8051,8 @@ fn resolved_topic_identities<'a>(
     names: &mut NameIds,
     ids: &mut IdNames,
 ) {
-    let mut seen_names: HashSet<&str> = HashSet::new();
-    let mut seen_ids: HashSet<[u8; 16]> = HashSet::new();
+    let mut seen_names: ShortSet<&str> = ShortSet::new();
+    let mut seen_ids: ShortSet<[u8; 16]> = ShortSet::new();
     let mut ambiguous = HashSet::new();
     for (name, metadata_id) in topics {
         let id = cached
@@ -8061,7 +8061,7 @@ fn resolved_topic_identities<'a>(
             .filter(|id| *id != [0; 16])
             .unwrap_or(metadata_id);
         if id == [0; 16]
-            && seen_names.contains(name)
+            && seen_names.contains(&name)
             && names.get(name).is_some_and(|current| *current != [0; 16])
         {
             continue;
@@ -8098,7 +8098,10 @@ fn resolved_topic_identities<'a>(
             }
         }
     }
-    names.retain(|name, _| seen_names.contains(name.as_ref()));
+    names.retain(|name, _| {
+        let text = name.as_ref();
+        seen_names.contains(&text)
+    });
     ids.retain(|id, _| seen_ids.contains(id) && !ambiguous.contains(id));
 }
 
@@ -8232,6 +8235,75 @@ fn restore_kept_held(
     }
 }
 
+/// A few values stay on the stack. The seventeenth value allocates a set.
+struct ShortSet<T> {
+    stack: [Option<T>; 16],
+    filled: usize,
+    heap: HashSet<T>,
+}
+
+impl<T: Copy + Eq + std::hash::Hash> ShortSet<T> {
+    fn new() -> Self {
+        Self {
+            stack: [None; 16],
+            filled: 0,
+            heap: HashSet::new(),
+        }
+    }
+
+    fn contains(&self, value: &T) -> bool {
+        if self.heap.is_empty() {
+            self.stack
+                .iter()
+                .take(self.filled)
+                .any(|slot| slot.as_ref() == Some(value))
+        } else {
+            self.heap.contains(value)
+        }
+    }
+
+    fn insert(&mut self, value: T) -> bool {
+        if self.contains(&value) {
+            return false;
+        }
+        if self.heap.capacity() == 0 && self.filled < self.stack.len() {
+            if let Some(slot) = self.stack.get_mut(self.filled) {
+                *slot = Some(value);
+            }
+            self.filled = self.filled.saturating_add(1);
+            return true;
+        }
+        if self.heap.is_empty() {
+            for seen in self.stack.iter().take(self.filled).copied().flatten() {
+                let _ = self.heap.insert(seen);
+            }
+        }
+        self.heap.insert(value)
+    }
+
+    fn remove(&mut self, value: &T) -> bool {
+        if !self.heap.is_empty() {
+            return self.heap.remove(value);
+        }
+        let Some(index) = self
+            .stack
+            .iter()
+            .take(self.filled)
+            .position(|slot| slot.as_ref() == Some(value))
+        else {
+            return false;
+        };
+        self.filled = self.filled.saturating_sub(1);
+        if index != self.filled {
+            let tail = self.stack.get(self.filled).copied().flatten();
+            if let Some(slot) = self.stack.get_mut(index) {
+                *slot = tail;
+            }
+        }
+        true
+    }
+}
+
 fn keep_buf<T>(slot: &mut Vec<T>, values: Vec<T>) {
     if values.capacity() >= slot.capacity() {
         *slot = values;
@@ -8240,7 +8312,7 @@ fn keep_buf<T>(slot: &mut Vec<T>, values: Vec<T>) {
 
 fn fill_reused_topics<'a>(topics: &mut Vec<String>, names: impl IntoIterator<Item = &'a str>) {
     let mut used = 0usize;
-    let mut seen = HashSet::new();
+    let mut seen = ShortSet::new();
     for topic in names {
         if !seen.insert(topic) {
             continue;
@@ -9553,6 +9625,30 @@ mod tests {
         assert_eq!(mixed[1].0, "u");
         assert_eq!(mixed[1].1[0].partition, 0);
         assert_eq!(mixed[1].1[0].leader_epoch, 3);
+    }
+
+    #[test]
+    fn a_short_topic_list_does_not_allocate_a_set() {
+        let mut seen = ShortSet::new();
+        assert!(seen.insert("orders"));
+        assert!(seen.insert("payments"));
+        assert!(!seen.insert("orders"));
+        assert!(seen.contains(&"payments"));
+        assert!(!seen.contains(&"trades"));
+        assert_eq!(seen.heap.capacity(), 0);
+        let names = [
+            "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q",
+        ];
+        let mut many = ShortSet::new();
+        for name in names {
+            assert!(many.insert(name));
+        }
+        assert!(many.heap.capacity() > 0);
+        assert!(many.contains(&"a"));
+        assert!(many.contains(&"q"));
+        assert!(many.remove(&"a"));
+        assert!(!many.contains(&"a"));
+        assert!(many.contains(&"q"));
     }
 
     #[test]
