@@ -727,9 +727,9 @@ pub enum ShareAcquireMode {
 /// `INCONSISTENT_TOPIC_ID` still fails that poll and does not request
 /// Metadata, including when `ErrorMessage` is set. Top-level
 /// `FENCED_LEADER_EPOCH` still fails that poll and does not request
-/// Metadata, including when `ErrorMessage` is set (a partition
-/// `FENCED_LEADER_EPOCH` still skips and requests Metadata when
-/// CurrentLeader is unused). A top-level
+/// Metadata, including when `ErrorMessage` is set or empty (a
+/// partition `FENCED_LEADER_EPOCH` still skips and requests Metadata
+/// when CurrentLeader is unused). A top-level
 /// ShareAcknowledge `UNKNOWN_TOPIC_ID` completes without retry and
 /// does not request Metadata, including when `ErrorMessage` is set
 /// or empty (Java `handleShareAcknowledgeSuccess` has no
@@ -1847,8 +1847,8 @@ impl ShareGroup {
     /// `handleShareFetchSuccess` only `requestUpdate`s for
     /// `UNKNOWN_TOPIC_ID`). Top-level `FENCED_LEADER_EPOCH` still
     /// fails that poll without Metadata, including when `ErrorMessage`
-    /// is set (a partition `FENCED_LEADER_EPOCH` still skips and
-    /// requests Metadata when CurrentLeader is unused). A sole
+    /// is set or empty (a partition `FENCED_LEADER_EPOCH` still skips
+    /// and requests Metadata when CurrentLeader is unused). A sole
     /// partition `NOT_LEADER_OR_FOLLOWER` collects empty (Java
     /// `testFetchError`). A ShareFetch topic id that is
     /// not in this request — including a real cluster topic that is
