@@ -2665,8 +2665,8 @@ impl ShareGroup {
                 let requested = by_id.get(&topic.topic_id).ok_or_else(|| {
                     Error::protocol("ShareFetch returned an unrequested topic id")
                 })?;
-                let name = self.name_for_topic_id(topic.topic_id)?;
-                let topic_name = crate::consumer::TopicName::from(name.as_str());
+                let topic_name = self.fetched_topic_name(topic.topic_id)?;
+                let name = topic_name.as_str();
                 for part in topic.partitions {
                     if !requested.contains(&part.partition) {
                         return Err(Error::protocol(
@@ -2678,14 +2678,14 @@ impl ShareGroup {
                         let patched = leader_moved
                             && !name.is_empty()
                             && self.consumer.apply_share_leader(
-                                &name,
+                                name,
                                 part.partition,
                                 part.current_leader_id,
                                 part.current_leader_epoch,
                             );
                         if let Some(patch) = share_leader_patch(
                             patched,
-                            &name,
+                            name,
                             part.partition,
                             part.error_code,
                             part.current_leader_id,
@@ -2693,7 +2693,7 @@ impl ShareGroup {
                         ) {
                             remember_share_leader_patch(&mut self.leader_patches, patch);
                         } else if share_ack_ownership_lost(part.error_code) {
-                            self.consumer.invalidate_topic(&name);
+                            self.consumer.invalidate_topic(name);
                             self.leader_patches.retain(|patch| {
                                 patch.topic != name || patch.partition != part.partition
                             });
@@ -2983,7 +2983,15 @@ impl ShareGroup {
         self.apply_topics_within(topics, deadline).await
     }
 
+    fn fetched_topic_name(&self, id: [u8; 16]) -> Result<crate::consumer::TopicName> {
+        Ok(crate::consumer::TopicName::from(self.topic_name_ref(id)?))
+    }
+
     fn name_for_topic_id(&self, id: [u8; 16]) -> Result<String> {
+        self.topic_name_ref(id).map(str::to_owned)
+    }
+
+    fn topic_name_ref(&self, id: [u8; 16]) -> Result<&str> {
         share_topic_name(
             self.topic_ids.iter().map(|(name, id)| (name.as_str(), id)),
             id,
@@ -3850,7 +3858,7 @@ fn reapply_share_leader_patches_on(
 fn share_topic_name<'a>(
     names: impl IntoIterator<Item = (&'a str, &'a [u8; 16])>,
     id: [u8; 16],
-) -> Result<String> {
+) -> Result<&'a str> {
     let mut found = None;
     for (name, stored) in names {
         if *stored != id {
@@ -3863,7 +3871,6 @@ fn share_topic_name<'a>(
     }
     found
         .filter(|name| !name.is_empty())
-        .map(str::to_owned)
         .ok_or_else(|| Error::protocol("share topic id has no subscribed name"))
 }
 
