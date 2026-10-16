@@ -2880,16 +2880,16 @@ pub fn encode_leave_group_request(
     group_id: &str,
     member_id: &str,
 ) -> crate::error::Result<()> {
-    encode_leave_group_request_members(
-        buf,
-        0,
-        group_id,
-        &[LeaveGroupMember {
-            member_id: member_id.to_string(),
-            group_instance_id: None,
-            reason: None,
-        }],
-    )
+    let body_start = buf.len();
+    let planned = add_group_len(
+        group_string_len(false, Some(group_id))?,
+        group_string_len(false, Some(member_id))?,
+    )?;
+    reserve_group_body(buf, planned);
+    buf::put_string(buf, false, Some(group_id))?;
+    buf::put_string(buf, false, Some(member_id))?;
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+    Ok(())
 }
 
 /// One member in LeaveGroup v3+ (KIP-345). `reason` is v5+ (KIP-800).
