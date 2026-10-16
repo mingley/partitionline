@@ -4576,6 +4576,8 @@ struct ProduceGroupScratch {
     parts: Vec<Vec<usize>>,
     /// Partition slots for a one-topic batch. Cleared on each use.
     partition_slots: HashMap<i32, usize>,
+    /// First-seen partitions for a one-topic batch. Cleared on each use.
+    partition_order: Vec<i32>,
     /// Emptied partition lists from a previous split batch.
     spare_parts: Vec<Vec<Pending>>,
     /// Group list from the previous split batch.
@@ -6426,18 +6428,53 @@ fn group_pending(
     if one_topic {
         let mut groups = take_group_shell(scratch);
         scratch.partition_slots.clear();
-        for p in batch.drain(..) {
-            let partition = p.rec.partition.unwrap_or(RecordMetadata::UNKNOWN_PARTITION);
-            if let Some(&slot) = scratch.partition_slots.get(&partition) {
-                if let Some((_, _, pending)) = groups.get_mut(slot) {
-                    pending.push(p);
-                    continue;
-                }
+        scratch.partition_order.clear();
+        for pending in &batch {
+            let partition = pending
+                .rec
+                .partition
+                .unwrap_or(RecordMetadata::UNKNOWN_PARTITION);
+            if let Some(count) = scratch.partition_slots.get_mut(&partition) {
+                *count = count.saturating_add(1);
+            } else {
+                scratch.partition_order.push(partition);
+                let _inserted = scratch.partition_slots.insert(partition, 1);
+            }
+        }
+        reserve_len(&mut groups, scratch.partition_order.len());
+        let partitions = scratch.partition_order.len();
+        for index in 0..partitions {
+            let Some(partition) = scratch.partition_order.get(index).copied() else {
+                continue;
+            };
+            let count = scratch
+                .partition_slots
+                .get(&partition)
+                .copied()
+                .unwrap_or(0);
+            let mut part = take_part_list(scratch);
+            reserve_len(&mut part, count);
+            groups.push((Arc::clone(&topic0), partition, part));
+        }
+        scratch.partition_order.clear();
+        scratch.partition_slots.clear();
+        for (index, (_, partition, _)) in groups.iter().enumerate() {
+            let _inserted = scratch.partition_slots.insert(*partition, index);
+        }
+        for pending in batch.drain(..) {
+            let partition = pending
+                .rec
+                .partition
+                .unwrap_or(RecordMetadata::UNKNOWN_PARTITION);
+            let slot = scratch.partition_slots.get(&partition).copied();
+            if let Some((_, _, records)) = slot.and_then(|slot| groups.get_mut(slot)) {
+                records.push(pending);
+                continue;
             }
             let slot = groups.len();
-            let _ = scratch.partition_slots.insert(partition, slot);
+            let _inserted = scratch.partition_slots.insert(partition, slot);
             let mut part = take_part_list(scratch);
-            part.push(p);
+            part.push(pending);
             groups.push((Arc::clone(&topic0), partition, part));
         }
         return (ProduceGroups::Many(groups), batch);
@@ -7047,7 +7084,7 @@ fn solicited_v13_acks(
     Ok(())
 }
 
-fn reserve_index(items: &mut Vec<usize>, count: usize) {
+fn reserve_len<T>(items: &mut Vec<T>, count: usize) {
     if items.capacity() < count {
         items.reserve(count - items.capacity());
     }
@@ -7069,7 +7106,7 @@ fn index_produce_groups(
         }
         let mut same = true;
         if let Some(parts) = scratch.parts.first_mut() {
-            reserve_index(parts, groups.len());
+            reserve_len(parts, groups.len());
             for (index, (topic, _, _)) in groups.iter().enumerate() {
                 if !Arc::ptr_eq(topic, first) {
                     same = false;
@@ -7087,7 +7124,7 @@ fn index_produce_groups(
         }
     }
     scratch.topic_slots.clear();
-    reserve_index(&mut scratch.topics, groups.len());
+    reserve_len(&mut scratch.topics, groups.len());
     for (index, (topic, _, _)) in groups.iter().enumerate() {
         if let Some(&slot) = scratch.topic_slots.get(topic.as_ref()) {
             if let Some(parts) = scratch.parts.get_mut(slot) {
@@ -7896,6 +7933,68 @@ mod tests {
         let OpenedProduceGroups { one, shell } = many.into_one_many();
         assert!(one.is_none());
         assert!(shell.capacity() >= 2);
+    }
+
+    #[test]
+    fn a_one_topic_produce_sizes_each_partition_list_once() {
+        let mut scratch = ProduceGroupScratch::default();
+        let batch = vec![
+            queued("orders", Some(1)),
+            queued("orders", Some(0)),
+            queued("orders", Some(1)),
+            queued("orders", Some(0)),
+        ];
+        let (groups, _) = group_pending(batch, &mut scratch);
+        let ProduceGroups::Many(groups) = groups else {
+            panic!("expected several partitions");
+        };
+        assert_eq!(groups.len(), 2);
+        let first = groups
+            .first()
+            .map(|(_, _, records)| records.capacity())
+            .unwrap_or(0);
+        let second = groups
+            .get(1)
+            .map(|(_, _, records)| records.capacity())
+            .unwrap_or(0);
+        assert!(first >= 2);
+        assert!(second >= 2);
+        assert_eq!(
+            groups
+                .first()
+                .map(|(_, partition, records)| (*partition, records.len())),
+            Some((1, 2))
+        );
+        assert_eq!(
+            groups
+                .get(1)
+                .map(|(_, partition, records)| (*partition, records.len())),
+            Some((0, 2))
+        );
+        for (_, _, mut records) in groups {
+            records.clear();
+            scratch.spare_parts.push(records);
+        }
+        let (again, _) = group_pending(
+            vec![
+                queued("orders", Some(1)),
+                queued("orders", Some(0)),
+                queued("orders", Some(1)),
+                queued("orders", Some(0)),
+            ],
+            &mut scratch,
+        );
+        let ProduceGroups::Many(again) = again else {
+            panic!("expected several partitions");
+        };
+        assert_eq!(
+            again.first().map(|(_, _, records)| records.capacity()),
+            Some(first)
+        );
+        assert_eq!(
+            again.get(1).map(|(_, _, records)| records.capacity()),
+            Some(second)
+        );
     }
 
     #[test]
