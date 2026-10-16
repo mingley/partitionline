@@ -2231,7 +2231,7 @@
 //! partition `INVALID_REPLICATION_FACTOR`, which fails that poll, and not
 //! piggyback `INVALID_PARTITIONS`). A piggybacked
 //! `INVALID_REPLICA_ASSIGNMENT` still completes without retry,
-//! including when `AcknowledgeErrorMessage` is set (this is not
+//! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `INVALID_REPLICA_ASSIGNMENT`, which fails that poll, and not
 //! piggyback `INVALID_REPLICATION_FACTOR`). A piggybacked
 //! `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a
