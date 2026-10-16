@@ -453,34 +453,15 @@ impl ConsumerProtocol {
         subscription: &ConsumerProtocolSubscription,
         version: i16,
     ) -> Result<Vec<u8>> {
-        let version = check_consumer_protocol_version(version)?;
-        let mut topics = subscription.topics.clone();
-        topics.sort();
         let mut buf = BytesMut::new();
-        buf.put_i16(version);
-        buf::put_array_len(&mut buf, false, Some(topics.len()))?;
-        for t in &topics {
-            buf::put_classic_nullable_string(&mut buf, Some(t))?;
-        }
-        buf::put_classic_bytes(&mut buf, None)?;
-        if version >= 1 {
-            let by_topic = group_sorted_owned_partitions(&subscription.owned_partitions);
-            buf::put_array_len(&mut buf, false, Some(by_topic.len()))?;
-            for (topic, parts) in &by_topic {
-                buf::put_classic_nullable_string(&mut buf, Some(topic))?;
-                buf::put_array_len(&mut buf, false, Some(parts.len()))?;
-                for p in parts {
-                    buf.put_i32(*p);
-                }
-            }
-        }
-        if version >= 2 {
-            buf.put_i32(subscription.generation_id);
-        }
-        if version >= 3 {
-            let rack = subscription.rack_id.as_deref().filter(|s| !s.is_empty());
-            buf::put_classic_nullable_string(&mut buf, rack)?;
-        }
+        write_subscription(
+            &mut buf,
+            version,
+            &subscription.topics,
+            &subscription.owned_partitions,
+            subscription.generation_id,
+            subscription.rack_id.as_deref(),
+        )?;
         Ok(buf.to_vec())
     }
 
@@ -5338,20 +5319,81 @@ pub fn decode_offset_delete_response<B: Buf>(
 /// ConsumerProtocol subscription at [`ConsumerProtocol::HIGHEST_SUPPORTED_VERSION`]
 /// (Java `serializeSubscription`; topics only, default generation, no rack).
 pub fn encode_subscription(topics: &[String]) -> Result<Vec<u8>> {
-    ConsumerProtocol::serialize_subscription(&ConsumerProtocolSubscription::new(topics.to_vec()))
+    let mut buf = BytesMut::new();
+    write_subscription(
+        &mut buf,
+        ConsumerProtocol::HIGHEST_SUPPORTED_VERSION,
+        topics,
+        &[],
+        ConsumerProtocolSubscription::DEFAULT_GENERATION,
+        None,
+    )?;
+    Ok(buf.to_vec())
 }
 
 /// ConsumerProtocol subscription with owned partitions (KIP-429).
 ///
 /// Encodes at [`ConsumerProtocol::HIGHEST_SUPPORTED_VERSION`] with
 /// [`ConsumerProtocolSubscription::DEFAULT_GENERATION`] and no rack.
+/// Topic names are written from `topics` and `owned` without copying them
+/// into a second subscription.
 pub fn encode_subscription_owned(topics: &[String], owned: &[(String, i32)]) -> Result<Vec<u8>> {
-    ConsumerProtocol::serialize_subscription(&ConsumerProtocolSubscription {
-        topics: topics.to_vec(),
-        owned_partitions: owned.to_vec(),
-        generation_id: ConsumerProtocolSubscription::DEFAULT_GENERATION,
-        rack_id: None,
-    })
+    let mut buf = BytesMut::new();
+    write_subscription(
+        &mut buf,
+        ConsumerProtocol::HIGHEST_SUPPORTED_VERSION,
+        topics,
+        owned,
+        ConsumerProtocolSubscription::DEFAULT_GENERATION,
+        None,
+    )?;
+    Ok(buf.to_vec())
+}
+
+fn write_subscription(
+    buf: &mut BytesMut,
+    version: i16,
+    topics: &[String],
+    owned: &[(String, i32)],
+    generation_id: i32,
+    rack_id: Option<&str>,
+) -> Result<()> {
+    let version = check_consumer_protocol_version(version)?;
+    let mut topic_order: Vec<usize> = (0..topics.len()).collect();
+    topic_order.sort_by(|&left, &right| {
+        topics
+            .get(left)
+            .map(String::as_str)
+            .cmp(&topics.get(right).map(String::as_str))
+    });
+    buf.put_i16(version);
+    buf::put_array_len(buf, false, Some(topic_order.len()))?;
+    for index in topic_order {
+        let Some(topic) = topics.get(index) else {
+            continue;
+        };
+        buf::put_classic_nullable_string(buf, Some(topic))?;
+    }
+    buf::put_classic_bytes(buf, None)?;
+    if version >= 1 {
+        let by_topic = group_sorted_owned_partitions(owned);
+        buf::put_array_len(buf, false, Some(by_topic.len()))?;
+        for (topic, parts) in &by_topic {
+            buf::put_classic_nullable_string(buf, Some(topic))?;
+            buf::put_array_len(buf, false, Some(parts.len()))?;
+            for partition in parts {
+                buf.put_i32(*partition);
+            }
+        }
+    }
+    if version >= 2 {
+        buf.put_i32(generation_id);
+    }
+    if version >= 3 {
+        let rack = rack_id.filter(|rack| !rack.is_empty());
+        buf::put_classic_nullable_string(buf, rack)?;
+    }
+    Ok(())
 }
 
 /// Decode ConsumerProtocol subscription topics (v0–v3, owned partitions ignored).
@@ -8967,6 +9009,34 @@ mod tests {
             ConsumerProtocol::HIGHEST_SUPPORTED_VERSION
         );
         assert!(ConsumerProtocol::serialize_subscription_version(&sub, -1).is_err());
+    }
+
+    #[test]
+    fn a_subscription_is_encoded_from_the_callers_topics() {
+        let topics = vec![
+            "payments".to_string(),
+            "orders-topic-name-is-long".to_string(),
+        ];
+        let owned = vec![
+            ("orders-topic-name-is-long".to_string(), 2),
+            ("payments".to_string(), 1),
+            ("orders-topic-name-is-long".to_string(), 0),
+        ];
+        let direct = encode_subscription_owned(&topics, &owned).unwrap();
+        let via = ConsumerProtocol::serialize_subscription(&ConsumerProtocolSubscription {
+            topics: topics.clone(),
+            owned_partitions: owned,
+            generation_id: ConsumerProtocolSubscription::DEFAULT_GENERATION,
+            rack_id: None,
+        })
+        .unwrap();
+        assert_eq!(direct, via);
+        let topics_only = encode_subscription(&topics).unwrap();
+        let via_topics = ConsumerProtocol::serialize_subscription(
+            &ConsumerProtocolSubscription::new(topics.clone()),
+        )
+        .unwrap();
+        assert_eq!(topics_only, via_topics);
     }
 
     #[test]
