@@ -246,9 +246,15 @@ impl ShareFetchRequest {
     ) -> Vec<([u8; 16], Option<String>, i32)> {
         let mut to_forget = Vec::new();
         for topic in forgotten {
-            let name = topic_names.get(&topic.topic_id).cloned();
-            for partition in &topic.partitions {
-                to_forget.push((topic.topic_id, name.clone(), *partition));
+            let mut name = topic_names.get(&topic.topic_id).cloned();
+            let count = topic.partitions.len();
+            for (index, partition) in topic.partitions.iter().enumerate() {
+                let owned = if index.saturating_add(1) == count {
+                    std::mem::take(&mut name)
+                } else {
+                    name.clone()
+                };
+                to_forget.push((topic.topic_id, owned, *partition));
             }
         }
         to_forget
@@ -5576,13 +5582,13 @@ mod tests {
             ],
             "missing name is still inserted"
         );
-        let names = HashMap::from([(topic_id, "t".into())]);
+        let names = HashMap::from([(topic_id, "orders-topic-name-is-long".into())]);
         assert_eq!(
             ShareFetchRequest::forgotten_topics(&forgotten, &names),
             vec![
-                (topic_id, Some("t".into()), 0),
-                (topic_id, Some("t".into()), 1),
-                (topic_id, Some("t".into()), 0),
+                (topic_id, Some("orders-topic-name-is-long".into()), 0),
+                (topic_id, Some("orders-topic-name-is-long".into()), 1),
+                (topic_id, Some("orders-topic-name-is-long".into()), 0),
             ]
         );
 

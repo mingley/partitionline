@@ -442,13 +442,19 @@ impl FetchRequest {
     ) -> Vec<([u8; 16], Option<String>, i32)> {
         let mut to_forget = Vec::new();
         for topic in forgotten {
-            let name = if version < 13 {
+            let mut name = if version < 13 {
                 Some(topic.topic.clone())
             } else {
                 topic_names.get(&topic.topic_id).cloned()
             };
-            for partition in &topic.partitions {
-                to_forget.push((topic.topic_id, name.clone(), *partition));
+            let count = topic.partitions.len();
+            for (index, partition) in topic.partitions.iter().enumerate() {
+                let owned = if index.saturating_add(1) == count {
+                    std::mem::take(&mut name)
+                } else {
+                    name.clone()
+                };
+                to_forget.push((topic.topic_id, owned, *partition));
             }
         }
         to_forget
@@ -3774,6 +3780,22 @@ mod tests {
         ];
         let empty_names = HashMap::new();
         assert!(FetchRequest::forgotten_topics(12, &[], &empty_names).is_empty());
+        let long = ForgottenTopic {
+            topic: "orders-topic-name-is-long".into(),
+            topic_id: zeros,
+            partitions: vec![2, 4],
+        };
+        let long_forgotten = FetchRequest::forgotten_topics(12, &[long], &empty_names);
+        assert_eq!(
+            long_forgotten
+                .iter()
+                .map(|(_, name, partition)| (name.as_deref(), *partition))
+                .collect::<Vec<_>>(),
+            vec![
+                (Some("orders-topic-name-is-long"), 2),
+                (Some("orders-topic-name-is-long"), 4),
+            ]
+        );
         let v12 = FetchRequest::forgotten_topics(12, &named, &empty_names);
         assert_eq!(
             v12,

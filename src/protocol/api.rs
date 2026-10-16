@@ -3560,14 +3560,14 @@ pub(crate) fn decode_produce_acks_into(
     let topic_count = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     for _ in 0..topic_count {
         let mut topic_id = [0; 16];
-        let topic = if version <= 12 {
+        let mut topic = if version <= 12 {
             take_produce_topic_bytes(buf, flexible)?
         } else {
             topic_id = buf::get_uuid(buf)?;
             Bytes::new()
         };
         let part_count = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-        for _ in 0..part_count {
+        for index in 0..part_count {
             let partition = buf::get_i32(buf)?;
             let error_code = buf::get_i16(buf)?;
             let base_offset = buf::get_i64(buf)?;
@@ -3591,8 +3591,13 @@ pub(crate) fn decode_produce_acks_into(
                     RecordBatch::NO_PARTITION_LEADER_EPOCH,
                 )
             };
+            let name = if index.saturating_add(1) == part_count {
+                std::mem::take(&mut topic)
+            } else {
+                topic.clone()
+            };
             acks.push(ProduceAck {
-                topic: topic.clone(),
+                topic: name,
                 topic_id,
                 partition,
                 error_code,
