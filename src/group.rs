@@ -1292,12 +1292,12 @@ impl ConsumerGroup {
             .await?;
         let map = committed_offset_map(&fetched)?;
         Ok(partitions
-            .iter()
+            .into_iter()
             .map(|tp| {
                 let md = committed_offset(&map, &tp.topic, tp.partition)
                     .cloned()
                     .unwrap_or_else(|| OffsetAndMetadata::new(-1));
-                (tp.clone(), md)
+                (tp, md)
             })
             .collect())
     }
