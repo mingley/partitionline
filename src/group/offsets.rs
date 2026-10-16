@@ -9,11 +9,12 @@ use std::collections::{BTreeMap, HashMap};
 use std::time::Duration;
 
 impl ConsumerGroup {
-    pub(super) fn record_delivered_positions(&mut self, positions: Vec<(TopicPartition, i64)>) {
+    pub(super) fn snapshot_delivered_positions(&mut self) {
+        let positions = self.consumer.delivered_positions_shared();
         let mut ids = HashMap::new();
-        for (tp, _) in &positions {
-            if let Some(id) = self.consumer.assigned_topic_id(&tp.topic, tp.partition) {
-                super::remember_topic_id(&mut ids, &tp.topic, tp.partition, id);
+        for (topic, partition, _) in &positions {
+            if let Some(id) = self.consumer.assigned_topic_id(topic, *partition) {
+                super::remember_topic_id(&mut ids, topic, *partition, id);
             }
         }
         self.last_delivered_topic_ids = ids;
@@ -115,6 +116,73 @@ impl ConsumerGroup {
             ));
         }
         self.offset_client()?.fetch(request, options).await
+    }
+
+    pub(super) async fn commit_shared_v10(
+        &mut self,
+        positions: &[(std::sync::Arc<str>, i32, i64)],
+        timeout: Duration,
+    ) -> Result<()> {
+        let metadata = self.consumer.topic_name_ids();
+        let mut topics = BTreeMap::<[u8; 16], Vec<OffsetCommitPartitionData>>::new();
+        for (topic, partition, offset) in positions {
+            let id = self
+                .consumer
+                .assigned_topic_id(topic, *partition)
+                .or_else(|| metadata.get(topic.as_ref()).copied())
+                .filter(|id| *id != [0; 16])
+                .ok_or_else(|| {
+                    Error::Unsupported(
+                        "OffsetCommit v10 requires a captured nonzero topic UUID".into(),
+                    )
+                })?;
+            topics
+                .entry(id)
+                .or_default()
+                .push(OffsetCommitPartitionData {
+                    partition_index: *partition,
+                    committed_offset: *offset,
+                    committed_leader_epoch: self.consumer.position_epoch(topic, *partition),
+                    committed_metadata: Some(String::new()),
+                });
+        }
+        if topics.is_empty() {
+            return Ok(());
+        }
+        let request = OffsetCommitRequestData {
+            group_id: self.group_id.clone(),
+            generation_id_or_member_epoch: self.generation_id,
+            member_id: self.member_id.clone(),
+            group_instance_id: self.cfg.group_instance_id.clone(),
+            topics: topics
+                .into_iter()
+                .map(|(id, partitions)| OffsetCommitTopicData {
+                    identity: OffsetTopicIdentity::Id(id),
+                    partitions,
+                })
+                .collect(),
+        };
+        let response = self
+            .offset_client()?
+            .commit(
+                &request,
+                &OffsetOptions {
+                    topic_ids: true,
+                    timeout: Some(timeout),
+                    ..Default::default()
+                },
+            )
+            .await?;
+        if let Some(code) = response
+            .topics
+            .iter()
+            .flat_map(|topic| &topic.partitions)
+            .map(|partition| partition.error_code)
+            .find(|code| *code != 0)
+        {
+            return Err(Error::broker(code, "OffsetCommit"));
+        }
+        Ok(())
     }
 
     pub(super) async fn commit_offsets_v10(

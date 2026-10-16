@@ -106,6 +106,11 @@ impl ConsumerInterceptors {
         self.inner.push(Arc::new(i));
     }
 
+    /// Whether any interceptor is installed.
+    pub(crate) fn is_empty(&self) -> bool {
+        self.inner.is_empty()
+    }
+
     pub(crate) fn on_consume(&self, recs: Vec<FetchedRecord>) -> Vec<FetchedRecord> {
         let mut recs = recs;
         for i in &self.inner {

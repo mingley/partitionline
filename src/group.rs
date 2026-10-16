@@ -645,7 +645,7 @@ pub struct ConsumerGroup {
     hb_deadline: Arc<parking_lot::Mutex<Option<Instant>>>,
     hb_stop: watch::Sender<bool>,
     last_auto_commit: Instant,
-    last_delivered_positions: Option<Vec<(TopicPartition, i64)>>,
+    last_delivered_positions: Option<Vec<(Arc<str>, i32, i64)>>,
     last_delivered_topic_ids: DeliveredTopicIds,
     last_poll: Arc<parking_lot::Mutex<Option<Instant>>>,
     /// Heartbeat thread left the group after `max.poll.interval.ms`.
@@ -1156,7 +1156,7 @@ impl ConsumerGroup {
     pub fn seek(&mut self, topic: &str, partition: i32, offset: i64) -> Result<()> {
         self.consumer.seek(topic, partition, offset)?;
         if self.last_delivered_positions.is_some() {
-            self.record_delivered_positions(self.consumer.positions());
+            self.snapshot_delivered_positions();
         }
         Ok(())
     }
@@ -1165,7 +1165,7 @@ impl ConsumerGroup {
     pub fn seek_to(&mut self, partition: impl Into<TopicPartition>, offset: i64) -> Result<()> {
         self.consumer.seek_to(partition, offset)?;
         if self.last_delivered_positions.is_some() {
-            self.record_delivered_positions(self.consumer.positions());
+            self.snapshot_delivered_positions();
         }
         Ok(())
     }
@@ -1182,7 +1182,7 @@ impl ConsumerGroup {
     ) -> Result<()> {
         self.consumer.seek_with_metadata(partition, offset)?;
         if self.last_delivered_positions.is_some() {
-            self.record_delivered_positions(self.consumer.positions());
+            self.snapshot_delivered_positions();
         }
         Ok(())
     }
@@ -1418,7 +1418,7 @@ impl ConsumerGroup {
             }
         }
         if !recs.is_empty() {
-            self.record_delivered_positions(self.consumer.positions());
+            self.snapshot_delivered_positions();
         }
         Ok(self.consumer.deliver_consumed(recs))
     }
@@ -1688,11 +1688,7 @@ impl ConsumerGroup {
         let offsets = crate::offsets::collect_bounded_commits(self.assigned_commit_offsets())?;
         self.commit_prepared_offsets(&offsets, timeout.saturating_sub(started.elapsed()))
             .await?;
-        let positions = offsets
-            .into_iter()
-            .map(|(tp, md)| (tp, md.offset))
-            .collect();
-        self.record_delivered_positions(positions);
+        self.snapshot_delivered_positions();
         self.last_auto_commit = Instant::now();
         Ok(())
     }
@@ -1765,6 +1761,29 @@ impl ConsumerGroup {
             return Err(Error::Wakeup);
         }
         self.commit_metadata_offsets(offsets, timeout).await
+    }
+
+    async fn commit_shared_positions(
+        &mut self,
+        positions: &[(Arc<str>, i32, i64)],
+        timeout: Duration,
+    ) -> Result<()> {
+        if positions.is_empty() {
+            return Ok(());
+        }
+        let result = if self.coord.offset_commit_version == 10 {
+            self.commit_shared_v10(positions, timeout).await
+        } else {
+            let topics = group_shared_offset_topics(positions, |topic, partition| {
+                self.consumer.position_epoch(topic, partition)
+            });
+            if topics.is_empty() {
+                return Ok(());
+            }
+            self.commit_classic(&[], &topics, timeout).await
+        };
+        self.note_commit(result.is_ok());
+        result
     }
 
     async fn commit_prepared_offsets(
@@ -1928,33 +1947,40 @@ impl ConsumerGroup {
         if self.last_auto_commit.elapsed() < self.cfg.auto_commit_interval {
             return Ok(());
         }
-        if let Some(ref positions) = self.last_delivered_positions {
-            let to_commit: Vec<(TopicPartition, OffsetAndMetadata)> = positions
-                .iter()
-                .filter(|(tp, offset)| {
-                    position_is_committable(*offset)
-                        && self.consumer.is_assigned(&tp.topic, tp.partition)
-                        && self
-                            .last_delivered_topic_ids
-                            .get(tp.topic.as_str())
-                            .and_then(|parts| parts.get(&tp.partition))
-                            .copied()
-                            == self.consumer.assigned_topic_id(&tp.topic, tp.partition)
-                })
-                .map(|(tp, offset)| {
-                    let epoch = self.consumer.position_epoch(&tp.topic, tp.partition);
-                    (
-                        tp.clone(),
-                        OffsetAndMetadata::from_wire(*offset, epoch, String::new()),
-                    )
-                })
-                .collect();
-            if !to_commit.is_empty() {
-                let timeout = self.cfg.request_timeout;
-                self.commit_with_metadata_timeout(to_commit, timeout)
-                    .await?;
-                self.last_auto_commit = Instant::now();
+        let Some(stored) = self.last_delivered_positions.clone() else {
+            return Ok(());
+        };
+        let to_commit: Vec<(Arc<str>, i32, i64)> = stored
+            .into_iter()
+            .filter(|(topic, partition, offset)| {
+                position_is_committable(*offset)
+                    && self.consumer.is_assigned(topic, *partition)
+                    && self
+                        .last_delivered_topic_ids
+                        .get(topic.as_ref())
+                        .and_then(|parts| parts.get(partition))
+                        .copied()
+                        == self.consumer.assigned_topic_id(topic, *partition)
+            })
+            .collect();
+        if !to_commit.is_empty() {
+            let timeout = self.cfg.request_timeout;
+            if self.cfg.interceptors.is_empty() {
+                self.commit_shared_positions(&to_commit, timeout).await?;
+            } else {
+                let owned: Vec<(TopicPartition, OffsetAndMetadata)> = to_commit
+                    .iter()
+                    .map(|(topic, partition, offset)| {
+                        let epoch = self.consumer.position_epoch(topic, *partition);
+                        (
+                            TopicPartition::new(topic.as_ref(), *partition),
+                            OffsetAndMetadata::from_wire(*offset, epoch, String::new()),
+                        )
+                    })
+                    .collect();
+                self.commit_with_metadata_timeout(owned, timeout).await?;
             }
+            self.last_auto_commit = Instant::now();
         }
         Ok(())
     }
@@ -3606,6 +3632,36 @@ fn position_is_committable(offset: i64) -> bool {
     offset >= 0
 }
 
+fn group_shared_offset_topics(
+    items: &[(Arc<str>, i32, i64)],
+    epoch_of: impl Fn(&str, i32) -> i32,
+) -> Vec<crate::protocol::group::OffsetTopic> {
+    let mut topics: Vec<(Arc<str>, Vec<crate::protocol::group::OffsetPartition>)> = Vec::new();
+    for (topic, partition, offset) in items {
+        let part = crate::protocol::group::OffsetPartition {
+            partition: *partition,
+            offset: *offset,
+            leader_epoch: epoch_of(topic, *partition),
+            metadata: String::new(),
+        };
+        if let Some((_, partitions)) = topics
+            .iter_mut()
+            .find(|(name, _)| name.as_ref() == topic.as_ref())
+        {
+            partitions.push(part);
+            continue;
+        }
+        topics.push((Arc::clone(topic), vec![part]));
+    }
+    topics
+        .into_iter()
+        .map(|(topic, partitions)| crate::protocol::group::OffsetTopic {
+            topic: String::from(topic.as_ref()),
+            partitions,
+        })
+        .collect()
+}
+
 pub(crate) fn group_offset_topics(
     items: &[(TopicPartition, OffsetAndMetadata)],
 ) -> Vec<OffsetTopic> {
@@ -4499,6 +4555,7 @@ mod tests {
     use crate::consumer::{OffsetAndMetadata, TopicPartition};
     use crate::protocol::group::{ConsumerProtocolSubscription, FetchedOffset, JoinGroupRequest};
     use std::collections::HashMap;
+    use std::sync::Arc;
 
     #[test]
     fn an_assignment_expands_without_dropping_the_last_name() {
@@ -4788,6 +4845,29 @@ mod tests {
         assert!(position_is_committable(0));
         assert!(position_is_committable(4));
         assert!(!position_is_committable(-1));
+    }
+
+    #[test]
+    fn shared_offset_topics_keep_one_name_for_every_partition() {
+        let topic: Arc<str> = Arc::from("topic-name-longer-than-twenty-three");
+        let stored = Arc::as_ptr(&topic);
+        let items = [
+            (Arc::clone(&topic), 0, 4),
+            (Arc::clone(&topic), 1, 9),
+            (
+                Arc::<str>::from("topic-name-longer-than-twenty-three"),
+                2,
+                1,
+            ),
+        ];
+        let topics = group_shared_offset_topics(&items, |_, _| 3);
+        assert_eq!(topics.len(), 1);
+        assert_eq!(topics[0].topic.as_str(), topic.as_ref());
+        assert_eq!(topics[0].partitions.len(), 3);
+        assert_eq!(topics[0].partitions[1].offset, 9);
+        assert_eq!(topics[0].partitions[1].leader_epoch, 3);
+        assert_eq!(Arc::as_ptr(&items[0].0), stored);
+        assert_eq!(Arc::as_ptr(&items[1].0), stored);
     }
 
     #[test]

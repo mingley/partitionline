@@ -3065,6 +3065,27 @@ impl Consumer {
     ///
     /// Partitions of one topic share that topic's leader-epoch list and pending
     /// queue. A negative delivered offset is omitted.
+    pub(crate) fn delivered_positions_shared(&self) -> Vec<(Arc<str>, i32, i64)> {
+        let mut cached_topic = std::ptr::null::<u8>();
+        let mut cached_name: Option<&str> = None;
+        let mut pending_parts: Option<&HashMap<i32, VecDeque<FetchedRecord>>> = None;
+        let mut out = Vec::new();
+        for (topic, partition, offset) in &self.assigned {
+            if !reuse_topic_cache(&mut cached_topic, &mut cached_name, topic) {
+                pending_parts = self.pending.partitions.topic_partitions(topic.as_ref());
+            }
+            let front = pending_parts
+                .and_then(|parts| parts.get(partition))
+                .and_then(|records| records.front());
+            let delivered = front.map(|record| record.offset).unwrap_or(*offset);
+            let Some(position) = defined_position(delivered) else {
+                continue;
+            };
+            out.push((Arc::clone(topic), *partition, position));
+        }
+        out
+    }
+
     pub(crate) fn delivered_commit_offsets(&self) -> Vec<(TopicPartition, OffsetAndMetadata)> {
         let mut cached_topic = std::ptr::null::<u8>();
         let mut cached_name: Option<&str> = None;
