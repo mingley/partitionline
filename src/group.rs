@@ -2155,8 +2155,19 @@ impl ConsumerGroup {
         self.hb_stop.send(true).unwrap_or(());
         *self.hb_deadline.lock() = None;
         let revoked = self.assignment();
-        self.leave_coordinator(LEAVE_GROUP_REASON_UNSUBSCRIBED, deadline)
-            .await?;
+        if self.kip848 {
+            self.adopt_kip848_member_id();
+        }
+        Self::leave_joined_member(
+            &mut self.coord,
+            &self.cfg,
+            &self.group_id,
+            &self.member_id,
+            self.kip848,
+            LEAVE_GROUP_REASON_UNSUBSCRIBED,
+            deadline,
+        )
+        .await?;
         if !revoked.is_empty() {
             self.cfg.rebalance.call(&revoked, &[]);
         }
@@ -2329,13 +2340,29 @@ impl ConsumerGroup {
         // KL-02: never auto-commit positions on leave/close.
         self.hb_stop.send(true).unwrap_or(());
         *self.hb_deadline.lock() = None;
-        let out = self
-            .leave_coordinator(LEAVE_GROUP_REASON_CLOSED, deadline)
-            .await;
+        if self.kip848 {
+            self.adopt_kip848_member_id();
+        }
+        let timeout = deadline.saturating_duration_since(Instant::now());
+        let kip848 = self.kip848;
+        let group_id = self.group_id.clone();
+        let member_id = self.member_id.clone();
+        let coord = &mut self.coord;
+        let cfg = &self.cfg;
+        let consumer = &mut self.consumer;
+        let (out, _) = tokio::join!(
+            Self::leave_joined_member(
+                coord,
+                cfg,
+                &group_id,
+                &member_id,
+                kip848,
+                LEAVE_GROUP_REASON_CLOSED,
+                deadline,
+            ),
+            consumer.close_fetch_sessions(timeout),
+        );
         self.consumer.close_interceptors();
-        self.consumer
-            .close_fetch_sessions(deadline.saturating_duration_since(Instant::now()))
-            .await;
         out
     }
 
@@ -2356,21 +2383,28 @@ impl ConsumerGroup {
         self.leave_within(deadline).await
     }
 
-    async fn leave_coordinator(&mut self, reason: &str, deadline: Instant) -> Result<()> {
+    async fn leave_joined_member(
+        coord: &mut BrokerConn,
+        cfg: &ConsumerConfig,
+        group_id: &str,
+        member_id: &str,
+        kip848: bool,
+        reason: &str,
+        deadline: Instant,
+    ) -> Result<()> {
         let timeout = deadline.saturating_duration_since(Instant::now());
         if timeout.is_zero() {
             return Err(Error::Timeout);
         }
-        if self.kip848 {
-            self.adopt_kip848_member_id();
+        if kip848 {
             let req = ConsumerGroupHeartbeatRequest {
-                group_id: self.group_id.clone(),
-                member_id: self.member_id.clone(),
+                group_id: group_id.to_string(),
+                member_id: member_id.to_string(),
                 member_epoch: ConsumerGroupHeartbeatRequest::leave_group_epoch(
-                    self.cfg.group_instance_id.as_deref(),
+                    cfg.group_instance_id.as_deref(),
                 ),
-                instance_id: self.cfg.group_instance_id.clone(),
-                rack_id: self.cfg.rack.clone(),
+                instance_id: cfg.group_instance_id.clone(),
+                rack_id: cfg.rack.clone(),
                 rebalance_timeout_ms: ConsumerGroupHeartbeatRequest::UNCHANGED_REBALANCE_TIMEOUT_MS,
                 subscribed_topic_names: None,
                 subscribed_topic_regex: None,
@@ -2378,9 +2412,9 @@ impl ConsumerGroup {
                 topic_partitions: None,
             };
             let (version, body) = coord_roundtrip(
-                &mut self.coord,
-                &self.cfg,
-                &self.group_id,
+                coord,
+                cfg,
+                group_id,
                 COORDINATOR_GROUP,
                 CONSUMER_GROUP_HEARTBEAT,
                 |version, buf| encode_consumer_group_heartbeat_request(buf, version, &req),
@@ -2397,19 +2431,17 @@ impl ConsumerGroup {
             return Ok(());
         }
         let members = [LeaveGroupMember {
-            member_id: self.member_id.clone(),
-            group_instance_id: self.cfg.group_instance_id.clone(),
+            member_id: member_id.to_string(),
+            group_instance_id: cfg.group_instance_id.clone(),
             reason: Some(truncate_group_reason(reason)),
         }];
         let (version, body) = coord_roundtrip(
-            &mut self.coord,
-            &self.cfg,
-            &self.group_id,
+            coord,
+            cfg,
+            group_id,
             COORDINATOR_GROUP,
             LEAVE_GROUP,
-            |version, buf| {
-                encode_leave_group_request_members(buf, version, &self.group_id, &members)
-            },
+            |version, buf| encode_leave_group_request_members(buf, version, group_id, &members),
             timeout,
         )
         .await?;

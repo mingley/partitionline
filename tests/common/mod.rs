@@ -519,6 +519,7 @@ struct State {
     last_leave_group_node: Option<i32>,
     last_leave_group_members: Option<Vec<LeaveGroupMember>>,
     last_leave_group_version: Option<i16>,
+    leave_group_delay: Option<Duration>,
     last_sasl_handshake_version: Option<i16>,
     last_sasl_handshake_correlation: Option<i32>,
     last_sasl_authenticate_version: Option<i16>,
@@ -1004,6 +1005,7 @@ fn new_state(
         last_leave_group_node: None,
         last_leave_group_members: None,
         last_leave_group_version: None,
+        leave_group_delay: None,
         last_sasl_handshake_version: None,
         last_sasl_handshake_correlation: None,
         last_sasl_authenticate_version: None,
@@ -3935,6 +3937,10 @@ impl Mock {
 
     pub fn fail_init_producer_id_once(&self, code: i16) {
         self.state.lock().init_producer_id_faults.push_back(code);
+    }
+
+    pub fn set_leave_group_delay(&self, delay: Duration) {
+        self.state.lock().leave_group_delay = Some(delay);
     }
 
     pub fn set_offset_commit_delay(&self, delay: Duration) {
@@ -8368,6 +8374,10 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 let version = header.api_version;
                 let (gid, members) =
                     decode_leave_group_request_version(&mut frame, version).unwrap();
+                let delay = state.lock().leave_group_delay;
+                if let Some(delay) = delay {
+                    tokio::time::sleep(delay).await;
+                }
                 let mut st = state.lock();
                 st.last_leave_group_version = Some(version);
                 st.last_leave_group_node = Some(node_id);
