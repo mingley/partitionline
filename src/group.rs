@@ -3401,7 +3401,7 @@ fn wanted_from_kip848(
     assignment: &[TopicPartitions],
 ) -> Vec<(String, i32)> {
     let mut out = Vec::new();
-    let mut seen = HashSet::new();
+    let mut seen: HashMap<String, HashSet<i32>> = HashMap::new();
     for tp in assignment {
         let name = id_to_name.get(&tp.topic_id).cloned().or_else(|| {
             // One subscription can name an id metadata has not indexed yet.
@@ -3416,8 +3416,14 @@ fn wanted_from_kip848(
         let Some(name) = name else {
             continue;
         };
+        if !seen.contains_key(name.as_str()) {
+            let _ = seen.insert(name.clone(), HashSet::new());
+        }
+        let Some(parts) = seen.get_mut(name.as_str()) else {
+            continue;
+        };
         for p in &tp.partitions {
-            if *p < 0 || !seen.insert((name.clone(), *p)) {
+            if *p < 0 || !parts.insert(*p) {
                 continue;
             }
             out.push((name.clone(), *p));
@@ -4797,6 +4803,24 @@ mod tests {
         assert_eq!(
             wanted_from_kip848(&["payments".into()], &ids, &messy),
             vec![("payments".into(), 0), ("payments".into(), 2)]
+        );
+        let repeated = vec![
+            TopicPartitions {
+                topic_id: [1u8; 16],
+                partitions: vec![0, 2],
+            },
+            TopicPartitions {
+                topic_id: [1u8; 16],
+                partitions: vec![2, 4],
+            },
+        ];
+        assert_eq!(
+            wanted_from_kip848(&["payments".into()], &ids, &repeated),
+            vec![
+                ("payments".into(), 0),
+                ("payments".into(), 2),
+                ("payments".into(), 4)
+            ]
         );
         let unknown = vec![TopicPartitions {
             topic_id: [9u8; 16],
