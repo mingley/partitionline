@@ -3896,6 +3896,39 @@ async fn one_node_close_sends_final_fetch_session_epoch() {
 }
 
 #[tokio::test]
+async fn two_node_close_retires_both_fetch_sessions() {
+    let mock = common::Mock::start_two_node().await;
+    mock.enable_fetch_sessions([1, 2]);
+    mock.set_topic_partitions("t", 1);
+    mock.set_partition_leader("t", 0, 2);
+    mock.set_topic_partitions("u", 1);
+    let mut consumer =
+        Consumer::new(ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10))
+            .await
+            .unwrap();
+    consumer.assign("t", 0, 0).await.unwrap();
+    consumer.assign("u", 0, 0).await.unwrap();
+    assert!(consumer.fetch().await.unwrap().is_empty());
+    assert!(consumer.fetch().await.unwrap().is_empty());
+    consumer.close().await.unwrap();
+    let requests = mock.fetch_session_requests();
+    let mut closed = requests
+        .iter()
+        .filter(|request| {
+            request.3.epoch() == partitionline::protocol::fetch::FetchMetadata::FINAL_EPOCH
+        })
+        .map(|request| request.0)
+        .collect::<Vec<_>>();
+    closed.sort_unstable();
+    closed.dedup();
+    assert_eq!(
+        closed,
+        vec![1, 2],
+        "close must retire the fetch session on every leader, got {requests:?}"
+    );
+}
+
+#[tokio::test]
 async fn list_offsets_on_another_leader_negotiates_once() {
     let mock = common::Mock::start_two_node().await;
     mock.set_topic_partitions("t", 1);

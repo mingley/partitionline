@@ -5094,6 +5094,7 @@ impl Consumer {
         deadline: Instant,
     ) -> Result<()> {
         nodes.sort_unstable();
+        let mut jobs = Vec::new();
         for node in nodes {
             let Some(session) = self.fetch_sessions.remove(&node) else {
                 continue;
@@ -5108,35 +5109,128 @@ impl Consumer {
                     .brokers
                     .get(&node)
                     .is_some_and(|addr| addr == self.conn.addr());
-            if uses_bootstrap {
-                // One-node fetch keeps this leader on the bootstrap socket.
-                send_fetch_session_close(
-                    &mut self.conn,
-                    &session,
+            jobs.push((node, session, throttle_until, uses_bootstrap));
+        }
+        if jobs.len() <= 1 {
+            for (node, session, throttle_until, uses_bootstrap) in jobs {
+                self.retire_one_fetch_session(
+                    node,
+                    session,
                     throttle_until,
-                    &self.wakeup_tx,
-                    &self.cfg,
+                    uses_bootstrap,
                     deadline,
                 )
                 .await?;
+            }
+            return Ok(());
+        }
+        let mut set = tokio::task::JoinSet::new();
+        let mut bootstrap = None;
+        for (node, session, throttle_until, uses_bootstrap) in jobs {
+            if uses_bootstrap {
+                bootstrap = Some((session, throttle_until));
                 continue;
             }
             let Some(mut conn) = self.conns.remove(&node) else {
                 continue;
             };
+            let cfg = self.cfg.clone();
+            let wakeup_tx = self.wakeup_tx.clone();
+            let _ = set.spawn(async move {
+                send_fetch_session_close(
+                    &mut conn,
+                    &session,
+                    throttle_until,
+                    &wakeup_tx,
+                    &cfg,
+                    deadline,
+                )
+                .await
+            });
+        }
+        let bootstrap_close = async {
+            let Some((session, throttle_until)) = bootstrap else {
+                return Ok(());
+            };
             send_fetch_session_close(
-                &mut conn,
+                &mut self.conn,
                 &session,
                 throttle_until,
                 &self.wakeup_tx,
                 &self.cfg,
                 deadline,
             )
-            .await?;
-            // The dedicated socket is dropped with its close response. An
-            // interrupted roundtrip must not be reused with an unread frame.
+            .await
+        };
+        let first_error = {
+            let mut bootstrap_fut = std::pin::pin!(bootstrap_close);
+            let mut bootstrap_done = None;
+            let mut first_error = None;
+            loop {
+                tokio::select! {
+                    biased;
+                    done = &mut bootstrap_fut, if bootstrap_done.is_none() => {
+                        bootstrap_done = Some(done);
+                    }
+                    joined = set.join_next(), if !set.is_empty() => {
+                        if let Some(Ok(Err(error))) = joined {
+                            if first_error.is_none() {
+                                first_error = Some(error);
+                            }
+                        }
+                    }
+                }
+                if bootstrap_done.is_some() && set.is_empty() {
+                    break;
+                }
+            }
+            if let Some(Err(error)) = bootstrap_done {
+                if first_error.is_none() {
+                    first_error = Some(error);
+                }
+            }
+            first_error
+        };
+        match first_error {
+            Some(error) => Err(error),
+            None => Ok(()),
         }
-        Ok(())
+    }
+
+    async fn retire_one_fetch_session(
+        &mut self,
+        node: i32,
+        session: BrokerFetchSession,
+        throttle_until: Option<Instant>,
+        uses_bootstrap: bool,
+        deadline: Instant,
+    ) -> Result<()> {
+        if uses_bootstrap {
+            // One-node fetch keeps this leader on the bootstrap socket.
+            return send_fetch_session_close(
+                &mut self.conn,
+                &session,
+                throttle_until,
+                &self.wakeup_tx,
+                &self.cfg,
+                deadline,
+            )
+            .await;
+        }
+        let Some(mut conn) = self.conns.remove(&node) else {
+            return Ok(());
+        };
+        send_fetch_session_close(
+            &mut conn,
+            &session,
+            throttle_until,
+            &self.wakeup_tx,
+            &self.cfg,
+            deadline,
+        )
+        .await
+        // The dedicated socket is dropped with its close response. An
+        // interrupted roundtrip must not be reused with an unread frame.
     }
 
     pub(crate) fn close_interceptors(&self) {
