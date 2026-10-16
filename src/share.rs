@@ -1303,7 +1303,14 @@ fn prune_share_leader_plan(plan: &mut ShareLeaderPlan) {
     });
 }
 
+fn reserve_share_len<T>(items: &mut Vec<T>, count: usize) {
+    if items.capacity() < count {
+        items.reserve(count - items.capacity());
+    }
+}
+
 fn refill_share_partitions(dest: &mut Vec<ShareFetchPartition>, parts: &[i32], max_bytes: i32) {
+    reserve_share_len(dest, parts.len());
     let mut used = 0usize;
     for &partition in parts {
         if let Some(slot) = dest.get_mut(used) {
@@ -1349,6 +1356,7 @@ fn refill_share_fetch(
         }
     }
     by_id.retain(|_, parts| !parts.is_empty());
+    reserve_share_len(topics, by_id.len());
     let mut used = 0usize;
     for (topic_id, partitions) in by_id.iter() {
         if let Some(topic) = topics.get_mut(used) {
@@ -5161,6 +5169,39 @@ mod tests {
             topics.first().map(|topic| topic.partitions.as_ptr()),
             topic_parts_ptr
         );
+        let mut wider = HashMap::new();
+        let _ = wider.insert(Arc::<str>::from("orders"), vec![0, 1, 2, 3]);
+        super::refill_share_fetch(&mut by_id, &mut topics, &wider, &topic_ids, 1024)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let part_capacity = topics
+            .first()
+            .map(|topic| topic.partitions.capacity())
+            .unwrap_or(0);
+        assert!(part_capacity >= 4);
+        assert_eq!(topics.first().map(|topic| topic.partitions.len()), Some(4));
+        super::refill_share_fetch(&mut by_id, &mut topics, &wider, &topic_ids, 1024)
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert!(topics
+            .first()
+            .is_some_and(|topic| topic.partitions.capacity() == part_capacity));
+
+        let mut many = HashMap::new();
+        let _ = many.insert(Arc::<str>::from("orders"), vec![0]);
+        let _ = many.insert(Arc::<str>::from("payments"), vec![1]);
+        let _ = many.insert(Arc::<str>::from("trades"), vec![2]);
+        let mut ids = topic_ids;
+        let _ = ids.insert(Arc::<str>::from("payments"), [8u8; 16]);
+        let _ = ids.insert(Arc::<str>::from("trades"), [7u8; 16]);
+        let mut fresh_ids = BTreeMap::new();
+        let mut fresh_topics = Vec::new();
+        super::refill_share_fetch(&mut fresh_ids, &mut fresh_topics, &many, &ids, 64)
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(fresh_topics.len(), 3);
+        let topic_capacity = fresh_topics.capacity();
+        assert!(topic_capacity >= 3);
+        super::refill_share_fetch(&mut fresh_ids, &mut fresh_topics, &many, &ids, 64)
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(fresh_topics.capacity(), topic_capacity);
     }
 
     #[test]
