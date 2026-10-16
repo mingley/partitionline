@@ -839,7 +839,8 @@ pub struct ShareGroup {
     /// Java `subscribe(Pattern)`: re-list cluster topics on poll.
     topic_match: Option<TopicMatch>,
     last_match_refresh: Instant,
-    assigned: Vec<(String, i32)>,
+    /// Assigned partitions. Every partition of a topic shares that topic's name.
+    assigned: Vec<(Arc<str>, i32)>,
     /// Leader ids for the topic currently being routed. Cleared at the start
     /// of each poll so a metadata refresh is visible, and kept so the next
     /// poll does not allocate the list again.
@@ -1051,7 +1052,7 @@ fn encode_prepared_share_fetch(
 }
 
 struct ShareAssignmentUpdate {
-    assigned: Vec<(String, i32)>,
+    assigned: Vec<(Arc<str>, i32)>,
     topic_ids: HashMap<Arc<str>, [u8; 16]>,
 }
 
@@ -1105,6 +1106,12 @@ fn next_share_assignment(
         } else {
             let _ = topic_ids.insert(Arc::from(name), topic_id);
         }
+        let Some(shared) = topic_ids
+            .get_key_value(name)
+            .map(|(key, _)| Arc::clone(key))
+        else {
+            continue;
+        };
         if !seen.contains_key(name) {
             let _ = seen.insert(name, HashSet::new());
         }
@@ -1115,7 +1122,7 @@ fn next_share_assignment(
             if *partition < 0 || !parts.insert(*partition) {
                 continue;
             }
-            assigned.push((name.to_owned(), *partition));
+            assigned.push((Arc::clone(&shared), *partition));
         }
     }
     if !resolved_topic {
@@ -1498,7 +1505,7 @@ impl ShareGroup {
     pub fn assignment(&self) -> Vec<crate::TopicPartition> {
         self.assigned
             .iter()
-            .map(|(t, p)| crate::TopicPartition::new(t.clone(), *p))
+            .map(|(t, p)| crate::TopicPartition::new(t.as_ref(), *p))
             .collect()
     }
 
@@ -1702,7 +1709,7 @@ impl ShareGroup {
         let still_assigned: HashSet<(&str, i32)> = self
             .assigned
             .iter()
-            .map(|(topic, partition)| (topic.as_str(), *partition))
+            .map(|(topic, partition)| (topic.as_ref(), *partition))
             .collect();
         self.acquisitions.retain(|topic, parts| {
             parts.retain(|run| still_assigned.contains(&(topic.as_str(), run.partition)));
@@ -1731,8 +1738,8 @@ impl ShareGroup {
         let mut added = HashSet::new();
         let mut extra = Vec::new();
         for (topic, _) in &self.assigned {
-            if !known.contains(topic.as_str()) && added.insert(topic.as_str()) {
-                extra.push(Arc::from(topic.as_str()));
+            if !known.contains(topic.as_ref()) && added.insert(topic.as_ref()) {
+                extra.push(Arc::clone(topic));
             }
         }
         names.extend(extra);
@@ -2373,7 +2380,7 @@ impl ShareGroup {
         // without copying that name again.
         fill_unique_names(
             &mut self.metadata_names,
-            self.assigned.iter().map(|(topic, _)| topic.as_str()),
+            self.assigned.iter().map(|(topic, _)| topic.as_ref()),
         );
         let count = self.metadata_names.len();
         for index in 0..count {
@@ -2396,7 +2403,7 @@ impl ShareGroup {
         clear_share_leader_plan(&mut self.leader_plan);
         self.leader_topic.clear();
         for (topic, partition) in &self.assigned {
-            if self.leader_topic.as_str() != topic.as_str() {
+            if self.leader_topic.as_str() != topic.as_ref() {
                 let ids = self.consumer.leader_ids_of(topic)?;
                 self.leader_ids.clear();
                 self.leader_ids.extend_from_slice(ids);
@@ -2406,7 +2413,7 @@ impl ShareGroup {
             let node = share_partition_leader(topic, *partition, &self.leader_ids)?;
             if !self.consumer.broker_known(node) {
                 return Err(Error::NoLeader {
-                    topic: topic.clone(),
+                    topic: topic.as_ref().to_owned(),
                     partition: *partition,
                 });
             }
@@ -4303,9 +4310,9 @@ fn share_ack_retriable(error: &Error) -> bool {
 /// True when a refresh would leave every stored id unchanged.
 ///
 /// A steady poll then skips cloning the topic-name list.
-fn share_topic_ids_current(
+fn share_topic_ids_current<T: AsRef<str>>(
     stored_map: &HashMap<Arc<str>, [u8; 16]>,
-    assigned: &[(String, i32)],
+    assigned: &[(T, i32)],
     metadata: &HashMap<String, [u8; 16]>,
 ) -> bool {
     for (name, stored) in stored_map {
@@ -4317,10 +4324,11 @@ fn share_topic_ids_current(
         }
     }
     for (topic, _) in assigned {
-        if stored_map.contains_key(topic.as_str()) {
+        let topic = topic.as_ref();
+        if stored_map.contains_key(topic) {
             continue;
         }
-        if refreshed_share_topic_id(None, metadata.get(topic.as_str()).copied()).is_some() {
+        if refreshed_share_topic_id(None, metadata.get(topic).copied()).is_some() {
             return false;
         }
     }
@@ -5090,14 +5098,22 @@ mod tests {
             &subscribed,
         )
         .expect("known topic replaces the assignment");
+        let shared = resolved
+            .topic_ids
+            .get_key_value("orders")
+            .map(|(name, _)| Arc::as_ptr(name));
         assert_eq!(
-            resolved.assigned,
-            vec![
-                ("orders".to_owned(), 1),
-                ("orders".to_owned(), 0),
-                ("orders".to_owned(), 3)
-            ]
+            resolved
+                .assigned
+                .iter()
+                .map(|(topic, partition)| (topic.as_ref(), *partition))
+                .collect::<Vec<_>>(),
+            vec![("orders", 1), ("orders", 0), ("orders", 3)]
         );
+        assert!(resolved
+            .assigned
+            .iter()
+            .all(|(topic, _)| Some(Arc::as_ptr(topic)) == shared));
         let only = vec!["orders".to_owned()];
         let mapped = next_share_assignment(
             &[ShareTopicPartitions {
@@ -5109,7 +5125,21 @@ mod tests {
             &only,
         )
         .expect("one subscription names the only topic");
-        assert_eq!(mapped.assigned, vec![("orders".to_owned(), 2)]);
+        assert_eq!(
+            mapped
+                .assigned
+                .iter()
+                .map(|(topic, partition)| (topic.as_ref(), *partition))
+                .collect::<Vec<_>>(),
+            vec![("orders", 2)]
+        );
+        assert_eq!(
+            mapped
+                .topic_ids
+                .get_key_value("orders")
+                .map(|(name, _)| Arc::as_ptr(name)),
+            mapped.assigned.first().map(|(topic, _)| Arc::as_ptr(topic))
+        );
         assert_eq!(mapped.topic_ids.get("orders").copied(), Some(unknown));
         let cleared = next_share_assignment(&[], &id_to_name, &name_to_id, &subscribed)
             .expect("empty assignment revokes");
