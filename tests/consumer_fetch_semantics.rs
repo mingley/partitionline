@@ -3979,6 +3979,38 @@ async fn group_reset_lists_each_leaders_offsets_together() {
     group.leave().await.unwrap();
 }
 
+/// A fresh topic is not fetched again by `partitionsFor`.
+#[tokio::test]
+async fn partitions_for_reuses_fresh_metadata() {
+    let mock = common::Mock::start().await;
+    mock.set_topic_partitions("t", 2);
+    let mut consumer = Consumer::new(ConsumerConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    let before = mock.metadata_calls();
+    let first = consumer.partitions_for("t").await.unwrap();
+    assert_eq!(first.len(), 2);
+    let second = consumer.partitions_for("t").await.unwrap();
+    assert_eq!(second.len(), 2);
+    assert_eq!(
+        mock.metadata_calls(),
+        before + 1,
+        "a fresh topic should not request metadata again"
+    );
+
+    let mut cfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    cfg.metadata_max_age = Duration::ZERO;
+    let mut always = Consumer::new(cfg).await.unwrap();
+    let before = mock.metadata_calls();
+    let _ = always.partitions_for("t").await.unwrap();
+    let _ = always.partitions_for("t").await.unwrap();
+    assert_eq!(
+        mock.metadata_calls(),
+        before + 2,
+        "metadata_max_age of zero refreshes every partitionsFor"
+    );
+}
+
 /// The member socket and the group coordinator dial together.
 #[tokio::test]
 async fn group_join_dials_the_coordinator_with_the_member() {

@@ -7989,6 +7989,9 @@ impl Consumer {
     }
 
     /// [`Self::partitions_for`] with a one-shot timeout (Java `partitionsFor(String, Duration)`).
+    ///
+    /// A topic still inside [`ConsumerConfig::metadata_max_age`] is returned
+    /// from the cached image. A zero max age always asks the broker.
     pub async fn partitions_for_timeout(
         &mut self,
         topic: impl Into<String>,
@@ -7997,13 +8000,30 @@ impl Consumer {
         let topic = topic.into();
         self.reject_pending_wakeup()?;
         Topic::validate(&topic)?;
-        self.refresh_metadata_timeout(Some(std::slice::from_ref(&topic)), timeout)
-            .await?;
+        if !self.cached_partition_metadata(&topic) {
+            self.refresh_metadata_timeout(Some(std::slice::from_ref(&topic)), timeout)
+                .await?;
+        }
         let infos = self.partition_infos(Some(topic.as_str()))?;
         if infos.is_empty() {
             return Err(Error::UnknownTopic(topic));
         }
         Ok(infos)
+    }
+
+    /// True when the metadata image still has a usable copy of `topic` and
+    /// that copy is inside `metadata_max_age`.
+    fn cached_partition_metadata(&self, topic: &str) -> bool {
+        if !self.topic_metadata_fresh(topic) {
+            return false;
+        }
+        self.metadata.as_ref().is_some_and(|metadata| {
+            metadata.topics.iter().any(|item| {
+                item.name.as_deref() == Some(topic)
+                    && item.error_code == 0
+                    && !item.partitions.is_empty()
+            })
+        })
     }
 
     /// Cluster Metadata for every topic (Java `listTopics`).
