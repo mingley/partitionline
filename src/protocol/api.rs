@@ -3408,13 +3408,17 @@ fn take_produce_topic_bytes(buf: &mut Bytes, flexible: bool) -> Result<Bytes> {
 /// [`ProduceAck::topic`] empty and fills [`ProduceAck::topic_id`]. Record
 /// errors and error messages are skipped after they are validated. The
 /// numeric fields match [`decode_produce_response`].
-pub(crate) fn decode_produce_acks(
+///
+/// `acks` is cleared first. A caller that passes the previous response's
+/// list keeps that allocation when the next response fits.
+pub(crate) fn decode_produce_acks_into(
     buf: &mut Bytes,
     version: i16,
-) -> Result<(Vec<ProduceAck>, Vec<NodeEndpoint>, i32)> {
+    acks: &mut Vec<ProduceAck>,
+) -> Result<(Vec<NodeEndpoint>, i32)> {
+    acks.clear();
     let flexible = produce_flexible(version)?;
     let topic_count = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-    let mut out = Vec::new();
     for _ in 0..topic_count {
         let mut topic_id = [0; 16];
         let topic = if version <= 12 {
@@ -3448,7 +3452,7 @@ pub(crate) fn decode_produce_acks(
                     RecordBatch::NO_PARTITION_LEADER_EPOCH,
                 )
             };
-            out.push(ProduceAck {
+            acks.push(ProduceAck {
                 topic: topic.clone(),
                 topic_id,
                 partition,
@@ -3469,7 +3473,7 @@ pub(crate) fn decode_produce_acks(
     } else {
         Vec::new()
     };
-    Ok((out, endpoints, throttle_time_ms))
+    Ok((endpoints, throttle_time_ms))
 }
 
 #[cfg(test)]
@@ -3490,8 +3494,10 @@ mod tests {
             encode_produce_response(&mut buf, version, &parts).unwrap();
             let encoded = buf.freeze();
             let mut raw = encoded.clone();
-            let mut named = encoded;
-            let (acks, _, throttle) = decode_produce_acks(&mut raw, version).unwrap();
+            let mut named = encoded.clone();
+            let mut acks = Vec::new();
+            let (_endpoints, throttle) =
+                decode_produce_acks_into(&mut raw, version, &mut acks).unwrap();
             let (decoded, _, throttle_named) =
                 decode_produce_response(&mut named, version).unwrap();
             assert_eq!(throttle, throttle_named);
@@ -3505,6 +3511,16 @@ mod tests {
                 assert_eq!(ack.current_leader_id, part.current_leader_id);
                 assert_eq!(ack.current_leader_epoch, part.current_leader_epoch);
             }
+            let mut reused = Vec::new();
+            let mut first = encoded.clone();
+            let (_endpoints, _throttle) =
+                decode_produce_acks_into(&mut first, version, &mut reused).unwrap();
+            let kept = reused.as_ptr();
+            let mut second = encoded.clone();
+            let (_endpoints, _throttle) =
+                decode_produce_acks_into(&mut second, version, &mut reused).unwrap();
+            assert_eq!(reused.as_ptr(), kept, "v{version} ack buffer");
+            assert_eq!(reused.len(), decoded.len());
         }
     }
 

@@ -14,7 +14,7 @@ use crate::partitioner::{
     partition_for_key, to_positive, Partitioner, PartitionerBox, StickyState, StickyTag,
 };
 use crate::protocol::api::{
-    decode_metadata_response, decode_produce_acks, encode_metadata_request, ApiVersion,
+    decode_metadata_response, decode_produce_acks_into, encode_metadata_request, ApiVersion,
     ApiVersionsResponse, ProduceAck, ProduceRequest,
 };
 use crate::protocol::api_keys::{
@@ -4243,6 +4243,7 @@ async fn spawn_slot_worker(
         group_scratch: ProduceGroupScratch::default(),
         ack_index: AckIndex::default(),
         ack_slots: Vec::new(),
+        spare_acks: Vec::new(),
         ack_requested: HashMap::new(),
         ack_seen: HashMap::new(),
     };
@@ -4538,6 +4539,8 @@ struct Worker {
     ack_index: AckIndex,
     /// Reused response-slot list for the next Produce acknowledgement.
     ack_slots: Vec<Option<usize>>,
+    /// Reused Produce acknowledgement rows.
+    spare_acks: Vec<crate::protocol::api::ProduceAck>,
     /// Partitions requested by the in-flight Produce. Inner sets are cleared per acknowledgement.
     ack_requested: HashMap<Arc<str>, HashSet<i32>>,
     /// Partitions already accepted in that acknowledgement.
@@ -5594,8 +5597,9 @@ impl Worker {
         let by_uuid = &self.ack_index.by_uuid;
         let requested = &mut self.ack_requested;
         let seen = &mut self.ack_seen;
-        let decoded =
-            decode_produce_acks(&mut body, version).and_then(|(acks, endpoints, throttle)| {
+        let mut acks = std::mem::take(&mut self.spare_acks);
+        let decoded = decode_produce_acks_into(&mut body, version, &mut acks).and_then(
+            |(endpoints, throttle)| {
                 if version >= 13 {
                     let inf = guard.inf.as_ref().ok_or_else(|| {
                         Error::protocol("missing Produce request identity snapshot")
@@ -5637,17 +5641,20 @@ impl Worker {
                         solicited_v13_acks(&inf.groups, &acks, by_uuid, requested, seen)?;
                     }
                 }
-                Ok((acks, endpoints, throttle))
-            });
-        let (responses, endpoints, throttle_ms) = match decoded {
+                Ok((endpoints, throttle))
+            },
+        );
+        let (endpoints, throttle_ms) = match decoded {
             Ok(r) => r,
             Err(e) => {
+                self.spare_acks = acks;
                 if let Some(inf) = guard.inf.take() {
                     fail_groups(&self.shared, inf.groups, clone_err(&e));
                 }
                 return Err(e);
             }
         };
+        let responses = acks;
         // Apache ProduceResponse.shouldClientThrottle: older versions already
         // wait at the server. Publish the quota before any delivery completes.
         if version >= 6 {
@@ -5673,6 +5680,7 @@ impl Worker {
                 if version < 13 {
                     let e = Error::protocol("produce response topic is not utf-8");
                     self.ack_slots = slots;
+                    self.spare_acks = responses;
                     fail_groups(&self.shared, inf.groups, clone_err(&e));
                     return Err(e);
                 }
@@ -5860,6 +5868,7 @@ impl Worker {
             }
         }
         self.ack_slots = slots;
+        self.spare_acks = responses;
         match first_err {
             Some(e) => Err(e),
             None => Ok(()),
