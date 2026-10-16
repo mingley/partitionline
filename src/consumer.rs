@@ -6963,9 +6963,8 @@ impl Consumer {
             let node = match self.cluster.leader_id(topic, partition) {
                 Ok(node) => node,
                 Err(_) => {
-                    let topics = [topic.to_string()];
-                    self.refresh_metadata_timeout(
-                        Some(&topics),
+                    self.refresh_metadata_timeout_ref(
+                        Some(std::slice::from_ref(&topic)),
                         deadline.saturating_duration_since(Instant::now()),
                     )
                     .await?;
@@ -7084,9 +7083,8 @@ impl Consumer {
                     if Instant::now() >= deadline {
                         return Err(Error::Timeout);
                     }
-                    let topics = [topic.to_string()];
-                    self.refresh_metadata_timeout(
-                        Some(&topics),
+                    self.refresh_metadata_timeout_ref(
+                        Some(std::slice::from_ref(&topic)),
                         deadline.saturating_duration_since(Instant::now()),
                     )
                     .await?;
