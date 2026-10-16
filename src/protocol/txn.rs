@@ -2341,13 +2341,22 @@ pub fn encode_write_txn_markers_request_with_transaction_versions(
     )
 }
 
-fn encode_write_txn_markers_request_items<'a>(
+fn encode_write_txn_markers_request_items<'a, I>(
     buf: &mut BytesMut,
     version: i16,
     count: usize,
-    markers: impl IntoIterator<Item = (&'a WritableTxnMarker, i8)>,
-) -> Result<()> {
+    markers: I,
+) -> Result<()>
+where
+    I: IntoIterator<Item = (&'a WritableTxnMarker, i8)> + Clone,
+{
     let flexible = write_txn_markers_flexible(version)?;
+    let body_start = buf.len();
+    let planned = write_txn_markers_request_len(version, flexible, count, markers.clone())?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf::put_array_len(buf, flexible, Some(count))?;
     for (m, transaction_version) in markers {
         buf.put_i64(m.producer_id);
@@ -2375,7 +2384,46 @@ fn encode_write_txn_markers_request_items<'a>(
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn write_txn_markers_request_len<'a>(
+    version: i16,
+    flexible: bool,
+    count: usize,
+    markers: impl IntoIterator<Item = (&'a WritableTxnMarker, i8)>,
+) -> Result<usize> {
+    let mut total = txn_array_len(flexible, count)?;
+    for (marker, _) in markers {
+        total = add_txn_len(total, 11)?;
+        total = add_txn_len(total, txn_array_len(flexible, marker.topics.len())?)?;
+        for topic in &marker.topics {
+            total = add_txn_len(total, txn_string_len(flexible, &topic.name)?)?;
+            total = add_txn_len(total, txn_array_len(flexible, topic.partitions.len())?)?;
+            total =
+                add_txn_len(
+                    total,
+                    topic.partitions.len().checked_mul(4).ok_or_else(|| {
+                        Error::protocol("write txn markers request size overflow")
+                    })?,
+                )?;
+            if flexible {
+                total = add_txn_len(total, buf::unsigned_varint_size(0))?;
+            }
+        }
+        total = add_txn_len(total, 4)?;
+        if version >= 2 {
+            total = add_txn_len(total, 1)?;
+        }
+        if flexible {
+            total = add_txn_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    if flexible {
+        total = add_txn_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 /// Decode the unchanged legacy marker shape at version0/1.
@@ -6980,6 +7028,49 @@ mod tests {
         let mut buf = BytesMut::new();
         encode_add_offsets_to_txn_response(&mut buf, 3, 0).unwrap();
         assert_eq!(&buf[..], RESP);
+    }
+
+    #[test]
+    fn a_write_txn_markers_request_sizes_its_body_once() {
+        let marker = WritableTxnMarker {
+            producer_id: 1000,
+            producer_epoch: 2,
+            transaction_result: false,
+            topics: vec![WritableTxnMarkerTopic {
+                name: "orders".into(),
+                partitions: (0..8).collect(),
+            }],
+            coordinator_epoch: 4,
+        };
+        let markers = vec![marker.clone(), marker];
+        for version in [0_i16, 1] {
+            let mut buf = BytesMut::new();
+            encode_write_txn_markers_request(&mut buf, version, &markers).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_write_txn_markers_request(&mut buf, version, &markers).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+        }
+        let versioned = vec![WritableTxnMarkerWithVersion::new(
+            markers.first().expect("marker").clone(),
+            1,
+        )];
+        let mut buf = BytesMut::new();
+        encode_write_txn_markers_request_with_transaction_versions(&mut buf, 2, &versioned)
+            .unwrap();
+        let len = buf.len();
+        let capacity = buf.capacity();
+        assert!(capacity >= len);
+        assert!(capacity < 64 * 1024);
+        buf.clear();
+        encode_write_txn_markers_request_with_transaction_versions(&mut buf, 2, &versioned)
+            .unwrap();
+        assert_eq!(buf.len(), len);
+        assert_eq!(buf.capacity(), capacity);
     }
 
     #[test]
