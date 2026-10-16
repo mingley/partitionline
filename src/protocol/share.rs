@@ -2315,6 +2315,38 @@ pub fn encode_share_acknowledge_topics(
     )
 }
 
+fn share_acknowledge_header_len(version: i16, group_id: &str, member_id: &str) -> Result<usize> {
+    let mut total = share_string_len(group_id)?;
+    total = add_share_len(total, share_string_len(member_id)?)?;
+    total = add_share_len(total, 4)?;
+    if version >= 2 {
+        total = add_share_len(total, 1)?;
+    }
+    Ok(total)
+}
+
+fn share_acknowledge_topics_len(topics: &[ShareAckTopic]) -> Result<usize> {
+    let mut total = share_array_len(topics.len())?;
+    for topic in topics {
+        total = add_share_len(total, 16)?;
+        total = add_share_len(total, share_array_len(topic.partitions.len())?)?;
+        for (_, batches) in &topic.partitions {
+            total = add_share_len(total, 4)?;
+            total = add_share_len(total, ack_batches_len(batches)?)?;
+            total = add_share_len(total, buf::unsigned_varint_size(0))?;
+        }
+        total = add_share_len(total, buf::unsigned_varint_size(0))?;
+    }
+    add_share_len(total, buf::unsigned_varint_size(0))
+}
+
+fn reserve_share_body(buf: &mut BytesMut, planned: usize) {
+    let needed = buf.len().saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
+}
+
 /// Encode ShareAcknowledge with the v2 IsRenewAck flag. Renew is also inferred
 /// from type-4 batches; older versions reject Renew before writing bytes.
 pub fn encode_share_acknowledge_topics_with_renew(
@@ -2334,6 +2366,12 @@ pub fn encode_share_acknowledge_topics_with_renew(
                 .any(|(_, batches)| batches.iter().any(|b| b.types.contains(&ACK_RENEW)))
         });
     check_renew_version(version, is_renew_ack)?;
+    let body_start = buf.len();
+    let planned = add_share_len(
+        share_acknowledge_header_len(version, group_id, member_id)?,
+        share_acknowledge_topics_len(topics)?,
+    )?;
+    reserve_share_body(buf, planned);
     buf::put_string(buf, flexible, Some(group_id))?;
     buf::put_string(buf, flexible, Some(member_id))?;
     buf.put_i32(share_session_epoch);
@@ -2358,6 +2396,7 @@ pub fn encode_share_acknowledge_topics_with_renew(
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
 }
 
@@ -2382,6 +2421,17 @@ pub(crate) fn encode_one_share_acknowledge(
     let flexible = share_acknowledge_flexible(version)?;
     let is_renew_ack = batches.iter().any(|batch| batch.types.contains(&ACK_RENEW));
     check_renew_version(version, is_renew_ack)?;
+    let body_start = buf.len();
+    let mut planned = share_acknowledge_header_len(version, group_id, member_id)?;
+    planned = add_share_len(planned, share_array_len(1)?)?;
+    planned = add_share_len(planned, 16)?;
+    planned = add_share_len(planned, share_array_len(1)?)?;
+    planned = add_share_len(planned, 4)?;
+    planned = add_share_len(planned, ack_batches_len(batches)?)?;
+    if flexible {
+        planned = add_share_len(planned, buf::unsigned_varint_size(0).saturating_mul(3))?;
+    }
+    reserve_share_body(buf, planned);
     buf::put_string(buf, flexible, Some(group_id))?;
     buf::put_string(buf, flexible, Some(member_id))?;
     buf.put_i32(share_session_epoch);
@@ -2398,6 +2448,7 @@ pub(crate) fn encode_one_share_acknowledge(
         buf::put_empty_tagged_fields(buf);
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
 }
 
@@ -5711,6 +5762,50 @@ mod tests {
                 "ShareAcknowledge v{version} toMessage leftover-empty; leftover {} bytes",
                 cur.remaining()
             );
+        }
+    }
+
+    #[test]
+    fn a_share_acknowledge_request_sizes_its_body_once() {
+        let batches = vec![AcknowledgementBatch {
+            first_offset: 4,
+            last_offset: 6,
+            types: vec![ACK_ACCEPT, ACK_RELEASE],
+        }];
+        let topics = vec![ShareAckTopic {
+            topic_id: [4; 16],
+            partitions: (0..5)
+                .map(|partition| (partition, batches.clone()))
+                .collect(),
+        }];
+        for version in [0_i16, 1, 2] {
+            let mut buf = BytesMut::new();
+            encode_share_acknowledge_topics(&mut buf, version, "group", "member", 3, &topics)
+                .unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_share_acknowledge_topics(&mut buf, version, "group", "member", 3, &topics)
+                .unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+            buf.clear();
+            encode_one_share_acknowledge(
+                &mut buf, version, "group", "member", 3, &[4; 16], 1, &batches,
+            )
+            .unwrap();
+            let one_len = buf.len();
+            let one_capacity = buf.capacity();
+            assert!(one_capacity >= one_len);
+            buf.clear();
+            encode_one_share_acknowledge(
+                &mut buf, version, "group", "member", 3, &[4; 16], 1, &batches,
+            )
+            .unwrap();
+            assert_eq!(buf.len(), one_len);
+            assert_eq!(buf.capacity(), one_capacity);
         }
     }
 
