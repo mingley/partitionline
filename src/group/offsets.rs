@@ -512,6 +512,12 @@ mod tests {
         let mut direct = bytes::BytesMut::new();
         encode_offset_commit_request_into(&mut direct, &request, 10, limits).unwrap();
         assert_eq!(&direct[..], &bytes[..]);
+        let names = ["orders".to_string()];
+        let metadata = encode_offset_metadata_names(Some(&names), 12, limits).unwrap();
+        validate_offset_metadata_names(Some(&names), 12, limits).unwrap();
+        let mut metadata_direct = bytes::BytesMut::new();
+        encode_offset_metadata_names_into(&mut metadata_direct, Some(&names), 12, limits).unwrap();
+        assert_eq!(&metadata_direct[..], &metadata[..]);
         let decoded = decode_offset_commit_request_data(&bytes, 10, limits).unwrap();
         assert_eq!(decoded.group_id, "g");
         assert_eq!(decoded.member_id, "m-1");

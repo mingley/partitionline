@@ -551,51 +551,87 @@ pub(crate) fn validate_offset_fetch_response_data(
     validate(value, version, limits)
 }
 
-/// Metadata names used only to capture offset UUID bindings. No automatic
-/// topic creation or authorization-operation queries are requested.
-pub(crate) fn encode_offset_metadata_names(
+fn write_offset_metadata_names(
+    writer: &mut Writer<'_>,
     names: Option<&[String]>,
     version: i16,
-    limits: OffsetLimits,
-) -> Result<Vec<u8>> {
+) -> Result<()> {
+    match names {
+        None => writer.byte(0)?,
+        Some(names) => {
+            writer.budget.array::<String>(names.len())?;
+            writer.varint(
+                u32::try_from(names.len())
+                    .ok()
+                    .and_then(|n| n.checked_add(1))
+                    .ok_or_else(|| Error::protocol("offset metadata count overflow"))?,
+            )?;
+            for name in names {
+                writer.put(&[0; 16])?;
+                writer.string(name)?;
+                writer.tags()?;
+            }
+        }
+    }
+    writer.byte(0)?;
+    if version == 10 {
+        writer.byte(0)?;
+    }
+    writer.byte(0)?;
+    writer.tags()
+}
+
+fn accept_offset_metadata_version(version: i16) -> Result<()> {
     if !(10..=13).contains(&version) {
         return Err(Error::Unsupported(
             "offset UUID resolution requires Metadata v10-13".into(),
         ));
     }
-    fn write(writer: &mut Writer<'_>, names: Option<&[String]>, version: i16) -> Result<()> {
-        match names {
-            None => writer.byte(0)?,
-            Some(names) => {
-                writer.budget.array::<String>(names.len())?;
-                writer.varint(
-                    u32::try_from(names.len())
-                        .ok()
-                        .and_then(|n| n.checked_add(1))
-                        .ok_or_else(|| Error::protocol("offset metadata count overflow"))?,
-                )?;
-                for name in names {
-                    writer.put(&[0; 16])?;
-                    writer.string(name)?;
-                    writer.tags()?;
-                }
-            }
-        }
-        writer.byte(0)?;
-        if version == 10 {
-            writer.byte(0)?;
-        }
-        writer.byte(0)?;
-        writer.tags()
-    }
+    Ok(())
+}
+
+/// Check a metadata name list without building the request body.
+pub(crate) fn validate_offset_metadata_names(
+    names: Option<&[String]>,
+    version: i16,
+    limits: OffsetLimits,
+) -> Result<()> {
+    accept_offset_metadata_version(version)?;
+    let mut writer = Writer::new(limits, None, version)?;
+    write_offset_metadata_names(&mut writer, names, version)
+}
+
+/// Metadata names used only to capture offset UUID bindings. No automatic
+/// topic creation or authorization-operation queries are requested.
+#[cfg(test)]
+pub(crate) fn encode_offset_metadata_names(
+    names: Option<&[String]>,
+    version: i16,
+    limits: OffsetLimits,
+) -> Result<Vec<u8>> {
+    accept_offset_metadata_version(version)?;
     let mut measure = Writer::new(limits, None, version)?;
-    write(&mut measure, names, version)?;
+    write_offset_metadata_names(&mut measure, names, version)?;
     let mut writer = Writer::new(limits, Some(measure.length), version)?;
-    write(&mut writer, names, version)?;
+    write_offset_metadata_names(&mut writer, names, version)?;
     match writer.sink {
         Sink::Fresh(output) => Ok(output),
         Sink::Count | Sink::Buf(_) => Err(Error::protocol("missing offset metadata output")),
     }
+}
+
+/// Write the metadata name list into `buf`.
+///
+/// The bytes match the allocated metadata-name encoder.
+pub(crate) fn encode_offset_metadata_names_into(
+    buf: &mut bytes::BytesMut,
+    names: Option<&[String]>,
+    version: i16,
+    limits: OffsetLimits,
+) -> Result<()> {
+    accept_offset_metadata_version(version)?;
+    let mut writer = Writer::appending(buf, limits, version)?;
+    write_offset_metadata_names(&mut writer, names, version)
 }
 
 /// Decode just bounded name/UUID bindings, while validating all Metadata

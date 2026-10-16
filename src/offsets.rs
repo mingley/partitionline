@@ -13,13 +13,16 @@ use crate::protocol::api_keys::{
 use crate::protocol::group::{
     decode_find_coordinator_response_coordinators, decode_offset_commit_response_data,
     decode_offset_fetch_response_data, encode_find_coordinator_request_keys,
-    encode_find_coordinator_request_typed, encode_offset_commit_request_data,
-    encode_offset_fetch_request_data, validate_offset_commit_request_data,
+    encode_find_coordinator_request_typed, encode_offset_commit_request_into,
+    encode_offset_fetch_request_into, validate_offset_commit_request_data,
     validate_offset_fetch_request_data, validate_offset_fetch_response_data,
     OffsetCommitRequestData, OffsetCommitResponseData, OffsetFetchRequestData,
     OffsetFetchResponseData, OffsetLimits, OffsetTopicIdentity, COORDINATOR_GROUP,
 };
-use crate::protocol::group::{decode_offset_metadata_bindings, encode_offset_metadata_names};
+use crate::protocol::group::{
+    decode_offset_metadata_bindings, encode_offset_metadata_names_into,
+    validate_offset_metadata_names,
+};
 use crate::protocol::sasl;
 
 const MAX_ATTEMPTS: u32 = 8;
@@ -102,7 +105,7 @@ impl OffsetClient {
         limits: OffsetLimits,
     ) -> Result<HashMap<String, [u8; 16]>> {
         // Preflight the borrowed names before any discovery or metadata I/O.
-        drop(encode_offset_metadata_names(names, 10, limits)?);
+        validate_offset_metadata_names(names, 10, limits)?;
         let mut last = Error::Timeout;
         let mut bytes = 0;
         for attempt in 0..3 {
@@ -114,15 +117,11 @@ impl OffsetClient {
                     .ok_or_else(|| {
                         Error::Unsupported("offset UUID resolution requires Metadata v10-13".into())
                     })?;
-                let encoded = encode_offset_metadata_names(names, version, limits)?;
                 let body = conn
                     .roundtrip_deadline(
                         METADATA,
                         version,
-                        |buf| {
-                            buf.extend_from_slice(&encoded);
-                            Ok(())
-                        },
+                        |buf| encode_offset_metadata_names_into(buf, names, version, limits),
                         deadline,
                     )
                     .await?;
@@ -502,16 +501,12 @@ impl OffsetClient {
                 .await?;
             (conn, version)
         };
-        let encoded = encode_offset_commit_request_data(request, version, options.limits)?;
         deadline.check_expired()?;
         let body = conn
             .roundtrip_deadline(
                 OFFSET_COMMIT,
                 version,
-                |buf| {
-                    buf.extend_from_slice(&encoded);
-                    Ok(())
-                },
+                |buf| encode_offset_commit_request_into(buf, request, version, options.limits),
                 deadline,
             )
             .await?;
@@ -630,16 +625,12 @@ impl OffsetClient {
                 groups,
                 require_stable: request.require_stable,
             };
-            let encoded = encode_offset_fetch_request_data(&batched, version, options.limits)?;
             deadline.check_expired()?;
             let body = conn
                 .roundtrip_deadline(
                     OFFSET_FETCH,
                     version,
-                    |buf| {
-                        buf.extend_from_slice(&encoded);
-                        Ok(())
-                    },
+                    |buf| encode_offset_fetch_request_into(buf, &batched, version, options.limits),
                     deadline,
                 )
                 .await?;
