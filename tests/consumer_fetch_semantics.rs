@@ -3979,6 +3979,26 @@ async fn group_reset_lists_each_leaders_offsets_together() {
     group.leave().await.unwrap();
 }
 
+/// Assigning another partition of a fresh topic does not fetch metadata again.
+#[tokio::test]
+async fn assign_reuses_fresh_topic_metadata() {
+    let mock = common::Mock::start().await;
+    mock.set_topic_partitions("t", 2);
+    let mut consumer = Consumer::new(ConsumerConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    let before = mock.metadata_calls();
+    consumer.assign("t", 0, 0).await.unwrap();
+    consumer.assign("t", 1, 0).await.unwrap();
+    consumer.assign_topic("t", 0).await.unwrap();
+    assert_eq!(consumer.assignment().len(), 2);
+    assert_eq!(
+        mock.metadata_calls(),
+        before + 1,
+        "assign should reuse metadata loaded for the same topic"
+    );
+}
+
 /// A fresh topic is not fetched again by `partitionsFor`.
 #[tokio::test]
 async fn partitions_for_reuses_fresh_metadata() {

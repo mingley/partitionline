@@ -2973,8 +2973,7 @@ impl Consumer {
         Topic::validate(&topic_name)?;
         self.reject_pending_wakeup()?;
         self.abort_inflight_fetches();
-        self.refresh_metadata(Some(std::slice::from_ref(&topic_name)))
-            .await?;
+        self.refresh_topic_metadata(&topic_name).await?;
         self.drop_pending_for(&topic_name, partition);
         if let Some(pos) = self
             .assigned
@@ -3071,8 +3070,7 @@ impl Consumer {
         require_fetch_offset(offset)?;
         Topic::validate(&topic)?;
         self.reject_pending_wakeup()?;
-        self.refresh_metadata(Some(std::slice::from_ref(&topic)))
-            .await?;
+        self.refresh_topic_metadata(&topic).await?;
         let Some(md) = self.metadata.as_ref() else {
             return Err(Error::UnknownTopic(topic));
         };
@@ -3733,6 +3731,14 @@ impl Consumer {
             session.reset();
         }
         Ok(())
+    }
+
+    async fn refresh_topic_metadata(&mut self, topic: &String) -> Result<()> {
+        if self.cached_partition_metadata(topic) {
+            return Ok(());
+        }
+        self.refresh_metadata(Some(std::slice::from_ref(topic)))
+            .await
     }
 
     async fn refresh_metadata(&mut self, topics: Option<&[String]>) -> Result<()> {
