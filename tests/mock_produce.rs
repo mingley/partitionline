@@ -2,6 +2,7 @@
 
 mod common;
 
+use partitionline::protocol::api_keys::TXN_OFFSET_COMMIT;
 use partitionline::{
     Admin, AdminConfig, Error, NewTopic, ProduceRecord, Producer, ProducerConfig, TopicPartition,
 };
@@ -188,6 +189,49 @@ async fn send_offsets_refreshes_topics_together() {
     let mut names = mock.last_metadata_topics().unwrap().unwrap();
     names.sort();
     assert_eq!(names, ["t".to_string(), "u".to_string()]);
+    producer.abort_transaction().await.unwrap();
+    producer.close().await.unwrap();
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn send_offsets_loads_metadata_while_adding_offsets() {
+    let mock = common::Mock::start().await;
+    mock.set_api_max(TXN_OFFSET_COMMIT, 4);
+    mock.set_topic_partitions("t", 1);
+    mock.set_topic_partitions("u", 1);
+    let mut cfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    cfg.linger = Duration::ZERO;
+    cfg.transactional_id = Some("tx-offsets-overlap".into());
+    let producer = Producer::new(cfg).await.unwrap();
+    producer.begin_transaction().await.unwrap();
+    let delay = Duration::from_millis(250);
+    mock.set_add_offsets_delay(delay);
+    mock.set_metadata_delay(delay);
+    let before = mock.metadata_calls();
+    let started = Instant::now();
+    producer
+        .send_offsets_to_transaction(
+            "g",
+            [
+                (TopicPartition::new("t", 0), 1),
+                (TopicPartition::new("u", 0), 2),
+            ],
+        )
+        .await
+        .unwrap();
+    let elapsed = started.elapsed();
+    assert!(
+        mock.metadata_calls() > before,
+        "offset topics should load metadata"
+    );
+    assert!(
+        mock.last_add_offsets_to_txn_version().is_some(),
+        "classic TxnOffsetCommit must send AddOffsetsToTxn"
+    );
+    assert!(
+        elapsed < Duration::from_millis(450),
+        "AddOffsetsToTxn waited for topic metadata: {elapsed:?}"
+    );
     producer.abort_transaction().await.unwrap();
     producer.close().await.unwrap();
 }

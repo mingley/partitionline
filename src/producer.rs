@@ -2995,90 +2995,112 @@ impl Producer {
         // TxnOffsetCommit v5 is transaction V2 (KIP-890 Part 2): the
         // group coordinator also performs AddOffsetsToTxn. Skip that
         // RPC when the broker advertised v5 (Java `isTransactionV2Enabled`).
-        if version <= TxnOffsetCommitRequest::LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2 {
-            let add_offsets_version = self.inner.shared.add_offsets_version;
-            let mut attempt = 0u32;
-            loop {
-                let body = txn_roundtrip(
-                    &self.inner.shared,
-                    ADD_OFFSETS_TO_TXN,
-                    add_offsets_version,
-                    |buf| {
-                        encode_add_offsets_to_txn_request(
-                            buf,
-                            add_offsets_version,
-                            &tid,
-                            pid,
-                            epoch,
-                            group_id,
+        let load_topics = async {
+            let topics = unique_offset_topics(&offsets);
+            if topics.len() > 1 {
+                let names: Vec<Arc<str>> = topics.iter().copied().map(Arc::<str>::from).collect();
+                let requested =
+                    refresh_topics_within(&self.inner.shared, &names, timeout_remaining(deadline)?)
+                        .await?;
+                for topic in topics {
+                    let n = if requested.iter().any(|name| name.as_ref() == topic) {
+                        partition_count_from_image(&self.inner.shared, topic)?
+                    } else if let Some(n) = fresh_partition_count(&self.inner.shared, topic) {
+                        n
+                    } else {
+                        let name = Arc::<str>::from(topic);
+                        partitions_for_timeout(
+                            &self.inner.shared,
+                            &name,
+                            timeout_remaining(deadline)?,
                         )
-                    },
-                    timeout_remaining(deadline)?,
-                    |body| {
-                        Ok(
-                            decode_add_offsets_to_txn_response(&mut { body }, add_offsets_version)?
-                                .0,
-                        )
-                    },
-                )
-                .await?;
-                let (err, ..) =
-                    decode_add_offsets_to_txn_response(&mut body.clone(), add_offsets_version)?;
-                if err == 0 {
-                    break;
-                }
-                // Java `AddOffsetsToTxnHandler`: retry retriable codes (the
-                // RPC is idempotent), otherwise fence or require an abort.
-                // An exhausted retry budget degrades to abortable: aborting
-                // and retrying the whole transaction is always safe.
-                let can_handle = self.inner.shared.txn_can_handle_abortable();
-                if classify_add_offsets_error(err, can_handle) == TxnErrorDisposition::Retriable
-                    && Instant::now() < deadline
-                {
-                    attempt += 1;
-                    txn_retry_sleep(&self.inner.shared, attempt, deadline).await;
-                    if Instant::now() < deadline {
-                        continue;
+                        .await?
+                    };
+                    if n <= 0 {
+                        return Err(Error::UnknownTopic(topic.to_owned()));
                     }
                 }
-                let e = Error::broker(err, "AddOffsetsToTxn");
-                self.inner.shared.apply_txn_disposition(
-                    classify_add_offsets_error(err, can_handle),
-                    clone_err(&e),
-                );
-                return Err(e);
-            }
-        }
-        let topics = unique_offset_topics(&offsets);
-        if topics.len() > 1 {
-            let names: Vec<Arc<str>> = topics.iter().copied().map(Arc::<str>::from).collect();
-            let requested =
-                refresh_topics_within(&self.inner.shared, &names, timeout_remaining(deadline)?)
-                    .await?;
-            for topic in topics {
-                let n = if requested.iter().any(|name| name.as_ref() == topic) {
-                    partition_count_from_image(&self.inner.shared, topic)?
-                } else if let Some(n) = fresh_partition_count(&self.inner.shared, topic) {
-                    n
-                } else {
+            } else {
+                for topic in topics {
                     let name = Arc::<str>::from(topic);
-                    partitions_for_timeout(&self.inner.shared, &name, timeout_remaining(deadline)?)
-                        .await?
-                };
-                if n <= 0 {
-                    return Err(Error::UnknownTopic(topic.to_owned()));
-                }
-            }
-        } else {
-            for topic in topics {
-                let name = Arc::<str>::from(topic);
-                if partitions_for_timeout(&self.inner.shared, &name, timeout_remaining(deadline)?)
+                    if partitions_for_timeout(
+                        &self.inner.shared,
+                        &name,
+                        timeout_remaining(deadline)?,
+                    )
                     .await?
-                    <= 0
-                {
-                    return Err(Error::UnknownTopic(topic.to_owned()));
+                        <= 0
+                    {
+                        return Err(Error::UnknownTopic(topic.to_owned()));
+                    }
                 }
             }
+            Ok(())
+        };
+        if version <= TxnOffsetCommitRequest::LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2 {
+            // AddOffsetsToTxn uses the transaction coordinator. Topic metadata
+            // uses the metadata socket, so both fit in this deadline.
+            let added = async {
+                let add_offsets_version = self.inner.shared.add_offsets_version;
+                let mut attempt = 0u32;
+                loop {
+                    let body = txn_roundtrip(
+                        &self.inner.shared,
+                        ADD_OFFSETS_TO_TXN,
+                        add_offsets_version,
+                        |buf| {
+                            encode_add_offsets_to_txn_request(
+                                buf,
+                                add_offsets_version,
+                                &tid,
+                                pid,
+                                epoch,
+                                group_id,
+                            )
+                        },
+                        timeout_remaining(deadline)?,
+                        |body| {
+                            Ok(decode_add_offsets_to_txn_response(
+                                &mut { body },
+                                add_offsets_version,
+                            )?
+                            .0)
+                        },
+                    )
+                    .await?;
+                    let (err, ..) =
+                        decode_add_offsets_to_txn_response(&mut body.clone(), add_offsets_version)?;
+                    if err == 0 {
+                        break;
+                    }
+                    // Java `AddOffsetsToTxnHandler`: retry retriable codes (the
+                    // RPC is idempotent), otherwise fence or require an abort.
+                    // An exhausted retry budget degrades to abortable: aborting
+                    // and retrying the whole transaction is always safe.
+                    let can_handle = self.inner.shared.txn_can_handle_abortable();
+                    if classify_add_offsets_error(err, can_handle) == TxnErrorDisposition::Retriable
+                        && Instant::now() < deadline
+                    {
+                        attempt += 1;
+                        txn_retry_sleep(&self.inner.shared, attempt, deadline).await;
+                        if Instant::now() < deadline {
+                            continue;
+                        }
+                    }
+                    let e = Error::broker(err, "AddOffsetsToTxn");
+                    self.inner.shared.apply_txn_disposition(
+                        classify_add_offsets_error(err, can_handle),
+                        clone_err(&e),
+                    );
+                    return Err(e);
+                }
+                Ok(())
+            };
+            let (added, loaded) = tokio::join!(added, load_topics);
+            added?;
+            loaded?;
+        } else {
+            load_topics.await?;
         }
         let grouped = {
             let cluster = self.inner.shared.cluster.lock();

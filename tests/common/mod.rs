@@ -722,6 +722,7 @@ struct State {
     last_add_offsets_node: Option<i32>,
     last_add_offsets_to_txn_version: Option<i16>,
     add_offsets_error: Option<i16>,
+    add_offsets_delay: Option<Duration>,
     add_offsets_error_left: Option<u32>,
     last_end_txn_node: Option<i32>,
     last_end_txn_version: Option<i16>,
@@ -1213,6 +1214,7 @@ fn new_state(
         last_add_offsets_node: None,
         last_add_offsets_to_txn_version: None,
         add_offsets_error: None,
+        add_offsets_delay: None,
         add_offsets_error_left: None,
         last_end_txn_node: None,
         last_end_txn_version: None,
@@ -4025,6 +4027,10 @@ impl Mock {
         st.add_offsets_error_left = Some(n);
     }
 
+    pub fn set_add_offsets_delay(&self, delay: Duration) {
+        self.state.lock().add_offsets_delay = Some(delay);
+    }
+
     /// `EndTxn` RPCs the broker processed (KL03-10).
     pub fn end_txn_calls(&self) -> u32 {
         self.state.lock().end_txn_calls
@@ -6538,6 +6544,10 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 }
             }
             ADD_OFFSETS_TO_TXN => {
+                let delay = state.lock().add_offsets_delay;
+                if let Some(delay) = delay {
+                    tokio::time::sleep(delay).await;
+                }
                 let _ = decode_add_offsets_to_txn_request(&mut frame, header.api_version);
                 let mut st = state.lock();
                 let forced = match (st.add_offsets_error, st.add_offsets_error_left) {
