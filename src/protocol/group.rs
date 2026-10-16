@@ -4847,6 +4847,9 @@ pub fn encode_offset_fetch_request(
             "The broker only supports OffsetFetchRequest v{version}, but we need v2 or newer to request all topic partitions."
         )));
     }
+    let body_start = buf.len();
+    let planned = offset_fetch_request_len(version, flexible, group_id, member_id, topics)?;
+    reserve_group_body(buf, planned);
     if version <= 7 {
         buf::put_string(buf, flexible, Some(group_id))?;
         encode_offset_fetch_topics(buf, flexible, topics)?;
@@ -4856,6 +4859,7 @@ pub fn encode_offset_fetch_request(
         if flexible {
             buf::put_empty_tagged_fields(buf);
         }
+        debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
         return Ok(());
     }
     encode_offset_fetch_group_item(
@@ -4869,6 +4873,7 @@ pub fn encode_offset_fetch_request(
     )?;
     buf.put_u8(u8::from(require_stable));
     buf::put_empty_tagged_fields(buf);
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
 }
 
@@ -4918,6 +4923,9 @@ pub fn encode_offset_fetch_groups_request(
             "OffsetFetch version {version} does not support Groups"
         )));
     }
+    let body_start = buf.len();
+    let planned = offset_fetch_groups_request_len(version, groups)?;
+    reserve_group_body(buf, planned);
     buf::put_array_len(buf, true, Some(groups.len()))?;
     for g in groups {
         encode_offset_fetch_group_item(
@@ -4932,7 +4940,97 @@ pub fn encode_offset_fetch_groups_request(
     }
     buf.put_u8(u8::from(require_stable));
     buf::put_empty_tagged_fields(buf);
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn offset_fetch_topics_len(flexible: bool, topics: Option<&[OffsetFetchTopic]>) -> Result<usize> {
+    let Some(topics) = topics else {
+        return Ok(if flexible {
+            buf::unsigned_varint_size(0)
+        } else {
+            4
+        });
+    };
+    let mut total = group_array_len(flexible, topics.len())?;
+    for topic in topics {
+        total = add_group_len(total, group_string_len(flexible, Some(&topic.topic))?)?;
+        total = add_group_len(total, group_array_len(flexible, topic.partitions.len())?)?;
+        total = add_group_len(
+            total,
+            topic
+                .partitions
+                .len()
+                .checked_mul(4)
+                .ok_or_else(|| Error::protocol("offset fetch request size overflow"))?,
+        )?;
+        if flexible {
+            total = add_group_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    Ok(total)
+}
+
+fn offset_fetch_group_item_len(
+    version: i16,
+    write_array_len: bool,
+    group_id: &str,
+    member_id: Option<&str>,
+    topics: Option<&[OffsetFetchTopic]>,
+) -> Result<usize> {
+    let mut total = if write_array_len {
+        group_array_len(true, 1)?
+    } else {
+        0
+    };
+    total = add_group_len(total, group_string_len(true, Some(group_id))?)?;
+    if version >= 9 {
+        total = add_group_len(total, group_string_len(true, member_id)?)?;
+        total = add_group_len(total, 4)?;
+    }
+    total = add_group_len(total, offset_fetch_topics_len(true, topics)?)?;
+    add_group_len(total, buf::unsigned_varint_size(0))
+}
+
+fn offset_fetch_request_len(
+    version: i16,
+    flexible: bool,
+    group_id: &str,
+    member_id: Option<&str>,
+    topics: Option<&[OffsetFetchTopic]>,
+) -> Result<usize> {
+    if version <= 7 {
+        let mut total = group_string_len(flexible, Some(group_id))?;
+        total = add_group_len(total, offset_fetch_topics_len(flexible, topics)?)?;
+        if version >= 7 {
+            total = add_group_len(total, 1)?;
+        }
+        if flexible {
+            total = add_group_len(total, buf::unsigned_varint_size(0))?;
+        }
+        return Ok(total);
+    }
+    let mut total = offset_fetch_group_item_len(version, true, group_id, member_id, topics)?;
+    total = add_group_len(total, 1)?;
+    add_group_len(total, buf::unsigned_varint_size(0))
+}
+
+fn offset_fetch_groups_request_len(version: i16, groups: &[OffsetFetchGroup]) -> Result<usize> {
+    let mut total = group_array_len(true, groups.len())?;
+    for group in groups {
+        total = add_group_len(
+            total,
+            offset_fetch_group_item_len(
+                version,
+                false,
+                &group.group_id,
+                group.member_id.as_deref(),
+                group.topics.as_deref(),
+            )?,
+        )?;
+    }
+    total = add_group_len(total, 1)?;
+    add_group_len(total, buf::unsigned_varint_size(0))
 }
 
 /// Decode OffsetFetch: `(group_id, topics, require_stable)`.
@@ -12295,6 +12393,70 @@ mod tests {
         assert_eq!(crate::protocol::api_keys::pick_version(1, 9, 1, 9), Some(9));
         assert_eq!(crate::protocol::api_keys::pick_version(0, 0, 1, 9), None);
         assert_eq!(crate::protocol::api_keys::pick_version(10, 10, 1, 9), None);
+    }
+
+    #[test]
+    fn an_offset_fetch_request_sizes_its_body_once() {
+        let topics = vec![OffsetFetchTopic {
+            topic: "orders".into(),
+            partitions: (0..8).collect(),
+        }];
+        for version in [2_i16, 6, 7, 8, 9] {
+            let mut buf = BytesMut::new();
+            encode_offset_fetch_request(
+                &mut buf,
+                version,
+                "group",
+                Some("member"),
+                4,
+                true,
+                Some(&topics),
+            )
+            .unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_offset_fetch_request(
+                &mut buf,
+                version,
+                "group",
+                Some("member"),
+                4,
+                true,
+                Some(&topics),
+            )
+            .unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+        }
+        let groups = [
+            OffsetFetchGroup {
+                group_id: "group".into(),
+                member_id: Some("member".into()),
+                member_epoch: 4,
+                topics: Some(topics),
+            },
+            OffsetFetchGroup {
+                group_id: "other".into(),
+                member_id: None,
+                member_epoch: -1,
+                topics: None,
+            },
+        ];
+        for version in [8_i16, 9] {
+            let mut buf = BytesMut::new();
+            encode_offset_fetch_groups_request(&mut buf, version, &groups, true).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_offset_fetch_groups_request(&mut buf, version, &groups, true).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+        }
     }
 
     #[test]
