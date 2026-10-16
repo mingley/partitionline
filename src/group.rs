@@ -3809,9 +3809,15 @@ pub(crate) fn committed_offset_pairs(
     map: HashMap<String, HashMap<i32, OffsetAndMetadata>>,
 ) -> Vec<(TopicPartition, OffsetAndMetadata)> {
     let mut out = Vec::new();
-    for (topic, parts) in map {
-        for (partition, md) in parts {
-            out.push((TopicPartition::new(topic.clone(), partition), md));
+    for (mut topic, parts) in map {
+        let count = parts.len();
+        for (index, (partition, md)) in parts.into_iter().enumerate() {
+            let name = if index.saturating_add(1) == count {
+                std::mem::take(&mut topic)
+            } else {
+                topic.clone()
+            };
+            out.push((TopicPartition::new(name, partition), md));
         }
     }
     out
@@ -4469,6 +4475,7 @@ fn coordinator_error(api_key: i16, api_version: i16, body: &[u8]) -> Option<i16>
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::consumer::{OffsetAndMetadata, TopicPartition};
     use crate::protocol::group::{ConsumerProtocolSubscription, FetchedOffset, JoinGroupRequest};
     use std::collections::HashMap;
 
@@ -4488,6 +4495,25 @@ mod tests {
         assert!(!revoked_contains(&index, "payments", 0));
         assert!(!revoked_contains(&index, "other", 0));
         assert_eq!(index.get("orders").map(HashSet::len), Some(2));
+    }
+
+    #[test]
+    fn committed_offsets_keep_the_topic_allocation() {
+        let orders = "orders-topic-name-is-long".to_string();
+        let orders_ptr = orders.as_ptr();
+        let mut parts = HashMap::new();
+        let _ = parts.insert(0, OffsetAndMetadata::new(1));
+        let _ = parts.insert(2, OffsetAndMetadata::new(4));
+        let mut map = HashMap::new();
+        let _ = map.insert(orders, parts);
+        let pairs = committed_offset_pairs(map);
+        assert_eq!(pairs.len(), 2);
+        assert!(pairs.iter().any(|(tp, _)| tp.topic.as_ptr() == orders_ptr));
+        assert!(pairs.iter().all(|(tp, md)| {
+            tp.topic == "orders-topic-name-is-long" && (md.offset == 1 || md.offset == 4)
+        }));
+        let payments = TopicPartition::new("payments", 1);
+        assert_ne!(payments.topic.as_ptr(), orders_ptr);
     }
 
     #[test]

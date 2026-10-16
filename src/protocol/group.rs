@@ -5123,13 +5123,15 @@ fn offset_delete_flatten_results(
     groups: Vec<(String, Vec<(i32, i16)>)>,
 ) -> Vec<OffsetDeleteResult> {
     let mut out = Vec::new();
-    for (topic, parts) in groups {
-        for (partition, error_code) in parts {
-            out.push(OffsetDeleteResult::new(
-                topic.clone(),
-                partition,
-                error_code,
-            ));
+    for (mut topic, parts) in groups {
+        let count = parts.len();
+        for (index, (partition, error_code)) in parts.into_iter().enumerate() {
+            let name = if index.saturating_add(1) == count {
+                std::mem::take(&mut topic)
+            } else {
+                topic.clone()
+            };
+            out.push(OffsetDeleteResult::new(name, partition, error_code));
         }
     }
     out
@@ -14825,6 +14827,23 @@ mod tests {
                 .get(1)
                 .map(|(topic, parts)| (topic.as_str(), parts.as_slice())),
             Some(("payments", &[(0, 3)][..]))
+        );
+        let orders = "orders-topic-name-is-long".to_string();
+        let orders_ptr = orders.as_ptr();
+        let flat = offset_delete_flatten_results(vec![(orders, vec![(1, 0), (0, 3)])]);
+        assert_eq!(
+            flat.first().map(|result| result.topic.as_str()),
+            Some("orders-topic-name-is-long")
+        );
+        assert_eq!(
+            flat.get(1).map(|result| result.topic.as_ptr()),
+            Some(orders_ptr)
+        );
+        assert_eq!(
+            flat.iter()
+                .map(|result| result.partition)
+                .collect::<Vec<_>>(),
+            vec![1, 0]
         );
     }
 
