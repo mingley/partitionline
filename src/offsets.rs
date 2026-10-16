@@ -735,7 +735,7 @@ pub(crate) fn collect_bounded_commits(
     let limits = OffsetLimits::default();
     let mut out = Vec::new();
     let mut strings = 0;
-    let mut seen = HashSet::new();
+    let mut seen: HashMap<String, HashSet<i32>> = HashMap::new();
     for (tp, md) in offsets {
         if out.len() >= limits.array_elements {
             return Err(Error::protocol("too many committed partitions"));
@@ -748,7 +748,7 @@ pub(crate) fn collect_bounded_commits(
             ));
         }
         crate::protocol::group::Topic::validate(&tp.topic)?;
-        if !seen.insert((tp.topic.clone(), tp.partition)) {
+        if !claim_partition(&mut seen, &tp.topic, tp.partition) {
             return Err(Error::protocol("duplicate committed partition"));
         }
         if tp.topic.len() > limits.string_bytes || md.metadata.len() > limits.string_bytes {
@@ -769,7 +769,7 @@ pub(crate) fn collect_bounded_partitions(
     let limits = OffsetLimits::default();
     let mut out = Vec::new();
     let mut strings = 0;
-    let mut seen = HashSet::new();
+    let mut seen: HashMap<String, HashSet<i32>> = HashMap::new();
     for partition in partitions {
         if out.len() >= limits.array_elements {
             return Err(Error::protocol("too many offset partitions"));
@@ -781,7 +781,7 @@ pub(crate) fn collect_bounded_partitions(
             ));
         }
         crate::protocol::group::Topic::validate(&partition.topic)?;
-        if !seen.insert((partition.topic.clone(), partition.partition)) {
+        if !claim_partition(&mut seen, &partition.topic, partition.partition) {
             return Err(Error::protocol("duplicate offset partition"));
         }
         if partition.topic.len() > limits.string_bytes {
@@ -795,6 +795,17 @@ pub(crate) fn collect_bounded_partitions(
         out.push(partition);
     }
     Ok(out)
+}
+
+/// Remember one topic name and reject a repeated partition of that topic.
+fn claim_partition(seen: &mut HashMap<String, HashSet<i32>>, topic: &str, partition: i32) -> bool {
+    if let Some(parts) = seen.get_mut(topic) {
+        return parts.insert(partition);
+    }
+    let mut parts = HashSet::new();
+    let _ = parts.insert(partition);
+    let _ = seen.insert(topic.to_owned(), parts);
+    true
 }
 
 fn response_limit(limits: OffsetLimits) -> Result<usize> {
