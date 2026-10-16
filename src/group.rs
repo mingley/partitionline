@@ -1282,11 +1282,11 @@ impl ConsumerGroup {
         if partitions.is_empty() {
             return Ok(Vec::new());
         }
-        let wanted: Vec<(String, i32)> = partitions
-            .iter()
-            .map(|tp| (tp.topic.clone(), tp.partition))
-            .collect();
-        let topics = group_offset_fetch_topics(&wanted);
+        let topics = group_offset_fetch_topics(
+            partitions
+                .iter()
+                .map(|tp| (tp.topic.as_str(), tp.partition)),
+        );
         let fetched = self
             .offset_fetch(&topics, timeout.saturating_sub(started.elapsed()))
             .await?;
@@ -2784,7 +2784,11 @@ impl ConsumerGroup {
         let fetched = if added.is_empty() {
             Vec::new()
         } else {
-            let topics = group_offset_fetch_topics(&added);
+            let topics = group_offset_fetch_topics(
+                added
+                    .iter()
+                    .map(|(topic, partition)| (topic.as_str(), *partition)),
+            );
             let timeout = deadline.saturating_duration_since(Instant::now());
             if timeout.is_zero() {
                 return Err(Error::Timeout);
@@ -3645,17 +3649,19 @@ pub(crate) fn group_offset_topics(
         .collect()
 }
 
-pub(crate) fn group_offset_fetch_topics(wanted: &[(String, i32)]) -> Vec<OffsetFetchTopic> {
+pub(crate) fn group_offset_fetch_topics<'a>(
+    wanted: impl IntoIterator<Item = (&'a str, i32)>,
+) -> Vec<OffsetFetchTopic> {
     let mut by_topic: HashMap<String, (HashSet<i32>, Vec<i32>)> = HashMap::new();
     for (topic, part) in wanted {
-        if let Some((seen, parts)) = by_topic.get_mut(topic.as_str()) {
-            if seen.insert(*part) {
-                parts.push(*part);
+        if let Some((seen, parts)) = by_topic.get_mut(topic) {
+            if seen.insert(part) {
+                parts.push(part);
             }
         } else {
             let mut seen = HashSet::new();
-            let _ = seen.insert(*part);
-            let _ = by_topic.insert(topic.clone(), (seen, vec![*part]));
+            let _ = seen.insert(part);
+            let _ = by_topic.insert(topic.to_owned(), (seen, vec![part]));
         }
     }
     by_topic
@@ -4730,8 +4736,7 @@ mod tests {
         let topics = group_offset_topics(&repeated);
         assert_eq!(topics[0].partitions.len(), 1);
         assert_eq!(topics[0].partitions[0].offset, 1);
-        let fetched =
-            group_offset_fetch_topics(&[("t".into(), 0), ("t".into(), 0), ("t".into(), 1)]);
+        let fetched = group_offset_fetch_topics([("t", 0), ("t", 0), ("t", 1)]);
         assert_eq!(fetched[0].partitions, vec![0, 1]);
     }
 

@@ -3141,11 +3141,9 @@ fn offset_fetch_topics_for_spec(
     spec: &ListConsumerGroupOffsetsSpec,
 ) -> Option<Vec<crate::protocol::group::OffsetFetchTopic>> {
     spec.partitions.as_ref().map(|ps| {
-        let wanted: Vec<(String, i32)> = ps
-            .iter()
-            .map(|tp| (tp.topic.clone(), tp.partition))
-            .collect();
-        crate::group::group_offset_fetch_topics(&wanted)
+        crate::group::group_offset_fetch_topics(
+            ps.iter().map(|tp| (tp.topic.as_str(), tp.partition)),
+        )
     })
 }
 
@@ -9957,11 +9955,11 @@ impl Admin {
         if partitions.is_empty() {
             return Ok(Vec::new());
         }
-        let wanted: Vec<(String, i32)> = partitions
-            .iter()
-            .map(|tp| (tp.topic.clone(), tp.partition))
-            .collect();
-        let topics = crate::group::group_offset_fetch_topics(&wanted);
+        let topics = crate::group::group_offset_fetch_topics(
+            partitions
+                .iter()
+                .map(|tp| (tp.topic.as_str(), tp.partition)),
+        );
         let fetched = self
             .fetch_consumer_group_offsets(
                 group_id,
