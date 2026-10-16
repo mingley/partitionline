@@ -6771,6 +6771,77 @@ async fn share_acknowledge_top_level_unknown_leader_epoch_empty_message_does_not
 }
 
 #[tokio::test]
+async fn share_acknowledge_top_level_replica_not_available_message_does_not_refresh_metadata() {
+    let mock = common::Mock::start().await;
+    v2(&mock);
+    produce(&mock, &[(0, b"held")]).await;
+    let mut group = ShareGroup::join(config(&mock), "ack-replica-top-msg", "t")
+        .await
+        .unwrap();
+    let recs = group.poll().await.unwrap();
+    assert_eq!(recs.len(), 1);
+    let after_poll = mock.metadata_calls();
+    let seen = Arc::new(Mutex::new(Vec::new()));
+    let seen_cb = seen.clone();
+    group.set_acknowledgement_commit_callback(move |_, exception| {
+        seen_cb.lock().push(
+            exception
+                .as_ref()
+                .map(|error| (error.code(), error.message().to_owned())),
+        );
+    });
+    group.accept(&recs).await.unwrap();
+    let version = mock.last_share_fetch_version().unwrap_or(2);
+    let mut injected = BytesMut::new();
+    encode_share_acknowledge_topics_response_with_error_message(
+        &mut injected,
+        version,
+        error::REPLICA_NOT_AVAILABLE,
+        &[],
+        Some("replica not available"),
+    )
+    .unwrap();
+    mock.inject_share_ack_response_once(&injected);
+    let results = group.commit_sync().await.unwrap();
+    assert_eq!(results.len(), 1);
+    let err = results[0]
+        .1
+        .as_ref()
+        .expect("Java Errors.exception(errorMessage) completes the map");
+    assert_eq!(err.code(), Some(error::REPLICA_NOT_AVAILABLE));
+    assert_eq!(err.message(), "replica not available");
+    assert_eq!(
+        mock.share_ack_calls(),
+        1,
+        "top-level REPLICA_NOT_AVAILABLE must not retry ShareAcknowledge"
+    );
+    assert_eq!(
+        mock.last_share_ack_epoch(),
+        Some(1),
+        "Java ShareAcknowledge handleResponse nextEpoch for REPLICA_NOT_AVAILABLE"
+    );
+    assert_eq!(
+        *seen.lock(),
+        vec![Some((
+            Some(error::REPLICA_NOT_AVAILABLE),
+            "replica not available".into()
+        ))]
+    );
+    let _ = group.poll().await.unwrap();
+    assert_eq!(
+        mock.last_share_fetch_epoch(),
+        Some(2),
+        "top-level REPLICA_NOT_AVAILABLE must not reset the share session"
+    );
+    assert_eq!(
+        mock.metadata_calls(),
+        after_poll,
+        "Java handleShareAcknowledgeSuccess does not requestUpdate for top-level REPLICA_NOT_AVAILABLE"
+    );
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn share_acknowledge_session_limit_message_does_not_reset_session() {
     let mock = common::Mock::start().await;
     v2(&mock);
