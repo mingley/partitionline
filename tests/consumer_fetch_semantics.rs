@@ -4164,6 +4164,50 @@ async fn group_pattern_join_lists_topics_while_finding_the_coordinator() {
     group.leave().await.unwrap();
 }
 
+/// An interval commit and a fetch-leader redial share one poll.
+#[tokio::test]
+async fn group_poll_commits_while_redialing_the_leader() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_topic_partitions("t", 1);
+    mock.set_partition_leader("t", 0, 2);
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    let _ = producer
+        .send(ProduceRecord::to("t").value(&b"v"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+    let mut group = ConsumerGroup::join(
+        ConsumerConfig::bootstrap([mock.addr.clone()])
+            .max_wait_ms(10)
+            .auto_commit(true)
+            .auto_commit_interval(Duration::from_millis(1))
+            .connections_max_idle(Duration::from_millis(40)),
+        "commit-dial",
+        "t",
+    )
+    .await
+    .unwrap();
+    let first = group.poll().await.unwrap();
+    assert_eq!(first.len(), 1);
+    tokio::time::sleep(Duration::from_millis(60)).await;
+    mock.set_offset_commit_delay(Duration::from_millis(250));
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    // Refresh the coordinator socket. The fetch leader stays idle.
+    group.commit().await.unwrap();
+    let started = Instant::now();
+    let second = group.poll().await.unwrap();
+    assert!(second.is_empty());
+    assert!(
+        started.elapsed() < Duration::from_millis(450),
+        "poll committed offsets before redialing the leader: {:?}",
+        started.elapsed()
+    );
+    group.leave().await.unwrap();
+}
+
 /// The leader's partition counts come from the metadata refresh that loaded the subscription.
 #[tokio::test]
 async fn group_join_reads_every_topic_from_one_metadata() {

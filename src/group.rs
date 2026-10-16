@@ -1442,7 +1442,7 @@ impl ConsumerGroup {
         }
         let flush_deadline = Instant::now() + self.cfg.request_timeout;
         self.flush_async_commits(flush_deadline).await;
-        self.maybe_auto_commit_interval().await?;
+        self.commit_interval_while_dialing().await?;
         let recs = match wait {
             Some(t) => self.consumer.fetch_allow_unassigned_timeout(t).await?,
             None => self.consumer.fetch_allow_unassigned().await?,
@@ -1990,6 +1990,87 @@ impl ConsumerGroup {
                 let _err = err;
             }
         }
+    }
+
+    /// Commit due interval offsets while fetch leaders reconnect.
+    ///
+    /// The commit uses the group coordinator. Leader sockets are a different
+    /// set of connections, so a slow commit does not hold the handshakes.
+    async fn commit_interval_while_dialing(&mut self) -> Result<()> {
+        if !self.cfg.enable_auto_commit
+            || self.cfg.auto_commit_interval.is_zero()
+            || self.last_auto_commit.elapsed() < self.cfg.auto_commit_interval
+            || self.coord.offset_commit_version == 10
+            || !self.cfg.interceptors.is_empty()
+        {
+            return self.maybe_auto_commit_interval().await;
+        }
+        let Some(mut to_commit) = self.last_delivered_positions.clone() else {
+            return Ok(());
+        };
+        to_commit.retain(|(topic, partition, offset)| {
+            position_is_committable(*offset)
+                && self.consumer.is_assigned(topic, *partition)
+                && self
+                    .last_delivered_topic_ids
+                    .get(topic.as_ref())
+                    .and_then(|parts| parts.get(partition))
+                    .copied()
+                    == self.consumer.assigned_topic_id(topic, *partition)
+        });
+        if to_commit.is_empty() {
+            return Ok(());
+        }
+        let leaders = self.consumer.assigned_leader_nodes();
+        let timeout = self.cfg.request_timeout;
+        let deadline = Instant::now() + timeout;
+        let mut topics = std::mem::take(&mut self.classic_commit_topics);
+        refill_shared_offset_topics(&mut topics, &to_commit, |topic, partition| {
+            self.consumer.position_epoch(topic, partition)
+        });
+        if topics.is_empty() {
+            self.classic_commit_topics = topics;
+            return Ok(());
+        }
+        let generation_id = self.generation_id;
+        let group_id = self.group_id.clone();
+        let member_id = self.member_id.clone();
+        let instance = self.cfg.group_instance_id.clone();
+        let coord = &mut self.coord;
+        let cfg = &self.cfg;
+        let consumer = &mut self.consumer;
+        let (committed, _) = tokio::join!(
+            coord_roundtrip(
+                coord,
+                cfg,
+                &group_id,
+                COORDINATOR_GROUP,
+                OFFSET_COMMIT,
+                |version, buf| {
+                    encode_offset_commit_request(
+                        buf,
+                        version,
+                        &group_id,
+                        generation_id,
+                        &member_id,
+                        instance.as_deref(),
+                        DEFAULT_RETENTION_TIME,
+                        &topics,
+                    )
+                },
+                timeout,
+            ),
+            consumer.warm_leader_conns(&leaders, deadline),
+        );
+        self.classic_commit_topics = topics;
+        let (version, body) = committed?;
+        let err = decode_offset_commit_response(&mut body.clone(), version)?;
+        self.note_commit(err == 0);
+        if err != 0 {
+            return Err(Error::broker(err, "OffsetCommit"));
+        }
+        self.last_auto_commit = Instant::now();
+        Ok(())
     }
 
     async fn maybe_auto_commit_interval(&mut self) -> Result<()> {

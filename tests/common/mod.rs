@@ -649,6 +649,7 @@ struct State {
     last_share_ack_node: Option<i32>,
     share_fetch_not_leader: u32,
     offset_commit_calls: u32,
+    offset_commit_delay: Option<Duration>,
     offset_fetch_calls: u32,
     last_offset_commit_partitions: usize,
     last_offset_fetch_partitions: usize,
@@ -1136,6 +1137,7 @@ fn new_state(
         last_share_ack_node: None,
         share_fetch_not_leader: 0,
         offset_commit_calls: 0,
+        offset_commit_delay: None,
         offset_fetch_calls: 0,
         last_offset_commit_partitions: 0,
         last_offset_fetch_partitions: 0,
@@ -3933,6 +3935,10 @@ impl Mock {
 
     pub fn fail_init_producer_id_once(&self, code: i16) {
         self.state.lock().init_producer_id_faults.push_back(code);
+    }
+
+    pub fn set_offset_commit_delay(&self, delay: Duration) {
+        self.state.lock().offset_commit_delay = Some(delay);
     }
 
     pub fn set_find_coordinator_delay(&self, delay: Duration) {
@@ -8404,6 +8410,10 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
             OFFSET_COMMIT => {
                 let (gid, member, topics, _retention, _inst, generation) =
                     decode_offset_commit_request(&mut frame, header.api_version).unwrap();
+                let delay = state.lock().offset_commit_delay;
+                if let Some(delay) = delay {
+                    tokio::time::sleep(delay).await;
+                }
                 let mut st = state.lock();
                 st.offset_commit_calls = st.offset_commit_calls.saturating_add(1);
                 st.last_offset_commit_version = Some(header.api_version);

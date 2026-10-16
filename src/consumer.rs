@@ -7521,11 +7521,28 @@ impl Consumer {
         Ok(())
     }
 
+    /// Leaders for assigned partitions that are not paused.
+    pub(crate) fn assigned_leader_nodes(&self) -> Vec<i32> {
+        let mut nodes = Vec::new();
+        for (topic, partition, _) in &self.assigned {
+            if self.paused.contains(topic, *partition) {
+                continue;
+            }
+            let Ok(node) = self.cluster.leader_id(topic.as_ref(), *partition) else {
+                continue;
+            };
+            if !nodes.contains(&node) {
+                nodes.push(node);
+            }
+        }
+        nodes
+    }
+
     /// Open dedicated leader sockets together.
     ///
     /// The bootstrap socket stays on its own connection. A dial that fails is
     /// left for [`Self::connect_node`], which reports that error and retries.
-    async fn warm_leader_conns(&mut self, nodes: &[i32], deadline: Instant) {
+    pub(crate) async fn warm_leader_conns(&mut self, nodes: &[i32], deadline: Instant) {
         let mut dials = Vec::new();
         for &node in nodes {
             if Instant::now() >= deadline || self.woken() {
