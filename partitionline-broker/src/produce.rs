@@ -248,6 +248,9 @@ pub(crate) struct Store {
     /// Response bytes for the job currently on this actor. The connection
     /// refills the buffer after the reply is written.
     response_buf: Vec<u8>,
+    /// Payload bytes for a ListOffsets timestamp scan. Fetch reads into the
+    /// response instead. The buffer stays for the next scan.
+    scan_buf: Vec<u8>,
     /// Staged grouped produces. Cleared between batches; the slots stay.
     queued_captured: Vec<Option<CapturedProduce>>,
     /// Replies for the grouped batch currently being finished.
@@ -328,6 +331,7 @@ impl Store {
             sweep_cursor: 0,
             read_epoch: 0,
             response_buf: Vec::new(),
+            scan_buf: Vec::new(),
             queued_captured: Vec::new(),
             queued_replies: Vec::new(),
             sync_reps: Vec::new(),
@@ -342,6 +346,14 @@ impl Store {
     }
     pub(crate) fn take_response_buf(&mut self) -> Vec<u8> {
         std::mem::take(&mut self.response_buf)
+    }
+    pub(crate) fn take_scan_buf(&mut self) -> Vec<u8> {
+        std::mem::take(&mut self.scan_buf)
+    }
+    pub(crate) fn keep_scan_buf(&mut self, buf: Vec<u8>) {
+        if buf.capacity() > self.scan_buf.capacity() {
+            self.scan_buf = buf;
+        }
     }
     fn keep_response_buf(&mut self, buf: Vec<u8>) {
         if buf.capacity() > self.response_buf.capacity() {
@@ -2182,6 +2194,29 @@ mod tests {
 
     fn part(index: i32) -> Part {
         Part { index, bytes: None }
+    }
+
+    #[test]
+    fn a_timestamp_scan_reuses_its_payload_buffer() {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_nanos();
+        let path = std::env::temp_dir().join(format!("pl-scan-{nanos}"));
+        let _ = std::fs::create_dir(&path);
+        let common = metadata::Config::new(0, "127.0.0.1".into(), 9092, "scan".into());
+        let (catalog, _) = Catalog::open(path.join("catalog"), common.catalog_limits)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let mut store = Store::open(Config::new(path.join("data")), &catalog)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let mut buf = store.take_scan_buf();
+        buf.try_reserve_exact(4096)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let capacity = buf.capacity();
+        store.keep_scan_buf(buf);
+        let again = store.take_scan_buf();
+        assert!(again.capacity() >= capacity);
+        store.keep_scan_buf(again);
     }
 
     #[test]

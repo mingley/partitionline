@@ -873,8 +873,9 @@ pub(crate) fn process(
         bytes: limits.scan_bytes,
         entries: limits.scan_entries,
     };
-    // Timestamp scans reuse one payload buffer. Fetch reads into the response.
-    let mut scan_buf = Vec::new();
+    // Timestamp scans reuse one payload buffer across requests. Fetch reads
+    // into the response and leaves this buffer untouched.
+    let mut scan_buf = store.take_scan_buf();
     out.i32(header.correlation_id)?;
     if key == 1 || version >= 2 {
         out.i32(0)?;
@@ -1228,6 +1229,7 @@ pub(crate) fn process(
         }
     }
     active()?;
+    store.keep_scan_buf(scan_buf);
     Ok(Snapshot {
         response: out.bytes,
         record_bytes,
