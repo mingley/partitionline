@@ -527,6 +527,9 @@ pub enum ShareAcquireMode {
     RecordLimit = 1,
 }
 
+/// Leader node to the topics and partitions it serves.
+type ShareLeaderPlan = HashMap<i32, HashMap<String, Vec<i32>>>;
+
 /// KIP-932 share group member (`ShareGroupHeartbeat` v0–v1 / ShareFetch v0–v2 / ShareAcknowledge v0–v2).
 pub struct ShareGroup {
     consumer: Consumer,
@@ -545,6 +548,12 @@ pub struct ShareGroup {
     /// poll does not allocate the list again.
     leader_topic: String,
     leader_ids: Vec<i32>,
+    /// Topic names checked for metadata freshness. Cleared in place so a
+    /// steady subscription does not allocate the name again.
+    metadata_names: Vec<String>,
+    /// Leader to topic to partitions. Partition lists are cleared and refilled
+    /// each poll; topic names stay when the assignment is unchanged.
+    leader_plan: ShareLeaderPlan,
     topic_ids: HashMap<String, [u8; 16]>,
     /// Share session epoch per share-partition leader (KIP-932).
     share_epochs: HashMap<i32, i32>,
@@ -756,6 +765,52 @@ fn next_share_assignment(
     })
 }
 
+fn fill_unique_names<'a>(names: &mut Vec<String>, topics: impl Iterator<Item = &'a str>) {
+    let mut used = 0usize;
+    for topic in topics {
+        let seen = names
+            .get(..used)
+            .is_some_and(|prefix| prefix.iter().any(|name| name == topic));
+        if seen {
+            continue;
+        }
+        if let Some(slot) = names.get_mut(used) {
+            if slot != topic {
+                slot.clear();
+                slot.push_str(topic);
+            }
+        } else {
+            names.push(topic.to_string());
+        }
+        used = used.saturating_add(1);
+    }
+    names.truncate(used);
+}
+
+fn clear_share_leader_plan(plan: &mut ShareLeaderPlan) {
+    for topics in plan.values_mut() {
+        for parts in topics.values_mut() {
+            parts.clear();
+        }
+    }
+}
+
+fn remember_share_leader(plan: &mut ShareLeaderPlan, node: i32, topic: &str, partition: i32) {
+    let topics = plan.entry(node).or_default();
+    if let Some(parts) = topics.get_mut(topic) {
+        parts.push(partition);
+        return;
+    }
+    let _ = topics.insert(topic.to_string(), vec![partition]);
+}
+
+fn prune_share_leader_plan(plan: &mut ShareLeaderPlan) {
+    plan.retain(|_, topics| {
+        topics.retain(|_, parts| !parts.is_empty());
+        !topics.is_empty()
+    });
+}
+
 fn share_partition_leader(topic: &str, partition: i32, leaders: &[i32]) -> Result<i32> {
     let idx = usize::try_from(partition).map_err(|_| Error::NoLeader {
         topic: topic.to_string(),
@@ -883,6 +938,8 @@ impl ShareGroup {
             assigned: Vec::new(),
             leader_topic: String::new(),
             leader_ids: Vec::new(),
+            metadata_names: Vec::new(),
+            leader_plan: HashMap::new(),
             topic_ids: HashMap::new(),
             share_epochs: HashMap::new(),
             share_conns: HashMap::new(),
@@ -1803,33 +1860,34 @@ impl ShareGroup {
             .await
     }
 
-    async fn leaders_of(
-        &mut self,
-        deadline: Instant,
-    ) -> Result<HashMap<i32, HashMap<String, Vec<i32>>>> {
-        // One owned name per topic. The assignment stays put across the
-        // metadata awaits, so a poll does not copy every partition's topic.
-        let mut names = Vec::new();
-        {
-            let mut seen = HashSet::new();
-            for (topic, _) in &self.assigned {
-                if seen.insert(topic.as_str()) {
-                    names.push(topic.clone());
-                }
+    async fn leaders_of(&mut self, deadline: Instant) -> Result<()> {
+        // One stored name per topic. A fresh topic skips the metadata RPC
+        // without copying that name again.
+        fill_unique_names(
+            &mut self.metadata_names,
+            self.assigned.iter().map(|(topic, _)| topic.as_str()),
+        );
+        let count = self.metadata_names.len();
+        for index in 0..count {
+            let fresh = self
+                .metadata_names
+                .get(index)
+                .is_some_and(|topic| self.consumer.topic_metadata_fresh(topic));
+            if fresh {
+                continue;
             }
-        }
-        for topic in &names {
             let rest = deadline.saturating_duration_since(Instant::now());
             if rest.is_zero() {
                 return Err(Error::Timeout);
             }
+            let topic = self.metadata_names.get(index).cloned().unwrap_or_default();
             self.consumer
-                .ensure_topic_metadata_timeout(topic, rest)
+                .ensure_topic_metadata_timeout(&topic, rest)
                 .await?;
         }
-        let mut by_leader: HashMap<i32, HashMap<String, Vec<i32>>> = HashMap::new();
+        clear_share_leader_plan(&mut self.leader_plan);
         self.leader_topic.clear();
-        for (topic, p) in &self.assigned {
+        for (topic, partition) in &self.assigned {
             if self.leader_topic.as_str() != topic.as_str() {
                 let ids = self.consumer.leader_ids_of(topic)?;
                 self.leader_ids.clear();
@@ -1837,21 +1895,17 @@ impl ShareGroup {
                 self.leader_topic.clear();
                 self.leader_topic.push_str(topic);
             }
-            let node = share_partition_leader(topic, *p, &self.leader_ids)?;
+            let node = share_partition_leader(topic, *partition, &self.leader_ids)?;
             if !self.consumer.broker_known(node) {
                 return Err(Error::NoLeader {
                     topic: topic.clone(),
-                    partition: *p,
+                    partition: *partition,
                 });
             }
-            let topics = by_leader.entry(node).or_default();
-            if let Some(parts) = topics.get_mut(topic.as_str()) {
-                parts.push(*p);
-            } else {
-                let _ = topics.insert(topic.clone(), vec![*p]);
-            }
+            remember_share_leader(&mut self.leader_plan, node, topic, *partition);
         }
-        Ok(by_leader)
+        prune_share_leader_plan(&mut self.leader_plan);
+        Ok(())
     }
 
     fn abort_inflight_share_fetches(&mut self) {
@@ -1998,9 +2052,9 @@ impl ShareGroup {
         if !self.pending_delivery.is_empty() {
             return Ok(self.drain_pending_delivery());
         }
-        let by_leader = self.leaders_of(deadline).await?;
-        let mut nodes: Vec<_> = by_leader.into_iter().collect();
-        nodes.sort_by_key(|(node, _)| *node);
+        self.leaders_of(deadline).await?;
+        let mut nodes: Vec<i32> = self.leader_plan.keys().copied().collect();
+        nodes.sort_unstable();
         let metadata_bytes = self
             .acquisitions
             .iter()
@@ -2014,11 +2068,10 @@ impl ShareGroup {
             .checked_sub(metadata_bytes)
             .ok_or_else(|| Error::protocol("ShareFetch acquisition metadata budget exceeded"))?;
         if nodes.len() > 1 {
-            let ids: Vec<i32> = nodes.iter().map(|(node, _)| *node).collect();
-            self.warm_share_leaders(&ids, deadline).await;
+            self.warm_share_leaders(&nodes, deadline).await;
         }
         let mut prepared = Vec::new();
-        for (node, tps) in nodes {
+        for node in nodes {
             if self.inflight_share_nodes.contains_key(&node) {
                 continue;
             }
@@ -2041,7 +2094,10 @@ impl ShareGroup {
             }
             let epoch = self.session_epoch(node);
             let mut by_id: BTreeMap<[u8; 16], Vec<i32>> = BTreeMap::new();
-            for (topic, parts) in &tps {
+            let Some(tps) = self.leader_plan.get(&node) else {
+                continue;
+            };
+            for (topic, parts) in tps {
                 let id = self
                     .topic_ids
                     .get(topic.as_str())
@@ -3733,6 +3789,72 @@ mod tests {
         super::publish_member_id(&mut local, &mut shared, "member-2");
         assert_eq!(local, "member-2");
         assert_eq!(shared, "member-2");
+    }
+
+    #[test]
+    fn a_second_share_plan_reuses_topic_names() {
+        let assigned = [("orders".to_string(), 0), ("orders".to_string(), 1)];
+        let mut names = Vec::new();
+        let topics = assigned.iter().map(|(topic, _)| topic.as_str());
+        super::fill_unique_names(&mut names, topics);
+        let ptr = names.first().map(|name| name.as_ptr());
+        let topics = assigned.iter().map(|(topic, _)| topic.as_str());
+        super::fill_unique_names(&mut names, topics);
+        assert_eq!(names.as_slice(), ["orders".to_string()].as_slice());
+        assert_eq!(names.first().map(|name| name.as_ptr()), ptr);
+
+        let mut plan = HashMap::new();
+        super::clear_share_leader_plan(&mut plan);
+        for (topic, partition) in &assigned {
+            super::remember_share_leader(&mut plan, 2, topic, *partition);
+        }
+        super::prune_share_leader_plan(&mut plan);
+        let key_ptr = plan
+            .get(&2)
+            .and_then(|topics| topics.get_key_value("orders"))
+            .map(|(key, _)| key.as_ptr());
+        let parts_ptr = plan
+            .get(&2)
+            .and_then(|topics| topics.get("orders"))
+            .map(Vec::as_ptr);
+        super::clear_share_leader_plan(&mut plan);
+        for (topic, partition) in &assigned {
+            super::remember_share_leader(&mut plan, 2, topic, *partition);
+        }
+        super::prune_share_leader_plan(&mut plan);
+        assert_eq!(
+            plan.get(&2)
+                .and_then(|topics| topics.get("orders"))
+                .map(Vec::as_slice),
+            Some([0, 1].as_slice())
+        );
+        assert_eq!(
+            plan.get(&2)
+                .and_then(|topics| topics.get_key_value("orders"))
+                .map(|(key, _)| key.as_ptr()),
+            key_ptr
+        );
+        assert_eq!(
+            plan.get(&2)
+                .and_then(|topics| topics.get("orders"))
+                .map(Vec::as_ptr),
+            parts_ptr
+        );
+        super::clear_share_leader_plan(&mut plan);
+        super::remember_share_leader(&mut plan, 2, "orders", 0);
+        super::prune_share_leader_plan(&mut plan);
+        assert_eq!(
+            plan.get(&2)
+                .and_then(|topics| topics.get("orders"))
+                .map(Vec::as_slice),
+            Some([0].as_slice())
+        );
+        assert_eq!(
+            plan.get(&2)
+                .and_then(|topics| topics.get_key_value("orders"))
+                .map(|(key, _)| key.as_ptr()),
+            key_ptr
+        );
     }
 
     #[test]

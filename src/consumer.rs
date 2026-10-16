@@ -3668,12 +3668,16 @@ impl Consumer {
         }
     }
 
+    pub(crate) fn topic_metadata_fresh(&self, topic: &str) -> bool {
+        self.cluster.topic_fresh(topic, self.cfg.metadata_max_age)
+    }
+
     pub(crate) async fn ensure_topic_metadata_timeout(
         &mut self,
         topic: &str,
         timeout: Duration,
     ) -> Result<()> {
-        if self.cluster.topic_fresh(topic, self.cfg.metadata_max_age) {
+        if self.topic_metadata_fresh(topic) {
             return Ok(());
         }
         let topics = [topic.to_string()];
