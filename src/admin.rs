@@ -10025,15 +10025,11 @@ impl Admin {
             .ok_or_else(|| Error::Unsupported("broker does not support OffsetDelete".into()))?;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
-        let group_id = group_id.to_string();
         loop {
-            let stale = self
-                .group_coord
-                .as_ref()
-                .is_none_or(|(g, _)| g != &group_id);
+            let stale = self.group_coord.as_ref().is_none_or(|(g, _)| g != group_id);
             if stale {
-                let node = self.discover_group_coord(&group_id, deadline).await?;
-                self.group_coord = Some((group_id.clone(), node));
+                let node = self.discover_group_coord(group_id, deadline).await?;
+                self.group_coord = Some((group_id.to_string(), node));
             }
             let node = self
                 .group_coord
@@ -10049,7 +10045,7 @@ impl Admin {
                 conn.roundtrip(
                     OFFSET_DELETE,
                     version,
-                    |buf| encode_offset_delete_named_topics(buf, &group_id, &topics),
+                    |buf| encode_offset_delete_named_topics(buf, group_id, &topics),
                     deadline.saturating_duration_since(Instant::now()),
                 )
                 .await
@@ -10669,18 +10665,14 @@ impl Admin {
             })?;
         let deadline = started.checked_add(timeout).ok_or(Error::Timeout)?;
         let mut attempt = 0u32;
-        let group_id = group_id.to_string();
         loop {
             if Instant::now() >= deadline {
                 return Err(Error::Timeout);
             }
-            let stale = self
-                .group_coord
-                .as_ref()
-                .is_none_or(|(g, _)| g != &group_id);
+            let stale = self.group_coord.as_ref().is_none_or(|(g, _)| g != group_id);
             if stale {
-                let node = self.discover_group_coord(&group_id, deadline).await?;
-                self.group_coord = Some((group_id.clone(), node));
+                let node = self.discover_group_coord(group_id, deadline).await?;
+                self.group_coord = Some((group_id.to_string(), node));
             }
             let node = self
                 .group_coord
@@ -10709,7 +10701,7 @@ impl Admin {
                         encode_offset_fetch_named(
                             buf,
                             version,
-                            &group_id,
+                            group_id,
                             None,
                             -1,
                             require_stable,
@@ -10800,18 +10792,14 @@ impl Admin {
             })?;
         let deadline = started.checked_add(timeout).ok_or(Error::Timeout)?;
         let mut attempt = 0u32;
-        let group_id = group_id.to_string();
         loop {
             if Instant::now() >= deadline {
                 return Err(Error::Timeout);
             }
-            let stale = self
-                .group_coord
-                .as_ref()
-                .is_none_or(|(g, _)| g != &group_id);
+            let stale = self.group_coord.as_ref().is_none_or(|(g, _)| g != group_id);
             if stale {
-                let node = self.discover_group_coord(&group_id, deadline).await?;
-                self.group_coord = Some((group_id.clone(), node));
+                let node = self.discover_group_coord(group_id, deadline).await?;
+                self.group_coord = Some((group_id.to_string(), node));
             }
             let node = self
                 .group_coord
@@ -10840,7 +10828,7 @@ impl Admin {
                         encode_offset_commit_named(
                             buf,
                             version,
-                            &group_id,
+                            group_id,
                             -1,
                             "",
                             None,
@@ -11898,15 +11886,11 @@ impl Admin {
             .collect();
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
-        let group_id = group_id.to_string();
         loop {
-            let stale = self
-                .group_coord
-                .as_ref()
-                .is_none_or(|(g, _)| g != &group_id);
+            let stale = self.group_coord.as_ref().is_none_or(|(g, _)| g != group_id);
             if stale {
-                let node = self.discover_group_coord(&group_id, deadline).await?;
-                self.group_coord = Some((group_id.clone(), node));
+                let node = self.discover_group_coord(group_id, deadline).await?;
+                self.group_coord = Some((group_id.to_string(), node));
             }
             let node = self
                 .group_coord
@@ -11921,7 +11905,7 @@ impl Admin {
                 conn.roundtrip(
                     LEAVE_GROUP,
                     version,
-                    |buf| encode_leave_group_request_members(buf, version, &group_id, &members),
+                    |buf| encode_leave_group_request_members(buf, version, group_id, &members),
                     deadline.saturating_duration_since(Instant::now()),
                 )
                 .await
@@ -12408,20 +12392,16 @@ impl Admin {
         topics: &[AlterShareGroupOffsetsTopic],
         timeout: Duration,
     ) -> Result<AlteredShareGroupOffsets> {
-        let coord_key = group_id.to_string();
         let version = self.alter_share_group_offsets_version.ok_or_else(|| {
             Error::Unsupported("broker does not support AlterShareGroupOffsets".into())
         })?;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         loop {
-            let stale = self
-                .group_coord
-                .as_ref()
-                .is_none_or(|(g, _)| g != &coord_key);
+            let stale = self.group_coord.as_ref().is_none_or(|(g, _)| g != group_id);
             if stale {
-                let node = self.discover_group_coord(&coord_key, deadline).await?;
-                self.group_coord = Some((coord_key.clone(), node));
+                let node = self.discover_group_coord(group_id, deadline).await?;
+                self.group_coord = Some((group_id.to_string(), node));
             }
             let node = self
                 .group_coord
@@ -12507,20 +12487,16 @@ impl Admin {
         topics: &[DeleteShareGroupOffsetsTopic],
         timeout: Duration,
     ) -> Result<DeletedShareGroupOffsets> {
-        let coord_key = group_id.to_string();
         let version = self.delete_share_group_offsets_version.ok_or_else(|| {
             Error::Unsupported("broker does not support DeleteShareGroupOffsets".into())
         })?;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         loop {
-            let stale = self
-                .group_coord
-                .as_ref()
-                .is_none_or(|(g, _)| g != &coord_key);
+            let stale = self.group_coord.as_ref().is_none_or(|(g, _)| g != group_id);
             if stale {
-                let node = self.discover_group_coord(&coord_key, deadline).await?;
-                self.group_coord = Some((coord_key.clone(), node));
+                let node = self.discover_group_coord(group_id, deadline).await?;
+                self.group_coord = Some((group_id.to_string(), node));
             }
             let node = self
                 .group_coord
