@@ -216,7 +216,10 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   set or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
   delivers the fetch). A piggybacked `TOPIC_AUTHORIZATION_FAILED` on
   one partition does not fail a sibling whose `AcknowledgeErrorCode`
-  is none, including when `AcknowledgeErrorMessage` is set or empty. A piggybacked `FENCED_LEADER_EPOCH` /
+  is none, including when `AcknowledgeErrorMessage` is set or empty. A
+  piggybacked `GROUP_AUTHORIZATION_FAILED` on one partition does not
+  fail a sibling whose `AcknowledgeErrorCode` is none, including when
+  `AcknowledgeErrorMessage` is set. A piggybacked `FENCED_LEADER_EPOCH` /
   `NOT_LEADER_OR_FOLLOWER` / `UNKNOWN_TOPIC_OR_PARTITION` /
   `UNKNOWN_TOPIC_ID` / `INCONSISTENT_TOPIC_ID` on one
   partition does
