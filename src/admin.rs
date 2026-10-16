@@ -4008,6 +4008,7 @@ impl Admin {
             let mut returned: HashMap<String, HashSet<i32>> = HashMap::new();
             let mut retry = Vec::new();
             for topic in response.results {
+                let mut added = Vec::new();
                 for partition in topic.partitions {
                     let duplicate =
                         !claim_topic_partition(&mut returned, &topic.topic, partition.partition_id);
@@ -4031,14 +4032,23 @@ impl Admin {
                             topic.topic.clone(),
                             partition.partition_id,
                         ));
-                    } else if let Some(parts) = finished.get_mut(topic.topic.as_str()) {
-                        let _ = parts.insert(partition.partition_id, partition);
                     } else {
-                        let _ = finished.insert(
-                            topic.topic.clone(),
-                            HashMap::from([(partition.partition_id, partition)]),
-                        );
+                        added.push(partition);
                     }
+                }
+                if added.is_empty() {
+                    continue;
+                }
+                if let Some(parts) = finished.get_mut(topic.topic.as_str()) {
+                    for partition in added {
+                        let _ = parts.insert(partition.partition_id, partition);
+                    }
+                } else {
+                    let mut parts = HashMap::new();
+                    for partition in added {
+                        let _ = parts.insert(partition.partition_id, partition);
+                    }
+                    let _ = finished.insert(topic.topic, parts);
                 }
             }
             if pending.as_ref().is_some_and(|ps| {
