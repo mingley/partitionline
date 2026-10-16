@@ -508,19 +508,14 @@ pub fn encode_offset_for_leader_epoch_response(
     leader_epoch: i32,
     end_offset: i64,
 ) -> crate::error::Result<()> {
-    encode_offset_for_leader_epoch_topics_response(
-        buf,
-        version,
-        &[OffsetForLeaderTopicResult::new(
-            topic,
-            vec![EpochEndOffset::new(
-                error_code,
-                partition,
-                leader_epoch,
-                end_offset,
-            )],
-        )],
-    )
+    let partitions = [EpochEndOffset::new(
+        error_code,
+        partition,
+        leader_epoch,
+        end_offset,
+    )];
+    let topics = [(topic, partitions.as_slice())];
+    encode_offset_for_leader_epoch_response_views(buf, version, &topics, 0)
 }
 
 /// Encode OffsetForLeaderEpoch with one or more topic results.
@@ -550,6 +545,40 @@ pub fn encode_offset_for_leader_epoch_topics_response_with_throttle(
     topics: &[OffsetForLeaderTopicResult],
     throttle_time_ms: i32,
 ) -> crate::error::Result<()> {
+    encode_offset_for_leader_epoch_response_views(buf, version, topics, throttle_time_ms)
+}
+
+trait EpochResponseTopicView {
+    fn epoch_response_name(&self) -> &str;
+    fn epoch_response_partitions(&self) -> &[EpochEndOffset];
+}
+
+impl EpochResponseTopicView for OffsetForLeaderTopicResult {
+    fn epoch_response_name(&self) -> &str {
+        &self.topic
+    }
+
+    fn epoch_response_partitions(&self) -> &[EpochEndOffset] {
+        &self.partitions
+    }
+}
+
+impl EpochResponseTopicView for (&str, &[EpochEndOffset]) {
+    fn epoch_response_name(&self) -> &str {
+        self.0
+    }
+
+    fn epoch_response_partitions(&self) -> &[EpochEndOffset] {
+        self.1
+    }
+}
+
+fn encode_offset_for_leader_epoch_response_views<T: EpochResponseTopicView>(
+    buf: &mut BytesMut,
+    version: i16,
+    topics: &[T],
+    throttle_time_ms: i32,
+) -> crate::error::Result<()> {
     let flexible = offset_for_leader_epoch_flexible(version)?;
     let body_start = buf.len();
     let planned = offset_for_leader_response_len(version, flexible, topics)?;
@@ -561,16 +590,17 @@ pub fn encode_offset_for_leader_epoch_topics_response_with_throttle(
         buf.put_i32(throttle_time_ms);
     }
     buf::put_array_len(buf, flexible, Some(topics.len()))?;
-    for t in topics {
-        buf::put_string(buf, flexible, Some(&t.topic))?;
-        buf::put_array_len(buf, flexible, Some(t.partitions.len()))?;
-        for p in &t.partitions {
-            buf.put_i16(p.error_code);
-            buf.put_i32(p.partition);
+    for topic in topics {
+        buf::put_string(buf, flexible, Some(topic.epoch_response_name()))?;
+        let partitions = topic.epoch_response_partitions();
+        buf::put_array_len(buf, flexible, Some(partitions.len()))?;
+        for partition in partitions {
+            buf.put_i16(partition.error_code);
+            buf.put_i32(partition.partition);
             if version >= 1 {
-                buf.put_i32(p.leader_epoch);
+                buf.put_i32(partition.leader_epoch);
             }
-            buf.put_i64(p.end_offset);
+            buf.put_i64(partition.end_offset);
             if flexible {
                 buf::put_empty_tagged_fields(buf); // partition
             }
@@ -586,16 +616,20 @@ pub fn encode_offset_for_leader_epoch_topics_response_with_throttle(
     Ok(())
 }
 
-fn offset_for_leader_response_len(
+fn offset_for_leader_response_len<T: EpochResponseTopicView>(
     version: i16,
     flexible: bool,
-    topics: &[OffsetForLeaderTopicResult],
+    topics: &[T],
 ) -> Result<usize> {
     let mut total = if version >= 2 { 4usize } else { 0 };
     total = add_epoch_len(total, epoch_array_len(flexible, topics.len())?)?;
     for topic in topics {
-        total = add_epoch_len(total, epoch_string_len(flexible, &topic.topic)?)?;
-        total = add_epoch_len(total, epoch_array_len(flexible, topic.partitions.len())?)?;
+        total = add_epoch_len(
+            total,
+            epoch_string_len(flexible, topic.epoch_response_name())?,
+        )?;
+        let partitions = topic.epoch_response_partitions();
+        total = add_epoch_len(total, epoch_array_len(flexible, partitions.len())?)?;
         let mut partition = if version >= 1 { 18usize } else { 14 };
         if flexible {
             partition += buf::unsigned_varint_size(0);
@@ -603,7 +637,7 @@ fn offset_for_leader_response_len(
         total = add_epoch_len(
             total,
             partition
-                .checked_mul(topic.partitions.len())
+                .checked_mul(partitions.len())
                 .ok_or_else(|| Error::protocol("offset for leader epoch response size overflow"))?,
         )?;
         if flexible {
@@ -961,6 +995,22 @@ mod tests {
             encode_offset_for_leader_epoch_topics_response(&mut buf, version, &topics).unwrap();
             assert_eq!(buf.len(), len);
             assert_eq!(buf.capacity(), capacity);
+        }
+    }
+
+    #[test]
+    fn offset_for_leader_epoch_one_partition_response_matches_the_owned_topic_encoder() {
+        let topic = "orders-topic-name-is-long";
+        let owned = [OffsetForLeaderTopicResult::new(
+            topic,
+            vec![EpochEndOffset::new(0, 1, 7, 40)],
+        )];
+        for version in [0_i16, 2, 3, 4] {
+            let mut expected = BytesMut::new();
+            encode_offset_for_leader_epoch_topics_response(&mut expected, version, &owned).unwrap();
+            let mut got = BytesMut::new();
+            encode_offset_for_leader_epoch_response(&mut got, version, topic, 1, 0, 7, 40).unwrap();
+            assert_eq!(got.as_ref(), expected.as_ref(), "version {version}");
         }
     }
 
