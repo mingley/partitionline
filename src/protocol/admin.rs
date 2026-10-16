@@ -21813,28 +21813,83 @@ pub fn encode_elect_leaders_request(
     version: i16,
     req: &ElectLeadersRequest,
 ) -> crate::error::Result<()> {
+    encode_elect_leaders_topic_views(
+        buf,
+        version,
+        req.election_type,
+        req.topics.as_deref(),
+        req.timeout_ms,
+    )
+}
+
+/// Encode ElectLeaders topics whose names are borrowed from the caller.
+///
+/// `topics = None` elects every partition.
+pub(crate) fn encode_elect_leaders_named(
+    buf: &mut BytesMut,
+    version: i16,
+    election_type: i8,
+    topics: Option<&[(&str, Vec<i32>)]>,
+    timeout_ms: i32,
+) -> crate::error::Result<()> {
+    encode_elect_leaders_topic_views(buf, version, election_type, topics, timeout_ms)
+}
+
+trait ElectLeadersTopicView {
+    fn elect_leaders_name(&self) -> &str;
+    fn elect_leaders_partitions(&self) -> &[i32];
+}
+
+impl ElectLeadersTopicView for ElectLeadersTopic {
+    fn elect_leaders_name(&self) -> &str {
+        &self.topic
+    }
+
+    fn elect_leaders_partitions(&self) -> &[i32] {
+        &self.partitions
+    }
+}
+
+impl ElectLeadersTopicView for (&str, Vec<i32>) {
+    fn elect_leaders_name(&self) -> &str {
+        self.0
+    }
+
+    fn elect_leaders_partitions(&self) -> &[i32] {
+        &self.1
+    }
+}
+
+fn encode_elect_leaders_topic_views<T: ElectLeadersTopicView>(
+    buf: &mut BytesMut,
+    version: i16,
+    election_type: i8,
+    topics: Option<&[T]>,
+    timeout_ms: i32,
+) -> crate::error::Result<()> {
     let flexible = elect_leaders_flexible(version)?;
     let body_start = buf.len();
-    let planned = elect_leaders_request_len(version, flexible, req)?;
+    let planned = elect_leaders_request_len(version, flexible, topics)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
         buf.reserve(needed - buf.capacity());
     }
     if version >= 1 {
-        buf.put_i8(req.election_type);
+        buf.put_i8(election_type);
     }
-    buf::put_array_len(buf, flexible, req.topics.as_ref().map(Vec::len))?;
-    for topic in req.topics.as_deref().unwrap_or(&[]) {
-        buf::put_string(buf, flexible, Some(&topic.topic))?;
-        buf::put_array_len(buf, flexible, Some(topic.partitions.len()))?;
-        for partition in &topic.partitions {
+    buf::put_array_len(buf, flexible, topics.map(<[T]>::len))?;
+    for topic in topics.unwrap_or(&[]) {
+        buf::put_string(buf, flexible, Some(topic.elect_leaders_name()))?;
+        let partitions = topic.elect_leaders_partitions();
+        buf::put_array_len(buf, flexible, Some(partitions.len()))?;
+        for partition in partitions {
             buf.put_i32(*partition);
         }
         if flexible {
             buf::put_empty_tagged_fields(buf);
         }
     }
-    buf.put_i32(req.timeout_ms);
+    buf.put_i32(timeout_ms);
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
@@ -21842,16 +21897,13 @@ pub fn encode_elect_leaders_request(
     Ok(())
 }
 
-fn elect_leaders_request_len(
+fn elect_leaders_request_len<T: ElectLeadersTopicView>(
     version: i16,
     flexible: bool,
-    req: &ElectLeadersRequest,
+    topics: Option<&[T]>,
 ) -> Result<usize> {
     let mut total = if version >= 1 { 1 } else { 0 };
-    total = add_describe_len(
-        total,
-        elect_leaders_topics_len(flexible, req.topics.as_deref())?,
-    )?;
+    total = add_describe_len(total, elect_leaders_topics_len(flexible, topics)?)?;
     total = add_describe_len(total, 4)?;
     if flexible {
         total = add_describe_len(total, buf::unsigned_varint_size(0))?;
@@ -21859,7 +21911,10 @@ fn elect_leaders_request_len(
     Ok(total)
 }
 
-fn elect_leaders_topics_len(flexible: bool, topics: Option<&[ElectLeadersTopic]>) -> Result<usize> {
+fn elect_leaders_topics_len<T: ElectLeadersTopicView>(
+    flexible: bool,
+    topics: Option<&[T]>,
+) -> Result<usize> {
     let Some(topics) = topics else {
         return Ok(if flexible {
             buf::unsigned_varint_size(0)
@@ -21869,10 +21924,13 @@ fn elect_leaders_topics_len(flexible: bool, topics: Option<&[ElectLeadersTopic]>
     };
     let mut total = describe_array_len(flexible, topics.len())?;
     for topic in topics {
-        total = add_describe_len(total, describe_string_len(flexible, Some(&topic.topic))?)?;
         total = add_describe_len(
             total,
-            replica_log_dirs_i32s_len(flexible, &topic.partitions)?,
+            describe_string_len(flexible, Some(topic.elect_leaders_name()))?,
+        )?;
+        total = add_describe_len(
+            total,
+            replica_log_dirs_i32s_len(flexible, topic.elect_leaders_partitions())?,
         )?;
         if flexible {
             total = add_describe_len(total, buf::unsigned_varint_size(0))?;
@@ -45632,6 +45690,39 @@ mod tests {
                 if version >= 1 {
                     assert_eq!(decoded.election_type, request.election_type);
                 }
+            }
+        }
+    }
+
+    #[test]
+    fn elect_leaders_named_topics_match_owned_topics() {
+        let owned = [ElectLeadersTopic {
+            topic: "orders-topic-name-is-long".into(),
+            partitions: vec![1, 0],
+        }];
+        let named = [("orders-topic-name-is-long", vec![1, 0])];
+        for version in 0..=2 {
+            for (owned_topics, named_topics) in [
+                (None, None),
+                (Some(owned.as_slice()), Some(named.as_slice())),
+            ] {
+                let request = ElectLeadersRequest {
+                    election_type: ELECTION_UNCLEAN,
+                    topics: owned_topics.map(<[ElectLeadersTopic]>::to_vec),
+                    timeout_ms: 1_000,
+                };
+                let mut expected = BytesMut::new();
+                encode_elect_leaders_request(&mut expected, version, &request).unwrap();
+                let mut got = BytesMut::new();
+                encode_elect_leaders_named(
+                    &mut got,
+                    version,
+                    ELECTION_UNCLEAN,
+                    named_topics,
+                    1_000,
+                )
+                .unwrap();
+                assert_eq!(got.as_ref(), expected.as_ref(), "version {version}");
             }
         }
     }

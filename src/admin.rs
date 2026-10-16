@@ -3945,11 +3945,8 @@ impl Admin {
             if remaining.is_zero() {
                 return Err(Error::Timeout);
             }
-            let request = crate::protocol::admin::ElectLeadersRequest {
-                election_type: options.election_type.wire(),
-                topics,
-                timeout_ms: crate::consumer::duration_millis_i32(remaining),
-            };
+            let election_type = options.election_type.wire();
+            let timeout_ms = crate::consumer::duration_millis_i32(remaining);
             let conn = self
                 .conns
                 .get_mut(&node)
@@ -3959,7 +3956,13 @@ impl Admin {
                     crate::protocol::api_keys::ELECT_LEADERS,
                     version,
                     |buf| {
-                        crate::protocol::admin::encode_elect_leaders_request(buf, version, &request)
+                        crate::protocol::admin::encode_elect_leaders_named(
+                            buf,
+                            version,
+                            election_type,
+                            topics.as_deref(),
+                            timeout_ms,
+                        )
                     },
                     remaining,
                 )
@@ -14828,13 +14831,16 @@ fn mark_returned(returned: &mut Vec<HashSet<i32>>, index: usize, partition: i32)
         .is_some_and(|parts| parts.insert(partition))
 }
 
-fn election_request_topics(names: &[String], pending: &[(usize, i32)]) -> Vec<ElectLeadersTopic> {
-    let mut topics: Vec<ElectLeadersTopic> = Vec::new();
+fn election_request_topics<'a>(
+    names: &'a [String],
+    pending: &[(usize, i32)],
+) -> Vec<(&'a str, Vec<i32>)> {
+    let mut topics: Vec<(&str, Vec<i32>)> = Vec::new();
     let mut slots: Vec<Option<usize>> = Vec::new();
     for &(index, partition) in pending {
         if let Some(Some(slot)) = slots.get(index).copied() {
-            if let Some(topic) = topics.get_mut(slot) {
-                topic.partitions.push(partition);
+            if let Some((_, parts)) = topics.get_mut(slot) {
+                parts.push(partition);
                 continue;
             }
         }
@@ -14848,7 +14854,7 @@ fn election_request_topics(names: &[String], pending: &[(usize, i32)]) -> Vec<El
         if let Some(entry) = slots.get_mut(index) {
             *entry = Some(slot);
         }
-        topics.push(ElectLeadersTopic::new(name.clone(), vec![partition]));
+        topics.push((name.as_str(), vec![partition]));
     }
     topics
 }
@@ -14896,19 +14902,19 @@ mod tests {
         let topics = election_request_topics(&selection.names, &kept);
         assert_eq!(topics.len(), 2);
         assert_eq!(
-            topics.first().map(|topic| topic.topic.as_str()),
+            topics.first().map(|topic| topic.0),
             Some("orders-topic-name-is-long")
         );
         assert_eq!(
-            topics.first().map(|topic| topic.partitions.as_slice()),
+            topics.first().map(|topic| topic.1.as_slice()),
             Some([1, 0].as_slice())
         );
         assert_eq!(
-            topics.get(1).map(|topic| topic.topic.as_str()),
+            topics.get(1).map(|topic| topic.0),
             Some("payments-topic-name-is-long")
         );
         assert_eq!(
-            topics.get(1).map(|topic| topic.partitions.as_slice()),
+            topics.get(1).map(|topic| topic.1.as_slice()),
             Some([2].as_slice())
         );
         let mut returned = Vec::new();
