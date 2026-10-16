@@ -744,6 +744,38 @@ fn count_covered_acquisitions(
         .fold(0usize, usize::saturating_add)
 }
 
+fn note_share_offset(
+    cursors: &mut Vec<(i32, i64)>,
+    spilled: &mut Vec<(i32, HashSet<i64>)>,
+    partition: i32,
+    offset: i64,
+) -> bool {
+    if let Some(set) = spilled
+        .iter_mut()
+        .find(|(part, _)| *part == partition)
+        .map(|(_, set)| set)
+    {
+        return set.insert(offset);
+    }
+    if let Some((_, last)) = cursors.iter_mut().find(|(part, _)| *part == partition) {
+        if offset == *last {
+            return false;
+        }
+        if offset < *last {
+            let mut set = HashSet::new();
+            let _ = set.insert(*last);
+            let fresh = set.insert(offset);
+            spilled.push((partition, set));
+            *last = offset;
+            return fresh;
+        }
+        *last = offset;
+        return true;
+    }
+    cursors.push((partition, offset));
+    true
+}
+
 fn acquisition_count(map: &AcquisitionMap) -> usize {
     map.values()
         .map(|runs| {
@@ -810,6 +842,9 @@ pub struct ShareGroup {
     /// Partition and offset pairs for a one-topic acknowledgement. Reused
     /// across calls.
     ack_pairs: Vec<(i32, i64)>,
+    /// Last ShareFetch offset seen for each partition in the current response.
+    /// In-order records do not need a per-offset set.
+    fetch_cursors: Vec<(i32, i64)>,
     topic_ids: HashMap<String, [u8; 16]>,
     /// Share session epoch per share-partition leader (KIP-932).
     share_epochs: HashMap<i32, i32>,
@@ -1287,6 +1322,7 @@ impl ShareGroup {
             spare_fetch_ids: Vec::new(),
             ack_offsets: Vec::new(),
             ack_pairs: Vec::new(),
+            fetch_cursors: Vec::new(),
             topic_ids: HashMap::new(),
             share_epochs: HashMap::new(),
             share_conns: HashMap::new(),
@@ -2623,7 +2659,8 @@ impl ShareGroup {
                 None
             };
             let mut incoming = Vec::new();
-            let mut incoming_keys: HashMap<[u8; 16], HashSet<(i32, i64)>> = HashMap::new();
+            self.fetch_cursors.clear();
+            let mut spilled_offsets: Vec<(i32, HashSet<i64>)> = Vec::new();
             for topic in fetched {
                 let requested = by_id.get(&topic.topic_id).ok_or_else(|| {
                     Error::protocol("ShareFetch returned an unrequested topic id")
@@ -2705,11 +2742,12 @@ impl ShareGroup {
                             else {
                                 continue;
                             };
-                            if !incoming_keys
-                                .entry(topic.topic_id)
-                                .or_default()
-                                .insert((part.partition, record.offset))
-                            {
+                            if !note_share_offset(
+                                &mut self.fetch_cursors,
+                                &mut spilled_offsets,
+                                part.partition,
+                                record.offset,
+                            ) {
                                 return Err(Error::protocol("duplicate ShareFetch record offset"));
                             }
                             if let Some(previous) = acquisition_at(
@@ -4409,6 +4447,22 @@ mod tests {
             acquisition_at(&map, &again, 0, 2).map(|found| found.delivery_count),
             Some(1)
         );
+    }
+
+    #[test]
+    fn in_order_share_offsets_do_not_spill() {
+        let mut cursors = Vec::new();
+        let mut spilled = Vec::new();
+        assert!(super::note_share_offset(&mut cursors, &mut spilled, 0, 1));
+        assert!(super::note_share_offset(&mut cursors, &mut spilled, 0, 2));
+        assert!(super::note_share_offset(&mut cursors, &mut spilled, 1, 2));
+        assert!(spilled.is_empty());
+        assert!(!super::note_share_offset(&mut cursors, &mut spilled, 0, 2));
+        let mut cursors = vec![(0, 5)];
+        let mut spilled = Vec::new();
+        assert!(super::note_share_offset(&mut cursors, &mut spilled, 0, 3));
+        assert!(super::note_share_offset(&mut cursors, &mut spilled, 0, 4));
+        assert!(!super::note_share_offset(&mut cursors, &mut spilled, 0, 5));
     }
 
     fn rec(partition: i32, offset: i64) -> ShareRecord {
