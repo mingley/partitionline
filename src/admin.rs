@@ -62,7 +62,7 @@ use crate::protocol::admin::{
     encode_get_telemetry_subscriptions_request, encode_incremental_alter_configs_named,
     encode_list_config_resources_request, encode_list_groups_request,
     encode_list_partition_reassignments_named, encode_list_transactions_request_with_pattern,
-    encode_push_telemetry_request, encode_renew_delegation_token_request,
+    encode_push_telemetry_metrics, encode_renew_delegation_token_request,
     encode_share_group_describe_request, encode_unregister_broker_request,
     encode_update_features_named, AlterConfigsResource, BorrowedAlterConfig,
     BorrowedAlterConfigsResource, BorrowedAlterReplicaLogDir, BorrowedAlterReplicaLogDirTopic,
@@ -5951,7 +5951,6 @@ impl Admin {
             .ok_or_else(|| Error::Unsupported("broker does not support CreateAcls v0-3".into()))?;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
-        let acls = acls.to_vec();
         loop {
             if self.cluster.controller().is_err() {
                 self.refresh_metadata_until(None, deadline).await?;
@@ -5966,7 +5965,7 @@ impl Admin {
                 conn.roundtrip(
                     CREATE_ACLS,
                     version,
-                    |buf| encode_create_acls_request(buf, version, &acls),
+                    |buf| encode_create_acls_request(buf, version, acls),
                     deadline.saturating_duration_since(Instant::now()),
                 )
                 .await
@@ -6951,7 +6950,6 @@ impl Admin {
         strict: bool,
         timeout: Duration,
     ) -> Result<Vec<ClientQuotaEntry>> {
-        let components = components.to_vec();
         let version = self.describe_client_quotas_version.ok_or_else(|| {
             Error::Unsupported("broker does not support DescribeClientQuotas v0-1".into())
         })?;
@@ -6959,7 +6957,7 @@ impl Admin {
             .roundtrip_bootstrap(
                 DESCRIBE_CLIENT_QUOTAS,
                 version,
-                |buf| encode_describe_client_quotas_request(buf, version, &components, strict),
+                |buf| encode_describe_client_quotas_request(buf, version, components, strict),
                 timeout,
             )
             .await?;
@@ -7046,7 +7044,6 @@ impl Admin {
         timeout: Duration,
         validate_only: bool,
     ) -> Result<Vec<ClientQuotaAlterationResult>> {
-        let entries = entries.to_vec();
         let version = self.alter_client_quotas_version.ok_or_else(|| {
             Error::Unsupported("broker does not support AlterClientQuotas v0-1".into())
         })?;
@@ -7066,7 +7063,7 @@ impl Admin {
                 conn.roundtrip(
                     ALTER_CLIENT_QUOTAS,
                     version,
-                    |buf| encode_alter_client_quotas_request(buf, version, &entries, validate_only),
+                    |buf| encode_alter_client_quotas_request(buf, version, entries, validate_only),
                     deadline.saturating_duration_since(Instant::now()),
                 )
                 .await
@@ -12862,18 +12859,21 @@ impl Admin {
             .push_telemetry_version
             .ok_or_else(|| Error::Unsupported("broker does not support PushTelemetry".into()))?;
         let timeout = self.cfg.request_timeout;
-        let req = PushTelemetryRequest::new(
-            client_instance_id,
-            subscription_id,
-            terminating,
-            compression_type,
-            metrics.to_vec(),
-        );
+        let client_instance_id = client_instance_id.into();
         let body = self
             .roundtrip_bootstrap(
                 PUSH_TELEMETRY,
                 version,
-                |buf| encode_push_telemetry_request(buf, &req),
+                |buf| {
+                    encode_push_telemetry_metrics(
+                        buf,
+                        &client_instance_id,
+                        subscription_id,
+                        terminating,
+                        compression_type,
+                        metrics,
+                    )
+                },
                 timeout,
             )
             .await?;

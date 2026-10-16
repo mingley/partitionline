@@ -18455,25 +18455,44 @@ pub fn encode_push_telemetry_request(
     buf: &mut BytesMut,
     req: &PushTelemetryRequest,
 ) -> crate::error::Result<()> {
+    encode_push_telemetry_metrics(
+        buf,
+        &req.client_instance_id,
+        req.subscription_id,
+        req.terminating,
+        req.compression_type,
+        &req.metrics,
+    )
+}
+
+/// Encode PushTelemetry from a borrowed metrics payload.
+pub(crate) fn encode_push_telemetry_metrics(
+    buf: &mut BytesMut,
+    client_instance_id: &[u8; 16],
+    subscription_id: i32,
+    terminating: bool,
+    compression_type: i8,
+    metrics: &[u8],
+) -> crate::error::Result<()> {
     let body_start = buf.len();
-    let planned = push_telemetry_request_len(req)?;
+    let planned = push_telemetry_metrics_len(metrics)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
         buf.reserve(needed - buf.capacity());
     }
-    buf.extend_from_slice(&req.client_instance_id);
-    buf.put_i32(req.subscription_id);
-    buf.put_u8(u8::from(req.terminating));
-    buf.put_i8(req.compression_type);
-    buf::put_compact_bytes(buf, Some(&req.metrics))?;
+    buf.extend_from_slice(client_instance_id);
+    buf.put_i32(subscription_id);
+    buf.put_u8(u8::from(terminating));
+    buf.put_i8(compression_type);
+    buf::put_compact_bytes(buf, Some(metrics))?;
     buf::put_empty_tagged_fields(buf);
     debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
 }
 
-fn push_telemetry_request_len(req: &PushTelemetryRequest) -> Result<usize> {
+fn push_telemetry_metrics_len(metrics: &[u8]) -> Result<usize> {
     let mut total = 22;
-    total = add_describe_len(total, describe_bytes_len(true, &req.metrics)?)?;
+    total = add_describe_len(total, describe_bytes_len(true, metrics)?)?;
     add_describe_len(total, buf::unsigned_varint_size(0))
 }
 
@@ -41803,6 +41822,17 @@ mod tests {
         encode_push_telemetry_response(&mut buf, &response).unwrap();
         assert_eq!(buf.len(), response_len);
         assert_eq!(buf.capacity(), response_capacity);
+    }
+
+    #[test]
+    fn push_telemetry_borrowed_metrics_match_owned_metrics() {
+        let metrics = [1_u8, 2, 3, 4, 5, 6, 7, 8];
+        let request = PushTelemetryRequest::new([7; 16], 3, false, 2, metrics.to_vec());
+        let mut expected = BytesMut::new();
+        encode_push_telemetry_request(&mut expected, &request).unwrap();
+        let mut got = BytesMut::new();
+        encode_push_telemetry_metrics(&mut got, &[7; 16], 3, false, 2, &metrics).unwrap();
+        assert_eq!(got.as_ref(), expected.as_ref());
     }
 
     #[test]
