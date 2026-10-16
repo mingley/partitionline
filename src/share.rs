@@ -695,7 +695,10 @@ pub enum ShareAcquireMode {
 /// `INVALID_SHARE_SESSION_EPOCH` / `SHARE_SESSION_NOT_FOUND` still
 /// reset the share session (Java
 /// `nextCloseExistingAttemptNew`), including when `ErrorMessage` is
-/// empty. A ShareFetch
+/// empty. Top-level `SHARE_SESSION_LIMIT_REACHED` does not request
+/// Metadata when `ErrorMessage` is set (Java
+/// `handleShareFetchSuccess` only `requestUpdate`s for
+/// `UNKNOWN_TOPIC_ID`). A ShareFetch
 /// transport / timeout / decode failure completes those acknowledgements
 /// the same way (Java `handleShareFetchFailure`). Piggyback is refused
 /// on the initial share session and those acknowledgements complete
@@ -747,7 +750,11 @@ pub enum ShareAcquireMode {
 /// `UNKNOWN_SERVER_ERROR` still skips without Metadata). Top-level
 /// `CORRUPT_MESSAGE` still fails that poll and does not request
 /// Metadata, including when `ErrorMessage` is set or empty (a
-/// partition `CORRUPT_MESSAGE` still throws). A top-level
+/// partition `CORRUPT_MESSAGE` still throws). Top-level
+/// `SHARE_SESSION_LIMIT_REACHED` resets the share session and does
+/// not request Metadata, including when `ErrorMessage` is set (Java
+/// `handleShareFetchSuccess` only `requestUpdate`s for
+/// `UNKNOWN_TOPIC_ID`). A top-level
 /// ShareAcknowledge `UNKNOWN_TOPIC_ID` completes without retry and
 /// does not request Metadata, including when `ErrorMessage` is set
 /// or empty (Java `handleShareAcknowledgeSuccess` has no
@@ -1924,7 +1931,11 @@ impl ShareGroup {
     /// `UNKNOWN_SERVER_ERROR` still skips without Metadata). Top-level
     /// `CORRUPT_MESSAGE` still fails that poll without Metadata,
     /// including when `ErrorMessage` is set or empty (a partition
-    /// `CORRUPT_MESSAGE` still throws). A sole
+    /// `CORRUPT_MESSAGE` still throws). Top-level
+    /// `SHARE_SESSION_LIMIT_REACHED` resets the share session and
+    /// does not request Metadata, including when `ErrorMessage` is
+    /// set (Java `handleShareFetchSuccess` only `requestUpdate`s for
+    /// `UNKNOWN_TOPIC_ID`). A sole
     /// partition `NOT_LEADER_OR_FOLLOWER` collects empty (Java)
     /// `testFetchError`). A ShareFetch topic id that is
     /// not in this request — including a real cluster topic that is
