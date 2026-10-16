@@ -1929,13 +1929,11 @@ impl ConsumerGroup {
             return Ok(());
         }
         if let Some(ref positions) = self.last_delivered_positions {
-            let assigned: HashSet<TopicPartition> =
-                self.consumer.assignment().into_iter().collect();
             let to_commit: Vec<(TopicPartition, OffsetAndMetadata)> = positions
                 .iter()
                 .filter(|(tp, offset)| {
                     position_is_committable(*offset)
-                        && assigned.contains(tp)
+                        && self.consumer.is_assigned(&tp.topic, tp.partition)
                         && self
                             .last_delivered_topic_ids
                             .get(tp.topic.as_str())

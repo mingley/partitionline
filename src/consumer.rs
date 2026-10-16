@@ -3152,6 +3152,10 @@ impl Consumer {
             .map_or(fetch_cursor, |record| record.offset)
     }
 
+    pub(crate) fn is_assigned(&self, topic: &str, partition: i32) -> bool {
+        self.fetched_epoch_slot(topic, partition).is_some()
+    }
+
     pub(crate) fn assigned_offsets(&self) -> &[(Arc<str>, i32, i64)] {
         &self.assigned
     }
