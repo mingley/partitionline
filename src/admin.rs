@@ -96,9 +96,9 @@ use crate::protocol::group::{
     decode_offset_delete_response, decode_offset_fetch_groups_response,
     decode_offset_fetch_response, encode_find_coordinator_request_keys,
     encode_find_coordinator_request_typed, encode_leave_group_request_members,
-    encode_offset_commit_request, encode_offset_delete_request, encode_offset_fetch_groups_request,
-    encode_offset_fetch_request, LeaveGroupMember, OffsetDeleteTopic, OffsetFetchGroup,
-    COORDINATOR_GROUP, COORDINATOR_TRANSACTION, DEFAULT_RETENTION_TIME,
+    encode_offset_commit_request, encode_offset_delete_named_topics,
+    encode_offset_fetch_groups_request, encode_offset_fetch_request, LeaveGroupMember,
+    OffsetFetchGroup, COORDINATOR_GROUP, COORDINATOR_TRANSACTION, DEFAULT_RETENTION_TIME,
 };
 use crate::protocol::idem::{decode_init_producer_id_response, encode_init_producer_id_request};
 use crate::protocol::offsets::{
@@ -9933,7 +9933,7 @@ impl Admin {
                 (tp.topic, tp.partition)
             })
             .collect();
-        let topics = offset_delete_topics(&partitions);
+        let topics = offset_delete_named_topics(&partitions);
         let version = self
             .offset_delete_version
             .ok_or_else(|| Error::Unsupported("broker does not support OffsetDelete".into()))?;
@@ -9963,7 +9963,7 @@ impl Admin {
                 conn.roundtrip(
                     OFFSET_DELETE,
                     version,
-                    |buf| encode_offset_delete_request(buf, &group_id, &topics),
+                    |buf| encode_offset_delete_named_topics(buf, &group_id, &topics),
                     deadline.saturating_duration_since(Instant::now()),
                 )
                 .await
@@ -14459,16 +14459,22 @@ fn flatten_reassignment_results(
     out
 }
 
-fn offset_delete_topics(partitions: &[(String, i32)]) -> Vec<OffsetDeleteTopic> {
-    let mut groups: Vec<(String, Vec<i32>)> = Vec::new();
-    let mut slots = HashMap::new();
+fn offset_delete_named_topics(partitions: &[(String, i32)]) -> Vec<(&str, Vec<i32>)> {
+    let mut groups: Vec<(&str, Vec<i32>)> = Vec::new();
+    let mut slots: HashMap<&str, usize> = HashMap::new();
     for (topic, part) in partitions {
-        remember_topic_group(&mut groups, &mut slots, topic, *part);
+        let name = topic.as_str();
+        if let Some(&slot) = slots.get(name) {
+            if let Some((_, parts)) = groups.get_mut(slot) {
+                parts.push(*part);
+                continue;
+            }
+        }
+        let slot = groups.len();
+        let _ = slots.insert(name, slot);
+        groups.push((name, vec![*part]));
     }
     groups
-        .into_iter()
-        .map(|(topic, partitions)| OffsetDeleteTopic { partitions, topic })
-        .collect()
 }
 
 /// Java DescribeTopicPartitions default ResponsePartitionLimit.
@@ -16636,6 +16642,19 @@ mod tests {
         assert_eq!(info.future_offset_lag, 7);
         let missing = replica_log_dir_info_from(&TopicPartitionReplica::new("t", 9, 2), &dirs);
         assert_eq!(missing, ReplicaLogDirInfo::unknown());
+    }
+
+    #[test]
+    fn offset_delete_named_topics_keeps_duplicate_partitions() {
+        let partitions = [
+            ("orders".to_string(), 0),
+            ("orders".to_string(), 0),
+            ("orders".to_string(), 1),
+        ];
+        let topics = offset_delete_named_topics(&partitions);
+        assert_eq!(topics.len(), 1);
+        assert_eq!(topics[0].0, "orders");
+        assert_eq!(topics[0].1, vec![0, 0, 1]);
     }
 
     #[test]

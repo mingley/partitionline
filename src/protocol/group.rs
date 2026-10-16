@@ -6460,15 +6460,58 @@ pub fn encode_offset_delete_request(
     group_id: &str,
     topics: &[OffsetDeleteTopic],
 ) -> crate::error::Result<()> {
+    encode_offset_delete_topic_views(buf, group_id, topics)
+}
+
+/// Encode OffsetDelete topics whose names are borrowed from the caller.
+pub(crate) fn encode_offset_delete_named_topics(
+    buf: &mut BytesMut,
+    group_id: &str,
+    topics: &[(&str, Vec<i32>)],
+) -> crate::error::Result<()> {
+    encode_offset_delete_topic_views(buf, group_id, topics)
+}
+
+trait OffsetDeleteTopicView {
+    fn offset_delete_name(&self) -> &str;
+    fn offset_delete_partitions(&self) -> &[i32];
+}
+
+impl OffsetDeleteTopicView for OffsetDeleteTopic {
+    fn offset_delete_name(&self) -> &str {
+        &self.topic
+    }
+
+    fn offset_delete_partitions(&self) -> &[i32] {
+        &self.partitions
+    }
+}
+
+impl OffsetDeleteTopicView for (&str, Vec<i32>) {
+    fn offset_delete_name(&self) -> &str {
+        self.0
+    }
+
+    fn offset_delete_partitions(&self) -> &[i32] {
+        &self.1
+    }
+}
+
+fn encode_offset_delete_topic_views<T: OffsetDeleteTopicView>(
+    buf: &mut BytesMut,
+    group_id: &str,
+    topics: &[T],
+) -> crate::error::Result<()> {
     let body_start = buf.len();
     let planned = offset_delete_request_len(group_id, topics)?;
     reserve_group_body(buf, planned);
     buf::put_classic_nullable_string(buf, Some(group_id))?;
     buf::put_array_len(buf, false, Some(topics.len()))?;
-    for t in topics {
-        buf::put_classic_nullable_string(buf, Some(&t.topic))?;
-        buf::put_array_len(buf, false, Some(t.partitions.len()))?;
-        for p in &t.partitions {
+    for topic in topics {
+        buf::put_classic_nullable_string(buf, Some(topic.offset_delete_name()))?;
+        let partitions = topic.offset_delete_partitions();
+        buf::put_array_len(buf, false, Some(partitions.len()))?;
+        for p in partitions {
             buf.put_i32(*p);
         }
     }
@@ -6476,16 +6519,22 @@ pub fn encode_offset_delete_request(
     Ok(())
 }
 
-fn offset_delete_request_len(group_id: &str, topics: &[OffsetDeleteTopic]) -> Result<usize> {
+fn offset_delete_request_len<T: OffsetDeleteTopicView>(
+    group_id: &str,
+    topics: &[T],
+) -> Result<usize> {
     let mut total = group_string_len(false, Some(group_id))?;
     total = add_group_len(total, group_array_len(false, topics.len())?)?;
     for topic in topics {
-        total = add_group_len(total, group_string_len(false, Some(&topic.topic))?)?;
-        total = add_group_len(total, group_array_len(false, topic.partitions.len())?)?;
         total = add_group_len(
             total,
-            topic
-                .partitions
+            group_string_len(false, Some(topic.offset_delete_name()))?,
+        )?;
+        let partitions = topic.offset_delete_partitions();
+        total = add_group_len(total, group_array_len(false, partitions.len())?)?;
+        total = add_group_len(
+            total,
+            partitions
                 .len()
                 .checked_mul(4)
                 .ok_or_else(|| Error::protocol("offset delete request size overflow"))?,
@@ -17117,6 +17166,20 @@ mod tests {
         encode_offset_delete_request(&mut buf, "group", &topics).unwrap();
         assert_eq!(buf.len(), len);
         assert_eq!(buf.capacity(), capacity);
+    }
+
+    #[test]
+    fn offset_delete_named_topics_match_owned_topics() {
+        let owned = [OffsetDeleteTopic::new(
+            "orders-topic-name-is-long",
+            vec![0, 2],
+        )];
+        let named = [("orders-topic-name-is-long", vec![0, 2])];
+        let mut expected = BytesMut::new();
+        encode_offset_delete_request(&mut expected, "group", &owned).unwrap();
+        let mut got = BytesMut::new();
+        encode_offset_delete_named_topics(&mut got, "group", &named).unwrap();
+        assert_eq!(got.as_ref(), expected.as_ref());
     }
 
     #[test]
