@@ -339,11 +339,24 @@ pub fn encode_api_versions_request(
 ) -> crate::error::Result<()> {
     let flexible = api_versions_flexible(version)?;
     if version >= 3 {
+        let body_start = buf.len();
+        let planned = api_versions_request_len(software_name, software_version)?;
+        let needed = body_start.saturating_add(planned);
+        if buf.capacity() < needed {
+            buf.reserve(needed - buf.capacity());
+        }
         buf::put_string(buf, flexible, Some(software_name))?;
         buf::put_string(buf, flexible, Some(software_version))?;
         buf::put_empty_tagged_fields(buf);
+        debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     }
     Ok(())
+}
+
+fn api_versions_request_len(software_name: &str, software_version: &str) -> Result<usize> {
+    let mut total = api_versions_compact_string_len(software_name)?;
+    total = add_api_versions_len(total, api_versions_compact_string_len(software_version)?)?;
+    add_api_versions_len(total, buf::unsigned_varint_size(0))
 }
 
 /// Decode ApiVersions v0–v4: `(software_name, software_version)`.
@@ -482,6 +495,12 @@ pub fn encode_api_versions_response(
     resp: &ApiVersionsResponse,
 ) -> crate::error::Result<()> {
     let flexible = api_versions_flexible(version)?;
+    let body_start = buf.len();
+    let planned = api_versions_response_len(version, flexible, resp)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf.put_i16(resp.error_code);
     buf::put_array_len(buf, flexible, Some(resp.api_keys.len()))?;
     for api in &resp.api_keys {
@@ -498,7 +517,134 @@ pub fn encode_api_versions_response(
     if flexible {
         encode_api_versions_tagged_fields(buf, version, resp)?;
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn api_versions_response_len(
+    version: i16,
+    flexible: bool,
+    resp: &ApiVersionsResponse,
+) -> Result<usize> {
+    let mut total = 2;
+    total = add_api_versions_len(
+        total,
+        api_versions_array_len(flexible, resp.api_keys.len())?,
+    )?;
+    let entry = if flexible { 7 } else { 6 };
+    let keys = resp
+        .api_keys
+        .len()
+        .checked_mul(entry)
+        .ok_or_else(|| Error::protocol("api versions size overflow"))?;
+    total = add_api_versions_len(total, keys)?;
+    if version >= 1 {
+        total = add_api_versions_len(total, 4)?;
+    }
+    if flexible {
+        total = add_api_versions_len(total, api_versions_tagged_len(version, resp)?)?;
+    }
+    Ok(total)
+}
+
+fn api_versions_array_len(flexible: bool, len: usize) -> Result<usize> {
+    if flexible {
+        api_versions_compact_array_len(len)
+    } else {
+        let _len = buf::i32_from_usize(len)?;
+        Ok(4)
+    }
+}
+
+fn api_versions_compact_array_len(len: usize) -> Result<usize> {
+    let value = buf::u32_from_usize(len)?
+        .checked_add(1)
+        .ok_or_else(|| Error::protocol("compact array overflow"))?;
+    Ok(buf::unsigned_varint_size(value))
+}
+
+fn api_versions_compact_string_len(value: &str) -> Result<usize> {
+    let encoded = buf::u32_from_usize(value.len())?
+        .checked_add(1)
+        .ok_or_else(|| Error::protocol("compact string overflow"))?;
+    add_api_versions_len(buf::unsigned_varint_size(encoded), value.len())
+}
+
+fn add_api_versions_len(total: usize, next: usize) -> Result<usize> {
+    total
+        .checked_add(next)
+        .ok_or_else(|| Error::protocol("api versions size overflow"))
+}
+
+fn api_versions_tagged_len(version: i16, resp: &ApiVersionsResponse) -> Result<usize> {
+    let mut count = 0u32;
+    let mut total = 0usize;
+    if let Some(payload) = supported_features_payload_len(version, &resp.supported_features)? {
+        count += 1;
+        total = add_api_versions_len(total, api_versions_tag_len(0, payload)?)?;
+    }
+    if resp
+        .finalized_features_epoch
+        .is_some_and(|epoch| epoch >= 0)
+    {
+        count += 1;
+        total = add_api_versions_len(total, api_versions_tag_len(1, 8)?)?;
+    }
+    if !resp.finalized_features.is_empty() {
+        count += 1;
+        let payload = finalized_features_payload_len(&resp.finalized_features)?;
+        total = add_api_versions_len(total, api_versions_tag_len(2, payload)?)?;
+    }
+    if resp.zk_migration_ready {
+        count += 1;
+        total = add_api_versions_len(total, api_versions_tag_len(3, 1)?)?;
+    }
+    add_api_versions_len(total, buf::unsigned_varint_size(count))
+}
+
+fn api_versions_tag_len(tag: u32, payload: usize) -> Result<usize> {
+    let payload_len = buf::u32_from_usize(payload)?;
+    let header = add_api_versions_len(
+        buf::unsigned_varint_size(tag),
+        buf::unsigned_varint_size(payload_len),
+    )?;
+    add_api_versions_len(header, payload)
+}
+
+fn keep_supported_feature(version: i16, feature: &SupportedFeatureKey) -> bool {
+    version >= 4 || feature.min_version != 0
+}
+
+fn supported_features_payload_len(
+    version: i16,
+    features: &[SupportedFeatureKey],
+) -> Result<Option<usize>> {
+    let mut kept = 0usize;
+    let mut body = 0usize;
+    for feature in features {
+        if keep_supported_feature(version, feature) {
+            kept += 1;
+            body = add_api_versions_len(body, feature_key_len(&feature.name)?)?;
+        }
+    }
+    if kept == 0 {
+        return Ok(None);
+    }
+    let header = api_versions_compact_array_len(kept)?;
+    Ok(Some(add_api_versions_len(header, body)?))
+}
+
+fn finalized_features_payload_len(features: &[FinalizedFeatureKey]) -> Result<usize> {
+    let mut body = api_versions_compact_array_len(features.len())?;
+    for feature in features {
+        body = add_api_versions_len(body, feature_key_len(&feature.name)?)?;
+    }
+    Ok(body)
+}
+
+/// Compact feature name, two `i16`s, and an empty tagged-field section.
+fn feature_key_len(name: &str) -> Result<usize> {
+    add_api_versions_len(api_versions_compact_string_len(name)?, 5)
 }
 
 struct ApiVersionsTaggedFields {
@@ -516,16 +662,26 @@ fn leftover_empty<B: Buf>(buf: &B, what: &'static str) -> Result<()> {
     }
 }
 
-fn encode_supported_feature_keys(features: &[SupportedFeatureKey]) -> Result<Bytes> {
-    let mut buf = BytesMut::new();
-    buf::put_array_len(&mut buf, true, Some(features.len()))?;
-    for f in features {
-        buf::put_compact_string(&mut buf, Some(&f.name))?;
-        buf.put_i16(f.min_version);
-        buf.put_i16(f.max_version);
-        buf::put_empty_tagged_fields(&mut buf);
+fn write_supported_features(
+    buf: &mut BytesMut,
+    version: i16,
+    features: &[SupportedFeatureKey],
+) -> Result<()> {
+    let kept = features
+        .iter()
+        .filter(|feature| keep_supported_feature(version, feature))
+        .count();
+    buf::put_array_len(buf, true, Some(kept))?;
+    for feature in features {
+        if !keep_supported_feature(version, feature) {
+            continue;
+        }
+        buf::put_compact_string(buf, Some(&feature.name))?;
+        buf.put_i16(feature.min_version);
+        buf.put_i16(feature.max_version);
+        buf::put_empty_tagged_fields(buf);
     }
-    Ok(buf.freeze())
+    Ok(())
 }
 
 fn decode_supported_feature_keys<B: Buf>(buf: &mut B) -> Result<Vec<SupportedFeatureKey>> {
@@ -545,16 +701,15 @@ fn decode_supported_feature_keys<B: Buf>(buf: &mut B) -> Result<Vec<SupportedFea
     Ok(out)
 }
 
-fn encode_finalized_feature_keys(features: &[FinalizedFeatureKey]) -> Result<Bytes> {
-    let mut buf = BytesMut::new();
-    buf::put_array_len(&mut buf, true, Some(features.len()))?;
-    for f in features {
-        buf::put_compact_string(&mut buf, Some(&f.name))?;
-        buf.put_i16(f.max_version_level);
-        buf.put_i16(f.min_version_level);
-        buf::put_empty_tagged_fields(&mut buf);
+fn write_finalized_features(buf: &mut BytesMut, features: &[FinalizedFeatureKey]) -> Result<()> {
+    buf::put_array_len(buf, true, Some(features.len()))?;
+    for feature in features {
+        buf::put_compact_string(buf, Some(&feature.name))?;
+        buf.put_i16(feature.max_version_level);
+        buf.put_i16(feature.min_version_level);
+        buf::put_empty_tagged_fields(buf);
     }
-    Ok(buf.freeze())
+    Ok(())
 }
 
 fn decode_finalized_feature_keys<B: Buf>(buf: &mut B) -> Result<Vec<FinalizedFeatureKey>> {
@@ -579,30 +734,50 @@ fn encode_api_versions_tagged_fields(
     version: i16,
     resp: &ApiVersionsResponse,
 ) -> Result<()> {
-    let mut tags: Vec<(u32, Bytes)> = Vec::new();
-    let supported: Vec<SupportedFeatureKey> = resp
-        .supported_features
-        .iter()
-        .filter(|f| version >= 4 || f.min_version != 0)
-        .cloned()
-        .collect();
-    if !supported.is_empty() {
-        tags.push((0, encode_supported_feature_keys(&supported)?));
+    let supported = supported_features_payload_len(version, &resp.supported_features)?;
+    let epoch = resp.finalized_features_epoch.filter(|epoch| *epoch >= 0);
+    let finalized = if resp.finalized_features.is_empty() {
+        None
+    } else {
+        Some(finalized_features_payload_len(&resp.finalized_features)?)
+    };
+    let mut count = 0u32;
+    if supported.is_some() {
+        count += 1;
     }
-    if let Some(epoch) = resp.finalized_features_epoch {
-        if epoch >= 0 {
-            let mut b = BytesMut::new();
-            b.put_i64(epoch);
-            tags.push((1, b.freeze()));
-        }
+    if epoch.is_some() {
+        count += 1;
     }
-    if !resp.finalized_features.is_empty() {
-        tags.push((2, encode_finalized_feature_keys(&resp.finalized_features)?));
+    if finalized.is_some() {
+        count += 1;
     }
     if resp.zk_migration_ready {
-        tags.push((3, Bytes::from_static(&[1])));
+        count += 1;
     }
-    buf::put_tagged_fields(buf, &tags)
+    buf::put_unsigned_varint(buf, count);
+    if let Some(payload) = supported {
+        put_api_versions_tag(buf, 0, payload)?;
+        write_supported_features(buf, version, &resp.supported_features)?;
+    }
+    if let Some(epoch) = epoch {
+        put_api_versions_tag(buf, 1, 8)?;
+        buf.put_i64(epoch);
+    }
+    if let Some(payload) = finalized {
+        put_api_versions_tag(buf, 2, payload)?;
+        write_finalized_features(buf, &resp.finalized_features)?;
+    }
+    if resp.zk_migration_ready {
+        put_api_versions_tag(buf, 3, 1)?;
+        buf.put_u8(1);
+    }
+    Ok(())
+}
+
+fn put_api_versions_tag(buf: &mut BytesMut, tag: u32, payload: usize) -> Result<()> {
+    buf::put_unsigned_varint(buf, tag);
+    buf::put_unsigned_varint(buf, buf::u32_from_usize(payload)?);
+    Ok(())
 }
 
 fn decode_api_versions_tagged_fields<B: Buf>(buf: &mut B) -> Result<ApiVersionsTaggedFields> {
@@ -6511,6 +6686,123 @@ mod tests {
             err.to_string().contains("not implemented"),
             "v5 response is not spoken, got {err}"
         );
+    }
+
+    #[test]
+    fn a_api_versions_sizes_its_body_once() {
+        for version in [0_i16, 2] {
+            let mut buf = BytesMut::new();
+            encode_api_versions_request(&mut buf, version, "partitionline", "0.1.0").unwrap();
+            assert!(buf.is_empty());
+        }
+        let mut buf = BytesMut::new();
+        encode_api_versions_request(&mut buf, 3, "partitionline", "0.1.0").unwrap();
+        let len = buf.len();
+        let capacity = buf.capacity();
+        assert!(capacity >= len);
+        assert!(capacity < 64 * 1024);
+        buf.clear();
+        encode_api_versions_request(&mut buf, 4, "partitionline", "0.1.0").unwrap();
+        assert_eq!(buf.len(), len);
+        assert_eq!(buf.capacity(), capacity);
+
+        let keys = vec![
+            ApiVersion {
+                api_key: 0,
+                min_version: 0,
+                max_version: 12,
+            },
+            ApiVersion {
+                api_key: 18,
+                min_version: 0,
+                max_version: 4,
+            },
+        ];
+        for version in [0_i16, 1, 2] {
+            let resp = ApiVersionsResponse {
+                error_code: 0,
+                api_keys: keys.clone(),
+                throttle_time_ms: 5,
+                ..Default::default()
+            };
+            let mut out = BytesMut::new();
+            encode_api_versions_response(&mut out, version, &resp).unwrap();
+            let out_len = out.len();
+            let out_capacity = out.capacity();
+            assert!(out_capacity >= out_len);
+            assert!(out_capacity < 64 * 1024);
+            out.clear();
+            encode_api_versions_response(&mut out, version, &resp).unwrap();
+            assert_eq!(out.len(), out_len);
+            assert_eq!(out.capacity(), out_capacity);
+            let mut cur = &out[..];
+            let decoded = decode_api_versions_response(&mut cur, version).unwrap();
+            assert!(cur.is_empty());
+            assert_eq!(decoded.api_keys, keys);
+            assert_eq!(decoded.throttle_time_ms, if version >= 1 { 5 } else { 0 });
+        }
+
+        let metadata = SupportedFeatureKey {
+            name: "metadata.version".into(),
+            min_version: 1,
+            max_version: 20,
+        };
+        let kraft = SupportedFeatureKey {
+            name: "kraft.version".into(),
+            min_version: 0,
+            max_version: 1,
+        };
+        let finalized = FinalizedFeatureKey {
+            name: "metadata.version".into(),
+            max_version_level: 20,
+            min_version_level: 1,
+        };
+        let resp = ApiVersionsResponse {
+            error_code: 0,
+            api_keys: keys,
+            throttle_time_ms: 0,
+            supported_features: vec![metadata.clone(), kraft.clone()],
+            finalized_features_epoch: Some(1),
+            finalized_features: vec![finalized.clone()],
+            zk_migration_ready: true,
+        };
+        for version in [3_i16, 4] {
+            let mut out = BytesMut::new();
+            encode_api_versions_response(&mut out, version, &resp).unwrap();
+            let out_len = out.len();
+            let out_capacity = out.capacity();
+            assert!(out_capacity >= out_len);
+            assert!(out_capacity < 64 * 1024);
+            out.clear();
+            encode_api_versions_response(&mut out, version, &resp).unwrap();
+            assert_eq!(out.len(), out_len);
+            assert_eq!(out.capacity(), out_capacity);
+            let mut cur = &out[..];
+            let decoded = decode_api_versions_response(&mut cur, version).unwrap();
+            assert!(cur.is_empty());
+            assert!(decoded.zk_migration_ready);
+            assert_eq!(decoded.finalized_features_epoch, Some(1));
+            assert_eq!(decoded.finalized_features, vec![finalized.clone()]);
+            if version >= 4 {
+                assert_eq!(
+                    decoded.supported_features,
+                    vec![metadata.clone(), kraft.clone()]
+                );
+            } else {
+                assert_eq!(decoded.supported_features, vec![metadata.clone()]);
+            }
+        }
+
+        let empty = ApiVersionsResponse::default();
+        let mut out = BytesMut::new();
+        encode_api_versions_response(&mut out, 3, &empty).unwrap();
+        assert_eq!(&out[..], &[0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00]);
+        let empty_len = out.len();
+        let empty_capacity = out.capacity();
+        out.clear();
+        encode_api_versions_response(&mut out, 3, &empty).unwrap();
+        assert_eq!(out.len(), empty_len);
+        assert_eq!(out.capacity(), empty_capacity);
     }
 
     #[test]
