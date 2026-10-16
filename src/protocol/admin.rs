@@ -11327,6 +11327,14 @@ pub fn encode_describe_transactions_request(
     buf: &mut BytesMut,
     transactional_ids: &[String],
 ) -> crate::error::Result<()> {
+    encode_describe_transactions_ids(buf, transactional_ids)
+}
+
+/// Encode DescribeTransactions from caller ids.
+pub(crate) fn encode_describe_transactions_ids<T: AsRef<str>>(
+    buf: &mut BytesMut,
+    transactional_ids: &[T],
+) -> crate::error::Result<()> {
     let body_start = buf.len();
     let planned = describe_transactions_request_len(transactional_ids)?;
     let needed = body_start.saturating_add(planned);
@@ -11335,17 +11343,17 @@ pub fn encode_describe_transactions_request(
     }
     buf::put_array_len(buf, true, Some(transactional_ids.len()))?;
     for id in transactional_ids {
-        buf::put_compact_string(buf, Some(id))?;
+        buf::put_compact_string(buf, Some(id.as_ref()))?;
     }
     buf::put_empty_tagged_fields(buf);
     debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
 }
 
-fn describe_transactions_request_len(transactional_ids: &[String]) -> Result<usize> {
+fn describe_transactions_request_len<T: AsRef<str>>(transactional_ids: &[T]) -> Result<usize> {
     let mut total = describe_array_len(true, transactional_ids.len())?;
     for id in transactional_ids {
-        total = add_describe_len(total, describe_string_len(true, Some(id))?)?;
+        total = add_describe_len(total, describe_string_len(true, Some(id.as_ref()))?)?;
     }
     add_describe_len(total, buf::unsigned_varint_size(0))
 }
@@ -12683,6 +12691,16 @@ pub fn encode_consumer_group_describe_request(
     group_ids: &[String],
     include_authorized_operations: bool,
 ) -> crate::error::Result<()> {
+    encode_consumer_group_describe_ids(buf, version, group_ids, include_authorized_operations)
+}
+
+/// Encode ConsumerGroupDescribe from caller group ids.
+pub(crate) fn encode_consumer_group_describe_ids<T: AsRef<str>>(
+    buf: &mut BytesMut,
+    version: i16,
+    group_ids: &[T],
+    include_authorized_operations: bool,
+) -> crate::error::Result<()> {
     consumer_group_describe_spoken(version)?;
     let body_start = buf.len();
     let planned = consumer_group_describe_request_len(group_ids)?;
@@ -12692,7 +12710,7 @@ pub fn encode_consumer_group_describe_request(
     }
     buf::put_array_len(buf, true, Some(group_ids.len()))?;
     for id in group_ids {
-        buf::put_compact_string(buf, Some(id))?;
+        buf::put_compact_string(buf, Some(id.as_ref()))?;
     }
     buf.put_u8(u8::from(include_authorized_operations));
     buf::put_empty_tagged_fields(buf);
@@ -12700,10 +12718,10 @@ pub fn encode_consumer_group_describe_request(
     Ok(())
 }
 
-fn consumer_group_describe_request_len(group_ids: &[String]) -> Result<usize> {
+fn consumer_group_describe_request_len<T: AsRef<str>>(group_ids: &[T]) -> Result<usize> {
     let mut total = describe_array_len(true, group_ids.len())?;
     for id in group_ids {
-        total = add_describe_len(total, describe_string_len(true, Some(id))?)?;
+        total = add_describe_len(total, describe_string_len(true, Some(id.as_ref()))?)?;
     }
     total = add_describe_len(total, 1)?;
     add_describe_len(total, buf::unsigned_varint_size(0))
@@ -13378,6 +13396,16 @@ pub fn encode_describe_groups_request(
     group_ids: &[String],
     include_authorized_operations: bool,
 ) -> crate::error::Result<()> {
+    encode_describe_groups_ids(buf, version, group_ids, include_authorized_operations)
+}
+
+/// Encode DescribeGroups from caller group ids.
+pub(crate) fn encode_describe_groups_ids<T: AsRef<str>>(
+    buf: &mut BytesMut,
+    version: i16,
+    group_ids: &[T],
+    include_authorized_operations: bool,
+) -> crate::error::Result<()> {
     let flexible = describe_groups_flexible(version)?;
     let body_start = buf.len();
     let planned = describe_groups_request_len(version, flexible, group_ids)?;
@@ -13387,7 +13415,7 @@ pub fn encode_describe_groups_request(
     }
     buf::put_array_len(buf, flexible, Some(group_ids.len()))?;
     for id in group_ids {
-        buf::put_string(buf, flexible, Some(id))?;
+        buf::put_string(buf, flexible, Some(id.as_ref()))?;
     }
     if version >= 3 {
         buf.put_u8(u8::from(include_authorized_operations));
@@ -13399,14 +13427,14 @@ pub fn encode_describe_groups_request(
     Ok(())
 }
 
-fn describe_groups_request_len(
+fn describe_groups_request_len<T: AsRef<str>>(
     version: i16,
     flexible: bool,
-    group_ids: &[String],
+    group_ids: &[T],
 ) -> Result<usize> {
     let mut total = describe_array_len(flexible, group_ids.len())?;
     for id in group_ids {
-        total = add_describe_len(total, describe_string_len(flexible, Some(id))?)?;
+        total = add_describe_len(total, describe_string_len(flexible, Some(id.as_ref()))?)?;
     }
     if version >= 3 {
         total = add_describe_len(total, 1)?;
@@ -14504,6 +14532,15 @@ pub fn encode_delete_groups_request(
     version: i16,
     group_ids: &[String],
 ) -> crate::error::Result<()> {
+    encode_delete_groups_ids(buf, version, group_ids)
+}
+
+/// Encode DeleteGroups from caller group ids.
+pub(crate) fn encode_delete_groups_ids<T: AsRef<str>>(
+    buf: &mut BytesMut,
+    version: i16,
+    group_ids: &[T],
+) -> crate::error::Result<()> {
     let flexible = delete_groups_flexible(version)?;
     let body_start = buf.len();
     let planned = delete_groups_request_len(flexible, group_ids)?;
@@ -14513,7 +14550,7 @@ pub fn encode_delete_groups_request(
     }
     buf::put_array_len(buf, flexible, Some(group_ids.len()))?;
     for id in group_ids {
-        buf::put_string(buf, flexible, Some(id))?;
+        buf::put_string(buf, flexible, Some(id.as_ref()))?;
     }
     if flexible {
         buf::put_empty_tagged_fields(buf);
@@ -14522,10 +14559,10 @@ pub fn encode_delete_groups_request(
     Ok(())
 }
 
-fn delete_groups_request_len(flexible: bool, group_ids: &[String]) -> Result<usize> {
+fn delete_groups_request_len<T: AsRef<str>>(flexible: bool, group_ids: &[T]) -> Result<usize> {
     let mut total = describe_array_len(flexible, group_ids.len())?;
     for id in group_ids {
-        total = add_describe_len(total, describe_string_len(flexible, Some(id))?)?;
+        total = add_describe_len(total, describe_string_len(flexible, Some(id.as_ref()))?)?;
     }
     if flexible {
         total = add_describe_len(total, buf::unsigned_varint_size(0))?;
@@ -15042,6 +15079,16 @@ pub fn encode_share_group_describe_request(
     group_ids: &[String],
     include_authorized_operations: bool,
 ) -> crate::error::Result<()> {
+    encode_share_group_describe_ids(buf, version, group_ids, include_authorized_operations)
+}
+
+/// Encode ShareGroupDescribe from caller group ids.
+pub(crate) fn encode_share_group_describe_ids<T: AsRef<str>>(
+    buf: &mut BytesMut,
+    version: i16,
+    group_ids: &[T],
+    include_authorized_operations: bool,
+) -> crate::error::Result<()> {
     let flexible = share_group_describe_flexible(version)?;
     let body_start = buf.len();
     let planned = share_group_describe_request_len(flexible, group_ids)?;
@@ -15051,7 +15098,7 @@ pub fn encode_share_group_describe_request(
     }
     buf::put_array_len(buf, flexible, Some(group_ids.len()))?;
     for id in group_ids {
-        buf::put_string(buf, flexible, Some(id))?;
+        buf::put_string(buf, flexible, Some(id.as_ref()))?;
     }
     buf.put_u8(u8::from(include_authorized_operations));
     if flexible {
@@ -15061,10 +15108,13 @@ pub fn encode_share_group_describe_request(
     Ok(())
 }
 
-fn share_group_describe_request_len(flexible: bool, group_ids: &[String]) -> Result<usize> {
+fn share_group_describe_request_len<T: AsRef<str>>(
+    flexible: bool,
+    group_ids: &[T],
+) -> Result<usize> {
     let mut total = describe_array_len(flexible, group_ids.len())?;
     for id in group_ids {
-        total = add_describe_len(total, describe_string_len(flexible, Some(id))?)?;
+        total = add_describe_len(total, describe_string_len(flexible, Some(id.as_ref()))?)?;
     }
     total = add_describe_len(total, 1)?;
     if flexible {
@@ -35317,6 +35367,46 @@ mod tests {
         let decoded = decode_describe_transactions_request(&mut cur).unwrap();
         assert!(cur.is_empty());
         assert_eq!(decoded, ids);
+    }
+
+    #[test]
+    fn borrowed_coordinator_ids_match_owned_ids() {
+        let owned = vec![
+            "orders-group-name-is-long".to_string(),
+            "payments".to_string(),
+        ];
+        let borrowed = ["orders-group-name-is-long", "payments"];
+        let mut expected = BytesMut::new();
+        let mut got = BytesMut::new();
+        encode_describe_transactions_request(&mut expected, &owned).unwrap();
+        encode_describe_transactions_ids(&mut got, &borrowed).unwrap();
+        assert_eq!(got.as_ref(), expected.as_ref(), "describe transactions");
+        for version in [0_i16, 1] {
+            expected.clear();
+            got.clear();
+            encode_consumer_group_describe_request(&mut expected, version, &owned, true).unwrap();
+            encode_consumer_group_describe_ids(&mut got, version, &borrowed, true).unwrap();
+            assert_eq!(got.as_ref(), expected.as_ref(), "consumer {version}");
+            expected.clear();
+            got.clear();
+            encode_share_group_describe_request(&mut expected, version, &owned, false).unwrap();
+            encode_share_group_describe_ids(&mut got, version, &borrowed, false).unwrap();
+            assert_eq!(got.as_ref(), expected.as_ref(), "share {version}");
+        }
+        for version in [0_i16, 3, 6] {
+            expected.clear();
+            got.clear();
+            encode_describe_groups_request(&mut expected, version, &owned, true).unwrap();
+            encode_describe_groups_ids(&mut got, version, &borrowed, true).unwrap();
+            assert_eq!(got.as_ref(), expected.as_ref(), "describe groups {version}");
+        }
+        for version in [0_i16, 2] {
+            expected.clear();
+            got.clear();
+            encode_delete_groups_request(&mut expected, version, &owned).unwrap();
+            encode_delete_groups_ids(&mut got, version, &borrowed).unwrap();
+            assert_eq!(got.as_ref(), expected.as_ref(), "delete groups {version}");
+        }
     }
 
     #[test]

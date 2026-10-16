@@ -49,29 +49,29 @@ use crate::protocol::admin::{
     encode_alter_partition_reassignments_named, encode_alter_replica_log_dirs_named,
     encode_alter_replica_log_dirs_request, encode_alter_share_group_offsets_request,
     encode_alter_user_scram_credentials_named, encode_assign_replicas_to_dirs_request,
-    encode_consumer_group_describe_request, encode_create_delegation_token_request,
-    encode_create_partitions_named, encode_create_topics_named, encode_delete_groups_request,
+    encode_consumer_group_describe_ids, encode_create_delegation_token_request,
+    encode_create_partitions_named, encode_create_topics_named, encode_delete_groups_ids,
     encode_delete_records_named_topics, encode_delete_share_group_offsets_request,
     encode_describe_client_quotas_request, encode_describe_cluster_request,
     encode_describe_configs_named, encode_describe_delegation_token_request,
-    encode_describe_groups_request, encode_describe_log_dirs_named,
-    encode_describe_log_dirs_request, encode_describe_producers_named_topics,
-    encode_describe_share_group_offsets_request_refs, encode_describe_topic_partitions_request,
-    encode_describe_transactions_request, encode_describe_user_scram_credentials_request,
-    encode_expire_delegation_token_hmac, encode_expire_delegation_token_request,
-    encode_get_telemetry_subscriptions_request, encode_incremental_alter_configs_named,
-    encode_list_config_resources_request, encode_list_groups_request,
-    encode_list_partition_reassignments_named, encode_list_transactions_request_with_pattern,
-    encode_push_telemetry_metrics, encode_renew_delegation_token_hmac,
-    encode_renew_delegation_token_request, encode_share_group_describe_request,
-    encode_unregister_broker_request, encode_update_features_named, AlterConfigsResource,
-    BorrowedAlterConfig, BorrowedAlterConfigsResource, BorrowedAlterReplicaLogDir,
-    BorrowedAlterReplicaLogDirTopic, BorrowedAlterableResource, BorrowedCreatableTopic,
-    BorrowedCreatePartitionsTopic, BorrowedDescribeConfigsResource, BorrowedFeatureUpdate,
-    BorrowedReassignmentPartition, BorrowedReplicaAssignment, BorrowedScramDeletion,
-    BorrowedScramUpsertion, BorrowedTopicConfig, CreateTopicsRequest, DeleteRecordsPartition,
-    DeleteTopicState, DescribeConfigsResult, TopicResult, RESOURCE_BROKER, RESOURCE_BROKER_LOGGER,
-    RESOURCE_CLIENT_METRICS, RESOURCE_GROUP, RESOURCE_TOPIC,
+    encode_describe_groups_ids, encode_describe_log_dirs_named, encode_describe_log_dirs_request,
+    encode_describe_producers_named_topics, encode_describe_share_group_offsets_request_refs,
+    encode_describe_topic_partitions_request, encode_describe_transactions_ids,
+    encode_describe_user_scram_credentials_request, encode_expire_delegation_token_hmac,
+    encode_expire_delegation_token_request, encode_get_telemetry_subscriptions_request,
+    encode_incremental_alter_configs_named, encode_list_config_resources_request,
+    encode_list_groups_request, encode_list_partition_reassignments_named,
+    encode_list_transactions_request_with_pattern, encode_push_telemetry_metrics,
+    encode_renew_delegation_token_hmac, encode_renew_delegation_token_request,
+    encode_share_group_describe_ids, encode_unregister_broker_request,
+    encode_update_features_named, AlterConfigsResource, BorrowedAlterConfig,
+    BorrowedAlterConfigsResource, BorrowedAlterReplicaLogDir, BorrowedAlterReplicaLogDirTopic,
+    BorrowedAlterableResource, BorrowedCreatableTopic, BorrowedCreatePartitionsTopic,
+    BorrowedDescribeConfigsResource, BorrowedFeatureUpdate, BorrowedReassignmentPartition,
+    BorrowedReplicaAssignment, BorrowedScramDeletion, BorrowedScramUpsertion, BorrowedTopicConfig,
+    CreateTopicsRequest, DeleteRecordsPartition, DeleteTopicState, DescribeConfigsResult,
+    TopicResult, RESOURCE_BROKER, RESOURCE_BROKER_LOGGER, RESOURCE_CLIENT_METRICS, RESOURCE_GROUP,
+    RESOURCE_TOPIC,
 };
 use crate::protocol::api::{
     decode_api_versions_response, decode_metadata_response, decode_metadata_response_into,
@@ -3390,6 +3390,12 @@ fn creatable_from_new<'a>(
                 })
                 .collect(),
         })
+        .collect()
+}
+
+fn borrowed_ids<'a, T: AsRef<str>>(ids: &'a [T], idxs: &[usize]) -> Vec<&'a str> {
+    idxs.iter()
+        .filter_map(|&i| ids.get(i).map(AsRef::as_ref))
         .collect()
 }
 
@@ -7518,7 +7524,7 @@ impl Admin {
         transactional_ids: &[&str],
         timeout: Duration,
     ) -> Result<Vec<TransactionState>> {
-        let ids: Vec<String> = transactional_ids.iter().map(|s| (*s).to_string()).collect();
+        let ids = transactional_ids;
         if ids.is_empty() {
             return Ok(Vec::new());
         }
@@ -7530,7 +7536,7 @@ impl Admin {
         let mut out: Vec<Option<TransactionState>> = vec![None; ids.len()];
         let mut pending: Vec<usize> = (0..ids.len()).collect();
         loop {
-            let by_node = self.txn_coord_nodes(&ids, &pending, deadline).await?;
+            let by_node = self.txn_coord_nodes(ids, &pending, deadline).await?;
             let mut nodes: Vec<i32> = by_node.keys().copied().collect();
             nodes.sort_unstable();
             let mut still = Vec::new();
@@ -7538,10 +7544,9 @@ impl Admin {
                 let mut finished = self
                     .exchange_leaders(&nodes, deadline, |_admin, node, _conn, _timeout| {
                         let idxs = by_node.get(&node).map(Vec::as_slice).unwrap_or(&[]);
-                        let subset: Vec<String> =
-                            idxs.iter().filter_map(|&i| ids.get(i).cloned()).collect();
+                        let subset = borrowed_ids(ids, idxs);
                         let mut payload = BytesMut::new();
-                        encode_describe_transactions_request(&mut payload, &subset)?;
+                        encode_describe_transactions_ids(&mut payload, &subset)?;
                         Ok(LeaderFrame {
                             api_key: DESCRIBE_TRANSACTIONS,
                             version,
@@ -7552,21 +7557,21 @@ impl Admin {
                 for node in &nodes {
                     let idxs = by_node.get(node).cloned().unwrap_or_default();
                     let Some((_spoken, body)) = finished.remove(node) else {
-                        self.invalidate_txn_coord_idxs(&ids, &idxs, *node);
+                        self.invalidate_txn_coord_idxs(ids, &idxs, *node);
                         still.extend(idxs);
                         continue;
                     };
                     match body {
                         Err(error) if error.is_retriable() => {
-                            self.invalidate_txn_coord_idxs(&ids, &idxs, *node);
+                            self.invalidate_txn_coord_idxs(ids, &idxs, *node);
                             still.extend(idxs);
                         }
                         Err(error) => return Err(error),
                         Ok(body) => {
-                            let done = Self::apply_describe_transactions_body(&ids, &idxs, body)?;
+                            let done = Self::apply_describe_transactions_body(ids, &idxs, body)?;
                             for (i, t) in done {
                                 if error::coordinator_retriable(t.error_code) {
-                                    self.invalidate_txn_coord_idxs(&ids, &[i], *node);
+                                    self.invalidate_txn_coord_idxs(ids, &[i], *node);
                                     still.push(i);
                                 } else if let Some(slot) = out.get_mut(i) {
                                     *slot = Some(t);
@@ -7579,13 +7584,13 @@ impl Admin {
                 for node in nodes {
                     let idxs = by_node.get(&node).cloned().unwrap_or_default();
                     match self
-                        .describe_transactions_on_node(node, &ids, &idxs, version, deadline)
+                        .describe_transactions_on_node(node, ids, &idxs, version, deadline)
                         .await
                     {
                         Ok(done) => {
                             for (i, t) in done {
                                 if error::coordinator_retriable(t.error_code) {
-                                    self.invalidate_txn_coord_idxs(&ids, &[i], node);
+                                    self.invalidate_txn_coord_idxs(ids, &[i], node);
                                     still.push(i);
                                 } else if let Some(slot) = out.get_mut(i) {
                                     *slot = Some(t);
@@ -7593,7 +7598,7 @@ impl Admin {
                             }
                         }
                         Err(e) if e.is_retriable() => {
-                            self.invalidate_txn_coord_idxs(&ids, &idxs, node);
+                            self.invalidate_txn_coord_idxs(ids, &idxs, node);
                             still.extend(idxs);
                         }
                         Err(e) => return Err(e),
@@ -10901,7 +10906,7 @@ impl Admin {
         include_authorized_operations: bool,
         timeout: Duration,
     ) -> Result<Vec<DescribedConsumerGroup>> {
-        let ids: Vec<String> = group_ids.iter().map(|s| (*s).to_string()).collect();
+        let ids = group_ids;
         if ids.is_empty() {
             return Ok(Vec::new());
         }
@@ -10913,7 +10918,7 @@ impl Admin {
         let mut out: Vec<Option<DescribedConsumerGroup>> = vec![None; ids.len()];
         let mut pending: Vec<usize> = (0..ids.len()).collect();
         loop {
-            let by_node = self.group_coord_nodes(&ids, &pending, deadline).await?;
+            let by_node = self.group_coord_nodes(ids, &pending, deadline).await?;
             let mut nodes: Vec<i32> = by_node.keys().copied().collect();
             nodes.sort_unstable();
             let mut still = Vec::new();
@@ -10921,10 +10926,9 @@ impl Admin {
                 let mut finished = self
                     .exchange_leaders(&nodes, deadline, |_admin, node, _conn, _timeout| {
                         let idxs = by_node.get(&node).map(Vec::as_slice).unwrap_or(&[]);
-                        let subset: Vec<String> =
-                            idxs.iter().filter_map(|&i| ids.get(i).cloned()).collect();
+                        let subset = borrowed_ids(ids, idxs);
                         let mut payload = BytesMut::new();
-                        encode_consumer_group_describe_request(
+                        encode_consumer_group_describe_ids(
                             &mut payload,
                             version,
                             &subset,
@@ -10940,23 +10944,22 @@ impl Admin {
                 for node in &nodes {
                     let idxs = by_node.get(node).cloned().unwrap_or_default();
                     let Some((spoken, body)) = finished.remove(node) else {
-                        self.invalidate_group_coord_idxs(&ids, &idxs, *node);
+                        self.invalidate_group_coord_idxs(ids, &idxs, *node);
                         still.extend(idxs);
                         continue;
                     };
                     match body {
                         Err(error) if error.is_retriable() => {
-                            self.invalidate_group_coord_idxs(&ids, &idxs, *node);
+                            self.invalidate_group_coord_idxs(ids, &idxs, *node);
                             still.extend(idxs);
                         }
                         Err(error) => return Err(error),
                         Ok(body) => {
-                            let done = Self::apply_consumer_group_describe_body(
-                                spoken, &ids, &idxs, body,
-                            )?;
+                            let done =
+                                Self::apply_consumer_group_describe_body(spoken, ids, &idxs, body)?;
                             for (i, g) in done {
                                 if error::coordinator_retriable(g.error_code) {
-                                    self.invalidate_group_coord_idxs(&ids, &[i], *node);
+                                    self.invalidate_group_coord_idxs(ids, &[i], *node);
                                     still.push(i);
                                 } else if let Some(slot) = out.get_mut(i) {
                                     *slot = Some(g);
@@ -10972,7 +10975,7 @@ impl Admin {
                         .consumer_group_describe_on_node(
                             node,
                             version,
-                            &ids,
+                            ids,
                             &idxs,
                             include_authorized_operations,
                             deadline,
@@ -10982,7 +10985,7 @@ impl Admin {
                         Ok(done) => {
                             for (i, g) in done {
                                 if error::coordinator_retriable(g.error_code) {
-                                    self.invalidate_group_coord_idxs(&ids, &[i], node);
+                                    self.invalidate_group_coord_idxs(ids, &[i], node);
                                     still.push(i);
                                 } else if let Some(slot) = out.get_mut(i) {
                                     *slot = Some(g);
@@ -10990,7 +10993,7 @@ impl Admin {
                             }
                         }
                         Err(e) if e.is_retriable() => {
-                            self.invalidate_group_coord_idxs(&ids, &idxs, node);
+                            self.invalidate_group_coord_idxs(ids, &idxs, node);
                             still.extend(idxs);
                         }
                         Err(e) => return Err(e),
@@ -11054,7 +11057,7 @@ impl Admin {
         include_authorized_operations: bool,
         timeout: Duration,
     ) -> Result<Vec<DescribedGroup>> {
-        let ids: Vec<String> = group_ids.iter().map(|s| (*s).to_string()).collect();
+        let ids = group_ids;
         if ids.is_empty() {
             return Ok(Vec::new());
         }
@@ -11066,7 +11069,7 @@ impl Admin {
         let mut out: Vec<Option<DescribedGroup>> = vec![None; ids.len()];
         let mut pending: Vec<usize> = (0..ids.len()).collect();
         loop {
-            let by_node = self.group_coord_nodes(&ids, &pending, deadline).await?;
+            let by_node = self.group_coord_nodes(ids, &pending, deadline).await?;
             let mut nodes: Vec<i32> = by_node.keys().copied().collect();
             nodes.sort_unstable();
             let mut still = Vec::new();
@@ -11074,10 +11077,9 @@ impl Admin {
                 let mut finished = self
                     .exchange_leaders(&nodes, deadline, |_admin, node, _conn, _timeout| {
                         let idxs = by_node.get(&node).map(Vec::as_slice).unwrap_or(&[]);
-                        let subset: Vec<String> =
-                            idxs.iter().filter_map(|&i| ids.get(i).cloned()).collect();
+                        let subset = borrowed_ids(ids, idxs);
                         let mut payload = BytesMut::new();
-                        encode_describe_groups_request(
+                        encode_describe_groups_ids(
                             &mut payload,
                             version,
                             &subset,
@@ -11093,21 +11095,21 @@ impl Admin {
                 for node in &nodes {
                     let idxs = by_node.get(node).cloned().unwrap_or_default();
                     let Some((spoken, body)) = finished.remove(node) else {
-                        self.invalidate_group_coord_idxs(&ids, &idxs, *node);
+                        self.invalidate_group_coord_idxs(ids, &idxs, *node);
                         still.extend(idxs);
                         continue;
                     };
                     match body {
                         Err(error) if error.is_retriable() => {
-                            self.invalidate_group_coord_idxs(&ids, &idxs, *node);
+                            self.invalidate_group_coord_idxs(ids, &idxs, *node);
                             still.extend(idxs);
                         }
                         Err(error) => return Err(error),
                         Ok(body) => {
-                            let done = Self::apply_describe_groups_body(spoken, &ids, &idxs, body)?;
+                            let done = Self::apply_describe_groups_body(spoken, ids, &idxs, body)?;
                             for (i, g) in done {
                                 if error::coordinator_retriable(g.error_code) {
-                                    self.invalidate_group_coord_idxs(&ids, &[i], *node);
+                                    self.invalidate_group_coord_idxs(ids, &[i], *node);
                                     still.push(i);
                                 } else if let Some(slot) = out.get_mut(i) {
                                     *slot = Some(g);
@@ -11123,7 +11125,7 @@ impl Admin {
                         .describe_groups_on_node(
                             node,
                             version,
-                            &ids,
+                            ids,
                             &idxs,
                             include_authorized_operations,
                             deadline,
@@ -11133,7 +11135,7 @@ impl Admin {
                         Ok(done) => {
                             for (i, g) in done {
                                 if error::coordinator_retriable(g.error_code) {
-                                    self.invalidate_group_coord_idxs(&ids, &[i], node);
+                                    self.invalidate_group_coord_idxs(ids, &[i], node);
                                     still.push(i);
                                 } else if let Some(slot) = out.get_mut(i) {
                                     *slot = Some(g);
@@ -11141,7 +11143,7 @@ impl Admin {
                             }
                         }
                         Err(e) if e.is_retriable() => {
-                            self.invalidate_group_coord_idxs(&ids, &idxs, node);
+                            self.invalidate_group_coord_idxs(ids, &idxs, node);
                             still.extend(idxs);
                         }
                         Err(e) => return Err(e),
@@ -11499,16 +11501,12 @@ impl Admin {
         group_ids: &[&str],
         timeout: Duration,
     ) -> Result<Vec<DeletableGroupResult>> {
-        self.delete_group_ids(
-            group_ids.iter().map(|s| (*s).to_string()).collect(),
-            timeout,
-        )
-        .await
+        self.delete_group_ids(group_ids, timeout).await
     }
 
-    async fn delete_group_ids(
+    async fn delete_group_ids<T: AsRef<str>>(
         &mut self,
-        ids: Vec<String>,
+        ids: &[T],
         timeout: Duration,
     ) -> Result<Vec<DeletableGroupResult>> {
         if ids.is_empty() {
@@ -11522,7 +11520,7 @@ impl Admin {
         let mut out: Vec<Option<DeletableGroupResult>> = vec![None; ids.len()];
         let mut pending: Vec<usize> = (0..ids.len()).collect();
         loop {
-            let by_node = self.group_coord_nodes(&ids, &pending, deadline).await?;
+            let by_node = self.group_coord_nodes(ids, &pending, deadline).await?;
             let mut nodes: Vec<i32> = by_node.keys().copied().collect();
             nodes.sort_unstable();
             let mut still = Vec::new();
@@ -11530,10 +11528,9 @@ impl Admin {
                 let mut finished = self
                     .exchange_leaders(&nodes, deadline, |_admin, node, _conn, _timeout| {
                         let idxs = by_node.get(&node).map(Vec::as_slice).unwrap_or(&[]);
-                        let subset: Vec<String> =
-                            idxs.iter().filter_map(|&i| ids.get(i).cloned()).collect();
+                        let subset = borrowed_ids(ids, idxs);
                         let mut payload = BytesMut::new();
-                        encode_delete_groups_request(&mut payload, version, &subset)?;
+                        encode_delete_groups_ids(&mut payload, version, &subset)?;
                         Ok(LeaderFrame {
                             api_key: DELETE_GROUPS,
                             version,
@@ -11544,21 +11541,21 @@ impl Admin {
                 for node in &nodes {
                     let idxs = by_node.get(node).cloned().unwrap_or_default();
                     let Some((spoken, body)) = finished.remove(node) else {
-                        self.invalidate_group_coord_idxs(&ids, &idxs, *node);
+                        self.invalidate_group_coord_idxs(ids, &idxs, *node);
                         still.extend(idxs);
                         continue;
                     };
                     match body {
                         Err(error) if error.is_retriable() => {
-                            self.invalidate_group_coord_idxs(&ids, &idxs, *node);
+                            self.invalidate_group_coord_idxs(ids, &idxs, *node);
                             still.extend(idxs);
                         }
                         Err(error) => return Err(error),
                         Ok(body) => {
-                            let done = Self::apply_delete_groups_body(spoken, &ids, &idxs, body)?;
+                            let done = Self::apply_delete_groups_body(spoken, ids, &idxs, body)?;
                             for (i, g) in done {
                                 if error::coordinator_retriable(g.error_code) {
-                                    self.invalidate_group_coord_idxs(&ids, &[i], *node);
+                                    self.invalidate_group_coord_idxs(ids, &[i], *node);
                                     still.push(i);
                                 } else if let Some(slot) = out.get_mut(i) {
                                     *slot = Some(g);
@@ -11571,13 +11568,13 @@ impl Admin {
                 for node in nodes {
                     let idxs = by_node.get(&node).cloned().unwrap_or_default();
                     match self
-                        .delete_groups_on_node(node, version, &ids, &idxs, deadline)
+                        .delete_groups_on_node(node, version, ids, &idxs, deadline)
                         .await
                     {
                         Ok(done) => {
                             for (i, g) in done {
                                 if error::coordinator_retriable(g.error_code) {
-                                    self.invalidate_group_coord_idxs(&ids, &[i], node);
+                                    self.invalidate_group_coord_idxs(ids, &[i], node);
                                     still.push(i);
                                 } else if let Some(slot) = out.get_mut(i) {
                                     *slot = Some(g);
@@ -11585,7 +11582,7 @@ impl Admin {
                             }
                         }
                         Err(e) if e.is_retriable() => {
-                            self.invalidate_group_coord_idxs(&ids, &idxs, node);
+                            self.invalidate_group_coord_idxs(ids, &idxs, node);
                             still.extend(idxs);
                         }
                         Err(e) => return Err(e),
@@ -11600,7 +11597,9 @@ impl Admin {
         }
         out.into_iter()
             .zip(ids)
-            .map(|(g, id)| g.ok_or_else(|| Error::protocol(format!("DeleteGroups missing {id}"))))
+            .map(|(g, id)| {
+                g.ok_or_else(|| Error::protocol(format!("DeleteGroups missing {}", id.as_ref())))
+            })
             .collect()
     }
 
@@ -11634,7 +11633,7 @@ impl Admin {
             .into_iter()
             .map(|s| s.as_ref().to_string())
             .collect();
-        self.delete_group_ids(ids, timeout).await
+        self.delete_group_ids(&ids, timeout).await
     }
 
     /// Delete consumer groups (Java `Admin.deleteConsumerGroups`).
@@ -11668,7 +11667,7 @@ impl Admin {
             .into_iter()
             .map(|s| s.as_ref().to_string())
             .collect();
-        self.delete_group_ids(ids, timeout).await
+        self.delete_group_ids(&ids, timeout).await
     }
 
     /// Remove static members from a consumer group (Java
@@ -11987,7 +11986,7 @@ impl Admin {
         include_authorized_operations: bool,
         timeout: Duration,
     ) -> Result<Vec<DescribedShareGroup>> {
-        let ids: Vec<String> = group_ids.iter().map(|s| (*s).to_string()).collect();
+        let ids = group_ids;
         if ids.is_empty() {
             return Ok(Vec::new());
         }
@@ -11999,7 +11998,7 @@ impl Admin {
         let mut out: Vec<Option<DescribedShareGroup>> = vec![None; ids.len()];
         let mut pending: Vec<usize> = (0..ids.len()).collect();
         loop {
-            let by_node = self.group_coord_nodes(&ids, &pending, deadline).await?;
+            let by_node = self.group_coord_nodes(ids, &pending, deadline).await?;
             let mut nodes: Vec<i32> = by_node.keys().copied().collect();
             nodes.sort_unstable();
             let mut still = Vec::new();
@@ -12007,10 +12006,9 @@ impl Admin {
                 let mut finished = self
                     .exchange_leaders(&nodes, deadline, |_admin, node, _conn, _timeout| {
                         let idxs = by_node.get(&node).map(Vec::as_slice).unwrap_or(&[]);
-                        let subset: Vec<String> =
-                            idxs.iter().filter_map(|&i| ids.get(i).cloned()).collect();
+                        let subset = borrowed_ids(ids, idxs);
                         let mut payload = BytesMut::new();
-                        encode_share_group_describe_request(
+                        encode_share_group_describe_ids(
                             &mut payload,
                             version,
                             &subset,
@@ -12026,22 +12024,22 @@ impl Admin {
                 for node in &nodes {
                     let idxs = by_node.get(node).cloned().unwrap_or_default();
                     let Some((spoken, body)) = finished.remove(node) else {
-                        self.invalidate_group_coord_idxs(&ids, &idxs, *node);
+                        self.invalidate_group_coord_idxs(ids, &idxs, *node);
                         still.extend(idxs);
                         continue;
                     };
                     match body {
                         Err(error) if error.is_retriable() => {
-                            self.invalidate_group_coord_idxs(&ids, &idxs, *node);
+                            self.invalidate_group_coord_idxs(ids, &idxs, *node);
                             still.extend(idxs);
                         }
                         Err(error) => return Err(error),
                         Ok(body) => {
                             let done =
-                                Self::apply_share_group_describe_body(spoken, &ids, &idxs, body)?;
+                                Self::apply_share_group_describe_body(spoken, ids, &idxs, body)?;
                             for (i, g) in done {
                                 if error::coordinator_retriable(g.error_code) {
-                                    self.invalidate_group_coord_idxs(&ids, &[i], *node);
+                                    self.invalidate_group_coord_idxs(ids, &[i], *node);
                                     still.push(i);
                                 } else if let Some(slot) = out.get_mut(i) {
                                     *slot = Some(g);
@@ -12057,7 +12055,7 @@ impl Admin {
                         .share_group_describe_on_node(
                             node,
                             version,
-                            &ids,
+                            ids,
                             &idxs,
                             include_authorized_operations,
                             deadline,
@@ -12067,7 +12065,7 @@ impl Admin {
                         Ok(done) => {
                             for (i, g) in done {
                                 if error::coordinator_retriable(g.error_code) {
-                                    self.invalidate_group_coord_idxs(&ids, &[i], node);
+                                    self.invalidate_group_coord_idxs(ids, &[i], node);
                                     still.push(i);
                                 } else if let Some(slot) = out.get_mut(i) {
                                     *slot = Some(g);
@@ -12075,7 +12073,7 @@ impl Admin {
                             }
                         }
                         Err(e) if e.is_retriable() => {
-                            self.invalidate_group_coord_idxs(&ids, &idxs, node);
+                            self.invalidate_group_coord_idxs(ids, &idxs, node);
                             still.extend(idxs);
                         }
                         Err(e) => return Err(e),
@@ -14025,9 +14023,9 @@ impl Admin {
         }
     }
 
-    async fn txn_coord_nodes(
+    async fn txn_coord_nodes<T: AsRef<str>>(
         &mut self,
-        ids: &[String],
+        ids: &[T],
         pending: &[usize],
         deadline: Instant,
     ) -> Result<HashMap<i32, Vec<usize>>> {
@@ -14036,8 +14034,9 @@ impl Admin {
             let Some(id) = ids.get(i) else {
                 continue;
             };
-            if !self.txn_coords.contains_key(id) && !need.contains(&id.as_str()) {
-                need.push(id.as_str());
+            let id = id.as_ref();
+            if !self.txn_coords.contains_key(id) && !need.contains(&id) {
+                need.push(id);
             }
         }
         if !need.is_empty() {
@@ -14048,6 +14047,7 @@ impl Admin {
         for &i in pending {
             let id = ids
                 .get(i)
+                .map(AsRef::as_ref)
                 .ok_or_else(|| Error::protocol("missing transactional id"))?;
             let node = *self
                 .txn_coords
@@ -14058,25 +14058,25 @@ impl Admin {
         Ok(by_node)
     }
 
-    fn invalidate_txn_coord_idxs(&mut self, ids: &[String], idxs: &[usize], node: i32) {
+    fn invalidate_txn_coord_idxs<T: AsRef<str>>(&mut self, ids: &[T], idxs: &[usize], node: i32) {
         let _ = self.conns.remove(&node);
         for &i in idxs {
             if let Some(id) = ids.get(i) {
-                let _ = self.txn_coords.remove(id);
+                let _ = self.txn_coords.remove(id.as_ref());
             }
         }
     }
 
-    async fn describe_groups_on_node(
+    async fn describe_groups_on_node<T: AsRef<str>>(
         &mut self,
         node: i32,
         version: i16,
-        ids: &[String],
+        ids: &[T],
         idxs: &[usize],
         include_authorized_operations: bool,
         deadline: Instant,
     ) -> Result<Vec<(usize, DescribedGroup)>> {
-        let subset: Vec<String> = idxs.iter().filter_map(|&i| ids.get(i).cloned()).collect();
+        let subset = borrowed_ids(ids, idxs);
         self.connect_node_until(node, deadline).await?;
         let timeout = startup_remaining(deadline)?;
         let body = {
@@ -14088,12 +14088,7 @@ impl Admin {
                 DESCRIBE_GROUPS,
                 version,
                 |buf| {
-                    encode_describe_groups_request(
-                        buf,
-                        version,
-                        &subset,
-                        include_authorized_operations,
-                    )
+                    encode_describe_groups_ids(buf, version, &subset, include_authorized_operations)
                 },
                 timeout,
             )
@@ -14102,9 +14097,9 @@ impl Admin {
         Self::apply_describe_groups_body(version, ids, idxs, body)
     }
 
-    fn apply_describe_groups_body(
+    fn apply_describe_groups_body<T: AsRef<str>>(
         version: i16,
-        ids: &[String],
+        ids: &[T],
         idxs: &[usize],
         body: Bytes,
     ) -> Result<Vec<(usize, DescribedGroup)>> {
@@ -14114,6 +14109,7 @@ impl Admin {
         for &i in idxs {
             let id = ids
                 .get(i)
+                .map(AsRef::as_ref)
                 .ok_or_else(|| Error::protocol("missing group id"))?;
             let g = by_id
                 .get_mut(id)
@@ -14124,15 +14120,15 @@ impl Admin {
         Ok(out)
     }
 
-    async fn delete_groups_on_node(
+    async fn delete_groups_on_node<T: AsRef<str>>(
         &mut self,
         node: i32,
         version: i16,
-        ids: &[String],
+        ids: &[T],
         idxs: &[usize],
         deadline: Instant,
     ) -> Result<Vec<(usize, DeletableGroupResult)>> {
-        let subset: Vec<String> = idxs.iter().filter_map(|&i| ids.get(i).cloned()).collect();
+        let subset = borrowed_ids(ids, idxs);
         self.connect_node_until(node, deadline).await?;
         let timeout = startup_remaining(deadline)?;
         let body = {
@@ -14143,7 +14139,7 @@ impl Admin {
             conn.roundtrip(
                 DELETE_GROUPS,
                 version,
-                |buf| encode_delete_groups_request(buf, version, &subset),
+                |buf| encode_delete_groups_ids(buf, version, &subset),
                 timeout,
             )
             .await
@@ -14151,9 +14147,9 @@ impl Admin {
         Self::apply_delete_groups_body(version, ids, idxs, body)
     }
 
-    fn apply_delete_groups_body(
+    fn apply_delete_groups_body<T: AsRef<str>>(
         version: i16,
-        ids: &[String],
+        ids: &[T],
         idxs: &[usize],
         body: Bytes,
     ) -> Result<Vec<(usize, DeletableGroupResult)>> {
@@ -14163,6 +14159,7 @@ impl Admin {
         for &i in idxs {
             let id = ids
                 .get(i)
+                .map(AsRef::as_ref)
                 .ok_or_else(|| Error::protocol("missing group id"))?;
             let g = by_id
                 .get_mut(id)
@@ -14173,16 +14170,16 @@ impl Admin {
         Ok(out)
     }
 
-    async fn consumer_group_describe_on_node(
+    async fn consumer_group_describe_on_node<T: AsRef<str>>(
         &mut self,
         node: i32,
         version: i16,
-        ids: &[String],
+        ids: &[T],
         idxs: &[usize],
         include_authorized_operations: bool,
         deadline: Instant,
     ) -> Result<Vec<(usize, DescribedConsumerGroup)>> {
-        let subset: Vec<String> = idxs.iter().filter_map(|&i| ids.get(i).cloned()).collect();
+        let subset = borrowed_ids(ids, idxs);
         self.connect_node_until(node, deadline).await?;
         let timeout = startup_remaining(deadline)?;
         let body = {
@@ -14194,7 +14191,7 @@ impl Admin {
                 CONSUMER_GROUP_DESCRIBE,
                 version,
                 |buf| {
-                    encode_consumer_group_describe_request(
+                    encode_consumer_group_describe_ids(
                         buf,
                         version,
                         &subset,
@@ -14208,9 +14205,9 @@ impl Admin {
         Self::apply_consumer_group_describe_body(version, ids, idxs, body)
     }
 
-    fn apply_consumer_group_describe_body(
+    fn apply_consumer_group_describe_body<T: AsRef<str>>(
         version: i16,
-        ids: &[String],
+        ids: &[T],
         idxs: &[usize],
         body: Bytes,
     ) -> Result<Vec<(usize, DescribedConsumerGroup)>> {
@@ -14220,6 +14217,7 @@ impl Admin {
         for &i in idxs {
             let id = ids
                 .get(i)
+                .map(AsRef::as_ref)
                 .ok_or_else(|| Error::protocol("missing group id"))?;
             let g = by_id
                 .get_mut(id)
@@ -14230,16 +14228,16 @@ impl Admin {
         Ok(out)
     }
 
-    async fn share_group_describe_on_node(
+    async fn share_group_describe_on_node<T: AsRef<str>>(
         &mut self,
         node: i32,
         version: i16,
-        ids: &[String],
+        ids: &[T],
         idxs: &[usize],
         include_authorized_operations: bool,
         deadline: Instant,
     ) -> Result<Vec<(usize, DescribedShareGroup)>> {
-        let subset: Vec<String> = idxs.iter().filter_map(|&i| ids.get(i).cloned()).collect();
+        let subset = borrowed_ids(ids, idxs);
         self.connect_node_until(node, deadline).await?;
         let timeout = startup_remaining(deadline)?;
         let body = {
@@ -14251,7 +14249,7 @@ impl Admin {
                 SHARE_GROUP_DESCRIBE,
                 version,
                 |buf| {
-                    encode_share_group_describe_request(
+                    encode_share_group_describe_ids(
                         buf,
                         version,
                         &subset,
@@ -14265,9 +14263,9 @@ impl Admin {
         Self::apply_share_group_describe_body(version, ids, idxs, body)
     }
 
-    fn apply_share_group_describe_body(
+    fn apply_share_group_describe_body<T: AsRef<str>>(
         version: i16,
-        ids: &[String],
+        ids: &[T],
         idxs: &[usize],
         body: Bytes,
     ) -> Result<Vec<(usize, DescribedShareGroup)>> {
@@ -14277,6 +14275,7 @@ impl Admin {
         for &i in idxs {
             let id = ids
                 .get(i)
+                .map(AsRef::as_ref)
                 .ok_or_else(|| Error::protocol("missing group id"))?;
             let g = by_id
                 .get_mut(id)
@@ -14347,15 +14346,15 @@ impl Admin {
         Ok(out)
     }
 
-    async fn describe_transactions_on_node(
+    async fn describe_transactions_on_node<T: AsRef<str>>(
         &mut self,
         node: i32,
-        ids: &[String],
+        ids: &[T],
         idxs: &[usize],
         version: i16,
         deadline: Instant,
     ) -> Result<Vec<(usize, TransactionState)>> {
-        let subset: Vec<String> = idxs.iter().filter_map(|&i| ids.get(i).cloned()).collect();
+        let subset = borrowed_ids(ids, idxs);
         self.connect_node_until(node, deadline).await?;
         let timeout = startup_remaining(deadline)?;
         let body = {
@@ -14366,7 +14365,7 @@ impl Admin {
             conn.roundtrip(
                 DESCRIBE_TRANSACTIONS,
                 version,
-                |buf| encode_describe_transactions_request(buf, &subset),
+                |buf| encode_describe_transactions_ids(buf, &subset),
                 timeout,
             )
             .await
@@ -14374,8 +14373,8 @@ impl Admin {
         Self::apply_describe_transactions_body(ids, idxs, body)
     }
 
-    fn apply_describe_transactions_body(
-        ids: &[String],
+    fn apply_describe_transactions_body<T: AsRef<str>>(
+        ids: &[T],
         idxs: &[usize],
         body: Bytes,
     ) -> Result<Vec<(usize, TransactionState)>> {
@@ -14385,6 +14384,7 @@ impl Admin {
         for &i in idxs {
             let id = ids
                 .get(i)
+                .map(AsRef::as_ref)
                 .ok_or_else(|| Error::protocol("missing transactional id"))?;
             let t = by_id
                 .get_mut(id)
