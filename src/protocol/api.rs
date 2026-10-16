@@ -2072,6 +2072,8 @@ pub(crate) fn decode_metadata_response_into<B: Buf>(
     if out.brokers.len() > broker_count {
         out.brokers.truncate(broker_count);
     }
+    let new_brokers = broker_count.saturating_sub(out.brokers.len());
+    reserve_additional(&mut out.brokers, new_brokers)?;
     for index in 0..broker_count {
         let node_id = buf::get_i32(buf)?;
         if out.brokers.get(index).is_some() {
@@ -2123,6 +2125,8 @@ pub(crate) fn decode_metadata_response_into<B: Buf>(
     if out.topics.len() > topic_count {
         out.topics.truncate(topic_count);
     }
+    let new_topics = topic_count.saturating_sub(out.topics.len());
+    reserve_additional(&mut out.topics, new_topics)?;
     for index in 0..topic_count {
         let error_code = buf::get_i16(buf)?;
         if out.topics.get(index).is_some() {
@@ -2203,6 +2207,8 @@ fn read_metadata_partitions<B: Buf>(
     if partitions.len() > part_count {
         partitions.truncate(part_count);
     }
+    let new_partitions = part_count.saturating_sub(partitions.len());
+    reserve_additional(partitions, new_partitions)?;
     for index in 0..part_count {
         if partitions.get(index).is_some() {
             let part = partitions
@@ -6484,6 +6490,78 @@ mod tests {
             &buf[..],
             &v13[..],
             "Metadata v13 must write top-level ErrorCode before tagged fields"
+        );
+    }
+
+    #[test]
+    fn a_metadata_response_sizes_broker_topic_and_partition_lists_once() {
+        let partition = |index: i32| PartitionMetadata {
+            error_code: 0,
+            partition_index: index,
+            leader_id: 1,
+            leader_epoch: 1,
+            replica_nodes: vec![1],
+            isr_nodes: vec![1],
+            offline_replicas: Vec::new(),
+        };
+        let resp = MetadataResponse {
+            throttle_time_ms: 0,
+            brokers: (1..5)
+                .map(|node_id| Broker {
+                    node_id,
+                    host: format!("10.0.0.{node_id}"),
+                    port: 9092,
+                    rack: None,
+                })
+                .collect(),
+            cluster_id: Some("cid".into()),
+            controller_id: 1,
+            topics: vec![
+                TopicMetadata {
+                    error_code: 0,
+                    name: Some("orders".into()),
+                    topic_id: [1u8; 16],
+                    is_internal: false,
+                    partitions: (0..4).map(partition).collect(),
+                    topic_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+                },
+                TopicMetadata {
+                    error_code: 0,
+                    name: Some("payments".into()),
+                    topic_id: [2u8; 16],
+                    is_internal: false,
+                    partitions: vec![partition(0)],
+                    topic_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+                },
+            ],
+            cluster_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+            error_code: 0,
+        };
+        let mut buf = BytesMut::new();
+        encode_metadata_response(&mut buf, 12, &resp).unwrap();
+        let mut decoded = MetadataResponse::blank();
+        decode_metadata_response_into(&mut &buf[..], 12, &mut decoded).unwrap();
+        assert_eq!(decoded, resp);
+        let broker_capacity = decoded.brokers.capacity();
+        let topic_capacity = decoded.topics.capacity();
+        let part_capacity = decoded
+            .topics
+            .first()
+            .map(|topic| topic.partitions.capacity())
+            .unwrap_or(0);
+        assert!(broker_capacity >= 4);
+        assert!(topic_capacity >= 2);
+        assert!(part_capacity >= 4);
+        decode_metadata_response_into(&mut &buf[..], 12, &mut decoded).unwrap();
+        assert_eq!(decoded.brokers.capacity(), broker_capacity);
+        assert_eq!(decoded.topics.capacity(), topic_capacity);
+        assert!(decoded
+            .topics
+            .first()
+            .is_some_and(|topic| topic.partitions.capacity() == part_capacity));
+        assert_eq!(
+            decoded.topics.get(1).map(|topic| topic.partitions.len()),
+            Some(1)
         );
     }
 
