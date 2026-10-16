@@ -404,29 +404,7 @@ impl CreateTopicsRequest {
     /// this helper. This crate speaks 0–7. This is not
     /// [`Self::error_response`] / [`Self::error_results`].
     pub fn build(version: i16, topics: &[CreatableTopic], validate_only: bool) -> Result<()> {
-        if validate_only && version == 0 {
-            return Err(Error::Unsupported(
-                "validateOnly is not supported in version 0 of CreateTopicsRequest".into(),
-            ));
-        }
-        if version < 4 {
-            let topics_with_defaults: Vec<&str> = topics
-                .iter()
-                .filter(|t| t.assignments.is_empty())
-                .filter(|t| {
-                    t.num_partitions == Self::NO_NUM_PARTITIONS
-                        || t.replication_factor == Self::NO_REPLICATION_FACTOR
-                })
-                .map(|t| t.name.as_str())
-                .collect();
-            if !topics_with_defaults.is_empty() {
-                return Err(Error::Unsupported(format!(
-                    "Creating topics with default partitions/replication factor are only supported in CreateTopicRequest version 4+. The following topics need values for partitions and replicas: [{}]",
-                    topics_with_defaults.join(", ")
-                )));
-            }
-        }
-        Ok(())
+        create_topics_build_check(version, topics, validate_only)
     }
 }
 
@@ -1130,6 +1108,177 @@ impl CreateTopicsResponse {
     }
 }
 
+/// One CreateTopics replica assignment whose broker ids are borrowed.
+pub(crate) struct BorrowedReplicaAssignment<'a> {
+    /// Partition index.
+    pub partition_index: i32,
+    /// Replica broker ids.
+    pub broker_ids: &'a [i32],
+}
+
+/// One CreateTopics config whose name and value are borrowed.
+pub(crate) struct BorrowedTopicConfig<'a> {
+    /// Config name.
+    pub name: &'a str,
+    /// Config value, or `None` when unset.
+    pub value: Option<&'a str>,
+}
+
+/// One CreateTopics topic whose name, assignments, and configs are borrowed.
+pub(crate) struct BorrowedCreatableTopic<'a> {
+    /// Topic name.
+    pub name: &'a str,
+    /// Partition count, or `-1` to use the cluster default.
+    pub num_partitions: i32,
+    /// Replication factor, or `-1` to use the cluster default.
+    pub replication_factor: i16,
+    /// Manual replica assignments. Empty means the broker assigns replicas.
+    pub assignments: Vec<BorrowedReplicaAssignment<'a>>,
+    /// Topic configs to set at create time.
+    pub configs: Vec<BorrowedTopicConfig<'a>>,
+}
+
+trait ReplicaAssignmentView {
+    fn replica_partition(&self) -> i32;
+    fn replica_brokers(&self) -> &[i32];
+}
+
+impl ReplicaAssignmentView for ReplicaAssignment {
+    fn replica_partition(&self) -> i32 {
+        self.partition_index
+    }
+
+    fn replica_brokers(&self) -> &[i32] {
+        &self.broker_ids
+    }
+}
+
+impl ReplicaAssignmentView for BorrowedReplicaAssignment<'_> {
+    fn replica_partition(&self) -> i32 {
+        self.partition_index
+    }
+
+    fn replica_brokers(&self) -> &[i32] {
+        self.broker_ids
+    }
+}
+
+trait TopicConfigView {
+    fn topic_config_name(&self) -> &str;
+    fn topic_config_value(&self) -> Option<&str>;
+}
+
+impl TopicConfigView for TopicConfig {
+    fn topic_config_name(&self) -> &str {
+        &self.name
+    }
+
+    fn topic_config_value(&self) -> Option<&str> {
+        self.value.as_deref()
+    }
+}
+
+impl TopicConfigView for BorrowedTopicConfig<'_> {
+    fn topic_config_name(&self) -> &str {
+        self.name
+    }
+
+    fn topic_config_value(&self) -> Option<&str> {
+        self.value
+    }
+}
+
+trait CreatableTopicView {
+    type Assignment: ReplicaAssignmentView;
+    type Config: TopicConfigView;
+    fn creatable_name(&self) -> &str;
+    fn creatable_num_partitions(&self) -> i32;
+    fn creatable_replication_factor(&self) -> i16;
+    fn creatable_assignments(&self) -> &[Self::Assignment];
+    fn creatable_configs(&self) -> &[Self::Config];
+}
+
+impl CreatableTopicView for CreatableTopic {
+    type Assignment = ReplicaAssignment;
+    type Config = TopicConfig;
+
+    fn creatable_name(&self) -> &str {
+        &self.name
+    }
+
+    fn creatable_num_partitions(&self) -> i32 {
+        self.num_partitions
+    }
+
+    fn creatable_replication_factor(&self) -> i16 {
+        self.replication_factor
+    }
+
+    fn creatable_assignments(&self) -> &[Self::Assignment] {
+        &self.assignments
+    }
+
+    fn creatable_configs(&self) -> &[Self::Config] {
+        &self.configs
+    }
+}
+
+impl<'a> CreatableTopicView for BorrowedCreatableTopic<'a> {
+    type Assignment = BorrowedReplicaAssignment<'a>;
+    type Config = BorrowedTopicConfig<'a>;
+
+    fn creatable_name(&self) -> &str {
+        self.name
+    }
+
+    fn creatable_num_partitions(&self) -> i32 {
+        self.num_partitions
+    }
+
+    fn creatable_replication_factor(&self) -> i16 {
+        self.replication_factor
+    }
+
+    fn creatable_assignments(&self) -> &[Self::Assignment] {
+        &self.assignments
+    }
+
+    fn creatable_configs(&self) -> &[Self::Config] {
+        &self.configs
+    }
+}
+
+fn create_topics_build_check<T: CreatableTopicView>(
+    version: i16,
+    topics: &[T],
+    validate_only: bool,
+) -> Result<()> {
+    if validate_only && version == 0 {
+        return Err(Error::Unsupported(
+            "validateOnly is not supported in version 0 of CreateTopicsRequest".into(),
+        ));
+    }
+    if version < 4 {
+        let topics_with_defaults: Vec<&str> = topics
+            .iter()
+            .filter(|topic| topic.creatable_assignments().is_empty())
+            .filter(|topic| {
+                topic.creatable_num_partitions() == CreateTopicsRequest::NO_NUM_PARTITIONS
+                    || topic.creatable_replication_factor()
+                        == CreateTopicsRequest::NO_REPLICATION_FACTOR
+            })
+            .map(|topic| topic.creatable_name())
+            .collect();
+        if !topics_with_defaults.is_empty() {
+            return Err(Error::Unsupported(format!(
+                "Creating topics with default partitions/replication factor are only supported in CreateTopicRequest version 4+. The following topics need values for partitions and replicas: [{}]",
+                topics_with_defaults.join(", ")
+            )));
+        }
+    }
+    Ok(())
+}
+
 /// CreateTopics v0–7 (classic through v4; flexible from v5).
 ///
 /// [`CreateTopicsRequest::build`] is Java
@@ -1141,31 +1290,54 @@ pub fn encode_create_topics_request(
     version: i16,
     req: &CreateTopicsRequest,
 ) -> crate::error::Result<()> {
+    encode_creatable_topic_views(buf, version, &req.topics, req.timeout_ms, req.validate_only)
+}
+
+/// Encode CreateTopics topics whose names, assignments, and configs are borrowed.
+pub(crate) fn encode_create_topics_named(
+    buf: &mut BytesMut,
+    version: i16,
+    topics: &[BorrowedCreatableTopic<'_>],
+    timeout_ms: i32,
+    validate_only: bool,
+) -> crate::error::Result<()> {
+    encode_creatable_topic_views(buf, version, topics, timeout_ms, validate_only)
+}
+
+fn encode_creatable_topic_views<T: CreatableTopicView>(
+    buf: &mut BytesMut,
+    version: i16,
+    topics: &[T],
+    timeout_ms: i32,
+    validate_only: bool,
+) -> crate::error::Result<()> {
     let flexible = create_topics_flexible(version)?;
-    CreateTopicsRequest::build(version, &req.topics, req.validate_only)?;
+    create_topics_build_check(version, topics, validate_only)?;
     let body_start = buf.len();
-    let planned = create_topics_request_len(version, flexible, req)?;
+    let planned = create_topics_request_len(version, flexible, topics)?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
         buf.reserve(needed - buf.capacity());
     }
-    buf::put_array_len(buf, flexible, Some(req.topics.len()))?;
-    for t in &req.topics {
-        buf::put_string(buf, flexible, Some(&t.name))?;
-        buf.put_i32(t.num_partitions);
-        buf.put_i16(t.replication_factor);
-        buf::put_array_len(buf, flexible, Some(t.assignments.len()))?;
-        for a in &t.assignments {
-            buf.put_i32(a.partition_index);
-            put_i32_array(buf, flexible, &a.broker_ids)?;
+    buf::put_array_len(buf, flexible, Some(topics.len()))?;
+    for topic in topics {
+        buf::put_string(buf, flexible, Some(topic.creatable_name()))?;
+        buf.put_i32(topic.creatable_num_partitions());
+        buf.put_i16(topic.creatable_replication_factor());
+        let assignments = topic.creatable_assignments();
+        buf::put_array_len(buf, flexible, Some(assignments.len()))?;
+        for assignment in assignments {
+            buf.put_i32(assignment.replica_partition());
+            put_i32_array(buf, flexible, assignment.replica_brokers())?;
             if flexible {
                 buf::put_empty_tagged_fields(buf);
             }
         }
-        buf::put_array_len(buf, flexible, Some(t.configs.len()))?;
-        for c in &t.configs {
-            buf::put_string(buf, flexible, Some(&c.name))?;
-            buf::put_string(buf, flexible, c.value.as_deref())?;
+        let configs = topic.creatable_configs();
+        buf::put_array_len(buf, flexible, Some(configs.len()))?;
+        for config in configs {
+            buf::put_string(buf, flexible, Some(config.topic_config_name()))?;
+            buf::put_string(buf, flexible, config.topic_config_value())?;
             if flexible {
                 buf::put_empty_tagged_fields(buf);
             }
@@ -1174,9 +1346,9 @@ pub fn encode_create_topics_request(
             buf::put_empty_tagged_fields(buf);
         }
     }
-    buf.put_i32(req.timeout_ms);
+    buf.put_i32(timeout_ms);
     if version >= 1 {
-        buf.put_u8(u8::from(req.validate_only));
+        buf.put_u8(u8::from(validate_only));
     }
     if flexible {
         buf::put_empty_tagged_fields(buf);
@@ -1185,29 +1357,27 @@ pub fn encode_create_topics_request(
     Ok(())
 }
 
-fn create_topics_request_len(
+fn create_topics_request_len<T: CreatableTopicView>(
     version: i16,
     flexible: bool,
-    req: &CreateTopicsRequest,
+    topics: &[T],
 ) -> Result<usize> {
-    let mut total = describe_array_len(flexible, req.topics.len())?;
-    for topic in &req.topics {
-        total = add_describe_len(total, describe_string_len(flexible, Some(&topic.name))?)?;
-        total = add_describe_len(total, 6)?;
+    let mut total = describe_array_len(flexible, topics.len())?;
+    for topic in topics {
         total = add_describe_len(
             total,
-            describe_array_len(flexible, topic.assignments.len())?,
+            describe_string_len(flexible, Some(topic.creatable_name()))?,
         )?;
-        for assignment in &topic.assignments {
+        total = add_describe_len(total, 6)?;
+        let assignments = topic.creatable_assignments();
+        total = add_describe_len(total, describe_array_len(flexible, assignments.len())?)?;
+        for assignment in assignments {
             total = add_describe_len(total, 4)?;
+            let brokers = assignment.replica_brokers();
+            total = add_describe_len(total, describe_array_len(flexible, brokers.len())?)?;
             total = add_describe_len(
                 total,
-                describe_array_len(flexible, assignment.broker_ids.len())?,
-            )?;
-            total = add_describe_len(
-                total,
-                assignment
-                    .broker_ids
+                brokers
                     .len()
                     .checked_mul(4)
                     .ok_or_else(|| Error::protocol("create topics request size overflow"))?,
@@ -1216,12 +1386,16 @@ fn create_topics_request_len(
                 total = add_describe_len(total, buf::unsigned_varint_size(0))?;
             }
         }
-        total = add_describe_len(total, describe_array_len(flexible, topic.configs.len())?)?;
-        for config in &topic.configs {
-            total = add_describe_len(total, describe_string_len(flexible, Some(&config.name))?)?;
+        let configs = topic.creatable_configs();
+        total = add_describe_len(total, describe_array_len(flexible, configs.len())?)?;
+        for config in configs {
             total = add_describe_len(
                 total,
-                describe_string_len(flexible, config.value.as_deref())?,
+                describe_string_len(flexible, Some(config.topic_config_name()))?,
+            )?;
+            total = add_describe_len(
+                total,
+                describe_string_len(flexible, config.topic_config_value())?,
             )?;
             if flexible {
                 total = add_describe_len(total, buf::unsigned_varint_size(0))?;
@@ -25571,6 +25745,62 @@ mod tests {
             encode_create_topics_request(&mut buf, version, &req).unwrap();
             assert_eq!(buf.len(), len);
             assert_eq!(buf.capacity(), capacity);
+        }
+    }
+
+    #[test]
+    fn create_topics_named_topics_match_owned_topics() {
+        let brokers = [1_i32, 2];
+        let topics = vec![CreatableTopic {
+            name: "orders-topic-name-is-long".into(),
+            num_partitions: 3,
+            replication_factor: 2,
+            assignments: vec![ReplicaAssignment {
+                partition_index: 0,
+                broker_ids: brokers.to_vec(),
+            }],
+            configs: vec![
+                TopicConfig {
+                    name: "cleanup.policy".into(),
+                    value: Some("compact".into()),
+                },
+                TopicConfig {
+                    name: "retention.ms".into(),
+                    value: None,
+                },
+            ],
+        }];
+        let named = [BorrowedCreatableTopic {
+            name: "orders-topic-name-is-long",
+            num_partitions: 3,
+            replication_factor: 2,
+            assignments: vec![BorrowedReplicaAssignment {
+                partition_index: 0,
+                broker_ids: &brokers,
+            }],
+            configs: vec![
+                BorrowedTopicConfig {
+                    name: "cleanup.policy",
+                    value: Some("compact"),
+                },
+                BorrowedTopicConfig {
+                    name: "retention.ms",
+                    value: None,
+                },
+            ],
+        }];
+        for version in 0..=7 {
+            let validate_only = version >= 1;
+            let owned = CreateTopicsRequest {
+                topics: topics.clone(),
+                timeout_ms: 1_000,
+                validate_only,
+            };
+            let mut expected = BytesMut::new();
+            encode_create_topics_request(&mut expected, version, &owned).unwrap();
+            let mut got = BytesMut::new();
+            encode_create_topics_named(&mut got, version, &named, 1_000, validate_only).unwrap();
+            assert_eq!(got.as_ref(), expected.as_ref(), "version {version}");
         }
     }
 

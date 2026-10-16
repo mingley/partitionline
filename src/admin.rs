@@ -50,7 +50,7 @@ use crate::protocol::admin::{
     encode_alter_share_group_offsets_request, encode_alter_user_scram_credentials_request,
     encode_assign_replicas_to_dirs_request, encode_consumer_group_describe_request,
     encode_create_delegation_token_request, encode_create_partitions_named,
-    encode_create_topics_request, encode_delete_groups_request, encode_delete_records_named_topics,
+    encode_create_topics_named, encode_delete_groups_request, encode_delete_records_named_topics,
     encode_delete_share_group_offsets_request, encode_describe_client_quotas_request,
     encode_describe_cluster_request, encode_describe_configs_request,
     encode_describe_delegation_token_request, encode_describe_groups_request,
@@ -64,11 +64,11 @@ use crate::protocol::admin::{
     encode_push_telemetry_request, encode_renew_delegation_token_request,
     encode_share_group_describe_request, encode_unregister_broker_request,
     encode_update_features_request, AlterConfigsResource, AlterableResource,
-    BorrowedCreatePartitionsTopic, BorrowedReassignmentPartition, CreatableTopic,
-    CreateTopicsRequest, DeleteRecordsPartition, DeleteTopicState, DescribeConfigsResource,
-    DescribeConfigsResult, FeatureUpdateKey, ReplicaAssignment, ScramCredentialDeletion,
-    ScramCredentialUpsertion, TopicConfig, TopicResult, RESOURCE_BROKER, RESOURCE_BROKER_LOGGER,
-    RESOURCE_CLIENT_METRICS, RESOURCE_GROUP, RESOURCE_TOPIC,
+    BorrowedCreatableTopic, BorrowedCreatePartitionsTopic, BorrowedReassignmentPartition,
+    BorrowedReplicaAssignment, BorrowedTopicConfig, CreateTopicsRequest, DeleteRecordsPartition,
+    DeleteTopicState, DescribeConfigsResource, DescribeConfigsResult, FeatureUpdateKey,
+    ScramCredentialDeletion, ScramCredentialUpsertion, TopicConfig, TopicResult, RESOURCE_BROKER,
+    RESOURCE_BROKER_LOGGER, RESOURCE_CLIENT_METRICS, RESOURCE_GROUP, RESOURCE_TOPIC,
 };
 use crate::protocol::api::{
     decode_api_versions_response, decode_metadata_response, decode_metadata_response_into,
@@ -3244,27 +3244,29 @@ struct LeaderFrame {
 
 type LeaderExchange = HashMap<i32, (i16, Result<Bytes>)>;
 
-fn creatable_from_new<'a>(topics: impl IntoIterator<Item = &'a NewTopic>) -> Vec<CreatableTopic> {
+fn creatable_from_new<'a>(
+    topics: impl IntoIterator<Item = &'a NewTopic>,
+) -> Vec<BorrowedCreatableTopic<'a>> {
     topics
         .into_iter()
-        .map(|t| CreatableTopic {
-            name: t.name.clone(),
+        .map(|t| BorrowedCreatableTopic {
+            name: t.name.as_str(),
             num_partitions: t.num_partitions,
             replication_factor: t.replication_factor,
             assignments: t
                 .assignments
                 .iter()
-                .map(|(partition_index, broker_ids)| ReplicaAssignment {
+                .map(|(partition_index, broker_ids)| BorrowedReplicaAssignment {
                     partition_index: *partition_index,
-                    broker_ids: broker_ids.clone(),
+                    broker_ids: broker_ids.as_slice(),
                 })
                 .collect(),
             configs: t
                 .configs
                 .iter()
-                .map(|(n, v)| TopicConfig {
-                    name: n.clone(),
-                    value: v.clone(),
+                .map(|(name, value)| BorrowedTopicConfig {
+                    name: name.as_str(),
+                    value: value.as_deref(),
                 })
                 .collect(),
         })
@@ -4619,11 +4621,7 @@ impl Admin {
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         loop {
-            let req = CreateTopicsRequest {
-                topics: creatable_from_new(pending.iter().filter_map(|&index| topics.get(index))),
-                timeout_ms,
-                validate_only,
-            };
+            let encoded = creatable_from_new(pending.iter().filter_map(|&index| topics.get(index)));
             if self.cluster.controller().is_err() {
                 self.refresh_metadata_until(None, deadline).await?;
             }
@@ -4637,7 +4635,15 @@ impl Admin {
                 conn.roundtrip(
                     CREATE_TOPICS,
                     version,
-                    |buf| encode_create_topics_request(buf, version, &req),
+                    |buf| {
+                        encode_create_topics_named(
+                            buf,
+                            version,
+                            &encoded,
+                            timeout_ms,
+                            validate_only,
+                        )
+                    },
                     deadline.saturating_duration_since(Instant::now()),
                 )
                 .await
