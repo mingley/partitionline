@@ -7312,9 +7312,9 @@ fn encode_produce_body(
                 }
                 crate::protocol::buf::put_empty_tagged_fields(buf);
             } else {
-                let len_pos = buf.len();
-                buf.put_i32(0);
-                let header = pending_batch_header(
+                let mark = buf.len();
+                if let Err(error) = encode_classic_partition(
+                    buf,
                     pendings,
                     compression,
                     now,
@@ -7322,11 +7322,11 @@ fn encode_produce_body(
                     producer_epoch,
                     base_sequence,
                     transactional,
-                )?;
-                encode_pendings(buf, pendings, &header, now, scratch)?;
-                let rec_len =
-                    crate::protocol::buf::i32_from_usize(buf.len().saturating_sub(len_pos + 4))?;
-                crate::protocol::buf::patch_i32(buf, len_pos, rec_len)?;
+                    scratch,
+                ) {
+                    buf.truncate(mark);
+                    return Err(error);
+                }
             }
         }
         if flexible {
@@ -7422,6 +7422,60 @@ fn encode_flexible_partition(
         return Err(Error::protocol("compressed batch length mismatch"));
     }
     scratch.shrink_to_caps();
+    Ok(())
+}
+
+#[expect(
+    clippy::too_many_arguments,
+    reason = "classic partition encode shares the produce batch knobs"
+)]
+fn encode_classic_partition(
+    buf: &mut BytesMut,
+    pendings: &[Pending],
+    compression: Compression,
+    now: i64,
+    producer_id: i64,
+    producer_epoch: i16,
+    base_sequence: i32,
+    transactional: bool,
+    scratch: &mut CompressScratch,
+) -> Result<()> {
+    let header = pending_batch_header(
+        pendings,
+        compression,
+        now,
+        producer_id,
+        producer_epoch,
+        base_sequence,
+        transactional,
+    )?;
+    let records = || {
+        pendings.iter().map(|pending| EncodeRecord {
+            timestamp: pending.rec.timestamp.unwrap_or(now),
+            key: pending.rec.key.as_deref(),
+            value: pending.rec.value.as_deref(),
+            headers: &pending.rec.headers,
+        })
+    };
+    let batch_len = if compression == Compression::None {
+        crate::protocol::records::uncompressed_batch_len(&header, records())?
+    } else {
+        reserve_compressed_section(&header, pendings, now, scratch)?;
+        crate::protocol::records::pack_compressed_batch(&header, records(), scratch)?
+    };
+    let wire_len = crate::protocol::buf::i32_from_usize(batch_len)?;
+    reserve_produce_tail(buf, 4usize.saturating_add(batch_len));
+    buf.put_i32(wire_len);
+    let start = buf.len();
+    if compression == Compression::None {
+        encode_pendings(buf, pendings, &header, now, scratch)?;
+    } else {
+        crate::protocol::records::write_packed_batch(buf, &header, scratch)?;
+        scratch.shrink_to_caps();
+    }
+    if buf.len().saturating_sub(start) != batch_len {
+        return Err(Error::protocol("classic batch length mismatch"));
+    }
     Ok(())
 }
 
@@ -7752,15 +7806,73 @@ mod tests {
         let groups = [(Arc::clone(&topic), 0, pendings)];
         let mut scratch = CompressScratch::default();
         let mut grouped = ProduceGroupScratch::default();
+        for version in [3_i16, 9] {
+            let mut buf = BytesMut::new();
+            encode_produce_body(
+                &mut buf,
+                version,
+                1,
+                1_000,
+                &groups,
+                &[],
+                Compression::None,
+                5,
+                RecordBatch::NO_PRODUCER_ID,
+                RecordBatch::NO_PRODUCER_EPOCH,
+                None,
+                &mut scratch,
+                &mut grouped,
+            )
+            .unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_produce_body(
+                &mut buf,
+                version,
+                1,
+                1_000,
+                &groups,
+                &[],
+                Compression::None,
+                5,
+                RecordBatch::NO_PRODUCER_ID,
+                RecordBatch::NO_PRODUCER_EPOCH,
+                None,
+                &mut scratch,
+                &mut grouped,
+            )
+            .unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+        }
+    }
+
+    #[test]
+    fn a_classic_gzip_produce_sizes_its_batch_once() {
+        let topic = Arc::<str>::from("orders");
+        let pendings: Vec<_> = (0..8)
+            .map(|_| {
+                let mut pending = queued("orders", Some(0));
+                pending.rec.topic = Arc::clone(&topic);
+                pending.rec.value = Some(Bytes::from(vec![b'v'; 32]));
+                pending
+            })
+            .collect();
+        let groups = [(topic, 0, pendings)];
+        let mut scratch = CompressScratch::default();
+        let mut grouped = ProduceGroupScratch::default();
         let mut buf = BytesMut::new();
         encode_produce_body(
             &mut buf,
-            9,
+            3,
             1,
             1_000,
             &groups,
             &[],
-            Compression::None,
+            Compression::Gzip,
             5,
             RecordBatch::NO_PRODUCER_ID,
             RecordBatch::NO_PRODUCER_EPOCH,
@@ -7776,12 +7888,12 @@ mod tests {
         buf.clear();
         encode_produce_body(
             &mut buf,
-            9,
+            3,
             1,
             1_000,
             &groups,
             &[],
-            Compression::None,
+            Compression::Gzip,
             5,
             RecordBatch::NO_PRODUCER_ID,
             RecordBatch::NO_PRODUCER_EPOCH,
