@@ -7047,6 +7047,12 @@ fn solicited_v13_acks(
     Ok(())
 }
 
+fn reserve_index(items: &mut Vec<usize>, count: usize) {
+    if items.capacity() < count {
+        items.reserve(count - items.capacity());
+    }
+}
+
 fn index_produce_groups(
     groups: &[(Arc<str>, i32, Vec<Pending>)],
     scratch: &mut ProduceGroupScratch,
@@ -7063,6 +7069,7 @@ fn index_produce_groups(
         }
         let mut same = true;
         if let Some(parts) = scratch.parts.first_mut() {
+            reserve_index(parts, groups.len());
             for (index, (topic, _, _)) in groups.iter().enumerate() {
                 if !Arc::ptr_eq(topic, first) {
                     same = false;
@@ -7080,6 +7087,7 @@ fn index_produce_groups(
         }
     }
     scratch.topic_slots.clear();
+    reserve_index(&mut scratch.topics, groups.len());
     for (index, (topic, _, _)) in groups.iter().enumerate() {
         if let Some(&slot) = scratch.topic_slots.get(topic.as_ref()) {
             if let Some(parts) = scratch.parts.get_mut(slot) {
@@ -7926,8 +7934,18 @@ mod tests {
         let mut indexed = ProduceGroupScratch::default();
         index_produce_groups(&groups, &mut indexed);
         assert_eq!(indexed.topics, vec![0, 2]);
+        assert!(indexed.topics.capacity() >= groups.len());
         assert_eq!(indexed.parts.first().map(Vec::as_slice), Some(&[0, 1][..]));
         assert_eq!(indexed.parts.get(1).map(Vec::as_slice), Some(&[2][..]));
+        let topic_capacity = indexed.topics.capacity();
+        let part_capacity = indexed.parts.first().map(Vec::capacity).unwrap_or(0);
+        assert!(part_capacity >= groups.len());
+        index_produce_groups(&groups, &mut indexed);
+        assert_eq!(indexed.topics.capacity(), topic_capacity);
+        assert_eq!(
+            indexed.parts.first().map(Vec::capacity),
+            Some(part_capacity)
+        );
 
         let shared = vec![
             (Arc::clone(&orders), 1, Vec::new()),
@@ -7939,6 +7957,13 @@ mod tests {
         assert_eq!(
             indexed.parts.first().map(Vec::as_slice),
             Some(&[0, 1, 2][..])
+        );
+        let shared_capacity = indexed.parts.first().map(Vec::capacity).unwrap_or(0);
+        assert!(shared_capacity >= shared.len());
+        index_produce_groups(&shared, &mut indexed);
+        assert_eq!(
+            indexed.parts.first().map(Vec::capacity),
+            Some(shared_capacity)
         );
 
         let alias = Arc::<str>::from("orders");
