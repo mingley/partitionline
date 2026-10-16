@@ -7148,27 +7148,32 @@ impl Consumer {
             }
             let mut nodes: Vec<i32> = by_node.keys().copied().collect();
             nodes.sort_unstable();
-            for node in nodes {
-                let Some(indexes) = by_node.get(&node).cloned() else {
-                    continue;
-                };
-                if Instant::now() >= deadline {
-                    stop = Some(Error::Timeout);
-                    break;
-                }
-                if let Err(error) = self
-                    .list_offsets_on_leader(queries, &indexes, node, deadline, &mut slots)
-                    .await
-                {
-                    for index in &indexes {
-                        if matches!(slots.get(*index), Some(None)) {
-                            if let Some(slot) = slots.get_mut(*index) {
-                                *slot = Some(Err(error.clone()));
+            if nodes.len() > 1 {
+                self.list_offsets_leaders_parallel(queries, &by_node, &nodes, deadline, &mut slots)
+                    .await;
+            } else {
+                for node in nodes {
+                    let Some(indexes) = by_node.get(&node).cloned() else {
+                        continue;
+                    };
+                    if Instant::now() >= deadline {
+                        stop = Some(Error::Timeout);
+                        break;
+                    }
+                    if let Err(error) = self
+                        .list_offsets_on_leader(queries, &indexes, node, deadline, &mut slots)
+                        .await
+                    {
+                        for index in &indexes {
+                            if matches!(slots.get(*index), Some(None)) {
+                                if let Some(slot) = slots.get_mut(*index) {
+                                    *slot = Some(Err(error.clone()));
+                                }
                             }
                         }
-                    }
-                    if prefix_failed(&slots) {
-                        break;
+                        if prefix_failed(&slots) {
+                            break;
+                        }
                     }
                 }
             }
@@ -7283,6 +7288,296 @@ impl Consumer {
             }
             Err(error) => return Err(error),
         };
+        let read = self.read_list_offset_body(queries, indexes, version, body, slots)?;
+        if read.drop_conn {
+            self.drop_broker_conn(node);
+        }
+        if !read.fenced.is_empty() {
+            if let Err(error) = self.recover_leader_epochs(&read.fenced, deadline).await {
+                for index in read.fenced_indexes {
+                    if let Some(slot) = slots.get_mut(index) {
+                        if slot.is_none() {
+                            *slot = Some(Err(error.clone()));
+                        }
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+
+    /// Ask every leader at once. One slow broker does not hold the others.
+    async fn list_offsets_leaders_parallel<T: AsRef<str>>(
+        &mut self,
+        queries: &[(T, i32, i64)],
+        by_node: &HashMap<i32, Vec<usize>>,
+        nodes: &[i32],
+        deadline: Instant,
+        slots: &mut [OffsetSlot],
+    ) {
+        let isolation = self.cfg.isolation_level.as_i8();
+        let mut prepared = Vec::new();
+        for node in nodes {
+            let Some(indexes) = by_node.get(node).cloned() else {
+                continue;
+            };
+            if Instant::now() >= deadline {
+                for index in &indexes {
+                    if let Some(slot) = slots.get_mut(*index) {
+                        if slot.is_none() {
+                            *slot = Some(Err(Error::Timeout));
+                        }
+                    }
+                }
+                continue;
+            }
+            if let Err(error) = self.connect_node(*node, deadline).await {
+                for index in &indexes {
+                    if let Some(slot) = slots.get_mut(*index) {
+                        if slot.is_none() {
+                            *slot = Some(Err(error.clone()));
+                        }
+                    }
+                }
+                continue;
+            }
+            let mut minimum = 1i16;
+            for index in &indexes {
+                if let Some((_, _, timestamp)) = queries.get(*index) {
+                    minimum = minimum.max(minimum_version_for_timestamp(*timestamp, isolation));
+                }
+            }
+            let version = match self.list_offsets_version(*node, minimum) {
+                Ok(version) => version,
+                Err(error) => {
+                    for index in &indexes {
+                        if let Some(slot) = slots.get_mut(*index) {
+                            if slot.is_none() {
+                                *slot = Some(Err(error.clone()));
+                            }
+                        }
+                    }
+                    continue;
+                }
+            };
+            let timeout = deadline.saturating_duration_since(Instant::now());
+            if timeout.is_zero() {
+                for index in &indexes {
+                    if let Some(slot) = slots.get_mut(*index) {
+                        if slot.is_none() {
+                            *slot = Some(Err(Error::Timeout));
+                        }
+                    }
+                }
+                continue;
+            }
+            let topics = list_offset_topic_groups(queries, &indexes, &self.cluster);
+            let mut payload = bytes::BytesMut::new();
+            if let Err(error) = encode_list_offsets_named_topics(
+                &mut payload,
+                version,
+                isolation,
+                &topics,
+                duration_millis_i32(timeout),
+            ) {
+                for index in &indexes {
+                    if let Some(slot) = slots.get_mut(*index) {
+                        if slot.is_none() {
+                            *slot = Some(Err(error.clone()));
+                        }
+                    }
+                }
+                continue;
+            }
+            let uses_bootstrap = !self.conns.contains_key(node)
+                && self
+                    .cluster
+                    .brokers
+                    .get(node)
+                    .is_some_and(|addr| addr == self.conn.addr());
+            prepared.push(PreparedListOffsets {
+                node: *node,
+                version,
+                indexes,
+                payload: payload.freeze(),
+                timeout,
+                uses_bootstrap,
+            });
+        }
+        if prepared.is_empty() {
+            return;
+        }
+        let flights = self.exchange_list_offsets(prepared).await;
+        let mut fenced = Vec::new();
+        let mut fenced_indexes = Vec::new();
+        for flight in flights {
+            match flight.body {
+                Err(error) if error.is_retriable() => {
+                    self.drop_broker_conn(flight.node);
+                }
+                Err(error) => {
+                    for index in &flight.indexes {
+                        if let Some(slot) = slots.get_mut(*index) {
+                            if slot.is_none() {
+                                *slot = Some(Err(error.clone()));
+                            }
+                        }
+                    }
+                }
+                Ok(body) => {
+                    match self.read_list_offset_body(
+                        queries,
+                        &flight.indexes,
+                        flight.version,
+                        body,
+                        slots,
+                    ) {
+                        Ok(read) => {
+                            if read.drop_conn {
+                                self.drop_broker_conn(flight.node);
+                            }
+                            fenced.extend(read.fenced);
+                            fenced_indexes.extend(read.fenced_indexes);
+                        }
+                        Err(error) => {
+                            for index in &flight.indexes {
+                                if let Some(slot) = slots.get_mut(*index) {
+                                    if slot.is_none() {
+                                        *slot = Some(Err(error.clone()));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        if !fenced.is_empty() {
+            if let Err(error) = self.recover_leader_epochs(&fenced, deadline).await {
+                for index in fenced_indexes {
+                    if let Some(slot) = slots.get_mut(index) {
+                        if slot.is_none() {
+                            *slot = Some(Err(error.clone()));
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    async fn exchange_list_offsets(
+        &mut self,
+        prepared: Vec<PreparedListOffsets>,
+    ) -> Vec<ListOffsetFlight> {
+        let mut dedicated: Vec<(PreparedListOffsets, Option<BrokerConn>)> = Vec::new();
+        let mut bootstrap = None;
+        for item in prepared {
+            if item.uses_bootstrap {
+                bootstrap = Some(item);
+                continue;
+            }
+            let conn = self.conns.remove(&item.node);
+            dedicated.push((item, conn));
+        }
+        let mut set = tokio::task::JoinSet::new();
+        let mut missing = Vec::new();
+        for (item, conn) in dedicated {
+            let Some(mut conn) = conn else {
+                missing.push(ListOffsetFlight {
+                    node: item.node,
+                    version: item.version,
+                    indexes: item.indexes,
+                    body: Err(Error::protocol("missing broker conn")),
+                });
+                continue;
+            };
+            let node = item.node;
+            let version = item.version;
+            let indexes = item.indexes;
+            let payload = item.payload;
+            let timeout = item.timeout;
+            let _ = set.spawn(async move {
+                let body = conn
+                    .roundtrip(
+                        LIST_OFFSETS,
+                        version,
+                        |buf| {
+                            buf.extend_from_slice(&payload);
+                            Ok(())
+                        },
+                        timeout,
+                    )
+                    .await;
+                (node, version, indexes, conn, body)
+            });
+        }
+        let bootstrap_flight = async {
+            let item = bootstrap?;
+            let body = self
+                .conn
+                .roundtrip(
+                    LIST_OFFSETS,
+                    item.version,
+                    |buf| {
+                        buf.extend_from_slice(&item.payload);
+                        Ok(())
+                    },
+                    item.timeout,
+                )
+                .await;
+            Some(ListOffsetFlight {
+                node: item.node,
+                version: item.version,
+                indexes: item.indexes,
+                body,
+            })
+        };
+        let (flights, returned) = {
+            let mut bootstrap_fut = std::pin::pin!(bootstrap_flight);
+            let mut bootstrap_done = None;
+            let mut returned = Vec::new();
+            let mut flights = missing;
+            loop {
+                tokio::select! {
+                    biased;
+                    done = &mut bootstrap_fut, if bootstrap_done.is_none() => {
+                        bootstrap_done = Some(done);
+                    }
+                    joined = set.join_next(), if !set.is_empty() => {
+                        if let Some(Ok((node, version, indexes, conn, body))) = joined {
+                            returned.push((node, conn));
+                            flights.push(ListOffsetFlight {
+                                node,
+                                version,
+                                indexes,
+                                body,
+                            });
+                        }
+                    }
+                }
+                if bootstrap_done.is_some() && set.is_empty() {
+                    break;
+                }
+            }
+            if let Some(Some(flight)) = bootstrap_done {
+                flights.push(flight);
+            }
+            (flights, returned)
+        };
+        for (node, conn) in returned {
+            let _previous = self.conns.insert(node, conn);
+        }
+        flights
+    }
+
+    fn read_list_offset_body<T: AsRef<str>>(
+        &mut self,
+        queries: &[(T, i32, i64)],
+        indexes: &[usize],
+        version: i16,
+        body: Bytes,
+        slots: &mut [OffsetSlot],
+    ) -> Result<ListOffsetRead> {
         let mut cursor = body.as_ref();
         let (response, _) = decode_list_offsets_topics_response(&mut cursor, version)?;
         if !cursor.is_empty() {
@@ -7298,8 +7593,11 @@ impl Consumer {
                     .push_back(partition);
             }
         }
-        let mut fenced = Vec::new();
-        let mut fenced_indexes = Vec::new();
+        let mut read = ListOffsetRead {
+            fenced: Vec::new(),
+            fenced_indexes: Vec::new(),
+            drop_conn: false,
+        };
         for index in indexes {
             let Some((topic, partition, _)) = queries.get(*index) else {
                 continue;
@@ -7338,31 +7636,20 @@ impl Consumer {
                 part.error_code,
                 error::FENCED_LEADER_EPOCH | error::UNKNOWN_LEADER_EPOCH
             ) {
-                fenced.push((Arc::<str>::from(topic_name), *partition));
-                fenced_indexes.push(*index);
+                read.fenced.push((Arc::<str>::from(topic_name), *partition));
+                read.fenced_indexes.push(*index);
                 continue;
             }
             if error.is_retriable() {
                 self.cluster.invalidate_topic(topic_name);
-                self.drop_broker_conn(node);
+                read.drop_conn = true;
                 continue;
             }
             if let Some(slot) = slots.get_mut(*index) {
                 *slot = Some(Err(error));
             }
         }
-        if !fenced.is_empty() {
-            if let Err(error) = self.recover_leader_epochs(&fenced, deadline).await {
-                for index in fenced_indexes {
-                    if let Some(slot) = slots.get_mut(index) {
-                        if slot.is_none() {
-                            *slot = Some(Err(error.clone()));
-                        }
-                    }
-                }
-            }
-        }
-        Ok(())
+        Ok(read)
     }
 
     /// Set the next fetch offset for an assigned partition (Java
@@ -8944,6 +9231,28 @@ fn require_fetch_offset(offset: i64) -> Result<()> {
 /// Java `beginningOffsets`, `endOffsets`, and `offsetsForTimes` spend the
 /// caller timeout once. A later partition sees only the time still left.
 type OffsetSlot = Option<Result<(i64, i64, i32)>>;
+
+struct PreparedListOffsets {
+    node: i32,
+    version: i16,
+    indexes: Vec<usize>,
+    payload: Bytes,
+    timeout: Duration,
+    uses_bootstrap: bool,
+}
+
+struct ListOffsetFlight {
+    node: i32,
+    version: i16,
+    indexes: Vec<usize>,
+    body: Result<Bytes>,
+}
+
+struct ListOffsetRead {
+    fenced: Vec<(Arc<str>, i32)>,
+    fenced_indexes: Vec<usize>,
+    drop_conn: bool,
+}
 
 struct ListedOffsets {
     values: Vec<(i64, i64, i32)>,
