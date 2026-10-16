@@ -71,17 +71,17 @@ pub(crate) fn truncate_group_reason(reason: &str) -> String {
 
 /// Split `partitions` across sorted `members` (Java range assignor).
 pub fn assign_range(members: &[String], partitions: &[i32]) -> HashMap<String, Vec<i32>> {
-    let mut members: Vec<String> = members.to_vec();
-    members.sort();
-    members.dedup();
+    let mut order: Vec<&str> = members.iter().map(String::as_str).collect();
+    order.sort_unstable();
+    order.dedup();
     let mut partitions: Vec<i32> = partitions.iter().copied().filter(|p| *p >= 0).collect();
     partitions.sort_unstable();
     partitions.dedup();
     let mut out: HashMap<String, Vec<i32>> = HashMap::new();
-    for m in &members {
-        let _ = out.insert(m.clone(), Vec::new());
+    for member in &order {
+        let _ = out.insert((*member).to_owned(), Vec::new());
     }
-    let n = members.len();
+    let n = order.len();
     if n == 0 {
         return out;
     }
@@ -89,11 +89,11 @@ pub fn assign_range(members: &[String], partitions: &[i32]) -> HashMap<String, V
     let base = np / n;
     let extra = np % n;
     let mut idx = 0usize;
-    for (i, m) in members.iter().enumerate() {
+    for (i, member) in order.iter().enumerate() {
         let take = base + usize::from(i < extra);
         for _ in 0..take {
             if let Some(p) = partitions.get(idx) {
-                if let Some(slot) = out.get_mut(m) {
+                if let Some(slot) = out.get_mut(*member) {
                     slot.push(*p);
                 }
             }
@@ -138,8 +138,13 @@ pub fn assign_sticky(
     for p in remaining {
         let target = out
             .iter()
-            .min_by_key(|(m, v)| (v.len(), (*m).clone()))
-            .map(|(m, _)| m.clone());
+            .min_by(|(left_member, left_parts), (right_member, right_parts)| {
+                left_parts
+                    .len()
+                    .cmp(&right_parts.len())
+                    .then_with(|| left_member.as_str().cmp(right_member.as_str()))
+            })
+            .map(|(member, _)| (*member).clone());
         if let Some(m) = target {
             if let Some(slot) = out.get_mut(&m) {
                 slot.push(p);
