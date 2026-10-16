@@ -901,6 +901,12 @@ pub struct ShareGroup {
     records_acknowledged: u64,
     fetch_latency: crate::metrics::LatencyTracker,
     topic_metrics: HashMap<String, crate::metrics::FetchTopicTracker>,
+    /// Group id shared with multi-leader fetch tasks. Rebuilt only when the
+    /// text changes.
+    fetch_group_id: Arc<str>,
+    /// Member id shared with multi-leader fetch tasks. Rebuilt only when the
+    /// text changes.
+    fetch_member_id: Arc<str>,
     /// ShareFetch requests sent and not yet applied. A multi-leader poll
     /// returns after the collection window once any peer has responded.
     inflight_share_fetches: Option<tokio::task::JoinSet<ShareFetchTask>>,
@@ -997,6 +1003,14 @@ struct PreparedShareFetch {
     max_records: i32,
     acquire_mode: i8,
     topics: Vec<ShareFetchTopic>,
+}
+
+/// Return the cached text, replacing it only when `current` differs.
+fn shared_text(cached: &mut Arc<str>, current: &str) -> Arc<str> {
+    if cached.as_ref() != current {
+        *cached = Arc::from(current);
+    }
+    Arc::clone(cached)
 }
 
 fn encode_prepared_share_fetch(
@@ -1315,6 +1329,8 @@ impl ShareGroup {
         // Kafka 4.1 ShareGroupHeartbeat requires a client-generated member id
         // for the process lifetime. ShareFetch parses it as a base64url Uuid.
         let member_id = Uuid::random_uuid().to_string();
+        let fetch_group_id = Arc::<str>::from(group_id.as_str());
+        let fetch_member_id = Arc::<str>::from(member_id.as_str());
         let hb_err = Arc::new(AtomicI16::new(0));
         let hb_epoch = Arc::new(AtomicI32::new(
             ShareGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH,
@@ -1373,6 +1389,8 @@ impl ShareGroup {
             records_acknowledged: 0,
             fetch_latency: crate::metrics::LatencyTracker::new(),
             topic_metrics: HashMap::new(),
+            fetch_group_id,
+            fetch_member_id,
             inflight_share_fetches: None,
             inflight_share_nodes: HashMap::new(),
         };
@@ -2360,8 +2378,8 @@ impl ShareGroup {
             pending: std::mem::take(&mut self.inflight_share_nodes),
         };
         let timeout = deadline.saturating_duration_since(Instant::now());
-        let group_id = Arc::<str>::from(self.group_id.as_str());
-        let member_id = Arc::<str>::from(self.member_id.as_str());
+        let group_id = shared_text(&mut self.fetch_group_id, self.group_id.as_str());
+        let member_id = shared_text(&mut self.fetch_member_id, self.member_id.as_str());
         if timeout.is_zero() {
             self.park_prepared(&mut prepared);
         } else if let Some(set) = inflight.set.as_mut() {
@@ -4325,6 +4343,18 @@ mod tests {
     use std::sync::Arc;
 
     use super::*;
+
+    #[test]
+    fn an_unchanged_share_identity_keeps_its_allocation() {
+        let mut cached = Arc::<str>::from("member");
+        let first = shared_text(&mut cached, "member");
+        let second = shared_text(&mut cached, "member");
+        assert!(Arc::ptr_eq(&first, &second));
+        let rotated = shared_text(&mut cached, "rotated");
+        assert!(!Arc::ptr_eq(&first, &rotated));
+        assert_eq!(rotated.as_ref(), "rotated");
+        assert!(Arc::ptr_eq(&rotated, &cached));
+    }
 
     #[test]
     fn an_unchanged_share_subscription_keeps_its_buffer() {
