@@ -1739,12 +1739,12 @@ impl DeleteTopicsRequest {
 
     /// Java `DeleteTopicsRequest.getErrorResponse`.
     ///
-    /// Copies each topic name and TopicId through
-    /// [`DeleteTopicState::error_result`]. `ErrorMessage` stays the JSON
-    /// default (null); official Java does not set it. ThrottleTimeMs is
-    /// written on v1+ from `throttle_time_ms`. Below v1 the field is
-    /// omitted even when that value is non-zero (Java only calls
-    /// `setThrottleTimeMs` when `version() >= 1`). Decode fills `0`.
+    /// Each topic name and TopicId is written from the caller.
+    /// `ErrorMessage` stays the JSON default (null); official Java does
+    /// not set it. ThrottleTimeMs is written on v1+ from
+    /// `throttle_time_ms`. Below v1 the field is omitted even when that
+    /// value is non-zero (Java only calls `setThrottleTimeMs` when
+    /// `version() >= 1`). Decode fills `0`.
     pub fn error_response(
         buf: &mut BytesMut,
         version: i16,
@@ -1752,11 +1752,7 @@ impl DeleteTopicsRequest {
         error_code: i16,
         throttle_time_ms: i32,
     ) -> crate::error::Result<()> {
-        let results: Vec<TopicResult> = topics
-            .iter()
-            .map(|topic| topic.error_result(error_code))
-            .collect();
-        encode_delete_topics_response_with_throttle(buf, version, &results, throttle_time_ms)
+        encode_delete_topics_error_response(buf, version, topics, error_code, throttle_time_ms)
     }
 }
 
@@ -2034,6 +2030,84 @@ fn delete_topics_response_len(
                 total,
                 describe_string_len(true, result.error_message.as_deref())?,
             )?;
+        }
+        if flexible {
+            total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    if flexible {
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
+}
+
+/// DeleteTopics error body written from the request topics.
+///
+/// The bytes match [`DeleteTopicState::error_result`]: a missing name is
+/// an empty string below v6 and a null name on v6+, and the error message
+/// stays null.
+fn encode_delete_topics_error_response(
+    buf: &mut BytesMut,
+    version: i16,
+    topics: &[DeleteTopicState],
+    error_code: i16,
+    throttle_time_ms: i32,
+) -> crate::error::Result<()> {
+    let flexible = delete_topics_flexible(version)?;
+    let body_start = buf.len();
+    let planned = delete_topics_error_len(version, flexible, topics)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
+    if version >= 1 {
+        buf.put_i32(throttle_time_ms);
+    }
+    buf::put_array_len(buf, flexible, Some(topics.len()))?;
+    for topic in topics {
+        if version >= 6 {
+            let name = topic.name.as_deref().filter(|name| !name.is_empty());
+            buf::put_compact_string(buf, name)?;
+            buf.extend_from_slice(&topic.topic_id);
+        } else {
+            buf::put_string(buf, flexible, Some(topic.name.as_deref().unwrap_or("")))?;
+        }
+        buf.put_i16(error_code);
+        if version >= 5 {
+            buf::put_string(buf, true, None)?;
+        }
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+    }
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+    Ok(())
+}
+
+fn delete_topics_error_len(
+    version: i16,
+    flexible: bool,
+    topics: &[DeleteTopicState],
+) -> Result<usize> {
+    let mut total = if version >= 1 { 4 } else { 0 };
+    total = add_describe_len(total, describe_array_len(flexible, topics.len())?)?;
+    for topic in topics {
+        if version >= 6 {
+            let name = topic.name.as_deref().filter(|name| !name.is_empty());
+            total = add_describe_len(total, describe_string_len(true, name)?)?;
+            total = add_describe_len(total, 16)?;
+        } else {
+            total = add_describe_len(
+                total,
+                describe_string_len(flexible, Some(topic.name.as_deref().unwrap_or("")))?,
+            )?;
+        }
+        total = add_describe_len(total, 2)?;
+        if version >= 5 {
+            total = add_describe_len(total, describe_string_len(true, None)?)?;
         }
         if flexible {
             total = add_describe_len(total, buf::unsigned_varint_size(0))?;
@@ -25883,6 +25957,73 @@ mod tests {
                 "DeleteTopics v{version} NOT_CONTROLLER must be leftover-empty"
             );
         }
+    }
+
+    #[test]
+    fn delete_topics_error_response_matches_named_results() {
+        let mut topic_id = [0u8; 16];
+        topic_id[15] = 9;
+        let topics = [
+            DeleteTopicState::by_name("orders-topic-name-is-long"),
+            DeleteTopicState::by_id(topic_id),
+            DeleteTopicState {
+                name: Some(String::new()),
+                topic_id,
+            },
+        ];
+        for version in 0..=6 {
+            for throttle in [0_i32, 12] {
+                let results: Vec<TopicResult> = topics
+                    .iter()
+                    .map(|topic| topic.error_result(crate::error::NOT_CONTROLLER))
+                    .collect();
+                let mut expected = BytesMut::new();
+                encode_delete_topics_response_with_throttle(
+                    &mut expected,
+                    version,
+                    &results,
+                    throttle,
+                )
+                .unwrap();
+                let mut got = BytesMut::new();
+                DeleteTopicsRequest::error_response(
+                    &mut got,
+                    version,
+                    &topics,
+                    crate::error::NOT_CONTROLLER,
+                    throttle,
+                )
+                .unwrap();
+                assert_eq!(
+                    got.as_ref(),
+                    expected.as_ref(),
+                    "version {version} throttle {throttle}"
+                );
+                let len = got.len();
+                let capacity = got.capacity();
+                assert!(capacity >= len);
+                assert!(capacity < 64 * 1024);
+                got.clear();
+                DeleteTopicsRequest::error_response(
+                    &mut got,
+                    version,
+                    &topics,
+                    crate::error::NOT_CONTROLLER,
+                    throttle,
+                )
+                .unwrap();
+                assert_eq!(got.len(), len);
+                assert_eq!(got.capacity(), capacity);
+            }
+        }
+        let mut empty = BytesMut::new();
+        DeleteTopicsRequest::error_response(&mut empty, 6, &[], 41, 1).unwrap();
+        let mut expected_empty = BytesMut::new();
+        encode_delete_topics_response_with_throttle(&mut expected_empty, 6, &[], 1).unwrap();
+        assert_eq!(empty.as_ref(), expected_empty.as_ref());
+        assert!(
+            DeleteTopicsRequest::error_response(&mut BytesMut::new(), 7, &topics, 41, 0).is_err()
+        );
     }
 
     #[test]
