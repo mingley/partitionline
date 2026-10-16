@@ -7733,6 +7733,26 @@ async fn create_topics_follows_controller() {
 }
 
 #[tokio::test]
+async fn controller_metadata_omits_topics() {
+    let mock = common::Mock::start().await;
+    mock.set_topic_partitions("t", 2);
+    mock.set_topic_partitions("u", 3);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let before = mock.metadata_calls();
+    let created = admin
+        .create_topics(&[NewTopic::new("v", 1, 1)], 10_000, false)
+        .await
+        .unwrap();
+    assert_eq!(created[0].error_code, 0);
+    assert_eq!(mock.metadata_calls(), before + 1);
+    assert_eq!(
+        mock.last_metadata_topics(),
+        Some(Some(Vec::new())),
+        "finding the controller must not download the topic list"
+    );
+}
+
+#[tokio::test]
 async fn create_topics_negotiates_below_v7_when_broker_caps() {
     let mock = common::Mock::start().await;
     mock.set_api_max(CREATE_TOPICS, 5);

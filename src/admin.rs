@@ -3679,7 +3679,7 @@ impl Admin {
                         }
                     })?;
                 if refresh {
-                    self.refresh_metadata_until(None, deadline).await?;
+                    self.refresh_broker_directory(deadline).await?;
                     refresh = false;
                 }
                 let remaining = deadline.saturating_duration_since(Instant::now());
@@ -3805,7 +3805,7 @@ impl Admin {
                         Error::Unsupported("broker does not support RemoveRaftVoter v0".into())
                     })?;
                 if refresh {
-                    self.refresh_metadata_until(None, deadline).await?;
+                    self.refresh_broker_directory(deadline).await?;
                     refresh = false;
                 }
                 let remaining = deadline.saturating_duration_since(Instant::now());
@@ -3904,7 +3904,7 @@ impl Admin {
                         Error::Unsupported("broker does not support DescribeQuorum v0-2".into())
                     })?;
                 if refresh {
-                    self.refresh_metadata_until(None, deadline).await?;
+                    self.refresh_broker_directory(deadline).await?;
                     refresh = false;
                 }
                 let remaining = deadline.saturating_duration_since(Instant::now());
@@ -4051,7 +4051,7 @@ impl Admin {
         let mut attempt = 0;
         loop {
             if self.cluster.controller().is_err() {
-                self.refresh_metadata_until(None, deadline).await?;
+                self.refresh_broker_directory(deadline).await?;
             }
             let node = self.cluster.controller()?;
             self.connect_node_until(node, deadline).await?;
@@ -4751,7 +4751,7 @@ impl Admin {
         loop {
             let encoded = creatable_from_new(pending.iter().filter_map(|&index| topics.get(index)));
             if self.cluster.controller().is_err() {
-                self.refresh_metadata_until(None, deadline).await?;
+                self.refresh_broker_directory(deadline).await?;
             }
             let node = self.cluster.controller()?;
             self.connect_node_until(node, deadline).await?;
@@ -4795,7 +4795,7 @@ impl Admin {
                 self.cluster.invalidate_controller();
                 let _ = self.conns.remove(&node);
                 self.wait_retry(&mut attempt, deadline).await?;
-                self.refresh_metadata_until(None, deadline).await?;
+                self.refresh_broker_directory(deadline).await?;
                 continue;
             }
             let slots = first_name_index(
@@ -5116,7 +5116,7 @@ impl Admin {
         let mut attempt = 0u32;
         loop {
             if self.cluster.controller().is_err() {
-                self.refresh_metadata_until(None, deadline).await?;
+                self.refresh_broker_directory(deadline).await?;
             }
             let node = self.cluster.controller()?;
             self.connect_node_until(node, deadline).await?;
@@ -5160,7 +5160,7 @@ impl Admin {
                 self.cluster.invalidate_controller();
                 let _ = self.conns.remove(&node);
                 self.wait_retry(&mut attempt, deadline).await?;
-                self.refresh_metadata_until(None, deadline).await?;
+                self.refresh_broker_directory(deadline).await?;
                 continue;
             }
             let slots = index_delete_selection(original, &pending);
@@ -5736,7 +5736,7 @@ impl Admin {
             let encoded =
                 partitions_from_new(pending.iter().filter_map(|&index| topics.get(index)));
             if self.cluster.controller().is_err() {
-                self.refresh_metadata_until(None, deadline).await?;
+                self.refresh_broker_directory(deadline).await?;
             }
             let node = self.cluster.controller()?;
             self.connect_node_until(node, deadline).await?;
@@ -5780,7 +5780,7 @@ impl Admin {
                 self.cluster.invalidate_controller();
                 let _ = self.conns.remove(&node);
                 self.wait_retry(&mut attempt, deadline).await?;
-                self.refresh_metadata_until(None, deadline).await?;
+                self.refresh_broker_directory(deadline).await?;
                 continue;
             }
             let slots = first_name_index(
@@ -5918,7 +5918,7 @@ impl Admin {
         let mut attempt = 0u32;
         loop {
             if self.cluster.controller().is_err() {
-                self.refresh_metadata_until(None, deadline).await?;
+                self.refresh_broker_directory(deadline).await?;
             }
             let node = self.cluster.controller()?;
             self.connect_node_until(node, deadline).await?;
@@ -5961,7 +5961,7 @@ impl Admin {
                 self.cluster.invalidate_controller();
                 let _ = self.conns.remove(&node);
                 self.wait_retry(&mut attempt, deadline).await?;
-                self.refresh_metadata_until(None, deadline).await?;
+                self.refresh_broker_directory(deadline).await?;
                 continue;
             }
             return Ok(results);
@@ -6005,7 +6005,7 @@ impl Admin {
         let mut attempt = 0u32;
         loop {
             if self.cluster.controller().is_err() {
-                self.refresh_metadata_until(None, deadline).await?;
+                self.refresh_broker_directory(deadline).await?;
             }
             let node = self.cluster.controller()?;
             self.connect_node_until(node, deadline).await?;
@@ -6041,7 +6041,7 @@ impl Admin {
                 self.cluster.invalidate_controller();
                 let _ = self.conns.remove(&node);
                 self.wait_retry(&mut attempt, deadline).await?;
-                self.refresh_metadata_until(None, deadline).await?;
+                self.refresh_broker_directory(deadline).await?;
                 continue;
             }
             return Ok(results);
@@ -6191,7 +6191,7 @@ impl Admin {
                         let addr = self.conn.addr().to_owned();
                         self.adopt_bootstrap(self.open_node_conn_until(&addr, deadline).await?)?;
                     }
-                    self.refresh_metadata_until(None, deadline).await?;
+                    self.refresh_broker_directory(deadline).await?;
                 }
                 let node = self.cluster.controller()?;
                 if self.conns.get(&node).is_some_and(|conn| conn.is_closed()) {
@@ -6343,7 +6343,7 @@ impl Admin {
         let mut attempt = 0u32;
         loop {
             if self.cluster.controller().is_err() {
-                self.refresh_metadata_until(None, deadline).await?;
+                self.refresh_broker_directory(deadline).await?;
             }
             let node = self.cluster.controller()?;
             self.connect_node_until(node, deadline).await?;
@@ -6382,7 +6382,7 @@ impl Admin {
                 self.cluster.invalidate_controller();
                 let _ = self.conns.remove(&node);
                 self.wait_retry(&mut attempt, deadline).await?;
-                self.refresh_metadata_until(None, deadline).await?;
+                self.refresh_broker_directory(deadline).await?;
                 continue;
             }
             if resp.error_code != 0 {
@@ -6505,7 +6505,7 @@ impl Admin {
                 return Err(Error::Timeout);
             }
             if self.cluster.controller().is_err() {
-                self.refresh_metadata_until(None, deadline).await?;
+                self.refresh_broker_directory(deadline).await?;
             }
             let node = self.cluster.controller()?;
             self.connect_node_until(node, deadline).await?;
@@ -6555,7 +6555,7 @@ impl Admin {
                 self.cluster.invalidate_controller();
                 let _ = self.conns.remove(&node);
                 self.wait_retry(&mut attempt, deadline).await?;
-                self.refresh_metadata_until(None, deadline).await?;
+                self.refresh_broker_directory(deadline).await?;
                 continue;
             }
             if resp.error_code != 0 {
@@ -6728,7 +6728,7 @@ impl Admin {
         let mut attempt = 0u32;
         loop {
             if self.cluster.controller().is_err() {
-                self.refresh_metadata_until(None, deadline).await?;
+                self.refresh_broker_directory(deadline).await?;
             }
             let node = self.cluster.controller()?;
             self.connect_node_until(node, deadline).await?;
@@ -6764,7 +6764,7 @@ impl Admin {
                 self.cluster.invalidate_controller();
                 let _ = self.conns.remove(&node);
                 self.wait_retry(&mut attempt, deadline).await?;
-                self.refresh_metadata_until(None, deadline).await?;
+                self.refresh_broker_directory(deadline).await?;
                 continue;
             }
             return Ok(results
@@ -6818,7 +6818,7 @@ impl Admin {
         let mut attempt = 0u32;
         loop {
             if self.cluster.controller().is_err() {
-                self.refresh_metadata_until(None, deadline).await?;
+                self.refresh_broker_directory(deadline).await?;
             }
             let node = self.cluster.controller()?;
             self.connect_node_until(node, deadline).await?;
@@ -6850,7 +6850,7 @@ impl Admin {
                 self.cluster.invalidate_controller();
                 let _ = self.conns.remove(&node);
                 self.wait_retry(&mut attempt, deadline).await?;
-                self.refresh_metadata_until(None, deadline).await?;
+                self.refresh_broker_directory(deadline).await?;
                 continue;
             }
             if resp.error_code != 0 {
@@ -6918,7 +6918,7 @@ impl Admin {
         let mut attempt = 0u32;
         loop {
             if self.cluster.controller().is_err() {
-                self.refresh_metadata_until(None, deadline).await?;
+                self.refresh_broker_directory(deadline).await?;
             }
             let node = self.cluster.controller()?;
             self.connect_node_until(node, deadline).await?;
@@ -6951,7 +6951,7 @@ impl Admin {
                 self.cluster.invalidate_controller();
                 let _ = self.conns.remove(&node);
                 self.wait_retry(&mut attempt, deadline).await?;
-                self.refresh_metadata_until(None, deadline).await?;
+                self.refresh_broker_directory(deadline).await?;
                 continue;
             }
             if resp.error_code != 0 {
@@ -7098,7 +7098,7 @@ impl Admin {
         let mut attempt = 0u32;
         loop {
             if self.cluster.controller().is_err() {
-                self.refresh_metadata_until(None, deadline).await?;
+                self.refresh_broker_directory(deadline).await?;
             }
             let node = self.cluster.controller()?;
             self.connect_node_until(node, deadline).await?;
@@ -7134,7 +7134,7 @@ impl Admin {
                 self.cluster.invalidate_controller();
                 let _ = self.conns.remove(&node);
                 self.wait_retry(&mut attempt, deadline).await?;
-                self.refresh_metadata_until(None, deadline).await?;
+                self.refresh_broker_directory(deadline).await?;
                 continue;
             }
             return Ok(results);
@@ -7177,7 +7177,7 @@ impl Admin {
         let mut attempt = 0u32;
         loop {
             if self.cluster.controller().is_err() {
-                self.refresh_metadata_until(None, deadline).await?;
+                self.refresh_broker_directory(deadline).await?;
             }
             let node = self.cluster.controller()?;
             self.connect_node_until(node, deadline).await?;
@@ -7210,7 +7210,7 @@ impl Admin {
                 self.cluster.invalidate_controller();
                 let _ = self.conns.remove(&node);
                 self.wait_retry(&mut attempt, deadline).await?;
-                self.refresh_metadata_until(None, deadline).await?;
+                self.refresh_broker_directory(deadline).await?;
                 continue;
             }
             if resp.error_code != 0 {
@@ -8402,6 +8402,19 @@ impl Admin {
         self.metadata_image.check()?;
         self.cluster.apply(&self.metadata_image, version);
         Ok(())
+    }
+
+    /// Brokers and the controller, without downloading the topic list.
+    ///
+    /// Metadata v1+ empty topic array is that directory. v0 cannot say
+    /// "no topics", so it still asks for every topic.
+    async fn refresh_broker_directory(&mut self, deadline: Instant) -> Result<()> {
+        if self.metadata_version == 0 {
+            return self.refresh_metadata_until(None, deadline).await;
+        }
+        let topics: [&str; 0] = [];
+        self.refresh_metadata_ref(Some(topics.as_slice()), deadline)
+            .await
     }
 
     /// Refresh metadata using only the time still left on `deadline`.
@@ -12945,7 +12958,7 @@ impl Admin {
         let req = AssignReplicasToDirsRequest::new(broker_id, broker_epoch, directories);
         loop {
             if self.cluster.controller().is_err() {
-                self.refresh_metadata_until(None, deadline).await?;
+                self.refresh_broker_directory(deadline).await?;
             }
             let node = self.cluster.controller()?;
             self.connect_node_until(node, deadline).await?;
@@ -12978,7 +12991,7 @@ impl Admin {
                 self.cluster.invalidate_controller();
                 let _ = self.conns.remove(&node);
                 self.wait_retry(&mut attempt, deadline).await?;
-                self.refresh_metadata_until(None, deadline).await?;
+                self.refresh_broker_directory(deadline).await?;
                 continue;
             }
             if resp.error_code != 0 {
@@ -13426,7 +13439,7 @@ impl Admin {
 
     async fn ensure_broker(&mut self, node: i32, deadline: Instant) -> Result<()> {
         if !self.cluster.brokers.contains_key(&node) {
-            self.refresh_metadata_until(None, deadline).await?;
+            self.refresh_broker_directory(deadline).await?;
         }
         if self.cluster.brokers.contains_key(&node) {
             Ok(())
@@ -13797,7 +13810,7 @@ impl Admin {
             Error::Unsupported("broker does not support FindCoordinator v0-6".into())
         })?;
         if version > 0 && self.cluster.brokers.is_empty() {
-            self.refresh_metadata_until(None, deadline).await?;
+            self.refresh_broker_directory(deadline).await?;
         }
         let mut attempt = 0u32;
         loop {
@@ -13854,7 +13867,7 @@ impl Admin {
                     return Ok(node);
                 }
                 if !self.cluster.brokers.contains_key(&node) {
-                    self.refresh_metadata_until(None, deadline).await?;
+                    self.refresh_broker_directory(deadline).await?;
                 }
                 return Ok(node);
             }
@@ -13915,7 +13928,7 @@ impl Admin {
             return Ok(out);
         }
         if self.cluster.brokers.is_empty() {
-            self.refresh_metadata_until(None, deadline).await?;
+            self.refresh_broker_directory(deadline).await?;
         }
         let mut attempt = 0u32;
         loop {
@@ -13953,7 +13966,7 @@ impl Admin {
                     .ok_or_else(|| Error::protocol(format!("FindCoordinator missing {k}")))?;
                 if err == 0 {
                     if !self.cluster.brokers.contains_key(&node) {
-                        self.refresh_metadata_until(None, deadline).await?;
+                        self.refresh_broker_directory(deadline).await?;
                     }
                     let _prev = out.insert((*k).to_owned(), node);
                     continue;
@@ -14402,7 +14415,7 @@ impl Admin {
             ));
         }
         if self.cluster.brokers.is_empty() {
-            self.refresh_metadata_until(None, deadline).await?;
+            self.refresh_broker_directory(deadline).await?;
         }
         let mut attempt = 0u32;
         loop {
@@ -14436,7 +14449,7 @@ impl Admin {
                 decode_find_coordinator_response(&mut body.clone(), version)?;
             if err == 0 {
                 if !self.cluster.brokers.contains_key(&node) {
-                    self.refresh_metadata_until(None, deadline).await?;
+                    self.refresh_broker_directory(deadline).await?;
                 }
                 return Ok(node);
             }
