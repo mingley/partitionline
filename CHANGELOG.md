@@ -418,6 +418,11 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   set or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
   delivers the fetch; this is not partition `UNSUPPORTED_SASL_MECHANISM`,
   which fails that poll, and not piggyback `INVALID_TIMESTAMP`). A
+  piggybacked `ILLEGAL_SASL_STATE` still
+  completes without retry, including when `AcknowledgeErrorMessage` is
+  set (Java `handleShareFetchSuccess` completes piggyback acks and still
+  delivers the fetch; this is not partition `ILLEGAL_SASL_STATE`,
+  which fails that poll, and not piggyback `UNSUPPORTED_SASL_MECHANISM`). A
   piggybacked `TOPIC_AUTHORIZATION_FAILED` on
   one partition does not fail a sibling whose `AcknowledgeErrorCode`
   is none, including when `AcknowledgeErrorMessage` is set or empty. A
