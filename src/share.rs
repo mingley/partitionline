@@ -894,7 +894,7 @@ pub enum ShareAcquireMode {
 /// `INCONSISTENT_GROUP_PROTOCOL`, which fails that poll, and not piggyback
 /// `ILLEGAL_GENERATION`). A piggybacked
 /// `INVALID_GROUP_ID` still completes without retry,
-/// including when `AcknowledgeErrorMessage` is set (Java
+/// including when `AcknowledgeErrorMessage` is set or empty (Java
 /// `handleShareFetchSuccess` completes piggyback acks and still
 /// delivers the fetch; this is not partition
 /// `INVALID_GROUP_ID`, which fails that poll, and not piggyback
@@ -2350,7 +2350,7 @@ impl ShareGroup {
     /// `ILLEGAL_GENERATION`).
     /// A piggybacked `INVALID_GROUP_ID` still completes
     /// without retry, including when `AcknowledgeErrorMessage` is set
-    /// (Java `handleShareFetchSuccess` completes piggyback acks and
+    /// or empty (Java `handleShareFetchSuccess` completes piggyback acks and
     /// still delivers the fetch; this is not partition
     /// `INVALID_GROUP_ID`, which fails that poll, and not piggyback
     /// `INCONSISTENT_GROUP_PROTOCOL`).
