@@ -869,6 +869,10 @@ pub struct ShareGroup {
     ack_topic: Option<Arc<str>>,
     /// Acknowledge-type lists from the previous call. A one-type range refills one.
     spare_ack_types: Vec<Vec<i8>>,
+    /// Acknowledgement partitions from the previous call. Cleared and refilled.
+    ack_partitions: Vec<AckPartition>,
+    /// Acknowledgement-batch lists from the previous call.
+    spare_ack_batches: Vec<Vec<AcknowledgementBatch>>,
     /// Partition and offset pairs for a one-topic acknowledgement. Reused
     /// across calls.
     ack_pairs: Vec<(i32, i64)>,
@@ -1469,6 +1473,8 @@ impl ShareGroup {
             ack_offsets: Vec::new(),
             ack_topic: None,
             spare_ack_types: Vec::new(),
+            ack_partitions: Vec::new(),
+            spare_ack_batches: Vec::new(),
             ack_pairs: Vec::new(),
             fetch_cursors: Vec::new(),
             spare_incoming: Vec::new(),
@@ -3236,34 +3242,55 @@ impl ShareGroup {
                 ));
             }
         }
-        let mut partitions = acknowledgement_batches_with(
+        let mut partitions = std::mem::take(&mut self.ack_partitions);
+        acknowledgement_batches_with(
             recs,
             ack,
             &mut self.ack_offsets,
             &mut self.ack_pairs,
             &mut self.ack_topic,
             &mut self.spare_ack_types,
+            &mut partitions,
+            &mut self.spare_ack_batches,
         );
         let deadline = Instant::now() + self.cfg.request_timeout;
         let mut attempt = 0u32;
-        loop {
+        let result = loop {
             match self
                 .acknowledge_leaders(&mut partitions, ack, deadline)
                 .await
             {
-                Ok(()) => return Ok(()),
+                Ok(()) => break Ok(()),
                 Err(error) if share_ack_retriable(&error) && !partitions.is_empty() => {
                     if Instant::now() >= deadline {
-                        return Err(Error::Timeout);
+                        break Err(Error::Timeout);
                     }
-                    self.consumer.sleep_retry_backoff(attempt, deadline).await?;
+                    if let Err(error) = self.consumer.sleep_retry_backoff(attempt, deadline).await {
+                        break Err(error);
+                    }
                     attempt = attempt.saturating_add(1);
                     if Instant::now() >= deadline {
-                        return Err(Error::Timeout);
+                        break Err(Error::Timeout);
                     }
                 }
-                Err(error) => return Err(error),
+                Err(error) => break Err(error),
             }
+        };
+        self.park_ack_partitions(partitions);
+        result
+    }
+
+    fn park_ack_partitions(&mut self, mut partitions: Vec<AckPartition>) {
+        partitions.clear();
+        if partitions.capacity() >= self.ack_partitions.capacity() {
+            self.ack_partitions = partitions;
+        }
+    }
+
+    fn park_ack_batches(&mut self, mut batches: Vec<AcknowledgementBatch>) {
+        batches.clear();
+        if batches.capacity() > 0 {
+            self.spare_ack_batches.push(batches);
         }
     }
 
@@ -3448,15 +3475,16 @@ impl ShareGroup {
                     .records_acknowledged
                     .saturating_add(u64::try_from(count).unwrap_or(u64::MAX));
             }
-            let batches = partitions
+            let mut batches = partitions
                 .first_mut()
                 .map(|item| std::mem::take(&mut item.2))
                 .unwrap_or_default();
-            for batch in batches {
+            for batch in batches.drain(..) {
                 if batch.types.capacity() > 0 {
                     self.spare_ack_types.push(batch.types);
                 }
             }
+            self.park_ack_batches(batches);
             partitions.clear();
             Ok(())
         } else {
@@ -4688,7 +4716,19 @@ fn acknowledgement_batches(recs: &[ShareRecord], ack: i8) -> Vec<AckPartition> {
     let mut pairs = Vec::new();
     let mut topic = None;
     let mut types = Vec::new();
-    acknowledgement_batches_with(recs, ack, &mut offsets, &mut pairs, &mut topic, &mut types)
+    let mut partitions = Vec::new();
+    let mut batches = Vec::new();
+    acknowledgement_batches_with(
+        recs,
+        ack,
+        &mut offsets,
+        &mut pairs,
+        &mut topic,
+        &mut types,
+        &mut partitions,
+        &mut batches,
+    );
+    partitions
 }
 
 fn reused_one_ack_type(spare: &mut Vec<Vec<i8>>, kind: i8) -> Vec<i8> {
@@ -4719,6 +4759,10 @@ fn share_topic_arc(topic: &crate::consumer::TopicName, cached: &mut Option<Arc<s
     shared
 }
 
+#[expect(
+    clippy::too_many_arguments,
+    reason = "acknowledgement grouping refills the caller's offset, pair, type, partition, and batch lists"
+)]
 fn acknowledgement_batches_with(
     recs: &[ShareRecord],
     ack: i8,
@@ -4726,7 +4770,10 @@ fn acknowledgement_batches_with(
     pairs: &mut Vec<(i32, i64)>,
     topic_name: &mut Option<Arc<str>>,
     ack_types: &mut Vec<Vec<i8>>,
-) -> Vec<AckPartition> {
+    out: &mut Vec<AckPartition>,
+    spare_batches: &mut Vec<Vec<AcknowledgementBatch>>,
+) {
+    out.clear();
     if let Some(first) = recs.first() {
         if recs
             .iter()
@@ -4735,22 +4782,23 @@ fn acknowledgement_batches_with(
         {
             offsets.clear();
             offsets.extend(recs.iter().map(|rec| rec.offset));
-            let batches = collapse_ack_offsets(offsets, ack, ack_types);
+            let batches = collapse_ack_offsets(offsets, ack, ack_types, spare_batches);
             if batches.is_empty() {
-                return Vec::new();
+                park_unused_ack_batches(spare_batches, batches);
+                return;
             }
-            return vec![(
+            out.push((
                 share_topic_arc(&first.topic, topic_name),
                 first.partition,
                 batches,
-            )];
+            ));
+            return;
         }
         if recs.iter().skip(1).all(|rec| rec.topic == first.topic) {
             pairs.clear();
             pairs.extend(recs.iter().map(|rec| (rec.partition, rec.offset)));
             pairs.sort_unstable();
             let name = share_topic_arc(&first.topic, topic_name);
-            let mut out = Vec::new();
             let mut start = 0usize;
             while start < pairs.len() {
                 let Some(partition) = pairs.get(start).map(|(partition, _)| *partition) else {
@@ -4764,13 +4812,15 @@ fn acknowledgement_batches_with(
                 if let Some(group) = pairs.get(start..end) {
                     offsets.extend(group.iter().map(|(_, offset)| *offset));
                 }
-                let batches = collapse_ack_offsets(offsets, ack, ack_types);
-                if !batches.is_empty() {
+                let batches = collapse_ack_offsets(offsets, ack, ack_types, spare_batches);
+                if batches.is_empty() {
+                    park_unused_ack_batches(spare_batches, batches);
+                } else {
                     out.push((Arc::clone(&name), partition, batches));
                 }
                 start = end;
             }
-            return out;
+            return;
         }
     }
     let mut by_part: BTreeMap<crate::consumer::TopicName, BTreeMap<i32, Vec<i64>>> =
@@ -4784,27 +4834,44 @@ fn acknowledgement_batches_with(
             let _ = by_part.insert(rec.topic.clone(), parts);
         }
     }
-    let mut out = Vec::new();
     for (topic, parts) in by_part {
         let name = share_topic_arc(&topic, topic_name);
         for (partition, mut offs) in parts {
-            let batches = collapse_ack_offsets(&mut offs, ack, ack_types);
-            if !batches.is_empty() {
+            let batches = collapse_ack_offsets(&mut offs, ack, ack_types, spare_batches);
+            if batches.is_empty() {
+                park_unused_ack_batches(spare_batches, batches);
+            } else {
                 out.push((Arc::clone(&name), partition, batches));
             }
         }
     }
-    out
+}
+
+fn park_unused_ack_batches(
+    spare: &mut Vec<Vec<AcknowledgementBatch>>,
+    mut batches: Vec<AcknowledgementBatch>,
+) {
+    batches.clear();
+    if batches.capacity() > 0 {
+        spare.push(batches);
+    }
+}
+
+fn take_ack_batches(spare: &mut Vec<Vec<AcknowledgementBatch>>) -> Vec<AcknowledgementBatch> {
+    let mut batches = spare.pop().unwrap_or_default();
+    batches.clear();
+    batches
 }
 
 fn collapse_ack_offsets(
     offsets: &mut Vec<i64>,
     ack: i8,
     ack_types: &mut Vec<Vec<i8>>,
+    spare_batches: &mut Vec<Vec<AcknowledgementBatch>>,
 ) -> Vec<AcknowledgementBatch> {
     offsets.sort_unstable();
     offsets.dedup();
-    let mut batches = Vec::new();
+    let mut batches = take_ack_batches(spare_batches);
     let mut range: Option<(i64, i64)> = None;
     for off in offsets.iter().copied() {
         range = match range {
@@ -5492,15 +5559,20 @@ mod tests {
         let mut pairs = Vec::new();
         let mut topic = None;
         let mut ack_types = Vec::new();
-        let first = super::acknowledgement_batches_with(
+        let mut spare_batches = Vec::new();
+        let mut first = Vec::new();
+        super::acknowledgement_batches_with(
             &recs,
             ACK_ACCEPT,
             &mut offsets,
             &mut pairs,
             &mut topic,
             &mut ack_types,
+            &mut first,
+            &mut spare_batches,
         );
         let ptr = offsets.as_ptr();
+        let list = first.as_ptr();
         let kept = first
             .first()
             .map(|part| Arc::clone(&part.0))
@@ -5510,19 +5582,29 @@ mod tests {
             .and_then(|part| part.2.first())
             .map(|batch| batch.types.as_ptr())
             .expect("ack type");
-        for (_, _, batches) in first {
-            for batch in batches {
-                ack_types.push(batch.types);
-            }
+        let mut kept_batches = first
+            .first_mut()
+            .map(|part| std::mem::take(&mut part.2))
+            .expect("batches");
+        let batch_ptr = kept_batches.as_ptr();
+        for batch in kept_batches.drain(..) {
+            ack_types.push(batch.types);
         }
-        let again = super::acknowledgement_batches_with(
+        spare_batches.push(kept_batches);
+        first.clear();
+        super::acknowledgement_batches_with(
             &recs,
             ACK_ACCEPT,
             &mut offsets,
             &mut pairs,
             &mut topic,
             &mut ack_types,
+            &mut first,
+            &mut spare_batches,
         );
+        assert_eq!(first.as_ptr(), list);
+        assert_eq!(first.first().map(|part| part.2.as_ptr()), Some(batch_ptr));
+        let again = &first;
         assert_eq!(offsets.as_ptr(), ptr);
         let again_name = again
             .first()
@@ -5553,22 +5635,29 @@ mod tests {
         let mut pairs = Vec::new();
         let mut topic = None;
         let mut ack_types = Vec::new();
-        let first = super::acknowledgement_batches_with(
+        let mut spare_batches = Vec::new();
+        let mut first = Vec::new();
+        super::acknowledgement_batches_with(
             &recs,
             ACK_ACCEPT,
             &mut offsets,
             &mut pairs,
             &mut topic,
             &mut ack_types,
+            &mut first,
+            &mut spare_batches,
         );
         let ptr = pairs.as_ptr();
-        let again = super::acknowledgement_batches_with(
+        let mut again = Vec::new();
+        super::acknowledgement_batches_with(
             &recs,
             ACK_ACCEPT,
             &mut offsets,
             &mut pairs,
             &mut topic,
             &mut ack_types,
+            &mut again,
+            &mut spare_batches,
         );
         assert_eq!(pairs.as_ptr(), ptr);
         assert_eq!(first.len(), 2);
