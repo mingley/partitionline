@@ -2066,7 +2066,7 @@
 //! `UNKNOWN_TOPIC_ID`). Top-level `SHARE_SESSION_NOT_FOUND` does
 //! not request Metadata when `ErrorMessage` is set or empty. Top-level
 //! `INVALID_SHARE_SESSION_EPOCH` does not request Metadata when
-//! `ErrorMessage` is set; the initial share
+//! `ErrorMessage` is set or empty; the initial share
 //! session does not piggyback and those acknowledgements complete with
 //! `NOT_LEADER_OR_FOLLOWER` (Java
 //! `testPiggybackAcknowledgementsOnInitialShareSessionError`). After
