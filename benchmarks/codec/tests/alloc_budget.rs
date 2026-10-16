@@ -42,7 +42,7 @@ const BUDGETS: &[(&str, u64, u64)] = &[
     ("micro-compress/gzip", 16, 590_162),
     ("micro-compress/snappy", 14, 261_187),
     ("micro-compress/lz4", 16, 344_593),
-    ("micro-request/v9", 17, 70_766),
+    ("micro-request/v9", 1, 12_653),
     ("micro-decode/1", 2, 128),
     ("micro-decode/1000", 2, 104_024),
 ];

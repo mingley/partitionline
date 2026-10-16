@@ -3261,6 +3261,13 @@ fn encode_produce_request_fields(
         }
     }
     let flexible = produce_flexible(version)?;
+    let body_start = buf.len();
+    let plan = produce_request_plan(version, flexible, transactional_id, topics)?;
+    let needed = body_start.saturating_add(plan.len);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
+    let mut staged = plan.staged.into_iter();
     if version >= 3 {
         buf::put_string(buf, flexible, transactional_id)?;
     }
@@ -3277,17 +3284,16 @@ fn encode_produce_request_fields(
         buf::put_array_len(buf, flexible, Some(topic.partitions.len()))?;
         for part in &topic.partitions {
             buf.put_i32(part.index);
-            if flexible {
-                let mut recs = BytesMut::new();
-                records::encode_record_batch(&mut recs, &part.records)?;
-                buf::put_bytes(buf, flexible, Some(&recs))?;
-                buf::put_empty_tagged_fields(buf);
-            } else {
-                let len_pos = buf.len();
-                buf.put_i32(0);
-                records::encode_record_batch(buf, &part.records)?;
-                let rec_len = buf::i32_from_usize(buf.len().saturating_sub(len_pos + 4))?;
-                buf::patch_i32(buf, len_pos, rec_len)?;
+            let ready = staged.next().flatten();
+            let batch_len = match ready.as_ref() {
+                Some(ready) => ready.len(),
+                None => produce_uncompressed_batch_len(&part.records)?,
+            };
+            let mark = buf.len();
+            let written = write_produce_batch(buf, flexible, &part.records, batch_len, ready);
+            if let Err(error) = written {
+                buf.truncate(mark);
+                return Err(error);
             }
         }
         if flexible {
@@ -3296,6 +3302,150 @@ fn encode_produce_request_fields(
     }
     if flexible {
         buf::put_empty_tagged_fields(buf);
+    }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), plan.len);
+    Ok(())
+}
+
+struct ProduceRequestPlan {
+    len: usize,
+    /// Parallel to every partition when any batch is compressed. `None` means
+    /// the batch is uncompressed and is encoded directly into the request.
+    staged: Vec<Option<BytesMut>>,
+}
+
+fn produce_batch_header(batch: &RecordBatch) -> Result<records::BatchHeader> {
+    Ok(records::BatchHeader {
+        base_offset: batch.base_offset,
+        partition_leader_epoch: batch.partition_leader_epoch,
+        attributes: batch.attributes,
+        base_timestamp: batch.base_timestamp,
+        max_timestamp: batch.max_timestamp,
+        producer_id: batch.producer_id,
+        producer_epoch: batch.producer_epoch,
+        base_sequence: batch.base_sequence,
+        count: buf::i32_from_usize(batch.records.len())?,
+    })
+}
+
+fn produce_uncompressed_batch_len(batch: &RecordBatch) -> Result<usize> {
+    records::uncompressed_batch_len(
+        &produce_batch_header(batch)?,
+        batch.records.iter().map(records::EncodeRecord::from_record),
+    )
+}
+
+fn produce_batch_is_compressed(batch: &RecordBatch) -> Result<bool> {
+    Ok(!matches!(
+        records::Compression::from_attributes(batch.attributes)?,
+        records::Compression::None
+    ))
+}
+
+fn produce_request_plan(
+    version: i16,
+    flexible: bool,
+    transactional_id: Option<&str>,
+    topics: &[ProduceTopicData],
+) -> Result<ProduceRequestPlan> {
+    let compressed = topics.iter().any(|topic| {
+        topic
+            .partitions
+            .iter()
+            .any(|part| produce_batch_is_compressed(&part.records).unwrap_or(true))
+    });
+    let mut staged = Vec::new();
+    let mut total = if version >= 3 {
+        metadata_string_len(flexible, transactional_id)?
+    } else {
+        0
+    };
+    total = add_produce_len(total, 6)?;
+    total = add_produce_len(total, metadata_array_len(flexible, Some(topics.len()))?)?;
+    for topic in topics {
+        if version <= 12 {
+            total = add_produce_len(total, metadata_string_len(flexible, Some(&topic.topic))?)?;
+        } else {
+            total = add_produce_len(total, 16)?;
+        }
+        total = add_produce_len(
+            total,
+            metadata_array_len(flexible, Some(topic.partitions.len()))?,
+        )?;
+        for part in &topic.partitions {
+            total = add_produce_len(total, 4)?;
+            let (batch_len, encoded) = if produce_batch_is_compressed(&part.records)? {
+                let mut encoded = BytesMut::new();
+                records::encode_record_batch(&mut encoded, &part.records)?;
+                let batch_len = encoded.len();
+                (batch_len, Some(encoded))
+            } else {
+                (produce_uncompressed_batch_len(&part.records)?, None)
+            };
+            if compressed {
+                staged.push(encoded);
+            }
+            let prefix = if flexible {
+                let compact = buf::u32_from_usize(batch_len)?
+                    .checked_add(1)
+                    .ok_or_else(|| Error::protocol("compact bytes overflow"))?;
+                buf::unsigned_varint_size(compact)
+            } else {
+                let _len = buf::i32_from_usize(batch_len)?;
+                4
+            };
+            total = add_produce_len(total, prefix)?;
+            total = add_produce_len(total, batch_len)?;
+            if flexible {
+                total = add_produce_len(total, buf::unsigned_varint_size(0))?;
+            }
+        }
+        if flexible {
+            total = add_produce_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    if flexible {
+        total = add_produce_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(ProduceRequestPlan { len: total, staged })
+}
+
+fn write_produce_batch(
+    buf: &mut BytesMut,
+    flexible: bool,
+    batch: &RecordBatch,
+    batch_len: usize,
+    ready: Option<BytesMut>,
+) -> Result<()> {
+    if flexible {
+        let compact = buf::u32_from_usize(batch_len)?
+            .checked_add(1)
+            .ok_or_else(|| Error::protocol("compact bytes overflow"))?;
+        buf::put_unsigned_varint(buf, compact);
+    } else {
+        buf.put_i32(buf::i32_from_usize(batch_len)?);
+    }
+    write_produce_batch_bytes(buf, batch, batch_len, ready)?;
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
+    Ok(())
+}
+
+fn write_produce_batch_bytes(
+    buf: &mut BytesMut,
+    batch: &RecordBatch,
+    batch_len: usize,
+    ready: Option<BytesMut>,
+) -> Result<()> {
+    let start = buf.len();
+    if let Some(ready) = ready {
+        buf.extend_from_slice(&ready);
+    } else {
+        records::encode_record_batch(buf, batch)?;
+    }
+    if buf.len().saturating_sub(start) != batch_len {
+        return Err(Error::protocol("produce batch length mismatch"));
     }
     Ok(())
 }
@@ -6520,6 +6670,33 @@ mod tests {
         encode_produce_response_with_topic_ids(&mut buf, &parts, &[], 0, &ids).unwrap();
         assert_eq!(buf.len(), len);
         assert_eq!(buf.capacity(), capacity);
+    }
+
+    #[test]
+    fn a_produce_request_sizes_its_body_once() {
+        let records = RecordBatch::from_records(vec![Record {
+            offset: 0,
+            timestamp: 1,
+            key: Some(Bytes::from_static(b"k")),
+            value: Some(Bytes::from_static(b"value")),
+            headers: vec![],
+        }]);
+        let topics = [ProduceTopicData {
+            topic: "orders".into(),
+            partitions: vec![ProducePartitionData { index: 0, records }],
+        }];
+        for version in [3_i16, 9] {
+            let mut buf = BytesMut::new();
+            encode_produce_request(&mut buf, version, Some("txn"), 1, 1_000, &topics).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_produce_request(&mut buf, version, Some("txn"), 1, 1_000, &topics).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+        }
     }
 
     #[test]
