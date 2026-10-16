@@ -4962,7 +4962,7 @@ impl Worker {
                     if cancelled {
                         drop(policy);
                         drop(cluster);
-                        fail_pendings(&shared, batch, Error::Timeout);
+                        self.fail_kept_batch(batch, Error::Timeout);
                         continue;
                     }
                     batch.sort_by_key(|p| p.sticky.map_or(0, |tag| tag.index));
@@ -5022,7 +5022,7 @@ impl Worker {
         }
         if !expired.is_empty() {
             self.recompute_pending_estimate();
-            fail_pendings(&self.shared, expired, Error::Timeout);
+            self.fail_kept_batch(expired, Error::Timeout);
         }
     }
 
@@ -5255,7 +5255,7 @@ impl Worker {
                         "broker at {addr} does not support usable Produce v3-13"
                     ));
                     let pending = self.take_all_pending();
-                    fail_pendings(&self.shared, pending, clone_err(&e));
+                    self.fail_kept_batch(pending, clone_err(&e));
                     self.note_fail(e.clone());
                     return Err(e);
                 }
@@ -5266,7 +5266,7 @@ impl Worker {
                         self.requeue_pendings(pending);
                         return Ok(());
                     }
-                    fail_pendings(&self.shared, pending, clone_err(&e));
+                    self.fail_kept_batch(pending, clone_err(&e));
                     self.note_fail(e.clone());
                     return Err(e);
                 }
@@ -5285,7 +5285,7 @@ impl Worker {
         };
         if let Some(p) = batch.iter().find(|p| p.rec.partition.is_none()) {
             let e = Error::protocol(format!("produce without partition topic={}", p.rec.topic));
-            fail_pendings(&self.shared, batch, clone_err(&e));
+            self.fail_kept_batch(batch, clone_err(&e));
             self.note_fail(e.clone());
             return Err(e);
         }
@@ -5712,7 +5712,7 @@ impl Worker {
             match found {
                 None => {
                     let e = Error::protocol("missing produce response");
-                    fail_pendings(&self.shared, pendings, clone_err(&e));
+                    self.fail_kept_batch(pendings, clone_err(&e));
                     if first_err.is_none() {
                         first_err = Some(e);
                     }
@@ -5767,7 +5767,7 @@ impl Worker {
                                     self.requeue_pendings(pendings);
                                 }
                                 Err(renew_err) => {
-                                    fail_pendings(&self.shared, pendings, clone_err(&renew_err));
+                                    self.fail_kept_batch(pendings, clone_err(&renew_err));
                                     if first_err.is_none() {
                                         first_err = Some(renew_err);
                                     }
@@ -5806,12 +5806,12 @@ impl Worker {
                                 }
                             }
                         }
-                        fail_pendings(&self.shared, pendings, clone_err(&e));
+                        self.fail_kept_batch(pendings, clone_err(&e));
                         if first_err.is_none() {
                             first_err = Some(e);
                         }
                     } else {
-                        fail_pendings(&self.shared, pendings, clone_err(&e));
+                        self.fail_kept_batch(pendings, clone_err(&e));
                         if first_err.is_none() {
                             first_err = Some(e);
                         }
@@ -6016,6 +6016,12 @@ impl Worker {
 
     fn park_batch(&mut self, batch: Vec<Pending>) {
         park_spare(&mut self.spare_batch, batch);
+    }
+
+    /// Fail every record and keep the batch allocation for the next send.
+    fn fail_kept_batch(&mut self, batch: Vec<Pending>, err: Error) {
+        let empty = fail_kept_pendings(&self.shared, batch, err);
+        self.park_batch(empty);
     }
 
     fn requeue_pendings(&mut self, mut pendings: Vec<Pending>) {
@@ -7229,6 +7235,11 @@ fn fail_groups(
 }
 
 fn fail_pendings(shared: &Shared, pendings: Vec<Pending>, err: Error) {
+    let _empty = fail_kept_pendings(shared, pendings, err);
+}
+
+/// Fail every record and return the emptied batch so its allocation can be reused.
+fn fail_kept_pendings(shared: &Shared, mut pendings: Vec<Pending>, err: Error) -> Vec<Pending> {
     shared.retire_sticky(&pendings, true);
     shared.release_buffer(pendings_bytes(&pendings));
     let one_topic = pendings.first().is_some_and(|first| {
@@ -7242,7 +7253,7 @@ fn fail_pendings(shared: &Shared, pendings: Vec<Pending>, err: Error) {
             shared.note_errors(&first.rec.topic, n);
         }
     }
-    for pending in pendings {
+    for pending in pendings.drain(..) {
         if !one_topic {
             shared.note_errors(&pending.rec.topic, 1);
         }
@@ -7251,6 +7262,7 @@ fn fail_pendings(shared: &Shared, pendings: Vec<Pending>, err: Error) {
             drop(tx.send(Err(clone_err(&err))));
         }
     }
+    pendings
 }
 
 fn clone_err(err: &Error) -> Error {
