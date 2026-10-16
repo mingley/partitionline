@@ -16833,6 +16833,69 @@ async fn share_fetch_top_level_session_limit_empty_message_does_not_refresh_meta
 }
 
 #[tokio::test]
+async fn share_fetch_top_level_session_not_found_message_does_not_refresh_metadata() {
+    let mock = common::Mock::start().await;
+    v2(&mock);
+    produce(&mock, &[(0, b"first"), (0, b"second")]).await;
+    let mut cfg = config(&mock);
+    cfg.max_poll_records = Some(1);
+    cfg.share_acknowledgement_mode = ShareAcknowledgementMode::Implicit;
+    let mut group = ShareGroup::join(cfg, "fetch-not-found-top-msg", "t")
+        .await
+        .unwrap();
+    let first = group.poll().await.unwrap();
+    assert_eq!(first.len(), 1);
+    let first_off = first[0].offset;
+    let after_first = mock.metadata_calls();
+    let seen = Arc::new(Mutex::new(Vec::new()));
+    let seen_cb = seen.clone();
+    group.set_acknowledgement_commit_callback(move |_, exception| {
+        seen_cb.lock().push(
+            exception
+                .as_ref()
+                .map(|error| (error.code(), error.message().to_owned())),
+        );
+    });
+    let version = mock.last_share_fetch_version().unwrap_or(2);
+    let mut injected = BytesMut::new();
+    encode_share_fetch_error_with_message(
+        &mut injected,
+        version,
+        error::SHARE_SESSION_NOT_FOUND,
+        Some("share session not found"),
+    )
+    .unwrap();
+    mock.inject_share_fetch_response_once(&injected);
+    let second = group.poll().await.unwrap();
+    assert_eq!(
+        *seen.lock(),
+        vec![Some((
+            Some(error::SHARE_SESSION_NOT_FOUND),
+            "share session not found".into()
+        ))],
+        "Java handleShareFetchSuccess completes piggybacked acks with ErrorMessage"
+    );
+    assert!(
+        !mock.share_accepted("fetch-not-found-top-msg", "t", 0, first_off),
+        "session not found must not apply the piggybacked ACCEPT"
+    );
+    assert_eq!(second.len(), 1);
+    assert_ne!(second[0].offset, first_off);
+    assert_eq!(
+        mock.last_share_fetch_epoch(),
+        Some(0),
+        "Java ShareFetch handleResponse nextCloseExistingAttemptNew for SHARE_SESSION_NOT_FOUND"
+    );
+    assert_eq!(
+        mock.metadata_calls(),
+        after_first,
+        "Java handleShareFetchSuccess does not requestUpdate for top-level SHARE_SESSION_NOT_FOUND"
+    );
+    assert_eq!(group.metrics().records_acknowledged, 0);
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn share_fetch_top_level_unknown_topic_id_message_still_refreshes_topic_id() {
     let mock = common::Mock::start().await;
     v2(&mock);

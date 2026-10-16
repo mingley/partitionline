@@ -251,7 +251,10 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   fallback `ShareFetch`). ShareFetch top-level
   `SHARE_SESSION_LIMIT_REACHED` does not request Metadata when
   `ErrorMessage` is set or empty (Java `handleShareFetchSuccess`
-  only `requestUpdate`s for `UNKNOWN_TOPIC_ID`).
+  only `requestUpdate`s for `UNKNOWN_TOPIC_ID`). ShareFetch
+  top-level `SHARE_SESSION_NOT_FOUND` does not request Metadata
+  when `ErrorMessage` is set (Java `handleShareFetchSuccess` only
+  `requestUpdate`s for `UNKNOWN_TOPIC_ID`).
 
 - ShareFetch partition `INCONSISTENT_TOPIC_ID` / `UNKNOWN_TOPIC_OR_PARTITION`
   / `UNKNOWN_TOPIC_ID` / `REPLICA_NOT_AVAILABLE` / `OFFSET_NOT_AVAILABLE`
