@@ -318,19 +318,23 @@ pub(super) fn accept_names(names: Option<&[String]>, allow: bool) -> Result<()> 
     Ok(())
 }
 
-pub(super) fn encode_names(
+pub(super) fn encode_names<T: AsRef<str>>(
     output: &mut BytesMut,
-    names: Option<&[String]>,
+    names: Option<&[T]>,
     allow: bool,
     topic_auth: bool,
 ) -> Result<()> {
     request_policy(allow, topic_auth, false)?;
-    let names = names.unwrap_or(&[]);
-    let (count, bytes) = names_size(names.iter().map(String::as_str))?;
+    let (count, bytes) = match names {
+        Some(names) => names_size(names.iter().map(|name| name.as_ref()))?,
+        None => names_size(std::iter::empty())?,
+    };
     output.reserve(bytes);
     output.put_i32(count);
-    for name in names {
-        put_name(output, name)?;
+    if let Some(names) = names {
+        for name in names {
+            put_name(output, name.as_ref())?;
+        }
     }
     Ok(())
 }

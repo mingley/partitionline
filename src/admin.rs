@@ -74,8 +74,8 @@ use crate::protocol::admin::{
 };
 use crate::protocol::api::{
     decode_api_versions_response, decode_metadata_response, decode_metadata_response_into,
-    encode_api_versions_request, encode_metadata_request_topics, ApiVersion, MetadataRequestTopic,
-    MetadataResponse,
+    encode_api_versions_request, encode_metadata_request, encode_metadata_request_topics,
+    encode_metadata_request_with, ApiVersion, MetadataRequestTopic, MetadataResponse,
 };
 use crate::protocol::api_keys::{
     pick_version, ALLOCATE_PRODUCER_IDS, ALTER_CLIENT_QUOTAS, ALTER_CONFIGS,
@@ -8270,8 +8270,32 @@ impl Admin {
         include_topic_authorized_operations: bool,
         deadline: Instant,
     ) -> Result<()> {
+        self.exchange_metadata(
+            topics.is_some(),
+            include_topic_authorized_operations,
+            deadline,
+            |buf, version| {
+                encode_metadata_request_topics(
+                    buf,
+                    version,
+                    topics,
+                    version < 4 && topics.is_none(),
+                    include_topic_authorized_operations,
+                )
+            },
+        )
+        .await
+    }
+
+    async fn exchange_metadata(
+        &mut self,
+        topic_selection: bool,
+        include_topic_authorized_operations: bool,
+        deadline: Instant,
+        encode_body: impl FnOnce(&mut BytesMut, i16) -> Result<()>,
+    ) -> Result<()> {
         let version = self.metadata_version;
-        if version == 0 && topics.is_some() {
+        if version == 0 && topic_selection {
             return Err(Error::Unsupported(
                 "Metadata v0 cannot represent this Admin topic selection or disable topic creation"
                     .into(),
@@ -8284,7 +8308,7 @@ impl Admin {
         }
         self.ensure_bootstrap(deadline).await?;
         let version = self.metadata_version;
-        if version == 0 && (topics.is_some() || include_topic_authorized_operations) {
+        if version == 0 && (topic_selection || include_topic_authorized_operations) {
             return Err(Error::Unsupported(
                 "Metadata v0 cannot represent this Admin request".into(),
             ));
@@ -8293,15 +8317,7 @@ impl Admin {
             .roundtrip_bootstrap(
                 METADATA,
                 version,
-                |buf| {
-                    encode_metadata_request_topics(
-                        buf,
-                        version,
-                        topics,
-                        version < 4 && topics.is_none(),
-                        include_topic_authorized_operations,
-                    )
-                },
+                |buf| encode_body(buf, version),
                 startup_remaining(deadline)?,
             )
             .await?;
@@ -8321,10 +8337,11 @@ impl Admin {
         if timeout.is_zero() {
             return Err(Error::Timeout);
         }
-        let owned =
-            topics.map(|names| MetadataRequestTopic::convert_from_names(names.iter().cloned()));
-        self.fetch_metadata_request_with(owned.as_deref(), false, timeout)
-            .await
+        let deadline = Instant::now().checked_add(timeout).ok_or(Error::Timeout)?;
+        self.exchange_metadata(topics.is_some(), false, deadline, |buf, version| {
+            encode_metadata_request(buf, version, topics, version < 4 && topics.is_none())
+        })
+        .await
     }
 
     /// Wait [`AdminConfig::retry_backoff`] (exponential) or [`Error::Timeout`].
@@ -12595,9 +12612,22 @@ impl Admin {
         include_authorized_operations: bool,
         timeout: Duration,
     ) -> Result<Vec<TopicDescription>> {
-        let owned = MetadataRequestTopic::convert_from_names(names.iter().cloned());
-        self.fetch_metadata_request_with(Some(&owned), include_authorized_operations, timeout)
-            .await?;
+        let deadline = Instant::now().checked_add(timeout).ok_or(Error::Timeout)?;
+        self.exchange_metadata(
+            true,
+            include_authorized_operations,
+            deadline,
+            |buf, version| {
+                encode_metadata_request_with(
+                    buf,
+                    version,
+                    Some(names),
+                    false,
+                    include_authorized_operations,
+                )
+            },
+        )
+        .await?;
         Ok(topic_descriptions_for_names(&self.metadata_image, names))
     }
 

@@ -14,8 +14,9 @@ use crate::partitioner::{
     partition_for_key, to_positive, Partitioner, PartitionerBox, StickyState, StickyTag,
 };
 use crate::protocol::api::{
-    decode_metadata_response_into, decode_produce_acks_into, encode_metadata_request, ApiVersion,
-    ApiVersionsResponse, MetadataResponse, ProduceAck, ProduceRequest,
+    decode_metadata_response_into, decode_produce_acks_into, encode_metadata_request,
+    encode_metadata_request_names, ApiVersion, ApiVersionsResponse, MetadataResponse, ProduceAck,
+    ProduceRequest,
 };
 use crate::protocol::api_keys::{
     pick_version, ADD_OFFSETS_TO_TXN, ADD_PARTITIONS_TO_TXN, END_TXN, FIND_COORDINATOR,
@@ -3242,12 +3243,13 @@ impl Producer {
         let mut conn = self.inner.shared.meta.lock().await;
         let version = self.inner.shared.metadata_version;
         let allow = self.inner.shared.cfg.allow_auto_topic_creation;
-        let topics = [topic.clone()];
         let body = conn
             .roundtrip(
                 METADATA,
                 version,
-                |buf| encode_metadata_request(buf, version, Some(&topics), allow),
+                |buf| {
+                    encode_metadata_request(buf, version, Some(std::slice::from_ref(&topic)), allow)
+                },
                 timeout,
             )
             .await?;
@@ -4004,12 +4006,12 @@ async fn partitions_for_timeout(
     };
     let version = shared.metadata_version;
     let allow = shared.cfg.allow_auto_topic_creation;
-    let topics = [topic.to_string()];
+    let names = [topic.as_ref()];
     let body = conn
         .roundtrip_deadline(
             METADATA,
             version,
-            |buf| encode_metadata_request(buf, version, Some(&topics), allow),
+            |buf| encode_metadata_request_names(buf, version, Some(&names), allow),
             deadline,
         )
         .await?;

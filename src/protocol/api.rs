@@ -1741,11 +1741,41 @@ pub fn encode_metadata_request(
 /// [`encode_metadata_request_topics_with_include_cluster_authorized_operations`]
 /// for a non-default `IncludeClusterAuthorizedOperations`. Name-based: v10+
 /// sends TopicId zero. For TopicId describes, use
-/// [`encode_metadata_request_topics`].
+/// [`encode_metadata_request_topics`]. The topic text is written from
+/// `topics`; this does not build an owned topic list first.
 pub fn encode_metadata_request_with(
     buf: &mut BytesMut,
     version: i16,
     topics: Option<&[String]>,
+    allow_auto: bool,
+    include_topic_authorized_operations: bool,
+) -> crate::error::Result<()> {
+    encode_named_metadata_request(
+        buf,
+        version,
+        topics,
+        allow_auto,
+        include_topic_authorized_operations,
+    )
+}
+
+/// Encode a name-based Metadata request from text the caller already holds.
+///
+/// The bytes match [`encode_metadata_request`] for the same names.
+/// `topics = None` asks for all topics.
+pub(crate) fn encode_metadata_request_names(
+    buf: &mut BytesMut,
+    version: i16,
+    topics: Option<&[&str]>,
+    allow_auto: bool,
+) -> crate::error::Result<()> {
+    encode_named_metadata_request(buf, version, topics, allow_auto, false)
+}
+
+fn encode_named_metadata_request<T: AsRef<str>>(
+    buf: &mut BytesMut,
+    version: i16,
+    topics: Option<&[T]>,
     allow_auto: bool,
     include_topic_authorized_operations: bool,
 ) -> crate::error::Result<()> {
@@ -1757,14 +1787,54 @@ pub fn encode_metadata_request_with(
             include_topic_authorized_operations,
         );
     }
-    let owned = topics.map(|names| MetadataRequestTopic::convert_from_names(names.iter().cloned()));
-    encode_metadata_request_topics(
+    // Every name is present and every topic id is zero, so the per-topic
+    // builder checks cannot fail. `None` still runs the version checks.
+    MetadataRequest::build(version, None, allow_auto)?;
+    let flexible = version >= 9;
+    match topics {
+        None => buf::put_array_len(buf, flexible, None)?,
+        Some(topics) => {
+            buf::put_array_len(buf, flexible, Some(topics.len()))?;
+            for topic in topics {
+                if version >= 10 {
+                    buf.extend_from_slice(&[0; 16]);
+                }
+                buf::put_string(buf, flexible, Some(topic.as_ref()))?;
+                if flexible {
+                    buf::put_empty_tagged_fields(buf);
+                }
+            }
+        }
+    }
+    write_metadata_request_tail(
         buf,
         version,
-        owned.as_deref(),
         allow_auto,
         include_topic_authorized_operations,
+        false,
     )
+}
+
+fn write_metadata_request_tail(
+    buf: &mut BytesMut,
+    version: i16,
+    allow_auto: bool,
+    include_topic_authorized_operations: bool,
+    include_cluster_authorized_operations: bool,
+) -> crate::error::Result<()> {
+    if version >= 4 {
+        buf.put_u8(u8::from(allow_auto));
+    }
+    if (8..=10).contains(&version) {
+        buf.put_u8(u8::from(include_cluster_authorized_operations));
+    }
+    if version >= 8 {
+        buf.put_u8(u8::from(include_topic_authorized_operations));
+    }
+    if version >= 9 {
+        buf::put_empty_tagged_fields(buf);
+    }
+    Ok(())
 }
 
 /// Encode Metadata Topics of Name and/or TopicId (v10+).
@@ -1837,19 +1907,13 @@ pub fn encode_metadata_request_topics_with_include_cluster_authorized_operations
             }
         }
     }
-    if version >= 4 {
-        buf.put_u8(u8::from(allow_auto));
-    }
-    if (8..=10).contains(&version) {
-        buf.put_u8(u8::from(include_cluster_authorized_operations));
-    }
-    if version >= 8 {
-        buf.put_u8(u8::from(include_topic_authorized_operations));
-    }
-    if flexible {
-        buf::put_empty_tagged_fields(buf);
-    }
-    Ok(())
+    write_metadata_request_tail(
+        buf,
+        version,
+        allow_auto,
+        include_topic_authorized_operations,
+        include_cluster_authorized_operations,
+    )
 }
 
 /// Decode Metadata request: topic names (`None` is all topics),
@@ -7658,6 +7722,55 @@ mod tests {
             &with[..],
             "IncludeTopicAuthorizedOperations true must not match the default request"
         );
+    }
+
+    #[test]
+    fn metadata_request_names_match_the_owned_topic_encoder() {
+        let names = ["orders".to_string(), "payments".to_string()];
+        let owned = MetadataRequestTopic::convert_from_names(names.iter().cloned());
+        let borrowed = ["orders", "payments"];
+        for version in [0_i16, 1, 3, 4, 8, 9, 10, 11, 12, 13] {
+            let allow = version < 4;
+            let mut direct = BytesMut::new();
+            let mut via_names = BytesMut::new();
+            let mut via_topics = BytesMut::new();
+            encode_metadata_request(&mut direct, version, Some(&names), allow).unwrap();
+            encode_metadata_request_names(&mut via_names, version, Some(&borrowed), allow).unwrap();
+            if version == 0 {
+                assert_eq!(direct, via_names, "version {version}");
+                continue;
+            }
+            encode_metadata_request_topics(&mut via_topics, version, Some(&owned), allow, false)
+                .unwrap();
+            assert_eq!(direct, via_topics, "version {version}");
+            assert_eq!(via_names, via_topics, "version {version}");
+        }
+        let mut all_direct = BytesMut::new();
+        let mut all_names = BytesMut::new();
+        let mut all_topics = BytesMut::new();
+        encode_metadata_request(&mut all_direct, 9, None, true).unwrap();
+        encode_metadata_request_names(&mut all_names, 9, None, true).unwrap();
+        encode_metadata_request_topics(&mut all_topics, 9, None, true, false).unwrap();
+        assert_eq!(all_direct, all_topics);
+        assert_eq!(all_names, all_topics);
+        let empty: [String; 0] = [];
+        let empty_owned: [MetadataRequestTopic; 0] = [];
+        let mut empty_direct = BytesMut::new();
+        let mut empty_topics = BytesMut::new();
+        encode_metadata_request(&mut empty_direct, 12, Some(&empty), false).unwrap();
+        encode_metadata_request_topics(&mut empty_topics, 12, Some(&empty_owned), false, false)
+            .unwrap();
+        assert_eq!(empty_direct, empty_topics);
+        let named_err =
+            encode_metadata_request(&mut BytesMut::new(), 3, Some(&names), false).unwrap_err();
+        let owned_err =
+            encode_metadata_request_topics(&mut BytesMut::new(), 3, Some(&owned), false, false)
+                .unwrap_err();
+        let borrowed_err =
+            encode_metadata_request_names(&mut BytesMut::new(), 3, Some(&borrowed), false)
+                .unwrap_err();
+        assert_eq!(named_err.to_string(), owned_err.to_string());
+        assert_eq!(borrowed_err.to_string(), owned_err.to_string());
     }
 
     #[test]
