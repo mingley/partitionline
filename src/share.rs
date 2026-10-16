@@ -1789,7 +1789,6 @@ impl ShareGroup {
     }
 
     async fn heartbeat_join_within(&mut self, deadline: Instant) -> Result<()> {
-        self.refresh_share_topics_within(deadline).await?;
         let version = spoken_share_group_heartbeat(self.coord.share_group_heartbeat_version)?;
 
         let mut first = true;
@@ -1814,15 +1813,37 @@ impl ShareGroup {
                 self.member_epoch
             };
             reuse_share_subscription(&mut req, &self.topics);
-            let body = self
-                .coord
-                .roundtrip(
+            // The heartbeat carries topic names. A stale image loads on the
+            // member socket while the coordinator answers.
+            let stale = self
+                .topics
+                .iter()
+                .any(|topic| !self.consumer.topic_metadata_fresh(topic));
+            let (body, metadata_refresh) = if stale {
+                let coord = &mut self.coord;
+                let consumer = &mut self.consumer;
+                let topics = &self.topics;
+                let refresh = Self::refresh_topic_names_within(consumer, topics, deadline);
+                let rpc = coord.roundtrip(
                     SHARE_GROUP_HEARTBEAT,
                     version,
                     |buf| encode_share_group_heartbeat_request(buf, version, &req),
                     timeout,
-                )
-                .await?;
+                );
+                let (refresh, rpc) = tokio::join!(refresh, rpc);
+                (rpc?, Some(refresh))
+            } else {
+                let body = self
+                    .coord
+                    .roundtrip(
+                        SHARE_GROUP_HEARTBEAT,
+                        version,
+                        |buf| encode_share_group_heartbeat_request(buf, version, &req),
+                        timeout,
+                    )
+                    .await?;
+                (body, None)
+            };
 
             let resp = decode_share_group_heartbeat_response(&mut body.clone(), version)?;
 
@@ -1848,6 +1869,11 @@ impl ShareGroup {
             if resp.member_epoch > 0 {
                 self.member_epoch = resp.member_epoch;
             }
+            if let Some(Err(error)) = metadata_refresh {
+                self.hb_epoch.store(self.member_epoch, Ordering::SeqCst);
+                self.hb_err.store(0, Ordering::SeqCst);
+                return Err(error);
+            }
             self.apply_share_assignment(resp.assignment.as_deref());
             self.hb_epoch.store(self.member_epoch, Ordering::SeqCst);
             self.hb_err.store(0, Ordering::SeqCst);
@@ -1865,7 +1891,6 @@ impl ShareGroup {
             if deadline.saturating_duration_since(Instant::now()).is_zero() {
                 return Ok(());
             }
-            self.refresh_share_topics_within(deadline).await?;
         }
     }
 

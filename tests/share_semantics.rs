@@ -386,6 +386,45 @@ async fn share_resubscribe_refreshes_metadata_while_closing_sessions() {
     group.leave().await.unwrap();
 }
 
+/// A zero metadata age still loads the image while the share join heartbeat runs.
+#[tokio::test]
+async fn share_join_heartbeat_loads_metadata_while_joining() {
+    let mock = common::Mock::start_two_node().await;
+    v2(&mock);
+    mock.set_share_heartbeat_interval_ms(60_000);
+    mock.set_topic_partitions("t", 2);
+    mock.set_partition_leader("t", 0, 1);
+    mock.set_partition_leader("t", 1, 2);
+    produce(&mock, &[(0, b"left"), (1, b"right")]).await;
+    let mut cfg = config(&mock);
+    cfg.metadata_max_age = Duration::ZERO;
+    let mut group = ShareGroup::join(cfg, "hb-meta", "t").await.unwrap();
+    let got = group.poll().await.unwrap();
+    assert_eq!(got.len(), 2, "both leaders must open a share session");
+    mock.set_topic_partitions("u", 1);
+    mock.set_partition_leader("u", 0, 1);
+    let delay = Duration::from_millis(250);
+    mock.delay_share_reply_once(SHARE_ACKNOWLEDGE, delay);
+    mock.delay_share_reply_once(SHARE_ACKNOWLEDGE, delay);
+    mock.delay_share_reply_once(SHARE_GROUP_HEARTBEAT, delay);
+    mock.set_metadata_delay(delay);
+    let before = mock.metadata_calls();
+    let started = Instant::now();
+    group.subscribe(["t", "u"]).await.unwrap();
+    let elapsed = started.elapsed();
+    assert!(
+        mock.metadata_calls() >= before + 2,
+        "session close and the join heartbeat should each load metadata, got {} then {}",
+        before,
+        mock.metadata_calls()
+    );
+    assert!(
+        elapsed < Duration::from_millis(650),
+        "share join heartbeat waited for metadata: {elapsed:?}"
+    );
+    group.leave().await.unwrap();
+}
+
 /// Idle share sockets are opened together before the acknowledgements.
 #[tokio::test]
 async fn share_ack_redials_leaders_together() {
