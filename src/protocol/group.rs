@@ -5445,15 +5445,52 @@ pub fn encode_offset_fetch_response(
     topics: &[FetchedOffsetTopic],
     error: i16,
 ) -> crate::error::Result<()> {
-    encode_offset_fetch_groups_response(
-        buf,
-        version,
-        &[OffsetFetchGroupResult {
-            group_id: group_id.to_string(),
-            topics: topics.to_vec(),
-            error_code: error,
-        }],
-    )
+    let group = BorrowedOffsetFetchGroup {
+        group_id,
+        topics,
+        error_code: error,
+    };
+    encode_offset_fetch_group_views(buf, version, std::slice::from_ref(&group), 0)
+}
+
+struct BorrowedOffsetFetchGroup<'a> {
+    group_id: &'a str,
+    topics: &'a [FetchedOffsetTopic],
+    error_code: i16,
+}
+
+trait OffsetFetchGroupView {
+    fn group_id(&self) -> &str;
+    fn topics(&self) -> &[FetchedOffsetTopic];
+    fn error_code(&self) -> i16;
+}
+
+impl OffsetFetchGroupView for OffsetFetchGroupResult {
+    fn group_id(&self) -> &str {
+        &self.group_id
+    }
+
+    fn topics(&self) -> &[FetchedOffsetTopic] {
+        &self.topics
+    }
+
+    fn error_code(&self) -> i16 {
+        self.error_code
+    }
+}
+
+impl OffsetFetchGroupView for BorrowedOffsetFetchGroup<'_> {
+    fn group_id(&self) -> &str {
+        self.group_id
+    }
+
+    fn topics(&self) -> &[FetchedOffsetTopic] {
+        self.topics
+    }
+
+    fn error_code(&self) -> i16 {
+        self.error_code
+    }
 }
 
 /// Encode OffsetFetch v1–v9 for every group (KIP-709 on v8+).
@@ -5482,6 +5519,15 @@ pub fn encode_offset_fetch_groups_response_with_throttle(
     groups: &[OffsetFetchGroupResult],
     throttle_time_ms: i32,
 ) -> crate::error::Result<()> {
+    encode_offset_fetch_group_views(buf, version, groups, throttle_time_ms)
+}
+
+fn encode_offset_fetch_group_views<G: OffsetFetchGroupView>(
+    buf: &mut BytesMut,
+    version: i16,
+    groups: &[G],
+    throttle_time_ms: i32,
+) -> Result<()> {
     let flexible = offset_fetch_flexible(version)?;
     if version < 8 && groups.len() > 1 {
         return Err(Error::Unsupported(format!(
@@ -5496,18 +5542,18 @@ pub fn encode_offset_fetch_groups_response_with_throttle(
     }
     if version <= 7 {
         let first = groups.first();
-        let topics = first.map(|g| g.topics.as_slice()).unwrap_or(&[]);
-        let error = first.map(|g| g.error_code).unwrap_or(0);
+        let topics = first.map(OffsetFetchGroupView::topics).unwrap_or(&[]);
+        let error = first.map(OffsetFetchGroupView::error_code).unwrap_or(0);
         encode_fetched_offset_topics(buf, version, flexible, topics)?;
         if version >= 2 {
             buf.put_i16(error);
         }
     } else {
         buf::put_array_len(buf, true, Some(groups.len()))?;
-        for g in groups {
-            buf::put_compact_string(buf, Some(&g.group_id))?;
-            encode_fetched_offset_topics(buf, version, true, &g.topics)?;
-            buf.put_i16(g.error_code);
+        for group in groups {
+            buf::put_compact_string(buf, Some(group.group_id()))?;
+            encode_fetched_offset_topics(buf, version, true, group.topics())?;
+            buf.put_i16(group.error_code());
             buf::put_empty_tagged_fields(buf);
         }
     }
@@ -5550,16 +5596,16 @@ fn fetched_offset_topics_len(
     Ok(total)
 }
 
-fn offset_fetch_response_len(
+fn offset_fetch_response_len<G: OffsetFetchGroupView>(
     version: i16,
     flexible: bool,
-    groups: &[OffsetFetchGroupResult],
+    groups: &[G],
 ) -> Result<usize> {
     let mut total = if version >= 3 { 4usize } else { 0 };
     if version <= 7 {
         let topics = groups
             .first()
-            .map(|group| group.topics.as_slice())
+            .map(OffsetFetchGroupView::topics)
             .unwrap_or(&[]);
         total = add_group_len(total, fetched_offset_topics_len(version, flexible, topics)?)?;
         if version >= 2 {
@@ -5568,10 +5614,10 @@ fn offset_fetch_response_len(
     } else {
         total = add_group_len(total, group_array_len(true, groups.len())?)?;
         for group in groups {
-            total = add_group_len(total, group_string_len(true, Some(&group.group_id))?)?;
+            total = add_group_len(total, group_string_len(true, Some(group.group_id()))?)?;
             total = add_group_len(
                 total,
-                fetched_offset_topics_len(version, true, &group.topics)?,
+                fetched_offset_topics_len(version, true, group.topics())?,
             )?;
             total = add_group_len(total, 2)?;
             total = add_group_len(total, buf::unsigned_varint_size(0))?;
