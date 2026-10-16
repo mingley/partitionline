@@ -250,7 +250,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `requestUpdate`s for top-level `UNKNOWN_TOPIC_ID`; a partition
   `KAFKA_STORAGE_ERROR` still skips and requests Metadata). Top-level
   `UNKNOWN_SERVER_ERROR` still fails that poll without Metadata,
-  including when `ErrorMessage` is set (Java
+  including when `ErrorMessage` is set or empty (Java
   `handleShareFetchSuccess` only `requestUpdate`s for top-level
   `UNKNOWN_TOPIC_ID`; a partition `UNKNOWN_SERVER_ERROR` still skips
   without Metadata). A non-empty
