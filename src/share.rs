@@ -2770,13 +2770,17 @@ impl ShareGroup {
             },
             partitions,
         )?;
-        // Keep the caller's retry list identical to the batches that are sent,
-        // including a split when one partition was acquired from two brokers.
-        *partitions = grouped
-            .values()
-            .flat_map(|parts| parts.iter().cloned())
-            .collect();
+        // A split across brokers replaces the retry list with the batches that
+        // are sent. One broker already matches that list, so those batches move
+        // into the request without a second copy.
+        let one_leader = grouped.len() == 1;
         let nodes: Vec<_> = grouped.into_iter().collect();
+        if !one_leader {
+            *partitions = nodes
+                .iter()
+                .flat_map(|(_, parts)| parts.iter().cloned())
+                .collect();
+        }
         let mut first_error = None;
         for (node, node_tps) in nodes {
             if deadline.saturating_duration_since(Instant::now()).is_zero() {
@@ -4515,6 +4519,20 @@ mod tests {
         }
         let missing = group_acks_by_acquisition_node(|_, _, _| None, &partitions);
         assert!(missing.is_err());
+        let same = vec![(
+            Arc::<str>::from("orders"),
+            0,
+            vec![AcknowledgementBatch {
+                first_offset: 1,
+                last_offset: 4,
+                types: vec![ACK_ACCEPT],
+            }],
+        )];
+        let same_node = group_acks_by_acquisition_node(|_, _, _| Some(4), &same);
+        assert!(same_node.is_ok());
+        if let Ok(same_node) = same_node {
+            assert_eq!(same_node.get(&4).map(Vec::as_slice), Some(same.as_slice()));
+        }
         let mixed = vec![(
             Arc::<str>::from("orders"),
             0,
