@@ -2556,6 +2556,12 @@ struct HeaderWire {
 
 fn fill_header_wires(headers: &[Header], wires: &mut Vec<HeaderWire>) -> Result<usize> {
     wires.clear();
+    if headers.len() > wires.capacity() {
+        let extra = headers.len() - wires.capacity();
+        wires
+            .try_reserve_exact(extra)
+            .map_err(|_| Error::protocol("header wire reserve"))?;
+    }
     let mut size = 0usize;
     for header in headers {
         let key_bits = buf::zigzag_bits_i32(buf::utf8_length(&header.key));
@@ -5467,6 +5473,39 @@ mod tests {
         )
         .unwrap();
         assert!(scratch.header_wires.capacity() >= kept);
+        let headers: Vec<_> = (0..8)
+            .map(|index| Header::new(format!("h{index}"), Bytes::from_static(b"x")))
+            .collect();
+        let wide = Record {
+            offset: 0,
+            timestamp: 1,
+            key: None,
+            value: Some(Bytes::from_static(b"v")),
+            headers,
+        };
+        let mut wide_scratch = CompressScratch::new();
+        let mut wide_buf = BytesMut::new();
+        write_record_batch_scratch(
+            &mut wide_buf,
+            &header,
+            std::iter::once(EncodeRecord::from_record(&wide)),
+            &mut wide_scratch,
+        )
+        .unwrap();
+        assert_eq!(
+            wide_scratch.header_wires.capacity(),
+            Vec::<HeaderWire>::with_capacity(8).capacity()
+        );
+        let wide_kept = wide_scratch.header_wires.capacity();
+        wide_buf.clear();
+        write_record_batch_scratch(
+            &mut wide_buf,
+            &header,
+            std::iter::once(EncodeRecord::from_record(&wide)),
+            &mut wide_scratch,
+        )
+        .unwrap();
+        assert_eq!(wide_scratch.header_wires.capacity(), wide_kept);
     }
 
     #[test]
