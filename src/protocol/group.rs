@@ -6416,15 +6416,19 @@ pub fn encode_offset_delete_response_with_throttle(
     results: &[OffsetDeleteResult],
     throttle_time_ms: i32,
 ) -> crate::error::Result<()> {
-    let mut groups: Vec<(String, Vec<(i32, i16)>)> = Vec::new();
-    let mut slots = HashMap::new();
-    for r in results {
-        remember_topic(
-            &mut groups,
-            &mut slots,
-            &r.topic,
-            (r.partition, r.error_code),
-        );
+    let mut groups: Vec<(&str, Vec<(i32, i16)>)> = Vec::new();
+    let mut slots: HashMap<&str, usize> = HashMap::new();
+    for result in results {
+        let topic = result.topic.as_str();
+        if let Some(&slot) = slots.get(topic) {
+            if let Some((_, parts)) = groups.get_mut(slot) {
+                parts.push((result.partition, result.error_code));
+                continue;
+            }
+        }
+        let slot = groups.len();
+        let _ = slots.insert(topic, slot);
+        groups.push((topic, vec![(result.partition, result.error_code)]));
     }
     let body_start = buf.len();
     let planned = offset_delete_response_len(&groups)?;
@@ -6444,7 +6448,7 @@ pub fn encode_offset_delete_response_with_throttle(
     Ok(())
 }
 
-fn offset_delete_response_len(groups: &[(String, Vec<(i32, i16)>)]) -> Result<usize> {
+fn offset_delete_response_len(groups: &[(&str, Vec<(i32, i16)>)]) -> Result<usize> {
     let mut total = 6usize;
     total = add_group_len(total, group_array_len(false, groups.len())?)?;
     for (name, parts) in groups {
@@ -16804,6 +16808,37 @@ mod tests {
                 cur.len()
             );
         }
+    }
+
+    #[test]
+    fn offset_delete_response_groups_repeated_topics_from_the_caller() {
+        let results = [
+            OffsetDeleteResult::new("orders-topic-name-is-long", 2, 0),
+            OffsetDeleteResult::new("payments", 1, 16),
+            OffsetDeleteResult::new("orders-topic-name-is-long", 0, 42),
+        ];
+        let mut got = BytesMut::new();
+        encode_offset_delete_response_with_throttle(&mut got, 7, &results, 12).unwrap();
+        let (error_code, decoded, throttle) =
+            decode_offset_delete_response(&mut got.as_ref()).unwrap();
+        assert_eq!(error_code, 7);
+        assert_eq!(throttle, 12);
+        assert_eq!(
+            decoded,
+            vec![
+                OffsetDeleteResult::new("orders-topic-name-is-long", 2, 0),
+                OffsetDeleteResult::new("orders-topic-name-is-long", 0, 42),
+                OffsetDeleteResult::new("payments", 1, 16),
+            ]
+        );
+        let len = got.len();
+        let capacity = got.capacity();
+        assert!(capacity >= len);
+        assert!(capacity < 64 * 1024);
+        got.clear();
+        encode_offset_delete_response_with_throttle(&mut got, 7, &results, 12).unwrap();
+        assert_eq!(got.len(), len);
+        assert_eq!(got.capacity(), capacity);
     }
 
     #[test]
