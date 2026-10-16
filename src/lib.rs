@@ -2132,6 +2132,10 @@
 //! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `RECORD_LIST_TOO_LARGE`, which fails that poll, and not
 //! piggyback `MESSAGE_TOO_LARGE`). A piggybacked
+//! `THROTTLING_QUOTA_EXCEEDED` still completes without retry,
+//! including when `AcknowledgeErrorMessage` is set (this is not
+//! partition `THROTTLING_QUOTA_EXCEEDED`, which fails that poll, and not
+//! piggyback `RECORD_LIST_TOO_LARGE`). A piggybacked
 //! `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a
 //! sibling whose `AcknowledgeErrorCode` is none, including when
 //! `AcknowledgeErrorMessage` is set or empty. A piggybacked

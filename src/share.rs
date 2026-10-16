@@ -813,6 +813,12 @@ pub enum ShareAcquireMode {
 /// delivers the fetch; this is not partition
 /// `RECORD_LIST_TOO_LARGE`, which fails that poll, and not piggyback
 /// `MESSAGE_TOO_LARGE`). A piggybacked
+/// `THROTTLING_QUOTA_EXCEEDED` still completes without retry,
+/// including when `AcknowledgeErrorMessage` is set (Java
+/// `handleShareFetchSuccess` completes piggyback acks and still
+/// delivers the fetch; this is not partition
+/// `THROTTLING_QUOTA_EXCEEDED`, which fails that poll, and not piggyback
+/// `RECORD_LIST_TOO_LARGE`). A piggybacked
 /// `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a
 /// sibling partition whose `AcknowledgeErrorCode` is none, including
 /// when `AcknowledgeErrorMessage` is set or empty. A piggybacked
@@ -2143,6 +2149,12 @@ impl ShareGroup {
     /// still delivers the fetch; this is not partition
     /// `RECORD_LIST_TOO_LARGE`, which fails that poll, and not piggyback
     /// `MESSAGE_TOO_LARGE`).
+    /// A piggybacked `THROTTLING_QUOTA_EXCEEDED` still completes
+    /// without retry, including when `AcknowledgeErrorMessage` is set
+    /// (Java `handleShareFetchSuccess` completes piggyback acks and
+    /// still delivers the fetch; this is not partition
+    /// `THROTTLING_QUOTA_EXCEEDED`, which fails that poll, and not piggyback
+    /// `RECORD_LIST_TOO_LARGE`).
     /// A piggybacked `TOPIC_AUTHORIZATION_FAILED` on one partition
     /// does not fail a sibling whose `AcknowledgeErrorCode` is none,
     /// including when `AcknowledgeErrorMessage` is set or empty.
