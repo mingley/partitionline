@@ -971,6 +971,11 @@ pub struct ShareGroup {
     /// CurrentLeader values from the latest share response. A metadata refresh
     /// drops cached leaders, and these patches are put back afterward.
     leader_patches: Vec<ShareLeaderPatch>,
+    /// Share leaders whose socket was dropped after a retriable fetch error.
+    ///
+    /// Dialed again while metadata reloads. Broker addresses in
+    /// `share_addresses` survive topic invalidation.
+    share_redial_nodes: Vec<i32>,
     acquisitions: AcquisitionMap,
     pending_delivery: Vec<ShareRecord>,
     acquire_mode: ShareAcquireMode,
@@ -1622,6 +1627,7 @@ impl ShareGroup {
             share_conns: HashMap::new(),
             share_addresses: HashMap::new(),
             leader_patches: Vec::new(),
+            share_redial_nodes: Vec::new(),
             acquisitions: HashMap::new(),
             pending_delivery: Vec::new(),
             acquire_mode: ShareAcquireMode::BatchOptimized,
@@ -2627,16 +2633,43 @@ impl ShareGroup {
         self.consumer.drop_node(node);
     }
 
+    fn note_share_redial(&mut self, node: i32) {
+        if node < 0 || self.share_redial_nodes.contains(&node) {
+            return;
+        }
+        self.share_redial_nodes.push(node);
+    }
+
     async fn refresh_assigned_metadata(&mut self, timeout: Duration) -> Result<()> {
         if timeout.is_zero() {
             return Err(Error::Timeout);
         }
+        let deadline = Instant::now().checked_add(timeout).ok_or(Error::Timeout)?;
+        let mut nodes = self.cached_share_nodes();
+        for node in self.share_redial_nodes.drain(..) {
+            if !nodes.contains(&node) {
+                nodes.push(node);
+            }
+        }
+        // Capture addresses before leaders are dropped. A leader that moves is
+        // opened on the next fetch after metadata and CurrentLeader patches.
+        let targets = self.share_dial_targets(&nodes);
         for t in &self.topics {
             self.consumer.invalidate_topic(t);
         }
-        self.consumer
-            .refresh_metadata_timeout(Some(&self.topics), timeout)
-            .await
+        if targets.is_empty() {
+            return self
+                .consumer
+                .refresh_metadata_timeout(Some(&self.topics), timeout)
+                .await;
+        }
+        let opened = Self::open_share_dials(self.share_dial_config(), targets, deadline);
+        let refreshed = self
+            .consumer
+            .refresh_metadata_timeout(Some(&self.topics), timeout);
+        let (opened, refreshed) = tokio::join!(opened, refreshed);
+        self.store_opened_share_dials(opened);
+        refreshed
     }
 
     fn take_share_ids(&mut self) -> BTreeMap<[u8; 16], Vec<i32>> {
@@ -3054,6 +3087,9 @@ impl ShareGroup {
             let mut body = match body {
                 Ok(body) => body,
                 Err(error) => {
+                    if share_leader_retriable(&error) {
+                        self.note_share_redial(node);
+                    }
                     self.reset_node_session(node);
                     self.park_share_ids(by_id);
                     if matches!(error, Error::Timeout) && !self.pending_delivery.is_empty() {
@@ -3292,6 +3328,9 @@ impl ShareGroup {
         if error_code != 0 {
             let error = Error::broker(error_code, "ShareFetch");
             if share_fetch_session_reset(&error) || share_leader_retriable(&error) {
+                if share_leader_retriable(&error) {
+                    self.note_share_redial(node);
+                }
                 self.reset_node_session(node);
             } else {
                 self.advance_node_epoch(node);
@@ -3367,6 +3406,9 @@ impl ShareGroup {
                         format!("ShareFetch {name}-{}", part.partition),
                     );
                     if share_session_reset(&error) || share_leader_retriable(&error) {
+                        if share_leader_retriable(&error) {
+                            self.note_share_redial(node);
+                        }
                         self.reset_node_session(node);
                     }
                     return Err(error);
