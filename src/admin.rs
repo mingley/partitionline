@@ -8659,16 +8659,12 @@ impl Admin {
         let (resp, ..) = decode_delete_records_topics_response(&mut body.clone(), version)?;
         let mut by_key: HashMap<String, HashMap<i32, VecDeque<(i64, i16)>>> = HashMap::new();
         for t in resp {
+            let parts = by_key.entry(t.topic).or_default();
             for p in t.partitions {
-                if !by_key.contains_key(t.topic.as_str()) {
-                    let _ = by_key.insert(t.topic.clone(), HashMap::new());
-                }
-                if let Some(parts) = by_key.get_mut(t.topic.as_str()) {
-                    parts
-                        .entry(p.partition)
-                        .or_default()
-                        .push_back((p.low_watermark, p.error_code));
-                }
+                parts
+                    .entry(p.partition)
+                    .or_default()
+                    .push_back((p.low_watermark, p.error_code));
             }
         }
         let mut done = Vec::new();
@@ -9217,14 +9213,10 @@ impl Admin {
         let mut by_key: HashMap<String, HashMap<i32, VecDeque<ListOffsetsResponsePartition>>> =
             HashMap::new();
         for t in resp {
+            let parts = by_key.entry(t.name).or_default();
             for p in t.partitions {
-                if !by_key.contains_key(t.name.as_str()) {
-                    let _ = by_key.insert(t.name.clone(), HashMap::new());
-                }
                 let index = p.partition_index;
-                if let Some(parts) = by_key.get_mut(t.name.as_str()) {
-                    parts.entry(index).or_default().push_back(p);
-                }
+                parts.entry(index).or_default().push_back(p);
             }
         }
         let mut done = Vec::new();
@@ -14499,49 +14491,78 @@ fn group_alter_replica_log_dirs(
         .collect()
 }
 
+struct ReplicaDirGroup {
+    path: String,
+    topics: Vec<ReplicaDirTopic>,
+}
+
+struct ReplicaDirTopic {
+    name: String,
+    partitions: Vec<i32>,
+}
+
 fn alter_replica_dirs_for_broker(
     assignment: &[(TopicPartitionReplica, String)],
     broker_id: i32,
 ) -> Vec<AlterReplicaLogDirsDirectory> {
-    let mut path_order: Vec<String> = Vec::new();
-    let mut topics_by_path: HashMap<String, Vec<String>> = HashMap::new();
-    let mut partitions_by_path: HashMap<String, HashMap<String, Vec<i32>>> = HashMap::new();
+    let mut directories: Vec<ReplicaDirGroup> = Vec::new();
+    let mut path_slots: HashMap<&str, usize> = HashMap::new();
+    let mut topic_slots: HashMap<(&str, &str), usize> = HashMap::new();
     for (replica, path) in assignment {
         if replica.broker_id != broker_id {
             continue;
         }
-        if let Some(by_topic) = partitions_by_path.get_mut(path.as_str()) {
-            if let Some(parts) = by_topic.get_mut(replica.topic.as_str()) {
-                if !parts.contains(&replica.partition) {
-                    parts.push(replica.partition);
-                }
-            } else {
-                let _ = by_topic.insert(replica.topic.clone(), vec![replica.partition]);
-                if let Some(topics) = topics_by_path.get_mut(path.as_str()) {
-                    topics.push(replica.topic.clone());
+        let path_name = path.as_str();
+        let topic_name = replica.topic.as_str();
+        if let Some(&topic_index) = topic_slots.get(&(path_name, topic_name)) {
+            let Some(&dir_index) = path_slots.get(path_name) else {
+                continue;
+            };
+            if let Some(directory) = directories.get_mut(dir_index) {
+                if let Some(topic) = directory.topics.get_mut(topic_index) {
+                    if !topic.partitions.contains(&replica.partition) {
+                        topic.partitions.push(replica.partition);
+                    }
                 }
             }
-        } else {
-            path_order.push(path.clone());
-            let _ = topics_by_path.insert(path.clone(), vec![replica.topic.clone()]);
-            let mut by_topic = HashMap::new();
-            let _ = by_topic.insert(replica.topic.clone(), vec![replica.partition]);
-            let _ = partitions_by_path.insert(path.clone(), by_topic);
+            continue;
         }
+        let dir_index = if let Some(&slot) = path_slots.get(path_name) {
+            slot
+        } else {
+            let slot = directories.len();
+            let _ = path_slots.insert(path_name, slot);
+            directories.push(ReplicaDirGroup {
+                path: path.clone(),
+                topics: Vec::new(),
+            });
+            slot
+        };
+        let Some(directory) = directories.get_mut(dir_index) else {
+            continue;
+        };
+        let topic_index = directory.topics.len();
+        directory.topics.push(ReplicaDirTopic {
+            name: replica.topic.clone(),
+            partitions: vec![replica.partition],
+        });
+        let _ = topic_slots.insert((path_name, topic_name), topic_index);
     }
-    path_order
+    directories
         .into_iter()
-        .map(|path| {
-            let topics = topics_by_path.remove(&path).unwrap_or_default();
-            let mut by_topic = partitions_by_path.remove(&path).unwrap_or_default();
-            let topics = topics
+        .map(|directory| {
+            let topics = directory
+                .topics
                 .into_iter()
-                .map(|name| {
-                    let partitions = by_topic.remove(&name).unwrap_or_default();
-                    AlterReplicaLogDirsTopic { name, partitions }
+                .map(|topic| AlterReplicaLogDirsTopic {
+                    name: topic.name,
+                    partitions: topic.partitions,
                 })
                 .collect();
-            AlterReplicaLogDirsDirectory { path, topics }
+            AlterReplicaLogDirsDirectory {
+                path: directory.path,
+                topics,
+            }
         })
         .collect()
 }
@@ -14568,27 +14589,27 @@ fn describable_topics_for_broker(
     replicas: &[TopicPartitionReplica],
     broker_id: i32,
 ) -> Vec<DescribableLogDirTopic> {
-    let mut order: Vec<String> = Vec::new();
-    let mut by_topic: HashMap<String, Vec<i32>> = HashMap::new();
+    let mut groups: Vec<(String, Vec<i32>)> = Vec::new();
+    let mut slots: HashMap<&str, usize> = HashMap::new();
     for r in replicas {
         if r.broker_id != broker_id {
             continue;
         }
-        if let Some(parts) = by_topic.get_mut(r.topic.as_str()) {
-            if !parts.contains(&r.partition) {
-                parts.push(r.partition);
+        if let Some(&slot) = slots.get(r.topic.as_str()) {
+            if let Some((_, parts)) = groups.get_mut(slot) {
+                if !parts.contains(&r.partition) {
+                    parts.push(r.partition);
+                }
+                continue;
             }
-        } else {
-            order.push(r.topic.clone());
-            let _ = by_topic.insert(r.topic.clone(), vec![r.partition]);
         }
+        let slot = groups.len();
+        let _ = slots.insert(r.topic.as_str(), slot);
+        groups.push((r.topic.clone(), vec![r.partition]));
     }
-    order
+    groups
         .into_iter()
-        .map(|name| DescribableLogDirTopic {
-            partitions: by_topic.remove(&name).unwrap_or_default(),
-            name,
-        })
+        .map(|(name, partitions)| DescribableLogDirTopic { partitions, name })
         .collect()
 }
 
