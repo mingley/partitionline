@@ -882,7 +882,7 @@ pub enum ShareAcquireMode {
 /// `INVALID_TOPIC_EXCEPTION`, which fails that poll, and not piggyback
 /// `OFFSET_METADATA_TOO_LARGE` or `TOPIC_AUTHORIZATION_FAILED`). A piggybacked
 /// `ILLEGAL_GENERATION` still completes without retry,
-/// including when `AcknowledgeErrorMessage` is set (Java
+/// including when `AcknowledgeErrorMessage` is set or empty (Java
 /// `handleShareFetchSuccess` completes piggyback acks and still
 /// delivers the fetch; this is not partition
 /// `ILLEGAL_GENERATION`, which fails that poll, and not piggyback
@@ -2320,7 +2320,7 @@ impl ShareGroup {
     /// `OFFSET_METADATA_TOO_LARGE` or `TOPIC_AUTHORIZATION_FAILED`).
     /// A piggybacked `ILLEGAL_GENERATION` still completes
     /// without retry, including when `AcknowledgeErrorMessage` is set
-    /// (Java `handleShareFetchSuccess` completes piggyback acks and
+    /// or empty (Java `handleShareFetchSuccess` completes piggyback acks and
     /// still delivers the fetch; this is not partition
     /// `ILLEGAL_GENERATION`, which fails that poll, and not piggyback
     /// `INVALID_TOPIC_EXCEPTION`).
