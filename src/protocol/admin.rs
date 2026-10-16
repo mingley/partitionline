@@ -11976,6 +11976,12 @@ pub fn encode_share_group_describe_response_with_throttle(
     throttle_time_ms: i32,
 ) -> crate::error::Result<()> {
     let flexible = share_group_describe_flexible(version)?;
+    let body_start = buf.len();
+    let planned = share_group_describe_response_len(flexible, groups)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf.put_i32(throttle_time_ms);
     buf::put_array_len(buf, flexible, Some(groups.len()))?;
     for g in groups {
@@ -11998,7 +12004,103 @@ pub fn encode_share_group_describe_response_with_throttle(
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn share_group_assignment_len(flexible: bool, assignment: &ShareGroupAssignment) -> Result<usize> {
+    let mut total = describe_array_len(flexible, assignment.topic_partitions.len())?;
+    for topic in &assignment.topic_partitions {
+        total = add_describe_len(total, 16)?;
+        total = add_describe_len(
+            total,
+            describe_string_len(flexible, Some(&topic.topic_name))?,
+        )?;
+        total = add_describe_len(total, describe_array_len(flexible, topic.partitions.len())?)?;
+        total =
+            add_describe_len(
+                total,
+                topic.partitions.len().checked_mul(4).ok_or_else(|| {
+                    Error::protocol("share group describe response size overflow")
+                })?,
+            )?;
+        if flexible {
+            total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    if flexible {
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
+}
+
+fn share_group_member_len(flexible: bool, member: &ShareGroupMember) -> Result<usize> {
+    let mut total = describe_string_len(flexible, Some(&member.member_id))?;
+    total = add_describe_len(
+        total,
+        describe_string_len(flexible, member.rack_id.as_deref())?,
+    )?;
+    total = add_describe_len(total, 4)?;
+    total = add_describe_len(
+        total,
+        describe_string_len(flexible, Some(&member.client_id))?,
+    )?;
+    total = add_describe_len(
+        total,
+        describe_string_len(flexible, Some(&member.client_host))?,
+    )?;
+    total = add_describe_len(
+        total,
+        describe_array_len(flexible, member.subscribed_topic_names.len())?,
+    )?;
+    for name in &member.subscribed_topic_names {
+        total = add_describe_len(total, describe_string_len(flexible, Some(name))?)?;
+    }
+    total = add_describe_len(
+        total,
+        share_group_assignment_len(flexible, &member.assignment)?,
+    )?;
+    if flexible {
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
+}
+
+fn share_group_describe_response_len(
+    flexible: bool,
+    groups: &[DescribedShareGroup],
+) -> Result<usize> {
+    let mut total = 4usize;
+    total = add_describe_len(total, describe_array_len(flexible, groups.len())?)?;
+    for group in groups {
+        total = add_describe_len(total, 2)?;
+        total = add_describe_len(
+            total,
+            describe_string_len(flexible, group.error_message.as_deref())?,
+        )?;
+        total = add_describe_len(total, describe_string_len(flexible, Some(&group.group_id))?)?;
+        total = add_describe_len(
+            total,
+            describe_string_len(flexible, Some(&group.group_state))?,
+        )?;
+        total = add_describe_len(total, 8)?;
+        total = add_describe_len(
+            total,
+            describe_string_len(flexible, Some(&group.assignor_name))?,
+        )?;
+        total = add_describe_len(total, describe_array_len(flexible, group.members.len())?)?;
+        for member in &group.members {
+            total = add_describe_len(total, share_group_member_len(flexible, member)?)?;
+        }
+        total = add_describe_len(total, 4)?;
+        if flexible {
+            total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    if flexible {
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 /// Decode a ShareGroupDescribe response (`version` 0–1).
@@ -31005,6 +31107,47 @@ mod tests {
             err.to_string().contains("not implemented"),
             "v2 response is not spoken, got {err}"
         );
+    }
+
+    #[test]
+    fn a_share_group_describe_response_sizes_its_body_once() {
+        let groups = [DescribedShareGroup {
+            error_code: 0,
+            error_message: None,
+            group_id: "share".into(),
+            group_state: "Stable".into(),
+            group_epoch: 4,
+            assignment_epoch: 4,
+            assignor_name: "simple".into(),
+            members: vec![ShareGroupMember {
+                member_id: "member-1".into(),
+                rack_id: Some("rack-a".into()),
+                member_epoch: 4,
+                client_id: "client".into(),
+                client_host: "/127.0.0.1".into(),
+                subscribed_topic_names: vec!["orders".into(), "payments".into()],
+                assignment: ShareGroupAssignment {
+                    topic_partitions: vec![ShareGroupTopicPartitions {
+                        topic_id: [1u8; 16],
+                        topic_name: "orders".into(),
+                        partitions: (0..8).collect(),
+                    }],
+                },
+            }],
+            authorized_operations: 0,
+        }];
+        for version in [0_i16, 1] {
+            let mut buf = BytesMut::new();
+            encode_share_group_describe_response(&mut buf, version, &groups).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_share_group_describe_response(&mut buf, version, &groups).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+        }
     }
 
     #[test]
