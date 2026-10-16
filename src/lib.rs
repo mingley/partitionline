@@ -2152,6 +2152,12 @@
 //! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `UNSUPPORTED_FOR_MESSAGE_FORMAT`, which fails that poll, and not
 //! piggyback `INVALID_REQUIRED_ACKS`). A piggybacked
+//! `TRANSACTIONAL_ID_AUTHORIZATION_FAILED` still completes without retry,
+//! including when `AcknowledgeErrorMessage` is set (this is not
+//! partition `TRANSACTIONAL_ID_AUTHORIZATION_FAILED`, which fails that poll, and not
+//! piggyback `UNSUPPORTED_FOR_MESSAGE_FORMAT` or
+//! `TOPIC_AUTHORIZATION_FAILED` / `GROUP_AUTHORIZATION_FAILED` /
+//! `CLUSTER_AUTHORIZATION_FAILED`). A piggybacked
 //! `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a
 //! sibling whose `AcknowledgeErrorCode` is none, including when
 //! `AcknowledgeErrorMessage` is set or empty. A piggybacked
