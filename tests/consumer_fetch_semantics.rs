@@ -3266,6 +3266,32 @@ async fn fetch_mixed_version_preferred_replica_uses_replica_version() {
     }
 }
 
+/// A not-leader ListOffsets retry reloads metadata while the leader reconnects.
+#[tokio::test]
+async fn list_offsets_redials_while_refreshing_after_not_leader() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_topic_partitions("t", 1);
+    mock.set_partition_leader("t", 0, 2);
+    let mut consumer =
+        Consumer::new(ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10))
+            .await
+            .unwrap();
+    let _warm = consumer.list_offsets("t", 0, -2).await.unwrap();
+    mock.fail_list_offsets_once(NOT_LEADER_OR_FOLLOWER);
+    let delay = Duration::from_millis(250);
+    mock.set_metadata_delay(delay);
+    mock.set_api_versions_delay(delay);
+    let started = Instant::now();
+    let offset = consumer.list_offsets("t", 0, -2).await.unwrap();
+    let elapsed = started.elapsed();
+    assert!(offset >= 0);
+    assert!(
+        elapsed < Duration::from_millis(450),
+        "list offsets refreshed metadata before redialing after not-leader: {elapsed:?}"
+    );
+    consumer.close().await.unwrap();
+}
+
 /// A fetch reloads stale metadata while an idle leader reconnects.
 #[tokio::test]
 async fn fetch_dials_leaders_while_refreshing_metadata() {

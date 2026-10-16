@@ -7309,17 +7309,37 @@ impl Consumer {
                     continue;
                 }
                 Err(e) if e.is_retriable() => {
-                    // NOT_LEADER_OR_FOLLOWER (6) and friends: Metadata, then the new leader.
+                    // NOT_LEADER_OR_FOLLOWER (6) and friends: reload Metadata
+                    // while the previous leader socket is opened again. A
+                    // moved leader is dialed on the next attempt.
+                    let previous = node;
+                    self.drop_broker_conn(previous);
+                    let dials = self.leader_dials_for(&[previous]);
                     self.cluster.invalidate_topic(topic);
-                    self.drop_broker_conn(node);
                     if Instant::now() >= deadline {
                         return Err(Error::Timeout);
                     }
-                    self.refresh_metadata_timeout_ref(
-                        Some(std::slice::from_ref(&topic)),
-                        deadline.saturating_duration_since(Instant::now()),
-                    )
-                    .await?;
+                    if dials.is_empty() {
+                        self.refresh_metadata_timeout_ref(
+                            Some(std::slice::from_ref(&topic)),
+                            deadline.saturating_duration_since(Instant::now()),
+                        )
+                        .await?;
+                    } else {
+                        let opened = Self::open_leader_dials(
+                            self.leader_dial_config(),
+                            dials,
+                            Arc::clone(&self.wakeup),
+                            deadline,
+                        );
+                        let refreshed = self.refresh_metadata_timeout_ref(
+                            Some(std::slice::from_ref(&topic)),
+                            deadline.saturating_duration_since(Instant::now()),
+                        );
+                        let (opened, refreshed) = tokio::join!(opened, refreshed);
+                        self.store_opened_leaders(opened);
+                        refreshed?;
+                    }
                     continue;
                 }
                 Err(e) => return Err(e),
