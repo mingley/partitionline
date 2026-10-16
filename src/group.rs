@@ -50,7 +50,7 @@ type PendingAsyncCommit = (
     Option<AsyncOffsetCommitCallback>,
     DeliveredTopicIds,
 );
-type DeliveredTopicIds = HashMap<String, HashMap<i32, [u8; 16]>>;
+type DeliveredTopicIds = HashMap<Arc<str>, HashMap<i32, [u8; 16]>>;
 
 /// Java default JoinGroup `Reason` for [`ConsumerGroup::enforce_rebalance`] (KIP-800).
 pub const DEFAULT_ENFORCE_REBALANCE_REASON: &str = "rebalance enforced by user";
@@ -3804,7 +3804,22 @@ fn remember_topic_id(map: &mut DeliveredTopicIds, topic: &str, partition: i32, i
     }
     let mut parts = HashMap::new();
     let _ = parts.insert(partition, id);
-    let _ = map.insert(topic.to_owned(), parts);
+    let _ = map.insert(Arc::from(topic), parts);
+}
+
+fn remember_shared_topic_id(
+    map: &mut DeliveredTopicIds,
+    topic: &Arc<str>,
+    partition: i32,
+    id: [u8; 16],
+) {
+    if let Some(parts) = map.get_mut(topic.as_ref()) {
+        let _ = parts.insert(partition, id);
+        return;
+    }
+    let mut parts = HashMap::new();
+    let _ = parts.insert(partition, id);
+    let _ = map.insert(Arc::clone(topic), parts);
 }
 
 fn nested_topic_id(map: &DeliveredTopicIds, topic: &str, partition: i32) -> Option<[u8; 16]> {
@@ -4845,6 +4860,28 @@ mod tests {
         assert!(position_is_committable(0));
         assert!(position_is_committable(4));
         assert!(!position_is_committable(-1));
+    }
+
+    #[test]
+    fn a_delivered_topic_id_keeps_the_assignment_name() {
+        let topic: Arc<str> = Arc::from("topic-name-longer-than-twenty-three");
+        let stored = Arc::as_ptr(&topic);
+        let mut ids = HashMap::new();
+        remember_shared_topic_id(&mut ids, &topic, 0, [1u8; 16]);
+        remember_shared_topic_id(&mut ids, &topic, 1, [1u8; 16]);
+        assert_eq!(
+            ids.get_key_value(topic.as_ref())
+                .map(|(name, _)| Arc::as_ptr(name)),
+            Some(stored)
+        );
+        assert_eq!(nested_topic_id(&ids, topic.as_ref(), 1), Some([1u8; 16]));
+        let copy: Arc<str> = Arc::from(topic.as_ref());
+        remember_shared_topic_id(&mut ids, &copy, 2, [1u8; 16]);
+        assert_eq!(
+            ids.get_key_value(topic.as_ref())
+                .map(|(name, _)| Arc::as_ptr(name)),
+            Some(stored)
+        );
     }
 
     #[test]

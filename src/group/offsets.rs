@@ -14,7 +14,7 @@ impl ConsumerGroup {
         let mut ids = HashMap::new();
         for (topic, partition, _) in &positions {
             if let Some(id) = self.consumer.assigned_topic_id(topic, *partition) {
-                super::remember_topic_id(&mut ids, topic, *partition, id);
+                super::remember_shared_topic_id(&mut ids, topic, *partition, id);
             }
         }
         self.last_delivered_topic_ids = ids;
