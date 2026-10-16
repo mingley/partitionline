@@ -2166,6 +2166,10 @@
 //! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `INVALID_UPDATE_VERSION`, which fails that poll, and not
 //! piggyback `UNSUPPORTED_VERSION`). A piggybacked
+//! `STALE_CONTROLLER_EPOCH` still completes without retry,
+//! including when `AcknowledgeErrorMessage` is set (this is not
+//! partition `STALE_CONTROLLER_EPOCH`, which fails that poll, and not
+//! piggyback `INVALID_UPDATE_VERSION` or `NOT_CONTROLLER`). A piggybacked
 //! `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a
 //! sibling whose `AcknowledgeErrorCode` is none, including when
 //! `AcknowledgeErrorMessage` is set or empty. A piggybacked
