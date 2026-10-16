@@ -109,6 +109,19 @@ pub fn assign_sticky(
     partitions: &[i32],
     prev: &HashMap<String, Vec<i32>>,
 ) -> HashMap<String, Vec<i32>> {
+    assign_sticky_from(
+        members,
+        partitions,
+        prev.iter()
+            .map(|(member, parts)| (member.as_str(), parts.as_slice())),
+    )
+}
+
+fn assign_sticky_from<'a>(
+    members: &[String],
+    partitions: &[i32],
+    prev: impl IntoIterator<Item = (&'a str, &'a [i32])>,
+) -> HashMap<String, Vec<i32>> {
     let member_set: std::collections::HashSet<&str> = members.iter().map(String::as_str).collect();
     let part_set: std::collections::HashSet<i32> =
         partitions.iter().copied().filter(|p| *p >= 0).collect();
@@ -118,7 +131,7 @@ pub fn assign_sticky(
     }
     let mut used = std::collections::HashSet::new();
     for (m, parts) in prev {
-        if !member_set.contains(m.as_str()) {
+        if !member_set.contains(m) {
             continue;
         }
         for p in parts {
@@ -257,8 +270,8 @@ pub fn assign_sticky_topics(
     }
     let previous = previous_partitions_by_topic(prev);
     for (topic, parts) in topics {
-        let prev_for_topic = owned_previous_partitions(previous.get(topic.as_str()));
-        for (member, ps) in assign_sticky(members, parts, &prev_for_topic) {
+        let prev_for_topic = sticky_previous(previous.get(topic.as_str()));
+        for (member, ps) in assign_sticky_from(members, parts, prev_for_topic) {
             if let Some(slot) = out.get_mut(&member) {
                 for p in ps {
                     slot.push((topic.clone(), p));
@@ -405,8 +418,8 @@ pub fn assign_sticky_subscribed(
             .get(topic.as_str())
             .map(Vec::as_slice)
             .unwrap_or(&[]);
-        let prev_for_topic = owned_previous_partitions(previous.get(topic.as_str()));
-        for (member, ps) in assign_sticky(members, parts, &prev_for_topic) {
+        let prev_for_topic = sticky_previous(previous.get(topic.as_str()));
+        for (member, ps) in assign_sticky_from(members, parts, prev_for_topic) {
             if let Some(slot) = out.get_mut(&member) {
                 for p in ps {
                     slot.push((topic.clone(), p));
@@ -462,17 +475,14 @@ fn previous_partitions_by_topic(
     out
 }
 
-fn owned_previous_partitions(
-    owners: Option<&HashMap<&str, Vec<i32>>>,
-) -> HashMap<String, Vec<i32>> {
-    owners
-        .map(|owners| {
-            owners
-                .iter()
-                .map(|(member, parts)| ((*member).to_owned(), parts.clone()))
-                .collect()
-        })
-        .unwrap_or_default()
+fn sticky_previous<'a>(
+    owners: Option<&'a HashMap<&'a str, Vec<i32>>>,
+) -> impl Iterator<Item = (&'a str, &'a [i32])> {
+    owners.into_iter().flat_map(|owners| {
+        owners
+            .iter()
+            .map(|(member, parts)| (*member, parts.as_slice()))
+    })
 }
 
 /// This member's identity in a consumer group (Java `ConsumerGroupMetadata`).
