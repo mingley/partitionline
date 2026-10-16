@@ -265,7 +265,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   fails that poll, and not standalone ShareAcknowledge
   `COORDINATOR_LOAD_IN_PROGRESS`, which retries). A piggybacked
   `COORDINATOR_NOT_AVAILABLE` still completes without retry, including
-  when `AcknowledgeErrorMessage` is set (Java `handleShareFetchSuccess`
+  when `AcknowledgeErrorMessage` is set or empty (Java `handleShareFetchSuccess`
   completes piggyback acks and still delivers the fetch; this is not
   partition `COORDINATOR_NOT_AVAILABLE`, which fails that poll, and not
   standalone ShareAcknowledge `COORDINATOR_NOT_AVAILABLE`, which
