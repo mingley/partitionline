@@ -763,3 +763,28 @@ async fn delete_records_dials_known_leaders_while_loading_metadata() {
         "delete records loaded metadata before redialing the known leader: {elapsed:?}"
     );
 }
+
+/// A known group coordinator reconnects while another group is being found.
+#[tokio::test]
+async fn describe_groups_dials_known_coordinators_while_finding_new_ones() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_group_coordinator("ga", 2);
+    mock.set_group_coordinator("gb", 2);
+    let mut cfg = AdminConfig::bootstrap([mock.addr.clone()]);
+    cfg.connections_max_idle = Duration::from_millis(40);
+    let mut admin = Admin::new(cfg).await.unwrap();
+    let _warm = admin.describe_groups(&["ga"], false).await.unwrap();
+    tokio::time::sleep(Duration::from_millis(60)).await;
+    let _topics = admin.list_topics().await.unwrap();
+    let delay = Duration::from_millis(250);
+    mock.set_find_coordinator_delay(delay);
+    mock.set_api_versions_delay(delay);
+    let started = Instant::now();
+    let described = admin.describe_groups(&["ga", "gb"], false).await.unwrap();
+    let elapsed = started.elapsed();
+    assert_eq!(described.len(), 2);
+    assert!(
+        elapsed < Duration::from_millis(450),
+        "describe groups found a coordinator before redialing the known one: {elapsed:?}"
+    );
+}

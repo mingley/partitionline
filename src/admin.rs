@@ -14415,7 +14415,30 @@ impl Admin {
             }
         }
         if !need.is_empty() {
-            let found = self.discover_group_coords(&need, deadline).await?;
+            let mut known_nodes = Vec::new();
+            for &i in pending {
+                let Some(id) = ids.get(i) else {
+                    continue;
+                };
+                let Some(&node) = self.group_coords.get(id.as_ref()) else {
+                    continue;
+                };
+                if !known_nodes.contains(&node) {
+                    known_nodes.push(node);
+                }
+            }
+            let dials = self.take_broker_dials(&known_nodes);
+            let found = if dials.is_empty() {
+                self.discover_group_coords(&need, deadline).await?
+            } else {
+                let cfg = self.cfg.clone();
+                let stats = Arc::clone(&self.stats);
+                let dialed = Self::dial_admin_nodes(cfg, stats, dials, deadline);
+                let found = self.discover_group_coords(&need, deadline);
+                let (dialed, found) = tokio::join!(dialed, found);
+                self.store_admin_dials(dialed);
+                found?
+            };
             self.group_coords.extend(found);
         }
         let mut by_node: HashMap<i32, Vec<usize>> = HashMap::new();
@@ -14459,7 +14482,30 @@ impl Admin {
             }
         }
         if !need.is_empty() {
-            let found = self.discover_txn_coords(&need, deadline).await?;
+            let mut known_nodes = Vec::new();
+            for &i in pending {
+                let Some(id) = ids.get(i) else {
+                    continue;
+                };
+                let Some(&node) = self.txn_coords.get(id.as_ref()) else {
+                    continue;
+                };
+                if !known_nodes.contains(&node) {
+                    known_nodes.push(node);
+                }
+            }
+            let dials = self.take_broker_dials(&known_nodes);
+            let found = if dials.is_empty() {
+                self.discover_txn_coords(&need, deadline).await?
+            } else {
+                let cfg = self.cfg.clone();
+                let stats = Arc::clone(&self.stats);
+                let dialed = Self::dial_admin_nodes(cfg, stats, dials, deadline);
+                let found = self.discover_txn_coords(&need, deadline);
+                let (dialed, found) = tokio::join!(dialed, found);
+                self.store_admin_dials(dialed);
+                found?
+            };
             self.txn_coords.extend(found);
         }
         let mut by_node: HashMap<i32, Vec<usize>> = HashMap::new();
