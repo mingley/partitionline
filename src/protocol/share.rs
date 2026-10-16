@@ -1843,6 +1843,10 @@ fn encode_share_fetch_response_full(
     error_code: i16,
 ) -> crate::error::Result<()> {
     let flexible = share_fetch_flexible(version)?;
+    let body_start = buf.len();
+    let plan = share_fetch_response_plan(version, topics, endpoints, error_message)?;
+    reserve_share_body(buf, plan.len);
+    let mut staged = plan.staged.into_iter();
     buf.put_i32(throttle_time_ms);
     buf.put_i16(error_code);
     buf::put_string(buf, flexible, error_message)?;
@@ -1860,11 +1864,16 @@ fn encode_share_fetch_response_full(
             buf.put_i16(p.acknowledge_error_code);
             buf::put_string(buf, flexible, p.acknowledge_error_message.as_deref())?;
             encode_leader(buf, p.current_leader_id, p.current_leader_epoch);
-            let mut recs = BytesMut::new();
-            for batch in &p.records {
-                records::encode_record_batch(&mut recs, batch)?;
+            let ready = staged.next().flatten();
+            let records_len = match ready.as_ref() {
+                Some(ready) => ready.len(),
+                None => share_uncompressed_records_len(&p.records)?,
+            };
+            let mark = buf.len();
+            if let Err(error) = write_share_records(buf, &p.records, records_len, ready) {
+                buf.truncate(mark);
+                return Err(error);
             }
-            buf::put_bytes(buf, flexible, Some(&recs))?;
             buf::put_array_len(buf, flexible, Some(p.acquired.len()))?;
             for a in &p.acquired {
                 buf.put_i64(a.first_offset);
@@ -1886,7 +1895,176 @@ fn encode_share_fetch_response_full(
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), plan.len);
     Ok(())
+}
+
+struct ShareFetchResponsePlan {
+    len: usize,
+    /// One entry per partition when any batch is compressed. `None` means the
+    /// partition's batches are uncompressed and are encoded into the response.
+    staged: Vec<Option<BytesMut>>,
+}
+
+fn share_batch_is_compressed(batch: &RecordBatch) -> Result<bool> {
+    Ok(!matches!(
+        records::Compression::from_attributes(batch.attributes)?,
+        records::Compression::None
+    ))
+}
+
+fn share_uncompressed_batch_len(batch: &RecordBatch) -> Result<usize> {
+    records::uncompressed_batch_len(
+        &records::BatchHeader {
+            base_offset: batch.base_offset,
+            partition_leader_epoch: batch.partition_leader_epoch,
+            attributes: batch.attributes,
+            base_timestamp: batch.base_timestamp,
+            max_timestamp: batch.max_timestamp,
+            producer_id: batch.producer_id,
+            producer_epoch: batch.producer_epoch,
+            base_sequence: batch.base_sequence,
+            count: buf::i32_from_usize(batch.records.len())?,
+        },
+        batch.records.iter().map(records::EncodeRecord::from_record),
+    )
+}
+
+fn share_uncompressed_records_len(batches: &[RecordBatch]) -> Result<usize> {
+    let mut total = 0usize;
+    for batch in batches {
+        total = add_share_len(total, share_uncompressed_batch_len(batch)?)?;
+    }
+    Ok(total)
+}
+
+fn share_records_are_compressed(batches: &[RecordBatch]) -> Result<bool> {
+    for batch in batches {
+        if share_batch_is_compressed(batch)? {
+            return Ok(true);
+        }
+    }
+    Ok(false)
+}
+
+fn share_response_has_compressed_batch(topics: &[ShareFetchedTopic]) -> Result<bool> {
+    for topic in topics {
+        for part in &topic.partitions {
+            if share_records_are_compressed(&part.records)? {
+                return Ok(true);
+            }
+        }
+    }
+    Ok(false)
+}
+
+fn share_bytes_prefix_len(len: usize) -> Result<usize> {
+    let encoded = buf::u32_from_usize(len)?
+        .checked_add(1)
+        .ok_or_else(|| Error::protocol("compact bytes overflow"))?;
+    Ok(buf::unsigned_varint_size(encoded))
+}
+
+fn share_endpoints_len(endpoints: &[NodeEndpoint]) -> Result<usize> {
+    let mut total = share_array_len(endpoints.len())?;
+    for endpoint in endpoints {
+        total = add_share_len(total, 4)?;
+        total = add_share_len(total, share_string_len(&endpoint.host)?)?;
+        total = add_share_len(total, 4)?;
+        total = add_share_len(total, share_nullable_string_len(endpoint.rack.as_deref())?)?;
+        total = add_share_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
+}
+
+fn share_fetch_response_plan(
+    version: i16,
+    topics: &[ShareFetchedTopic],
+    endpoints: &[NodeEndpoint],
+    error_message: Option<&str>,
+) -> Result<ShareFetchResponsePlan> {
+    let compressed = share_response_has_compressed_batch(topics)?;
+    let mut staged = Vec::new();
+    let mut total = 6usize;
+    total = add_share_len(total, share_nullable_string_len(error_message)?)?;
+    if version >= 1 {
+        total = add_share_len(total, 4)?;
+    }
+    total = add_share_len(total, share_array_len(topics.len())?)?;
+    for topic in topics {
+        total = add_share_len(total, 16)?;
+        total = add_share_len(total, share_array_len(topic.partitions.len())?)?;
+        for part in &topic.partitions {
+            total = add_share_len(total, 6)?;
+            total = add_share_len(
+                total,
+                share_nullable_string_len(part.error_message.as_deref())?,
+            )?;
+            total = add_share_len(total, 2)?;
+            total = add_share_len(
+                total,
+                share_nullable_string_len(part.acknowledge_error_message.as_deref())?,
+            )?;
+            total = add_share_len(total, 9)?;
+            let (records_len, encoded) =
+                if compressed && share_records_are_compressed(&part.records)? {
+                    let mut encoded = BytesMut::new();
+                    for batch in &part.records {
+                        records::encode_record_batch(&mut encoded, batch)?;
+                    }
+                    let records_len = encoded.len();
+                    (records_len, Some(encoded))
+                } else {
+                    (share_uncompressed_records_len(&part.records)?, None)
+                };
+            if compressed {
+                staged.push(encoded);
+            }
+            total = add_share_len(total, share_bytes_prefix_len(records_len)?)?;
+            total = add_share_len(total, records_len)?;
+            total = add_share_len(total, share_array_len(part.acquired.len())?)?;
+            let mut acquired = 18usize;
+            acquired += buf::unsigned_varint_size(0);
+            total = add_share_len(
+                total,
+                acquired
+                    .checked_mul(part.acquired.len())
+                    .ok_or_else(|| Error::protocol("share fetch response size overflow"))?,
+            )?;
+            total = add_share_len(total, buf::unsigned_varint_size(0))?;
+        }
+        total = add_share_len(total, buf::unsigned_varint_size(0))?;
+    }
+    total = add_share_len(total, share_endpoints_len(endpoints)?)?;
+    total = add_share_len(total, buf::unsigned_varint_size(0))?;
+    Ok(ShareFetchResponsePlan { len: total, staged })
+}
+
+fn write_share_records(
+    buf: &mut BytesMut,
+    batches: &[RecordBatch],
+    records_len: usize,
+    ready: Option<BytesMut>,
+) -> Result<()> {
+    buf::put_unsigned_varint(buf, share_compact_bytes_count(records_len)?);
+    let start = buf.len();
+    if let Some(ready) = ready {
+        buf.extend_from_slice(&ready);
+    } else {
+        for batch in batches {
+            records::encode_record_batch(buf, batch)?;
+        }
+    }
+    if buf.len().saturating_sub(start) != records_len {
+        return Err(Error::protocol("share fetch records length mismatch"));
+    }
+    Ok(())
+}
+
+fn share_compact_bytes_count(len: usize) -> Result<u32> {
+    buf::u32_from_usize(len)?
+        .checked_add(1)
+        .ok_or_else(|| Error::protocol("compact bytes overflow"))
 }
 
 /// Decode a ShareFetch response (`version` 0–2):
@@ -4323,6 +4501,50 @@ mod tests {
             &v1_with[..],
             "v0 and v1 AcknowledgeErrorMessage share compact layout; v1 still adds AcquisitionLockTimeoutMs"
         );
+    }
+
+    #[test]
+    fn a_share_fetch_response_sizes_its_body_once() {
+        let batch = RecordBatch::from_records(vec![Record {
+            offset: 0,
+            timestamp: 1,
+            key: Some(Bytes::from_static(b"k")),
+            value: Some(Bytes::from_static(b"value")),
+            headers: vec![],
+        }]);
+        let topics = [ShareFetchedTopic {
+            topic_id: [7u8; 16],
+            partitions: vec![ShareFetchedPartition {
+                partition: 0,
+                error_code: 0,
+                error_message: None,
+                acknowledge_error_code: 0,
+                acknowledge_error_message: Some("held".into()),
+                current_leader_id: 2,
+                current_leader_epoch: 3,
+                records: vec![batch],
+                acquired: vec![AcquiredRange {
+                    first_offset: 0,
+                    last_offset: 0,
+                    delivery_count: 1,
+                }],
+            }],
+        }];
+        let endpoints = [NodeEndpoint::new(2, "broker-2", 9092, None)];
+        for version in [0_i16, 1] {
+            let mut buf = BytesMut::new();
+            encode_share_fetch_response_with_endpoints(&mut buf, version, &topics, &endpoints)
+                .unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_share_fetch_response_with_endpoints(&mut buf, version, &topics, &endpoints)
+                .unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+        }
     }
 
     #[test]
