@@ -4589,7 +4589,9 @@ impl Admin {
         retry_on_quota_violation: bool,
     ) -> Result<Vec<TopicResult>> {
         let mut pending: Vec<NewTopic> = topics.to_vec();
-        let mut finished: HashMap<String, TopicResult> = HashMap::new();
+        let original = first_name_index(topics.iter().map(|topic| topic.name.as_str()));
+        let mut finished: Vec<Option<TopicResult>> = Vec::new();
+        finished.resize_with(topics.len(), || None);
         let version = self.create_version;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
@@ -4649,17 +4651,21 @@ impl Admin {
                     {
                         next_pending.push(topic.clone());
                     }
-                } else {
-                    let name = r.name.clone();
-                    let _prev = finished.insert(name, r);
+                } else if let Some(&index) = original.get(r.name.as_str()) {
+                    if let Some(slot) = finished.get_mut(index) {
+                        *slot = Some(r);
+                    }
                 }
             }
             if next_pending.is_empty() {
                 let mut out = Vec::with_capacity(topics.len());
-                for t in topics {
-                    let r = finished.remove(&t.name).ok_or_else(|| {
-                        Error::protocol(format!("missing create_topics result for {}", t.name))
-                    })?;
+                for (index, t) in topics.iter().enumerate() {
+                    let r = finished
+                        .get_mut(index)
+                        .and_then(Option::take)
+                        .ok_or_else(|| {
+                            Error::protocol(format!("missing create_topics result for {}", t.name))
+                        })?;
                     out.push(r);
                 }
                 return Ok(out);
@@ -5536,7 +5542,9 @@ impl Admin {
         retry_on_quota_violation: bool,
     ) -> Result<Vec<TopicResult>> {
         let mut pending: Vec<NewPartitions> = topics.to_vec();
-        let mut finished: HashMap<String, TopicResult> = HashMap::new();
+        let original = first_name_index(topics.iter().map(|topic| topic.name.as_str()));
+        let mut finished: Vec<Option<TopicResult>> = Vec::new();
+        finished.resize_with(topics.len(), || None);
         let version = self.partitions_version.ok_or_else(|| {
             Error::Unsupported("broker does not support CreatePartitions v0-3".into())
         })?;
@@ -5602,17 +5610,24 @@ impl Admin {
                     {
                         next_pending.push(topic.clone());
                     }
-                } else {
-                    let name = r.name.clone();
-                    let _prev = finished.insert(name, r);
+                } else if let Some(&index) = original.get(r.name.as_str()) {
+                    if let Some(slot) = finished.get_mut(index) {
+                        *slot = Some(r);
+                    }
                 }
             }
             if next_pending.is_empty() {
                 let mut out = Vec::with_capacity(topics.len());
-                for t in topics {
-                    let r = finished.remove(&t.name).ok_or_else(|| {
-                        Error::protocol(format!("missing create_partitions result for {}", t.name))
-                    })?;
+                for (index, t) in topics.iter().enumerate() {
+                    let r = finished
+                        .get_mut(index)
+                        .and_then(Option::take)
+                        .ok_or_else(|| {
+                            Error::protocol(format!(
+                                "missing create_partitions result for {}",
+                                t.name
+                            ))
+                        })?;
                     out.push(r);
                 }
                 return Ok(out);
