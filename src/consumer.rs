@@ -2037,6 +2037,8 @@ pub struct Consumer {
     /// Topic names from the previous metadata refresh. A steady assignment
     /// refills these strings instead of allocating them again.
     metadata_topics: Vec<String>,
+    /// Topic names for OffsetForLeaderEpoch recovery. Refilled in place.
+    epoch_topics: Vec<String>,
     reconnect_fails: HashMap<i32, u32>,
     /// Leaders whose Fetch was sent and not yet applied. A multi-leader round
     /// returns after [`MULTI_LEADER_COLLECTION_WINDOW`] once any peer has
@@ -2886,6 +2888,7 @@ impl Consumer {
             rack_id,
             spare_fetch_topics: Vec::new(),
             metadata_topics: Vec::new(),
+            epoch_topics: Vec::new(),
             reconnect_fails: HashMap::new(),
             inflight_fetches: None,
             inflight_nodes: HashSet::new(),
@@ -4489,6 +4492,20 @@ impl Consumer {
         coords: &[(Arc<str>, i32)],
         deadline: Instant,
     ) -> Result<()> {
+        let mut names = std::mem::take(&mut self.epoch_topics);
+        let result = self
+            .recover_leader_epochs_with(&mut names, coords, deadline)
+            .await;
+        self.restore_epoch_topics(names);
+        result
+    }
+
+    async fn recover_leader_epochs_with(
+        &mut self,
+        names: &mut Vec<String>,
+        coords: &[(Arc<str>, i32)],
+        deadline: Instant,
+    ) -> Result<()> {
         if coords.is_empty() {
             return Ok(());
         }
@@ -4500,9 +4517,10 @@ impl Consumer {
         for (topic, partition) in coords {
             let _ = self.preferred.remove(topic, *partition);
         }
-        let names = unique_coord_topics(coords.iter().map(|(topic, _)| topic.as_ref()));
+        fill_reused_topics(names, coords.iter().map(|(topic, _)| topic.as_ref()));
+        names.sort();
         self.refresh_metadata_timeout(
-            Some(&names),
+            Some(names),
             remaining_offset_timeout(deadline, Instant::now()),
         )
         .await?;
@@ -4529,7 +4547,7 @@ impl Consumer {
                     return Err(Error::Timeout);
                 }
                 self.refresh_metadata_timeout(
-                    Some(&names),
+                    Some(names),
                     remaining_offset_timeout(deadline, Instant::now()),
                 )
                 .await?;
@@ -4603,9 +4621,10 @@ impl Consumer {
             if Instant::now() >= deadline {
                 return Err(Error::Timeout);
             }
-            let retry_names = unique_coord_topics(remaining.iter().map(|(topic, _)| *topic));
+            fill_reused_topics(names, remaining.iter().map(|(topic, _)| *topic));
+            names.sort();
             self.refresh_metadata_timeout(
-                Some(&retry_names),
+                Some(names),
                 remaining_offset_timeout(deadline, Instant::now()),
             )
             .await?;
@@ -8164,6 +8183,7 @@ fn reuse_topic_cache<'a>(
 }
 
 /// Sorted topic names from an epoch-recovery coordinate list, once each.
+#[cfg(test)]
 fn unique_coord_topics<'a>(topics: impl IntoIterator<Item = &'a str>) -> Vec<String> {
     let mut names = Vec::new();
     let mut seen = HashSet::new();
@@ -8210,6 +8230,12 @@ fn restore_kept_held(
     }
 }
 
+fn keep_topic_buf(slot: &mut Vec<String>, topics: Vec<String>) {
+    if topics.capacity() >= slot.capacity() {
+        *slot = topics;
+    }
+}
+
 fn fill_reused_topics<'a>(topics: &mut Vec<String>, names: impl IntoIterator<Item = &'a str>) {
     let mut used = 0usize;
     let mut seen = HashSet::new();
@@ -8232,9 +8258,11 @@ fn fill_reused_topics<'a>(topics: &mut Vec<String>, names: impl IntoIterator<Ite
 
 impl Consumer {
     fn restore_metadata_topics(&mut self, topics: Vec<String>) {
-        if topics.capacity() >= self.metadata_topics.capacity() {
-            self.metadata_topics = topics;
-        }
+        keep_topic_buf(&mut self.metadata_topics, topics);
+    }
+
+    fn restore_epoch_topics(&mut self, topics: Vec<String>) {
+        keep_topic_buf(&mut self.epoch_topics, topics);
     }
 }
 
@@ -9523,6 +9551,15 @@ mod tests {
     fn epoch_recovery_names_are_unique_and_sorted() {
         let names = unique_coord_topics(["payments", "orders", "orders", "payments"]);
         assert_eq!(names, vec!["orders".to_owned(), "payments".to_owned()]);
+        let mut reused = Vec::new();
+        fill_reused_topics(&mut reused, ["payments", "orders", "orders", "payments"]);
+        reused.sort();
+        assert_eq!(reused, names);
+        let capacity = reused.capacity();
+        fill_reused_topics(&mut reused, ["orders"]);
+        reused.sort();
+        assert_eq!(reused, vec!["orders".to_owned()]);
+        assert!(reused.capacity() >= capacity);
     }
 
     #[test]
