@@ -788,6 +788,13 @@ fn park_fetched_topics(spare: &mut Vec<ShareFetchedTopic>, topics: Vec<ShareFetc
     }
 }
 
+fn reserve_share_delivery(pending: &mut Vec<ShareRecord>, additional: usize) {
+    let needed = pending.len().saturating_add(additional);
+    if pending.capacity() < needed {
+        pending.reserve(needed - pending.capacity());
+    }
+}
+
 fn note_share_offset(
     cursors: &mut Vec<(i32, i64)>,
     spilled: &mut Vec<(i32, HashSet<i64>)>,
@@ -3252,6 +3259,7 @@ impl ShareGroup {
                 ));
             }
         };
+        reserve_share_delivery(&mut self.pending_delivery, incoming.len());
         for record in incoming.drain(..) {
             remember_acquisition(
                 &mut self.acquisitions,
@@ -5261,6 +5269,22 @@ mod tests {
         assert_eq!(pending.get(1).map(|record| record.offset), Some(3));
         assert!(super::take_delivery(&mut pending, 0).is_empty());
         assert_eq!(pending.len(), 2);
+    }
+
+    #[test]
+    fn share_delivery_reserves_the_returned_buffer_once() {
+        let mut pending = Vec::new();
+        super::reserve_share_delivery(&mut pending, 8);
+        assert!(pending.capacity() >= 8);
+        let kept = pending.capacity();
+        let taken = std::mem::take(&mut pending);
+        assert!(taken.capacity() >= kept);
+        assert_eq!(pending.capacity(), 0);
+        super::reserve_share_delivery(&mut pending, 8);
+        assert!(pending.capacity() >= 8);
+        let again = pending.capacity();
+        pending.push(rec(0, 1));
+        assert_eq!(pending.capacity(), again);
     }
 
     #[test]
