@@ -1991,6 +1991,49 @@ fn delete_topics_names_len(version: i16, flexible: bool, names: &[String]) -> Re
     Ok(total)
 }
 
+/// One DeleteTopics entry whose name is borrowed from the caller.
+pub(crate) struct BorrowedDeleteTopic<'a> {
+    /// Topic name. `None` is a TopicId delete.
+    pub name: Option<&'a str>,
+    /// Topic id. Zeros when deleting by name.
+    pub topic_id: [u8; 16],
+}
+
+pub(crate) trait DeleteTopicView {
+    fn delete_topic_name(&self) -> Option<&str>;
+    fn delete_topic_id(&self) -> [u8; 16];
+}
+
+impl DeleteTopicView for DeleteTopicState {
+    fn delete_topic_name(&self) -> Option<&str> {
+        self.name.as_deref()
+    }
+
+    fn delete_topic_id(&self) -> [u8; 16] {
+        self.topic_id
+    }
+}
+
+impl DeleteTopicView for BorrowedDeleteTopic<'_> {
+    fn delete_topic_name(&self) -> Option<&str> {
+        self.name
+    }
+
+    fn delete_topic_id(&self) -> [u8; 16] {
+        self.topic_id
+    }
+}
+
+impl<T: DeleteTopicView + ?Sized> DeleteTopicView for &T {
+    fn delete_topic_name(&self) -> Option<&str> {
+        (*self).delete_topic_name()
+    }
+
+    fn delete_topic_id(&self) -> [u8; 16] {
+        (*self).delete_topic_id()
+    }
+}
+
 /// DeleteTopics Topics of N (v6 Name + TopicId; v0–5 TopicNames).
 ///
 /// Java `deleteTopics(TopicCollection.ofTopicIds)` sends Name null and
@@ -2004,7 +2047,7 @@ pub fn encode_delete_topics_states_request(
     encode_delete_topic_list(buf, version, topics, timeout_ms)
 }
 
-pub(crate) fn encode_delete_topic_list<T: std::borrow::Borrow<DeleteTopicState>>(
+pub(crate) fn encode_delete_topic_list<T: DeleteTopicView>(
     buf: &mut BytesMut,
     version: i16,
     topics: &[T],
@@ -2020,16 +2063,14 @@ pub(crate) fn encode_delete_topic_list<T: std::borrow::Borrow<DeleteTopicState>>
     if version >= 6 {
         buf::put_array_len(buf, true, Some(topics.len()))?;
         for topic in topics {
-            let topic = topic.borrow();
-            buf::put_compact_string(buf, topic.name.as_deref())?;
-            buf.extend_from_slice(&topic.topic_id);
+            buf::put_compact_string(buf, topic.delete_topic_name())?;
+            buf.extend_from_slice(&topic.delete_topic_id());
             buf::put_empty_tagged_fields(buf);
         }
     } else {
         buf::put_array_len(buf, flexible, Some(topics.len()))?;
         for topic in topics {
-            let topic = topic.borrow();
-            buf::put_string(buf, flexible, topic.name.as_deref())?;
+            buf::put_string(buf, flexible, topic.delete_topic_name())?;
         }
     }
     buf.put_i32(timeout_ms);
@@ -2040,7 +2081,7 @@ pub(crate) fn encode_delete_topic_list<T: std::borrow::Borrow<DeleteTopicState>>
     Ok(())
 }
 
-fn delete_topics_request_len<T: std::borrow::Borrow<DeleteTopicState>>(
+fn delete_topics_request_len<T: DeleteTopicView>(
     version: i16,
     flexible: bool,
     topics: &[T],
@@ -2051,13 +2092,15 @@ fn delete_topics_request_len<T: std::borrow::Borrow<DeleteTopicState>>(
         describe_array_len(flexible, topics.len())?
     };
     for topic in topics {
-        let topic = topic.borrow();
         if version >= 6 {
-            total = add_describe_len(total, describe_string_len(true, topic.name.as_deref())?)?;
+            total = add_describe_len(total, describe_string_len(true, topic.delete_topic_name())?)?;
             total = add_describe_len(total, 16)?;
             total = add_describe_len(total, buf::unsigned_varint_size(0))?;
         } else {
-            total = add_describe_len(total, describe_string_len(flexible, topic.name.as_deref())?)?;
+            total = add_describe_len(
+                total,
+                describe_string_len(flexible, topic.delete_topic_name())?,
+            )?;
         }
     }
     total = add_describe_len(total, 4)?;
@@ -27450,6 +27493,36 @@ mod tests {
             assert!(cur.is_empty());
             assert_eq!(timeout, 5_000);
             assert_eq!(decoded.len(), 2);
+        }
+    }
+
+    #[test]
+    fn delete_topics_borrowed_topics_match_owned_topics() {
+        let mut topic_id = [0u8; 16];
+        topic_id[15] = 6;
+        let owned = vec![
+            DeleteTopicState::by_name("orders-topic-name-is-long"),
+            DeleteTopicState {
+                name: None,
+                topic_id,
+            },
+        ];
+        let borrowed = [
+            BorrowedDeleteTopic {
+                name: Some("orders-topic-name-is-long"),
+                topic_id: [0; 16],
+            },
+            BorrowedDeleteTopic {
+                name: None,
+                topic_id,
+            },
+        ];
+        for version in [0_i16, 3, 4, 6] {
+            let mut expected = BytesMut::new();
+            encode_delete_topics_states_request(&mut expected, version, &owned, 5_000).unwrap();
+            let mut got = BytesMut::new();
+            encode_delete_topic_list(&mut got, version, &borrowed, 5_000).unwrap();
+            assert_eq!(got.as_ref(), expected.as_ref(), "version {version}");
         }
     }
 

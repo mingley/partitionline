@@ -67,11 +67,11 @@ use crate::protocol::admin::{
     encode_update_features_named, AlterConfigsResource, BorrowedAlterConfig,
     BorrowedAlterConfigsResource, BorrowedAlterReplicaLogDir, BorrowedAlterReplicaLogDirTopic,
     BorrowedAlterableResource, BorrowedCreatableTopic, BorrowedCreatePartitionsTopic,
-    BorrowedDescribeConfigsResource, BorrowedFeatureUpdate, BorrowedReassignmentPartition,
-    BorrowedReplicaAssignment, BorrowedScramDeletion, BorrowedScramUpsertion, BorrowedTopicConfig,
-    CreateTopicsRequest, DeleteRecordsPartition, DeleteTopicState, DescribeConfigsResult,
-    TopicResult, RESOURCE_BROKER, RESOURCE_BROKER_LOGGER, RESOURCE_CLIENT_METRICS, RESOURCE_GROUP,
-    RESOURCE_TOPIC,
+    BorrowedDeleteTopic, BorrowedDescribeConfigsResource, BorrowedFeatureUpdate,
+    BorrowedReassignmentPartition, BorrowedReplicaAssignment, BorrowedScramDeletion,
+    BorrowedScramUpsertion, BorrowedTopicConfig, CreateTopicsRequest, DeleteRecordsPartition,
+    DeleteTopicView, DescribeConfigsResult, TopicResult, RESOURCE_BROKER, RESOURCE_BROKER_LOGGER,
+    RESOURCE_CLIENT_METRICS, RESOURCE_GROUP, RESOURCE_TOPIC,
 };
 use crate::protocol::api::{
     decode_api_versions_response, decode_metadata_response, decode_metadata_response_into,
@@ -3433,8 +3433,8 @@ struct DeletePendingIndex<'a> {
     by_id: HashMap<[u8; 16], usize>,
 }
 
-fn index_delete_selection<'a>(
-    topics: &'a [DeleteTopicState],
+fn index_delete_selection<'a, T: DeleteTopicView>(
+    topics: &'a [T],
     selected: &[usize],
 ) -> DeletePendingIndex<'a> {
     let mut by_name = HashMap::new();
@@ -3443,14 +3443,15 @@ fn index_delete_selection<'a>(
         let Some(topic) = topics.get(index) else {
             continue;
         };
-        match topic.name.as_deref() {
+        match topic.delete_topic_name() {
             Some(name) => {
                 if let std::collections::hash_map::Entry::Vacant(slot) = by_name.entry(name) {
                     let _ = slot.insert(index);
                 }
             }
-            None if topic.topic_id != [0; 16] => {
-                if let std::collections::hash_map::Entry::Vacant(slot) = by_id.entry(topic.topic_id)
+            None if topic.delete_topic_id() != [0; 16] => {
+                if let std::collections::hash_map::Entry::Vacant(slot) =
+                    by_id.entry(topic.delete_topic_id())
                 {
                     let _ = slot.insert(index);
                 }
@@ -3497,10 +3498,10 @@ fn delete_pending_slot(index: &DeletePendingIndex<'_>, result: &TopicResult) -> 
     }
 }
 
-fn delete_state_matches(topic: &DeleteTopicState, result: &TopicResult) -> bool {
-    match &topic.name {
-        Some(name) => name == &result.name,
-        None => topic.topic_id != [0; 16] && topic.topic_id == result.topic_id,
+fn delete_state_matches(topic: &impl DeleteTopicView, result: &TopicResult) -> bool {
+    match topic.delete_topic_name() {
+        Some(name) => name == result.name,
+        None => topic.delete_topic_id() != [0; 16] && topic.delete_topic_id() == result.topic_id,
     }
 }
 
@@ -4857,7 +4858,6 @@ impl Admin {
         names: &[impl AsRef<str>],
         timeout_ms: i32,
     ) -> Result<Vec<TopicResult>> {
-        let names: Vec<String> = names.iter().map(|n| n.as_ref().to_string()).collect();
         let timeout = self.cfg.request_timeout;
         self.delete_topics_with(names, timeout_ms, timeout, true)
             .await
@@ -4872,7 +4872,6 @@ impl Admin {
         names: &[impl AsRef<str>],
         timeout: Duration,
     ) -> Result<Vec<TopicResult>> {
-        let names: Vec<String> = names.iter().map(|n| n.as_ref().to_string()).collect();
         let timeout_ms = crate::consumer::duration_millis_i32(timeout);
         self.delete_topics_with(names, timeout_ms, timeout, true)
             .await
@@ -4889,7 +4888,6 @@ impl Admin {
         timeout_ms: i32,
         retry_on_quota_violation: bool,
     ) -> Result<Vec<TopicResult>> {
-        let names: Vec<String> = names.iter().map(|n| n.as_ref().to_string()).collect();
         let timeout = self.cfg.request_timeout;
         self.delete_topics_with(names, timeout_ms, timeout, retry_on_quota_violation)
             .await
@@ -4905,7 +4903,6 @@ impl Admin {
         timeout: Duration,
         retry_on_quota_violation: bool,
     ) -> Result<Vec<TopicResult>> {
-        let names: Vec<String> = names.iter().map(|n| n.as_ref().to_string()).collect();
         let timeout_ms = crate::consumer::duration_millis_i32(timeout);
         self.delete_topics_with(names, timeout_ms, timeout, retry_on_quota_violation)
             .await
@@ -5046,13 +5043,8 @@ impl Admin {
     ) -> Result<Vec<TopicResult>> {
         match topics {
             TopicCollection::Names(names) => {
-                self.delete_topics_with(
-                    names.clone(),
-                    timeout_ms,
-                    timeout,
-                    retry_on_quota_violation,
-                )
-                .await
+                self.delete_topics_with(names, timeout_ms, timeout, retry_on_quota_violation)
+                    .await
             }
             TopicCollection::Ids(ids) => {
                 let ids: Vec<[u8; 16]> = ids.iter().copied().map(Uuid::to_bytes).collect();
@@ -5077,28 +5069,39 @@ impl Admin {
                 "broker does not support DeleteTopics v6 topic IDs".into(),
             ));
         }
-        let topics: Vec<DeleteTopicState> =
-            ids.iter().copied().map(DeleteTopicState::by_id).collect();
-        self.delete_topics_states_with(topics, timeout_ms, timeout, retry_on_quota_violation)
+        let topics: Vec<BorrowedDeleteTopic<'_>> = ids
+            .iter()
+            .copied()
+            .map(|topic_id| BorrowedDeleteTopic {
+                name: None,
+                topic_id,
+            })
+            .collect();
+        self.delete_topics_states_with(&topics, timeout_ms, timeout, retry_on_quota_violation)
             .await
     }
 
-    async fn delete_topics_with(
+    async fn delete_topics_with<T: AsRef<str>>(
         &mut self,
-        names: Vec<String>,
+        names: &[T],
         timeout_ms: i32,
         timeout: Duration,
         retry_on_quota_violation: bool,
     ) -> Result<Vec<TopicResult>> {
-        let topics: Vec<DeleteTopicState> =
-            names.into_iter().map(DeleteTopicState::by_name).collect();
-        self.delete_topics_states_with(topics, timeout_ms, timeout, retry_on_quota_violation)
+        let topics: Vec<BorrowedDeleteTopic<'_>> = names
+            .iter()
+            .map(|name| BorrowedDeleteTopic {
+                name: Some(name.as_ref()),
+                topic_id: [0; 16],
+            })
+            .collect();
+        self.delete_topics_states_with(&topics, timeout_ms, timeout, retry_on_quota_violation)
             .await
     }
 
-    async fn delete_topics_states_with(
+    async fn delete_topics_states_with<T: DeleteTopicView>(
         &mut self,
-        topics: Vec<DeleteTopicState>,
+        topics: &[T],
         timeout_ms: i32,
         timeout: Duration,
         retry_on_quota_violation: bool,
@@ -5125,7 +5128,7 @@ impl Admin {
                     DELETE_TOPICS,
                     version,
                     |buf| {
-                        let requested: Vec<&DeleteTopicState> = pending
+                        let requested: Vec<&T> = pending
                             .iter()
                             .filter_map(|&index| original.get(index))
                             .collect();
@@ -5159,7 +5162,7 @@ impl Admin {
                 self.refresh_metadata_until(None, deadline).await?;
                 continue;
             }
-            let slots = index_delete_selection(&original, &pending);
+            let slots = index_delete_selection(original, &pending);
             let mut next_pending = Vec::new();
             for r in results {
                 let Some(index) = delete_pending_slot(&slots, &r) else {
@@ -5186,7 +5189,7 @@ impl Admin {
                         .ok_or_else(|| {
                             Error::protocol(format!(
                                 "missing delete_topics result for {}",
-                                t.name.as_deref().unwrap_or("topic id")
+                                t.delete_topic_name().unwrap_or("topic id")
                             ))
                         })?;
                     out.push(r);
