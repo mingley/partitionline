@@ -936,9 +936,12 @@ impl FetchResponse {
             let Some(name) = name else {
                 continue;
             };
+            let mut parts: HashMap<i32, &FetchedPartition> = HashMap::new();
             for partition in &topic.partitions {
-                let _prev = response_data
-                    .insert((name.to_string(), partition.partition), partition.clone());
+                let _prev = parts.insert(partition.partition, partition);
+            }
+            for (partition, data) in parts {
+                let _prev = response_data.insert((name.to_owned(), partition), data.clone());
             }
         }
         response_data
