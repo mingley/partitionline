@@ -2392,6 +2392,7 @@ fn create(
     if needed > config.max_response_bytes {
         return Err(Error::ResponseLimit);
     }
+    writer.reserve(needed)?;
     let copies = mark_first_copies(&request.topics, |topic| Some(topic.name));
     let mut folded_names: HashSet<Vec<u8>> = HashSet::new();
     let track_folded = request.topics.len() > 1;
@@ -2506,6 +2507,7 @@ fn delete(
     if needed > config.max_response_bytes {
         return Err(Error::ResponseLimit);
     }
+    writer.reserve(needed)?;
     let copies = mark_first_copies(&request.topics, delete_identity);
     let (requested_ids, unique_name_ids) = delete_alias_sets(&request.topics, catalog);
     for (position, target) in request.topics.iter().enumerate() {
@@ -2698,6 +2700,140 @@ mod tests {
         assert_eq!(admitted.capacity(), admitted_capacity);
         assert_eq!(senders.capacity(), sender_capacity);
         assert_eq!(bodies.first().map(Vec::as_slice), Some([0].as_slice()));
+    }
+
+    #[test]
+    fn a_create_response_reserves_its_budget_before_writing() {
+        let path = std::env::temp_dir().join(format!(
+            "partitionline-create-size-{}-{}",
+            std::process::id(),
+            NEXT.fetch_add(1, Ordering::Relaxed)
+        ));
+        let (catalog, _) = Catalog::open(&path, catalog::Limits::default())
+            .unwrap_or_else(|error| panic!("{error}"));
+        let mut catalog = catalog;
+        let config = Config::new(1, "127.0.0.1".into(), 9092, "create".into());
+        let header = protocol::RequestHeader {
+            api_key: 19,
+            api_version: 4,
+            correlation_id: 3,
+            client_id: None,
+            header_version: 1,
+            tagged_fields: 0,
+        };
+        let (reply, receiver) = oneshot::channel();
+        let stopping = AtomicBool::new(false);
+        let names = ["orders", "payments", "trades", "quotes"];
+        let request = CreateRequest {
+            topics: names
+                .iter()
+                .map(|name| CreateTopic {
+                    name,
+                    partitions: 1,
+                    replicas: 1,
+                    assignments: Vec::new(),
+                    config_count: 0,
+                })
+                .collect(),
+            timeout: 1_000,
+            validate: true,
+        };
+        let first = create(
+            &mut catalog,
+            &config,
+            header,
+            request,
+            Instant::now(),
+            &reply,
+            &stopping,
+            Vec::new(),
+        )
+        .unwrap_or_else(|error| panic!("{error}"));
+        assert!(first.len() > 8);
+        let capacity = first.capacity();
+        assert!(capacity >= first.len());
+        assert!(capacity < 64 * 1024);
+        let request = CreateRequest {
+            topics: names
+                .iter()
+                .map(|name| CreateTopic {
+                    name,
+                    partitions: 1,
+                    replicas: 1,
+                    assignments: Vec::new(),
+                    config_count: 0,
+                })
+                .collect(),
+            timeout: 1_000,
+            validate: true,
+        };
+        let again = create(
+            &mut catalog,
+            &config,
+            header,
+            request,
+            Instant::now(),
+            &reply,
+            &stopping,
+            first,
+        )
+        .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(again.capacity(), capacity);
+        let delete_header = protocol::RequestHeader {
+            api_key: 20,
+            api_version: 6,
+            correlation_id: 4,
+            client_id: None,
+            header_version: 2,
+            tagged_fields: 0,
+        };
+        let deleted = delete(
+            &mut catalog,
+            &config,
+            delete_header,
+            DeleteRequest {
+                topics: names
+                    .iter()
+                    .map(|name| Target {
+                        name: Some(*name),
+                        id: ZERO,
+                    })
+                    .collect(),
+                timeout: 1_000,
+            },
+            Instant::now(),
+            &reply,
+            &stopping,
+            Vec::new(),
+        )
+        .unwrap_or_else(|error| panic!("{error}"));
+        assert!(deleted.len() > 8);
+        let delete_capacity = deleted.capacity();
+        assert!(delete_capacity >= deleted.len());
+        assert!(delete_capacity < 64 * 1024);
+        let deleted_again = delete(
+            &mut catalog,
+            &config,
+            delete_header,
+            DeleteRequest {
+                topics: names
+                    .iter()
+                    .map(|name| Target {
+                        name: Some(*name),
+                        id: ZERO,
+                    })
+                    .collect(),
+                timeout: 1_000,
+            },
+            Instant::now(),
+            &reply,
+            &stopping,
+            deleted,
+        )
+        .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(deleted_again.capacity(), delete_capacity);
+        drop(receiver);
+        let _ = std::fs::remove_file(&path);
     }
 
     #[test]
