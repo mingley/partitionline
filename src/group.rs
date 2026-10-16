@@ -2736,19 +2736,6 @@ impl ConsumerGroup {
         if timeout.is_zero() {
             return Err(Error::Timeout);
         }
-        if self
-            .topics
-            .iter()
-            .any(|topic| !self.consumer.topic_metadata_fresh(topic))
-        {
-            self.consumer
-                .refresh_metadata_timeout(Some(&self.topics), timeout)
-                .await?;
-        }
-        let timeout = deadline.saturating_duration_since(Instant::now());
-        if timeout.is_zero() {
-            return Err(Error::Timeout);
-        }
         let version = spoken_consumer_group_heartbeat(self.coord.consumer_group_heartbeat_version)?;
         if version >= ConsumerGroupHeartbeatRequest::CONSUMER_GENERATED_MEMBER_ID_REQUIRED_VERSION
             && self.member_id.is_empty()
@@ -2773,16 +2760,49 @@ impl ConsumerGroup {
             // (re-)joining"); send an empty array instead of null/unchanged.
             topic_partitions: Some(Vec::new()),
         };
-        let (version, body) = coord_roundtrip(
-            &mut self.coord,
-            &self.cfg,
-            &self.group_id,
-            COORDINATOR_GROUP,
-            CONSUMER_GROUP_HEARTBEAT,
-            |version, buf| encode_consumer_group_heartbeat_request(buf, version, &req),
-            timeout,
-        )
-        .await?;
+        // Topic names are already on the heartbeat. Metadata only has to be
+        // ready when the assignment is resolved, so a stale image loads while
+        // the coordinator join is in flight.
+        let stale = self
+            .topics
+            .iter()
+            .any(|topic| !self.consumer.topic_metadata_fresh(topic));
+        let mut metadata_refresh = None;
+        let (version, body) = if stale {
+            let group_id = self.group_id.as_str();
+            let coord = &mut self.coord;
+            let cfg = &self.cfg;
+            let consumer = &mut self.consumer;
+            let topics = &self.topics;
+            let refresh = consumer.refresh_metadata_timeout(Some(topics), timeout);
+            let rpc = coord_roundtrip(
+                coord,
+                cfg,
+                group_id,
+                COORDINATOR_GROUP,
+                CONSUMER_GROUP_HEARTBEAT,
+                |version, buf| encode_consumer_group_heartbeat_request(buf, version, &req),
+                timeout,
+            );
+            let (refresh, rpc) = tokio::join!(refresh, rpc);
+            metadata_refresh = Some(refresh);
+            rpc?
+        } else {
+            let timeout = deadline.saturating_duration_since(Instant::now());
+            if timeout.is_zero() {
+                return Err(Error::Timeout);
+            }
+            coord_roundtrip(
+                &mut self.coord,
+                &self.cfg,
+                &self.group_id,
+                COORDINATOR_GROUP,
+                CONSUMER_GROUP_HEARTBEAT,
+                |version, buf| encode_consumer_group_heartbeat_request(buf, version, &req),
+                timeout,
+            )
+            .await?
+        };
         let resp = decode_consumer_group_heartbeat_response(&mut body.clone(), version)?;
         if resp.error_code != 0 {
             return Err(Error::broker(resp.error_code, "ConsumerGroupHeartbeat"));
@@ -2808,6 +2828,12 @@ impl ConsumerGroup {
         *self.hb_member_id.lock() = self.member_id.clone();
         let _ = self.hb_assignment.lock().take();
         self.generation_id = resp.member_epoch;
+        if let Some(Err(error)) = metadata_refresh {
+            self.hb_generation
+                .store(self.generation_id, Ordering::SeqCst);
+            self.hb_err.store(0, Ordering::SeqCst);
+            return Err(error);
+        }
         let assignment = resp.assignment.unwrap_or_default();
         let names = self.consumer.topic_id_names();
         if (self.coord.offset_commit_version == 10 || self.coord.offset_fetch_version == 10)

@@ -614,6 +614,7 @@ struct State {
     acls: Vec<AclBinding>,
     join_group_calls: u32,
     cg_heartbeat_calls: u32,
+    cg_heartbeat_delay: Option<Duration>,
     cg_heartbeat_interval_ms: i32,
     sync_group_calls: u32,
     share_heartbeat_calls: u32,
@@ -1100,6 +1101,7 @@ fn new_state(
         acls: Vec::new(),
         join_group_calls: 0,
         cg_heartbeat_calls: 0,
+        cg_heartbeat_delay: None,
         // Previously hardcoded to 5000 while the client ignored it and used the
         // 150 ms config interval. Now that the client honors this field, keep
         // the default at the old effective cadence so existing 2s waits still
@@ -3547,6 +3549,10 @@ impl Mock {
 
     pub fn set_cg_heartbeat_interval_ms(&self, ms: i32) {
         self.state.lock().cg_heartbeat_interval_ms = ms;
+    }
+
+    pub fn set_cg_heartbeat_delay(&self, delay: Duration) {
+        self.state.lock().cg_heartbeat_delay = Some(delay);
     }
 
     pub fn cg_heartbeat_interval_ms(&self) -> i32 {
@@ -8090,6 +8096,10 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 }
             }
             CONSUMER_GROUP_HEARTBEAT => {
+                let delay = state.lock().cg_heartbeat_delay;
+                if let Some(delay) = delay {
+                    tokio::time::sleep(delay).await;
+                }
                 let req = decode_consumer_group_heartbeat_request(&mut frame, header.api_version)
                     .unwrap();
                 let corrupted = {
