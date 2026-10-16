@@ -6817,6 +6817,12 @@ pub fn encode_alter_user_scram_credentials_request(
     deletions: &[ScramCredentialDeletion],
     upsertions: &[ScramCredentialUpsertion],
 ) -> crate::error::Result<()> {
+    let body_start = buf.len();
+    let planned = alter_user_scram_request_len(deletions, upsertions)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf::put_array_len(buf, true, Some(deletions.len()))?;
     for d in deletions {
         buf::put_compact_string(buf, Some(&d.name))?;
@@ -6833,7 +6839,29 @@ pub fn encode_alter_user_scram_credentials_request(
         buf::put_empty_tagged_fields(buf);
     }
     buf::put_empty_tagged_fields(buf);
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn alter_user_scram_request_len(
+    deletions: &[ScramCredentialDeletion],
+    upsertions: &[ScramCredentialUpsertion],
+) -> Result<usize> {
+    let mut total = describe_array_len(true, deletions.len())?;
+    for deletion in deletions {
+        total = add_describe_len(total, describe_string_len(true, Some(&deletion.name))?)?;
+        total = add_describe_len(total, 1)?;
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    total = add_describe_len(total, describe_array_len(true, upsertions.len())?)?;
+    for upsertion in upsertions {
+        total = add_describe_len(total, describe_string_len(true, Some(&upsertion.name))?)?;
+        total = add_describe_len(total, 5)?;
+        total = add_describe_len(total, describe_bytes_len(true, &upsertion.salt)?)?;
+        total = add_describe_len(total, describe_bytes_len(true, &upsertion.salted_password)?)?;
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    add_describe_len(total, buf::unsigned_varint_size(0))
 }
 
 /// Decode an AlterUserScramCredentials request.
@@ -6888,6 +6916,12 @@ pub fn encode_alter_user_scram_credentials_response_with_throttle(
     results: &[AlterUserScramCredentialsResult],
     throttle_time_ms: i32,
 ) -> crate::error::Result<()> {
+    let body_start = buf.len();
+    let planned = alter_user_scram_response_len(results)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf.put_i32(throttle_time_ms);
     buf::put_array_len(buf, true, Some(results.len()))?;
     for r in results {
@@ -6897,7 +6931,23 @@ pub fn encode_alter_user_scram_credentials_response_with_throttle(
         buf::put_empty_tagged_fields(buf);
     }
     buf::put_empty_tagged_fields(buf);
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn alter_user_scram_response_len(results: &[AlterUserScramCredentialsResult]) -> Result<usize> {
+    let mut total = 4;
+    total = add_describe_len(total, describe_array_len(true, results.len())?)?;
+    for result in results {
+        total = add_describe_len(total, describe_string_len(true, Some(&result.user))?)?;
+        total = add_describe_len(total, 2)?;
+        total = add_describe_len(
+            total,
+            describe_string_len(true, result.error_message.as_deref())?,
+        )?;
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    add_describe_len(total, buf::unsigned_varint_size(0))
 }
 
 /// Decode an AlterUserScramCredentials response.
@@ -27754,6 +27804,68 @@ mod tests {
             &zero[..],
             "encode_alter_user_scram_credentials_response still writes ThrottleTimeMs 0"
         );
+    }
+
+    #[test]
+    fn a_alter_user_scram_credentials_request_sizes_its_body_once() {
+        let deletions = vec![ScramCredentialDeletion {
+            name: "alice".into(),
+            mechanism: 1,
+        }];
+        let upsertions = vec![ScramCredentialUpsertion {
+            name: "bob".into(),
+            mechanism: 2,
+            iterations: 4096,
+            salt: vec![1, 2, 3, 4],
+            salted_password: vec![9, 8, 7],
+        }];
+        let mut buf = BytesMut::new();
+        encode_alter_user_scram_credentials_request(&mut buf, &deletions, &upsertions).unwrap();
+        let len = buf.len();
+        let capacity = buf.capacity();
+        assert!(capacity >= len);
+        assert!(capacity < 64 * 1024);
+        buf.clear();
+        encode_alter_user_scram_credentials_request(&mut buf, &deletions, &upsertions).unwrap();
+        assert_eq!(buf.len(), len);
+        assert_eq!(buf.capacity(), capacity);
+        let mut cur = &buf[..];
+        let (decoded_deletions, decoded_upsertions) =
+            decode_alter_user_scram_credentials_request(&mut cur).unwrap();
+        assert!(cur.is_empty());
+        assert_eq!(decoded_deletions, deletions);
+        assert_eq!(decoded_upsertions, upsertions);
+    }
+
+    #[test]
+    fn a_alter_user_scram_credentials_response_sizes_its_body_once() {
+        let results = vec![
+            AlterUserScramCredentialsResult {
+                user: "alice".into(),
+                error_code: 0,
+                error_message: None,
+            },
+            AlterUserScramCredentialsResult {
+                user: "bob".into(),
+                error_code: 3,
+                error_message: Some("busy".into()),
+            },
+        ];
+        let mut buf = BytesMut::new();
+        encode_alter_user_scram_credentials_response_with_throttle(&mut buf, &results, 12).unwrap();
+        let len = buf.len();
+        let capacity = buf.capacity();
+        assert!(capacity >= len);
+        assert!(capacity < 64 * 1024);
+        buf.clear();
+        encode_alter_user_scram_credentials_response_with_throttle(&mut buf, &results, 12).unwrap();
+        assert_eq!(buf.len(), len);
+        assert_eq!(buf.capacity(), capacity);
+        let mut cur = &buf[..];
+        let (decoded, throttle) = decode_alter_user_scram_credentials_response(&mut cur).unwrap();
+        assert!(cur.is_empty());
+        assert_eq!(decoded, results);
+        assert_eq!(throttle, 12);
     }
 
     #[test]
