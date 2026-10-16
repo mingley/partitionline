@@ -563,6 +563,9 @@ pub struct ShareGroup {
     spare_fetch_ids: Vec<BTreeMap<[u8; 16], Vec<i32>>>,
     /// Offsets for a one-partition acknowledgement. Reused across calls.
     ack_offsets: Vec<i64>,
+    /// Partition and offset pairs for a one-topic acknowledgement. Reused
+    /// across calls.
+    ack_pairs: Vec<(i32, i64)>,
     topic_ids: HashMap<String, [u8; 16]>,
     /// Share session epoch per share-partition leader (KIP-932).
     share_epochs: HashMap<i32, i32>,
@@ -1039,6 +1042,7 @@ impl ShareGroup {
             spare_fetch_topics: Vec::new(),
             spare_fetch_ids: Vec::new(),
             ack_offsets: Vec::new(),
+            ack_pairs: Vec::new(),
             topic_ids: HashMap::new(),
             share_epochs: HashMap::new(),
             share_conns: HashMap::new(),
@@ -2734,7 +2738,8 @@ impl ShareGroup {
                 ));
             }
         }
-        let mut partitions = acknowledgement_batches_with(recs, ack, &mut self.ack_offsets);
+        let mut partitions =
+            acknowledgement_batches_with(recs, ack, &mut self.ack_offsets, &mut self.ack_pairs);
         let deadline = Instant::now() + self.cfg.request_timeout;
         let mut attempt = 0u32;
         loop {
@@ -3864,13 +3869,22 @@ fn finish_ack_run(first: i64, last: i64, types: &[i8]) -> AcknowledgementBatch {
 #[cfg(test)]
 fn acknowledgement_batches(recs: &[ShareRecord], ack: i8) -> Vec<AckPartition> {
     let mut offsets = Vec::new();
-    acknowledgement_batches_with(recs, ack, &mut offsets)
+    let mut pairs = Vec::new();
+    acknowledgement_batches_with(recs, ack, &mut offsets, &mut pairs)
+}
+
+fn share_topic_arc(topic: &crate::consumer::TopicName) -> Arc<str> {
+    match topic {
+        crate::consumer::TopicName::Heap(shared) => Arc::clone(shared),
+        inline => Arc::from(inline.as_str()),
+    }
 }
 
 fn acknowledgement_batches_with(
     recs: &[ShareRecord],
     ack: i8,
     offsets: &mut Vec<i64>,
+    pairs: &mut Vec<(i32, i64)>,
 ) -> Vec<AckPartition> {
     if let Some(first) = recs.first() {
         if recs
@@ -3884,11 +3898,34 @@ fn acknowledgement_batches_with(
             if batches.is_empty() {
                 return Vec::new();
             }
-            let name = match &first.topic {
-                crate::consumer::TopicName::Heap(shared) => Arc::clone(shared),
-                inline => Arc::from(inline.as_str()),
-            };
-            return vec![(name, first.partition, batches)];
+            return vec![(share_topic_arc(&first.topic), first.partition, batches)];
+        }
+        if recs.iter().skip(1).all(|rec| rec.topic == first.topic) {
+            pairs.clear();
+            pairs.extend(recs.iter().map(|rec| (rec.partition, rec.offset)));
+            pairs.sort_unstable();
+            let name = share_topic_arc(&first.topic);
+            let mut out = Vec::new();
+            let mut start = 0usize;
+            while start < pairs.len() {
+                let Some(partition) = pairs.get(start).map(|(partition, _)| *partition) else {
+                    break;
+                };
+                let mut end = start;
+                while pairs.get(end).is_some_and(|(next, _)| *next == partition) {
+                    end = end.saturating_add(1);
+                }
+                offsets.clear();
+                if let Some(group) = pairs.get(start..end) {
+                    offsets.extend(group.iter().map(|(_, offset)| *offset));
+                }
+                let batches = collapse_ack_offsets(offsets, ack);
+                if !batches.is_empty() {
+                    out.push((Arc::clone(&name), partition, batches));
+                }
+                start = end;
+            }
+            return out;
         }
     }
     let mut by_part: BTreeMap<crate::consumer::TopicName, BTreeMap<i32, Vec<i64>>> =
@@ -4402,9 +4439,12 @@ mod tests {
     fn one_partition_ack_offsets_keep_their_buffer() {
         let recs = [rec(0, 3), rec(0, 1), rec(0, 2), rec(0, 2)];
         let mut offsets = Vec::new();
-        let first = super::acknowledgement_batches_with(&recs, ACK_ACCEPT, &mut offsets);
+        let mut pairs = Vec::new();
+        let first =
+            super::acknowledgement_batches_with(&recs, ACK_ACCEPT, &mut offsets, &mut pairs);
         let ptr = offsets.as_ptr();
-        let again = super::acknowledgement_batches_with(&recs, ACK_ACCEPT, &mut offsets);
+        let again =
+            super::acknowledgement_batches_with(&recs, ACK_ACCEPT, &mut offsets, &mut pairs);
         assert_eq!(offsets.as_ptr(), ptr);
         assert_eq!(first.len(), 1);
         assert_eq!(again.len(), 1);
@@ -4414,6 +4454,33 @@ mod tests {
                 .and_then(|part| part.2.first())
                 .map(|batch| { (batch.first_offset, batch.last_offset) }),
             Some((1, 3))
+        );
+        assert_eq!(first, again);
+    }
+
+    #[test]
+    fn one_topic_ack_pairs_keep_their_buffer() {
+        let recs = [rec(1, 4), rec(0, 2), rec(0, 1), rec(1, 5)];
+        let mut offsets = Vec::new();
+        let mut pairs = Vec::new();
+        let first =
+            super::acknowledgement_batches_with(&recs, ACK_ACCEPT, &mut offsets, &mut pairs);
+        let ptr = pairs.as_ptr();
+        let again =
+            super::acknowledgement_batches_with(&recs, ACK_ACCEPT, &mut offsets, &mut pairs);
+        assert_eq!(pairs.as_ptr(), ptr);
+        assert_eq!(first.len(), 2);
+        assert_eq!(
+            first
+                .first()
+                .map(|part| (part.1, part.2.first().map(|batch| batch.first_offset))),
+            Some((0, Some(1)))
+        );
+        assert_eq!(
+            first
+                .get(1)
+                .map(|part| (part.1, part.2.first().map(|batch| batch.last_offset))),
+            Some((1, Some(5)))
         );
         assert_eq!(first, again);
     }
