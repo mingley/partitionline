@@ -3177,6 +3177,10 @@ impl ShareGroup {
                 }) {
                     return Err(Error::protocol("overlapping ShareFetch acquisition ranges"));
                 }
+                let declared = records
+                    .iter()
+                    .fold(0usize, |sum, batch| sum.saturating_add(batch.records.len()));
+                reserve_share_delivery(&mut incoming, declared);
                 {
                     let mut range_lookup = acquired::AcquisitionRanges::new(acquired);
                     for batch in records.iter_mut() {
