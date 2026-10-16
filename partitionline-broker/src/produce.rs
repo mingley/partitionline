@@ -1945,8 +1945,8 @@ fn process_inner(
     }
     // Complete structural/record/response preflight precedes every storage mutation.
     // Monolithic journals write first and sync together; rolling storage syncs
-    // inside its own append.
-    let mut pending_sync = List::Empty;
+    // inside its own append and does not collect a sync list.
+    let mut pending_sync = staged_sync_slots(&results, store.config.segment_limits.is_none())?;
     for (topic_at, topic) in results.iter_mut().enumerate() {
         for (part_at, part) in topic.parts.iter_mut().enumerate() {
             if let Err(error) = active() {
@@ -2120,6 +2120,25 @@ fn write_produce_response(
         writer.byte(0)?;
     }
     Ok(Some(std::mem::take(&mut writer.bytes)))
+}
+
+/// Empty sync list sized for every partition that can still be staged.
+///
+/// One partition stays inline. Several partitions allocate once. Rolling
+/// storage never stages a later sync, so it keeps the empty list.
+fn staged_sync_slots<T>(results: &[ResultTopic], journal: bool) -> Result<List<T>, Error> {
+    if !journal {
+        return Ok(List::Empty);
+    }
+    let mut bound = 0usize;
+    for topic in results {
+        for part in &topic.parts {
+            if part.error == 0 {
+                bound = bound.saturating_add(1);
+            }
+        }
+    }
+    exact_list(bound)
 }
 
 fn rollback_pending(store: &mut Store, pending: &mut List<PendingSync>) {
@@ -2303,6 +2322,60 @@ mod tests {
         assert!(store.queued_captured.capacity() >= captured);
         assert!(second.capacity() >= replies);
         let _ = std::fs::remove_dir_all(path);
+    }
+
+    fn result_part(index: i32, error: i16) -> ResultPart {
+        ResultPart {
+            index,
+            error,
+            base: -1,
+            log_start: -1,
+            bytes: Held::Owned(Vec::new()),
+            id: None,
+        }
+    }
+
+    #[test]
+    fn a_multi_partition_produce_sizes_its_sync_list_once() {
+        let mut parts = exact_list(3).unwrap_or_else(|error| panic!("{error:?}"));
+        parts.push(result_part(0, 0));
+        parts.push(result_part(1, 3));
+        parts.push(result_part(2, 0));
+        let results = [ResultTopic {
+            name: None,
+            id: [0; 16],
+            parts,
+        }];
+        let mut syncs: List<u8> =
+            staged_sync_slots(&results, true).unwrap_or_else(|error| panic!("{error:?}"));
+        let before = match &syncs {
+            List::Many(items) => items.capacity(),
+            List::Empty | List::One(_) => 0,
+        };
+        assert!(before >= 2);
+        syncs.push(1);
+        syncs.push(2);
+        let after = match &syncs {
+            List::Many(items) => items.capacity(),
+            List::Empty | List::One(_) => 0,
+        };
+        assert_eq!(after, before);
+        assert_eq!(syncs.len(), 2);
+        let rolling: List<u8> =
+            staged_sync_slots(&results, false).unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(rolling, List::Empty));
+        let mut one = List::Empty;
+        one.push(result_part(0, 0));
+        let inline: List<u8> = staged_sync_slots(
+            &[ResultTopic {
+                name: None,
+                id: [0; 16],
+                parts: one,
+            }],
+            true,
+        )
+        .unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(matches!(inline, List::Empty));
     }
 
     #[test]
