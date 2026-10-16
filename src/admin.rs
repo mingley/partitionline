@@ -8858,7 +8858,13 @@ impl Admin {
                 }
             }
             if !need.is_empty() {
-                self.refresh_metadata_ref(Some(&need), deadline).await?;
+                let known_nodes = self.known_leader_nodes(pending.iter().filter_map(|&i| {
+                    records
+                        .get(i)
+                        .map(|(tp, _)| (tp.topic.as_str(), tp.partition))
+                }));
+                self.refresh_topics_while_dialing(&need, &known_nodes, deadline)
+                    .await?;
             }
             let mut by_node: HashMap<i32, Vec<usize>> = HashMap::new();
             let mut nodes: Vec<i32> = Vec::new();
@@ -9201,31 +9207,13 @@ impl Admin {
                 }
             }
             if !need.is_empty() {
-                let mut known_nodes = Vec::new();
-                let mut known = LeaderList::new();
-                for &i in &pending {
-                    let Some((tp, _)) = queries.get(i) else {
-                        continue;
-                    };
-                    let Ok(node) = known.node(&self.cluster, &tp.topic, tp.partition) else {
-                        continue;
-                    };
-                    if !known_nodes.contains(&node) {
-                        known_nodes.push(node);
-                    }
-                }
-                let dials = self.take_broker_dials(&known_nodes);
-                if dials.is_empty() {
-                    self.refresh_metadata_ref(Some(&need), deadline).await?;
-                } else {
-                    let cfg = self.cfg.clone();
-                    let stats = Arc::clone(&self.stats);
-                    let dialed = Self::dial_admin_nodes(cfg, stats, dials, deadline);
-                    let refreshed = self.refresh_metadata_ref(Some(&need), deadline);
-                    let (dialed, refreshed) = tokio::join!(dialed, refreshed);
-                    self.store_admin_dials(dialed);
-                    refreshed?;
-                }
+                let known_nodes = self.known_leader_nodes(pending.iter().filter_map(|&i| {
+                    queries
+                        .get(i)
+                        .map(|(tp, _)| (tp.topic.as_str(), tp.partition))
+                }));
+                self.refresh_topics_while_dialing(&need, &known_nodes, deadline)
+                    .await?;
             }
             let mut by_node: HashMap<i32, Vec<usize>> = HashMap::new();
             let mut nodes: Vec<i32> = Vec::new();
@@ -9300,6 +9288,45 @@ impl Admin {
                     .ok_or_else(|| Error::protocol("ListOffsets missing result"))
             })
             .collect()
+    }
+
+    /// Leaders already cached for these topic partitions.
+    fn known_leader_nodes<'a>(&self, parts: impl IntoIterator<Item = (&'a str, i32)>) -> Vec<i32> {
+        let mut known_nodes = Vec::new();
+        let mut known = LeaderList::new();
+        for (topic, partition) in parts {
+            let Ok(node) = known.node(&self.cluster, topic, partition) else {
+                continue;
+            };
+            if !known_nodes.contains(&node) {
+                known_nodes.push(node);
+            }
+        }
+        known_nodes
+    }
+
+    /// Load `need` and redial `known_nodes` together.
+    ///
+    /// Metadata uses the bootstrap socket. Leader handshakes use the cached
+    /// broker addresses, so a topic that still needs a lookup does not hold
+    /// the leaders this caller already has.
+    async fn refresh_topics_while_dialing(
+        &mut self,
+        need: &[&str],
+        known_nodes: &[i32],
+        deadline: Instant,
+    ) -> Result<()> {
+        let dials = self.take_broker_dials(known_nodes);
+        if dials.is_empty() {
+            return self.refresh_metadata_ref(Some(need), deadline).await;
+        }
+        let cfg = self.cfg.clone();
+        let stats = Arc::clone(&self.stats);
+        let dialed = Self::dial_admin_nodes(cfg, stats, dials, deadline);
+        let refreshed = self.refresh_metadata_ref(Some(need), deadline);
+        let (dialed, refreshed) = tokio::join!(dialed, refreshed);
+        self.store_admin_dials(dialed);
+        refreshed
     }
 
     /// Dial every leader together, then run one prepared RPC on each socket.
@@ -9873,7 +9900,13 @@ impl Admin {
                     }
                 }
                 if !need.is_empty() {
-                    self.refresh_metadata_ref(Some(&need), deadline).await?;
+                    let known_nodes = self.known_leader_nodes(pending.iter().filter_map(|&i| {
+                        partitions
+                            .get(i)
+                            .map(|tp| (tp.topic.as_str(), tp.partition))
+                    }));
+                    self.refresh_topics_while_dialing(&need, &known_nodes, deadline)
+                        .await?;
                 }
             }
             let mut by_node: HashMap<i32, Vec<usize>> = HashMap::new();
