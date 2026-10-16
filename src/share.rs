@@ -852,7 +852,7 @@ pub enum ShareAcquireMode {
 /// `TOPIC_AUTHORIZATION_FAILED` / `GROUP_AUTHORIZATION_FAILED` /
 /// `CLUSTER_AUTHORIZATION_FAILED`). A piggybacked
 /// `UNSUPPORTED_VERSION` still completes without retry,
-/// including when `AcknowledgeErrorMessage` is set (Java
+/// including when `AcknowledgeErrorMessage` is set or empty (Java
 /// `handleShareFetchSuccess` completes piggyback acks and still
 /// delivers the fetch; this is not partition
 /// `UNSUPPORTED_VERSION`, which fails that poll, and not piggyback
@@ -2245,7 +2245,7 @@ impl ShareGroup {
     /// `CLUSTER_AUTHORIZATION_FAILED`).
     /// A piggybacked `UNSUPPORTED_VERSION` still completes
     /// without retry, including when `AcknowledgeErrorMessage` is set
-    /// (Java `handleShareFetchSuccess` completes piggyback acks and
+    /// or empty (Java `handleShareFetchSuccess` completes piggyback acks and
     /// still delivers the fetch; this is not partition
     /// `UNSUPPORTED_VERSION`, which fails that poll, and not piggyback
     /// `TRANSACTIONAL_ID_AUTHORIZATION_FAILED`).
