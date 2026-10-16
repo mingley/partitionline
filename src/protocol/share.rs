@@ -993,6 +993,12 @@ pub fn encode_share_group_heartbeat_response(
     resp: &ShareGroupHeartbeatResponse,
 ) -> crate::error::Result<()> {
     let flexible = share_group_heartbeat_flexible(version)?;
+    let body_start = buf.len();
+    let planned = share_group_heartbeat_response_len(flexible, resp)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf.put_i32(resp.throttle_time_ms);
     buf.put_i16(resp.error_code);
     buf::put_string(buf, flexible, resp.error_message.as_deref())?;
@@ -1024,7 +1030,48 @@ pub fn encode_share_group_heartbeat_response(
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn share_group_heartbeat_response_len(
+    flexible: bool,
+    resp: &ShareGroupHeartbeatResponse,
+) -> Result<usize> {
+    let mut total = 4usize;
+    total = add_share_len(total, 2)?;
+    total = add_share_len(
+        total,
+        share_nullable_string_len(resp.error_message.as_deref())?,
+    )?;
+    total = add_share_len(total, share_nullable_string_len(resp.member_id.as_deref())?)?;
+    total = add_share_len(total, 8)?;
+    total = add_share_len(total, 1)?;
+    if let Some(parts) = &resp.assignment {
+        total = add_share_len(total, share_array_len(parts.len())?)?;
+        for topic in parts {
+            total = add_share_len(total, 16)?;
+            total = add_share_len(total, share_array_len(topic.partitions.len())?)?;
+            total = add_share_len(
+                total,
+                topic
+                    .partitions
+                    .len()
+                    .checked_mul(4)
+                    .ok_or_else(|| Error::protocol("share fetch request size overflow"))?,
+            )?;
+            if flexible {
+                total = add_share_len(total, buf::unsigned_varint_size(0))?;
+            }
+        }
+        if flexible {
+            total = add_share_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    if flexible {
+        total = add_share_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 /// Decode a flexible ShareGroupHeartbeat response (v0–v1).
@@ -2898,6 +2945,38 @@ mod tests {
     use crate::protocol::records::Record;
     use bytes::{Buf, Bytes};
     use std::collections::HashMap;
+
+    #[test]
+    fn a_share_group_heartbeat_response_sizes_its_body_once() {
+        let resp = ShareGroupHeartbeatResponse {
+            throttle_time_ms: 0,
+            error_code: 0,
+            error_message: None,
+            member_id: Some("member-1".into()),
+            member_epoch: 4,
+            heartbeat_interval_ms: 5_000,
+            assignment: Some(
+                (0..4)
+                    .map(|topic| ShareTopicPartitions {
+                        topic_id: [topic; 16],
+                        partitions: (0..8).collect(),
+                    })
+                    .collect(),
+            ),
+        };
+        for version in [0_i16, 1] {
+            let mut buf = BytesMut::new();
+            encode_share_group_heartbeat_response(&mut buf, version, &resp).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_share_group_heartbeat_response(&mut buf, version, &resp).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+        }
+    }
 
     #[test]
     fn a_share_group_heartbeat_request_sizes_its_body_once() {
