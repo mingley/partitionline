@@ -236,7 +236,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   empty (Java `handleShareAcknowledgeSuccess` has no
   `metadata.requestUpdate`); `SHARE_SESSION_NOT_FOUND` still
   resets, including when `ErrorMessage` is set or empty, and does
-  not request Metadata when `ErrorMessage` is set (Java
+  not request Metadata when `ErrorMessage` is set or empty (Java
   `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`);
   `INVALID_SHARE_SESSION_EPOCH` still resets, including when
   `ErrorMessage` is set or empty. A non-empty top-level `ErrorMessage` is
