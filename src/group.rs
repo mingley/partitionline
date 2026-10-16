@@ -3088,6 +3088,8 @@ impl ConsumerGroup {
             .filter(|(topic, partition)| nested_i64(&current, topic, *partition).is_none())
             .cloned()
             .collect();
+        let reset = self.cfg.auto_offset_reset;
+        let mut warm_leaders = false;
         let fetched = if added.is_empty() {
             Vec::new()
         } else {
@@ -3103,12 +3105,83 @@ impl ConsumerGroup {
                 self.classic_fetch_topics = topics;
                 return Err(Error::Timeout);
             }
-            let fetched = self.offset_fetch(&topics, timeout).await;
-            self.classic_fetch_topics = topics;
-            fetched?
+            let overlap_dials =
+                self.coord.offset_fetch_version != 10 && !matches!(reset, AutoOffsetReset::None);
+            if !overlap_dials {
+                let fetched = self.offset_fetch(&topics, timeout).await;
+                self.classic_fetch_topics = topics;
+                fetched?
+            } else {
+                let mut leaders = Vec::new();
+                for (topic, partition) in &added {
+                    let Ok(node) = self.consumer.cluster().leader_id(topic, *partition) else {
+                        continue;
+                    };
+                    if !leaders.contains(&node) {
+                        leaders.push(node);
+                    }
+                }
+                let require_stable = self.cfg.isolation_level == IsolationLevel::ReadCommitted;
+                let member_epoch = if self.kip848 { self.generation_id } else { -1 };
+                let member_id = if self.kip848 {
+                    Some(self.member_id.clone())
+                } else {
+                    None
+                };
+                let group_id = self.group_id.clone();
+                let coord = &mut self.coord;
+                let cfg = &self.cfg;
+                let consumer = &mut self.consumer;
+                let fetched = {
+                    let fetch_fut = coord_roundtrip(
+                        coord,
+                        cfg,
+                        &group_id,
+                        COORDINATOR_GROUP,
+                        OFFSET_FETCH,
+                        |version, buf| {
+                            encode_offset_fetch_request(
+                                buf,
+                                version,
+                                &group_id,
+                                member_id.as_deref(),
+                                member_epoch,
+                                require_stable,
+                                Some(&topics),
+                            )
+                        },
+                        timeout,
+                    );
+                    let warm_fut = consumer.warm_leader_conns(&leaders, deadline);
+                    tokio::pin!(fetch_fut);
+                    tokio::pin!(warm_fut);
+                    let fetched_rpc = tokio::select! {
+                        biased;
+                        result = &mut fetch_fut => result,
+                        _ = &mut warm_fut => {
+                            warm_leaders = true;
+                            (&mut fetch_fut).await
+                        }
+                    };
+                    let (version, body) = fetched_rpc?;
+                    let fetched = decode_offset_fetch_response(&mut body.clone(), version)
+                        .map_err(|e| group_decode_context(e, "OffsetFetch", version, body.len()))?;
+                    let needs_reset = added.iter().any(|(topic, partition)| {
+                        fetched_committed(&fetched, topic, *partition)
+                            .map(|part| part.offset)
+                            .unwrap_or(OffsetAndMetadata::INVALID_OFFSET)
+                            < 0
+                    });
+                    if needs_reset && !warm_leaders {
+                        warm_fut.await;
+                    }
+                    fetched
+                };
+                self.classic_fetch_topics = topics;
+                fetched
+            }
         };
         check_fetched_offsets(&fetched)?;
-        let reset = self.cfg.auto_offset_reset;
         let mut starts: Vec<Option<(String, i32, i64)>> = Vec::with_capacity(wanted.len());
         let mut reset_slots = Vec::new();
         for (topic, part) in wanted {

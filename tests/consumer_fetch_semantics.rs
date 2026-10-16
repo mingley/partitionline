@@ -4340,6 +4340,32 @@ async fn group_poll_fetches_while_committing() {
     group.leave().await.unwrap();
 }
 
+/// A new group dials reset leaders while OffsetFetch is in flight.
+#[tokio::test]
+async fn group_join_dials_reset_leaders_while_fetching_offsets() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_topic_partitions("t", 1);
+    mock.set_partition_leader("t", 0, 2);
+    let delay = Duration::from_millis(250);
+    mock.set_offset_fetch_delay(delay);
+    mock.set_api_versions_delay(delay);
+    let started = Instant::now();
+    let group = ConsumerGroup::join(
+        ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10),
+        "reset-dial",
+        "t",
+    )
+    .await
+    .unwrap();
+    let elapsed = started.elapsed();
+    assert_eq!(group.assignment().len(), 1);
+    assert!(
+        elapsed < Duration::from_millis(650),
+        "join fetched offsets before dialing the reset leader: {elapsed:?}"
+    );
+    group.leave().await.unwrap();
+}
+
 /// The leader's partition counts come from the metadata refresh that loaded the subscription.
 #[tokio::test]
 async fn group_join_reads_every_topic_from_one_metadata() {
