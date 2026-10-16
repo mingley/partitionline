@@ -1146,6 +1146,12 @@ pub fn encode_create_topics_request(
 ) -> crate::error::Result<()> {
     let flexible = create_topics_flexible(version)?;
     CreateTopicsRequest::build(version, &req.topics, req.validate_only)?;
+    let body_start = buf.len();
+    let planned = create_topics_request_len(version, flexible, req)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf::put_array_len(buf, flexible, Some(req.topics.len()))?;
     for t in &req.topics {
         buf::put_string(buf, flexible, Some(&t.name))?;
@@ -1178,7 +1184,64 @@ pub fn encode_create_topics_request(
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn create_topics_request_len(
+    version: i16,
+    flexible: bool,
+    req: &CreateTopicsRequest,
+) -> Result<usize> {
+    let mut total = describe_array_len(flexible, req.topics.len())?;
+    for topic in &req.topics {
+        total = add_describe_len(total, describe_string_len(flexible, Some(&topic.name))?)?;
+        total = add_describe_len(total, 6)?;
+        total = add_describe_len(
+            total,
+            describe_array_len(flexible, topic.assignments.len())?,
+        )?;
+        for assignment in &topic.assignments {
+            total = add_describe_len(total, 4)?;
+            total = add_describe_len(
+                total,
+                describe_array_len(flexible, assignment.broker_ids.len())?,
+            )?;
+            total = add_describe_len(
+                total,
+                assignment
+                    .broker_ids
+                    .len()
+                    .checked_mul(4)
+                    .ok_or_else(|| Error::protocol("create topics request size overflow"))?,
+            )?;
+            if flexible {
+                total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+            }
+        }
+        total = add_describe_len(total, describe_array_len(flexible, topic.configs.len())?)?;
+        for config in &topic.configs {
+            total = add_describe_len(total, describe_string_len(flexible, Some(&config.name))?)?;
+            total = add_describe_len(
+                total,
+                describe_string_len(flexible, config.value.as_deref())?,
+            )?;
+            if flexible {
+                total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+            }
+        }
+        if flexible {
+            total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    total = add_describe_len(total, 4)?;
+    if version >= 1 {
+        total = add_describe_len(total, 1)?;
+    }
+    if flexible {
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 /// Decode a CreateTopics request.
@@ -21553,6 +21616,45 @@ mod tests {
             "DeleteRecords getErrorResponse leftover-empty; leftover {} bytes",
             cur.remaining()
         );
+    }
+
+    #[test]
+    fn a_create_topics_request_sizes_its_body_once() {
+        let req = CreateTopicsRequest {
+            topics: vec![CreatableTopic {
+                name: "orders".into(),
+                num_partitions: 3,
+                replication_factor: 2,
+                assignments: vec![ReplicaAssignment {
+                    partition_index: 0,
+                    broker_ids: vec![1, 2],
+                }],
+                configs: vec![
+                    TopicConfig {
+                        name: "cleanup.policy".into(),
+                        value: Some("compact".into()),
+                    },
+                    TopicConfig {
+                        name: "retention.ms".into(),
+                        value: None,
+                    },
+                ],
+            }],
+            timeout_ms: 1_000,
+            validate_only: false,
+        };
+        for version in [2_i16, 5, 7] {
+            let mut buf = BytesMut::new();
+            encode_create_topics_request(&mut buf, version, &req).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_create_topics_request(&mut buf, version, &req).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+        }
     }
 
     #[test]
