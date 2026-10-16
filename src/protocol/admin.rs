@@ -16352,8 +16352,15 @@ pub fn encode_get_telemetry_subscriptions_request(
     buf: &mut BytesMut,
     client_instance_id: &[u8; 16],
 ) -> crate::error::Result<()> {
+    let body_start = buf.len();
+    let planned = 16 + buf::unsigned_varint_size(0);
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf.extend_from_slice(client_instance_id);
     buf::put_empty_tagged_fields(buf);
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
 }
 
@@ -16372,6 +16379,12 @@ pub fn encode_get_telemetry_subscriptions_response(
     buf: &mut BytesMut,
     resp: &GetTelemetrySubscriptionsResponse,
 ) -> crate::error::Result<()> {
+    let body_start = buf.len();
+    let planned = get_telemetry_subscriptions_response_len(resp)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf.put_i32(resp.throttle_time_ms);
     buf.put_i16(resp.error_code);
     buf.extend_from_slice(&resp.client_instance_id);
@@ -16388,7 +16401,28 @@ pub fn encode_get_telemetry_subscriptions_response(
         buf::put_compact_string(buf, Some(m))?;
     }
     buf::put_empty_tagged_fields(buf);
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn get_telemetry_subscriptions_response_len(
+    resp: &GetTelemetrySubscriptionsResponse,
+) -> Result<usize> {
+    let mut total = 26;
+    total = add_describe_len(
+        total,
+        describe_array_len(true, resp.accepted_compression_types.len())?,
+    )?;
+    total = add_describe_len(total, resp.accepted_compression_types.len())?;
+    total = add_describe_len(total, 9)?;
+    total = add_describe_len(
+        total,
+        describe_array_len(true, resp.requested_metrics.len())?,
+    )?;
+    for metric in &resp.requested_metrics {
+        total = add_describe_len(total, describe_string_len(true, Some(metric))?)?;
+    }
+    add_describe_len(total, buf::unsigned_varint_size(0))
 }
 
 /// Decode a GetTelemetrySubscriptions response.
@@ -16641,13 +16675,26 @@ pub fn encode_push_telemetry_request(
     buf: &mut BytesMut,
     req: &PushTelemetryRequest,
 ) -> crate::error::Result<()> {
+    let body_start = buf.len();
+    let planned = push_telemetry_request_len(req)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf.extend_from_slice(&req.client_instance_id);
     buf.put_i32(req.subscription_id);
     buf.put_u8(u8::from(req.terminating));
     buf.put_i8(req.compression_type);
     buf::put_compact_bytes(buf, Some(&req.metrics))?;
     buf::put_empty_tagged_fields(buf);
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn push_telemetry_request_len(req: &PushTelemetryRequest) -> Result<usize> {
+    let mut total = 22;
+    total = add_describe_len(total, describe_bytes_len(true, &req.metrics)?)?;
+    add_describe_len(total, buf::unsigned_varint_size(0))
 }
 
 /// Decode a PushTelemetry request.
@@ -16675,9 +16722,16 @@ pub fn encode_push_telemetry_response(
     buf: &mut BytesMut,
     resp: &PushTelemetryResponse,
 ) -> crate::error::Result<()> {
+    let body_start = buf.len();
+    let planned = 6 + buf::unsigned_varint_size(0);
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf.put_i32(resp.throttle_time_ms);
     buf.put_i16(resp.error_code);
     buf::put_empty_tagged_fields(buf);
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
 }
 
@@ -37117,6 +37171,46 @@ mod tests {
     }
 
     #[test]
+    fn a_get_telemetry_subscriptions_sizes_its_body_once() {
+        let id = [7u8; 16];
+        let mut request = BytesMut::new();
+        encode_get_telemetry_subscriptions_request(&mut request, &id).unwrap();
+        let request_len = request.len();
+        let request_capacity = request.capacity();
+        request.clear();
+        encode_get_telemetry_subscriptions_request(&mut request, &id).unwrap();
+        assert_eq!(request.len(), request_len);
+        assert_eq!(request.capacity(), request_capacity);
+        assert!(request_capacity < 64 * 1024);
+
+        let response = GetTelemetrySubscriptionsResponse {
+            throttle_time_ms: 12,
+            error_code: 0,
+            client_instance_id: id,
+            subscription_id: 3,
+            accepted_compression_types: vec![0, 2, 3],
+            push_interval_ms: 30_000,
+            telemetry_max_bytes: 1_024,
+            delta_temporality: true,
+            requested_metrics: vec!["org.apache.kafka.producer".into(), "jvm".into()],
+        };
+        let mut buf = BytesMut::new();
+        encode_get_telemetry_subscriptions_response(&mut buf, &response).unwrap();
+        let len = buf.len();
+        let capacity = buf.capacity();
+        assert!(capacity >= len);
+        assert!(capacity < 64 * 1024);
+        buf.clear();
+        encode_get_telemetry_subscriptions_response(&mut buf, &response).unwrap();
+        assert_eq!(buf.len(), len);
+        assert_eq!(buf.capacity(), capacity);
+        let mut cur = &buf[..];
+        let decoded = decode_get_telemetry_subscriptions_response(&mut cur).unwrap();
+        assert!(cur.is_empty());
+        assert_eq!(decoded, response);
+    }
+
+    #[test]
     fn get_telemetry_subscriptions_v0_matches_kafka_protocol_0_18() {
         // Independent encode from kafka-protocol 0.18.0 (client encodes
         // the request; broker encodes the response). Apache JSON api 71
@@ -37548,6 +37642,45 @@ mod tests {
                 .contains("Failed to decompress metrics data"),
             "got {bad_err}"
         );
+    }
+
+    #[test]
+    fn a_push_telemetry_sizes_its_body_once() {
+        let request = PushTelemetryRequest {
+            client_instance_id: [7; 16],
+            subscription_id: 3,
+            terminating: false,
+            compression_type: 2,
+            metrics: vec![1, 2, 3, 4, 5, 6, 7, 8],
+        };
+        let mut buf = BytesMut::new();
+        encode_push_telemetry_request(&mut buf, &request).unwrap();
+        let len = buf.len();
+        let capacity = buf.capacity();
+        assert!(capacity >= len);
+        assert!(capacity < 64 * 1024);
+        buf.clear();
+        encode_push_telemetry_request(&mut buf, &request).unwrap();
+        assert_eq!(buf.len(), len);
+        assert_eq!(buf.capacity(), capacity);
+        let mut cur = &buf[..];
+        let decoded = decode_push_telemetry_request(&mut cur).unwrap();
+        assert!(cur.is_empty());
+        assert_eq!(decoded, request);
+
+        let response = PushTelemetryResponse {
+            throttle_time_ms: 12,
+            error_code: 0,
+        };
+        let mut buf = BytesMut::new();
+        encode_push_telemetry_response(&mut buf, &response).unwrap();
+        let response_len = buf.len();
+        let response_capacity = buf.capacity();
+        assert!(response_capacity >= response_len);
+        buf.clear();
+        encode_push_telemetry_response(&mut buf, &response).unwrap();
+        assert_eq!(buf.len(), response_len);
+        assert_eq!(buf.capacity(), response_capacity);
     }
 
     #[test]
