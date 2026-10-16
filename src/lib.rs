@@ -2074,7 +2074,7 @@
 //! partition `LEADER_NOT_AVAILABLE`, which fails that poll, and not
 //! standalone ShareAcknowledge `LEADER_NOT_AVAILABLE`, which retries). A piggybacked
 //! `REQUEST_TIMED_OUT` still completes without retry,
-//! including when `AcknowledgeErrorMessage` is set (this is not
+//! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `REQUEST_TIMED_OUT`, which fails that poll, and not
 //! standalone ShareAcknowledge `REQUEST_TIMED_OUT`, which retries). A piggybacked
 //! `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a

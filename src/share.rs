@@ -720,7 +720,7 @@ pub enum ShareAcquireMode {
 /// which fails that poll, and not standalone ShareAcknowledge
 /// `LEADER_NOT_AVAILABLE`, which retries). A piggybacked
 /// `REQUEST_TIMED_OUT` still completes without retry,
-/// including when `AcknowledgeErrorMessage` is set (Java
+/// including when `AcknowledgeErrorMessage` is set or empty (Java
 /// `handleShareFetchSuccess` completes piggyback acks and still
 /// delivers the fetch; this is not partition `REQUEST_TIMED_OUT`,
 /// which fails that poll, and not standalone ShareAcknowledge
@@ -1918,7 +1918,7 @@ impl ShareGroup {
     /// retries).
     /// A piggybacked `REQUEST_TIMED_OUT` still completes
     /// without retry, including when `AcknowledgeErrorMessage` is set
-    /// (Java `handleShareFetchSuccess` completes piggyback acks and
+    /// or empty (Java `handleShareFetchSuccess` completes piggyback acks and
     /// still delivers the fetch; this is not partition
     /// `REQUEST_TIMED_OUT`, which fails that poll, and not
     /// standalone ShareAcknowledge `REQUEST_TIMED_OUT`, which retries).
