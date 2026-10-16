@@ -2163,7 +2163,7 @@
 //! partition `UNSUPPORTED_VERSION`, which fails that poll, and not
 //! piggyback `TRANSACTIONAL_ID_AUTHORIZATION_FAILED`). A piggybacked
 //! `INVALID_UPDATE_VERSION` still completes without retry,
-//! including when `AcknowledgeErrorMessage` is set (this is not
+//! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `INVALID_UPDATE_VERSION`, which fails that poll, and not
 //! piggyback `UNSUPPORTED_VERSION`). A piggybacked
 //! `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a

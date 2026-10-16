@@ -858,7 +858,7 @@ pub enum ShareAcquireMode {
 /// `UNSUPPORTED_VERSION`, which fails that poll, and not piggyback
 /// `TRANSACTIONAL_ID_AUTHORIZATION_FAILED`). A piggybacked
 /// `INVALID_UPDATE_VERSION` still completes without retry,
-/// including when `AcknowledgeErrorMessage` is set (Java
+/// including when `AcknowledgeErrorMessage` is set or empty (Java
 /// `handleShareFetchSuccess` completes piggyback acks and still
 /// delivers the fetch; this is not partition
 /// `INVALID_UPDATE_VERSION`, which fails that poll, and not piggyback
@@ -2260,7 +2260,7 @@ impl ShareGroup {
     /// `TRANSACTIONAL_ID_AUTHORIZATION_FAILED`).
     /// A piggybacked `INVALID_UPDATE_VERSION` still completes
     /// without retry, including when `AcknowledgeErrorMessage` is set
-    /// (Java `handleShareFetchSuccess` completes piggyback acks and
+    /// or empty (Java `handleShareFetchSuccess` completes piggyback acks and
     /// still delivers the fetch; this is not partition
     /// `INVALID_UPDATE_VERSION`, which fails that poll, and not piggyback
     /// `UNSUPPORTED_VERSION`).
