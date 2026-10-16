@@ -237,6 +237,42 @@ async fn share_close_overlaps_two_leaders() {
 }
 
 #[tokio::test]
+async fn share_ack_overlaps_two_leaders() {
+    let mock = common::Mock::start_two_node().await;
+    v2(&mock);
+    mock.set_topic_partitions("t", 2);
+    mock.set_partition_leader("t", 0, 1);
+    mock.set_partition_leader("t", 1, 2);
+    produce(&mock, &[(0, b"left"), (1, b"right")]).await;
+    let mut group = ShareGroup::join(config(&mock), "ack-overlap", "t")
+        .await
+        .unwrap();
+    let got = group.poll().await.unwrap();
+    assert_eq!(got.len(), 2, "both leaders must deliver a record");
+    let delay = Duration::from_millis(250);
+    mock.delay_share_reply_once(SHARE_ACKNOWLEDGE, delay);
+    mock.delay_share_reply_once(SHARE_ACKNOWLEDGE, delay);
+    let started = Instant::now();
+    group.accept(&got).await.unwrap();
+    let elapsed = started.elapsed();
+    let mut nodes: Vec<i32> = mock
+        .share_ack_history()
+        .into_iter()
+        .filter(|(_, epoch)| *epoch > 0)
+        .map(|(node, _)| node)
+        .collect();
+    nodes.sort_unstable();
+    nodes.dedup();
+    assert_eq!(nodes, vec![1, 2]);
+    assert_eq!(group.acquired_record_count(), 0);
+    assert!(
+        elapsed < Duration::from_millis(450),
+        "share acknowledgements ran one leader after another: {elapsed:?}"
+    );
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn share_leader_dials_overlap() {
     let mock = common::Mock::start_two_node().await;
     v2(&mock);
