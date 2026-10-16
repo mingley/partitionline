@@ -4460,13 +4460,16 @@ impl Consumer {
         for (topic, partition) in coords {
             let _ = self.preferred.remove(topic, *partition);
         }
-        let names = unique_coord_topics(coords);
+        let names = unique_coord_topics(coords.iter().map(|(topic, _)| topic.as_str()));
         self.refresh_metadata_timeout(
             Some(&names),
             remaining_offset_timeout(deadline, Instant::now()),
         )
         .await?;
-        let mut remaining: Vec<(String, i32)> = coords.to_vec();
+        let mut remaining: Vec<(&str, i32)> = coords
+            .iter()
+            .map(|(topic, partition)| (topic.as_str(), *partition))
+            .collect();
         remaining.sort();
         remaining.dedup();
         loop {
@@ -4492,10 +4495,10 @@ impl Consumer {
                 .await?;
                 leaders = crate::cluster::LeaderList::new();
             }
-            let mut by_leader: HashMap<i32, Vec<(String, i32)>> = HashMap::new();
+            let mut by_leader: HashMap<i32, Vec<(&str, i32)>> = HashMap::new();
             let mut retry = Vec::new();
             for (topic, partition) in remaining {
-                match leaders.node(&self.cluster, &topic, partition) {
+                match leaders.node(&self.cluster, topic, partition) {
                     Ok(node) => by_leader.entry(node).or_default().push((topic, partition)),
                     Err(_) => retry.push((topic, partition)),
                 }
@@ -4560,7 +4563,7 @@ impl Consumer {
             if Instant::now() >= deadline {
                 return Err(Error::Timeout);
             }
-            let retry_names = unique_coord_topics(&remaining);
+            let retry_names = unique_coord_topics(remaining.iter().map(|(topic, _)| *topic));
             self.refresh_metadata_timeout(
                 Some(&retry_names),
                 remaining_offset_timeout(deadline, Instant::now()),
@@ -4569,11 +4572,11 @@ impl Consumer {
         }
     }
 
-    fn apply_epoch_end_offsets(
+    fn apply_epoch_end_offsets<'a>(
         &mut self,
-        requested: &[(String, i32)],
+        requested: &[(&'a str, i32)],
         topics: &[OffsetForLeaderTopicResult],
-    ) -> Result<Vec<(String, i32)>> {
+    ) -> Result<Vec<(&'a str, i32)>> {
         let mut seen: HashMap<&str, HashSet<i32>> = HashMap::new();
         let mut retry = Vec::new();
         self.ensure_cursor_index();
@@ -4602,7 +4605,11 @@ impl Consumer {
                     || p.error_code == error::UNKNOWN_LEADER_EPOCH;
                 if e.is_retriable() || fence {
                     self.cluster.invalidate_topic(&t.topic);
-                    retry.push((t.topic.clone(), p.partition));
+                    if let Some(name) = requested.iter().find_map(|(name, part)| {
+                        (*name == t.topic.as_str() && *part == p.partition).then_some(*name)
+                    }) {
+                        retry.push((name, p.partition));
+                    }
                     continue;
                 }
                 return Err(e);
@@ -4610,10 +4617,10 @@ impl Consumer {
         }
         for (topic, partition) in requested {
             let answered = seen
-                .get(topic.as_str())
+                .get(*topic)
                 .is_some_and(|parts| parts.contains(partition));
             if !answered {
-                retry.push((topic.clone(), *partition));
+                retry.push((*topic, *partition));
             }
         }
         Ok(retry)
@@ -7976,16 +7983,16 @@ fn reuse_topic_cache<'a>(
 }
 
 /// Sorted topic names from an epoch-recovery coordinate list, once each.
-fn unique_coord_topics(coords: &[(String, i32)]) -> Vec<String> {
-    let mut topics = Vec::new();
+fn unique_coord_topics<'a>(topics: impl IntoIterator<Item = &'a str>) -> Vec<String> {
+    let mut names = Vec::new();
     let mut seen = HashSet::new();
-    for (topic, _) in coords {
-        if seen.insert(topic.as_str()) {
-            topics.push(topic.clone());
+    for topic in topics {
+        if seen.insert(topic) {
+            names.push(topic.to_owned());
         }
     }
-    topics.sort();
-    topics
+    names.sort();
+    names
 }
 
 /// Topic names in assignment order, once each.
@@ -8285,7 +8292,7 @@ fn truncated_fetch_offset(position: i64, end_offset: i64) -> Option<i64> {
 fn offset_for_leader_epoch_topics(
     cluster: &Cluster,
     last_fetched: &[i32],
-    parts: &[(String, i32)],
+    parts: &[(&str, i32)],
 ) -> Vec<OffsetForLeaderTopic> {
     let mut epochs = crate::cluster::EpochList::new();
     let mut groups: Vec<(String, Vec<OffsetForLeaderPartition>)> = Vec::new();
@@ -8301,15 +8308,15 @@ fn offset_for_leader_epoch_topics(
             .filter(|epoch| *epoch >= 0)
             .unwrap_or(current);
         let part = OffsetForLeaderPartition::new(*partition, current, looked_up);
-        if let Some(slot) = slots.get(topic.as_str()).copied() {
+        if let Some(slot) = slots.get(*topic).copied() {
             if let Some((_, stored)) = groups.get_mut(slot) {
                 stored.push(part);
                 continue;
             }
         }
         let slot = groups.len();
-        groups.push((topic.clone(), vec![part]));
-        let _ = slots.insert(topic.as_str(), slot);
+        groups.push(((*topic).to_owned(), vec![part]));
+        let _ = slots.insert(*topic, slot);
     }
     groups
         .into_iter()
@@ -9213,7 +9220,7 @@ mod tests {
         let topics = offset_for_leader_epoch_topics(
             &cluster,
             &[2, crate::RecordBatch::NO_PARTITION_LEADER_EPOCH],
-            &[("t".into(), 0), ("t".into(), 1)],
+            &[("t", 0), ("t", 1)],
         );
         assert_eq!(topics.len(), 1);
         assert_eq!(topics[0].partitions[0].partition, 0);
@@ -9223,11 +9230,8 @@ mod tests {
         assert_eq!(topics[0].partitions[1].current_leader_epoch, 6);
         assert_eq!(topics[0].partitions[1].leader_epoch, 6);
         let _ = cluster.leader_epochs.insert("u".into(), vec![8]);
-        let mixed = offset_for_leader_epoch_topics(
-            &cluster,
-            &[1, 3, 5],
-            &[("t".into(), 1), ("u".into(), 0), ("t".into(), 0)],
-        );
+        let mixed =
+            offset_for_leader_epoch_topics(&cluster, &[1, 3, 5], &[("t", 1), ("u", 0), ("t", 0)]);
         assert_eq!(mixed.len(), 2);
         assert_eq!(mixed[0].topic, "t");
         assert_eq!(mixed[0].partitions[0].partition, 0);
@@ -9241,12 +9245,7 @@ mod tests {
 
     #[test]
     fn epoch_recovery_names_are_unique_and_sorted() {
-        let names = unique_coord_topics(&[
-            ("payments".into(), 1),
-            ("orders".into(), 0),
-            ("orders".into(), 2),
-            ("payments".into(), 0),
-        ]);
+        let names = unique_coord_topics(["payments", "orders", "orders", "payments"]);
         assert_eq!(names, vec!["orders".to_owned(), "payments".to_owned()]);
     }
 
