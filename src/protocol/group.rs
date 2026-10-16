@@ -1050,18 +1050,75 @@ pub fn encode_find_coordinator_response(
     port: i32,
     key: &str,
 ) -> crate::error::Result<()> {
-    encode_find_coordinator_response_coordinators(
-        buf,
-        version,
-        &[CoordinatorResult {
-            key: key.to_string(),
-            node_id,
-            host: host.to_string(),
-            port,
-            error_code: 0,
-            error_message: None,
-        }],
-    )
+    if version == 0 && host.len() > i16::MAX as usize {
+        return Err(Error::protocol(
+            "FindCoordinator v0 response count/host exceeds limit",
+        ));
+    }
+    let flexible = find_coordinator_flexible(version)?;
+    let body_start = buf.len();
+    if find_coordinator_batched(version) {
+        let planned = find_coordinator_batched_one_len(key, host)?;
+        reserve_group_body(buf, planned);
+        if version >= 1 {
+            buf.put_i32(0);
+        }
+        buf::put_array_len(buf, true, Some(1))?;
+        buf::put_compact_string(buf, Some(key))?;
+        buf.put_i32(node_id);
+        buf::put_compact_string(buf, Some(host))?;
+        buf.put_i32(port);
+        buf.put_i16(0);
+        buf::put_compact_string(buf, None)?;
+        buf::put_empty_tagged_fields(buf);
+        buf::put_empty_tagged_fields(buf);
+        debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+        return Ok(());
+    }
+    let planned = find_coordinator_single_borrowed_len(version, flexible, host)?;
+    reserve_group_body(buf, planned);
+    if version >= 1 {
+        buf.put_i32(0);
+    }
+    buf.put_i16(0);
+    if version >= 1 {
+        buf::put_string(buf, flexible, None)?;
+    }
+    buf.put_i32(node_id);
+    buf::put_string(buf, flexible, Some(host))?;
+    buf.put_i32(port);
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+    Ok(())
+}
+
+fn find_coordinator_batched_one_len(key: &str, host: &str) -> Result<usize> {
+    let mut total = 4usize;
+    total = add_group_len(total, group_array_len(true, 1)?)?;
+    total = add_group_len(total, group_string_len(true, Some(key))?)?;
+    total = add_group_len(total, 4)?;
+    total = add_group_len(total, group_string_len(true, Some(host))?)?;
+    total = add_group_len(total, 6)?;
+    total = add_group_len(total, group_string_len(true, None)?)?;
+    total = add_group_len(total, buf::unsigned_varint_size(0))?;
+    add_group_len(total, buf::unsigned_varint_size(0))
+}
+
+fn find_coordinator_single_borrowed_len(version: i16, flexible: bool, host: &str) -> Result<usize> {
+    let mut total = if version >= 1 { 4usize } else { 0 };
+    total = add_group_len(total, 2)?;
+    if version >= 1 {
+        total = add_group_len(total, group_string_len(flexible, None)?)?;
+    }
+    total = add_group_len(total, 4)?;
+    total = add_group_len(total, group_string_len(flexible, Some(host))?)?;
+    total = add_group_len(total, 4)?;
+    if flexible {
+        total = add_group_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 /// Encode FindCoordinator v4+ Coordinators of N (KIP-699).
