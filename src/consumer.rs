@@ -14,8 +14,8 @@ use crate::cluster::Cluster;
 use crate::error::{self, Error, Result};
 use crate::net::BrokerConn;
 use crate::protocol::api::{
-    decode_metadata_response, encode_metadata_request, metadata_v0_names_acceptable, ApiVersion,
-    ApiVersionsResponse, MetadataResponse, PartitionMetadata,
+    decode_metadata_response_into, encode_metadata_request, metadata_v0_names_acceptable,
+    ApiVersion, ApiVersionsResponse, MetadataResponse, PartitionMetadata,
 };
 use crate::protocol::api_keys::{
     pick_version, FETCH, GET_TELEMETRY_SUBSCRIPTIONS, LIST_OFFSETS, METADATA,
@@ -3628,7 +3628,7 @@ impl Consumer {
         }
         let mut version = self.metadata_version;
         let allow = self.cfg.allow_auto_topic_creation || version < 4 && topics.is_none();
-        let body = match self
+        let mut body = match self
             .conn
             .roundtrip(
                 METADATA,
@@ -3672,7 +3672,16 @@ impl Consumer {
                 crate::protocol::group::OffsetLimits::default(),
             )?;
         }
-        let md = decode_metadata_response(&mut body.clone(), version)?;
+        let mut md = self.metadata.take().unwrap_or(MetadataResponse {
+            throttle_time_ms: 0,
+            brokers: Vec::new(),
+            cluster_id: None,
+            controller_id: MetadataResponse::NO_CONTROLLER_ID,
+            topics: Vec::new(),
+            cluster_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+            error_code: 0,
+        });
+        decode_metadata_response_into(&mut body, version, &mut md)?;
         md.check()?;
         if self.preferred.is_empty() {
             self.cluster.apply(&md, version);

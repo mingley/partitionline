@@ -793,19 +793,32 @@ pub(crate) fn read_string_into<B: Buf>(
     flexible: bool,
     out: &mut String,
 ) -> Result<()> {
+    if !read_nullable_string_into(buf, flexible, out)? {
+        out.clear();
+    }
+    Ok(())
+}
+
+/// Read a nullable STRING into `out`.
+///
+/// Returns false for null and leaves `out` unchanged. A present string is
+/// written into `out` and reuses its allocation when the bytes fit.
+pub(crate) fn read_nullable_string_into<B: Buf>(
+    buf: &mut B,
+    flexible: bool,
+    out: &mut String,
+) -> Result<bool> {
     let len = if flexible {
         let n = get_unsigned_varint(buf)?;
         if n == 0 {
-            out.clear();
-            return Ok(());
+            return Ok(false);
         }
         usize_from_u32(n - 1)?
     } else {
         need(buf, 2)?;
         let n = buf.get_i16();
         if n < 0 {
-            out.clear();
-            return Ok(());
+            return Ok(false);
         }
         usize_from_i16(n)?
     };
@@ -821,7 +834,7 @@ pub(crate) fn read_string_into<B: Buf>(
         out.clear();
         out.push_str(text);
         buf.advance(len);
-        return Ok(());
+        return Ok(true);
     }
     let owned = String::from_utf8(copy_exact(buf, len)?)
         .map_err(|error| Error::protocol(error.to_string()))?;
@@ -831,7 +844,7 @@ pub(crate) fn read_string_into<B: Buf>(
         out.clear();
         out.push_str(&owned);
     }
-    Ok(())
+    Ok(true)
 }
 
 /// Write compact BYTES (`unsigned varint` of `n+1`, `0` is null).

@@ -1933,13 +1933,34 @@ pub fn decode_metadata_request_topics<B: Buf>(
     ))
 }
 
-fn get_int32_array<B: Buf>(buf: &mut B, flexible: bool) -> Result<Vec<i32>> {
+fn read_int32_array_into<B: Buf>(buf: &mut B, flexible: bool, out: &mut Vec<i32>) -> Result<()> {
     let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-    let mut out = Vec::with_capacity(n);
+    out.clear();
+    if n > out.capacity() {
+        out.try_reserve(n)
+            .map_err(|_| Error::protocol("metadata int array reserve"))?;
+    }
     for _ in 0..n {
         out.push(buf::get_i32(buf)?);
     }
-    Ok(out)
+    Ok(())
+}
+
+fn read_optional_string_into<B: Buf>(
+    buf: &mut B,
+    flexible: bool,
+    slot: &mut Option<String>,
+) -> Result<()> {
+    let present = if let Some(text) = slot.as_mut() {
+        buf::read_nullable_string_into(buf, flexible, text)?
+    } else {
+        *slot = buf::get_string(buf, flexible)?;
+        return Ok(());
+    };
+    if !present {
+        *slot = None;
+    }
+    Ok(())
 }
 
 fn put_int32_array(buf: &mut BytesMut, flexible: bool, items: &[i32]) -> crate::error::Result<()> {
@@ -1952,125 +1973,219 @@ fn put_int32_array(buf: &mut BytesMut, flexible: bool, items: &[i32]) -> crate::
 
 /// Decode Metadata.
 pub fn decode_metadata_response<B: Buf>(buf: &mut B, version: i16) -> Result<MetadataResponse> {
+    let mut out = MetadataResponse {
+        throttle_time_ms: 0,
+        brokers: Vec::new(),
+        cluster_id: None,
+        controller_id: MetadataResponse::NO_CONTROLLER_ID,
+        topics: Vec::new(),
+        cluster_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+        error_code: 0,
+    };
+    decode_metadata_response_into(buf, version, &mut out)?;
+    Ok(out)
+}
+
+/// Decode Metadata into `out`, reusing broker, topic, and replica buffers.
+///
+/// A stable cluster keeps the host string, topic name, and replica lists from
+/// the previous response. A failed decode may leave `out` partially filled;
+/// callers should drop it.
+pub(crate) fn decode_metadata_response_into<B: Buf>(
+    buf: &mut B,
+    version: i16,
+    out: &mut MetadataResponse,
+) -> Result<()> {
     if version == 0 {
         let body = metadata_legacy::take_body(buf)?;
-        return metadata_legacy::decode_response(&body);
+        *out = metadata_legacy::decode_response(&body)?;
+        return Ok(());
     }
     let flexible = version >= 9;
     let throttle_time_ms = if version >= 3 { buf::get_i32(buf)? } else { 0 };
     let broker_count = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-    let mut brokers = Vec::with_capacity(broker_count);
-    for _ in 0..broker_count {
+    if out.brokers.len() > broker_count {
+        out.brokers.truncate(broker_count);
+    }
+    for index in 0..broker_count {
         let node_id = buf::get_i32(buf)?;
-        let host =
-            buf::get_string(buf, flexible)?.ok_or_else(|| Error::protocol("null broker host"))?;
-        let port = buf::get_i32(buf)?;
-        let rack = if version >= 1 {
-            buf::get_string(buf, flexible)?
+        if out.brokers.get(index).is_some() {
+            let broker = out
+                .brokers
+                .get_mut(index)
+                .ok_or_else(|| Error::protocol("metadata broker slot"))?;
+            broker.node_id = node_id;
+            if !buf::read_nullable_string_into(buf, flexible, &mut broker.host)? {
+                return Err(Error::protocol("null broker host"));
+            }
+            broker.port = buf::get_i32(buf)?;
+            if version >= 1 {
+                read_optional_string_into(buf, flexible, &mut broker.rack)?;
+            } else {
+                broker.rack = None;
+            }
         } else {
-            None
-        };
+            let host = buf::get_string(buf, flexible)?
+                .ok_or_else(|| Error::protocol("null broker host"))?;
+            let port = buf::get_i32(buf)?;
+            let rack = if version >= 1 {
+                buf::get_string(buf, flexible)?
+            } else {
+                None
+            };
+            out.brokers.push(Broker {
+                node_id,
+                host,
+                port,
+                rack,
+            });
+        }
         if flexible {
             buf::skip_tagged_fields(buf)?;
         }
-        brokers.push(Broker {
-            node_id,
-            host,
-            port,
-            rack,
-        });
     }
-    let cluster_id = if version >= 2 {
-        buf::get_string(buf, flexible)?
+    if version >= 2 {
+        read_optional_string_into(buf, flexible, &mut out.cluster_id)?;
     } else {
-        None
-    };
-    let controller_id = if version >= 1 {
+        out.cluster_id = None;
+    }
+    out.controller_id = if version >= 1 {
         buf::get_i32(buf)?
     } else {
         MetadataResponse::NO_CONTROLLER_ID
     };
     let topic_count = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-    let mut topics = Vec::with_capacity(topic_count);
-    for _ in 0..topic_count {
+    if out.topics.len() > topic_count {
+        out.topics.truncate(topic_count);
+    }
+    for index in 0..topic_count {
         let error_code = buf::get_i16(buf)?;
-        let name = buf::get_string(buf, flexible)?;
-        let topic_id = if version >= 10 {
-            buf::get_uuid(buf)?
-        } else {
-            [0u8; 16]
-        };
-        let is_internal = if version >= 1 {
-            buf::get_bool(buf)?
-        } else {
-            false
-        };
-        let part_count = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-        let mut partitions = Vec::with_capacity(part_count);
-        for _ in 0..part_count {
-            let error_code = buf::get_i16(buf)?;
-            let partition_index = buf::get_i32(buf)?;
-            let leader_id = buf::get_i32(buf)?;
-            let leader_epoch = if version >= 7 {
+        if out.topics.get(index).is_some() {
+            let topic = out
+                .topics
+                .get_mut(index)
+                .ok_or_else(|| Error::protocol("metadata topic slot"))?;
+            topic.error_code = error_code;
+            read_optional_string_into(buf, flexible, &mut topic.name)?;
+            topic.topic_id = if version >= 10 {
+                buf::get_uuid(buf)?
+            } else {
+                [0u8; 16]
+            };
+            topic.is_internal = if version >= 1 {
+                buf::get_bool(buf)?
+            } else {
+                false
+            };
+            read_metadata_partitions(buf, version, flexible, &mut topic.partitions)?;
+            topic.topic_authorized_operations = if version >= 8 {
                 buf::get_i32(buf)?
             } else {
-                RecordBatch::NO_PARTITION_LEADER_EPOCH
+                MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED
             };
-            let replica_nodes = get_int32_array(buf, flexible)?;
-            let isr_nodes = get_int32_array(buf, flexible)?;
-            let offline_replicas = if version >= 5 {
-                get_int32_array(buf, flexible)?
+        } else {
+            let name = buf::get_string(buf, flexible)?;
+            let topic_id = if version >= 10 {
+                buf::get_uuid(buf)?
             } else {
-                Vec::new()
+                [0u8; 16]
             };
-            if flexible {
-                buf::skip_tagged_fields(buf)?;
-            }
-            partitions.push(PartitionMetadata {
+            let is_internal = if version >= 1 {
+                buf::get_bool(buf)?
+            } else {
+                false
+            };
+            let mut partitions = Vec::new();
+            read_metadata_partitions(buf, version, flexible, &mut partitions)?;
+            let topic_authorized_operations = if version >= 8 {
+                buf::get_i32(buf)?
+            } else {
+                MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED
+            };
+            out.topics.push(TopicMetadata {
                 error_code,
-                partition_index,
-                leader_id,
-                leader_epoch,
-                replica_nodes,
-                isr_nodes,
-                offline_replicas,
+                name,
+                topic_id,
+                is_internal,
+                partitions,
+                topic_authorized_operations,
             });
         }
-        let topic_authorized_operations = if version >= 8 {
-            buf::get_i32(buf)?
-        } else {
-            MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED
-        };
         if flexible {
             buf::skip_tagged_fields(buf)?;
         }
-        topics.push(TopicMetadata {
-            error_code,
-            name,
-            topic_id,
-            is_internal,
-            partitions,
-            topic_authorized_operations,
-        });
     }
-    let cluster_authorized_operations = if (8..=10).contains(&version) {
+    out.cluster_authorized_operations = if (8..=10).contains(&version) {
         buf::get_i32(buf)?
     } else {
         MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED
     };
-    let error_code = if version >= 13 { buf::get_i16(buf)? } else { 0 };
+    out.error_code = if version >= 13 { buf::get_i16(buf)? } else { 0 };
+    out.throttle_time_ms = throttle_time_ms;
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    Ok(MetadataResponse {
-        throttle_time_ms,
-        brokers,
-        cluster_id,
-        controller_id,
-        topics,
-        cluster_authorized_operations,
-        error_code,
-    })
+    Ok(())
+}
+
+fn read_metadata_partitions<B: Buf>(
+    buf: &mut B,
+    version: i16,
+    flexible: bool,
+    partitions: &mut Vec<PartitionMetadata>,
+) -> Result<()> {
+    let part_count = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+    if partitions.len() > part_count {
+        partitions.truncate(part_count);
+    }
+    for index in 0..part_count {
+        if partitions.get(index).is_some() {
+            let part = partitions
+                .get_mut(index)
+                .ok_or_else(|| Error::protocol("metadata partition slot"))?;
+            fill_metadata_partition(buf, version, flexible, part)?;
+        } else {
+            let mut part = PartitionMetadata {
+                error_code: 0,
+                partition_index: 0,
+                leader_id: MetadataResponse::NO_LEADER_ID,
+                leader_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+                replica_nodes: Vec::new(),
+                isr_nodes: Vec::new(),
+                offline_replicas: Vec::new(),
+            };
+            fill_metadata_partition(buf, version, flexible, &mut part)?;
+            partitions.push(part);
+        }
+    }
+    Ok(())
+}
+
+fn fill_metadata_partition<B: Buf>(
+    buf: &mut B,
+    version: i16,
+    flexible: bool,
+    part: &mut PartitionMetadata,
+) -> Result<()> {
+    part.error_code = buf::get_i16(buf)?;
+    part.partition_index = buf::get_i32(buf)?;
+    part.leader_id = buf::get_i32(buf)?;
+    part.leader_epoch = if version >= 7 {
+        buf::get_i32(buf)?
+    } else {
+        RecordBatch::NO_PARTITION_LEADER_EPOCH
+    };
+    read_int32_array_into(buf, flexible, &mut part.replica_nodes)?;
+    read_int32_array_into(buf, flexible, &mut part.isr_nodes)?;
+    if version >= 5 {
+        read_int32_array_into(buf, flexible, &mut part.offline_replicas)?;
+    } else {
+        part.offline_replicas.clear();
+    }
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
+    }
+    Ok(())
 }
 
 /// Encode Metadata (used by the mock broker).
@@ -6172,6 +6287,47 @@ mod tests {
         let decoded = decode_metadata_response(&mut cur, 13).unwrap();
         assert_eq!(decoded, resp);
         leftover_empty(&cur, "Metadata v13").unwrap();
+        let mut again = decoded;
+        let host = again
+            .brokers
+            .first()
+            .map(|broker| broker.host.as_ptr())
+            .expect("broker");
+        let topic = again
+            .topics
+            .first()
+            .and_then(|topic| topic.name.as_ref())
+            .map(|name| name.as_ptr())
+            .expect("topic");
+        let replicas = again
+            .topics
+            .first()
+            .and_then(|topic| topic.partitions.first())
+            .map(|part| part.replica_nodes.as_ptr())
+            .expect("replicas");
+        let mut cur = &v13[..];
+        decode_metadata_response_into(&mut cur, 13, &mut again).unwrap();
+        assert_eq!(again, resp);
+        assert_eq!(
+            again.brokers.first().map(|broker| broker.host.as_ptr()),
+            Some(host)
+        );
+        assert_eq!(
+            again
+                .topics
+                .first()
+                .and_then(|topic| topic.name.as_ref())
+                .map(|name| name.as_ptr()),
+            Some(topic)
+        );
+        assert_eq!(
+            again
+                .topics
+                .first()
+                .and_then(|topic| topic.partitions.first())
+                .map(|part| part.replica_nodes.as_ptr()),
+            Some(replicas)
+        );
         assert_ne!(
             &buf[..],
             &v13[..],
