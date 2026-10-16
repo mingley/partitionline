@@ -8274,6 +8274,119 @@ impl AlterUserScramCredentialsResponse {
     }
 }
 
+/// One SCRAM deletion whose user name is borrowed.
+pub(crate) struct BorrowedScramDeletion<'a> {
+    /// User name.
+    pub name: &'a str,
+    /// SCRAM mechanism id (`SCRAM_SHA_256` / `SCRAM_SHA_512`).
+    pub mechanism: i8,
+}
+
+/// One SCRAM upsertion whose user name, salt, and salted password are borrowed.
+///
+/// `Debug` redacts `salt` and `salted_password`.
+pub(crate) struct BorrowedScramUpsertion<'a> {
+    /// User name.
+    pub name: &'a str,
+    /// SCRAM mechanism id (`SCRAM_SHA_256` / `SCRAM_SHA_512`).
+    pub mechanism: i8,
+    /// SCRAM iteration count.
+    pub iterations: i32,
+    /// SCRAM salt.
+    pub salt: &'a [u8],
+    /// SCRAM salted password.
+    pub salted_password: &'a [u8],
+}
+
+impl fmt::Debug for BorrowedScramUpsertion<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("BorrowedScramUpsertion")
+            .field("name", &self.name)
+            .field("mechanism", &self.mechanism)
+            .field("iterations", &self.iterations)
+            .field("salt", &"<redacted>")
+            .field("salted_password", &"<redacted>")
+            .finish()
+    }
+}
+
+trait ScramDeletionView {
+    fn scram_deletion_name(&self) -> &str;
+    fn scram_deletion_mechanism(&self) -> i8;
+}
+
+impl ScramDeletionView for ScramCredentialDeletion {
+    fn scram_deletion_name(&self) -> &str {
+        &self.name
+    }
+
+    fn scram_deletion_mechanism(&self) -> i8 {
+        self.mechanism
+    }
+}
+
+impl ScramDeletionView for BorrowedScramDeletion<'_> {
+    fn scram_deletion_name(&self) -> &str {
+        self.name
+    }
+
+    fn scram_deletion_mechanism(&self) -> i8 {
+        self.mechanism
+    }
+}
+
+trait ScramUpsertionView {
+    fn scram_upsertion_name(&self) -> &str;
+    fn scram_upsertion_mechanism(&self) -> i8;
+    fn scram_upsertion_iterations(&self) -> i32;
+    fn scram_upsertion_salt(&self) -> &[u8];
+    fn scram_upsertion_password(&self) -> &[u8];
+}
+
+impl ScramUpsertionView for ScramCredentialUpsertion {
+    fn scram_upsertion_name(&self) -> &str {
+        &self.name
+    }
+
+    fn scram_upsertion_mechanism(&self) -> i8 {
+        self.mechanism
+    }
+
+    fn scram_upsertion_iterations(&self) -> i32 {
+        self.iterations
+    }
+
+    fn scram_upsertion_salt(&self) -> &[u8] {
+        &self.salt
+    }
+
+    fn scram_upsertion_password(&self) -> &[u8] {
+        &self.salted_password
+    }
+}
+
+impl ScramUpsertionView for BorrowedScramUpsertion<'_> {
+    fn scram_upsertion_name(&self) -> &str {
+        self.name
+    }
+
+    fn scram_upsertion_mechanism(&self) -> i8 {
+        self.mechanism
+    }
+
+    fn scram_upsertion_iterations(&self) -> i32 {
+        self.iterations
+    }
+
+    fn scram_upsertion_salt(&self) -> &[u8] {
+        self.salt
+    }
+
+    fn scram_upsertion_password(&self) -> &[u8] {
+        self.salted_password
+    }
+}
+
 /// AlterUserScramCredentials v0 (flexible from v0; KIP-554).
 ///
 /// Official Apache JSON (`apiKey: 51`, `validVersions: "0"`,
@@ -8289,6 +8402,23 @@ pub fn encode_alter_user_scram_credentials_request(
     deletions: &[ScramCredentialDeletion],
     upsertions: &[ScramCredentialUpsertion],
 ) -> crate::error::Result<()> {
+    encode_scram_credential_views(buf, deletions, upsertions)
+}
+
+/// Encode AlterUserScramCredentials deletions and upsertions from borrowed bytes.
+pub(crate) fn encode_alter_user_scram_credentials_named(
+    buf: &mut BytesMut,
+    deletions: &[BorrowedScramDeletion<'_>],
+    upsertions: &[BorrowedScramUpsertion<'_>],
+) -> crate::error::Result<()> {
+    encode_scram_credential_views(buf, deletions, upsertions)
+}
+
+fn encode_scram_credential_views<D: ScramDeletionView, U: ScramUpsertionView>(
+    buf: &mut BytesMut,
+    deletions: &[D],
+    upsertions: &[U],
+) -> crate::error::Result<()> {
     let body_start = buf.len();
     let planned = alter_user_scram_request_len(deletions, upsertions)?;
     let needed = body_start.saturating_add(planned);
@@ -8296,18 +8426,18 @@ pub fn encode_alter_user_scram_credentials_request(
         buf.reserve(needed - buf.capacity());
     }
     buf::put_array_len(buf, true, Some(deletions.len()))?;
-    for d in deletions {
-        buf::put_compact_string(buf, Some(&d.name))?;
-        buf.put_i8(d.mechanism);
+    for deletion in deletions {
+        buf::put_compact_string(buf, Some(deletion.scram_deletion_name()))?;
+        buf.put_i8(deletion.scram_deletion_mechanism());
         buf::put_empty_tagged_fields(buf);
     }
     buf::put_array_len(buf, true, Some(upsertions.len()))?;
-    for u in upsertions {
-        buf::put_compact_string(buf, Some(&u.name))?;
-        buf.put_i8(u.mechanism);
-        buf.put_i32(u.iterations);
-        buf::put_compact_bytes(buf, Some(&u.salt))?;
-        buf::put_compact_bytes(buf, Some(&u.salted_password))?;
+    for upsertion in upsertions {
+        buf::put_compact_string(buf, Some(upsertion.scram_upsertion_name()))?;
+        buf.put_i8(upsertion.scram_upsertion_mechanism());
+        buf.put_i32(upsertion.scram_upsertion_iterations());
+        buf::put_compact_bytes(buf, Some(upsertion.scram_upsertion_salt()))?;
+        buf::put_compact_bytes(buf, Some(upsertion.scram_upsertion_password()))?;
         buf::put_empty_tagged_fields(buf);
     }
     buf::put_empty_tagged_fields(buf);
@@ -8315,22 +8445,34 @@ pub fn encode_alter_user_scram_credentials_request(
     Ok(())
 }
 
-fn alter_user_scram_request_len(
-    deletions: &[ScramCredentialDeletion],
-    upsertions: &[ScramCredentialUpsertion],
+fn alter_user_scram_request_len<D: ScramDeletionView, U: ScramUpsertionView>(
+    deletions: &[D],
+    upsertions: &[U],
 ) -> Result<usize> {
     let mut total = describe_array_len(true, deletions.len())?;
     for deletion in deletions {
-        total = add_describe_len(total, describe_string_len(true, Some(&deletion.name))?)?;
+        total = add_describe_len(
+            total,
+            describe_string_len(true, Some(deletion.scram_deletion_name()))?,
+        )?;
         total = add_describe_len(total, 1)?;
         total = add_describe_len(total, buf::unsigned_varint_size(0))?;
     }
     total = add_describe_len(total, describe_array_len(true, upsertions.len())?)?;
     for upsertion in upsertions {
-        total = add_describe_len(total, describe_string_len(true, Some(&upsertion.name))?)?;
+        total = add_describe_len(
+            total,
+            describe_string_len(true, Some(upsertion.scram_upsertion_name()))?,
+        )?;
         total = add_describe_len(total, 5)?;
-        total = add_describe_len(total, describe_bytes_len(true, &upsertion.salt)?)?;
-        total = add_describe_len(total, describe_bytes_len(true, &upsertion.salted_password)?)?;
+        total = add_describe_len(
+            total,
+            describe_bytes_len(true, upsertion.scram_upsertion_salt())?,
+        )?;
+        total = add_describe_len(
+            total,
+            describe_bytes_len(true, upsertion.scram_upsertion_password())?,
+        )?;
         total = add_describe_len(total, buf::unsigned_varint_size(0))?;
     }
     add_describe_len(total, buf::unsigned_varint_size(0))
@@ -32305,6 +32447,45 @@ mod tests {
         assert!(cur.is_empty());
         assert_eq!(decoded_deletions, deletions);
         assert_eq!(decoded_upsertions, upsertions);
+    }
+
+    #[test]
+    fn alter_user_scram_named_credentials_match_owned_credentials() {
+        let salt = [1_u8, 2, 3, 4];
+        let salted_password = [9_u8, 8, 7];
+        let owned_deletions = [ScramCredentialDeletion {
+            name: "alice".into(),
+            mechanism: 1,
+        }];
+        let owned_upsertions = [ScramCredentialUpsertion {
+            name: "bob-user-name-is-long".into(),
+            mechanism: 2,
+            iterations: 4096,
+            salt: salt.to_vec(),
+            salted_password: salted_password.to_vec(),
+        }];
+        let named_deletions = [BorrowedScramDeletion {
+            name: "alice",
+            mechanism: 1,
+        }];
+        let named_upsertions = [BorrowedScramUpsertion {
+            name: "bob-user-name-is-long",
+            mechanism: 2,
+            iterations: 4096,
+            salt: &salt,
+            salted_password: &salted_password,
+        }];
+        let mut expected = BytesMut::new();
+        encode_alter_user_scram_credentials_request(
+            &mut expected,
+            &owned_deletions,
+            &owned_upsertions,
+        )
+        .unwrap();
+        let mut got = BytesMut::new();
+        encode_alter_user_scram_credentials_named(&mut got, &named_deletions, &named_upsertions)
+            .unwrap();
+        assert_eq!(got.as_ref(), expected.as_ref());
     }
 
     #[test]

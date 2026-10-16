@@ -47,7 +47,7 @@ use crate::protocol::admin::{
     decode_update_features_response, encode_allocate_producer_ids_request,
     encode_alter_client_quotas_request, encode_alter_configs_named,
     encode_alter_partition_reassignments_named, encode_alter_replica_log_dirs_request,
-    encode_alter_share_group_offsets_request, encode_alter_user_scram_credentials_request,
+    encode_alter_share_group_offsets_request, encode_alter_user_scram_credentials_named,
     encode_assign_replicas_to_dirs_request, encode_consumer_group_describe_request,
     encode_create_delegation_token_request, encode_create_partitions_named,
     encode_create_topics_named, encode_delete_groups_request, encode_delete_records_named_topics,
@@ -66,10 +66,10 @@ use crate::protocol::admin::{
     encode_update_features_named, AlterConfigsResource, BorrowedAlterConfig,
     BorrowedAlterConfigsResource, BorrowedAlterableResource, BorrowedCreatableTopic,
     BorrowedCreatePartitionsTopic, BorrowedDescribeConfigsResource, BorrowedFeatureUpdate,
-    BorrowedReassignmentPartition, BorrowedReplicaAssignment, BorrowedTopicConfig,
-    CreateTopicsRequest, DeleteRecordsPartition, DeleteTopicState, DescribeConfigsResult,
-    ScramCredentialDeletion, ScramCredentialUpsertion, TopicResult, RESOURCE_BROKER,
-    RESOURCE_BROKER_LOGGER, RESOURCE_CLIENT_METRICS, RESOURCE_GROUP, RESOURCE_TOPIC,
+    BorrowedReassignmentPartition, BorrowedReplicaAssignment, BorrowedScramDeletion,
+    BorrowedScramUpsertion, BorrowedTopicConfig, CreateTopicsRequest, DeleteRecordsPartition,
+    DeleteTopicState, DescribeConfigsResult, TopicResult, RESOURCE_BROKER, RESOURCE_BROKER_LOGGER,
+    RESOURCE_CLIENT_METRICS, RESOURCE_GROUP, RESOURCE_TOPIC,
 };
 use crate::protocol::api::{
     decode_api_versions_response, decode_metadata_response, decode_metadata_response_into,
@@ -3244,6 +3244,33 @@ struct LeaderFrame {
 }
 
 type LeaderExchange = HashMap<i32, (i16, Result<Bytes>)>;
+
+fn borrowed_scram_deletions(
+    deletions: &[UserScramCredentialDeletion],
+) -> Vec<BorrowedScramDeletion<'_>> {
+    deletions
+        .iter()
+        .map(|deletion| BorrowedScramDeletion {
+            name: deletion.name.as_str(),
+            mechanism: deletion.mechanism,
+        })
+        .collect()
+}
+
+fn borrowed_scram_upsertions(
+    upsertions: &[UserScramCredentialUpsertion],
+) -> Vec<BorrowedScramUpsertion<'_>> {
+    upsertions
+        .iter()
+        .map(|upsertion| BorrowedScramUpsertion {
+            name: upsertion.name.as_str(),
+            mechanism: upsertion.mechanism,
+            iterations: upsertion.iterations,
+            salt: upsertion.salt.as_slice(),
+            salted_password: upsertion.salted_password.as_slice(),
+        })
+        .collect()
+}
 
 fn borrowed_feature_updates(updates: &[FeatureUpdate]) -> Vec<BorrowedFeatureUpdate<'_>> {
     updates
@@ -6639,23 +6666,8 @@ impl Admin {
         upsertions: &[UserScramCredentialUpsertion],
         timeout: Duration,
     ) -> Result<Vec<UserScramCredentialResult>> {
-        let deletions: Vec<ScramCredentialDeletion> = deletions
-            .iter()
-            .map(|d| ScramCredentialDeletion {
-                name: d.name.clone(),
-                mechanism: d.mechanism,
-            })
-            .collect();
-        let upsertions: Vec<ScramCredentialUpsertion> = upsertions
-            .iter()
-            .map(|u| ScramCredentialUpsertion {
-                name: u.name.clone(),
-                mechanism: u.mechanism,
-                iterations: u.iterations,
-                salt: u.salt.clone(),
-                salted_password: u.salted_password.clone(),
-            })
-            .collect();
+        let deletions = borrowed_scram_deletions(deletions);
+        let upsertions = borrowed_scram_upsertions(upsertions);
         let version = self.alter_user_scram_version.ok_or_else(|| {
             Error::Unsupported("broker does not support AlterUserScramCredentials".into())
         })?;
@@ -6675,7 +6687,7 @@ impl Admin {
                 conn.roundtrip(
                     ALTER_USER_SCRAM_CREDENTIALS,
                     version,
-                    |buf| encode_alter_user_scram_credentials_request(buf, &deletions, &upsertions),
+                    |buf| encode_alter_user_scram_credentials_named(buf, &deletions, &upsertions),
                     deadline.saturating_duration_since(Instant::now()),
                 )
                 .await
