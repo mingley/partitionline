@@ -5718,174 +5718,177 @@ impl Worker {
         }
         let mut first_err: Option<Error> = None;
         let mut ack_tracker = None;
-        let mut shell = inf.groups.into_vec();
-        for (found_at, (topic, part, pendings)) in slots.drain(..).zip(shell.drain(..)) {
-            let found = found_at.and_then(|at| responses.get(at));
-            match found {
-                None => {
-                    let e = Error::protocol("missing produce response");
-                    self.fail_kept_batch(pendings, clone_err(&e));
-                    if first_err.is_none() {
-                        first_err = Some(e);
-                    }
-                }
-                Some(r) if r.error_code != 0 => {
-                    let e = Error::broker(r.error_code, format!("{topic}-{part}"));
-                    // UNKNOWN_TOPIC_ID refresh is producer-private; it does
-                    // not change the public Error retry category contract.
-                    if e.is_retriable() || r.error_code == error::UNKNOWN_TOPIC_ID {
-                        let applied = r.error_code != error::UNKNOWN_TOPIC_ID
-                            && r.current_leader_id >= 0
-                            && self.shared.cluster.lock().apply_current_leader(
-                                topic.as_ref(),
-                                part,
-                                r.current_leader_id,
-                                r.current_leader_epoch,
-                            );
-                        let mut pendings = pendings;
-                        if applied {
-                            drop_fast_topic(&self.shared, topic.as_ref());
-                            let n_conn = self.shared.cfg.connections.max(1);
-                            let slot = usize::try_from(part).unwrap_or(0) % n_conn;
-                            try_nudge_slot(&self.shared.connect_tx, r.current_leader_id, slot);
-                            for p in &mut pendings {
-                                p.skip_meta_refresh = true;
-                            }
-                        } else {
-                            invalidate_cached_topic(&self.shared, topic.as_ref());
-                            // No meta_tx nudge: the requeued batch's
-                            // first pending owns the refresh (KL09-28),
-                            // so a nudge here would be a duplicate RPC
-                            // per faulted batch.
+        let OpenedProduceGroups { one, mut shell } = inf.groups.into_one_many();
+        {
+            let mut grouped = one.into_iter().chain(shell.drain(..));
+            for (found_at, (topic, part, pendings)) in slots.drain(..).zip(&mut grouped) {
+                let found = found_at.and_then(|at| responses.get(at));
+                match found {
+                    None => {
+                        let e = Error::protocol("missing produce response");
+                        self.fail_kept_batch(pendings, clone_err(&e));
+                        if first_err.is_none() {
+                            first_err = Some(e);
                         }
-                        self.requeue_pendings(pendings);
-                    } else if r.error_code == error::UNKNOWN_PRODUCER_ID
-                        && self.shared.cfg.transactional_id.is_none()
-                        && self.shared.producer_id.load(Ordering::SeqCst) >= 0
-                    {
-                        // Nontransactional idempotent recovery (KL03-09):
-                        // a local epoch bump while the epoch can advance,
-                        // a brand-new producer identity once it is
-                        // exhausted. The transactional fencing path below
-                        // is untouched: this never serves as fencing
-                        // recovery.
-                        if self.shared.producer_epoch.load(Ordering::SeqCst) == i16::MAX {
-                            match renew_nontransactional_identity(&self.shared).await {
-                                Ok(()) => {
-                                    let mut pendings = pendings;
-                                    for p in &mut pendings {
-                                        p.skip_meta_refresh = true;
-                                    }
-                                    self.requeue_pendings(pendings);
-                                }
-                                Err(renew_err) => {
-                                    self.fail_kept_batch(pendings, clone_err(&renew_err));
-                                    if first_err.is_none() {
-                                        first_err = Some(renew_err);
-                                    }
-                                }
-                            }
-                        } else {
-                            self.shared.bump_idempotent_epoch();
+                    }
+                    Some(r) if r.error_code != 0 => {
+                        let e = Error::broker(r.error_code, format!("{topic}-{part}"));
+                        // UNKNOWN_TOPIC_ID refresh is producer-private; it does
+                        // not change the public Error retry category contract.
+                        if e.is_retriable() || r.error_code == error::UNKNOWN_TOPIC_ID {
+                            let applied = r.error_code != error::UNKNOWN_TOPIC_ID
+                                && r.current_leader_id >= 0
+                                && self.shared.cluster.lock().apply_current_leader(
+                                    topic.as_ref(),
+                                    part,
+                                    r.current_leader_id,
+                                    r.current_leader_epoch,
+                                );
                             let mut pendings = pendings;
-                            for p in &mut pendings {
-                                p.skip_meta_refresh = true;
+                            if applied {
+                                drop_fast_topic(&self.shared, topic.as_ref());
+                                let n_conn = self.shared.cfg.connections.max(1);
+                                let slot = usize::try_from(part).unwrap_or(0) % n_conn;
+                                try_nudge_slot(&self.shared.connect_tx, r.current_leader_id, slot);
+                                for p in &mut pendings {
+                                    p.skip_meta_refresh = true;
+                                }
+                            } else {
+                                invalidate_cached_topic(&self.shared, topic.as_ref());
+                                // No meta_tx nudge: the requeued batch's
+                                // first pending owns the refresh (KL09-28),
+                                // so a nudge here would be a duplicate RPC
+                                // per faulted batch.
                             }
                             self.requeue_pendings(pendings);
-                        }
-                    } else if self.shared.cfg.transactional_id.is_some() {
-                        // Java `maybeTransitionToErrorState` (KL03-10):
-                        // fencing/authorization/identity errors fence the
-                        // producer (fatal); every other failed batch makes
-                        // the open transaction abort-required. Retriable
-                        // codes were requeued above. The epoch-bump flag is
-                        // Java `clientSideEpochBumpRequired`: only when the
-                        // client bump path exists (classic coordinators);
-                        // transaction V2 bumps server-side in `EndTxn`.
-                        match classify_produce_error(r.error_code) {
-                            TxnErrorDisposition::Fatal => {
-                                self.shared.set_txn_fatal(clone_err(&e));
+                        } else if r.error_code == error::UNKNOWN_PRODUCER_ID
+                            && self.shared.cfg.transactional_id.is_none()
+                            && self.shared.producer_id.load(Ordering::SeqCst) >= 0
+                        {
+                            // Nontransactional idempotent recovery (KL03-09):
+                            // a local epoch bump while the epoch can advance,
+                            // a brand-new producer identity once it is
+                            // exhausted. The transactional fencing path below
+                            // is untouched: this never serves as fencing
+                            // recovery.
+                            if self.shared.producer_epoch.load(Ordering::SeqCst) == i16::MAX {
+                                match renew_nontransactional_identity(&self.shared).await {
+                                    Ok(()) => {
+                                        let mut pendings = pendings;
+                                        for p in &mut pendings {
+                                            p.skip_meta_refresh = true;
+                                        }
+                                        self.requeue_pendings(pendings);
+                                    }
+                                    Err(renew_err) => {
+                                        self.fail_kept_batch(pendings, clone_err(&renew_err));
+                                        if first_err.is_none() {
+                                            first_err = Some(renew_err);
+                                        }
+                                    }
+                                }
+                            } else {
+                                self.shared.bump_idempotent_epoch();
+                                let mut pendings = pendings;
+                                for p in &mut pendings {
+                                    p.skip_meta_refresh = true;
+                                }
+                                self.requeue_pendings(pendings);
                             }
-                            TxnErrorDisposition::Abortable | TxnErrorDisposition::Retriable => {
-                                self.shared.set_txn_abortable(clone_err(&e));
-                                if client_epoch_bump_capable(
-                                    self.shared.init_producer_id_version,
-                                    self.shared.end_txn_version,
-                                ) {
-                                    self.shared
-                                        .epoch_bump_required
-                                        .store(true, Ordering::SeqCst);
+                        } else if self.shared.cfg.transactional_id.is_some() {
+                            // Java `maybeTransitionToErrorState` (KL03-10):
+                            // fencing/authorization/identity errors fence the
+                            // producer (fatal); every other failed batch makes
+                            // the open transaction abort-required. Retriable
+                            // codes were requeued above. The epoch-bump flag is
+                            // Java `clientSideEpochBumpRequired`: only when the
+                            // client bump path exists (classic coordinators);
+                            // transaction V2 bumps server-side in `EndTxn`.
+                            match classify_produce_error(r.error_code) {
+                                TxnErrorDisposition::Fatal => {
+                                    self.shared.set_txn_fatal(clone_err(&e));
+                                }
+                                TxnErrorDisposition::Abortable | TxnErrorDisposition::Retriable => {
+                                    self.shared.set_txn_abortable(clone_err(&e));
+                                    if client_epoch_bump_capable(
+                                        self.shared.init_producer_id_version,
+                                        self.shared.end_txn_version,
+                                    ) {
+                                        self.shared
+                                            .epoch_bump_required
+                                            .store(true, Ordering::SeqCst);
+                                    }
                                 }
                             }
-                        }
-                        self.fail_kept_batch(pendings, clone_err(&e));
-                        if first_err.is_none() {
-                            first_err = Some(e);
-                        }
-                    } else {
-                        self.fail_kept_batch(pendings, clone_err(&e));
-                        if first_err.is_none() {
-                            first_err = Some(e);
+                            self.fail_kept_batch(pendings, clone_err(&e));
+                            if first_err.is_none() {
+                                first_err = Some(e);
+                            }
+                        } else {
+                            self.fail_kept_batch(pendings, clone_err(&e));
+                            if first_err.is_none() {
+                                first_err = Some(e);
+                            }
                         }
                     }
-                }
-                Some(r) => {
-                    let mut pendings = pendings;
-                    let n = u64::try_from(pendings.len()).unwrap_or(u64::MAX);
-                    self.shared.retire_sticky(&pendings, false);
-                    self.shared.release_buffer(pendings_bytes(&pendings));
-                    let tracker = self.shared.topic_tracker_cached(&mut ack_tracker, &topic);
-                    self.shared.note_acked_on(&tracker, n);
-                    // KL09-18: one clock read per batch; per-record
-                    // latencies fold locally (no atomics, no lookups).
-                    let ack = Instant::now();
-                    let sample_ns = pendings
-                        .first()
-                        .map(|p| ack_latency_ns(ack, p.queued_at))
-                        .unwrap_or(0);
-                    let mut lat_n = 0u64;
-                    let mut lat_sum = 0u64;
-                    let mut lat_min = u64::MAX;
-                    let mut lat_max = 0u64;
-                    let mut stamped = None;
-                    for (i, p) in pendings.drain(..).enumerate() {
-                        let ns = ack_latency_ns(ack, p.queued_at);
-                        lat_n += 1;
-                        lat_sum = lat_sum.saturating_add(ns);
-                        lat_min = lat_min.min(ns);
-                        lat_max = lat_max.max(ns);
-                        // KL09-16: build ack metadata only when a
-                        // caller oneshot or an interceptor consumes it.
-                        if p.tx.is_none() && self.shared.interceptors.is_empty() {
-                            continue;
+                    Some(r) => {
+                        let mut pendings = pendings;
+                        let n = u64::try_from(pendings.len()).unwrap_or(u64::MAX);
+                        self.shared.retire_sticky(&pendings, false);
+                        self.shared.release_buffer(pendings_bytes(&pendings));
+                        let tracker = self.shared.topic_tracker_cached(&mut ack_tracker, &topic);
+                        self.shared.note_acked_on(&tracker, n);
+                        // KL09-18: one clock read per batch; per-record
+                        // latencies fold locally (no atomics, no lookups).
+                        let ack = Instant::now();
+                        let sample_ns = pendings
+                            .first()
+                            .map(|p| ack_latency_ns(ack, p.queued_at))
+                            .unwrap_or(0);
+                        let mut lat_n = 0u64;
+                        let mut lat_sum = 0u64;
+                        let mut lat_min = u64::MAX;
+                        let mut lat_max = 0u64;
+                        let mut stamped = None;
+                        for (i, p) in pendings.drain(..).enumerate() {
+                            let ns = ack_latency_ns(ack, p.queued_at);
+                            lat_n += 1;
+                            lat_sum = lat_sum.saturating_add(ns);
+                            lat_min = lat_min.min(ns);
+                            lat_max = lat_max.max(ns);
+                            // KL09-16: build ack metadata only when a
+                            // caller oneshot or an interceptor consumes it.
+                            if p.tx.is_none() && self.shared.interceptors.is_empty() {
+                                continue;
+                            }
+                            let batch_index = i32::try_from(i).unwrap_or(i32::MAX);
+                            let now = *stamped.get_or_insert_with(now_ms);
+                            let md = record_metadata(
+                                &topic,
+                                part,
+                                r.base_offset,
+                                batch_index,
+                                &p.rec,
+                                r.log_append_time_ms,
+                                now,
+                            );
+                            self.shared.interceptors.on_ack(&md);
+                            if let Some(tx) = p.tx {
+                                drop(tx.send(Ok(md)));
+                            }
                         }
-                        let batch_index = i32::try_from(i).unwrap_or(i32::MAX);
-                        let now = *stamped.get_or_insert_with(now_ms);
-                        let md = record_metadata(
-                            &topic,
-                            part,
-                            r.base_offset,
-                            batch_index,
-                            &p.rec,
-                            r.log_append_time_ms,
-                            now,
+                        self.shared.note_ack_latency_on(
+                            &tracker,
+                            crate::metrics::BatchLatency {
+                                n: lat_n,
+                                sum_nanos: lat_sum,
+                                min_nanos: lat_min,
+                                max_nanos: lat_max,
+                                sample_ns,
+                            },
                         );
-                        self.shared.interceptors.on_ack(&md);
-                        if let Some(tx) = p.tx {
-                            drop(tx.send(Ok(md)));
-                        }
+                        self.park_batch(pendings);
                     }
-                    self.shared.note_ack_latency_on(
-                        &tracker,
-                        crate::metrics::BatchLatency {
-                            n: lat_n,
-                            sum_nanos: lat_sum,
-                            min_nanos: lat_min,
-                            max_nanos: lat_max,
-                            sample_ns,
-                        },
-                    );
-                    self.park_batch(pendings);
                 }
             }
         }
@@ -5899,7 +5902,10 @@ impl Worker {
     }
 
     fn requeue(&mut self, groups: ProduceGroups) {
-        let mut shell = groups.into_vec();
+        let OpenedProduceGroups { one, mut shell } = groups.into_one_many();
+        if let Some((_, _, pendings)) = one {
+            self.requeue_pendings(pendings);
+        }
         for (_, _, pendings) in shell.drain(..) {
             self.requeue_pendings(pendings);
         }
@@ -6064,8 +6070,11 @@ impl Worker {
 
     /// Fail grouped records and keep the largest emptied batch list.
     fn fail_kept_groups(&mut self, groups: ProduceGroups, err: Error) {
-        let mut shell = groups.into_vec();
+        let OpenedProduceGroups { one, mut shell } = groups.into_one_many();
         let mut best = Vec::new();
+        if let Some((_, _, pendings)) = one {
+            best = fail_kept_pendings(&self.shared, pendings, clone_err(&err));
+        }
         for (_, _, pendings) in shell.drain(..) {
             let empty = fail_kept_pendings(&self.shared, pendings, clone_err(&err));
             if empty.capacity() > best.capacity() {
@@ -6081,7 +6090,13 @@ impl Worker {
         let mut best = Vec::new();
         let mut best_shell = Vec::new();
         while let Some(inflight) = self.in_flight.pop_front() {
-            let mut shell = inflight.groups.into_vec();
+            let OpenedProduceGroups { one, mut shell } = inflight.groups.into_one_many();
+            if let Some((_, _, pendings)) = one {
+                let empty = fail_kept_pendings(&self.shared, pendings, clone_err(&err));
+                if empty.capacity() > best.capacity() {
+                    best = empty;
+                }
+            }
             for (_, _, pendings) in shell.drain(..) {
                 let empty = fail_kept_pendings(&self.shared, pendings, clone_err(&err));
                 if empty.capacity() > best.capacity() {
@@ -6466,6 +6481,14 @@ enum ProduceGroups {
     Many(Vec<(Arc<str>, i32, Vec<Pending>)>),
 }
 
+/// A produce group list opened for acknowledgement or failure.
+///
+/// One partition does not allocate the shell.
+struct OpenedProduceGroups {
+    one: Option<(Arc<str>, i32, Vec<Pending>)>,
+    shell: Vec<(Arc<str>, i32, Vec<Pending>)>,
+}
+
 impl ProduceGroups {
     fn as_slice(&self) -> &[(Arc<str>, i32, Vec<Pending>)] {
         match self {
@@ -6483,11 +6506,21 @@ impl ProduceGroups {
         }
     }
 
-    fn into_vec(self) -> Vec<(Arc<str>, i32, Vec<Pending>)> {
+    /// One group stays beside an empty shell. Several groups keep their vector.
+    fn into_one_many(self) -> OpenedProduceGroups {
         match self {
-            Self::Empty => Vec::new(),
-            Self::One(group) => vec![group],
-            Self::Many(groups) => groups,
+            Self::Empty => OpenedProduceGroups {
+                one: None,
+                shell: Vec::new(),
+            },
+            Self::One(group) => OpenedProduceGroups {
+                one: Some(group),
+                shell: Vec::new(),
+            },
+            Self::Many(groups) => OpenedProduceGroups {
+                one: None,
+                shell: groups,
+            },
         }
     }
 
@@ -7771,6 +7804,23 @@ mod tests {
             one.first().map(|(_, part, pending)| (*part, pending.len())),
             Some((0, 2))
         );
+    }
+
+    #[test]
+    fn a_one_partition_produce_group_has_no_shell() {
+        let pending = queued("topic-name-longer-than-twenty-three", Some(0));
+        let topic = Arc::clone(&pending.rec.topic);
+        let groups = ProduceGroups::One((topic, 0, vec![pending]));
+        let OpenedProduceGroups { one, shell } = groups.into_one_many();
+        assert!(one.is_some());
+        assert_eq!(shell.capacity(), 0);
+        let many = ProduceGroups::Many(vec![
+            (Arc::from("orders"), 0, Vec::new()),
+            (Arc::from("orders"), 1, Vec::new()),
+        ]);
+        let OpenedProduceGroups { one, shell } = many.into_one_many();
+        assert!(one.is_none());
+        assert!(shell.capacity() >= 2);
     }
 
     #[test]
