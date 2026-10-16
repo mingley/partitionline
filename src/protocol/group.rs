@@ -5286,13 +5286,18 @@ pub fn decode_offset_delete_response<B: Buf>(
     let n = buf::get_array_len(buf, false)?.unwrap_or(0);
     let mut out = Vec::new();
     for _ in 0..n {
-        let topic = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
+        let mut topic = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
         let pn = buf::get_array_len(buf, false)?.unwrap_or(0);
-        for _ in 0..pn {
+        for index in 0..pn {
             let partition = buf::get_i32(buf)?;
             let part_err = buf::get_i16(buf)?;
+            let name = if index.saturating_add(1) == pn {
+                std::mem::take(&mut topic)
+            } else {
+                topic.clone()
+            };
             out.push(OffsetDeleteResult {
-                topic: topic.clone(),
+                topic: name,
                 partition,
                 error_code: part_err,
             });
@@ -14649,8 +14654,8 @@ mod tests {
         );
 
         let results = vec![
-            OffsetDeleteResult::new("t", 0, 0),
-            OffsetDeleteResult::new("t", 1, 0),
+            OffsetDeleteResult::new("orders-topic-name-is-long", 0, 0),
+            OffsetDeleteResult::new("orders-topic-name-is-long", 1, 0),
         ];
         buf.clear();
         encode_offset_delete_response(&mut buf, 0, &results).unwrap();

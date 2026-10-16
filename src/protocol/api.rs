@@ -3427,14 +3427,14 @@ fn decode_produce_response_fields<B: Buf>(
     let mut identities = Vec::new();
     for _ in 0..topic_count {
         let mut topic_id = [0; 16];
-        let topic = if version <= 12 {
+        let mut topic = if version <= 12 {
             buf::get_string(buf, flexible)?.unwrap_or_default()
         } else {
             topic_id = buf::get_uuid(buf)?;
             String::new()
         };
         let part_count = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-        for _ in 0..part_count {
+        for index in 0..part_count {
             let partition = buf::get_i32(buf)?;
             let error_code = buf::get_i16(buf)?;
             let base_offset = buf::get_i64(buf)?;
@@ -3467,8 +3467,13 @@ fn decode_produce_response_fields<B: Buf>(
             if version >= 13 {
                 identities.push(topic_id);
             }
+            let name = if index.saturating_add(1) == part_count {
+                std::mem::take(&mut topic)
+            } else {
+                topic.clone()
+            };
             out.push(ProducePartitionResponse {
-                topic: topic.clone(),
+                topic: name,
                 partition,
                 error_code,
                 base_offset,
@@ -3656,6 +3661,24 @@ mod tests {
             assert_eq!(reused.as_ptr(), kept, "v{version} ack buffer");
             assert_eq!(reused.len(), decoded.len());
         }
+    }
+
+    #[test]
+    fn produce_response_keeps_one_topic_name_for_every_partition() {
+        let topic = "orders-topic-name-is-long";
+        let parts = vec![
+            ProducePartitionResponse::partition_response(topic, 0, 0),
+            ProducePartitionResponse::partition_response(topic, 3, 0),
+        ];
+        let mut buf = BytesMut::new();
+        encode_produce_response(&mut buf, 9, &parts).unwrap();
+        let mut encoded = buf.freeze();
+        let (decoded, _, _) = decode_produce_response(&mut encoded, 9).unwrap();
+        assert_eq!(decoded.len(), 2);
+        assert_eq!(decoded.first().map(|part| part.topic.as_str()), Some(topic));
+        assert_eq!(decoded.get(1).map(|part| part.topic.as_str()), Some(topic));
+        assert_eq!(decoded.first().map(|part| part.partition), Some(0));
+        assert_eq!(decoded.get(1).map(|part| part.partition), Some(3));
     }
 
     #[test]
