@@ -101,7 +101,7 @@ use crate::protocol::group::{
     decode_offset_fetch_response, encode_find_coordinator_request_keys,
     encode_find_coordinator_request_typed, encode_leave_group_request_members,
     encode_offset_commit_named, encode_offset_delete_named_topics,
-    encode_offset_fetch_groups_request, encode_offset_fetch_request, LeaveGroupMember,
+    encode_offset_fetch_groups_request, encode_offset_fetch_named, LeaveGroupMember,
     OffsetFetchGroup, COORDINATOR_GROUP, COORDINATOR_TRANSACTION, DEFAULT_RETENTION_TIME,
 };
 use crate::protocol::idem::{decode_init_producer_id_response, encode_init_producer_id_request};
@@ -10105,15 +10105,10 @@ impl Admin {
         if partitions.is_empty() {
             return Ok(Vec::new());
         }
-        let topics = crate::group::group_offset_fetch_topics(
-            partitions
-                .iter()
-                .map(|tp| (tp.topic.as_str(), tp.partition)),
-        );
         let fetched = self
             .fetch_consumer_group_offsets(
                 group_id,
-                Some(topics),
+                Some(partitions.as_slice()),
                 require_stable,
                 timeout.saturating_sub(started.elapsed()),
             )
@@ -10514,20 +10509,16 @@ impl Admin {
                 return Ok(out);
             }
             for i in remaining {
-                let (group_id, topics, spec) = {
+                let (group_id, spec) = {
                     let job = jobs
                         .get(i)
                         .ok_or_else(|| Error::protocol("missing group spec"))?;
-                    (
-                        job.0.clone(),
-                        offset_fetch_topics_for_spec(&job.1),
-                        job.1.clone(),
-                    )
+                    (job.0.clone(), job.1.clone())
                 };
                 let fetched = self
                     .fetch_consumer_group_offsets(
                         &group_id,
-                        topics,
+                        spec.partitions.as_deref(),
                         require_stable,
                         deadline.remaining()?,
                     )
@@ -10600,7 +10591,7 @@ impl Admin {
     async fn fetch_consumer_group_offsets(
         &mut self,
         group_id: &str,
-        topics: Option<Vec<crate::protocol::group::OffsetFetchTopic>>,
+        partitions: Option<&[crate::TopicPartition]>,
         require_stable: bool,
         timeout: Duration,
     ) -> Result<Vec<crate::protocol::group::FetchedOffsetTopic>> {
@@ -10615,10 +10606,20 @@ impl Admin {
         {
             let target = started.checked_add(timeout).ok_or(Error::Timeout)?;
             let deadline = crate::net::Deadline::from_std(target);
+            let topics = partitions.map(|parts| {
+                crate::group::group_offset_fetch_topics(
+                    parts.iter().map(|tp| (tp.topic.as_str(), tp.partition)),
+                )
+            });
             return self
                 .fetch_named_offsets_v10(group_id, topics.as_deref(), require_stable, deadline)
                 .await;
         }
+        let topics = partitions.map(|parts| {
+            crate::group::group_borrowed_offset_fetch_topics(
+                parts.iter().map(|tp| (tp.topic.as_str(), tp.partition)),
+            )
+        });
         let client_min = if topics.is_none() { 2 } else { 1 };
         let _bootstrap_version = self
             .versions
@@ -10670,7 +10671,7 @@ impl Admin {
                     OFFSET_FETCH,
                     version,
                     |buf| {
-                        encode_offset_fetch_request(
+                        encode_offset_fetch_named(
                             buf,
                             version,
                             &group_id,

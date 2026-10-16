@@ -3849,6 +3849,27 @@ pub(crate) fn group_offset_fetch_topics<'a>(
     topics
 }
 
+pub(crate) fn group_borrowed_offset_fetch_topics<'a>(
+    wanted: impl IntoIterator<Item = (&'a str, i32)>,
+) -> Vec<(&'a str, Vec<i32>)> {
+    let mut groups: Vec<(&str, Vec<i32>)> = Vec::new();
+    let mut slots: HashMap<&str, usize> = HashMap::new();
+    for (topic, part) in wanted {
+        if let Some(&slot) = slots.get(topic) {
+            if let Some((_, parts)) = groups.get_mut(slot) {
+                if !parts.contains(&part) {
+                    parts.push(part);
+                }
+                continue;
+            }
+        }
+        let slot = groups.len();
+        let _ = slots.insert(topic, slot);
+        groups.push((topic, vec![part]));
+    }
+    groups
+}
+
 fn refill_offset_fetch_topics<'a>(
     topics: &mut Vec<OffsetFetchTopic>,
     wanted: impl IntoIterator<Item = (&'a str, i32)>,
@@ -5194,6 +5215,10 @@ mod tests {
         refill_offset_topics(&mut topics, &repeated);
         assert_eq!(topics[0].topic.as_ptr(), name);
         assert_eq!(topics[0].partitions[0].offset, 1);
+        let borrowed_fetch = group_borrowed_offset_fetch_topics([("t", 0), ("t", 0), ("t", 1)]);
+        assert_eq!(borrowed_fetch.len(), 1);
+        assert_eq!(borrowed_fetch[0].0, "t");
+        assert_eq!(borrowed_fetch[0].1, vec![0, 1]);
         let mut fetched = group_offset_fetch_topics([("t", 0), ("t", 0), ("t", 1)]);
         assert_eq!(fetched[0].partitions, vec![0, 1]);
         let fetch_name = fetched[0].topic.as_ptr();

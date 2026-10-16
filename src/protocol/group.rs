@@ -5436,20 +5436,21 @@ fn offset_fetch_flexible(version: i16) -> Result<bool> {
     }
 }
 
-fn encode_offset_fetch_topics(
+fn encode_offset_fetch_topics<T: OffsetFetchTopicView>(
     buf: &mut BytesMut,
     flexible: bool,
-    topics: Option<&[OffsetFetchTopic]>,
+    topics: Option<&[T]>,
 ) -> crate::error::Result<()> {
     match topics {
         None => buf::put_array_len(buf, flexible, None),
         Some(topics) => {
             buf::put_array_len(buf, flexible, Some(topics.len()))?;
-            for t in topics {
-                buf::put_string(buf, flexible, Some(&t.topic))?;
-                buf::put_array_len(buf, flexible, Some(t.partitions.len()))?;
-                for p in &t.partitions {
-                    buf.put_i32(*p);
+            for topic in topics {
+                buf::put_string(buf, flexible, Some(topic.offset_fetch_name()))?;
+                let partitions = topic.offset_fetch_partitions();
+                buf::put_array_len(buf, flexible, Some(partitions.len()))?;
+                for partition in partitions {
+                    buf.put_i32(*partition);
                 }
                 if flexible {
                     buf::put_empty_tagged_fields(buf);
@@ -5880,6 +5881,74 @@ pub fn encode_offset_fetch_request(
     require_stable: bool,
     topics: Option<&[OffsetFetchTopic]>,
 ) -> crate::error::Result<()> {
+    encode_offset_fetch_topic_views(
+        buf,
+        version,
+        group_id,
+        member_id,
+        member_epoch,
+        require_stable,
+        topics,
+    )
+}
+
+/// Encode OffsetFetch topics whose names are borrowed from the caller.
+///
+/// `topics = None` fetches every committed partition (v2+).
+pub(crate) fn encode_offset_fetch_named(
+    buf: &mut BytesMut,
+    version: i16,
+    group_id: &str,
+    member_id: Option<&str>,
+    member_epoch: i32,
+    require_stable: bool,
+    topics: Option<&[(&str, Vec<i32>)]>,
+) -> crate::error::Result<()> {
+    encode_offset_fetch_topic_views(
+        buf,
+        version,
+        group_id,
+        member_id,
+        member_epoch,
+        require_stable,
+        topics,
+    )
+}
+
+trait OffsetFetchTopicView {
+    fn offset_fetch_name(&self) -> &str;
+    fn offset_fetch_partitions(&self) -> &[i32];
+}
+
+impl OffsetFetchTopicView for OffsetFetchTopic {
+    fn offset_fetch_name(&self) -> &str {
+        &self.topic
+    }
+
+    fn offset_fetch_partitions(&self) -> &[i32] {
+        &self.partitions
+    }
+}
+
+impl OffsetFetchTopicView for (&str, Vec<i32>) {
+    fn offset_fetch_name(&self) -> &str {
+        self.0
+    }
+
+    fn offset_fetch_partitions(&self) -> &[i32] {
+        &self.1
+    }
+}
+
+fn encode_offset_fetch_topic_views<T: OffsetFetchTopicView>(
+    buf: &mut BytesMut,
+    version: i16,
+    group_id: &str,
+    member_id: Option<&str>,
+    member_epoch: i32,
+    require_stable: bool,
+    topics: Option<&[T]>,
+) -> crate::error::Result<()> {
     let flexible = offset_fetch_flexible(version)?;
     if version < 2 && topics.is_none() {
         return Err(Error::Unsupported(format!(
@@ -5916,14 +5985,14 @@ pub fn encode_offset_fetch_request(
     Ok(())
 }
 
-fn encode_offset_fetch_group_item(
+fn encode_offset_fetch_group_item<T: OffsetFetchTopicView>(
     buf: &mut BytesMut,
     version: i16,
     write_array_len: bool,
     group_id: &str,
     member_id: Option<&str>,
     member_epoch: i32,
-    topics: Option<&[OffsetFetchTopic]>,
+    topics: Option<&[T]>,
 ) -> crate::error::Result<()> {
     if write_array_len {
         buf::put_array_len(buf, true, Some(1))?;
@@ -5983,7 +6052,10 @@ pub fn encode_offset_fetch_groups_request(
     Ok(())
 }
 
-fn offset_fetch_topics_len(flexible: bool, topics: Option<&[OffsetFetchTopic]>) -> Result<usize> {
+fn offset_fetch_topics_len<T: OffsetFetchTopicView>(
+    flexible: bool,
+    topics: Option<&[T]>,
+) -> Result<usize> {
     let Some(topics) = topics else {
         return Ok(if flexible {
             buf::unsigned_varint_size(0)
@@ -5993,12 +6065,15 @@ fn offset_fetch_topics_len(flexible: bool, topics: Option<&[OffsetFetchTopic]>) 
     };
     let mut total = group_array_len(flexible, topics.len())?;
     for topic in topics {
-        total = add_group_len(total, group_string_len(flexible, Some(&topic.topic))?)?;
-        total = add_group_len(total, group_array_len(flexible, topic.partitions.len())?)?;
         total = add_group_len(
             total,
-            topic
-                .partitions
+            group_string_len(flexible, Some(topic.offset_fetch_name()))?,
+        )?;
+        let partitions = topic.offset_fetch_partitions();
+        total = add_group_len(total, group_array_len(flexible, partitions.len())?)?;
+        total = add_group_len(
+            total,
+            partitions
                 .len()
                 .checked_mul(4)
                 .ok_or_else(|| Error::protocol("offset fetch request size overflow"))?,
@@ -6010,12 +6085,12 @@ fn offset_fetch_topics_len(flexible: bool, topics: Option<&[OffsetFetchTopic]>) 
     Ok(total)
 }
 
-fn offset_fetch_group_item_len(
+fn offset_fetch_group_item_len<T: OffsetFetchTopicView>(
     version: i16,
     write_array_len: bool,
     group_id: &str,
     member_id: Option<&str>,
-    topics: Option<&[OffsetFetchTopic]>,
+    topics: Option<&[T]>,
 ) -> Result<usize> {
     let mut total = if write_array_len {
         group_array_len(true, 1)?
@@ -6031,12 +6106,12 @@ fn offset_fetch_group_item_len(
     add_group_len(total, buf::unsigned_varint_size(0))
 }
 
-fn offset_fetch_request_len(
+fn offset_fetch_request_len<T: OffsetFetchTopicView>(
     version: i16,
     flexible: bool,
     group_id: &str,
     member_id: Option<&str>,
-    topics: Option<&[OffsetFetchTopic]>,
+    topics: Option<&[T]>,
 ) -> Result<usize> {
     if version <= 7 {
         let mut total = group_string_len(flexible, Some(group_id))?;
@@ -14336,6 +14411,48 @@ mod tests {
             encode_offset_fetch_groups_request(&mut buf, version, &groups, true).unwrap();
             assert_eq!(buf.len(), len);
             assert_eq!(buf.capacity(), capacity);
+        }
+    }
+
+    #[test]
+    fn offset_fetch_named_topics_match_owned_topics() {
+        let owned = [OffsetFetchTopic {
+            topic: "orders-topic-name-is-long".into(),
+            partitions: vec![0, 2],
+        }];
+        let named = [("orders-topic-name-is-long", vec![0, 2])];
+        for version in 1..=9 {
+            for (owned_topics, named_topics) in [
+                (None, None),
+                (Some(owned.as_slice()), Some(named.as_slice())),
+            ] {
+                if version < 2 && owned_topics.is_none() {
+                    continue;
+                }
+                let mut expected = BytesMut::new();
+                encode_offset_fetch_request(
+                    &mut expected,
+                    version,
+                    "group",
+                    None,
+                    -1,
+                    version >= 7,
+                    owned_topics,
+                )
+                .unwrap();
+                let mut got = BytesMut::new();
+                encode_offset_fetch_named(
+                    &mut got,
+                    version,
+                    "group",
+                    None,
+                    -1,
+                    version >= 7,
+                    named_topics,
+                )
+                .unwrap();
+                assert_eq!(got.as_ref(), expected.as_ref(), "version {version}");
+            }
         }
     }
 
