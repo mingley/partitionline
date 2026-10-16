@@ -1743,6 +1743,25 @@ impl<V> PartitionMap<V> {
 }
 
 /// Framed batches from one fetch response that the memory budget did not decode.
+struct LeaderDialConfig {
+    client_id: String,
+    connect_timeout: Duration,
+    tls: Option<crate::net::TlsConfig>,
+    sasl_plain: Option<(String, String)>,
+    sasl_scram: Option<(String, String)>,
+    sasl_scram_sha512: Option<(String, String)>,
+    sasl_oauthbearer: Option<String>,
+    sasl_oauthbearer_oidc: Option<crate::OidcConfig>,
+}
+
+type LeaderDialAttempt = (i32, Result<(BrokerConn, ApiVersionsResponse)>);
+
+struct OpenedLeaderDial {
+    node: i32,
+    conn: BrokerConn,
+    versions: ApiVersionsResponse,
+}
+
 struct HeldFetch {
     last_stable_offset: i64,
     batches: VecDeque<EncodedBatch>,
@@ -5475,12 +5494,31 @@ impl Consumer {
                     self.restore_metadata_topics(topics);
                     return self.fetched_or_timeout(out, Error::Timeout);
                 }
-                let refreshed = self
-                    .refresh_metadata_timeout(
+                let cached = self.cached_fetch_nodes(completed);
+                let dials = self.leader_dials_for(&cached);
+                let refreshed = if dials.is_empty() {
+                    self.refresh_metadata_timeout(
                         Some(&topics),
                         remaining_offset_timeout(deadline, Instant::now()),
                     )
-                    .await;
+                    .await
+                } else {
+                    // Known leaders reconnect while this metadata request runs.
+                    // A leader that moves is dialed again when the fetch plan is built.
+                    let opened = Self::open_leader_dials(
+                        self.leader_dial_config(),
+                        dials,
+                        Arc::clone(&self.wakeup),
+                        deadline,
+                    );
+                    let refreshed = self.refresh_metadata_timeout(
+                        Some(&topics),
+                        remaining_offset_timeout(deadline, Instant::now()),
+                    );
+                    let (opened, refreshed) = tokio::join!(opened, refreshed);
+                    self.store_opened_leaders(opened);
+                    refreshed
+                };
                 self.restore_metadata_topics(topics);
                 if let Err(error) = refreshed {
                     // A later metadata refresh must not drop records already read.
@@ -7521,14 +7559,26 @@ impl Consumer {
         Ok(())
     }
 
-    /// Open dedicated leader sockets together.
-    ///
-    /// The bootstrap socket stays on its own connection. A dial that fails is
-    /// left for [`Self::connect_node`], which reports that error and retries.
-    pub(crate) async fn warm_leader_conns(&mut self, nodes: &[i32], deadline: Instant) {
+    fn cached_fetch_nodes(&self, completed: &PartitionMap<()>) -> Vec<i32> {
+        let mut nodes = Vec::new();
+        for (topic, partition, _) in &self.assigned {
+            if completed.contains(topic, *partition) || self.paused.contains(topic, *partition) {
+                continue;
+            }
+            let Ok(node) = self.cluster.leader_id(topic.as_ref(), *partition) else {
+                continue;
+            };
+            if !nodes.contains(&node) {
+                nodes.push(node);
+            }
+        }
+        nodes
+    }
+
+    fn leader_dials_for(&mut self, nodes: &[i32]) -> Vec<(i32, String)> {
         let mut dials = Vec::new();
         for &node in nodes {
-            if Instant::now() >= deadline || self.woken() {
+            if self.woken() {
                 break;
             }
             if self
@@ -7557,57 +7607,71 @@ impl Consumer {
             }
             dials.push((node, addr));
         }
-        if dials.is_empty() {
-            return;
+        dials
+    }
+
+    fn leader_dial_config(&self) -> LeaderDialConfig {
+        LeaderDialConfig {
+            client_id: self.cfg.client_id.clone(),
+            connect_timeout: self.cfg.connect_timeout,
+            tls: self.cfg.tls.clone(),
+            sasl_plain: self.cfg.sasl_plain.clone(),
+            sasl_scram: self.cfg.sasl_scram.clone(),
+            sasl_scram_sha512: self.cfg.sasl_scram_sha512.clone(),
+            sasl_oauthbearer: self.cfg.sasl_oauthbearer.clone(),
+            sasl_oauthbearer_oidc: self.cfg.sasl_oauthbearer_oidc.clone(),
         }
-        let client_id = self.cfg.client_id.clone();
-        let connect_timeout = self.cfg.connect_timeout;
-        let tls = self.cfg.tls.clone();
-        let sasl_plain = self.cfg.sasl_plain.clone();
-        let sasl_scram = self.cfg.sasl_scram.clone();
-        let sasl_scram_sha512 = self.cfg.sasl_scram_sha512.clone();
-        let sasl_oauthbearer = self.cfg.sasl_oauthbearer.clone();
-        let sasl_oauthbearer_oidc = self.cfg.sasl_oauthbearer_oidc.clone();
+    }
+
+    async fn open_leader_dials(
+        cfg: LeaderDialConfig,
+        dials: Vec<(i32, String)>,
+        wakeup: Arc<AtomicBool>,
+        deadline: Instant,
+    ) -> Vec<OpenedLeaderDial> {
+        if dials.is_empty() {
+            return Vec::new();
+        }
         let mut waiting: VecDeque<(i32, String)> = dials.into();
-        let mut inflight = tokio::task::JoinSet::new();
-        let spawn = |inflight: &mut tokio::task::JoinSet<(
-            i32,
-            Result<(BrokerConn, ApiVersionsResponse)>,
-        )>,
-                     node: i32,
-                     addr: String| {
-            let client_id = client_id.clone();
-            let tls = tls.clone();
-            let sasl_plain = sasl_plain.clone();
-            let sasl_scram = sasl_scram.clone();
-            let sasl_scram_sha512 = sasl_scram_sha512.clone();
-            let sasl_oauthbearer = sasl_oauthbearer.clone();
-            let sasl_oauthbearer_oidc = sasl_oauthbearer_oidc.clone();
-            let _ = inflight.spawn(async move {
-                let result = Consumer::open_fetch_conn(
-                    &addr,
-                    &client_id,
-                    connect_timeout,
-                    tls.as_ref(),
-                    sasl_plain.as_ref(),
-                    sasl_scram.as_ref(),
-                    sasl_scram_sha512.as_ref(),
-                    sasl_oauthbearer.as_deref(),
-                    sasl_oauthbearer_oidc.as_ref(),
-                    deadline,
-                )
-                .await;
-                (node, result)
-            });
-        };
+        let mut inflight = tokio::task::JoinSet::<LeaderDialAttempt>::new();
+        let spawn =
+            |inflight: &mut tokio::task::JoinSet<LeaderDialAttempt>, node: i32, addr: String| {
+                let cfg = LeaderDialConfig {
+                    client_id: cfg.client_id.clone(),
+                    connect_timeout: cfg.connect_timeout,
+                    tls: cfg.tls.clone(),
+                    sasl_plain: cfg.sasl_plain.clone(),
+                    sasl_scram: cfg.sasl_scram.clone(),
+                    sasl_scram_sha512: cfg.sasl_scram_sha512.clone(),
+                    sasl_oauthbearer: cfg.sasl_oauthbearer.clone(),
+                    sasl_oauthbearer_oidc: cfg.sasl_oauthbearer_oidc.clone(),
+                };
+                let _ = inflight.spawn(async move {
+                    let result = Consumer::open_fetch_conn(
+                        &addr,
+                        &cfg.client_id,
+                        cfg.connect_timeout,
+                        cfg.tls.as_ref(),
+                        cfg.sasl_plain.as_ref(),
+                        cfg.sasl_scram.as_ref(),
+                        cfg.sasl_scram_sha512.as_ref(),
+                        cfg.sasl_oauthbearer.as_deref(),
+                        cfg.sasl_oauthbearer_oidc.as_ref(),
+                        deadline,
+                    )
+                    .await;
+                    (node, result)
+                });
+            };
         while inflight.len() < Self::FETCH_DIAL_PARALLELISM {
             let Some((node, addr)) = waiting.pop_front() else {
                 break;
             };
             spawn(&mut inflight, node, addr);
         }
+        let mut opened = Vec::new();
         while !inflight.is_empty() {
-            if self.woken() || Instant::now() >= deadline {
+            if wakeup.load(Ordering::SeqCst) || Instant::now() >= deadline {
                 inflight.abort_all();
                 break;
             }
@@ -7623,8 +7687,11 @@ impl Consumer {
                 break;
             };
             if let Ok((conn, versions)) = result {
-                let _ = self.reconnect_fails.remove(&node);
-                self.remember_opened_conn(node, conn, &versions);
+                opened.push(OpenedLeaderDial {
+                    node,
+                    conn,
+                    versions,
+                });
             }
             while inflight.len() < Self::FETCH_DIAL_PARALLELISM {
                 let Some((node, addr)) = waiting.pop_front() else {
@@ -7633,6 +7700,30 @@ impl Consumer {
                 spawn(&mut inflight, node, addr);
             }
         }
+        opened
+    }
+
+    fn store_opened_leaders(&mut self, opened: Vec<OpenedLeaderDial>) {
+        for dial in opened {
+            let _ = self.reconnect_fails.remove(&dial.node);
+            self.remember_opened_conn(dial.node, dial.conn, &dial.versions);
+        }
+    }
+
+    /// Open dedicated leader sockets together.
+    ///
+    /// The bootstrap socket stays on its own connection. A dial that fails is
+    /// left for [`Self::connect_node`], which reports that error and retries.
+    pub(crate) async fn warm_leader_conns(&mut self, nodes: &[i32], deadline: Instant) {
+        let dials = self.leader_dials_for(nodes);
+        let opened = Self::open_leader_dials(
+            self.leader_dial_config(),
+            dials,
+            Arc::clone(&self.wakeup),
+            deadline,
+        )
+        .await;
+        self.store_opened_leaders(opened);
     }
 
     /// Ask every leader at once. One slow broker does not hold the others.

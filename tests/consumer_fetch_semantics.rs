@@ -3266,6 +3266,43 @@ async fn fetch_mixed_version_preferred_replica_uses_replica_version() {
     }
 }
 
+/// A fetch reloads stale metadata while an idle leader reconnects.
+#[tokio::test]
+async fn fetch_dials_leaders_while_refreshing_metadata() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_topic_partitions("t", 1);
+    mock.set_partition_leader("t", 0, 2);
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    let _ = producer
+        .send(ProduceRecord::to("t").value(&b"v"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+    let mut cfg = ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10);
+    cfg.metadata_max_age = Duration::ZERO;
+    cfg.connections_max_idle = Duration::from_millis(40);
+    let mut consumer = Consumer::new(cfg).await.unwrap();
+    consumer.assign("t", 0, 0).await.unwrap();
+    assert_eq!(consumer.fetch().await.unwrap().len(), 1);
+    tokio::time::sleep(Duration::from_millis(60)).await;
+    // Refresh the bootstrap socket. The fetch leader stays idle.
+    let _parts = consumer.partitions_for("t").await.unwrap();
+    let delay = Duration::from_millis(250);
+    mock.set_metadata_delay(delay);
+    mock.set_api_versions_delay(delay);
+    let started = Instant::now();
+    let _again = consumer.fetch().await.unwrap();
+    let elapsed = started.elapsed();
+    assert!(
+        elapsed < Duration::from_millis(450),
+        "fetch refreshed metadata before redialing the leader: {elapsed:?}"
+    );
+    consumer.close().await.unwrap();
+}
+
 /// ListOffsets handshakes leaders that are not the bootstrap broker together.
 #[tokio::test]
 async fn list_offsets_dials_leaders_together() {
