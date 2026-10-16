@@ -3256,9 +3256,9 @@ struct LeaderFrame {
 
 type LeaderExchange = HashMap<i32, (i16, Result<Bytes>)>;
 
-fn creatable_from_new(topics: &[NewTopic]) -> Vec<CreatableTopic> {
+fn creatable_from_new<'a>(topics: impl IntoIterator<Item = &'a NewTopic>) -> Vec<CreatableTopic> {
     topics
-        .iter()
+        .into_iter()
         .map(|t| CreatableTopic {
             name: t.name.clone(),
             num_partitions: t.num_partitions,
@@ -3370,9 +3370,11 @@ fn delete_state_matches(topic: &DeleteTopicState, result: &TopicResult) -> bool 
     }
 }
 
-fn partitions_from_new(topics: &[NewPartitions]) -> Vec<CreatePartitionsTopic> {
+fn partitions_from_new<'a>(
+    topics: impl IntoIterator<Item = &'a NewPartitions>,
+) -> Vec<CreatePartitionsTopic> {
     topics
-        .iter()
+        .into_iter()
         .map(|t| CreatePartitionsTopic {
             name: t.name.clone(),
             count: t.total_count,
@@ -4588,7 +4590,7 @@ impl Admin {
         timeout: Duration,
         retry_on_quota_violation: bool,
     ) -> Result<Vec<TopicResult>> {
-        let mut pending: Vec<NewTopic> = topics.to_vec();
+        let mut pending: Vec<usize> = (0..topics.len()).collect();
         let original = first_name_index(topics.iter().map(|topic| topic.name.as_str()));
         let mut finished: Vec<Option<TopicResult>> = Vec::new();
         finished.resize_with(topics.len(), || None);
@@ -4597,7 +4599,7 @@ impl Admin {
         let mut attempt = 0u32;
         loop {
             let req = CreateTopicsRequest {
-                topics: creatable_from_new(&pending),
+                topics: creatable_from_new(pending.iter().filter_map(|&index| topics.get(index))),
                 timeout_ms,
                 validate_only,
             };
@@ -4641,15 +4643,19 @@ impl Admin {
                 self.refresh_metadata_until(None, deadline).await?;
                 continue;
             }
-            let slots = first_name_index(pending.iter().map(|topic| topic.name.as_str()));
+            let slots = first_name_index(
+                pending
+                    .iter()
+                    .filter_map(|&index| topics.get(index).map(|topic| topic.name.as_str())),
+            );
             let mut next_pending = Vec::new();
             for r in results {
                 if retry_on_quota_violation && r.error_code == error::THROTTLING_QUOTA_EXCEEDED {
-                    if let Some(topic) = slots
+                    if let Some(&index) = slots
                         .get(r.name.as_str())
-                        .and_then(|index| pending.get(*index))
+                        .and_then(|pending_at| pending.get(*pending_at))
                     {
-                        next_pending.push(topic.clone());
+                        next_pending.push(index);
                     }
                 } else if let Some(&index) = original.get(r.name.as_str()) {
                     if let Some(slot) = finished.get_mut(index) {
@@ -5540,7 +5546,7 @@ impl Admin {
         timeout: Duration,
         retry_on_quota_violation: bool,
     ) -> Result<Vec<TopicResult>> {
-        let mut pending: Vec<NewPartitions> = topics.to_vec();
+        let mut pending: Vec<usize> = (0..topics.len()).collect();
         let original = first_name_index(topics.iter().map(|topic| topic.name.as_str()));
         let mut finished: Vec<Option<TopicResult>> = Vec::new();
         finished.resize_with(topics.len(), || None);
@@ -5550,7 +5556,8 @@ impl Admin {
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         loop {
-            let encoded = partitions_from_new(&pending);
+            let encoded =
+                partitions_from_new(pending.iter().filter_map(|&index| topics.get(index)));
             if self.cluster.controller().is_err() {
                 self.refresh_metadata_until(None, deadline).await?;
             }
@@ -5599,15 +5606,19 @@ impl Admin {
                 self.refresh_metadata_until(None, deadline).await?;
                 continue;
             }
-            let slots = first_name_index(pending.iter().map(|topic| topic.name.as_str()));
+            let slots = first_name_index(
+                pending
+                    .iter()
+                    .filter_map(|&index| topics.get(index).map(|topic| topic.name.as_str())),
+            );
             let mut next_pending = Vec::new();
             for r in results {
                 if retry_on_quota_violation && r.error_code == error::THROTTLING_QUOTA_EXCEEDED {
-                    if let Some(topic) = slots
+                    if let Some(&index) = slots
                         .get(r.name.as_str())
-                        .and_then(|index| pending.get(*index))
+                        .and_then(|pending_at| pending.get(*pending_at))
                     {
-                        next_pending.push(topic.clone());
+                        next_pending.push(index);
                     }
                 } else if let Some(&index) = original.get(r.name.as_str()) {
                     if let Some(slot) = finished.get_mut(index) {
