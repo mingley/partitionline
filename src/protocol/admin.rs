@@ -4093,15 +4093,44 @@ pub fn encode_delete_records_request(
     offset: i64,
     timeout_ms: i32,
 ) -> crate::error::Result<()> {
-    encode_delete_records_topics_request(
-        buf,
-        version,
-        &[DeleteRecordsTopic {
-            topic: topic.to_string(),
-            partitions: vec![DeleteRecordsPartition { partition, offset }],
-        }],
-        timeout_ms,
-    )
+    let flexible = delete_records_flexible(version)?;
+    let body_start = buf.len();
+    let planned = delete_records_one_len(flexible, topic)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
+    buf::put_array_len(buf, flexible, Some(1))?;
+    buf::put_string(buf, flexible, Some(topic))?;
+    buf::put_array_len(buf, flexible, Some(1))?;
+    buf.put_i32(partition);
+    buf.put_i64(offset);
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+        buf::put_empty_tagged_fields(buf);
+    }
+    buf.put_i32(timeout_ms);
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+    Ok(())
+}
+
+fn delete_records_one_len(flexible: bool, topic: &str) -> Result<usize> {
+    let mut total = describe_array_len(flexible, 1)?;
+    total = add_describe_len(total, describe_string_len(flexible, Some(topic))?)?;
+    total = add_describe_len(total, describe_array_len(flexible, 1)?)?;
+    total = add_describe_len(total, 12)?;
+    if flexible {
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    total = add_describe_len(total, 4)?;
+    if flexible {
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 /// Encode DeleteRecords v0–2 with a Topics array of N (Java `deleteRecords(Map)`).
@@ -9096,13 +9125,30 @@ pub fn encode_describe_producers_request(
     topic: &str,
     partitions: &[i32],
 ) -> crate::error::Result<()> {
-    encode_describe_producers_topics_request(
-        buf,
-        &[DescribeProducersTopicRequest {
-            name: topic.to_string(),
-            partition_indexes: partitions.to_vec(),
-        }],
-    )
+    let body_start = buf.len();
+    let planned = describe_producers_one_len(topic, partitions)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
+    buf::put_array_len(buf, true, Some(1))?;
+    buf::put_compact_string(buf, Some(topic))?;
+    buf::put_array_len(buf, true, Some(partitions.len()))?;
+    for partition in partitions {
+        buf.put_i32(*partition);
+    }
+    buf::put_empty_tagged_fields(buf);
+    buf::put_empty_tagged_fields(buf);
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+    Ok(())
+}
+
+fn describe_producers_one_len(topic: &str, partitions: &[i32]) -> Result<usize> {
+    let mut total = describe_array_len(true, 1)?;
+    total = add_describe_len(total, describe_string_len(true, Some(topic))?)?;
+    total = add_describe_len(total, reassignment_replica_len(Some(partitions))?)?;
+    total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    add_describe_len(total, buf::unsigned_varint_size(0))
 }
 
 /// DescribeProducers Topics of N (Java `describeProducers(Collection)`).
