@@ -659,6 +659,78 @@ pub fn encode_list_offsets_topics_request(
     )
 }
 
+fn add_list_offsets_len(total: usize, next: usize) -> Result<usize> {
+    total
+        .checked_add(next)
+        .ok_or_else(|| Error::protocol("list offsets request size overflow"))
+}
+
+fn list_offsets_array_len(flexible: bool, len: usize) -> Result<usize> {
+    if flexible {
+        let value = buf::u32_from_usize(len)?
+            .checked_add(1)
+            .ok_or_else(|| Error::protocol("compact array overflow"))?;
+        Ok(buf::unsigned_varint_size(value))
+    } else {
+        let _len = buf::i32_from_usize(len)?;
+        Ok(4)
+    }
+}
+
+fn list_offsets_string_len(flexible: bool, value: &str) -> Result<usize> {
+    if flexible {
+        let encoded = buf::u32_from_usize(value.len())?
+            .checked_add(1)
+            .ok_or_else(|| Error::protocol("compact string overflow"))?;
+        Ok(buf::unsigned_varint_size(encoded).saturating_add(value.len()))
+    } else {
+        let _len = buf::i16_from_usize(value.len())?;
+        Ok(2usize.saturating_add(value.len()))
+    }
+}
+
+fn list_offsets_request_len(
+    version: i16,
+    flexible: bool,
+    topics: &[ListOffsetsTopicRequest],
+) -> Result<usize> {
+    let mut total = 4usize;
+    if version >= 2 {
+        total = add_list_offsets_len(total, 1)?;
+    }
+    total = add_list_offsets_len(total, list_offsets_array_len(flexible, topics.len())?)?;
+    for topic in topics {
+        total = add_list_offsets_len(total, list_offsets_string_len(flexible, &topic.name)?)?;
+        total = add_list_offsets_len(
+            total,
+            list_offsets_array_len(flexible, topic.partitions.len())?,
+        )?;
+        let mut partition: usize = 4 + 8;
+        if version >= 4 {
+            partition += 4;
+        }
+        total = add_list_offsets_len(
+            total,
+            partition
+                .checked_mul(topic.partitions.len())
+                .ok_or_else(|| Error::protocol("list offsets request size overflow"))?,
+        )?;
+        if flexible {
+            let tags = buf::unsigned_varint_size(0)
+                .checked_mul(topic.partitions.len().saturating_add(1))
+                .ok_or_else(|| Error::protocol("list offsets request size overflow"))?;
+            total = add_list_offsets_len(total, tags)?;
+        }
+    }
+    if version >= 10 {
+        total = add_list_offsets_len(total, 4)?;
+    }
+    if flexible {
+        total = add_list_offsets_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
+}
+
 /// Encode ListOffsets with ReplicaId.
 ///
 /// ReplicaId is JSON `0+` (INT32 first field). Official Java
@@ -675,6 +747,12 @@ pub fn encode_list_offsets_topics_request_with_replica_id(
     replica_id: i32,
 ) -> crate::error::Result<()> {
     let flexible = list_offsets_flexible(version)?;
+    let body_start = buf.len();
+    let planned = list_offsets_request_len(version, flexible, topics)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf.put_i32(replica_id);
     if version >= 2 {
         buf.put_i8(isolation_level);
@@ -703,6 +781,7 @@ pub fn encode_list_offsets_topics_request_with_replica_id(
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
 }
 
@@ -1462,6 +1541,34 @@ mod tests {
             "ListOffsets v6 toListOffsetsTopics leftover-empty; leftover {} bytes",
             cur.len()
         );
+    }
+
+    #[test]
+    fn a_list_offsets_request_sizes_its_body_once() {
+        let topics = vec![ListOffsetsTopicRequest::new(
+            "orders",
+            (0..8)
+                .map(|partition| {
+                    ListOffsetsPartitionRequest::new(
+                        partition,
+                        RecordBatch::NO_PARTITION_LEADER_EPOCH,
+                        crate::EARLIEST_TIMESTAMP,
+                    )
+                })
+                .collect(),
+        )];
+        for version in [4_i16, 10] {
+            let mut buf = BytesMut::new();
+            encode_list_offsets_topics_request(&mut buf, version, 0, &topics, 1_000).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_list_offsets_topics_request(&mut buf, version, 0, &topics, 1_000).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+        }
     }
 
     #[test]
