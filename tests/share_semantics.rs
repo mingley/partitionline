@@ -312,6 +312,32 @@ async fn share_ack_overlaps_two_leaders() {
     group.leave().await.unwrap();
 }
 
+/// Idle share sockets are opened together before the acknowledgements.
+#[tokio::test]
+async fn share_ack_redials_leaders_together() {
+    let mock = common::Mock::start_two_node().await;
+    v2(&mock);
+    mock.set_topic_partitions("t", 2);
+    mock.set_partition_leader("t", 0, 1);
+    mock.set_partition_leader("t", 1, 2);
+    produce(&mock, &[(0, b"left"), (1, b"right")]).await;
+    let mut cfg = config(&mock);
+    cfg.connections_max_idle = Duration::from_millis(40);
+    let mut group = ShareGroup::join(cfg, "ack-redial", "t").await.unwrap();
+    let got = group.poll().await.unwrap();
+    assert_eq!(got.len(), 2, "both leaders must deliver a record");
+    tokio::time::sleep(Duration::from_millis(60)).await;
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let started = Instant::now();
+    group.accept(&got).await.unwrap();
+    assert!(
+        started.elapsed() < Duration::from_millis(450),
+        "share ack redialed one leader after another: {:?}",
+        started.elapsed()
+    );
+    group.leave().await.unwrap();
+}
+
 #[tokio::test]
 async fn share_leader_dials_overlap() {
     let mock = common::Mock::start_two_node().await;

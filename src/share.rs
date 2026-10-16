@@ -3816,6 +3816,8 @@ impl ShareGroup {
         ack: i8,
         deadline: Instant,
     ) -> Result<()> {
+        let ids: Vec<i32> = nodes.iter().map(|(node, _)| *node).collect();
+        self.warm_share_leaders(&ids, deadline).await;
         let mut flights = tokio::task::JoinSet::new();
         let mut ready = Vec::new();
         let mut rpc_timeout = None;
