@@ -1728,6 +1728,12 @@ pub(crate) fn encode_delete_topic_list<T: std::borrow::Borrow<DeleteTopicState>>
     timeout_ms: i32,
 ) -> crate::error::Result<()> {
     let flexible = delete_topics_flexible(version)?;
+    let body_start = buf.len();
+    let planned = delete_topics_request_len(version, flexible, topics)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     if version >= 6 {
         buf::put_array_len(buf, true, Some(topics.len()))?;
         for topic in topics {
@@ -1747,7 +1753,35 @@ pub(crate) fn encode_delete_topic_list<T: std::borrow::Borrow<DeleteTopicState>>
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn delete_topics_request_len<T: std::borrow::Borrow<DeleteTopicState>>(
+    version: i16,
+    flexible: bool,
+    topics: &[T],
+) -> Result<usize> {
+    let mut total = if version >= 6 {
+        describe_array_len(true, topics.len())?
+    } else {
+        describe_array_len(flexible, topics.len())?
+    };
+    for topic in topics {
+        let topic = topic.borrow();
+        if version >= 6 {
+            total = add_describe_len(total, describe_string_len(true, topic.name.as_deref())?)?;
+            total = add_describe_len(total, 16)?;
+            total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+        } else {
+            total = add_describe_len(total, describe_string_len(flexible, topic.name.as_deref())?)?;
+        }
+    }
+    total = add_describe_len(total, 4)?;
+    if flexible {
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 /// Decode a DeleteTopics request: `(names, timeout_ms)`.
@@ -1823,6 +1857,12 @@ pub fn encode_delete_topics_response_with_throttle(
     throttle_time_ms: i32,
 ) -> crate::error::Result<()> {
     let flexible = delete_topics_flexible(version)?;
+    let body_start = buf.len();
+    let planned = delete_topics_response_len(version, flexible, results)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     if version >= 1 {
         buf.put_i32(throttle_time_ms);
     }
@@ -1852,7 +1892,44 @@ pub fn encode_delete_topics_response_with_throttle(
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn delete_topics_response_len(
+    version: i16,
+    flexible: bool,
+    results: &[TopicResult],
+) -> Result<usize> {
+    let mut total = if version >= 1 { 4 } else { 0 };
+    total = add_describe_len(total, describe_array_len(flexible, results.len())?)?;
+    for result in results {
+        if version >= 6 {
+            let name = if result.name.is_empty() {
+                None
+            } else {
+                Some(result.name.as_str())
+            };
+            total = add_describe_len(total, describe_string_len(true, name)?)?;
+            total = add_describe_len(total, 16)?;
+        } else {
+            total = add_describe_len(total, describe_string_len(flexible, Some(&result.name))?)?;
+        }
+        total = add_describe_len(total, 2)?;
+        if version >= 5 {
+            total = add_describe_len(
+                total,
+                describe_string_len(true, result.error_message.as_deref())?,
+            )?;
+        }
+        if flexible {
+            total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    if flexible {
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 /// Decode a DeleteTopics response.
@@ -22388,6 +22465,80 @@ mod tests {
                 cur.is_empty(),
                 "CreateTopics v{version} getErrorResponse leftover-empty"
             );
+        }
+    }
+
+    #[test]
+    fn a_delete_topics_request_sizes_its_body_once() {
+        let mut topic_id = [0u8; 16];
+        topic_id[15] = 6;
+        let topics = vec![
+            DeleteTopicState::by_name("orders"),
+            DeleteTopicState {
+                name: None,
+                topic_id,
+            },
+        ];
+        for version in [0_i16, 3, 4, 6] {
+            let mut buf = BytesMut::new();
+            encode_delete_topics_states_request(&mut buf, version, &topics, 5_000).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_delete_topics_states_request(&mut buf, version, &topics, 5_000).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+            let mut cur = &buf[..];
+            let (decoded, timeout) =
+                decode_delete_topics_states_request(&mut cur, version).unwrap();
+            assert!(cur.is_empty());
+            assert_eq!(timeout, 5_000);
+            assert_eq!(decoded.len(), 2);
+        }
+    }
+
+    #[test]
+    fn a_delete_topics_response_sizes_its_body_once() {
+        let mut topic_id = [0u8; 16];
+        topic_id[15] = 6;
+        let results = vec![
+            TopicResult {
+                name: "orders".into(),
+                error_code: 0,
+                error_message: Some("deleted".into()),
+                topic_id,
+                num_partitions: -1,
+                replication_factor: -1,
+                configs: Vec::new(),
+            },
+            TopicResult {
+                name: String::new(),
+                error_code: 3,
+                error_message: None,
+                topic_id,
+                num_partitions: -1,
+                replication_factor: -1,
+                configs: Vec::new(),
+            },
+        ];
+        for version in [0_i16, 3, 5, 6] {
+            let mut buf = BytesMut::new();
+            encode_delete_topics_response_with_throttle(&mut buf, version, &results, 12).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_delete_topics_response_with_throttle(&mut buf, version, &results, 12).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+            let mut cur = &buf[..];
+            let (decoded, throttle) = decode_delete_topics_response(&mut cur, version).unwrap();
+            assert!(cur.is_empty());
+            assert_eq!(decoded.len(), 2);
+            assert_eq!(throttle, if version >= 1 { 12 } else { 0 });
         }
     }
 
