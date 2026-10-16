@@ -1443,9 +1443,9 @@ fn note_append(part: &mut ResultPart, result: partition::Append, log_start: Opti
         }
     }
 }
-fn reserve_sync_joins<T>(joins: &mut Vec<T>, count: usize) {
-    if joins.capacity() < count {
-        joins.reserve(count - joins.capacity());
+fn reserve_count<T>(items: &mut Vec<T>, count: usize) {
+    if items.capacity() < count {
+        items.reserve(count - items.capacity());
     }
 }
 
@@ -1457,7 +1457,7 @@ fn sync_staged(items: &mut [PendingSync]) {
         return;
     }
     let mut joins = Vec::new();
-    reserve_sync_joins(&mut joins, items.len());
+    reserve_count(&mut joins, items.len());
     for item in items.iter_mut() {
         match item.file.try_clone() {
             Ok(file) => joins.push(Some(std::thread::spawn(move || file.sync_data()))),
@@ -1526,6 +1526,7 @@ pub(crate) fn process_queued(
     captured.resize_with(inputs.len(), || None);
     let mut replies = std::mem::take(&mut store.queued_replies);
     replies.clear();
+    reserve_count(&mut replies, inputs.len());
     for (index, input) in inputs.iter_mut().enumerate() {
         let admitted_at = admitted.get(index).copied().unwrap_or_else(Instant::now);
         match process_inner(
@@ -1606,7 +1607,7 @@ fn sync_partition_once(store: &mut Store, captured: &mut [Option<CapturedProduce
     let mut joins = std::mem::take(&mut store.sync_joins);
     joins.clear();
     latest_sync_slots(captured, &mut reps, &mut slots);
-    reserve_sync_joins(&mut joins, reps.len());
+    reserve_count(&mut joins, reps.len());
     let parallel = reps.len() > 1;
     for &(state_index, local_index) in &reps {
         if !parallel {
@@ -2207,12 +2208,12 @@ mod tests {
     #[test]
     fn a_multi_partition_sync_sizes_its_join_list_once() {
         let mut joins = Vec::<u8>::new();
-        super::reserve_sync_joins(&mut joins, 8);
+        super::reserve_count(&mut joins, 8);
         assert!(joins.capacity() >= 8);
         let kept = joins.capacity();
-        super::reserve_sync_joins(&mut joins, 8);
+        super::reserve_count(&mut joins, 8);
         assert_eq!(joins.capacity(), kept);
-        super::reserve_sync_joins(&mut joins, 3);
+        super::reserve_count(&mut joins, 3);
         assert_eq!(joins.capacity(), kept);
     }
 
