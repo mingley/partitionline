@@ -1459,9 +1459,9 @@ pub struct CreateAclsRequest;
 impl CreateAclsRequest {
     /// Java `CreateAclsRequest.getErrorResponse`.
     ///
-    /// Writes [`AclCreationResult::error_results`] (`Collections.nCopies`).
-    /// Request ACL bindings are not copied. `ErrorMessage` stays the JSON
-    /// default (null); official Java also sets the English
+    /// Writes `n` results with `error_code` (`Collections.nCopies`).
+    /// Request ACL bindings are not written. `ErrorMessage` stays the
+    /// JSON default (null); official Java also sets the English
     /// `Errors.message` string. ThrottleTimeMs is written on every
     /// spoken version from `throttle_time_ms` (Java always calls
     /// `setThrottleTimeMs`). Convenience encode still writes `0`. This
@@ -1475,8 +1475,7 @@ impl CreateAclsRequest {
         error_code: i16,
         throttle_time_ms: i32,
     ) -> Result<()> {
-        let results = AclCreationResult::error_results(n, error_code);
-        encode_create_acls_response_with_throttle(buf, version, &results, throttle_time_ms)
+        encode_create_acls_error_response(buf, version, n, error_code, throttle_time_ms)
     }
 }
 
@@ -1953,6 +1952,58 @@ pub fn encode_create_acls_response_with_throttle(
     }
     debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+/// CreateAcls error body of `n` identical results.
+///
+/// The bytes match [`AclCreationResult::error_results`].
+fn encode_create_acls_error_response(
+    buf: &mut BytesMut,
+    version: i16,
+    n: usize,
+    error_code: i16,
+    throttle_time_ms: i32,
+) -> Result<()> {
+    let flexible = acl_api_flexible(version)?;
+    let body_start = buf.len();
+    let planned = create_acls_error_len(flexible, n)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
+    buf.put_i32(throttle_time_ms);
+    buf::put_array_len(buf, flexible, Some(n))?;
+    for _ in 0..n {
+        buf.put_i16(error_code);
+        buf::put_string(buf, flexible, None)?;
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+    }
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+    Ok(())
+}
+
+fn create_acls_error_len(flexible: bool, n: usize) -> Result<usize> {
+    let mut total = 4usize;
+    total = add_acl_len(total, acl_array_len(flexible, n)?)?;
+    let mut one = 2usize;
+    one = add_acl_len(one, acl_string_len(flexible, None)?)?;
+    if flexible {
+        one = add_acl_len(one, buf::unsigned_varint_size(0))?;
+    }
+    total = add_acl_len(
+        total,
+        one.checked_mul(n)
+            .ok_or_else(|| Error::protocol("create acls response size overflow"))?,
+    )?;
+    if flexible {
+        total = add_acl_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 fn create_acls_response_len(flexible: bool, results: &[AclCreationResult]) -> Result<usize> {
@@ -2921,6 +2972,58 @@ mod tests {
                 cur.remaining()
             );
         }
+    }
+
+    #[test]
+    fn create_acls_error_response_matches_named_results() {
+        for n in [0_usize, 1, 3] {
+            for version in 0..=3 {
+                for throttle in [0_i32, 12] {
+                    let results = AclCreationResult::error_results(
+                        n,
+                        crate::error::CLUSTER_AUTHORIZATION_FAILED,
+                    );
+                    let mut expected = BytesMut::new();
+                    encode_create_acls_response_with_throttle(
+                        &mut expected,
+                        version,
+                        &results,
+                        throttle,
+                    )
+                    .unwrap();
+                    let mut got = BytesMut::new();
+                    CreateAclsRequest::error_response(
+                        &mut got,
+                        version,
+                        n,
+                        crate::error::CLUSTER_AUTHORIZATION_FAILED,
+                        throttle,
+                    )
+                    .unwrap();
+                    assert_eq!(
+                        got.as_ref(),
+                        expected.as_ref(),
+                        "n {n} version {version} throttle {throttle}"
+                    );
+                    let len = got.len();
+                    let capacity = got.capacity();
+                    assert!(capacity >= len);
+                    assert!(capacity < 64 * 1024);
+                    got.clear();
+                    CreateAclsRequest::error_response(
+                        &mut got,
+                        version,
+                        n,
+                        crate::error::CLUSTER_AUTHORIZATION_FAILED,
+                        throttle,
+                    )
+                    .unwrap();
+                    assert_eq!(got.len(), len);
+                    assert_eq!(got.capacity(), capacity);
+                }
+            }
+        }
+        assert!(CreateAclsRequest::error_response(&mut BytesMut::new(), 4, 1, 41, 0).is_err());
     }
 
     #[test]
