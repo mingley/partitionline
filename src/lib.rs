@@ -2145,9 +2145,10 @@
 //! the session epoch (Java `ShareSessionHandler.handleResponse`
 //! `nextEpoch`), including when `ErrorMessage` is empty, and does not
 //! request Metadata when `ErrorMessage` is set or empty;
-//! `SHARE_SESSION_NOT_FOUND` /
-//! `INVALID_SHARE_SESSION_EPOCH` still reset, including when
-//! `ErrorMessage` is set or empty.
+//! `SHARE_SESSION_NOT_FOUND` still resets, including when
+//! `ErrorMessage` is set or empty, and does not request Metadata
+//! when `ErrorMessage` is set; `INVALID_SHARE_SESSION_EPOCH` still
+//! resets, including when `ErrorMessage` is set or empty.
 //! [`ShareGroup::group_metadata`] is Java `ShareConsumer.groupMetadata()`
 //! ([`ConsumerGroupMetadata`]; `generationId` is the share member epoch).
 //! [`ShareGroup::set_acknowledgement_commit_callback`] is Java
