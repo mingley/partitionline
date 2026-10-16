@@ -697,6 +697,10 @@ pub enum ShareAcquireMode {
 /// `handleShareFetchSuccess` completes piggyback acks and still
 /// delivers the fetch; this is not partition `CORRUPT_MESSAGE`,
 /// which throws). A piggybacked
+/// `UNKNOWN_LEADER_EPOCH` still completes without retry,
+/// including when `AcknowledgeErrorMessage` is set (Java
+/// `handleShareFetchSuccess` completes piggyback acks and still
+/// delivers the fetch). A piggybacked
 /// `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a
 /// sibling partition whose `AcknowledgeErrorCode` is none, including
 /// when `AcknowledgeErrorMessage` is set or empty. A piggybacked
@@ -1847,6 +1851,10 @@ impl ShareGroup {
     /// or empty (Java `handleShareFetchSuccess` completes piggyback
     /// acks and still delivers the fetch; this is not partition
     /// `CORRUPT_MESSAGE`, which throws).
+    /// A piggybacked `UNKNOWN_LEADER_EPOCH` still completes
+    /// without retry, including when `AcknowledgeErrorMessage` is set
+    /// (Java `handleShareFetchSuccess` completes piggyback acks and
+    /// still delivers the fetch).
     /// A piggybacked `TOPIC_AUTHORIZATION_FAILED` on one partition
     /// does not fail a sibling whose `AcknowledgeErrorCode` is none,
     /// including when `AcknowledgeErrorMessage` is set or empty.

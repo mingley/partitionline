@@ -2061,6 +2061,8 @@
 //! `CORRUPT_MESSAGE` still completes without retry,
 //! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `CORRUPT_MESSAGE`, which throws). A piggybacked
+//! `UNKNOWN_LEADER_EPOCH` still completes without retry,
+//! including when `AcknowledgeErrorMessage` is set. A piggybacked
 //! `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a
 //! sibling whose `AcknowledgeErrorCode` is none, including when
 //! `AcknowledgeErrorMessage` is set or empty. A piggybacked
