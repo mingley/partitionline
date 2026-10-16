@@ -40,9 +40,9 @@ use crate::protocol::txn::{
     decode_add_partitions_to_txn_response, decode_end_txn_response,
     decode_txn_offset_commit_response, encode_add_offsets_to_txn_request,
     encode_add_partitions_to_txn_borrowed, encode_end_txn_request,
-    encode_txn_offset_commit_request, BorrowedTxnTopic, EndTxnRequest, TransactionResult,
-    TxnErrorDisposition, TxnOffsetCommitMember, TxnOffsetCommitRequest, TxnOffsetPartition,
-    TxnOffsetTopic,
+    encode_txn_offset_commit_borrowed, BorrowedTxnOffsetPartition, BorrowedTxnOffsetTopic,
+    BorrowedTxnTopic, EndTxnRequest, TransactionResult, TxnErrorDisposition, TxnOffsetCommitMember,
+    TxnOffsetCommitRequest,
 };
 
 /// Pre-send failure injection point for testing buffer ownership and resource contracts.
@@ -2995,7 +2995,7 @@ impl Producer {
                 version,
                 self.inner.shared.find_coord_version,
                 |buf| {
-                    encode_txn_offset_commit_request(
+                    encode_txn_offset_commit_borrowed(
                         buf, version, &tid, group_id, pid, epoch, member, &grouped,
                     )
                 },
@@ -6334,22 +6334,22 @@ fn unique_offset_topics(
     topics
 }
 
-fn group_txn_offsets(
-    offsets: &[(crate::TopicPartition, crate::OffsetAndMetadata)],
+fn group_txn_offsets<'a>(
+    offsets: &'a [(crate::TopicPartition, crate::OffsetAndMetadata)],
     cluster: &crate::cluster::Cluster,
-) -> Vec<TxnOffsetTopic> {
-    let mut topics: Vec<TxnOffsetTopic> = Vec::new();
+) -> Vec<BorrowedTxnOffsetTopic<'a>> {
+    let mut topics: Vec<BorrowedTxnOffsetTopic<'a>> = Vec::new();
     let mut slots: HashMap<&str, usize> = HashMap::new();
     let mut epochs = crate::cluster::EpochList::new();
     for (tp, md) in offsets {
         let leader_epoch = md
             .leader_epoch
             .unwrap_or_else(|| epochs.epoch(cluster, &tp.topic, tp.partition));
-        let partition = TxnOffsetPartition {
+        let partition = BorrowedTxnOffsetPartition {
             partition: tp.partition,
             offset: md.offset,
             leader_epoch,
-            metadata: md.metadata.clone(),
+            metadata: md.metadata.as_str(),
         };
         if let Some(&slot) = slots.get(tp.topic.as_str()) {
             if let Some(group) = topics.get_mut(slot) {
@@ -6359,8 +6359,8 @@ fn group_txn_offsets(
         }
         let slot = topics.len();
         let _ = slots.insert(tp.topic.as_str(), slot);
-        topics.push(TxnOffsetTopic {
-            topic: tp.topic.clone(),
+        topics.push(BorrowedTxnOffsetTopic {
+            topic: tp.topic.as_str(),
             partitions: vec![partition],
         });
     }
@@ -7981,10 +7981,7 @@ mod tests {
         assert_eq!(names.get(1).copied(), Some("payments"));
         assert_eq!(names.len(), 2);
         let grouped = group_txn_offsets(&offsets, &crate::cluster::Cluster::default());
-        assert_eq!(
-            grouped.first().map(|topic| topic.topic.as_str()),
-            Some("orders")
-        );
+        assert_eq!(grouped.first().map(|topic| topic.topic), Some("orders"));
         assert_eq!(
             grouped.first().map(|topic| {
                 topic
@@ -8001,21 +7998,12 @@ mod tests {
             }),
             Some(vec![(1, 4, 7), (0, 9, 7)])
         );
-        assert_eq!(
-            grouped.get(1).map(|topic| topic.topic.as_str()),
-            Some("payments")
-        );
+        assert_eq!(grouped.get(1).map(|topic| topic.topic), Some("payments"));
         assert_eq!(
             grouped
                 .get(1)
                 .and_then(|topic| topic.partitions.first())
-                .map(|partition| {
-                    (
-                        partition.partition,
-                        partition.offset,
-                        partition.metadata.as_str(),
-                    )
-                }),
+                .map(|partition| { (partition.partition, partition.offset, partition.metadata,) }),
             Some((0, 1, ""))
         );
     }

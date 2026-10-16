@@ -1939,6 +1939,99 @@ fn txn_offset_commit_flexible(version: i16) -> Result<bool> {
     }
 }
 
+/// One TxnOffsetCommit partition whose metadata is borrowed.
+pub(crate) struct BorrowedTxnOffsetPartition<'a> {
+    /// Partition index.
+    pub partition: i32,
+    /// Committed offset.
+    pub offset: i64,
+    /// Leader epoch, or [`RecordBatch::NO_PARTITION_LEADER_EPOCH`].
+    pub leader_epoch: i32,
+    /// Commit metadata. Empty is null on the wire.
+    pub metadata: &'a str,
+}
+
+/// One TxnOffsetCommit topic whose name is borrowed.
+pub(crate) struct BorrowedTxnOffsetTopic<'a> {
+    /// Topic name.
+    pub topic: &'a str,
+    /// Partitions in this topic.
+    pub partitions: Vec<BorrowedTxnOffsetPartition<'a>>,
+}
+
+trait TxnOffsetPartitionView {
+    fn txn_offset_partition(&self) -> i32;
+    fn txn_offset_offset(&self) -> i64;
+    fn txn_offset_leader_epoch(&self) -> i32;
+    fn txn_offset_metadata(&self) -> &str;
+}
+
+impl TxnOffsetPartitionView for TxnOffsetPartition {
+    fn txn_offset_partition(&self) -> i32 {
+        self.partition
+    }
+
+    fn txn_offset_offset(&self) -> i64 {
+        self.offset
+    }
+
+    fn txn_offset_leader_epoch(&self) -> i32 {
+        self.leader_epoch
+    }
+
+    fn txn_offset_metadata(&self) -> &str {
+        &self.metadata
+    }
+}
+
+impl TxnOffsetPartitionView for BorrowedTxnOffsetPartition<'_> {
+    fn txn_offset_partition(&self) -> i32 {
+        self.partition
+    }
+
+    fn txn_offset_offset(&self) -> i64 {
+        self.offset
+    }
+
+    fn txn_offset_leader_epoch(&self) -> i32 {
+        self.leader_epoch
+    }
+
+    fn txn_offset_metadata(&self) -> &str {
+        self.metadata
+    }
+}
+
+trait TxnOffsetTopicView {
+    type Partition: TxnOffsetPartitionView;
+    fn txn_offset_topic(&self) -> &str;
+    fn txn_offset_partitions(&self) -> &[Self::Partition];
+}
+
+impl TxnOffsetTopicView for TxnOffsetTopic {
+    type Partition = TxnOffsetPartition;
+
+    fn txn_offset_topic(&self) -> &str {
+        &self.topic
+    }
+
+    fn txn_offset_partitions(&self) -> &[Self::Partition] {
+        &self.partitions
+    }
+}
+
+impl<'a> TxnOffsetTopicView for BorrowedTxnOffsetTopic<'a> {
+    type Partition = BorrowedTxnOffsetPartition<'a>;
+
+    fn txn_offset_topic(&self) -> &str {
+        self.topic
+    }
+
+    fn txn_offset_partitions(&self) -> &[Self::Partition] {
+        &self.partitions
+    }
+}
+
 /// Encode TxnOffsetCommit v0–v2 (classic) or v3–v5 (flexible).
 #[expect(
     clippy::too_many_arguments,
@@ -1954,6 +2047,59 @@ pub fn encode_txn_offset_commit_request(
     member: &TxnOffsetCommitMember,
     topics: &[TxnOffsetTopic],
 ) -> crate::error::Result<()> {
+    encode_txn_offset_commit_views(
+        buf,
+        version,
+        transactional_id,
+        group_id,
+        producer_id,
+        producer_epoch,
+        member,
+        topics,
+    )
+}
+
+/// Encode TxnOffsetCommit from topic names and metadata the caller already holds.
+#[expect(
+    clippy::too_many_arguments,
+    reason = "TxnOffsetCommit request body needs version, ids, member identity, and topics together"
+)]
+pub(crate) fn encode_txn_offset_commit_borrowed(
+    buf: &mut BytesMut,
+    version: i16,
+    transactional_id: &str,
+    group_id: &str,
+    producer_id: i64,
+    producer_epoch: i16,
+    member: &TxnOffsetCommitMember,
+    topics: &[BorrowedTxnOffsetTopic<'_>],
+) -> crate::error::Result<()> {
+    encode_txn_offset_commit_views(
+        buf,
+        version,
+        transactional_id,
+        group_id,
+        producer_id,
+        producer_epoch,
+        member,
+        topics,
+    )
+}
+
+#[expect(
+    clippy::too_many_arguments,
+    reason = "TxnOffsetCommit request body needs version, ids, member identity, and topics together"
+)]
+fn encode_txn_offset_commit_views<T: TxnOffsetTopicView>(
+    buf: &mut BytesMut,
+    version: i16,
+    transactional_id: &str,
+    group_id: &str,
+    producer_id: i64,
+    producer_epoch: i16,
+    member: &TxnOffsetCommitMember,
+    topics: &[T],
+) -> crate::error::Result<()> {
     let flexible = txn_offset_commit_flexible(version)?;
     if version < 3 && member.group_metadata_set() {
         return Err(Error::Unsupported(format!(
@@ -1961,7 +2107,7 @@ pub fn encode_txn_offset_commit_request(
         )));
     }
     let body_start = buf.len();
-    let planned = txn_offset_commit_request_len(
+    let planned = txn_offset_commit_request_len::<T>(
         version,
         flexible,
         transactional_id,
@@ -1983,21 +2129,23 @@ pub fn encode_txn_offset_commit_request(
         buf::put_string(buf, flexible, member.group_instance_id.as_deref())?;
     }
     buf::put_array_len(buf, flexible, Some(topics.len()))?;
-    for t in topics {
-        buf::put_string(buf, flexible, Some(&t.topic))?;
-        buf::put_array_len(buf, flexible, Some(t.partitions.len()))?;
-        for p in &t.partitions {
-            buf.put_i32(p.partition);
-            buf.put_i64(p.offset);
+    for topic in topics {
+        buf::put_string(buf, flexible, Some(topic.txn_offset_topic()))?;
+        let partitions = topic.txn_offset_partitions();
+        buf::put_array_len(buf, flexible, Some(partitions.len()))?;
+        for partition in partitions {
+            buf.put_i32(partition.txn_offset_partition());
+            buf.put_i64(partition.txn_offset_offset());
             if version >= 2 {
-                buf.put_i32(p.leader_epoch);
+                buf.put_i32(partition.txn_offset_leader_epoch());
             }
-            let meta = if p.metadata.is_empty() {
+            let metadata = partition.txn_offset_metadata();
+            let metadata = if metadata.is_empty() {
                 None
             } else {
-                Some(p.metadata.as_str())
+                Some(metadata)
             };
-            buf::put_string(buf, flexible, meta)?;
+            buf::put_string(buf, flexible, metadata)?;
             if flexible {
                 buf::put_empty_tagged_fields(buf);
             }
@@ -2013,13 +2161,13 @@ pub fn encode_txn_offset_commit_request(
     Ok(())
 }
 
-fn txn_offset_commit_request_len(
+fn txn_offset_commit_request_len<T: TxnOffsetTopicView>(
     version: i16,
     flexible: bool,
     transactional_id: &str,
     group_id: &str,
     member: &TxnOffsetCommitMember,
-    topics: &[TxnOffsetTopic],
+    topics: &[T],
 ) -> Result<usize> {
     let mut total = txn_string_len(flexible, transactional_id)?;
     total = add_txn_len(total, txn_string_len(flexible, group_id)?)?;
@@ -2034,18 +2182,20 @@ fn txn_offset_commit_request_len(
     }
     total = add_txn_len(total, txn_array_len(flexible, topics.len())?)?;
     for topic in topics {
-        total = add_txn_len(total, txn_string_len(flexible, &topic.topic)?)?;
-        total = add_txn_len(total, txn_array_len(flexible, topic.partitions.len())?)?;
-        for partition in &topic.partitions {
+        total = add_txn_len(total, txn_string_len(flexible, topic.txn_offset_topic())?)?;
+        let partitions = topic.txn_offset_partitions();
+        total = add_txn_len(total, txn_array_len(flexible, partitions.len())?)?;
+        for partition in partitions {
             let mut fixed = 12usize;
             if version >= 2 {
                 fixed += 4;
             }
             total = add_txn_len(total, fixed)?;
-            let metadata = if partition.metadata.is_empty() {
+            let metadata = partition.txn_offset_metadata();
+            let metadata = if metadata.is_empty() {
                 None
             } else {
-                Some(partition.metadata.as_str())
+                Some(metadata)
             };
             total = add_txn_len(total, txn_nullable_string_len(flexible, metadata)?)?;
             if flexible {
@@ -6607,6 +6757,55 @@ mod tests {
             encode_txn_offset_commit_topics_response(&mut buf, version, &topics).unwrap();
             assert_eq!(buf.len(), len);
             assert_eq!(buf.capacity(), capacity);
+        }
+    }
+
+    #[test]
+    fn txn_offset_commit_borrowed_topics_match_owned_topics() {
+        let member = TxnOffsetCommitMember::unknown();
+        let owned = [TxnOffsetTopic {
+            topic: "orders-topic-name-is-long".into(),
+            partitions: vec![
+                TxnOffsetPartition::new(1, 4, 7, "meta"),
+                TxnOffsetPartition::new(0, 9, -1, ""),
+            ],
+        }];
+        let borrowed = [BorrowedTxnOffsetTopic {
+            topic: "orders-topic-name-is-long",
+            partitions: vec![
+                BorrowedTxnOffsetPartition {
+                    partition: 1,
+                    offset: 4,
+                    leader_epoch: 7,
+                    metadata: "meta",
+                },
+                BorrowedTxnOffsetPartition {
+                    partition: 0,
+                    offset: 9,
+                    leader_epoch: -1,
+                    metadata: "",
+                },
+            ],
+        }];
+        for version in [0_i16, 2, 3, 5] {
+            let mut expected = BytesMut::new();
+            encode_txn_offset_commit_request(
+                &mut expected,
+                version,
+                "tx",
+                "group",
+                9,
+                1,
+                &member,
+                &owned,
+            )
+            .unwrap();
+            let mut got = BytesMut::new();
+            encode_txn_offset_commit_borrowed(
+                &mut got, version, "tx", "group", 9, 1, &member, &borrowed,
+            )
+            .unwrap();
+            assert_eq!(got.as_ref(), expected.as_ref(), "version {version}");
         }
     }
 
