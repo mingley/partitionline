@@ -410,7 +410,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   which fails that poll, and not piggyback `REBALANCE_IN_PROGRESS`). A
   piggybacked `INVALID_TIMESTAMP` still
   completes without retry, including when `AcknowledgeErrorMessage` is
-  set (Java `handleShareFetchSuccess` completes piggyback acks and still
+  set or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
   delivers the fetch; this is not partition `INVALID_TIMESTAMP`,
   which fails that poll, and not piggyback `INVALID_COMMIT_OFFSET_SIZE`). A
   piggybacked `TOPIC_AUTHORIZATION_FAILED` on

@@ -2207,7 +2207,7 @@
 //! partition `INVALID_COMMIT_OFFSET_SIZE`, which fails that poll, and not
 //! piggyback `REBALANCE_IN_PROGRESS`). A piggybacked
 //! `INVALID_TIMESTAMP` still completes without retry,
-//! including when `AcknowledgeErrorMessage` is set (this is not
+//! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `INVALID_TIMESTAMP`, which fails that poll, and not
 //! piggyback `INVALID_COMMIT_OFFSET_SIZE`). A piggybacked
 //! `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a
