@@ -893,6 +893,12 @@ pub enum ShareAcquireMode {
 /// delivers the fetch; this is not partition
 /// `INCONSISTENT_GROUP_PROTOCOL`, which fails that poll, and not piggyback
 /// `ILLEGAL_GENERATION`). A piggybacked
+/// `INVALID_GROUP_ID` still completes without retry,
+/// including when `AcknowledgeErrorMessage` is set (Java
+/// `handleShareFetchSuccess` completes piggyback acks and still
+/// delivers the fetch; this is not partition
+/// `INVALID_GROUP_ID`, which fails that poll, and not piggyback
+/// `INCONSISTENT_GROUP_PROTOCOL`). A piggybacked
 /// `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a
 /// sibling partition whose `AcknowledgeErrorCode` is none, including
 /// when `AcknowledgeErrorMessage` is set or empty. A piggybacked
@@ -2342,6 +2348,12 @@ impl ShareGroup {
     /// still delivers the fetch; this is not partition
     /// `INCONSISTENT_GROUP_PROTOCOL`, which fails that poll, and not piggyback
     /// `ILLEGAL_GENERATION`).
+    /// A piggybacked `INVALID_GROUP_ID` still completes
+    /// without retry, including when `AcknowledgeErrorMessage` is set
+    /// (Java `handleShareFetchSuccess` completes piggyback acks and
+    /// still delivers the fetch; this is not partition
+    /// `INVALID_GROUP_ID`, which fails that poll, and not piggyback
+    /// `INCONSISTENT_GROUP_PROTOCOL`).
     /// A piggybacked `TOPIC_AUTHORIZATION_FAILED` on one partition
     /// does not fail a sibling whose `AcknowledgeErrorCode` is none,
     /// including when `AcknowledgeErrorMessage` is set or empty.
