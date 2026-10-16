@@ -13968,6 +13968,12 @@ pub fn encode_describe_share_group_offsets_request(
     buf: &mut BytesMut,
     groups: &[DescribeShareGroupOffsetsGroup],
 ) -> crate::error::Result<()> {
+    let body_start = buf.len();
+    let planned = describe_share_offsets_request_len(groups)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf::put_array_len(buf, true, Some(groups.len()))?;
     for g in groups {
         buf::put_compact_string(buf, Some(&g.group_id))?;
@@ -13985,7 +13991,34 @@ pub fn encode_describe_share_group_offsets_request(
         buf::put_empty_tagged_fields(buf);
     }
     buf::put_empty_tagged_fields(buf);
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn describe_share_offsets_request_len(groups: &[DescribeShareGroupOffsetsGroup]) -> Result<usize> {
+    let mut total = describe_array_len(true, groups.len())?;
+    for group in groups {
+        total = add_describe_len(total, describe_string_len(true, Some(&group.group_id))?)?;
+        match &group.topics {
+            None => total = add_describe_len(total, buf::unsigned_varint_size(0))?,
+            Some(topics) => {
+                total = add_describe_len(total, describe_array_len(true, topics.len())?)?;
+                for topic in topics {
+                    total = add_describe_len(
+                        total,
+                        describe_string_len(true, Some(&topic.topic_name))?,
+                    )?;
+                    total = add_describe_len(
+                        total,
+                        reassignment_replica_len(Some(&topic.partitions))?,
+                    )?;
+                    total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+                }
+            }
+        }
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    add_describe_len(total, buf::unsigned_varint_size(0))
 }
 
 /// Decode a DescribeShareGroupOffsets request.
@@ -14046,6 +14079,12 @@ pub fn encode_describe_share_group_offsets_response_with_throttle(
     groups: &[DescribedShareGroupOffsets],
     throttle_time_ms: i32,
 ) -> crate::error::Result<()> {
+    let body_start = buf.len();
+    let planned = describe_share_offsets_response_len(groups)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf.put_i32(throttle_time_ms);
     buf::put_array_len(buf, true, Some(groups.len()))?;
     for g in groups {
@@ -14070,7 +14109,45 @@ pub fn encode_describe_share_group_offsets_response_with_throttle(
         buf::put_empty_tagged_fields(buf);
     }
     buf::put_empty_tagged_fields(buf);
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn describe_share_offsets_response_len(groups: &[DescribedShareGroupOffsets]) -> Result<usize> {
+    let mut total = 4;
+    total = add_describe_len(total, describe_array_len(true, groups.len())?)?;
+    for group in groups {
+        total = add_describe_len(total, describe_string_len(true, Some(&group.group_id))?)?;
+        total = add_describe_len(total, describe_array_len(true, group.topics.len())?)?;
+        for topic in &group.topics {
+            total = add_describe_len(total, describe_string_len(true, Some(&topic.topic_name))?)?;
+            total = add_describe_len(total, 16)?;
+            total = add_describe_len(total, describe_array_len(true, topic.partitions.len())?)?;
+            for partition in &topic.partitions {
+                total = add_describe_len(
+                    total,
+                    describe_share_offsets_partition_len(0, partition.error_message.as_deref())?,
+                )?;
+            }
+            total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+        }
+        total = add_describe_len(total, 2)?;
+        total = add_describe_len(
+            total,
+            describe_string_len(true, group.error_message.as_deref())?,
+        )?;
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    add_describe_len(total, buf::unsigned_varint_size(0))
+}
+
+fn describe_share_offsets_partition_len(
+    version: i16,
+    error_message: Option<&str>,
+) -> Result<usize> {
+    let mut total = if version >= 1 { 26 } else { 18 };
+    total = add_describe_len(total, describe_string_len(true, error_message)?)?;
+    add_describe_len(total, buf::unsigned_varint_size(0))
 }
 
 /// Decode a DescribeShareGroupOffsets response.
@@ -14211,6 +14288,12 @@ pub fn encode_describe_share_group_offsets_response_versioned(
     throttle_time_ms: i32,
 ) -> Result<()> {
     share_offsets_version(version)?;
+    let body_start = buf.len();
+    let planned = describe_share_offsets_response_with_lag_len(version, groups)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf.put_i32(throttle_time_ms);
     buf::put_array_len(buf, true, Some(groups.len()))?;
     for group in groups {
@@ -14239,7 +14322,42 @@ pub fn encode_describe_share_group_offsets_response_versioned(
         buf::put_empty_tagged_fields(buf);
     }
     buf::put_empty_tagged_fields(buf);
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn describe_share_offsets_response_with_lag_len(
+    version: i16,
+    groups: &[DescribedShareGroupOffsetsWithLag],
+) -> Result<usize> {
+    let mut total = 4;
+    total = add_describe_len(total, describe_array_len(true, groups.len())?)?;
+    for group in groups {
+        total = add_describe_len(total, describe_string_len(true, Some(&group.group_id))?)?;
+        total = add_describe_len(total, describe_array_len(true, group.topics.len())?)?;
+        for topic in &group.topics {
+            total = add_describe_len(total, describe_string_len(true, Some(&topic.topic_name))?)?;
+            total = add_describe_len(total, 16)?;
+            total = add_describe_len(total, describe_array_len(true, topic.partitions.len())?)?;
+            for value in &topic.partitions {
+                total = add_describe_len(
+                    total,
+                    describe_share_offsets_partition_len(
+                        version,
+                        value.partition.error_message.as_deref(),
+                    )?,
+                )?;
+            }
+            total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+        }
+        total = add_describe_len(total, 2)?;
+        total = add_describe_len(
+            total,
+            describe_string_len(true, group.error_message.as_deref())?,
+        )?;
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    add_describe_len(total, buf::unsigned_varint_size(0))
 }
 
 /// Decode version0/1 without losing lag or misreading it as an error code.
@@ -34200,6 +34318,126 @@ mod tests {
             &zero[..],
             "error_response convenience encode still writes ThrottleTimeMs 0"
         );
+    }
+
+    #[test]
+    fn a_describe_share_group_offsets_request_sizes_its_body_once() {
+        let groups = vec![
+            DescribeShareGroupOffsetsGroup {
+                group_id: "orders".into(),
+                topics: Some(vec![
+                    DescribeShareGroupOffsetsTopic::new("orders", vec![0, 1]),
+                    DescribeShareGroupOffsetsTopic::new("payments", vec![]),
+                ]),
+            },
+            DescribeShareGroupOffsetsGroup::all("share"),
+        ];
+        let mut buf = BytesMut::new();
+        encode_describe_share_group_offsets_request(&mut buf, &groups).unwrap();
+        let len = buf.len();
+        let capacity = buf.capacity();
+        assert!(capacity >= len);
+        assert!(capacity < 64 * 1024);
+        buf.clear();
+        encode_describe_share_group_offsets_request(&mut buf, &groups).unwrap();
+        assert_eq!(buf.len(), len);
+        assert_eq!(buf.capacity(), capacity);
+        let mut cur = &buf[..];
+        let decoded = decode_describe_share_group_offsets_request(&mut cur).unwrap();
+        assert!(cur.is_empty());
+        assert_eq!(decoded, groups);
+    }
+
+    #[test]
+    fn a_describe_share_group_offsets_response_sizes_its_body_once() {
+        let mut topic_id = [0u8; 16];
+        topic_id[15] = 9;
+        let groups = vec![DescribedShareGroupOffsets {
+            group_id: "orders".into(),
+            topics: vec![DescribedShareGroupOffsetsTopic {
+                topic_name: "orders".into(),
+                topic_id,
+                partitions: vec![
+                    DescribedShareGroupOffsetsPartition {
+                        partition_index: 0,
+                        start_offset: 10,
+                        leader_epoch: 1,
+                        error_code: 0,
+                        error_message: None,
+                    },
+                    DescribedShareGroupOffsetsPartition {
+                        partition_index: 1,
+                        start_offset: -1,
+                        leader_epoch: -1,
+                        error_code: 3,
+                        error_message: Some("busy".into()),
+                    },
+                ],
+            }],
+            error_code: 0,
+            error_message: Some("listed".into()),
+        }];
+        let mut buf = BytesMut::new();
+        encode_describe_share_group_offsets_response_with_throttle(&mut buf, &groups, 12).unwrap();
+        let len = buf.len();
+        let capacity = buf.capacity();
+        assert!(capacity >= len);
+        assert!(capacity < 64 * 1024);
+        buf.clear();
+        encode_describe_share_group_offsets_response_with_throttle(&mut buf, &groups, 12).unwrap();
+        assert_eq!(buf.len(), len);
+        assert_eq!(buf.capacity(), capacity);
+        let mut cur = &buf[..];
+        let (decoded, throttle) = decode_describe_share_group_offsets_response(&mut cur).unwrap();
+        assert!(cur.is_empty());
+        assert_eq!(decoded, groups);
+        assert_eq!(throttle, 12);
+    }
+
+    #[test]
+    fn a_describe_share_group_offsets_response_with_lag_sizes_its_body_once() {
+        let groups = vec![DescribedShareGroupOffsetsWithLag {
+            group_id: "orders".into(),
+            topics: vec![DescribedShareGroupOffsetsTopicWithLag {
+                topic_name: "orders".into(),
+                topic_id: [0; 16],
+                partitions: vec![DescribedShareGroupOffsetsPartitionWithLag {
+                    partition: DescribedShareGroupOffsetsPartition {
+                        partition_index: 0,
+                        start_offset: 10,
+                        leader_epoch: 1,
+                        error_code: 0,
+                        error_message: None,
+                    },
+                    raw_lag: 4,
+                }],
+            }],
+            error_code: 0,
+            error_message: None,
+        }];
+        for version in [0_i16, 1] {
+            let mut buf = BytesMut::new();
+            encode_describe_share_group_offsets_response_versioned(&mut buf, version, &groups, 12)
+                .unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_describe_share_group_offsets_response_versioned(&mut buf, version, &groups, 12)
+                .unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+            let mut cur = &buf[..];
+            let (decoded, throttle) =
+                decode_describe_share_group_offsets_response_versioned(&mut cur, version).unwrap();
+            assert!(cur.is_empty());
+            assert_eq!(decoded[0].group_id, "orders");
+            assert_eq!(throttle, 12);
+            if version >= 1 {
+                assert_eq!(decoded[0].topics[0].partitions[0].raw_lag, 4);
+            }
+        }
     }
 
     #[test]
