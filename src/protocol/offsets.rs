@@ -598,19 +598,19 @@ pub fn encode_list_offsets_request(
     timestamp: i64,
     timeout_ms: i32,
 ) -> crate::error::Result<()> {
-    encode_list_offsets_topics_request(
+    let partitions = [ListOffsetsPartitionRequest::new(
+        partition,
+        current_leader_epoch,
+        timestamp,
+    )];
+    let topics = [(topic, partitions.as_slice())];
+    encode_list_offsets_topic_views(
         buf,
         version,
         isolation_level,
-        &[ListOffsetsTopicRequest::new(
-            topic,
-            vec![ListOffsetsPartitionRequest::new(
-                partition,
-                current_leader_epoch,
-                timestamp,
-            )],
-        )],
+        &topics,
         timeout_ms,
+        CONSUMER_REPLICA_ID,
     )
 }
 
@@ -703,6 +703,16 @@ impl ListOffsetsTopicView for (&str, Vec<ListOffsetsPartitionRequest>) {
 
     fn list_offsets_partitions(&self) -> &[ListOffsetsPartitionRequest] {
         &self.1
+    }
+}
+
+impl ListOffsetsTopicView for (&str, &[ListOffsetsPartitionRequest]) {
+    fn list_offsets_name(&self) -> &str {
+        self.0
+    }
+
+    fn list_offsets_partitions(&self) -> &[ListOffsetsPartitionRequest] {
+        self.1
     }
 }
 
@@ -1769,6 +1779,30 @@ mod tests {
             encode_list_offsets_topics_response(&mut buf, version, &topics).unwrap();
             assert_eq!(buf.len(), len);
             assert_eq!(buf.capacity(), capacity);
+        }
+    }
+
+    #[test]
+    fn list_offsets_one_topic_matches_the_owned_topic_encoder() {
+        let topic = "orders-topic-name-is-long";
+        let owned = [ListOffsetsTopicRequest::new(
+            topic,
+            vec![ListOffsetsPartitionRequest::new(1, 7, 4)],
+        )];
+        for version in [1_i16, 4, 6, 10, 11] {
+            let mut expected = BytesMut::new();
+            encode_list_offsets_topics_request(&mut expected, version, 1, &owned, 1_500).unwrap();
+            let mut got = BytesMut::new();
+            encode_list_offsets_request(&mut got, version, 1, topic, 1, 7, 4, 1_500).unwrap();
+            assert_eq!(got.as_ref(), expected.as_ref(), "version {version}");
+            let len = got.len();
+            let capacity = got.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            got.clear();
+            encode_list_offsets_request(&mut got, version, 1, topic, 1, 7, 4, 1_500).unwrap();
+            assert_eq!(got.len(), len);
+            assert_eq!(got.capacity(), capacity);
         }
     }
 
