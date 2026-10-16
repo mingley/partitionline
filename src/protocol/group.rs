@@ -462,7 +462,7 @@ impl ConsumerProtocol {
             subscription.generation_id,
             subscription.rack_id.as_deref(),
         )?;
-        Ok(buf.to_vec())
+        Ok(Vec::from(buf))
     }
 
     /// Java `ConsumerProtocol.serializeAssignment` at
@@ -485,7 +485,7 @@ impl ConsumerProtocol {
         let by_topic = group_assigned_partitions(&assignment.partitions);
         let mut buf = BytesMut::new();
         write_assignment_topics(&mut buf, version, &by_topic)?;
-        Ok(buf.to_vec())
+        Ok(Vec::from(buf))
     }
 
     /// Java `ConsumerProtocol.deserializeAssignment`.
@@ -6008,7 +6008,7 @@ pub fn encode_subscription(topics: &[String]) -> Result<Vec<u8>> {
         ConsumerProtocolSubscription::DEFAULT_GENERATION,
         None,
     )?;
-    Ok(buf.to_vec())
+    Ok(Vec::from(buf))
 }
 
 /// ConsumerProtocol subscription with owned partitions (KIP-429).
@@ -6027,7 +6027,7 @@ pub fn encode_subscription_owned(topics: &[String], owned: &[(String, i32)]) -> 
         ConsumerProtocolSubscription::DEFAULT_GENERATION,
         None,
     )?;
-    Ok(buf.to_vec())
+    Ok(Vec::from(buf))
 }
 
 fn write_subscription(
@@ -6046,6 +6046,17 @@ fn write_subscription(
             .map(String::as_str)
             .cmp(&topics.get(right).map(String::as_str))
     });
+    let by_topic = if version >= 1 {
+        group_sorted_owned_partitions(owned)
+    } else {
+        Vec::new()
+    };
+    let body_start = buf.len();
+    let planned = subscription_len(version, topics, &topic_order, &by_topic, rack_id)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf.put_i16(version);
     buf::put_array_len(buf, false, Some(topic_order.len()))?;
     for index in topic_order {
@@ -6056,7 +6067,6 @@ fn write_subscription(
     }
     buf::put_classic_bytes(buf, None)?;
     if version >= 1 {
-        let by_topic = group_sorted_owned_partitions(owned);
         buf::put_array_len(buf, false, Some(by_topic.len()))?;
         for (topic, parts) in &by_topic {
             buf::put_classic_nullable_string(buf, Some(topic))?;
@@ -6073,7 +6083,48 @@ fn write_subscription(
         let rack = rack_id.filter(|rack| !rack.is_empty());
         buf::put_classic_nullable_string(buf, rack)?;
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn subscription_len(
+    version: i16,
+    topics: &[String],
+    topic_order: &[usize],
+    owned: &[(String, Vec<i32>)],
+    rack_id: Option<&str>,
+) -> Result<usize> {
+    let mut total = 2usize;
+    total = add_group_len(total, group_array_len(false, topic_order.len())?)?;
+    for index in topic_order {
+        let Some(topic) = topics.get(*index) else {
+            continue;
+        };
+        total = add_group_len(total, group_string_len(false, Some(topic))?)?;
+    }
+    total = add_group_len(total, 4)?;
+    if version >= 1 {
+        total = add_group_len(total, group_array_len(false, owned.len())?)?;
+        for (topic, parts) in owned {
+            total = add_group_len(total, group_string_len(false, Some(topic))?)?;
+            total = add_group_len(total, group_array_len(false, parts.len())?)?;
+            total = add_group_len(total, partition_indexes_len(parts.len())?)?;
+        }
+    }
+    if version >= 2 {
+        total = add_group_len(total, 4)?;
+    }
+    if version >= 3 {
+        let rack = rack_id.filter(|rack| !rack.is_empty());
+        total = add_group_len(total, group_string_len(false, rack)?)?;
+    }
+    Ok(total)
+}
+
+fn partition_indexes_len(count: usize) -> Result<usize> {
+    count
+        .checked_mul(4)
+        .ok_or_else(|| Error::protocol("group request size overflow"))
 }
 
 /// Decode ConsumerProtocol subscription topics (v0–v3, owned partitions ignored).
@@ -6097,7 +6148,32 @@ pub fn decode_subscription_owned(bytes: &[u8]) -> Result<(Vec<String>, Vec<(Stri
 /// ConsumerProtocol assignment at [`ConsumerProtocol::HIGHEST_SUPPORTED_VERSION`]
 /// (Java `serializeAssignment`; same fields as v0).
 pub fn encode_assignment(topic: &str, partitions: &[i32]) -> Result<Vec<u8>> {
-    encode_owned_assignment(&[(topic.to_string(), partitions.to_vec())])
+    let mut buf = BytesMut::new();
+    let body_start = buf.len();
+    let planned = assignment_one_len(topic, partitions)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
+    buf.put_i16(ConsumerProtocol::HIGHEST_SUPPORTED_VERSION);
+    buf::put_array_len(&mut buf, false, Some(1))?;
+    buf::put_classic_nullable_string(&mut buf, Some(topic))?;
+    buf::put_array_len(&mut buf, false, Some(partitions.len()))?;
+    for partition in partitions {
+        buf.put_i32(*partition);
+    }
+    buf::put_classic_bytes(&mut buf, None)?;
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+    Ok(Vec::from(buf))
+}
+
+fn assignment_one_len(topic: &str, partitions: &[i32]) -> Result<usize> {
+    let mut total = 2usize;
+    total = add_group_len(total, group_array_len(false, 1)?)?;
+    total = add_group_len(total, group_string_len(false, Some(topic))?)?;
+    total = add_group_len(total, group_array_len(false, partitions.len())?)?;
+    total = add_group_len(total, partition_indexes_len(partitions.len())?)?;
+    add_group_len(total, 4)
 }
 
 /// ConsumerProtocol assignment for one member, several topics.
@@ -6108,7 +6184,7 @@ pub fn encode_owned_assignment(topics: &[(String, Vec<i32>)]) -> Result<Vec<u8>>
         ConsumerProtocol::HIGHEST_SUPPORTED_VERSION,
         topics,
     )?;
-    Ok(buf.to_vec())
+    Ok(Vec::from(buf))
 }
 
 fn write_assignment_topics(
@@ -6116,6 +6192,12 @@ fn write_assignment_topics(
     version: i16,
     by_topic: &[(String, Vec<i32>)],
 ) -> Result<()> {
+    let body_start = buf.len();
+    let planned = assignment_topics_len(by_topic)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf.put_i16(version);
     buf::put_array_len(buf, false, Some(by_topic.len()))?;
     for (topic, parts) in by_topic {
@@ -6126,7 +6208,19 @@ fn write_assignment_topics(
         }
     }
     buf::put_classic_bytes(buf, None)?;
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn assignment_topics_len(by_topic: &[(String, Vec<i32>)]) -> Result<usize> {
+    let mut total = 2usize;
+    total = add_group_len(total, group_array_len(false, by_topic.len())?)?;
+    for (topic, parts) in by_topic {
+        total = add_group_len(total, group_string_len(false, Some(topic))?)?;
+        total = add_group_len(total, group_array_len(false, parts.len())?)?;
+        total = add_group_len(total, partition_indexes_len(parts.len())?)?;
+    }
+    add_group_len(total, 4)
 }
 
 /// The last partition keeps `topic`. Earlier partitions copy it.
@@ -9687,6 +9781,36 @@ mod tests {
                 .contains("features supported only in 4 or later"),
             "v0 refuses batched coordinator keys, got {v0}"
         );
+    }
+
+    #[test]
+    fn a_consumer_protocol_body_sizes_its_buffer_once() {
+        let topics = vec!["orders".into(), "payments".into()];
+        let owned = vec![
+            ("payments".into(), 1),
+            ("orders".into(), 0),
+            ("orders".into(), 2),
+        ];
+        let sub = encode_subscription_owned(&topics, &owned).unwrap();
+        assert!(sub.capacity() >= sub.len());
+        assert!(sub.capacity() < 64 * 1024);
+        let (names, parts) = decode_subscription_owned(&sub).unwrap();
+        assert_eq!(names, vec!["orders".to_string(), "payments".to_string()]);
+        assert_eq!(
+            parts,
+            vec![
+                ("orders".into(), 0),
+                ("orders".into(), 2),
+                ("payments".into(), 1)
+            ]
+        );
+        let direct = encode_assignment("orders", &[2, 0]).unwrap();
+        let owned_asg = encode_owned_assignment(&[("orders".into(), vec![2, 0])]).unwrap();
+        assert_eq!(direct, owned_asg);
+        assert!(direct.capacity() >= direct.len());
+        assert!(direct.capacity() < 64 * 1024);
+        assert!(owned_asg.capacity() >= owned_asg.len());
+        assert!(owned_asg.capacity() < 64 * 1024);
     }
 
     #[test]
