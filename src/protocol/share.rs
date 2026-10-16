@@ -2983,6 +2983,10 @@ pub fn encode_share_acknowledge_topics_response_with_lock_timeout(
     acquisition_lock_timeout_ms: i32,
 ) -> crate::error::Result<()> {
     let flexible = share_acknowledge_flexible(version)?;
+    let body_start = buf.len();
+    let planned =
+        share_acknowledge_response_len(version, flexible, topics, endpoints, error_message)?;
+    reserve_share_body(buf, planned);
     buf.put_i32(throttle_time_ms);
     buf.put_i16(error_code);
     buf::put_string(buf, flexible, error_message)?;
@@ -3010,7 +3014,46 @@ pub fn encode_share_acknowledge_topics_response_with_lock_timeout(
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn share_acknowledge_response_len(
+    version: i16,
+    flexible: bool,
+    topics: &[ShareAcknowledgeResponseTopic],
+    endpoints: &[NodeEndpoint],
+    error_message: Option<&str>,
+) -> Result<usize> {
+    let mut total = 6usize;
+    total = add_share_len(total, share_nullable_string_len(error_message)?)?;
+    if version >= 2 {
+        total = add_share_len(total, 4)?;
+    }
+    total = add_share_len(total, share_array_len(topics.len())?)?;
+    for topic in topics {
+        total = add_share_len(total, 16)?;
+        total = add_share_len(total, share_array_len(topic.partitions.len())?)?;
+        for part in &topic.partitions {
+            total = add_share_len(total, 6)?;
+            total = add_share_len(
+                total,
+                share_nullable_string_len(part.error_message.as_deref())?,
+            )?;
+            total = add_share_len(total, 9)?;
+            if flexible {
+                total = add_share_len(total, buf::unsigned_varint_size(0))?;
+            }
+        }
+        if flexible {
+            total = add_share_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    total = add_share_len(total, share_endpoints_len(endpoints)?)?;
+    if flexible {
+        total = add_share_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 /// Decode a ShareAcknowledge response (`version` 0–2): error code.
@@ -5712,6 +5755,45 @@ mod tests {
             &v1_with[..],
             "v0 and v1 ErrorMessage layout match; ShareAcknowledge has no AcquisitionLockTimeoutMs"
         );
+    }
+
+    #[test]
+    fn a_share_acknowledge_response_sizes_its_body_once() {
+        let topics = [ShareAcknowledgeResponseTopic {
+            topic_id: [4u8; 16],
+            partitions: (0..8)
+                .map(|partition| ShareAcknowledgeResponsePartition {
+                    partition,
+                    error_code: 0,
+                    error_message: if partition == 0 {
+                        None
+                    } else {
+                        Some("held".into())
+                    },
+                    current_leader_id: 2,
+                    current_leader_epoch: 3,
+                })
+                .collect(),
+        }];
+        let endpoints = [NodeEndpoint::new(2, "broker-2", 9092, None)];
+        for version in [0_i16, 1, 2] {
+            let mut buf = BytesMut::new();
+            encode_share_acknowledge_topics_response_with_lock_timeout(
+                &mut buf, version, 0, &topics, &endpoints, 0, None, 15_000,
+            )
+            .unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_share_acknowledge_topics_response_with_lock_timeout(
+                &mut buf, version, 0, &topics, &endpoints, 0, None, 15_000,
+            )
+            .unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+        }
     }
 
     #[test]
