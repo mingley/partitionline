@@ -3464,12 +3464,20 @@ fn reject_java_no_assignors() -> Error {
 pub(crate) fn collect_topics(
     topics: impl IntoIterator<Item = impl Into<String>>,
 ) -> Result<Vec<String>> {
-    let mut out = Vec::new();
-    let mut seen = HashSet::new();
+    let mut raw = Vec::new();
     for topic in topics {
         let topic = topic.into();
         Topic::validate(&topic)?;
-        if seen.insert(topic.clone()) {
+        raw.push(topic);
+    }
+    let mut seen: HashSet<&str> = HashSet::new();
+    let mut keep = Vec::with_capacity(raw.len());
+    for topic in &raw {
+        keep.push(seen.insert(topic.as_str()));
+    }
+    let mut out = Vec::new();
+    for (topic, kept) in raw.into_iter().zip(keep) {
+        if kept {
             out.push(topic);
         }
     }
