@@ -6961,8 +6961,7 @@ fn encode_produce_body(
             } else {
                 let len_pos = buf.len();
                 buf.put_i32(0);
-                encode_pendings(
-                    buf,
+                let header = pending_batch_header(
                     pendings,
                     compression,
                     now,
@@ -6970,8 +6969,8 @@ fn encode_produce_body(
                     producer_epoch,
                     base_sequence,
                     transactional,
-                    scratch,
                 )?;
+                encode_pendings(buf, pendings, &header, now, scratch)?;
                 let rec_len =
                     crate::protocol::buf::i32_from_usize(buf.len().saturating_sub(len_pos + 4))?;
                 crate::protocol::buf::patch_i32(buf, len_pos, rec_len)?;
@@ -7026,17 +7025,7 @@ fn encode_flexible_partition(
             .ok_or_else(|| Error::protocol("compact bytes overflow"))?;
         crate::protocol::buf::put_unsigned_varint(buf, compact);
         let start = buf.len();
-        encode_pendings(
-            buf,
-            pendings,
-            compression,
-            now,
-            producer_id,
-            producer_epoch,
-            base_sequence,
-            transactional,
-            scratch,
-        )?;
+        encode_pendings(buf, pendings, &header, now, scratch)?;
         if buf.len().saturating_sub(start) != batch_len {
             return Err(Error::protocol("uncompressed batch length mismatch"));
         }
@@ -7131,32 +7120,16 @@ fn sequence_of(map: &mut SequenceMap, topic: &Arc<str>, partition: i32, count: u
     0
 }
 
-#[expect(
-    clippy::too_many_arguments,
-    reason = "record batch header and payload knobs travel together"
-)]
 fn encode_pendings(
     buf: &mut BytesMut,
     pendings: &[Pending],
-    compression: Compression,
+    header: &BatchHeader,
     now: i64,
-    producer_id: i64,
-    producer_epoch: i16,
-    base_sequence: i32,
-    transactional: bool,
     scratch: &mut CompressScratch,
 ) -> Result<()> {
     write_record_batch_scratch(
         buf,
-        &pending_batch_header(
-            pendings,
-            compression,
-            now,
-            producer_id,
-            producer_epoch,
-            base_sequence,
-            transactional,
-        )?,
+        header,
         pendings.iter().map(|p| EncodeRecord {
             timestamp: p.rec.timestamp.unwrap_or(now),
             key: p.rec.key.as_deref(),
@@ -7369,6 +7342,34 @@ mod tests {
             retry: 0,
             skip_meta_refresh: false,
             retry_after: now,
+        }
+    }
+
+    #[test]
+    fn uncompressed_produce_writes_the_sized_batch_header() {
+        let pending = queued("orders", Some(0));
+        let groups = [(Arc::clone(&pending.rec.topic), 0, vec![pending])];
+        let mut scratch = CompressScratch::default();
+        let mut grouped = ProduceGroupScratch::default();
+        for version in [3_i16, 9] {
+            let mut buf = BytesMut::new();
+            encode_produce_body(
+                &mut buf,
+                version,
+                1,
+                1_000,
+                &groups,
+                &[],
+                Compression::None,
+                5,
+                RecordBatch::NO_PRODUCER_ID,
+                RecordBatch::NO_PRODUCER_EPOCH,
+                None,
+                &mut scratch,
+                &mut grouped,
+            )
+            .unwrap();
+            assert!(buf.len() > 12, "v{version} produce body");
         }
     }
 
