@@ -309,14 +309,90 @@ pub(crate) fn encode_borrowed_offset_for_leader_epoch_topics(
     )
 }
 
-fn write_offset_for_leader_topics<'a>(
+fn add_epoch_len(total: usize, next: usize) -> Result<usize> {
+    total
+        .checked_add(next)
+        .ok_or_else(|| Error::protocol("offset for leader epoch request size overflow"))
+}
+
+fn epoch_array_len(flexible: bool, len: usize) -> Result<usize> {
+    if flexible {
+        let value = buf::u32_from_usize(len)?
+            .checked_add(1)
+            .ok_or_else(|| Error::protocol("compact array overflow"))?;
+        Ok(buf::unsigned_varint_size(value))
+    } else {
+        let _len = buf::i32_from_usize(len)?;
+        Ok(4)
+    }
+}
+
+fn epoch_string_len(flexible: bool, value: &str) -> Result<usize> {
+    if flexible {
+        let encoded = buf::u32_from_usize(value.len())?
+            .checked_add(1)
+            .ok_or_else(|| Error::protocol("compact string overflow"))?;
+        Ok(buf::unsigned_varint_size(encoded).saturating_add(value.len()))
+    } else {
+        let _len = buf::i16_from_usize(value.len())?;
+        Ok(2usize.saturating_add(value.len()))
+    }
+}
+
+fn offset_for_leader_request_len<'a, I>(
+    version: i16,
+    flexible: bool,
+    topic_count: usize,
+    topics: I,
+) -> Result<usize>
+where
+    I: Iterator<Item = (&'a str, &'a [OffsetForLeaderPartition])>,
+{
+    let mut total = if version >= 3 { 4usize } else { 0 };
+    total = add_epoch_len(total, epoch_array_len(flexible, topic_count)?)?;
+    for (topic, partitions) in topics {
+        total = add_epoch_len(total, epoch_string_len(flexible, topic)?)?;
+        total = add_epoch_len(total, epoch_array_len(flexible, partitions.len())?)?;
+        let mut partition = 8usize;
+        if version >= 2 {
+            partition += 4;
+        }
+        total = add_epoch_len(
+            total,
+            partition
+                .checked_mul(partitions.len())
+                .ok_or_else(|| Error::protocol("offset for leader epoch request size overflow"))?,
+        )?;
+        if flexible {
+            let tags = buf::unsigned_varint_size(0)
+                .checked_mul(partitions.len().saturating_add(1))
+                .ok_or_else(|| Error::protocol("offset for leader epoch request size overflow"))?;
+            total = add_epoch_len(total, tags)?;
+        }
+    }
+    if flexible {
+        total = add_epoch_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
+}
+
+fn write_offset_for_leader_topics<'a, I>(
     buf: &mut BytesMut,
     version: i16,
     replica_id: i32,
     topic_count: usize,
-    topics: impl IntoIterator<Item = (&'a str, &'a [OffsetForLeaderPartition])>,
-) -> crate::error::Result<()> {
+    topics: I,
+) -> crate::error::Result<()>
+where
+    I: Iterator<Item = (&'a str, &'a [OffsetForLeaderPartition])> + Clone,
+{
     let flexible = offset_for_leader_epoch_flexible(version)?;
+    let body_start = buf.len();
+    let planned = offset_for_leader_request_len(version, flexible, topic_count, topics.clone())?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     if version >= 3 {
         buf.put_i32(replica_id);
     }
@@ -341,6 +417,7 @@ fn write_offset_for_leader_topics<'a>(
     if flexible {
         buf::put_empty_tagged_fields(buf); // top-level
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
 }
 
@@ -826,6 +903,28 @@ mod tests {
             &v2_consumer[..],
             "v2 omits ReplicaId even when the body is non-default"
         );
+    }
+
+    #[test]
+    fn an_offset_for_leader_epoch_request_sizes_its_body_once() {
+        let topics = vec![OffsetForLeaderTopic::new(
+            "orders",
+            (0..8)
+                .map(|partition| OffsetForLeaderPartition::new(partition, 3, 3))
+                .collect(),
+        )];
+        for version in [2_i16, 4] {
+            let mut buf = BytesMut::new();
+            encode_offset_for_leader_epoch_topics_request(&mut buf, version, &topics).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_offset_for_leader_epoch_topics_request(&mut buf, version, &topics).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+        }
     }
 
     #[test]
