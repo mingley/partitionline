@@ -700,6 +700,7 @@ struct State {
     last_find_coordinator_version: Option<i16>,
     last_find_coordinator_key_count: usize,
     find_coordinator_calls: u32,
+    find_coordinator_delay: Option<Duration>,
     find_coordinator_faults: VecDeque<i16>,
     last_init_producer_id_node: Option<i32>,
     last_init_producer_id_timeout: Option<i32>,
@@ -1186,6 +1187,7 @@ fn new_state(
         last_find_coordinator_version: None,
         last_find_coordinator_key_count: 0,
         find_coordinator_calls: 0,
+        find_coordinator_delay: None,
         find_coordinator_faults: VecDeque::new(),
         last_init_producer_id_node: None,
         last_init_producer_id_timeout: None,
@@ -3931,6 +3933,10 @@ impl Mock {
 
     pub fn fail_init_producer_id_once(&self, code: i16) {
         self.state.lock().init_producer_id_faults.push_back(code);
+    }
+
+    pub fn set_find_coordinator_delay(&self, delay: Duration) {
+        self.state.lock().find_coordinator_delay = Some(delay);
     }
 
     pub fn set_init_producer_id_delay(&self, delay: Duration) {
@@ -7728,6 +7734,10 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
             FIND_COORDINATOR => {
                 let (keys, key_type) =
                     decode_find_coordinator_request_keys(&mut frame, header.api_version).unwrap();
+                let delay = state.lock().find_coordinator_delay;
+                if let Some(delay) = delay {
+                    tokio::time::sleep(delay).await;
+                }
                 let mut st = state.lock();
                 st.find_coordinator_key_types.push(key_type);
                 st.last_find_coordinator_version = Some(header.api_version);

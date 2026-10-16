@@ -793,7 +793,8 @@ impl ConsumerGroup {
         let started = Instant::now()
             .checked_add(cfg.request_timeout)
             .ok_or(Error::Timeout)?;
-        let (consumer, coord) = connect_member_and_coordinator(&cfg, &group_id, started).await?;
+        let (consumer, coord) =
+            connect_member_and_coordinator(&cfg, &group_id, &topics, started).await?;
         let coord = coord?;
 
         let hb_err = Arc::new(AtomicI16::new(0));
@@ -953,7 +954,8 @@ impl ConsumerGroup {
         let started = Instant::now()
             .checked_add(cfg.request_timeout)
             .ok_or(Error::Timeout)?;
-        let (consumer, coord) = connect_member_and_coordinator(&cfg, &group_id, started).await?;
+        let (consumer, coord) =
+            connect_member_and_coordinator(&cfg, &group_id, &topics, started).await?;
         let coord = coord?;
         let hb_err = Arc::new(AtomicI16::new(0));
         let hb_generation = Arc::new(AtomicI32::new(
@@ -4285,6 +4287,7 @@ pub(crate) async fn discover_coord(
 pub(crate) async fn connect_member_and_coordinator(
     cfg: &ConsumerConfig,
     group_id: &str,
+    topics: &[String],
     deadline: Instant,
 ) -> Result<(Consumer, Result<BrokerConn>)> {
     let member = Consumer::connect_within(cfg.clone(), deadline);
@@ -4296,24 +4299,7 @@ pub(crate) async fn connect_member_and_coordinator(
     let mut coordinator_error = None;
     loop {
         if opened_member.is_some() {
-            if let Some(error) = coordinator_error.take() {
-                return Ok((
-                    opened_member
-                        .take()
-                        .ok_or_else(|| Error::protocol("member connection"))?,
-                    Err(error),
-                ));
-            }
-            if opened_coordinator.is_some() {
-                return Ok((
-                    opened_member
-                        .take()
-                        .ok_or_else(|| Error::protocol("member connection"))?,
-                    Ok(opened_coordinator
-                        .take()
-                        .ok_or_else(|| Error::protocol("coordinator connection"))?),
-                ));
-            }
+            break;
         }
         tokio::select! {
             biased;
@@ -4328,6 +4314,58 @@ pub(crate) async fn connect_member_and_coordinator(
             }
         }
     }
+    let mut consumer = opened_member.ok_or_else(|| Error::protocol("member connection"))?;
+    if !topics.is_empty() {
+        let timeout = deadline.saturating_duration_since(Instant::now());
+        if timeout.is_zero() {
+            return Err(Error::Timeout);
+        }
+        let refresh = consumer.refresh_metadata_timeout(Some(topics), timeout);
+        tokio::pin!(refresh);
+        let mut metadata = None;
+        loop {
+            if metadata.is_some() && (opened_coordinator.is_some() || coordinator_error.is_some()) {
+                break;
+            }
+            tokio::select! {
+                biased;
+                result = &mut refresh, if metadata.is_none() => {
+                    metadata = Some(result);
+                }
+                result = &mut coordinator, if opened_coordinator.is_none() && coordinator_error.is_none() => {
+                    match result {
+                        Ok(coord) => opened_coordinator = Some(coord),
+                        Err(error) => coordinator_error = Some(error),
+                    }
+                }
+            }
+        }
+        if coordinator_error.is_none() {
+            metadata.ok_or_else(|| Error::protocol("member metadata"))??;
+        }
+    } else {
+        loop {
+            if opened_coordinator.is_some() || coordinator_error.is_some() {
+                break;
+            }
+            tokio::select! {
+                biased;
+                result = &mut coordinator, if opened_coordinator.is_none() && coordinator_error.is_none() => {
+                    match result {
+                        Ok(coord) => opened_coordinator = Some(coord),
+                        Err(error) => coordinator_error = Some(error),
+                    }
+                }
+            }
+        }
+    }
+    if let Some(error) = coordinator_error {
+        return Ok((consumer, Err(error)));
+    }
+    Ok((
+        consumer,
+        Ok(opened_coordinator.ok_or_else(|| Error::protocol("coordinator connection"))?),
+    ))
 }
 
 pub(crate) async fn discover_coord_within(

@@ -1492,9 +1492,13 @@ impl ShareGroup {
         let mut cfg = cfg;
         cfg.bootstrap = crate::net::parse_and_validate_addresses(&cfg.bootstrap)?;
         let discovery_deadline = Instant::now() + cfg.request_timeout;
-        let (consumer, first_coordinator) =
-            crate::group::connect_member_and_coordinator(&cfg, &group_id, discovery_deadline)
-                .await?;
+        let (consumer, first_coordinator) = crate::group::connect_member_and_coordinator(
+            &cfg,
+            &group_id,
+            &topics,
+            discovery_deadline,
+        )
+        .await?;
         // Membership uses the group coordinator (Java ShareConsumer / DescribeShareGroups).
         // CoordinatorType.SHARE is only for share-partition state keys
         // (`groupId:topicId:partition`), not the group id alone (KIP-932).

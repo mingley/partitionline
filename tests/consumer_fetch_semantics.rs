@@ -4120,6 +4120,27 @@ async fn group_join_dials_the_coordinator_with_the_member() {
     group.leave().await.unwrap();
 }
 
+/// Topic metadata is loaded while coordinator discovery is still running.
+#[tokio::test]
+async fn group_join_loads_metadata_while_finding_the_coordinator() {
+    let mock = common::Mock::start().await;
+    mock.set_topic_partitions("t", 1);
+    mock.set_find_coordinator_delay(Duration::from_millis(250));
+    mock.set_metadata_delay(Duration::from_millis(250));
+    let cfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    let started = Instant::now();
+    let group = ConsumerGroup::join(cfg, "meta-during-find", "t")
+        .await
+        .unwrap();
+    assert_eq!(group.assignment().len(), 1);
+    assert!(
+        started.elapsed() < Duration::from_millis(450),
+        "join loaded metadata after coordinator discovery: {:?}",
+        started.elapsed()
+    );
+    group.leave().await.unwrap();
+}
+
 /// The leader's partition counts come from the metadata refresh that loaded the subscription.
 #[tokio::test]
 async fn group_join_reads_every_topic_from_one_metadata() {
