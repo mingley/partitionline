@@ -11230,6 +11230,72 @@ async fn share_fetch_fenced_sibling_current_leader_unusable_epoch_does_not_overr
 }
 
 #[tokio::test]
+async fn share_fetch_not_leader_sibling_current_leader_unusable_epoch_does_not_override() {
+    let mock = common::Mock::start_two_node().await;
+    v2(&mock);
+    mock.set_topic_partitions("t", 2);
+    mock.set_partition_leader("t", 0, 1);
+    mock.set_partition_leader("t", 1, 1);
+    produce(&mock, &[(1, b"later")]).await;
+    let mut group = ShareGroup::join(config(&mock), "fetch-nl-sib-unusable-cur", "t")
+        .await
+        .unwrap();
+    let version = mock.last_share_fetch_version().unwrap_or(2);
+    let mut failed = ShareFetchedPartition::partition_response(1, error::NOT_LEADER_OR_FOLLOWER);
+    failed.current_leader_id = 2;
+    failed.current_leader_epoch = -1;
+    let topics = vec![ShareFetchedTopic {
+        topic_id: mock.topic_id("t"),
+        partitions: vec![injected_share_success(b"keep"), failed],
+    }];
+    let addr = mock.broker_addr(2).expect("node 2 listening");
+    let (host, port) = addr.rsplit_once(':').expect("host:port");
+    let endpoints = vec![NodeEndpoint::new(
+        2,
+        host,
+        port.parse().expect("port"),
+        None,
+    )];
+    let mut injected = BytesMut::new();
+    encode_share_fetch_response_with_endpoints(&mut injected, version, &topics, &endpoints)
+        .unwrap();
+    mock.inject_share_fetch_response_once(&injected);
+    let first = group.poll().await.unwrap();
+    assert_eq!(first.len(), 1);
+    assert_eq!(first[0].partition, 0);
+    assert_eq!(first[0].value.as_deref(), Some(&b"keep"[..]));
+    assert_eq!(mock.last_share_fetch_node(), Some(1));
+    group.accept(&first).await.unwrap();
+    let after_err = mock.metadata_calls();
+    let history_before = mock.share_fetch_history();
+    let second = group.poll().await.unwrap();
+    assert_eq!(second.len(), 1);
+    assert_eq!(second[0].partition, 1);
+    assert_eq!(second[0].value.as_deref(), Some(&b"later"[..]));
+    let extra: Vec<i32> = mock
+        .share_fetch_history()
+        .iter()
+        .skip(history_before.len())
+        .map(|(node, _)| *node)
+        .collect();
+    assert!(
+        !extra.contains(&2),
+        "Java handleShareFetchSuccess requires leaderEpoch != -1: {extra:?}"
+    );
+    assert_eq!(
+        mock.last_share_fetch_node(),
+        Some(1),
+        "unusable NOT_LEADER CurrentLeader must not retarget a sibling"
+    );
+    assert!(
+        mock.metadata_calls() > after_err,
+        "sibling NOT_LEADER CurrentLeader with leaderEpoch -1 must still request Metadata"
+    );
+    group.accept(&second).await.unwrap();
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn share_fetch_leadership_error_without_current_leader_refreshes_metadata() {
     let mock = common::Mock::start().await;
     v2(&mock);
