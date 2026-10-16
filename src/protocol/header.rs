@@ -499,6 +499,12 @@ pub fn encode_request_header_fields(
     correlation_id: i32,
     client_id: Option<&str>,
 ) -> crate::error::Result<()> {
+    let body_start = buf.len();
+    let planned = request_header_len(api_key, api_version, client_id)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf.put_i16(api_key);
     buf.put_i16(api_version);
     buf.put_i32(correlation_id);
@@ -506,7 +512,28 @@ pub fn encode_request_header_fields(
     if request_header_version(api_key, api_version) >= 2 {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn request_header_len(api_key: i16, api_version: i16, client_id: Option<&str>) -> Result<usize> {
+    let mut total = 8 + classic_client_len(client_id)?;
+    if request_header_version(api_key, api_version) >= 2 {
+        total = total
+            .checked_add(buf::unsigned_varint_size(0))
+            .ok_or_else(|| Error::protocol("request header size overflow"))?;
+    }
+    Ok(total)
+}
+
+fn classic_client_len(client_id: Option<&str>) -> Result<usize> {
+    match client_id {
+        None => Ok(2),
+        Some(client_id) => {
+            let _len = buf::i16_from_usize(client_id.len())?;
+            Ok(2usize.saturating_add(client_id.len()))
+        }
+    }
 }
 
 /// Write [`RequestHeader`].
@@ -547,11 +574,26 @@ pub fn encode_response_header(
     api_version: i16,
     correlation_id: i32,
 ) -> crate::error::Result<()> {
+    let body_start = buf.len();
+    let planned = response_header_len(api_key, api_version);
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf.put_i32(correlation_id);
     if response_header_version(api_key, api_version) >= 1 {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn response_header_len(api_key: i16, api_version: i16) -> usize {
+    let mut total = 4usize;
+    if response_header_version(api_key, api_version) >= 1 {
+        total = total.saturating_add(buf::unsigned_varint_size(0));
+    }
+    total
 }
 
 /// Read [`ResponseHeader`] for `api_key` / `api_version`.
@@ -1511,6 +1553,47 @@ mod tests {
             unknown.to_string(),
             "RequestHeader(apiKey=999, apiVersion=0, clientId=null, correlationId=0, headerVersion=1)"
         );
+    }
+
+    #[test]
+    fn a_request_and_response_headers_size_their_bodies_once() {
+        let mut buf = BytesMut::new();
+        encode_request_header_fields(&mut buf, PRODUCE, 9, 7, Some("partitionline")).unwrap();
+        let len = buf.len();
+        let capacity = buf.capacity();
+        assert!(capacity >= len);
+        assert!(capacity < 64 * 1024);
+        buf.clear();
+        encode_request_header_fields(&mut buf, PRODUCE, 9, 7, Some("partitionline")).unwrap();
+        assert_eq!(buf.len(), len);
+        assert_eq!(buf.capacity(), capacity);
+        let mut cur = &buf[..];
+        let header = decode_request_header(&mut cur).unwrap();
+        assert!(cur.is_empty());
+        assert_eq!(header.api_key, PRODUCE);
+        assert_eq!(header.client_id.as_deref(), Some("partitionline"));
+
+        let mut out = BytesMut::new();
+        encode_response_header(&mut out, PRODUCE, 9, 7).unwrap();
+        let out_len = out.len();
+        let out_capacity = out.capacity();
+        out.clear();
+        encode_response_header(&mut out, PRODUCE, 9, 7).unwrap();
+        assert_eq!(out.len(), out_len);
+        assert_eq!(out.capacity(), out_capacity);
+        let mut cur = &out[..];
+        let response = decode_response_header(&mut cur, PRODUCE, 9).unwrap();
+        assert!(cur.is_empty());
+        assert_eq!(response.correlation_id, 7);
+
+        out.clear();
+        encode_response_header(&mut out, API_VERSIONS, 4, 3).unwrap();
+        let api_len = out.len();
+        let api_capacity = out.capacity();
+        out.clear();
+        encode_response_header(&mut out, API_VERSIONS, 4, 3).unwrap();
+        assert_eq!(out.len(), api_len);
+        assert_eq!(out.capacity(), api_capacity);
     }
 
     #[test]
