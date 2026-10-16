@@ -646,13 +646,57 @@ pub(crate) fn extend_fingerprint(
 ///
 /// A single Kafka record batch stores its CRC32-C at bytes 17..21 over the
 /// suffix starting at byte 21. That suffix is outside the base-offset and
-/// leader-epoch fields, so a validated batch can reuse it.
+/// leader-epoch fields, so a validated batch can reuse it. Several batches
+/// reuse each stored CRC when their lengths tile the payload.
 pub(crate) fn checksum_reusing_record_crc(payload: &[u8], batches: usize) -> u32 {
     if batches == 1 && payload.len() >= 21 {
         let suffix = u32::from_be_bytes([payload[17], payload[18], payload[19], payload[20]]);
         return crc32c::crc32c_combine(crc32c::crc32c(&payload[..21]), suffix, payload.len() - 21);
     }
+    if batches > 1 {
+        if let Some(sum) = checksum_from_batch_crcs(payload, batches) {
+            return sum;
+        }
+    }
     crc32c::crc32c(payload)
+}
+
+/// Journal checksum from each batch CRC when `payload` is exactly `batches` batches.
+///
+/// Each batch length must cover that batch, and the stored CRC must sit at
+/// bytes 17..21. A shape that does not match returns `None` so the caller
+/// hashes the bytes directly.
+fn checksum_from_batch_crcs(payload: &[u8], batches: usize) -> Option<u32> {
+    let mut fingerprint = 0u32;
+    let mut offset = 0usize;
+    for _ in 0..batches {
+        let header = payload.get(offset..offset.checked_add(21)?)?;
+        let length_bytes: [u8; 4] = header.get(8..12)?.try_into().ok()?;
+        let batch_len = usize::try_from(i32::from_be_bytes(length_bytes))
+            .ok()?
+            .checked_add(12)?;
+        if batch_len < 21 {
+            return None;
+        }
+        let end = offset.checked_add(batch_len)?;
+        if end > payload.len() {
+            return None;
+        }
+        let crc_bytes: [u8; 4] = header.get(17..21)?.try_into().ok()?;
+        let suffix_len = batch_len.checked_sub(21)?;
+        fingerprint = extend_fingerprint(
+            fingerprint,
+            header,
+            u32::from_be_bytes(crc_bytes),
+            suffix_len,
+        );
+        offset = end;
+    }
+    if offset == payload.len() {
+        Some(fingerprint)
+    } else {
+        None
+    }
 }
 
 fn corrupt(position: u64, kind: Corruption) -> Error {
@@ -1743,6 +1787,23 @@ mod tests {
             checksum_reusing_record_crc(b"short", 1),
             crc32c::crc32c(b"short")
         );
+        let mut first = batch_with_suffix(b"alpha-batch");
+        let second = batch_with_suffix(b"beta-batch-bytes");
+        first.extend_from_slice(&second);
+        assert_eq!(
+            checksum_reusing_record_crc(&first, 2),
+            crc32c::crc32c(&first)
+        );
+    }
+
+    fn batch_with_suffix(suffix: &[u8]) -> Vec<u8> {
+        let mut payload = vec![0u8; 21 + suffix.len()];
+        payload[21..].copy_from_slice(suffix);
+        let batch_len = i32::try_from(payload.len() - 12).expect("batch length");
+        payload[8..12].copy_from_slice(&batch_len.to_be_bytes());
+        let crc = crc32c::crc32c(&payload[21..]);
+        payload[17..21].copy_from_slice(&crc.to_be_bytes());
+        payload
     }
 
     #[test]
