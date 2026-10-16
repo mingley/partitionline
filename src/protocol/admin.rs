@@ -3375,10 +3375,11 @@ impl IncrementalAlterConfigsResponse {
 
     /// Java `IncrementalAlterConfigsResponse(int, Map)` encode.
     ///
-    /// Responses are [`Self::from_errors`]. ThrottleTimeMs is written
-    /// from `throttle_time_ms` on every spoken version (JSON `0+`).
-    /// Convenience [`encode_incremental_alter_configs_resource_results`]
-    /// still writes throttle `0`. Distinct from
+    /// Each resource name and error message is written from the caller.
+    /// ThrottleTimeMs is written from `throttle_time_ms` on every spoken
+    /// version (JSON `0+`). Convenience
+    /// [`encode_incremental_alter_configs_resource_results`] still writes
+    /// throttle `0`. Distinct from
     /// [`IncrementalAlterConfigsRequest::error_response`] (null
     /// ErrorMessage; Java does not set throttle). This crate speaks 0–1.
     /// This is not [`Self::from_errors`] / Request getErrorResponse /
@@ -3392,12 +3393,30 @@ impl IncrementalAlterConfigsResponse {
     where
         I: IntoIterator<Item = (i8, &'a str, ApiError)>,
     {
-        encode_incremental_alter_configs_resource_results_with_throttle(
-            buf,
-            version,
-            &Self::from_errors(results),
-            throttle_time_ms,
-        )
+        let flexible = incremental_alter_configs_flexible(version)?;
+        let rows: Vec<(i8, &str, ApiError)> = results.into_iter().collect();
+        let body_start = buf.len();
+        let planned = incremental_alter_configs_reported_len(flexible, &rows)?;
+        let needed = body_start.saturating_add(planned);
+        if buf.capacity() < needed {
+            buf.reserve(needed - buf.capacity());
+        }
+        buf.put_i32(throttle_time_ms);
+        buf::put_array_len(buf, flexible, Some(rows.len()))?;
+        for (resource_type, name, error) in &rows {
+            buf.put_i16(error.error());
+            buf::put_string(buf, flexible, error.message())?;
+            buf.put_i8(*resource_type);
+            buf::put_string(buf, flexible, Some(name))?;
+            if flexible {
+                buf::put_empty_tagged_fields(buf);
+            }
+        }
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+        debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+        Ok(())
     }
 }
 
@@ -3807,6 +3826,27 @@ fn incremental_alter_configs_error_len(
         total = add_describe_len(total, describe_string_len(flexible, None)?)?;
         total = add_describe_len(total, 1)?;
         total = add_describe_len(total, describe_string_len(flexible, Some(&resource.name))?)?;
+        if flexible {
+            total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    if flexible {
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
+}
+
+fn incremental_alter_configs_reported_len(
+    flexible: bool,
+    rows: &[(i8, &str, ApiError)],
+) -> Result<usize> {
+    let mut total = 4usize;
+    total = add_describe_len(total, describe_array_len(flexible, rows.len())?)?;
+    for (_, name, error) in rows {
+        total = add_describe_len(total, 2)?;
+        total = add_describe_len(total, describe_string_len(flexible, error.message())?)?;
+        total = add_describe_len(total, 1)?;
+        total = add_describe_len(total, describe_string_len(flexible, Some(name))?)?;
         if flexible {
             total = add_describe_len(total, buf::unsigned_varint_size(0))?;
         }
@@ -23882,6 +23922,74 @@ mod tests {
                 cur.remaining()
             );
         }
+    }
+
+    #[test]
+    fn incremental_alter_configs_encode_from_errors_matches_reported_results() {
+        let denied = crate::error::ApiError::from_code(
+            crate::error::TOPIC_AUTHORIZATION_FAILED,
+            Some("no".into()),
+        );
+        let none = crate::error::ApiError::NONE;
+        let invalid = crate::error::ApiError::from_code(crate::error::INVALID_CONFIG, None);
+        let rows = [
+            (RESOURCE_TOPIC, "orders-topic-name-is-long", denied),
+            (RESOURCE_BROKER, "1", none),
+            (RESOURCE_TOPIC, "orders-topic-name-is-long", invalid),
+        ];
+        for version in [0_i16, 1] {
+            for throttle in [0_i32, 12] {
+                let reported = IncrementalAlterConfigsResponse::from_errors(
+                    rows.iter()
+                        .map(|(resource_type, name, error)| (*resource_type, *name, error.clone())),
+                );
+                let mut expected = BytesMut::new();
+                encode_incremental_alter_configs_resource_results_with_throttle(
+                    &mut expected,
+                    version,
+                    &reported,
+                    throttle,
+                )
+                .unwrap();
+                let mut got = BytesMut::new();
+                IncrementalAlterConfigsResponse::encode_from_errors(
+                    &mut got,
+                    version,
+                    rows.iter()
+                        .map(|(resource_type, name, error)| (*resource_type, *name, error.clone())),
+                    throttle,
+                )
+                .unwrap();
+                assert_eq!(
+                    got.as_ref(),
+                    expected.as_ref(),
+                    "version {version} throttle {throttle}"
+                );
+                let len = got.len();
+                let capacity = got.capacity();
+                assert!(capacity >= len);
+                assert!(capacity < 64 * 1024);
+                got.clear();
+                IncrementalAlterConfigsResponse::encode_from_errors(
+                    &mut got,
+                    version,
+                    rows.iter()
+                        .map(|(resource_type, name, error)| (*resource_type, *name, error.clone())),
+                    throttle,
+                )
+                .unwrap();
+                assert_eq!(got.len(), len);
+                assert_eq!(got.capacity(), capacity);
+            }
+        }
+        assert!(IncrementalAlterConfigsResponse::encode_from_errors(
+            &mut BytesMut::new(),
+            2,
+            rows.iter()
+                .map(|(resource_type, name, error)| (*resource_type, *name, error.clone())),
+            0,
+        )
+        .is_err());
     }
 
     #[test]
