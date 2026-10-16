@@ -3648,6 +3648,12 @@ pub fn encode_alter_configs_resources_request(
     validate_only: bool,
 ) -> crate::error::Result<()> {
     let flexible = alter_configs_flexible(version)?;
+    let body_start = buf.len();
+    let planned = alter_configs_request_len(flexible, resources)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf::put_array_len(buf, flexible, Some(resources.len()))?;
     for r in resources {
         buf.put_i8(r.resource_type);
@@ -3668,7 +3674,35 @@ pub fn encode_alter_configs_resources_request(
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn alter_configs_request_len(flexible: bool, resources: &[AlterConfigsResource]) -> Result<usize> {
+    let mut total = describe_array_len(flexible, resources.len())?;
+    for resource in resources {
+        total = add_describe_len(total, 1)?;
+        total = add_describe_len(total, describe_string_len(flexible, Some(&resource.name))?)?;
+        total = add_describe_len(total, describe_array_len(flexible, resource.configs.len())?)?;
+        for config in &resource.configs {
+            total = add_describe_len(total, describe_string_len(flexible, Some(&config.name))?)?;
+            total = add_describe_len(
+                total,
+                describe_string_len(flexible, config.value.as_deref())?,
+            )?;
+            if flexible {
+                total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+            }
+        }
+        if flexible {
+            total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    total = add_describe_len(total, 1)?;
+    if flexible {
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 /// Decode an AlterConfigs request (first resource).
@@ -3766,6 +3800,12 @@ pub fn encode_alter_configs_resource_results_with_throttle(
     throttle_time_ms: i32,
 ) -> crate::error::Result<()> {
     let flexible = alter_configs_flexible(version)?;
+    let body_start = buf.len();
+    let planned = alter_configs_response_len(flexible, results)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf.put_i32(throttle_time_ms);
     buf::put_array_len(buf, flexible, Some(results.len()))?;
     for r in results {
@@ -3780,7 +3820,32 @@ pub fn encode_alter_configs_resource_results_with_throttle(
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn alter_configs_response_len(
+    flexible: bool,
+    results: &[AlterConfigsResourceResult],
+) -> Result<usize> {
+    let mut total = 4;
+    total = add_describe_len(total, describe_array_len(flexible, results.len())?)?;
+    for result in results {
+        total = add_describe_len(total, 2)?;
+        total = add_describe_len(
+            total,
+            describe_string_len(flexible, result.error_message.as_deref())?,
+        )?;
+        total = add_describe_len(total, 1)?;
+        total = add_describe_len(total, describe_string_len(flexible, Some(&result.name))?)?;
+        if flexible {
+            total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    if flexible {
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 /// Decode an AlterConfigs response (first resource error).
@@ -24958,6 +25023,90 @@ mod tests {
                 cur.is_empty(),
                 "DescribeConfigs v{version} getErrorResponse leftover-empty"
             );
+        }
+    }
+
+    #[test]
+    fn a_alter_configs_request_sizes_its_body_once() {
+        let resources = vec![
+            AlterConfigsResource {
+                resource_type: RESOURCE_TOPIC,
+                name: "orders".into(),
+                configs: vec![
+                    TopicConfig {
+                        name: "cleanup.policy".into(),
+                        value: Some("compact".into()),
+                    },
+                    TopicConfig {
+                        name: "retention.ms".into(),
+                        value: None,
+                    },
+                ],
+            },
+            AlterConfigsResource {
+                resource_type: RESOURCE_BROKER,
+                name: "1".into(),
+                configs: vec![TopicConfig {
+                    name: "log.retention.hours".into(),
+                    value: Some("168".into()),
+                }],
+            },
+        ];
+        for version in [0_i16, 1, 2] {
+            let mut buf = BytesMut::new();
+            encode_alter_configs_resources_request(&mut buf, version, &resources, true).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_alter_configs_resources_request(&mut buf, version, &resources, true).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+            let mut cur = &buf[..];
+            let (decoded, validate_only) =
+                decode_alter_configs_resources_request(&mut cur, version).unwrap();
+            assert!(cur.is_empty());
+            assert_eq!(decoded, resources);
+            assert!(validate_only);
+        }
+    }
+
+    #[test]
+    fn a_alter_configs_response_sizes_its_body_once() {
+        let results = vec![
+            AlterConfigsResourceResult {
+                error_code: 0,
+                error_message: None,
+                resource_type: RESOURCE_TOPIC,
+                name: "orders".into(),
+            },
+            AlterConfigsResourceResult {
+                error_code: 3,
+                error_message: Some("busy".into()),
+                resource_type: RESOURCE_BROKER,
+                name: "1".into(),
+            },
+        ];
+        for version in [0_i16, 1, 2] {
+            let mut buf = BytesMut::new();
+            encode_alter_configs_resource_results_with_throttle(&mut buf, version, &results, 12)
+                .unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_alter_configs_resource_results_with_throttle(&mut buf, version, &results, 12)
+                .unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+            let mut cur = &buf[..];
+            let (decoded, throttle) =
+                decode_alter_configs_resource_results(&mut cur, version).unwrap();
+            assert!(cur.is_empty());
+            assert_eq!(decoded, results);
+            assert_eq!(throttle, 12);
         }
     }
 
