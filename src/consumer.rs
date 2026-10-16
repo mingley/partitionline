@@ -4418,7 +4418,8 @@ impl Consumer {
         partition: i32,
         deadline: Instant,
     ) -> Result<()> {
-        self.recover_leader_epochs(&[(topic.to_string(), partition)], deadline)
+        let topic: Arc<str> = Arc::from(topic);
+        self.recover_leader_epochs(&[(topic, partition)], deadline)
             .await
     }
 
@@ -4446,7 +4447,7 @@ impl Consumer {
 
     async fn recover_leader_epochs(
         &mut self,
-        coords: &[(String, i32)],
+        coords: &[(Arc<str>, i32)],
         deadline: Instant,
     ) -> Result<()> {
         if coords.is_empty() {
@@ -4460,7 +4461,7 @@ impl Consumer {
         for (topic, partition) in coords {
             let _ = self.preferred.remove(topic, *partition);
         }
-        let names = unique_coord_topics(coords.iter().map(|(topic, _)| topic.as_str()));
+        let names = unique_coord_topics(coords.iter().map(|(topic, _)| topic.as_ref()));
         self.refresh_metadata_timeout(
             Some(&names),
             remaining_offset_timeout(deadline, Instant::now()),
@@ -4468,7 +4469,7 @@ impl Consumer {
         .await?;
         let mut remaining: Vec<(&str, i32)> = coords
             .iter()
-            .map(|(topic, partition)| (topic.as_str(), *partition))
+            .map(|(topic, partition)| (topic.as_ref(), *partition))
             .collect();
         remaining.sort();
         remaining.dedup();
@@ -5433,9 +5434,12 @@ impl Consumer {
                 fenced.dedup();
                 let recovery = self.recover_leader_epochs(&fenced, deadline).await;
                 for (topic, partition) in &fenced {
-                    if let Ok(cursor) = self.fetch_cursor(topic, *partition) {
+                    if let Ok(cursor) = self.fetch_cursor(topic.as_ref(), *partition) {
                         out_bytes = out_bytes.saturating_sub(drop_records_at_or_after(
-                            &mut out, topic, *partition, cursor,
+                            &mut out,
+                            topic.as_ref(),
+                            *partition,
+                            cursor,
                         ));
                     }
                 }
@@ -6119,7 +6123,7 @@ impl Consumer {
         body: FetchBody,
         out: &mut Vec<FetchedRecord>,
         out_bytes: &mut usize,
-        fenced: &mut Vec<(String, i32)>,
+        fenced: &mut Vec<(Arc<str>, i32)>,
         need_offsets: &mut Vec<(String, i32, i64)>,
         completed: &mut PartitionMap<()>,
         budget_reached: &mut bool,
@@ -6306,7 +6310,7 @@ impl Consumer {
                 if part.error_code == error::FENCED_LEADER_EPOCH
                     || part.error_code == error::UNKNOWN_LEADER_EPOCH
                 {
-                    fenced.push((name.as_ref().to_owned(), part.partition));
+                    fenced.push((Arc::clone(&name), part.partition));
                     continue;
                 }
                 if part.error_code != 0 {
