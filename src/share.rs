@@ -757,6 +757,12 @@ pub enum ShareAcquireMode {
 /// `CORRUPT_MESSAGE` still fails that poll and does not request
 /// Metadata, including when `ErrorMessage` is set or empty (a
 /// partition `CORRUPT_MESSAGE` still throws). Top-level
+/// `TOPIC_AUTHORIZATION_FAILED` still fails that poll and does not
+/// request Metadata, including when `ErrorMessage` is set (Java
+/// `handleShareFetchSuccess` only `requestUpdate`s for
+/// `UNKNOWN_TOPIC_ID`; a partition `TOPIC_AUTHORIZATION_FAILED`
+/// still throws with `unauthorizedTopics` equal to the topic name).
+/// Top-level
 /// `SHARE_SESSION_LIMIT_REACHED` resets the share session and does
 /// not request Metadata, including when `ErrorMessage` is set or
 /// empty (Java `handleShareFetchSuccess` only `requestUpdate`s for
@@ -1945,6 +1951,12 @@ impl ShareGroup {
     /// `CORRUPT_MESSAGE` still fails that poll without Metadata,
     /// including when `ErrorMessage` is set or empty (a partition
     /// `CORRUPT_MESSAGE` still throws). Top-level
+    /// `TOPIC_AUTHORIZATION_FAILED` still fails that poll without
+    /// Metadata, including when `ErrorMessage` is set (Java
+    /// `handleShareFetchSuccess` only `requestUpdate`s for
+    /// `UNKNOWN_TOPIC_ID`; a partition `TOPIC_AUTHORIZATION_FAILED`
+    /// still throws with `unauthorizedTopics` equal to the topic
+    /// name). Top-level
     /// `SHARE_SESSION_LIMIT_REACHED` resets the share session and
     /// does not request Metadata, including when `ErrorMessage` is
     /// set or empty (Java `handleShareFetchSuccess` only
