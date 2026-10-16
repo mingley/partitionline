@@ -5312,6 +5312,12 @@ fn encode_reassignment_request_fields(
         ));
     }
     validate_reassignment_topics(topics)?;
+    let body_start = buf.len();
+    let planned = reassignment_request_len(version, topics)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf.put_i32(timeout_ms);
     if version >= 1 {
         buf.put_u8(u8::from(allow));
@@ -5328,7 +5334,43 @@ fn encode_reassignment_request_fields(
         buf::put_empty_tagged_fields(buf);
     }
     buf::put_empty_tagged_fields(buf);
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn reassignment_request_len(version: i16, topics: &[ReassignableTopic]) -> Result<usize> {
+    let mut total = 4;
+    if version >= 1 {
+        total = add_describe_len(total, 1)?;
+    }
+    total = add_describe_len(total, describe_array_len(true, topics.len())?)?;
+    for topic in topics {
+        total = add_describe_len(total, describe_string_len(true, Some(&topic.name))?)?;
+        total = add_describe_len(total, describe_array_len(true, topic.partitions.len())?)?;
+        for partition in &topic.partitions {
+            total = add_describe_len(total, 4)?;
+            total = add_describe_len(
+                total,
+                reassignment_replica_len(partition.replicas.as_deref())?,
+            )?;
+            total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+        }
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    add_describe_len(total, buf::unsigned_varint_size(0))
+}
+
+fn reassignment_replica_len(replicas: Option<&[i32]>) -> Result<usize> {
+    let Some(replicas) = replicas else {
+        return Ok(buf::unsigned_varint_size(0));
+    };
+    let total = describe_array_len(true, replicas.len())?;
+    add_describe_len(
+        total,
+        replicas.len().checked_mul(4).ok_or_else(|| {
+            Error::protocol("alter partition reassignments request size overflow")
+        })?,
+    )
 }
 
 /// Encode all fields for version0 or1; reject an unrepresentable policy before output.
@@ -5494,6 +5536,12 @@ fn encode_reassignment_response_fields(
             "reassignment response body exceeds16MiB",
         ));
     }
+    let body_start = buf.len();
+    let planned = reassignment_response_len(version, resp)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf.put_i32(resp.throttle_time_ms);
     if version >= 1 {
         buf.put_u8(u8::from(allow));
@@ -5513,7 +5561,37 @@ fn encode_reassignment_response_fields(
         buf::put_empty_tagged_fields(buf);
     }
     buf::put_empty_tagged_fields(buf);
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn reassignment_response_len(
+    version: i16,
+    resp: &AlterPartitionReassignmentsResponse,
+) -> Result<usize> {
+    let mut total = 6;
+    if version >= 1 {
+        total = add_describe_len(total, 1)?;
+    }
+    total = add_describe_len(
+        total,
+        describe_string_len(true, resp.error_message.as_deref())?,
+    )?;
+    total = add_describe_len(total, describe_array_len(true, resp.results.len())?)?;
+    for topic in &resp.results {
+        total = add_describe_len(total, describe_string_len(true, Some(&topic.name))?)?;
+        total = add_describe_len(total, describe_array_len(true, topic.partitions.len())?)?;
+        for partition in &topic.partitions {
+            total = add_describe_len(total, 6)?;
+            total = add_describe_len(
+                total,
+                describe_string_len(true, partition.error_message.as_deref())?,
+            )?;
+            total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+        }
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    add_describe_len(total, buf::unsigned_varint_size(0))
 }
 
 /// Encode a complete version0–1 response; v0 omits its ignorable policy field.
@@ -26476,6 +26554,85 @@ mod tests {
             err.throttle_time_ms, 0,
             "AlterPartitionReassignmentsResponse::error still fills ThrottleTimeMs 0"
         );
+    }
+
+    #[test]
+    fn a_alter_partition_reassignments_request_sizes_its_body_once() {
+        let topics = vec![ReassignableTopic::new(
+            "orders",
+            vec![
+                ReassignablePartition::new(0, Some(vec![1, 2])),
+                ReassignablePartition::new(1, None),
+            ],
+        )];
+        let request = AlterPartitionReassignmentsRequestData {
+            timeout_ms: 5_000,
+            allow_replication_factor_change: true,
+            topics: topics.clone(),
+        };
+        for version in [0_i16, 1] {
+            let mut buf = BytesMut::new();
+            encode_alter_partition_reassignments_request_data(&mut buf, version, &request).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_alter_partition_reassignments_request_data(&mut buf, version, &request).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+            let mut cur = &buf[..];
+            let decoded =
+                decode_alter_partition_reassignments_request_data(&mut cur, version).unwrap();
+            assert!(cur.is_empty());
+            assert_eq!(decoded, request);
+        }
+    }
+
+    #[test]
+    fn a_alter_partition_reassignments_response_sizes_its_body_once() {
+        let response = AlterPartitionReassignmentsResponse {
+            throttle_time_ms: 12,
+            error_code: 0,
+            error_message: Some("moved".into()),
+            results: vec![ReassignmentTopicResult::new(
+                "orders",
+                vec![
+                    ReassignmentPartitionResult {
+                        partition_index: 0,
+                        error_code: 0,
+                        error_message: None,
+                    },
+                    ReassignmentPartitionResult {
+                        partition_index: 1,
+                        error_code: 3,
+                        error_message: Some("busy".into()),
+                    },
+                ],
+            )],
+        };
+        for version in [0_i16, 1] {
+            let data = AlterPartitionReassignmentsResponseData {
+                response: response.clone(),
+                allow_replication_factor_change: true,
+            };
+            let mut buf = BytesMut::new();
+            encode_alter_partition_reassignments_response_data(&mut buf, version, &data).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_alter_partition_reassignments_response_data(&mut buf, version, &data).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+            let mut cur = &buf[..];
+            let decoded =
+                decode_alter_partition_reassignments_response_data(&mut cur, version).unwrap();
+            assert!(cur.is_empty());
+            assert_eq!(decoded.response, response);
+            assert!(decoded.allow_replication_factor_change);
+        }
     }
 
     #[test]
