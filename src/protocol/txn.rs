@@ -1895,16 +1895,19 @@ impl WriteTxnMarkersRequest {
         let mut by_producer: HashMap<i64, Vec<(String, i32)>> = HashMap::new();
         for marker in markers {
             let mut partition_order: Vec<(String, i32)> = Vec::new();
-            let mut errors_per_partition: HashMap<(String, i32), i16> = HashMap::new();
+            let mut seen: HashMap<&str, HashSet<i32>> = HashMap::new();
             for topic in &marker.topics {
+                if !seen.contains_key(topic.name.as_str()) {
+                    let _ = seen.insert(topic.name.as_str(), HashSet::new());
+                }
+                let Some(parts) = seen.get_mut(topic.name.as_str()) else {
+                    continue;
+                };
                 for &partition in &topic.partitions {
-                    let key = (topic.name.clone(), partition);
-                    if errors_per_partition
-                        .insert(key.clone(), error_code)
-                        .is_none()
-                    {
-                        partition_order.push(key);
+                    if !parts.insert(partition) {
+                        continue;
                     }
+                    partition_order.push((topic.name.clone(), partition));
                 }
             }
             if by_producer
