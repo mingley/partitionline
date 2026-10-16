@@ -408,14 +408,18 @@ impl FetchRequest {
         let mut fetch_data = HashMap::new();
         for topic in topics {
             let name = if version < 13 {
-                Some(topic.topic.clone())
+                Some(topic.topic.as_str())
             } else {
-                topic_names.get(&topic.topic_id).cloned()
+                topic_names.get(&topic.topic_id).map(String::as_str)
             };
+            let mut parts: HashMap<i32, &FetchPartition> = HashMap::new();
             for partition in &topic.partitions {
+                let _prev = parts.insert(partition.partition, partition);
+            }
+            for (partition, data) in parts {
                 let _prev = fetch_data.insert(
-                    (topic.topic_id, name.clone(), partition.partition),
-                    partition.clone(),
+                    (topic.topic_id, name.map(str::to_owned), partition),
+                    data.clone(),
                 );
             }
         }

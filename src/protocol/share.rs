@@ -314,11 +314,15 @@ impl ShareFetchRequest {
     ) -> HashMap<([u8; 16], Option<String>, i32), i32> {
         let mut share_fetch_data = HashMap::new();
         for topic in topics {
-            let name = topic_names.get(&topic.topic_id).cloned();
+            let name = topic_names.get(&topic.topic_id).map(String::as_str);
+            let mut parts = HashMap::new();
             for partition in &topic.partitions {
+                let _prev = parts.insert(partition.partition, partition.partition_max_bytes);
+            }
+            for (partition, max_bytes) in parts {
                 let _prev = share_fetch_data.insert(
-                    (topic.topic_id, name.clone(), partition.partition),
-                    partition.partition_max_bytes,
+                    (topic.topic_id, name.map(str::to_owned), partition),
+                    max_bytes,
                 );
             }
         }

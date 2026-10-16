@@ -13035,7 +13035,7 @@ impl Admin {
         if replicas.is_empty() {
             return Ok(Vec::new());
         }
-        let mut infos: HashMap<(String, i32, i32), ReplicaLogDirInfo> = HashMap::new();
+        let mut infos: HashMap<String, HashMap<(i32, i32), ReplicaLogDirInfo>> = HashMap::new();
         for broker_id in replica_broker_ids(&replicas) {
             let topics = describable_topics_for_broker(&replicas, broker_id);
             let resp = self
@@ -13046,13 +13046,19 @@ impl Admin {
             }
             for r in replicas.iter().filter(|r| r.broker_id == broker_id) {
                 let info = replica_log_dir_info_from(r, &resp.results);
-                let _ = infos.insert((r.topic.clone(), r.partition, r.broker_id), info);
+                if !infos.contains_key(r.topic.as_str()) {
+                    let _ = infos.insert(r.topic.clone(), HashMap::new());
+                }
+                if let Some(parts) = infos.get_mut(r.topic.as_str()) {
+                    let _ = parts.insert((r.partition, r.broker_id), info);
+                }
             }
         }
         let mut out = Vec::with_capacity(replicas.len());
         for r in replicas {
             let info = infos
-                .get(&(r.topic.clone(), r.partition, r.broker_id))
+                .get(r.topic.as_str())
+                .and_then(|parts| parts.get(&(r.partition, r.broker_id)))
                 .cloned()
                 .unwrap_or_else(ReplicaLogDirInfo::unknown);
             out.push((r, info));
