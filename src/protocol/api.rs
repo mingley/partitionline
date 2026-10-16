@@ -1759,6 +1759,105 @@ pub fn encode_metadata_request_with(
     )
 }
 
+fn add_metadata_len(total: usize, next: usize) -> Result<usize> {
+    total
+        .checked_add(next)
+        .ok_or_else(|| Error::protocol("metadata request size overflow"))
+}
+
+fn metadata_array_len(flexible: bool, len: Option<usize>) -> Result<usize> {
+    match len {
+        None => Ok(if flexible {
+            buf::unsigned_varint_size(0)
+        } else {
+            4
+        }),
+        Some(len) => {
+            if flexible {
+                let value = buf::u32_from_usize(len)?
+                    .checked_add(1)
+                    .ok_or_else(|| Error::protocol("compact array overflow"))?;
+                Ok(buf::unsigned_varint_size(value))
+            } else {
+                let _len = buf::i32_from_usize(len)?;
+                Ok(4)
+            }
+        }
+    }
+}
+
+fn metadata_string_len(flexible: bool, value: Option<&str>) -> Result<usize> {
+    match value {
+        None => Ok(if flexible {
+            buf::unsigned_varint_size(0)
+        } else {
+            2
+        }),
+        Some(value) => {
+            if flexible {
+                let encoded = buf::u32_from_usize(value.len())?
+                    .checked_add(1)
+                    .ok_or_else(|| Error::protocol("compact string overflow"))?;
+                Ok(buf::unsigned_varint_size(encoded).saturating_add(value.len()))
+            } else {
+                let _len = buf::i16_from_usize(value.len())?;
+                Ok(2usize.saturating_add(value.len()))
+            }
+        }
+    }
+}
+
+fn metadata_request_tail_len(version: i16) -> usize {
+    let mut total = 0usize;
+    if version >= 4 {
+        total += 1;
+    }
+    if (8..=10).contains(&version) {
+        total += 1;
+    }
+    if version >= 8 {
+        total += 1;
+    }
+    if version >= 9 {
+        total += buf::unsigned_varint_size(0);
+    }
+    total
+}
+
+fn metadata_topic_rows_len(
+    version: i16,
+    flexible: bool,
+    count: usize,
+    names: usize,
+) -> Result<usize> {
+    let mut total = metadata_array_len(flexible, Some(count))?;
+    if version >= 10 {
+        total = add_metadata_len(
+            total,
+            count
+                .checked_mul(16)
+                .ok_or_else(|| Error::protocol("metadata request size overflow"))?,
+        )?;
+    }
+    total = add_metadata_len(total, names)?;
+    if flexible {
+        total = add_metadata_len(
+            total,
+            count
+                .checked_mul(buf::unsigned_varint_size(0))
+                .ok_or_else(|| Error::protocol("metadata request size overflow"))?,
+        )?;
+    }
+    Ok(total)
+}
+
+fn reserve_metadata_body(buf: &mut BytesMut, planned: usize) {
+    let needed = buf.len().saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
+}
+
 /// Encode a name-based Metadata request from text the caller already holds.
 ///
 /// The bytes match [`encode_metadata_request`] for the same names.
@@ -1791,6 +1890,20 @@ fn encode_named_metadata_request<T: AsRef<str>>(
     // builder checks cannot fail. `None` still runs the version checks.
     MetadataRequest::build(version, None, allow_auto)?;
     let flexible = version >= 9;
+    let body_start = buf.len();
+    let rows = match topics {
+        None => metadata_array_len(flexible, None)?,
+        Some(topics) => {
+            let mut names = 0usize;
+            for topic in topics.iter() {
+                names =
+                    add_metadata_len(names, metadata_string_len(flexible, Some(topic.as_ref()))?)?;
+            }
+            metadata_topic_rows_len(version, flexible, topics.len(), names)?
+        }
+    };
+    let planned = add_metadata_len(rows, metadata_request_tail_len(version))?;
+    reserve_metadata_body(buf, planned);
     match topics {
         None => buf::put_array_len(buf, flexible, None)?,
         Some(topics) => {
@@ -1812,7 +1925,9 @@ fn encode_named_metadata_request<T: AsRef<str>>(
         allow_auto,
         include_topic_authorized_operations,
         false,
-    )
+    )?;
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+    Ok(())
 }
 
 fn write_metadata_request_tail(
@@ -1892,6 +2007,20 @@ pub fn encode_metadata_request_topics_with_include_cluster_authorized_operations
     }
     MetadataRequest::build(version, topics, allow_auto)?;
     let flexible = version >= 9;
+    let body_start = buf.len();
+    let rows = match topics {
+        None => metadata_array_len(flexible, None)?,
+        Some(topics) => {
+            let mut names = 0usize;
+            for topic in topics {
+                names =
+                    add_metadata_len(names, metadata_string_len(flexible, topic.name.as_deref())?)?;
+            }
+            metadata_topic_rows_len(version, flexible, topics.len(), names)?
+        }
+    };
+    let planned = add_metadata_len(rows, metadata_request_tail_len(version))?;
+    reserve_metadata_body(buf, planned);
     match topics {
         None => buf::put_array_len(buf, flexible, None)?,
         Some(topics) => {
@@ -1913,7 +2042,9 @@ pub fn encode_metadata_request_topics_with_include_cluster_authorized_operations
         allow_auto,
         include_topic_authorized_operations,
         include_cluster_authorized_operations,
-    )
+    )?;
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+    Ok(())
 }
 
 /// Decode Metadata request: topic names (`None` is all topics),
@@ -7356,6 +7487,44 @@ mod tests {
             &v3[..],
             "v1 and v3 both omit AllowAutoTopicCreation"
         );
+    }
+
+    #[test]
+    fn a_metadata_request_sizes_its_body_once() {
+        let names = vec![
+            "orders".to_string(),
+            "payments".to_string(),
+            "trades".to_string(),
+            "quotes".to_string(),
+        ];
+        for version in [4_i16, 9, 12] {
+            let mut buf = BytesMut::new();
+            encode_metadata_request(&mut buf, version, Some(&names), false).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_metadata_request(&mut buf, version, Some(&names), false).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+        }
+        let topics = vec![
+            MetadataRequestTopic::by_name("orders"),
+            MetadataRequestTopic {
+                name: None,
+                topic_id: [2; 16],
+            },
+        ];
+        let mut buf = BytesMut::new();
+        encode_metadata_request_topics(&mut buf, 12, Some(&topics), true, false).unwrap();
+        let len = buf.len();
+        let capacity = buf.capacity();
+        assert!(capacity >= len);
+        buf.clear();
+        encode_metadata_request_topics(&mut buf, 12, Some(&topics), true, false).unwrap();
+        assert_eq!(buf.len(), len);
+        assert_eq!(buf.capacity(), capacity);
     }
 
     #[test]
