@@ -2034,6 +2034,9 @@ pub struct Consumer {
     spare_connected: Vec<i32>,
     /// Previous fetch topic bodies. The next response refills their partition vectors.
     spare_fetch_topics: Vec<crate::protocol::fetch::FetchedTopic>,
+    /// Topic names from the previous metadata refresh. A steady assignment
+    /// refills these strings instead of allocating them again.
+    metadata_topics: Vec<String>,
     reconnect_fails: HashMap<i32, u32>,
     /// Leaders whose Fetch was sent and not yet applied. A multi-leader round
     /// returns after [`MULTI_LEADER_COLLECTION_WINDOW`] once any peer has
@@ -2879,6 +2882,7 @@ impl Consumer {
             spare_connected: Vec::new(),
             rack_id,
             spare_fetch_topics: Vec::new(),
+            metadata_topics: Vec::new(),
             reconnect_fails: HashMap::new(),
             inflight_fetches: None,
             inflight_nodes: HashSet::new(),
@@ -5118,26 +5122,25 @@ impl Consumer {
                 self.cfg.metadata_max_age,
             );
             if metadata_stale {
-                let mut topics = Vec::new();
-                let mut seen = HashSet::new();
-                for (t, p, _) in &self.assigned {
-                    if completed.contains(t, *p) {
-                        continue;
-                    }
-                    if seen.insert(t.as_ref()) {
-                        topics.push(t.as_ref().to_owned());
-                    }
-                }
+                let mut topics = std::mem::take(&mut self.metadata_topics);
+                fill_reused_topics(
+                    &mut topics,
+                    self.assigned.iter().filter_map(|(topic, partition, _)| {
+                        (!completed.contains(topic, *partition)).then_some(topic.as_ref())
+                    }),
+                );
                 if Instant::now() >= deadline {
+                    self.restore_metadata_topics(topics);
                     return self.fetched_or_timeout(out, Error::Timeout);
                 }
-                if let Err(error) = self
+                let refreshed = self
                     .refresh_metadata_timeout(
                         Some(&topics),
                         remaining_offset_timeout(deadline, Instant::now()),
                     )
-                    .await
-                {
+                    .await;
+                self.restore_metadata_topics(topics);
+                if let Err(error) = refreshed {
                     // A later metadata refresh must not drop records already read.
                     return self.fetched_or_timeout(out, error);
                 }
@@ -5236,17 +5239,22 @@ impl Consumer {
                         Err(Error::Timeout)
                     };
                 }
-                let topics = unique_assigned_topics(&self.assigned);
+                let mut topics = std::mem::take(&mut self.metadata_topics);
+                fill_reused_topics(
+                    &mut topics,
+                    self.assigned.iter().map(|(topic, _, _)| topic.as_ref()),
+                );
                 for topic in &topics {
                     self.cluster.invalidate_topic(topic);
                 }
-                if let Err(error) = self
+                let refreshed = self
                     .refresh_metadata_timeout(
                         Some(&topics),
                         remaining_offset_timeout(deadline, Instant::now()),
                     )
-                    .await
-                {
+                    .await;
+                self.restore_metadata_topics(topics);
+                if let Err(error) = refreshed {
                     self.fetch_plan = by_leader;
                     return self.fetched_or_timeout(out, error);
                 }
@@ -5482,14 +5490,19 @@ impl Consumer {
                         };
                     }
                     if retry == FetchRetry::Backoff {
-                        let topics = unique_assigned_topics(&self.assigned);
-                        if let Err(error) = self
+                        let mut topics = std::mem::take(&mut self.metadata_topics);
+                        fill_reused_topics(
+                            &mut topics,
+                            self.assigned.iter().map(|(topic, _, _)| topic.as_ref()),
+                        );
+                        let refreshed = self
                             .refresh_metadata_timeout(
                                 Some(&topics),
                                 remaining_offset_timeout(deadline, Instant::now()),
                             )
-                            .await
-                        {
+                            .await;
+                        self.restore_metadata_topics(topics);
+                        if let Err(error) = refreshed {
                             return self.fetched_or_timeout(out, error);
                         }
                     }
@@ -8006,15 +8019,46 @@ fn unique_coord_topics<'a>(topics: impl IntoIterator<Item = &'a str>) -> Vec<Str
 ///
 /// A missing-leader refresh asks Metadata for these names. One entry per
 /// partition would repeat the topic and the broker would skip the copies.
+#[cfg(test)]
 fn unique_assigned_topics(assigned: &[(Arc<str>, i32, i64)]) -> Vec<String> {
     let mut topics = Vec::new();
+    fill_reused_topics(
+        &mut topics,
+        assigned.iter().map(|(topic, _, _)| topic.as_ref()),
+    );
+    topics
+}
+
+/// Refill `topics` with the first copy of each name, in iterator order.
+///
+/// A name that is already in its slot is left on that allocation. A different
+/// name reuses the slot's buffer.
+fn fill_reused_topics<'a>(topics: &mut Vec<String>, names: impl IntoIterator<Item = &'a str>) {
+    let mut used = 0usize;
     let mut seen = HashSet::new();
-    for (topic, _, _) in assigned {
-        if seen.insert(topic.as_ref()) {
-            topics.push(topic.as_ref().to_owned());
+    for topic in names {
+        if !seen.insert(topic) {
+            continue;
+        }
+        if let Some(slot) = topics.get_mut(used) {
+            if slot != topic {
+                slot.clear();
+                slot.push_str(topic);
+            }
+        } else {
+            topics.push(topic.to_owned());
+        }
+        used = used.saturating_add(1);
+    }
+    topics.truncate(used);
+}
+
+impl Consumer {
+    fn restore_metadata_topics(&mut self, topics: Vec<String>) {
+        if topics.capacity() >= self.metadata_topics.capacity() {
+            self.metadata_topics = topics;
         }
     }
-    topics
 }
 
 /// Whether any incomplete assignment needs a metadata refresh.
@@ -8624,6 +8668,30 @@ mod tests {
             vec!["orders".to_owned(), "payments".to_owned()]
         );
         assert!(unique_assigned_topics(&[]).is_empty());
+        let long = Arc::<str>::from("orders-topic-name-is-long");
+        let repeated = [
+            (Arc::clone(&long), 0, 1),
+            (Arc::clone(&long), 1, 2),
+            (Arc::<str>::from("payments"), 0, 3),
+        ];
+        let mut topics = Vec::new();
+        fill_reused_topics(
+            &mut topics,
+            repeated.iter().map(|(topic, _, _)| topic.as_ref()),
+        );
+        let kept = topics.first().map(|topic| topic.as_ptr());
+        fill_reused_topics(
+            &mut topics,
+            repeated.iter().map(|(topic, _, _)| topic.as_ref()),
+        );
+        assert_eq!(
+            topics.iter().map(String::as_str).collect::<Vec<_>>(),
+            vec!["orders-topic-name-is-long", "payments"]
+        );
+        assert_eq!(topics.first().map(|topic| topic.as_ptr()), kept);
+        fill_reused_topics(&mut topics, std::iter::once(long.as_ref()));
+        assert_eq!(topics.len(), 1);
+        assert_eq!(topics.first().map(|topic| topic.as_ptr()), kept);
     }
 
     #[test]
