@@ -3804,11 +3804,123 @@ fn incremental_alter_configs_one_len(
     Ok(total)
 }
 
+/// One IncrementalAlterConfigs op whose name and value are borrowed.
+pub(crate) struct BorrowedAlterConfig<'a> {
+    /// Config key.
+    pub name: &'a str,
+    /// `ALTER_CONFIG_SET`, `ALTER_CONFIG_DELETE`, `ALTER_CONFIG_APPEND`, or `ALTER_CONFIG_SUBTRACT`.
+    pub op: i8,
+    /// New value. `None` for delete.
+    pub value: Option<&'a str>,
+}
+
+/// One IncrementalAlterConfigs resource whose name and configs are borrowed.
+pub(crate) struct BorrowedAlterableResource<'a> {
+    /// Resource type (`RESOURCE_TOPIC`, …).
+    pub resource_type: i8,
+    /// Resource name.
+    pub name: &'a str,
+    /// Incremental ops for this resource.
+    pub configs: Vec<BorrowedAlterConfig<'a>>,
+}
+
+trait AlterConfigView {
+    fn alter_config_name(&self) -> &str;
+    fn alter_config_op(&self) -> i8;
+    fn alter_config_value(&self) -> Option<&str>;
+}
+
+impl AlterConfigView for AlterConfig {
+    fn alter_config_name(&self) -> &str {
+        &self.name
+    }
+
+    fn alter_config_op(&self) -> i8 {
+        self.op
+    }
+
+    fn alter_config_value(&self) -> Option<&str> {
+        self.value.as_deref()
+    }
+}
+
+impl AlterConfigView for BorrowedAlterConfig<'_> {
+    fn alter_config_name(&self) -> &str {
+        self.name
+    }
+
+    fn alter_config_op(&self) -> i8 {
+        self.op
+    }
+
+    fn alter_config_value(&self) -> Option<&str> {
+        self.value
+    }
+}
+
+trait AlterableResourceView {
+    type Config: AlterConfigView;
+    fn alterable_type(&self) -> i8;
+    fn alterable_name(&self) -> &str;
+    fn alterable_configs(&self) -> &[Self::Config];
+}
+
+impl AlterableResourceView for AlterableResource {
+    type Config = AlterConfig;
+
+    fn alterable_type(&self) -> i8 {
+        self.resource_type
+    }
+
+    fn alterable_name(&self) -> &str {
+        &self.name
+    }
+
+    fn alterable_configs(&self) -> &[Self::Config] {
+        &self.configs
+    }
+}
+
+impl<'a> AlterableResourceView for BorrowedAlterableResource<'a> {
+    type Config = BorrowedAlterConfig<'a>;
+
+    fn alterable_type(&self) -> i8 {
+        self.resource_type
+    }
+
+    fn alterable_name(&self) -> &str {
+        self.name
+    }
+
+    fn alterable_configs(&self) -> &[Self::Config] {
+        &self.configs
+    }
+}
+
 /// IncrementalAlterConfigs Resources of N (Java `incrementalAlterConfigs(Map)`).
 pub fn encode_incremental_alter_configs_resources_request(
     buf: &mut BytesMut,
     version: i16,
     resources: &[AlterableResource],
+    validate_only: bool,
+) -> crate::error::Result<()> {
+    encode_alterable_resource_views(buf, version, resources, validate_only)
+}
+
+/// Encode IncrementalAlterConfigs resources whose names and config values are borrowed.
+pub(crate) fn encode_incremental_alter_configs_named(
+    buf: &mut BytesMut,
+    version: i16,
+    resources: &[BorrowedAlterableResource<'_>],
+    validate_only: bool,
+) -> crate::error::Result<()> {
+    encode_alterable_resource_views(buf, version, resources, validate_only)
+}
+
+fn encode_alterable_resource_views<T: AlterableResourceView>(
+    buf: &mut BytesMut,
+    version: i16,
+    resources: &[T],
     validate_only: bool,
 ) -> crate::error::Result<()> {
     let flexible = incremental_alter_configs_flexible(version)?;
@@ -3819,14 +3931,15 @@ pub fn encode_incremental_alter_configs_resources_request(
         buf.reserve(needed - buf.capacity());
     }
     buf::put_array_len(buf, flexible, Some(resources.len()))?;
-    for r in resources {
-        buf.put_i8(r.resource_type);
-        buf::put_string(buf, flexible, Some(&r.name))?;
-        buf::put_array_len(buf, flexible, Some(r.configs.len()))?;
-        for c in &r.configs {
-            buf::put_string(buf, flexible, Some(&c.name))?;
-            buf.put_i8(c.op);
-            buf::put_string(buf, flexible, c.value.as_deref())?;
+    for resource in resources {
+        buf.put_i8(resource.alterable_type());
+        buf::put_string(buf, flexible, Some(resource.alterable_name()))?;
+        let configs = resource.alterable_configs();
+        buf::put_array_len(buf, flexible, Some(configs.len()))?;
+        for config in configs {
+            buf::put_string(buf, flexible, Some(config.alter_config_name()))?;
+            buf.put_i8(config.alter_config_op());
+            buf::put_string(buf, flexible, config.alter_config_value())?;
             if flexible {
                 buf::put_empty_tagged_fields(buf);
             }
@@ -3843,21 +3956,28 @@ pub fn encode_incremental_alter_configs_resources_request(
     Ok(())
 }
 
-fn incremental_alter_configs_request_len(
+fn incremental_alter_configs_request_len<T: AlterableResourceView>(
     flexible: bool,
-    resources: &[AlterableResource],
+    resources: &[T],
 ) -> Result<usize> {
     let mut total = describe_array_len(flexible, resources.len())?;
     for resource in resources {
         total = add_describe_len(total, 1)?;
-        total = add_describe_len(total, describe_string_len(flexible, Some(&resource.name))?)?;
-        total = add_describe_len(total, describe_array_len(flexible, resource.configs.len())?)?;
-        for config in &resource.configs {
-            total = add_describe_len(total, describe_string_len(flexible, Some(&config.name))?)?;
+        total = add_describe_len(
+            total,
+            describe_string_len(flexible, Some(resource.alterable_name()))?,
+        )?;
+        let configs = resource.alterable_configs();
+        total = add_describe_len(total, describe_array_len(flexible, configs.len())?)?;
+        for config in configs {
+            total = add_describe_len(
+                total,
+                describe_string_len(flexible, Some(config.alter_config_name()))?,
+            )?;
             total = add_describe_len(total, 1)?;
             total = add_describe_len(
                 total,
-                describe_string_len(flexible, config.value.as_deref())?,
+                describe_string_len(flexible, config.alter_config_value())?,
             )?;
             if flexible {
                 total = add_describe_len(total, buf::unsigned_varint_size(0))?;
@@ -28224,6 +28344,65 @@ mod tests {
             assert!(cur.is_empty());
             assert_eq!(decoded, resources);
             assert!(validate_only);
+        }
+    }
+
+    #[test]
+    fn incremental_alter_configs_named_resources_match_owned_resources() {
+        let owned = [
+            AlterableResource {
+                resource_type: RESOURCE_TOPIC,
+                name: "orders-topic-name-is-long".into(),
+                configs: vec![
+                    AlterConfig::set("cleanup.policy", "compact"),
+                    AlterConfig::delete("retention.ms"),
+                ],
+            },
+            AlterableResource {
+                resource_type: RESOURCE_BROKER,
+                name: "1".into(),
+                configs: vec![AlterConfig::append("listener.name", "PLAINTEXT")],
+            },
+        ];
+        let named = [
+            BorrowedAlterableResource {
+                resource_type: RESOURCE_TOPIC,
+                name: "orders-topic-name-is-long",
+                configs: vec![
+                    BorrowedAlterConfig {
+                        name: "cleanup.policy",
+                        op: ALTER_CONFIG_SET,
+                        value: Some("compact"),
+                    },
+                    BorrowedAlterConfig {
+                        name: "retention.ms",
+                        op: ALTER_CONFIG_DELETE,
+                        value: None,
+                    },
+                ],
+            },
+            BorrowedAlterableResource {
+                resource_type: RESOURCE_BROKER,
+                name: "1",
+                configs: vec![BorrowedAlterConfig {
+                    name: "listener.name",
+                    op: ALTER_CONFIG_APPEND,
+                    value: Some("PLAINTEXT"),
+                }],
+            },
+        ];
+        for version in 0..=1 {
+            let mut expected = BytesMut::new();
+            encode_incremental_alter_configs_resources_request(
+                &mut expected,
+                version,
+                &owned,
+                true,
+            )
+            .unwrap();
+            let mut got = BytesMut::new();
+            encode_incremental_alter_configs_named(&mut got, version, &named, true).unwrap();
+            assert_eq!(got.as_ref(), expected.as_ref(), "version {version}");
         }
     }
 

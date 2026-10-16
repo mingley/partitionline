@@ -58,17 +58,18 @@ use crate::protocol::admin::{
     encode_describe_share_group_offsets_request_versioned,
     encode_describe_topic_partitions_request, encode_describe_transactions_request,
     encode_describe_user_scram_credentials_request, encode_expire_delegation_token_request,
-    encode_get_telemetry_subscriptions_request, encode_incremental_alter_configs_resources_request,
+    encode_get_telemetry_subscriptions_request, encode_incremental_alter_configs_named,
     encode_list_config_resources_request, encode_list_groups_request,
     encode_list_partition_reassignments_named, encode_list_transactions_request_with_pattern,
     encode_push_telemetry_request, encode_renew_delegation_token_request,
     encode_share_group_describe_request, encode_unregister_broker_request,
-    encode_update_features_request, AlterConfigsResource, AlterableResource,
-    BorrowedCreatableTopic, BorrowedCreatePartitionsTopic, BorrowedReassignmentPartition,
-    BorrowedReplicaAssignment, BorrowedTopicConfig, CreateTopicsRequest, DeleteRecordsPartition,
-    DeleteTopicState, DescribeConfigsResource, DescribeConfigsResult, FeatureUpdateKey,
-    ScramCredentialDeletion, ScramCredentialUpsertion, TopicConfig, TopicResult, RESOURCE_BROKER,
-    RESOURCE_BROKER_LOGGER, RESOURCE_CLIENT_METRICS, RESOURCE_GROUP, RESOURCE_TOPIC,
+    encode_update_features_request, AlterConfigsResource, BorrowedAlterConfig,
+    BorrowedAlterableResource, BorrowedCreatableTopic, BorrowedCreatePartitionsTopic,
+    BorrowedReassignmentPartition, BorrowedReplicaAssignment, BorrowedTopicConfig,
+    CreateTopicsRequest, DeleteRecordsPartition, DeleteTopicState, DescribeConfigsResource,
+    DescribeConfigsResult, FeatureUpdateKey, ScramCredentialDeletion, ScramCredentialUpsertion,
+    TopicConfig, TopicResult, RESOURCE_BROKER, RESOURCE_BROKER_LOGGER, RESOURCE_CLIENT_METRICS,
+    RESOURCE_GROUP, RESOURCE_TOPIC,
 };
 use crate::protocol::api::{
     decode_api_versions_response, decode_metadata_response, decode_metadata_response_into,
@@ -3244,6 +3245,27 @@ struct LeaderFrame {
 
 type LeaderExchange = HashMap<i32, (i16, Result<Bytes>)>;
 
+fn borrowed_alterable_resources(
+    updates: &[ConfigResourceUpdate],
+) -> Vec<BorrowedAlterableResource<'_>> {
+    updates
+        .iter()
+        .map(|update| BorrowedAlterableResource {
+            resource_type: update.resource.resource_type,
+            name: update.resource.name.as_str(),
+            configs: update
+                .configs
+                .iter()
+                .map(|config| BorrowedAlterConfig {
+                    name: config.name.as_str(),
+                    op: config.op,
+                    value: config.value.as_deref(),
+                })
+                .collect(),
+        })
+        .collect()
+}
+
 fn creatable_from_new<'a>(
     topics: impl IntoIterator<Item = &'a NewTopic>,
 ) -> Vec<BorrowedCreatableTopic<'a>> {
@@ -5772,14 +5794,7 @@ impl Admin {
         let version = self.alter_version.ok_or_else(|| {
             Error::Unsupported("broker does not support IncrementalAlterConfigs v0-1".into())
         })?;
-        let resources: Vec<AlterableResource> = updates
-            .iter()
-            .map(|u| AlterableResource {
-                resource_type: u.resource.resource_type,
-                name: u.resource.name.clone(),
-                configs: u.configs.clone(),
-            })
-            .collect();
+        let resources = borrowed_alterable_resources(updates);
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         loop {
@@ -5797,7 +5812,7 @@ impl Admin {
                     INCREMENTAL_ALTER_CONFIGS,
                     version,
                     |buf| {
-                        encode_incremental_alter_configs_resources_request(
+                        encode_incremental_alter_configs_named(
                             buf,
                             version,
                             &resources,
