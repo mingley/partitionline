@@ -9790,6 +9790,12 @@ pub fn encode_consumer_group_describe_response_with_throttle(
     throttle_time_ms: i32,
 ) -> crate::error::Result<()> {
     consumer_group_describe_spoken(version)?;
+    let body_start = buf.len();
+    let planned = consumer_group_describe_response_len(version, groups)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf.put_i32(throttle_time_ms);
     buf::put_array_len(buf, true, Some(groups.len()))?;
     for g in groups {
@@ -9808,7 +9814,87 @@ pub fn encode_consumer_group_describe_response_with_throttle(
         buf::put_empty_tagged_fields(buf);
     }
     buf::put_empty_tagged_fields(buf);
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn consumer_group_assignment_len(assignment: &ConsumerGroupAssignment) -> Result<usize> {
+    let mut total = describe_array_len(true, assignment.topic_partitions.len())?;
+    for topic in &assignment.topic_partitions {
+        total = add_describe_len(total, 16)?;
+        total = add_describe_len(total, describe_string_len(true, Some(&topic.topic_name))?)?;
+        total = add_describe_len(total, describe_array_len(true, topic.partitions.len())?)?;
+        total =
+            add_describe_len(
+                total,
+                topic.partitions.len().checked_mul(4).ok_or_else(|| {
+                    Error::protocol("consumer group describe response size overflow")
+                })?,
+            )?;
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    add_describe_len(total, buf::unsigned_varint_size(0))
+}
+
+fn consumer_group_member_len(version: i16, member: &ConsumerGroupMember) -> Result<usize> {
+    let mut total = describe_string_len(true, Some(&member.member_id))?;
+    total = add_describe_len(
+        total,
+        describe_string_len(true, member.instance_id.as_deref())?,
+    )?;
+    total = add_describe_len(total, describe_string_len(true, member.rack_id.as_deref())?)?;
+    total = add_describe_len(total, 4)?;
+    total = add_describe_len(total, describe_string_len(true, Some(&member.client_id))?)?;
+    total = add_describe_len(total, describe_string_len(true, Some(&member.client_host))?)?;
+    total = add_describe_len(
+        total,
+        describe_array_len(true, member.subscribed_topic_names.len())?,
+    )?;
+    for name in &member.subscribed_topic_names {
+        total = add_describe_len(total, describe_string_len(true, Some(name))?)?;
+    }
+    total = add_describe_len(
+        total,
+        describe_string_len(true, member.subscribed_topic_regex.as_deref())?,
+    )?;
+    total = add_describe_len(total, consumer_group_assignment_len(&member.assignment)?)?;
+    total = add_describe_len(
+        total,
+        consumer_group_assignment_len(&member.target_assignment)?,
+    )?;
+    if version >= 1 {
+        total = add_describe_len(total, 1)?;
+    }
+    add_describe_len(total, buf::unsigned_varint_size(0))
+}
+
+fn consumer_group_describe_response_len(
+    version: i16,
+    groups: &[DescribedConsumerGroup],
+) -> Result<usize> {
+    let mut total = 4usize;
+    total = add_describe_len(total, describe_array_len(true, groups.len())?)?;
+    for group in groups {
+        total = add_describe_len(total, 2)?;
+        total = add_describe_len(
+            total,
+            describe_string_len(true, group.error_message.as_deref())?,
+        )?;
+        total = add_describe_len(total, describe_string_len(true, Some(&group.group_id))?)?;
+        total = add_describe_len(total, describe_string_len(true, Some(&group.group_state))?)?;
+        total = add_describe_len(total, 8)?;
+        total = add_describe_len(
+            total,
+            describe_string_len(true, Some(&group.assignor_name))?,
+        )?;
+        total = add_describe_len(total, describe_array_len(true, group.members.len())?)?;
+        for member in &group.members {
+            total = add_describe_len(total, consumer_group_member_len(version, member)?)?;
+        }
+        total = add_describe_len(total, 4)?;
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    add_describe_len(total, buf::unsigned_varint_size(0))
 }
 
 /// Decode a ConsumerGroupDescribe response.
@@ -29411,6 +29497,48 @@ mod tests {
         let (got, ..) = decode_consumer_group_describe_response(&mut cur, 1).unwrap();
         assert_eq!(got[0].members[0].member_type, 1);
         assert!(!cur.has_remaining());
+    }
+
+    #[test]
+    fn a_consumer_group_describe_response_sizes_its_body_once() {
+        let groups =
+            [DescribedConsumerGroup {
+                error_code: 0,
+                error_message: None,
+                group_id: "consumers".into(),
+                group_state: "Stable".into(),
+                group_epoch: 4,
+                assignment_epoch: 4,
+                assignor_name: "range".into(),
+                members: vec![ConsumerGroupMember {
+                    member_id: "member-1".into(),
+                    instance_id: Some("instance".into()),
+                    rack_id: None,
+                    member_epoch: 4,
+                    client_id: "client".into(),
+                    client_host: "/127.0.0.1".into(),
+                    subscribed_topic_names: vec!["orders".into(), "payments".into()],
+                    subscribed_topic_regex: None,
+                    assignment: ConsumerGroupAssignment::new(vec![
+                        ConsumerGroupTopicPartitions::new([1u8; 16], "orders", (0..8).collect()),
+                    ]),
+                    target_assignment: ConsumerGroupAssignment::default(),
+                    member_type: 1,
+                }],
+                authorized_operations: 0,
+            }];
+        for version in [0_i16, 1] {
+            let mut buf = BytesMut::new();
+            encode_consumer_group_describe_response(&mut buf, version, &groups).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_consumer_group_describe_response(&mut buf, version, &groups).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+        }
     }
 
     #[test]
