@@ -1073,41 +1073,48 @@ fn next_share_assignment(
     }
     let mut assigned = Vec::new();
     let mut topic_ids = HashMap::new();
-    let mut seen: HashMap<String, HashSet<i32>> = HashMap::new();
+    let mut seen: HashMap<&str, HashSet<i32>> = HashMap::new();
     let mut resolved_topic = false;
     for tp in incoming {
         if tp.topic_id == [0u8; 16] {
             continue;
         }
-        let name = id_to_name.get(&tp.topic_id).cloned().or_else(|| {
-            // Single-topic subscribe: map the only name when metadata
-            // has not yet indexed this id.
-            if subscribed.len() == 1 {
-                subscribed.first().cloned()
-            } else {
-                None
-            }
-        });
+        let name = id_to_name
+            .get(&tp.topic_id)
+            .map(String::as_str)
+            .or_else(|| {
+                // Single-topic subscribe: map the only name when metadata
+                // has not yet indexed this id.
+                if subscribed.len() == 1 {
+                    subscribed.first().map(String::as_str)
+                } else {
+                    None
+                }
+            });
         let Some(name) = name else {
             continue;
         };
-        let topic_id = name_to_id.get(&name).copied().unwrap_or(tp.topic_id);
+        let topic_id = name_to_id.get(name).copied().unwrap_or(tp.topic_id);
         if topic_id == [0u8; 16] {
             continue;
         }
         resolved_topic = true;
-        let _ = topic_ids.insert(name.clone(), topic_id);
-        if !seen.contains_key(name.as_str()) {
-            let _ = seen.insert(name.clone(), HashSet::new());
+        if let Some(stored) = topic_ids.get_mut(name) {
+            *stored = topic_id;
+        } else {
+            let _ = topic_ids.insert(name.to_owned(), topic_id);
         }
-        let Some(parts) = seen.get_mut(name.as_str()) else {
+        if !seen.contains_key(name) {
+            let _ = seen.insert(name, HashSet::new());
+        }
+        let Some(parts) = seen.get_mut(name) else {
             continue;
         };
         for partition in &tp.partitions {
             if *partition < 0 || !parts.insert(*partition) {
                 continue;
             }
-            assigned.push((name.clone(), *partition));
+            assigned.push((name.to_owned(), *partition));
         }
     }
     if !resolved_topic {
