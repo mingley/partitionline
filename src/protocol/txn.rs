@@ -350,9 +350,9 @@ impl AddPartitionsToTxnRequest {
 
     /// Java `AddPartitionsToTxnRequest.getErrorResponse`.
     ///
-    /// Spoken versions write ResultsByTopicV3AndBelow from
-    /// [`TxnPartitionsTopic::error_results`] (v4+ top-level ErrorCode is
-    /// not spoken). ThrottleTimeMs is `throttle_time_ms` on every spoken
+    /// Spoken versions write ResultsByTopicV3AndBelow from the caller's
+    /// topic names and partition indexes (v4+ top-level ErrorCode is not
+    /// spoken). ThrottleTimeMs is `throttle_time_ms` on every spoken
     /// version (JSON `0+`). [`encode_add_partitions_to_txn_response`]
     /// still writes throttle `0`. This crate speaks 0–3. This is not
     /// [`Self::partitions`] / [`Self::from_partitions`] / [`Self::for_client`]
@@ -365,10 +365,11 @@ impl AddPartitionsToTxnRequest {
         error_code: i16,
         throttle_time_ms: i32,
     ) -> Result<()> {
-        encode_add_partitions_to_txn_topics_response_with_throttle(
+        encode_add_partitions_to_txn_error_response(
             buf,
             version,
-            &TxnPartitionsTopic::error_results(topics, error_code),
+            topics,
+            error_code,
             throttle_time_ms,
         )
     }
@@ -682,20 +683,82 @@ fn add_partitions_response_len(
 
 /// Encode AddPartitionsToTxn: one error code applied to every partition.
 ///
-/// Applies `error` on every request partition via
-/// [`TxnPartitionsTopic::error_results`]. Throttle is the JSON default
-/// (`0`).
+/// Topic names and partition indexes are written from the caller.
+/// Throttle is the JSON default (`0`).
 pub fn encode_add_partitions_to_txn_response(
     buf: &mut BytesMut,
     version: i16,
     topics: &[TxnPartitionsTopic],
     error: i16,
 ) -> Result<()> {
-    encode_add_partitions_to_txn_topics_response(
-        buf,
-        version,
-        &TxnPartitionsTopic::error_results(topics, error),
-    )
+    encode_add_partitions_to_txn_error_response(buf, version, topics, error, 0)
+}
+
+/// AddPartitionsToTxn error body written from the request topics.
+///
+/// The bytes match [`TxnPartitionsTopic::error_result`]: partition index
+/// and error code.
+fn encode_add_partitions_to_txn_error_response(
+    buf: &mut BytesMut,
+    version: i16,
+    topics: &[TxnPartitionsTopic],
+    error_code: i16,
+    throttle_time_ms: i32,
+) -> Result<()> {
+    let flexible = add_partitions_to_txn_flexible(version)?;
+    let body_start = buf.len();
+    let planned = add_partitions_error_len(flexible, topics)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
+    buf.put_i32(throttle_time_ms);
+    buf::put_array_len(buf, flexible, Some(topics.len()))?;
+    for topic in topics {
+        buf::put_string(buf, flexible, Some(&topic.topic))?;
+        buf::put_array_len(buf, flexible, Some(topic.partitions.len()))?;
+        for partition in &topic.partitions {
+            buf.put_i32(*partition);
+            buf.put_i16(error_code);
+            if flexible {
+                buf::put_empty_tagged_fields(buf);
+            }
+        }
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+    }
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+    Ok(())
+}
+
+fn add_partitions_error_len(flexible: bool, topics: &[TxnPartitionsTopic]) -> Result<usize> {
+    let mut total = 4usize;
+    total = add_txn_len(total, txn_array_len(flexible, topics.len())?)?;
+    for topic in topics {
+        total = add_txn_len(total, txn_string_len(flexible, &topic.topic)?)?;
+        total = add_txn_len(total, txn_array_len(flexible, topic.partitions.len())?)?;
+        let mut partition = 6usize;
+        if flexible {
+            partition += buf::unsigned_varint_size(0);
+        }
+        total = add_txn_len(
+            total,
+            partition
+                .checked_mul(topic.partitions.len())
+                .ok_or_else(|| Error::protocol("add partitions response size overflow"))?,
+        )?;
+        if flexible {
+            total = add_txn_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    if flexible {
+        total = add_txn_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 /// Encode AddPartitionsToTxn v0–3 from response Topics.
@@ -6823,6 +6886,89 @@ mod tests {
             !cur.has_remaining(),
             "AddPartitionsToTxn v{version} Builder.forClient {empty}leftover-empty; leftover {} bytes",
             cur.remaining()
+        );
+    }
+
+    #[test]
+    fn add_partitions_to_txn_error_response_matches_named_results() {
+        let topics = [
+            TxnPartitionsTopic {
+                topic: "orders-topic-name-is-long".into(),
+                partitions: vec![0, 2],
+            },
+            TxnPartitionsTopic {
+                topic: "t".into(),
+                partitions: Vec::new(),
+            },
+        ];
+        for version in 0..=3 {
+            for throttle in [0_i32, 12] {
+                let results =
+                    TxnPartitionsTopic::error_results(&topics, crate::error::NOT_COORDINATOR);
+                let mut expected = BytesMut::new();
+                encode_add_partitions_to_txn_topics_response_with_throttle(
+                    &mut expected,
+                    version,
+                    &results,
+                    throttle,
+                )
+                .unwrap();
+                let mut got = BytesMut::new();
+                AddPartitionsToTxnRequest::error_response(
+                    &mut got,
+                    version,
+                    &topics,
+                    crate::error::NOT_COORDINATOR,
+                    throttle,
+                )
+                .unwrap();
+                assert_eq!(
+                    got.as_ref(),
+                    expected.as_ref(),
+                    "version {version} throttle {throttle}"
+                );
+                let len = got.len();
+                let capacity = got.capacity();
+                assert!(capacity >= len);
+                assert!(capacity < 64 * 1024);
+                got.clear();
+                AddPartitionsToTxnRequest::error_response(
+                    &mut got,
+                    version,
+                    &topics,
+                    crate::error::NOT_COORDINATOR,
+                    throttle,
+                )
+                .unwrap();
+                assert_eq!(got.len(), len);
+                assert_eq!(got.capacity(), capacity);
+            }
+            let mut convenience = BytesMut::new();
+            encode_add_partitions_to_txn_response(
+                &mut convenience,
+                version,
+                &topics,
+                crate::error::NOT_COORDINATOR,
+            )
+            .unwrap();
+            let mut zero = BytesMut::new();
+            encode_add_partitions_to_txn_topics_response(
+                &mut zero,
+                version,
+                &TxnPartitionsTopic::error_results(&topics, crate::error::NOT_COORDINATOR),
+            )
+            .unwrap();
+            assert_eq!(convenience.as_ref(), zero.as_ref(), "version {version}");
+        }
+        let mut empty = BytesMut::new();
+        AddPartitionsToTxnRequest::error_response(&mut empty, 3, &[], 41, 1).unwrap();
+        let mut expected_empty = BytesMut::new();
+        encode_add_partitions_to_txn_topics_response_with_throttle(&mut expected_empty, 3, &[], 1)
+            .unwrap();
+        assert_eq!(empty.as_ref(), expected_empty.as_ref());
+        assert!(
+            AddPartitionsToTxnRequest::error_response(&mut BytesMut::new(), 4, &topics, 41, 0)
+                .is_err()
         );
     }
 
