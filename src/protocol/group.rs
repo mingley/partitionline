@@ -2615,6 +2615,9 @@ pub fn encode_heartbeat_request(
     group_instance_id: Option<&str>,
 ) -> crate::error::Result<()> {
     let flexible = heartbeat_flexible(version)?;
+    let body_start = buf.len();
+    let planned = heartbeat_request_len(version, flexible, group_id, member_id, group_instance_id)?;
+    reserve_group_body(buf, planned);
     buf::put_string(buf, flexible, Some(group_id))?;
     buf.put_i32(generation_id);
     buf::put_string(buf, flexible, Some(member_id))?;
@@ -2624,7 +2627,27 @@ pub fn encode_heartbeat_request(
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn heartbeat_request_len(
+    version: i16,
+    flexible: bool,
+    group_id: &str,
+    member_id: &str,
+    group_instance_id: Option<&str>,
+) -> Result<usize> {
+    let mut total = group_string_len(flexible, Some(group_id))?;
+    total = add_group_len(total, 4)?;
+    total = add_group_len(total, group_string_len(flexible, Some(member_id))?)?;
+    if version >= 3 {
+        total = add_group_len(total, group_string_len(flexible, group_instance_id)?)?;
+    }
+    if flexible {
+        total = add_group_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 /// Decode Heartbeat: `(group_id, generation_id, member_id, group_instance_id)`.
@@ -14334,6 +14357,23 @@ mod tests {
             "v4 response must consume tagged fields; leftover {} bytes",
             cur.len()
         );
+    }
+
+    #[test]
+    fn a_heartbeat_request_sizes_its_body_once() {
+        for version in [0_i16, 3, 4] {
+            let instance = (version >= 3).then_some("instance");
+            let mut buf = BytesMut::new();
+            encode_heartbeat_request(&mut buf, version, "group", 7, "member-1", instance).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_heartbeat_request(&mut buf, version, "group", 7, "member-1", instance).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+        }
     }
 
     #[test]
