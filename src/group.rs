@@ -34,8 +34,8 @@ use crate::protocol::group::{
     encode_offset_commit_request, encode_offset_fetch_request, encode_sync_group_request,
     encode_tp_assignment, ConsumerProtocol, ConsumerProtocolSubscription, FetchedOffsetTopic,
     JoinGroupProtocol, JoinGroupProtocolsRequest, JoinGroupRequest, JoinGroupResponse,
-    LeaveGroupMember, OffsetFetchTopic, OffsetPartition, OffsetTopic, SyncGroupRequest, Topic,
-    COORDINATOR_GROUP, DEFAULT_RETENTION_TIME,
+    LeaveGroupMember, OffsetCommitRequestData, OffsetFetchTopic, OffsetPartition, OffsetTopic,
+    SyncGroupRequest, Topic, COORDINATOR_GROUP, DEFAULT_RETENTION_TIME,
 };
 use crate::protocol::sasl;
 
@@ -647,6 +647,8 @@ pub struct ConsumerGroup {
     last_auto_commit: Instant,
     last_delivered_positions: Option<Vec<(Arc<str>, i32, i64)>>,
     last_delivered_topic_ids: DeliveredTopicIds,
+    /// Previous v10 OffsetCommit body, refilled on the next commit.
+    commit_v10: OffsetCommitRequestData,
     last_poll: Arc<parking_lot::Mutex<Option<Instant>>>,
     /// Heartbeat thread left the group after `max.poll.interval.ms`.
     left_max_poll: Arc<AtomicBool>,
@@ -820,6 +822,7 @@ impl ConsumerGroup {
             last_auto_commit: Instant::now(),
             last_delivered_positions: None,
             last_delivered_topic_ids: HashMap::new(),
+            commit_v10: OffsetCommitRequestData::default(),
             last_poll: Arc::new(parking_lot::Mutex::new(None)),
             left_max_poll: Arc::new(AtomicBool::new(false)),
             m_rebalances: AtomicU64::new(0),
@@ -976,6 +979,7 @@ impl ConsumerGroup {
             last_auto_commit: Instant::now(),
             last_delivered_positions: None,
             last_delivered_topic_ids: HashMap::new(),
+            commit_v10: OffsetCommitRequestData::default(),
             last_poll: Arc::new(parking_lot::Mutex::new(None)),
             left_max_poll: Arc::new(AtomicBool::new(false)),
             m_rebalances: AtomicU64::new(0),

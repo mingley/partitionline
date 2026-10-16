@@ -5,7 +5,7 @@ use crate::error::{Error, Result};
 use crate::net::{BrokerConn, Deadline};
 use crate::offsets::{OffsetClient, OffsetOptions};
 use crate::protocol::group::*;
-use std::collections::{BTreeMap, HashMap};
+use std::collections::HashMap;
 use std::time::Duration;
 
 impl ConsumerGroup {
@@ -127,8 +127,32 @@ impl ConsumerGroup {
         positions: &[(std::sync::Arc<str>, i32, i64)],
         timeout: Duration,
     ) -> Result<()> {
+        if positions.is_empty() {
+            return Ok(());
+        }
+        let mut request = std::mem::take(&mut self.commit_v10);
+        let filled = self.fill_shared_commit(&mut request, positions);
+        if let Err(error) = filled {
+            self.commit_v10 = request;
+            return Err(error);
+        }
+        self.finish_commit_v10(request, timeout).await
+    }
+
+    fn fill_shared_commit(
+        &self,
+        request: &mut OffsetCommitRequestData,
+        positions: &[(std::sync::Arc<str>, i32, i64)],
+    ) -> Result<()> {
+        copy_commit_identity(
+            request,
+            &self.group_id,
+            &self.member_id,
+            self.generation_id,
+            self.cfg.group_instance_id.as_deref(),
+        );
         let metadata = self.consumer.topic_name_ids();
-        let mut topics = BTreeMap::<[u8; 16], Vec<OffsetCommitPartitionData>>::new();
+        let mut used = 0usize;
         for (topic, partition, offset) in positions {
             let id = self
                 .consumer
@@ -140,33 +164,20 @@ impl ConsumerGroup {
                         "OffsetCommit v10 requires a captured nonzero topic UUID".into(),
                     )
                 })?;
-            topics
-                .entry(id)
-                .or_default()
-                .push(OffsetCommitPartitionData {
+            push_commit_part(
+                request,
+                &mut used,
+                id,
+                OffsetCommitPartitionData {
                     partition_index: *partition,
                     committed_offset: *offset,
                     committed_leader_epoch: self.consumer.position_epoch(topic, *partition),
                     committed_metadata: Some(String::new()),
-                });
+                },
+            );
         }
-        if topics.is_empty() {
-            return Ok(());
-        }
-        let request = OffsetCommitRequestData {
-            group_id: self.group_id.clone(),
-            generation_id_or_member_epoch: self.generation_id,
-            member_id: self.member_id.clone(),
-            group_instance_id: self.cfg.group_instance_id.clone(),
-            topics: topics
-                .into_iter()
-                .map(|(id, partitions)| OffsetCommitTopicData {
-                    identity: OffsetTopicIdentity::Id(id),
-                    partitions,
-                })
-                .collect(),
-        };
-        self.finish_commit_v10(request, timeout).await
+        request.topics.truncate(used);
+        Ok(())
     }
 
     pub(super) async fn commit_offsets_v10(
@@ -175,8 +186,32 @@ impl ConsumerGroup {
         timeout: Duration,
         snapshot: Option<&super::DeliveredTopicIds>,
     ) -> Result<()> {
+        let mut request = std::mem::take(&mut self.commit_v10);
+        let filled = self.fill_explicit_commit(&mut request, offsets, snapshot);
+        if let Err(error) = filled {
+            self.commit_v10 = request;
+            return Err(error);
+        }
+        self.finish_commit_v10(request, timeout).await?;
+        self.cfg.interceptors.on_commit(offsets);
+        Ok(())
+    }
+
+    fn fill_explicit_commit(
+        &self,
+        request: &mut OffsetCommitRequestData,
+        offsets: &[(TopicPartition, OffsetAndMetadata)],
+        snapshot: Option<&super::DeliveredTopicIds>,
+    ) -> Result<()> {
+        copy_commit_identity(
+            request,
+            &self.group_id,
+            &self.member_id,
+            self.generation_id,
+            self.cfg.group_instance_id.as_deref(),
+        );
         let metadata = self.consumer.topic_name_ids();
-        let mut topics = BTreeMap::<[u8; 16], Vec<OffsetCommitPartitionData>>::new();
+        let mut used = 0usize;
         for (tp, md) in offsets {
             let id = match snapshot {
                 Some(ids) => super::nested_topic_id(ids, &tp.topic, tp.partition),
@@ -189,31 +224,19 @@ impl ConsumerGroup {
             .ok_or_else(|| {
                 Error::Unsupported("OffsetCommit v10 requires a captured nonzero topic UUID".into())
             })?;
-            topics
-                .entry(id)
-                .or_default()
-                .push(OffsetCommitPartitionData {
+            push_commit_part(
+                request,
+                &mut used,
+                id,
+                OffsetCommitPartitionData {
                     partition_index: tp.partition,
                     committed_offset: md.offset,
                     committed_leader_epoch: md.leader_epoch.unwrap_or(-1),
                     committed_metadata: Some(md.metadata.clone()),
-                });
+                },
+            );
         }
-        let request = OffsetCommitRequestData {
-            group_id: self.group_id.clone(),
-            generation_id_or_member_epoch: self.generation_id,
-            member_id: self.member_id.clone(),
-            group_instance_id: self.cfg.group_instance_id.clone(),
-            topics: topics
-                .into_iter()
-                .map(|(id, partitions)| OffsetCommitTopicData {
-                    identity: OffsetTopicIdentity::Id(id),
-                    partitions,
-                })
-                .collect(),
-        };
-        self.finish_commit_v10(request, timeout).await?;
-        self.cfg.interceptors.on_commit(offsets);
+        request.topics.truncate(used);
         Ok(())
     }
 
@@ -223,7 +246,7 @@ impl ConsumerGroup {
         timeout: Duration,
     ) -> Result<()> {
         let limits = OffsetLimits::default();
-        let body = coord_offsets_v10(
+        let sent = coord_offsets_v10(
             &mut self.coord,
             &self.cfg,
             &self.group_id,
@@ -232,7 +255,9 @@ impl ConsumerGroup {
             |buf| encode_offset_commit_request_into(buf, &request, 10, limits),
             timeout,
         )
-        .await?;
+        .await;
+        self.commit_v10 = request;
+        let body = sent?;
         let response = decode_offset_commit_response_data(&body, 10, limits)?;
         if let Some(code) = response
             .topics
@@ -332,6 +357,62 @@ impl ConsumerGroup {
             })
             .collect()
     }
+}
+
+fn copy_text(slot: &mut String, text: &str) {
+    if slot != text {
+        slot.clear();
+        slot.push_str(text);
+    }
+}
+
+fn copy_commit_identity(
+    request: &mut OffsetCommitRequestData,
+    group_id: &str,
+    member_id: &str,
+    generation: i32,
+    instance: Option<&str>,
+) {
+    copy_text(&mut request.group_id, group_id);
+    copy_text(&mut request.member_id, member_id);
+    request.generation_id_or_member_epoch = generation;
+    match instance {
+        Some(id) => {
+            if request.group_instance_id.as_deref() != Some(id) {
+                request.group_instance_id = Some(id.to_owned());
+            }
+        }
+        None => request.group_instance_id = None,
+    }
+}
+
+fn push_commit_part(
+    request: &mut OffsetCommitRequestData,
+    used: &mut usize,
+    id: [u8; 16],
+    part: OffsetCommitPartitionData,
+) {
+    let existing =
+        request.topics.iter().take(*used).position(
+            |slot| matches!(slot.identity, OffsetTopicIdentity::Id(stored) if stored == id),
+        );
+    if let Some(index) = existing {
+        if let Some(slot) = request.topics.get_mut(index) {
+            slot.partitions.push(part);
+        }
+        return;
+    }
+    if let Some(slot) = request.topics.get_mut(*used) {
+        slot.identity = OffsetTopicIdentity::Id(id);
+        slot.partitions.clear();
+        slot.partitions.push(part);
+    } else {
+        request.topics.push(OffsetCommitTopicData {
+            identity: OffsetTopicIdentity::Id(id),
+            partitions: vec![part],
+        });
+    }
+    *used = used.saturating_add(1);
 }
 
 fn offset_commit_v10_code(body: &[u8]) -> Option<i16> {
@@ -488,6 +569,56 @@ fn bounded_consumer_config(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_repeated_v10_commit_keeps_the_group_name() {
+        let mut request = OffsetCommitRequestData::default();
+        let id = [4u8; 16];
+        let mut used = 0usize;
+        copy_commit_identity(&mut request, "orders", "m-1", 2, None);
+        push_commit_part(
+            &mut request,
+            &mut used,
+            id,
+            OffsetCommitPartitionData {
+                partition_index: 0,
+                committed_offset: 1,
+                committed_leader_epoch: -1,
+                committed_metadata: Some(String::new()),
+            },
+        );
+        request.topics.truncate(used);
+        let group = request.group_id.as_ptr();
+        let member = request.member_id.as_ptr();
+        let capacity = request
+            .topics
+            .first()
+            .map(|topic| topic.partitions.capacity())
+            .unwrap_or(0);
+        used = 0;
+        copy_commit_identity(&mut request, "orders", "m-1", 2, None);
+        push_commit_part(
+            &mut request,
+            &mut used,
+            id,
+            OffsetCommitPartitionData {
+                partition_index: 0,
+                committed_offset: 8,
+                committed_leader_epoch: -1,
+                committed_metadata: Some(String::new()),
+            },
+        );
+        request.topics.truncate(used);
+        assert_eq!(request.group_id.as_ptr(), group);
+        assert_eq!(request.member_id.as_ptr(), member);
+        let topic = request.topics.first().expect("topic");
+        assert!(topic.partitions.capacity() >= capacity);
+        assert_eq!(
+            topic.partitions.first().map(|part| part.committed_offset),
+            Some(8)
+        );
+        assert!(matches!(topic.identity, OffsetTopicIdentity::Id(stored) if stored == id));
+    }
 
     #[test]
     fn a_v10_group_commit_names_topic_ids() {
