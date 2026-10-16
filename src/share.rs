@@ -728,7 +728,7 @@ pub enum ShareAcquireMode {
 /// Metadata, including when `ErrorMessage` is set. A top-level
 /// ShareAcknowledge `UNKNOWN_TOPIC_ID` completes without retry and
 /// does not request Metadata, including when `ErrorMessage` is set
-/// (Java `handleShareAcknowledgeSuccess` has no
+/// or empty (Java `handleShareAcknowledgeSuccess` has no
 /// `metadata.requestUpdate`). Incremental ShareFetch sends Java
 /// `ShareSessionHandler` forgotten partitions when the assignment
 /// shrinks or a topic id is replaced on a node this poll still
@@ -2126,7 +2126,7 @@ impl ShareGroup {
     /// `ErrorMessage` is preferred the same way; empty uses
     /// `ShareAcknowledge`. A top-level ShareAcknowledge
     /// `UNKNOWN_TOPIC_ID` completes without retry and does not request
-    /// Metadata, including when `ErrorMessage` is set (Java
+    /// Metadata, including when `ErrorMessage` is set or empty (Java
     /// `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`).
     /// Top-level `SHARE_SESSION_LIMIT_REACHED`
     /// completes without retry and advances the session epoch (Java
