@@ -5295,7 +5295,8 @@ impl Worker {
             .min()
             .unwrap_or_else(|| Instant::now() + self.shared.cfg.delivery_timeout);
         let now = now_ms();
-        let mut groups = group_pending(batch, &mut self.group_scratch);
+        let (mut groups, shell) = group_pending(batch, &mut self.group_scratch);
+        self.park_batch(shell);
         if groups.is_empty() {
             return Ok(());
         }
@@ -6279,18 +6280,24 @@ fn park_spare(spare: &mut Vec<Pending>, mut batch: Vec<Pending>) {
     }
 }
 
-fn group_pending(batch: Vec<Pending>, scratch: &mut ProduceGroupScratch) -> ProduceGroups {
+fn group_pending(
+    mut batch: Vec<Pending>,
+    scratch: &mut ProduceGroupScratch,
+) -> (ProduceGroups, Vec<Pending>) {
     if batch.is_empty() {
-        return ProduceGroups::Empty;
+        return (ProduceGroups::Empty, batch);
     }
-    let Some(first) = batch.first() else {
-        return ProduceGroups::Empty;
+    let (topic0, part0) = {
+        let Some(first) = batch.first() else {
+            return (ProduceGroups::Empty, batch);
+        };
+        let topic0 = Arc::clone(&first.rec.topic);
+        let part0 = first
+            .rec
+            .partition
+            .unwrap_or(RecordMetadata::UNKNOWN_PARTITION);
+        (topic0, part0)
     };
-    let topic0 = Arc::clone(&first.rec.topic);
-    let part0 = first
-        .rec
-        .partition
-        .unwrap_or(RecordMetadata::UNKNOWN_PARTITION);
     let same_topic =
         |topic: &Arc<str>| Arc::ptr_eq(topic, &topic0) || topic.as_ref() == topic0.as_ref();
     // One pass classifies the batch. A second topic stops the scan; a single
@@ -6307,12 +6314,12 @@ fn group_pending(batch: Vec<Pending>, scratch: &mut ProduceGroupScratch) -> Prod
         }
     }
     if one_partition && one_topic {
-        return ProduceGroups::One((topic0, part0, batch));
+        return (ProduceGroups::One((topic0, part0, batch)), Vec::new());
     }
     if one_topic {
         let mut order: Vec<(i32, Vec<Pending>)> = Vec::new();
         scratch.partition_slots.clear();
-        for p in batch {
+        for p in batch.drain(..) {
             let partition = p.rec.partition.unwrap_or(RecordMetadata::UNKNOWN_PARTITION);
             if let Some(&slot) = scratch.partition_slots.get(&partition) {
                 if let Some((_, pending)) = order.get_mut(slot) {
@@ -6324,16 +6331,19 @@ fn group_pending(batch: Vec<Pending>, scratch: &mut ProduceGroupScratch) -> Prod
             let _ = scratch.partition_slots.insert(partition, slot);
             order.push((partition, vec![p]));
         }
-        return ProduceGroups::Many(
-            order
-                .into_iter()
-                .map(|(partition, pending)| (Arc::clone(&topic0), partition, pending))
-                .collect(),
+        return (
+            ProduceGroups::Many(
+                order
+                    .into_iter()
+                    .map(|(partition, pending)| (Arc::clone(&topic0), partition, pending))
+                    .collect(),
+            ),
+            batch,
         );
     }
     let buckets = &mut scratch.buckets;
     let mut order: Vec<Arc<str>> = Vec::new();
-    for p in batch {
+    for p in batch.drain(..) {
         let partition = p.rec.partition.unwrap_or(RecordMetadata::UNKNOWN_PARTITION);
         if let Some(groups) = buckets.get_mut(p.rec.topic.as_ref()) {
             if let Some(&slot) = groups.slots.get(&partition) {
@@ -6367,7 +6377,7 @@ fn group_pending(batch: Vec<Pending>, scratch: &mut ProduceGroupScratch) -> Prod
             out.push((Arc::clone(&topic), partition, pending));
         }
     }
-    ProduceGroups::from_vec(out)
+    (ProduceGroups::from_vec(out), batch)
 }
 
 /// Partition groups for one Produce request.
@@ -7639,7 +7649,9 @@ mod tests {
         let orders = Arc::clone(&batch[0].rec.topic);
         batch[1].rec.topic = Arc::clone(&orders);
         batch[2].rec.topic = Arc::<str>::from("orders");
-        let groups = group_pending(batch, &mut scratch);
+        let (groups, shell) = group_pending(batch, &mut scratch);
+        assert!(shell.is_empty());
+        assert!(shell.capacity() >= 3);
         assert_eq!(groups.len(), 2);
         assert_eq!((groups[0].1, groups[0].2.len()), (1, 2));
         assert_eq!((groups[1].1, groups[1].2.len()), (0, 1));
@@ -7648,10 +7660,12 @@ mod tests {
             .all(|(topic, _, _)| Arc::ptr_eq(topic, &orders)));
         assert!(scratch.buckets.is_empty());
 
-        let one = group_pending(
+        let (one, shell) = group_pending(
             vec![queued("orders", Some(0)), queued("orders", Some(0))],
             &mut scratch,
         );
+        assert!(shell.is_empty());
+        assert_eq!(shell.capacity(), 0);
         let mut spare = Vec::new();
         let mut queued_batch = vec![queued("orders", Some(0)), queued("orders", Some(0))];
         let drained = fill_spare(&mut spare, &mut queued_batch, 2);
@@ -7686,7 +7700,9 @@ mod tests {
         let orders = Arc::clone(&batch[0].rec.topic);
         batch[2].rec.topic = Arc::clone(&orders);
         let payments = Arc::clone(&batch[3].rec.topic);
-        let groups = group_pending(batch, &mut scratch);
+        let (groups, shell) = group_pending(batch, &mut scratch);
+        assert!(shell.is_empty());
+        assert!(shell.capacity() >= 4);
         assert_eq!(groups.len(), 3);
         assert_eq!(
             (groups[0].0.as_ref(), groups[0].1, groups[0].2.len()),
@@ -7733,10 +7749,12 @@ mod tests {
         assert!(indexed.topics.is_empty());
         assert_eq!(indexed.parts.first().map(Vec::len), Some(0));
 
-        let again = group_pending(
+        let (again, shell) = group_pending(
             vec![queued("payments", Some(1)), queued("orders", Some(0))],
             &mut scratch,
         );
+        assert!(shell.is_empty());
+        assert!(shell.capacity() >= 2);
         assert_eq!(again.len(), 2);
         assert_eq!((again[0].0.as_ref(), again[0].1), ("payments", 1));
         assert_eq!((again[1].0.as_ref(), again[1].1), ("orders", 0));
