@@ -744,6 +744,18 @@ fn count_covered_acquisitions(
         .fold(0usize, usize::saturating_add)
 }
 
+fn take_record_buf(spare: &mut Vec<ShareRecord>) -> Vec<ShareRecord> {
+    let mut incoming = std::mem::take(spare);
+    incoming.clear();
+    incoming
+}
+
+fn park_record_buf(spare: &mut Vec<ShareRecord>, incoming: Vec<ShareRecord>) {
+    if incoming.capacity() > spare.capacity() {
+        *spare = incoming;
+    }
+}
+
 fn note_share_offset(
     cursors: &mut Vec<(i32, i64)>,
     spilled: &mut Vec<(i32, HashSet<i64>)>,
@@ -845,6 +857,9 @@ pub struct ShareGroup {
     /// Last ShareFetch offset seen for each partition in the current response.
     /// In-order records do not need a per-offset set.
     fetch_cursors: Vec<(i32, i64)>,
+    /// Record list from the previous ShareFetch. Cleared and refilled so a
+    /// steady poll does not allocate the list again.
+    spare_incoming: Vec<ShareRecord>,
     topic_ids: HashMap<String, [u8; 16]>,
     /// Share session epoch per share-partition leader (KIP-932).
     share_epochs: HashMap<i32, i32>,
@@ -1323,6 +1338,7 @@ impl ShareGroup {
             ack_offsets: Vec::new(),
             ack_pairs: Vec::new(),
             fetch_cursors: Vec::new(),
+            spare_incoming: Vec::new(),
             topic_ids: HashMap::new(),
             share_epochs: HashMap::new(),
             share_conns: HashMap::new(),
@@ -2658,7 +2674,7 @@ impl ShareGroup {
             } else {
                 None
             };
-            let mut incoming = Vec::new();
+            let mut incoming = take_record_buf(&mut self.spare_incoming);
             self.fetch_cursors.clear();
             let mut spilled_offsets: Vec<(i32, HashSet<i64>)> = Vec::new();
             for topic in fetched {
@@ -2803,12 +2819,13 @@ impl ShareGroup {
                 Some(remaining) => remaining,
                 None => {
                     self.reset_node_session(node);
+                    park_record_buf(&mut self.spare_incoming, incoming);
                     return Err(Error::protocol(
                         "ShareFetch retained-record budget exceeded",
                     ));
                 }
             };
-            for record in incoming {
+            for record in incoming.drain(..) {
                 remember_acquisition(
                     &mut self.acquisitions,
                     &record.topic,
@@ -2822,6 +2839,7 @@ impl ShareGroup {
                 );
                 self.pending_delivery.push_back(record);
             }
+            park_record_buf(&mut self.spare_incoming, incoming);
             self.park_share_ids(by_id);
         }
         Ok(self.drain_pending_delivery())
@@ -4454,6 +4472,20 @@ mod tests {
             acquisition_at(&map, &again, 0, 2).map(|found| found.delivery_count),
             Some(1)
         );
+    }
+
+    #[test]
+    fn share_fetch_record_buffer_keeps_capacity() {
+        let mut spare = Vec::new();
+        let mut incoming = super::take_record_buf(&mut spare);
+        incoming.push(rec(0, 1));
+        incoming.push(rec(0, 2));
+        let capacity = incoming.capacity();
+        incoming.clear();
+        super::park_record_buf(&mut spare, incoming);
+        let again = super::take_record_buf(&mut spare);
+        assert!(again.capacity() >= capacity);
+        assert!(again.is_empty());
     }
 
     #[test]
