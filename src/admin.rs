@@ -7646,11 +7646,13 @@ impl Admin {
                     | error::REPLICA_NOT_AVAILABLE
             ) || e.is_retriable()
             {
+                let known = [node];
                 self.cluster.invalidate_topic(&spec.topic);
                 let _ = self.conns.remove(&node);
                 self.wait_retry(&mut attempt, deadline).await?;
                 let topics = [spec.topic.as_str()];
-                self.refresh_metadata_ref(Some(&topics), deadline).await?;
+                self.refresh_topics_while_dialing(&topics, &known, deadline)
+                    .await?;
                 continue;
             }
             return Err(e);
@@ -8959,6 +8961,11 @@ impl Admin {
                 break;
             }
             self.wait_retry(&mut attempt, deadline).await?;
+            let known_nodes = self.known_leader_nodes(pending.iter().filter_map(|&i| {
+                records
+                    .get(i)
+                    .map(|(tp, _)| (tp.topic.as_str(), tp.partition))
+            }));
             for &i in &pending {
                 if let Some((tp, _)) = records.get(i) {
                     self.cluster.invalidate_topic(&tp.topic);
@@ -8970,7 +8977,8 @@ impl Admin {
                     .filter_map(|&i| records.get(i).map(|(tp, _)| tp.topic.as_str())),
             );
             if !topics.is_empty() {
-                self.refresh_metadata_ref(Some(&topics), deadline).await?;
+                self.refresh_topics_while_dialing(&topics, &known_nodes, deadline)
+                    .await?;
             }
         }
         out.into_iter()
@@ -9058,7 +9066,6 @@ impl Admin {
             }
             let e = Error::broker(err, format!("{}-{}", tp.topic, tp.partition));
             if e.is_retriable() {
-                self.cluster.invalidate_topic(&tp.topic);
                 let _ = self.conns.remove(&node);
                 retry.push(i);
             } else {
@@ -9267,6 +9274,11 @@ impl Admin {
                 break;
             }
             self.wait_retry(&mut attempt, deadline).await?;
+            let known_nodes = self.known_leader_nodes(pending.iter().filter_map(|&i| {
+                queries
+                    .get(i)
+                    .map(|(tp, _)| (tp.topic.as_str(), tp.partition))
+            }));
             for &i in &pending {
                 if let Some((tp, _)) = queries.get(i) {
                     self.cluster.invalidate_topic(&tp.topic);
@@ -9278,7 +9290,8 @@ impl Admin {
                     .filter_map(|&i| queries.get(i).map(|(tp, _)| tp.topic.as_str())),
             );
             if !topics.is_empty() {
-                self.refresh_metadata_ref(Some(&topics), deadline).await?;
+                self.refresh_topics_while_dialing(&topics, &known_nodes, deadline)
+                    .await?;
             }
         }
         out.into_iter()
@@ -9738,7 +9751,6 @@ impl Admin {
                 error::FENCED_LEADER_EPOCH | error::UNKNOWN_LEADER_EPOCH
             ) || e.is_retriable()
             {
-                self.cluster.invalidate_topic(&tp.topic);
                 let _ = self.conns.remove(&node);
                 retry.push(i);
             } else {
@@ -10014,6 +10026,11 @@ impl Admin {
             if pin_broker {
                 continue;
             }
+            let known_nodes = self.known_leader_nodes(pending.iter().filter_map(|&i| {
+                partitions
+                    .get(i)
+                    .map(|tp| (tp.topic.as_str(), tp.partition))
+            }));
             for &i in &pending {
                 if let Some(tp) = partitions.get(i) {
                     self.cluster.invalidate_topic(&tp.topic);
@@ -10025,7 +10042,8 @@ impl Admin {
                     .filter_map(|&i| partitions.get(i).map(|tp| tp.topic.as_str())),
             );
             if !topics.is_empty() {
-                self.refresh_metadata_ref(Some(&topics), deadline).await?;
+                self.refresh_topics_while_dialing(&topics, &known_nodes, deadline)
+                    .await?;
             }
         }
         let mut grouped: Vec<DescribeProducersTopic> = Vec::new();

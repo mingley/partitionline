@@ -2,6 +2,7 @@
 
 mod common;
 
+use partitionline::error::NOT_LEADER_OR_FOLLOWER;
 use partitionline::protocol::api_keys::TXN_OFFSET_COMMIT;
 use partitionline::{
     Admin, AdminConfig, Error, NewTopic, ProduceRecord, Producer, ProducerConfig, TopicPartition,
@@ -690,6 +691,37 @@ async fn tracker_cache_mixed_topic_metrics_snapshot() {
     }
     assert_eq!(sum_queued, m.records_queued);
     producer.close().await.unwrap();
+}
+
+/// A not-leader retry reloads metadata while the previous leader reconnects.
+#[tokio::test]
+async fn list_offsets_redials_while_refreshing_after_not_leader() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_topic_partitions("t", 1);
+    mock.set_partition_leader("t", 0, 2);
+    let mut cfg = AdminConfig::bootstrap([mock.addr.clone()]);
+    cfg.retry_backoff = Duration::from_millis(1);
+    cfg.retry_backoff_max = Duration::from_millis(1);
+    let mut admin = Admin::new(cfg).await.unwrap();
+    let _warm = admin
+        .list_offsets([(TopicPartition::new("t", 0), -2i64)])
+        .await
+        .unwrap();
+    mock.fail_list_offsets_once(NOT_LEADER_OR_FOLLOWER);
+    let delay = Duration::from_millis(250);
+    mock.set_metadata_delay(delay);
+    mock.set_api_versions_delay(delay);
+    let started = Instant::now();
+    let listed = admin
+        .list_offsets([(TopicPartition::new("t", 0), -2i64)])
+        .await
+        .unwrap();
+    let elapsed = started.elapsed();
+    assert_eq!(listed.len(), 1);
+    assert!(
+        elapsed < Duration::from_millis(450),
+        "list offsets refreshed metadata before redialing after not-leader: {elapsed:?}"
+    );
 }
 
 /// Known leaders reconnect while metadata for an unknown topic loads.

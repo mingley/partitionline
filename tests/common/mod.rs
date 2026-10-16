@@ -366,6 +366,7 @@ struct State {
     /// One entry per ListOffsets request: node, partition count, isolation, timeout.
     list_offsets_requests: Vec<(i32, usize, i8, Option<i32>)>,
     list_offsets_not_leader: u32,
+    list_offsets_fault: Option<i16>,
     last_list_offsets_version: Option<i16>,
     list_offsets_queries: Vec<(i32, i16, String, i32, i64)>,
     list_offsets_raw_responses: HashMap<i32, VecDeque<Vec<u8>>>,
@@ -860,6 +861,7 @@ fn new_state(
         list_offsets_calls: 0,
         list_offsets_requests: Vec::new(),
         list_offsets_not_leader: 0,
+        list_offsets_fault: None,
         last_list_offsets_version: None,
         list_offsets_queries: Vec::new(),
         list_offsets_raw_responses: HashMap::new(),
@@ -1598,6 +1600,20 @@ fn list_offsets_partition_result(
     timestamp: i64,
 ) -> (bool, ListOffsetsResponsePartition) {
     st.last_list_offsets = Some((topic.to_string(), partition, current_epoch));
+    if let Some(code) = st.list_offsets_fault.take() {
+        return (
+            false,
+            ListOffsetsResponsePartition::new(
+                partition,
+                ListOffsetsPartition {
+                    error_code: code,
+                    timestamp,
+                    offset: ListOffsetsPartition::UNKNOWN_OFFSET,
+                    leader_epoch: ListOffsetsPartition::UNKNOWN_EPOCH,
+                },
+            ),
+        );
+    }
     let key = (topic.to_string(), partition);
     let leader = st.partition_leaders.get(&key).copied().unwrap_or(node_id);
     if leader != node_id {
@@ -2649,6 +2665,10 @@ impl Mock {
 
     pub fn list_offsets_queries(&self) -> Vec<(i32, i16, String, i32, i64)> {
         self.state.lock().list_offsets_queries.clone()
+    }
+
+    pub fn fail_list_offsets_once(&self, code: i16) {
+        self.state.lock().list_offsets_fault = Some(code);
     }
 
     pub fn queue_list_offsets_raw_response(&self, node: i32, response: Vec<u8>) {
