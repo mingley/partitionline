@@ -7376,6 +7376,10 @@ fn encode_flexible_partition(
         let compact = crate::protocol::buf::u32_from_usize(batch_len)?
             .checked_add(1)
             .ok_or_else(|| Error::protocol("compact bytes overflow"))?;
+        reserve_produce_tail(
+            buf,
+            crate::protocol::buf::unsigned_varint_size(compact).saturating_add(batch_len),
+        );
         crate::protocol::buf::put_unsigned_varint(buf, compact);
         let start = buf.len();
         encode_pendings(buf, pendings, &header, now, scratch)?;
@@ -7407,6 +7411,10 @@ fn encode_flexible_partition(
     let compact = crate::protocol::buf::u32_from_usize(batch_len)?
         .checked_add(1)
         .ok_or_else(|| Error::protocol("compact bytes overflow"))?;
+    reserve_produce_tail(
+        buf,
+        crate::protocol::buf::unsigned_varint_size(compact).saturating_add(batch_len),
+    );
     crate::protocol::buf::put_unsigned_varint(buf, compact);
     let start = buf.len();
     crate::protocol::records::write_packed_batch(buf, &header, scratch)?;
@@ -7472,6 +7480,13 @@ fn sequence_of(map: &mut SequenceMap, topic: &Arc<str>, partition: i32, count: u
     let _ = parts.insert(partition, added);
     let _ = map.insert(Arc::clone(topic), parts);
     0
+}
+
+fn reserve_produce_tail(buf: &mut BytesMut, extra: usize) {
+    let needed = buf.len().saturating_add(extra);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
 }
 
 fn reserve_compressed_section(
@@ -7720,6 +7735,63 @@ mod tests {
             skip_meta_refresh: false,
             retry_after: now,
         }
+    }
+
+    #[test]
+    fn an_uncompressed_produce_sizes_its_batch_once() {
+        let topic = Arc::<str>::from("orders");
+        let pendings: Vec<_> = (0..32)
+            .map(|_| {
+                let mut pending = queued("orders", Some(0));
+                pending.rec.topic = Arc::clone(&topic);
+                pending.rec.key = Some(Bytes::from_static(b"key"));
+                pending.rec.value = Some(Bytes::from(vec![b'v'; 64]));
+                pending
+            })
+            .collect();
+        let groups = [(Arc::clone(&topic), 0, pendings)];
+        let mut scratch = CompressScratch::default();
+        let mut grouped = ProduceGroupScratch::default();
+        let mut buf = BytesMut::new();
+        encode_produce_body(
+            &mut buf,
+            9,
+            1,
+            1_000,
+            &groups,
+            &[],
+            Compression::None,
+            5,
+            RecordBatch::NO_PRODUCER_ID,
+            RecordBatch::NO_PRODUCER_EPOCH,
+            None,
+            &mut scratch,
+            &mut grouped,
+        )
+        .unwrap();
+        let len = buf.len();
+        let capacity = buf.capacity();
+        assert!(capacity >= len);
+        assert!(capacity < 64 * 1024);
+        buf.clear();
+        encode_produce_body(
+            &mut buf,
+            9,
+            1,
+            1_000,
+            &groups,
+            &[],
+            Compression::None,
+            5,
+            RecordBatch::NO_PRODUCER_ID,
+            RecordBatch::NO_PRODUCER_EPOCH,
+            None,
+            &mut scratch,
+            &mut grouped,
+        )
+        .unwrap();
+        assert_eq!(buf.len(), len);
+        assert_eq!(buf.capacity(), capacity);
     }
 
     #[test]
