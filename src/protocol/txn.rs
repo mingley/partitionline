@@ -2536,6 +2536,12 @@ pub fn encode_write_txn_markers_response(
     markers: &[WritableTxnMarkerResult],
 ) -> Result<()> {
     let flexible = write_txn_markers_flexible(version)?;
+    let body_start = buf.len();
+    let planned = write_txn_markers_response_len(flexible, markers)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf::put_array_len(buf, flexible, Some(markers.len()))?;
     for m in markers {
         buf.put_i64(m.producer_id);
@@ -2561,7 +2567,43 @@ pub fn encode_write_txn_markers_response(
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn write_txn_markers_response_len(
+    flexible: bool,
+    markers: &[WritableTxnMarkerResult],
+) -> Result<usize> {
+    let mut total = txn_array_len(flexible, markers.len())?;
+    for marker in markers {
+        total = add_txn_len(total, 8)?;
+        total = add_txn_len(total, txn_array_len(flexible, marker.topics.len())?)?;
+        for topic in &marker.topics {
+            total = add_txn_len(total, txn_string_len(flexible, &topic.name)?)?;
+            total = add_txn_len(total, txn_array_len(flexible, topic.partitions.len())?)?;
+            let mut partition = 6usize;
+            if flexible {
+                partition += buf::unsigned_varint_size(0);
+            }
+            total = add_txn_len(
+                total,
+                partition
+                    .checked_mul(topic.partitions.len())
+                    .ok_or_else(|| Error::protocol("write txn markers response size overflow"))?,
+            )?;
+            if flexible {
+                total = add_txn_len(total, buf::unsigned_varint_size(0))?;
+            }
+        }
+        if flexible {
+            total = add_txn_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    if flexible {
+        total = add_txn_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 /// Decode WriteTxnMarkers v0 classic or the identical v1/v2 flexible response.
@@ -7028,6 +7070,34 @@ mod tests {
         let mut buf = BytesMut::new();
         encode_add_offsets_to_txn_response(&mut buf, 3, 0).unwrap();
         assert_eq!(&buf[..], RESP);
+    }
+
+    #[test]
+    fn a_write_txn_markers_response_sizes_its_body_once() {
+        let markers = vec![WritableTxnMarkerResult {
+            producer_id: 1000,
+            topics: vec![WritableTxnMarkerTopicResult {
+                name: "orders".into(),
+                partitions: (0..8)
+                    .map(|partition_index| WritableTxnMarkerPartitionResult {
+                        partition_index,
+                        error_code: 0,
+                    })
+                    .collect(),
+            }],
+        }];
+        for version in [0_i16, 1, 2] {
+            let mut buf = BytesMut::new();
+            encode_write_txn_markers_response(&mut buf, version, &markers).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_write_txn_markers_response(&mut buf, version, &markers).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+        }
     }
 
     #[test]
