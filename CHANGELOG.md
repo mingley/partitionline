@@ -329,6 +329,11 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   delivers the fetch; this is not partition `PREFERRED_LEADER_NOT_AVAILABLE`,
   which fails that poll, and not piggyback `FENCED_STATE_EPOCH` or
   `LEADER_NOT_AVAILABLE`). A
+  piggybacked `INVALID_REQUIRED_ACKS` still
+  completes without retry, including when `AcknowledgeErrorMessage` is
+  set (Java `handleShareFetchSuccess` completes piggyback acks and still
+  delivers the fetch; this is not partition `INVALID_REQUIRED_ACKS`,
+  which fails that poll, and not piggyback `PREFERRED_LEADER_NOT_AVAILABLE`). A
   piggybacked `TOPIC_AUTHORIZATION_FAILED` on
   one partition does not fail a sibling whose `AcknowledgeErrorCode`
   is none, including when `AcknowledgeErrorMessage` is set or empty. A

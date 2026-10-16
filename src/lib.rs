@@ -2144,6 +2144,10 @@
 //! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `PREFERRED_LEADER_NOT_AVAILABLE`, which fails that poll, and not
 //! piggyback `FENCED_STATE_EPOCH` or `LEADER_NOT_AVAILABLE`). A piggybacked
+//! `INVALID_REQUIRED_ACKS` still completes without retry,
+//! including when `AcknowledgeErrorMessage` is set (this is not
+//! partition `INVALID_REQUIRED_ACKS`, which fails that poll, and not
+//! piggyback `PREFERRED_LEADER_NOT_AVAILABLE`). A piggybacked
 //! `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a
 //! sibling whose `AcknowledgeErrorCode` is none, including when
 //! `AcknowledgeErrorMessage` is set or empty. A piggybacked
