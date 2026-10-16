@@ -514,11 +514,12 @@ impl ListOffsetsRequest {
 
     /// Java `ListOffsetsRequest.getErrorResponse`.
     ///
-    /// Topics copy names and partition indexes with `error_code` (Java
-    /// copies `partitionIndex` and sets `UNKNOWN_OFFSET` /
-    /// `UNKNOWN_TIMESTAMP`). ThrottleTimeMs is written on v2+ from
-    /// `throttle_time_ms`. Below v2 the field is omitted even when that
-    /// value is non-zero. Decode fills `0`.
+    /// Each topic name and partition index is written from the caller
+    /// with `error_code` (Java copies `partitionIndex` and sets
+    /// `UNKNOWN_OFFSET` / `UNKNOWN_TIMESTAMP`). Request timestamps and
+    /// leader epochs are not written. ThrottleTimeMs is written on v2+
+    /// from `throttle_time_ms`. Below v2 the field is omitted even when
+    /// that value is non-zero. Decode fills `0`.
     pub fn error_response(
         buf: &mut BytesMut,
         version: i16,
@@ -526,16 +527,7 @@ impl ListOffsetsRequest {
         error_code: i16,
         throttle_time_ms: i32,
     ) -> crate::error::Result<()> {
-        let responses: Vec<_> = topics
-            .iter()
-            .map(|topic| topic.error_result(error_code))
-            .collect();
-        encode_list_offsets_topics_response_with_throttle(
-            buf,
-            version,
-            &responses,
-            throttle_time_ms,
-        )
+        encode_list_offsets_error_response(buf, version, topics, error_code, throttle_time_ms)
     }
 }
 
@@ -942,6 +934,90 @@ pub fn encode_list_offsets_topics_response_with_throttle(
     }
     debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+/// ListOffsets error body written from the request topics.
+///
+/// The bytes match [`ListOffsetsTopicRequest::error_result`]: unknown
+/// timestamp, offset, and leader epoch.
+fn encode_list_offsets_error_response(
+    buf: &mut BytesMut,
+    version: i16,
+    topics: &[ListOffsetsTopicRequest],
+    error_code: i16,
+    throttle_time_ms: i32,
+) -> Result<()> {
+    let flexible = list_offsets_flexible(version)?;
+    let body_start = buf.len();
+    let planned = list_offsets_error_len(version, flexible, topics)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
+    if version >= 2 {
+        buf.put_i32(throttle_time_ms);
+    }
+    buf::put_array_len(buf, flexible, Some(topics.len()))?;
+    for topic in topics {
+        buf::put_string(buf, flexible, Some(&topic.name))?;
+        buf::put_array_len(buf, flexible, Some(topic.partitions.len()))?;
+        for partition in &topic.partitions {
+            buf.put_i32(partition.partition);
+            buf.put_i16(error_code);
+            buf.put_i64(ListOffsetsPartition::UNKNOWN_TIMESTAMP);
+            buf.put_i64(ListOffsetsPartition::UNKNOWN_OFFSET);
+            if version >= 4 {
+                buf.put_i32(ListOffsetsPartition::UNKNOWN_EPOCH);
+            }
+            if flexible {
+                buf::put_empty_tagged_fields(buf);
+            }
+        }
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+    }
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+    Ok(())
+}
+
+fn list_offsets_error_len(
+    version: i16,
+    flexible: bool,
+    topics: &[ListOffsetsTopicRequest],
+) -> Result<usize> {
+    let mut total = if version >= 2 { 4usize } else { 0 };
+    total = add_list_offsets_len(total, list_offsets_array_len(flexible, topics.len())?)?;
+    for topic in topics {
+        total = add_list_offsets_len(total, list_offsets_string_len(flexible, &topic.name)?)?;
+        total = add_list_offsets_len(
+            total,
+            list_offsets_array_len(flexible, topic.partitions.len())?,
+        )?;
+        let mut partition = 22usize;
+        if version >= 4 {
+            partition += 4;
+        }
+        if flexible {
+            partition += buf::unsigned_varint_size(0);
+        }
+        total = add_list_offsets_len(
+            total,
+            partition
+                .checked_mul(topic.partitions.len())
+                .ok_or_else(|| Error::protocol("list offsets response size overflow"))?,
+        )?;
+        if flexible {
+            total = add_list_offsets_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    if flexible {
+        total = add_list_offsets_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 fn list_offsets_response_len(
@@ -1714,6 +1790,73 @@ mod tests {
         leftover_for_consumer(8, 0, &[]);
         leftover_for_consumer(9, 1, &topics);
         leftover_for_consumer(9, 1, &[]);
+    }
+
+    #[test]
+    fn list_offsets_error_response_matches_named_results() {
+        let topics = [
+            ListOffsetsTopicRequest::new(
+                "orders-topic-name-is-long",
+                vec![
+                    ListOffsetsPartitionRequest::new(0, 3, EARLIEST_TIMESTAMP),
+                    ListOffsetsPartitionRequest::new(2, 9, LATEST_TIMESTAMP),
+                ],
+            ),
+            ListOffsetsTopicRequest::new("t", Vec::new()),
+        ];
+        for version in 1..=11 {
+            for throttle in [0_i32, 12] {
+                let results: Vec<_> = topics
+                    .iter()
+                    .map(|topic| topic.error_result(crate::error::NOT_LEADER_OR_FOLLOWER))
+                    .collect();
+                let mut expected = BytesMut::new();
+                encode_list_offsets_topics_response_with_throttle(
+                    &mut expected,
+                    version,
+                    &results,
+                    throttle,
+                )
+                .unwrap();
+                let mut got = BytesMut::new();
+                ListOffsetsRequest::error_response(
+                    &mut got,
+                    version,
+                    &topics,
+                    crate::error::NOT_LEADER_OR_FOLLOWER,
+                    throttle,
+                )
+                .unwrap();
+                assert_eq!(
+                    got.as_ref(),
+                    expected.as_ref(),
+                    "version {version} throttle {throttle}"
+                );
+                let len = got.len();
+                let capacity = got.capacity();
+                assert!(capacity >= len);
+                assert!(capacity < 64 * 1024);
+                got.clear();
+                ListOffsetsRequest::error_response(
+                    &mut got,
+                    version,
+                    &topics,
+                    crate::error::NOT_LEADER_OR_FOLLOWER,
+                    throttle,
+                )
+                .unwrap();
+                assert_eq!(got.len(), len);
+                assert_eq!(got.capacity(), capacity);
+            }
+        }
+        let mut empty = BytesMut::new();
+        ListOffsetsRequest::error_response(&mut empty, 11, &[], 41, 1).unwrap();
+        let mut expected_empty = BytesMut::new();
+        encode_list_offsets_topics_response_with_throttle(&mut expected_empty, 11, &[], 1).unwrap();
+        assert_eq!(empty.as_ref(), expected_empty.as_ref());
+        assert!(
+            ListOffsetsRequest::error_response(&mut BytesMut::new(), 12, &topics, 41, 0).is_err()
+        );
     }
 
     #[test]
