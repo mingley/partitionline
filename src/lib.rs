@@ -2086,7 +2086,7 @@
 //! Top-level `INCONSISTENT_TOPIC_ID` still fails that poll without
 //! Metadata, including when `ErrorMessage` is set or empty. Top-level
 //! `TOPIC_AUTHORIZATION_FAILED` still fails that poll without
-//! Metadata, including when `ErrorMessage` is set (a partition
+//! Metadata, including when `ErrorMessage` is set or empty (a partition
 //! `TOPIC_AUTHORIZATION_FAILED` still throws with
 //! `unauthorizedTopics` equal to the topic name). Partition
 //! `INCONSISTENT_TOPIC_ID` / `UNKNOWN_TOPIC_OR_PARTITION` /

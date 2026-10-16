@@ -758,7 +758,7 @@ pub enum ShareAcquireMode {
 /// Metadata, including when `ErrorMessage` is set or empty (a
 /// partition `CORRUPT_MESSAGE` still throws). Top-level
 /// `TOPIC_AUTHORIZATION_FAILED` still fails that poll and does not
-/// request Metadata, including when `ErrorMessage` is set (Java
+/// request Metadata, including when `ErrorMessage` is set or empty (Java
 /// `handleShareFetchSuccess` only `requestUpdate`s for
 /// `UNKNOWN_TOPIC_ID`; a partition `TOPIC_AUTHORIZATION_FAILED`
 /// still throws with `unauthorizedTopics` equal to the topic name).
@@ -1952,7 +1952,7 @@ impl ShareGroup {
     /// including when `ErrorMessage` is set or empty (a partition
     /// `CORRUPT_MESSAGE` still throws). Top-level
     /// `TOPIC_AUTHORIZATION_FAILED` still fails that poll without
-    /// Metadata, including when `ErrorMessage` is set (Java
+    /// Metadata, including when `ErrorMessage` is set or empty (Java
     /// `handleShareFetchSuccess` only `requestUpdate`s for
     /// `UNKNOWN_TOPIC_ID`; a partition `TOPIC_AUTHORIZATION_FAILED`
     /// still throws with `unauthorizedTopics` equal to the topic
