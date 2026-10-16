@@ -4570,6 +4570,12 @@ struct ProduceGroupScratch {
     spare_parts: Vec<Vec<Pending>>,
     /// Group list from the previous split batch.
     spare_groups: Vec<(Arc<str>, i32, Vec<Pending>)>,
+    /// Partition-slot maps from the previous mixed batch.
+    spare_slots: Vec<HashMap<i32, usize>>,
+    /// Per-topic partition orders from the previous mixed batch.
+    spare_orders: Vec<Vec<(i32, Vec<Pending>)>>,
+    /// Topic order from the previous mixed batch.
+    spare_topic_order: Vec<Arc<str>>,
     /// Topic name to the group-list slot. Cleared on each mixed batch.
     topic_slots: HashMap<Arc<str>, usize>,
     /// First topic id for each name. Cleared when a multi-topic v13 body is encoded.
@@ -6384,7 +6390,10 @@ fn group_pending(
         return (ProduceGroups::Many(groups), batch);
     }
     let mut spare_parts = std::mem::take(&mut scratch.spare_parts);
-    let mut order = Vec::new();
+    let mut spare_slots = std::mem::take(&mut scratch.spare_slots);
+    let mut spare_orders = std::mem::take(&mut scratch.spare_orders);
+    let mut order = std::mem::take(&mut scratch.spare_topic_order);
+    order.clear();
     {
         let buckets = &mut scratch.buckets;
         for p in batch.drain(..) {
@@ -6405,31 +6414,46 @@ fn group_pending(
             } else {
                 let topic = Arc::clone(&p.rec.topic);
                 order.push(Arc::clone(&topic));
-                let mut slots = HashMap::new();
+                let mut slots = spare_slots.pop().unwrap_or_default();
+                slots.clear();
                 let _ = slots.insert(partition, 0);
                 let mut part = spare_parts.pop().unwrap_or_default();
                 part.clear();
                 part.push(p);
+                let mut topic_order = spare_orders.pop().unwrap_or_default();
+                topic_order.clear();
+                topic_order.push((partition, part));
                 let _ = buckets.insert(
                     topic,
                     PendingParts {
-                        order: vec![(partition, part)],
+                        order: topic_order,
                         slots,
                     },
                 );
             }
         }
     }
-    scratch.spare_parts = spare_parts;
     let mut out = take_group_shell(scratch);
-    for topic in order {
-        let Some(groups) = scratch.buckets.remove(topic.as_ref()) else {
+    for topic in order.drain(..) {
+        let Some(mut groups) = scratch.buckets.remove(topic.as_ref()) else {
             continue;
         };
-        for (partition, pending) in groups.order {
+        for (partition, pending) in groups.order.drain(..) {
             out.push((Arc::clone(&topic), partition, pending));
         }
+        groups.slots.clear();
+        if spare_slots.len() < 64 {
+            spare_slots.push(groups.slots);
+        }
+        groups.order.clear();
+        if spare_orders.len() < 64 {
+            spare_orders.push(groups.order);
+        }
     }
+    scratch.spare_parts = spare_parts;
+    scratch.spare_slots = spare_slots;
+    scratch.spare_orders = spare_orders;
+    scratch.spare_topic_order = order;
     (ProduceGroups::from_vec(out), batch)
 }
 
@@ -7841,6 +7865,19 @@ mod tests {
             &groups,
             ProduceGroups::Many(items) if items.capacity() >= 4
         ));
+        let mut mixed = ProduceGroupScratch::default();
+        mixed.spare_slots.push(HashMap::with_capacity(8));
+        mixed.spare_orders.push(Vec::with_capacity(4));
+        let _ = group_pending(
+            vec![queued("orders", Some(0)), queued("payments", Some(1))],
+            &mut mixed,
+        );
+        assert_eq!(mixed.spare_slots.len(), 2);
+        assert!(mixed.spare_slots.iter().any(|slots| slots.capacity() >= 8));
+        assert_eq!(mixed.spare_orders.len(), 2);
+        assert!(mixed.spare_orders.iter().any(|order| order.capacity() >= 4));
+        assert!(mixed.spare_topic_order.capacity() >= 2);
+        assert!(mixed.buckets.is_empty());
         assert_eq!((again[0].0.as_ref(), again[0].1), ("payments", 1));
         assert_eq!((again[1].0.as_ref(), again[1].1), ("orders", 0));
     }
