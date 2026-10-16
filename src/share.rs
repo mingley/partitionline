@@ -1865,7 +1865,12 @@ impl ShareGroup {
     }
 
     async fn refresh_share_topics_within(&mut self, deadline: Instant) -> Result<()> {
-        if self.topics.is_empty() {
+        if self.topics.is_empty()
+            || self
+                .topics
+                .iter()
+                .all(|topic| self.consumer.topic_metadata_fresh(topic))
+        {
             return Ok(());
         }
         let timeout = deadline.saturating_duration_since(Instant::now());

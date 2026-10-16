@@ -2537,9 +2537,15 @@ impl ConsumerGroup {
         if timeout.is_zero() {
             return Err(Error::Timeout);
         }
-        self.consumer
-            .refresh_metadata_timeout(Some(&self.topics), timeout)
-            .await?;
+        if self
+            .topics
+            .iter()
+            .any(|topic| !self.consumer.topic_metadata_fresh(topic))
+        {
+            self.consumer
+                .refresh_metadata_timeout(Some(&self.topics), timeout)
+                .await?;
+        }
         let timeout = deadline.saturating_duration_since(Instant::now());
         if timeout.is_zero() {
             return Err(Error::Timeout);
@@ -2681,13 +2687,25 @@ impl ConsumerGroup {
             assignment.clone()
         };
         let deadline = Instant::now() + self.cfg.request_timeout;
-        let timeout = deadline.saturating_duration_since(Instant::now());
-        if timeout.is_zero() {
-            return Err(Error::Timeout);
+        let missing_topic = {
+            let names = self.consumer.topic_id_names();
+            assignment
+                .iter()
+                .any(|topic| !names.contains_key(&topic.topic_id))
+        };
+        let stale = self
+            .topics
+            .iter()
+            .any(|topic| !self.consumer.topic_metadata_fresh(topic));
+        if missing_topic || stale {
+            let timeout = deadline.saturating_duration_since(Instant::now());
+            if timeout.is_zero() {
+                return Err(Error::Timeout);
+            }
+            self.consumer
+                .refresh_metadata_timeout(Some(&self.topics), timeout)
+                .await?;
         }
-        self.consumer
-            .refresh_metadata_timeout(Some(&self.topics), timeout)
-            .await?;
         let names = self.consumer.topic_id_names();
         if (self.coord.offset_commit_version == 10 || self.coord.offset_fetch_version == 10)
             && assignment

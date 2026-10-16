@@ -170,6 +170,21 @@ async fn share_fetch_request_uses_configured_record_and_byte_limits() {
 }
 
 #[tokio::test]
+async fn share_join_loads_subscribed_topics_once() {
+    let mock = common::Mock::start().await;
+    v2(&mock);
+    mock.set_topic_partitions("t", 1);
+    let before = mock.metadata_calls();
+    let group = ShareGroup::join(config(&mock), "once", "t").await.unwrap();
+    assert_eq!(
+        mock.metadata_calls(),
+        before + 1,
+        "join should load the subscription once"
+    );
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn share_metadata_refreshes_stale_topics_together() {
     let mock = common::Mock::start().await;
     v2(&mock);
