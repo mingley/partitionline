@@ -22140,6 +22140,12 @@ pub fn encode_add_raft_voter_request(
             "AddRaftVoter local-append acknowledgement requires v1".into(),
         ));
     }
+    let body_start = buf.len();
+    let planned = add_raft_voter_request_len(version, req)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf::put_string(buf, true, req.cluster_id.as_deref())?;
     buf.put_i32(req.timeout_ms);
     buf.put_i32(req.voter_id);
@@ -22155,7 +22161,24 @@ pub fn encode_add_raft_voter_request(
         buf.put_i8(i8::from(req.ack_when_committed));
     }
     buf::put_empty_tagged_fields(buf);
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn add_raft_voter_request_len(version: i16, req: &AddRaftVoterRequest) -> Result<usize> {
+    let mut total = describe_string_len(true, req.cluster_id.as_deref())?;
+    total = add_describe_len(total, 24)?;
+    total = add_describe_len(total, describe_array_len(true, req.listeners.len())?)?;
+    for endpoint in &req.listeners {
+        total = add_describe_len(total, describe_string_len(true, Some(&endpoint.listener))?)?;
+        total = add_describe_len(total, describe_string_len(true, Some(&endpoint.host))?)?;
+        total = add_describe_len(total, 2)?;
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    if version >= 1 {
+        total = add_describe_len(total, 1)?;
+    }
+    add_describe_len(total, buf::unsigned_varint_size(0))
 }
 
 /// Decode AddRaftVoter v0 or v1, rejecting null required fields and skipping unknown tags.
@@ -22211,11 +22234,24 @@ pub fn encode_add_raft_voter_response(
     resp: &AddRaftVoterResponse,
 ) -> Result<()> {
     add_raft_voter_version(version)?;
+    let body_start = buf.len();
+    let planned = raft_voter_response_len(resp.error_message.as_deref())?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf.put_i32(resp.throttle_time_ms);
     buf.put_i16(resp.error_code);
     buf::put_string(buf, true, resp.error_message.as_deref())?;
     buf::put_empty_tagged_fields(buf);
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn raft_voter_response_len(error_message: Option<&str>) -> Result<usize> {
+    let mut total = 6;
+    total = add_describe_len(total, describe_string_len(true, error_message)?)?;
+    add_describe_len(total, buf::unsigned_varint_size(0))
 }
 
 /// Decode AddRaftVoter v0 or v1 response, retaining errors and throttle time.
@@ -22278,11 +22314,24 @@ pub fn encode_remove_raft_voter_request(
     req: &RemoveRaftVoterRequest,
 ) -> Result<()> {
     remove_raft_voter_version(version)?;
+    let body_start = buf.len();
+    let planned = remove_raft_voter_request_len(req)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf::put_string(buf, true, req.cluster_id.as_deref())?;
     buf.put_i32(req.voter_id);
     buf.extend_from_slice(&req.voter_directory_id);
     buf::put_empty_tagged_fields(buf);
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn remove_raft_voter_request_len(req: &RemoveRaftVoterRequest) -> Result<usize> {
+    let mut total = describe_string_len(true, req.cluster_id.as_deref())?;
+    total = add_describe_len(total, 20)?;
+    add_describe_len(total, buf::unsigned_varint_size(0))
 }
 
 /// Decode RemoveRaftVoter v0, skipping unknown tagged fields.
@@ -22309,10 +22358,17 @@ pub fn encode_remove_raft_voter_response(
     resp: &RemoveRaftVoterResponse,
 ) -> Result<()> {
     remove_raft_voter_version(version)?;
+    let body_start = buf.len();
+    let planned = raft_voter_response_len(resp.error_message.as_deref())?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf.put_i32(resp.throttle_time_ms);
     buf.put_i16(resp.error_code);
     buf::put_string(buf, true, resp.error_message.as_deref())?;
     buf::put_empty_tagged_fields(buf);
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
 }
 
@@ -22337,6 +22393,97 @@ pub fn decode_remove_raft_voter_response<B: Buf>(
 mod tests {
     use super::*;
     use std::collections::{BTreeSet, HashMap};
+
+    #[test]
+    fn a_add_raft_voter_sizes_its_body_once() {
+        let request = AddRaftVoterRequest {
+            cluster_id: Some("cluster".into()),
+            timeout_ms: 1_000,
+            voter_id: 2,
+            voter_directory_id: [3; 16],
+            listeners: vec![RaftVoterEndpoint {
+                listener: "CONTROLLER".into(),
+                host: "a.example".into(),
+                port: 9093,
+            }],
+            ack_when_committed: true,
+        };
+        for version in [0_i16, 1] {
+            let mut buf = BytesMut::new();
+            encode_add_raft_voter_request(&mut buf, version, &request).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_add_raft_voter_request(&mut buf, version, &request).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+            let mut cur = &buf[..];
+            let decoded = decode_add_raft_voter_request(&mut cur, version).unwrap();
+            assert!(cur.is_empty());
+            assert_eq!(decoded, request);
+        }
+        let response = AddRaftVoterResponse {
+            throttle_time_ms: 12,
+            error_code: 0,
+            error_message: Some("added".into()),
+            acknowledgement: RaftVoterAcknowledgement::Committed,
+        };
+        let mut buf = BytesMut::new();
+        encode_add_raft_voter_response(&mut buf, 1, &response).unwrap();
+        let len = buf.len();
+        let capacity = buf.capacity();
+        buf.clear();
+        encode_add_raft_voter_response(&mut buf, 1, &response).unwrap();
+        assert_eq!(buf.len(), len);
+        assert_eq!(buf.capacity(), capacity);
+        let mut cur = &buf[..];
+        let decoded = decode_add_raft_voter_response(&mut cur, 1).unwrap();
+        assert!(cur.is_empty());
+        assert_eq!(decoded, response);
+    }
+
+    #[test]
+    fn a_remove_raft_voter_sizes_its_body_once() {
+        let request = RemoveRaftVoterRequest {
+            cluster_id: Some("cluster".into()),
+            voter_id: 2,
+            voter_directory_id: [3; 16],
+        };
+        let mut buf = BytesMut::new();
+        encode_remove_raft_voter_request(&mut buf, 0, &request).unwrap();
+        let len = buf.len();
+        let capacity = buf.capacity();
+        assert!(capacity >= len);
+        assert!(capacity < 64 * 1024);
+        buf.clear();
+        encode_remove_raft_voter_request(&mut buf, 0, &request).unwrap();
+        assert_eq!(buf.len(), len);
+        assert_eq!(buf.capacity(), capacity);
+        let mut cur = &buf[..];
+        let decoded = decode_remove_raft_voter_request(&mut cur, 0).unwrap();
+        assert!(cur.is_empty());
+        assert_eq!(decoded, request);
+
+        let response = RemoveRaftVoterResponse {
+            throttle_time_ms: 12,
+            error_code: 0,
+            error_message: Some("removed".into()),
+        };
+        let mut out = BytesMut::new();
+        encode_remove_raft_voter_response(&mut out, 0, &response).unwrap();
+        let out_len = out.len();
+        let out_capacity = out.capacity();
+        out.clear();
+        encode_remove_raft_voter_response(&mut out, 0, &response).unwrap();
+        assert_eq!(out.len(), out_len);
+        assert_eq!(out.capacity(), out_capacity);
+        let mut cur = &out[..];
+        let decoded = decode_remove_raft_voter_response(&mut cur, 0).unwrap();
+        assert!(cur.is_empty());
+        assert_eq!(decoded, response);
+    }
 
     #[test]
     fn add_raft_voter_endpoint_validation() {
