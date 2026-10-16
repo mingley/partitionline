@@ -691,3 +691,39 @@ async fn tracker_cache_mixed_topic_metrics_snapshot() {
     assert_eq!(sum_queued, m.records_queued);
     producer.close().await.unwrap();
 }
+
+/// Known leaders reconnect while metadata for an unknown topic loads.
+#[tokio::test]
+async fn list_offsets_dials_known_leaders_while_loading_metadata() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_topic_partitions("t", 1);
+    mock.set_partition_leader("t", 0, 2);
+    let mut cfg = AdminConfig::bootstrap([mock.addr.clone()]);
+    cfg.connections_max_idle = Duration::from_millis(40);
+    let mut admin = Admin::new(cfg).await.unwrap();
+    let _warm = admin
+        .list_offsets([(TopicPartition::new("t", 0), -2i64)])
+        .await
+        .unwrap();
+    tokio::time::sleep(Duration::from_millis(60)).await;
+    let _topics = admin.list_topics().await.unwrap();
+    mock.set_topic_partitions("u", 1);
+    mock.set_partition_leader("u", 0, 2);
+    let delay = Duration::from_millis(250);
+    mock.set_metadata_delay(delay);
+    mock.set_api_versions_delay(delay);
+    let started = Instant::now();
+    let listed = admin
+        .list_offsets([
+            (TopicPartition::new("t", 0), -2i64),
+            (TopicPartition::new("u", 0), -2i64),
+        ])
+        .await
+        .unwrap();
+    let elapsed = started.elapsed();
+    assert_eq!(listed.len(), 2);
+    assert!(
+        elapsed < Duration::from_millis(450),
+        "list offsets loaded metadata before redialing the known leader: {elapsed:?}"
+    );
+}

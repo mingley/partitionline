@@ -9201,7 +9201,31 @@ impl Admin {
                 }
             }
             if !need.is_empty() {
-                self.refresh_metadata_ref(Some(&need), deadline).await?;
+                let mut known_nodes = Vec::new();
+                let mut known = LeaderList::new();
+                for &i in &pending {
+                    let Some((tp, _)) = queries.get(i) else {
+                        continue;
+                    };
+                    let Ok(node) = known.node(&self.cluster, &tp.topic, tp.partition) else {
+                        continue;
+                    };
+                    if !known_nodes.contains(&node) {
+                        known_nodes.push(node);
+                    }
+                }
+                let dials = self.take_broker_dials(&known_nodes);
+                if dials.is_empty() {
+                    self.refresh_metadata_ref(Some(&need), deadline).await?;
+                } else {
+                    let cfg = self.cfg.clone();
+                    let stats = Arc::clone(&self.stats);
+                    let dialed = Self::dial_admin_nodes(cfg, stats, dials, deadline);
+                    let refreshed = self.refresh_metadata_ref(Some(&need), deadline);
+                    let (dialed, refreshed) = tokio::join!(dialed, refreshed);
+                    self.store_admin_dials(dialed);
+                    refreshed?;
+                }
             }
             let mut by_node: HashMap<i32, Vec<usize>> = HashMap::new();
             let mut nodes: Vec<i32> = Vec::new();
@@ -9281,6 +9305,84 @@ impl Admin {
     /// Dial every leader together, then run one prepared RPC on each socket.
     /// A slow handshake does not hold the other leaders. Missing entries
     /// did not finish before `deadline`.
+    fn take_broker_dials(&mut self, nodes: &[i32]) -> Vec<(i32, String)> {
+        let mut dials = Vec::new();
+        for &node in nodes {
+            if self
+                .conns
+                .get(&node)
+                .is_some_and(|conn| conn.idle_expired(self.cfg.connections_max_idle))
+            {
+                let _ = self.conns.remove(&node);
+            }
+            if self.conns.contains_key(&node) {
+                continue;
+            }
+            let Some(addr) = self.cluster.brokers.get(&node).cloned() else {
+                continue;
+            };
+            dials.push((node, addr));
+        }
+        dials
+    }
+
+    async fn dial_admin_nodes(
+        cfg: AdminConfig,
+        stats: Arc<crate::metrics::AdminTracker>,
+        dials: Vec<(i32, String)>,
+        deadline: Instant,
+    ) -> Vec<(i32, Result<AdminOffsetConn>)> {
+        if dials.is_empty() {
+            return Vec::new();
+        }
+        let mut waiting = dials.into_iter();
+        let mut inflight = tokio::task::JoinSet::new();
+        while inflight.len() < 8 {
+            let Some((node, addr)) = waiting.next() else {
+                break;
+            };
+            let cfg = cfg.clone();
+            let stats = Arc::clone(&stats);
+            let _ = inflight.spawn(async move {
+                let result = dial_admin_socket(&addr, &cfg, &stats, deadline).await;
+                (node, result)
+            });
+        }
+        let mut opened = Vec::new();
+        while let Some(joined) = inflight.join_next().await {
+            if let Ok((node, result)) = joined {
+                opened.push((node, result));
+            }
+            while inflight.len() < 8 {
+                let Some((node, addr)) = waiting.next() else {
+                    break;
+                };
+                let cfg = cfg.clone();
+                let stats = Arc::clone(&stats);
+                let _ = inflight.spawn(async move {
+                    let result = dial_admin_socket(&addr, &cfg, &stats, deadline).await;
+                    (node, result)
+                });
+            }
+        }
+        opened
+    }
+
+    fn store_admin_dials(&mut self, dialed: Vec<(i32, Result<AdminOffsetConn>)>) {
+        for (node, result) in dialed {
+            match result {
+                Ok(conn) => {
+                    let _ = self.reconnect_fails.remove(&node);
+                    let _prev = self.conns.insert(node, conn);
+                }
+                Err(_) => {
+                    let _fails =
+                        crate::config::bump_reconnect_fails(&mut self.reconnect_fails, node);
+                }
+            }
+        }
+    }
+
     async fn exchange_leaders<F>(
         &mut self,
         nodes: &[i32],
