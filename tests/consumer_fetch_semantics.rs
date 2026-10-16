@@ -3292,6 +3292,45 @@ async fn list_offsets_redials_while_refreshing_after_not_leader() {
     consumer.close().await.unwrap();
 }
 
+/// A not-leader Fetch retry reloads metadata while the leader reconnects.
+#[tokio::test]
+async fn fetch_redials_while_refreshing_after_not_leader() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_topic_partitions("t", 1);
+    mock.set_partition_leader("t", 0, 2);
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    let _ = producer
+        .send(ProduceRecord::to("t").value(&b"v"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+    let mut consumer = Consumer::new(
+        ConsumerConfig::bootstrap([mock.addr.clone()])
+            .max_wait_ms(10)
+            .retry_backoff(Duration::from_millis(1))
+            .retry_backoff_max(Duration::from_millis(1)),
+    )
+    .await
+    .unwrap();
+    consumer.assign("t", 0, 0).await.unwrap();
+    assert_eq!(consumer.fetch().await.unwrap().len(), 1);
+    mock.fail_fetch_once(NOT_LEADER_OR_FOLLOWER);
+    let delay = Duration::from_millis(250);
+    mock.set_metadata_delay(delay);
+    mock.set_api_versions_delay(delay);
+    let started = Instant::now();
+    let _again = consumer.fetch().await.unwrap();
+    let elapsed = started.elapsed();
+    assert!(
+        elapsed < Duration::from_millis(450),
+        "fetch refreshed metadata before redialing after not-leader: {elapsed:?}"
+    );
+    consumer.close().await.unwrap();
+}
+
 /// A fetch reloads stale metadata while an idle leader reconnects.
 #[tokio::test]
 async fn fetch_dials_leaders_while_refreshing_metadata() {

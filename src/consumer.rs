@@ -2042,6 +2042,11 @@ pub struct Consumer {
     id_to_name: HashMap<[u8; 16], Arc<str>>,
     cluster: Cluster,
     conns: HashMap<i32, BrokerConn>,
+    /// Brokers whose fetch socket was dropped after a retriable error.
+    ///
+    /// Dialed again while metadata reloads. Recorded before topic leaders are
+    /// dropped; broker addresses stay in the cluster.
+    redial_nodes: Vec<i32>,
     /// ListOffsets min/max negotiated for each dedicated leader socket.
     list_offsets_ranges: HashMap<i32, (i16, i16)>,
     /// OffsetForLeaderEpoch min/max negotiated for each dedicated leader socket.
@@ -2931,6 +2936,7 @@ impl Consumer {
             id_to_name: HashMap::new(),
             cluster: Cluster::default(),
             conns: HashMap::new(),
+            redial_nodes: Vec::new(),
             list_offsets_ranges: HashMap::new(),
             leader_epoch_ranges: HashMap::new(),
             fetch_throttles: HashMap::new(),
@@ -5495,30 +5501,12 @@ impl Consumer {
                     return self.fetched_or_timeout(out, Error::Timeout);
                 }
                 let cached = self.cached_fetch_nodes(completed);
-                let dials = self.leader_dials_for(&cached);
-                let refreshed = if dials.is_empty() {
-                    self.refresh_metadata_timeout(
-                        Some(&topics),
-                        remaining_offset_timeout(deadline, Instant::now()),
-                    )
-                    .await
-                } else {
-                    // Known leaders reconnect while this metadata request runs.
-                    // A leader that moves is dialed again when the fetch plan is built.
-                    let opened = Self::open_leader_dials(
-                        self.leader_dial_config(),
-                        dials,
-                        Arc::clone(&self.wakeup),
-                        deadline,
-                    );
-                    let refreshed = self.refresh_metadata_timeout(
-                        Some(&topics),
-                        remaining_offset_timeout(deadline, Instant::now()),
-                    );
-                    let (opened, refreshed) = tokio::join!(opened, refreshed);
-                    self.store_opened_leaders(opened);
-                    refreshed
-                };
+                let nodes = self.fetch_redial_nodes(cached);
+                // Known leaders reconnect while this metadata request runs.
+                // A leader that moves is dialed again when the fetch plan is built.
+                let refreshed = self
+                    .refresh_metadata_while_dialing(&topics, &nodes, deadline)
+                    .await;
                 self.restore_metadata_topics(topics);
                 if let Err(error) = refreshed {
                     // A later metadata refresh must not drop records already read.
@@ -5627,14 +5615,13 @@ impl Consumer {
                     &mut topics,
                     self.assigned.iter().map(|(topic, _, _)| topic.as_ref()),
                 );
+                let cached = self.cached_fetch_nodes(completed);
+                let nodes = self.fetch_redial_nodes(cached);
                 for topic in &topics {
                     self.cluster.invalidate_topic(topic);
                 }
                 let refreshed = self
-                    .refresh_metadata_timeout(
-                        Some(&topics),
-                        remaining_offset_timeout(deadline, Instant::now()),
-                    )
+                    .refresh_metadata_while_dialing(&topics, &nodes, deadline)
                     .await;
                 self.restore_metadata_topics(topics);
                 if let Err(error) = refreshed {
@@ -5761,6 +5748,7 @@ impl Consumer {
                                 .brokers
                                 .get(&node)
                                 .is_some_and(|addr| addr == self.conn.addr());
+                        self.note_fetch_redial(node);
                         let _ = self.conns.remove(&node);
                         if used_bootstrap {
                             self.conn.close();
@@ -5884,11 +5872,9 @@ impl Consumer {
                             &mut topics,
                             self.assigned.iter().map(|(topic, _, _)| topic.as_ref()),
                         );
+                        let nodes = self.fetch_redial_nodes(Vec::new());
                         let refreshed = self
-                            .refresh_metadata_timeout(
-                                Some(&topics),
-                                remaining_offset_timeout(deadline, Instant::now()),
-                            )
+                            .refresh_metadata_while_dialing(&topics, &nodes, deadline)
                             .await;
                         self.restore_metadata_topics(topics);
                         if let Err(error) = refreshed {
@@ -6736,6 +6722,7 @@ impl Consumer {
                             let _ = self.conns.remove(&node);
                             retry = retry.merge(FetchRetry::Redirect);
                         } else {
+                            self.note_fetch_redial(node);
                             self.cluster.invalidate_topic(&name);
                             topic_leaders_live = false;
                             let _ = self.conns.remove(&node);
@@ -7577,6 +7564,54 @@ impl Consumer {
             }
         }
         Ok(())
+    }
+
+    fn note_fetch_redial(&mut self, node: i32) {
+        if node < 0 || self.redial_nodes.contains(&node) {
+            return;
+        }
+        self.redial_nodes.push(node);
+    }
+
+    /// Pending redial ids plus `nodes`, without repeating an id.
+    fn fetch_redial_nodes(&mut self, mut nodes: Vec<i32>) -> Vec<i32> {
+        for node in self.redial_nodes.drain(..) {
+            if !nodes.contains(&node) {
+                nodes.push(node);
+            }
+        }
+        nodes
+    }
+
+    /// Reload metadata while known leaders reconnect under `deadline`.
+    async fn refresh_metadata_while_dialing(
+        &mut self,
+        topics: &[String],
+        nodes: &[i32],
+        deadline: Instant,
+    ) -> Result<()> {
+        let dials = self.leader_dials_for(nodes);
+        if dials.is_empty() {
+            return self
+                .refresh_metadata_timeout(
+                    Some(topics),
+                    remaining_offset_timeout(deadline, Instant::now()),
+                )
+                .await;
+        }
+        let opened = Self::open_leader_dials(
+            self.leader_dial_config(),
+            dials,
+            Arc::clone(&self.wakeup),
+            deadline,
+        );
+        let refreshed = self.refresh_metadata_timeout(
+            Some(topics),
+            remaining_offset_timeout(deadline, Instant::now()),
+        );
+        let (opened, refreshed) = tokio::join!(opened, refreshed);
+        self.store_opened_leaders(opened);
+        refreshed
     }
 
     fn cached_fetch_nodes(&self, completed: &PartitionMap<()>) -> Vec<i32> {

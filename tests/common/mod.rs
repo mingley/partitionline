@@ -316,6 +316,8 @@ struct State {
     /// Remaining Fetch responses that report offset-out-of-range with
     /// unknown watermarks, so the client must resolve them with ListOffsets.
     fetch_oor_left: Option<u32>,
+    /// Next Fetch partition returns this error once, without a current leader.
+    fetch_fault: Option<i16>,
     created_topics: HashMap<String, CreatedTopic>,
     topic_id_overrides: HashMap<String, [u8; 16]>,
     metadata_calls: u32,
@@ -824,6 +826,7 @@ fn new_state(
         add_partitions_error_left: None,
         log_start: HashMap::new(),
         fetch_oor_left: None,
+        fetch_fault: None,
         created_topics,
         topic_id_overrides: HashMap::new(),
         metadata_calls: 0,
@@ -2669,6 +2672,11 @@ impl Mock {
 
     pub fn fail_list_offsets_once(&self, code: i16) {
         self.state.lock().list_offsets_fault = Some(code);
+    }
+
+    /// The next Fetch partition returns `code` once and no current leader.
+    pub fn fail_fetch_once(&self, code: i16) {
+        self.state.lock().fetch_fault = Some(code);
     }
 
     pub fn queue_list_offsets_raw_response(&self, node: i32, response: Vec<u8>) {
@@ -7328,6 +7336,26 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     };
                     let mut parts = Vec::new();
                     for p in t.partitions {
+                        if let Some(code) = st.fetch_fault.take() {
+                            parts.push(FetchedPartition {
+                                partition: p.partition,
+                                error_code: code,
+                                high_watermark: 0,
+                                last_stable_offset: 0,
+                                log_start_offset: 0,
+                                aborted_transactions: Vec::new(),
+                                preferred_read_replica:
+                                    FetchedPartition::INVALID_PREFERRED_REPLICA_ID,
+                                current_leader_id: -1,
+                                current_leader_epoch: -1,
+                                diverging_epoch: -1,
+                                diverging_end_offset: -1,
+                                snapshot_end_offset: -1,
+                                snapshot_epoch: -1,
+                                records: Vec::new(),
+                            });
+                            continue;
+                        }
                         let leader = st
                             .partition_leaders
                             .get(&(topic.clone(), p.partition))
