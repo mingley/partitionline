@@ -237,17 +237,17 @@ pub fn encode_offset_for_leader_epoch_request(
     current_leader_epoch: i32,
     leader_epoch: i32,
 ) -> crate::error::Result<()> {
-    encode_offset_for_leader_epoch_topics_request(
+    let partitions = [OffsetForLeaderPartition::new(
+        partition,
+        current_leader_epoch,
+        leader_epoch,
+    )];
+    write_offset_for_leader_topics(
         buf,
         version,
-        &[OffsetForLeaderTopic::new(
-            topic,
-            vec![OffsetForLeaderPartition::new(
-                partition,
-                current_leader_epoch,
-                leader_epoch,
-            )],
-        )],
+        CONSUMER_REPLICA_ID,
+        1,
+        std::iter::once((topic, partitions.as_slice())),
     )
 }
 
@@ -961,6 +961,30 @@ mod tests {
             encode_offset_for_leader_epoch_topics_response(&mut buf, version, &topics).unwrap();
             assert_eq!(buf.len(), len);
             assert_eq!(buf.capacity(), capacity);
+        }
+    }
+
+    #[test]
+    fn offset_for_leader_epoch_one_topic_matches_the_owned_topic_encoder() {
+        let topic = "orders-topic-name-is-long";
+        let owned = [OffsetForLeaderTopic::new(
+            topic,
+            vec![OffsetForLeaderPartition::new(1, 7, 4)],
+        )];
+        for version in [0_i16, 2, 3, 4] {
+            let mut expected = BytesMut::new();
+            encode_offset_for_leader_epoch_topics_request(&mut expected, version, &owned).unwrap();
+            let mut got = BytesMut::new();
+            encode_offset_for_leader_epoch_request(&mut got, version, topic, 1, 7, 4).unwrap();
+            assert_eq!(got.as_ref(), expected.as_ref(), "version {version}");
+            let len = got.len();
+            let capacity = got.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            got.clear();
+            encode_offset_for_leader_epoch_request(&mut got, version, topic, 1, 7, 4).unwrap();
+            assert_eq!(got.len(), len);
+            assert_eq!(got.capacity(), capacity);
         }
     }
 
