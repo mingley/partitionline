@@ -2342,6 +2342,13 @@ fn encode_fetch_response_fields(
     throttle_time_ms: i32,
 ) -> Result<()> {
     let flexible = fetch_flexible(version)?;
+    let body_start = buf.len();
+    let plan = fetch_response_plan(version, flexible, topics, endpoints)?;
+    let needed = body_start.saturating_add(plan.len);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
+    let mut staged = plan.staged.into_iter();
     buf.put_i32(throttle_time_ms);
     if version >= 7 {
         buf.put_i16(error_code);
@@ -2370,14 +2377,15 @@ fn encode_fetch_response_fields(
             if version >= 11 {
                 buf.put_i32(p.preferred_read_replica);
             }
-            let mut recs = BytesMut::new();
-            for batch in &p.records {
-                records::encode_record_batch(&mut recs, batch)?;
-            }
-            if recs.is_empty() {
-                buf::put_bytes(buf, flexible, None)?;
-            } else {
-                buf::put_bytes(buf, flexible, Some(&recs))?;
+            let ready = staged.next().flatten();
+            let records_len = match ready.as_ref() {
+                Some(ready) => ready.len(),
+                None => fetch_uncompressed_records_len(&p.records)?,
+            };
+            let mark = buf.len();
+            if let Err(error) = write_fetch_records(buf, flexible, &p.records, records_len, ready) {
+                buf.truncate(mark);
+                return Err(error);
             }
             if flexible {
                 encode_fetch_partition_tags(
@@ -2397,6 +2405,256 @@ fn encode_fetch_response_fields(
     }
     if flexible {
         super::api::encode_top_level_node_endpoints(buf, version >= 16, endpoints)?;
+    }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), plan.len);
+    Ok(())
+}
+
+struct FetchResponsePlan {
+    len: usize,
+    /// One entry per partition when any batch is compressed. `None` means the
+    /// partition's batches are uncompressed and are encoded into the response.
+    staged: Vec<Option<BytesMut>>,
+}
+
+fn fetch_batch_is_compressed(batch: &RecordBatch) -> Result<bool> {
+    Ok(!matches!(
+        records::Compression::from_attributes(batch.attributes)?,
+        records::Compression::None
+    ))
+}
+
+fn fetch_uncompressed_batch_len(batch: &RecordBatch) -> Result<usize> {
+    records::uncompressed_batch_len(
+        &records::BatchHeader {
+            base_offset: batch.base_offset,
+            partition_leader_epoch: batch.partition_leader_epoch,
+            attributes: batch.attributes,
+            base_timestamp: batch.base_timestamp,
+            max_timestamp: batch.max_timestamp,
+            producer_id: batch.producer_id,
+            producer_epoch: batch.producer_epoch,
+            base_sequence: batch.base_sequence,
+            count: buf::i32_from_usize(batch.records.len())?,
+        },
+        batch.records.iter().map(records::EncodeRecord::from_record),
+    )
+}
+
+fn fetch_uncompressed_records_len(batches: &[RecordBatch]) -> Result<usize> {
+    let mut total = 0usize;
+    for batch in batches {
+        total = add_fetch_len(total, fetch_uncompressed_batch_len(batch)?)?;
+    }
+    Ok(total)
+}
+
+fn fetch_nullable_bytes_len(flexible: bool, len: Option<usize>) -> Result<usize> {
+    match len {
+        None => Ok(if flexible {
+            buf::unsigned_varint_size(0)
+        } else {
+            4
+        }),
+        Some(len) => {
+            if flexible {
+                let encoded = buf::u32_from_usize(len)?
+                    .checked_add(1)
+                    .ok_or_else(|| Error::protocol("compact bytes overflow"))?;
+                Ok(buf::unsigned_varint_size(encoded))
+            } else {
+                let _len = buf::i32_from_usize(len)?;
+                Ok(4)
+            }
+        }
+    }
+}
+
+fn fetch_nullable_string_len(flexible: bool, value: Option<&str>) -> Result<usize> {
+    match value {
+        Some(value) => fetch_string_len(flexible, value),
+        None => Ok(if flexible {
+            buf::unsigned_varint_size(0)
+        } else {
+            2
+        }),
+    }
+}
+
+fn fetch_partition_response_tag_len(
+    diverging_epoch: i32,
+    current_leader_id: i32,
+    snapshot_end_offset: i64,
+    snapshot_epoch: i32,
+) -> Result<usize> {
+    let mut fields = Vec::new();
+    if diverging_epoch >= 0 {
+        fields.push((0, 13usize));
+    }
+    if current_leader_id >= 0 {
+        fields.push((1, 9usize));
+    }
+    if snapshot_end_offset != EpochEndOffset::UNDEFINED_EPOCH_OFFSET
+        || snapshot_epoch != EpochEndOffset::UNDEFINED_EPOCH
+    {
+        fields.push((2, 13usize));
+    }
+    if fields.is_empty() {
+        Ok(buf::unsigned_varint_size(0))
+    } else {
+        fetch_tagged_len(&fields)
+    }
+}
+
+fn fetch_endpoints_tag_len(endpoints: &[super::api::NodeEndpoint]) -> Result<usize> {
+    let mut inner = fetch_array_len(true, endpoints.len())?;
+    for endpoint in endpoints {
+        inner = add_fetch_len(inner, 4)?;
+        inner = add_fetch_len(inner, fetch_string_len(true, &endpoint.host)?)?;
+        inner = add_fetch_len(inner, 4)?;
+        inner = add_fetch_len(
+            inner,
+            fetch_nullable_string_len(true, endpoint.rack.as_deref())?,
+        )?;
+        inner = add_fetch_len(inner, buf::unsigned_varint_size(0))?;
+    }
+    fetch_tagged_len(&[(0, inner)])
+}
+
+fn fetch_records_are_compressed(batches: &[RecordBatch]) -> Result<bool> {
+    for batch in batches {
+        if fetch_batch_is_compressed(batch)? {
+            return Ok(true);
+        }
+    }
+    Ok(false)
+}
+
+fn fetch_response_has_compressed_batch(topics: &[FetchedTopic]) -> Result<bool> {
+    for topic in topics {
+        for part in &topic.partitions {
+            for batch in &part.records {
+                if fetch_batch_is_compressed(batch)? {
+                    return Ok(true);
+                }
+            }
+        }
+    }
+    Ok(false)
+}
+
+fn fetch_response_plan(
+    version: i16,
+    flexible: bool,
+    topics: &[FetchedTopic],
+    endpoints: &[super::api::NodeEndpoint],
+) -> Result<FetchResponsePlan> {
+    let compressed = fetch_response_has_compressed_batch(topics)?;
+    let mut staged = Vec::new();
+    let mut total = 4usize;
+    if version >= 7 {
+        total = add_fetch_len(total, 6)?;
+    }
+    total = add_fetch_len(total, fetch_array_len(flexible, topics.len())?)?;
+    for topic in topics {
+        total = add_fetch_len(total, fetch_topic_len(version, flexible, &topic.topic)?)?;
+        total = add_fetch_len(total, fetch_array_len(flexible, topic.partitions.len())?)?;
+        for part in &topic.partitions {
+            let mut fixed = 22usize;
+            if version >= 5 {
+                fixed += 8;
+            }
+            if version >= 11 {
+                fixed += 4;
+            }
+            total = add_fetch_len(total, fixed)?;
+            total = add_fetch_len(
+                total,
+                fetch_array_len(flexible, part.aborted_transactions.len())?,
+            )?;
+            let mut aborted = 16usize;
+            if flexible {
+                aborted += buf::unsigned_varint_size(0);
+            }
+            total = add_fetch_len(
+                total,
+                aborted
+                    .checked_mul(part.aborted_transactions.len())
+                    .ok_or_else(|| Error::protocol("fetch response size overflow"))?,
+            )?;
+            let (records_len, encoded) = if part.records.is_empty() {
+                (None, None)
+            } else if compressed && fetch_records_are_compressed(&part.records)? {
+                let mut encoded = BytesMut::new();
+                for batch in &part.records {
+                    records::encode_record_batch(&mut encoded, batch)?;
+                }
+                let records_len = encoded.len();
+                (Some(records_len), Some(encoded))
+            } else {
+                (Some(fetch_uncompressed_records_len(&part.records)?), None)
+            };
+            if compressed {
+                staged.push(encoded);
+            }
+            total = add_fetch_len(total, fetch_nullable_bytes_len(flexible, records_len)?)?;
+            if let Some(records_len) = records_len {
+                total = add_fetch_len(total, records_len)?;
+            }
+            if flexible {
+                total = add_fetch_len(
+                    total,
+                    fetch_partition_response_tag_len(
+                        part.diverging_epoch,
+                        part.current_leader_id,
+                        part.snapshot_end_offset,
+                        part.snapshot_epoch,
+                    )?,
+                )?;
+            }
+        }
+        if flexible {
+            total = add_fetch_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    if flexible {
+        if version >= 16 && !endpoints.is_empty() {
+            total = add_fetch_len(total, fetch_endpoints_tag_len(endpoints)?)?;
+        } else {
+            total = add_fetch_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    Ok(FetchResponsePlan { len: total, staged })
+}
+
+fn write_fetch_records(
+    buf: &mut BytesMut,
+    flexible: bool,
+    batches: &[RecordBatch],
+    records_len: usize,
+    ready: Option<BytesMut>,
+) -> Result<()> {
+    if records_len == 0 && ready.is_none() {
+        return buf::put_bytes(buf, flexible, None);
+    }
+    if flexible {
+        let encoded = buf::u32_from_usize(records_len)?
+            .checked_add(1)
+            .ok_or_else(|| Error::protocol("compact bytes overflow"))?;
+        buf::put_unsigned_varint(buf, encoded);
+    } else {
+        buf.put_i32(buf::i32_from_usize(records_len)?);
+    }
+    let start = buf.len();
+    if let Some(ready) = ready {
+        buf.extend_from_slice(&ready);
+    } else {
+        for batch in batches {
+            records::encode_record_batch(buf, batch)?;
+        }
+    }
+    if buf.len().saturating_sub(start) != records_len {
+        return Err(Error::protocol("fetch records length mismatch"));
     }
     Ok(())
 }
@@ -6829,6 +7087,50 @@ mod tests {
                 .map(|part| part.log_start_offset),
             Some(10)
         );
+    }
+
+    #[test]
+    fn a_fetch_response_sizes_its_body_once() {
+        let batch = RecordBatch::from_records(vec![Record {
+            offset: 0,
+            timestamp: 1,
+            key: Some(Bytes::from_static(b"k")),
+            value: Some(Bytes::from_static(b"value")),
+            headers: vec![],
+        }]);
+        let partition = FetchedPartition {
+            partition: 0,
+            error_code: 0,
+            high_watermark: 4,
+            last_stable_offset: 4,
+            log_start_offset: 0,
+            aborted_transactions: vec![(9, 1)],
+            preferred_read_replica: -1,
+            current_leader_id: 2,
+            current_leader_epoch: 3,
+            diverging_epoch: 1,
+            diverging_end_offset: 2,
+            snapshot_end_offset: -1,
+            snapshot_epoch: -1,
+            records: vec![batch],
+        };
+        let topics = [FetchedTopic {
+            topic: "orders".into(),
+            topic_id: [0; 16],
+            partitions: vec![partition],
+        }];
+        for version in [4_i16, 11, 12] {
+            let mut buf = BytesMut::new();
+            encode_fetch_response(&mut buf, version, &topics).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            buf.clear();
+            encode_fetch_response(&mut buf, version, &topics).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+        }
     }
 
     #[test]
