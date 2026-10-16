@@ -149,9 +149,10 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`;
   unlike top-level ShareFetch `UNKNOWN_TOPIC_ID`). A top-level
   ShareAcknowledge `INCONSISTENT_TOPIC_ID` completes without retry and
-  does not request Metadata, including when `ErrorMessage` is set
-  (Java `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`;
-  a partition `INCONSISTENT_TOPIC_ID` still invalidates). A piggybacked ShareFetch
+  does not request Metadata, including when `ErrorMessage` is set or
+  empty (Java `handleShareAcknowledgeSuccess` has no
+  `metadata.requestUpdate`; a partition `INCONSISTENT_TOPIC_ID` still
+  invalidates). A piggybacked ShareFetch
   `AcknowledgeErrorMessage` that is empty uses
   `ShareFetch acknowledgement {topic}-{partition}`. A piggybacked
   `FENCED_LEADER_EPOCH` / `NOT_LEADER_OR_FOLLOWER` /

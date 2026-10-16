@@ -731,8 +731,8 @@ pub enum ShareAcquireMode {
 /// or empty (Java `handleShareAcknowledgeSuccess` has no
 /// `metadata.requestUpdate`). A top-level ShareAcknowledge
 /// `INCONSISTENT_TOPIC_ID` completes without retry and does not
-/// request Metadata, including when `ErrorMessage` is set (a partition
-/// `INCONSISTENT_TOPIC_ID` still invalidates). Incremental ShareFetch sends Java
+/// request Metadata, including when `ErrorMessage` is set or empty (a
+/// partition `INCONSISTENT_TOPIC_ID` still invalidates). Incremental ShareFetch sends Java
 /// `ShareSessionHandler` forgotten partitions when the assignment
 /// shrinks or a topic id is replaced on a node this poll still
 /// contacts (remaining assigned partitions or leftover acknowledgements).
@@ -2133,8 +2133,8 @@ impl ShareGroup {
     /// `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`).
     /// A top-level ShareAcknowledge `INCONSISTENT_TOPIC_ID` completes
     /// without retry and does not request Metadata, including when
-    /// `ErrorMessage` is set (a partition `INCONSISTENT_TOPIC_ID` still
-    /// invalidates).
+    /// `ErrorMessage` is set or empty (a partition
+    /// `INCONSISTENT_TOPIC_ID` still invalidates).
     /// Top-level `SHARE_SESSION_LIMIT_REACHED`
     /// completes without retry and advances the session epoch (Java
     /// `ShareSessionHandler.handleResponse` `nextEpoch`), including
