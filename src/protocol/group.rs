@@ -4848,6 +4848,152 @@ pub fn encode_offset_commit_request(
     retention_time_ms: i64,
     topics: &[OffsetTopic],
 ) -> crate::error::Result<()> {
+    encode_offset_commit_topic_views(
+        buf,
+        version,
+        group_id,
+        generation_id,
+        member_id,
+        group_instance_id,
+        retention_time_ms,
+        topics,
+    )
+}
+
+/// One OffsetCommit partition whose metadata is borrowed.
+pub(crate) struct BorrowedOffsetPartition<'a> {
+    /// Partition index.
+    pub partition: i32,
+    /// Committed offset.
+    pub offset: i64,
+    /// Leader epoch, or [`RecordBatch::NO_PARTITION_LEADER_EPOCH`].
+    pub leader_epoch: i32,
+    /// Commit metadata. Empty is written as null.
+    pub metadata: &'a str,
+}
+
+/// One OffsetCommit topic whose name and partition metadata are borrowed.
+pub(crate) struct BorrowedOffsetTopic<'a> {
+    /// Topic name.
+    pub topic: &'a str,
+    /// Partitions to commit.
+    pub partitions: Vec<BorrowedOffsetPartition<'a>>,
+}
+
+/// Encode OffsetCommit topics whose names and metadata are borrowed.
+#[expect(
+    clippy::too_many_arguments,
+    reason = "OffsetCommit request body needs version, group, generation, member, instance, retention, and topics together"
+)]
+pub(crate) fn encode_offset_commit_named(
+    buf: &mut BytesMut,
+    version: i16,
+    group_id: &str,
+    generation_id: i32,
+    member_id: &str,
+    group_instance_id: Option<&str>,
+    retention_time_ms: i64,
+    topics: &[BorrowedOffsetTopic<'_>],
+) -> crate::error::Result<()> {
+    encode_offset_commit_topic_views(
+        buf,
+        version,
+        group_id,
+        generation_id,
+        member_id,
+        group_instance_id,
+        retention_time_ms,
+        topics,
+    )
+}
+
+trait OffsetCommitPartitionView {
+    fn commit_partition(&self) -> i32;
+    fn commit_offset(&self) -> i64;
+    fn commit_epoch(&self) -> i32;
+    fn commit_metadata(&self) -> &str;
+}
+
+impl OffsetCommitPartitionView for OffsetPartition {
+    fn commit_partition(&self) -> i32 {
+        self.partition
+    }
+
+    fn commit_offset(&self) -> i64 {
+        self.offset
+    }
+
+    fn commit_epoch(&self) -> i32 {
+        self.leader_epoch
+    }
+
+    fn commit_metadata(&self) -> &str {
+        &self.metadata
+    }
+}
+
+impl OffsetCommitPartitionView for BorrowedOffsetPartition<'_> {
+    fn commit_partition(&self) -> i32 {
+        self.partition
+    }
+
+    fn commit_offset(&self) -> i64 {
+        self.offset
+    }
+
+    fn commit_epoch(&self) -> i32 {
+        self.leader_epoch
+    }
+
+    fn commit_metadata(&self) -> &str {
+        self.metadata
+    }
+}
+
+trait OffsetCommitTopicView {
+    type Part: OffsetCommitPartitionView;
+    fn commit_topic(&self) -> &str;
+    fn commit_parts(&self) -> &[Self::Part];
+}
+
+impl OffsetCommitTopicView for OffsetTopic {
+    type Part = OffsetPartition;
+
+    fn commit_topic(&self) -> &str {
+        &self.topic
+    }
+
+    fn commit_parts(&self) -> &[Self::Part] {
+        &self.partitions
+    }
+}
+
+impl<'a> OffsetCommitTopicView for BorrowedOffsetTopic<'a> {
+    type Part = BorrowedOffsetPartition<'a>;
+
+    fn commit_topic(&self) -> &str {
+        self.topic
+    }
+
+    fn commit_parts(&self) -> &[Self::Part] {
+        &self.partitions
+    }
+}
+
+#[expect(
+    clippy::too_many_arguments,
+    reason = "OffsetCommit request body needs version, group, generation, member, instance, retention, and topics together"
+)]
+fn encode_offset_commit_topic_views<T: OffsetCommitTopicView>(
+    buf: &mut BytesMut,
+    version: i16,
+    group_id: &str,
+    generation_id: i32,
+    member_id: &str,
+    group_instance_id: Option<&str>,
+    retention_time_ms: i64,
+    topics: &[T],
+) -> crate::error::Result<()> {
     let flexible = offset_commit_flexible(version)?;
     let body_start = buf.len();
     let planned = offset_commit_request_len(
@@ -4869,19 +5015,21 @@ pub fn encode_offset_commit_request(
         buf.put_i64(retention_time_ms);
     }
     buf::put_array_len(buf, flexible, Some(topics.len()))?;
-    for t in topics {
-        buf::put_string(buf, flexible, Some(&t.topic))?;
-        buf::put_array_len(buf, flexible, Some(t.partitions.len()))?;
-        for p in &t.partitions {
-            buf.put_i32(p.partition);
-            buf.put_i64(p.offset);
+    for topic in topics {
+        buf::put_string(buf, flexible, Some(topic.commit_topic()))?;
+        let partitions = topic.commit_parts();
+        buf::put_array_len(buf, flexible, Some(partitions.len()))?;
+        for partition in partitions {
+            buf.put_i32(partition.commit_partition());
+            buf.put_i64(partition.commit_offset());
             if version >= 6 {
-                buf.put_i32(p.leader_epoch);
+                buf.put_i32(partition.commit_epoch());
             }
-            let meta = if p.metadata.is_empty() {
+            let metadata = partition.commit_metadata();
+            let meta = if metadata.is_empty() {
                 None
             } else {
-                Some(p.metadata.as_str())
+                Some(metadata)
             };
             buf::put_string(buf, flexible, meta)?;
             if flexible {
@@ -4899,13 +5047,13 @@ pub fn encode_offset_commit_request(
     Ok(())
 }
 
-fn offset_commit_request_len(
+fn offset_commit_request_len<T: OffsetCommitTopicView>(
     version: i16,
     flexible: bool,
     group_id: &str,
     member_id: &str,
     group_instance_id: Option<&str>,
-    topics: &[OffsetTopic],
+    topics: &[T],
 ) -> Result<usize> {
     let mut total = group_string_len(flexible, Some(group_id))?;
     total = add_group_len(total, 4)?;
@@ -4918,18 +5066,23 @@ fn offset_commit_request_len(
     }
     total = add_group_len(total, group_array_len(flexible, topics.len())?)?;
     for topic in topics {
-        total = add_group_len(total, group_string_len(flexible, Some(&topic.topic))?)?;
-        total = add_group_len(total, group_array_len(flexible, topic.partitions.len())?)?;
-        for partition in &topic.partitions {
+        total = add_group_len(
+            total,
+            group_string_len(flexible, Some(topic.commit_topic()))?,
+        )?;
+        let partitions = topic.commit_parts();
+        total = add_group_len(total, group_array_len(flexible, partitions.len())?)?;
+        for partition in partitions {
             let mut fixed = 12usize;
             if version >= 6 {
                 fixed += 4;
             }
             total = add_group_len(total, fixed)?;
-            let metadata = if partition.metadata.is_empty() {
+            let metadata = partition.commit_metadata();
+            let metadata = if metadata.is_empty() {
                 None
             } else {
-                Some(partition.metadata.as_str())
+                Some(metadata)
             };
             total = add_group_len(total, group_string_len(flexible, metadata)?)?;
             if flexible {
@@ -13408,6 +13561,71 @@ mod tests {
             .unwrap();
             assert_eq!(buf.len(), len);
             assert_eq!(buf.capacity(), capacity);
+        }
+    }
+
+    #[test]
+    fn offset_commit_named_topics_match_owned_topics() {
+        let owned = [OffsetTopic {
+            topic: "orders-topic-name-is-long".into(),
+            partitions: vec![
+                OffsetPartition {
+                    partition: 0,
+                    offset: 10,
+                    leader_epoch: 3,
+                    metadata: String::new(),
+                },
+                OffsetPartition {
+                    partition: 2,
+                    offset: 40,
+                    leader_epoch: -1,
+                    metadata: "cursor".into(),
+                },
+            ],
+        }];
+        let named = [BorrowedOffsetTopic {
+            topic: "orders-topic-name-is-long",
+            partitions: vec![
+                BorrowedOffsetPartition {
+                    partition: 0,
+                    offset: 10,
+                    leader_epoch: 3,
+                    metadata: "",
+                },
+                BorrowedOffsetPartition {
+                    partition: 2,
+                    offset: 40,
+                    leader_epoch: -1,
+                    metadata: "cursor",
+                },
+            ],
+        }];
+        for version in 2..=9 {
+            let mut expected = BytesMut::new();
+            encode_offset_commit_request(
+                &mut expected,
+                version,
+                "group",
+                -1,
+                "",
+                None,
+                DEFAULT_RETENTION_TIME,
+                &owned,
+            )
+            .unwrap();
+            let mut got = BytesMut::new();
+            encode_offset_commit_named(
+                &mut got,
+                version,
+                "group",
+                -1,
+                "",
+                None,
+                DEFAULT_RETENTION_TIME,
+                &named,
+            )
+            .unwrap();
+            assert_eq!(got.as_ref(), expected.as_ref(), "version {version}");
         }
     }
 

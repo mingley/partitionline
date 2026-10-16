@@ -100,7 +100,7 @@ use crate::protocol::group::{
     decode_offset_delete_response, decode_offset_fetch_groups_response,
     decode_offset_fetch_response, encode_find_coordinator_request_keys,
     encode_find_coordinator_request_typed, encode_leave_group_request_members,
-    encode_offset_commit_request, encode_offset_delete_named_topics,
+    encode_offset_commit_named, encode_offset_delete_named_topics,
     encode_offset_fetch_groups_request, encode_offset_fetch_request, LeaveGroupMember,
     OffsetFetchGroup, COORDINATOR_GROUP, COORDINATOR_TRANSACTION, DEFAULT_RETENTION_TIME,
 };
@@ -10754,7 +10754,7 @@ impl Admin {
                 .commit_named_offsets_v10(group_id, &offsets, deadline)
                 .await;
         }
-        let topics = crate::group::group_offset_topics(&offsets);
+        let topics = crate::group::group_borrowed_offset_topics(&offsets);
         let _bootstrap_version = self
             .versions
             .get(&OFFSET_COMMIT)
@@ -10801,7 +10801,7 @@ impl Admin {
                     OFFSET_COMMIT,
                     version,
                     |buf| {
-                        encode_offset_commit_request(
+                        encode_offset_commit_named(
                             buf,
                             version,
                             &group_id,

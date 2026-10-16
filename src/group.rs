@@ -32,11 +32,11 @@ use crate::protocol::group::{
     encode_find_coordinator_request_typed, encode_heartbeat_request,
     encode_join_group_protocols_request, encode_leave_group_request_members,
     encode_offset_commit_request, encode_offset_fetch_request, encode_sync_group_request,
-    encode_tp_assignment, ConsumerProtocol, ConsumerProtocolSubscription, FetchedOffset,
-    FetchedOffsetTopic, JoinGroupProtocol, JoinGroupProtocolsRequest, JoinGroupRequest,
-    JoinGroupResponse, LeaveGroupMember, OffsetCommitRequestData, OffsetFetchRequestData,
-    OffsetFetchTopic, OffsetPartition, OffsetTopic, SyncGroupRequest, Topic, COORDINATOR_GROUP,
-    DEFAULT_RETENTION_TIME,
+    encode_tp_assignment, BorrowedOffsetPartition, BorrowedOffsetTopic, ConsumerProtocol,
+    ConsumerProtocolSubscription, FetchedOffset, FetchedOffsetTopic, JoinGroupProtocol,
+    JoinGroupProtocolsRequest, JoinGroupRequest, JoinGroupResponse, LeaveGroupMember,
+    OffsetCommitRequestData, OffsetFetchRequestData, OffsetFetchTopic, OffsetPartition,
+    OffsetTopic, SyncGroupRequest, Topic, COORDINATOR_GROUP, DEFAULT_RETENTION_TIME,
 };
 use crate::protocol::sasl;
 
@@ -3757,6 +3757,42 @@ pub(crate) fn group_offset_topics(
     topics
 }
 
+pub(crate) fn group_borrowed_offset_topics(
+    items: &[(TopicPartition, OffsetAndMetadata)],
+) -> Vec<BorrowedOffsetTopic<'_>> {
+    let mut groups: Vec<BorrowedOffsetTopic<'_>> = Vec::new();
+    let mut slots: HashMap<&str, usize> = HashMap::new();
+    for (tp, md) in items {
+        let part = BorrowedOffsetPartition {
+            partition: tp.partition,
+            offset: md.offset,
+            leader_epoch: md.wire_epoch(),
+            metadata: md.metadata.as_str(),
+        };
+        let topic = tp.topic.as_str();
+        if let Some(&slot) = slots.get(topic) {
+            if let Some(group) = groups.get_mut(slot) {
+                if group
+                    .partitions
+                    .iter()
+                    .any(|saved| saved.partition == tp.partition)
+                {
+                    continue;
+                }
+                group.partitions.push(part);
+                continue;
+            }
+        }
+        let slot = groups.len();
+        let _ = slots.insert(topic, slot);
+        groups.push(BorrowedOffsetTopic {
+            topic,
+            partitions: vec![part],
+        });
+    }
+    groups
+}
+
 fn refill_offset_topics(
     topics: &mut Vec<OffsetTopic>,
     items: &[(TopicPartition, OffsetAndMetadata)],
@@ -5149,6 +5185,11 @@ mod tests {
         let mut topics = group_offset_topics(&repeated);
         assert_eq!(topics[0].partitions.len(), 1);
         assert_eq!(topics[0].partitions[0].offset, 1);
+        let borrowed = group_borrowed_offset_topics(&repeated);
+        assert_eq!(borrowed.len(), 1);
+        assert_eq!(borrowed[0].topic, "t");
+        assert_eq!(borrowed[0].partitions.len(), 1);
+        assert_eq!(borrowed[0].partitions[0].offset, 1);
         let name = topics[0].topic.as_ptr();
         refill_offset_topics(&mut topics, &repeated);
         assert_eq!(topics[0].topic.as_ptr(), name);
