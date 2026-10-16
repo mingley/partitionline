@@ -289,17 +289,22 @@ impl ConsumerGroup {
             }],
             require_stable: self.cfg.isolation_level == crate::IsolationLevel::ReadCommitted,
         };
-        let response = self
-            .offset_client()?
-            .fetch(
-                &request,
-                &OffsetOptions {
-                    topic_ids: true,
-                    timeout: Some(timeout),
-                    ..Default::default()
-                },
-            )
-            .await?;
+        let limits = OffsetLimits::default();
+        let encoded = encode_offset_fetch_request_data(&request, 10, limits)?;
+        let body = coord_offsets_v10(
+            &mut self.coord,
+            &self.cfg,
+            &self.group_id,
+            super::COORDINATOR_GROUP,
+            crate::protocol::api_keys::OFFSET_FETCH,
+            |buf| {
+                buf.extend_from_slice(&encoded);
+                Ok(())
+            },
+            timeout,
+        )
+        .await?;
+        let response = decode_offset_fetch_response_data(&body, 10, limits)?;
         let group = response
             .groups
             .into_iter()
@@ -316,8 +321,7 @@ impl ConsumerGroup {
                     return Err(Error::protocol("v10 returned a topic name"));
                 };
                 let name = reverse
-                    .get(&id)
-                    .cloned()
+                    .remove(&id)
                     .ok_or_else(|| Error::protocol("unknown fetched topic UUID"))?;
                 Ok(FetchedOffsetTopic {
                     topic: name,
@@ -348,7 +352,34 @@ fn offset_commit_v10_code(body: &[u8]) -> Option<i16> {
         .find(|code| *code != 0)
 }
 
-/// OffsetCommit v10 on the group's coordinator.
+fn offset_fetch_v10_code(body: &[u8]) -> Option<i16> {
+    let response = decode_offset_fetch_response_data(body, 10, OffsetLimits::default()).ok()?;
+    if let Some(code) = response
+        .groups
+        .iter()
+        .map(|group| group.error_code)
+        .find(|code| *code != 0)
+    {
+        return Some(code);
+    }
+    response
+        .groups
+        .iter()
+        .flat_map(|group| &group.topics)
+        .flat_map(|topic| &topic.partitions)
+        .map(|partition| partition.error_code)
+        .find(|code| *code != 0)
+}
+
+fn v10_coordinator_code(api: i16, body: &[u8]) -> Option<i16> {
+    if api == crate::protocol::api_keys::OFFSET_FETCH {
+        offset_fetch_v10_code(body)
+    } else {
+        offset_commit_v10_code(body)
+    }
+}
+
+/// OffsetCommit or OffsetFetch v10 on the group's coordinator.
 ///
 /// The body is the typed UUID request. A coordinator error rediscovers that
 /// broker on the caller's deadline. Name-only v2–v9 stays on
@@ -384,7 +415,7 @@ pub(super) async fn coord_offsets_v10(
         }
         Err(err) => return Err(err),
     };
-    if offset_commit_v10_code(&body).is_some_and(crate::error::coordinator_retriable) {
+    if v10_coordinator_code(api, &body).is_some_and(crate::error::coordinator_retriable) {
         let bounded = bounded_consumer_config(cfg, deadline)?;
         *coord = super::discover_coord_supporting(&bounded, group_id, key_type, api, 10).await?;
         coord
@@ -512,9 +543,30 @@ mod tests {
             offset_commit_v10_code(&bytes),
             Some(crate::error::NOT_COORDINATOR)
         );
+        assert_eq!(
+            v10_coordinator_code(crate::protocol::api_keys::OFFSET_COMMIT, &bytes),
+            Some(crate::error::NOT_COORDINATOR)
+        );
         let empty =
             encode_offset_commit_response_data(&OffsetCommitResponseData::default(), 10, limits)
                 .unwrap();
         assert_eq!(offset_commit_v10_code(&empty), None);
+        let fetched = OffsetFetchResponseData {
+            throttle_time_ms: 0,
+            groups: vec![OffsetFetchGroupResponseData {
+                group_id: "g".into(),
+                topics: Vec::new(),
+                error_code: crate::error::NOT_COORDINATOR,
+            }],
+        };
+        let fetched = encode_offset_fetch_response_data(&fetched, 10, limits).unwrap();
+        assert_eq!(
+            offset_fetch_v10_code(&fetched),
+            Some(crate::error::NOT_COORDINATOR)
+        );
+        assert_eq!(
+            v10_coordinator_code(crate::protocol::api_keys::OFFSET_FETCH, &fetched),
+            Some(crate::error::NOT_COORDINATOR)
+        );
     }
 }
