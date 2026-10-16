@@ -1581,6 +1581,122 @@ pub fn encode_join_group_request(
     )
 }
 
+fn add_group_len(total: usize, next: usize) -> Result<usize> {
+    total
+        .checked_add(next)
+        .ok_or_else(|| Error::protocol("group request size overflow"))
+}
+
+fn group_array_len(flexible: bool, len: usize) -> Result<usize> {
+    if flexible {
+        let value = buf::u32_from_usize(len)?
+            .checked_add(1)
+            .ok_or_else(|| Error::protocol("compact array overflow"))?;
+        Ok(buf::unsigned_varint_size(value))
+    } else {
+        let _len = buf::i32_from_usize(len)?;
+        Ok(4)
+    }
+}
+
+fn group_string_len(flexible: bool, value: Option<&str>) -> Result<usize> {
+    match value {
+        None => Ok(if flexible {
+            buf::unsigned_varint_size(0)
+        } else {
+            2
+        }),
+        Some(value) => {
+            if flexible {
+                let encoded = buf::u32_from_usize(value.len())?
+                    .checked_add(1)
+                    .ok_or_else(|| Error::protocol("compact string overflow"))?;
+                Ok(buf::unsigned_varint_size(encoded).saturating_add(value.len()))
+            } else {
+                let _len = buf::i16_from_usize(value.len())?;
+                Ok(2usize.saturating_add(value.len()))
+            }
+        }
+    }
+}
+
+fn group_bytes_len(flexible: bool, value: &[u8]) -> Result<usize> {
+    if flexible {
+        let encoded = buf::u32_from_usize(value.len())?
+            .checked_add(1)
+            .ok_or_else(|| Error::protocol("compact bytes overflow"))?;
+        Ok(buf::unsigned_varint_size(encoded).saturating_add(value.len()))
+    } else {
+        let _len = buf::i32_from_usize(value.len())?;
+        Ok(4usize.saturating_add(value.len()))
+    }
+}
+
+fn reserve_group_body(buf: &mut BytesMut, planned: usize) {
+    let needed = buf.len().saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
+}
+
+fn join_group_request_len(
+    version: i16,
+    flexible: bool,
+    req: &JoinGroupProtocolsRequest<'_>,
+) -> Result<usize> {
+    let mut total = group_string_len(flexible, Some(req.group_id))?;
+    total = add_group_len(total, 8)?;
+    total = add_group_len(total, group_string_len(flexible, Some(req.member_id))?)?;
+    if version >= 5 {
+        total = add_group_len(total, group_string_len(flexible, req.group_instance_id)?)?;
+    }
+    total = add_group_len(total, group_string_len(flexible, Some(req.protocol_type))?)?;
+    total = add_group_len(total, group_array_len(flexible, req.protocols.len())?)?;
+    for protocol in req.protocols {
+        total = add_group_len(total, group_string_len(flexible, Some(protocol.name))?)?;
+        total = add_group_len(total, group_bytes_len(flexible, protocol.metadata)?)?;
+        if flexible {
+            total = add_group_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    if version >= 8 {
+        total = add_group_len(total, group_string_len(true, req.reason)?)?;
+    }
+    if flexible {
+        total = add_group_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
+}
+
+fn sync_group_request_len(
+    version: i16,
+    flexible: bool,
+    req: &SyncGroupRequest<'_>,
+) -> Result<usize> {
+    let mut total = group_string_len(flexible, Some(req.group_id))?;
+    total = add_group_len(total, 4)?;
+    total = add_group_len(total, group_string_len(flexible, Some(req.member_id))?)?;
+    if version >= 3 {
+        total = add_group_len(total, group_string_len(flexible, req.group_instance_id)?)?;
+    }
+    if version >= 5 {
+        total = add_group_len(total, group_string_len(true, Some(req.protocol_type))?)?;
+        total = add_group_len(total, group_string_len(true, Some(req.protocol_name))?)?;
+    }
+    total = add_group_len(total, group_array_len(flexible, req.assignments.len())?)?;
+    for (id, bytes) in req.assignments {
+        total = add_group_len(total, group_string_len(flexible, Some(id))?)?;
+        total = add_group_len(total, group_bytes_len(flexible, bytes)?)?;
+        if flexible {
+            total = add_group_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    if flexible {
+        total = add_group_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
+}
+
 /// Encode JoinGroup with Protocols of N (v2–v9).
 pub fn encode_join_group_protocols_request(
     buf: &mut BytesMut,
@@ -1588,6 +1704,9 @@ pub fn encode_join_group_protocols_request(
     req: &JoinGroupProtocolsRequest<'_>,
 ) -> crate::error::Result<()> {
     let flexible = join_group_flexible(version)?;
+    let body_start = buf.len();
+    let planned = join_group_request_len(version, flexible, req)?;
+    reserve_group_body(buf, planned);
     buf::put_string(buf, flexible, Some(req.group_id))?;
     buf.put_i32(req.session_timeout_ms);
     buf.put_i32(req.rebalance_timeout_ms);
@@ -1610,6 +1729,7 @@ pub fn encode_join_group_protocols_request(
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
 }
 
@@ -2130,6 +2250,9 @@ pub fn encode_sync_group_request(
     req: &SyncGroupRequest<'_>,
 ) -> crate::error::Result<()> {
     let flexible = sync_group_flexible(version)?;
+    let body_start = buf.len();
+    let planned = sync_group_request_len(version, flexible, req)?;
+    reserve_group_body(buf, planned);
     buf::put_string(buf, flexible, Some(req.group_id))?;
     buf.put_i32(req.generation_id);
     buf::put_string(buf, flexible, Some(req.member_id))?;
@@ -2151,6 +2274,7 @@ pub fn encode_sync_group_request(
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
 }
 
@@ -6724,6 +6848,54 @@ mod tests {
         );
         let top = OffsetDeleteResponse::error_counts(crate::error::NOT_COORDINATOR, &[]);
         assert_eq!(top, HashMap::from([(crate::error::NOT_COORDINATOR, 1)]));
+    }
+
+    #[test]
+    fn a_group_membership_request_sizes_its_body_once() {
+        let metadata = vec![7u8; 4096];
+        let protocols = [JoinGroupProtocol::new("range", &metadata)];
+        let join = JoinGroupProtocolsRequest {
+            group_id: "orders",
+            session_timeout_ms: 10_000,
+            rebalance_timeout_ms: 20_000,
+            member_id: "member-1",
+            group_instance_id: None,
+            protocol_type: "consumer",
+            protocols: &protocols,
+            reason: Some("rejoin"),
+        };
+        for version in [5_i16, 9] {
+            let mut buf = BytesMut::new();
+            encode_join_group_protocols_request(&mut buf, version, &join).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            buf.clear();
+            encode_join_group_protocols_request(&mut buf, version, &join).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+        }
+        let assignments = vec![("member-1".to_string(), metadata)];
+        let sync = SyncGroupRequest {
+            group_id: "orders",
+            generation_id: 3,
+            member_id: "member-1",
+            group_instance_id: None,
+            protocol_type: "consumer",
+            protocol_name: "range",
+            assignments: &assignments,
+        };
+        for version in [3_i16, 5] {
+            let mut buf = BytesMut::new();
+            encode_sync_group_request(&mut buf, version, &sync).unwrap();
+            let len = buf.len();
+            let capacity = buf.capacity();
+            assert!(capacity >= len);
+            buf.clear();
+            encode_sync_group_request(&mut buf, version, &sync).unwrap();
+            assert_eq!(buf.len(), len);
+            assert_eq!(buf.capacity(), capacity);
+        }
     }
 
     #[test]
