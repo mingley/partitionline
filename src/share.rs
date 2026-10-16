@@ -801,6 +801,12 @@ pub enum ShareAcquireMode {
 /// `handleShareFetchSuccess` completes piggyback acks and still
 /// delivers the fetch; this is not partition
 /// `INVALID_FETCH_SIZE`, which fails that poll). A piggybacked
+/// `MESSAGE_TOO_LARGE` still completes without retry,
+/// including when `AcknowledgeErrorMessage` is set (Java
+/// `handleShareFetchSuccess` completes piggyback acks and still
+/// delivers the fetch; this is not partition
+/// `MESSAGE_TOO_LARGE`, which fails that poll, and not
+/// `RECORD_LIST_TOO_LARGE`). A piggybacked
 /// `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a
 /// sibling partition whose `AcknowledgeErrorCode` is none, including
 /// when `AcknowledgeErrorMessage` is set or empty. A piggybacked
@@ -2113,6 +2119,12 @@ impl ShareGroup {
     /// or empty (Java `handleShareFetchSuccess` completes piggyback acks and
     /// still delivers the fetch; this is not partition
     /// `INVALID_FETCH_SIZE`, which fails that poll).
+    /// A piggybacked `MESSAGE_TOO_LARGE` still completes
+    /// without retry, including when `AcknowledgeErrorMessage` is set
+    /// (Java `handleShareFetchSuccess` completes piggyback acks and
+    /// still delivers the fetch; this is not partition
+    /// `MESSAGE_TOO_LARGE`, which fails that poll, and not
+    /// `RECORD_LIST_TOO_LARGE`).
     /// A piggybacked `TOPIC_AUTHORIZATION_FAILED` on one partition
     /// does not fail a sibling whose `AcknowledgeErrorCode` is none,
     /// including when `AcknowledgeErrorMessage` is set or empty.
