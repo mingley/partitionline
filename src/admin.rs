@@ -3982,17 +3982,28 @@ impl Admin {
                     return Err(Error::broker(response.error_code, "ElectLeaders"));
                 };
                 // Keep earlier results when a retry receives a terminal global error.
-                response.results = partitions
-                    .iter()
-                    .map(|tp| ElectLeadersResult {
+                let mut results: Vec<ElectLeadersResult> = Vec::new();
+                let mut slots: HashMap<&str, usize> = HashMap::new();
+                for tp in partitions {
+                    let part = ElectLeadersPartitionResult {
+                        partition_id: tp.partition,
+                        error_code: response.error_code,
+                        error_message: None,
+                    };
+                    if let Some(&slot) = slots.get(tp.topic.as_str()) {
+                        if let Some(topic) = results.get_mut(slot) {
+                            topic.partitions.push(part);
+                            continue;
+                        }
+                    }
+                    let slot = results.len();
+                    let _ = slots.insert(tp.topic.as_str(), slot);
+                    results.push(ElectLeadersResult {
                         topic: tp.topic.clone(),
-                        partitions: vec![ElectLeadersPartitionResult {
-                            partition_id: tp.partition,
-                            error_code: response.error_code,
-                            error_message: None,
-                        }],
-                    })
-                    .collect();
+                        partitions: vec![part],
+                    });
+                }
+                response.results = results;
             }
             let mut returned: HashMap<String, HashSet<i32>> = HashMap::new();
             let mut retry = Vec::new();
