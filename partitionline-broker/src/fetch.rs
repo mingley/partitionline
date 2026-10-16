@@ -360,6 +360,10 @@ struct Writer {
     maximum: usize,
 }
 impl Writer {
+    /// Spare bytes kept after a header write so the next field does not
+    /// double a buffer that is already full of record bytes.
+    const HEADER_SLACK: usize = 256;
+
     fn new(fixed: usize, maximum: usize, mut bytes: Vec<u8>) -> Result<Self, Error> {
         if fixed > maximum {
             return Err(Error::ResponseLimit);
@@ -382,10 +386,17 @@ impl Writer {
         {
             return Err(Error::ResponseLimit);
         }
-        // Geometric growth: partition headers continue after record bytes.
-        self.bytes
-            .try_reserve(value.len())
-            .map_err(|_| Error::Allocation)?;
+        let spare = self.bytes.capacity().saturating_sub(self.bytes.len());
+        if spare < value.len() {
+            let room = self.maximum.saturating_sub(self.bytes.len());
+            let need = value.len().saturating_sub(spare);
+            let grow = need.max(Self::HEADER_SLACK).min(room);
+            if grow > 0 {
+                self.bytes
+                    .try_reserve_exact(grow)
+                    .map_err(|_| Error::Allocation)?;
+            }
+        }
         self.bytes.extend_from_slice(value);
         Ok(())
     }
@@ -703,6 +714,24 @@ mod tests {
             offset: 0,
             maximum: 0,
         }
+    }
+
+    #[test]
+    fn a_header_after_records_does_not_double_the_buffer() {
+        let mut writer = super::Writer::new(64, 1024 * 1024, Vec::new())
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let payload = vec![1u8; 4096];
+        writer
+            .bytes(&payload)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let grown = writer.bytes.capacity();
+        writer.i32(7).unwrap_or_else(|error| panic!("{error:?}"));
+        assert!(writer.bytes.capacity() >= writer.bytes.len());
+        assert!(writer.bytes.capacity() < grown.saturating_mul(2));
+        assert_eq!(
+            writer.bytes.get(writer.bytes.len() - 4..),
+            Some(&[0, 0, 0, 7][..])
+        );
     }
 
     #[test]
