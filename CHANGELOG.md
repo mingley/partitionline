@@ -341,7 +341,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   which fails that poll, and not piggyback `INVALID_REQUIRED_ACKS`). A
   piggybacked `TRANSACTIONAL_ID_AUTHORIZATION_FAILED` still
   completes without retry, including when `AcknowledgeErrorMessage` is
-  set (Java `handleShareFetchSuccess` completes piggyback acks and still
+  set or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
   delivers the fetch; this is not partition `TRANSACTIONAL_ID_AUTHORIZATION_FAILED`,
   which fails that poll, and not piggyback `UNSUPPORTED_FOR_MESSAGE_FORMAT` or
   `TOPIC_AUTHORIZATION_FAILED` / `GROUP_AUTHORIZATION_FAILED` /

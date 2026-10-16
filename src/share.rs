@@ -844,7 +844,7 @@ pub enum ShareAcquireMode {
 /// `UNSUPPORTED_FOR_MESSAGE_FORMAT`, which fails that poll, and not
 /// piggyback `INVALID_REQUIRED_ACKS`). A piggybacked
 /// `TRANSACTIONAL_ID_AUTHORIZATION_FAILED` still completes without retry,
-/// including when `AcknowledgeErrorMessage` is set (Java
+/// including when `AcknowledgeErrorMessage` is set or empty (Java
 /// `handleShareFetchSuccess` completes piggyback acks and still
 /// delivers the fetch; this is not partition
 /// `TRANSACTIONAL_ID_AUTHORIZATION_FAILED`, which fails that poll, and
@@ -2228,7 +2228,7 @@ impl ShareGroup {
     /// piggyback `INVALID_REQUIRED_ACKS`).
     /// A piggybacked `TRANSACTIONAL_ID_AUTHORIZATION_FAILED` still completes
     /// without retry, including when `AcknowledgeErrorMessage` is set
-    /// (Java `handleShareFetchSuccess` completes piggyback acks and
+    /// or empty (Java `handleShareFetchSuccess` completes piggyback acks and
     /// still delivers the fetch; this is not partition
     /// `TRANSACTIONAL_ID_AUTHORIZATION_FAILED`, which fails that poll, and
     /// not piggyback `UNSUPPORTED_FOR_MESSAGE_FORMAT` or
