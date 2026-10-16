@@ -345,6 +345,47 @@ async fn share_leave_closes_sessions_while_leaving() {
     );
 }
 
+/// Resubscribe loads the new topic while the old share sessions close.
+#[tokio::test]
+async fn share_resubscribe_refreshes_metadata_while_closing_sessions() {
+    let mock = common::Mock::start_two_node().await;
+    v2(&mock);
+    mock.set_topic_partitions("t", 2);
+    mock.set_partition_leader("t", 0, 1);
+    mock.set_partition_leader("t", 1, 2);
+    produce(&mock, &[(0, b"left"), (1, b"right")]).await;
+    let mut group = ShareGroup::join(config(&mock), "resub-overlap", "t")
+        .await
+        .unwrap();
+    let got = group.poll().await.unwrap();
+    assert_eq!(got.len(), 2, "both leaders must open a share session");
+    mock.set_topic_partitions("u", 1);
+    mock.set_partition_leader("u", 0, 1);
+    let delay = Duration::from_millis(250);
+    mock.delay_share_reply_once(SHARE_ACKNOWLEDGE, delay);
+    mock.delay_share_reply_once(SHARE_ACKNOWLEDGE, delay);
+    mock.set_metadata_delay(delay);
+    let before = mock.metadata_calls();
+    let started = Instant::now();
+    group.subscribe(["t", "u"]).await.unwrap();
+    let elapsed = started.elapsed();
+    assert!(
+        mock.metadata_calls() > before,
+        "resubscribe should load metadata for the new topic"
+    );
+    assert!(
+        mock.share_ack_history()
+            .iter()
+            .any(|(_, epoch)| *epoch == ShareRequestMetadata::FINAL_EPOCH),
+        "resubscribe should retire the previous share sessions"
+    );
+    assert!(
+        elapsed < Duration::from_millis(450),
+        "share resubscribe closed sessions before loading metadata: {elapsed:?}"
+    );
+    group.leave().await.unwrap();
+}
+
 /// Idle share sockets are opened together before the acknowledgements.
 #[tokio::test]
 async fn share_ack_redials_leaders_together() {

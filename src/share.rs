@@ -1870,11 +1870,22 @@ impl ShareGroup {
     }
 
     async fn refresh_share_topics_within(&mut self, deadline: Instant) -> Result<()> {
-        if self.topics.is_empty()
-            || self
-                .topics
+        Self::refresh_topic_names_within(&mut self.consumer, &self.topics, deadline).await
+    }
+
+    /// Metadata for `topics` when any name is stale.
+    ///
+    /// An empty list and a fully fresh list skip the RPC. A zero remaining
+    /// budget is [`Error::Timeout`] before the request is written.
+    async fn refresh_topic_names_within(
+        consumer: &mut Consumer,
+        topics: &[String],
+        deadline: Instant,
+    ) -> Result<()> {
+        if topics.is_empty()
+            || topics
                 .iter()
-                .all(|topic| self.consumer.topic_metadata_fresh(topic))
+                .all(|topic| consumer.topic_metadata_fresh(topic))
         {
             return Ok(());
         }
@@ -1882,8 +1893,8 @@ impl ShareGroup {
         if timeout.is_zero() {
             return Err(Error::Timeout);
         }
-        self.consumer
-            .refresh_metadata_timeout(Some(&self.topics), timeout)
+        consumer
+            .refresh_metadata_timeout(Some(topics), timeout)
             .await
     }
 
@@ -3083,6 +3094,23 @@ impl ShareGroup {
             return Ok(());
         }
         let rejoining = !self.member_id.is_empty();
+        if rejoining && self.share_close_sockets_are_open() {
+            // Final acknowledgements use the leader sockets. Metadata for the
+            // new names uses the member socket, so both fit in one budget.
+            self.abort_inflight_share_fetches();
+            let (set, prepare_error) = self.spawn_final_share_acks(deadline);
+            let close = Self::finish_final_share_acks(set, prepare_error);
+            let refresh = Self::refresh_topic_names_within(&mut self.consumer, &topics, deadline);
+            let (close, refresh) = tokio::join!(close, refresh);
+            close?;
+            self.assigned.clear();
+            self.topic_ids.clear();
+            self.topics = topics;
+            self.publish_hb_topics();
+            refresh?;
+            self.heartbeat_join_within(deadline).await?;
+            return Ok(());
+        }
         if rejoining {
             self.close_share_session(deadline).await?;
             self.assigned.clear();
@@ -4216,6 +4244,21 @@ impl ShareGroup {
         } else {
             None
         }
+    }
+
+    /// True when every open share session still has a live leader socket.
+    ///
+    /// A closed or idle socket has to be dialed again. That dial needs the
+    /// share connection map, so it stays on the sequential close path.
+    fn share_close_sockets_are_open(&self) -> bool {
+        let idle = self.cfg.connections_max_idle;
+        self.share_epochs.iter().all(|(node, epoch)| {
+            *epoch <= 0
+                || self
+                    .share_conns
+                    .get(node)
+                    .is_some_and(|peer| !peer.conn.is_closed() && !peer.conn.idle_expired(idle))
+        })
     }
 
     /// Final share acknowledgements for the open sessions.
