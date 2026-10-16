@@ -5687,7 +5687,9 @@ impl Worker {
         let Some(inf) = guard.inf.take() else {
             return Ok(());
         };
-        self.shared.cluster.lock().apply_node_endpoints(&endpoints);
+        if !endpoints.is_empty() {
+            self.shared.cluster.lock().apply_node_endpoints(&endpoints);
+        }
         self.ack_index.fill(&inf.groups);
         let mut slots = std::mem::take(&mut self.ack_slots);
         slots.clear();

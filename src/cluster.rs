@@ -587,6 +587,9 @@ impl Cluster {
     /// Call this before [`Self::apply_current_leader`] so an unknown
     /// CurrentLeader id can patch the partition cache (KIP-951).
     pub(crate) fn apply_node_endpoints(&mut self, endpoints: &[NodeEndpoint]) {
+        if endpoints.is_empty() {
+            return;
+        }
         for e in endpoints {
             if self
                 .brokers
@@ -1046,6 +1049,11 @@ mod tests {
             Some(kept)
         );
         assert!(!cluster.brokers.contains_key(&-1));
+        cluster.apply_node_endpoints(&[]);
+        assert_eq!(
+            cluster.brokers.get(&1).map(|address| address.as_ptr()),
+            Some(kept)
+        );
         cluster.apply_node_endpoints(&[
             NodeEndpoint::new(-1, "127.0.0.1", 9092, None),
             NodeEndpoint::new(1, "", 9094, None),
