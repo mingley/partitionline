@@ -9067,6 +9067,12 @@ pub fn encode_describe_producers_topics_request(
     buf: &mut BytesMut,
     topics: &[DescribeProducersTopicRequest],
 ) -> crate::error::Result<()> {
+    let body_start = buf.len();
+    let planned = describe_producers_request_len(topics)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf::put_array_len(buf, true, Some(topics.len()))?;
     for t in topics {
         buf::put_compact_string(buf, Some(&t.name))?;
@@ -9077,7 +9083,21 @@ pub fn encode_describe_producers_topics_request(
         buf::put_empty_tagged_fields(buf);
     }
     buf::put_empty_tagged_fields(buf);
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn describe_producers_request_len(topics: &[DescribeProducersTopicRequest]) -> Result<usize> {
+    let mut total = describe_array_len(true, topics.len())?;
+    for topic in topics {
+        total = add_describe_len(total, describe_string_len(true, Some(&topic.name))?)?;
+        total = add_describe_len(
+            total,
+            reassignment_replica_len(Some(&topic.partition_indexes))?,
+        )?;
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    add_describe_len(total, buf::unsigned_varint_size(0))
 }
 
 /// Decode a DescribeProducers request (first topic).
@@ -9121,6 +9141,12 @@ pub fn encode_describe_producers_response(
     buf: &mut BytesMut,
     resp: &DescribeProducersResponse,
 ) -> crate::error::Result<()> {
+    let body_start = buf.len();
+    let planned = describe_producers_response_len(resp)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
     buf.put_i32(resp.throttle_time_ms);
     buf::put_array_len(buf, true, Some(resp.topics.len()))?;
     for topic in &resp.topics {
@@ -9145,7 +9171,40 @@ pub fn encode_describe_producers_response(
         buf::put_empty_tagged_fields(buf);
     }
     buf::put_empty_tagged_fields(buf);
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn describe_producers_response_len(resp: &DescribeProducersResponse) -> Result<usize> {
+    let mut total = 4;
+    total = add_describe_len(total, describe_array_len(true, resp.topics.len())?)?;
+    for topic in &resp.topics {
+        total = add_describe_len(total, describe_string_len(true, Some(&topic.name))?)?;
+        total = add_describe_len(total, describe_array_len(true, topic.partitions.len())?)?;
+        for partition in &topic.partitions {
+            total = add_describe_len(total, 6)?;
+            total = add_describe_len(
+                total,
+                describe_string_len(true, partition.error_message.as_deref())?,
+            )?;
+            total = add_describe_len(
+                total,
+                describe_array_len(true, partition.active_producers.len())?,
+            )?;
+            let each = 36usize.saturating_add(buf::unsigned_varint_size(0));
+            total = add_describe_len(
+                total,
+                partition
+                    .active_producers
+                    .len()
+                    .checked_mul(each)
+                    .ok_or_else(|| Error::protocol("describe producers response size overflow"))?,
+            )?;
+            total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+        }
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    add_describe_len(total, buf::unsigned_varint_size(0))
 }
 
 /// Decode a DescribeProducers response.
@@ -31589,6 +31648,79 @@ mod tests {
             zero.throttle_time_ms, 0,
             "DescribeProducersResponse::new still fills ThrottleTimeMs 0"
         );
+    }
+
+    #[test]
+    fn a_describe_producers_request_sizes_its_body_once() {
+        let topics = vec![
+            DescribeProducersTopicRequest {
+                name: "orders".into(),
+                partition_indexes: vec![0, 1],
+            },
+            DescribeProducersTopicRequest {
+                name: "payments".into(),
+                partition_indexes: vec![],
+            },
+        ];
+        let mut buf = BytesMut::new();
+        encode_describe_producers_topics_request(&mut buf, &topics).unwrap();
+        let len = buf.len();
+        let capacity = buf.capacity();
+        assert!(capacity >= len);
+        assert!(capacity < 64 * 1024);
+        buf.clear();
+        encode_describe_producers_topics_request(&mut buf, &topics).unwrap();
+        assert_eq!(buf.len(), len);
+        assert_eq!(buf.capacity(), capacity);
+        let mut cur = &buf[..];
+        let decoded = decode_describe_producers_topics_request(&mut cur).unwrap();
+        assert!(cur.is_empty());
+        assert_eq!(decoded, topics);
+    }
+
+    #[test]
+    fn a_describe_producers_response_sizes_its_body_once() {
+        let response = DescribeProducersResponse {
+            throttle_time_ms: 12,
+            topics: vec![DescribeProducersTopic {
+                name: "orders".into(),
+                partitions: vec![
+                    DescribeProducersPartition {
+                        partition_index: 0,
+                        error_code: 0,
+                        error_message: None,
+                        active_producers: vec![ActiveProducer {
+                            producer_id: 7,
+                            producer_epoch: 1,
+                            last_sequence: 3,
+                            last_timestamp: 9,
+                            coordinator_epoch: 2,
+                            current_txn_start_offset: 4,
+                        }],
+                    },
+                    DescribeProducersPartition {
+                        partition_index: 1,
+                        error_code: 3,
+                        error_message: Some("busy".into()),
+                        active_producers: Vec::new(),
+                    },
+                ],
+            }],
+        };
+        let mut buf = BytesMut::new();
+        encode_describe_producers_response(&mut buf, &response).unwrap();
+        let len = buf.len();
+        let capacity = buf.capacity();
+        assert!(capacity >= len);
+        assert!(capacity < 64 * 1024);
+        buf.clear();
+        encode_describe_producers_response(&mut buf, &response).unwrap();
+        assert_eq!(buf.len(), len);
+        assert_eq!(buf.capacity(), capacity);
+        let mut cur = &buf[..];
+        let decoded = decode_describe_producers_response(&mut cur).unwrap();
+        assert!(cur.is_empty());
+        assert_eq!(decoded, response);
     }
 
     #[test]
