@@ -554,6 +554,13 @@ pub struct ShareGroup {
     /// Leader to topic to partitions. Partition lists are cleared and refilled
     /// each poll; topic names stay when the assignment is unchanged.
     leader_plan: ShareLeaderPlan,
+    /// Leader node ids for the current plan. Reused so a poll does not allocate
+    /// the id list again.
+    leader_nodes: Vec<i32>,
+    /// ShareFetch topic lists returned from a previous poll.
+    spare_fetch_topics: Vec<Vec<ShareFetchTopic>>,
+    /// ShareFetch partition indexes returned from a previous poll.
+    spare_fetch_ids: Vec<BTreeMap<[u8; 16], Vec<i32>>>,
     topic_ids: HashMap<String, [u8; 16]>,
     /// Share session epoch per share-partition leader (KIP-932).
     share_epochs: HashMap<i32, i32>,
@@ -588,7 +595,7 @@ pub struct ShareGroup {
     topic_metrics: HashMap<String, crate::metrics::FetchTopicTracker>,
     /// ShareFetch requests sent and not yet applied. A multi-leader poll
     /// returns after the collection window once any peer has responded.
-    inflight_share_fetches: Option<tokio::task::JoinSet<(i32, ShareNodeConnection, Result<Bytes>)>>,
+    inflight_share_fetches: Option<tokio::task::JoinSet<ShareFetchTask>>,
     inflight_share_nodes: HashMap<i32, InflightShareMeta>,
 }
 
@@ -604,9 +611,18 @@ struct ReadyShareFetch {
     body: Result<Bytes>,
 }
 
+/// One finished or in-flight ShareFetch. The topic list rides with the task so
+/// a completed fetch can return it to the spare pool.
+type ShareFetchTask = (
+    i32,
+    ShareNodeConnection,
+    Result<Bytes>,
+    Vec<ShareFetchTopic>,
+);
+
 /// Aborts parked share fetches if this round is cancelled before they are stored.
 struct InflightShareFetches {
-    set: Option<tokio::task::JoinSet<(i32, ShareNodeConnection, Result<Bytes>)>>,
+    set: Option<tokio::task::JoinSet<ShareFetchTask>>,
     pending: HashMap<i32, InflightShareMeta>,
 }
 
@@ -811,6 +827,83 @@ fn prune_share_leader_plan(plan: &mut ShareLeaderPlan) {
     });
 }
 
+fn refill_share_partitions(dest: &mut Vec<ShareFetchPartition>, parts: &[i32], max_bytes: i32) {
+    let mut used = 0usize;
+    for &partition in parts {
+        if let Some(slot) = dest.get_mut(used) {
+            slot.partition = partition;
+            slot.partition_max_bytes = max_bytes;
+            slot.acknowledgements.clear();
+        } else {
+            dest.push(ShareFetchPartition {
+                partition,
+                partition_max_bytes: max_bytes,
+                acknowledgements: Vec::new(),
+            });
+        }
+        used = used.saturating_add(1);
+    }
+    dest.truncate(used);
+}
+
+fn refill_share_fetch(
+    by_id: &mut BTreeMap<[u8; 16], Vec<i32>>,
+    topics: &mut Vec<ShareFetchTopic>,
+    groups: &HashMap<String, Vec<i32>>,
+    topic_ids: &HashMap<String, [u8; 16]>,
+    max_partition_bytes: i32,
+) -> Result<()> {
+    for parts in by_id.values_mut() {
+        parts.clear();
+    }
+    for (topic, parts) in groups {
+        let id = topic_ids
+            .get(topic.as_str())
+            .copied()
+            .filter(|id| *id != [0; 16])
+            .ok_or_else(|| {
+                Error::protocol(format!("share assignment missing topic id for {topic}"))
+            })?;
+        if let Some(slot) = by_id.get_mut(&id) {
+            slot.extend(parts.iter().copied());
+        } else {
+            let mut owned = Vec::new();
+            owned.extend_from_slice(parts);
+            let _ = by_id.insert(id, owned);
+        }
+    }
+    by_id.retain(|_, parts| !parts.is_empty());
+    let mut used = 0usize;
+    for (topic_id, partitions) in by_id.iter() {
+        if let Some(topic) = topics.get_mut(used) {
+            topic.topic_id = *topic_id;
+            refill_share_partitions(&mut topic.partitions, partitions, max_partition_bytes);
+        } else {
+            topics.push(ShareFetchTopic {
+                topic_id: *topic_id,
+                partitions: partitions
+                    .iter()
+                    .copied()
+                    .map(|partition| ShareFetchPartition {
+                        partition,
+                        partition_max_bytes: max_partition_bytes,
+                        acknowledgements: Vec::new(),
+                    })
+                    .collect(),
+            });
+        }
+        used = used.saturating_add(1);
+    }
+    topics.truncate(used);
+    Ok(())
+}
+
+fn park_capped<T>(pool: &mut Vec<T>, item: T) {
+    if pool.len() < 8 {
+        pool.push(item);
+    }
+}
+
 fn share_partition_leader(topic: &str, partition: i32, leaders: &[i32]) -> Result<i32> {
     let idx = usize::try_from(partition).map_err(|_| Error::NoLeader {
         topic: topic.to_string(),
@@ -940,6 +1033,9 @@ impl ShareGroup {
             leader_ids: Vec::new(),
             metadata_names: Vec::new(),
             leader_plan: HashMap::new(),
+            leader_nodes: Vec::new(),
+            spare_fetch_topics: Vec::new(),
+            spare_fetch_ids: Vec::new(),
             topic_ids: HashMap::new(),
             share_epochs: HashMap::new(),
             share_conns: HashMap::new(),
@@ -1860,6 +1956,29 @@ impl ShareGroup {
             .await
     }
 
+    fn take_share_ids(&mut self) -> BTreeMap<[u8; 16], Vec<i32>> {
+        self.spare_fetch_ids.pop().unwrap_or_default()
+    }
+
+    fn take_share_topics(&mut self) -> Vec<ShareFetchTopic> {
+        self.spare_fetch_topics.pop().unwrap_or_default()
+    }
+
+    fn park_share_ids(&mut self, ids: BTreeMap<[u8; 16], Vec<i32>>) {
+        park_capped(&mut self.spare_fetch_ids, ids);
+    }
+
+    fn park_share_topics(&mut self, topics: Vec<ShareFetchTopic>) {
+        park_capped(&mut self.spare_fetch_topics, topics);
+    }
+
+    fn park_prepared(&mut self, prepared: &mut Vec<PreparedShareFetch>) {
+        for job in prepared.drain(..) {
+            self.park_share_ids(job.by_id);
+            self.park_share_topics(job.topics);
+        }
+    }
+
     async fn leaders_of(&mut self, deadline: Instant) -> Result<()> {
         // One stored name per topic. A fresh topic skips the metadata RPC
         // without copying that name again.
@@ -1921,7 +2040,7 @@ impl ShareGroup {
     /// A poll with nothing ready returns a timeout.
     async fn collect_share_fetches(
         &mut self,
-        prepared: Vec<PreparedShareFetch>,
+        mut prepared: Vec<PreparedShareFetch>,
         deadline: Instant,
     ) -> Result<Vec<ReadyShareFetch>> {
         let mut inflight = InflightShareFetches {
@@ -1931,15 +2050,18 @@ impl ShareGroup {
         let timeout = deadline.saturating_duration_since(Instant::now());
         let group_id = Arc::<str>::from(self.group_id.as_str());
         let member_id = Arc::<str>::from(self.member_id.as_str());
-        if !timeout.is_zero() {
-            let Some(set) = inflight.set.as_mut() else {
-                return Err(Error::protocol("inflight share fetch set missing"));
-            };
+        if timeout.is_zero() {
+            self.park_prepared(&mut prepared);
+        } else if let Some(set) = inflight.set.as_mut() {
             for mut job in prepared {
                 if inflight.pending.contains_key(&job.node) {
+                    self.park_share_ids(job.by_id);
+                    self.park_share_topics(job.topics);
                     continue;
                 }
                 let Some(mut peer) = self.share_conns.remove(&job.node) else {
+                    self.park_share_ids(job.by_id);
+                    self.park_share_topics(job.topics);
                     continue;
                 };
                 let node = job.node;
@@ -1964,9 +2086,12 @@ impl ShareGroup {
                             timeout,
                         )
                         .await;
-                    (node, peer, result)
+                    (node, peer, result, job.topics)
                 });
             }
+        } else {
+            self.park_prepared(&mut prepared);
+            return Err(Error::protocol("inflight share fetch set missing"));
         }
         let mut ready = Vec::new();
         let mut first_reply: Option<Instant> = None;
@@ -1993,13 +2118,14 @@ impl ShareGroup {
             let Some(joined) = joined else {
                 break;
             };
-            let (node, peer, result) = match joined {
+            let (node, peer, result, topics) = match joined {
                 Ok(joined) => joined,
                 Err(error) => {
                     inflight.park(self);
                     return Err(Error::protocol(format!("share fetch task: {error}")));
                 }
             };
+            self.park_share_topics(topics);
             let meta = inflight.pending.remove(&node);
             let _ = self.share_conns.insert(node, peer);
             if first_reply.is_none() {
@@ -2016,13 +2142,14 @@ impl ShareGroup {
         }
         if let Some(set) = inflight.set.as_mut() {
             while let Some(joined) = set.try_join_next() {
-                let (node, peer, result) = match joined {
+                let (node, peer, result, topics) = match joined {
                     Ok(joined) => joined,
                     Err(error) => {
                         inflight.park(self);
                         return Err(Error::protocol(format!("share fetch task: {error}")));
                     }
                 };
+                self.park_share_topics(topics);
                 let meta = inflight.pending.remove(&node);
                 let _ = self.share_conns.insert(node, peer);
                 if let Some(meta) = meta {
@@ -2053,8 +2180,9 @@ impl ShareGroup {
             return Ok(self.drain_pending_delivery());
         }
         self.leaders_of(deadline).await?;
-        let mut nodes: Vec<i32> = self.leader_plan.keys().copied().collect();
-        nodes.sort_unstable();
+        self.leader_nodes.clear();
+        self.leader_nodes.extend(self.leader_plan.keys().copied());
+        self.leader_nodes.sort_unstable();
         let metadata_bytes = self
             .acquisitions
             .iter()
@@ -2067,11 +2195,17 @@ impl ShareGroup {
             .decoded_byte_limit()
             .checked_sub(metadata_bytes)
             .ok_or_else(|| Error::protocol("ShareFetch acquisition metadata budget exceeded"))?;
-        if nodes.len() > 1 {
+        if self.leader_nodes.len() > 1 {
+            let nodes = std::mem::take(&mut self.leader_nodes);
             self.warm_share_leaders(&nodes, deadline).await;
+            self.leader_nodes = nodes;
         }
+        let node_count = self.leader_nodes.len();
         let mut prepared = Vec::new();
-        for node in nodes {
+        for index in 0..node_count {
+            let Some(node) = self.leader_nodes.get(index).copied() else {
+                continue;
+            };
             if self.inflight_share_nodes.contains_key(&node) {
                 continue;
             }
@@ -2085,43 +2219,38 @@ impl ShareGroup {
             {
                 Ok(version) => version,
                 Err(Error::Timeout) => break,
-                Err(error) => return Err(error),
+                Err(error) => {
+                    self.park_prepared(&mut prepared);
+                    return Err(error);
+                }
             };
             if self.acquire_mode == ShareAcquireMode::RecordLimit && version < 2 {
+                self.park_prepared(&mut prepared);
                 return Err(Error::Unsupported(format!(
                     "share broker {node} does not support record-limit acquisition"
                 )));
             }
             let epoch = self.session_epoch(node);
-            let mut by_id: BTreeMap<[u8; 16], Vec<i32>> = BTreeMap::new();
+            let max_partition_bytes = self.cfg.max_partition_fetch_bytes;
+            let mut by_id = self.take_share_ids();
+            let mut topics = self.take_share_topics();
             let Some(tps) = self.leader_plan.get(&node) else {
+                self.park_share_ids(by_id);
+                self.park_share_topics(topics);
                 continue;
             };
-            for (topic, parts) in tps {
-                let id = self
-                    .topic_ids
-                    .get(topic.as_str())
-                    .copied()
-                    .filter(|id| *id != [0; 16])
-                    .ok_or_else(|| {
-                        Error::protocol(format!("share assignment missing topic id for {topic}"))
-                    })?;
-                by_id.entry(id).or_default().extend(parts.iter().copied());
+            if let Err(error) = refill_share_fetch(
+                &mut by_id,
+                &mut topics,
+                tps,
+                &self.topic_ids,
+                max_partition_bytes,
+            ) {
+                self.park_prepared(&mut prepared);
+                self.park_share_ids(by_id);
+                self.park_share_topics(topics);
+                return Err(error);
             }
-            let topics: Vec<_> = by_id
-                .iter()
-                .map(|(topic_id, partitions)| ShareFetchTopic {
-                    topic_id: *topic_id,
-                    partitions: partitions
-                        .iter()
-                        .map(|part| ShareFetchPartition {
-                            partition: *part,
-                            partition_max_bytes: self.cfg.max_partition_fetch_bytes,
-                            acknowledgements: Vec::new(),
-                        })
-                        .collect(),
-                })
-                .collect();
             let max_records =
                 i32::try_from(self.cfg.max_poll_records.unwrap_or(16).max(1)).unwrap_or(i32::MAX);
             prepared.push(PreparedShareFetch {
@@ -2146,12 +2275,16 @@ impl ShareGroup {
         } else if let Some(job) = prepared.pop() {
             let timeout = deadline.saturating_duration_since(Instant::now());
             if timeout.is_zero() {
+                self.park_share_ids(job.by_id);
+                self.park_share_topics(job.topics);
                 return Err(Error::Timeout);
             }
-            let mut peer = self
-                .share_conns
-                .remove(&job.node)
-                .ok_or_else(|| Error::protocol("missing share connection"))?;
+            let node = job.node;
+            let Some(mut peer) = self.share_conns.remove(&node) else {
+                self.park_share_ids(job.by_id);
+                self.park_share_topics(job.topics);
+                return Err(Error::protocol("missing share connection"));
+            };
             let body = peer
                 .conn
                 .roundtrip(
@@ -2161,9 +2294,10 @@ impl ShareGroup {
                     timeout,
                 )
                 .await;
-            let _ = self.share_conns.insert(job.node, peer);
+            let _ = self.share_conns.insert(node, peer);
+            self.park_share_topics(job.topics);
             vec![ReadyShareFetch {
-                node: job.node,
+                node,
                 version: job.version,
                 by_id: job.by_id,
                 body,
@@ -2184,6 +2318,7 @@ impl ShareGroup {
                 Ok(body) => body,
                 Err(error) => {
                     self.reset_node_session(node);
+                    self.park_share_ids(by_id);
                     if matches!(error, Error::Timeout) && !self.pending_delivery.is_empty() {
                         return Ok(self.drain_pending_delivery());
                     }
@@ -2398,6 +2533,7 @@ impl ShareGroup {
                 );
                 self.pending_delivery.push_back(record);
             }
+            self.park_share_ids(by_id);
         }
         Ok(self.drain_pending_delivery())
     }
@@ -3854,6 +3990,48 @@ mod tests {
                 .and_then(|topics| topics.get_key_value("orders"))
                 .map(|(key, _)| key.as_ptr()),
             key_ptr
+        );
+    }
+
+    #[test]
+    fn a_second_share_fetch_reuses_partition_lists() {
+        let mut by_id = BTreeMap::new();
+        let mut topics = Vec::new();
+        let mut groups = HashMap::new();
+        let _ = groups.insert("orders".to_string(), vec![0, 1]);
+        let mut topic_ids = HashMap::new();
+        let _ = topic_ids.insert("orders".to_string(), [9u8; 16]);
+        super::refill_share_fetch(&mut by_id, &mut topics, &groups, &topic_ids, 1024)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let parts_ptr = by_id.get(&[9u8; 16]).map(Vec::as_ptr);
+        let topic_parts_ptr = topics.first().map(|topic| topic.partitions.as_ptr());
+        super::refill_share_fetch(&mut by_id, &mut topics, &groups, &topic_ids, 1024)
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(
+            by_id.get(&[9u8; 16]).map(Vec::as_slice),
+            Some([0, 1].as_slice())
+        );
+        assert_eq!(by_id.get(&[9u8; 16]).map(Vec::as_ptr), parts_ptr);
+        assert_eq!(
+            topics.first().map(|topic| topic.partitions.as_ptr()),
+            topic_parts_ptr
+        );
+        assert_eq!(topics.first().map(|topic| topic.topic_id), Some([9u8; 16]));
+        let mut fewer = HashMap::new();
+        let _ = fewer.insert("orders".to_string(), vec![1]);
+        super::refill_share_fetch(&mut by_id, &mut topics, &fewer, &topic_ids, 2048)
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(
+            topics
+                .first()
+                .and_then(|topic| topic.partitions.first())
+                .map(|part| (part.partition, part.partition_max_bytes)),
+            Some((1, 2048))
+        );
+        assert_eq!(by_id.get(&[9u8; 16]).map(Vec::as_ptr), parts_ptr);
+        assert_eq!(
+            topics.first().map(|topic| topic.partitions.as_ptr()),
+            topic_parts_ptr
         );
     }
 
