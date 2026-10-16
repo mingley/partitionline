@@ -2375,7 +2375,6 @@ impl ConsumerGroup {
         let mut member_subs: Vec<(String, Vec<String>)> = Vec::with_capacity(members.len());
         let mut owned_claims: Vec<StickyOwnedClaim> = Vec::with_capacity(members.len());
         let mut topic_set = self.topics.clone();
-        let mut seen_topics: HashSet<String> = topic_set.iter().cloned().collect();
         for m in &members {
             let sub = match ConsumerProtocol::deserialize_subscription(&m.metadata) {
                 Ok(s) if !s.topics.is_empty() => s,
@@ -2388,9 +2387,7 @@ impl ConsumerGroup {
                 Err(_) => ConsumerProtocolSubscription::new(self.topics.clone()),
             };
             for t in &sub.topics {
-                if seen_topics.insert(t.clone()) {
-                    topic_set.push(t.clone());
-                }
+                remember_unique_topic(&mut topic_set, t);
             }
             member_subs.push((m.member_id.clone(), sub.topics));
             owned_claims.push((m.member_id.clone(), sub.owned_partitions, sub.generation_id));
@@ -2459,10 +2456,7 @@ impl ConsumerGroup {
         let assigned = decode_assignment(&assignment).map_err(|e| {
             group_decode_context(e, "ConsumerProtocol assignment", version, assignment.len())
         })?;
-        let wanted: Vec<(String, i32)> = assigned
-            .into_iter()
-            .flat_map(|(t, ps)| ps.into_iter().map(move |p| (t.clone(), p)))
-            .collect();
+        let wanted = expand_topic_partitions(assigned);
         let revoked = self.assign_committed(&wanted, deadline).await?;
         self.hb_generation
             .store(self.generation_id, Ordering::SeqCst);
@@ -3805,6 +3799,30 @@ pub(crate) fn committed_offset<'a>(
     map.get(topic)?.get(&partition)
 }
 
+fn remember_unique_topic(topics: &mut Vec<String>, topic: &str) {
+    if topics.iter().any(|name| name == topic) {
+        return;
+    }
+    topics.push(topic.to_owned());
+}
+
+/// One owned topic becomes one name per partition. The last partition keeps it.
+fn expand_topic_partitions(topics: Vec<(String, Vec<i32>)>) -> Vec<(String, i32)> {
+    let mut out = Vec::new();
+    for (mut topic, partitions) in topics {
+        let count = partitions.len();
+        for (index, partition) in partitions.into_iter().enumerate() {
+            let name = if index.saturating_add(1) == count {
+                std::mem::take(&mut topic)
+            } else {
+                topic.clone()
+            };
+            out.push((name, partition));
+        }
+    }
+    out
+}
+
 pub(crate) fn committed_offset_pairs(
     map: HashMap<String, HashMap<i32, OffsetAndMetadata>>,
 ) -> Vec<(TopicPartition, OffsetAndMetadata)> {
@@ -4478,6 +4496,35 @@ mod tests {
     use crate::consumer::{OffsetAndMetadata, TopicPartition};
     use crate::protocol::group::{ConsumerProtocolSubscription, FetchedOffset, JoinGroupRequest};
     use std::collections::HashMap;
+
+    #[test]
+    fn an_assignment_expands_without_dropping_the_last_name() {
+        let orders = "orders-topic-name-is-long".to_string();
+        let orders_ptr = orders.as_ptr();
+        let expanded = expand_topic_partitions(vec![(orders, vec![1, 0])]);
+        assert_eq!(
+            expanded
+                .first()
+                .map(|(topic, partition)| (topic.as_str(), *partition)),
+            Some(("orders-topic-name-is-long", 1))
+        );
+        assert_eq!(
+            expanded
+                .get(1)
+                .map(|(topic, partition)| (topic.as_ptr(), *partition)),
+            Some((orders_ptr, 0))
+        );
+        let mut topics = vec!["orders".to_string()];
+        remember_unique_topic(&mut topics, "orders");
+        remember_unique_topic(&mut topics, "payments-topic-name-is-long");
+        let payments_ptr = topics.get(1).map(|topic| topic.as_ptr());
+        remember_unique_topic(&mut topics, "payments-topic-name-is-long");
+        assert_eq!(
+            topics.iter().map(String::as_str).collect::<Vec<_>>(),
+            vec!["orders", "payments-topic-name-is-long"]
+        );
+        assert_eq!(topics.get(1).map(|topic| topic.as_ptr()), payments_ptr);
+    }
 
     #[test]
     fn revoked_partitions_match_by_borrowed_topic_name() {
