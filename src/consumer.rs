@@ -1706,13 +1706,16 @@ impl<V> PartitionMap<V> {
         self.topics.clear();
     }
 
-    /// One owned name for each topic, with that topic's partition indexes.
-    fn topic_groups(&self) -> Vec<(String, Vec<i32>)> {
+    /// One name for each topic, with that topic's partition indexes.
+    ///
+    /// The name is the map key. A long topic keeps that allocation. A short
+    /// topic is copied inline and does not allocate.
+    fn topic_groups(&self) -> Vec<(TopicName, Vec<i32>)> {
         let mut out = Vec::with_capacity(self.topics.len());
         for (topic, partitions) in &self.topics {
             let mut indexes = Vec::with_capacity(partitions.len());
             indexes.extend(partitions.keys().copied());
-            out.push((topic.as_str().to_owned(), indexes));
+            out.push((topic.clone(), indexes));
         }
         out
     }
@@ -3709,7 +3712,7 @@ impl Consumer {
         if self.preferred.is_empty() {
             self.cluster.apply(&md, version);
         } else {
-            let watched: Vec<(String, Vec<(i32, i32)>)> = self
+            let watched: Vec<(TopicName, Vec<(i32, i32)>)> = self
                 .preferred
                 .topic_groups()
                 .into_iter()
@@ -9501,6 +9504,35 @@ mod tests {
         ));
         assert_eq!(heaped.as_str(), long);
         assert_eq!(String::from(heaped.as_str()), long);
+    }
+
+    #[test]
+    fn preferred_topic_groups_share_a_long_name() {
+        let mut preferred = PartitionMap::new();
+        let long = TopicName::from("topic-name-longer-than-twenty-three");
+        let TopicName::Heap(stored) = &long else {
+            panic!("long topic");
+        };
+        let stored = Arc::as_ptr(stored);
+        let _ = preferred.insert_owned(long, 1, 4);
+        let _ = preferred.insert_owned(TopicName::from("nb-fetch"), 0, 1);
+        let groups = preferred.topic_groups();
+        let long_group = groups.iter().find(|(topic, _)| topic.as_str().len() > 23);
+        let Some((topic, partitions)) = long_group else {
+            panic!("missing long topic");
+        };
+        let TopicName::Heap(shared) = topic else {
+            panic!("long topic was copied");
+        };
+        assert_eq!(Arc::as_ptr(shared), stored);
+        assert_eq!(partitions.as_slice(), [1]);
+        let short = groups
+            .iter()
+            .find(|(topic, _)| topic.as_str() == "nb-fetch");
+        assert!(matches!(
+            short.map(|(topic, _)| topic),
+            Some(TopicName::Inline(_, _))
+        ));
     }
 
     fn rec(topic: &str, partition: i32, offset: i64) -> FetchedRecord {
