@@ -2234,6 +2234,10 @@
 //! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `INVALID_REPLICA_ASSIGNMENT`, which fails that poll, and not
 //! piggyback `INVALID_REPLICATION_FACTOR`). A piggybacked
+//! `INVALID_CONFIG` still completes without retry,
+//! including when `AcknowledgeErrorMessage` is set (this is not
+//! partition `INVALID_CONFIG`, which fails that poll, and not
+//! piggyback `INVALID_REPLICA_ASSIGNMENT`). A piggybacked
 //! `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a
 //! sibling whose `AcknowledgeErrorCode` is none, including when
 //! `AcknowledgeErrorMessage` is set or empty. A piggybacked
