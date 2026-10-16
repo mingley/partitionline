@@ -306,7 +306,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `UNKNOWN_TOPIC_ID`; a partition `TOPIC_AUTHORIZATION_FAILED`
   still throws with `unauthorizedTopics` equal to the topic name).
   Top-level `GROUP_AUTHORIZATION_FAILED` still fails that poll
-  without Metadata, including when `ErrorMessage` is set (Java
+  without Metadata, including when `ErrorMessage` is set or empty (Java
   `handleShareFetchSuccess` only `requestUpdate`s for top-level
   `UNKNOWN_TOPIC_ID`).
   A non-empty
