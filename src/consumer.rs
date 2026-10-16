@@ -3875,20 +3875,39 @@ impl Consumer {
         if self.conns.contains_key(&node) {
             return Ok(());
         }
-        let addr = self
-            .cluster
-            .brokers
-            .get(&node)
-            .cloned()
-            .ok_or_else(|| Error::protocol(format!("unknown broker {node}")))?;
         // The one-node leader is the bootstrap socket, which is not stored in
-        // `conns`. Resetting its fetch session on every poll forces a full
-        // partition list. Keep the session while that socket stays live.
-        if reuse_bootstrap && self.conn.addr() == addr && self.conn.fetch_version() >= 0 {
+        // `conns`. Match that address without copying it. A dial still copies
+        // the address it has to keep across the handshake.
+        enum CachedBroker {
+            Missing,
+            Bootstrap,
+            Other,
+        }
+        let known = match self.cluster.brokers.get(&node) {
+            None => CachedBroker::Missing,
+            Some(addr)
+                if reuse_bootstrap
+                    && self.conn.fetch_version() >= 0
+                    && addr == self.conn.addr() =>
+            {
+                CachedBroker::Bootstrap
+            }
+            Some(_) => CachedBroker::Other,
+        };
+        if matches!(known, CachedBroker::Missing) {
+            return Err(Error::protocol(format!("unknown broker {node}")));
+        }
+        if matches!(known, CachedBroker::Bootstrap) {
             if self.conn.idle_expired(self.cfg.connections_max_idle) {
                 if let Some(session) = self.fetch_sessions.get_mut(&node) {
                     session.reset();
                 }
+                let addr = self
+                    .cluster
+                    .brokers
+                    .get(&node)
+                    .cloned()
+                    .ok_or_else(|| Error::protocol(format!("unknown broker {node}")))?;
                 let (conn, versions) = self.open_node_conn_until(&addr, deadline).await?;
                 self.versions = versions
                     .api_keys
@@ -3899,6 +3918,12 @@ impl Consumer {
             }
             return Ok(());
         }
+        let addr = self
+            .cluster
+            .brokers
+            .get(&node)
+            .cloned()
+            .ok_or_else(|| Error::protocol(format!("unknown broker {node}")))?;
         if let Some(session) = self.fetch_sessions.get_mut(&node) {
             session.reset();
         }
