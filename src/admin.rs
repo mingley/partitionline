@@ -73,8 +73,9 @@ use crate::protocol::admin::{
     RESOURCE_GROUP, RESOURCE_TOPIC,
 };
 use crate::protocol::api::{
-    decode_api_versions_response, decode_metadata_response, encode_api_versions_request,
-    encode_metadata_request_topics, ApiVersion, MetadataRequestTopic, MetadataResponse,
+    decode_api_versions_response, decode_metadata_response, decode_metadata_response_into,
+    encode_api_versions_request, encode_metadata_request_topics, ApiVersion, MetadataRequestTopic,
+    MetadataResponse,
 };
 use crate::protocol::api_keys::{
     pick_version, ALLOCATE_PRODUCER_IDS, ALTER_CLIENT_QUOTAS, ALTER_CONFIGS,
@@ -2902,6 +2903,8 @@ pub struct Admin {
     describe_acls_version: Option<i16>,
     delete_acls_version: Option<i16>,
     metadata_version: i16,
+    /// Last Metadata body. Refilled in place and read only after a successful fetch.
+    metadata_image: MetadataResponse,
     find_coord_version: Option<i16>,
     offset_delete_version: Option<i16>,
     list_reassign_version: Option<i16>,
@@ -4324,6 +4327,7 @@ impl Admin {
             describe_acls_version,
             delete_acls_version,
             metadata_version,
+            metadata_image: MetadataResponse::blank(),
             find_coord_version,
             offset_delete_version,
             list_reassign_version,
@@ -5023,10 +5027,9 @@ impl Admin {
         list_internal: bool,
         timeout: Duration,
     ) -> Result<Vec<TopicListing>> {
-        let md = self
-            .fetch_metadata_request_with(None, false, timeout)
+        self.fetch_metadata_request_with(None, false, timeout)
             .await?;
-        Ok(topic_listings_from(&md, list_internal))
+        Ok(topic_listings_from(&self.metadata_image, list_internal))
     }
 
     /// Topic partition layouts (Java `Admin.describeTopics`).
@@ -5224,10 +5227,9 @@ impl Admin {
             ));
         }
         let topics = MetadataRequestTopic::convert_from_ids(ids.iter().copied());
-        let md = self
-            .fetch_metadata_request_with(Some(&topics), include_authorized_operations, timeout)
+        self.fetch_metadata_request_with(Some(&topics), include_authorized_operations, timeout)
             .await?;
-        Ok(topic_descriptions_including_unnamed(&md))
+        Ok(topic_descriptions_including_unnamed(&self.metadata_image))
     }
 
     /// Java `describeTopics(TopicCollection)`.
@@ -7740,6 +7742,7 @@ impl Admin {
         // ordinary decoder allocates any broker, string or topic vector.
         validate_list_transactions_metadata(&body, version)?;
         let mut cursor = body.as_ref();
+        // Empty topic selection would truncate the stored image's topic buffers.
         let metadata = decode_metadata_response(&mut cursor, version)?;
         if !cursor.is_empty() || !metadata.topics.is_empty() {
             return Err(Error::protocol(
@@ -8151,7 +8154,7 @@ impl Admin {
         topics: Option<&[MetadataRequestTopic]>,
         include_topic_authorized_operations: bool,
         timeout: Duration,
-    ) -> Result<MetadataResponse> {
+    ) -> Result<()> {
         let deadline = Instant::now().checked_add(timeout).ok_or(Error::Timeout)?;
         self.fetch_metadata_request_until(topics, include_topic_authorized_operations, deadline)
             .await
@@ -8162,7 +8165,7 @@ impl Admin {
         topics: Option<&[MetadataRequestTopic]>,
         include_topic_authorized_operations: bool,
         deadline: Instant,
-    ) -> Result<MetadataResponse> {
+    ) -> Result<()> {
         let version = self.metadata_version;
         if version == 0 && topics.is_some() {
             return Err(Error::Unsupported(
@@ -8182,7 +8185,7 @@ impl Admin {
                 "Metadata v0 cannot represent this Admin request".into(),
             ));
         }
-        let body = self
+        let mut body = self
             .roundtrip_bootstrap(
                 METADATA,
                 version,
@@ -8198,10 +8201,10 @@ impl Admin {
                 startup_remaining(deadline)?,
             )
             .await?;
-        let md = decode_metadata_response(&mut body.clone(), version)?;
-        md.check()?;
-        self.cluster.apply(&md, version);
-        Ok(md)
+        decode_metadata_response_into(&mut body, version, &mut self.metadata_image)?;
+        self.metadata_image.check()?;
+        self.cluster.apply(&self.metadata_image, version);
+        Ok(())
     }
 
     /// Refresh metadata using only the time still left on `deadline`.
@@ -8218,7 +8221,6 @@ impl Admin {
             topics.map(|names| MetadataRequestTopic::convert_from_names(names.iter().cloned()));
         self.fetch_metadata_request_with(owned.as_deref(), false, timeout)
             .await
-            .map(|_| ())
     }
 
     /// Wait [`AdminConfig::retry_backoff`] (exponential) or [`Error::Timeout`].
@@ -12496,10 +12498,9 @@ impl Admin {
         timeout: Duration,
     ) -> Result<Vec<TopicDescription>> {
         let owned = MetadataRequestTopic::convert_from_names(names.iter().cloned());
-        let md = self
-            .fetch_metadata_request_with(Some(&owned), include_authorized_operations, timeout)
+        self.fetch_metadata_request_with(Some(&owned), include_authorized_operations, timeout)
             .await?;
-        Ok(topic_descriptions_for_names(&md, names))
+        Ok(topic_descriptions_for_names(&self.metadata_image, names))
     }
 
     /// List configuration resources (ListConfigResources api 74,
