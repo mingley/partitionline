@@ -1537,16 +1537,18 @@ struct Writer {
 }
 impl Writer {
     fn new(cap: usize) -> Result<Self, Error> {
-        let mut bytes = Vec::new();
-        bytes
-            .try_reserve_exact(cap)
-            .map_err(|_| Error::ResponseLimit)?;
-        Ok(Self { bytes, cap })
+        Ok(Self {
+            bytes: Vec::new(),
+            cap,
+        })
     }
     fn put(&mut self, value: &[u8]) -> Result<(), Error> {
         if value.len() > self.cap.saturating_sub(self.bytes.len()) {
             return Err(Error::ResponseLimit);
         }
+        self.bytes
+            .try_reserve(value.len())
+            .map_err(|_| Error::ResponseLimit)?;
         self.bytes.extend_from_slice(value);
         Ok(())
     }
@@ -2423,6 +2425,19 @@ fn delete(
 mod tests {
     use super::*;
     use std::{error::Error as StdError, sync::atomic::AtomicU64};
+
+    #[test]
+    fn a_metadata_response_does_not_reserve_the_maximum() {
+        let mut writer = Writer::new(8 * 1024 * 1024).expect("writer");
+        assert_eq!(writer.bytes.capacity(), 0);
+        writer.i32(7).expect("int");
+        assert!(writer.bytes.capacity() >= 4);
+        assert!(writer.bytes.capacity() < 8 * 1024 * 1024);
+        let err = writer
+            .put(&vec![0; 8 * 1024 * 1024])
+            .expect_err("over the cap");
+        assert!(matches!(err, Error::ResponseLimit));
+    }
 
     #[test]
     fn a_create_request_collides_when_dot_and_underscore_differ() {
