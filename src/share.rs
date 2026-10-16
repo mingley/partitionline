@@ -1060,6 +1060,58 @@ struct ShareAssignmentUpdate {
     topic_ids: HashMap<Arc<str>, [u8; 16]>,
 }
 
+/// A metadata name that can be stored on a share assignment.
+///
+/// An [`Arc`] is cloned. A [`String`] is copied once, for tests that still
+/// pass owned text.
+trait ShareCachedName {
+    fn share_cached_name(&self) -> Arc<str>;
+}
+
+impl ShareCachedName for Arc<str> {
+    fn share_cached_name(&self) -> Arc<str> {
+        Arc::clone(self)
+    }
+}
+
+impl ShareCachedName for String {
+    fn share_cached_name(&self) -> Arc<str> {
+        Arc::from(self.as_str())
+    }
+}
+
+enum ResolvedShareName<'a, I> {
+    Cached(&'a I),
+    Only(&'a str),
+}
+
+impl<I> Copy for ResolvedShareName<'_, I> {}
+
+impl<I> Clone for ResolvedShareName<'_, I> {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
+
+impl<'a, I: AsRef<str>> ResolvedShareName<'a, I> {
+    fn as_str(self) -> &'a str {
+        match self {
+            Self::Cached(name) => name.as_ref(),
+            Self::Only(name) => name,
+        }
+    }
+
+    fn cached_arc(self) -> Arc<str>
+    where
+        I: ShareCachedName,
+    {
+        match self {
+            Self::Cached(name) => name.share_cached_name(),
+            Self::Only(name) => Arc::from(name),
+        }
+    }
+}
+
 /// Resolve a share-group assignment.
 ///
 /// `None` means the topic ids could not be named, so the caller keeps its
@@ -1072,7 +1124,7 @@ fn next_share_assignment<I, N>(
     subscribed: &[String],
 ) -> Option<ShareAssignmentUpdate>
 where
-    I: AsRef<str>,
+    I: AsRef<str> + ShareCachedName,
     N: std::borrow::Borrow<str> + std::hash::Hash + Eq,
 {
     if incoming.is_empty() {
@@ -1089,21 +1141,21 @@ where
         if tp.topic_id == [0u8; 16] {
             continue;
         }
-        let name = id_to_name
-            .get(&tp.topic_id)
-            .map(|name| name.as_ref())
-            .or_else(|| {
-                // Single-topic subscribe: map the only name when metadata
-                // has not yet indexed this id.
-                if subscribed.len() == 1 {
-                    subscribed.first().map(String::as_str)
-                } else {
-                    None
-                }
-            });
-        let Some(name) = name else {
+        let resolved = if let Some(name) = id_to_name.get(&tp.topic_id) {
+            Some(ResolvedShareName::Cached(name))
+        } else if subscribed.len() == 1 {
+            // Single-topic subscribe: map the only name when metadata
+            // has not yet indexed this id.
+            subscribed
+                .first()
+                .map(|name| ResolvedShareName::Only(name.as_str()))
+        } else {
+            None
+        };
+        let Some(resolved) = resolved else {
             continue;
         };
+        let name = resolved.as_str();
         let topic_id = name_to_id.get(name).copied().unwrap_or(tp.topic_id);
         if topic_id == [0u8; 16] {
             continue;
@@ -1112,7 +1164,7 @@ where
         if let Some(stored) = topic_ids.get_mut(name) {
             *stored = topic_id;
         } else {
-            let _ = topic_ids.insert(Arc::from(name), topic_id);
+            let _ = topic_ids.insert(resolved.cached_arc(), topic_id);
         }
         let Some(shared) = topic_ids
             .get_key_value(name)
@@ -5091,6 +5143,44 @@ mod tests {
             delivery_count: 1,
             leader_epoch: None,
         }
+    }
+
+    #[test]
+    fn a_share_assignment_keeps_the_cached_topic_name() {
+        let orders: Arc<str> = Arc::from("topic-name-longer-than-twenty-three");
+        let stored = Arc::as_ptr(&orders);
+        let id = [1u8; 16];
+        let mut id_to_name = HashMap::new();
+        let _ = id_to_name.insert(id, Arc::clone(&orders));
+        let name_to_id = HashMap::<Arc<str>, [u8; 16]>::new();
+        let update = next_share_assignment(
+            &[
+                ShareTopicPartitions {
+                    topic_id: id,
+                    partitions: vec![0, 1],
+                },
+                ShareTopicPartitions {
+                    topic_id: id,
+                    partitions: vec![2],
+                },
+            ],
+            &id_to_name,
+            &name_to_id,
+            &[],
+        )
+        .expect("cached name");
+        assert_eq!(
+            update
+                .topic_ids
+                .get_key_value(orders.as_ref())
+                .map(|(name, _)| Arc::as_ptr(name)),
+            Some(stored)
+        );
+        assert!(update
+            .assigned
+            .iter()
+            .all(|(topic, _)| std::ptr::addr_eq(Arc::as_ptr(topic), stored)));
+        assert_eq!(update.assigned.len(), 3);
     }
 
     #[test]
