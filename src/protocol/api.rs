@@ -205,25 +205,22 @@ impl ApiVersionsResponse {
     where
         I: IntoIterator<Item = (&'a str, i16)>,
     {
-        let mut order: Vec<String> = Vec::new();
-        let mut levels: HashMap<String, i16> = HashMap::new();
+        let mut order: Vec<&str> = Vec::new();
+        let mut levels: HashMap<&str, i16> = HashMap::new();
         for (name, level) in finalized_features {
-            match levels.entry(name.to_string()) {
-                std::collections::hash_map::Entry::Vacant(slot) => {
-                    order.push(slot.key().clone());
-                    let _inserted = slot.insert(level);
-                }
-                std::collections::hash_map::Entry::Occupied(mut slot) => {
-                    let _prev = slot.insert(level);
-                }
+            if let Some(stored) = levels.get_mut(name) {
+                *stored = level;
+                continue;
             }
+            order.push(name);
+            let _ = levels.insert(name, level);
         }
         order
             .into_iter()
             .filter_map(|name| {
-                let level = levels.remove(&name)?;
+                let level = levels.remove(name)?;
                 (level != 0).then_some(FinalizedFeatureKey {
-                    name,
+                    name: name.to_owned(),
                     max_version_level: level,
                     min_version_level: level,
                 })

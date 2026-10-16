@@ -377,6 +377,12 @@ impl AddPartitionsToTxnRequest {
 /// Java `AddPartitionsToTxnResponse` helpers.
 pub struct AddPartitionsToTxnResponse;
 
+struct TxnPartitionErrorGroup {
+    topic: String,
+    seen: HashSet<i32>,
+    partitions: Vec<AddPartitionsToTxnPartitionResult>,
+}
+
 impl AddPartitionsToTxnResponse {
     /// Java `AddPartitionsToTxnResponse.V3_AND_BELOW_TXN_ID`.
     ///
@@ -469,40 +475,39 @@ impl AddPartitionsToTxnResponse {
     where
         I: IntoIterator<Item = (&'a str, i32, i16)>,
     {
-        let mut order: Vec<String> = Vec::new();
-        let mut by_topic: HashMap<String, (HashSet<i32>, Vec<AddPartitionsToTxnPartitionResult>)> =
-            HashMap::new();
+        let mut groups: Vec<TxnPartitionErrorGroup> = Vec::new();
+        let mut slots: HashMap<&str, usize> = HashMap::new();
         for (topic, partition, error_code) in errors {
-            if let Some((seen, parts)) = by_topic.get_mut(topic) {
-                if !seen.insert(partition) {
-                    continue;
-                }
-                parts.push(AddPartitionsToTxnPartitionResult {
-                    partition,
-                    error_code,
-                });
-                continue;
-            }
-            order.push(topic.to_string());
-            let mut seen = HashSet::new();
-            let _ = seen.insert(partition);
-            let _ = by_topic.insert(
-                topic.to_string(),
-                (
-                    seen,
-                    vec![AddPartitionsToTxnPartitionResult {
+            if let Some(&slot) = slots.get(topic) {
+                if let Some(group) = groups.get_mut(slot) {
+                    if !group.seen.insert(partition) {
+                        continue;
+                    }
+                    group.partitions.push(AddPartitionsToTxnPartitionResult {
                         partition,
                         error_code,
-                    }],
-                ),
-            );
+                    });
+                    continue;
+                }
+            }
+            let slot = groups.len();
+            let _ = slots.insert(topic, slot);
+            let mut seen = HashSet::new();
+            let _ = seen.insert(partition);
+            groups.push(TxnPartitionErrorGroup {
+                topic: topic.to_owned(),
+                seen,
+                partitions: vec![AddPartitionsToTxnPartitionResult {
+                    partition,
+                    error_code,
+                }],
+            });
         }
-        order
+        groups
             .into_iter()
-            .filter_map(|topic| {
-                by_topic
-                    .remove(&topic)
-                    .map(|(_, partitions)| AddPartitionsToTxnTopicResult { topic, partitions })
+            .map(|group| AddPartitionsToTxnTopicResult {
+                topic: group.topic,
+                partitions: group.partitions,
             })
             .collect()
     }
