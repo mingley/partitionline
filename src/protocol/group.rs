@@ -3908,8 +3908,9 @@ impl OffsetFetchResponse {
 
     /// Java `OffsetFetchResponse(int, Map, Map)` encode.
     ///
-    /// Groups are [`Self::from_groups_partition_data`]. ThrottleTimeMs
-    /// is written from `throttle_time_ms` (JSON `3+`; always on the wire
+    /// Groups and topics are written from the caller's names. A topic
+    /// that owns several partitions is written once. ThrottleTimeMs is
+    /// written from `throttle_time_ms` (JSON `3+`; always on the wire
     /// for this helper). Convenience
     /// [`encode_offset_fetch_groups_response`] still writes throttle
     /// `0`. Java's constructor is v8+; v0–v7 Topics is
@@ -3927,12 +3928,7 @@ impl OffsetFetchResponse {
         I: IntoIterator<Item = (&'a str, J)>,
         J: IntoIterator<Item = (&'a str, FetchedOffset)>,
     {
-        encode_offset_fetch_groups_response_with_throttle(
-            buf,
-            version,
-            &Self::from_groups_partition_data(errors, response_data)?,
-            throttle_time_ms,
-        )
+        encode_offset_fetch_borrowed_groups(buf, version, errors, response_data, throttle_time_ms)
     }
 
     /// Java `OffsetFetchResponse` constructor from a group list and version.
@@ -5260,6 +5256,118 @@ fn decode_offset_fetch_topics<B: Buf>(
         topics.push(OffsetFetchTopic { topic, partitions });
     }
     Ok(Some(topics))
+}
+
+struct BorrowedFetchedGroup<'a> {
+    group_id: &'a str,
+    error_code: i16,
+    topics: Vec<(&'a str, Vec<FetchedOffset>)>,
+}
+
+fn encode_offset_fetch_borrowed_groups<'a, I, J>(
+    buf: &mut BytesMut,
+    version: i16,
+    errors: &HashMap<String, i16>,
+    response_data: I,
+    throttle_time_ms: i32,
+) -> Result<()>
+where
+    I: IntoIterator<Item = (&'a str, J)>,
+    J: IntoIterator<Item = (&'a str, FetchedOffset)>,
+{
+    let flexible = offset_fetch_flexible(version)?;
+    let mut groups = Vec::new();
+    for (group_id, partitions) in response_data {
+        let Some(&error_code) = errors.get(group_id) else {
+            return Err(Error::protocol(format!(
+                "no group named {group_id} in OffsetFetchResponse errors"
+            )));
+        };
+        let mut topics: Vec<(&str, Vec<FetchedOffset>)> = Vec::new();
+        let mut slots: HashMap<&str, usize> = HashMap::new();
+        for (topic, partition) in partitions {
+            if let Some(&slot) = slots.get(topic) {
+                if let Some((_, parts)) = topics.get_mut(slot) {
+                    parts.push(partition);
+                    continue;
+                }
+            }
+            let slot = topics.len();
+            let _ = slots.insert(topic, slot);
+            topics.push((topic, vec![partition]));
+        }
+        groups.push(BorrowedFetchedGroup {
+            group_id,
+            error_code,
+            topics,
+        });
+    }
+    if version < 8 && groups.len() > 1 {
+        return Err(Error::Unsupported(format!(
+            "Version {version} of OffsetFetchResponse only supports one group."
+        )));
+    }
+    let body_start = buf.len();
+    let planned = offset_fetch_borrowed_groups_len(version, flexible, &groups)?;
+    reserve_group_body(buf, planned);
+    if version >= 3 {
+        buf.put_i32(throttle_time_ms);
+    }
+    if version <= 7 {
+        let first = groups.first();
+        let topics = first.map(|group| group.topics.as_slice()).unwrap_or(&[]);
+        let error_code = first.map(|group| group.error_code).unwrap_or(0);
+        encode_fetched_offset_groups(buf, version, flexible, topics)?;
+        if version >= 2 {
+            buf.put_i16(error_code);
+        }
+    } else {
+        buf::put_array_len(buf, true, Some(groups.len()))?;
+        for group in &groups {
+            buf::put_compact_string(buf, Some(group.group_id))?;
+            encode_fetched_offset_groups(buf, version, true, &group.topics)?;
+            buf.put_i16(group.error_code);
+            buf::put_empty_tagged_fields(buf);
+        }
+    }
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+    Ok(())
+}
+
+fn offset_fetch_borrowed_groups_len(
+    version: i16,
+    flexible: bool,
+    groups: &[BorrowedFetchedGroup<'_>],
+) -> Result<usize> {
+    let mut total = if version >= 3 { 4usize } else { 0 };
+    if version <= 7 {
+        let topics = groups
+            .first()
+            .map(|group| group.topics.as_slice())
+            .unwrap_or(&[]);
+        total = add_group_len(total, fetched_offset_groups_len(version, flexible, topics)?)?;
+        if version >= 2 {
+            total = add_group_len(total, 2)?;
+        }
+    } else {
+        total = add_group_len(total, group_array_len(true, groups.len())?)?;
+        for group in groups {
+            total = add_group_len(total, group_string_len(true, Some(group.group_id))?)?;
+            total = add_group_len(
+                total,
+                fetched_offset_groups_len(version, true, &group.topics)?,
+            )?;
+            total = add_group_len(total, 2)?;
+            total = add_group_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    if flexible {
+        total = add_group_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 fn encode_offset_fetch_borrowed_partitions<'a, I>(
@@ -9289,6 +9397,102 @@ mod tests {
             "OffsetFetch v9 from_groups_partition_data leftover-empty; leftover {} bytes",
             cur.len()
         );
+    }
+
+    #[test]
+    fn offset_fetch_encode_from_groups_matches_grouped_results() {
+        let orders = FetchedOffset {
+            partition: 2,
+            offset: 10,
+            leader_epoch: 4,
+            metadata: "keep".into(),
+            error_code: 0,
+        };
+        let payments = FetchedOffset {
+            partition: 1,
+            offset: -1,
+            leader_epoch: -1,
+            metadata: String::new(),
+            error_code: 16,
+        };
+        let errors = HashMap::from([("orders".to_string(), 0i16), ("payments".to_string(), 16)]);
+        let rows = [
+            (
+                "orders",
+                vec![
+                    ("orders-topic-name-is-long", orders.clone()),
+                    ("orders-topic-name-is-long", orders),
+                ],
+            ),
+            ("payments", vec![("payments", payments)]),
+        ];
+        for version in 8..=9 {
+            for throttle in [0_i32, 12] {
+                let grouped = OffsetFetchResponse::from_groups_partition_data(
+                    &errors,
+                    rows.iter()
+                        .map(|(group, parts)| (*group, parts.iter().cloned())),
+                )
+                .unwrap();
+                let mut expected = BytesMut::new();
+                encode_offset_fetch_groups_response_with_throttle(
+                    &mut expected,
+                    version,
+                    &grouped,
+                    throttle,
+                )
+                .unwrap();
+                let mut got = BytesMut::new();
+                OffsetFetchResponse::encode_from_groups_partition_data(
+                    &mut got,
+                    version,
+                    &errors,
+                    rows.iter()
+                        .map(|(group, parts)| (*group, parts.iter().cloned())),
+                    throttle,
+                )
+                .unwrap();
+                assert_eq!(
+                    got.as_ref(),
+                    expected.as_ref(),
+                    "version {version} throttle {throttle}"
+                );
+                let len = got.len();
+                let capacity = got.capacity();
+                assert!(capacity >= len);
+                assert!(capacity < 64 * 1024);
+                got.clear();
+                OffsetFetchResponse::encode_from_groups_partition_data(
+                    &mut got,
+                    version,
+                    &errors,
+                    rows.iter()
+                        .map(|(group, parts)| (*group, parts.iter().cloned())),
+                    throttle,
+                )
+                .unwrap();
+                assert_eq!(got.len(), len);
+                assert_eq!(got.capacity(), capacity);
+            }
+        }
+        assert!(OffsetFetchResponse::encode_from_groups_partition_data(
+            &mut BytesMut::new(),
+            7,
+            &errors,
+            rows.iter()
+                .map(|(group, parts)| (*group, parts.iter().cloned())),
+            0,
+        )
+        .is_err());
+        assert!(OffsetFetchResponse::encode_from_groups_partition_data(
+            &mut BytesMut::new(),
+            10,
+            &errors,
+            rows.iter()
+                .map(|(group, parts)| (*group, parts.iter().cloned())),
+            0,
+        )
+        .is_err());
     }
 
     #[test]
