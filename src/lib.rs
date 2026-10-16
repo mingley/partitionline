@@ -2053,7 +2053,9 @@
 //! that poll; [`AcknowledgementCommitError::message`] is the broker
 //! `AcknowledgeErrorMessage` when it is non-empty, otherwise
 //! `ShareFetch acknowledgement {topic}-{partition}` (Java
-//! `Errors.exception(acknowledgeErrorMessage)`). A top-level ShareFetch
+//! `Errors.exception(acknowledgeErrorMessage)`). A piggybacked
+//! `TOPIC_AUTHORIZATION_FAILED` still completes without retry,
+//! including when `AcknowledgeErrorMessage` is set. A top-level ShareFetch
 //! error completes in-flight piggybacked acknowledgements (Java
 //! `ShareSessionHandler.handleResponse` false), preferring a non-empty
 //! `ErrorMessage`. Top-level `SHARE_SESSION_LIMIT_REACHED` /
