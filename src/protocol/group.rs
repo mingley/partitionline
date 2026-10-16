@@ -5607,8 +5607,6 @@ pub fn encode_offset_delete_response_with_throttle(
     results: &[OffsetDeleteResult],
     throttle_time_ms: i32,
 ) -> crate::error::Result<()> {
-    buf.put_i16(error_code);
-    buf.put_i32(throttle_time_ms);
     let mut groups: Vec<(String, Vec<(i32, i16)>)> = Vec::new();
     let mut slots = HashMap::new();
     for r in results {
@@ -5619,6 +5617,11 @@ pub fn encode_offset_delete_response_with_throttle(
             (r.partition, r.error_code),
         );
     }
+    let body_start = buf.len();
+    let planned = offset_delete_response_len(&groups)?;
+    reserve_group_body(buf, planned);
+    buf.put_i16(error_code);
+    buf.put_i32(throttle_time_ms);
     buf::put_array_len(buf, false, Some(groups.len()))?;
     for (name, parts) in &groups {
         buf::put_classic_nullable_string(buf, Some(name))?;
@@ -5628,7 +5631,25 @@ pub fn encode_offset_delete_response_with_throttle(
             buf.put_i16(*err);
         }
     }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn offset_delete_response_len(groups: &[(String, Vec<(i32, i16)>)]) -> Result<usize> {
+    let mut total = 6usize;
+    total = add_group_len(total, group_array_len(false, groups.len())?)?;
+    for (name, parts) in groups {
+        total = add_group_len(total, group_string_len(false, Some(name))?)?;
+        total = add_group_len(total, group_array_len(false, parts.len())?)?;
+        total = add_group_len(
+            total,
+            parts
+                .len()
+                .checked_mul(6)
+                .ok_or_else(|| Error::protocol("offset delete response size overflow"))?,
+        )?;
+    }
+    Ok(total)
 }
 
 /// Decode OffsetDelete: `(error_code, results, throttle_time_ms)`.
@@ -15311,6 +15332,25 @@ mod tests {
             &3_600_000_i32.to_be_bytes(),
             "v0 ThrottleTimeMs occupies bytes 2-5"
         );
+    }
+
+    #[test]
+    fn an_offset_delete_response_sizes_its_body_once() {
+        let results = vec![
+            OffsetDeleteResult::new("orders", 0, 0),
+            OffsetDeleteResult::new("payments", 1, 0),
+            OffsetDeleteResult::new("orders", 2, 0),
+        ];
+        let mut buf = BytesMut::new();
+        encode_offset_delete_response(&mut buf, 0, &results).unwrap();
+        let len = buf.len();
+        let capacity = buf.capacity();
+        assert!(capacity >= len);
+        assert!(capacity < 64 * 1024);
+        buf.clear();
+        encode_offset_delete_response(&mut buf, 0, &results).unwrap();
+        assert_eq!(buf.len(), len);
+        assert_eq!(buf.capacity(), capacity);
     }
 
     #[test]
