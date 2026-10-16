@@ -2800,7 +2800,7 @@ impl ShareGroup {
                 ));
             }
             let mut topics: Vec<ShareAckTopic> = Vec::new();
-            for (topic, part, batches) in &node_tps {
+            for (topic, part, batches) in node_tps {
                 let topic_id = self
                     .topic_ids
                     .get(topic.as_ref())
@@ -2810,10 +2810,10 @@ impl ShareGroup {
                         Error::protocol(format!("missing share topic id for {topic}"))
                     })?;
                 match topics.iter_mut().find(|t| t.topic_id == topic_id) {
-                    Some(slot) => slot.partitions.push((*part, batches.clone())),
+                    Some(slot) => slot.partitions.push((part, batches)),
                     None => topics.push(ShareAckTopic {
                         topic_id,
-                        partitions: vec![(*part, batches.clone())],
+                        partitions: vec![(part, batches)],
                     }),
                 }
             }
@@ -2931,7 +2931,7 @@ impl ShareGroup {
                             remember_share_leader_patch(&mut self.leader_patches, patch);
                         }
                     }
-                    let sent = sent_ack_batches(&node_tps, &name, part.partition);
+                    let sent = sent_ack_batches_by_id(&topics, topic.topic_id, part.partition);
                     if part.error_code == 0 {
                         let count = self
                             .acquisitions
@@ -3682,15 +3682,16 @@ fn batch_covers(batches: &[AcknowledgementBatch], offset: i64) -> bool {
 /// One topic name is shared by every partition acknowledged for that topic.
 type AckPartition = (Arc<str>, i32, Vec<AcknowledgementBatch>);
 
-fn sent_ack_batches<'a>(
-    node_tps: &'a [AckPartition],
-    topic: &str,
+fn sent_ack_batches_by_id(
+    topics: &[ShareAckTopic],
+    topic_id: [u8; 16],
     partition: i32,
-) -> &'a [AcknowledgementBatch] {
-    node_tps
+) -> &[AcknowledgementBatch] {
+    topics
         .iter()
-        .find(|(name, part, _)| name.as_ref() == topic && *part == partition)
-        .map(|(_, _, batches)| batches.as_slice())
+        .find(|topic| topic.topic_id == topic_id)
+        .and_then(|topic| topic.partitions.iter().find(|(part, _)| *part == partition))
+        .map(|(_, batches)| batches.as_slice())
         .unwrap_or(&[])
 }
 
