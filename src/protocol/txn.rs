@@ -2417,6 +2417,20 @@ impl WriteTxnMarkersRequest {
         }))
     }
 
+    /// Encode [`Self::error_response`] from the caller's topic names.
+    ///
+    /// A topic that owns several partitions is written once. Duplicate
+    /// partitions stay first-wins, and a later marker for the same
+    /// producer id replaces that producer's partitions.
+    pub fn encode_error_response(
+        buf: &mut BytesMut,
+        version: i16,
+        markers: &[WritableTxnMarker],
+        error_code: i16,
+    ) -> Result<()> {
+        encode_write_txn_markers_error_response(buf, version, markers, error_code)
+    }
+
     /// Java `WriteTxnMarkersRequest.Builder(List markers)`.
     ///
     /// Pins oldest and latest to 1 (`AbstractRequest.Builder(ApiKeys,
@@ -2830,6 +2844,138 @@ pub fn encode_write_txn_markers_response(
     }
     debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+struct BorrowedTxnMarkerError<'a> {
+    producer_id: i64,
+    topics: Vec<(&'a str, Vec<(i32, i16)>)>,
+}
+
+fn encode_write_txn_markers_error_response(
+    buf: &mut BytesMut,
+    version: i16,
+    markers: &[WritableTxnMarker],
+    error_code: i16,
+) -> Result<()> {
+    let flexible = write_txn_markers_flexible(version)?;
+    let mut producer_order: Vec<i64> = Vec::new();
+    let mut by_producer: HashMap<i64, Vec<(&str, i32)>> = HashMap::new();
+    for marker in markers {
+        let mut partition_order: Vec<(&str, i32)> = Vec::new();
+        let mut seen_parts: HashMap<&str, HashSet<i32>> = HashMap::new();
+        for topic in &marker.topics {
+            let name = topic.name.as_str();
+            if !seen_parts.contains_key(name) {
+                let _ = seen_parts.insert(name, HashSet::new());
+            }
+            let Some(parts) = seen_parts.get_mut(name) else {
+                continue;
+            };
+            for &partition in &topic.partitions {
+                if !parts.insert(partition) {
+                    continue;
+                }
+                partition_order.push((name, partition));
+            }
+        }
+        if by_producer
+            .insert(marker.producer_id, partition_order)
+            .is_none()
+        {
+            producer_order.push(marker.producer_id);
+        }
+    }
+    let grouped = producer_order
+        .into_iter()
+        .filter_map(|producer_id| {
+            let parts = by_producer.remove(&producer_id)?;
+            let mut topics: Vec<(&str, Vec<(i32, i16)>)> = Vec::new();
+            let mut slots: HashMap<&str, usize> = HashMap::new();
+            for (topic, partition) in parts {
+                if let Some(&slot) = slots.get(topic) {
+                    if let Some((_, stored)) = topics.get_mut(slot) {
+                        stored.push((partition, error_code));
+                        continue;
+                    }
+                }
+                let slot = topics.len();
+                let _ = slots.insert(topic, slot);
+                topics.push((topic, vec![(partition, error_code)]));
+            }
+            Some(BorrowedTxnMarkerError {
+                producer_id,
+                topics,
+            })
+        })
+        .collect::<Vec<_>>();
+    let body_start = buf.len();
+    let planned = write_txn_markers_error_len(flexible, &grouped)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
+    buf::put_array_len(buf, flexible, Some(grouped.len()))?;
+    for marker in &grouped {
+        buf.put_i64(marker.producer_id);
+        buf::put_array_len(buf, flexible, Some(marker.topics.len()))?;
+        for (name, parts) in &marker.topics {
+            buf::put_string(buf, flexible, Some(name))?;
+            buf::put_array_len(buf, flexible, Some(parts.len()))?;
+            for (partition, code) in parts {
+                buf.put_i32(*partition);
+                buf.put_i16(*code);
+                if flexible {
+                    buf::put_empty_tagged_fields(buf);
+                }
+            }
+            if flexible {
+                buf::put_empty_tagged_fields(buf);
+            }
+        }
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+    }
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+    Ok(())
+}
+
+fn write_txn_markers_error_len(
+    flexible: bool,
+    markers: &[BorrowedTxnMarkerError<'_>],
+) -> Result<usize> {
+    let mut total = txn_array_len(flexible, markers.len())?;
+    for marker in markers {
+        total = add_txn_len(total, 8)?;
+        total = add_txn_len(total, txn_array_len(flexible, marker.topics.len())?)?;
+        for (name, parts) in &marker.topics {
+            total = add_txn_len(total, txn_string_len(flexible, name)?)?;
+            total = add_txn_len(total, txn_array_len(flexible, parts.len())?)?;
+            let mut partition = 6usize;
+            if flexible {
+                partition += buf::unsigned_varint_size(0);
+            }
+            total = add_txn_len(
+                total,
+                partition
+                    .checked_mul(parts.len())
+                    .ok_or_else(|| Error::protocol("write txn markers response size overflow"))?,
+            )?;
+            if flexible {
+                total = add_txn_len(total, buf::unsigned_varint_size(0))?;
+            }
+        }
+        if flexible {
+            total = add_txn_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    if flexible {
+        total = add_txn_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 fn write_txn_markers_response_len(
@@ -4483,6 +4629,80 @@ mod tests {
             "WriteTxnMarkers v{version} Builder.markers {empty}leftover-empty; leftover {} bytes",
             cur.len()
         );
+    }
+
+    #[test]
+    fn write_txn_markers_encode_error_response_matches_named_results() {
+        let markers = [
+            WritableTxnMarker {
+                producer_id: 1000,
+                producer_epoch: 1,
+                transaction_result: TransactionResult::Commit.id(),
+                topics: vec![
+                    WritableTxnMarkerTopic {
+                        name: "orders-topic-name-is-long".into(),
+                        partitions: vec![0, 2, 0],
+                    },
+                    WritableTxnMarkerTopic {
+                        name: "payments".into(),
+                        partitions: vec![1],
+                    },
+                    WritableTxnMarkerTopic {
+                        name: "orders-topic-name-is-long".into(),
+                        partitions: vec![3],
+                    },
+                ],
+                coordinator_epoch: 3,
+            },
+            WritableTxnMarker {
+                producer_id: 1000,
+                producer_epoch: 2,
+                transaction_result: TransactionResult::Abort.id(),
+                topics: vec![WritableTxnMarkerTopic {
+                    name: "replaced".into(),
+                    partitions: vec![4],
+                }],
+                coordinator_epoch: 4,
+            },
+            WritableTxnMarker {
+                producer_id: 2000,
+                producer_epoch: 1,
+                transaction_result: TransactionResult::Commit.id(),
+                topics: Vec::new(),
+                coordinator_epoch: 1,
+            },
+        ];
+        let code = crate::error::CLUSTER_AUTHORIZATION_FAILED;
+        for version in 0..=2 {
+            let grouped = WriteTxnMarkersRequest::error_response(&markers, code);
+            let mut expected = BytesMut::new();
+            encode_write_txn_markers_response(&mut expected, version, &grouped).unwrap();
+            let mut got = BytesMut::new();
+            WriteTxnMarkersRequest::encode_error_response(&mut got, version, &markers, code)
+                .unwrap();
+            assert_eq!(got.as_ref(), expected.as_ref(), "version {version}");
+            let len = got.len();
+            let capacity = got.capacity();
+            assert!(capacity >= len);
+            assert!(capacity < 64 * 1024);
+            got.clear();
+            WriteTxnMarkersRequest::encode_error_response(&mut got, version, &markers, code)
+                .unwrap();
+            assert_eq!(got.len(), len);
+            assert_eq!(got.capacity(), capacity);
+        }
+        let mut empty = BytesMut::new();
+        WriteTxnMarkersRequest::encode_error_response(&mut empty, 1, &[], code).unwrap();
+        let mut expected_empty = BytesMut::new();
+        encode_write_txn_markers_response(&mut expected_empty, 1, &[]).unwrap();
+        assert_eq!(empty.as_ref(), expected_empty.as_ref());
+        assert!(WriteTxnMarkersRequest::encode_error_response(
+            &mut BytesMut::new(),
+            3,
+            &markers,
+            code
+        )
+        .is_err());
     }
 
     #[test]
