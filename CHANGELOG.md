@@ -809,6 +809,13 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   which fails that poll, and not piggyback `FENCED_MEMBER_EPOCH`). Official
   Java `GroupMetadataManager` writes this when a static member joins while
   the instance id is still owned. A
+  piggybacked `UNSUPPORTED_ASSIGNOR` still
+  completes without retry, including when `AcknowledgeErrorMessage` is
+  set (Java `handleShareFetchSuccess` completes piggyback acks and still
+  delivers the fetch; this is not partition `UNSUPPORTED_ASSIGNOR`,
+  which fails that poll, and not piggyback `UNRELEASED_INSTANCE_ID`). Official
+  Java `GroupCoordinatorService` writes this when ConsumerGroupHeartbeat names
+  a ServerAssignor the coordinator does not support. A
   piggybacked `TOPIC_AUTHORIZATION_FAILED` on
   one partition does not fail a sibling whose `AcknowledgeErrorCode`
   is none, including when `AcknowledgeErrorMessage` is set or empty. A
