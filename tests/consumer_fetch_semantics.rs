@@ -3472,7 +3472,48 @@ async fn group_commit_reuses_coordinator_api_versions_after_idle() {
     group.leave().await.unwrap();
 }
 
-/// An idle heartbeat looks up the coordinator while that broker reconnects.
+/// An idle heartbeat reconnects the coordinator without ApiVersions.
+#[tokio::test]
+async fn group_heartbeat_reuses_coordinator_api_versions_after_idle() {
+    let mock = common::Mock::start().await;
+    let mut cfg = ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10);
+    cfg.heartbeat_interval = Duration::from_millis(80);
+    cfg.connections_max_idle = Duration::from_millis(20);
+    let group = ConsumerGroup::join(cfg, "hb-idle", "t").await.unwrap();
+    let started_first = Instant::now();
+    while mock.heartbeat_total("hb-idle") < 1 {
+        if started_first.elapsed() > Duration::from_secs(2) {
+            panic!("first heartbeat did not arrive");
+        }
+        tokio::time::sleep(Duration::from_millis(5)).await;
+    }
+    let versions_before = mock.api_versions_versions().len();
+    let accepts_before = mock.accepts();
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let before = mock.heartbeat_total("hb-idle");
+    let started = Instant::now();
+    while mock.heartbeat_total("hb-idle") <= before {
+        if started.elapsed() > Duration::from_secs(2) {
+            panic!("idle heartbeat did not reconnect");
+        }
+        tokio::time::sleep(Duration::from_millis(5)).await;
+    }
+    let elapsed = started.elapsed();
+    assert_eq!(
+        mock.api_versions_versions().len(),
+        versions_before,
+        "an idle heartbeat should reuse the coordinator versions already learned"
+    );
+    assert!(
+        mock.accepts() > accepts_before,
+        "idle expiry replaces the heartbeat socket"
+    );
+    assert!(
+        elapsed < Duration::from_millis(220),
+        "idle heartbeat repeated ApiVersions: {elapsed:?}"
+    );
+    group.leave().await.unwrap();
+}
 #[tokio::test]
 async fn group_heartbeat_dials_coordinator_while_finding_it() {
     let mock = common::Mock::start_two_node().await;

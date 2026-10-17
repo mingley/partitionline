@@ -4816,21 +4816,21 @@ pub(crate) async fn reopen_idle_coordinator(
     group_id: &str,
     deadline: Instant,
 ) {
-    let previous = if conn
+    let known = if conn
         .as_ref()
         .is_some_and(|c| c.idle_expired(cfg.connections_max_idle))
     {
-        let addr = conn.as_ref().map(|c| c.addr().to_string());
+        let snap = conn.as_ref().map(KnownCoord::capture);
         *conn = None;
-        addr
+        snap
     } else {
         None
     };
     if conn.is_some() {
         return;
     }
-    *conn = if let Some(previous) = previous.as_deref() {
-        rediscover_coord(cfg, group_id, COORDINATOR_GROUP, previous)
+    *conn = if let Some(known) = known {
+        rediscover_known_coord(cfg, group_id, COORDINATOR_GROUP, &known)
             .await
             .ok()
     } else {
@@ -5141,27 +5141,71 @@ pub(crate) async fn reopen_known_coord(
     cfg: &ConsumerConfig,
     previous: &BrokerConn,
 ) -> Result<BrokerConn> {
+    connect_known_coord(cfg, &KnownCoord::capture(previous)).await
+}
+
+/// Versions already learned for one coordinator address.
+struct KnownCoord {
+    addr: String,
+    offset_commit_version: i16,
+    offset_fetch_version: i16,
+    heartbeat_version: i16,
+    sync_group_version: i16,
+    join_group_version: i16,
+    leave_group_version: i16,
+    consumer_group_heartbeat_version: i16,
+    share_group_heartbeat_version: i16,
+    sasl_handshake_version: i16,
+    sasl_authenticate_version: i16,
+    find_coordinator_version: i16,
+}
+
+impl KnownCoord {
+    fn capture(conn: &BrokerConn) -> Self {
+        Self {
+            addr: conn.addr().to_string(),
+            offset_commit_version: conn.offset_commit_version,
+            offset_fetch_version: conn.offset_fetch_version,
+            heartbeat_version: conn.heartbeat_version,
+            sync_group_version: conn.sync_group_version,
+            join_group_version: conn.join_group_version,
+            leave_group_version: conn.leave_group_version,
+            consumer_group_heartbeat_version: conn.consumer_group_heartbeat_version,
+            share_group_heartbeat_version: conn.share_group_heartbeat_version,
+            sasl_handshake_version: conn.sasl_handshake_version,
+            sasl_authenticate_version: conn.sasl_authenticate_version,
+            find_coordinator_version: conn.find_coordinator_version,
+        }
+    }
+
+    fn apply(&self, conn: &mut BrokerConn) {
+        conn.offset_commit_version = self.offset_commit_version;
+        conn.offset_fetch_version = self.offset_fetch_version;
+        conn.heartbeat_version = self.heartbeat_version;
+        conn.sync_group_version = self.sync_group_version;
+        conn.join_group_version = self.join_group_version;
+        conn.leave_group_version = self.leave_group_version;
+        conn.consumer_group_heartbeat_version = self.consumer_group_heartbeat_version;
+        conn.share_group_heartbeat_version = self.share_group_heartbeat_version;
+        conn.sasl_handshake_version = self.sasl_handshake_version;
+        conn.sasl_authenticate_version = self.sasl_authenticate_version;
+        conn.find_coordinator_version = self.find_coordinator_version;
+    }
+}
+
+async fn connect_known_coord(cfg: &ConsumerConfig, known: &KnownCoord) -> Result<BrokerConn> {
     let deadline = Instant::now()
         .checked_add(cfg.request_timeout)
         .ok_or(Error::Timeout)?;
     let bound = crate::net::Deadline::from_std(deadline);
     let mut conn = BrokerConn::connect_tls(
-        previous.addr(),
+        &known.addr,
         &cfg.client_id,
         cfg.connect_timeout.min(bound.remaining()?),
         cfg.tls.as_ref(),
     )
     .await?;
-    conn.offset_commit_version = previous.offset_commit_version;
-    conn.offset_fetch_version = previous.offset_fetch_version;
-    conn.heartbeat_version = previous.heartbeat_version;
-    conn.sync_group_version = previous.sync_group_version;
-    conn.join_group_version = previous.join_group_version;
-    conn.leave_group_version = previous.leave_group_version;
-    conn.consumer_group_heartbeat_version = previous.consumer_group_heartbeat_version;
-    conn.share_group_heartbeat_version = previous.share_group_heartbeat_version;
-    conn.sasl_handshake_version = previous.sasl_handshake_version;
-    conn.sasl_authenticate_version = previous.sasl_authenticate_version;
+    known.apply(&mut conn);
     sasl::authenticate(
         &mut conn,
         cfg.sasl_plain.as_ref(),
@@ -5173,6 +5217,79 @@ pub(crate) async fn reopen_known_coord(
     )
     .await?;
     Ok(conn)
+}
+
+/// Find the coordinator again while the previous address is dialed.
+///
+/// A coordinator that stays put reuses that handshake. A moved coordinator
+/// is dialed after the lookup.
+async fn rediscover_known_coord(
+    cfg: &ConsumerConfig,
+    group_id: &str,
+    key_type: i8,
+    known: &KnownCoord,
+) -> Result<BrokerConn> {
+    if known.find_coordinator_version < 0 || cfg.bootstrap.len() != 1 {
+        return rediscover_coord(cfg, group_id, key_type, &known.addr).await;
+    }
+    let deadline = Instant::now()
+        .checked_add(cfg.request_timeout)
+        .ok_or(Error::Timeout)?;
+    let bounded = bounded_coord_config(cfg, crate::net::Deadline::from_std(deadline))?;
+    let speculative = connect_known_coord(&bounded, known);
+    let located = locate_known_coordinator(&bounded, group_id, key_type, deadline, known);
+    tokio::pin!(speculative);
+    tokio::pin!(located);
+    let addr = tokio::select! {
+        biased;
+        addr = &mut located => addr?,
+        opened = &mut speculative => {
+            let addr = located.await?;
+            if addr == known.addr {
+                return opened;
+            }
+            return Ok(open_coord_with_find_version(&bounded, &addr).await?.0);
+        }
+    };
+    if addr == known.addr {
+        return speculative.await;
+    }
+    Ok(open_coord_with_find_version(&bounded, &addr).await?.0)
+}
+
+async fn locate_known_coordinator(
+    cfg: &ConsumerConfig,
+    group_id: &str,
+    key_type: i8,
+    deadline: Instant,
+    known: &KnownCoord,
+) -> Result<String> {
+    let bootstrap = cfg
+        .bootstrap
+        .first()
+        .ok_or_else(|| Error::protocol("find coordinator failed"))?;
+    if bootstrap != &known.addr {
+        return locate_coordinator_address(cfg, group_id, key_type, deadline).await;
+    }
+    let deadline = crate::net::Deadline::from_std(deadline);
+    let bounded = bounded_coord_config(cfg, deadline)?;
+    let mut hop = connect_known_coord(&bounded, known).await?;
+    let version = known.find_coordinator_version;
+    let body = hop
+        .roundtrip(
+            FIND_COORDINATOR,
+            version,
+            |buf| encode_find_coordinator_request_typed(buf, version, group_id, key_type),
+            deadline.remaining()?,
+        )
+        .await?;
+    let (err, _node, host, port) = decode_find_coordinator_response(&mut body.clone(), version)
+        .map_err(|e| group_decode_context(e, "FindCoordinator", version, body.len()))?;
+    if err != 0 {
+        return Err(Error::broker(err, "FindCoordinator"));
+    }
+    crate::cluster::dial_address(&host, port)
+        .ok_or_else(|| Error::protocol("invalid coordinator address"))
 }
 
 /// Find the coordinator again while the previous address is dialed.
@@ -5348,6 +5465,7 @@ async fn open_coord_with_find_version(
         .api_version(SHARE_GROUP_HEARTBEAT)
         .and_then(|v| pick_version(v.min_version, v.max_version, 0, 1))
         .unwrap_or(-1);
+    conn.find_coordinator_version = version;
     sasl::apply_api_keys(&mut conn, &resp.api_keys);
     sasl::authenticate(
         &mut conn,

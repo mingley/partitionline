@@ -733,6 +733,9 @@ pub struct BrokerConn {
     /// This crate picks 0–2. `0` is a spoken version, so it cannot mean
     /// unset.
     pub(crate) sasl_authenticate_version: i16,
+    /// FindCoordinator version negotiated on coordinator sockets (`-1` unset).
+    /// This crate picks 0–6. `0` is a spoken version, so it cannot mean unset.
+    pub(crate) find_coordinator_version: i16,
     /// Broker session lifetime in milliseconds, if negotiated via SaslAuthenticate v1+ (KIP-368).
     pub(crate) session_lifetime_ms: Option<i64>,
     /// Instant when SASL authentication completed.
@@ -843,6 +846,7 @@ impl BrokerConn {
             share_group_heartbeat_version: -1,
             sasl_handshake_version: -1,
             sasl_authenticate_version: -1,
+            find_coordinator_version: -1,
             session_lifetime_ms: None,
             authenticated_at: None,
             sasl_session_expires_at: None,
