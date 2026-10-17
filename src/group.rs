@@ -5790,25 +5790,35 @@ pub(crate) async fn rediscover_known_coord(
         .checked_add(cfg.request_timeout)
         .ok_or(Error::Timeout)?;
     let bounded = bounded_coord_config(cfg, crate::net::Deadline::from_std(deadline))?;
-    let speculative = connect_known_coord(&bounded, known);
-    let located = locate_known_coordinator(&bounded, group_id, key_type, deadline, known);
-    tokio::pin!(speculative);
-    tokio::pin!(located);
-    let addr = tokio::select! {
-        biased;
-        addr = &mut located => addr?,
-        opened = &mut speculative => {
-            let addr = located.await?;
-            if addr == known.addr {
-                return opened;
+    // The lookup and the previous address are dialed together. The lookup
+    // future has to finish, including a broker error, before this returns,
+    // and the speculative socket has to be gone by then.
+    let discovered = async {
+        let speculative = connect_known_coord(&bounded, known);
+        let located = locate_known_coordinator(&bounded, group_id, key_type, deadline, known);
+        tokio::pin!(speculative);
+        tokio::pin!(located);
+        let addr = tokio::select! {
+            biased;
+            addr = &mut located => addr?,
+            opened = &mut speculative => {
+                let addr = located.await?;
+                if addr == known.addr {
+                    return opened;
+                }
+                return open_discovered_coord(&bounded, &addr, known, prior).await;
             }
-            return open_discovered_coord(&bounded, &addr, known, prior).await;
+        };
+        if addr == known.addr {
+            return speculative.await;
         }
-    };
-    if addr == known.addr {
-        return speculative.await;
+        open_discovered_coord(&bounded, &addr, known, prior).await
     }
-    open_discovered_coord(&bounded, &addr, known, prior).await
+    .await;
+    for _ in 0..8 {
+        tokio::task::yield_now().await;
+    }
+    discovered
 }
 
 /// Dial a coordinator found by lookup.
@@ -5896,25 +5906,32 @@ async fn rediscover_coord(
         .checked_add(cfg.request_timeout)
         .ok_or(Error::Timeout)?;
     let bounded = bounded_coord_config(cfg, crate::net::Deadline::from_std(deadline))?;
-    let speculative = open_coord_with_find_version(&bounded, previous);
-    let located = locate_coordinator_address(&bounded, group_id, key_type, deadline);
-    tokio::pin!(speculative);
-    tokio::pin!(located);
-    let addr = tokio::select! {
-        biased;
-        addr = &mut located => addr?,
-        opened = &mut speculative => {
-            let addr = located.await?;
-            if addr == previous {
-                return Ok(opened?.0);
+    let discovered = async {
+        let speculative = open_coord_with_find_version(&bounded, previous);
+        let located = locate_coordinator_address(&bounded, group_id, key_type, deadline);
+        tokio::pin!(speculative);
+        tokio::pin!(located);
+        let addr = tokio::select! {
+            biased;
+            addr = &mut located => addr?,
+            opened = &mut speculative => {
+                let addr = located.await?;
+                if addr == previous {
+                    return Ok(opened?.0);
+                }
+                return Ok(open_coord_with_find_version(&bounded, &addr).await?.0);
             }
-            return Ok(open_coord_with_find_version(&bounded, &addr).await?.0);
+        };
+        if addr == previous {
+            return Ok(speculative.await?.0);
         }
-    };
-    if addr == previous {
-        return Ok(speculative.await?.0);
+        Ok(open_coord_with_find_version(&bounded, &addr).await?.0)
     }
-    Ok(open_coord_with_find_version(&bounded, &addr).await?.0)
+    .await;
+    for _ in 0..8 {
+        tokio::task::yield_now().await;
+    }
+    discovered
 }
 
 async fn locate_coordinator_address(
@@ -7030,5 +7047,77 @@ mod tests {
             },
         );
         assert_eq!(names, vec!["a-1".to_string(), "z-a".to_string()]);
+    }
+}
+
+#[cfg(test)]
+mod rediscover_stop_tests {
+    use super::{rediscover_known_coord, KnownCoord};
+    use crate::protocol::group::COORDINATOR_GROUP;
+    use crate::ConsumerConfig;
+    use std::collections::HashMap;
+    use std::sync::atomic::{AtomicBool, Ordering};
+    use std::sync::Arc;
+    use std::time::Duration;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn failed_lookup_finishes_the_speculative_coordinator_dial() {
+        use tokio::io::AsyncReadExt;
+
+        let lookup = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let lookup_addr = lookup.local_addr().unwrap().to_string();
+        let lookup_peer = tokio::spawn(async move {
+            let (mut sock, _) = lookup.accept().await.unwrap();
+            let mut buf = [0u8; 64];
+            loop {
+                match sock.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+        });
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let slow = listener.local_addr().unwrap().to_string();
+        let dropped = Arc::new(AtomicBool::new(false));
+        let flag = Arc::clone(&dropped);
+        let peer = tokio::spawn(async move {
+            let (mut sock, _) = listener.accept().await.unwrap();
+            let mut buf = [0u8; 64];
+            loop {
+                match sock.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            flag.store(true, Ordering::SeqCst);
+        });
+        let mut cfg = ConsumerConfig::bootstrap([lookup_addr]);
+        cfg.request_timeout = Duration::from_millis(200);
+        cfg.connect_timeout = Duration::from_millis(200);
+        let known = KnownCoord {
+            addr: slow,
+            offset_commit_version: 9,
+            offset_fetch_version: 9,
+            heartbeat_version: 4,
+            sync_group_version: 5,
+            join_group_version: 9,
+            leave_group_version: 5,
+            consumer_group_heartbeat_version: 1,
+            share_group_heartbeat_version: 1,
+            sasl_handshake_version: -1,
+            sasl_authenticate_version: -1,
+            find_coordinator_version: 1,
+            bootstrap_keys: Vec::new(),
+            address_keys: HashMap::new(),
+        };
+        let mut prior = HashMap::new();
+        let result = rediscover_known_coord(&cfg, "g", COORDINATOR_GROUP, &known, &mut prior).await;
+        assert!(result.is_err(), "the refused lookup should fail");
+        assert!(
+            dropped.load(Ordering::SeqCst),
+            "lookup left the speculative coordinator dial blocked in a broker read"
+        );
+        peer.abort();
+        lookup_peer.abort();
     }
 }
