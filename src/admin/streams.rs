@@ -236,7 +236,11 @@ impl Admin {
     async fn streams_bootstrap(
         &self,
         deadline: Deadline,
-    ) -> Result<(BrokerConn, ApiVersionsResponse)> {
+    ) -> Result<(
+        BrokerConn,
+        ApiVersionsResponse,
+        Vec<(String, Vec<crate::protocol::api::ApiVersion>)>,
+    )> {
         if self.cfg.bootstrap.len() > 16 {
             return Err(Error::protocol("too many Streams bootstrap servers"));
         }
@@ -244,7 +248,7 @@ impl Admin {
             let mut last = Error::Timeout;
             for address in &self.cfg.bootstrap {
                 match self.open_streams_describe(address, deadline).await {
-                    Ok(opened) => return Ok(opened),
+                    Ok((conn, versions)) => return Ok((conn, versions, Vec::new())),
                     Err(err) if streams_retryable(&err) => last = err,
                     Err(err) => return Err(err),
                 }
@@ -252,26 +256,71 @@ impl Admin {
             return Err(last);
         }
         let mut inflight = tokio::task::JoinSet::new();
-        for address in &self.cfg.bootstrap {
+        for (index, address) in self.cfg.bootstrap.iter().enumerate() {
             let cfg = self.cfg.clone();
             let stats = Arc::clone(&self.stats);
             let address = address.clone();
+            let known = self
+                .peer_versions
+                .get(&address)
+                .cloned()
+                .unwrap_or_default();
             let _ = inflight.spawn(async move {
-                open_streams_describe_socket(&cfg, &stats, &address, deadline).await
+                let opened = if known.is_empty() {
+                    open_streams_describe_socket(&cfg, &stats, &address, deadline).await
+                } else {
+                    open_streams_describe_known(&cfg, &stats, &address, &known, deadline).await
+                };
+                (index, opened)
             });
         }
         let mut last = Error::protocol("all bootstrap servers failed");
-        while let Some(joined) = inflight.join_next().await {
+        let mut finished = Vec::new();
+        while !inflight.is_empty() {
+            let Some(joined) = inflight.join_next().await else {
+                break;
+            };
             match joined {
-                Ok(Ok(opened)) => {
-                    inflight.abort_all();
-                    return Ok(opened);
+                Ok((index, Ok(opened))) => {
+                    finished.push((index, opened));
+                    let gather = deadline
+                        .remaining()
+                        .unwrap_or(Duration::ZERO)
+                        .min(Duration::from_millis(5));
+                    let gather_done = tokio::time::sleep(gather);
+                    tokio::pin!(gather_done);
+                    loop {
+                        tokio::select! {
+                            biased;
+                            joined = inflight.join_next(), if !inflight.is_empty() => {
+                                match joined {
+                                    Some(Ok((index, Ok(opened)))) => finished.push((index, opened)),
+                                    Some(Ok((_, Err(error)))) => last = error,
+                                    _ => {}
+                                }
+                            }
+                            () = &mut gather_done => break,
+                        }
+                    }
+                    break;
                 }
-                Ok(Err(error)) => last = error,
+                Ok((_, Err(error))) => last = error,
                 Err(error) => last = Error::protocol(format!("streams bootstrap: {error}")),
             }
         }
-        Err(last)
+        inflight.abort_all();
+        finished.sort_by_key(|(index, _)| *index);
+        let mut rest = finished.into_iter();
+        let Some((_, (conn, versions))) = rest.next() else {
+            return Err(last);
+        };
+        let mut learned = Vec::new();
+        for (_, (spare, spare_versions)) in rest {
+            if !spare_versions.api_keys.is_empty() {
+                learned.push((spare.addr().to_string(), spare_versions.api_keys));
+            }
+        }
+        Ok((conn, versions, learned))
     }
 
     async fn streams_coordinator(
@@ -331,7 +380,7 @@ impl Admin {
         let mut control_bytes = 0usize;
         let mut response_bytes = 0usize;
         for attempt in 0..MAX_ATTEMPTS {
-            let (mut bootstrap, versions) = match self.streams_bootstrap(deadline).await {
+            let (mut bootstrap, versions, siblings) = match self.streams_bootstrap(deadline).await {
                 Ok(opened) => opened,
                 Err(err) if streams_retryable(&err) => {
                     let err = Arc::new(err);
@@ -346,6 +395,11 @@ impl Admin {
                 }
                 Err(err) => return Err(err),
             };
+            for (addr, keys) in siblings {
+                if !keys.is_empty() && !self.peer_versions.contains_key(&addr) {
+                    let _stored = self.peer_versions.insert(addr, keys);
+                }
+            }
             let version = versions
                 .api_version(FIND_COORDINATOR)
                 .and_then(|api| pick_version(api.min_version, api.max_version, 1, 6))

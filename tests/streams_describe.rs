@@ -110,6 +110,30 @@ async fn order_duplicates_and_all_fields_over_three_discovery_versions() {
         assert!(request.include_authorized_operations);
     }
 }
+/// A coordinator that is another bootstrap reuses that finished handshake.
+#[tokio::test]
+async fn describe_reuses_a_finished_bootstrap_handshake() {
+    let peer = prepared().await;
+    let mut cfg = peer.config();
+    cfg.bootstrap = vec![peer.addresses[0].to_string(), peer.addresses[1].to_string()];
+    let mut admin = partitionline::Admin::new(cfg).await.unwrap();
+    let described = admin
+        .describe_streams_groups(&["alpha"], &options())
+        .await
+        .unwrap();
+    assert_eq!(described[0].description.as_ref().unwrap().error_code, 0);
+    drop(admin);
+    let frames = peer.close().await;
+    assert_eq!(
+        frames
+            .iter()
+            .filter(|frame| frame.api == 18 && frame.slot == 1)
+            .count(),
+        2,
+        "the coordinator bootstrap was negotiated twice"
+    );
+}
+
 /// A second describe of the same remote coordinator does not negotiate again.
 #[tokio::test]
 async fn describe_repeats_a_remote_coordinator_without_another_handshake() {
