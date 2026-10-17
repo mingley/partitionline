@@ -117,6 +117,90 @@ mod tests {
         client.shutdown().await.unwrap();
     }
 
+    #[tokio::test(flavor = "current_thread")]
+    async fn https_response_closes_the_socket() {
+        use rustls::pki_types::{CertificateDer, PrivateKeyDer};
+        use rustls::ServerConfig;
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        use tokio::net::TcpListener;
+        use tokio_rustls::TlsAcceptor;
+
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let port = listener.local_addr().unwrap().port();
+        let open = Arc::new(AtomicUsize::new(0));
+        let open_flag = Arc::clone(&open);
+        let provider = Arc::new(rustls::crypto::ring::default_provider());
+        let server = ServerConfig::builder_with_provider(provider)
+            .with_safe_default_protocol_versions()
+            .unwrap()
+            .with_no_client_auth()
+            .with_single_cert(
+                vec![CertificateDer::from(
+                    include_bytes!("../../../tests/fixtures/tls/server1.cert.der").to_vec(),
+                )],
+                PrivateKeyDer::try_from(
+                    include_bytes!("../../../tests/fixtures/tls/server1.key.der").to_vec(),
+                )
+                .unwrap(),
+            )
+            .unwrap();
+        let acceptor = TlsAcceptor::from(Arc::new(server));
+        let peer = tokio::spawn(async move {
+            let Ok((socket, _)) = listener.accept().await else {
+                return;
+            };
+            let _started = open_flag.fetch_add(1, Ordering::SeqCst);
+            let Ok(mut tls) = acceptor.accept(socket).await else {
+                let _left = open_flag.fetch_sub(1, Ordering::SeqCst);
+                return;
+            };
+            let mut buf = Vec::new();
+            let mut tmp = [0u8; 1024];
+            loop {
+                let Ok(n) = tls.read(&mut tmp).await else {
+                    let _left = open_flag.fetch_sub(1, Ordering::SeqCst);
+                    return;
+                };
+                if n == 0 {
+                    let _left = open_flag.fetch_sub(1, Ordering::SeqCst);
+                    return;
+                }
+                buf.extend_from_slice(&tmp[..n]);
+                if buf.windows(4).any(|window| window == b"\r\n\r\n") {
+                    break;
+                }
+            }
+            let body = b"{\"ok\":true}";
+            let resp = format!(
+                "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+                body.len()
+            );
+            if tls.write_all(resp.as_bytes()).await.is_err() || tls.write_all(body).await.is_err() {
+                let _left = open_flag.fetch_sub(1, Ordering::SeqCst);
+                return;
+            }
+            let mut tail = [0u8; 8];
+            loop {
+                match tls.read(&mut tail).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = open_flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let client = client().unwrap();
+        let endpoint = Endpoint::parse(&format!("https://localhost:{port}/token")).unwrap();
+        let result = client.get(&endpoint).await;
+        assert!(result.is_ok(), "the token endpoint should answer");
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "https response left the accepted socket blocked in a read"
+        );
+        peer.abort();
+        client.shutdown().await.unwrap();
+    }
+
     #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
     async fn cancelled_resolution_keeps_http_admission_and_is_joined() {
         let client = client().unwrap();
@@ -539,7 +623,15 @@ impl Client {
                 Err(Error::Unavailable)
             }
             result = operation => match result {
-                Ok(value) => value,
+                Ok(value) => {
+                    // The request drops its socket as the operation finishes.
+                    // Yield so the endpoint observes that close before the
+                    // response is returned.
+                    for _ in 0..8 {
+                        tokio::task::yield_now().await;
+                    }
+                    value
+                }
                 Err(_) => {
                     // The deadline drops the socket before this arm runs.
                     for _ in 0..8 {
