@@ -6052,7 +6052,7 @@ pub(crate) async fn coord_roundtrip(
     clippy::too_many_arguments,
     reason = "coordinator RPC carries the learned bootstrap versions"
 )]
-async fn coord_roundtrip_with_bootstrap(
+pub(crate) async fn coord_roundtrip_with_bootstrap(
     coord: &mut BrokerConn,
     cfg: &ConsumerConfig,
     group_id: &str,

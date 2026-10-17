@@ -136,6 +136,38 @@ async fn drop_aborts_a_blocked_share_heartbeat() {
     );
 }
 
+/// Share leave rediscovers a coordinator that moved to the other bootstrap.
+#[tokio::test]
+async fn share_leave_reuses_the_other_bootstrap_handshake() {
+    let mock = common::Mock::start_two_node().await;
+    v2(&mock);
+    mock.set_topic_partitions("t", 1);
+    mock.set_partition_leader("t", 0, 1);
+    produce(&mock, &[(0, b"share")]).await;
+    let addr2 = mock.broker_addr(2).unwrap();
+    let mut cfg = config(&mock);
+    cfg.bootstrap = vec![mock.addr.clone(), addr2];
+    cfg.heartbeat_interval = Duration::from_secs(5);
+    let group = ShareGroup::join(cfg, "share-leave-moved", "t")
+        .await
+        .unwrap();
+    let versions_before = mock.api_versions_versions().len();
+    mock.set_coordinator(2);
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let started = Instant::now();
+    group.leave().await.unwrap();
+    let elapsed = started.elapsed();
+    assert_eq!(
+        mock.api_versions_versions().len(),
+        versions_before,
+        "share leave rediscovery renegotiated the other bootstrap"
+    );
+    assert!(
+        elapsed < Duration::from_millis(400),
+        "share leave rediscovery repeated ApiVersions: {elapsed:?}"
+    );
+}
+
 /// A share-group heartbeat retry reuses the coordinator handshake.
 #[tokio::test]
 async fn share_heartbeat_retries_without_another_handshake() {

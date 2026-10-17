@@ -15,7 +15,10 @@ use tokio::sync::{watch, Notify};
 
 use crate::consumer::{Consumer, ConsumerConfig};
 use crate::error::{self, Error, Result};
-use crate::group::{collect_topics, coord_roundtrip, filter_matching_topics, TopicMatch};
+use crate::group::{
+    collect_topics, coord_roundtrip, coord_roundtrip_with_bootstrap, filter_matching_topics,
+    TopicMatch,
+};
 use crate::net::BrokerConn;
 use crate::protocol::api_keys::{
     pick_version, SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_HEARTBEAT,
@@ -5017,7 +5020,8 @@ impl ShareGroup {
             subscribed_topic_names: None,
         };
         let bootstrap_keys = self.consumer.copy_api_keys();
-        let (version, body) = coord_roundtrip(
+        let address_keys = self.consumer.copy_learned_broker_keys();
+        let (version, body) = coord_roundtrip_with_bootstrap(
             &mut self.coord,
             &self.cfg,
             &self.group_id,
@@ -5025,6 +5029,7 @@ impl ShareGroup {
             SHARE_GROUP_HEARTBEAT,
             |version, buf| encode_share_group_heartbeat_request(buf, version, &req),
             &bootstrap_keys,
+            &address_keys,
             &mut self.prior_coords,
             timeout,
         )
