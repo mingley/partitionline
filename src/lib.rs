@@ -2628,6 +2628,13 @@
 //! `SharePartitionManager` writes this when the share session cache
 //! has no session for the request key.
 //! A piggybacked
+//! `INVALID_SHARE_SESSION_EPOCH` still completes without retry,
+//! including when `AcknowledgeErrorMessage` is set (this is not
+//! partition `INVALID_SHARE_SESSION_EPOCH`, which fails that poll, and not
+//! piggyback `SHARE_SESSION_NOT_FOUND`). Official Java
+//! `SharePartitionManager` writes this when the request share-session
+//! epoch does not match the cached session.
+//! A piggybacked
 //! `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a
 //! sibling whose `AcknowledgeErrorCode` is none, including when
 //! `AcknowledgeErrorMessage` is set or empty. A piggybacked
