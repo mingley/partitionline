@@ -1137,6 +1137,12 @@ async fn finish_aborted_join_set<T: 'static>(mut set: tokio::task::JoinSet<T>, d
             () = tokio::task::yield_now() => {}
         }
     }
+    // The finished dial drops its socket while this call is still in the
+    // same poll. Yield so the broker observes that close before the caller
+    // continues.
+    for _ in 0..8 {
+        tokio::task::yield_now().await;
+    }
 }
 
 /// Aborts parked share fetches if this round is cancelled before they are stored.
