@@ -1564,6 +1564,76 @@ async fn offset_fetch_reuses_the_bootstrap_coordinator_socket() {
     );
 }
 
+/// An offset fetch that times out finishes a coordinator dial still in flight.
+#[tokio::test(flavor = "current_thread")]
+async fn offset_fetch_finishes_a_blocked_coordinator_dial() {
+    use std::sync::atomic::{AtomicBool, Ordering};
+    use std::sync::Arc;
+    use tokio::io::AsyncReadExt;
+
+    let mock = common::Mock::start_two_node().await;
+    let mut slow_addr = String::new();
+    let mut listener = None;
+    for _ in 0..32 {
+        let candidate = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = candidate.local_addr().unwrap().to_string();
+        if addr > mock.addr {
+            slow_addr = addr;
+            listener = Some(candidate);
+            break;
+        }
+    }
+    let listener = listener.expect("blackhole port sorts after the mock");
+    let slow = listener.local_addr().unwrap();
+    mock.set_broker_address(2, "127.0.0.1", i32::from(slow.port()));
+    mock.set_group_coordinator("fast", 1);
+    mock.set_group_coordinator("slow", 2);
+    mock.set_offset_fetch_delay(Duration::from_secs(2));
+    let dropped = Arc::new(AtomicBool::new(false));
+    let flag = Arc::clone(&dropped);
+    let peer = tokio::spawn(async move {
+        let (mut sock, _) = listener.accept().await.unwrap();
+        let mut buf = [0u8; 64];
+        loop {
+            match sock.read(&mut buf).await {
+                Ok(0) | Err(_) => break,
+                Ok(_) => continue,
+            }
+        }
+        flag.store(true, Ordering::SeqCst);
+    });
+    let mut cfg = AdminConfig::bootstrap([mock.addr.clone()]);
+    cfg.request_timeout = Duration::from_millis(300);
+    let mut client = OffsetClient::new(cfg).unwrap();
+    let request = OffsetFetchRequestData {
+        groups: vec![
+            OffsetFetchGroupData {
+                group_id: "fast".into(),
+                member_id: None,
+                member_epoch: -1,
+                topics: None,
+            },
+            OffsetFetchGroupData {
+                group_id: "slow".into(),
+                member_id: None,
+                member_epoch: -1,
+                topics: None,
+            },
+        ],
+        require_stable: false,
+    };
+    let mut options = offset_options();
+    options.timeout = Some(Duration::from_millis(300));
+    let result = client.test_fetch_once(&request, &options).await;
+    assert!(result.is_err(), "the delayed offset fetch should time out");
+    assert!(
+        dropped.load(Ordering::SeqCst),
+        "offset fetch left the coordinator dial blocked in a broker read"
+    );
+    peer.abort();
+    let _ = slow_addr;
+}
+
 fn offset_fetch(group: &str) -> OffsetFetchRequestData {
     OffsetFetchRequestData {
         groups: vec![OffsetFetchGroupData {

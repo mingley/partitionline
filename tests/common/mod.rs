@@ -2474,6 +2474,18 @@ impl Mock {
             .copied()
     }
 
+    /// Replace the advertised host and port for `node_id`.
+    ///
+    /// FindCoordinator and metadata return this address. The node's real
+    /// accept socket is unchanged.
+    pub fn set_broker_address(&self, node_id: i32, host: &str, port: i32) {
+        let mut st = self.state.lock();
+        if let Some(broker) = st.brokers.iter_mut().find(|b| b.node_id == node_id) {
+            broker.host = host.to_string();
+            broker.port = port;
+        }
+    }
+
     pub fn broker_addr(&self, node_id: i32) -> Option<String> {
         let st = self.state.lock();
         st.brokers

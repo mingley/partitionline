@@ -796,14 +796,21 @@ impl OffsetClient {
                 require_stable: request.require_stable,
             };
             deadline.check_expired()?;
-            let body = conn
+            let body = match conn
                 .roundtrip_deadline(
                     OFFSET_FETCH,
                     version,
                     |buf| encode_offset_fetch_request_into(buf, &batched, version, options.limits),
                     deadline,
                 )
-                .await?;
+                .await
+            {
+                Ok(body) => body,
+                Err(error) => {
+                    Self::finish_aborted_handshakes(dialing).await;
+                    return Err(error);
+                }
+            };
             charge_bytes(response_bytes, body.len(), response_limit(options.limits)?)?;
             let response = decode_offset_fetch_response_data(&body, version, options.limits)?;
             validate_fetch_response(&batched, &response)?;
@@ -821,6 +828,7 @@ impl OffsetClient {
                 })
                 .find(|code| error::coordinator_retriable(*code))
             {
+                Self::finish_aborted_handshakes(dialing).await;
                 return Err(Error::broker(code, "OffsetFetch"));
             }
             throttle_time_ms = throttle_time_ms.max(response.throttle_time_ms);
@@ -873,14 +881,48 @@ impl OffsetClient {
                 next_dial += 1;
             }
         }
-        let groups = slots
+        let groups = match slots
             .into_iter()
             .map(|slot| slot.ok_or_else(|| Error::protocol("missing offset result group")))
-            .collect::<Result<Vec<_>>>()?;
+            .collect::<Result<Vec<_>>>()
+        {
+            Ok(groups) => groups,
+            Err(error) => {
+                Self::finish_aborted_handshakes(dialing).await;
+                return Err(error);
+            }
+        };
+        Self::finish_aborted_handshakes(dialing).await;
         Ok(OffsetFetchResponseData {
             throttle_time_ms,
             groups,
         })
+    }
+
+    /// One offset-fetch attempt, without the retry loop.
+    ///
+    /// Retries await again after this attempt, which hides a coordinator
+    /// handshake that was only aborted.
+    #[doc(hidden)]
+    pub async fn test_fetch_once(
+        &mut self,
+        request: &OffsetFetchRequestData,
+        options: &OffsetOptions,
+    ) -> Result<OffsetFetchResponseData> {
+        let deadline = self.deadline(options)?;
+        let version = if options.topic_ids { 10 } else { 9 };
+        validate_offset_fetch_request_data(request, version, options.limits)?;
+        validate_fetch(request)?;
+        let mut control_bytes = 0;
+        let mut response_bytes = 0;
+        self.fetch_once(
+            request,
+            options,
+            deadline,
+            &mut control_bytes,
+            &mut response_bytes,
+        )
+        .await
     }
 }
 
