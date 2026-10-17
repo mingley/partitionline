@@ -1161,7 +1161,8 @@ async fn authorized<T>(
 }
 
 /// Buffer a pipelined request while a handler runs, and finish when the peer
-/// closes. A full frame already buffered is left for the next handler.
+/// closes. A full frame stays buffered, and the following read still watches
+/// for the peer's close.
 async fn watch_disconnect<S: AsyncRead + Unpin>(
     socket: &mut S,
     ahead: &mut ReadAhead,
@@ -1170,10 +1171,10 @@ async fn watch_disconnect<S: AsyncRead + Unpin>(
     loop {
         let budget = match classify_ahead(ahead.pending(), max_request) {
             Ahead::Need(budget) => budget,
-            Ahead::Ready => {
-                std::future::pending::<()>().await;
-                continue;
-            }
+            // A complete next frame is already buffered. Read past it so a
+            // close that follows the pipeline is not ignored until the
+            // current handler finishes.
+            Ahead::Ready => 8 * 1024,
             Ahead::Invalid => return Exit::InvalidLength,
         };
         ahead.compact();
@@ -1740,6 +1741,60 @@ mod disconnect_tests {
             stopped.load(Ordering::SeqCst),
             1,
             "client disconnect left the handler running"
+        );
+        release.notify_waiters();
+        transport
+            .shutdown()
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn pipelined_disconnect_stops_the_handler() {
+        let started = Arc::new(AtomicUsize::new(0));
+        let stopped = Arc::new(AtomicUsize::new(0));
+        let release = Arc::new(Notify::new());
+        let config = Config::new(
+            4,
+            1,
+            1024,
+            1024,
+            Duration::from_secs(30),
+            Duration::from_secs(30),
+            Duration::from_secs(30),
+        )
+        .unwrap_or_else(|error| panic!("{error}"));
+        let mut transport = Transport::bind(
+            "127.0.0.1:0"
+                .parse::<SocketAddr>()
+                .unwrap_or_else(|error| panic!("{error}")),
+            config,
+            Arc::new(Hold {
+                started: Arc::clone(&started),
+                stopped: Arc::clone(&stopped),
+                release: Arc::clone(&release),
+            }),
+        )
+        .await
+        .unwrap_or_else(|error| panic!("{error}"));
+        let mut socket = TcpStream::connect(transport.local_addr())
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        socket
+            .write_all(&[0, 0, 0, 0, 0, 0, 0, 0])
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        while started.load(Ordering::SeqCst) == 0 {
+            tokio::task::yield_now().await;
+        }
+        drop(socket);
+        for _ in 0..32 {
+            tokio::task::yield_now().await;
+        }
+        assert_eq!(
+            stopped.load(Ordering::SeqCst),
+            1,
+            "pipelined disconnect left the handler running"
         );
         release.notify_waiters();
         transport
