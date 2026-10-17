@@ -1175,7 +1175,7 @@ pub enum ShareAcquireMode {
 /// `STALE_BROKER_EPOCH`). Official Java GroupCoordinator JoinGroup
 /// writes this when the member id is empty. A piggybacked
 /// `GROUP_MAX_SIZE_REACHED` still completes without retry,
-/// including when `AcknowledgeErrorMessage` is set (Java
+/// including when `AcknowledgeErrorMessage` is set or empty (Java
 /// `handleShareFetchSuccess` completes piggyback acks and still
 /// delivers the fetch; this is not partition
 /// `GROUP_MAX_SIZE_REACHED`, which fails that poll, and not piggyback
@@ -3048,7 +3048,7 @@ impl ShareGroup {
     /// writes this when the member id is empty.
     /// A piggybacked `GROUP_MAX_SIZE_REACHED` still completes
     /// without retry, including when `AcknowledgeErrorMessage` is set
-    /// (Java `handleShareFetchSuccess` completes piggyback acks and still
+    /// or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
     /// delivers the fetch; this is not partition
     /// `GROUP_MAX_SIZE_REACHED`, which fails that poll, and not piggyback
     /// `MEMBER_ID_REQUIRED`). Official Java GroupCoordinator writes this

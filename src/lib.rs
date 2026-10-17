@@ -2378,7 +2378,7 @@
 //! piggyback `STALE_BROKER_EPOCH`). Official Java GroupCoordinator
 //! JoinGroup writes this when the member id is empty. A piggybacked
 //! `GROUP_MAX_SIZE_REACHED` still completes without retry,
-//! including when `AcknowledgeErrorMessage` is set (this is not
+//! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `GROUP_MAX_SIZE_REACHED`, which fails that poll, and not
 //! piggyback `MEMBER_ID_REQUIRED`). Official Java GroupCoordinator
 //! writes this when the group has reached `group.max.size`. A piggybacked
