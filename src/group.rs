@@ -3497,23 +3497,8 @@ impl ConsumerGroup {
                         if Instant::now() < next_hb_deadline {
                             continue;
                         }
-                        if conn
-                            .as_ref()
-                            .is_some_and(|c| c.idle_expired(cfg.connections_max_idle))
-                        {
-                            conn = None;
-                        }
                         let deadline = Instant::now() + cfg.request_timeout;
-                        if conn.is_none() {
-                            conn = discover_coord_within(
-                                &cfg,
-                                &group_id,
-                                COORDINATOR_GROUP,
-                                deadline,
-                            )
-                            .await
-                            .ok();
-                        }
+                        reopen_idle_coordinator(&mut conn, &cfg, &group_id, deadline).await;
                         let Some(c) = conn.as_mut() else {
                             let retry_delay = cfg.retry_backoff.max(Duration::from_millis(50));
                             next_hb_deadline = Instant::now() + retry_delay;
@@ -3698,23 +3683,8 @@ impl ConsumerGroup {
                         {
                             break;
                         }
-                        if conn
-                            .as_ref()
-                            .is_some_and(|c| c.idle_expired(cfg.connections_max_idle))
-                        {
-                            conn = None;
-                        }
                         let deadline = Instant::now() + cfg.request_timeout;
-                        if conn.is_none() {
-                            conn = discover_coord_within(
-                                &cfg,
-                                &group_id,
-                                COORDINATOR_GROUP,
-                                deadline,
-                            )
-                            .await
-                            .ok();
-                        }
+                        reopen_idle_coordinator(&mut conn, &cfg, &group_id, deadline).await;
                         let Some(c) = conn.as_mut() else {
                             continue;
                         };
@@ -4796,6 +4766,40 @@ pub(crate) async fn connect_member_and_coordinator(
         consumer,
         Ok(opened_coordinator.ok_or_else(|| Error::protocol("coordinator connection"))?),
     ))
+}
+
+/// Reconnect an idle coordinator while its address is checked again.
+///
+/// The first connection still uses a normal lookup. An idle socket keeps its
+/// address and is dialed during that lookup.
+pub(crate) async fn reopen_idle_coordinator(
+    conn: &mut Option<BrokerConn>,
+    cfg: &ConsumerConfig,
+    group_id: &str,
+    deadline: Instant,
+) {
+    let previous = if conn
+        .as_ref()
+        .is_some_and(|c| c.idle_expired(cfg.connections_max_idle))
+    {
+        let addr = conn.as_ref().map(|c| c.addr().to_string());
+        *conn = None;
+        addr
+    } else {
+        None
+    };
+    if conn.is_some() {
+        return;
+    }
+    *conn = if let Some(previous) = previous.as_deref() {
+        rediscover_coord(cfg, group_id, COORDINATOR_GROUP, previous)
+            .await
+            .ok()
+    } else {
+        discover_coord_within(cfg, group_id, COORDINATOR_GROUP, deadline)
+            .await
+            .ok()
+    };
 }
 
 pub(crate) async fn discover_coord_within(

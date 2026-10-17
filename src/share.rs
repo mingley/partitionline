@@ -4883,23 +4883,9 @@ impl ShareGroup {
                         if Instant::now() < next_hb_deadline {
                             continue;
                         }
-                        if conn
-                            .as_ref()
-                            .is_some_and(|c| c.idle_expired(cfg.connections_max_idle))
-                        {
-                            conn = None;
-                        }
                         let deadline = Instant::now() + cfg.request_timeout;
-                        if conn.is_none() {
-                            conn = crate::group::discover_coord_within(
-                                &cfg,
-                                &group_id,
-                                COORDINATOR_GROUP,
-                                deadline,
-                            )
-                            .await
-                            .ok();
-                        }
+                        crate::group::reopen_idle_coordinator(&mut conn, &cfg, &group_id, deadline)
+                            .await;
                         if *stop.borrow() { break; }
                         let Some(c) = conn.as_mut() else {
                             let retry_delay = cfg.retry_backoff.max(Duration::from_millis(50));

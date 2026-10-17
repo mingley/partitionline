@@ -3368,6 +3368,42 @@ async fn fetch_dials_leaders_while_refreshing_metadata() {
     consumer.close().await.unwrap();
 }
 
+/// An idle heartbeat looks up the coordinator while that broker reconnects.
+#[tokio::test]
+async fn group_heartbeat_dials_coordinator_while_finding_it() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_topic_partitions("t", 1);
+    mock.move_coordinator();
+    let mut cfg = ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10);
+    cfg.heartbeat_interval = Duration::from_millis(30);
+    cfg.connections_max_idle = Duration::from_millis(20);
+    let group = ConsumerGroup::join(cfg, "hb-redial", "t").await.unwrap();
+    let started_first = Instant::now();
+    while mock.heartbeat_total("hb-redial") < 1 {
+        if started_first.elapsed() > Duration::from_secs(2) {
+            panic!("first heartbeat did not arrive");
+        }
+        tokio::time::sleep(Duration::from_millis(5)).await;
+    }
+    let delay = Duration::from_millis(250);
+    mock.set_find_coordinator_delay(delay);
+    mock.set_api_versions_delay(delay);
+    let before = mock.heartbeat_total("hb-redial");
+    let started = Instant::now();
+    while mock.heartbeat_total("hb-redial") <= before {
+        if started.elapsed() > Duration::from_secs(3) {
+            panic!("idle heartbeat did not reconnect");
+        }
+        tokio::time::sleep(Duration::from_millis(10)).await;
+    }
+    let elapsed = started.elapsed();
+    assert!(
+        elapsed < Duration::from_millis(700),
+        "idle heartbeat found the coordinator before redialing it: {elapsed:?}"
+    );
+    group.leave().await.unwrap();
+}
+
 /// A coordinator retry looks up the coordinator while that broker reconnects.
 #[tokio::test]
 async fn group_commit_redials_coordinator_while_finding_it() {
