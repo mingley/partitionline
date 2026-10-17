@@ -1221,6 +1221,14 @@ pub enum ShareAcquireMode {
 /// `NO_REASSIGNMENT_IN_PROGRESS`). Official Java
 /// `OffsetMetadataManager` OffsetDelete writes this when the consumer
 /// group is actively subscribed to the topic. A piggybacked
+/// `INVALID_RECORD` still completes without retry,
+/// including when `AcknowledgeErrorMessage` is set (Java
+/// `handleShareFetchSuccess` completes piggyback acks and still
+/// delivers the fetch; this is not partition
+/// `INVALID_RECORD`, which fails that poll, and not piggyback
+/// `GROUP_SUBSCRIBED_TO_TOPIC`). Official Java
+/// `LogValidator` writes this when a produce record fails validation.
+/// A piggybacked
 /// `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a
 /// sibling partition whose `AcknowledgeErrorCode` is none, including
 /// when `AcknowledgeErrorMessage` is set or empty. A piggybacked
@@ -3151,6 +3159,13 @@ impl ShareGroup {
     /// `NO_REASSIGNMENT_IN_PROGRESS`). Official Java
     /// `OffsetMetadataManager` OffsetDelete writes this when the consumer
     /// group is actively subscribed to the topic.
+    /// A piggybacked `INVALID_RECORD` still completes
+    /// without retry, including when `AcknowledgeErrorMessage` is set
+    /// (Java `handleShareFetchSuccess` completes piggyback acks and still
+    /// delivers the fetch; this is not partition
+    /// `INVALID_RECORD`, which fails that poll, and not piggyback
+    /// `GROUP_SUBSCRIBED_TO_TOPIC`). Official Java
+    /// `LogValidator` writes this when a produce record fails validation.
     /// A piggybacked `TOPIC_AUTHORIZATION_FAILED` on one partition
     /// does not fail a sibling whose `AcknowledgeErrorCode` is none,
     /// including when `AcknowledgeErrorMessage` is set or empty.
