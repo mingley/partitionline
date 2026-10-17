@@ -3762,13 +3762,14 @@ async fn discover_typed_coord(
     key_type: i8,
     version: i16,
     deadline: Instant,
+    known: Option<&RediscoverProducer<'_>>,
 ) -> Result<CoordinatorConnection> {
     let mut attempt = 0u32;
     loop {
         if Instant::now() >= deadline {
             return Err(Error::Timeout);
         }
-        let result = discover_typed_coord_once(cfg, key, key_type, version, deadline).await;
+        let result = discover_typed_coord_once(cfg, key, key_type, version, deadline, known).await;
         match result {
             Err(error)
                 if error
@@ -3795,9 +3796,10 @@ async fn discover_typed_coord_once(
     key_type: i8,
     version: i16,
     deadline: Instant,
+    known: Option<&RediscoverProducer<'_>>,
 ) -> Result<CoordinatorConnection> {
     if cfg.bootstrap.len() > 1 {
-        return discover_typed_coord_raced(cfg, key, key_type, version, deadline, None).await;
+        return discover_typed_coord_raced(cfg, key, key_type, version, deadline, known).await;
     }
     let mut last = Error::protocol("find coordinator failed");
     for addr in &cfg.bootstrap {
@@ -4570,7 +4572,23 @@ async fn discover_group_coordinator(
     deadline: Instant,
 ) -> Result<CoordinatorConnection> {
     if shared.cfg.bootstrap.len() != 1 {
-        return discover_within(&shared.cfg, group_id, COORDINATOR_GROUP, version, deadline).await;
+        let recorded = shared.produce_keys.lock().clone();
+        let found = discover_typed_coord(
+            &shared.cfg,
+            group_id,
+            COORDINATOR_GROUP,
+            version,
+            deadline,
+            Some(&RediscoverProducer {
+                previous: "",
+                previous_keys: &[],
+                bootstrap_keys: &shared.api_keys,
+                known_by_addr: &recorded,
+            }),
+        )
+        .await?;
+        remember_produce_keys(shared, found.conn.addr(), &found.keys);
+        return Ok(found);
     }
     let Some(addr) = shared.cfg.bootstrap.first() else {
         return Err(Error::protocol("find coordinator failed"));
@@ -4609,7 +4627,7 @@ async fn discover_within(
     version: i16,
     deadline: Instant,
 ) -> Result<CoordinatorConnection> {
-    discover_typed_coord(cfg, key, key_type, version, deadline).await
+    discover_typed_coord(cfg, key, key_type, version, deadline, None).await
 }
 
 async fn txn_roundtrip(

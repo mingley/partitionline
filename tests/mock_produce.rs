@@ -1317,6 +1317,40 @@ async fn send_offsets_reuses_bootstrap_api_versions() {
     producer.close().await.unwrap();
 }
 
+/// TxnOffsetCommit across several bootstraps reuses handshakes from startup.
+#[tokio::test]
+async fn multi_bootstrap_send_offsets_reuses_known_handshakes() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_topic_partitions("t", 1);
+    mock.set_partition_leader("t", 0, 1);
+    mock.set_coordinator(2);
+    let addr2 = mock.broker_addr(2).unwrap();
+    let mut cfg = ProducerConfig::bootstrap([mock.addr.clone(), addr2]);
+    cfg.linger = Duration::ZERO;
+    cfg.transactional_id = Some("tx-multi-offsets".into());
+    let producer = Producer::new(cfg).await.unwrap();
+    producer.begin_transaction().await.unwrap();
+    let versions_before = mock.api_versions_versions().len();
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let started = Instant::now();
+    producer
+        .send_offsets_to_transaction("g", [(TopicPartition::new("t", 0), 1)])
+        .await
+        .unwrap();
+    let elapsed = started.elapsed();
+    assert_eq!(
+        mock.api_versions_versions().len(),
+        versions_before,
+        "group coordinator lookup renegotiated a bootstrap"
+    );
+    assert!(
+        elapsed < Duration::from_millis(200),
+        "multi-bootstrap offset commit repeated ApiVersions: {elapsed:?}"
+    );
+    producer.abort_transaction().await.unwrap();
+    producer.close().await.unwrap();
+}
+
 /// A group coordinator that has never been contacted still negotiates.
 #[tokio::test]
 async fn send_offsets_negotiates_a_new_group_coordinator() {
