@@ -2345,7 +2345,7 @@
 //! writes this when the ordinary fetch session id is unknown; it is
 //! not share-session `SHARE_SESSION_NOT_FOUND`. A piggybacked
 //! `INVALID_FETCH_SESSION_EPOCH` still completes without retry,
-//! including when `AcknowledgeErrorMessage` is set (this is not
+//! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `INVALID_FETCH_SESSION_EPOCH`, which fails that poll, and not
 //! piggyback `FETCH_SESSION_ID_NOT_FOUND`). Official Java IncrementalFetchContext
 //! writes this when the ordinary fetch session epoch is invalid; it is

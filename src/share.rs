@@ -1130,7 +1130,7 @@ pub enum ShareAcquireMode {
 /// writes this when the ordinary fetch session id is unknown; it is
 /// not share-session `SHARE_SESSION_NOT_FOUND`. A piggybacked
 /// `INVALID_FETCH_SESSION_EPOCH` still completes without retry,
-/// including when `AcknowledgeErrorMessage` is set (Java
+/// including when `AcknowledgeErrorMessage` is set or empty (Java
 /// `handleShareFetchSuccess` completes piggyback acks and still
 /// delivers the fetch; this is not partition
 /// `INVALID_FETCH_SESSION_EPOCH`, which fails that poll, and not piggyback
@@ -2941,7 +2941,7 @@ impl ShareGroup {
     /// not share-session `SHARE_SESSION_NOT_FOUND`.
     /// A piggybacked `INVALID_FETCH_SESSION_EPOCH` still completes
     /// without retry, including when `AcknowledgeErrorMessage` is set
-    /// (Java `handleShareFetchSuccess` completes piggyback acks and still
+    /// or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
     /// delivers the fetch; this is not partition
     /// `INVALID_FETCH_SESSION_EPOCH`, which fails that poll, and not piggyback
     /// `FETCH_SESSION_ID_NOT_FOUND`). Official Java IncrementalFetchContext
