@@ -866,6 +866,36 @@ fn classify_ahead(ahead: &[u8], max_request: usize) -> Ahead {
     }
 }
 
+/// True when a length after one or more complete frames will not be accepted.
+fn ahead_has_rejected_length(ahead: &[u8], max_request: usize) -> bool {
+    let mut offset = 0usize;
+    while ahead.len().saturating_sub(offset) >= 4 {
+        let Some(prefix) = ahead.get(offset..offset.saturating_add(4)) else {
+            return true;
+        };
+        let Ok(raw) = <[u8; 4]>::try_from(prefix) else {
+            return true;
+        };
+        let Ok(length) = usize::try_from(i32::from_be_bytes(raw)) else {
+            return true;
+        };
+        if length > max_request {
+            return true;
+        }
+        let Some(total) = 4usize.checked_add(length) else {
+            return true;
+        };
+        let Some(frame_end) = offset.checked_add(total) else {
+            return true;
+        };
+        if ahead.len() < frame_end {
+            return false;
+        }
+        offset = frame_end;
+    }
+    false
+}
+
 fn frame_mut(frame: &mut Frame) -> &mut Vec<u8> {
     frame
 }
@@ -1082,7 +1112,7 @@ async fn write_and_prefetch<S: AsyncRead + AsyncWrite + Unpin>(
             if bufs.is_empty() {
                 return Poll::Ready(Ok(()));
             }
-            if prefetch && matches!(classify_ahead(ahead.pending(), max_request), Ahead::Invalid) {
+            if prefetch && ahead_has_rejected_length(ahead.pending(), max_request) {
                 return Poll::Ready(Err(io::Error::new(
                     io::ErrorKind::InvalidData,
                     "invalid frame length",
@@ -2310,6 +2340,73 @@ mod write_prefetch_tests {
             this.sent = true;
             Poll::Ready(Ok(()))
         }
+    }
+
+    struct IllegalAfterFrame {
+        sent: bool,
+    }
+
+    impl AsyncRead for IllegalAfterFrame {
+        fn poll_read(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            buf: &mut ReadBuf<'_>,
+        ) -> Poll<std::io::Result<()>> {
+            let this = self.get_mut();
+            if this.sent {
+                return Poll::Pending;
+            }
+            let dst = buf.initialize_unfilled();
+            if dst.len() < 8 {
+                return Poll::Pending;
+            }
+            dst[..4].fill(0);
+            dst[4..8].copy_from_slice(&i32::MAX.to_be_bytes());
+            buf.advance(8);
+            this.sent = true;
+            Poll::Ready(Ok(()))
+        }
+    }
+
+    impl AsyncWrite for IllegalAfterFrame {
+        fn poll_write(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            _buf: &[u8],
+        ) -> Poll<std::io::Result<usize>> {
+            Poll::Pending
+        }
+
+        fn poll_flush(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
+            Poll::Ready(Ok(()))
+        }
+
+        fn poll_shutdown(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
+            Poll::Ready(Ok(()))
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn an_illegal_length_after_a_frame_does_not_wait_out_the_write() {
+        let mut socket = IllegalAfterFrame { sent: false };
+        let started = Instant::now();
+        let result = tokio::time::timeout(
+            Duration::from_millis(200),
+            write_and_prefetch(
+                &mut socket,
+                b"response",
+                Instant::now() + Duration::from_secs(5),
+                &mut ReadAhead::new(),
+                1024,
+                true,
+            ),
+        )
+        .await;
+        let elapsed = started.elapsed();
+        assert!(
+            matches!(result, Ok(Err(_))),
+            "an illegal length after a frame waited out the write: {elapsed:?}"
+        );
     }
 
     impl AsyncWrite for IllegalPrefetch {

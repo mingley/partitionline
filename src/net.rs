@@ -338,27 +338,41 @@ fn stalled_write_read_from(
 /// this connection will not accept, is a peer that is not reading.
 fn stalled_write_read_rejected(read_buf: &BytesMut) -> bool {
     let cap = usize::try_from(MAX_FRAME).unwrap_or(usize::MAX);
-    if read_buf.len() > cap {
-        return true;
-    }
-    let Some(prefix) = read_buf.get(..4) else {
-        return false;
-    };
-    let Ok(raw) = <[u8; 4]>::try_from(prefix) else {
-        return true;
-    };
-    !(0..=MAX_FRAME).contains(&i32::from_be_bytes(raw))
+    read_buf.len() > cap || frame_prefix_rejected(read_buf.as_ref())
 }
 
-/// True when `buf` starts with a length this connection will not accept.
+/// True when `buf` contains a length this connection will not accept.
+///
+/// Complete frames are skipped. A length after an empty frame is still
+/// rejected, and a short tail of the next frame is not.
 fn frame_prefix_rejected(buf: &[u8]) -> bool {
-    let Some(prefix) = buf.get(..4) else {
-        return false;
-    };
-    let Ok(raw) = <[u8; 4]>::try_from(prefix) else {
-        return true;
-    };
-    !(0..=MAX_FRAME).contains(&i32::from_be_bytes(raw))
+    let mut offset = 0usize;
+    while buf.len().saturating_sub(offset) >= 4 {
+        let Some(prefix) = buf.get(offset..offset.saturating_add(4)) else {
+            return true;
+        };
+        let Ok(raw) = <[u8; 4]>::try_from(prefix) else {
+            return true;
+        };
+        let size = i32::from_be_bytes(raw);
+        if !(0..=MAX_FRAME).contains(&size) {
+            return true;
+        }
+        let Ok(size) = usize::try_from(size) else {
+            return true;
+        };
+        let Some(total) = 4usize.checked_add(size) else {
+            return true;
+        };
+        let Some(frame_end) = offset.checked_add(total) else {
+            return true;
+        };
+        if buf.len() < frame_end {
+            return false;
+        }
+        offset = frame_end;
+    }
+    false
 }
 
 /// True when `buf` holds one full frame, or a length the framed reader will reject.
@@ -2944,6 +2958,71 @@ mod tests {
         assert!(
             deadline && elapsed < Duration::from_millis(80),
             "a ready partial write held the deadline: {elapsed:?} deadline {deadline}"
+        );
+    }
+
+    struct IllegalAfterFrame {
+        sent: bool,
+    }
+
+    impl AsyncRead for IllegalAfterFrame {
+        fn poll_read(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            buf: &mut ReadBuf<'_>,
+        ) -> Poll<io::Result<()>> {
+            let this = self.get_mut();
+            if this.sent {
+                return Poll::Pending;
+            }
+            let dst = buf.initialize_unfilled();
+            if dst.len() < 8 {
+                return Poll::Pending;
+            }
+            dst[..4].fill(0);
+            dst[4..8].copy_from_slice(&i32::MAX.to_be_bytes());
+            buf.advance(8);
+            this.sent = true;
+            Poll::Ready(Ok(()))
+        }
+    }
+
+    impl AsyncWrite for IllegalAfterFrame {
+        fn poll_write(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            _buf: &[u8],
+        ) -> Poll<io::Result<usize>> {
+            Poll::Pending
+        }
+
+        fn poll_flush(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<io::Result<()>> {
+            Poll::Ready(Ok(()))
+        }
+
+        fn poll_shutdown(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<io::Result<()>> {
+            Poll::Ready(Ok(()))
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn an_illegal_length_after_a_frame_does_not_wait_out_the_write() {
+        let payload = vec![1u8; 32];
+        let mut read_buf = BytesMut::new();
+        let started = std::time::Instant::now();
+        let result = tokio::time::timeout(
+            Duration::from_millis(200),
+            Deadline::from_timeout(Duration::from_secs(5)).run_io(write_all_pump(
+                &mut IllegalAfterFrame { sent: false },
+                &mut read_buf,
+                &payload,
+            )),
+        )
+        .await;
+        let elapsed = started.elapsed();
+        assert!(
+            matches!(result, Ok(Err(_))),
+            "an illegal length after a frame waited out the write: {elapsed:?}"
         );
     }
 
