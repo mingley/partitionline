@@ -9514,6 +9514,9 @@ impl Admin {
                 }));
                 self.refresh_topics_while_dialing(&need, &known_nodes, deadline)
                     .await?;
+                if Instant::now() >= deadline {
+                    return Err(Error::Timeout);
+                }
             }
             let mut by_node: HashMap<i32, Vec<usize>> = HashMap::new();
             let mut nodes: Vec<i32> = Vec::new();
@@ -9698,6 +9701,12 @@ impl Admin {
                     (node, result)
                 });
             }
+        }
+        // A finished dial drops its socket while this call is still in the
+        // same poll. Yield so the broker observes that close before the
+        // caller continues.
+        for _ in 0..8 {
+            tokio::task::yield_now().await;
         }
         opened
     }

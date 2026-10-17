@@ -1738,6 +1738,79 @@ async fn fetch_refresh_timeout_closes_the_leader_socket() {
     );
     peer.abort();
 }
+
+/// List offsets reloads an unknown topic while a known leader is dialed.
+#[tokio::test(flavor = "current_thread")]
+async fn list_offsets_refresh_timeout_closes_the_leader_socket() {
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::sync::Arc;
+    use tokio::io::AsyncReadExt;
+
+    let mock = common::Mock::start_two_node().await;
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let slow = listener.local_addr().unwrap();
+    let open = Arc::new(AtomicUsize::new(0));
+    let open_flag = Arc::clone(&open);
+    let peer = tokio::spawn(async move {
+        loop {
+            let (mut sock, _) = listener.accept().await.unwrap();
+            let _started = open_flag.fetch_add(1, Ordering::SeqCst);
+            let open_flag = Arc::clone(&open_flag);
+            let _reader = tokio::spawn(async move {
+                let mut buf = [0u8; 64];
+                loop {
+                    match sock.read(&mut buf).await {
+                        Ok(0) | Err(_) => break,
+                        Ok(_) => continue,
+                    }
+                }
+                let _left = open_flag.fetch_sub(1, Ordering::SeqCst);
+            });
+        }
+    });
+    mock.set_broker_address(2, "127.0.0.1", i32::from(slow.port()));
+    mock.set_topic_partitions("u", 1);
+    mock.set_partition_leader("u", 0, 2);
+    let mut cfg = AdminConfig::bootstrap([mock.addr.clone()]);
+    cfg.request_timeout = Duration::from_secs(2);
+    cfg.connect_timeout = Duration::from_millis(200);
+    cfg.reconnect_backoff = Duration::ZERO;
+    cfg.reconnect_backoff_max = Duration::ZERO;
+    cfg.retry_backoff = Duration::ZERO;
+    cfg.retry_backoff_max = Duration::ZERO;
+    let mut admin = Admin::new(cfg).await.unwrap();
+    let warmed = admin
+        .list_offsets_timeout(
+            [(TopicPartition::new("u", 0), -1i64)],
+            Duration::from_millis(400),
+        )
+        .await;
+    assert!(warmed.is_err(), "the first list offsets should time out");
+    assert_eq!(
+        open.load(Ordering::SeqCst),
+        0,
+        "the first list offsets left the leader socket open"
+    );
+    mock.set_topic_partitions("v", 1);
+    mock.set_partition_leader("v", 0, 1);
+    let result = admin
+        .list_offsets_timeout(
+            [
+                (TopicPartition::new("u", 0), -1i64),
+                (TopicPartition::new("v", 0), -1i64),
+            ],
+            Duration::from_millis(400),
+        )
+        .await;
+    assert!(result.is_err(), "list offsets should time out");
+    assert_eq!(
+        open.load(Ordering::SeqCst),
+        0,
+        "list offsets refresh left the leader socket blocked in a broker read"
+    );
+    peer.abort();
+}
+
 #[tokio::test(flavor = "current_thread")]
 async fn list_offsets_timeout_closes_the_leader_socket() {
     use std::sync::atomic::{AtomicUsize, Ordering};
