@@ -656,6 +656,13 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   which fails that poll, and not piggyback `ELECTION_NOT_NEEDED`). Official
   Java `ReplicationControlManager.cancelPartitionReassignment` writes this
   when no reassignment is in progress. A
+  piggybacked `GROUP_SUBSCRIBED_TO_TOPIC` still
+  completes without retry, including when `AcknowledgeErrorMessage` is
+  set (Java `handleShareFetchSuccess` completes piggyback acks and still
+  delivers the fetch; this is not partition `GROUP_SUBSCRIBED_TO_TOPIC`,
+  which fails that poll, and not piggyback `NO_REASSIGNMENT_IN_PROGRESS`). Official
+  Java `OffsetMetadataManager` OffsetDelete writes this when the consumer
+  group is actively subscribed to the topic. A
   piggybacked `TOPIC_AUTHORIZATION_FAILED` on
   one partition does not fail a sibling whose `AcknowledgeErrorCode`
   is none, including when `AcknowledgeErrorMessage` is set or empty. A
