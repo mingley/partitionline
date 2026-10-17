@@ -3219,12 +3219,10 @@ impl Producer {
         let mut attempt = 0u32;
         loop {
             let body = group_coord_roundtrip(
-                &self.inner.shared.cfg,
+                &self.inner.shared,
                 group_id,
                 TXN_OFFSET_COMMIT,
                 version,
-                self.inner.shared.find_coord_version,
-                &self.inner.shared.api_keys,
                 |buf| {
                     encode_txn_offset_commit_borrowed(
                         buf, version, &tid, group_id, pid, epoch, member, &grouped,
@@ -4303,21 +4301,35 @@ async fn discover_from_bootstrap(
     Ok(coordinator_connection(conn, &versions))
 }
 
+fn remembered_produce_keys(shared: &Shared, addr: &str) -> Option<Vec<ApiVersion>> {
+    shared.produce_keys.lock().get(addr).cloned()
+}
+
+fn remember_produce_keys(shared: &Shared, addr: &str, keys: &[ApiVersion]) {
+    if keys.is_empty() {
+        return;
+    }
+    let mut known = shared.produce_keys.lock();
+    if known.contains_key(addr) {
+        return;
+    }
+    let _stored = known.insert(addr.to_string(), keys.to_vec());
+}
+
 async fn discover_group_coordinator(
-    cfg: &ProducerConfig,
+    shared: &Shared,
     group_id: &str,
     version: i16,
-    bootstrap_keys: &[ApiVersion],
     deadline: Instant,
 ) -> Result<CoordinatorConnection> {
-    if cfg.bootstrap.len() != 1 {
-        return discover_within(cfg, group_id, COORDINATOR_GROUP, version, deadline).await;
+    if shared.cfg.bootstrap.len() != 1 {
+        return discover_within(&shared.cfg, group_id, COORDINATOR_GROUP, version, deadline).await;
     }
-    let Some(addr) = cfg.bootstrap.first() else {
+    let Some(addr) = shared.cfg.bootstrap.first() else {
         return Err(Error::protocol("find coordinator failed"));
     };
-    let bounded = bounded_producer_config(cfg, deadline)?;
-    let (mut hop, versions) = open_producer_peer(addr, &bounded, bootstrap_keys).await?;
+    let bounded = bounded_producer_config(&shared.cfg, deadline)?;
+    let (mut hop, versions) = open_producer_peer(addr, &bounded, &shared.api_keys).await?;
     let body = hop
         .roundtrip(
             FIND_COORDINATOR,
@@ -4334,7 +4346,12 @@ async fn discover_group_coordinator(
     if coord_addr == hop.addr() {
         return Ok(coordinator_connection(hop, &versions));
     }
+    if let Some(keys) = remembered_produce_keys(shared, &coord_addr) {
+        let conn = open_conn_with_known_versions(&coord_addr, &bounded, false, &keys).await?;
+        return Ok(coordinator_connection(conn, &known_api_versions(&keys)));
+    }
     let (conn, opened) = open_conn_with_versions(&coord_addr, &bounded, false).await?;
+    remember_produce_keys(shared, &coord_addr, &opened.api_keys);
     Ok(coordinator_connection(conn, &opened))
 }
 
@@ -4423,26 +4440,19 @@ async fn txn_roundtrip(
         .await
 }
 
-#[expect(
-    clippy::too_many_arguments,
-    reason = "group coord roundtrip is one wire call plus rediscovery identity"
-)]
 async fn group_coord_roundtrip(
-    cfg: &ProducerConfig,
+    shared: &Shared,
     group_id: &str,
     api_key: i16,
     api_version: i16,
-    find_coord_version: Option<i16>,
-    bootstrap_keys: &[ApiVersion],
     encode_body: impl Fn(&mut BytesMut) -> Result<()>,
     request_timeout: Duration,
     error_of: impl Fn(&[u8]) -> Result<i16>,
 ) -> Result<Bytes> {
     let deadline = Instant::now() + request_timeout;
-    let find_coord_version = required_find_coordinator(find_coord_version)?;
+    let find_coord_version = required_find_coordinator(shared.find_coord_version)?;
     let mut coord =
-        discover_group_coordinator(cfg, group_id, find_coord_version, bootstrap_keys, deadline)
-            .await?;
+        discover_group_coordinator(shared, group_id, find_coord_version, deadline).await?;
     let body = coord
         .conn
         .roundtrip(
@@ -4457,14 +4467,14 @@ async fn group_coord_roundtrip(
     }
     let previous = coord.conn.addr().to_string();
     coord = rediscover_producer_coordinator(
-        cfg,
+        &shared.cfg,
         group_id,
         COORDINATOR_GROUP,
         find_coord_version,
         RediscoverProducer {
             previous: &previous,
             previous_keys: &coord.keys,
-            bootstrap_keys,
+            bootstrap_keys: &shared.api_keys,
         },
         deadline,
     )
