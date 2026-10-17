@@ -981,6 +981,9 @@ struct Shared {
     /// ApiVersions learned on the metadata socket. Another connection to
     /// that same broker reuses them instead of repeating the handshake.
     api_keys: Vec<ApiVersion>,
+    /// ApiVersions learned on each produce address. An idle replacement
+    /// reuses them.
+    produce_keys: parking_lot::Mutex<HashMap<String, Vec<ApiVersion>>>,
     /// Last metadata image. The next refresh refills it.
     metadata_image: parking_lot::Mutex<MetadataResponse>,
     /// Fixed at initialization: finalized transaction.version >= 2 and EndTxn v5.
@@ -1715,6 +1718,7 @@ impl Producer {
             txn: Mutex::new(txn),
             metadata_version,
             api_keys: resp.api_keys.clone(),
+            produce_keys: parking_lot::Mutex::new(HashMap::new()),
             metadata_image: parking_lot::Mutex::new(MetadataResponse::blank()),
             transaction_v2,
             add_partitions_version,
@@ -3509,10 +3513,6 @@ fn pick(
         .and_then(|v| pick_version(v.min_version, v.max_version, client_min, client_max))
 }
 
-async fn open_conn(addr: &str, cfg: &ProducerConfig, transaction_v2: bool) -> Result<BrokerConn> {
-    Ok(open_conn_with_versions(addr, cfg, transaction_v2).await?.0)
-}
-
 fn known_api_versions(keys: &[ApiVersion]) -> ApiVersionsResponse {
     ApiVersionsResponse {
         error_code: 0,
@@ -3591,6 +3591,11 @@ async fn open_conn_with_known_versions(
 }
 
 async fn open_produce_socket(shared: &Shared, addr: &str) -> Result<BrokerConn> {
+    let remembered = shared.produce_keys.lock().get(addr).cloned();
+    if let Some(keys) = remembered {
+        return open_conn_with_known_versions(addr, &shared.cfg, shared.transaction_v2, &keys)
+            .await;
+    }
     let meta_addr = shared.meta.lock().await.addr().to_string();
     if addr == meta_addr && !shared.api_keys.is_empty() {
         return open_conn_with_known_versions(
@@ -3601,7 +3606,13 @@ async fn open_produce_socket(shared: &Shared, addr: &str) -> Result<BrokerConn> 
         )
         .await;
     }
-    open_conn(addr, &shared.cfg, shared.transaction_v2).await
+    let (conn, versions) =
+        open_conn_with_versions(addr, &shared.cfg, shared.transaction_v2).await?;
+    let _stored = shared
+        .produce_keys
+        .lock()
+        .insert(addr.to_string(), versions.api_keys);
+    Ok(conn)
 }
 
 async fn open_conn_with_versions(
