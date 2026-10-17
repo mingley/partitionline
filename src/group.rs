@@ -5038,6 +5038,16 @@ fn peek_error_code(body: &[u8]) -> Option<i16> {
     }
 }
 
+/// Race coordinator handshakes and return once the losers have stopped.
+///
+/// A later join continues with group RPCs, which hides a handshake that was
+/// only aborted.
+#[doc(hidden)]
+pub async fn test_race_coordinator(cfg: &ConsumerConfig, group_id: &str) -> Result<()> {
+    let _conn = discover_coord(cfg, group_id, COORDINATOR_GROUP).await?;
+    Ok(())
+}
+
 pub(crate) async fn discover_coord(
     cfg: &ConsumerConfig,
     group_id: &str,
@@ -5338,6 +5348,30 @@ async fn open_remembered_dial(
     }
 }
 
+async fn finish_aborted_handshakes<T: 'static>(mut set: tokio::task::JoinSet<T>) {
+    set.abort_all();
+    let mut extra = 0u32;
+    while !set.is_empty() {
+        tokio::select! {
+            biased;
+            joined = set.join_next() => {
+                if joined.is_none() {
+                    break;
+                }
+            }
+            () = tokio::task::yield_now() => {
+                extra = extra.saturating_add(1);
+                if extra >= 8 {
+                    break;
+                }
+            }
+        }
+    }
+    // The aborted task drops its socket when it is polled. One more turn
+    // lets the peer observe that close before this race returns.
+    tokio::task::yield_now().await;
+}
+
 async fn discover_coord_raced(
     cfg: &ConsumerConfig,
     group_id: &str,
@@ -5365,14 +5399,14 @@ async fn discover_coord_raced(
     let mut last = Error::protocol("find coordinator failed");
     while !inflight.is_empty() {
         if deadline.remaining().is_err() {
-            inflight.abort_all();
+            finish_aborted_handshakes(inflight).await;
             return Err(Error::Timeout);
         }
         let rest = deadline.remaining().unwrap_or(Duration::ZERO);
         let joined = tokio::select! {
             joined = inflight.join_next() => joined,
             _ = tokio::time::sleep(rest) => {
-                inflight.abort_all();
+                finish_aborted_handshakes(inflight).await;
                 return Err(Error::Timeout);
             }
         };
@@ -5426,11 +5460,11 @@ async fn discover_coord_raced(
                     .await
                     {
                         CoordAsk::Found(found) => {
-                            inflight.abort_all();
+                            finish_aborted_handshakes(inflight).await;
                             return Ok(*found);
                         }
                         CoordAsk::Fatal(error) => {
-                            inflight.abort_all();
+                            finish_aborted_handshakes(inflight).await;
                             return Err(error);
                         }
                         CoordAsk::Retry(error) => last = error,
@@ -5444,11 +5478,11 @@ async fn discover_coord_raced(
                     .await
                     {
                         CoordAsk::Found(found) => {
-                            inflight.abort_all();
+                            finish_aborted_handshakes(inflight).await;
                             return Ok(*found);
                         }
                         CoordAsk::Fatal(error) => {
-                            inflight.abort_all();
+                            finish_aborted_handshakes(inflight).await;
                             return Err(error);
                         }
                         CoordAsk::Retry(error) => {
@@ -5460,7 +5494,7 @@ async fn discover_coord_raced(
             }
         }
     }
-    inflight.abort_all();
+    finish_aborted_handshakes(inflight).await;
     if deadline.remaining().is_err() {
         return Err(Error::Timeout);
     }
