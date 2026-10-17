@@ -1500,7 +1500,7 @@ pub enum ShareAcquireMode {
 /// has no session for the request key.
 /// A piggybacked
 /// `INVALID_SHARE_SESSION_EPOCH` still completes without retry,
-/// including when `AcknowledgeErrorMessage` is set (Java
+/// including when `AcknowledgeErrorMessage` is set or empty (Java
 /// `handleShareFetchSuccess` completes piggyback acks and still
 /// delivers the fetch; this is not partition
 /// `INVALID_SHARE_SESSION_EPOCH`, which fails that poll, and not piggyback
@@ -3780,7 +3780,7 @@ impl ShareGroup {
     /// has no session for the request key.
     /// A piggybacked `INVALID_SHARE_SESSION_EPOCH` still completes
     /// without retry, including when `AcknowledgeErrorMessage` is set
-    /// (Java `handleShareFetchSuccess` completes piggyback acks and still
+    /// or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
     /// delivers the fetch; this is not partition
     /// `INVALID_SHARE_SESSION_EPOCH`, which fails that poll, and not piggyback
     /// `SHARE_SESSION_NOT_FOUND`). Official Java

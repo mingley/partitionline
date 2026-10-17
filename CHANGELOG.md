@@ -881,7 +881,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   has no session for the request key. A
   piggybacked `INVALID_SHARE_SESSION_EPOCH` still
   completes without retry, including when `AcknowledgeErrorMessage` is
-  set (Java `handleShareFetchSuccess` completes piggyback acks and still
+  set or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
   delivers the fetch; this is not partition `INVALID_SHARE_SESSION_EPOCH`,
   which fails that poll, and not piggyback `SHARE_SESSION_NOT_FOUND`). Official
   Java `SharePartitionManager` writes this when the request share-session
