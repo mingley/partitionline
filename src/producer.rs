@@ -10296,4 +10296,43 @@ mod rediscover_stop_tests {
         peer.abort();
         lookup_peer.abort();
     }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn startup_timeout_finishes_the_bootstrap_dial() {
+        use std::sync::atomic::AtomicUsize;
+        use tokio::io::AsyncReadExt;
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let open = Arc::new(AtomicUsize::new(0));
+        let open_flag = Arc::clone(&open);
+        let peer = tokio::spawn(async move {
+            loop {
+                let (mut sock, _) = listener.accept().await.unwrap();
+                let _started = open_flag.fetch_add(1, Ordering::SeqCst);
+                let open_flag = Arc::clone(&open_flag);
+                let _reader = tokio::spawn(async move {
+                    let mut buf = [0u8; 64];
+                    loop {
+                        match sock.read(&mut buf).await {
+                            Ok(0) | Err(_) => break,
+                            Ok(_) => continue,
+                        }
+                    }
+                    let _left = open_flag.fetch_sub(1, Ordering::SeqCst);
+                });
+            }
+        });
+        let mut cfg = ProducerConfig::bootstrap([addr]);
+        cfg.request_timeout = Duration::from_millis(200);
+        cfg.connect_timeout = Duration::from_millis(200);
+        let result = crate::Producer::new(cfg).await;
+        assert!(result.is_err(), "startup should time out");
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "startup left the bootstrap dial blocked in a broker read"
+        );
+        peer.abort();
+    }
 }

@@ -171,7 +171,14 @@ impl Deadline {
         self.check_expired()?;
         match timeout_at(self.instant, future).await {
             Ok(res) => res,
-            Err(_) => Err(Error::Timeout),
+            Err(_) => {
+                // Dropping the bounded future only schedules cancellation of
+                // dials it still owns. Yield until those sockets close.
+                for _ in 0..8 {
+                    tokio::task::yield_now().await;
+                }
+                Err(Error::Timeout)
+            }
         }
     }
 
@@ -184,7 +191,12 @@ impl Deadline {
         match timeout_at(self.instant, future).await {
             Ok(Ok(val)) => Ok(val),
             Ok(Err(e)) => Err(Error::from(e)),
-            Err(_) => Err(Error::Timeout),
+            Err(_) => {
+                for _ in 0..8 {
+                    tokio::task::yield_now().await;
+                }
+                Err(Error::Timeout)
+            }
         }
     }
 }
