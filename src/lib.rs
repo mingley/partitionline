@@ -2299,7 +2299,7 @@
 //! partition `UNKNOWN_PRODUCER_ID`, which fails that poll, and not
 //! piggyback `SASL_AUTHENTICATION_FAILED`). A piggybacked
 //! `REASSIGNMENT_IN_PROGRESS` still completes without retry,
-//! including when `AcknowledgeErrorMessage` is set (this is not
+//! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `REASSIGNMENT_IN_PROGRESS`, which fails that poll, and not
 //! piggyback `UNKNOWN_PRODUCER_ID`). A piggybacked
 //! `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a
