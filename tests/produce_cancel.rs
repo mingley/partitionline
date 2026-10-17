@@ -676,6 +676,36 @@ async fn delivery_deadline_bounds_metadata_refresh_during_retry() {
     producer.close().await.unwrap();
 }
 
+/// A worker blocked in a broker read is finished when close returns.
+#[tokio::test(flavor = "current_thread")]
+async fn close_timeout_finishes_a_stalled_worker() {
+    let mock = common::Mock::start().await;
+    let producer = Producer::new(
+        ProducerConfig::bootstrap([mock.addr.clone()])
+            .linger(Duration::ZERO)
+            .delivery_timeout(Duration::from_secs(30))
+            .request_timeout(Duration::from_secs(30)),
+    )
+    .await
+    .unwrap();
+    let _md = producer
+        .send(ProduceRecord::to("t").value(&b"warm"[..]))
+        .await
+        .unwrap();
+    mock.set_produce_delay(Duration::from_secs(30));
+    producer
+        .try_send(ProduceRecord::to("t").value(&b"stuck"[..]))
+        .unwrap();
+    tokio::task::yield_now().await;
+    let tasks = producer.test_worker_tasks();
+    assert!(!tasks.is_empty(), "a worker must be running");
+    let _ = producer.close_timeout(Duration::from_millis(50)).await;
+    assert!(
+        tasks.iter().all(|task| task.is_finished()),
+        "close returned while a stalled worker was still alive"
+    );
+}
+
 /// Close waits until the background control tasks have actually stopped.
 #[tokio::test(flavor = "current_thread")]
 async fn close_finishes_control_tasks_before_returning() {

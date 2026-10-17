@@ -1112,24 +1112,28 @@ impl Drop for Inner {
     }
 }
 
-/// Per-record queue-to-ack latency against one batch ack timestamp
-/// (no clock read; definition preserved: ack time minus queued_at).
 /// Let an aborted task reach its next await before close returns.
 ///
 /// Abort only schedules cancellation. On a current-thread runtime the task
-/// stays alive until this caller yields. The wait stops at `deadline`.
+/// stays alive until this caller yields. Broker waits stop at `deadline`.
+/// A few extra turns let a task already at an await notice the abort.
 async fn wait_until_finished(handle: &tokio::task::JoinHandle<()>, deadline: Option<Instant>) {
-    let Some(deadline) = deadline else {
-        return;
-    };
+    let mut turns = 0u32;
     while !handle.is_finished() {
-        if Instant::now() >= deadline {
+        let deadline_open = deadline.is_none_or(|deadline| Instant::now() < deadline);
+        if !deadline_open && turns >= 8 {
             return;
         }
+        if turns >= 64 {
+            return;
+        }
+        turns = turns.saturating_add(1);
         tokio::task::yield_now().await;
     }
 }
 
+/// Per-record queue-to-ack latency against one batch ack timestamp
+/// (no clock read; definition preserved: ack time minus queued_at).
 fn ack_latency_ns(ack: Instant, queued_at: Instant) -> u64 {
     u64::try_from(ack.saturating_duration_since(queued_at).as_nanos()).unwrap_or(u64::MAX)
 }
@@ -3548,9 +3552,6 @@ impl Producer {
             }
         }
 
-        for w in &workers {
-            w.task.abort();
-        }
         self.inner.shared.nodes.lock().clear();
         self.inner.shared.fast.write().clear();
 
@@ -3570,6 +3571,10 @@ impl Producer {
         for task in control_tasks {
             task.abort();
             wait_until_finished(&task, deadline).await;
+        }
+        for w in &workers {
+            w.task.abort();
+            wait_until_finished(&w.task, deadline).await;
         }
         self.inner.shared.clear_sticky();
     }
