@@ -2566,7 +2566,7 @@
 //! a ServerAssignor the coordinator does not support.
 //! A piggybacked
 //! `STALE_MEMBER_EPOCH` still completes without retry,
-//! including when `AcknowledgeErrorMessage` is set (this is not
+//! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `STALE_MEMBER_EPOCH`, which fails that poll, and not
 //! piggyback `UNSUPPORTED_ASSIGNOR`). Official Java
 //! `ConsumerGroup` writes this when a consumer-protocol OffsetCommit

@@ -1419,7 +1419,7 @@ pub enum ShareAcquireMode {
 /// a ServerAssignor the coordinator does not support.
 /// A piggybacked
 /// `STALE_MEMBER_EPOCH` still completes without retry,
-/// including when `AcknowledgeErrorMessage` is set (Java
+/// including when `AcknowledgeErrorMessage` is set or empty (Java
 /// `handleShareFetchSuccess` completes piggyback acks and still
 /// delivers the fetch; this is not partition
 /// `STALE_MEMBER_EPOCH`, which fails that poll, and not piggyback
@@ -3600,7 +3600,7 @@ impl ShareGroup {
     /// a ServerAssignor the coordinator does not support.
     /// A piggybacked `STALE_MEMBER_EPOCH` still completes
     /// without retry, including when `AcknowledgeErrorMessage` is set
-    /// (Java `handleShareFetchSuccess` completes piggyback acks and still
+    /// or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
     /// delivers the fetch; this is not partition
     /// `STALE_MEMBER_EPOCH`, which fails that poll, and not piggyback
     /// `UNSUPPORTED_ASSIGNOR`). Official Java
