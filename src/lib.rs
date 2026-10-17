@@ -2413,7 +2413,7 @@
 //! `OffsetMetadataManager` OffsetDelete writes this when the consumer
 //! group is actively subscribed to the topic. A piggybacked
 //! `INVALID_RECORD` still completes without retry,
-//! including when `AcknowledgeErrorMessage` is set (this is not
+//! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `INVALID_RECORD`, which fails that poll, and not
 //! piggyback `GROUP_SUBSCRIBED_TO_TOPIC`). Official Java
 //! `LogValidator` writes this when a produce record fails validation.

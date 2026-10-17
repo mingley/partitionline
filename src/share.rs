@@ -1222,7 +1222,7 @@ pub enum ShareAcquireMode {
 /// `OffsetMetadataManager` OffsetDelete writes this when the consumer
 /// group is actively subscribed to the topic. A piggybacked
 /// `INVALID_RECORD` still completes without retry,
-/// including when `AcknowledgeErrorMessage` is set (Java
+/// including when `AcknowledgeErrorMessage` is set or empty (Java
 /// `handleShareFetchSuccess` completes piggyback acks and still
 /// delivers the fetch; this is not partition
 /// `INVALID_RECORD`, which fails that poll, and not piggyback
@@ -3161,7 +3161,7 @@ impl ShareGroup {
     /// group is actively subscribed to the topic.
     /// A piggybacked `INVALID_RECORD` still completes
     /// without retry, including when `AcknowledgeErrorMessage` is set
-    /// (Java `handleShareFetchSuccess` completes piggyback acks and still
+    /// or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
     /// delivers the fetch; this is not partition
     /// `INVALID_RECORD`, which fails that poll, and not piggyback
     /// `GROUP_SUBSCRIBED_TO_TOPIC`). Official Java
