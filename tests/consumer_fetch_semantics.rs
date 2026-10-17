@@ -3841,6 +3841,81 @@ async fn poll_commit_reuses_the_other_bootstrap_handshake() {
     group.leave().await.unwrap();
 }
 
+/// SyncGroup rediscovers a coordinator that moved while JoinGroup was in flight.
+#[tokio::test]
+async fn sync_group_reuses_the_other_bootstrap_handshake() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_topic_partitions("t", 1);
+    mock.set_partition_leader("t", 0, 1);
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    let _sent = producer
+        .send(ProduceRecord::to("t").value(&b"v"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+    let addr2 = mock.broker_addr(2).unwrap();
+    let mut cfg = ConsumerConfig::bootstrap([mock.addr.clone(), addr2]).max_wait_ms(10);
+    cfg.heartbeat_interval = Duration::from_secs(5);
+    let mut group = ConsumerGroup::join(cfg, "sync-moved", "t").await.unwrap();
+    assert_eq!(group.poll().await.unwrap().len(), 1);
+    mock.set_topic_partitions("u", 1);
+    mock.set_partition_leader("u", 0, 1);
+    let arrived_before = mock.join_group_arrived();
+    let calls_before = mock.join_group_calls();
+    mock.set_join_group_delay(Duration::from_millis(200));
+    let mut armed = false;
+    let mut measuring = false;
+    let mut versions_before = 0usize;
+    let mut started = Instant::now();
+    {
+        let subscribe = group.subscribe(["t", "u"]);
+        tokio::pin!(subscribe);
+        let deadline = Instant::now() + Duration::from_secs(3);
+        loop {
+            if Instant::now() > deadline {
+                panic!("sync rejoin did not finish");
+            }
+            tokio::select! {
+                biased;
+                result = &mut subscribe => {
+                    result.unwrap();
+                    break;
+                }
+                _ = tokio::time::sleep(Duration::from_millis(5)) => {
+                    if !armed && mock.join_group_arrived() > arrived_before {
+                        versions_before = mock.api_versions_versions().len();
+                        mock.set_coordinator(2);
+                        mock.set_api_versions_delay(Duration::from_millis(250));
+                        armed = true;
+                    } else if armed && !measuring && mock.join_group_calls() > calls_before {
+                        started = Instant::now();
+                        measuring = true;
+                    }
+                }
+            }
+        }
+    }
+    assert!(
+        armed,
+        "JoinGroup was not in flight when the coordinator moved"
+    );
+    assert!(measuring, "JoinGroup delay ended before SyncGroup");
+    let elapsed = started.elapsed();
+    assert_eq!(
+        mock.api_versions_versions().len(),
+        versions_before,
+        "SyncGroup rediscovery renegotiated the other bootstrap"
+    );
+    assert!(
+        elapsed < Duration::from_millis(400),
+        "SyncGroup rediscovery repeated ApiVersions: {elapsed:?}"
+    );
+    group.leave().await.unwrap();
+}
+
 /// A rejoin rediscovers a coordinator that moved to the other bootstrap.
 #[tokio::test]
 async fn rejoin_reuses_the_other_bootstrap_handshake() {

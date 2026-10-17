@@ -621,6 +621,8 @@ struct State {
     last_produce_txn_id: Option<String>,
     acls: Vec<AclBinding>,
     join_group_calls: u32,
+    /// JoinGroup requests received, counted before `join_group_delay`.
+    join_group_arrived: u32,
     cg_heartbeat_calls: u32,
     cg_heartbeat_delay: Option<Duration>,
     cg_heartbeat_interval_ms: i32,
@@ -1125,6 +1127,7 @@ fn new_state(
         last_produce_txn_id: None,
         acls: Vec::new(),
         join_group_calls: 0,
+        join_group_arrived: 0,
         cg_heartbeat_calls: 0,
         cg_heartbeat_delay: None,
         // Previously hardcoded to 5000 while the client ignored it and used the
@@ -3612,6 +3615,11 @@ impl Mock {
 
     pub fn join_group_calls(&self) -> u32 {
         self.state.lock().join_group_calls
+    }
+
+    /// JoinGroup requests the broker has read, including one still inside `join_group_delay`.
+    pub fn join_group_arrived(&self) -> u32 {
+        self.state.lock().join_group_arrived
     }
 
     pub fn cg_heartbeat_calls(&self) -> u32 {
@@ -8423,6 +8431,10 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
             JOIN_GROUP => {
                 let (gid, member_id, instance, protocols, reason, ..) =
                     decode_join_group_request_protocols(&mut frame, header.api_version).unwrap();
+                {
+                    let mut st = state.lock();
+                    st.join_group_arrived = st.join_group_arrived.saturating_add(1);
+                }
                 let delay = state.lock().join_group_delay;
                 if let Some(delay) = delay {
                     tokio::time::sleep(delay).await;

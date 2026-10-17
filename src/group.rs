@@ -2853,12 +2853,13 @@ impl ConsumerGroup {
             return Err(Error::Timeout);
         }
         let bootstrap_keys = self.consumer.copy_api_keys();
+        let address_keys = self.consumer.copy_learned_broker_keys();
         let mut flight = if leaders.is_empty() {
             None
         } else {
             Some(self.consumer.start_leader_dials(&leaders, deadline))
         };
-        let sync_fut = coord_roundtrip(
+        let sync_fut = coord_roundtrip_with_bootstrap(
             &mut self.coord,
             &self.cfg,
             &self.group_id,
@@ -2880,6 +2881,7 @@ impl ConsumerGroup {
                 )
             },
             &bootstrap_keys,
+            &address_keys,
             &mut self.prior_coords,
             timeout,
         );
@@ -6030,36 +6032,6 @@ async fn open_coord_with_find_version(
     let version = stamp_coord_versions(&mut conn, &resp)?;
     authenticate_coord(&mut conn, cfg, bound).await?;
     Ok((conn, version, resp))
-}
-
-#[expect(
-    clippy::too_many_arguments,
-    reason = "coordinator RPC carries versions learned from earlier coordinators"
-)]
-pub(crate) async fn coord_roundtrip(
-    coord: &mut BrokerConn,
-    cfg: &ConsumerConfig,
-    group_id: &str,
-    key_type: i8,
-    api_key: i16,
-    encode_body: impl FnMut(i16, &mut BytesMut) -> Result<()>,
-    bootstrap_keys: &[ApiVersion],
-    prior: &mut HashMap<String, KnownCoord>,
-    request_timeout: Duration,
-) -> Result<(i16, Bytes)> {
-    coord_roundtrip_with_bootstrap(
-        coord,
-        cfg,
-        group_id,
-        key_type,
-        api_key,
-        encode_body,
-        bootstrap_keys,
-        &HashMap::new(),
-        prior,
-        request_timeout,
-    )
-    .await
 }
 
 #[expect(
