@@ -28,7 +28,7 @@ use std::{
     time::Duration,
 };
 use tokio::{
-    io::{AsyncReadExt, AsyncWriteExt},
+    io::{AsyncRead, AsyncReadExt, AsyncWriteExt},
     net::{TcpListener, TcpStream},
     sync::{mpsc, oneshot, watch, Notify, OwnedSemaphorePermit, Semaphore},
     task::{JoinHandle, JoinSet},
@@ -1782,8 +1782,8 @@ impl Drop for Counter {
     }
 }
 /// Fill `length` bytes into spare capacity. The body is not zeroed first.
-async fn read_exact_spare(
-    socket: &mut TcpStream,
+async fn read_exact_spare<S: AsyncRead + Unpin>(
+    socket: &mut S,
     payload: &mut Vec<u8>,
     length: usize,
 ) -> Result<()> {
@@ -1796,6 +1796,9 @@ async fn read_exact_spare(
         if n == 0 {
             return Err(io::Error::new(io::ErrorKind::UnexpectedEof, "frame body closed").into());
         }
+        // A ready body never returns from this read, so the frame deadline
+        // cannot run until every byte is buffered.
+        tokio::task::yield_now().await;
     }
     Ok(())
 }
@@ -1828,8 +1831,8 @@ fn take_unread(unread: &mut Vec<u8>, dest: &mut Vec<u8>, n: usize) {
     let _taken = unread.drain(..have);
 }
 
-async fn read_frame(
-    socket: &mut TcpStream,
+async fn read_frame<S: AsyncRead + Unpin>(
+    socket: &mut S,
     limit: usize,
     max_records: usize,
     deadline: Instant,
@@ -2742,6 +2745,77 @@ mod tests {
         env!("CARGO_MANIFEST_DIR"),
         "/tests/common/raft_runtime.rs"
     ));
+}
+
+#[cfg(test)]
+mod frame_deadline_tests {
+    use super::{read_frame, Error, WireBuf};
+    use std::pin::Pin;
+    use std::task::{Context, Poll};
+    use std::time::Duration;
+    use tokio::io::{AsyncRead, ReadBuf};
+    use tokio::time::Instant;
+
+    struct SlowFrame {
+        announced: bool,
+        left: usize,
+    }
+
+    impl AsyncRead for SlowFrame {
+        fn poll_read(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            buf: &mut ReadBuf<'_>,
+        ) -> Poll<std::io::Result<()>> {
+            let this = self.get_mut();
+            let dst = buf.initialize_unfilled();
+            if dst.is_empty() {
+                return Poll::Ready(Ok(()));
+            }
+            if !this.announced {
+                this.announced = true;
+                let len = u32::try_from(this.left).unwrap_or(u32::MAX).to_be_bytes();
+                let n = len.len().min(dst.len());
+                dst[..n].copy_from_slice(&len[..n]);
+                buf.advance(n);
+                return Poll::Ready(Ok(()));
+            }
+            if this.left == 0 {
+                return Poll::Pending;
+            }
+            let n = dst.len().min(this.left).min(1024);
+            dst[..n].fill(4);
+            buf.advance(n);
+            this.left -= n;
+            let start = std::time::Instant::now();
+            while start.elapsed() < Duration::from_micros(200) {}
+            Poll::Ready(Ok(()))
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn read_deadline_stops_a_ready_peer_frame() {
+        let mut socket = SlowFrame {
+            announced: false,
+            left: 512 * 1024,
+        };
+        let mut wire = WireBuf::new();
+        let started = Instant::now();
+        let result = read_frame(
+            &mut socket,
+            2 * 1024 * 1024,
+            1024,
+            Instant::now() + Duration::from_millis(30),
+            &mut wire,
+        )
+        .await;
+        let elapsed = started.elapsed();
+        let deadline = matches!(result, Err(Error::Deadline));
+        assert!(
+            deadline && elapsed < Duration::from_millis(80),
+            "a ready peer frame held the read past its deadline: {elapsed:?} deadline {deadline}"
+        );
+    }
 }
 
 #[cfg(test)]
