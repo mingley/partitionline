@@ -2509,6 +2509,13 @@
 //! `ClusterControlManager` writes this when a broker registration
 //! cluster id does not match.
 //! A piggybacked
+//! `TRANSACTIONAL_ID_NOT_FOUND` still completes without retry,
+//! including when `AcknowledgeErrorMessage` is set (this is not
+//! partition `TRANSACTIONAL_ID_NOT_FOUND`, which fails that poll, and not
+//! piggyback `INCONSISTENT_CLUSTER_ID`). Official Java
+//! `TransactionCoordinator` writes this when the transactional id has
+//! no transaction state.
+//! A piggybacked
 //! `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a
 //! sibling whose `AcknowledgeErrorCode` is none, including when
 //! `AcknowledgeErrorMessage` is set or empty. A piggybacked
