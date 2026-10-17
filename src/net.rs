@@ -1242,18 +1242,21 @@ impl BrokerConn {
     /// buffer, up through one complete frame. Cancellation leaves the socket
     /// open. The following framed read consumes what this call stored.
     pub(crate) async fn inbound_ready(&mut self) -> Result<()> {
-        if self.is_closed() {
-            return Err(Error::Closed);
-        }
         if inbound_satisfied(&self.read_buf) || !self.read_buf.is_empty() {
             return Ok(());
         }
         let stream = Arc::clone(&self.stream);
         let mut stream = stream.lock().await;
+        // The idle watch may have stored the response and then observed the
+        // broker's FIN. Those bytes are still this read's data.
         self.drain_prefetch();
         if inbound_satisfied(&self.read_buf) || !self.read_buf.is_empty() {
             self.release_stream(stream);
             return Ok(());
+        }
+        if self.is_closed() {
+            self.release_stream(stream);
+            return Err(Error::Closed);
         }
         let result = poll_fn(|cx| {
             if self.is_closed() {
@@ -1315,9 +1318,6 @@ impl BrokerConn {
         deadline: Deadline,
         close_on_drop: bool,
     ) -> Result<Bytes> {
-        if self.is_closed() {
-            return Err(Error::Closed);
-        }
         let mut guard = if close_on_drop {
             Some(CloseOnDrop::new(self.closed.clone()))
         } else {
@@ -1361,6 +1361,10 @@ impl BrokerConn {
             if self.read_buf.len() > buffered {
                 self.release_stream(stream);
                 continue;
+            }
+            if self.is_closed() && self.read_buf.is_empty() {
+                self.release_stream(stream);
+                return Err(Error::Closed);
             }
             let n = match deadline.run_io(stream.read_buf(&mut self.read_buf)).await {
                 Ok(n) => n,
@@ -3102,6 +3106,35 @@ mod tests {
             })
             .await;
         assert!(matches!(res, Err(Error::Timeout)));
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn idle_watch_keeps_bytes_that_arrive_before_the_peer_closes() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        let accepted = tokio::spawn(async move {
+            let (socket, _) = listener.accept().await.unwrap();
+            let (mut reader, mut writer) = socket.into_split();
+            writer.write_all(&[0xAB]).await.unwrap();
+            writer.shutdown().await.unwrap();
+            let mut buf = [0u8; 8];
+            tokio::time::timeout(Duration::from_millis(300), reader.read(&mut buf)).await
+        });
+        let mut conn =
+            BrokerConn::connect(&addr.to_string(), "idle-prefetch", Duration::from_secs(2))
+                .await
+                .unwrap();
+        tokio::time::sleep(Duration::from_millis(50)).await;
+        let ready = conn.inbound_ready().await;
+        assert!(
+            ready.is_ok(),
+            "a response that arrived before the close was dropped: {ready:?} closed {}",
+            conn.is_closed()
+        );
+        assert!(conn.buffered_len() > 0, "the response byte was not kept");
+        let saw = accepted.await.unwrap();
+        assert!(matches!(saw, Ok(Ok(0))), "peer stayed in the read: {saw:?}");
+        drop(conn);
     }
 
     #[tokio::test(flavor = "current_thread")]
