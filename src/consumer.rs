@@ -7523,11 +7523,20 @@ impl Consumer {
             }
             return;
         }
+        let mut known = Vec::new();
+        for index in pending {
+            let Some((topic, partition, _)) = queries.get(*index) else {
+                continue;
+            };
+            let Ok(node) = self.cluster.leader_id(topic.as_ref(), *partition) else {
+                continue;
+            };
+            if !known.contains(&node) {
+                known.push(node);
+            }
+        }
         if let Err(error) = self
-            .refresh_metadata_timeout_ref(
-                Some(missing_names.as_slice()),
-                remaining_offset_timeout(deadline, Instant::now()),
-            )
+            .refresh_metadata_while_dialing(missing_names.as_slice(), &known, deadline)
             .await
         {
             if let Some(slot) = slots.get_mut(earliest_missing) {
@@ -7632,16 +7641,16 @@ impl Consumer {
     }
 
     /// Reload metadata while known leaders reconnect under `deadline`.
-    async fn refresh_metadata_while_dialing(
+    async fn refresh_metadata_while_dialing<T: AsRef<str>>(
         &mut self,
-        topics: &[String],
+        topics: &[T],
         nodes: &[i32],
         deadline: Instant,
     ) -> Result<()> {
         let dials = self.leader_dials_for(nodes);
         if dials.is_empty() {
             return self
-                .refresh_metadata_timeout(
+                .refresh_metadata_timeout_ref(
                     Some(topics),
                     remaining_offset_timeout(deadline, Instant::now()),
                 )
@@ -7653,7 +7662,7 @@ impl Consumer {
             Arc::clone(&self.wakeup),
             deadline,
         );
-        let refreshed = self.refresh_metadata_timeout(
+        let refreshed = self.refresh_metadata_timeout_ref(
             Some(topics),
             remaining_offset_timeout(deadline, Instant::now()),
         );

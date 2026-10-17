@@ -3368,6 +3368,33 @@ async fn fetch_dials_leaders_while_refreshing_metadata() {
     consumer.close().await.unwrap();
 }
 
+/// ListOffsets dials leaders it already knows while unknown topics load.
+#[tokio::test]
+async fn list_offsets_dials_known_leaders_while_loading_metadata() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_topic_partitions("t", 1);
+    mock.set_partition_leader("t", 0, 2);
+    let mut consumer =
+        Consumer::new(ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10))
+            .await
+            .unwrap();
+    let _parts = consumer.partitions_for("t").await.unwrap();
+    mock.set_topic_partitions("u", 1);
+    mock.set_partition_leader("u", 0, 2);
+    let delay = Duration::from_millis(250);
+    mock.set_metadata_delay(delay);
+    mock.set_api_versions_delay(delay);
+    let started = Instant::now();
+    let offsets = consumer.end_offsets([("t", 0), ("u", 0)]).await.unwrap();
+    assert_eq!(offsets.len(), 2);
+    assert!(
+        started.elapsed() < Duration::from_millis(450),
+        "list offsets refreshed metadata before dialing the known leader: {:?}",
+        started.elapsed()
+    );
+    consumer.close().await.unwrap();
+}
+
 /// ListOffsets handshakes leaders that are not the bootstrap broker together.
 #[tokio::test]
 async fn list_offsets_dials_leaders_together() {
