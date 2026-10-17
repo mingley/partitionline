@@ -1229,6 +1229,15 @@ pub enum ShareAcquireMode {
 /// `GROUP_SUBSCRIBED_TO_TOPIC`). Official Java
 /// `LogValidator` writes this when a produce record fails validation.
 /// A piggybacked
+/// `UNSTABLE_OFFSET_COMMIT` still completes without retry,
+/// including when `AcknowledgeErrorMessage` is set (Java
+/// `handleShareFetchSuccess` completes piggyback acks and still
+/// delivers the fetch; this is not partition
+/// `UNSTABLE_OFFSET_COMMIT`, which fails that poll, and not piggyback
+/// `INVALID_RECORD`). Official Java
+/// `OffsetMetadataManager` OffsetFetch writes this when unstable
+/// offsets are present.
+/// A piggybacked
 /// `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a
 /// sibling partition whose `AcknowledgeErrorCode` is none, including
 /// when `AcknowledgeErrorMessage` is set or empty. A piggybacked
@@ -3169,6 +3178,14 @@ impl ShareGroup {
     /// `INVALID_RECORD`, which fails that poll, and not piggyback
     /// `GROUP_SUBSCRIBED_TO_TOPIC`). Official Java
     /// `LogValidator` writes this when a produce record fails validation.
+    /// A piggybacked `UNSTABLE_OFFSET_COMMIT` still completes
+    /// without retry, including when `AcknowledgeErrorMessage` is set
+    /// (Java `handleShareFetchSuccess` completes piggyback acks and still
+    /// delivers the fetch; this is not partition
+    /// `UNSTABLE_OFFSET_COMMIT`, which fails that poll, and not piggyback
+    /// `INVALID_RECORD`). Official Java
+    /// `OffsetMetadataManager` OffsetFetch writes this when unstable
+    /// offsets are present.
     /// A piggybacked `TOPIC_AUTHORIZATION_FAILED` on one partition
     /// does not fail a sibling whose `AcknowledgeErrorCode` is none,
     /// including when `AcknowledgeErrorMessage` is set or empty.
