@@ -4391,6 +4391,48 @@ impl Admin {
         Ok((conn, resp))
     }
 
+    /// Race bootstrap handshakes and return as soon as the losers have stopped.
+    ///
+    /// [`Self::new`] continues with cluster metadata after this race, and those
+    /// later awaits hide a handshake that was only aborted.
+    #[doc(hidden)]
+    pub async fn test_race_bootstrap(cfg: AdminConfig) -> Result<()> {
+        let deadline = Instant::now()
+            .checked_add(cfg.request_timeout)
+            .ok_or(Error::Timeout)?;
+        let stats = Arc::new(crate::metrics::AdminTracker::default());
+        let _opened = Self::open_bootstrap(&cfg, &stats, deadline).await?;
+        Ok(())
+    }
+
+    /// Cancel handshakes that lost the bootstrap race and wait until they stop.
+    ///
+    /// Abort only schedules cancellation. On a current-thread runtime a read
+    /// stays inside the broker until this caller yields.
+    async fn finish_aborted_handshakes<T: 'static>(mut set: tokio::task::JoinSet<T>) {
+        set.abort_all();
+        let mut extra = 0u32;
+        while !set.is_empty() {
+            tokio::select! {
+                biased;
+                joined = set.join_next() => {
+                    if joined.is_none() {
+                        break;
+                    }
+                }
+                () = tokio::task::yield_now() => {
+                    extra = extra.saturating_add(1);
+                    if extra >= 8 {
+                        break;
+                    }
+                }
+            }
+        }
+        // The aborted task drops its socket when it is polled. One more turn
+        // lets the peer observe that close before this race returns.
+        tokio::task::yield_now().await;
+    }
+
     /// Handshake every bootstrap together and keep the first full success.
     ///
     /// Handshakes that finish with the first one are returned as learned
@@ -4454,7 +4496,7 @@ impl Admin {
                 Err(error) => last = Error::protocol(format!("bootstrap handshake: {error}")),
             }
         }
-        inflight.abort_all();
+        Self::finish_aborted_handshakes(inflight).await;
         let mut rest = finished.into_iter();
         let Some((conn, resp)) = rest.next() else {
             return Err(last);
