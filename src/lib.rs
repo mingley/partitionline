@@ -2307,7 +2307,7 @@
 //! partition `DELEGATION_TOKEN_AUTH_DISABLED`, which fails that poll, and not
 //! piggyback `REASSIGNMENT_IN_PROGRESS`). A piggybacked
 //! `DELEGATION_TOKEN_NOT_FOUND` still completes without retry,
-//! including when `AcknowledgeErrorMessage` is set (this is not
+//! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `DELEGATION_TOKEN_NOT_FOUND`, which fails that poll, and not
 //! piggyback `DELEGATION_TOKEN_AUTH_DISABLED`). A piggybacked
 //! `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a

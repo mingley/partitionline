@@ -1074,7 +1074,7 @@ pub enum ShareAcquireMode {
 /// `DELEGATION_TOKEN_AUTH_DISABLED`, which fails that poll, and not piggyback
 /// `REASSIGNMENT_IN_PROGRESS`). A piggybacked
 /// `DELEGATION_TOKEN_NOT_FOUND` still completes without retry,
-/// including when `AcknowledgeErrorMessage` is set (Java
+/// including when `AcknowledgeErrorMessage` is set or empty (Java
 /// `handleShareFetchSuccess` completes piggyback acks and still
 /// delivers the fetch; this is not partition
 /// `DELEGATION_TOKEN_NOT_FOUND`, which fails that poll, and not piggyback
@@ -2800,7 +2800,7 @@ impl ShareGroup {
     /// `REASSIGNMENT_IN_PROGRESS`).
     /// A piggybacked `DELEGATION_TOKEN_NOT_FOUND` still completes
     /// without retry, including when `AcknowledgeErrorMessage` is set
-    /// (Java `handleShareFetchSuccess` completes piggyback acks and still
+    /// or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
     /// delivers the fetch; this is not partition
     /// `DELEGATION_TOKEN_NOT_FOUND`, which fails that poll, and not piggyback
     /// `DELEGATION_TOKEN_AUTH_DISABLED`).
