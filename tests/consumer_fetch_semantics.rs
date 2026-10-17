@@ -3588,6 +3588,49 @@ async fn group_commit_redials_coordinator_while_finding_it() {
     group.leave().await.unwrap();
 }
 
+/// A KIP-848 heartbeat retry reuses the coordinator handshake.
+#[tokio::test]
+async fn consumer_group_heartbeat_retries_without_another_handshake() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_topic_partitions("t", 1);
+    mock.set_partition_leader("t", 0, 1);
+    mock.move_coordinator();
+    mock.set_cg_heartbeat_interval_ms(40);
+    let mut cfg = ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10);
+    cfg.heartbeat_interval = Duration::from_millis(40);
+    cfg.retry_backoff = Duration::from_millis(20);
+    cfg.retry_backoff_max = Duration::from_millis(20);
+    let group = ConsumerGroup::join_consumer(cfg, "hb848-known", "t")
+        .await
+        .unwrap();
+    let started_first = Instant::now();
+    while mock.cg_heartbeat_calls() < 3 {
+        if started_first.elapsed() > Duration::from_secs(2) {
+            panic!("consumer group heartbeat did not settle");
+        }
+        tokio::time::sleep(Duration::from_millis(5)).await;
+    }
+    let versions_before = mock.api_versions_versions().len();
+    let beats_before = mock.cg_heartbeat_calls();
+    mock.set_cg_heartbeat_error_times(14, 1);
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let started = Instant::now();
+    while mock.cg_heartbeat_calls() < beats_before + 2 {
+        if started.elapsed() > Duration::from_secs(2) {
+            panic!("consumer group heartbeat did not retry");
+        }
+        tokio::time::sleep(Duration::from_millis(5)).await;
+    }
+    let elapsed = started.elapsed();
+    let versions_after = mock.api_versions_versions().len();
+    assert!(
+        elapsed < Duration::from_millis(200),
+        "consumer group heartbeat retry repeated ApiVersions: {elapsed:?} versions {versions_before} -> {versions_after}"
+    );
+    assert_eq!(versions_after, versions_before);
+    group.leave().await.unwrap();
+}
+
 /// A classic heartbeat retry reuses the coordinator handshake.
 #[tokio::test]
 async fn group_heartbeat_retries_without_another_handshake() {

@@ -3452,8 +3452,10 @@ impl ConsumerGroup {
         let last_poll = self.last_poll.clone();
         let left_max_poll = self.left_max_poll.clone();
         let cfg = self.cfg.clone();
+        let bootstrap_keys = self.consumer.copy_api_keys();
         drop(tokio::spawn(async move {
             let mut conn: Option<BrokerConn> = None;
+            let mut remembered: Option<KnownCoord> = None;
             let init_ms = hb_interval_ms.load(Ordering::SeqCst);
             let mut current_interval = if let Ok(ms_u64) = u64::try_from(init_ms) {
                 if ms_u64 > 0 {
@@ -3539,7 +3541,26 @@ impl ConsumerGroup {
                             continue;
                         }
                         let deadline = Instant::now() + cfg.request_timeout;
-                        reopen_idle_coordinator(&mut conn, &cfg, &group_id, deadline, &[]).await;
+                        if conn.is_none() {
+                            if let Some(known) = remembered.take() {
+                                conn = Box::pin(rediscover_known_coord(
+                                    &cfg,
+                                    &group_id,
+                                    COORDINATOR_GROUP,
+                                    &known,
+                                ))
+                                .await
+                                .ok();
+                            }
+                        }
+                        reopen_idle_coordinator(
+                            &mut conn,
+                            &cfg,
+                            &group_id,
+                            deadline,
+                            &bootstrap_keys,
+                        )
+                        .await;
                         let Some(c) = conn.as_mut() else {
                             let retry_delay = cfg.retry_backoff.max(Duration::from_millis(50));
                             next_hb_deadline = Instant::now() + retry_delay;
@@ -3617,6 +3638,12 @@ impl ConsumerGroup {
                                     version,
                                 ) {
                                     if error::coordinator_retriable(resp.error_code) {
+                                        if let Some(current) = conn.as_ref() {
+                                            remembered = Some(
+                                                KnownCoord::capture(current)
+                                                    .with_bootstrap_keys(&bootstrap_keys),
+                                            );
+                                        }
                                         conn = None;
                                         let retry_delay = cfg.retry_backoff.max(Duration::from_millis(50));
                                         next_hb_deadline = Instant::now() + retry_delay;
@@ -3672,6 +3699,12 @@ impl ConsumerGroup {
                                     // surfaces it instead of spinning
                                     // silently. Transport failures below stay
                                     // silent-retry by design (KL03-15).
+                                    if let Some(current) = conn.as_ref() {
+                                        remembered = Some(
+                                            KnownCoord::capture(current)
+                                                .with_bootstrap_keys(&bootstrap_keys),
+                                        );
+                                    }
                                     hb_err.store(error::INVALID_REQUEST, Ordering::SeqCst);
                                     conn = None;
                                     let retry_delay = cfg.retry_backoff.max(Duration::from_millis(50));
@@ -3680,6 +3713,12 @@ impl ConsumerGroup {
                                 }
                             }
                             Err(_) => {
+                                if let Some(current) = conn.as_ref() {
+                                    remembered = Some(
+                                        KnownCoord::capture(current)
+                                            .with_bootstrap_keys(&bootstrap_keys),
+                                    );
+                                }
                                 conn = None;
                                 let retry_delay = cfg.retry_backoff.max(Duration::from_millis(50));
                                 next_hb_deadline = Instant::now() + retry_delay;
