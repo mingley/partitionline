@@ -1418,6 +1418,15 @@ pub enum ShareAcquireMode {
 /// `GroupCoordinatorService` writes this when ConsumerGroupHeartbeat names
 /// a ServerAssignor the coordinator does not support.
 /// A piggybacked
+/// `STALE_MEMBER_EPOCH` still completes without retry,
+/// including when `AcknowledgeErrorMessage` is set (Java
+/// `handleShareFetchSuccess` completes piggyback acks and still
+/// delivers the fetch; this is not partition
+/// `STALE_MEMBER_EPOCH`, which fails that poll, and not piggyback
+/// `UNSUPPORTED_ASSIGNOR`). Official Java
+/// `ConsumerGroup` writes this when a consumer-protocol OffsetCommit
+/// or OffsetFetch member epoch does not match the coordinator's stored epoch.
+/// A piggybacked
 /// `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a
 /// sibling partition whose `AcknowledgeErrorCode` is none, including
 /// when `AcknowledgeErrorMessage` is set or empty. A piggybacked
@@ -3589,6 +3598,14 @@ impl ShareGroup {
     /// `UNRELEASED_INSTANCE_ID`). Official Java
     /// `GroupCoordinatorService` writes this when ConsumerGroupHeartbeat names
     /// a ServerAssignor the coordinator does not support.
+    /// A piggybacked `STALE_MEMBER_EPOCH` still completes
+    /// without retry, including when `AcknowledgeErrorMessage` is set
+    /// (Java `handleShareFetchSuccess` completes piggyback acks and still
+    /// delivers the fetch; this is not partition
+    /// `STALE_MEMBER_EPOCH`, which fails that poll, and not piggyback
+    /// `UNSUPPORTED_ASSIGNOR`). Official Java
+    /// `ConsumerGroup` writes this when a consumer-protocol OffsetCommit
+    /// or OffsetFetch member epoch does not match the coordinator's stored epoch.
     /// A piggybacked `TOPIC_AUTHORIZATION_FAILED` on one partition
     /// does not fail a sibling whose `AcknowledgeErrorCode` is none,
     /// including when `AcknowledgeErrorMessage` is set or empty.
