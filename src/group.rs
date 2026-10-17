@@ -3533,6 +3533,7 @@ impl ConsumerGroup {
                             &left_max_poll,
                             &mut conn,
                             &bootstrap_keys,
+                            &mut remembered,
                         )
                         .await
                         {
@@ -3764,6 +3765,7 @@ impl ConsumerGroup {
                             &left_max_poll,
                             &mut conn,
                             &bootstrap_keys,
+                            &mut remembered,
                         )
                         .await
                         {
@@ -3961,7 +3963,7 @@ async fn leave_coordinator(
 
 #[expect(
     clippy::too_many_arguments,
-    reason = "max poll leave carries the open coordinator and its bootstrap versions"
+    reason = "max poll leave carries the open coordinator and its learned versions"
 )]
 async fn leave_if_max_poll(
     cfg: &ConsumerConfig,
@@ -3972,6 +3974,7 @@ async fn leave_if_max_poll(
     left: &AtomicBool,
     conn: &mut Option<BrokerConn>,
     bootstrap_keys: &[ApiVersion],
+    remembered: &mut Option<KnownCoord>,
 ) -> bool {
     if left.load(Ordering::SeqCst) {
         return true;
@@ -3987,6 +3990,18 @@ async fn leave_if_max_poll(
     }
     left.store(true, Ordering::SeqCst);
     let deadline = Instant::now() + cfg.request_timeout;
+    if conn.is_none() {
+        if let Some(known) = remembered.take() {
+            *conn = Box::pin(rediscover_known_coord(
+                cfg,
+                group_id,
+                COORDINATOR_GROUP,
+                &known,
+            ))
+            .await
+            .ok();
+        }
+    }
     if conn.is_none() {
         *conn = leave_coordinator(cfg, group_id, deadline, bootstrap_keys).await;
     }
