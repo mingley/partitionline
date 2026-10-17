@@ -2190,6 +2190,9 @@ pub struct Consumer {
     /// responded, and these tasks finish on a later `fetch`.
     inflight_fetches: Option<tokio::task::JoinSet<(FetchReply, BrokerConn, SessionFetchRequest)>>,
     inflight_nodes: HashSet<i32>,
+    /// Abort handles for [`Self::inflight_fetches`]. A test clones these before
+    /// close and checks that the tasks have left the runtime.
+    inflight_fetch_tasks: Vec<tokio::task::AbortHandle>,
 }
 
 /// After one leader in a multi-leader round has responded, wait this long for
@@ -3139,6 +3142,7 @@ impl Consumer {
             reconnect_fails: HashMap::new(),
             inflight_fetches: None,
             inflight_nodes: HashSet::new(),
+            inflight_fetch_tasks: Vec::new(),
         })
     }
 
@@ -5489,8 +5493,10 @@ impl Consumer {
 
     /// Best-effort terminal Fetch requests, bounded by one total caller budget.
     ///
-    /// A zero budget drops connections immediately. A manual consumer has no
-    /// LeaveGroup RPC; group and share members use
+    /// A zero budget drops connections immediately. Fetches already in flight
+    /// are cancelled and polled until they exit, including a few turns after
+    /// the budget so a current-thread task notices the abort. A manual
+    /// consumer has no LeaveGroup RPC; group and share members use
     /// [`crate::ConsumerGroup::close_timeout`] /
     /// [`crate::ShareGroup::close_timeout`].
     pub async fn close_timeout(mut self, timeout: Duration) -> Result<()> {
@@ -5500,15 +5506,66 @@ impl Consumer {
         Ok(())
     }
 
+    /// Test hook: fetches whose replies have not been applied yet.
+    #[doc(hidden)]
+    #[must_use]
+    pub fn test_inflight_fetches(&self) -> Vec<tokio::task::AbortHandle> {
+        self.inflight_fetch_tasks.clone()
+    }
+
     fn abort_inflight_fetches(&mut self) {
         if let Some(mut set) = self.inflight_fetches.take() {
             set.abort_all();
         }
         self.inflight_nodes.clear();
+        self.inflight_fetch_tasks.clear();
+    }
+
+    fn park_inflight(&mut self, inflight: InflightFetches) {
+        inflight.park(self);
+        self.inflight_fetch_tasks
+            .retain(|handle| !handle.is_finished());
+    }
+
+    /// Cancel leader fetches and poll until they leave the runtime.
+    ///
+    /// Abort only schedules cancellation. On a current-thread runtime the task
+    /// stays inside its broker read until this caller yields. Broker waits
+    /// stop at `timeout`. A few extra turns let a task already at an await
+    /// notice the abort.
+    async fn finish_inflight_fetches(&mut self, timeout: Duration) {
+        let Some(mut set) = self.inflight_fetches.take() else {
+            self.inflight_nodes.clear();
+            self.inflight_fetch_tasks.clear();
+            return;
+        };
+        set.abort_all();
+        self.inflight_nodes.clear();
+        self.inflight_fetch_tasks.clear();
+        let deadline = Instant::now().checked_add(timeout);
+        let mut extra = 0u32;
+        while !set.is_empty() {
+            let open = deadline.is_some_and(|deadline| Instant::now() < deadline);
+            if !open {
+                if extra >= 8 {
+                    break;
+                }
+                extra = extra.saturating_add(1);
+            }
+            tokio::select! {
+                biased;
+                joined = set.join_next() => {
+                    if joined.is_none() {
+                        break;
+                    }
+                }
+                () = tokio::task::yield_now() => {}
+            }
+        }
     }
 
     pub(crate) async fn close_fetch_sessions(&mut self, timeout: Duration) {
-        self.abort_inflight_fetches();
+        self.finish_inflight_fetches(timeout).await;
         if !timeout.is_zero() {
             if let Some(deadline) = Instant::now().checked_add(timeout) {
                 let nodes = self.fetch_sessions.keys().copied().collect();
@@ -6629,7 +6686,7 @@ impl Consumer {
                 self.park_connected(nodes);
                 return Err(Error::protocol("inflight fetch set missing"));
             };
-            let _ = set.spawn(async move {
+            let handle = set.spawn(async move {
                 let result = conn
                     .roundtrip(
                         FETCH,
@@ -6662,6 +6719,7 @@ impl Consumer {
                     request,
                 )
             });
+            self.inflight_fetch_tasks.push(handle);
         }
         self.park_connected(nodes);
         let mut out = self.take_replies(inflight.pending.len());
@@ -6698,7 +6756,7 @@ impl Consumer {
                 Ok(joined) => joined,
                 Err(error) => {
                     self.park_replies(out);
-                    inflight.park(self);
+                    self.park_inflight(inflight);
                     return Err(Error::protocol(format!("fetch task: {error}")));
                 }
             };
@@ -6720,14 +6778,14 @@ impl Consumer {
                 reap_fetch_replies(set, &mut self.conns, &mut self.fetch_sessions, &mut out)
             {
                 self.park_replies(out);
-                inflight.park(self);
+                self.park_inflight(inflight);
                 return Err(error);
             }
         }
         for reply in out.iter().skip(start) {
             let _ = inflight.pending.remove(&reply.node);
         }
-        inflight.park(self);
+        self.park_inflight(inflight);
         if out.is_empty() && Instant::now() >= deadline {
             self.park_replies(out);
             return Err(Error::Timeout);
