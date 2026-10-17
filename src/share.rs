@@ -5328,6 +5328,7 @@ impl ShareGroup {
                 rack_id: cfg.rack.clone(),
                 subscribed_topic_names: None,
             };
+            let mut queued_bytes = false;
             loop {
                 if *stop.borrow() {
                     break;
@@ -5360,11 +5361,19 @@ impl ShareGroup {
                         }
                     }
                     _ = hb_wake.notified() => Wake::Again,
-                    _ = tokio::time::sleep(sleep_duration) => Wake::Beat,
-                    () = crate::group::coordinator_lost(&mut conn) => {
-                        conn = None;
-                        next_hb_deadline = Instant::now();
+                    _ = tokio::time::sleep(sleep_duration) => {
+                        queued_bytes = false;
                         Wake::Beat
+                    }
+                    lost = crate::group::coordinator_lost(&mut conn), if !queued_bytes => {
+                        if lost {
+                            conn = None;
+                            next_hb_deadline = Instant::now();
+                            Wake::Beat
+                        } else {
+                            queued_bytes = true;
+                            Wake::Again
+                        }
                     }
                 };
                 match wake {

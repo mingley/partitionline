@@ -3673,6 +3673,7 @@ impl ConsumerGroup {
                 server_assignor: None,
                 topic_partitions: None,
             };
+            let mut queued_bytes = false;
             loop {
                 let now = Instant::now();
                 if let Some(extern_deadline) = *hb_deadline.lock() {
@@ -3709,11 +3710,19 @@ impl ConsumerGroup {
                             Wake::Again
                         }
                     }
-                    _ = tokio::time::sleep(sleep_duration) => Wake::Beat,
-                    () = coordinator_lost(&mut conn) => {
-                        conn = None;
-                        next_hb_deadline = Instant::now();
+                    _ = tokio::time::sleep(sleep_duration) => {
+                        queued_bytes = false;
                         Wake::Beat
+                    }
+                    lost = coordinator_lost(&mut conn), if !queued_bytes => {
+                        if lost {
+                            conn = None;
+                            next_hb_deadline = Instant::now();
+                            Wake::Beat
+                        } else {
+                            queued_bytes = true;
+                            Wake::Again
+                        }
                     }
                 };
                 match wake {
@@ -3948,6 +3957,7 @@ impl ConsumerGroup {
             let mut prior_coords = HashMap::new();
             let mut tick =
                 tokio::time::interval(cfg.heartbeat_interval.max(Duration::from_millis(1)));
+            let mut queued_bytes = false;
             loop {
                 enum Wake {
                     Stop,
@@ -3962,10 +3972,18 @@ impl ConsumerGroup {
                             Wake::Again
                         }
                     }
-                    _ = tick.tick() => Wake::Beat,
-                    () = coordinator_lost(&mut conn) => {
-                        conn = None;
+                    _ = tick.tick() => {
+                        queued_bytes = false;
                         Wake::Beat
+                    }
+                    lost = coordinator_lost(&mut conn), if !queued_bytes => {
+                        if lost {
+                            conn = None;
+                            Wake::Beat
+                        } else {
+                            queued_bytes = true;
+                            Wake::Again
+                        }
                     }
                 };
                 match wake {
@@ -5199,17 +5217,18 @@ pub(crate) async fn connect_member_and_coordinator(
 
 /// Wait until `conn` is closed by the coordinator.
 ///
-/// A queued response is left in the buffer for the next heartbeat. No socket
-/// waits here forever so the interval can still fire.
-pub(crate) async fn coordinator_lost(conn: &mut Option<BrokerConn>) {
+/// Returns `true` when the socket is gone. A queued response returns `false`
+/// and stays in the buffer for the next heartbeat, so the interval can still
+/// fire. Callers must not watch again until that response is consumed, or a
+/// full buffer makes this return immediately.
+pub(crate) async fn coordinator_lost(conn: &mut Option<BrokerConn>) -> bool {
     let Some(current) = conn.as_mut() else {
-        std::future::pending::<()>().await;
-        return;
+        return std::future::pending::<bool>().await;
     };
     match current.inbound_ready().await {
-        Err(_) => {}
-        Ok(()) if current.is_closed() => {}
-        Ok(()) => std::future::pending::<()>().await,
+        Err(_) => true,
+        Ok(()) if current.is_closed() => true,
+        Ok(()) => false,
     }
 }
 
@@ -6371,9 +6390,42 @@ fn coordinator_error(api_key: i16, api_version: i16, body: &[u8]) -> Option<i16>
 mod tests {
     use super::*;
     use crate::consumer::{OffsetAndMetadata, TopicPartition};
+    use crate::net::BrokerConn;
     use crate::protocol::group::{ConsumerProtocolSubscription, FetchedOffset, JoinGroupRequest};
     use std::collections::HashMap;
     use std::sync::Arc;
+    use std::time::Duration;
+    use tokio::io::AsyncWriteExt;
+    use tokio::net::TcpListener;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn queued_bytes_do_not_block_the_heartbeat_interval() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        let accepted = tokio::spawn(async move {
+            let (socket, _) = listener.accept().await.unwrap();
+            let (_reader, mut writer) = socket.into_split();
+            writer.write_all(&[0x01]).await.unwrap();
+            // Stay open so the client is not simply observing a close.
+            tokio::time::sleep(Duration::from_secs(2)).await;
+        });
+        let conn = BrokerConn::connect(&addr.to_string(), "queued-hb", Duration::from_secs(2))
+            .await
+            .unwrap();
+        let mut conn = Some(conn);
+        let result =
+            tokio::time::timeout(Duration::from_millis(300), coordinator_lost(&mut conn)).await;
+        assert!(
+            result.is_ok(),
+            "queued bytes blocked the heartbeat wait: {result:?}"
+        );
+        assert!(
+            conn.is_some(),
+            "queued bytes dropped the coordinator socket"
+        );
+        drop(conn);
+        drop(accepted);
+    }
 
     #[test]
     fn an_assignment_expands_without_dropping_the_last_name() {
