@@ -513,6 +513,11 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   set or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
   delivers the fetch; this is not partition `LOG_DIR_NOT_FOUND`,
   which fails that poll, and not piggyback `OPERATION_NOT_ATTEMPTED`). A
+  piggybacked `SASL_AUTHENTICATION_FAILED` still
+  completes without retry, including when `AcknowledgeErrorMessage` is
+  set (Java `handleShareFetchSuccess` completes piggyback acks and still
+  delivers the fetch; this is not partition `SASL_AUTHENTICATION_FAILED`,
+  which fails that poll, and not piggyback `LOG_DIR_NOT_FOUND`). A
   piggybacked `TOPIC_AUTHORIZATION_FAILED` on
   one partition does not fail a sibling whose `AcknowledgeErrorCode`
   is none, including when `AcknowledgeErrorMessage` is set or empty. A
