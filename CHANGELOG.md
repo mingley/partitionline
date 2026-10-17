@@ -621,6 +621,13 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   which fails that poll, and not piggyback `STALE_BROKER_EPOCH`). Official
   Java GroupCoordinator JoinGroup writes this when the member id is
   empty. A
+  piggybacked `GROUP_MAX_SIZE_REACHED` still
+  completes without retry, including when `AcknowledgeErrorMessage` is
+  set (Java `handleShareFetchSuccess` completes piggyback acks and still
+  delivers the fetch; this is not partition `GROUP_MAX_SIZE_REACHED`,
+  which fails that poll, and not piggyback `MEMBER_ID_REQUIRED`). Official
+  Java GroupCoordinator writes this when the group has reached
+  `group.max.size`. A
   piggybacked `TOPIC_AUTHORIZATION_FAILED` on
   one partition does not fail a sibling whose `AcknowledgeErrorCode`
   is none, including when `AcknowledgeErrorMessage` is set or empty. A
