@@ -1122,7 +1122,7 @@ impl BrokerConn {
         if inbound_satisfied(&self.read_buf) || !self.read_buf.is_empty() {
             return Ok(());
         }
-        poll_fn(|cx| {
+        let result = poll_fn(|cx| {
             if self.is_closed() {
                 return Poll::Ready(Err(Error::Closed));
             }
@@ -1164,7 +1164,11 @@ impl BrokerConn {
                 }
             }
         })
-        .await
+        .await;
+        if self.is_closed() {
+            self.release_if_closed().await;
+        }
+        result
     }
 
     #[cfg(test)]
@@ -1201,6 +1205,7 @@ impl BrokerConn {
                         g.complete();
                     }
                     self.close();
+                    self.release_if_closed().await;
                     return Err(Error::protocol(format!("invalid frame size {size}")));
                 }
                 let total = 4 + crate::protocol::buf::usize_from_i32(size)?;
@@ -1222,11 +1227,13 @@ impl BrokerConn {
                 Ok(n) => n,
                 Err(e) => {
                     self.close();
+                    self.release_if_closed().await;
                     return Err(e);
                 }
             };
             if n == 0 {
                 self.close();
+                self.release_if_closed().await;
                 return Err(Error::Io(std::io::Error::new(
                     std::io::ErrorKind::UnexpectedEof,
                     "broker closed connection",
@@ -1273,6 +1280,7 @@ impl BrokerConn {
                 g.complete();
             }
             self.close();
+            self.release_if_closed().await;
             check_parse_response_correlation(
                 &RequestHeader {
                     api_key,
@@ -2633,6 +2641,29 @@ mod tests {
             "a closed peer should close the connection"
         );
         server.abort();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn inbound_ready_shutdowns_when_the_peer_stops_writing() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let accepted = tokio::spawn(async move {
+            let (socket, _) = listener.accept().await.unwrap();
+            let (mut reader, mut writer) = socket.into_split();
+            writer.shutdown().await.unwrap();
+            let mut buf = [0u8; 8];
+            tokio::time::timeout(Duration::from_millis(300), reader.read(&mut buf)).await
+        });
+        let mut conn = BrokerConn::connect(&addr, "eof-fin", Duration::from_secs(2))
+            .await
+            .unwrap();
+        let result = conn.inbound_ready().await;
+        assert!(result.is_err(), "peer write shutdown should surface");
+        let saw = accepted.await.unwrap();
+        assert!(
+            matches!(saw, Ok(Ok(0))),
+            "peer stayed in the read after its write shutdown: {saw:?}"
+        );
     }
 
     #[tokio::test]
