@@ -6719,13 +6719,10 @@ impl Admin {
                 self.refresh_broker_directory(deadline).await?;
             }
             let node = self.cluster.controller()?;
-            self.connect_node_until(node, deadline).await?;
             let body = {
-                let conn = self
-                    .conns
-                    .get_mut(&node)
-                    .ok_or_else(|| Error::protocol("missing alter_user_scram_credentials conn"))?;
-                conn.roundtrip(
+                self.roundtrip_known_node(
+                    node,
+                    deadline,
                     ALTER_USER_SCRAM_CREDENTIALS,
                     version,
                     |buf| encode_alter_user_scram_credentials_named(buf, &deletions, &upsertions),
@@ -6736,7 +6733,7 @@ impl Admin {
             let body = match body {
                 Ok(b) => b,
                 Err(e) if e.is_retriable() => {
-                    let _ = self.conns.remove(&node);
+                    self.drop_node_conn(node);
                     self.forget_controller();
                     self.wait_retry(&mut attempt, deadline).await?;
                     continue;
@@ -6750,7 +6747,7 @@ impl Admin {
             {
                 // NOT_CONTROLLER (41): Metadata, then the new controller.
                 self.forget_controller();
-                let _ = self.conns.remove(&node);
+                self.drop_node_conn(node);
                 self.wait_retry(&mut attempt, deadline).await?;
                 self.refresh_broker_directory(deadline).await?;
                 continue;
@@ -6809,12 +6806,10 @@ impl Admin {
                 self.refresh_broker_directory(deadline).await?;
             }
             let node = self.cluster.controller()?;
-            self.connect_node_until(node, deadline).await?;
             let body = {
-                let conn = self.conns.get_mut(&node).ok_or_else(|| {
-                    Error::protocol("missing describe_user_scram_credentials conn")
-                })?;
-                conn.roundtrip(
+                self.roundtrip_known_node(
+                    node,
+                    deadline,
                     DESCRIBE_USER_SCRAM_CREDENTIALS,
                     version,
                     |buf| encode_describe_user_scram_credentials_ids(buf, users_wire),
@@ -6825,7 +6820,7 @@ impl Admin {
             let body = match body {
                 Ok(b) => b,
                 Err(e) if e.is_retriable() => {
-                    let _ = self.conns.remove(&node);
+                    self.drop_node_conn(node);
                     self.forget_controller();
                     self.wait_retry(&mut attempt, deadline).await?;
                     continue;
@@ -6836,7 +6831,7 @@ impl Admin {
             if resp.error_code == error::NOT_CONTROLLER {
                 // NOT_CONTROLLER (41): Metadata, then the new controller.
                 self.forget_controller();
-                let _ = self.conns.remove(&node);
+                self.drop_node_conn(node);
                 self.wait_retry(&mut attempt, deadline).await?;
                 self.refresh_broker_directory(deadline).await?;
                 continue;
@@ -6909,13 +6904,10 @@ impl Admin {
                 self.refresh_broker_directory(deadline).await?;
             }
             let node = self.cluster.controller()?;
-            self.connect_node_until(node, deadline).await?;
             let body = {
-                let conn = self
-                    .conns
-                    .get_mut(&node)
-                    .ok_or_else(|| Error::protocol("missing unregister_broker conn"))?;
-                conn.roundtrip(
+                self.roundtrip_known_node(
+                    node,
+                    deadline,
                     UNREGISTER_BROKER,
                     version,
                     |buf| encode_unregister_broker_request(buf, broker_id),
@@ -6926,7 +6918,7 @@ impl Admin {
             let body = match body {
                 Ok(b) => b,
                 Err(e) if e.is_retriable() => {
-                    let _ = self.conns.remove(&node);
+                    self.drop_node_conn(node);
                     self.forget_controller();
                     self.wait_retry(&mut attempt, deadline).await?;
                     continue;
@@ -6937,7 +6929,7 @@ impl Admin {
             if resp.error_code == error::NOT_CONTROLLER {
                 // NOT_CONTROLLER (41): Metadata, then the new controller.
                 self.forget_controller();
-                let _ = self.conns.remove(&node);
+                self.drop_node_conn(node);
                 self.wait_retry(&mut attempt, deadline).await?;
                 self.refresh_broker_directory(deadline).await?;
                 continue;
@@ -7089,13 +7081,10 @@ impl Admin {
                 self.refresh_broker_directory(deadline).await?;
             }
             let node = self.cluster.controller()?;
-            self.connect_node_until(node, deadline).await?;
             let body = {
-                let conn = self
-                    .conns
-                    .get_mut(&node)
-                    .ok_or_else(|| Error::protocol("missing alter_client_quotas conn"))?;
-                conn.roundtrip(
+                self.roundtrip_known_node(
+                    node,
+                    deadline,
                     ALTER_CLIENT_QUOTAS,
                     version,
                     |buf| encode_alter_client_quotas_request(buf, version, entries, validate_only),
@@ -7106,7 +7095,7 @@ impl Admin {
             let body = match body {
                 Ok(b) => b,
                 Err(e) if e.is_retriable() => {
-                    let _ = self.conns.remove(&node);
+                    self.drop_node_conn(node);
                     self.forget_controller();
                     self.wait_retry(&mut attempt, deadline).await?;
                     continue;
@@ -7120,7 +7109,7 @@ impl Admin {
             {
                 // NOT_CONTROLLER (41): Metadata, then the new controller.
                 self.forget_controller();
-                let _ = self.conns.remove(&node);
+                self.drop_node_conn(node);
                 self.wait_retry(&mut attempt, deadline).await?;
                 self.refresh_broker_directory(deadline).await?;
                 continue;
@@ -7168,13 +7157,10 @@ impl Admin {
                 self.refresh_broker_directory(deadline).await?;
             }
             let node = self.cluster.controller()?;
-            self.connect_node_until(node, deadline).await?;
             let body = {
-                let conn = self
-                    .conns
-                    .get_mut(&node)
-                    .ok_or_else(|| Error::protocol("missing allocate_producer_ids conn"))?;
-                conn.roundtrip(
+                self.roundtrip_known_node(
+                    node,
+                    deadline,
                     ALLOCATE_PRODUCER_IDS,
                     version,
                     |buf| encode_allocate_producer_ids_request(buf, broker_id, broker_epoch),
@@ -7185,7 +7171,7 @@ impl Admin {
             let body = match body {
                 Ok(b) => b,
                 Err(e) if e.is_retriable() => {
-                    let _ = self.conns.remove(&node);
+                    self.drop_node_conn(node);
                     self.forget_controller();
                     self.wait_retry(&mut attempt, deadline).await?;
                     continue;
@@ -7196,7 +7182,7 @@ impl Admin {
             if resp.error_code == error::NOT_CONTROLLER {
                 // NOT_CONTROLLER (41): Metadata, then the new controller.
                 self.forget_controller();
-                let _ = self.conns.remove(&node);
+                self.drop_node_conn(node);
                 self.wait_retry(&mut attempt, deadline).await?;
                 self.refresh_broker_directory(deadline).await?;
                 continue;

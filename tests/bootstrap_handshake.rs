@@ -4,10 +4,11 @@ mod common;
 use partitionline::protocol::api_keys::OFFSET_FETCH;
 use partitionline::protocol::group::{OffsetFetchGroupData, OffsetFetchRequestData};
 use partitionline::{
-    error, AclBinding, Admin, AdminConfig, AlterConfig, ConfigResource, Consumer, ConsumerConfig,
-    ConsumerGroup, DescribeShareGroupOffsetsGroup, Error, FeatureUpdate,
-    ListConsumerGroupOffsetsSpec, NewTopic, OffsetClient, OffsetOptions, OffsetSpec, Producer,
-    ProducerConfig,
+    error, AclBinding, Admin, AdminConfig, AlterConfig, ClientQuotaAlteration, ClientQuotaEntity,
+    ClientQuotaOp, ConfigResource, Consumer, ConsumerConfig, ConsumerGroup,
+    DescribeShareGroupOffsetsGroup, Error, FeatureUpdate, ListConsumerGroupOffsetsSpec, NewTopic,
+    OffsetClient, OffsetOptions, OffsetSpec, Producer, ProducerConfig, ScramMechanism,
+    UserScramCredentialUpsertion,
 };
 use std::time::{Duration, Instant};
 
@@ -412,6 +413,145 @@ async fn update_features_stays_on_the_bootstrap_socket() {
     assert!(
         elapsed < Duration::from_millis(200),
         "update features opened another socket: {elapsed:?}"
+    );
+}
+
+/// AlterUserScramCredentials on the bootstrap controller does not open another socket.
+#[tokio::test]
+async fn alter_user_scram_stays_on_the_bootstrap_socket() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    let accepts_before = mock.accepts();
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let started = Instant::now();
+    let alice = UserScramCredentialUpsertion::new(
+        "alice",
+        ScramMechanism::Sha256,
+        4096,
+        b"dummy-salt".to_vec(),
+        b"dummy-salted".to_vec(),
+    );
+    let results = admin
+        .alter_user_scram_credentials(&[], &[alice])
+        .await
+        .unwrap();
+    let elapsed = started.elapsed();
+    assert_eq!(results.len(), 1);
+    assert_eq!(results[0].error_code, 0);
+    assert_eq!(
+        mock.accepts(),
+        accepts_before,
+        "AlterUserScramCredentials should stay on the admin bootstrap socket"
+    );
+    assert!(
+        elapsed < Duration::from_millis(200),
+        "alter user scram opened another socket: {elapsed:?}"
+    );
+}
+
+/// DescribeUserScramCredentials on the bootstrap controller does not open another socket.
+#[tokio::test]
+async fn describe_user_scram_stays_on_the_bootstrap_socket() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    let accepts_before = mock.accepts();
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let started = Instant::now();
+    let described = admin.describe_user_scram_credentials(&[]).await.unwrap();
+    let elapsed = started.elapsed();
+    assert!(described.is_empty(), "{described:?}");
+    assert_eq!(
+        mock.accepts(),
+        accepts_before,
+        "DescribeUserScramCredentials should stay on the admin bootstrap socket"
+    );
+    assert!(
+        elapsed < Duration::from_millis(200),
+        "describe user scram opened another socket: {elapsed:?}"
+    );
+}
+
+/// UnregisterBroker on the bootstrap controller does not open another socket.
+#[tokio::test]
+async fn unregister_broker_stays_on_the_bootstrap_socket() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    let accepts_before = mock.accepts();
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let started = Instant::now();
+    admin.unregister_broker(3).await.unwrap();
+    let elapsed = started.elapsed();
+    assert_eq!(
+        mock.accepts(),
+        accepts_before,
+        "UnregisterBroker should stay on the admin bootstrap socket"
+    );
+    assert!(
+        elapsed < Duration::from_millis(200),
+        "unregister broker opened another socket: {elapsed:?}"
+    );
+}
+
+/// AlterClientQuotas on the bootstrap controller does not open another socket.
+#[tokio::test]
+async fn alter_client_quotas_stays_on_the_bootstrap_socket() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    let accepts_before = mock.accepts();
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let started = Instant::now();
+    let alice = ClientQuotaAlteration::new(
+        vec![ClientQuotaEntity::new(
+            ClientQuotaEntity::USER,
+            Some("alice".into()),
+        )],
+        vec![ClientQuotaOp::set("producer_byte_rate", 1024.0)],
+    );
+    let results = admin.alter_client_quotas(&[alice], false).await.unwrap();
+    let elapsed = started.elapsed();
+    assert_eq!(results.len(), 1);
+    assert_eq!(results[0].error_code(), 0);
+    assert_eq!(
+        mock.accepts(),
+        accepts_before,
+        "AlterClientQuotas should stay on the admin bootstrap socket"
+    );
+    assert!(
+        elapsed < Duration::from_millis(200),
+        "alter client quotas opened another socket: {elapsed:?}"
+    );
+}
+
+/// AllocateProducerIds on the bootstrap controller does not open another socket.
+#[tokio::test]
+async fn allocate_producer_ids_stays_on_the_bootstrap_socket() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    let accepts_before = mock.accepts();
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let started = Instant::now();
+    let block = admin.allocate_producer_ids(7, 42).await.unwrap();
+    let elapsed = started.elapsed();
+    assert_eq!(block.producer_id_start, 1000);
+    assert_eq!(block.producer_id_len, 1000);
+    assert_eq!(
+        mock.accepts(),
+        accepts_before,
+        "AllocateProducerIds should stay on the admin bootstrap socket"
+    );
+    assert!(
+        elapsed < Duration::from_millis(200),
+        "allocate producer ids opened another socket: {elapsed:?}"
     );
 }
 
