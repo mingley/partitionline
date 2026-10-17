@@ -17322,6 +17322,70 @@ async fn implicit_piggyback_log_dir_not_found_message_does_not_retry() {
 }
 
 #[tokio::test]
+async fn implicit_piggyback_log_dir_not_found_empty_message_does_not_retry() {
+    let mock = common::Mock::start().await;
+    produce(&mock, &[(0, b"first"), (0, b"second")]).await;
+    let mut cfg = config(&mock);
+    cfg.max_poll_records = Some(1);
+    cfg.share_acknowledgement_mode = ShareAcknowledgementMode::Implicit;
+    let mut group = ShareGroup::join(cfg, "ack-ldnf-piggy-empty", "t")
+        .await
+        .unwrap();
+    let first = group.poll().await.unwrap();
+    assert_eq!(first.len(), 1);
+    let first_off = first[0].offset;
+    let seen = Arc::new(Mutex::new(Vec::new()));
+    let seen_cb = seen.clone();
+    group.set_acknowledgement_commit_callback(move |_, exception| {
+        seen_cb.lock().push(
+            exception
+                .as_ref()
+                .map(|error| (error.code(), error.message().to_owned())),
+        );
+    });
+    let version = mock.last_share_fetch_version().unwrap_or(1);
+    let mut part = ShareFetchedPartition::partition_response(0, 0);
+    part.acknowledge_error_code = error::LOG_DIR_NOT_FOUND;
+    part.acknowledge_error_message = Some(String::new());
+    let topics = vec![ShareFetchedTopic {
+        topic_id: mock.topic_id("t"),
+        partitions: vec![part],
+    }];
+    let mut injected = BytesMut::new();
+    encode_share_fetch_response(&mut injected, version, &topics).unwrap();
+    mock.inject_share_fetch_response_once(&injected);
+    assert!(
+        group.poll().await.unwrap().is_empty(),
+        "Java poll still delivers the ShareFetch after a piggyback ack error"
+    );
+    assert_eq!(
+        *seen.lock(),
+        vec![Some((
+            Some(error::LOG_DIR_NOT_FOUND),
+            "ShareFetch acknowledgement t-0".into()
+        ))]
+    );
+    assert!(
+        !mock.share_accepted("ack-ldnf-piggy-empty", "t", 0, first_off),
+        "injected empty LOG_DIR_NOT_FOUND piggyback must not apply ACCEPT"
+    );
+    assert_eq!(
+        mock.share_ack_calls(),
+        0,
+        "empty AcknowledgeErrorMessage must not retry LOG_DIR_NOT_FOUND"
+    );
+    let third = group.poll().await.unwrap();
+    assert_eq!(third.len(), 1);
+    assert_ne!(third[0].offset, first_off);
+    assert_eq!(
+        mock.share_ack_calls(),
+        0,
+        "completed empty piggyback LOG_DIR_NOT_FOUND must not send standalone ShareAcknowledge"
+    );
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn implicit_piggyback_topic_authorization_failed_sibling_message_does_not_retry() {
     let mock = common::Mock::start().await;
     v2(&mock);
