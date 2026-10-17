@@ -860,7 +860,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   exceed `client.telemetry.max.bytes`. A
   piggybacked `INVALID_REGISTRATION` still
   completes without retry, including when `AcknowledgeErrorMessage` is
-  set (Java `handleShareFetchSuccess` completes piggyback acks and still
+  set or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
   delivers the fetch; this is not partition `INVALID_REGISTRATION`,
   which fails that poll, and not piggyback `TELEMETRY_TOO_LARGE`). Official
   Java `ClusterControlManager` writes this when BrokerRegistration names

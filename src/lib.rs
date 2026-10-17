@@ -2608,7 +2608,7 @@
 //! exceed `client.telemetry.max.bytes`.
 //! A piggybacked
 //! `INVALID_REGISTRATION` still completes without retry,
-//! including when `AcknowledgeErrorMessage` is set (this is not
+//! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `INVALID_REGISTRATION`, which fails that poll, and not
 //! piggyback `TELEMETRY_TOO_LARGE`). Official Java
 //! `ClusterControlManager` writes this when BrokerRegistration names

@@ -1473,7 +1473,7 @@ pub enum ShareAcquireMode {
 /// exceed `client.telemetry.max.bytes`.
 /// A piggybacked
 /// `INVALID_REGISTRATION` still completes without retry,
-/// including when `AcknowledgeErrorMessage` is set (Java
+/// including when `AcknowledgeErrorMessage` is set or empty (Java
 /// `handleShareFetchSuccess` completes piggyback acks and still
 /// delivers the fetch; this is not partition
 /// `INVALID_REGISTRATION`, which fails that poll, and not piggyback
@@ -3720,7 +3720,7 @@ impl ShareGroup {
     /// exceed `client.telemetry.max.bytes`.
     /// A piggybacked `INVALID_REGISTRATION` still completes
     /// without retry, including when `AcknowledgeErrorMessage` is set
-    /// (Java `handleShareFetchSuccess` completes piggyback acks and still
+    /// or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
     /// delivers the fetch; this is not partition
     /// `INVALID_REGISTRATION`, which fails that poll, and not piggyback
     /// `TELEMETRY_TOO_LARGE`). Official Java
