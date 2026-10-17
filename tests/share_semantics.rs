@@ -28700,6 +28700,94 @@ async fn implicit_piggyback_sasl_authentication_failed_sibling_message_does_not_
 }
 
 #[tokio::test]
+async fn implicit_piggyback_sasl_authentication_failed_sibling_empty_message_does_not_retry() {
+    let mock = common::Mock::start().await;
+    v2(&mock);
+    mock.set_topic_partitions("t", 2);
+    mock.set_partition_leader("t", 0, 1);
+    mock.set_partition_leader("t", 1, 1);
+    produce(&mock, &[(0, b"p0"), (1, b"p1")]).await;
+    let mut cfg = config(&mock);
+    cfg.share_acknowledgement_mode = ShareAcknowledgementMode::Implicit;
+    let mut group = ShareGroup::join(cfg, "ack-saf-piggy-sib-empty", "t")
+        .await
+        .unwrap();
+    let first = group.poll().await.unwrap();
+    assert_eq!(first.len(), 2);
+    let first_p0_off = first
+        .iter()
+        .find(|rec| rec.partition == 0)
+        .expect("first poll must acquire partition 0")
+        .offset;
+    assert!(
+        first.iter().any(|rec| rec.partition == 1),
+        "first poll must acquire partition 1"
+    );
+    produce(&mock, &[(1, b"later")]).await;
+    let seen = Arc::new(Mutex::new(Vec::new()));
+    let seen_cb = seen.clone();
+    group.set_acknowledgement_commit_callback(move |offsets, exception| {
+        let partition = offsets[0].0.partition();
+        seen_cb.lock().push((
+            partition,
+            exception
+                .as_ref()
+                .map(|error| (error.code(), error.message().to_owned())),
+        ));
+    });
+    let version = mock.last_share_fetch_version().unwrap_or(2);
+    let mut failed = ShareFetchedPartition::partition_response(0, 0);
+    failed.acknowledge_error_code = error::SASL_AUTHENTICATION_FAILED;
+    failed.acknowledge_error_message = Some(String::new());
+    let ok = ShareFetchedPartition::partition_response(1, 0);
+    let topics = vec![ShareFetchedTopic {
+        topic_id: mock.topic_id("t"),
+        partitions: vec![failed, ok],
+    }];
+    let mut injected = BytesMut::new();
+    encode_share_fetch_response(&mut injected, version, &topics).unwrap();
+    mock.inject_share_fetch_response_once(&injected);
+    assert!(
+        group.poll().await.unwrap().is_empty(),
+        "Java poll still delivers the ShareFetch after a mixed piggyback ack error"
+    );
+    let mut got = seen.lock().clone();
+    got.sort_by_key(|(partition, _)| *partition);
+    assert_eq!(
+        got,
+        vec![
+            (
+                0,
+                Some((
+                    Some(error::SASL_AUTHENTICATION_FAILED),
+                    "ShareFetch acknowledgement t-0".into()
+                ))
+            ),
+            (1, None),
+        ]
+    );
+    assert!(
+        !mock.share_accepted("ack-saf-piggy-sib-empty", "t", 0, first_p0_off),
+        "injected empty sibling SASL_AUTHENTICATION_FAILED piggyback must not apply ACCEPT"
+    );
+    assert_eq!(
+        mock.share_ack_calls(),
+        0,
+        "empty sibling SASL_AUTHENTICATION_FAILED piggyback must not retry standalone ShareAcknowledge"
+    );
+    let third = group.poll().await.unwrap();
+    assert_eq!(third.len(), 1);
+    assert_eq!(third[0].partition, 1);
+    assert_eq!(third[0].value.as_deref(), Some(&b"later"[..]));
+    assert_eq!(
+        mock.share_ack_calls(),
+        0,
+        "completed empty sibling SASL_AUTHENTICATION_FAILED piggyback must not send standalone ShareAcknowledge"
+    );
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn implicit_piggyback_fenced_sibling_message_does_not_retry() {
     let mock = common::Mock::start().await;
     v2(&mock);
