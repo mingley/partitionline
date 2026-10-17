@@ -1542,3 +1542,25 @@ async fn add_partitions_drops_the_coordinator_when_it_closes_during_backoff() {
     }
     drop(producer);
 }
+
+/// An idle producer must drop its metadata socket when that broker stops writing.
+#[tokio::test(flavor = "current_thread")]
+async fn idle_metadata_socket_drops_when_the_broker_stops_writing() {
+    let mock = common::Mock::start().await;
+    let mut cfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    cfg.linger = Duration::ZERO;
+    cfg.metadata_max_age = Duration::from_secs(300);
+    let producer = Producer::new(cfg).await.unwrap();
+    tokio::time::sleep(Duration::from_millis(30)).await;
+    let open = mock.open_conns();
+    assert!(open > 0, "producer had no metadata socket");
+    mock.shutdown_writes();
+    let window = Instant::now();
+    while mock.open_conns() >= open {
+        if window.elapsed() > Duration::from_millis(400) {
+            panic!("idle metadata socket stayed open; open {open}");
+        }
+        tokio::task::yield_now().await;
+    }
+    drop(producer);
+}

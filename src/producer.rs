@@ -2022,24 +2022,41 @@ impl Producer {
         let meta_handle = tokio::spawn(async move {
             let mut meta_rx = meta_rx;
             let mut queued = Vec::new();
-            while let Some(topic) = meta_rx.recv().await {
+            loop {
                 let Some(shared) = weak.upgrade() else {
                     break;
                 };
                 if shared.closed.load(Ordering::SeqCst) {
                     break;
                 }
-                queued.clear();
-                queued.push(topic);
-                while let Ok(topic) = meta_rx.try_recv() {
-                    queued.push(topic);
+                tokio::select! {
+                    biased;
+                    topic = meta_rx.recv() => {
+                        let Some(topic) = topic else {
+                            break;
+                        };
+                        queued.clear();
+                        queued.push(topic);
+                        while let Ok(topic) = meta_rx.try_recv() {
+                            queued.push(topic);
+                        }
+                        match refresh_queued_topics(
+                            &shared,
+                            &queued,
+                            shared.cfg.request_timeout,
+                        )
+                        .await
+                        {
+                            None => {}
+                            Some(Ok(())) => publish_meta_err(&shared, None),
+                            Some(Err(error)) => {
+                                publish_meta_err(&shared, Some(clone_err(&error)));
+                            }
+                        }
+                        shared.cache_nudge.notify_waiters();
+                    }
+                    () = watch_idle_metadata_socket(&shared) => {}
                 }
-                match refresh_queued_topics(&shared, &queued, shared.cfg.request_timeout).await {
-                    None => {}
-                    Some(Ok(())) => publish_meta_err(&shared, None),
-                    Some(Err(error)) => publish_meta_err(&shared, Some(clone_err(&error))),
-                }
-                shared.cache_nudge.notify_waiters();
             }
         });
         let weak = Arc::downgrade(&shared);
@@ -5340,6 +5357,35 @@ async fn refresh_queued_topics(
         }
     }
     Some(last)
+}
+
+/// Notice a broker that stops writing on the idle metadata socket.
+///
+/// The lock is held only for one poll. A quiet socket waits outside the
+/// lock so a metadata refresh can still take it. A closed socket is shut
+/// down, then this wait yields so the task does not spin.
+async fn watch_idle_metadata_socket(shared: &Shared) {
+    let mut conn = shared.meta.lock().await;
+    if conn.is_closed() {
+        conn.release_if_closed().await;
+        drop(conn);
+        tokio::time::sleep(Duration::from_millis(20)).await;
+        return;
+    }
+    let quiet = tokio::select! {
+        biased;
+        ready = conn.inbound_ready() => {
+            drop(ready);
+            conn.close();
+            conn.release_if_closed().await;
+            false
+        }
+        () = std::future::ready(()) => true,
+    };
+    drop(conn);
+    if quiet {
+        tokio::time::sleep(Duration::from_millis(20)).await;
+    }
 }
 
 /// Fetch every stale name in `topics` with one Metadata request.
