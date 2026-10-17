@@ -589,7 +589,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   session epoch is invalid; it is not share-session `INVALID_SHARE_SESSION_EPOCH`. A
   piggybacked `LISTENER_NOT_FOUND` still
   completes without retry, including when `AcknowledgeErrorMessage` is
-  set (Java `handleShareFetchSuccess` completes piggyback acks and still
+  set or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
   delivers the fetch; this is not partition `LISTENER_NOT_FOUND`,
   which fails that poll, and not piggyback `INVALID_FETCH_SESSION_EPOCH`). Official
   Java SocketServer writes this when the requested listener name is
