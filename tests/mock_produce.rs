@@ -1023,6 +1023,35 @@ async fn transactional_rediscover_skips_a_second_bootstrap_handshake() {
     producer.close().await.unwrap();
 }
 
+/// A produce to the transaction coordinator reuses that broker's handshake.
+#[tokio::test]
+async fn produce_reuses_the_transaction_coordinator_handshake() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_topic_partitions("t", 1);
+    mock.set_partition_leader("t", 0, 2);
+    mock.set_txn_coordinator(2);
+    let mut cfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    cfg.linger = Duration::ZERO;
+    cfg.transactional_id = Some("tx-produce-known".into());
+    let producer = Producer::new(cfg).await.unwrap();
+    producer.begin_transaction().await.unwrap();
+    assert_eq!(mock.api_versions_versions().len(), 2);
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let started = Instant::now();
+    let _sent = producer
+        .send(ProduceRecord::to("t").value(&b"v"[..]))
+        .await
+        .unwrap();
+    let elapsed = started.elapsed();
+    assert!(
+        elapsed < Duration::from_millis(200),
+        "produce repeated the transaction coordinator handshake: {elapsed:?}"
+    );
+    assert_eq!(mock.api_versions_versions().len(), 2);
+    producer.abort_transaction().await.unwrap();
+    producer.close().await.unwrap();
+}
+
 /// TxnOffsetCommit on the bootstrap broker reuses the versions learned at startup.
 #[tokio::test]
 async fn send_offsets_reuses_bootstrap_api_versions() {

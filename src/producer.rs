@@ -1712,6 +1712,12 @@ impl Producer {
         let (connect_tx, connect_rx) = mpsc::channel(16);
         let (retry_tx, retry_rx) = mpsc::channel(cap.max(1024));
         let sticky_policy = cfg.partitioner.arc().unkeyed_batching_policy();
+        let mut seeded_keys = HashMap::new();
+        if let Some(coord) = txn.as_ref() {
+            if coord.conn.addr() != meta.addr() && !coord.keys.is_empty() {
+                let _stored = seeded_keys.insert(coord.conn.addr().to_string(), coord.keys.clone());
+            }
+        }
         let shared = Arc::new(Shared {
             cfg: cfg.clone(),
             cluster: parking_lot::Mutex::new(Cluster::default()),
@@ -1719,7 +1725,7 @@ impl Producer {
             txn: Mutex::new(txn),
             metadata_version,
             api_keys: resp.api_keys.clone(),
-            produce_keys: parking_lot::Mutex::new(HashMap::new()),
+            produce_keys: parking_lot::Mutex::new(seeded_keys),
             metadata_image: parking_lot::Mutex::new(MetadataResponse::blank()),
             transaction_v2,
             add_partitions_version,
@@ -4429,6 +4435,7 @@ async fn txn_roundtrip(
         )
         .await?
     };
+    remember_produce_keys(shared, new.conn.addr(), &new.keys);
     let remaining = timeout_remaining(deadline)?;
     let mut guard = shared.txn.lock().await;
     *guard = Some(new);
