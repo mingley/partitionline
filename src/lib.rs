@@ -2594,7 +2594,7 @@
 //! known.
 //! A piggybacked
 //! `UNKNOWN_SUBSCRIPTION_ID` still completes without retry,
-//! including when `AcknowledgeErrorMessage` is set (this is not
+//! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `UNKNOWN_SUBSCRIPTION_ID`, which fails that poll, and not
 //! piggyback `UNKNOWN_CONTROLLER_ID`). Official Java
 //! `ClientMetricsManager` writes this when PushTelemetry names a
