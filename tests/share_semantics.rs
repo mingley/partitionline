@@ -59,6 +59,34 @@ async fn produce(mock: &common::Mock, entries: &[(i32, &[u8])]) {
     producer.close().await.unwrap();
 }
 
+/// A share fetch from the bootstrap broker does not repeat ApiVersions.
+#[tokio::test]
+async fn share_fetch_reuses_bootstrap_api_versions() {
+    let mock = common::Mock::start().await;
+    v2(&mock);
+    mock.set_share_heartbeat_interval_ms(60_000);
+    produce(&mock, &[(0, b"share")]).await;
+    let mut cfg = config(&mock);
+    cfg.heartbeat_interval = Duration::from_secs(5);
+    let mut group = ShareGroup::join(cfg, "share-reuse", "t").await.unwrap();
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let versions_before = mock.api_versions_versions().len();
+    let started = Instant::now();
+    let got = group.poll().await.unwrap();
+    let elapsed = started.elapsed();
+    assert_eq!(got.len(), 1);
+    assert_eq!(
+        mock.api_versions_versions().len(),
+        versions_before,
+        "the share leader socket should reuse the member broker's versions"
+    );
+    assert!(
+        elapsed < Duration::from_millis(200),
+        "share fetch repeated ApiVersions: {elapsed:?}"
+    );
+    group.leave().await.unwrap();
+}
+
 #[tokio::test]
 async fn wakeup_interrupts_share_poll_and_accept_once() {
     let mock = common::Mock::start().await;
@@ -517,8 +545,8 @@ async fn share_leader_dials_overlap() {
     let elapsed = started.elapsed();
     assert_eq!(got.len(), 2, "one poll collects both leaders");
     assert!(
-        mock.api_versions_versions().len() >= before + 2,
-        "both leaders should negotiate"
+        mock.api_versions_versions().len() >= before + 1,
+        "the non-bootstrap share leader should negotiate"
     );
     assert!(
         elapsed < Duration::from_millis(400),

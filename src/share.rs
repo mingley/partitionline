@@ -852,6 +852,8 @@ struct ShareDialConfig {
     sasl_scram_sha512: Option<(String, String)>,
     sasl_oauthbearer: Option<String>,
     sasl_oauthbearer_oidc: Option<crate::OidcConfig>,
+    bootstrap_addr: String,
+    known_keys: Vec<crate::protocol::api::ApiVersion>,
 }
 
 type ShareDialAttempt = (
@@ -2400,6 +2402,8 @@ impl ShareGroup {
             sasl_scram_sha512: self.cfg.sasl_scram_sha512.clone(),
             sasl_oauthbearer: self.cfg.sasl_oauthbearer.clone(),
             sasl_oauthbearer_oidc: self.cfg.sasl_oauthbearer_oidc.clone(),
+            bootstrap_addr: self.consumer.bootstrap_addr().to_string(),
+            known_keys: self.consumer.copy_api_keys(),
         }
     }
 
@@ -2413,21 +2417,40 @@ impl ShareGroup {
         }
         let mut waiting = dials.into_iter();
         let mut inflight = tokio::task::JoinSet::<ShareDialAttempt>::new();
-        let spawn =
-            |inflight: &mut tokio::task::JoinSet<ShareDialAttempt>, node: i32, addr: String| {
-                let cfg = ShareDialConfig {
-                    client_id: cfg.client_id.clone(),
-                    connect_timeout: cfg.connect_timeout,
-                    tls: cfg.tls.clone(),
-                    sasl_plain: cfg.sasl_plain.clone(),
-                    sasl_scram: cfg.sasl_scram.clone(),
-                    sasl_scram_sha512: cfg.sasl_scram_sha512.clone(),
-                    sasl_oauthbearer: cfg.sasl_oauthbearer.clone(),
-                    sasl_oauthbearer_oidc: cfg.sasl_oauthbearer_oidc.clone(),
-                };
-                let addr_for_task = addr.clone();
-                let _ = inflight.spawn(async move {
-                    let result = Consumer::open_fetch_conn(
+        let spawn = |inflight: &mut tokio::task::JoinSet<ShareDialAttempt>,
+                     node: i32,
+                     addr: String| {
+            let cfg = ShareDialConfig {
+                client_id: cfg.client_id.clone(),
+                connect_timeout: cfg.connect_timeout,
+                tls: cfg.tls.clone(),
+                sasl_plain: cfg.sasl_plain.clone(),
+                sasl_scram: cfg.sasl_scram.clone(),
+                sasl_scram_sha512: cfg.sasl_scram_sha512.clone(),
+                sasl_oauthbearer: cfg.sasl_oauthbearer.clone(),
+                sasl_oauthbearer_oidc: cfg.sasl_oauthbearer_oidc.clone(),
+                bootstrap_addr: cfg.bootstrap_addr.clone(),
+                known_keys: cfg.known_keys.clone(),
+            };
+            let addr_for_task = addr.clone();
+            let _ = inflight.spawn(async move {
+                let result = if addr_for_task == cfg.bootstrap_addr && !cfg.known_keys.is_empty() {
+                    Consumer::open_fetch_conn_known(
+                        &addr_for_task,
+                        &cfg.client_id,
+                        cfg.connect_timeout,
+                        cfg.tls.as_ref(),
+                        cfg.sasl_plain.as_ref(),
+                        cfg.sasl_scram.as_ref(),
+                        cfg.sasl_scram_sha512.as_ref(),
+                        cfg.sasl_oauthbearer.as_deref(),
+                        cfg.sasl_oauthbearer_oidc.as_ref(),
+                        &cfg.known_keys,
+                        deadline,
+                    )
+                    .await
+                } else {
+                    Consumer::open_fetch_conn(
                         &addr_for_task,
                         &cfg.client_id,
                         cfg.connect_timeout,
@@ -2439,10 +2462,11 @@ impl ShareGroup {
                         cfg.sasl_oauthbearer_oidc.as_ref(),
                         deadline,
                     )
-                    .await;
-                    (node, addr, result)
-                });
-            };
+                    .await
+                };
+                (node, addr, result)
+            });
+        };
         while inflight.len() < 8 {
             let Some((node, addr)) = waiting.next() else {
                 break;
@@ -2565,18 +2589,25 @@ impl ShareGroup {
             if rest.is_zero() {
                 return Err(Error::Timeout);
             }
-            let mut conn = BrokerConn::connect_tls(
-                &addr,
-                &self.cfg.client_id,
-                self.cfg.connect_timeout.min(rest),
-                self.cfg.tls.as_ref(),
-            )
-            .await?;
-            let rest = deadline.saturating_duration_since(Instant::now());
-            if rest.is_zero() {
-                return Err(Error::Timeout);
-            }
-            let versions = crate::protocol::api::negotiate_api_versions(&mut conn, rest).await?;
+            let reuse = addr == self.consumer.bootstrap_addr() && self.consumer.has_api_keys();
+            let (mut conn, versions) = if reuse {
+                self.consumer.open_leader_socket(&addr, deadline).await?
+            } else {
+                let mut conn = BrokerConn::connect_tls(
+                    &addr,
+                    &self.cfg.client_id,
+                    self.cfg.connect_timeout.min(rest),
+                    self.cfg.tls.as_ref(),
+                )
+                .await?;
+                let rest = deadline.saturating_duration_since(Instant::now());
+                if rest.is_zero() {
+                    return Err(Error::Timeout);
+                }
+                let versions =
+                    crate::protocol::api::negotiate_api_versions(&mut conn, rest).await?;
+                (conn, versions)
+            };
             let fetch_version = versions
                 .api_version(SHARE_FETCH)
                 .and_then(|v| {
@@ -2599,21 +2630,23 @@ impl ShareGroup {
                     )
                 })
                 .unwrap_or(-1);
-            crate::protocol::sasl::apply_api_keys(&mut conn, &versions.api_keys);
-            let rest = deadline.saturating_duration_since(Instant::now());
-            if rest.is_zero() {
-                return Err(Error::Timeout);
+            if !reuse {
+                crate::protocol::sasl::apply_api_keys(&mut conn, &versions.api_keys);
+                let rest = deadline.saturating_duration_since(Instant::now());
+                if rest.is_zero() {
+                    return Err(Error::Timeout);
+                }
+                crate::protocol::sasl::authenticate(
+                    &mut conn,
+                    self.cfg.sasl_plain.as_ref(),
+                    self.cfg.sasl_scram.as_ref(),
+                    self.cfg.sasl_scram_sha512.as_ref(),
+                    self.cfg.sasl_oauthbearer.as_deref(),
+                    self.cfg.sasl_oauthbearer_oidc.as_ref(),
+                    rest,
+                )
+                .await?;
             }
-            crate::protocol::sasl::authenticate(
-                &mut conn,
-                self.cfg.sasl_plain.as_ref(),
-                self.cfg.sasl_scram.as_ref(),
-                self.cfg.sasl_scram_sha512.as_ref(),
-                self.cfg.sasl_oauthbearer.as_deref(),
-                self.cfg.sasl_oauthbearer_oidc.as_ref(),
-                rest,
-            )
-            .await?;
             let _ = self.share_addresses.insert(node, addr);
             let _ = entry.insert(ShareNodeConnection {
                 conn,

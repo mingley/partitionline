@@ -2820,6 +2820,16 @@ async fn send_fetch_session_close(
     }
 }
 
+fn configure_fetch_conn(conn: &mut BrokerConn, versions_resp: &ApiVersionsResponse) {
+    if let Some(fv) = versions_resp
+        .api_version(FETCH)
+        .and_then(|v| pick_version(v.min_version, v.max_version, 4, FETCH_CRATE_MAX_VERSION))
+    {
+        conn.set_fetch_version(fv);
+    }
+    sasl::apply_api_keys(conn, &versions_resp.api_keys);
+}
+
 fn startup_remaining(deadline: Instant) -> Result<Duration> {
     let remaining = deadline.saturating_duration_since(Instant::now());
     if remaining.is_zero() {
@@ -2830,6 +2840,18 @@ fn startup_remaining(deadline: Instant) -> Result<Duration> {
 }
 
 impl Consumer {
+    pub(crate) fn bootstrap_addr(&self) -> &str {
+        self.conn.addr()
+    }
+
+    pub(crate) fn has_api_keys(&self) -> bool {
+        !self.versions.is_empty()
+    }
+
+    pub(crate) fn copy_api_keys(&self) -> Vec<ApiVersion> {
+        self.versions.values().cloned().collect()
+    }
+
     /// Connect with default config to one bootstrap server.
     pub async fn connect(bootstrap: impl Into<String>) -> Result<Self> {
         Self::new(ConsumerConfig::bootstrap([bootstrap.into()])).await
@@ -4289,13 +4311,93 @@ impl Consumer {
         let versions_resp =
             crate::protocol::api::negotiate_api_versions(&mut conn, startup_remaining(deadline)?)
                 .await?;
-        if let Some(fv) = versions_resp
-            .api_version(FETCH)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 4, FETCH_CRATE_MAX_VERSION))
-        {
-            conn.set_fetch_version(fv);
+        configure_fetch_conn(&mut conn, &versions_resp);
+        sasl::authenticate(
+            &mut conn,
+            sasl_plain,
+            sasl_scram,
+            sasl_scram_sha512,
+            sasl_oauthbearer,
+            sasl_oauthbearer_oidc,
+            startup_remaining(deadline)?,
+        )
+        .await?;
+        Ok((conn, versions_resp))
+    }
+
+    /// Open a leader socket, reusing bootstrap versions when the address matches.
+    pub(crate) async fn open_leader_socket(
+        &self,
+        addr: &str,
+        deadline: Instant,
+    ) -> Result<(BrokerConn, ApiVersionsResponse)> {
+        if addr == self.conn.addr() && !self.versions.is_empty() {
+            let keys: Vec<ApiVersion> = self.versions.values().cloned().collect();
+            return Self::open_fetch_conn_known(
+                addr,
+                &self.cfg.client_id,
+                self.cfg.connect_timeout,
+                self.cfg.tls.as_ref(),
+                self.cfg.sasl_plain.as_ref(),
+                self.cfg.sasl_scram.as_ref(),
+                self.cfg.sasl_scram_sha512.as_ref(),
+                self.cfg.sasl_oauthbearer.as_deref(),
+                self.cfg.sasl_oauthbearer_oidc.as_ref(),
+                &keys,
+                deadline,
+            )
+            .await;
         }
-        sasl::apply_api_keys(&mut conn, &versions_resp.api_keys);
+        Self::open_fetch_conn(
+            addr,
+            &self.cfg.client_id,
+            self.cfg.connect_timeout,
+            self.cfg.tls.as_ref(),
+            self.cfg.sasl_plain.as_ref(),
+            self.cfg.sasl_scram.as_ref(),
+            self.cfg.sasl_scram_sha512.as_ref(),
+            self.cfg.sasl_oauthbearer.as_deref(),
+            self.cfg.sasl_oauthbearer_oidc.as_ref(),
+            deadline,
+        )
+        .await
+    }
+
+    /// Dial a broker whose versions were already learned on another socket.
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "a leader dial carries the shared SASL and TLS settings"
+    )]
+    pub(crate) async fn open_fetch_conn_known(
+        addr: &str,
+        client_id: &str,
+        connect_timeout: Duration,
+        tls: Option<&crate::net::TlsConfig>,
+        sasl_plain: Option<&(String, String)>,
+        sasl_scram: Option<&(String, String)>,
+        sasl_scram_sha512: Option<&(String, String)>,
+        sasl_oauthbearer: Option<&str>,
+        sasl_oauthbearer_oidc: Option<&crate::OidcConfig>,
+        keys: &[ApiVersion],
+        deadline: Instant,
+    ) -> Result<(BrokerConn, ApiVersionsResponse)> {
+        let mut conn = BrokerConn::connect_tls(
+            addr,
+            client_id,
+            connect_timeout.min(startup_remaining(deadline)?),
+            tls,
+        )
+        .await?;
+        let versions_resp = ApiVersionsResponse {
+            error_code: 0,
+            api_keys: keys.to_vec(),
+            throttle_time_ms: 0,
+            supported_features: Vec::new(),
+            finalized_features_epoch: None,
+            finalized_features: Vec::new(),
+            zk_migration_ready: false,
+        };
+        configure_fetch_conn(&mut conn, &versions_resp);
         sasl::authenticate(
             &mut conn,
             sasl_plain,
