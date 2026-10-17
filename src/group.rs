@@ -5288,8 +5288,17 @@ async fn ask_ready_coordinator(
         Ok(handshake) => handshake,
         Err(error) => return CoordAsk::Retry(error),
     };
-    let asked =
-        find_coordinator_on(cfg, hop, version, versions, group_id, key_type, deadline).await;
+    let asked = find_coordinator_on(
+        cfg,
+        hop,
+        version,
+        versions,
+        group_id,
+        key_type,
+        deadline,
+        Some(ready),
+    )
+    .await;
     match asked {
         Ok(found) => CoordAsk::Found(Box::new(found)),
         Err(error)
@@ -5312,9 +5321,16 @@ async fn probe_bootstrap(
 ) -> Result<(BrokerConn, crate::protocol::api::ApiVersionsResponse)> {
     let bounded = bounded_coord_config(cfg, deadline)?;
     let (hop, version, versions) = open_coord_with_find_version(&bounded, addr).await?;
-    find_coordinator_on(cfg, hop, version, versions, group_id, key_type, deadline).await
+    find_coordinator_on(
+        cfg, hop, version, versions, group_id, key_type, deadline, None,
+    )
+    .await
 }
 
+#[expect(
+    clippy::too_many_arguments,
+    reason = "coordinator lookup can reuse a bootstrap handshake that is already open"
+)]
 async fn find_coordinator_on(
     cfg: &ConsumerConfig,
     mut hop: BrokerConn,
@@ -5323,6 +5339,7 @@ async fn find_coordinator_on(
     group_id: &str,
     key_type: i8,
     deadline: crate::net::Deadline,
+    ready: Option<&mut [Option<Result<CoordHandshake>>]>,
 ) -> Result<(BrokerConn, crate::protocol::api::ApiVersionsResponse)> {
     let body = hop
         .roundtrip(
@@ -5343,9 +5360,27 @@ async fn find_coordinator_on(
     if coord_addr == hop.addr() {
         return Ok((hop, versions));
     }
+    if let Some(ready) = ready {
+        if let Some((conn, _, versions)) = take_ready_handshake(ready, &coord_addr) {
+            return Ok((conn, versions));
+        }
+    }
     let bounded = bounded_coord_config(cfg, deadline)?;
     let (conn, _, versions) = open_coord_with_find_version(&bounded, &coord_addr).await?;
     Ok((conn, versions))
+}
+
+/// Take a bootstrap handshake whose address is already the coordinator.
+fn take_ready_handshake(
+    ready: &mut [Option<Result<CoordHandshake>>],
+    addr: &str,
+) -> Option<CoordHandshake> {
+    let index = ready.iter().position(|slot| {
+        slot.as_ref()
+            .and_then(|result| result.as_ref().ok())
+            .is_some_and(|(conn, _, _)| conn.addr() == addr)
+    })?;
+    ready.get_mut(index)?.take()?.ok()
 }
 
 /// Open a new TCP socket to a coordinator whose versions were already learned.

@@ -3778,6 +3778,43 @@ async fn max_poll_leave_reuses_a_dropped_remote_coordinator() {
     drop(group);
 }
 
+/// Two bootstraps share one handshake when the coordinator is the other bootstrap.
+#[tokio::test]
+async fn multi_bootstrap_join_reuses_the_other_bootstrap_handshake() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_topic_partitions("t", 1);
+    mock.set_partition_leader("t", 0, 1);
+    mock.set_coordinator(2);
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    let _sent = producer
+        .send(ProduceRecord::to("t").value(&b"v"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+    let addr2 = mock.broker_addr(2).unwrap();
+    let versions_before = mock.api_versions_versions().len();
+    let mut cfg = ConsumerConfig::bootstrap([mock.addr.clone(), addr2]).max_wait_ms(10);
+    cfg.heartbeat_interval = Duration::from_secs(5);
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let started = Instant::now();
+    let mut group = ConsumerGroup::join(cfg, "multi-boot", "t").await.unwrap();
+    let elapsed = started.elapsed();
+    assert_eq!(group.poll().await.unwrap().len(), 1);
+    assert!(
+        mock.api_versions_versions().len() <= versions_before + 4,
+        "join negotiated a bootstrap that was already open: {} started at {versions_before}",
+        mock.api_versions_versions().len()
+    );
+    assert!(
+        elapsed < Duration::from_millis(450),
+        "join repeated a bootstrap handshake: {elapsed:?}"
+    );
+    group.leave().await.unwrap();
+}
+
 /// A fetch from the group coordinator reuses that broker's handshake.
 #[tokio::test]
 async fn fetch_reuses_the_group_coordinator_handshake() {
