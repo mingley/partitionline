@@ -2383,7 +2383,7 @@
 //! piggyback `MEMBER_ID_REQUIRED`). Official Java GroupCoordinator
 //! writes this when the group has reached `group.max.size`. A piggybacked
 //! `FENCED_INSTANCE_ID` still completes without retry,
-//! including when `AcknowledgeErrorMessage` is set (this is not
+//! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `FENCED_INSTANCE_ID`, which fails that poll, and not
 //! piggyback `GROUP_MAX_SIZE_REACHED`). Official Java GroupCoordinator
 //! writes this when another consumer with the same `group.instance.id`

@@ -1182,7 +1182,7 @@ pub enum ShareAcquireMode {
 /// `MEMBER_ID_REQUIRED`). Official Java GroupCoordinator writes this
 /// when the group has reached `group.max.size`. A piggybacked
 /// `FENCED_INSTANCE_ID` still completes without retry,
-/// including when `AcknowledgeErrorMessage` is set (Java
+/// including when `AcknowledgeErrorMessage` is set or empty (Java
 /// `handleShareFetchSuccess` completes piggyback acks and still
 /// delivers the fetch; this is not partition
 /// `FENCED_INSTANCE_ID`, which fails that poll, and not piggyback
@@ -3066,7 +3066,7 @@ impl ShareGroup {
     /// when the group has reached `group.max.size`.
     /// A piggybacked `FENCED_INSTANCE_ID` still completes
     /// without retry, including when `AcknowledgeErrorMessage` is set
-    /// (Java `handleShareFetchSuccess` completes piggyback acks and still
+    /// or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
     /// delivers the fetch; this is not partition
     /// `FENCED_INSTANCE_ID`, which fails that poll, and not piggyback
     /// `GROUP_MAX_SIZE_REACHED`). Official Java GroupCoordinator writes this
