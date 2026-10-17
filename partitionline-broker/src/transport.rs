@@ -612,11 +612,19 @@ async fn connection<H: Handler>(
     peer: Peer,
     session: Session,
 ) -> Exit {
-    tokio::select! {
+    let exit = tokio::select! {
         biased;
         _ = cancelled(&mut stop) => Exit::Shutdown,
         result = establish(socket, config, handler, handlers, peer, session) => result,
+    };
+    // Shutdown drops the accepted socket by cancelling its read. Yield so the
+    // peer observes that close before this connection task finishes.
+    if matches!(exit, Exit::Shutdown) {
+        for _ in 0..8 {
+            tokio::task::yield_now().await;
+        }
     }
+    exit
 }
 
 async fn establish<H: Handler>(
@@ -1597,6 +1605,84 @@ mod tls_deadline_tests {
             open.load(Ordering::SeqCst),
             0,
             "tls handshake deadline left the accepted socket blocked in a read"
+        );
+        client.abort();
+    }
+}
+
+#[cfg(test)]
+mod shutdown_tests {
+    use super::{Config, Handler, Transport};
+    use std::future::Future;
+    use std::net::SocketAddr;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::sync::Arc;
+    use std::time::Duration;
+    use tokio::io::AsyncReadExt;
+    use tokio::net::TcpStream;
+
+    struct Nop;
+
+    impl Handler for Nop {
+        type Error = std::io::Error;
+
+        fn handle(
+            &self,
+            request: Vec<u8>,
+        ) -> impl Future<Output = Result<Option<Vec<u8>>, Self::Error>> + Send {
+            std::future::ready(Ok(Some(request)))
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn shutdown_closes_the_accepted_socket() {
+        let config = Config::new(
+            4,
+            1,
+            1024,
+            1024,
+            Duration::from_secs(30),
+            Duration::from_secs(30),
+            Duration::from_secs(30),
+        )
+        .unwrap_or_else(|error| panic!("{error}"));
+        let mut transport = Transport::bind(
+            "127.0.0.1:0"
+                .parse::<SocketAddr>()
+                .unwrap_or_else(|error| panic!("{error}")),
+            config,
+            Arc::new(Nop),
+        )
+        .await
+        .unwrap_or_else(|error| panic!("{error}"));
+        let address = transport.local_addr();
+        let open = Arc::new(AtomicUsize::new(0));
+        let open_flag = Arc::clone(&open);
+        let client = tokio::spawn(async move {
+            let mut socket = TcpStream::connect(address)
+                .await
+                .unwrap_or_else(|error| panic!("{error}"));
+            let _started = open_flag.fetch_add(1, Ordering::SeqCst);
+            let mut buf = [0u8; 8];
+            loop {
+                match socket.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = open_flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        while open.load(Ordering::SeqCst) == 0 {
+            tokio::task::yield_now().await;
+        }
+        transport
+            .shutdown()
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "shutdown left the accepted socket blocked in a read"
         );
         client.abort();
     }
