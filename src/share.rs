@@ -1410,7 +1410,7 @@ pub enum ShareAcquireMode {
 /// the instance id is still owned.
 /// A piggybacked
 /// `UNSUPPORTED_ASSIGNOR` still completes without retry,
-/// including when `AcknowledgeErrorMessage` is set (Java
+/// including when `AcknowledgeErrorMessage` is set or empty (Java
 /// `handleShareFetchSuccess` completes piggyback acks and still
 /// delivers the fetch; this is not partition
 /// `UNSUPPORTED_ASSIGNOR`, which fails that poll, and not piggyback
@@ -3580,7 +3580,7 @@ impl ShareGroup {
     /// the instance id is still owned.
     /// A piggybacked `UNSUPPORTED_ASSIGNOR` still completes
     /// without retry, including when `AcknowledgeErrorMessage` is set
-    /// (Java `handleShareFetchSuccess` completes piggyback acks and still
+    /// or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
     /// delivers the fetch; this is not partition
     /// `UNSUPPORTED_ASSIGNOR`, which fails that poll, and not piggyback
     /// `UNRELEASED_INSTANCE_ID`). Official Java

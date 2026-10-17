@@ -2559,7 +2559,7 @@
 //! the instance id is still owned.
 //! A piggybacked
 //! `UNSUPPORTED_ASSIGNOR` still completes without retry,
-//! including when `AcknowledgeErrorMessage` is set (this is not
+//! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `UNSUPPORTED_ASSIGNOR`, which fails that poll, and not
 //! piggyback `UNRELEASED_INSTANCE_ID`). Official Java
 //! `GroupCoordinatorService` writes this when ConsumerGroupHeartbeat names
