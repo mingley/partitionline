@@ -2440,7 +2440,7 @@
 //! user does not exist.
 //! A piggybacked
 //! `DUPLICATE_RESOURCE` still completes without retry,
-//! including when `AcknowledgeErrorMessage` is set (this is not
+//! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `DUPLICATE_RESOURCE`, which fails that poll, and not
 //! piggyback `RESOURCE_NOT_FOUND`). Official Java
 //! `ScramImage` DescribeUserScramCredentials writes this when the

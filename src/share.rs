@@ -1257,7 +1257,7 @@ pub enum ShareAcquireMode {
 /// user does not exist.
 /// A piggybacked
 /// `DUPLICATE_RESOURCE` still completes without retry,
-/// including when `AcknowledgeErrorMessage` is set (Java
+/// including when `AcknowledgeErrorMessage` is set or empty (Java
 /// `handleShareFetchSuccess` completes piggyback acks and still
 /// delivers the fetch; this is not partition
 /// `DUPLICATE_RESOURCE`, which fails that poll, and not piggyback
@@ -3240,7 +3240,7 @@ impl ShareGroup {
     /// user does not exist.
     /// A piggybacked `DUPLICATE_RESOURCE` still completes
     /// without retry, including when `AcknowledgeErrorMessage` is set
-    /// (Java `handleShareFetchSuccess` completes piggyback acks and still
+    /// or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
     /// delivers the fetch; this is not partition
     /// `DUPLICATE_RESOURCE`, which fails that poll, and not piggyback
     /// `RESOURCE_NOT_FOUND`). Official Java
