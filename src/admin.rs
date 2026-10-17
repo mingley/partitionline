@@ -4766,13 +4766,10 @@ impl Admin {
                 self.refresh_broker_directory(deadline).await?;
             }
             let node = self.cluster.controller()?;
-            self.connect_node_until(node, deadline).await?;
-            let body = {
-                let conn = self
-                    .conns
-                    .get_mut(&node)
-                    .ok_or_else(|| Error::protocol("missing create_topics conn"))?;
-                conn.roundtrip(
+            let body = self
+                .roundtrip_known_node(
+                    node,
+                    deadline,
                     CREATE_TOPICS,
                     version,
                     |buf| {
@@ -4786,12 +4783,11 @@ impl Admin {
                     },
                     deadline.saturating_duration_since(Instant::now()),
                 )
-                .await
-            };
+                .await;
             let body = match body {
                 Ok(b) => b,
                 Err(e) if e.is_retriable() => {
-                    let _ = self.conns.remove(&node);
+                    self.drop_node_conn(node);
                     self.forget_controller();
                     self.wait_retry(&mut attempt, deadline).await?;
                     continue;
@@ -4805,7 +4801,7 @@ impl Admin {
             {
                 // NOT_CONTROLLER (41): Metadata, then the new controller.
                 self.forget_controller();
-                let _ = self.conns.remove(&node);
+                self.drop_node_conn(node);
                 self.wait_retry(&mut attempt, deadline).await?;
                 self.refresh_broker_directory(deadline).await?;
                 continue;
@@ -8683,6 +8679,46 @@ impl Admin {
                 startup_remaining(deadline)?,
             )
             .await
+    }
+
+    /// The broker address is the bootstrap socket already negotiated.
+    fn targets_bootstrap(&self, node: i32) -> bool {
+        self.cluster
+            .brokers
+            .get(&node)
+            .is_some_and(|addr| addr == self.conn.addr())
+    }
+
+    /// Send on the bootstrap socket when `node` is that broker.
+    ///
+    /// A one-broker cluster would otherwise open a second connection and
+    /// repeat ApiVersions before the controller RPC.
+    async fn roundtrip_known_node(
+        &mut self,
+        node: i32,
+        deadline: Instant,
+        api_key: i16,
+        version: i16,
+        encode: impl FnOnce(&mut bytes::BytesMut) -> Result<()>,
+        timeout: Duration,
+    ) -> Result<bytes::Bytes> {
+        if self.targets_bootstrap(node) {
+            self.ensure_bootstrap(deadline).await?;
+            return self.conn.roundtrip(api_key, version, encode, timeout).await;
+        }
+        self.connect_node_until(node, deadline).await?;
+        let conn = self
+            .conns
+            .get_mut(&node)
+            .ok_or_else(|| Error::protocol("missing broker connection"))?;
+        conn.roundtrip(api_key, version, encode, timeout).await
+    }
+
+    fn drop_node_conn(&mut self, node: i32) {
+        if self.targets_bootstrap(node) {
+            self.conn.close();
+        }
+        let _removed = self.conns.remove(&node);
     }
 
     async fn connect_node_until(&mut self, node: i32, deadline: Instant) -> Result<()> {

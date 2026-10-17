@@ -5,7 +5,7 @@ use partitionline::protocol::api_keys::OFFSET_FETCH;
 use partitionline::protocol::group::{OffsetFetchGroupData, OffsetFetchRequestData};
 use partitionline::{
     error, Admin, AdminConfig, Consumer, ConsumerConfig, ConsumerGroup,
-    DescribeShareGroupOffsetsGroup, Error, ListConsumerGroupOffsetsSpec, OffsetClient,
+    DescribeShareGroupOffsetsGroup, Error, ListConsumerGroupOffsetsSpec, NewTopic, OffsetClient,
     OffsetOptions, OffsetSpec, Producer, ProducerConfig,
 };
 use std::time::{Duration, Instant};
@@ -245,6 +245,40 @@ async fn describe_groups_coordinator_dials_overlap() {
     assert!(mock.api_versions_versions().len() >= before + 2);
     assert_eq!(described.len(), 2, "{described:?}");
     assert!(described.iter().all(|group| group.error_code == 0));
+}
+
+/// CreateTopics on the bootstrap broker reuses that socket.
+#[tokio::test]
+async fn create_topics_reuses_the_bootstrap_socket() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    let delay = Duration::from_millis(250);
+    mock.set_metadata_delay(delay);
+    mock.set_api_versions_delay(delay);
+    let versions_before = mock.api_versions_versions().len();
+    let started = Instant::now();
+    let created = admin
+        .create_topics(
+            &[NewTopic::new("created-on-bootstrap", 1, 1)],
+            10_000,
+            false,
+        )
+        .await
+        .unwrap();
+    let elapsed = started.elapsed();
+    assert_eq!(created.len(), 1);
+    assert_eq!(created[0].error_code, 0);
+    assert_eq!(
+        mock.api_versions_versions().len(),
+        versions_before,
+        "the controller RPC should stay on the negotiated bootstrap socket"
+    );
+    assert!(
+        elapsed < Duration::from_millis(450),
+        "create topics opened a second socket: {elapsed:?}"
+    );
 }
 
 /// The first coordinator lookup uses the host from FindCoordinator.
