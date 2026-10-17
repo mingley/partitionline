@@ -2454,6 +2454,12 @@ impl ConsumerGroup {
             if let Some(heartbeat) = heartbeat {
                 finish_heartbeat_task(heartbeat, deadline).await;
             }
+            // The member socket drops with this group. Yield so the broker
+            // observes that close before leave returns.
+            drop(self);
+            for _ in 0..8 {
+                tokio::task::yield_now().await;
+            }
             return Ok(());
         }
         self.flush_async_commits(deadline).await;
@@ -2490,6 +2496,12 @@ impl ConsumerGroup {
         self.consumer.close_interceptors();
         if let Some(heartbeat) = heartbeat {
             finish_heartbeat_task(heartbeat, deadline).await;
+        }
+        // Member and coordinator sockets drop with this group. Yield so the
+        // broker observes that close before leave returns.
+        drop(self);
+        for _ in 0..8 {
+            tokio::task::yield_now().await;
         }
         out
     }

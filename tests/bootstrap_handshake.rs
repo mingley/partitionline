@@ -1755,6 +1755,26 @@ async fn admin_close_closes_the_bootstrap_socket() {
     );
 }
 
+/// Closing a consumer group closes its sockets before close returns.
+#[tokio::test(flavor = "current_thread")]
+async fn group_close_closes_the_member_socket() {
+    let mock = common::Mock::start().await;
+    let mut cfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    cfg.request_timeout = Duration::from_secs(2);
+    cfg.max_wait_ms = 10;
+    let group = ConsumerGroup::join(cfg, "g-close", "t").await.unwrap();
+    assert!(
+        mock.open_conns() >= 1,
+        "group join should hold a broker socket"
+    );
+    group.close().await.unwrap();
+    assert_eq!(
+        mock.open_conns(),
+        0,
+        "group close left a socket blocked in a broker read"
+    );
+}
+
 /// Closing a producer closes the metadata socket before close returns.
 #[tokio::test(flavor = "current_thread")]
 async fn producer_close_closes_the_metadata_socket() {
