@@ -759,11 +759,40 @@ impl BrokerConn {
         tls: Option<&TlsConfig>,
     ) -> Result<Self> {
         let addrs = parse_and_validate_addresses(addrs)?;
+        if addrs.len() <= 1 {
+            let Some(addr) = addrs.first() else {
+                return Err(Error::protocol("all bootstrap servers failed"));
+            };
+            return Self::connect_tls(addr, client_id, connect_timeout, tls).await;
+        }
+        const PARALLELISM: usize = 8;
+        let mut waiting = addrs.into_iter();
+        let mut inflight = tokio::task::JoinSet::new();
         let mut last = Error::protocol("all bootstrap servers failed");
-        for addr in &addrs {
-            match Self::connect_tls(addr, client_id, connect_timeout, tls).await {
-                Ok(conn) => return Ok(conn),
-                Err(e) => last = e,
+        loop {
+            while inflight.len() < PARALLELISM {
+                let Some(addr) = waiting.next() else {
+                    break;
+                };
+                let client_id = client_id.to_string();
+                let tls = tls.cloned();
+                let _ = inflight.spawn(async move {
+                    BrokerConn::connect_tls(&addr, &client_id, connect_timeout, tls.as_ref()).await
+                });
+            }
+            if inflight.is_empty() {
+                break;
+            }
+            match inflight.join_next().await {
+                Some(Ok(Ok(conn))) => {
+                    inflight.abort_all();
+                    return Ok(conn);
+                }
+                Some(Ok(Err(error))) => last = error,
+                Some(Err(error)) => {
+                    last = Error::protocol(format!("bootstrap handshake: {error}"));
+                }
+                None => break,
             }
         }
         Err(last)

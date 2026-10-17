@@ -362,3 +362,32 @@ async fn explicit_deadline_contract_bounds_roundtrip() {
 
     server_task.await.unwrap();
 }
+
+/// A dead first bootstrap must not hold a later reachable host.
+#[tokio::test]
+async fn unreachable_bootstrap_does_not_hold_connect_tls_any() {
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap().to_string();
+    drop(tokio::spawn(async move {
+        loop {
+            if listener.accept().await.is_err() {
+                break;
+            }
+        }
+    }));
+    let started = Instant::now();
+    let conn = BrokerConn::connect_tls_any(
+        &["192.0.2.1:81".to_string(), addr],
+        "test-client",
+        Duration::from_millis(1500),
+        None,
+    )
+    .await
+    .unwrap();
+    let elapsed = started.elapsed();
+    assert!(
+        elapsed < Duration::from_millis(500),
+        "connect_tls_any waited for the unreachable bootstrap: {elapsed:?}"
+    );
+    assert!(!conn.is_closed());
+}
