@@ -1067,6 +1067,12 @@ pub enum ShareAcquireMode {
 /// delivers the fetch; this is not partition
 /// `REASSIGNMENT_IN_PROGRESS`, which fails that poll, and not piggyback
 /// `UNKNOWN_PRODUCER_ID`). A piggybacked
+/// `DELEGATION_TOKEN_AUTH_DISABLED` still completes without retry,
+/// including when `AcknowledgeErrorMessage` is set (Java
+/// `handleShareFetchSuccess` completes piggyback acks and still
+/// delivers the fetch; this is not partition
+/// `DELEGATION_TOKEN_AUTH_DISABLED`, which fails that poll, and not piggyback
+/// `REASSIGNMENT_IN_PROGRESS`). A piggybacked
 /// `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a
 /// sibling partition whose `AcknowledgeErrorCode` is none, including
 /// when `AcknowledgeErrorMessage` is set or empty. A piggybacked
@@ -2777,6 +2783,12 @@ impl ShareGroup {
     /// delivers the fetch; this is not partition
     /// `REASSIGNMENT_IN_PROGRESS`, which fails that poll, and not piggyback
     /// `UNKNOWN_PRODUCER_ID`).
+    /// A piggybacked `DELEGATION_TOKEN_AUTH_DISABLED` still completes
+    /// without retry, including when `AcknowledgeErrorMessage` is set
+    /// (Java `handleShareFetchSuccess` completes piggyback acks and still
+    /// delivers the fetch; this is not partition
+    /// `DELEGATION_TOKEN_AUTH_DISABLED`, which fails that poll, and not piggyback
+    /// `REASSIGNMENT_IN_PROGRESS`).
     /// A piggybacked `TOPIC_AUTHORIZATION_FAILED` on one partition
     /// does not fail a sibling whose `AcknowledgeErrorCode` is none,
     /// including when `AcknowledgeErrorMessage` is set or empty.

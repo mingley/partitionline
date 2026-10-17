@@ -2302,6 +2302,10 @@
 //! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `REASSIGNMENT_IN_PROGRESS`, which fails that poll, and not
 //! piggyback `UNKNOWN_PRODUCER_ID`). A piggybacked
+//! `DELEGATION_TOKEN_AUTH_DISABLED` still completes without retry,
+//! including when `AcknowledgeErrorMessage` is set (this is not
+//! partition `DELEGATION_TOKEN_AUTH_DISABLED`, which fails that poll, and not
+//! piggyback `REASSIGNMENT_IN_PROGRESS`). A piggybacked
 //! `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a
 //! sibling whose `AcknowledgeErrorCode` is none, including when
 //! `AcknowledgeErrorMessage` is set or empty. A piggybacked
