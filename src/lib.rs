@@ -2338,6 +2338,12 @@
 //! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `GROUP_ID_NOT_FOUND`, which fails that poll, and not
 //! piggyback `NON_EMPTY_GROUP`). A piggybacked
+//! `FETCH_SESSION_ID_NOT_FOUND` still completes without retry,
+//! including when `AcknowledgeErrorMessage` is set (this is not
+//! partition `FETCH_SESSION_ID_NOT_FOUND`, which fails that poll, and not
+//! piggyback `GROUP_ID_NOT_FOUND`). Official Java IncrementalFetchContext
+//! writes this when the ordinary fetch session id is unknown; it is
+//! not share-session `SHARE_SESSION_NOT_FOUND`. A piggybacked
 //! `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a
 //! sibling whose `AcknowledgeErrorCode` is none, including when
 //! `AcknowledgeErrorMessage` is set or empty. A piggybacked
