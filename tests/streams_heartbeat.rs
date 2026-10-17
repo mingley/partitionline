@@ -31,6 +31,53 @@ fn response(code: i16) -> Vec<u8> {
     bytes
 }
 
+/// A heartbeat timeout closes the bootstrap socket before the call returns.
+#[tokio::test(flavor = "current_thread")]
+async fn heartbeat_timeout_closes_the_bootstrap_socket() {
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::sync::Arc;
+    use tokio::io::AsyncReadExt;
+
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap().to_string();
+    let open = Arc::new(AtomicUsize::new(0));
+    let open_flag = Arc::clone(&open);
+    let peer = tokio::spawn(async move {
+        loop {
+            let (mut sock, _) = listener.accept().await.unwrap();
+            let _started = open_flag.fetch_add(1, Ordering::SeqCst);
+            let open_flag = Arc::clone(&open_flag);
+            let _reader = tokio::spawn(async move {
+                let mut buf = [0u8; 64];
+                loop {
+                    match sock.read(&mut buf).await {
+                        Ok(0) | Err(_) => break,
+                        Ok(_) => continue,
+                    }
+                }
+                let _left = open_flag.fetch_sub(1, Ordering::SeqCst);
+            });
+        }
+    });
+    let mut cfg = StreamsConfig::bootstrap([addr]);
+    cfg.allow_unstable = true;
+    cfg.connection.request_timeout = Duration::from_millis(200);
+    cfg.connection.connect_timeout = Duration::from_millis(200);
+    cfg.connection.retry_backoff = Duration::ZERO;
+    cfg.connection.retry_backoff_max = Duration::ZERO;
+    let mut client = StreamsClient::new(cfg).unwrap();
+    let result = client
+        .heartbeat_timeout(&request(), Duration::from_millis(200))
+        .await;
+    assert!(result.is_err(), "the heartbeat should time out");
+    assert_eq!(
+        open.load(Ordering::SeqCst),
+        0,
+        "heartbeat left the bootstrap socket blocked in a broker read"
+    );
+    peer.abort();
+}
+
 /// Startup drops a slower bootstrap handshake before the streams race returns.
 #[tokio::test(flavor = "current_thread")]
 async fn startup_finishes_a_blocked_bootstrap_handshake() {

@@ -265,42 +265,49 @@ impl StreamsClient {
         mut cached: Option<BrokerConn>,
         mut learned: Option<LearnedStreams>,
     ) -> Result<(StreamsGroupHeartbeatResponse, BrokerConn, LearnedStreams)> {
-        let mut last = Error::Timeout;
-        for attempt in 0..MAX_ATTEMPTS {
-            match self
-                .heartbeat_once(request, body, deadline, cached.take(), learned.clone())
-                .await
-            {
-                Ok((response, _conn, known))
-                    if error::coordinator_retriable(response.error_code) =>
+        let finished = async {
+            let mut last = Error::Timeout;
+            for attempt in 0..MAX_ATTEMPTS {
+                match self
+                    .heartbeat_once(request, body, deadline, cached.take(), learned.clone())
+                    .await
                 {
-                    learned = Some(known);
-                    last = Error::broker(response.error_code, "StreamsGroupHeartbeat");
+                    Ok((response, _conn, known))
+                        if error::coordinator_retriable(response.error_code) =>
+                    {
+                        learned = Some(known);
+                        last = Error::broker(response.error_code, "StreamsGroupHeartbeat");
+                    }
+                    Ok(response) => return Ok(response),
+                    Err(err) if err.is_retriable() => {
+                        last = err;
+                    }
+                    Err(err) => return Err(err),
                 }
-                Ok(response) => return Ok(response),
-                Err(err) if err.is_retriable() => {
-                    last = err;
+                if attempt + 1 < MAX_ATTEMPTS {
+                    let cfg = &self.cfg.connection;
+                    let (base, max) = if last.broker_code().is_none() {
+                        (cfg.reconnect_backoff, cfg.reconnect_backoff_max)
+                    } else {
+                        (cfg.retry_backoff, cfg.retry_backoff_max)
+                    };
+                    crate::config::sleep_retry_backoff(
+                        base,
+                        max,
+                        attempt,
+                        deadline.target().into_std(),
+                    )
+                    .await;
+                    deadline.check_expired()?;
                 }
-                Err(err) => return Err(err),
             }
-            if attempt + 1 < MAX_ATTEMPTS {
-                let cfg = &self.cfg.connection;
-                let (base, max) = if last.broker_code().is_none() {
-                    (cfg.reconnect_backoff, cfg.reconnect_backoff_max)
-                } else {
-                    (cfg.retry_backoff, cfg.retry_backoff_max)
-                };
-                crate::config::sleep_retry_backoff(
-                    base,
-                    max,
-                    attempt,
-                    deadline.target().into_std(),
-                )
-                .await;
-                deadline.check_expired()?;
-            }
+            Err(last)
         }
-        Err(last)
+        .await;
+        for _ in 0..8 {
+            tokio::task::yield_now().await;
+        }
+        finished
     }
 
     async fn open(
