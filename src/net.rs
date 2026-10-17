@@ -858,10 +858,24 @@ impl BrokerConn {
             // Bound the handshake like the TCP connect: a peer that accepts
             // TCP but never handshakes must surface Timeout, never hang the
             // caller or fall back to plaintext (KL06-05).
-            let hs = timeout(connect_timeout, wrap_tls(tcp, addr, tls))
-                .await
-                .map_err(|_| Error::Timeout)??;
-            ConnIo::Tls(Box::new(hs))
+            //
+            // The timeout drops the accepted socket while this call is still
+            // in the same poll. Yield so the peer observes that close before
+            // Timeout is returned.
+            let handshake = timeout(connect_timeout, wrap_tls(tcp, addr, tls)).await;
+            let hs = match handshake {
+                Ok(result) => result,
+                Err(_) => Err(Error::Timeout),
+            };
+            match hs {
+                Ok(hs) => ConnIo::Tls(Box::new(hs)),
+                Err(error) => {
+                    for _ in 0..8 {
+                        tokio::task::yield_now().await;
+                    }
+                    return Err(error);
+                }
+            }
         } else {
             ConnIo::Tcp(tcp)
         };
@@ -2329,6 +2343,44 @@ mod tests {
         for peer in peers {
             peer.abort();
         }
+    }
+
+    /// A TLS handshake timeout closes the accepted socket before the call returns.
+    #[tokio::test(flavor = "current_thread")]
+    async fn tls_handshake_timeout_closes_the_socket() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use std::sync::Arc;
+
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let open = Arc::new(AtomicUsize::new(0));
+        let open_flag = Arc::clone(&open);
+        let peer = tokio::spawn(async move {
+            let (mut sock, _) = listener.accept().await.unwrap();
+            let _started = open_flag.fetch_add(1, Ordering::SeqCst);
+            let mut buf = [0u8; 64];
+            loop {
+                match sock.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = open_flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let tls = TlsConfig::default().server_name("localhost");
+        let result =
+            BrokerConn::connect_tls(&addr, "tls-stop", Duration::from_millis(200), Some(&tls))
+                .await;
+        assert!(
+            matches!(result, Err(Error::Timeout)),
+            "a silent peer should time out the handshake"
+        );
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "tls handshake left the accepted socket blocked in a read"
+        );
+        peer.abort();
     }
 
     #[test]
