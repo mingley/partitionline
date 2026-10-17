@@ -972,7 +972,7 @@ pub enum ShareAcquireMode {
 /// `INVALID_CONFIG`, which fails that poll, and not piggyback
 /// `INVALID_REPLICA_ASSIGNMENT`). A piggybacked
 /// `INVALID_REQUEST` still completes without retry,
-/// including when `AcknowledgeErrorMessage` is set (Java
+/// including when `AcknowledgeErrorMessage` is set or empty (Java
 /// `handleShareFetchSuccess` completes piggyback acks and still
 /// delivers the fetch; this is not partition
 /// `INVALID_REQUEST`, which fails that poll, and not piggyback
@@ -2545,7 +2545,7 @@ impl ShareGroup {
     /// `INVALID_REPLICA_ASSIGNMENT`).
     /// A piggybacked `INVALID_REQUEST` still completes
     /// without retry, including when `AcknowledgeErrorMessage` is set
-    /// (Java `handleShareFetchSuccess` completes piggyback acks and still
+    /// or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
     /// delivers the fetch; this is not partition
     /// `INVALID_REQUEST`, which fails that poll, and not piggyback
     /// `INVALID_CONFIG`).
