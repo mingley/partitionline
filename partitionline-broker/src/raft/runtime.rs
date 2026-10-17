@@ -1927,6 +1927,15 @@ async fn rpc(
     }
     Ok(response.message)
 }
+async fn abandon_peer_socket(socket: impl Sized) {
+    drop(socket);
+    // Dropping the socket only schedules the close. Yield so the peer
+    // observes it before the caller continues.
+    for _ in 0..8 {
+        tokio::task::yield_now().await;
+    }
+}
+
 async fn outbound(control: Arc<Control>, peer: Peer, mut jobs: mpsc::Receiver<Job>) {
     let _task = Counter::task(&control);
     let mut wire = WireBuf::new();
@@ -1962,12 +1971,14 @@ async fn outbound(control: Arc<Control>, peer: Peer, mut jobs: mpsc::Receiver<Jo
             if let Ok(Ok(mut s)) =
                 tokio::time::timeout_at(connect_deadline, TcpStream::connect(peer.address)).await
             {
-                if configure_peer_socket(&s).is_ok()
+                let stored = configure_peer_socket(&s).is_ok()
                     && hello(&mut s, &control, peer.key(), deadline, &mut wire)
                         .await
-                        .is_ok()
-                {
+                        .is_ok();
+                if stored {
                     socket = Some((s, counter, 0));
+                } else {
+                    abandon_peer_socket(s).await;
                 }
             }
         }
@@ -1991,17 +2002,23 @@ async fn outbound(control: Arc<Control>, peer: Peer, mut jobs: mpsc::Receiver<Jo
                     .await
                     .is_err()
                 {
-                    socket.take();
+                    if let Some(open) = socket.take() {
+                        abandon_peer_socket(open).await;
+                    }
                     let _ = control.reliable(cancellation).await;
                 }
             }
             Err(_) => {
-                socket.take();
+                if let Some(open) = socket.take() {
+                    abandon_peer_socket(open).await;
+                }
                 let _ = control.reliable(cancellation).await;
             }
         }
     }
-    drop(socket);
+    if let Some(open) = socket.take() {
+        abandon_peer_socket(open).await;
+    }
     jobs.close();
     while let Some(job) = jobs.recv().await {
         let _ = control.cancel_job(job).await;
@@ -2529,6 +2546,43 @@ mod ownership_tests {
     use super::*;
 
     type TestResult<T = ()> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn abandoned_peer_socket_is_closed_before_the_caller_returns() -> TestResult {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use std::sync::Arc;
+        use tokio::io::AsyncReadExt;
+
+        let listener = TcpListener::bind("127.0.0.1:0").await?;
+        let address = listener.local_addr()?;
+        let open = Arc::new(AtomicUsize::new(0));
+        let open_flag = Arc::clone(&open);
+        let peer = tokio::spawn(async move {
+            let Ok((mut socket, _)) = listener.accept().await else {
+                return;
+            };
+            let _started = open_flag.fetch_add(1, Ordering::SeqCst);
+            let mut buf = [0u8; 8];
+            loop {
+                match socket.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = open_flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let socket = TcpStream::connect(address).await?;
+        while open.load(Ordering::SeqCst) == 0 {
+            tokio::task::yield_now().await;
+        }
+        abandon_peer_socket(socket).await;
+        if open.load(Ordering::SeqCst) != 0 {
+            return Err("abandoned peer socket still blocked in a read".into());
+        }
+        peer.abort();
+        Ok(())
+    }
+
     #[tokio::test]
     async fn peer_socket_configuration_disables_nagle_on_both_directions() -> TestResult {
         let listener = TcpListener::bind("127.0.0.1:0").await?;
