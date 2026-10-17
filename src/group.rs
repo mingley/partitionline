@@ -671,6 +671,8 @@ pub struct ConsumerGroup {
     rebalance_reason: Option<String>,
     /// Java `commitAsync`: OffsetCommit sent on the next poll / leave.
     pending_async_commits: Vec<PendingAsyncCommit>,
+    /// Coordinators this member already contacted. A later commit reuses them.
+    prior_coords: HashMap<String, KnownCoord>,
 }
 
 impl ConsumerGroup {
@@ -852,6 +854,7 @@ impl ConsumerGroup {
             rebalance_needed: false,
             rebalance_reason: None,
             pending_async_commits: Vec::new(),
+            prior_coords: HashMap::new(),
         };
         if g.topic_match.is_some() {
             g.topics = g.matching_topic_names_within(started).await?;
@@ -1020,6 +1023,7 @@ impl ConsumerGroup {
             rebalance_needed: false,
             rebalance_reason: None,
             pending_async_commits: Vec::new(),
+            prior_coords: HashMap::new(),
         };
         if g.topic_match.is_some() {
             g.topics = g.matching_topic_names_within(started).await?;
@@ -1884,6 +1888,7 @@ impl ConsumerGroup {
                 )
             },
             &bootstrap_keys,
+            &mut self.prior_coords,
             timeout,
         )
         .await?;
@@ -5682,6 +5687,7 @@ pub(crate) async fn coord_roundtrip(
     encode_body: impl FnMut(i16, &mut BytesMut) -> Result<()>,
     request_timeout: Duration,
 ) -> Result<(i16, Bytes)> {
+    let mut prior = HashMap::new();
     coord_roundtrip_with_bootstrap(
         coord,
         cfg,
@@ -5690,6 +5696,7 @@ pub(crate) async fn coord_roundtrip(
         api_key,
         encode_body,
         &[],
+        &mut prior,
         request_timeout,
     )
     .await
@@ -5707,6 +5714,7 @@ async fn coord_roundtrip_with_bootstrap(
     api_key: i16,
     mut encode_body: impl FnMut(i16, &mut BytesMut) -> Result<()>,
     bootstrap_keys: &[ApiVersion],
+    prior: &mut HashMap<String, KnownCoord>,
     request_timeout: Duration,
 ) -> Result<(i16, Bytes)> {
     let deadline = crate::net::Deadline::from_std(
@@ -5725,6 +5733,7 @@ async fn coord_roundtrip_with_bootstrap(
             version,
             |buf| encode_body(version, buf),
             bootstrap_keys,
+            prior,
             deadline.remaining()?,
         )
         .await?;

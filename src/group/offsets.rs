@@ -102,6 +102,7 @@ impl ConsumerGroup {
         let coord = &mut self.coord;
         let cfg = &self.cfg;
         let consumer = &mut self.consumer;
+        let prior = &mut self.prior_coords;
         let sent = coord_offsets_v10(
             coord,
             cfg,
@@ -110,6 +111,7 @@ impl ConsumerGroup {
             crate::protocol::api_keys::OFFSET_COMMIT,
             |buf| encode_offset_commit_request_into(buf, &request, 10, limits),
             &bootstrap_keys,
+            prior,
             timeout,
         );
         let refreshed = consumer.refresh_metadata_timeout(Some(names), timeout);
@@ -390,6 +392,7 @@ impl ConsumerGroup {
             crate::protocol::api_keys::OFFSET_COMMIT,
             |buf| encode_offset_commit_request_into(buf, &request, 10, limits),
             &bootstrap_keys,
+            &mut self.prior_coords,
             timeout,
         )
         .await;
@@ -430,6 +433,7 @@ impl ConsumerGroup {
             crate::protocol::api_keys::OFFSET_FETCH,
             |buf| encode_offset_fetch_request_into(buf, &request, 10, limits),
             &bootstrap_keys,
+            &mut self.prior_coords,
             timeout,
         )
         .await;
@@ -681,6 +685,7 @@ pub(super) async fn coord_offsets_v10(
     api: i16,
     mut encode: impl FnMut(&mut bytes::BytesMut) -> Result<()>,
     bootstrap_keys: &[crate::protocol::api::ApiVersion],
+    prior: &mut std::collections::HashMap<String, super::KnownCoord>,
     timeout: Duration,
 ) -> Result<bytes::Bytes> {
     let target = std::time::Instant::now()
@@ -710,9 +715,8 @@ pub(super) async fn coord_offsets_v10(
     if v10_coordinator_code(api, &body).is_some_and(crate::error::coordinator_retriable) {
         let bounded = bounded_consumer_config(cfg, deadline)?;
         let known = super::KnownCoord::capture(coord).with_bootstrap_keys(bootstrap_keys);
-        let mut prior = std::collections::HashMap::new();
         *coord = Box::pin(super::rediscover_known_coord(
-            &bounded, group_id, key_type, &known, &mut prior,
+            &bounded, group_id, key_type, &known, prior,
         ))
         .await?;
         let picked = if api == crate::protocol::api_keys::OFFSET_FETCH {
@@ -746,6 +750,7 @@ pub(super) async fn coord_offsets_legacy(
     version: i16,
     mut encode: impl FnMut(&mut bytes::BytesMut) -> Result<()>,
     bootstrap_keys: &[crate::protocol::api::ApiVersion],
+    prior: &mut std::collections::HashMap<String, super::KnownCoord>,
     timeout: Duration,
 ) -> Result<bytes::Bytes> {
     if version >= 10 {
@@ -783,9 +788,8 @@ pub(super) async fn coord_offsets_legacy(
         {
             let bounded = bounded_consumer_config(cfg, deadline)?;
             let known = super::KnownCoord::capture(coord).with_bootstrap_keys(bootstrap_keys);
-            let mut prior = std::collections::HashMap::new();
             *coord = Box::pin(super::rediscover_known_coord(
-                &bounded, group_id, key_type, &known, &mut prior,
+                &bounded, group_id, key_type, &known, prior,
             ))
             .await?;
             require_copied_coord_version(coord, api, version)?;
