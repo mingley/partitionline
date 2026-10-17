@@ -3631,6 +3631,52 @@ async fn consumer_group_heartbeat_retries_without_another_handshake() {
     group.leave().await.unwrap();
 }
 
+/// KIP-848 max poll leave uses the heartbeat socket.
+#[tokio::test]
+async fn kip848_max_poll_leave_reuses_the_heartbeat_socket() {
+    let mock = common::Mock::start().await;
+    mock.set_topic_partitions("t", 1);
+    mock.set_cg_heartbeat_interval_ms(30);
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    let _sent = producer
+        .send(ProduceRecord::to("t").value(&b"v"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+    let mut cfg = ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10);
+    cfg.heartbeat_interval = Duration::from_millis(30);
+    cfg.max_poll_interval = Duration::from_millis(80);
+    let mut group = ConsumerGroup::join_consumer(cfg, "leave-848", "t")
+        .await
+        .unwrap();
+    let _records = group.poll().await.unwrap();
+    let started_first = Instant::now();
+    while mock.cg_heartbeat_calls() < 2 {
+        if started_first.elapsed() > Duration::from_secs(2) {
+            panic!("consumer group heartbeat did not settle");
+        }
+        tokio::time::sleep(Duration::from_millis(5)).await;
+    }
+    let versions_before = mock.api_versions_versions().len();
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    tokio::time::sleep(Duration::from_millis(400)).await;
+    assert!(
+        mock.cg_heartbeat_acks()
+            .iter()
+            .any(|(_, epoch, _)| *epoch < 0),
+        "max poll should send a KIP-848 leave heartbeat"
+    );
+    assert_eq!(
+        mock.api_versions_versions().len(),
+        versions_before,
+        "KIP-848 max poll leave repeated ApiVersions"
+    );
+    drop(group);
+}
+
 /// Leaving after max.poll.interval uses the heartbeat socket.
 #[tokio::test]
 async fn max_poll_leave_reuses_the_heartbeat_socket() {
