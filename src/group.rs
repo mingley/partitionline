@@ -3709,6 +3709,7 @@ impl ConsumerGroup {
                                             &group_id,
                                             deadline,
                                             &bootstrap_keys,
+                                            &address_keys,
                                             &mut prior_coords,
                                         )
                                         .await;
@@ -3945,6 +3946,7 @@ impl ConsumerGroup {
                             &group_id,
                             deadline,
                             &bootstrap_keys,
+                            &address_keys,
                             &mut prior_coords,
                         )
                         .await;
@@ -5128,15 +5130,18 @@ pub(crate) async fn reopen_idle_coordinator(
     group_id: &str,
     deadline: Instant,
     bootstrap_keys: &[ApiVersion],
+    address_keys: &HashMap<String, Vec<ApiVersion>>,
     prior: &mut HashMap<String, KnownCoord>,
 ) {
     let known = if conn
         .as_ref()
         .is_some_and(|c| c.idle_expired(cfg.connections_max_idle))
     {
-        let snap = conn
-            .as_ref()
-            .map(|conn| KnownCoord::capture(conn).with_bootstrap_keys(bootstrap_keys));
+        let snap = conn.as_ref().map(|conn| {
+            KnownCoord::capture(conn)
+                .with_bootstrap_keys(bootstrap_keys)
+                .with_address_keys(address_keys)
+        });
         *conn = None;
         snap
     } else {

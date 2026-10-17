@@ -5156,6 +5156,7 @@ impl ShareGroup {
                             &group_id,
                             deadline,
                             &bootstrap_keys,
+                            &address_keys,
                             &mut prior_coords,
                         )
                             .await;
