@@ -845,47 +845,30 @@ struct ShareNodeConnection {
 
 /// Read share leader sockets until one closes. Closed sockets are dropped.
 ///
-/// A queued response does not finish a socket's watch. That would park the
-/// retry without noticing a later close.
+/// The sockets stay in `conns`. Cancelling this wait, which is how a retry
+/// backoff ends, must not drop a leader that is still up. A queued response
+/// does not count as a close.
 async fn drop_closed_share_conns(conns: &mut HashMap<i32, ShareNodeConnection>) {
     if conns.is_empty() {
         std::future::pending::<()>().await;
         return;
     }
-    let (stop_tx, _) = tokio::sync::broadcast::channel::<()>(1);
-    let mut set = tokio::task::JoinSet::new();
     let nodes: Vec<i32> = conns.keys().copied().collect();
-    for node in nodes {
-        let Some(mut peer) = conns.remove(&node) else {
-            continue;
-        };
-        let mut stop = stop_tx.subscribe();
-        let _task = set.spawn(async move {
+    loop {
+        for &node in &nodes {
+            let Some(peer) = conns.get_mut(&node) else {
+                continue;
+            };
             let closed = tokio::select! {
                 biased;
-                _ = stop.recv() => false,
                 _ = peer.conn.peer_left() => true,
+                _ = tokio::time::sleep(Duration::from_millis(50)) => false,
             };
-            (node, peer, closed)
-        });
-    }
-    let mut closed_any = false;
-    while let Some(joined) = set.join_next().await {
-        let Ok((node, peer, closed)) = joined else {
-            continue;
-        };
-        if closed {
-            drop(peer);
-            if !closed_any {
-                closed_any = true;
-                let _listeners = stop_tx.send(()).unwrap_or(0);
+            if closed {
+                let _ = conns.remove(&node);
+                return;
             }
-        } else {
-            let _ = conns.insert(node, peer);
         }
-    }
-    if !closed_any {
-        std::future::pending::<()>().await;
     }
 }
 
@@ -7536,6 +7519,63 @@ mod dial_tests {
     use super::*;
     use crate::protocol::api::ApiVersion;
     use crate::protocol::api_keys::FETCH;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn ending_a_share_retry_watch_keeps_the_leader_socket() {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        let accepted = tokio::spawn(async move {
+            let (socket, _) = listener.accept().await.unwrap();
+            let (mut reader, mut writer) = socket.into_split();
+            writer.write_all(&[0x01]).await.unwrap();
+            let mut buf = [0u8; 8];
+            tokio::time::timeout(Duration::from_millis(300), reader.read(&mut buf)).await
+        });
+        let conn = BrokerConn::connect(&addr.to_string(), "share-keep", Duration::from_secs(2))
+            .await
+            .unwrap();
+        let queued = tokio::time::timeout(Duration::from_millis(300), async {
+            loop {
+                if conn.has_queued_response() {
+                    break;
+                }
+                tokio::task::yield_now().await;
+            }
+        })
+        .await;
+        assert!(queued.is_ok(), "the queued byte never became visible");
+        let mut conns = HashMap::new();
+        let _ = conns.insert(
+            1,
+            ShareNodeConnection {
+                conn,
+                fetch_version: 0,
+                acknowledge_version: 0,
+            },
+        );
+        {
+            let mut waiting = std::pin::pin!(drop_closed_share_conns(&mut conns));
+            tokio::select! {
+                biased;
+                _ = &mut waiting => panic!("the share retry watch finished before the backoff ended"),
+                _ = tokio::time::sleep(Duration::from_millis(30)) => {}
+            }
+        }
+        for _ in 0..8 {
+            tokio::task::yield_now().await;
+        }
+        let saw = accepted.await.unwrap();
+        assert!(
+            matches!(saw, Err(_)),
+            "ending the share retry watch shut a live leader socket: {saw:?}"
+        );
+        assert!(
+            conns.contains_key(&1),
+            "ending the share retry watch dropped the leader connection"
+        );
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn queued_byte_does_not_hide_a_later_share_close() {
