@@ -85,34 +85,46 @@ async fn open_offset_socket(
     request: OffsetSocketRequest<'_>,
     deadline: Deadline,
 ) -> Result<(BrokerConn, ApiVersionsResponse, i16)> {
-    let mut conn = BrokerConn::connect_tls(
-        address,
-        &request.cfg.client_id,
-        request.cfg.connect_timeout.min(deadline.remaining()?),
-        request.cfg.tls.as_ref(),
-    )
-    .await?;
-    if let Some(stats) = request.stats {
-        conn.set_stats(std::sync::Arc::clone(stats));
+    let opened = async {
+        let mut conn = BrokerConn::connect_tls(
+            address,
+            &request.cfg.client_id,
+            request.cfg.connect_timeout.min(deadline.remaining()?),
+            request.cfg.tls.as_ref(),
+        )
+        .await?;
+        if let Some(stats) = request.stats {
+            conn.set_stats(std::sync::Arc::clone(stats));
+        }
+        let versions = if request.known.is_empty() {
+            negotiate_api_versions(&mut conn, deadline.remaining()?).await?
+        } else {
+            remembered_api_versions(request.known)
+        };
+        let version = OffsetClient::version(&versions, request.api, request.ids, request.member)?;
+        sasl::apply_api_keys(&mut conn, &versions.api_keys);
+        sasl::authenticate(
+            &mut conn,
+            request.cfg.sasl_plain.as_ref(),
+            request.cfg.sasl_scram.as_ref(),
+            request.cfg.sasl_scram_sha512.as_ref(),
+            request.cfg.sasl_oauthbearer.as_deref(),
+            request.cfg.sasl_oauthbearer_oidc.as_ref(),
+            deadline.remaining()?,
+        )
+        .await?;
+        Ok((conn, versions, version))
     }
-    let versions = if request.known.is_empty() {
-        negotiate_api_versions(&mut conn, deadline.remaining()?).await?
-    } else {
-        remembered_api_versions(request.known)
-    };
-    let version = OffsetClient::version(&versions, request.api, request.ids, request.member)?;
-    sasl::apply_api_keys(&mut conn, &versions.api_keys);
-    sasl::authenticate(
-        &mut conn,
-        request.cfg.sasl_plain.as_ref(),
-        request.cfg.sasl_scram.as_ref(),
-        request.cfg.sasl_scram_sha512.as_ref(),
-        request.cfg.sasl_oauthbearer.as_deref(),
-        request.cfg.sasl_oauthbearer_oidc.as_ref(),
-        deadline.remaining()?,
-    )
-    .await?;
-    Ok((conn, versions, version))
+    .await;
+    // A failed handshake drops its socket in this call. Yield so the broker
+    // observes that close before the error returns. A successful dial keeps
+    // the socket and does not wait.
+    if opened.is_err() {
+        for _ in 0..8 {
+            tokio::task::yield_now().await;
+        }
+    }
+    opened
 }
 
 fn retryable(err: &Error) -> bool {
@@ -1241,6 +1253,61 @@ fn validate_fetch_response(
 mod tests {
     use super::{collect_bounded_commits, collect_bounded_partitions};
     use crate::consumer::{OffsetAndMetadata, TopicPartition};
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn offset_handshake_timeout_closes_the_socket() {
+        use super::{open_offset_socket, OffsetSocketRequest};
+        use crate::net::Deadline;
+        use crate::protocol::api_keys::OFFSET_FETCH;
+        use crate::AdminConfig;
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use std::sync::Arc;
+        use std::time::{Duration, Instant};
+        use tokio::io::AsyncReadExt;
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let open = Arc::new(AtomicUsize::new(0));
+        let open_flag = Arc::clone(&open);
+        let peer = tokio::spawn(async move {
+            let (mut sock, _) = listener.accept().await.unwrap();
+            let _started = open_flag.fetch_add(1, Ordering::SeqCst);
+            let mut buf = [0u8; 64];
+            loop {
+                match sock.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = open_flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let mut cfg = AdminConfig::bootstrap([addr.clone()]);
+        cfg.connect_timeout = Duration::from_millis(200);
+        let known = [];
+        let result = open_offset_socket(
+            &addr,
+            OffsetSocketRequest {
+                cfg: &cfg,
+                stats: None,
+                api: OFFSET_FETCH,
+                ids: false,
+                member: false,
+                known: &known,
+            },
+            Deadline::from_std(Instant::now() + Duration::from_millis(200)),
+        )
+        .await;
+        assert!(
+            matches!(result, Err(crate::Error::Timeout)),
+            "a silent offset broker should time out the handshake"
+        );
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "offset handshake left the socket blocked in a broker read"
+        );
+        peer.abort();
+    }
 
     #[test]
     fn a_negative_commit_is_rejected() {

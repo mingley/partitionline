@@ -24,35 +24,47 @@ async fn open_streams_heartbeat(
     address: &str,
     deadline: Deadline,
 ) -> Result<(BrokerConn, ApiVersionsResponse)> {
-    let mut conn = BrokerConn::connect_tls(
-        address,
-        &cfg.client_id,
-        cfg.connect_timeout.min(deadline.remaining()?),
-        cfg.tls.as_ref(),
-    )
-    .await?;
-    let versions = negotiate_api_versions(&mut conn, deadline.remaining()?).await?;
-    if versions
-        .api_version(STREAMS_GROUP_HEARTBEAT)
-        .and_then(|api| pick_version(api.min_version, api.max_version, 0, 0))
-        .is_none()
-    {
-        return Err(Error::Unsupported(
-            "broker does not support StreamsGroupHeartbeat v0".into(),
-        ));
+    let opened = async {
+        let mut conn = BrokerConn::connect_tls(
+            address,
+            &cfg.client_id,
+            cfg.connect_timeout.min(deadline.remaining()?),
+            cfg.tls.as_ref(),
+        )
+        .await?;
+        let versions = negotiate_api_versions(&mut conn, deadline.remaining()?).await?;
+        if versions
+            .api_version(STREAMS_GROUP_HEARTBEAT)
+            .and_then(|api| pick_version(api.min_version, api.max_version, 0, 0))
+            .is_none()
+        {
+            return Err(Error::Unsupported(
+                "broker does not support StreamsGroupHeartbeat v0".into(),
+            ));
+        }
+        sasl::apply_api_keys(&mut conn, &versions.api_keys);
+        sasl::authenticate(
+            &mut conn,
+            cfg.sasl_plain.as_ref(),
+            cfg.sasl_scram.as_ref(),
+            cfg.sasl_scram_sha512.as_ref(),
+            cfg.sasl_oauthbearer.as_deref(),
+            cfg.sasl_oauthbearer_oidc.as_ref(),
+            deadline.remaining()?,
+        )
+        .await?;
+        Ok((conn, versions))
     }
-    sasl::apply_api_keys(&mut conn, &versions.api_keys);
-    sasl::authenticate(
-        &mut conn,
-        cfg.sasl_plain.as_ref(),
-        cfg.sasl_scram.as_ref(),
-        cfg.sasl_scram_sha512.as_ref(),
-        cfg.sasl_oauthbearer.as_deref(),
-        cfg.sasl_oauthbearer_oidc.as_ref(),
-        deadline.remaining()?,
-    )
-    .await?;
-    Ok((conn, versions))
+    .await;
+    // A failed handshake drops its socket in this call. Yield so the broker
+    // observes that close before the error returns. A successful dial keeps
+    // the socket and does not wait.
+    if opened.is_err() {
+        for _ in 0..8 {
+            tokio::task::yield_now().await;
+        }
+    }
+    opened
 }
 
 /// Versions learned for the bootstrap lookup and the coordinator socket.
@@ -615,5 +627,54 @@ impl StreamsClient {
         )?;
         deadline.check_expired()?;
         Ok((decoded, conn, learned))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::open_streams_heartbeat;
+    use crate::net::Deadline;
+    use crate::AdminConfig;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::sync::Arc;
+    use std::time::{Duration, Instant};
+    use tokio::io::AsyncReadExt;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn streams_heartbeat_handshake_timeout_closes_the_socket() {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let open = Arc::new(AtomicUsize::new(0));
+        let open_flag = Arc::clone(&open);
+        let peer = tokio::spawn(async move {
+            let (mut sock, _) = listener.accept().await.unwrap();
+            let _started = open_flag.fetch_add(1, Ordering::SeqCst);
+            let mut buf = [0u8; 64];
+            loop {
+                match sock.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = open_flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let mut cfg = AdminConfig::bootstrap([addr.clone()]);
+        cfg.connect_timeout = Duration::from_millis(200);
+        let result = open_streams_heartbeat(
+            &cfg,
+            &addr,
+            Deadline::from_std(Instant::now() + Duration::from_millis(200)),
+        )
+        .await;
+        assert!(
+            matches!(result, Err(crate::Error::Timeout)),
+            "a silent Streams broker should time out the handshake"
+        );
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "Streams heartbeat handshake left the socket blocked in a broker read"
+        );
+        peer.abort();
     }
 }
