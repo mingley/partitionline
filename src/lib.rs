@@ -2310,6 +2310,10 @@
 //! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `DELEGATION_TOKEN_NOT_FOUND`, which fails that poll, and not
 //! piggyback `DELEGATION_TOKEN_AUTH_DISABLED`). A piggybacked
+//! `DELEGATION_TOKEN_OWNER_MISMATCH` still completes without retry,
+//! including when `AcknowledgeErrorMessage` is set (this is not
+//! partition `DELEGATION_TOKEN_OWNER_MISMATCH`, which fails that poll, and not
+//! piggyback `DELEGATION_TOKEN_NOT_FOUND`). A piggybacked
 //! `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a
 //! sibling whose `AcknowledgeErrorCode` is none, including when
 //! `AcknowledgeErrorMessage` is set or empty. A piggybacked
