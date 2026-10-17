@@ -563,6 +563,11 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   set or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
   delivers the fetch; this is not partition `INVALID_PRINCIPAL_TYPE`,
   which fails that poll, and not piggyback `DELEGATION_TOKEN_EXPIRED`). A
+  piggybacked `NON_EMPTY_GROUP` still
+  completes without retry, including when `AcknowledgeErrorMessage` is
+  set (Java `handleShareFetchSuccess` completes piggyback acks and still
+  delivers the fetch; this is not partition `NON_EMPTY_GROUP`,
+  which fails that poll, and not piggyback `INVALID_PRINCIPAL_TYPE`). A
   piggybacked `TOPIC_AUTHORIZATION_FAILED` on
   one partition does not fail a sibling whose `AcknowledgeErrorCode`
   is none, including when `AcknowledgeErrorMessage` is set or empty. A
