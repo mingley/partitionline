@@ -4492,36 +4492,45 @@ async fn rediscover_producer_coordinator(
             .await;
     }
     let bounded = bounded_producer_config(cfg, deadline)?;
-    let speculative = open_producer_peer(known.previous, &bounded, known.previous_keys);
-    let located = locate_producer_coordinator(cfg, key, key_type, version, &known, deadline);
-    tokio::pin!(speculative);
-    tokio::pin!(located);
-    let addr = tokio::select! {
-        biased;
-        addr = &mut located => addr?,
-        opened = &mut speculative => {
-            let addr = located.await?;
-            if addr == known.previous {
-                let (conn, versions) = opened?;
+    // The lookup and the previous coordinator are dialed together. A lookup
+    // error has to finish that dial before this returns.
+    let discovered = async {
+        let speculative = open_producer_peer(known.previous, &bounded, known.previous_keys);
+        let located = locate_producer_coordinator(cfg, key, key_type, version, &known, deadline);
+        tokio::pin!(speculative);
+        tokio::pin!(located);
+        let addr = tokio::select! {
+            biased;
+            addr = &mut located => addr?,
+            opened = &mut speculative => {
+                let addr = located.await?;
+                if addr == known.previous {
+                    let (conn, versions) = opened?;
+                    return Ok(coordinator_connection(conn, &versions));
+                }
+                let (conn, versions) = open_recorded_peer(
+                    &addr,
+                    &bounded,
+                    known.known_by_addr,
+                    known.bootstrap_keys,
+                )
+                .await?;
                 return Ok(coordinator_connection(conn, &versions));
             }
-            let (conn, versions) = open_recorded_peer(
-                &addr,
-                &bounded,
-                known.known_by_addr,
-                known.bootstrap_keys,
-            )
-            .await?;
+        };
+        if addr == known.previous {
+            let (conn, versions) = speculative.await?;
             return Ok(coordinator_connection(conn, &versions));
         }
-    };
-    if addr == known.previous {
-        let (conn, versions) = speculative.await?;
-        return Ok(coordinator_connection(conn, &versions));
+        let (conn, versions) =
+            open_recorded_peer(&addr, &bounded, known.known_by_addr, known.bootstrap_keys).await?;
+        Ok(coordinator_connection(conn, &versions))
     }
-    let (conn, versions) =
-        open_recorded_peer(&addr, &bounded, known.known_by_addr, known.bootstrap_keys).await?;
-    Ok(coordinator_connection(conn, &versions))
+    .await;
+    for _ in 0..8 {
+        tokio::task::yield_now().await;
+    }
+    discovered
 }
 
 async fn locate_producer_coordinator(
@@ -10216,5 +10225,75 @@ mod tests {
             ),
             "{err}"
         );
+    }
+}
+
+#[cfg(test)]
+mod rediscover_stop_tests {
+    use super::{rediscover_producer_coordinator, RediscoverProducer};
+    use crate::protocol::group::COORDINATOR_TRANSACTION;
+    use crate::ProducerConfig;
+    use std::collections::HashMap;
+    use std::sync::atomic::{AtomicBool, Ordering};
+    use std::sync::Arc;
+    use std::time::{Duration, Instant};
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn failed_lookup_finishes_the_speculative_transaction_dial() {
+        use tokio::io::AsyncReadExt;
+
+        let lookup = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let lookup_addr = lookup.local_addr().unwrap().to_string();
+        let lookup_peer = tokio::spawn(async move {
+            let (mut sock, _) = lookup.accept().await.unwrap();
+            let mut buf = [0u8; 64];
+            loop {
+                match sock.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+        });
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let slow = listener.local_addr().unwrap().to_string();
+        let dropped = Arc::new(AtomicBool::new(false));
+        let flag = Arc::clone(&dropped);
+        let peer = tokio::spawn(async move {
+            let (mut sock, _) = listener.accept().await.unwrap();
+            let mut buf = [0u8; 64];
+            loop {
+                match sock.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            flag.store(true, Ordering::SeqCst);
+        });
+        let mut cfg = ProducerConfig::bootstrap([lookup_addr]);
+        cfg.request_timeout = Duration::from_millis(200);
+        cfg.connect_timeout = Duration::from_millis(200);
+        let addresses = HashMap::new();
+        let known = RediscoverProducer {
+            previous: &slow,
+            previous_keys: &[],
+            bootstrap_keys: &[],
+            known_by_addr: &addresses,
+        };
+        let result = rediscover_producer_coordinator(
+            &cfg,
+            "txn",
+            COORDINATOR_TRANSACTION,
+            1,
+            known,
+            Instant::now() + Duration::from_millis(200),
+        )
+        .await;
+        assert!(result.is_err(), "the stalled lookup should fail");
+        assert!(
+            dropped.load(Ordering::SeqCst),
+            "lookup left the speculative transaction dial blocked in a broker read"
+        );
+        peer.abort();
+        lookup_peer.abort();
     }
 }
