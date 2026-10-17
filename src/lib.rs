@@ -2503,7 +2503,7 @@
 //! is not currently registered.
 //! A piggybacked
 //! `INCONSISTENT_CLUSTER_ID` still completes without retry,
-//! including when `AcknowledgeErrorMessage` is set (this is not
+//! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `INCONSISTENT_CLUSTER_ID`, which fails that poll, and not
 //! piggyback `BROKER_ID_NOT_REGISTERED`). Official Java
 //! `ClusterControlManager` writes this when a broker registration
