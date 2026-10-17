@@ -1649,16 +1649,22 @@ impl Producer {
         // Coordinator discovery and producer-ID allocation continue the
         // startup deadline. Rediscovery and backoff cannot renew it.
         let mut txn = if let Some(tid) = cfg.transactional_id.as_deref() {
-            Some(
-                discover_within(
+            let version = required_find_coordinator(find_coord_version)?;
+            Some(if cfg.bootstrap.len() == 1 {
+                // The bootstrap socket is already negotiated. FindCoordinator
+                // runs there, then a dedicated coordinator socket is opened.
+                discover_from_bootstrap(
                     &cfg,
+                    &mut meta,
                     tid,
                     COORDINATOR_TRANSACTION,
-                    required_find_coordinator(find_coord_version)?,
+                    version,
                     deadline,
                 )
-                .await?,
-            )
+                .await?
+            } else {
+                discover_within(&cfg, tid, COORDINATOR_TRANSACTION, version, deadline).await?
+            })
         } else {
             None
         };
@@ -4089,6 +4095,32 @@ fn bounded_producer_config(cfg: &ProducerConfig, deadline: Instant) -> Result<Pr
     bounded.request_timeout = remaining;
     bounded.connect_timeout = cfg.connect_timeout.min(remaining);
     Ok(bounded)
+}
+
+async fn discover_from_bootstrap(
+    cfg: &ProducerConfig,
+    bootstrap: &mut BrokerConn,
+    key: &str,
+    key_type: i8,
+    version: i16,
+    deadline: Instant,
+) -> Result<CoordinatorConnection> {
+    let body = bootstrap
+        .roundtrip(
+            FIND_COORDINATOR,
+            version,
+            |buf| encode_find_coordinator_request_typed(buf, version, key, key_type),
+            timeout_remaining(deadline)?,
+        )
+        .await?;
+    let (err, _node, host, port) = decode_find_coordinator_response(&mut body.clone(), version)?;
+    if err != 0 {
+        return Err(Error::broker(err, "FindCoordinator"));
+    }
+    let addr = crate::net::format_address(&host, port);
+    let bounded = bounded_producer_config(cfg, deadline)?;
+    let (conn, versions) = open_conn_with_versions(&addr, &bounded, false).await?;
+    Ok(coordinator_connection(conn, &versions))
 }
 
 async fn discover_within(

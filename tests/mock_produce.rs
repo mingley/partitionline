@@ -849,6 +849,27 @@ async fn describe_groups_redials_while_finding_coordinator_after_not_coordinator
     );
 }
 
+/// Transactional startup sends FindCoordinator on the open bootstrap socket.
+#[tokio::test]
+async fn transactional_startup_reuses_the_bootstrap_socket() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_txn_coordinator(2);
+    let delay = Duration::from_millis(250);
+    mock.set_api_versions_delay(delay);
+    mock.set_find_coordinator_delay(delay);
+    let mut cfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    cfg.linger = Duration::ZERO;
+    cfg.transactional_id = Some("tx-startup".into());
+    let started = Instant::now();
+    let producer = Producer::new(cfg).await.unwrap();
+    let elapsed = started.elapsed();
+    assert!(
+        elapsed < Duration::from_millis(900),
+        "transactional startup opened a second bootstrap socket before FindCoordinator: {elapsed:?}"
+    );
+    producer.close().await.unwrap();
+}
+
 /// An EndTxn coordinator retry looks up the coordinator while that broker reconnects.
 #[tokio::test]
 async fn commit_redials_txn_coordinator_while_finding_it() {
