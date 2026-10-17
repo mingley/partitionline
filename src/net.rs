@@ -686,22 +686,18 @@ impl AsyncWrite for ConnIo {
     }
 }
 
-fn poll_idle_read(io: &mut ConnIo, buf: &mut [u8]) -> Poll<io::Result<usize>> {
-    let waker = std::task::Waker::noop();
-    let mut cx = Context::from_waker(waker);
-    let mut read = ReadBuf::new(buf);
-    match Pin::new(io).poll_read(&mut cx, &mut read) {
-        Poll::Pending => Poll::Pending,
-        Poll::Ready(Ok(())) => Poll::Ready(Ok(read.filled().len())),
-        Poll::Ready(Err(error)) => Poll::Ready(Err(error)),
-    }
+enum IdleRead {
+    Eof,
+    Busy,
+    Data,
 }
 
 /// Notice a broker that stops writing while the owner is not reading.
 ///
 /// The owner holds the stream lock for the whole read or write, so this
-/// watch only runs when the connection is idle. Bytes it does read stay in
-/// `prefetch` for the next framed read.
+/// watch only runs when the connection is idle. The socket wakes the watch,
+/// so a close is not delayed until the next timer. Bytes it does read stay
+/// in `prefetch` for the next framed read.
 fn spawn_idle_watch(
     stream: Arc<tokio::sync::Mutex<ConnIo>>,
     prefetch: Arc<parking_lot::Mutex<BytesMut>>,
@@ -716,25 +712,40 @@ fn spawn_idle_watch(
                 }
                 return;
             }
-            tokio::time::sleep(Duration::from_millis(20)).await;
-            let Ok(mut io) = stream.try_lock() else {
-                continue;
-            };
-            if closed.load(Ordering::SeqCst) {
-                drop(poll_fn(|cx| Pin::new(&mut *io).poll_shutdown(cx)).await);
-                return;
-            }
-            match poll_idle_read(&mut io, &mut buf) {
-                Poll::Pending => {}
-                Poll::Ready(Ok(0)) | Poll::Ready(Err(_)) => {
-                    closed.store(true, Ordering::SeqCst);
-                    drop(poll_fn(|cx| Pin::new(&mut *io).poll_shutdown(cx)).await);
-                    return;
+            let seen = poll_fn(|cx| {
+                let Ok(mut io) = stream.try_lock() else {
+                    return Poll::Ready(IdleRead::Busy);
+                };
+                if closed.load(Ordering::SeqCst) {
+                    return Poll::Ready(IdleRead::Eof);
                 }
-                Poll::Ready(Ok(n)) => {
-                    if let Some(chunk) = buf.get(..n) {
-                        prefetch.lock().extend_from_slice(chunk);
+                let mut read = ReadBuf::new(&mut buf);
+                match Pin::new(&mut *io).poll_read(cx, &mut read) {
+                    Poll::Pending => Poll::Pending,
+                    Poll::Ready(Err(_)) => Poll::Ready(IdleRead::Eof),
+                    Poll::Ready(Ok(())) => {
+                        let filled = read.filled().len();
+                        if filled == 0 {
+                            Poll::Ready(IdleRead::Eof)
+                        } else if let Some(chunk) = buf.get(..filled) {
+                            prefetch.lock().extend_from_slice(chunk);
+                            Poll::Ready(IdleRead::Data)
+                        } else {
+                            Poll::Ready(IdleRead::Data)
+                        }
                     }
+                }
+            })
+            .await;
+            match seen {
+                IdleRead::Busy => tokio::time::sleep(Duration::from_millis(20)).await,
+                IdleRead::Data => {}
+                IdleRead::Eof => {
+                    closed.store(true, Ordering::SeqCst);
+                    if let Ok(mut io) = stream.try_lock() {
+                        drop(poll_fn(|cx| Pin::new(&mut *io).poll_shutdown(cx)).await);
+                    }
+                    return;
                 }
             }
         }
@@ -3068,6 +3079,32 @@ mod tests {
             })
             .await;
         assert!(matches!(res, Err(Error::Timeout)));
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn idle_watch_sees_a_close_that_arrives_after_the_first_poll() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        let (gate_tx, gate_rx) = tokio::sync::oneshot::channel::<()>();
+        let accepted = tokio::spawn(async move {
+            let (socket, _) = listener.accept().await.unwrap();
+            let (mut reader, mut writer) = socket.into_split();
+            gate_rx.await.unwrap();
+            writer.shutdown().await.unwrap();
+            let mut buf = [0u8; 8];
+            tokio::time::timeout(Duration::from_millis(300), reader.read(&mut buf)).await
+        });
+        let conn = BrokerConn::connect(&addr.to_string(), "idle-late", Duration::from_secs(2))
+            .await
+            .unwrap();
+        tokio::time::sleep(Duration::from_millis(50)).await;
+        gate_tx.send(()).unwrap();
+        let saw = accepted.await.unwrap();
+        assert!(
+            matches!(saw, Ok(Ok(0))),
+            "peer stayed in the read after a late write shutdown: {saw:?}"
+        );
+        drop(conn);
     }
 
     #[tokio::test(flavor = "current_thread")]
