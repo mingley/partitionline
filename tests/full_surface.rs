@@ -3519,8 +3519,8 @@ async fn multi_leader_fetch_dials_overlap() {
         "leader dials ran one after another: {elapsed:?}"
     );
     assert!(
-        mock.api_versions_versions().len() >= before + 2,
-        "both leaders should negotiate, saw {}",
+        mock.api_versions_versions().len() == before + 1,
+        "the non-bootstrap leader should negotiate, saw {}",
         mock.api_versions_versions().len() - before
     );
     assert_eq!(recs.len(), 2, "{recs:?}");

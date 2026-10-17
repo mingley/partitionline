@@ -4452,6 +4452,12 @@ impl Consumer {
         let sasl_scram_sha512 = self.cfg.sasl_scram_sha512.clone();
         let sasl_oauthbearer = self.cfg.sasl_oauthbearer.clone();
         let sasl_oauthbearer_oidc = self.cfg.sasl_oauthbearer_oidc.clone();
+        let bootstrap_addr = self.conn.addr().to_string();
+        let known_keys = if self.versions.is_empty() {
+            Vec::new()
+        } else {
+            self.copy_api_keys()
+        };
         let mut waiting: VecDeque<(i32, String)> = dials.into();
         let mut inflight = tokio::task::JoinSet::new();
         let mut inflight_ids = HashSet::new();
@@ -4469,20 +4475,39 @@ impl Consumer {
             let sasl_scram_sha512 = sasl_scram_sha512.clone();
             let sasl_oauthbearer = sasl_oauthbearer.clone();
             let sasl_oauthbearer_oidc = sasl_oauthbearer_oidc.clone();
+            let known_keys = known_keys.clone();
+            let bootstrap_addr = bootstrap_addr.clone();
             let _ = inflight.spawn(async move {
-                let result = Consumer::open_fetch_conn(
-                    &addr,
-                    &client_id,
-                    connect_timeout,
-                    tls.as_ref(),
-                    sasl_plain.as_ref(),
-                    sasl_scram.as_ref(),
-                    sasl_scram_sha512.as_ref(),
-                    sasl_oauthbearer.as_deref(),
-                    sasl_oauthbearer_oidc.as_ref(),
-                    deadline,
-                )
-                .await;
+                let result = if addr == bootstrap_addr && !known_keys.is_empty() {
+                    Consumer::open_fetch_conn_known(
+                        &addr,
+                        &client_id,
+                        connect_timeout,
+                        tls.as_ref(),
+                        sasl_plain.as_ref(),
+                        sasl_scram.as_ref(),
+                        sasl_scram_sha512.as_ref(),
+                        sasl_oauthbearer.as_deref(),
+                        sasl_oauthbearer_oidc.as_ref(),
+                        &known_keys,
+                        deadline,
+                    )
+                    .await
+                } else {
+                    Consumer::open_fetch_conn(
+                        &addr,
+                        &client_id,
+                        connect_timeout,
+                        tls.as_ref(),
+                        sasl_plain.as_ref(),
+                        sasl_scram.as_ref(),
+                        sasl_scram_sha512.as_ref(),
+                        sasl_oauthbearer.as_deref(),
+                        sasl_oauthbearer_oidc.as_ref(),
+                        deadline,
+                    )
+                    .await
+                };
                 (node, result)
             });
         };

@@ -3772,8 +3772,44 @@ async fn preferred_replica_dials_overlap() {
     consumer.close().await.unwrap();
 }
 
-/// A successful response's quota applies to the next request, not delivery of
-/// the records already returned by that response.
+/// A fetch leader that is the bootstrap broker does not negotiate again.
+#[tokio::test]
+async fn multi_leader_fetch_reuses_bootstrap_api_versions() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_topic_partitions("t", 2);
+    mock.set_partition_leader("t", 0, 1);
+    mock.set_partition_leader("t", 1, 2);
+    let mut consumer =
+        Consumer::new(ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10))
+            .await
+            .unwrap();
+    consumer
+        .assign_many([(("t", 0), 0), (("t", 1), 0)])
+        .await
+        .unwrap();
+    let versions_before = mock.api_versions_versions().len();
+    let accepts_before = mock.accepts();
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let started = Instant::now();
+    let got = consumer.fetch().await.unwrap();
+    let elapsed = started.elapsed();
+    assert!(got.is_empty());
+    assert_eq!(
+        mock.api_versions_versions().len(),
+        versions_before + 1,
+        "only the non-bootstrap leader should negotiate"
+    );
+    assert_eq!(
+        mock.accepts(),
+        accepts_before + 2,
+        "both leaders open a socket; the bootstrap leader skips ApiVersions"
+    );
+    assert!(
+        elapsed < Duration::from_millis(400),
+        "multi-leader fetch repeated the bootstrap handshake: {elapsed:?}"
+    );
+    consumer.close().await.unwrap();
+}
 #[tokio::test]
 async fn fetch_throttle_delays_next_request_without_delaying_returned_records() {
     let mock = common::Mock::start().await;
