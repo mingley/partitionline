@@ -1137,6 +1137,14 @@ pub enum ShareAcquireMode {
 /// `FETCH_SESSION_ID_NOT_FOUND`). Official Java IncrementalFetchContext
 /// writes this when the ordinary fetch session epoch is invalid; it is
 /// not share-session `INVALID_SHARE_SESSION_EPOCH`. A piggybacked
+/// `LISTENER_NOT_FOUND` still completes without retry,
+/// including when `AcknowledgeErrorMessage` is set (Java
+/// `handleShareFetchSuccess` completes piggyback acks and still
+/// delivers the fetch; this is not partition
+/// `LISTENER_NOT_FOUND`, which fails that poll, and not piggyback
+/// `INVALID_FETCH_SESSION_EPOCH`). Official Java SocketServer writes
+/// this when the requested listener name is missing; it is not a
+/// share-session code. A piggybacked
 /// `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a
 /// sibling partition whose `AcknowledgeErrorCode` is none, including
 /// when `AcknowledgeErrorMessage` is set or empty. A piggybacked
@@ -2950,6 +2958,14 @@ impl ShareGroup {
     /// `FETCH_SESSION_ID_NOT_FOUND`). Official Java IncrementalFetchContext
     /// writes this when the ordinary fetch session epoch is invalid; it is
     /// not share-session `INVALID_SHARE_SESSION_EPOCH`.
+    /// A piggybacked `LISTENER_NOT_FOUND` still completes
+    /// without retry, including when `AcknowledgeErrorMessage` is set
+    /// (Java `handleShareFetchSuccess` completes piggyback acks and still
+    /// delivers the fetch; this is not partition
+    /// `LISTENER_NOT_FOUND`, which fails that poll, and not piggyback
+    /// `INVALID_FETCH_SESSION_EPOCH`). Official Java SocketServer writes
+    /// this when the requested listener name is missing; it is not a
+    /// share-session code.
     /// A piggybacked `TOPIC_AUTHORIZATION_FAILED` on one partition
     /// does not fail a sibling whose `AcknowledgeErrorCode` is none,
     /// including when `AcknowledgeErrorMessage` is set or empty.
