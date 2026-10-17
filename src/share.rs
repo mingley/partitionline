@@ -1454,6 +1454,15 @@ pub enum ShareAcquireMode {
 /// `Errors` writes this KIP-919 code when a controller ID is not
 /// known.
 /// A piggybacked
+/// `UNKNOWN_SUBSCRIPTION_ID` still completes without retry,
+/// including when `AcknowledgeErrorMessage` is set (Java
+/// `handleShareFetchSuccess` completes piggyback acks and still
+/// delivers the fetch; this is not partition
+/// `UNKNOWN_SUBSCRIPTION_ID`, which fails that poll, and not piggyback
+/// `UNKNOWN_CONTROLLER_ID`). Official Java
+/// `ClientMetricsManager` writes this when PushTelemetry names a
+/// subscription id that does not match the client instance.
+/// A piggybacked
 /// `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a
 /// sibling partition whose `AcknowledgeErrorCode` is none, including
 /// when `AcknowledgeErrorMessage` is set or empty. A piggybacked
@@ -3669,6 +3678,14 @@ impl ShareGroup {
     /// `UNSUPPORTED_ENDPOINT_TYPE`). Official Java
     /// `Errors` writes this KIP-919 code when a controller ID is not
     /// known.
+    /// A piggybacked `UNKNOWN_SUBSCRIPTION_ID` still completes
+    /// without retry, including when `AcknowledgeErrorMessage` is set
+    /// (Java `handleShareFetchSuccess` completes piggyback acks and still
+    /// delivers the fetch; this is not partition
+    /// `UNKNOWN_SUBSCRIPTION_ID`, which fails that poll, and not piggyback
+    /// `UNKNOWN_CONTROLLER_ID`). Official Java
+    /// `ClientMetricsManager` writes this when PushTelemetry names a
+    /// subscription id that does not match the client instance.
     /// A piggybacked `TOPIC_AUTHORIZATION_FAILED` on one partition
     /// does not fail a sibling whose `AcknowledgeErrorCode` is none,
     /// including when `AcknowledgeErrorMessage` is set or empty.
