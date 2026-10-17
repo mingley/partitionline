@@ -5,8 +5,9 @@ use partitionline::protocol::api_keys::OFFSET_FETCH;
 use partitionline::protocol::group::{OffsetFetchGroupData, OffsetFetchRequestData};
 use partitionline::{
     error, AclBinding, Admin, AdminConfig, AlterConfig, ConfigResource, Consumer, ConsumerConfig,
-    ConsumerGroup, DescribeShareGroupOffsetsGroup, Error, ListConsumerGroupOffsetsSpec, NewTopic,
-    OffsetClient, OffsetOptions, OffsetSpec, Producer, ProducerConfig,
+    ConsumerGroup, DescribeShareGroupOffsetsGroup, Error, FeatureUpdate,
+    ListConsumerGroupOffsetsSpec, NewTopic, OffsetClient, OffsetOptions, OffsetSpec, Producer,
+    ProducerConfig,
 };
 use std::time::{Duration, Instant};
 
@@ -383,6 +384,34 @@ async fn list_partition_reassignments_stays_on_the_bootstrap_socket() {
     assert!(
         elapsed < Duration::from_millis(200),
         "list partition reassignments opened another socket: {elapsed:?}"
+    );
+}
+
+/// UpdateFeatures on the bootstrap controller does not open another socket.
+#[tokio::test]
+async fn update_features_stays_on_the_bootstrap_socket() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    let accepts_before = mock.accepts();
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let started = Instant::now();
+    let updated = admin
+        .update_features(&[FeatureUpdate::new("metadata.version", 17)], 10_000)
+        .await
+        .unwrap();
+    let elapsed = started.elapsed();
+    assert_eq!(updated.len(), 1);
+    assert_eq!(updated[0].error_code, 0);
+    assert_eq!(
+        mock.accepts(),
+        accepts_before,
+        "UpdateFeatures should stay on the admin bootstrap socket"
+    );
+    assert!(
+        elapsed < Duration::from_millis(200),
+        "update features opened another socket: {elapsed:?}"
     );
 }
 
