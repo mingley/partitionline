@@ -4862,12 +4862,9 @@ async fn watch_init_retry(
     }
     tokio::select! {
         biased;
-        ready = conn.inbound_ready() => {
-            drop(ready);
-            conn.close();
-            conn.release_if_closed().await;
-            true
-        }
+        // A queued response must not finish this wait. The broker is still
+        // up, and the next attempt reuses this socket after the backoff.
+        _ = conn.peer_left() => true,
         () = &mut sleep => false,
     }
 }
@@ -4988,11 +4985,9 @@ async fn txn_retry_sleep(shared: &Shared, attempt: u32, deadline: Instant) {
     }
     tokio::select! {
         biased;
-        ready = coord.conn.inbound_ready() => {
-            drop(ready);
-            coord.conn.close();
-            coord.conn.release_if_closed().await;
-        }
+        // A queued response must not finish this wait. The coordinator is
+        // still up, and the next attempt reuses this socket after the backoff.
+        _ = coord.conn.peer_left() => {}
         () = &mut sleep => {}
     }
 }
@@ -9484,6 +9479,62 @@ fn record_metadata(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn queued_byte_does_not_skip_the_init_producer_id_backoff() {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        let (gate_tx, gate_rx) = tokio::sync::oneshot::channel::<()>();
+        let accepted = tokio::spawn(async move {
+            let (socket, _) = listener.accept().await.unwrap();
+            let (mut reader, mut writer) = socket.into_split();
+            writer.write_all(&[0x01]).await.unwrap();
+            gate_rx.await.unwrap();
+            let mut buf = [0u8; 8];
+            tokio::time::timeout(Duration::from_millis(300), reader.read(&mut buf)).await
+        });
+        let mut conn =
+            BrokerConn::connect(&addr.to_string(), "init-backoff", Duration::from_secs(2))
+                .await
+                .unwrap();
+        let queued = tokio::time::timeout(Duration::from_millis(300), async {
+            loop {
+                if conn.has_queued_response() {
+                    break;
+                }
+                tokio::task::yield_now().await;
+            }
+        })
+        .await;
+        assert!(queued.is_ok(), "the queued byte never became visible");
+        let mut cfg = ProducerConfig::bootstrap([addr.to_string()]);
+        cfg.retry_backoff = Duration::from_millis(800);
+        cfg.retry_backoff_max = Duration::from_millis(800);
+        cfg.request_timeout = Duration::from_secs(2);
+        gate_tx.send(()).unwrap();
+        {
+            let mut waiting = std::pin::pin!(watch_init_retry(
+                &cfg,
+                &mut conn,
+                0,
+                Instant::now() + Duration::from_secs(2),
+            ));
+            tokio::select! {
+                biased;
+                left = &mut waiting => panic!("a queued byte ended the InitProducerId backoff: {left}"),
+                saw = accepted => {
+                    let saw = saw.unwrap();
+                    assert!(
+                        matches!(saw, Err(_)),
+                        "a queued byte shut the coordinator socket down before the backoff: {saw:?}"
+                    );
+                }
+            }
+        }
+        drop(conn);
+    }
 
     #[test]
     fn an_elapsed_linger_does_not_arm_an_immediate_timer() {
