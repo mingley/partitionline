@@ -2001,11 +2001,37 @@ async fn outbound(control: Arc<Control>, peer: Peer, mut jobs: mpsc::Receiver<Jo
         let Ok(reservation) = reservation else {
             continue;
         };
+        let mut peer_left = false;
         let job = tokio::select! {
+            biased;
             _ = control.stopping()=>break,
+            // A peer can leave between jobs. The next heartbeat must not be
+            // what first notices that close.
+            _ = async {
+                if let Some((open, _, _)) = &mut socket {
+                    peer_socket_closed(
+                        open,
+                        &mut wire.unread,
+                        control.config.limits.frame_bytes,
+                    )
+                    .await;
+                } else {
+                    std::future::pending::<()>().await;
+                }
+            } => {
+                peer_left = true;
+                None
+            },
             value=jobs.recv()=>match value{Some(j)=>Some(j),None=>break},
             _ = tick.tick()=>match control.call(Command::Prepare(peer.key()),None,Some(reservation.clone()),admission).await{Ok(Reply::Job(j))=>j,_=>None},
         };
+        if peer_left {
+            wire.unread.clear();
+            if let Some(open) = socket.take() {
+                abandon_peer_socket(open).await;
+            }
+            continue;
+        }
         let Some(job) = job else {
             continue;
         };
@@ -3131,6 +3157,114 @@ mod ownership_tests {
         }
     }
 
+    #[tokio::test(flavor = "current_thread")]
+    async fn outbound_closes_when_the_peer_leaves_between_jobs() -> TestResult {
+        let owner = LocalOwner::open_profile(0, 5, 5, 16, StorageLimits::standard()?, 1000).await?;
+        let voter = LocalOwner::open(1, 5, 16).await?;
+        tokio::time::sleep(Duration::from_millis(3)).await;
+        let jobs = match owner.control.reliable(Command::Tick).await? {
+            Reply::Votes(jobs) => jobs,
+            _ => return Err("campaign".into()),
+        };
+        let request = jobs
+            .into_iter()
+            .find_map(|job| match job {
+                Job::Vote(q) if q.context.peer.id == 1 => Some(q),
+                _ => None,
+            })
+            .ok_or("vote for peer 1")?;
+        let before = owner.state().await?.election.granted_votes;
+        let granted = grant(&voter, request).await?;
+        let Message::VoteReply(granted) = granted else {
+            return Err("genuine vote reply".into());
+        };
+        let listener = TcpListener::bind("127.0.0.1:0").await?;
+        let address = listener.local_addr()?;
+        let route = Peer::new(voter.control.config.bootstrap.local().clone(), address)?;
+        let (tx, rx) = mpsc::channel(1);
+        let control = owner.control.clone();
+        let running = tokio::spawn(async move {
+            outbound(control, route, rx).await;
+        });
+        tokio::time::sleep(Duration::from_millis(20)).await;
+        tx.send(Job::Vote(request)).await.map_err(|_| "send vote")?;
+        let (mut socket, _) = tokio::time::timeout(Duration::from_secs(2), listener.accept())
+            .await
+            .map_err(|_| "outbound did not connect")??;
+        let bound = owner.control.config.limits.frame_bytes;
+        let mut wire = WireBuf::new();
+        let deadline = Instant::now() + Duration::from_secs(2);
+        let hello = read_frame(&mut socket, bound, 64, deadline, &mut wire).await?;
+        let Message::Hello(hello) = hello.message else {
+            return Err("hello".into());
+        };
+        write_frame(
+            &mut socket,
+            &Frame {
+                rpc: 0,
+                message: Message::HelloAck(hello),
+            },
+            bound,
+            deadline,
+            &mut wire,
+        )
+        .await?;
+        let vote = read_frame(&mut socket, bound, 64, deadline, &mut wire).await?;
+        let Message::Vote(vote_request) = vote.message else {
+            return Err("vote".into());
+        };
+        if vote_request != granted.request {
+            running.abort();
+            return Err("wire vote did not match the campaign".into());
+        }
+        write_frame(
+            &mut socket,
+            &Frame {
+                rpc: vote.rpc,
+                message: Message::VoteReply(granted),
+            },
+            bound,
+            deadline,
+            &mut wire,
+        )
+        .await?;
+        let wait_grant = Instant::now() + Duration::from_millis(500);
+        loop {
+            if owner.state().await?.election.granted_votes > before {
+                break;
+            }
+            if Instant::now() >= wait_grant {
+                running.abort();
+                return Err("vote was not acknowledged".into());
+            }
+            tokio::task::yield_now().await;
+        }
+        // The acknowledge has finished. Let the outbound task return to the
+        // idle wait before the peer closes, so this is not the acknowledge watch.
+        tokio::time::sleep(Duration::from_millis(20)).await;
+        let mut buf = [0u8; 8];
+        let still_open = tokio::time::timeout(
+            Duration::from_millis(30),
+            tokio::io::AsyncReadExt::read(&mut socket, &mut buf),
+        )
+        .await;
+        if !matches!(still_open, Err(_)) {
+            running.abort();
+            return Err("outbound dropped the socket after a successful acknowledge".into());
+        }
+        socket.shutdown().await.map_err(|_| "shutdown write")?;
+        let saw = tokio::time::timeout(
+            Duration::from_millis(300),
+            tokio::io::AsyncReadExt::read(&mut socket, &mut buf),
+        )
+        .await;
+        running.abort();
+        match saw {
+            Ok(Ok(0)) => Ok(()),
+            _ => Err("outbound kept the socket while the peer was idle and closed".into()),
+        }
+    }
+
     #[tokio::test]
     async fn peer_socket_configuration_disables_nagle_on_both_directions() -> TestResult {
         let listener = TcpListener::bind("127.0.0.1:0").await?;
@@ -3151,7 +3285,15 @@ mod ownership_tests {
     }
     impl LocalOwner {
         async fn open(local: u32, count: u32, capacity: usize) -> TestResult<Self> {
-            Self::open_profile(local, count, count, capacity, StorageLimits::standard()?).await
+            Self::open_profile(
+                local,
+                count,
+                count,
+                capacity,
+                StorageLimits::standard()?,
+                100,
+            )
+            .await
         }
         async fn open_profile(
             local: u32,
@@ -3159,6 +3301,7 @@ mod ownership_tests {
             genesis_count: u32,
             capacity: usize,
             storage: StorageLimits,
+            heartbeat_ms: u64,
         ) -> TestResult<Self> {
             if genesis_count == 0 || genesis_count > count {
                 return Err("owner genesis bounds".into());
@@ -3212,6 +3355,7 @@ mod ownership_tests {
                     election_min_ms: 1,
                     election_max_ms: 1,
                     command_ms: 20,
+                    heartbeat_ms,
                     ..Limits::default()
                 },
             )?);
@@ -3944,9 +4088,9 @@ mod ownership_tests {
                 32,
             )?,
         };
-        let source = LocalOwner::open_profile(0, 3, 2, 16, storage).await?;
-        let peer = LocalOwner::open_profile(1, 3, 2, 16, storage).await?;
-        let observer = LocalOwner::open_profile(2, 3, 2, 16, storage).await?;
+        let source = LocalOwner::open_profile(0, 3, 2, 16, storage, 100).await?;
+        let peer = LocalOwner::open_profile(1, 3, 2, 16, storage, 100).await?;
+        let observer = LocalOwner::open_profile(2, 3, 2, 16, storage, 100).await?;
         let result: TestResult = async {
             tokio::time::sleep(Duration::from_millis(3)).await;
             let jobs = match source.fixture("observer-campaign", Command::Tick).await?? {
