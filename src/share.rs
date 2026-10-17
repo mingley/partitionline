@@ -1037,6 +1037,12 @@ pub enum ShareAcquireMode {
 /// delivers the fetch; this is not partition
 /// `SECURITY_DISABLED`, which fails that poll, and not piggyback
 /// `TRANSACTION_COORDINATOR_FENCED`). A piggybacked
+/// `OPERATION_NOT_ATTEMPTED` still completes without retry,
+/// including when `AcknowledgeErrorMessage` is set (Java
+/// `handleShareFetchSuccess` completes piggyback acks and still
+/// delivers the fetch; this is not partition
+/// `OPERATION_NOT_ATTEMPTED`, which fails that poll, and not piggyback
+/// `SECURITY_DISABLED`). A piggybacked
 /// `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a
 /// sibling partition whose `AcknowledgeErrorCode` is none, including
 /// when `AcknowledgeErrorMessage` is set or empty. A piggybacked
@@ -2702,6 +2708,12 @@ impl ShareGroup {
     /// delivers the fetch; this is not partition
     /// `SECURITY_DISABLED`, which fails that poll, and not piggyback
     /// `TRANSACTION_COORDINATOR_FENCED`).
+    /// A piggybacked `OPERATION_NOT_ATTEMPTED` still completes
+    /// without retry, including when `AcknowledgeErrorMessage` is set
+    /// (Java `handleShareFetchSuccess` completes piggyback acks and still
+    /// delivers the fetch; this is not partition
+    /// `OPERATION_NOT_ATTEMPTED`, which fails that poll, and not piggyback
+    /// `SECURITY_DISABLED`).
     /// A piggybacked `TOPIC_AUTHORIZATION_FAILED` on one partition
     /// does not fail a sibling whose `AcknowledgeErrorCode` is none,
     /// including when `AcknowledgeErrorMessage` is set or empty.
