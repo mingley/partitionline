@@ -1880,6 +1880,12 @@ async fn write_frame<S: AsyncWrite + Unpin>(
     let len = u32::try_from(bytes.len())
         .map_err(|_| Error::Peer)?
         .to_be_bytes();
+    // A length already read while the previous command ran is not a later
+    // socket read. The peer is not accepting this frame, so the write must
+    // not sit until its deadline.
+    if peer_length_rejected(&wire.unread, limit) {
+        return Err(Error::Peer);
+    }
     tokio::time::timeout_at(deadline, async {
         // One vectored send so the length prefix is not a separate packet.
         let mut slices = [IoSlice::new(&len), IoSlice::new(bytes)];
@@ -2917,6 +2923,66 @@ mod frame_deadline_tests {
         assert!(
             deadline && elapsed < Duration::from_millis(80),
             "a ready peer write held the frame past its deadline: {elapsed:?} deadline {deadline}"
+        );
+    }
+
+    struct PendingWrite;
+
+    impl AsyncWrite for PendingWrite {
+        fn poll_write(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            _buf: &[u8],
+        ) -> Poll<std::io::Result<usize>> {
+            Poll::Pending
+        }
+
+        fn poll_flush(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
+            Poll::Ready(Ok(()))
+        }
+
+        fn poll_shutdown(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
+            Poll::Ready(Ok(()))
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn an_illegal_length_already_buffered_ends_the_peer_write() {
+        use super::super::membership::Key;
+        use super::super::peer_codec::{Frame, Group, Hello, Message};
+
+        let key = Key::new(1, [1; 16]).unwrap_or_else(|error| panic!("{error}"));
+        let frame = Frame {
+            rpc: 0,
+            message: Message::Hello(Hello {
+                source: key,
+                target: key,
+                group: Group {
+                    cluster: "c".to_string(),
+                    topic: "t".to_string(),
+                    partition: 0,
+                    genesis: vec![1],
+                },
+            }),
+        };
+        let mut wire = WireBuf::new();
+        wire.unread.extend_from_slice(&28u32.to_be_bytes());
+        wire.unread.extend_from_slice(&[0u8; 28]);
+        wire.unread.extend_from_slice(&1u32.to_be_bytes());
+        let result = tokio::time::timeout(
+            Duration::from_millis(200),
+            super::write_frame(
+                &mut PendingWrite,
+                &frame,
+                1024 * 1024,
+                Instant::now() + Duration::from_secs(5),
+                &mut wire,
+            ),
+        )
+        .await;
+        assert!(
+            matches!(result, Ok(Err(Error::Peer))),
+            "an illegal length already buffered waited out the peer write"
         );
     }
 
