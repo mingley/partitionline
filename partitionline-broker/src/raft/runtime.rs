@@ -1967,7 +1967,11 @@ async fn rpc(
     }
     Ok(response.message)
 }
-async fn peer_socket_closed(socket: &mut TcpStream, unread: &mut Vec<u8>, limit: usize) {
+async fn peer_socket_closed<S: AsyncRead + Unpin>(
+    socket: &mut S,
+    unread: &mut Vec<u8>,
+    limit: usize,
+) {
     let mut buf = [0u8; 1024];
     loop {
         // One next frame fits in the frame limit. More than that during a
@@ -1981,6 +1985,9 @@ async fn peer_socket_closed(socket: &mut TcpStream, unread: &mut Vec<u8>, limit:
                 if let Some(chunk) = buf.get(..n) {
                     unread.extend_from_slice(chunk);
                 }
+                // A ready flood never leaves this read, so a command or
+                // heartbeat beside it cannot run until the cap is reached.
+                tokio::task::yield_now().await;
             }
         }
     }
@@ -2880,6 +2887,51 @@ mod frame_deadline_tests {
         assert!(
             deadline && elapsed < Duration::from_millis(80),
             "a ready peer write held the frame past its deadline: {elapsed:?} deadline {deadline}"
+        );
+    }
+
+    struct ReadyFlood {
+        left: usize,
+    }
+
+    impl AsyncRead for ReadyFlood {
+        fn poll_read(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            buf: &mut ReadBuf<'_>,
+        ) -> Poll<std::io::Result<()>> {
+            let this = self.get_mut();
+            if this.left == 0 {
+                return Poll::Pending;
+            }
+            let dst = buf.initialize_unfilled();
+            if dst.is_empty() {
+                return Poll::Ready(Ok(()));
+            }
+            let n = dst.len().min(this.left).min(1024);
+            dst[..n].fill(5);
+            buf.advance(n);
+            this.left -= n;
+            let start = std::time::Instant::now();
+            while start.elapsed() < Duration::from_micros(200) {}
+            Poll::Ready(Ok(()))
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn a_ready_peer_flood_does_not_hold_the_command_wait() {
+        let mut socket = ReadyFlood { left: 512 * 1024 };
+        let mut unread = Vec::new();
+        let started = Instant::now();
+        tokio::select! {
+            biased;
+            _ = super::peer_socket_closed(&mut socket, &mut unread, 1024 * 1024) => {}
+            _ = tokio::time::sleep(Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < Duration::from_millis(80),
+            "a ready peer flood held the command wait: {elapsed:?}"
         );
     }
 }
