@@ -321,6 +321,23 @@ fn stalled_write_read(read_buf: &BytesMut) -> (usize, Option<usize>) {
     (STALLED_WRITE_READ_CHUNK, None)
 }
 
+/// A stalled write is also the socket's reader. One max frame is enough for
+/// the response that was already on the wire. More than that, or a length
+/// this connection will not accept, is a peer that is not reading.
+fn stalled_write_read_rejected(read_buf: &BytesMut) -> bool {
+    let cap = usize::try_from(MAX_FRAME).unwrap_or(usize::MAX);
+    if read_buf.len() > cap {
+        return true;
+    }
+    let Some(prefix) = read_buf.get(..4) else {
+        return false;
+    };
+    let Ok(raw) = <[u8; 4]>::try_from(prefix) else {
+        return true;
+    };
+    !(0..=MAX_FRAME).contains(&i32::from_be_bytes(raw))
+}
+
 /// True when `buf` holds one full frame, or a length the framed reader will reject.
 fn inbound_satisfied(buf: &BytesMut) -> bool {
     let Some(prefix) = buf.get(..4) else {
@@ -664,7 +681,18 @@ where
                             "broker closed connection",
                         )));
                     }
-                    Poll::Ready(Ok(_)) => {}
+                    Poll::Ready(Ok(_)) => {
+                        // Ready data keeps this poll looping, so the write
+                        // deadline never gets another turn. Stop after one
+                        // max frame instead of buffering the peer without a
+                        // limit.
+                        if stalled_write_read_rejected(read_buf) {
+                            return Poll::Ready(Err(io::Error::new(
+                                io::ErrorKind::InvalidData,
+                                "stalled write buffered more than one max frame",
+                            )));
+                        }
+                    }
                     Poll::Ready(Err(e)) => return Poll::Ready(Err(e)),
                     Poll::Pending => return Poll::Pending,
                 }
@@ -3518,6 +3546,61 @@ mod tests {
             "peer stayed in the read after its write shutdown: {saw:?}"
         );
         drop(pipeline);
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn stalled_write_stops_a_flood_of_empty_frames() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let (read_tx, read_rx) = tokio::sync::oneshot::channel::<()>();
+        let accepted = tokio::spawn(async move {
+            let (socket, _) = listener.accept().await.unwrap();
+            let (mut reader, mut writer) = socket.into_split();
+            let chunk = vec![0u8; 64 * 1024];
+            let _flood = tokio::spawn(async move {
+                loop {
+                    if writer.write_all(&chunk).await.is_err() {
+                        break;
+                    }
+                }
+            });
+            let _started = read_rx.await;
+            let mut buf = [0u8; 8 * 1024];
+            tokio::time::timeout(Duration::from_millis(300), async {
+                loop {
+                    match reader.read(&mut buf).await {
+                        Ok(0) | Err(_) => return Ok::<usize, std::io::Error>(0),
+                        Ok(_) => continue,
+                    }
+                }
+            })
+            .await
+        });
+        let mut conn = BrokerConn::connect(&addr, "stall-flood", Duration::from_secs(2))
+            .await
+            .unwrap();
+        // Larger than the largest TCP window, so the write stays blocked
+        // while the peer sends and does not read.
+        let payload = vec![1u8; 8 * 1024 * 1024];
+        let started = std::time::Instant::now();
+        let result = conn
+            .write_all_deadline(&payload, Deadline::from_timeout(Duration::from_millis(200)))
+            .await;
+        assert!(
+            result.is_err(),
+            "a flood of empty frames let the stalled write finish"
+        );
+        assert!(
+            started.elapsed() < Duration::from_secs(8),
+            "a flood of empty frames kept the stalled write running: {:?}",
+            started.elapsed()
+        );
+        read_tx.send(()).unwrap();
+        let saw = accepted.await.unwrap();
+        assert!(
+            matches!(saw, Ok(Ok(0))),
+            "a flood of empty frames left the peer blocked in its read: {saw:?}"
+        );
     }
 
     #[tokio::test(flavor = "current_thread")]
