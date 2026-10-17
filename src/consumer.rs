@@ -3229,6 +3229,74 @@ impl Consumer {
         })
     }
 
+    /// A consumer that already holds `conn`, for tests of socket waits.
+    #[cfg(test)]
+    fn test_holding(cfg: ConsumerConfig, conn: BrokerConn) -> Self {
+        let rack_id = cfg.rack.as_deref().map(Arc::<str>::from);
+        Self {
+            cfg,
+            conn,
+            versions: HashMap::new(),
+            metadata_version: 0,
+            metadata: None,
+            full_metadata_at: None,
+            name_to_id: HashMap::new(),
+            id_to_name: HashMap::new(),
+            cluster: Cluster::default(),
+            conns: HashMap::new(),
+            redial_nodes: Vec::new(),
+            list_offsets_ranges: HashMap::new(),
+            leader_epoch_ranges: HashMap::new(),
+            node_api_keys: HashMap::new(),
+            learned_broker_keys: HashMap::new(),
+            fetch_throttles: HashMap::new(),
+            fetch_sessions: HashMap::new(),
+            fetch_plan: HashMap::new(),
+            throttle_metrics: crate::metrics::ThrottleTracker::default(),
+            assigned: Vec::new(),
+            cursor_index: None,
+            cursor_slots: None,
+            assigned_topic_ids: HashMap::new(),
+            fetched_epochs: Vec::new(),
+            fetch_rollback: Vec::new(),
+            preferred: PartitionMap::new(),
+            paused: PartitionMap::new(),
+            pending: PendingRecords::new(),
+            retained: PartitionMap::new(),
+            retained_bytes: 0,
+            buffered_bytes: 0,
+            aborted: PartitionMap::new(),
+            m_fetch_rounds: AtomicU64::new(0),
+            m_records: AtomicU64::new(0),
+            m_bytes: AtomicU64::new(0),
+            m_errors: AtomicU64::new(0),
+            m_reconnects: AtomicU64::new(0),
+            wakeup: Arc::new(AtomicBool::new(false)),
+            wakeup_tx: watch::channel(false).0,
+            telemetry_version: None,
+            client_instance_id: None,
+            m_fetch_latency: crate::metrics::LatencyTracker::new(),
+            topic_metrics: HashMap::new(),
+            fetch_return_totals: HashMap::new(),
+            fetch_completed: PartitionMap::new(),
+            last_fetch_records: 0,
+            spare_fetch_records: Vec::new(),
+            spare_replies: Vec::new(),
+            spare_decoded: Vec::new(),
+            spare_leaders: Vec::new(),
+            spare_connected: Vec::new(),
+            rack_id,
+            spare_fetch_topics: Vec::new(),
+            metadata_topics: Vec::new(),
+            epoch_topics: Vec::new(),
+            epoch_fetched: Vec::new(),
+            reconnect_fails: HashMap::new(),
+            inflight_fetches: None,
+            inflight_nodes: HashSet::new(),
+            inflight_fetch_tasks: Vec::new(),
+        }
+    }
+
     /// Assign one partition at `offset`. Replaces a previous offset for the same pair.
     ///
     /// Java `assign` calls [`crate::protocol::group::Topic::validate`] on the topic name.
@@ -7101,15 +7169,21 @@ impl Consumer {
             watched.push(node);
             let mut stop = stop_tx.subscribe();
             let _ = set.spawn(async move {
+                // A queued response must not finish this watch. The caller's
+                // quota sleep would lose the select and the next fetch would
+                // go out before the broker's throttle ended.
+                // A queued response must not finish this watch. The caller's
+                // quota sleep would lose the select and the next fetch would
+                // go out before the broker's throttle ended.
                 let closed = tokio::select! {
                     biased;
                     _ = stop.recv() => false,
-                    result = conn.inbound_ready() => result.is_err(),
+                    _ = conn.peer_left() => true,
                 };
                 (node, conn, closed)
             });
         }
-        let mut watch_bootstrap = nodes.iter().copied().any(|node| {
+        let watch_bootstrap = nodes.iter().copied().any(|node| {
             !watched.contains(&node)
                 && self
                     .cluster
@@ -7123,19 +7197,15 @@ impl Consumer {
                 break;
             }
             if set.is_empty() {
-                closed_any = self.conn.inbound_ready().await.is_err();
+                closed_any = self.conn.peer_left().await.is_err();
                 break;
             }
             let mut returned = Vec::new();
             tokio::select! {
                 biased;
-                result = self.conn.inbound_ready(), if watch_bootstrap && !closed_any => {
-                    if result.is_err() {
-                        closed_any = true;
-                        let _listeners = stop_tx.send(()).unwrap_or(0);
-                    } else {
-                        watch_bootstrap = false;
-                    }
+                _ = self.conn.peer_left(), if watch_bootstrap && !closed_any => {
+                    closed_any = true;
+                    let _listeners = stop_tx.send(()).unwrap_or(0);
                 }
                 joined = set.join_next(), if !set.is_empty() => {
                     if let Some(Ok((node, conn, closed))) = joined {
@@ -11177,6 +11247,68 @@ mod tests {
     use super::*;
     use crate::protocol::api::ApiVersion;
     use crate::protocol::api_keys::FETCH;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn queued_byte_does_not_finish_the_fetch_quota_watch() {
+        use tokio::io::AsyncWriteExt;
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        let accepted = tokio::spawn(async move {
+            let (socket, _) = listener.accept().await.unwrap();
+            let (_reader, mut writer) = socket.into_split();
+            writer.write_all(&[0x01]).await.unwrap();
+            tokio::time::sleep(Duration::from_secs(2)).await;
+        });
+        let leader = crate::net::BrokerConn::connect(
+            &addr.to_string(),
+            "fetch-quota",
+            Duration::from_secs(2),
+        )
+        .await
+        .unwrap();
+        let queued = tokio::time::timeout(Duration::from_millis(300), async {
+            loop {
+                if leader.has_queued_response() {
+                    break;
+                }
+                tokio::task::yield_now().await;
+            }
+        })
+        .await;
+        assert!(queued.is_ok(), "the queued byte never became visible");
+        let boot_listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let boot_addr = boot_listener.local_addr().unwrap();
+        let _boot = tokio::spawn(async move {
+            let (socket, _) = boot_listener.accept().await.unwrap();
+            let _held = socket;
+            tokio::time::sleep(Duration::from_secs(2)).await;
+        });
+        let bootstrap = crate::net::BrokerConn::connect(
+            &boot_addr.to_string(),
+            "fetch-boot",
+            Duration::from_secs(2),
+        )
+        .await
+        .unwrap();
+        let mut cfg = ConsumerConfig::bootstrap([boot_addr.to_string()]);
+        cfg.max_wait_ms = 10;
+        cfg.request_timeout = Duration::from_secs(2);
+        let mut consumer = Consumer::test_holding(cfg, bootstrap);
+        let _ = consumer.conns.insert(1, leader);
+        let started = Instant::now();
+        let mut watching = std::pin::pin!(consumer.watch_muted_fetch_sockets(&[1]));
+        tokio::select! {
+            biased;
+            done = &mut watching => panic!(
+                "a queued byte finished the fetch quota watch after {:?}: {done}",
+                started.elapsed()
+            ),
+            _ = tokio::time::sleep(Duration::from_millis(300)) => {}
+        }
+        drop(watching);
+        drop(accepted);
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn queued_byte_does_not_skip_the_fetch_close_quota() {
