@@ -1482,7 +1482,7 @@ pub enum ShareAcquireMode {
 /// no directories, a reserved directory ID, or a duplicate directory ID.
 /// A piggybacked
 /// `TRANSACTION_ABORTABLE` still completes without retry,
-/// including when `AcknowledgeErrorMessage` is set (Java
+/// including when `AcknowledgeErrorMessage` is set or empty (Java
 /// `handleShareFetchSuccess` completes piggyback acks and still
 /// delivers the fetch; this is not partition
 /// `TRANSACTION_ABORTABLE`, which fails that poll, and not piggyback
@@ -3740,7 +3740,7 @@ impl ShareGroup {
     /// no directories, a reserved directory ID, or a duplicate directory ID.
     /// A piggybacked `TRANSACTION_ABORTABLE` still completes
     /// without retry, including when `AcknowledgeErrorMessage` is set
-    /// (Java `handleShareFetchSuccess` completes piggyback acks and still
+    /// or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
     /// delivers the fetch; this is not partition
     /// `TRANSACTION_ABORTABLE`, which fails that poll, and not piggyback
     /// `INVALID_REGISTRATION`). Official Java
