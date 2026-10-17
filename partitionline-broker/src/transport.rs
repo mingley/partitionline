@@ -985,7 +985,23 @@ async fn read_frame<S: AsyncRead + Unpin>(
     // not grant the body a fresh read timeout.
     timeout_at(deadline, async {
         let mut prefix = [0; 4];
-        let _ = socket.read_exact(&mut prefix).await.map_err(read_error)?;
+        let mut filled = 0usize;
+        while filled < prefix.len() {
+            let n = socket
+                .read(prefix.get_mut(filled..).ok_or(Exit::InvalidLength)?)
+                .await
+                .map_err(read_error)?;
+            if n == 0 {
+                return Err(read_error(io::Error::new(
+                    io::ErrorKind::UnexpectedEof,
+                    "frame prefix closed",
+                )));
+            }
+            filled += n;
+            // `read_exact` would keep a ready prefix in this poll, so the
+            // frame deadline could not run until all four bytes arrived.
+            tokio::task::yield_now().await;
+        }
         let length =
             usize::try_from(i32::from_be_bytes(prefix)).map_err(|_| Exit::InvalidLength)?;
         if length > config.max_request_bytes {
@@ -2485,6 +2501,64 @@ mod frame_read_deadline_tests {
         assert!(
             deadline && elapsed < Duration::from_millis(80),
             "a ready frame body held the read past its deadline: {elapsed:?} deadline {deadline}"
+        );
+    }
+
+    /// Four length bytes, one at a time, each slower than the read deadline.
+    struct SlowPrefix {
+        sent: usize,
+    }
+
+    impl AsyncRead for SlowPrefix {
+        fn poll_read(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            buf: &mut ReadBuf<'_>,
+        ) -> Poll<std::io::Result<()>> {
+            let this = self.get_mut();
+            if this.sent >= 4 {
+                return Poll::Pending;
+            }
+            let dst = buf.initialize_unfilled();
+            if dst.is_empty() {
+                return Poll::Ready(Ok(()));
+            }
+            dst[0] = 0;
+            buf.advance(1);
+            this.sent += 1;
+            let start = std::time::Instant::now();
+            while start.elapsed() < Duration::from_millis(40) {}
+            Poll::Ready(Ok(()))
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn read_deadline_stops_a_ready_length_prefix() {
+        let config = Config::new(
+            1,
+            1,
+            1024,
+            1024,
+            Duration::from_secs(5),
+            Duration::from_secs(5),
+            Duration::from_secs(5),
+        )
+        .unwrap_or_else(|error| panic!("{error}"));
+        let mut socket = SlowPrefix { sent: 0 };
+        let started = Instant::now();
+        let result = read_frame(
+            &mut socket,
+            config,
+            Instant::now() + Duration::from_millis(30),
+            &mut ReadAhead::new(),
+            new_frame(),
+        )
+        .await;
+        let elapsed = started.elapsed();
+        let deadline = matches!(result, Err(Exit::ReadDeadline));
+        assert!(
+            deadline && elapsed < Duration::from_millis(120),
+            "a ready length prefix held the read past its deadline: {elapsed:?} deadline {deadline}"
         );
     }
 }
