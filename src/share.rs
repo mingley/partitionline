@@ -1436,6 +1436,15 @@ pub enum ShareAcquireMode {
 /// `AuthHelper` writes this when DescribeCluster names an endpoint type
 /// that does not match the endpoint that received the request.
 /// A piggybacked
+/// `UNSUPPORTED_ENDPOINT_TYPE` still completes without retry,
+/// including when `AcknowledgeErrorMessage` is set (Java
+/// `handleShareFetchSuccess` completes piggyback acks and still
+/// delivers the fetch; this is not partition
+/// `UNSUPPORTED_ENDPOINT_TYPE`, which fails that poll, and not piggyback
+/// `MISMATCHED_ENDPOINT_TYPE`). Official Java
+/// `AuthHelper` writes this when DescribeCluster names an unknown
+/// endpoint type.
+/// A piggybacked
 /// `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a
 /// sibling partition whose `AcknowledgeErrorCode` is none, including
 /// when `AcknowledgeErrorMessage` is set or empty. A piggybacked
@@ -3629,6 +3638,14 @@ impl ShareGroup {
     /// `STALE_MEMBER_EPOCH`). Official Java
     /// `AuthHelper` writes this when DescribeCluster names an endpoint type
     /// that does not match the endpoint that received the request.
+    /// A piggybacked `UNSUPPORTED_ENDPOINT_TYPE` still completes
+    /// without retry, including when `AcknowledgeErrorMessage` is set
+    /// (Java `handleShareFetchSuccess` completes piggyback acks and still
+    /// delivers the fetch; this is not partition
+    /// `UNSUPPORTED_ENDPOINT_TYPE`, which fails that poll, and not piggyback
+    /// `MISMATCHED_ENDPOINT_TYPE`). Official Java
+    /// `AuthHelper` writes this when DescribeCluster names an unknown
+    /// endpoint type.
     /// A piggybacked `TOPIC_AUTHORIZATION_FAILED` on one partition
     /// does not fail a sibling whose `AcknowledgeErrorCode` is none,
     /// including when `AcknowledgeErrorMessage` is set or empty.

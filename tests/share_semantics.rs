@@ -23658,6 +23658,70 @@ async fn implicit_piggyback_mismatched_endpoint_type_empty_message_does_not_retr
 }
 
 #[tokio::test]
+async fn implicit_piggyback_unsupported_endpoint_type_message_does_not_retry() {
+    let mock = common::Mock::start().await;
+    produce(&mock, &[(0, b"first"), (0, b"second")]).await;
+    let mut cfg = config(&mock);
+    cfg.max_poll_records = Some(1);
+    cfg.share_acknowledgement_mode = ShareAcknowledgementMode::Implicit;
+    let mut group = ShareGroup::join(cfg, "ack-uet-piggy-msg", "t")
+        .await
+        .unwrap();
+    let first = group.poll().await.unwrap();
+    assert_eq!(first.len(), 1);
+    let first_off = first[0].offset;
+    let seen = Arc::new(Mutex::new(Vec::new()));
+    let seen_cb = seen.clone();
+    group.set_acknowledgement_commit_callback(move |_, exception| {
+        seen_cb.lock().push(
+            exception
+                .as_ref()
+                .map(|error| (error.code(), error.message().to_owned())),
+        );
+    });
+    let version = mock.last_share_fetch_version().unwrap_or(1);
+    let mut part = ShareFetchedPartition::partition_response(0, 0);
+    part.acknowledge_error_code = error::UNSUPPORTED_ENDPOINT_TYPE;
+    part.acknowledge_error_message = Some("piggyback unsupported endpoint type".into());
+    let topics = vec![ShareFetchedTopic {
+        topic_id: mock.topic_id("t"),
+        partitions: vec![part],
+    }];
+    let mut injected = BytesMut::new();
+    encode_share_fetch_response(&mut injected, version, &topics).unwrap();
+    mock.inject_share_fetch_response_once(&injected);
+    assert!(
+        group.poll().await.unwrap().is_empty(),
+        "Java poll still delivers the ShareFetch after a piggyback ack error"
+    );
+    assert_eq!(
+        *seen.lock(),
+        vec![Some((
+            Some(error::UNSUPPORTED_ENDPOINT_TYPE),
+            "piggyback unsupported endpoint type".into()
+        ))]
+    );
+    assert!(
+        !mock.share_accepted("ack-uet-piggy-msg", "t", 0, first_off),
+        "injected UNSUPPORTED_ENDPOINT_TYPE piggyback must not apply ACCEPT"
+    );
+    assert_eq!(
+        mock.share_ack_calls(),
+        0,
+        "non-empty AcknowledgeErrorMessage must not retry UNSUPPORTED_ENDPOINT_TYPE"
+    );
+    let third = group.poll().await.unwrap();
+    assert_eq!(third.len(), 1);
+    assert_ne!(third[0].offset, first_off);
+    assert_eq!(
+        mock.share_ack_calls(),
+        0,
+        "completed piggyback UNSUPPORTED_ENDPOINT_TYPE must not send standalone ShareAcknowledge"
+    );
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn implicit_piggyback_topic_authorization_failed_sibling_message_does_not_retry() {
     let mock = common::Mock::start().await;
     v2(&mock);
