@@ -2362,7 +2362,7 @@
 //! piggyback `LISTENER_NOT_FOUND`). Official Java Admin deleteTopics
 //! writes this when `delete.topic.enable` is false. A piggybacked
 //! `UNSUPPORTED_COMPRESSION_TYPE` still completes without retry,
-//! including when `AcknowledgeErrorMessage` is set (this is not
+//! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `UNSUPPORTED_COMPRESSION_TYPE`, which fails that poll, and not
 //! piggyback `TOPIC_DELETION_DISABLED`). Official Java CompressionType
 //! writes this when the codec is unknown. A piggybacked

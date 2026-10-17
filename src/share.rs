@@ -1153,7 +1153,7 @@ pub enum ShareAcquireMode {
 /// `LISTENER_NOT_FOUND`). Official Java Admin deleteTopics writes
 /// this when `delete.topic.enable` is false. A piggybacked
 /// `UNSUPPORTED_COMPRESSION_TYPE` still completes without retry,
-/// including when `AcknowledgeErrorMessage` is set (Java
+/// including when `AcknowledgeErrorMessage` is set or empty (Java
 /// `handleShareFetchSuccess` completes piggyback acks and still
 /// delivers the fetch; this is not partition
 /// `UNSUPPORTED_COMPRESSION_TYPE`, which fails that poll, and not piggyback
@@ -2995,7 +2995,7 @@ impl ShareGroup {
     /// this when `delete.topic.enable` is false.
     /// A piggybacked `UNSUPPORTED_COMPRESSION_TYPE` still completes
     /// without retry, including when `AcknowledgeErrorMessage` is set
-    /// (Java `handleShareFetchSuccess` completes piggyback acks and still
+    /// or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
     /// delivers the fetch; this is not partition
     /// `UNSUPPORTED_COMPRESSION_TYPE`, which fails that poll, and not piggyback
     /// `TOPIC_DELETION_DISABLED`). Official Java CompressionType writes

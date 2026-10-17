@@ -603,7 +603,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   false. A
   piggybacked `UNSUPPORTED_COMPRESSION_TYPE` still
   completes without retry, including when `AcknowledgeErrorMessage` is
-  set (Java `handleShareFetchSuccess` completes piggyback acks and still
+  set or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
   delivers the fetch; this is not partition `UNSUPPORTED_COMPRESSION_TYPE`,
   which fails that poll, and not piggyback `TOPIC_DELETION_DISABLED`). Official
   Java CompressionType writes this when the codec is unknown. A
