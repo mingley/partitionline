@@ -6672,6 +6672,36 @@ impl Worker {
         self.earliest_deadline
     }
 
+    /// Delay until the worker should wake for linger or a delivery deadline.
+    ///
+    /// An elapsed linger on a partial batch used to report zero. That sleep is
+    /// ready immediately, so the biased worker select never yields and a later
+    /// record cannot arrive.
+    fn worker_wake_delay(
+        linger: Duration,
+        linger_start: Option<Instant>,
+        deadline: Option<Instant>,
+        now: Instant,
+    ) -> Option<Duration> {
+        let linger_left = linger_start.map(|start| {
+            let elapsed = now.saturating_duration_since(start);
+            linger.saturating_sub(elapsed)
+        });
+        let until_deadline = deadline.map(|deadline| deadline.saturating_duration_since(now));
+        let delay = match (linger_left, until_deadline) {
+            (Some(left), Some(until)) if left.is_zero() => until,
+            (Some(left), Some(until)) => left.min(until),
+            (Some(left), None) => left,
+            (None, Some(until)) => until,
+            (None, None) => return None,
+        };
+        if delay.is_zero() {
+            None
+        } else {
+            Some(delay)
+        }
+    }
+
     fn linger_expired(&self, start: Option<Instant>) -> bool {
         let linger = self.shared.cfg.linger;
         if self.pending.is_empty() {
@@ -6779,23 +6809,30 @@ impl Worker {
             let now = Instant::now();
             // A completed linger must not spin while a broker is muted. The
             // original delivery deadline still wakes us to expire queued work.
+            // A zero delay is not a timer: an immediately ready sleep wins the
+            // biased select every poll and never yields, so a later record
+            // cannot arrive and a deadline cannot move.
             let next_wake = if !self.sticky_complete() {
-                self.earliest_pending_deadline()
-                    .map(|deadline| deadline.saturating_duration_since(now))
+                Worker::worker_wake_delay(
+                    Duration::ZERO,
+                    None,
+                    self.earliest_pending_deadline(),
+                    now,
+                )
             } else if let Some(rest) = self.throttle.remaining() {
-                self.earliest_pending_deadline()
-                    .map(|dl| rest.min(dl.saturating_duration_since(now)))
+                let until_quota = now + rest;
+                let until = self
+                    .earliest_pending_deadline()
+                    .map(|deadline| deadline.min(until_quota))
+                    .unwrap_or(until_quota);
+                Worker::worker_wake_delay(Duration::ZERO, None, Some(until), now)
             } else {
-                match (wait_linger, self.earliest_pending_deadline()) {
-                    (Some(s), Some(dl)) => Some(
-                        linger
-                            .saturating_sub(s.elapsed())
-                            .min(dl.saturating_duration_since(now)),
-                    ),
-                    (Some(s), None) => Some(linger.saturating_sub(s.elapsed())),
-                    (None, Some(dl)) => Some(dl.saturating_duration_since(now)),
-                    (None, None) => None,
-                }
+                Worker::worker_wake_delay(
+                    linger,
+                    wait_linger,
+                    self.earliest_pending_deadline(),
+                    now,
+                )
             };
 
             let wake_shared = Arc::clone(&self.shared);
@@ -9447,6 +9484,39 @@ fn record_metadata(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn an_elapsed_linger_does_not_arm_an_immediate_timer() {
+        let now = Instant::now();
+        let started = now - Duration::from_millis(50);
+        assert_eq!(
+            Worker::worker_wake_delay(Duration::from_millis(10), Some(started), None, now),
+            None,
+            "an elapsed linger armed a zero sleep"
+        );
+        assert_eq!(
+            Worker::worker_wake_delay(
+                Duration::from_millis(10),
+                Some(started),
+                Some(now + Duration::from_millis(500)),
+                now
+            ),
+            Some(Duration::from_millis(500))
+        );
+        assert_eq!(
+            Worker::worker_wake_delay(
+                Duration::from_millis(100),
+                Some(now - Duration::from_millis(20)),
+                Some(now + Duration::from_secs(5)),
+                now
+            ),
+            Some(Duration::from_millis(80))
+        );
+        assert_eq!(
+            Worker::worker_wake_delay(Duration::ZERO, None, Some(now), now),
+            None
+        );
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn remembered_sasl_timeout_closes_the_socket() {
