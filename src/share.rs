@@ -16,8 +16,7 @@ use tokio::sync::{watch, Notify};
 use crate::consumer::{Consumer, ConsumerConfig};
 use crate::error::{self, Error, Result};
 use crate::group::{
-    collect_topics, coord_roundtrip, coord_roundtrip_with_bootstrap, filter_matching_topics,
-    TopicMatch,
+    collect_topics, coord_roundtrip_with_bootstrap, filter_matching_topics, TopicMatch,
 };
 use crate::net::BrokerConn;
 use crate::protocol::api_keys::{
@@ -1931,7 +1930,7 @@ impl ShareGroup {
     }
 
     async fn heartbeat_join_within(&mut self, deadline: Instant) -> Result<()> {
-        let version = spoken_share_group_heartbeat(self.coord.share_group_heartbeat_version)?;
+        let _supported = spoken_share_group_heartbeat(self.coord.share_group_heartbeat_version)?;
 
         let mut first = true;
         let mut req = ShareGroupHeartbeatRequest {
@@ -1961,30 +1960,48 @@ impl ShareGroup {
                 .topics
                 .iter()
                 .any(|topic| !self.consumer.topic_metadata_fresh(topic));
-            let (body, metadata_refresh) = if stale {
+            let (version, body, metadata_refresh) = if stale {
+                let bootstrap_keys = self.consumer.copy_api_keys();
+                let address_keys = self.consumer.copy_learned_broker_keys();
                 let coord = &mut self.coord;
                 let consumer = &mut self.consumer;
                 let topics = &self.topics;
+                let cfg = &self.cfg;
+                let group_id = self.group_id.as_str();
+                let prior = &mut self.prior_coords;
                 let refresh = Self::refresh_topic_names_within(consumer, topics, deadline);
-                let rpc = coord.roundtrip(
+                let rpc = coord_roundtrip_with_bootstrap(
+                    coord,
+                    cfg,
+                    group_id,
+                    COORDINATOR_GROUP,
                     SHARE_GROUP_HEARTBEAT,
-                    version,
-                    |buf| encode_share_group_heartbeat_request(buf, version, &req),
+                    |version, buf| encode_share_group_heartbeat_request(buf, version, &req),
+                    &bootstrap_keys,
+                    &address_keys,
+                    prior,
                     timeout,
                 );
                 let (refresh, rpc) = tokio::join!(refresh, rpc);
-                (rpc?, Some(refresh))
+                let (version, body) = rpc?;
+                (version, body, Some(refresh))
             } else {
-                let body = self
-                    .coord
-                    .roundtrip(
-                        SHARE_GROUP_HEARTBEAT,
-                        version,
-                        |buf| encode_share_group_heartbeat_request(buf, version, &req),
-                        timeout,
-                    )
-                    .await?;
-                (body, None)
+                let bootstrap_keys = self.consumer.copy_api_keys();
+                let address_keys = self.consumer.copy_learned_broker_keys();
+                let (version, body) = coord_roundtrip_with_bootstrap(
+                    &mut self.coord,
+                    &self.cfg,
+                    &self.group_id,
+                    COORDINATOR_GROUP,
+                    SHARE_GROUP_HEARTBEAT,
+                    |version, buf| encode_share_group_heartbeat_request(buf, version, &req),
+                    &bootstrap_keys,
+                    &address_keys,
+                    &mut self.prior_coords,
+                    timeout,
+                )
+                .await?;
+                (version, body, None)
             };
 
             let resp = decode_share_group_heartbeat_response(&mut body.clone(), version)?;
@@ -2177,6 +2194,7 @@ impl ShareGroup {
                 .any(|topic| !self.consumer.topic_metadata_fresh(topic));
             let (version, body, metadata_refresh) = if stale {
                 let bootstrap_keys = self.consumer.copy_api_keys();
+                let address_keys = self.consumer.copy_learned_broker_keys();
                 let coord = &mut self.coord;
                 let consumer = &mut self.consumer;
                 let topics = &self.topics;
@@ -2184,7 +2202,7 @@ impl ShareGroup {
                 let group_id = self.group_id.as_str();
                 let prior = &mut self.prior_coords;
                 let refresh = Self::refresh_topic_names_within(consumer, topics, deadline);
-                let rpc = coord_roundtrip(
+                let rpc = coord_roundtrip_with_bootstrap(
                     coord,
                     cfg,
                     group_id,
@@ -2192,6 +2210,7 @@ impl ShareGroup {
                     SHARE_GROUP_HEARTBEAT,
                     |version, buf| encode_share_group_heartbeat_request(buf, version, &req),
                     &bootstrap_keys,
+                    &address_keys,
                     prior,
                     timeout,
                 );
@@ -2200,7 +2219,8 @@ impl ShareGroup {
                 (version, body, Some(refresh))
             } else {
                 let bootstrap_keys = self.consumer.copy_api_keys();
-                let (version, body) = coord_roundtrip(
+                let address_keys = self.consumer.copy_learned_broker_keys();
+                let (version, body) = coord_roundtrip_with_bootstrap(
                     &mut self.coord,
                     &self.cfg,
                     &self.group_id,
@@ -2208,6 +2228,7 @@ impl ShareGroup {
                     SHARE_GROUP_HEARTBEAT,
                     |version, buf| encode_share_group_heartbeat_request(buf, version, &req),
                     &bootstrap_keys,
+                    &address_keys,
                     &mut self.prior_coords,
                     timeout,
                 )
