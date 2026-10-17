@@ -712,6 +712,8 @@ struct State {
     last_txn_offset_epochs: Vec<i32>,
     drop_gen: watch::Sender<u32>,
     drop_node_gen: HashMap<i32, watch::Sender<u32>>,
+    /// Half-close live sockets so a client that is still reading can observe EOF.
+    shutdown_write_gen: watch::Sender<u32>,
     refuse_conns: u32,
     accepts: u32,
     open_conns: u32,
@@ -1221,6 +1223,7 @@ fn new_state(
         last_txn_offset_epochs: Vec::new(),
         drop_gen: watch::channel(0).0,
         drop_node_gen: HashMap::new(),
+        shutdown_write_gen: watch::channel(0).0,
         refuse_conns: 0,
         accepts: 0,
         open_conns: 0,
@@ -3965,6 +3968,16 @@ impl Mock {
         let _ = st.drop_gen.send(n.saturating_add(1));
     }
 
+    /// Shut down the write half of live connections and keep reading.
+    ///
+    /// A client that notices the close drops its socket, and the read here
+    /// finishes. A client that is not reading leaves the connection open.
+    pub fn shutdown_writes(&self) {
+        let st = self.state.lock();
+        let n = *st.shutdown_write_gen.borrow();
+        let _ = st.shutdown_write_gen.send(n.saturating_add(1));
+    }
+
     pub fn drop_node_connections(&self, node_id: i32) {
         let mut st = self.state.lock();
         let sender = st
@@ -5002,6 +5015,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
     let _live = LiveConn(&state);
     let mut buf = BytesMut::new();
     let mut drop_rx = state.lock().drop_gen.subscribe();
+    let mut shutdown_rx = state.lock().shutdown_write_gen.subscribe();
     let mut node_drop_rx = {
         let mut st = state.lock();
         st.drop_node_gen
@@ -5018,6 +5032,10 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
         let mut frame = tokio::select! {
             _ = drop_rx.changed() => break,
             _ = node_drop_rx.changed() => break,
+            _ = shutdown_rx.changed() => {
+                let _ = stream.shutdown().await;
+                continue;
+            }
             frame = read_frame(&mut stream, &mut buf) => match frame {
                 Ok(f) => f,
                 Err(_) => break,

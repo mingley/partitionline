@@ -6300,10 +6300,13 @@ impl Consumer {
             if !self.fetch_throttles.is_empty() {
                 let now = Instant::now();
                 self.fetch_throttles.retain(|_, until| *until > now);
-                let mut earliest: Option<Instant> = None;
+                let mut earliest: Option<(i32, Instant)> = None;
                 by_leader.retain(|node, _| {
                     if let Some(until) = self.fetch_throttles.get(node) {
-                        earliest = Some(earliest.map_or(*until, |old| old.min(*until)));
+                        earliest = Some(match earliest {
+                            Some((id, old)) if old <= *until => (id, old),
+                            _ => (*node, *until),
+                        });
                         false
                     } else {
                         true
@@ -6325,10 +6328,19 @@ impl Consumer {
                         self.fetch_plan = by_leader;
                         return Ok(self.finish_fetch(out));
                     }
-                    if let Some(until) = earliest {
+                    if let Some((node, until)) = earliest {
                         let wake = until.min(deadline).min(poll_deadline);
                         let mut rx = self.wakeup_tx.subscribe();
-                        tokio::select! {
+                        // The quota wait is off the fetch read. A leader that
+                        // leaves during it must not keep this socket until the
+                        // quota ends.
+                        let on_bootstrap = !self.conns.contains_key(&node)
+                            && self
+                                .cluster
+                                .brokers
+                                .get(&node)
+                                .is_some_and(|addr| addr == self.conn.addr());
+                        let peer_left = tokio::select! {
                             biased;
                             result = rx.wait_for(|on| *on) => {
                                 drop(result);
@@ -6336,7 +6348,38 @@ impl Consumer {
                                 self.park_fetch_records(out);
                                 return Err(Error::Wakeup);
                             }
-                            _ = tokio::time::sleep(wake.saturating_duration_since(now)) => {}
+                            closed = async {
+                                if let Some(conn) = self.conns.get_mut(&node) {
+                                    conn.inbound_ready().await.is_err()
+                                } else if on_bootstrap {
+                                    self.conn.inbound_ready().await.is_err()
+                                } else {
+                                    std::future::pending().await
+                                }
+                            } => closed,
+                            _ = tokio::time::sleep(wake.saturating_duration_since(now)) => false,
+                        };
+                        if peer_left {
+                            if self.conns.contains_key(&node) {
+                                if let Some(conn) = self.conns.remove(&node) {
+                                    drop(conn);
+                                }
+                            } else if on_bootstrap {
+                                let addr = self.conn.addr().to_string();
+                                let dial_deadline = Instant::now() + self.cfg.connect_timeout;
+                                if let Ok((conn, versions)) =
+                                    self.open_leader_socket(&addr, dial_deadline).await
+                                {
+                                    self.versions = versions
+                                        .api_keys
+                                        .into_iter()
+                                        .map(|api| (api.api_key, api))
+                                        .collect();
+                                    self.conn = conn;
+                                } else {
+                                    self.conn.close();
+                                }
+                            }
                         }
                         self.fetch_plan = by_leader;
                         continue;

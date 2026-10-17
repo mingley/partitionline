@@ -1933,6 +1933,53 @@ async fn produce_reconnects_when_the_broker_closes_during_throttle() {
     drop(producer);
 }
 
+/// A fetch waiting on a broker quota drops the leader socket when that broker closes.
+#[tokio::test(flavor = "current_thread")]
+async fn fetch_drops_the_socket_when_the_broker_closes_during_throttle() {
+    let mock = common::Mock::start().await;
+    let mut producer_cfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    producer_cfg.linger = Duration::ZERO;
+    let producer = Producer::new(producer_cfg).await.unwrap();
+    let _sent = producer
+        .send(ProduceRecord::to("t").value(b"first".to_vec()))
+        .await
+        .unwrap();
+    mock.set_fetch_throttles(1, [5_000]);
+    let mut cfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    cfg.request_timeout = Duration::from_secs(30);
+    cfg.max_wait_ms = 10_000;
+    let mut consumer = Consumer::new(cfg).await.unwrap();
+    consumer.assign("t", 0, 0).await.unwrap();
+    let first = consumer.fetch().await.unwrap();
+    assert_eq!(first.len(), 1);
+    producer.close().await.unwrap();
+    let fetch = consumer.fetch();
+    tokio::pin!(fetch);
+    let started = Instant::now();
+    while started.elapsed() < Duration::from_millis(50) {
+        tokio::select! {
+            result = &mut fetch => panic!("fetch finished before the broker closed: {result:?}"),
+            _ = tokio::time::sleep(Duration::from_millis(5)) => {}
+        }
+    }
+    let accepts = mock.accepts();
+    mock.shutdown_writes();
+    let started = Instant::now();
+    loop {
+        if mock.accepts() > accepts {
+            break;
+        }
+        if started.elapsed() > Duration::from_millis(400) {
+            panic!("fetch kept the socket while the broker quota wait ran");
+        }
+        tokio::select! {
+            result = &mut fetch => panic!("fetch finished during the quota wait: {result:?}"),
+            _ = tokio::time::sleep(Duration::from_millis(5)) => {}
+        }
+    }
+    drop(fetch);
+}
+
 /// Closing a producer closes the metadata socket before close returns.
 #[tokio::test(flavor = "current_thread")]
 async fn producer_close_closes_the_metadata_socket() {
