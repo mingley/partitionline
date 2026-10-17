@@ -827,6 +827,9 @@ async fn read_exact_spare<S: AsyncRead + Unpin>(
                 "frame body closed",
             )));
         }
+        // A ready body never returns from this read, so the frame deadline
+        // cannot run until every byte is buffered.
+        tokio::task::yield_now().await;
     }
     Ok(())
 }
@@ -1032,6 +1035,9 @@ async fn read_frame_buffered<S: AsyncRead + Unpin>(
                     "frame body closed",
                 )));
             }
+            // A ready body never returns from this read, so the frame deadline
+            // cannot run until every byte is buffered.
+            tokio::task::yield_now().await;
         }
     })
     .await
@@ -2329,6 +2335,87 @@ mod handler_deadline_tests {
         assert!(
             deadline && elapsed < Duration::from_millis(80),
             "handler deadline did not run during a ready prefetch: {elapsed:?} deadline {deadline}"
+        );
+    }
+}
+
+#[cfg(test)]
+mod frame_read_deadline_tests {
+    use super::{new_frame, read_frame, Config, Exit, ReadAhead};
+    use std::pin::Pin;
+    use std::task::{Context, Poll};
+    use std::time::Duration;
+    use tokio::io::{AsyncRead, ReadBuf};
+    use tokio::time::Instant;
+
+    /// A legal frame that stays readable and burns time on every body chunk.
+    struct SlowFrame {
+        announced: bool,
+        left: usize,
+    }
+
+    impl AsyncRead for SlowFrame {
+        fn poll_read(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            buf: &mut ReadBuf<'_>,
+        ) -> Poll<std::io::Result<()>> {
+            let this = self.get_mut();
+            let dst = buf.initialize_unfilled();
+            if dst.is_empty() {
+                return Poll::Ready(Ok(()));
+            }
+            if !this.announced {
+                this.announced = true;
+                let len = i32::try_from(this.left).unwrap_or(i32::MAX).to_be_bytes();
+                let n = len.len().min(dst.len());
+                dst[..n].copy_from_slice(&len[..n]);
+                buf.advance(n);
+                return Poll::Ready(Ok(()));
+            }
+            if this.left == 0 {
+                return Poll::Pending;
+            }
+            let n = dst.len().min(this.left).min(1024);
+            dst[..n].fill(3);
+            buf.advance(n);
+            this.left -= n;
+            let start = std::time::Instant::now();
+            while start.elapsed() < Duration::from_micros(120) {}
+            Poll::Ready(Ok(()))
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn read_deadline_stops_a_ready_frame_body() {
+        let config = Config::new(
+            1,
+            1,
+            2 * 1024 * 1024,
+            1024,
+            Duration::from_secs(5),
+            Duration::from_secs(5),
+            Duration::from_secs(5),
+        )
+        .unwrap_or_else(|error| panic!("{error}"));
+        let mut socket = SlowFrame {
+            announced: false,
+            left: 1024 * 1024,
+        };
+        let started = Instant::now();
+        let result = read_frame(
+            &mut socket,
+            config,
+            Instant::now() + Duration::from_millis(30),
+            &mut ReadAhead::new(),
+            new_frame(),
+        )
+        .await;
+        let elapsed = started.elapsed();
+        let deadline = matches!(result, Err(Exit::ReadDeadline));
+        assert!(
+            deadline && elapsed < Duration::from_millis(80),
+            "a ready frame body held the read past its deadline: {elapsed:?} deadline {deadline}"
         );
     }
 }
