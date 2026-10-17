@@ -3223,6 +3223,7 @@ impl Producer {
                 TXN_OFFSET_COMMIT,
                 version,
                 self.inner.shared.find_coord_version,
+                &self.inner.shared.api_keys,
                 |buf| {
                     encode_txn_offset_commit_borrowed(
                         buf, version, &tid, group_id, pid, epoch, member, &grouped,
@@ -4294,6 +4295,41 @@ async fn discover_from_bootstrap(
     Ok(coordinator_connection(conn, &versions))
 }
 
+async fn discover_group_coordinator(
+    cfg: &ProducerConfig,
+    group_id: &str,
+    version: i16,
+    bootstrap_keys: &[ApiVersion],
+    deadline: Instant,
+) -> Result<CoordinatorConnection> {
+    if cfg.bootstrap.len() != 1 {
+        return discover_within(cfg, group_id, COORDINATOR_GROUP, version, deadline).await;
+    }
+    let Some(addr) = cfg.bootstrap.first() else {
+        return Err(Error::protocol("find coordinator failed"));
+    };
+    let bounded = bounded_producer_config(cfg, deadline)?;
+    let (mut hop, versions) = open_producer_peer(addr, &bounded, bootstrap_keys).await?;
+    let body = hop
+        .roundtrip(
+            FIND_COORDINATOR,
+            version,
+            |buf| encode_find_coordinator_request_typed(buf, version, group_id, COORDINATOR_GROUP),
+            timeout_remaining(deadline)?,
+        )
+        .await?;
+    let (err, _node, host, port) = decode_find_coordinator_response(&mut body.clone(), version)?;
+    if err != 0 {
+        return Err(Error::broker(err, "FindCoordinator"));
+    }
+    let coord_addr = crate::net::format_address(&host, port);
+    if coord_addr == hop.addr() {
+        return Ok(coordinator_connection(hop, &versions));
+    }
+    let (conn, opened) = open_conn_with_versions(&coord_addr, &bounded, false).await?;
+    Ok(coordinator_connection(conn, &opened))
+}
+
 async fn discover_within(
     cfg: &ProducerConfig,
     key: &str,
@@ -4389,20 +4425,16 @@ async fn group_coord_roundtrip(
     api_key: i16,
     api_version: i16,
     find_coord_version: Option<i16>,
+    bootstrap_keys: &[ApiVersion],
     encode_body: impl Fn(&mut BytesMut) -> Result<()>,
     request_timeout: Duration,
     error_of: impl Fn(&[u8]) -> Result<i16>,
 ) -> Result<Bytes> {
     let deadline = Instant::now() + request_timeout;
     let find_coord_version = required_find_coordinator(find_coord_version)?;
-    let mut coord = discover_within(
-        cfg,
-        group_id,
-        COORDINATOR_GROUP,
-        find_coord_version,
-        deadline,
-    )
-    .await?;
+    let mut coord =
+        discover_group_coordinator(cfg, group_id, find_coord_version, bootstrap_keys, deadline)
+            .await?;
     let body = coord
         .conn
         .roundtrip(
@@ -4424,7 +4456,7 @@ async fn group_coord_roundtrip(
         RediscoverProducer {
             previous: &previous,
             previous_keys: &coord.keys,
-            bootstrap_keys: &[],
+            bootstrap_keys,
         },
         deadline,
     )

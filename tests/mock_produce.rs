@@ -1023,6 +1023,63 @@ async fn transactional_rediscover_skips_a_second_bootstrap_handshake() {
     producer.close().await.unwrap();
 }
 
+/// TxnOffsetCommit on the bootstrap broker reuses the versions learned at startup.
+#[tokio::test]
+async fn send_offsets_reuses_bootstrap_api_versions() {
+    let mock = common::Mock::start().await;
+    mock.set_topic_partitions("t", 1);
+    let mut cfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    cfg.linger = Duration::ZERO;
+    cfg.transactional_id = Some("tx-offsets-known".into());
+    let producer = Producer::new(cfg).await.unwrap();
+    producer.begin_transaction().await.unwrap();
+    let versions_before = mock.api_versions_versions().len();
+    assert_eq!(versions_before, 1);
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let started = Instant::now();
+    producer
+        .send_offsets_to_transaction("g", [(TopicPartition::new("t", 0), 1)])
+        .await
+        .unwrap();
+    let elapsed = started.elapsed();
+    assert!(
+        elapsed < Duration::from_millis(200),
+        "transactional offset commit repeated ApiVersions: {elapsed:?}"
+    );
+    assert_eq!(mock.api_versions_versions().len(), versions_before);
+    producer.abort_transaction().await.unwrap();
+    producer.close().await.unwrap();
+}
+
+/// A group coordinator that has never been contacted still negotiates.
+#[tokio::test]
+async fn send_offsets_negotiates_a_new_group_coordinator() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_topic_partitions("t", 1);
+    mock.set_partition_leader("t", 0, 1);
+    let mut cfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    cfg.linger = Duration::ZERO;
+    cfg.transactional_id = Some("tx-offsets-remote".into());
+    let producer = Producer::new(cfg).await.unwrap();
+    producer.begin_transaction().await.unwrap();
+    mock.move_coordinator();
+    let versions_before = mock.api_versions_versions().len();
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let started = Instant::now();
+    producer
+        .send_offsets_to_transaction("g", [(TopicPartition::new("t", 0), 1)])
+        .await
+        .unwrap();
+    let elapsed = started.elapsed();
+    assert_eq!(mock.api_versions_versions().len(), versions_before + 1);
+    assert!(
+        elapsed < Duration::from_millis(450),
+        "new group coordinator redid the bootstrap handshake: {elapsed:?}"
+    );
+    producer.abort_transaction().await.unwrap();
+    producer.close().await.unwrap();
+}
+
 /// An EndTxn coordinator retry looks up the coordinator while that broker reconnects.
 #[tokio::test]
 async fn commit_redials_txn_coordinator_while_finding_it() {
