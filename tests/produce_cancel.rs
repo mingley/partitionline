@@ -757,6 +757,56 @@ async fn close_timeout_finishes_a_stalled_worker() {
     );
 }
 
+/// Close finishes a slot dial that is blocked in a broker read.
+#[tokio::test(flavor = "current_thread")]
+async fn close_finishes_a_blocked_slot_dial() {
+    use std::sync::atomic::{AtomicBool, Ordering};
+    use std::sync::Arc;
+    use tokio::io::AsyncReadExt;
+
+    let mock = common::Mock::start().await;
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let slow = listener.local_addr().unwrap().to_string();
+    let accepted = Arc::new(AtomicBool::new(false));
+    let dropped = Arc::new(AtomicBool::new(false));
+    let accepted_flag = Arc::clone(&accepted);
+    let dropped_flag = Arc::clone(&dropped);
+    let peer = tokio::spawn(async move {
+        let (mut sock, _) = listener.accept().await.unwrap();
+        accepted_flag.store(true, Ordering::SeqCst);
+        let mut buf = [0u8; 64];
+        loop {
+            match sock.read(&mut buf).await {
+                Ok(0) | Err(_) => break,
+                Ok(_) => continue,
+            }
+        }
+        dropped_flag.store(true, Ordering::SeqCst);
+    });
+    let producer = Producer::new(
+        ProducerConfig::bootstrap([mock.addr.clone()])
+            .linger(Duration::ZERO)
+            .request_timeout(Duration::from_secs(2)),
+    )
+    .await
+    .unwrap();
+    producer.test_nudge_dial(9, slow);
+    let started = Instant::now();
+    while !accepted.load(Ordering::SeqCst) {
+        if started.elapsed() > Duration::from_secs(2) {
+            panic!("slot dial did not reach the broker");
+        }
+        tokio::task::yield_now().await;
+    }
+    producer.test_finish_connect_loop().await;
+    assert!(
+        dropped.load(Ordering::SeqCst),
+        "close left the slot dial blocked in a broker read"
+    );
+    producer.close().await.unwrap();
+    peer.abort();
+}
+
 /// Transaction discovery drops a slower handshake before the race returns.
 #[tokio::test(flavor = "current_thread")]
 async fn transaction_discovery_finishes_a_blocked_bootstrap_handshake() {

@@ -3005,6 +3005,29 @@ impl Producer {
             .load(Ordering::SeqCst)
     }
 
+    /// Point `node` at `addr` and ask the connect loop to dial slot 0.
+    #[doc(hidden)]
+    pub fn test_nudge_dial(&self, node: i32, addr: String) {
+        let _prev = self.inner.shared.cluster.lock().brokers.insert(node, addr);
+        try_nudge_slot(&self.inner.shared.connect_tx, node, 0);
+    }
+
+    /// Mark the producer closed and wait until the connect loop leaves.
+    ///
+    /// Does not abort that loop. A dial still blocked in a broker read has to
+    /// stop inside the loop, before this returns.
+    #[doc(hidden)]
+    pub async fn test_finish_connect_loop(&self) {
+        self.inner.shared.closed.store(true, Ordering::SeqCst);
+        self.inner.shared.cache_nudge.notify_waiters();
+        let task = self.inner.shared.connect_task.lock().clone();
+        if let Some(task) = task {
+            while !task.is_finished() {
+                tokio::task::yield_now().await;
+            }
+        }
+    }
+
     /// Test hook: inspect worker task handles to verify task termination.
     #[doc(hidden)]
     pub fn test_worker_tasks(&self) -> Vec<Arc<tokio::task::JoinHandle<()>>> {
@@ -5269,43 +5292,55 @@ async fn connect_loop(
         if !rx_open && inflight.is_empty() {
             break;
         }
-        tokio::select! {
-            biased;
-            joined = inflight.join_next(), if !inflight.is_empty() => {
-                let Some(joined) = joined else {
-                    continue;
-                };
-                let Ok((node, slot, result)) = joined else {
-                    continue;
-                };
-                let Some(shared) = weak.upgrade() else {
-                    inflight.abort_all();
-                    break;
-                };
-                finish_slot_connect(&shared, &weak, node, slot, result);
-            }
-            incoming = rx.recv(), if rx_open && inflight.len() < 8 => {
-                let Some((node, slot)) = incoming else {
-                    rx_open = false;
-                    continue;
-                };
-                let Some(shared) = weak.upgrade() else {
-                    inflight.abort_all();
-                    break;
-                };
-                if shared.closed.load(Ordering::SeqCst) {
-                    inflight.abort_all();
-                    break;
+        let Some(shared) = weak.upgrade() else {
+            Producer::finish_aborted_handshakes(inflight).await;
+            break;
+        };
+        if shared.closed.load(Ordering::SeqCst) {
+            drop(shared);
+            Producer::finish_aborted_handshakes(inflight).await;
+            break;
+        }
+        let closed = {
+            let wake = shared.cache_nudge.notified();
+            tokio::pin!(wake);
+            let stop = shared.closed.load(Ordering::SeqCst);
+            if !stop {
+                tokio::select! {
+                    biased;
+                    joined = inflight.join_next(), if !inflight.is_empty() => {
+                        let Some(joined) = joined else {
+                            continue;
+                        };
+                        let Ok((node, slot, result)) = joined else {
+                            continue;
+                        };
+                        finish_slot_connect(&shared, &weak, node, slot, result);
+                    }
+                    _ = &mut wake => {}
+                    incoming = rx.recv(), if rx_open && inflight.len() < 8 => {
+                        let Some((node, slot)) = incoming else {
+                            rx_open = false;
+                            continue;
+                        };
+                        if !shared.closed.load(Ordering::SeqCst) {
+                            if let Some(addr) = prepare_slot_dial(&shared, node, slot) {
+                                let shared = Arc::clone(&shared);
+                                let _ = inflight.spawn(async move {
+                                    let result = spawn_slot_worker(&shared, node, &addr, cap).await;
+                                    (node, slot, result)
+                                });
+                            }
+                        }
+                    }
                 }
-                let Some(addr) = prepare_slot_dial(&shared, node, slot) else {
-                    continue;
-                };
-                let shared = Arc::clone(&shared);
-                let _ = inflight.spawn(async move {
-                    let result = spawn_slot_worker(&shared, node, &addr, cap).await;
-                    (node, slot, result)
-                });
             }
+            stop || shared.closed.load(Ordering::SeqCst)
+        };
+        drop(shared);
+        if closed {
+            Producer::finish_aborted_handshakes(inflight).await;
+            break;
         }
     }
 }
