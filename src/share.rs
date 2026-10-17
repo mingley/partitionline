@@ -1464,7 +1464,7 @@ pub enum ShareAcquireMode {
 /// subscription id that does not match the client instance.
 /// A piggybacked
 /// `TELEMETRY_TOO_LARGE` still completes without retry,
-/// including when `AcknowledgeErrorMessage` is set (Java
+/// including when `AcknowledgeErrorMessage` is set or empty (Java
 /// `handleShareFetchSuccess` completes piggyback acks and still
 /// delivers the fetch; this is not partition
 /// `TELEMETRY_TOO_LARGE`, which fails that poll, and not piggyback
@@ -3700,7 +3700,7 @@ impl ShareGroup {
     /// subscription id that does not match the client instance.
     /// A piggybacked `TELEMETRY_TOO_LARGE` still completes
     /// without retry, including when `AcknowledgeErrorMessage` is set
-    /// (Java `handleShareFetchSuccess` completes piggyback acks and still
+    /// or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
     /// delivers the fetch; this is not partition
     /// `TELEMETRY_TOO_LARGE`, which fails that poll, and not piggyback
     /// `UNKNOWN_SUBSCRIPTION_ID`). Official Java
