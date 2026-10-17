@@ -2180,14 +2180,27 @@ async fn send_job(
             rpc(socket, Message::Begin(offer), id, control, deadline, wire).await?;
             let mut offset = 0;
             while offset < offer.request.descriptor.bytes {
-                let reply = control
-                    .call(
-                        Command::Chunk(offer),
-                        None,
-                        Some(reservation.clone()),
-                        deadline,
-                    )
-                    .await?;
+                let call = control.call(
+                    Command::Chunk(offer),
+                    None,
+                    Some(reservation.clone()),
+                    deadline,
+                );
+                tokio::pin!(call);
+                // The next image bytes come from the owner. A peer that leaves
+                // during that read must not stay connected until the transfer deadline.
+                let reply = tokio::select! {
+                    biased;
+                    _ = peer_socket_closed(
+                        socket,
+                        &mut wire.unread,
+                        control.config.limits.frame_bytes,
+                    ) => {
+                        wire.unread.clear();
+                        return Err(Error::Peer);
+                    }
+                    result = &mut call => result?,
+                };
                 let Reply::Message(Message::Chunk {
                     offer: q,
                     offset: o,
@@ -3414,6 +3427,124 @@ mod ownership_tests {
         match saw {
             Ok(Ok(0)) => Ok(()),
             _ => Err("outbound kept the socket while prepare waited on the owner".into()),
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn outbound_closes_when_the_peer_leaves_during_a_chunk() -> TestResult {
+        let owner = LocalOwner::open(0, 2, 16).await?;
+        let listener = TcpListener::bind("127.0.0.1:0").await?;
+        let address = listener.local_addr()?;
+        let voter = Voter::new(
+            Key::new(1, [2; 16])?,
+            vec![Endpoint::new(
+                "CONTROLLER".into(),
+                "127.0.0.1".into(),
+                6001,
+            )?],
+            0,
+            1,
+        )?;
+        let peer = Peer::new(voter, address)?;
+        let peer_key = peer.key();
+        let local_key = owner.control.config.bootstrap.local().key();
+        let offer = replication::DynamicSnapshotRequest {
+            context: replication::Context {
+                leader: local_key,
+                peer: peer_key,
+                configuration_epoch: 0,
+            },
+            request: replication::SnapshotRequest {
+                leader: local_key.id,
+                peer: peer_key.id,
+                sequence: 1,
+                term: 2,
+                leader_commit: 1,
+                descriptor: super::super::snapshot::Descriptor {
+                    generation: [1; 16],
+                    base: LogPosition { term: 1, index: 1 },
+                    records: 1,
+                    payload_bytes: 0,
+                    bytes: 64,
+                    checksum: 1,
+                },
+            },
+        };
+        let (tx, rx) = mpsc::channel(1);
+        let control = owner.control.clone();
+        let running = tokio::spawn(async move {
+            outbound(control, peer, rx).await;
+        });
+        tokio::time::sleep(Duration::from_millis(20)).await;
+        tx.send(Job::Image(offer)).await.map_err(|_| "send image")?;
+        let (mut socket, _) = tokio::time::timeout(Duration::from_secs(2), listener.accept())
+            .await
+            .map_err(|_| "outbound did not connect")??;
+        let bound = owner.control.config.limits.frame_bytes;
+        let mut wire = WireBuf::new();
+        let deadline = Instant::now() + Duration::from_secs(2);
+        let hello = read_frame(&mut socket, bound, 64, deadline, &mut wire).await?;
+        let Message::Hello(hello) = hello.message else {
+            running.abort();
+            return Err("hello".into());
+        };
+        write_frame(
+            &mut socket,
+            &Frame {
+                rpc: 0,
+                message: Message::HelloAck(hello),
+            },
+            bound,
+            deadline,
+            &mut wire,
+        )
+        .await?;
+        let begin = read_frame(&mut socket, bound, 64, deadline, &mut wire).await?;
+        let Message::Begin(begin_offer) = begin.message else {
+            running.abort();
+            return Err("begin".into());
+        };
+        let (envelope, _reply, entered, release) = gate(Command::State);
+        owner
+            .control
+            .commands
+            .send(envelope)
+            .await
+            .map_err(|_| "gate admission")?;
+        let _entered = entered.await?;
+        write_frame(
+            &mut socket,
+            &Frame {
+                rpc: begin.rpc,
+                message: Message::Begun(begin_offer),
+            },
+            bound,
+            deadline,
+            &mut wire,
+        )
+        .await?;
+        let mut buf = [0u8; 8];
+        let still_open = tokio::time::timeout(
+            Duration::from_millis(30),
+            tokio::io::AsyncReadExt::read(&mut socket, &mut buf),
+        )
+        .await;
+        if !matches!(still_open, Err(_)) {
+            let _ = release.send(());
+            running.abort();
+            return Err("outbound dropped the socket before the chunk read".into());
+        }
+        socket.shutdown().await.map_err(|_| "shutdown write")?;
+        let saw = tokio::time::timeout(
+            Duration::from_millis(300),
+            tokio::io::AsyncReadExt::read(&mut socket, &mut buf),
+        )
+        .await;
+        let _ = release.send(());
+        running.abort();
+        match saw {
+            Ok(Ok(0)) => Ok(()),
+            _ => Err("outbound kept the socket while a chunk waited on the owner".into()),
         }
     }
 
