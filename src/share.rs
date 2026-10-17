@@ -1183,7 +1183,7 @@ pub enum ShareAcquireMode {
 /// when `AcknowledgeErrorMessage` is set or empty. A piggybacked
 /// `INVALID_PRODUCER_ID_MAPPING` on one partition does not fail a
 /// sibling partition whose `AcknowledgeErrorCode` is none, including
-/// when `AcknowledgeErrorMessage` is set. A piggybacked
+/// when `AcknowledgeErrorMessage` is set or empty. A piggybacked
 /// `FENCED_LEADER_EPOCH` / `NOT_LEADER_OR_FOLLOWER` /
 /// `UNKNOWN_TOPIC_OR_PARTITION` / `UNKNOWN_TOPIC_ID` /
 /// `INCONSISTENT_TOPIC_ID` on one partition does not fail a sibling
@@ -2812,7 +2812,7 @@ impl ShareGroup {
     /// including when `AcknowledgeErrorMessage` is set or empty.
     /// A piggybacked `INVALID_PRODUCER_ID_MAPPING` on one partition
     /// does not fail a sibling whose `AcknowledgeErrorCode` is none,
-    /// including when `AcknowledgeErrorMessage` is set.
+    /// including when `AcknowledgeErrorMessage` is set or empty.
     /// After [`Self::subscribe`] replaces the topic list, leftover
     /// acknowledgements for a previous topic still piggyback on that
     /// topic's leader while the new assignment is fetched (Java
