@@ -769,7 +769,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   no transaction state. A
   piggybacked `FETCH_SESSION_TOPIC_ID_ERROR` still
   completes without retry, including when `AcknowledgeErrorMessage` is
-  set (Java `handleShareFetchSuccess` completes piggyback acks and still
+  set or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
   delivers the fetch; this is not partition `FETCH_SESSION_TOPIC_ID_ERROR`,
   which fails that poll, and not piggyback `TRANSACTIONAL_ID_NOT_FOUND`). Official
   Java `FetchSession` writes this when the request version's topic ID usage

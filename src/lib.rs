@@ -2517,7 +2517,7 @@
 //! no transaction state.
 //! A piggybacked
 //! `FETCH_SESSION_TOPIC_ID_ERROR` still completes without retry,
-//! including when `AcknowledgeErrorMessage` is set (this is not
+//! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `FETCH_SESSION_TOPIC_ID_ERROR`, which fails that poll, and not
 //! piggyback `TRANSACTIONAL_ID_NOT_FOUND`). Official Java
 //! `FetchSession` writes this when the request version's topic ID usage
