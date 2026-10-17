@@ -1773,6 +1773,45 @@ impl LeaderDialFlight {
             consumer.store_opened_leaders(opened);
         }
     }
+
+    /// Stop a dial that is still running, then keep any socket that finished.
+    ///
+    /// Abort only schedules cancellation. On a current-thread runtime the
+    /// handshake stays inside its broker read until this caller yields. The
+    /// wait stops at `deadline`, then a few extra turns let the task notice
+    /// the abort. A handshake that already finished is stored whole.
+    pub(crate) async fn finish(self, consumer: &mut Consumer, deadline: Instant) {
+        let opened = self.take(deadline).await;
+        consumer.store_opened_leaders(opened);
+    }
+
+    async fn take(mut self, deadline: Instant) -> Vec<OpenedLeaderDial> {
+        if let Some(opened) = self.ready.take() {
+            self.ready = Some(Vec::new());
+            return opened;
+        }
+        if !self.task.is_finished() {
+            self.task.abort();
+            let mut extra = 0u32;
+            while !self.task.is_finished() {
+                let open = Instant::now() < deadline;
+                if !open {
+                    if extra >= 8 {
+                        break;
+                    }
+                    extra = extra.saturating_add(1);
+                }
+                tokio::task::yield_now().await;
+            }
+        }
+        let opened = if self.task.is_finished() {
+            (&mut self.task).await.unwrap_or_default()
+        } else {
+            Vec::new()
+        };
+        self.ready = Some(Vec::new());
+        opened
+    }
 }
 
 impl Drop for LeaderDialFlight {
@@ -8122,8 +8161,10 @@ impl Consumer {
 
     /// Start leader handshakes without holding this consumer across the dials.
     ///
-    /// Drop the flight to abort dials that are no longer needed. [`LeaderDialFlight::store`]
-    /// keeps the sockets that finished.
+    /// [`LeaderDialFlight::store`] keeps sockets from a dial that finished.
+    /// [`LeaderDialFlight::finish`] stops a dial that is still running and
+    /// waits until that task leaves the runtime. Dropping the flight only
+    /// schedules the abort.
     pub(crate) fn start_leader_dials(
         &mut self,
         nodes: &[i32],
@@ -10772,6 +10813,62 @@ mod tests {
         let mut nodes: Vec<i32> = opened.iter().map(|dial| dial.node).collect();
         nodes.sort_unstable();
         assert_eq!(nodes, vec![1, 2]);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn finishing_a_leader_dial_stops_the_task() {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let accepted = Arc::new(AtomicBool::new(false));
+        let flag = Arc::clone(&accepted);
+        let hold = tokio::spawn(async move {
+            let (sock, _) = listener.accept().await.unwrap();
+            flag.store(true, Ordering::SeqCst);
+            std::future::pending::<()>().await;
+            drop(sock);
+        });
+        let task = tokio::spawn(Consumer::open_leader_dials(
+            LeaderDialConfig {
+                client_id: "dial-finish".to_string(),
+                connect_timeout: Duration::from_secs(30),
+                tls: None,
+                sasl_plain: None,
+                sasl_scram: None,
+                sasl_scram_sha512: None,
+                sasl_oauthbearer: None,
+                sasl_oauthbearer_oidc: None,
+                node_keys: HashMap::new(),
+                addr_keys: HashMap::new(),
+            },
+            vec![(2, addr)],
+            Arc::new(AtomicBool::new(false)),
+            Instant::now() + Duration::from_secs(30),
+        ));
+        let handle = task.abort_handle();
+        let flight = LeaderDialFlight { task, ready: None };
+        while !accepted.load(Ordering::SeqCst) {
+            tokio::task::yield_now().await;
+        }
+        assert!(
+            !handle.is_finished(),
+            "the dial should still be waiting on the broker"
+        );
+        let started = Instant::now();
+        let opened = flight.take(Instant::now()).await;
+        assert!(
+            opened.is_empty(),
+            "an aborted handshake has no socket to keep"
+        );
+        assert!(
+            started.elapsed() < Duration::from_millis(200),
+            "finish waited for the broker read: {:?}",
+            started.elapsed()
+        );
+        assert!(
+            handle.is_finished(),
+            "finish returned while the dial task was still alive"
+        );
+        hold.abort();
     }
 
     #[test]

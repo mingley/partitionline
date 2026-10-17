@@ -12,8 +12,8 @@ use tokio::sync::watch;
 
 use crate::config::{AutoOffsetReset, IsolationLevel};
 use crate::consumer::{
-    duration_millis_i32, Consumer, ConsumerConfig, ConsumerRecords, OffsetAndMetadata,
-    TopicPartition,
+    duration_millis_i32, Consumer, ConsumerConfig, ConsumerRecords, LeaderDialFlight,
+    OffsetAndMetadata, TopicPartition,
 };
 use crate::error::{self, Error, Result};
 use crate::net::BrokerConn;
@@ -2861,14 +2861,14 @@ impl ConsumerGroup {
         } else {
             sync_fut.await
         };
+        if let Some(flight) = flight {
+            flight.store(&mut self.consumer);
+        }
         let (version, body) = synced?;
         let (err, assignment, ..) = decode_sync_group_response(&mut body.clone(), version)
             .map_err(|e| group_decode_context(e, "SyncGroup", version, body.len()))?;
         if err != 0 {
             return Err(Error::broker(err, "SyncGroup"));
-        }
-        if let Some(flight) = flight {
-            flight.store(&mut self.consumer);
         }
         let assigned = decode_assignment(&assignment).map_err(|e| {
             group_decode_context(e, "ConsumerProtocol assignment", version, assignment.len())
@@ -3126,6 +3126,10 @@ impl ConsumerGroup {
         Ok(())
     }
 
+    async fn keep_leader_flight(&mut self, flight: LeaderDialFlight, deadline: Instant) {
+        flight.finish(&mut self.consumer, deadline).await;
+    }
+
     async fn assign_committed(
         &mut self,
         wanted: &[(String, i32)],
@@ -3304,28 +3308,51 @@ impl ConsumerGroup {
                         &mut self.prior_coords,
                         timeout,
                     );
-                    tokio::pin!(refresh_fut);
-                    tokio::pin!(fetch_fut);
-                    let mut metadata_refresh = None;
-                    let fetched_rpc = loop {
-                        tokio::select! {
-                            biased;
-                            result = &mut fetch_fut => break result,
-                            result = &mut refresh_fut, if metadata_refresh.is_none() => {
-                                metadata_refresh = Some(result);
+                    let (fetched_rpc, metadata_refresh) = {
+                        tokio::pin!(refresh_fut);
+                        tokio::pin!(fetch_fut);
+                        let mut metadata_refresh = None;
+                        let fetched_rpc = loop {
+                            tokio::select! {
+                                biased;
+                                result = &mut fetch_fut => break result,
+                                result = &mut refresh_fut, if metadata_refresh.is_none() => {
+                                    metadata_refresh = Some(result);
+                                }
+                                _ = &mut dials, if !warm_leaders => {
+                                    warm_leaders = true;
+                                }
                             }
-                            _ = &mut dials, if !warm_leaders => {
-                                warm_leaders = true;
-                            }
+                        };
+                        if metadata_refresh.is_none() {
+                            metadata_refresh = Some((&mut refresh_fut).await);
+                        }
+                        (fetched_rpc, metadata_refresh)
+                    };
+                    let (version, body) = match fetched_rpc {
+                        Ok(pair) => pair,
+                        Err(error) => {
+                            self.classic_fetch_topics = topics;
+                            self.keep_leader_flight(dials, deadline).await;
+                            return Err(error);
                         }
                     };
-                    if metadata_refresh.is_none() {
-                        metadata_refresh = Some((&mut refresh_fut).await);
-                    }
-                    let (version, body) = fetched_rpc?;
-                    let fetched = decode_offset_fetch_response(&mut body.clone(), version)
-                        .map_err(|e| group_decode_context(e, "OffsetFetch", version, body.len()))?;
+                    let fetched = match decode_offset_fetch_response(&mut body.clone(), version) {
+                        Ok(fetched) => fetched,
+                        Err(error) => {
+                            self.classic_fetch_topics = topics;
+                            self.keep_leader_flight(dials, deadline).await;
+                            return Err(group_decode_context(
+                                error,
+                                "OffsetFetch",
+                                version,
+                                body.len(),
+                            ));
+                        }
+                    };
                     if let Some(Err(error)) = metadata_refresh {
+                        self.classic_fetch_topics = topics;
+                        self.keep_leader_flight(dials, deadline).await;
                         return Err(error);
                     }
                     let needs_reset = added.iter().any(|(topic, partition)| {
@@ -3336,13 +3363,10 @@ impl ConsumerGroup {
                     });
                     if needs_reset && !warm_leaders {
                         (&mut dials).await;
-                        warm_leaders = true;
                     }
+                    self.keep_leader_flight(dials, deadline).await;
                     fetched
                 };
-                if warm_leaders {
-                    dials.store(&mut self.consumer);
-                }
                 self.classic_fetch_topics = topics;
                 fetched
             } else {
@@ -3355,6 +3379,7 @@ impl ConsumerGroup {
                         leaders.push(node);
                     }
                 }
+                let mut dials = self.consumer.start_leader_dials(&leaders, deadline);
                 let require_stable = self.cfg.isolation_level == IsolationLevel::ReadCommitted;
                 let member_epoch = if self.kip848 { self.generation_id } else { -1 };
                 let member_id = if self.kip848 {
@@ -3364,14 +3389,10 @@ impl ConsumerGroup {
                 };
                 let group_id = self.group_id.clone();
                 let bootstrap_keys = self.consumer.copy_api_keys();
-                let coord = &mut self.coord;
-                let cfg = &self.cfg;
-                let consumer = &mut self.consumer;
-                let prior = &mut self.prior_coords;
                 let fetched = {
                     let fetch_fut = coord_roundtrip(
-                        coord,
-                        cfg,
+                        &mut self.coord,
+                        &self.cfg,
                         &group_id,
                         COORDINATOR_GROUP,
                         OFFSET_FETCH,
@@ -3387,23 +3408,41 @@ impl ConsumerGroup {
                             )
                         },
                         &bootstrap_keys,
-                        prior,
+                        &mut self.prior_coords,
                         timeout,
                     );
-                    let warm_fut = consumer.warm_leader_conns(&leaders, deadline);
-                    tokio::pin!(fetch_fut);
-                    tokio::pin!(warm_fut);
-                    let fetched_rpc = tokio::select! {
-                        biased;
-                        result = &mut fetch_fut => result,
-                        _ = &mut warm_fut => {
-                            warm_leaders = true;
-                            (&mut fetch_fut).await
+                    let fetched_rpc = {
+                        tokio::pin!(fetch_fut);
+                        tokio::select! {
+                            biased;
+                            result = &mut fetch_fut => result,
+                            () = &mut dials, if !warm_leaders => {
+                                warm_leaders = true;
+                                (&mut fetch_fut).await
+                            }
                         }
                     };
-                    let (version, body) = fetched_rpc?;
-                    let fetched = decode_offset_fetch_response(&mut body.clone(), version)
-                        .map_err(|e| group_decode_context(e, "OffsetFetch", version, body.len()))?;
+                    let (version, body) = match fetched_rpc {
+                        Ok(pair) => pair,
+                        Err(error) => {
+                            self.classic_fetch_topics = topics;
+                            self.keep_leader_flight(dials, deadline).await;
+                            return Err(error);
+                        }
+                    };
+                    let fetched = match decode_offset_fetch_response(&mut body.clone(), version) {
+                        Ok(fetched) => fetched,
+                        Err(error) => {
+                            self.classic_fetch_topics = topics;
+                            self.keep_leader_flight(dials, deadline).await;
+                            return Err(group_decode_context(
+                                error,
+                                "OffsetFetch",
+                                version,
+                                body.len(),
+                            ));
+                        }
+                    };
                     let needs_reset = added.iter().any(|(topic, partition)| {
                         fetched_committed(&fetched, topic, *partition)
                             .map(|part| part.offset)
@@ -3411,8 +3450,9 @@ impl ConsumerGroup {
                             < 0
                     });
                     if needs_reset && !warm_leaders {
-                        warm_fut.await;
+                        (&mut dials).await;
                     }
+                    self.keep_leader_flight(dials, deadline).await;
                     fetched
                 };
                 self.classic_fetch_topics = topics;
