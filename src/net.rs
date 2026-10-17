@@ -1084,6 +1084,9 @@ impl BrokerConn {
     pub fn close(&mut self) {
         self.closed.store(true, Ordering::SeqCst);
         self.in_flight = 0;
+        // The idle watch is parked on the socket. Wake it so the flag
+        // becomes a FIN instead of waiting for the broker to write.
+        self.idle_arm.notify_one();
     }
 
     /// Send FIN for a connection that is already marked closed.
@@ -3134,6 +3137,29 @@ mod tests {
         assert!(conn.buffered_len() > 0, "the response byte was not kept");
         let saw = accepted.await.unwrap();
         assert!(matches!(saw, Ok(Ok(0))), "peer stayed in the read: {saw:?}");
+        drop(conn);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn close_shuts_the_socket_while_the_idle_watch_is_parked() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        let accepted = tokio::spawn(async move {
+            let (socket, _) = listener.accept().await.unwrap();
+            let (mut reader, _writer) = socket.into_split();
+            let mut buf = [0u8; 8];
+            tokio::time::timeout(Duration::from_millis(300), reader.read(&mut buf)).await
+        });
+        let mut conn = BrokerConn::connect(&addr.to_string(), "flag-close", Duration::from_secs(2))
+            .await
+            .unwrap();
+        tokio::time::sleep(Duration::from_millis(50)).await;
+        conn.close();
+        let saw = accepted.await.unwrap();
+        assert!(
+            matches!(saw, Ok(Ok(0))),
+            "peer stayed in the read after the connection was marked closed: {saw:?}"
+        );
         drop(conn);
     }
 
