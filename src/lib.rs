@@ -2432,6 +2432,13 @@
 //! `TransactionMetadata.prepareIncrementProducerEpoch` writes this
 //! when the expected producer epoch does not match.
 //! A piggybacked
+//! `RESOURCE_NOT_FOUND` still completes without retry,
+//! including when `AcknowledgeErrorMessage` is set (this is not
+//! partition `RESOURCE_NOT_FOUND`, which fails that poll, and not
+//! piggyback `PRODUCER_FENCED`). Official Java
+//! `ScramImage` DescribeUserScramCredentials writes this when the
+//! user does not exist.
+//! A piggybacked
 //! `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a
 //! sibling whose `AcknowledgeErrorCode` is none, including when
 //! `AcknowledgeErrorMessage` is set or empty. A piggybacked
