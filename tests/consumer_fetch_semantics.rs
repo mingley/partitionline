@@ -3758,6 +3758,48 @@ async fn offset_commit_reuses_the_other_bootstrap_handshake() {
     group.leave().await.unwrap();
 }
 
+/// A poll's interval commit rediscovers a coordinator that moved to the other bootstrap.
+#[tokio::test]
+async fn poll_commit_reuses_the_other_bootstrap_handshake() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_topic_partitions("t", 1);
+    mock.set_partition_leader("t", 0, 1);
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    let _sent = producer
+        .send(ProduceRecord::to("t").value(&b"v"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+    let addr2 = mock.broker_addr(2).unwrap();
+    let mut cfg = ConsumerConfig::bootstrap([mock.addr.clone(), addr2])
+        .max_wait_ms(10)
+        .auto_commit(true)
+        .auto_commit_interval(Duration::from_millis(1));
+    cfg.heartbeat_interval = Duration::from_secs(5);
+    let mut group = ConsumerGroup::join(cfg, "poll-commit", "t").await.unwrap();
+    assert_eq!(group.poll().await.unwrap().len(), 1);
+    tokio::time::sleep(Duration::from_millis(5)).await;
+    let versions_before = mock.api_versions_versions().len();
+    mock.set_coordinator(2);
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let started = Instant::now();
+    let _again = group.poll().await.unwrap();
+    let elapsed = started.elapsed();
+    assert_eq!(
+        mock.api_versions_versions().len(),
+        versions_before,
+        "poll commit rediscovery renegotiated the other bootstrap"
+    );
+    assert!(
+        elapsed < Duration::from_millis(400),
+        "poll commit rediscovery repeated ApiVersions: {elapsed:?}"
+    );
+    group.leave().await.unwrap();
+}
+
 /// A rejoin rediscovers a coordinator that moved to the other bootstrap.
 #[tokio::test]
 async fn rejoin_reuses_the_other_bootstrap_handshake() {

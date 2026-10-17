@@ -2084,12 +2084,13 @@ impl ConsumerGroup {
         let member_id = self.member_id.clone();
         let instance = self.cfg.group_instance_id.clone();
         let bootstrap_keys = self.consumer.copy_api_keys();
+        let address_keys = self.consumer.copy_learned_broker_keys();
         let coord = &mut self.coord;
         let cfg = &self.cfg;
         let consumer = &mut self.consumer;
         let prior = &mut self.prior_coords;
         let (committed, fetched) = tokio::join!(
-            coord_roundtrip(
+            coord_roundtrip_with_bootstrap(
                 coord,
                 cfg,
                 &group_id,
@@ -2108,6 +2109,7 @@ impl ConsumerGroup {
                     )
                 },
                 &bootstrap_keys,
+                &address_keys,
                 prior,
                 timeout,
             ),
