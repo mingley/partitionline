@@ -3811,7 +3811,39 @@ async fn multi_leader_fetch_reuses_bootstrap_api_versions() {
     consumer.close().await.unwrap();
 }
 
-/// A refused bootstrap fetch socket is opened again without ApiVersions.
+/// An idle non-bootstrap fetch leader reconnects without ApiVersions.
+#[tokio::test]
+async fn idle_leader_fetch_reuses_learned_api_versions() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_topic_partitions("t", 1);
+    mock.set_partition_leader("t", 0, 2);
+    let mut cfg = ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10);
+    cfg.connections_max_idle = Duration::from_millis(40);
+    let mut consumer = Consumer::new(cfg).await.unwrap();
+    consumer.assign("t", 0, 0).await.unwrap();
+    let _warm = consumer.fetch().await.unwrap();
+    tokio::time::sleep(Duration::from_millis(60)).await;
+    let versions_before = mock.api_versions_versions().len();
+    let accepts_before = mock.accepts();
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let started = Instant::now();
+    let _again = consumer.fetch().await.unwrap();
+    let elapsed = started.elapsed();
+    assert_eq!(
+        mock.api_versions_versions().len(),
+        versions_before,
+        "an idle leader should reuse the versions already learned"
+    );
+    assert!(
+        mock.accepts() > accepts_before,
+        "idle expiry replaces the leader socket"
+    );
+    assert!(
+        elapsed < Duration::from_millis(200),
+        "idle leader fetch repeated ApiVersions: {elapsed:?}"
+    );
+    consumer.close().await.unwrap();
+}
 #[tokio::test]
 async fn refused_bootstrap_fetch_leader_reuses_api_versions() {
     let mock = common::Mock::start_two_node().await;

@@ -1752,6 +1752,8 @@ struct LeaderDialConfig {
     sasl_scram_sha512: Option<(String, String)>,
     sasl_oauthbearer: Option<String>,
     sasl_oauthbearer_oidc: Option<crate::OidcConfig>,
+    /// ApiVersions already learned for each node, used when that socket is replaced.
+    node_keys: HashMap<i32, Vec<ApiVersion>>,
 }
 
 type LeaderDialAttempt = (i32, Result<(BrokerConn, ApiVersionsResponse)>);
@@ -2099,6 +2101,10 @@ pub struct Consumer {
     list_offsets_ranges: HashMap<i32, (i16, i16)>,
     /// OffsetForLeaderEpoch min/max negotiated for each dedicated leader socket.
     leader_epoch_ranges: HashMap<i32, (i16, i16)>,
+    /// ApiVersions learned on each dedicated leader socket.
+    ///
+    /// Kept after the socket goes idle so the replacement skips that handshake.
+    node_api_keys: HashMap<i32, Vec<ApiVersion>>,
     fetch_throttles: HashMap<i32, Instant>,
     fetch_sessions: HashMap<i32, BrokerFetchSession>,
     /// Reused fetch grouping. Cleared and refilled each round so a stable
@@ -3009,6 +3015,7 @@ impl Consumer {
             redial_nodes: Vec::new(),
             list_offsets_ranges: HashMap::new(),
             leader_epoch_ranges: HashMap::new(),
+            node_api_keys: HashMap::new(),
             fetch_throttles: HashMap::new(),
             fetch_sessions: HashMap::new(),
             fetch_plan: HashMap::new(),
@@ -4219,11 +4226,7 @@ impl Consumer {
             if Instant::now() >= deadline {
                 return Err(Error::Timeout);
             }
-            let opened = if addr == self.conn.addr() && !self.versions.is_empty() {
-                self.open_leader_socket(&addr, deadline).await
-            } else {
-                self.open_node_conn_until(&addr, deadline).await
-            };
+            let opened = self.open_node_or_remembered(node, &addr, deadline).await;
             match opened {
                 Ok((conn, versions)) => {
                     let _ = self.reconnect_fails.remove(&node);
@@ -4463,6 +4466,7 @@ impl Consumer {
         } else {
             self.copy_api_keys()
         };
+        let node_api_keys = self.node_api_keys.clone();
         let mut waiting: VecDeque<(i32, String)> = dials.into();
         let mut inflight = tokio::task::JoinSet::new();
         let mut inflight_ids = HashSet::new();
@@ -4482,6 +4486,7 @@ impl Consumer {
             let sasl_oauthbearer_oidc = sasl_oauthbearer_oidc.clone();
             let known_keys = known_keys.clone();
             let bootstrap_addr = bootstrap_addr.clone();
+            let node_keys = node_api_keys.get(&node).cloned();
             let _ = inflight.spawn(async move {
                 let result = if addr == bootstrap_addr && !known_keys.is_empty() {
                     Consumer::open_fetch_conn_known(
@@ -4495,6 +4500,21 @@ impl Consumer {
                         sasl_oauthbearer.as_deref(),
                         sasl_oauthbearer_oidc.as_ref(),
                         &known_keys,
+                        deadline,
+                    )
+                    .await
+                } else if let Some(keys) = node_keys {
+                    Consumer::open_fetch_conn_known(
+                        &addr,
+                        &client_id,
+                        connect_timeout,
+                        tls.as_ref(),
+                        sasl_plain.as_ref(),
+                        sasl_scram.as_ref(),
+                        sasl_scram_sha512.as_ref(),
+                        sasl_oauthbearer.as_deref(),
+                        sasl_oauthbearer_oidc.as_ref(),
+                        &keys,
                         deadline,
                     )
                     .await
@@ -4658,7 +4678,7 @@ impl Consumer {
         if Instant::now() >= deadline {
             return Err(Error::Timeout);
         }
-        match self.open_node_conn_until(&addr, deadline).await {
+        match self.open_node_or_remembered(node, &addr, deadline).await {
             Ok((conn, versions)) => {
                 let _ = self.reconnect_fails.remove(&node);
                 self.remember_opened_conn(node, conn, &versions);
@@ -4688,6 +4708,36 @@ impl Consumer {
             versions.api_version(OFFSET_FOR_LEADER_EPOCH),
         );
         let _previous = self.conns.insert(node, conn);
+        let _previous_keys = self.node_api_keys.insert(node, versions.api_keys.clone());
+    }
+
+    /// Open a leader socket, reusing versions already learned for this broker.
+    async fn open_node_or_remembered(
+        &self,
+        node: i32,
+        addr: &str,
+        deadline: Instant,
+    ) -> Result<(BrokerConn, ApiVersionsResponse)> {
+        if addr == self.conn.addr() && !self.versions.is_empty() {
+            return self.open_leader_socket(addr, deadline).await;
+        }
+        if let Some(keys) = self.node_api_keys.get(&node) {
+            return Self::open_fetch_conn_known(
+                addr,
+                &self.cfg.client_id,
+                self.cfg.connect_timeout,
+                self.cfg.tls.as_ref(),
+                self.cfg.sasl_plain.as_ref(),
+                self.cfg.sasl_scram.as_ref(),
+                self.cfg.sasl_scram_sha512.as_ref(),
+                self.cfg.sasl_oauthbearer.as_deref(),
+                self.cfg.sasl_oauthbearer_oidc.as_ref(),
+                keys,
+                deadline,
+            )
+            .await;
+        }
+        self.open_node_conn_until(addr, deadline).await
     }
 
     fn store_api_range(
@@ -7845,6 +7895,7 @@ impl Consumer {
             sasl_scram_sha512: self.cfg.sasl_scram_sha512.clone(),
             sasl_oauthbearer: self.cfg.sasl_oauthbearer.clone(),
             sasl_oauthbearer_oidc: self.cfg.sasl_oauthbearer_oidc.clone(),
+            node_keys: self.node_api_keys.clone(),
         }
     }
 
@@ -7889,21 +7940,40 @@ impl Consumer {
                     sasl_scram_sha512: cfg.sasl_scram_sha512.clone(),
                     sasl_oauthbearer: cfg.sasl_oauthbearer.clone(),
                     sasl_oauthbearer_oidc: cfg.sasl_oauthbearer_oidc.clone(),
+                    node_keys: cfg.node_keys.clone(),
                 };
+                let node_keys = cfg.node_keys.get(&node).cloned();
                 let _ = inflight.spawn(async move {
-                    let result = Consumer::open_fetch_conn(
-                        &addr,
-                        &cfg.client_id,
-                        cfg.connect_timeout,
-                        cfg.tls.as_ref(),
-                        cfg.sasl_plain.as_ref(),
-                        cfg.sasl_scram.as_ref(),
-                        cfg.sasl_scram_sha512.as_ref(),
-                        cfg.sasl_oauthbearer.as_deref(),
-                        cfg.sasl_oauthbearer_oidc.as_ref(),
-                        deadline,
-                    )
-                    .await;
+                    let result = if let Some(keys) = node_keys {
+                        Consumer::open_fetch_conn_known(
+                            &addr,
+                            &cfg.client_id,
+                            cfg.connect_timeout,
+                            cfg.tls.as_ref(),
+                            cfg.sasl_plain.as_ref(),
+                            cfg.sasl_scram.as_ref(),
+                            cfg.sasl_scram_sha512.as_ref(),
+                            cfg.sasl_oauthbearer.as_deref(),
+                            cfg.sasl_oauthbearer_oidc.as_ref(),
+                            &keys,
+                            deadline,
+                        )
+                        .await
+                    } else {
+                        Consumer::open_fetch_conn(
+                            &addr,
+                            &cfg.client_id,
+                            cfg.connect_timeout,
+                            cfg.tls.as_ref(),
+                            cfg.sasl_plain.as_ref(),
+                            cfg.sasl_scram.as_ref(),
+                            cfg.sasl_scram_sha512.as_ref(),
+                            cfg.sasl_oauthbearer.as_deref(),
+                            cfg.sasl_oauthbearer_oidc.as_ref(),
+                            deadline,
+                        )
+                        .await
+                    };
                     (node, result)
                 });
             };
