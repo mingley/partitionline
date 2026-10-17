@@ -566,7 +566,7 @@ async fn run<H: Handler + 'static>(
                 };
                 if workers.len() >= config.max_connections {
                     report.overload_rejections = report.overload_rejections.saturating_add(1);
-                    drop(socket);
+                    reject_connection(socket).await;
                     continue;
                 }
                 report.accepted_connections = report.accepted_connections.saturating_add(1);
@@ -584,6 +584,15 @@ async fn run<H: Handler + 'static>(
     match failure {
         Some(error) => Err(error),
         None => Ok(report),
+    }
+}
+
+async fn reject_connection(socket: TcpStream) {
+    drop(socket);
+    // Dropping the socket only schedules the close. Yield so the peer
+    // observes it before the accept loop continues.
+    for _ in 0..8 {
+        tokio::task::yield_now().await;
     }
 }
 
@@ -1588,6 +1597,55 @@ mod tls_deadline_tests {
             open.load(Ordering::SeqCst),
             0,
             "tls handshake deadline left the accepted socket blocked in a read"
+        );
+        client.abort();
+    }
+}
+
+#[cfg(test)]
+mod reject_connection_tests {
+    use super::reject_connection;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::sync::Arc;
+    use tokio::io::AsyncReadExt;
+    use tokio::net::{TcpListener, TcpStream};
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn rejected_connection_closes_before_the_caller_returns() {
+        let listener = TcpListener::bind("127.0.0.1:0")
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        let address = listener
+            .local_addr()
+            .unwrap_or_else(|error| panic!("{error}"));
+        let open = Arc::new(AtomicUsize::new(0));
+        let open_flag = Arc::clone(&open);
+        let client = tokio::spawn(async move {
+            let Ok(mut socket) = TcpStream::connect(address).await else {
+                return;
+            };
+            let _started = open_flag.fetch_add(1, Ordering::SeqCst);
+            let mut buf = [0u8; 8];
+            loop {
+                match socket.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = open_flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let (server, _) = listener
+            .accept()
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        while open.load(Ordering::SeqCst) == 0 {
+            tokio::task::yield_now().await;
+        }
+        reject_connection(server).await;
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "rejected connection left the accepted socket blocked in a read"
         );
         client.abort();
     }
