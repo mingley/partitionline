@@ -1933,6 +1933,48 @@ async fn produce_reconnects_when_the_broker_closes_during_throttle() {
     drop(producer);
 }
 
+/// CreateTopics retries a NOT_CONTROLLER response without leaving the broker in its read.
+#[tokio::test(flavor = "current_thread")]
+async fn create_topics_retry_drops_the_retired_bootstrap_socket() {
+    let mock = common::Mock::start().await;
+    mock.fail_create_topics_once(error::NOT_CONTROLLER);
+    let mut cfg = AdminConfig::bootstrap([mock.addr.clone()]);
+    cfg.request_timeout = Duration::from_secs(30);
+    cfg.retry_backoff = Duration::from_secs(5);
+    cfg.retry_backoff_max = Duration::from_secs(5);
+    let mut admin = Admin::new(cfg).await.unwrap();
+    let topics = [NewTopic::new("retry-t", 1, 1)];
+    let creating = admin.create_topics(&topics, 10_000, false);
+    tokio::pin!(creating);
+    let started = Instant::now();
+    loop {
+        if mock.last_create_topics_names().is_some() {
+            break;
+        }
+        if started.elapsed() > Duration::from_secs(2) {
+            panic!("create topics was not rejected as not controller");
+        }
+        tokio::select! {
+            result = &mut creating => panic!("create topics finished before the retry wait: {result:?}"),
+            _ = tokio::time::sleep(Duration::from_millis(5)) => {}
+        }
+    }
+    let started = Instant::now();
+    loop {
+        if mock.open_conns() == 0 {
+            break;
+        }
+        if started.elapsed() > Duration::from_millis(400) {
+            panic!("create topics left the retired bootstrap socket in a broker read");
+        }
+        tokio::select! {
+            result = &mut creating => panic!("create topics finished during retry backoff: {result:?}"),
+            _ = tokio::time::sleep(Duration::from_millis(5)) => {}
+        }
+    }
+    drop(creating);
+}
+
 /// A fetch session retry drops the leader socket when that broker closes during backoff.
 #[tokio::test(flavor = "current_thread")]
 async fn fetch_drops_the_socket_when_the_broker_closes_during_session_retry() {

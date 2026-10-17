@@ -15,7 +15,7 @@ use bytes::{BufMut, Bytes, BytesMut};
 use rustls::pki_types::pem::PemObject;
 use rustls::pki_types::{CertificateDer, PrivateKeyDer, ServerName};
 use rustls::{ClientConfig, RootCertStore};
-use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, ReadBuf};
+use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt, ReadBuf};
 use tokio::net::TcpStream;
 use tokio::time::{timeout, timeout_at, Instant as TokioInstant};
 use tokio_rustls::client::TlsStream;
@@ -966,6 +966,17 @@ impl BrokerConn {
     pub fn close(&mut self) {
         self.closed.store(true, Ordering::SeqCst);
         self.in_flight = 0;
+    }
+
+    /// Send FIN for a connection that is already marked closed.
+    ///
+    /// [`Self::close`] only sets the flag. The broker stays in its read until
+    /// this shutdown or the socket is dropped.
+    pub(crate) async fn release_if_closed(&mut self) {
+        if !self.is_closed() {
+            return;
+        }
+        drop(self.stream.shutdown().await);
     }
 
     /// Broker session lifetime in milliseconds, if negotiated via SaslAuthenticate v1+ (KIP-368).

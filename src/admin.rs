@@ -8788,17 +8788,46 @@ impl Admin {
     }
 
     /// Wait [`AdminConfig::retry_backoff`] (exponential) or [`Error::Timeout`].
-    async fn wait_retry(&self, attempt: &mut u32, deadline: Instant) -> Result<()> {
+    async fn wait_retry(&mut self, attempt: &mut u32, deadline: Instant) -> Result<()> {
         if Instant::now() >= deadline {
             return Err(Error::Timeout);
         }
-        crate::config::sleep_retry_backoff(
+        // A retry that already retired the bootstrap socket must drop that
+        // TCP connection before the backoff, not only flip the closed flag.
+        self.conn.release_if_closed().await;
+        let retired: Vec<i32> = self
+            .conns
+            .iter()
+            .filter(|(_, conn)| conn.is_closed())
+            .map(|(node, _)| *node)
+            .collect();
+        for node in retired {
+            if let Some(mut conn) = self.conns.remove(&node) {
+                conn.release_if_closed().await;
+            }
+        }
+        let delay = crate::config::retry_backoff_delay(
             self.cfg.retry_backoff,
             self.cfg.retry_backoff_max,
             *attempt,
-            deadline,
-        )
-        .await;
+        );
+        if !delay.is_zero() && Instant::now() < deadline {
+            let rest = delay.min(deadline.saturating_duration_since(Instant::now()));
+            let sleep = tokio::time::sleep(rest);
+            tokio::pin!(sleep);
+            loop {
+                tokio::select! {
+                    biased;
+                    () = &mut sleep => break,
+                    closed = self.conn.inbound_ready(), if !self.conn.is_closed() => {
+                        if closed.is_err() {
+                            self.conn.close();
+                            self.conn.release_if_closed().await;
+                        }
+                    }
+                }
+            }
+        }
         *attempt = attempt.saturating_add(1);
         if Instant::now() >= deadline {
             return Err(Error::Timeout);
