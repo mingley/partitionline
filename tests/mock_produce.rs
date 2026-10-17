@@ -957,6 +957,32 @@ async fn transactional_startup_skips_a_second_bootstrap_handshake() {
     producer.close().await.unwrap();
 }
 
+/// A coordinator reload on the bootstrap broker does not repeat ApiVersions.
+#[tokio::test]
+async fn transactional_rediscover_skips_a_second_bootstrap_handshake() {
+    let mock = common::Mock::start().await;
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    mock.fail_init_producer_id_once(partitionline::error::COORDINATOR_LOAD_IN_PROGRESS);
+    let mut cfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    cfg.linger = Duration::ZERO;
+    cfg.retry_backoff = Duration::from_millis(1);
+    cfg.retry_backoff_max = Duration::from_millis(1);
+    cfg.transactional_id = Some("tx-reload".into());
+    let started = Instant::now();
+    let producer = Producer::new(cfg).await.unwrap();
+    let elapsed = started.elapsed();
+    assert_eq!(
+        mock.api_versions_versions().len(),
+        1,
+        "reloading the bootstrap coordinator should reuse the versions already learned"
+    );
+    assert!(
+        elapsed < Duration::from_millis(450),
+        "transactional rediscovery repeated ApiVersions: {elapsed:?}"
+    );
+    producer.close().await.unwrap();
+}
+
 /// An EndTxn coordinator retry looks up the coordinator while that broker reconnects.
 #[tokio::test]
 async fn commit_redials_txn_coordinator_while_finding_it() {

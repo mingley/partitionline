@@ -962,6 +962,9 @@ impl BrokerThrottle {
 struct CoordinatorConnection {
     conn: BrokerConn,
     init_producer_id_version: Option<i16>,
+    /// ApiVersions learned on this coordinator. A later socket to the same
+    /// address reuses them.
+    keys: Vec<ApiVersion>,
 }
 
 /// Idempotent sequence numbers, keyed by topic so a steady partition does not
@@ -3911,20 +3914,39 @@ async fn find_producer_coordinator(
     }
 }
 
+async fn open_producer_peer(
+    addr: &str,
+    cfg: &ProducerConfig,
+    keys: &[ApiVersion],
+) -> Result<(BrokerConn, ApiVersionsResponse)> {
+    if keys.is_empty() {
+        open_conn_with_versions(addr, cfg, false).await
+    } else {
+        let conn = open_conn_with_known_versions(addr, cfg, false, keys).await?;
+        Ok((conn, known_api_versions(keys)))
+    }
+}
+
+struct RediscoverProducer<'a> {
+    previous: &'a str,
+    previous_keys: &'a [ApiVersion],
+    bootstrap_keys: &'a [ApiVersion],
+}
+
 async fn rediscover_producer_coordinator(
     cfg: &ProducerConfig,
     key: &str,
     key_type: i8,
     version: i16,
-    previous: &str,
+    known: RediscoverProducer<'_>,
     deadline: Instant,
 ) -> Result<CoordinatorConnection> {
     if cfg.bootstrap.len() != 1 {
         return discover_within(cfg, key, key_type, version, deadline).await;
     }
     let bounded = bounded_producer_config(cfg, deadline)?;
-    let speculative = open_conn_with_versions(previous, &bounded, false);
-    let located = locate_producer_coordinator(cfg, key, key_type, version, deadline);
+    let speculative = open_producer_peer(known.previous, &bounded, known.previous_keys);
+    let located = locate_producer_coordinator(cfg, key, key_type, version, &known, deadline);
     tokio::pin!(speculative);
     tokio::pin!(located);
     let addr = tokio::select! {
@@ -3932,7 +3954,7 @@ async fn rediscover_producer_coordinator(
         addr = &mut located => addr?,
         opened = &mut speculative => {
             let addr = located.await?;
-            if addr == previous {
+            if addr == known.previous {
                 let (conn, versions) = opened?;
                 return Ok(coordinator_connection(conn, &versions));
             }
@@ -3940,7 +3962,7 @@ async fn rediscover_producer_coordinator(
             return Ok(coordinator_connection(conn, &versions));
         }
     };
-    if addr == previous {
+    if addr == known.previous {
         let (conn, versions) = speculative.await?;
         return Ok(coordinator_connection(conn, &versions));
     }
@@ -3953,13 +3975,19 @@ async fn locate_producer_coordinator(
     key: &str,
     key_type: i8,
     version: i16,
+    known: &RediscoverProducer<'_>,
     deadline: Instant,
 ) -> Result<String> {
     let Some(addr) = cfg.bootstrap.first() else {
         return Err(Error::protocol("find coordinator failed"));
     };
     let bounded = bounded_producer_config(cfg, deadline)?;
-    let (mut hop, _) = open_conn_with_versions(addr, &bounded, false).await?;
+    let keys = if addr == known.previous {
+        known.previous_keys
+    } else {
+        known.bootstrap_keys
+    };
+    let (mut hop, _) = open_producer_peer(addr, &bounded, keys).await?;
     let body = hop
         .roundtrip(
             FIND_COORDINATOR,
@@ -3985,6 +4013,7 @@ fn coordinator_connection(
     CoordinatorConnection {
         conn,
         init_producer_id_version,
+        keys: versions.api_keys.clone(),
     }
 }
 
@@ -4017,14 +4046,22 @@ async fn init_producer_id_roundtrip(
                 .as_deref()
                 .ok_or_else(|| Error::protocol("no transactional id"))?;
             let find_version = required_find_coordinator(find_coord_version)?;
-            let previous = txn.as_ref().map(|coord| coord.conn.addr().to_string());
-            let new = if let Some(previous) = previous.as_deref() {
+            let previous_addr = txn.as_ref().map(|coord| coord.conn.addr().to_string());
+            let previous_keys = txn
+                .as_ref()
+                .map(|coord| coord.keys.clone())
+                .unwrap_or_default();
+            let new = if let Some(previous) = previous_addr.as_deref() {
                 rediscover_producer_coordinator(
                     cfg,
                     tid,
                     COORDINATOR_TRANSACTION,
                     find_version,
-                    previous,
+                    RediscoverProducer {
+                        previous,
+                        previous_keys: &previous_keys,
+                        bootstrap_keys: &[],
+                    },
                     deadline,
                 )
                 .await?
@@ -4290,17 +4327,23 @@ async fn txn_roundtrip(
         Err(e) => return Err(e),
     }
     let find_version = required_find_coordinator(shared.find_coord_version)?;
-    let previous = {
+    let found = {
         let guard = shared.txn.lock().await;
-        guard.as_ref().map(|coord| coord.conn.addr().to_string())
+        guard
+            .as_ref()
+            .map(|coord| (coord.conn.addr().to_string(), coord.keys.clone()))
     };
-    let new = if let Some(previous) = previous.as_deref() {
+    let new = if let Some((previous_addr, previous_keys)) = found {
         rediscover_producer_coordinator(
             &shared.cfg,
             &tid,
             COORDINATOR_TRANSACTION,
             find_version,
-            previous,
+            RediscoverProducer {
+                previous: &previous_addr,
+                previous_keys: &previous_keys,
+                bootstrap_keys: &shared.api_keys,
+            },
             deadline,
         )
         .await?
@@ -4367,7 +4410,11 @@ async fn group_coord_roundtrip(
         group_id,
         COORDINATOR_GROUP,
         find_coord_version,
-        &previous,
+        RediscoverProducer {
+            previous: &previous,
+            previous_keys: &coord.keys,
+            bootstrap_keys: &[],
+        },
         deadline,
     )
     .await?;
