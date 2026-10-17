@@ -3199,7 +3199,7 @@ impl Consumer {
         require_fetch_offset(offset)?;
         Topic::validate(&topic_name)?;
         self.reject_pending_wakeup()?;
-        self.abort_inflight_fetches();
+        self.finish_inflight_fetches(self.cfg.request_timeout).await;
         self.refresh_topic_metadata(&topic_name).await?;
         self.drop_pending_for(&topic_name, partition);
         if let Some(pos) = self
@@ -3678,7 +3678,7 @@ impl Consumer {
     /// aborted-transaction cursors in place. An empty list still clears them.
     pub(crate) async fn assign_all(&mut self, starts: &[(String, i32, i64)]) -> Result<()> {
         self.reject_pending_wakeup()?;
-        self.abort_inflight_fetches();
+        self.finish_inflight_fetches(self.cfg.request_timeout).await;
         if starts.len() > crate::protocol::group::OffsetLimits::default().array_elements {
             return Err(Error::protocol("too many assigned partitions"));
         }

@@ -5667,6 +5667,57 @@ async fn close_finishes_an_inflight_fetch() {
     );
 }
 
+/// Assign of a topic already in metadata waits until a blocked fetch stops.
+#[tokio::test(flavor = "current_thread")]
+async fn assign_finishes_an_inflight_fetch() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_topic_partitions("t", 2);
+    mock.set_partition_leader("t", 0, 1);
+    mock.set_partition_leader("t", 1, 2);
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    let _ = producer
+        .send(ProduceRecord::to("t").partition(0).value(&b"a"[..]))
+        .await
+        .unwrap();
+    let _ = producer
+        .send(ProduceRecord::to("t").partition(1).value(&b"b"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+    let mut consumer = Consumer::new(
+        ConsumerConfig::bootstrap([mock.addr.clone()])
+            .max_wait_ms(10)
+            .request_timeout(Duration::from_secs(2)),
+    )
+    .await
+    .unwrap();
+    consumer.assign("t", 0, 0).await.unwrap();
+    consumer.assign("t", 1, 0).await.unwrap();
+    mock.set_fetch_delay_once(2, Duration::from_secs(30));
+    let fetched = consumer.fetch().await.unwrap();
+    assert_eq!(fetched.len(), 1, "the delayed leader should stay in flight");
+    let tasks = consumer.test_inflight_fetches();
+    assert!(
+        tasks.iter().any(|task| !task.is_finished()),
+        "expected a fetch still blocked in the broker read"
+    );
+    let started = Instant::now();
+    consumer.assign("t", 0, 0).await.unwrap();
+    assert!(
+        started.elapsed() < Duration::from_millis(200),
+        "assign waited for the delayed fetch: {:?}",
+        started.elapsed()
+    );
+    assert!(
+        tasks.iter().all(|task| task.is_finished()),
+        "assign returned while a fetch was still in flight"
+    );
+    consumer.close().await.unwrap();
+}
+
 /// Unsubscribe retires fetch sessions while LeaveGroup is in flight.
 #[tokio::test]
 async fn group_unsubscribe_closes_fetch_sessions_while_leaving() {
