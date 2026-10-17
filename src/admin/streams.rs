@@ -341,11 +341,24 @@ impl Admin {
                     Err(err) => return Err(err),
                 }
             }
-            drop(bootstrap);
+            let bootstrap_addr = bootstrap.addr().to_string();
+            let mut bootstrap = Some(bootstrap);
             for (address, indexes) in routes {
-                let queried = self
-                    .streams_describe_node(&address, ids, &indexes, options, deadline)
-                    .await;
+                let queried = if address == bootstrap_addr {
+                    match bootstrap.take() {
+                        Some(conn) => {
+                            Self::streams_describe_conn(conn, ids, &indexes, options, deadline)
+                                .await
+                        }
+                        None => {
+                            self.streams_describe_node(&address, ids, &indexes, options, deadline)
+                                .await
+                        }
+                    }
+                } else {
+                    self.streams_describe_node(&address, ids, &indexes, options, deadline)
+                        .await
+                };
                 match queried {
                     Ok(response) => {
                         response_bytes = response_bytes
@@ -462,7 +475,17 @@ impl Admin {
         options: &DescribeStreamsGroupsOptions,
         deadline: Deadline,
     ) -> Result<(usize, Vec<streams::DescribedStreamsGroup>)> {
-        let (mut conn, _) = self.open_streams_describe(address, deadline).await?;
+        let (conn, _) = self.open_streams_describe(address, deadline).await?;
+        Self::streams_describe_conn(conn, ids, indexes, options, deadline).await
+    }
+
+    async fn streams_describe_conn(
+        mut conn: BrokerConn,
+        ids: &[String],
+        indexes: &[usize],
+        options: &DescribeStreamsGroupsOptions,
+        deadline: Deadline,
+    ) -> Result<(usize, Vec<streams::DescribedStreamsGroup>)> {
         let subset = indexes
             .iter()
             .map(|&index| {

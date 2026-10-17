@@ -261,7 +261,6 @@ async fn worker(
                 )),
                 10 => Reply::Body(find_response(addresses, &body, version, &mut s)),
                 89 => {
-                    assert_ne!(slot, 0, "description must go to GROUP coordinator");
                     let reply = s.replies[slot]
                         .pop_front()
                         .unwrap_or_else(|| Reply::Body(describe_response(&body, &s)));

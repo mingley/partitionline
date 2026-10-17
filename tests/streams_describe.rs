@@ -110,6 +110,33 @@ async fn order_duplicates_and_all_fields_over_three_discovery_versions() {
         assert!(request.include_authorized_operations);
     }
 }
+/// A group coordinated by the bootstrap broker is described on that socket.
+#[tokio::test]
+async fn bootstrap_coordinator_is_described_on_the_open_socket() {
+    let peer = prepared().await;
+    let _previous = peer
+        .state
+        .lock()
+        .await
+        .group_routes
+        .insert("alpha".into(), 0);
+    let mut admin = peer.admin().await;
+    let out = admin
+        .describe_streams_groups(&["alpha"], &options())
+        .await
+        .unwrap();
+    assert_eq!(out[0].description.as_ref().unwrap().error_code, 0);
+    drop(admin);
+    let frames = peer.close().await;
+    assert_eq!(frames.iter().filter(|frame| frame.api == 89).count(), 1);
+    assert_eq!(frames.iter().find(|frame| frame.api == 89).unwrap().slot, 0);
+    assert_eq!(
+        frames.iter().filter(|frame| frame.api == 18).count(),
+        4,
+        "each of the two sockets negotiates twice; a new describe socket would add another pair"
+    );
+}
+
 #[tokio::test]
 async fn different_coordinators_and_terminal_errors_remain_partial() {
     let peer = prepared().await;
