@@ -1927,6 +1927,16 @@ async fn rpc(
     }
     Ok(response.message)
 }
+async fn peer_socket_closed(socket: &TcpStream) {
+    let mut buf = [0u8; 1];
+    match socket.peek(&mut buf).await {
+        Ok(0) | Err(_) => {}
+        // Bytes already queued are the next request. Leave them for the
+        // command that is still running; this wait only cares about a close.
+        Ok(_) => std::future::pending::<()>().await,
+    }
+}
+
 async fn abandon_peer_socket(socket: impl Sized) {
     drop(socket);
     // Dropping the socket only schedules the close. Yield so the peer
@@ -2177,19 +2187,24 @@ async fn serve(
         }
         last_rpc = frame.rpc;
         let kind = frame.message.kind();
-        let response = match control
-            .call(
-                Command::Inbound(source, frame.message),
-                None,
-                Some(reservation.clone()),
-                deadline,
-            )
-            .await
-        {
-            Ok(Reply::Message(message)) => message,
-            _ => Message::Failure {
-                request_kind: kind,
-                code: 1,
+        let call = control.call(
+            Command::Inbound(source, frame.message),
+            None,
+            Some(reservation.clone()),
+            deadline,
+        );
+        tokio::pin!(call);
+        let response = tokio::select! {
+            biased;
+            // The command can outlive the peer. A close during that wait
+            // must drop this socket instead of holding it until the deadline.
+            _ = peer_socket_closed(&socket) => break,
+            result = &mut call => match result {
+                Ok(Reply::Message(message)) => message,
+                _ => Message::Failure {
+                    request_kind: kind,
+                    code: 1,
+                },
             },
         };
         if control.stopped.load(Ordering::Acquire) || Instant::now() >= deadline {
@@ -2211,6 +2226,9 @@ async fn serve(
             break;
         }
     }
+    // The owner may be busy. Drop the socket before that notification so the
+    // peer is not held for the whole disconnect command.
+    drop(socket);
     let _ = control.reliable(Command::Disconnected(source)).await;
     }
     .await;
@@ -2701,6 +2719,106 @@ mod ownership_tests {
         }
         peer.abort();
         Ok(())
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn serve_returns_when_the_peer_closes_during_a_command() -> TestResult {
+        let owner = LocalOwner::open(0, 2, 16).await?;
+        let (envelope, _reply, entered, release) = gate(Command::Tick);
+        owner
+            .control
+            .commands
+            .send(envelope)
+            .await
+            .map_err(|_| "gate admission")?;
+        let _entered = entered.await?;
+        let listener = TcpListener::bind("127.0.0.1:0").await?;
+        let address = listener.local_addr()?;
+        let control = owner.control.clone();
+        let served = tokio::spawn(async move {
+            let (server, _) = listener.accept().await?;
+            let slots = Arc::new(
+                control
+                    .config
+                    .peers
+                    .iter()
+                    .map(|_| AtomicBool::new(false))
+                    .collect::<Vec<_>>(),
+            );
+            let permit = Arc::new(Semaphore::new(1))
+                .acquire_owned()
+                .await
+                .map_err(|_| std::io::Error::other("incoming permit closed"))?;
+            serve(control, server, permit, slots).await;
+            Ok::<_, std::io::Error>(())
+        });
+        let mut client_socket = TcpStream::connect(address).await?;
+        let peer_key = owner.control.config.peers.first().ok_or("peer")?.key();
+        let local_key = owner.control.config.bootstrap.local().key();
+        let group = owner.control.config.group.clone();
+        let bound = owner.control.config.limits.frame_bytes;
+        let mut wire = WireBuf::new();
+        let deadline = Instant::now() + Duration::from_secs(2);
+        let hello = Hello {
+            source: peer_key,
+            target: local_key,
+            group,
+        };
+        write_frame(
+            &mut client_socket,
+            &Frame {
+                rpc: 0,
+                message: Message::Hello(hello.clone()),
+            },
+            bound,
+            deadline,
+            &mut wire,
+        )
+        .await?;
+        let response = read_frame(&mut client_socket, bound, 64, deadline, &mut wire).await?;
+        if response.message != Message::HelloAck(hello) {
+            return Err("hello was not acknowledged".into());
+        }
+        let request = replication::DynamicVoteRequest {
+            context: replication::Context {
+                leader: peer_key,
+                peer: local_key,
+                configuration_epoch: 0,
+            },
+            sequence: 1,
+            request: super::super::election::VoteRequest {
+                term: 2,
+                candidate: peer_key.id,
+                log: LogPosition::default(),
+            },
+        };
+        write_frame(
+            &mut client_socket,
+            &Frame {
+                rpc: 1,
+                message: Message::Vote(request),
+            },
+            bound,
+            deadline,
+            &mut wire,
+        )
+        .await?;
+        client_socket
+            .shutdown()
+            .await
+            .map_err(|_| "shutdown write")?;
+        let mut buf = [0u8; 8];
+        let saw = tokio::time::timeout(
+            Duration::from_millis(300),
+            tokio::io::AsyncReadExt::read(&mut client_socket, &mut buf),
+        )
+        .await;
+        let _ = release.send(());
+        served.abort();
+        match saw {
+            Ok(Ok(0)) => Ok(()),
+            _ => Err("serve kept the socket while the peer had already closed".into()),
+        }
     }
 
     #[tokio::test]
