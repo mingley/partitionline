@@ -754,6 +754,36 @@ impl BrokerConn {
         Self::connect_tls(addr, client_id, connect_timeout, None).await
     }
 
+    /// Cancel connects that lost the race and wait until they stop.
+    ///
+    /// Abort only schedules cancellation. On a current-thread runtime a
+    /// connected socket stays open until this caller yields.
+    async fn finish_aborted_connects<T: 'static>(mut set: tokio::task::JoinSet<T>) {
+        set.abort_all();
+        let mut extra = 0u32;
+        while !set.is_empty() {
+            tokio::select! {
+                biased;
+                joined = set.join_next() => {
+                    if joined.is_none() {
+                        break;
+                    }
+                }
+                () = tokio::task::yield_now() => {
+                    extra = extra.saturating_add(1);
+                    if extra >= 8 {
+                        break;
+                    }
+                }
+            }
+        }
+        // Dropping a finished connect closes its socket. A few more turns let
+        // the peer observe that close before this race returns.
+        for _ in 0..8 {
+            tokio::task::yield_now().await;
+        }
+    }
+
     /// Try each bootstrap address until one connects.
     pub async fn connect_tls_any(
         addrs: &[String],
@@ -788,7 +818,7 @@ impl BrokerConn {
             }
             match inflight.join_next().await {
                 Some(Ok(Ok(conn))) => {
-                    inflight.abort_all();
+                    Self::finish_aborted_connects(inflight).await;
                     return Ok(conn);
                 }
                 Some(Ok(Err(error))) => last = error,
@@ -2244,6 +2274,50 @@ mod tests {
     use std::time::Duration;
     use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt, ReadBuf};
     use tokio::net::TcpListener;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn connect_any_finishes_a_losing_connect() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use std::sync::Arc;
+
+        let closed = Arc::new(AtomicUsize::new(0));
+        let accepted = Arc::new(AtomicUsize::new(0));
+        let mut addrs = Vec::new();
+        let mut peers = Vec::new();
+        for _ in 0..2 {
+            let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+            addrs.push(listener.local_addr().unwrap().to_string());
+            let flag = Arc::clone(&closed);
+            let saw = Arc::clone(&accepted);
+            peers.push(tokio::spawn(async move {
+                let (mut sock, _) = listener.accept().await.unwrap();
+                let _accepted = saw.fetch_add(1, Ordering::SeqCst);
+                let mut buf = [0u8; 8];
+                loop {
+                    match sock.read(&mut buf).await {
+                        Ok(0) | Err(_) => break,
+                        Ok(_) => continue,
+                    }
+                }
+                let _closed = flag.fetch_add(1, Ordering::SeqCst);
+            }));
+        }
+        let conn = BrokerConn::connect_tls_any(&addrs, "race", Duration::from_secs(2), None)
+            .await
+            .unwrap();
+        assert_eq!(
+            (
+                accepted.load(Ordering::SeqCst),
+                closed.load(Ordering::SeqCst)
+            ),
+            (2, 1),
+            "the losing connect was still open"
+        );
+        drop(conn);
+        for peer in peers {
+            peer.abort();
+        }
+    }
 
     #[test]
     fn a_full_frame_split_reserves_the_next_read() {
