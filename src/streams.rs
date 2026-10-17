@@ -311,6 +311,50 @@ impl StreamsClient {
         open_streams_heartbeat(&self.cfg.connection, address, deadline).await
     }
 
+    /// Race bootstrap handshakes and return once the losers have stopped.
+    ///
+    /// A heartbeat continues with coordinator lookup after this race, which
+    /// hides a handshake that was only aborted.
+    #[doc(hidden)]
+    pub async fn test_race_bootstrap(cfg: StreamsConfig) -> Result<()> {
+        let client = Self::new(cfg)?;
+        let deadline = Deadline::from_std(
+            std::time::Instant::now()
+                .checked_add(client.cfg.connection.request_timeout)
+                .ok_or(Error::Timeout)?,
+        );
+        let _opened = client.open_any(deadline).await?;
+        Ok(())
+    }
+
+    /// Cancel handshakes that lost the bootstrap race and wait until they stop.
+    ///
+    /// Abort only schedules cancellation. On a current-thread runtime a read
+    /// stays inside the broker until this caller yields.
+    async fn finish_aborted_handshakes<T: 'static>(mut set: tokio::task::JoinSet<T>) {
+        set.abort_all();
+        let mut extra = 0u32;
+        while !set.is_empty() {
+            tokio::select! {
+                biased;
+                joined = set.join_next() => {
+                    if joined.is_none() {
+                        break;
+                    }
+                }
+                () = tokio::task::yield_now() => {
+                    extra = extra.saturating_add(1);
+                    if extra >= 8 {
+                        break;
+                    }
+                }
+            }
+        }
+        // The aborted task drops its socket when it is polled. One more turn
+        // lets the peer observe that close before this race returns.
+        tokio::task::yield_now().await;
+    }
+
     async fn open_any(
         &self,
         deadline: Deadline,
@@ -374,7 +418,7 @@ impl StreamsClient {
                 Err(error) => last = Error::protocol(format!("streams bootstrap: {error}")),
             }
         }
-        inflight.abort_all();
+        Self::finish_aborted_handshakes(inflight).await;
         finished.sort_by_key(|(index, _)| *index);
         let mut rest = finished.into_iter();
         let Some((_, (conn, versions))) = rest.next() else {

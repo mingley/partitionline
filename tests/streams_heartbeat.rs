@@ -31,6 +31,40 @@ fn response(code: i16) -> Vec<u8> {
     bytes
 }
 
+/// Startup drops a slower bootstrap handshake before the streams race returns.
+#[tokio::test(flavor = "current_thread")]
+async fn startup_finishes_a_blocked_bootstrap_handshake() {
+    use std::sync::atomic::{AtomicBool, Ordering};
+    use std::sync::Arc;
+    use tokio::io::AsyncReadExt;
+
+    let peer = Peer::start().await;
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let slow = listener.local_addr().unwrap().to_string();
+    let dropped = Arc::new(AtomicBool::new(false));
+    let flag = Arc::clone(&dropped);
+    let stalled = tokio::spawn(async move {
+        let (mut sock, _) = listener.accept().await.unwrap();
+        let mut buf = [0u8; 64];
+        loop {
+            match sock.read(&mut buf).await {
+                Ok(0) | Err(_) => break,
+                Ok(_) => continue,
+            }
+        }
+        flag.store(true, Ordering::SeqCst);
+    });
+    let mut cfg = peer.config();
+    cfg.connection.bootstrap = vec![peer.addresses[0].to_string(), slow.clone()];
+    StreamsClient::test_race_bootstrap(cfg).await.unwrap();
+    assert!(
+        dropped.load(Ordering::SeqCst),
+        "startup left the slower bootstrap handshake blocked in a broker read"
+    );
+    stalled.abort();
+    let _frames = peer.close().await;
+}
+
 /// A coordinator that returns to a broker already contacted skips ApiVersions.
 #[tokio::test]
 async fn coordinator_return_reuses_the_previous_handshake() {
