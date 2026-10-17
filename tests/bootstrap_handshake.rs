@@ -4,9 +4,9 @@ mod common;
 use partitionline::protocol::api_keys::OFFSET_FETCH;
 use partitionline::protocol::group::{OffsetFetchGroupData, OffsetFetchRequestData};
 use partitionline::{
-    error, Admin, AdminConfig, Consumer, ConsumerConfig, ConsumerGroup,
-    DescribeShareGroupOffsetsGroup, Error, ListConsumerGroupOffsetsSpec, NewTopic, OffsetClient,
-    OffsetOptions, OffsetSpec, Producer, ProducerConfig,
+    error, Admin, AdminConfig, AlterConfig, ConfigResource, Consumer, ConsumerConfig,
+    ConsumerGroup, DescribeShareGroupOffsetsGroup, Error, ListConsumerGroupOffsetsSpec, NewTopic,
+    OffsetClient, OffsetOptions, OffsetSpec, Producer, ProducerConfig,
 };
 use std::time::{Duration, Instant};
 
@@ -245,6 +245,42 @@ async fn describe_groups_coordinator_dials_overlap() {
     assert!(mock.api_versions_versions().len() >= before + 2);
     assert_eq!(described.len(), 2, "{described:?}");
     assert!(described.iter().all(|group| group.error_code == 0));
+}
+
+/// IncrementalAlterConfigs on the bootstrap controller does not open another socket.
+#[tokio::test]
+async fn incremental_alter_configs_stays_on_the_bootstrap_socket() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    let created = admin
+        .create_topics(&[NewTopic::new("cfg-t", 1, 1)], 10_000, false)
+        .await
+        .unwrap();
+    assert_eq!(created[0].error_code, 0);
+    let accepts_before = mock.accepts();
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let started = Instant::now();
+    let err = admin
+        .incremental_alter_configs(
+            &ConfigResource::topic("cfg-t"),
+            &[AlterConfig::set("retention.ms", "1000")],
+            false,
+        )
+        .await
+        .unwrap();
+    let elapsed = started.elapsed();
+    assert_eq!(err, 0);
+    assert_eq!(
+        mock.accepts(),
+        accepts_before,
+        "config changes should stay on the admin bootstrap socket"
+    );
+    assert!(
+        elapsed < Duration::from_millis(200),
+        "incremental alter opened another socket: {elapsed:?}"
+    );
 }
 
 /// A later controller call to the bootstrap broker does not repeat ApiVersions.
