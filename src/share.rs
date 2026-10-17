@@ -1122,7 +1122,7 @@ pub enum ShareAcquireMode {
 /// `GROUP_ID_NOT_FOUND`, which fails that poll, and not piggyback
 /// `NON_EMPTY_GROUP`). A piggybacked
 /// `FETCH_SESSION_ID_NOT_FOUND` still completes without retry,
-/// including when `AcknowledgeErrorMessage` is set (Java
+/// including when `AcknowledgeErrorMessage` is set or empty (Java
 /// `handleShareFetchSuccess` completes piggyback acks and still
 /// delivers the fetch; this is not partition
 /// `FETCH_SESSION_ID_NOT_FOUND`, which fails that poll, and not piggyback
@@ -2922,7 +2922,7 @@ impl ShareGroup {
     /// `NON_EMPTY_GROUP`).
     /// A piggybacked `FETCH_SESSION_ID_NOT_FOUND` still completes
     /// without retry, including when `AcknowledgeErrorMessage` is set
-    /// (Java `handleShareFetchSuccess` completes piggyback acks and still
+    /// or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
     /// delivers the fetch; this is not partition
     /// `FETCH_SESSION_ID_NOT_FOUND`, which fails that poll, and not piggyback
     /// `GROUP_ID_NOT_FOUND`). Official Java IncrementalFetchContext
