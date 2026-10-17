@@ -1686,7 +1686,7 @@ async fn supervise(
                         Ok((socket,_))=>{
                             if let Ok(permit)=incoming.clone().try_acquire_owned(){let c=control.clone();let keys=identities.clone();workers.spawn(async move{serve(c,socket,permit,keys).await;});
                                 #[cfg(test)] { spawned += 1; }}
-                            else{drop(socket);}
+                            else{abandon_peer_socket(socket).await;}
                         }
                         Err(_)=>{control.stop();break;}
                     }
@@ -2104,7 +2104,10 @@ async fn serve(
     slots: Arc<Vec<AtomicBool>>,
 ) {
     let _task = Counter::task(&control);
-    let _socket = Counter::socket(&control);
+    let _socket_counter = Counter::socket(&control);
+    // The socket drops when this block returns. Yield afterwards so the peer
+    // observes that close before serve returns.
+    async move {
     if configure_peer_socket(&socket).is_err() {
         return;
     }
@@ -2209,6 +2212,11 @@ async fn serve(
         }
     }
     let _ = control.reliable(Command::Disconnected(source)).await;
+    }
+    .await;
+    for _ in 0..8 {
+        tokio::task::yield_now().await;
+    }
 }
 
 // Owner-local test evidence; no production mutable-storage or fault API.
@@ -2578,6 +2586,118 @@ mod ownership_tests {
         abandon_peer_socket(socket).await;
         if open.load(Ordering::SeqCst) != 0 {
             return Err("abandoned peer socket still blocked in a read".into());
+        }
+        peer.abort();
+        Ok(())
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn serve_closes_the_socket_when_frame_admission_fails() -> TestResult {
+        use super::super::membership::{Bootstrap, Endpoint, Key, Voter, Voters};
+        use super::super::protocol;
+        use super::super::snapshot;
+        use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+        use std::sync::Arc;
+        use tokio::io::AsyncReadExt;
+        use tokio::sync::{mpsc, watch, Notify, Semaphore};
+
+        let listener = TcpListener::bind("127.0.0.1:0").await?;
+        let address = listener.local_addr()?;
+        let open = Arc::new(AtomicUsize::new(0));
+        let open_flag = Arc::clone(&open);
+        let peer = tokio::spawn(async move {
+            let Ok((mut socket, _)) = listener.accept().await else {
+                return;
+            };
+            let _started = open_flag.fetch_add(1, Ordering::SeqCst);
+            let mut buf = [0u8; 8];
+            loop {
+                match socket.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = open_flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let peer_addr = "127.0.0.1:10".parse::<std::net::SocketAddr>()?;
+        let local = Voter::new(
+            Key::new(0, [1; 16])?,
+            vec![Endpoint::new("CONTROLLER".into(), "127.0.0.1".into(), 9)?],
+            0,
+            1,
+        )?;
+        let remote = Voter::new(
+            Key::new(1, [2; 16])?,
+            vec![Endpoint::new("CONTROLLER".into(), "127.0.0.1".into(), 10)?],
+            0,
+            1,
+        )?;
+        let genesis = Voters::new(0, Default::default(), 1, vec![local.clone()])?;
+        let bootstrap = Bootstrap::new(local, genesis, "CONTROLLER".into())?;
+        let routes = vec![Peer::new(remote, peer_addr)?];
+        let mut controller = protocol::Config::new(0, vec![0], "private-serve-stop".into())?;
+        controller.timer_seed = 1;
+        let storage = StorageLimits {
+            record_bytes: 64 * 1024,
+            chunk_bytes: 256 * 1024,
+            live_entries: 64,
+            live_bytes: 1024 * 1024,
+            operations: 4096,
+            wal_bytes: 8 * 1024 * 1024,
+            fetch_bytes: 256 * 1024,
+            images: snapshot::Limits::new(
+                2 * 1024 * 1024,
+                64,
+                1024 * 1024,
+                64 * 1024,
+                32 * 1024,
+                8,
+                32,
+            )?,
+        };
+        let limits = Limits {
+            incoming: 1,
+            client_slots: 4,
+            frame_bytes: 512 * 1024,
+            election_min_ms: 80,
+            election_max_ms: 160,
+            quorum_ms: 1500,
+            tick_ms: 10,
+            heartbeat_ms: 40,
+            connect_ms: 250,
+            rpc_ms: 500,
+            transfer_ms: 1000,
+            command_ms: 3000,
+        };
+        let config = Arc::new(Config::new(controller, bootstrap, routes, storage, limits)?);
+        let bytes = Arc::new(Semaphore::new(0));
+        bytes.close();
+        let (_commands_tx, _commands_rx) = mpsc::channel(1);
+        let (_ready_tx, ready_rx) = watch::channel(0u8);
+        let control = Arc::new(Control {
+            stopped: AtomicBool::new(false),
+            notify: Notify::new(),
+            commands: _commands_tx,
+            clients: Arc::new(Semaphore::new(config.limits.client_slots)),
+            bytes,
+            startup: ready_rx,
+            tasks: AtomicUsize::new(0),
+            sockets: AtomicUsize::new(0),
+            metrics: Arc::new(TestMetrics::default()),
+            capture_root: None,
+            config,
+        });
+        let socket = TcpStream::connect(address).await?;
+        while open.load(Ordering::SeqCst) == 0 {
+            tokio::task::yield_now().await;
+        }
+        let permit = Arc::new(Semaphore::new(1))
+            .acquire_owned()
+            .await
+            .map_err(|_| "incoming permit closed")?;
+        serve(control, socket, permit, Arc::new(Vec::new())).await;
+        if open.load(Ordering::SeqCst) != 0 {
+            return Err("serve left the accepted socket blocked in a read".into());
         }
         peer.abort();
         Ok(())
