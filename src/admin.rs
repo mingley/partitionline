@@ -4392,17 +4392,25 @@ impl Admin {
     }
 
     /// Handshake every bootstrap together and keep the first full success.
+    ///
+    /// Handshakes that finish with the first one are returned as learned
+    /// versions. A later dial to one of those brokers skips ApiVersions.
     async fn open_bootstrap(
         cfg: &AdminConfig,
         stats: &Arc<crate::metrics::AdminTracker>,
         deadline: Instant,
-    ) -> Result<(BrokerConn, crate::protocol::api::ApiVersionsResponse)> {
+    ) -> Result<(
+        BrokerConn,
+        crate::protocol::api::ApiVersionsResponse,
+        Vec<(String, Vec<ApiVersion>)>,
+    )> {
         if cfg.bootstrap.len() <= 1 {
             let addr = cfg
                 .bootstrap
                 .first()
                 .ok_or_else(|| Error::protocol("all bootstrap servers failed"))?;
-            return Self::open_one_bootstrap(cfg, addr, stats, deadline).await;
+            let (conn, resp) = Self::open_one_bootstrap(cfg, addr, stats, deadline).await?;
+            return Ok((conn, resp, Vec::new()));
         }
         let mut inflight = tokio::task::JoinSet::new();
         for addr in &cfg.bootstrap {
@@ -4414,17 +4422,50 @@ impl Admin {
             });
         }
         let mut last = Error::protocol("all bootstrap servers failed");
-        while let Some(joined) = inflight.join_next().await {
+        let mut finished = Vec::new();
+        while !inflight.is_empty() {
+            let Some(joined) = inflight.join_next().await else {
+                break;
+            };
             match joined {
                 Ok(Ok(opened)) => {
-                    inflight.abort_all();
-                    return Ok(opened);
+                    finished.push(opened);
+                    let gather = deadline
+                        .saturating_duration_since(Instant::now())
+                        .min(Duration::from_millis(5));
+                    let gather_done = tokio::time::sleep(gather);
+                    tokio::pin!(gather_done);
+                    loop {
+                        tokio::select! {
+                            biased;
+                            joined = inflight.join_next(), if !inflight.is_empty() => {
+                                match joined {
+                                    Some(Ok(Ok(opened))) => finished.push(opened),
+                                    Some(Ok(Err(error))) => last = error,
+                                    _ => {}
+                                }
+                            }
+                            () = &mut gather_done => break,
+                        }
+                    }
+                    break;
                 }
                 Ok(Err(error)) => last = error,
                 Err(error) => last = Error::protocol(format!("bootstrap handshake: {error}")),
             }
         }
-        Err(last)
+        inflight.abort_all();
+        let mut rest = finished.into_iter();
+        let Some((conn, resp)) = rest.next() else {
+            return Err(last);
+        };
+        let mut learned = Vec::new();
+        for (spare, versions) in rest {
+            if !versions.api_keys.is_empty() {
+                learned.push((spare.addr().to_string(), versions.api_keys));
+            }
+        }
+        Ok((conn, resp, learned))
     }
 
     async fn new_until(cfg: AdminConfig, deadline: Instant) -> Result<Self> {
@@ -4436,7 +4477,7 @@ impl Admin {
         let mut cfg = cfg;
         cfg.bootstrap = crate::net::parse_and_validate_addresses(&cfg.bootstrap)?;
         let stats = Arc::new(crate::metrics::AdminTracker::default());
-        let (conn, resp) = Self::open_bootstrap(&cfg, &stats, deadline).await?;
+        let (conn, resp, siblings) = Self::open_bootstrap(&cfg, &stats, deadline).await?;
         let mut versions = HashMap::new();
         for api in resp.api_keys {
             let _prev = versions.insert(api.api_key, api);
@@ -4574,6 +4615,12 @@ impl Admin {
         let describe_delegation_token_version = versions
             .get(&DESCRIBE_DELEGATION_TOKEN)
             .and_then(|v| pick_version(v.min_version, v.max_version, 1, 3));
+        let mut peer_versions = HashMap::new();
+        for (addr, keys) in siblings {
+            if !keys.is_empty() && addr != conn.addr() {
+                let _stored = peer_versions.insert(addr, keys);
+            }
+        }
         Ok(Self {
             cfg,
             conn,
@@ -4624,7 +4671,7 @@ impl Admin {
             describe_delegation_token_version,
             cluster: Cluster::default(),
             conns: HashMap::new(),
-            peer_versions: HashMap::new(),
+            peer_versions,
             controller_redial: None,
             reconnect_fails: HashMap::new(),
             group_coord: None,
