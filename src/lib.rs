@@ -2401,7 +2401,7 @@
 //! `ReplicationControlManager.electLeader` writes this when the
 //! partition already has the requested leader. A piggybacked
 //! `NO_REASSIGNMENT_IN_PROGRESS` still completes without retry,
-//! including when `AcknowledgeErrorMessage` is set (this is not
+//! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `NO_REASSIGNMENT_IN_PROGRESS`, which fails that poll, and not
 //! piggyback `ELECTION_NOT_NEEDED`). Official Java
 //! `ReplicationControlManager.cancelPartitionReassignment` writes this

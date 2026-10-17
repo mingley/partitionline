@@ -1206,7 +1206,7 @@ pub enum ShareAcquireMode {
 /// `ReplicationControlManager.electLeader` writes this when the
 /// partition already has the requested leader. A piggybacked
 /// `NO_REASSIGNMENT_IN_PROGRESS` still completes without retry,
-/// including when `AcknowledgeErrorMessage` is set (Java
+/// including when `AcknowledgeErrorMessage` is set or empty (Java
 /// `handleShareFetchSuccess` completes piggyback acks and still
 /// delivers the fetch; this is not partition
 /// `NO_REASSIGNMENT_IN_PROGRESS`, which fails that poll, and not piggyback
@@ -3123,7 +3123,7 @@ impl ShareGroup {
     /// partition already has the requested leader.
     /// A piggybacked `NO_REASSIGNMENT_IN_PROGRESS` still completes
     /// without retry, including when `AcknowledgeErrorMessage` is set
-    /// (Java `handleShareFetchSuccess` completes piggyback acks and still
+    /// or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
     /// delivers the fetch; this is not partition
     /// `NO_REASSIGNMENT_IN_PROGRESS`, which fails that poll, and not piggyback
     /// `ELECTION_NOT_NEEDED`). Official Java
