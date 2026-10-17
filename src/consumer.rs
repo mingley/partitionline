@@ -8346,6 +8346,12 @@ impl Consumer {
                 }
             }
         }
+        // The finished dial drops its socket while this call is still in the
+        // same poll. Yield so the broker observes that close before the caller
+        // continues.
+        for _ in 0..8 {
+            tokio::task::yield_now().await;
+        }
     }
 
     /// Keep leader sockets that already finished before the rest of the wave is aborted.
