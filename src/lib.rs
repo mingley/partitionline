@@ -2335,7 +2335,7 @@
 //! partition `NON_EMPTY_GROUP`, which fails that poll, and not
 //! piggyback `INVALID_PRINCIPAL_TYPE`). A piggybacked
 //! `GROUP_ID_NOT_FOUND` still completes without retry,
-//! including when `AcknowledgeErrorMessage` is set (this is not
+//! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `GROUP_ID_NOT_FOUND`, which fails that poll, and not
 //! piggyback `NON_EMPTY_GROUP`). A piggybacked
 //! `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a
