@@ -1967,6 +1967,17 @@ async fn rpc(
     }
     Ok(response.message)
 }
+fn peer_length_rejected(unread: &[u8], limit: usize) -> bool {
+    let Some(prefix) = unread.get(..4) else {
+        return false;
+    };
+    let Ok(raw) = <[u8; 4]>::try_from(prefix) else {
+        return true;
+    };
+    let length = u32::from_be_bytes(raw) as usize;
+    !(28..=limit).contains(&length)
+}
+
 async fn peer_socket_closed<S: AsyncRead + Unpin>(
     socket: &mut S,
     unread: &mut Vec<u8>,
@@ -1976,7 +1987,8 @@ async fn peer_socket_closed<S: AsyncRead + Unpin>(
     loop {
         // One next frame fits in the frame limit. More than that during a
         // command is not a single pipelined request, so the socket is closed.
-        if unread.len() > limit {
+        // A length this peer will not accept is not a frame either.
+        if unread.len() > limit || peer_length_rejected(unread, limit) {
             return;
         }
         match socket.read(&mut buf).await {
@@ -2932,6 +2944,46 @@ mod frame_deadline_tests {
         assert!(
             elapsed < Duration::from_millis(80),
             "a ready peer flood held the command wait: {elapsed:?}"
+        );
+    }
+
+    struct IllegalLen {
+        sent: bool,
+    }
+
+    impl AsyncRead for IllegalLen {
+        fn poll_read(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            buf: &mut ReadBuf<'_>,
+        ) -> Poll<std::io::Result<()>> {
+            let this = self.get_mut();
+            if this.sent {
+                return Poll::Pending;
+            }
+            let dst = buf.initialize_unfilled();
+            if dst.len() < 4 {
+                return Poll::Pending;
+            }
+            dst[..4].copy_from_slice(&1u32.to_be_bytes());
+            buf.advance(4);
+            this.sent = true;
+            Poll::Ready(Ok(()))
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn an_illegal_peer_length_ends_the_idle_read() {
+        let mut socket = IllegalLen { sent: false };
+        let mut unread = Vec::new();
+        let result = tokio::time::timeout(
+            Duration::from_millis(200),
+            super::peer_socket_closed(&mut socket, &mut unread, 1024 * 1024),
+        )
+        .await;
+        assert!(
+            result.is_ok(),
+            "an illegal peer length left the idle read parked"
         );
     }
 }
