@@ -596,7 +596,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   missing; it is not a share-session code. A
   piggybacked `TOPIC_DELETION_DISABLED` still
   completes without retry, including when `AcknowledgeErrorMessage` is
-  set (Java `handleShareFetchSuccess` completes piggyback acks and still
+  set or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
   delivers the fetch; this is not partition `TOPIC_DELETION_DISABLED`,
   which fails that poll, and not piggyback `LISTENER_NOT_FOUND`). Official
   Java Admin deleteTopics writes this when `delete.topic.enable` is

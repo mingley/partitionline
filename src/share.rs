@@ -1146,7 +1146,7 @@ pub enum ShareAcquireMode {
 /// this when the requested listener name is missing; it is not a
 /// share-session code. A piggybacked
 /// `TOPIC_DELETION_DISABLED` still completes without retry,
-/// including when `AcknowledgeErrorMessage` is set (Java
+/// including when `AcknowledgeErrorMessage` is set or empty (Java
 /// `handleShareFetchSuccess` completes piggyback acks and still
 /// delivers the fetch; this is not partition
 /// `TOPIC_DELETION_DISABLED`, which fails that poll, and not piggyback
@@ -2978,7 +2978,7 @@ impl ShareGroup {
     /// share-session code.
     /// A piggybacked `TOPIC_DELETION_DISABLED` still completes
     /// without retry, including when `AcknowledgeErrorMessage` is set
-    /// (Java `handleShareFetchSuccess` completes piggyback acks and still
+    /// or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
     /// delivers the fetch; this is not partition
     /// `TOPIC_DELETION_DISABLED`, which fails that poll, and not piggyback
     /// `LISTENER_NOT_FOUND`). Official Java Admin deleteTopics writes

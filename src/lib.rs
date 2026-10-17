@@ -2357,7 +2357,7 @@
 //! writes this when the requested listener name is missing; it is not a
 //! share-session code. A piggybacked
 //! `TOPIC_DELETION_DISABLED` still completes without retry,
-//! including when `AcknowledgeErrorMessage` is set (this is not
+//! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `TOPIC_DELETION_DISABLED`, which fails that poll, and not
 //! piggyback `LISTENER_NOT_FOUND`). Official Java Admin deleteTopics
 //! writes this when `delete.topic.enable` is false. A piggybacked
