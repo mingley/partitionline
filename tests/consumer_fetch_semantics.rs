@@ -3778,6 +3778,55 @@ async fn max_poll_leave_reuses_a_dropped_remote_coordinator() {
     drop(group);
 }
 
+/// A later offset fetch reuses a coordinator this member already left.
+#[tokio::test]
+async fn group_fetch_reuses_a_previous_coordinator() {
+    let mock = common::Mock::start_three_node().await;
+    mock.set_topic_partitions("t", 1);
+    mock.set_partition_leader("t", 0, 1);
+    mock.set_coordinator(2);
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    let _sent = producer
+        .send(ProduceRecord::to("t").value(&b"v"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+    let mut cfg = ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10);
+    cfg.heartbeat_interval = Duration::from_secs(5);
+    let mut group = ConsumerGroup::join(cfg, "fetch-return", "t").await.unwrap();
+    assert_eq!(group.poll().await.unwrap().len(), 1);
+    let first = group.committed().await.unwrap();
+    assert_eq!(first.len(), 1);
+    let versions_before = mock.api_versions_versions().len();
+    mock.set_coordinator(3);
+    let moved = group.committed().await.unwrap();
+    assert_eq!(moved.len(), 1);
+    let versions_moved = mock.api_versions_versions().len();
+    assert!(
+        versions_moved > versions_before,
+        "a new coordinator must negotiate"
+    );
+    mock.set_coordinator(2);
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let started = Instant::now();
+    let returned = group.committed().await.unwrap();
+    let elapsed = started.elapsed();
+    assert_eq!(returned.len(), 1);
+    assert_eq!(
+        mock.api_versions_versions().len(),
+        versions_moved,
+        "returning to a known coordinator repeated ApiVersions"
+    );
+    assert!(
+        elapsed < Duration::from_millis(200),
+        "returning to a known coordinator repeated ApiVersions: {elapsed:?}"
+    );
+    group.leave().await.unwrap();
+}
+
 /// A later offset commit reuses a coordinator this member already left.
 #[tokio::test]
 async fn group_commit_reuses_a_previous_coordinator() {

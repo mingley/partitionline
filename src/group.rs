@@ -1360,7 +1360,8 @@ impl ConsumerGroup {
         } else {
             (None, -1)
         };
-        let (version, body) = coord_roundtrip(
+        let bootstrap_keys = self.consumer.copy_api_keys();
+        let (version, body) = coord_roundtrip_with_bootstrap(
             &mut self.coord,
             &self.cfg,
             &self.group_id,
@@ -1377,6 +1378,8 @@ impl ConsumerGroup {
                     Some(topics),
                 )
             },
+            &bootstrap_keys,
+            &mut self.prior_coords,
             timeout,
         )
         .await?;
@@ -2046,6 +2049,7 @@ impl ConsumerGroup {
         let coord = &mut self.coord;
         let cfg = &self.cfg;
         let consumer = &mut self.consumer;
+        let prior = &mut self.prior_coords;
         let (committed, fetched) = tokio::join!(
             coord_roundtrip(
                 coord,
@@ -2065,6 +2069,7 @@ impl ConsumerGroup {
                         &topics,
                     )
                 },
+                prior,
                 timeout,
             ),
             async {
@@ -2204,6 +2209,7 @@ impl ConsumerGroup {
         let coord = &mut self.coord;
         let cfg = &self.cfg;
         let consumer = &mut self.consumer;
+        let prior = &mut self.prior_coords;
         let (left, _) = tokio::join!(
             Self::leave_joined_member(
                 coord,
@@ -2212,6 +2218,7 @@ impl ConsumerGroup {
                 &member_id,
                 kip848,
                 LEAVE_GROUP_REASON_UNSUBSCRIBED,
+                prior,
                 deadline,
             ),
             consumer.close_fetch_sessions(timeout),
@@ -2407,6 +2414,7 @@ impl ConsumerGroup {
         let coord = &mut self.coord;
         let cfg = &self.cfg;
         let consumer = &mut self.consumer;
+        let prior = &mut self.prior_coords;
         let (out, _) = tokio::join!(
             Self::leave_joined_member(
                 coord,
@@ -2415,6 +2423,7 @@ impl ConsumerGroup {
                 &member_id,
                 kip848,
                 LEAVE_GROUP_REASON_CLOSED,
+                prior,
                 deadline,
             ),
             consumer.close_fetch_sessions(timeout),
@@ -2440,6 +2449,10 @@ impl ConsumerGroup {
         self.leave_within(deadline).await
     }
 
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "leave carries the coordinator versions learned earlier"
+    )]
     async fn leave_joined_member(
         coord: &mut BrokerConn,
         cfg: &ConsumerConfig,
@@ -2447,6 +2460,7 @@ impl ConsumerGroup {
         member_id: &str,
         kip848: bool,
         reason: &str,
+        prior: &mut HashMap<String, KnownCoord>,
         deadline: Instant,
     ) -> Result<()> {
         let timeout = deadline.saturating_duration_since(Instant::now());
@@ -2475,6 +2489,7 @@ impl ConsumerGroup {
                 COORDINATOR_GROUP,
                 CONSUMER_GROUP_HEARTBEAT,
                 |version, buf| encode_consumer_group_heartbeat_request(buf, version, &req),
+                prior,
                 timeout,
             )
             .await?;
@@ -2499,6 +2514,7 @@ impl ConsumerGroup {
             COORDINATOR_GROUP,
             LEAVE_GROUP,
             |version, buf| encode_leave_group_request_members(buf, version, group_id, &members),
+            prior,
             timeout,
         )
         .await?;
@@ -2591,6 +2607,7 @@ impl ConsumerGroup {
                 let cfg = &self.cfg;
                 let consumer = &mut self.consumer;
                 let topics = &self.topics;
+                let prior = &mut self.prior_coords;
                 let refresh = consumer.refresh_metadata_timeout(Some(topics), timeout);
                 let rpc = coord_roundtrip(
                     coord,
@@ -2614,6 +2631,7 @@ impl ConsumerGroup {
                             },
                         )
                     },
+                    prior,
                     timeout,
                 );
                 let (refresh, rpc) = tokio::join!(refresh, rpc);
@@ -2642,6 +2660,7 @@ impl ConsumerGroup {
                             },
                         )
                     },
+                    &mut self.prior_coords,
                     timeout,
                 )
                 .await?
@@ -2783,6 +2802,7 @@ impl ConsumerGroup {
                     },
                 )
             },
+            &mut self.prior_coords,
             timeout,
         );
         let synced = if let Some(flight) = flight.as_mut() {
@@ -2861,6 +2881,7 @@ impl ConsumerGroup {
             let cfg = &self.cfg;
             let consumer = &mut self.consumer;
             let topics = &self.topics;
+            let prior = &mut self.prior_coords;
             let refresh = consumer.refresh_metadata_timeout(Some(topics), timeout);
             let rpc = coord_roundtrip(
                 coord,
@@ -2869,6 +2890,7 @@ impl ConsumerGroup {
                 COORDINATOR_GROUP,
                 CONSUMER_GROUP_HEARTBEAT,
                 |version, buf| encode_consumer_group_heartbeat_request(buf, version, &req),
+                prior,
                 timeout,
             );
             let (refresh, rpc) = tokio::join!(refresh, rpc);
@@ -2886,6 +2908,7 @@ impl ConsumerGroup {
                 COORDINATOR_GROUP,
                 CONSUMER_GROUP_HEARTBEAT,
                 |version, buf| encode_consumer_group_heartbeat_request(buf, version, &req),
+                &mut self.prior_coords,
                 timeout,
             )
             .await?
@@ -3222,6 +3245,7 @@ impl ConsumerGroup {
                                 Some(&topics),
                             )
                         },
+                        &mut self.prior_coords,
                         timeout,
                     );
                     tokio::pin!(refresh_fut);
@@ -3286,6 +3310,7 @@ impl ConsumerGroup {
                 let coord = &mut self.coord;
                 let cfg = &self.cfg;
                 let consumer = &mut self.consumer;
+                let prior = &mut self.prior_coords;
                 let fetched = {
                     let fetch_fut = coord_roundtrip(
                         coord,
@@ -3304,6 +3329,7 @@ impl ConsumerGroup {
                                 Some(&topics),
                             )
                         },
+                        prior,
                         timeout,
                     );
                     let warm_fut = consumer.warm_leader_conns(&leaders, deadline);
@@ -5678,6 +5704,10 @@ async fn open_coord_with_find_version(
     Ok((conn, version, resp))
 }
 
+#[expect(
+    clippy::too_many_arguments,
+    reason = "coordinator RPC carries versions learned from earlier coordinators"
+)]
 pub(crate) async fn coord_roundtrip(
     coord: &mut BrokerConn,
     cfg: &ConsumerConfig,
@@ -5685,9 +5715,9 @@ pub(crate) async fn coord_roundtrip(
     key_type: i8,
     api_key: i16,
     encode_body: impl FnMut(i16, &mut BytesMut) -> Result<()>,
+    prior: &mut HashMap<String, KnownCoord>,
     request_timeout: Duration,
 ) -> Result<(i16, Bytes)> {
-    let mut prior = HashMap::new();
     coord_roundtrip_with_bootstrap(
         coord,
         cfg,
@@ -5696,7 +5726,7 @@ pub(crate) async fn coord_roundtrip(
         api_key,
         encode_body,
         &[],
-        &mut prior,
+        prior,
         request_timeout,
     )
     .await

@@ -975,6 +975,8 @@ pub struct ShareGroup {
     share_addresses: HashMap<i32, String>,
     /// ApiVersions learned on each share leader. An idle replacement reuses them.
     share_api_keys: HashMap<i32, Vec<crate::protocol::api::ApiVersion>>,
+    /// Coordinators this member already contacted.
+    prior_coords: HashMap<String, crate::group::KnownCoord>,
     /// CurrentLeader values from the latest share response. A metadata refresh
     /// drops cached leaders, and these patches are put back afterward.
     leader_patches: Vec<ShareLeaderPatch>,
@@ -1636,6 +1638,7 @@ impl ShareGroup {
             share_api_keys: HashMap::new(),
             leader_patches: Vec::new(),
             share_redial_nodes: Vec::new(),
+            prior_coords: HashMap::new(),
             acquisitions: HashMap::new(),
             pending_delivery: Vec::new(),
             acquire_mode: ShareAcquireMode::BatchOptimized,
@@ -2078,6 +2081,7 @@ impl ShareGroup {
                 let topics = &self.topics;
                 let cfg = &self.cfg;
                 let group_id = self.group_id.as_str();
+                let prior = &mut self.prior_coords;
                 let refresh = Self::refresh_topic_names_within(consumer, topics, deadline);
                 let rpc = coord_roundtrip(
                     coord,
@@ -2086,6 +2090,7 @@ impl ShareGroup {
                     COORDINATOR_GROUP,
                     SHARE_GROUP_HEARTBEAT,
                     |version, buf| encode_share_group_heartbeat_request(buf, version, &req),
+                    prior,
                     timeout,
                 );
                 let (refresh, rpc) = tokio::join!(refresh, rpc);
@@ -2099,6 +2104,7 @@ impl ShareGroup {
                     COORDINATOR_GROUP,
                     SHARE_GROUP_HEARTBEAT,
                     |version, buf| encode_share_group_heartbeat_request(buf, version, &req),
+                    &mut self.prior_coords,
                     timeout,
                 )
                 .await?;
@@ -4905,6 +4911,7 @@ impl ShareGroup {
             COORDINATOR_GROUP,
             SHARE_GROUP_HEARTBEAT,
             |version, buf| encode_share_group_heartbeat_request(buf, version, &req),
+            &mut self.prior_coords,
             timeout,
         )
         .await?;

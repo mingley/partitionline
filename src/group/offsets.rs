@@ -39,6 +39,7 @@ impl ConsumerGroup {
         let coord = &mut self.coord;
         let cfg = &self.cfg;
         let consumer = &mut self.consumer;
+        let prior = &mut self.prior_coords;
         let rpc = super::coord_roundtrip(
             coord,
             cfg,
@@ -57,6 +58,7 @@ impl ConsumerGroup {
                     &commit_topics,
                 )
             },
+            prior,
             timeout,
         );
         let refreshed = consumer.refresh_metadata_timeout(Some(names), timeout);
