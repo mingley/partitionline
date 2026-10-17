@@ -5741,29 +5741,38 @@ pub(crate) async fn connect_known_coord(
     cfg: &ConsumerConfig,
     known: &KnownCoord,
 ) -> Result<BrokerConn> {
-    let deadline = Instant::now()
-        .checked_add(cfg.request_timeout)
-        .ok_or(Error::Timeout)?;
-    let bound = crate::net::Deadline::from_std(deadline);
-    let mut conn = BrokerConn::connect_tls(
-        &known.addr,
-        &cfg.client_id,
-        cfg.connect_timeout.min(bound.remaining()?),
-        cfg.tls.as_ref(),
-    )
-    .await?;
-    known.apply(&mut conn);
-    sasl::authenticate(
-        &mut conn,
-        cfg.sasl_plain.as_ref(),
-        cfg.sasl_scram.as_ref(),
-        cfg.sasl_scram_sha512.as_ref(),
-        cfg.sasl_oauthbearer.as_deref(),
-        cfg.sasl_oauthbearer_oidc.as_ref(),
-        bound.remaining()?,
-    )
-    .await?;
-    Ok(conn)
+    let opened = async {
+        let deadline = Instant::now()
+            .checked_add(cfg.request_timeout)
+            .ok_or(Error::Timeout)?;
+        let bound = crate::net::Deadline::from_std(deadline);
+        let mut conn = BrokerConn::connect_tls(
+            &known.addr,
+            &cfg.client_id,
+            cfg.connect_timeout.min(bound.remaining()?),
+            cfg.tls.as_ref(),
+        )
+        .await?;
+        known.apply(&mut conn);
+        sasl::authenticate(
+            &mut conn,
+            cfg.sasl_plain.as_ref(),
+            cfg.sasl_scram.as_ref(),
+            cfg.sasl_scram_sha512.as_ref(),
+            cfg.sasl_oauthbearer.as_deref(),
+            cfg.sasl_oauthbearer_oidc.as_ref(),
+            bound.remaining()?,
+        )
+        .await?;
+        Ok(conn)
+    }
+    .await;
+    if opened.is_err() {
+        for _ in 0..8 {
+            tokio::task::yield_now().await;
+        }
+    }
+    opened
 }
 
 /// Find the coordinator again while the previous address is dialed.
@@ -7079,13 +7088,67 @@ mod tests {
 
 #[cfg(test)]
 mod rediscover_stop_tests {
-    use super::{open_coord_with_find_version, rediscover_known_coord, KnownCoord};
+    use super::{
+        connect_known_coord, open_coord_with_find_version, rediscover_known_coord, KnownCoord,
+    };
     use crate::protocol::group::COORDINATOR_GROUP;
     use crate::ConsumerConfig;
     use std::collections::HashMap;
     use std::sync::atomic::{AtomicBool, Ordering};
     use std::sync::Arc;
     use std::time::Duration;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn remembered_sasl_timeout_closes_the_socket() {
+        use std::sync::atomic::AtomicUsize;
+        use tokio::io::AsyncReadExt;
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let open = Arc::new(AtomicUsize::new(0));
+        let open_flag = Arc::clone(&open);
+        let peer = tokio::spawn(async move {
+            let (mut sock, _) = listener.accept().await.unwrap();
+            let _started = open_flag.fetch_add(1, Ordering::SeqCst);
+            let mut buf = [0u8; 64];
+            loop {
+                match sock.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = open_flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let mut cfg = ConsumerConfig::bootstrap([addr.clone()]);
+        cfg.request_timeout = Duration::from_millis(200);
+        cfg.connect_timeout = Duration::from_millis(200);
+        cfg.max_wait_ms = 10;
+        cfg.sasl_plain = Some(("user".into(), "pass".into()));
+        let known = KnownCoord {
+            addr: addr.clone(),
+            offset_commit_version: 2,
+            offset_fetch_version: 1,
+            heartbeat_version: 0,
+            sync_group_version: 0,
+            join_group_version: 2,
+            leave_group_version: 0,
+            consumer_group_heartbeat_version: -1,
+            share_group_heartbeat_version: -1,
+            sasl_handshake_version: 1,
+            sasl_authenticate_version: 2,
+            find_coordinator_version: 1,
+            bootstrap_keys: Vec::new(),
+            address_keys: HashMap::new(),
+        };
+        let result = connect_known_coord(&cfg, &known).await;
+        assert!(matches!(result, Err(crate::Error::Timeout)));
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "coordinator sasl left the socket open"
+        );
+        peer.abort();
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn coordinator_handshake_timeout_closes_the_socket() {

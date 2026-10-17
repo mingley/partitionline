@@ -3601,43 +3601,52 @@ async fn dial_known_admin_socket(
     keys: &[ApiVersion],
     deadline: Instant,
 ) -> Result<AdminOffsetConn> {
-    let rest = deadline.saturating_duration_since(Instant::now());
-    if rest.is_zero() {
-        return Err(Error::Timeout);
+    let opened = async {
+        let rest = deadline.saturating_duration_since(Instant::now());
+        if rest.is_zero() {
+            return Err(Error::Timeout);
+        }
+        let mut conn = BrokerConn::connect_tls(
+            addr,
+            &cfg.client_id,
+            cfg.connect_timeout.min(rest),
+            cfg.tls.as_ref(),
+        )
+        .await?;
+        conn.set_stats(Arc::clone(stats));
+        let versions_resp = ApiVersionsResponse {
+            error_code: 0,
+            api_keys: keys.to_vec(),
+            throttle_time_ms: 0,
+            supported_features: Vec::new(),
+            finalized_features_epoch: None,
+            finalized_features: Vec::new(),
+            zk_migration_ready: false,
+        };
+        sasl::apply_api_keys(&mut conn, &versions_resp.api_keys);
+        let rest = deadline.saturating_duration_since(Instant::now());
+        if rest.is_zero() {
+            return Err(Error::Timeout);
+        }
+        sasl::authenticate(
+            &mut conn,
+            cfg.sasl_plain.as_ref(),
+            cfg.sasl_scram.as_ref(),
+            cfg.sasl_scram_sha512.as_ref(),
+            cfg.sasl_oauthbearer.as_deref(),
+            cfg.sasl_oauthbearer_oidc.as_ref(),
+            rest,
+        )
+        .await?;
+        Ok(AdminOffsetConn::new(conn, &versions_resp))
     }
-    let mut conn = BrokerConn::connect_tls(
-        addr,
-        &cfg.client_id,
-        cfg.connect_timeout.min(rest),
-        cfg.tls.as_ref(),
-    )
-    .await?;
-    conn.set_stats(Arc::clone(stats));
-    let versions_resp = ApiVersionsResponse {
-        error_code: 0,
-        api_keys: keys.to_vec(),
-        throttle_time_ms: 0,
-        supported_features: Vec::new(),
-        finalized_features_epoch: None,
-        finalized_features: Vec::new(),
-        zk_migration_ready: false,
-    };
-    sasl::apply_api_keys(&mut conn, &versions_resp.api_keys);
-    let rest = deadline.saturating_duration_since(Instant::now());
-    if rest.is_zero() {
-        return Err(Error::Timeout);
+    .await;
+    if opened.is_err() {
+        for _ in 0..8 {
+            tokio::task::yield_now().await;
+        }
     }
-    sasl::authenticate(
-        &mut conn,
-        cfg.sasl_plain.as_ref(),
-        cfg.sasl_scram.as_ref(),
-        cfg.sasl_scram_sha512.as_ref(),
-        cfg.sasl_oauthbearer.as_deref(),
-        cfg.sasl_oauthbearer_oidc.as_ref(),
-        rest,
-    )
-    .await?;
-    Ok(AdminOffsetConn::new(conn, &versions_resp))
+    opened
 }
 
 async fn dial_admin_peer(
@@ -15887,6 +15896,62 @@ mod tests {
             open.load(Ordering::SeqCst),
             0,
             "bootstrap handshake left the socket blocked in a broker read"
+        );
+        peer.abort();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn remembered_sasl_timeout_closes_the_socket() {
+        use crate::protocol::api::ApiVersion;
+        use crate::protocol::api_keys::{SASL_AUTHENTICATE, SASL_HANDSHAKE};
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use tokio::io::AsyncReadExt;
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let open = Arc::new(AtomicUsize::new(0));
+        let open_flag = Arc::clone(&open);
+        let peer = tokio::spawn(async move {
+            let (mut sock, _) = listener.accept().await.unwrap();
+            let _started = open_flag.fetch_add(1, Ordering::SeqCst);
+            let mut buf = [0u8; 64];
+            loop {
+                match sock.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = open_flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let mut cfg = AdminConfig::bootstrap([addr.clone()]);
+        cfg.connect_timeout = Duration::from_millis(200);
+        cfg.sasl_plain = Some(("user".into(), "pass".into()));
+        let keys = [
+            ApiVersion {
+                api_key: SASL_HANDSHAKE,
+                min_version: 0,
+                max_version: 1,
+            },
+            ApiVersion {
+                api_key: SASL_AUTHENTICATE,
+                min_version: 0,
+                max_version: 2,
+            },
+        ];
+        let stats = Arc::new(crate::metrics::AdminTracker::default());
+        let result = dial_known_admin_socket(
+            &addr,
+            &cfg,
+            &stats,
+            &keys,
+            Instant::now() + Duration::from_millis(200),
+        )
+        .await;
+        assert!(matches!(result, Err(Error::Timeout)));
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "admin sasl left the socket open"
         );
         peer.abort();
     }

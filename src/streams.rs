@@ -103,25 +103,34 @@ async fn open_known_streams(
     keys: &[ApiVersion],
     deadline: Deadline,
 ) -> Result<BrokerConn> {
-    let mut conn = BrokerConn::connect_tls(
-        address,
-        &cfg.client_id,
-        cfg.connect_timeout.min(deadline.remaining()?),
-        cfg.tls.as_ref(),
-    )
-    .await?;
-    sasl::apply_api_keys(&mut conn, keys);
-    sasl::authenticate(
-        &mut conn,
-        cfg.sasl_plain.as_ref(),
-        cfg.sasl_scram.as_ref(),
-        cfg.sasl_scram_sha512.as_ref(),
-        cfg.sasl_oauthbearer.as_deref(),
-        cfg.sasl_oauthbearer_oidc.as_ref(),
-        deadline.remaining()?,
-    )
-    .await?;
-    Ok(conn)
+    let opened = async {
+        let mut conn = BrokerConn::connect_tls(
+            address,
+            &cfg.client_id,
+            cfg.connect_timeout.min(deadline.remaining()?),
+            cfg.tls.as_ref(),
+        )
+        .await?;
+        sasl::apply_api_keys(&mut conn, keys);
+        sasl::authenticate(
+            &mut conn,
+            cfg.sasl_plain.as_ref(),
+            cfg.sasl_scram.as_ref(),
+            cfg.sasl_scram_sha512.as_ref(),
+            cfg.sasl_oauthbearer.as_deref(),
+            cfg.sasl_oauthbearer_oidc.as_ref(),
+            deadline.remaining()?,
+        )
+        .await?;
+        Ok(conn)
+    }
+    .await;
+    if opened.is_err() {
+        for _ in 0..8 {
+            tokio::task::yield_now().await;
+        }
+    }
+    opened
 }
 
 fn coordinator_address(body: &[u8], version: i16, group_id: &str) -> Result<String> {
@@ -639,6 +648,61 @@ mod tests {
     use std::sync::Arc;
     use std::time::{Duration, Instant};
     use tokio::io::AsyncReadExt;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn remembered_sasl_timeout_closes_the_socket() {
+        use super::open_known_streams;
+        use crate::net::Deadline;
+        use crate::protocol::api::ApiVersion;
+        use crate::protocol::api_keys::{SASL_AUTHENTICATE, SASL_HANDSHAKE};
+        use std::time::{Duration, Instant};
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let open = Arc::new(AtomicUsize::new(0));
+        let open_flag = Arc::clone(&open);
+        let peer = tokio::spawn(async move {
+            let (mut sock, _) = listener.accept().await.unwrap();
+            let _started = open_flag.fetch_add(1, Ordering::SeqCst);
+            let mut buf = [0u8; 64];
+            loop {
+                match sock.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = open_flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let mut cfg = AdminConfig::bootstrap([addr.clone()]);
+        cfg.connect_timeout = Duration::from_millis(200);
+        cfg.sasl_plain = Some(("user".into(), "pass".into()));
+        let keys = [
+            ApiVersion {
+                api_key: SASL_HANDSHAKE,
+                min_version: 0,
+                max_version: 1,
+            },
+            ApiVersion {
+                api_key: SASL_AUTHENTICATE,
+                min_version: 0,
+                max_version: 2,
+            },
+        ];
+        let result = open_known_streams(
+            &cfg,
+            &addr,
+            &keys,
+            Deadline::from_std(Instant::now() + Duration::from_millis(200)),
+        )
+        .await;
+        assert!(matches!(result, Err(crate::Error::Timeout)));
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "streams sasl left the socket open"
+        );
+        peer.abort();
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn streams_heartbeat_handshake_timeout_closes_the_socket() {
