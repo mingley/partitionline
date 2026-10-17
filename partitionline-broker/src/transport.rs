@@ -1082,6 +1082,12 @@ async fn write_and_prefetch<S: AsyncRead + AsyncWrite + Unpin>(
             if bufs.is_empty() {
                 return Poll::Ready(Ok(()));
             }
+            if prefetch && matches!(classify_ahead(ahead.pending(), max_request), Ahead::Invalid) {
+                return Poll::Ready(Err(io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    "invalid frame length",
+                )));
+            }
             match Pin::new(&mut *socket).poll_write_vectored(cx, bufs) {
                 Poll::Ready(Ok(0)) => Poll::Ready(Err(io::Error::new(
                     io::ErrorKind::WriteZero,
@@ -2278,6 +2284,72 @@ mod write_prefetch_tests {
         assert!(
             deadline && elapsed < Duration::from_millis(80),
             "a ready partial write held the response past its deadline: {elapsed:?} deadline {deadline}"
+        );
+    }
+
+    struct IllegalPrefetch {
+        sent: bool,
+    }
+
+    impl AsyncRead for IllegalPrefetch {
+        fn poll_read(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            buf: &mut ReadBuf<'_>,
+        ) -> Poll<std::io::Result<()>> {
+            let this = self.get_mut();
+            if this.sent {
+                return Poll::Pending;
+            }
+            let dst = buf.initialize_unfilled();
+            if dst.len() < 4 {
+                return Poll::Pending;
+            }
+            dst[..4].copy_from_slice(&i32::MAX.to_be_bytes());
+            buf.advance(4);
+            this.sent = true;
+            Poll::Ready(Ok(()))
+        }
+    }
+
+    impl AsyncWrite for IllegalPrefetch {
+        fn poll_write(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            _buf: &[u8],
+        ) -> Poll<std::io::Result<usize>> {
+            Poll::Pending
+        }
+
+        fn poll_flush(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
+            Poll::Ready(Ok(()))
+        }
+
+        fn poll_shutdown(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
+            Poll::Ready(Ok(()))
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn an_illegal_prefetch_length_does_not_wait_out_the_write() {
+        let mut socket = IllegalPrefetch { sent: false };
+        let started = Instant::now();
+        let result = tokio::time::timeout(
+            Duration::from_millis(200),
+            write_and_prefetch(
+                &mut socket,
+                b"response",
+                Instant::now() + Duration::from_secs(5),
+                &mut ReadAhead::new(),
+                1024,
+                true,
+            ),
+        )
+        .await;
+        let elapsed = started.elapsed();
+        assert!(
+            matches!(result, Ok(Err(_))),
+            "an illegal prefetch length waited out the write: {elapsed:?}"
         );
     }
 }
