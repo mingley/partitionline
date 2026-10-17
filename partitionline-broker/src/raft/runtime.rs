@@ -28,7 +28,7 @@ use std::{
     time::Duration,
 };
 use tokio::{
-    io::{AsyncRead, AsyncReadExt, AsyncWriteExt},
+    io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt},
     net::{TcpListener, TcpStream},
     sync::{mpsc, oneshot, watch, Notify, OwnedSemaphorePermit, Semaphore},
     task::{JoinHandle, JoinSet},
@@ -1868,8 +1868,8 @@ async fn read_frame<S: AsyncRead + Unpin>(
     .await
     .map_err(|_| Error::Deadline)?
 }
-async fn write_frame(
-    socket: &mut TcpStream,
+async fn write_frame<S: AsyncWrite + Unpin>(
+    socket: &mut S,
     frame: &Frame,
     limit: usize,
     deadline: Instant,
@@ -1890,6 +1890,10 @@ async fn write_frame(
                 return Err(Error::Peer);
             }
             IoSlice::advance_slices(&mut bufs, n);
+            // A ready socket can accept one byte at a time without ever
+            // returning, so the frame deadline cannot run until the write
+            // finishes.
+            tokio::task::yield_now().await;
         }
         Ok::<_, Error>(())
     })
@@ -2753,7 +2757,7 @@ mod frame_deadline_tests {
     use std::pin::Pin;
     use std::task::{Context, Poll};
     use std::time::Duration;
-    use tokio::io::{AsyncRead, ReadBuf};
+    use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
     use tokio::time::Instant;
 
     struct SlowFrame {
@@ -2814,6 +2818,68 @@ mod frame_deadline_tests {
         assert!(
             deadline && elapsed < Duration::from_millis(80),
             "a ready peer frame held the read past its deadline: {elapsed:?} deadline {deadline}"
+        );
+    }
+
+    struct SlowSink;
+
+    impl AsyncWrite for SlowSink {
+        fn poll_write(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            buf: &[u8],
+        ) -> Poll<std::io::Result<usize>> {
+            if buf.is_empty() {
+                return Poll::Ready(Ok(0));
+            }
+            let start = std::time::Instant::now();
+            while start.elapsed() < Duration::from_millis(3) {}
+            Poll::Ready(Ok(1))
+        }
+
+        fn poll_flush(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
+            Poll::Ready(Ok(()))
+        }
+
+        fn poll_shutdown(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
+            Poll::Ready(Ok(()))
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn write_deadline_stops_a_ready_peer_frame() {
+        use super::super::membership::Key;
+        use super::super::peer_codec::{Frame, Group, Hello, Message};
+
+        let key = Key::new(1, [1; 16]).unwrap_or_else(|error| panic!("{error}"));
+        let frame = Frame {
+            rpc: 0,
+            message: Message::Hello(Hello {
+                source: key,
+                target: key,
+                group: Group {
+                    cluster: "c".to_string(),
+                    topic: "t".to_string(),
+                    partition: 0,
+                    genesis: vec![1],
+                },
+            }),
+        };
+        let mut wire = WireBuf::new();
+        let started = Instant::now();
+        let result = super::write_frame(
+            &mut SlowSink,
+            &frame,
+            1024 * 1024,
+            Instant::now() + Duration::from_millis(30),
+            &mut wire,
+        )
+        .await;
+        let elapsed = started.elapsed();
+        let deadline = matches!(result, Err(Error::Deadline));
+        assert!(
+            deadline && elapsed < Duration::from_millis(80),
+            "a ready peer write held the frame past its deadline: {elapsed:?} deadline {deadline}"
         );
     }
 }
