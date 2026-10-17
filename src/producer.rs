@@ -1063,6 +1063,8 @@ struct Shared {
     /// Worker tasks inside `Worker::run`, including one whose handle was dropped
     /// before close could wait on it.
     live_workers: AtomicUsize,
+    /// `send_all` metadata refreshes still inside their broker call.
+    live_metadata_refreshes: AtomicUsize,
     retries_out: AtomicUsize,
     in_txn: AtomicBool,
     txn_partitions: parking_lot::Mutex<TxnPartSet>,
@@ -1128,6 +1130,34 @@ impl Drop for Inner {
 
         self.shared.clear_sticky();
         self.shared.interceptors.close();
+    }
+}
+
+/// Abort a spawned task if the caller drops it before joining.
+struct AbortOnDrop<T> {
+    task: tokio::task::JoinHandle<T>,
+}
+
+impl<T> AbortOnDrop<T> {
+    fn new(task: tokio::task::JoinHandle<T>) -> Self {
+        Self { task }
+    }
+}
+
+impl<T> Drop for AbortOnDrop<T> {
+    fn drop(&mut self) {
+        self.task.abort();
+    }
+}
+
+impl<T> std::future::Future for AbortOnDrop<T> {
+    type Output = std::result::Result<T, tokio::task::JoinError>;
+
+    fn poll(
+        mut self: std::pin::Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<Self::Output> {
+        std::pin::Pin::new(&mut self.task).poll(cx)
     }
 }
 
@@ -1878,6 +1908,7 @@ impl Producer {
             reconnect_busy: parking_lot::Mutex::new(HashSet::new()),
             reconnect_tasks: parking_lot::Mutex::new(Vec::new()),
             live_workers: AtomicUsize::new(0),
+            live_metadata_refreshes: AtomicUsize::new(0),
             retries_out: AtomicUsize::new(0),
             in_txn: AtomicBool::new(false),
             txn_partitions: parking_lot::Mutex::new(HashMap::new()),
@@ -2126,14 +2157,27 @@ impl Producer {
                         self.nudge_known_leaders(ready.iter().map(|(_, rec)| rec));
                         let shared = Arc::clone(&self.inner.shared);
                         let refresh_topics = topics.clone();
-                        let refresh = tokio::spawn(async move {
+                        let refresh = AbortOnDrop::new(tokio::spawn(async move {
+                            let _started = shared
+                                .live_metadata_refreshes
+                                .fetch_add(1, Ordering::SeqCst);
+                            struct ExitRefresh(Arc<Shared>);
+                            impl Drop for ExitRefresh {
+                                fn drop(&mut self) {
+                                    let _left = self
+                                        .0
+                                        .live_metadata_refreshes
+                                        .fetch_sub(1, Ordering::SeqCst);
+                                }
+                            }
+                            let _exit = ExitRefresh(Arc::clone(&shared));
                             refresh_topics_within(&shared, &refresh_topics, timeout).await
-                        });
+                        }));
                         for (ready_index, ready_rec) in ready {
                             let rx = match self.enqueue_one(ready_rec).await {
                                 Ok(rx) => rx,
                                 Err(error) => {
-                                    refresh.abort();
+                                    drop(refresh);
                                     return Err(error);
                                 }
                             };
@@ -2893,6 +2937,16 @@ impl Producer {
         .into_iter()
         .flatten()
         .collect()
+    }
+
+    /// Test hook: metadata refreshes `send_all` started and has not finished.
+    #[doc(hidden)]
+    #[must_use]
+    pub fn test_live_metadata_refreshes(&self) -> usize {
+        self.inner
+            .shared
+            .live_metadata_refreshes
+            .load(Ordering::SeqCst)
     }
 
     /// Test hook: inspect worker task handles to verify task termination.

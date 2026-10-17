@@ -8,7 +8,7 @@ mod common;
 
 use partitionline::error;
 use partitionline::{Error, ProduceRecord, Producer, ProducerConfig};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use tokio::time::{sleep, timeout};
 
 #[tokio::test]
@@ -26,6 +26,57 @@ async fn send_completes_with_record_metadata() {
     assert_eq!(md.partition, 0);
     assert!(!mock.produce_nodes().is_empty());
     assert_eq!(producer.metrics().bytes_buffered, 0);
+    producer.close().await.unwrap();
+}
+
+/// Dropping `send_all` aborts the metadata refresh it started.
+#[tokio::test(flavor = "current_thread")]
+async fn dropping_send_all_stops_the_metadata_refresh() {
+    let mock = common::Mock::start().await;
+    mock.set_topic_partitions("known", 1);
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    let _md = producer
+        .send(ProduceRecord::to("known").value(&b"warm"[..]))
+        .await
+        .unwrap();
+    mock.set_metadata_delay(Duration::from_secs(30));
+    {
+        let caller = producer.clone();
+        let send = caller.send_all([
+            ProduceRecord::to("fresh").value(&b"a"[..]),
+            ProduceRecord::to("known").value(&b"b"[..]),
+        ]);
+        tokio::pin!(send);
+        let started = Instant::now();
+        loop {
+            tokio::select! {
+                biased;
+                result = &mut send => {
+                    panic!("send_all finished during the metadata delay: {result:?}");
+                }
+                () = tokio::time::sleep(Duration::from_millis(5)) => {}
+            }
+            if producer.test_live_metadata_refreshes() > 0 {
+                break;
+            }
+            if started.elapsed() > Duration::from_secs(2) {
+                panic!("metadata refresh did not start");
+            }
+        }
+    }
+    let mut turns = 0u32;
+    while producer.test_live_metadata_refreshes() > 0 && turns < 8 {
+        turns = turns.saturating_add(1);
+        tokio::task::yield_now().await;
+    }
+    assert_eq!(
+        producer.test_live_metadata_refreshes(),
+        0,
+        "dropping send_all left the metadata refresh running"
+    );
     producer.close().await.unwrap();
 }
 
