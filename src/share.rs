@@ -15,9 +15,7 @@ use tokio::sync::{watch, Notify};
 
 use crate::consumer::{Consumer, ConsumerConfig};
 use crate::error::{self, Error, Result};
-use crate::group::{
-    collect_topics, coord_roundtrip, discover_coord_within, filter_matching_topics, TopicMatch,
-};
+use crate::group::{collect_topics, coord_roundtrip, filter_matching_topics, TopicMatch};
 use crate::net::BrokerConn;
 use crate::protocol::api_keys::{
     pick_version, SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_HEARTBEAT,
@@ -977,6 +975,9 @@ pub struct ShareGroup {
     share_api_keys: HashMap<i32, Vec<crate::protocol::api::ApiVersion>>,
     /// Coordinators this member already contacted.
     prior_coords: HashMap<String, crate::group::KnownCoord>,
+    /// Address and ApiVersions of the group coordinator socket.
+    coord_addr: String,
+    coord_keys: Vec<crate::protocol::api::ApiVersion>,
     /// CurrentLeader values from the latest share response. A metadata refresh
     /// drops cached leaders, and these patches are put back afterward.
     leader_patches: Vec<ShareLeaderPatch>,
@@ -1546,7 +1547,7 @@ impl ShareGroup {
             .retry_backoff
             .min(cfg.retry_backoff_max)
             .max(Duration::from_millis(1));
-        let coord = match first_coordinator {
+        let (coord, coord_keys) = match first_coordinator {
             Ok(coord) => coord,
             Err(error)
                 if error
@@ -1557,13 +1558,14 @@ impl ShareGroup {
                     if Instant::now() >= discovery_deadline {
                         return Err(Error::Timeout);
                     }
-                    let result = discover_coord_within(
+                    let result = crate::group::discover_coord_with_versions(
                         &cfg,
                         &group_id,
                         COORDINATOR_GROUP,
                         discovery_deadline,
                     )
-                    .await;
+                    .await
+                    .map(|(conn, versions)| (conn, versions.api_keys));
                     match result {
                         Ok(coord) => break coord,
                         Err(error)
@@ -1601,6 +1603,7 @@ impl ShareGroup {
         let hb_deadline = Arc::new(Mutex::new(None));
         let hb_wake = Arc::new(Notify::new());
         let (hb_stop, hb_rx) = watch::channel(false);
+        let coord_addr = coord.addr().to_string();
         let mut g = Self {
             consumer,
             coord,
@@ -1639,6 +1642,8 @@ impl ShareGroup {
             leader_patches: Vec::new(),
             share_redial_nodes: Vec::new(),
             prior_coords: HashMap::new(),
+            coord_addr,
+            coord_keys,
             acquisitions: HashMap::new(),
             pending_delivery: Vec::new(),
             acquire_mode: ShareAcquireMode::BatchOptimized,
@@ -2628,6 +2633,8 @@ impl ShareGroup {
             let reuse = addr == self.consumer.bootstrap_addr() && self.consumer.has_api_keys();
             let remembered = if reuse {
                 None
+            } else if addr == self.coord_addr && !self.coord_keys.is_empty() {
+                Some(self.coord_keys.clone())
             } else {
                 self.share_api_keys.get(&node).cloned()
             };

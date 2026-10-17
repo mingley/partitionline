@@ -101,6 +101,37 @@ async fn share_heartbeat_retries_without_another_handshake() {
     group.leave().await.unwrap();
 }
 
+/// A share fetch from the group coordinator does not repeat ApiVersions.
+#[tokio::test]
+async fn share_fetch_reuses_the_coordinator_handshake() {
+    let mock = common::Mock::start_two_node().await;
+    v2(&mock);
+    mock.set_topic_partitions("t", 1);
+    mock.set_partition_leader("t", 0, 2);
+    mock.move_coordinator();
+    mock.set_share_heartbeat_interval_ms(60_000);
+    produce(&mock, &[(0, b"share")]).await;
+    let mut cfg = config(&mock);
+    cfg.heartbeat_interval = Duration::from_secs(5);
+    let mut group = ShareGroup::join(cfg, "share-coord", "t").await.unwrap();
+    let versions_before = mock.api_versions_versions().len();
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let started = Instant::now();
+    let got = group.poll().await.unwrap();
+    let elapsed = started.elapsed();
+    assert_eq!(got.len(), 1);
+    assert_eq!(
+        mock.api_versions_versions().len(),
+        versions_before,
+        "the share leader should reuse the coordinator handshake"
+    );
+    assert!(
+        elapsed < Duration::from_millis(200),
+        "share fetch repeated the coordinator handshake: {elapsed:?}"
+    );
+    group.leave().await.unwrap();
+}
+
 /// A share fetch from the bootstrap broker does not repeat ApiVersions.
 #[tokio::test]
 async fn share_fetch_reuses_bootstrap_api_versions() {

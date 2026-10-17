@@ -804,7 +804,7 @@ impl ConsumerGroup {
             started,
         )
         .await?;
-        let coord = coord?;
+        let coord = coord.map(|(conn, _keys)| conn)?;
 
         let hb_err = Arc::new(AtomicI16::new(0));
         let hb_generation = Arc::new(AtomicI32::new(0));
@@ -972,7 +972,7 @@ impl ConsumerGroup {
             started,
         )
         .await?;
-        let coord = coord?;
+        let coord = coord.map(|(conn, _keys)| conn)?;
         let hb_err = Arc::new(AtomicI16::new(0));
         let hb_generation = Arc::new(AtomicI32::new(
             ConsumerGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH,
@@ -4916,9 +4916,13 @@ pub(crate) async fn connect_member_and_coordinator(
     topics: &[String],
     prefetch_all: bool,
     deadline: Instant,
-) -> Result<(Consumer, Result<BrokerConn>)> {
+) -> Result<(Consumer, Result<(BrokerConn, Vec<ApiVersion>)>)> {
     let member = Consumer::connect_within(cfg.clone(), deadline);
-    let coordinator = discover_coord_within(cfg, group_id, COORDINATOR_GROUP, deadline);
+    let coordinator = async {
+        discover_coord_with_versions(cfg, group_id, COORDINATOR_GROUP, deadline)
+            .await
+            .map(|(conn, versions)| (conn, versions.api_keys))
+    };
     tokio::pin!(member);
     tokio::pin!(coordinator);
     let mut opened_member = None;
@@ -5054,7 +5058,7 @@ pub(crate) async fn discover_coord_within(
         .map(|(conn, _)| conn)
 }
 
-async fn discover_coord_with_versions(
+pub(crate) async fn discover_coord_with_versions(
     cfg: &ConsumerConfig,
     group_id: &str,
     key_type: i8,
