@@ -76,7 +76,7 @@ use crate::protocol::admin::{
 use crate::protocol::api::{
     decode_api_versions_response, decode_metadata_response, decode_metadata_response_into,
     encode_api_versions_request, encode_metadata_request_named, encode_metadata_request_topics,
-    ApiVersion, MetadataRequestTopic, MetadataResponse,
+    ApiVersion, ApiVersionsResponse, MetadataRequestTopic, MetadataResponse,
 };
 use crate::protocol::api_keys::{
     pick_version, ALLOCATE_PRODUCER_IDS, ALTER_CLIENT_QUOTAS, ALTER_CONFIGS,
@@ -8755,7 +8755,12 @@ impl Admin {
             if Instant::now() >= deadline {
                 return Err(Error::Timeout);
             }
-            match self.open_node_conn_until(&addr, deadline).await {
+            let opened = if addr == self.conn.addr() && !self.versions.is_empty() {
+                self.open_known_peer_until(&addr, deadline).await
+            } else {
+                self.open_node_conn_until(&addr, deadline).await
+            };
+            match opened {
                 Ok(conn) => {
                     let _ = self.reconnect_fails.remove(&node);
                     let _prev = self.conns.insert(node, conn);
@@ -8780,6 +8785,54 @@ impl Admin {
     /// Dial, negotiate, and authenticate inside `deadline`.
     async fn open_node_conn_until(&self, addr: &str, deadline: Instant) -> Result<AdminOffsetConn> {
         dial_admin_socket(addr, &self.cfg, &self.stats, deadline).await
+    }
+
+    /// Open another socket to the bootstrap broker without repeating ApiVersions.
+    ///
+    /// The first socket already learned the broker's versions. A second
+    /// handshake to that same address only repeats that round trip.
+    async fn open_known_peer_until(
+        &self,
+        addr: &str,
+        deadline: Instant,
+    ) -> Result<AdminOffsetConn> {
+        let rest = deadline.saturating_duration_since(Instant::now());
+        if rest.is_zero() {
+            return Err(Error::Timeout);
+        }
+        let mut conn = BrokerConn::connect_tls(
+            addr,
+            &self.cfg.client_id,
+            self.cfg.connect_timeout.min(rest),
+            self.cfg.tls.as_ref(),
+        )
+        .await?;
+        conn.set_stats(Arc::clone(&self.stats));
+        let versions_resp = ApiVersionsResponse {
+            error_code: 0,
+            api_keys: self.versions.values().cloned().collect(),
+            throttle_time_ms: 0,
+            supported_features: Vec::new(),
+            finalized_features_epoch: None,
+            finalized_features: Vec::new(),
+            zk_migration_ready: false,
+        };
+        sasl::apply_api_keys(&mut conn, &versions_resp.api_keys);
+        let rest = deadline.saturating_duration_since(Instant::now());
+        if rest.is_zero() {
+            return Err(Error::Timeout);
+        }
+        sasl::authenticate(
+            &mut conn,
+            self.cfg.sasl_plain.as_ref(),
+            self.cfg.sasl_scram.as_ref(),
+            self.cfg.sasl_scram_sha512.as_ref(),
+            self.cfg.sasl_oauthbearer.as_deref(),
+            self.cfg.sasl_oauthbearer_oidc.as_ref(),
+            rest,
+        )
+        .await?;
+        Ok(AdminOffsetConn::new(conn, &versions_resp))
     }
 
     /// Delete records before `offset` (`DeleteRecords`).

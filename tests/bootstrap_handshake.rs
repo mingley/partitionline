@@ -247,6 +247,36 @@ async fn describe_groups_coordinator_dials_overlap() {
     assert!(described.iter().all(|group| group.error_code == 0));
 }
 
+/// A later controller call to the bootstrap broker does not repeat ApiVersions.
+#[tokio::test]
+async fn delete_topics_skips_a_second_handshake_on_the_bootstrap_broker() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    let created = admin
+        .create_topics(&[NewTopic::new("gone", 1, 1)], 10_000, false)
+        .await
+        .unwrap();
+    assert_eq!(created[0].error_code, 0);
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let versions_before = mock.api_versions_versions().len();
+    let started = Instant::now();
+    let deleted = admin.delete_topics(&["gone"], 10_000).await.unwrap();
+    let elapsed = started.elapsed();
+    assert_eq!(deleted.len(), 1);
+    assert_eq!(deleted[0].error_code, 0);
+    assert_eq!(
+        mock.api_versions_versions().len(),
+        versions_before,
+        "deleting on the bootstrap broker should reuse the versions already learned"
+    );
+    assert!(
+        elapsed < Duration::from_millis(200),
+        "delete topics repeated ApiVersions: {elapsed:?}"
+    );
+}
+
 /// CreateTopics on the bootstrap broker reuses that socket.
 #[tokio::test]
 async fn create_topics_reuses_the_bootstrap_socket() {
