@@ -2367,7 +2367,7 @@
 //! piggyback `TOPIC_DELETION_DISABLED`). Official Java CompressionType
 //! writes this when the codec is unknown. A piggybacked
 //! `STALE_BROKER_EPOCH` still completes without retry,
-//! including when `AcknowledgeErrorMessage` is set (this is not
+//! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `STALE_BROKER_EPOCH`, which fails that poll, and not
 //! piggyback `UNSUPPORTED_COMPRESSION_TYPE`). Official Java
 //! `QuorumController.processBrokerHeartbeat` writes this when the
