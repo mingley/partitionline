@@ -424,19 +424,46 @@ impl OffsetClient {
             });
         }
         let mut last = Error::protocol("all bootstrap servers failed");
-        while let Some(joined) = inflight.join_next().await {
+        let mut finished = Vec::new();
+        while !inflight.is_empty() {
+            let Some(joined) = inflight.join_next().await else {
+                break;
+            };
             match joined {
                 Ok(Ok(opened)) => {
-                    inflight.abort_all();
-                    let address = opened.0.addr().to_string();
-                    self.remember_versions(&address, &opened.1.api_keys);
-                    return Ok(opened);
+                    finished.push(opened);
+                    // Other bootstraps that finish with this one keep their
+                    // versions, so a coordinator on one of them is not negotiated again.
+                    let gather = deadline
+                        .remaining()
+                        .unwrap_or(Duration::ZERO)
+                        .min(Duration::from_millis(5));
+                    let gather_done = tokio::time::sleep(gather);
+                    tokio::pin!(gather_done);
+                    loop {
+                        tokio::select! {
+                            biased;
+                            joined = inflight.join_next(), if !inflight.is_empty() => {
+                                match joined {
+                                    Some(Ok(Ok(opened))) => finished.push(opened),
+                                    Some(Ok(Err(error))) => last = error,
+                                    _ => {}
+                                }
+                            }
+                            () = &mut gather_done => break,
+                        }
+                    }
+                    break;
                 }
                 Ok(Err(error)) => last = error,
                 Err(error) => last = Error::protocol(format!("offset bootstrap: {error}")),
             }
         }
-        Err(last)
+        inflight.abort_all();
+        for spare in &finished {
+            self.remember_versions(spare.0.addr(), &spare.1.api_keys);
+        }
+        finished.into_iter().next().ok_or(last)
     }
 
     async fn coordinator(

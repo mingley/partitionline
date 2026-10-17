@@ -1409,6 +1409,34 @@ fn offset_options() -> OffsetOptions {
     }
 }
 
+/// A coordinator that is another bootstrap reuses that finished handshake.
+#[tokio::test]
+async fn offset_fetch_reuses_a_finished_bootstrap_handshake() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_group_coordinator("g", 2);
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let addr2 = mock.broker_addr(2).unwrap();
+    let mut cfg = AdminConfig::bootstrap([mock.addr.clone(), addr2]);
+    cfg.request_timeout = Duration::from_secs(3);
+    let mut client = OffsetClient::new(cfg).unwrap();
+    let started = Instant::now();
+    let fetched = client
+        .fetch(&offset_fetch("g"), &offset_options())
+        .await
+        .unwrap();
+    let elapsed = started.elapsed();
+    assert_eq!(fetched.groups.len(), 1);
+    assert!(
+        mock.api_versions_versions().len() <= 4,
+        "offset fetch negotiated a bootstrap that was already open: {}",
+        mock.api_versions_versions().len()
+    );
+    assert!(
+        elapsed < Duration::from_millis(700),
+        "offset fetch repeated a bootstrap handshake: {elapsed:?}"
+    );
+}
+
 /// A second offset fetch reuses ApiVersions learned on the first contact.
 #[tokio::test]
 async fn offset_fetch_repeats_without_another_handshake() {
