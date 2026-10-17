@@ -2356,7 +2356,7 @@ impl ShareGroup {
                         }
                         self.drain_pending_delivery()
                     } else {
-                        self.consumer.sleep_retry_backoff(attempt, deadline).await?;
+                        self.sleep_share_retry(attempt, deadline).await?;
                         attempt = attempt.saturating_add(1);
                         if Instant::now() >= deadline {
                             if self.pending_delivery.is_empty() {
@@ -4017,7 +4017,7 @@ impl ShareGroup {
                     if Instant::now() >= deadline {
                         break Err(Error::Timeout);
                     }
-                    if let Err(error) = self.consumer.sleep_retry_backoff(attempt, deadline).await {
+                    if let Err(error) = self.sleep_share_retry(attempt, deadline).await {
                         break Err(error);
                     }
                     attempt = attempt.saturating_add(1);
@@ -4263,6 +4263,79 @@ impl ShareGroup {
                 self.reset_node_session(node);
             }
             Err(error)
+        }
+    }
+
+    /// Wait out a retry, and drop a leader socket that closes during it.
+    async fn sleep_share_retry(&mut self, attempt: u32, deadline: Instant) -> Result<()> {
+        if self.consumer.take_wakeup() {
+            return Err(Error::Wakeup);
+        }
+        let delay = crate::config::retry_backoff_delay(
+            self.cfg.retry_backoff,
+            self.cfg.retry_backoff_max,
+            attempt,
+        );
+        if delay.is_zero() || Instant::now() >= deadline {
+            return Ok(());
+        }
+        let rest = delay.min(deadline.saturating_duration_since(Instant::now()));
+        let sleep = tokio::time::sleep(rest);
+        tokio::pin!(sleep);
+        let mut wakeup = self.consumer.subscribe_wakeup();
+        loop {
+            tokio::select! {
+                biased;
+                result = wakeup.wait_for(|on| *on) => {
+                    drop(result);
+                    return Err(Error::Wakeup);
+                }
+                () = &mut sleep => return Ok(()),
+                () = self.drop_closed_share_sockets() => {}
+            }
+        }
+    }
+
+    /// Read share leader sockets until one closes. Closed sockets are dropped.
+    async fn drop_closed_share_sockets(&mut self) {
+        if self.share_conns.is_empty() {
+            std::future::pending::<()>().await;
+            return;
+        }
+        let (stop_tx, _) = tokio::sync::broadcast::channel::<()>(1);
+        let mut set = tokio::task::JoinSet::new();
+        let nodes: Vec<i32> = self.share_conns.keys().copied().collect();
+        for node in nodes {
+            let Some(mut peer) = self.share_conns.remove(&node) else {
+                continue;
+            };
+            let mut stop = stop_tx.subscribe();
+            let _task = set.spawn(async move {
+                let closed = tokio::select! {
+                    biased;
+                    _ = stop.recv() => false,
+                    result = peer.conn.inbound_ready() => result.is_err(),
+                };
+                (node, peer, closed)
+            });
+        }
+        let mut closed_any = false;
+        while let Some(joined) = set.join_next().await {
+            let Ok((node, peer, closed)) = joined else {
+                continue;
+            };
+            if closed {
+                drop(peer);
+                if !closed_any {
+                    closed_any = true;
+                    let _listeners = stop_tx.send(()).unwrap_or(0);
+                }
+            } else {
+                let _ = self.share_conns.insert(node, peer);
+            }
+        }
+        if !closed_any {
+            std::future::pending::<()>().await;
         }
     }
 

@@ -1601,6 +1601,59 @@ async fn share_join_repeated_coordinator_failure_obeys_original_deadline_and_bac
 }
 
 #[tokio::test]
+async fn acknowledge_drops_the_leader_when_it_closes_during_retry_backoff() {
+    let mock = common::Mock::start().await;
+    v2(&mock);
+    mock.set_share_heartbeat_interval_ms(30_000);
+    produce(&mock, &[(0, b"retry-close")]).await;
+    let mut cfg = config(&mock);
+    cfg.retry_backoff = Duration::from_secs(5);
+    cfg.retry_backoff_max = Duration::from_secs(5);
+    cfg.request_timeout = Duration::from_secs(30);
+    let mut group = ShareGroup::join(cfg, "ack-backoff-close", "t")
+        .await
+        .unwrap();
+    let acquired = group.poll().await.unwrap();
+    assert_eq!(acquired.len(), 1);
+    mock.fail_share_top_once(SHARE_ACKNOWLEDGE, 1, error::REQUEST_TIMED_OUT);
+    let before = mock.share_ack_calls();
+    let accept = group.accept(&acquired);
+    tokio::pin!(accept);
+    let started = Instant::now();
+    loop {
+        if mock.share_ack_calls() > before {
+            break;
+        }
+        if started.elapsed() > Duration::from_secs(2) {
+            panic!("share acknowledge was not sent");
+        }
+        tokio::select! {
+            result = &mut accept => panic!("acknowledge finished before the retry wait: {result:?}"),
+            _ = tokio::time::sleep(Duration::from_millis(5)) => {}
+        }
+    }
+    let open = mock.open_conns();
+    if open == 0 {
+        panic!("share acknowledge did not keep a broker socket");
+    }
+    mock.shutdown_node_writes(1);
+    let started = Instant::now();
+    loop {
+        if mock.open_conns() < open {
+            break;
+        }
+        if started.elapsed() > Duration::from_millis(400) {
+            panic!("share acknowledge kept the leader socket during retry backoff");
+        }
+        tokio::select! {
+            result = &mut accept => panic!("acknowledge finished during retry backoff: {result:?}"),
+            _ = tokio::time::sleep(Duration::from_millis(5)) => {}
+        }
+    }
+    drop(accept);
+}
+
+#[tokio::test]
 async fn acknowledge_top_level_retry_advances_epoch_without_duplicate_accept() {
     let mock = common::Mock::start().await;
     v2(&mock);
