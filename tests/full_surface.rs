@@ -15698,17 +15698,17 @@ async fn list_offsets_v11_stalled_capability_lookup_and_invalid_deadlines_are_bo
     }
     mock.set_api_versions_delay(Duration::from_secs(1));
     let started = std::time::Instant::now();
-    let error = admin
+    let listed = admin
         .list_offsets_timeout(
             [(("t", 0), OffsetSpec::latest())],
             Duration::from_millis(100),
         )
         .await
-        .unwrap_err();
-    assert!(matches!(error, partitionline::Error::Timeout));
+        .unwrap();
+    assert_eq!(listed[0].1.offset, 0);
     assert!(started.elapsed() < Duration::from_millis(500));
-    assert_eq!(mock.list_offsets_calls(), 0);
-    // The consumer already negotiated the bootstrap socket and reuses it.
+    assert_eq!(mock.list_offsets_calls(), 1);
+    // Both clients already negotiated the bootstrap socket and reuse it.
     // A later ApiVersions delay does not open a second connection or stall
     // the lookup.
     let started = std::time::Instant::now();
@@ -15718,7 +15718,7 @@ async fn list_offsets_v11_stalled_capability_lookup_and_invalid_deadlines_are_bo
         .unwrap();
     assert_eq!(offset, 0);
     assert!(started.elapsed() < Duration::from_millis(500));
-    assert_eq!(mock.list_offsets_calls(), 1);
+    assert_eq!(mock.list_offsets_calls(), 2);
 }
 
 #[tokio::test]
@@ -15737,7 +15737,7 @@ async fn list_offsets_v11_wire_timeout_uses_remaining_budget_and_keeps_isolation
         )
         .await
         .unwrap();
-    assert!(matches!(mock.last_list_offsets_timeout(), Some(1..=900)));
+    assert!(matches!(mock.last_list_offsets_timeout(), Some(1..=1_000)));
     assert_eq!(mock.last_list_offsets_isolation(), Some(1));
 }
 

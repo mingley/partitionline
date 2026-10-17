@@ -4063,12 +4063,11 @@ impl Admin {
                 self.refresh_broker_directory(deadline).await?;
             }
             let node = self.cluster.controller()?;
-            self.connect_node_until(node, deadline).await?;
+            self.prepare_node_until(node, deadline).await?;
             // The controller socket's own handshake selects the schema.
+            // The bootstrap handshake is that socket when the controller is the bootstrap broker.
             let version = self
-                .conns
-                .get(&node)
-                .and_then(|conn| conn.negotiated(crate::protocol::api_keys::ELECT_LEADERS, 0, 2))
+                .negotiated_on(node, crate::protocol::api_keys::ELECT_LEADERS, 0, 2)
                 .ok_or_else(|| {
                     Error::Unsupported("controller does not support ElectLeaders v0-2".into())
                 })?;
@@ -4086,12 +4085,10 @@ impl Admin {
             }
             let election_type = options.election_type.wire();
             let timeout_ms = crate::consumer::duration_millis_i32(remaining);
-            let conn = self
-                .conns
-                .get_mut(&node)
-                .ok_or_else(|| Error::protocol("missing ElectLeaders controller connection"))?;
-            let body = conn
-                .roundtrip(
+            let body = self
+                .roundtrip_known_node(
+                    node,
+                    deadline,
                     crate::protocol::api_keys::ELECT_LEADERS,
                     version,
                     |buf| {
@@ -4109,7 +4106,7 @@ impl Admin {
             let body = match body {
                 Ok(body) => body,
                 Err(err) if err.is_retriable() || matches!(err, Error::Closed) => {
-                    let _ = self.conns.remove(&node);
+                    self.drop_node_conn(node);
                     self.forget_controller();
                     self.wait_retry(&mut attempt, deadline).await?;
                     continue;
@@ -4120,7 +4117,7 @@ impl Admin {
                 crate::protocol::admin::decode_elect_leaders_response(&mut body.clone(), version)?;
             throttle_time_ms = throttle_time_ms.max(response.throttle_time_ms);
             if response.error_code == error::NOT_CONTROLLER {
-                let _ = self.conns.remove(&node);
+                self.drop_node_conn(node);
                 self.forget_controller();
                 self.wait_retry(&mut attempt, deadline).await?;
                 continue;
@@ -6191,18 +6188,14 @@ impl Admin {
                 if self.conns.get(&node).is_some_and(|conn| conn.is_closed()) {
                     let _removed = self.conns.remove(&node);
                 }
-                self.connect_node_until(node, deadline).await?;
+                self.prepare_node_until(node, deadline).await?;
                 let version = self
-                    .conns
-                    .get(&node)
-                    .and_then(|conn| conn.negotiated(ALTER_PARTITION_REASSIGNMENTS, 0, 1))
+                    .negotiated_on(node, ALTER_PARTITION_REASSIGNMENTS, 0, 1)
                     .ok_or_else(|| {
                         Error::Unsupported(
                             "controller does not support AlterPartitionReassignments v0-1".into(),
                         )
                     })?;
-                let conn = self.conns.get_mut(&node)
-                    .ok_or_else(|| Error::protocol("missing reassignment controller connection"))?;
                 if version == 0 && !allow {
                     return Err(Error::Unsupported("AllowReplicationFactorChange=false requires AlterPartitionReassignments v1".into()));
                 }
@@ -6212,8 +6205,11 @@ impl Admin {
                 }
                 let timeout_ms =
                     original_timeout_ms.min(crate::consumer::duration_millis_i32(remaining));
-                let body = conn.roundtrip(
-                    ALTER_PARTITION_REASSIGNMENTS, version,
+                let body = self.roundtrip_known_node(
+                    node,
+                    deadline,
+                    ALTER_PARTITION_REASSIGNMENTS,
+                    version,
                     |buf| {
                         encode_alter_partition_reassignments_named(
                             buf, version, timeout_ms, allow, topics,
@@ -6237,7 +6233,7 @@ impl Admin {
                         || error.broker_code() == Some(error::NOT_CONTROLLER) =>
                 {
                     if let Ok(node) = self.cluster.controller() {
-                        let _removed = self.conns.remove(&node);
+                        self.drop_node_conn(node);
                     }
                     self.forget_controller();
                     if attempt >= 8 {
@@ -8681,6 +8677,39 @@ impl Admin {
         let _removed = self.conns.remove(&node);
     }
 
+    /// Open the dedicated socket, or the bootstrap socket when `node` is that broker.
+    async fn prepare_node_until(&mut self, node: i32, deadline: Instant) -> Result<()> {
+        if self.targets_bootstrap(node) {
+            self.ensure_bootstrap(deadline).await
+        } else {
+            self.connect_node_until(node, deadline).await
+        }
+    }
+
+    /// ApiVersions for `node`: the bootstrap handshake when that broker is `node`.
+    fn negotiated_on(&self, node: i32, api_key: i16, min: i16, max: i16) -> Option<i16> {
+        if self.targets_bootstrap(node) {
+            self.negotiated(api_key, min, max)
+        } else {
+            self.conns
+                .get(&node)
+                .and_then(|conn| conn.negotiated(api_key, min, max))
+        }
+    }
+
+    /// OffsetCommit or OffsetFetch version for `node`.
+    fn offset_version_on(&self, node: i32, api: i16, min: i16, max: i16) -> Result<i16> {
+        if self.targets_bootstrap(node) {
+            return self.negotiated(api, min, max).ok_or_else(|| {
+                Error::Unsupported("actual coordinator cannot represent the offset request".into())
+            });
+        }
+        self.conns
+            .get(&node)
+            .ok_or_else(|| Error::protocol("missing offset coordinator"))?
+            .offset_version(api, min, max)
+    }
+
     async fn connect_node_until(&mut self, node: i32, deadline: Instant) -> Result<()> {
         if self
             .conns
@@ -9343,7 +9372,7 @@ impl Admin {
                             still.extend(retry);
                         }
                         Err(e) if e.is_retriable() => {
-                            let _ = self.conns.remove(&node);
+                            self.drop_node_conn(node);
                             still.extend(idxs);
                         }
                         Err(e) => return Err(e),
@@ -9735,7 +9764,6 @@ impl Admin {
         deadline: Instant,
     ) -> Result<(Vec<(usize, crate::OffsetAndTimestamp)>, Vec<usize>)> {
         let topics = list_offset_topic_requests(queries, idxs, &self.cluster);
-        self.connect_node_until(node, deadline).await?;
         let mut minimum = 1;
         for &index in idxs {
             let (_, timestamp) = queries
@@ -9745,22 +9773,22 @@ impl Admin {
                 *timestamp, isolation,
             ));
         }
+        self.prepare_node_until(node, deadline).await?;
         let version = self
-            .conns
-            .get(&node)
-            .and_then(|conn| conn.negotiated(LIST_OFFSETS, minimum, 11))
+            .negotiated_on(node, LIST_OFFSETS, minimum, 11)
             .ok_or_else(|| {
                 Error::Unsupported(format!(
                     "broker does not support requested ListOffsets selector/isolation (requires v{minimum}+)"
                 ))
             })?;
         let timeout = deadline.saturating_duration_since(Instant::now());
-        let body = {
-            let conn = self
-                .conns
-                .get_mut(&node)
-                .ok_or_else(|| Error::protocol("missing list_offsets conn"))?;
-            conn.roundtrip(
+        if timeout.is_zero() {
+            return Err(Error::Timeout);
+        }
+        let body = self
+            .roundtrip_known_node(
+                node,
+                deadline,
                 LIST_OFFSETS,
                 version,
                 |buf| {
@@ -9774,8 +9802,7 @@ impl Admin {
                 },
                 timeout,
             )
-            .await
-        }?;
+            .await?;
         self.apply_list_offsets_body(node, version, queries, idxs, body)
     }
 
@@ -10428,13 +10455,10 @@ impl Admin {
                 .as_ref()
                 .map(|(_, n)| *n)
                 .ok_or_else(|| Error::protocol("missing group coordinator"))?;
-            self.connect_node_until(node, deadline).await?;
             let body = {
-                let conn = self
-                    .conns
-                    .get_mut(&node)
-                    .ok_or_else(|| Error::protocol("missing delete_offsets conn"))?;
-                conn.roundtrip(
+                self.roundtrip_known_node(
+                    node,
+                    deadline,
                     OFFSET_DELETE,
                     version,
                     |buf| encode_offset_delete_named_topics(buf, group_id, &topics),
@@ -10445,7 +10469,7 @@ impl Admin {
             let body = match body {
                 Ok(b) => b,
                 Err(e) if e.is_retriable() => {
-                    let _ = self.conns.remove(&node);
+                    self.drop_node_conn(node);
                     self.group_coord = None;
                     self.wait_retry(&mut attempt, deadline).await?;
                     continue;
@@ -10456,7 +10480,7 @@ impl Admin {
             if error::coordinator_retriable(top) {
                 // 14/15/16: FindCoordinator, then the new group coordinator.
                 self.group_coord = None;
-                let _ = self.conns.remove(&node);
+                self.drop_node_conn(node);
                 self.wait_retry(&mut attempt, deadline).await?;
                 continue;
             }
@@ -10828,21 +10852,16 @@ impl Admin {
                         for node in nodes {
                             let idxs = by_node.get(&node).cloned().unwrap_or_default();
                             let groups = borrowed_offset_fetch_groups(&jobs, &idxs)?;
-                            self.connect_node_until(node, deadline).await?;
-                            let version = self
-                                .conns
-                                .get(&node)
-                                .ok_or_else(|| Error::protocol("missing offset batch coordinator"))?
-                                .offset_version(OFFSET_FETCH, 8, 9)?;
+                            self.prepare_node_until(node, deadline).await?;
+                            let version = self.offset_version_on(node, OFFSET_FETCH, 8, 9)?;
                             let timeout = deadline.saturating_duration_since(Instant::now());
                             if timeout.is_zero() {
                                 return Err(Error::Timeout);
                             }
                             let body = {
-                                let conn = self.conns.get_mut(&node).ok_or_else(|| {
-                                    Error::protocol("missing list_consumer_group_offsets conn")
-                                })?;
-                                conn.roundtrip(
+                                self.roundtrip_known_node(
+                                    node,
+                                    deadline,
                                     OFFSET_FETCH,
                                     version,
                                     |buf| {
@@ -10860,7 +10879,7 @@ impl Admin {
                             let body = match body {
                                 Ok(b) => b,
                                 Err(e) if e.is_retriable() => {
-                                    let _ = self.conns.remove(&node);
+                                    self.drop_node_conn(node);
                                     self.group_coord = None;
                                     next_remaining.extend(idxs);
                                     retry = true;
@@ -10878,7 +10897,7 @@ impl Admin {
                                         .is_some_and(error::coordinator_retriable) =>
                                 {
                                     self.group_coord = None;
-                                    let _ = self.conns.remove(&node);
+                                    self.drop_node_conn(node);
                                     next_remaining.extend(idxs);
                                     retry = true;
                                     continue;
@@ -10890,7 +10909,7 @@ impl Admin {
                                 .any(|r| error::coordinator_retriable(r.error_code))
                             {
                                 self.group_coord = None;
-                                let _ = self.conns.remove(&node);
+                                self.drop_node_conn(node);
                                 next_remaining.extend(idxs);
                                 retry = true;
                                 continue;
@@ -11071,22 +11090,16 @@ impl Admin {
                 .as_ref()
                 .map(|(_, n)| *n)
                 .ok_or_else(|| Error::protocol("missing group coordinator"))?;
-            self.connect_node_until(node, deadline).await?;
-            let version = self
-                .conns
-                .get(&node)
-                .ok_or_else(|| Error::protocol("missing offset coordinator"))?
-                .offset_version(OFFSET_FETCH, client_min, 9)?;
+            self.prepare_node_until(node, deadline).await?;
+            let version = self.offset_version_on(node, OFFSET_FETCH, client_min, 9)?;
             let timeout = deadline.saturating_duration_since(Instant::now());
             if timeout.is_zero() {
                 return Err(Error::Timeout);
             }
             let body = {
-                let conn = self
-                    .conns
-                    .get_mut(&node)
-                    .ok_or_else(|| Error::protocol("missing list_consumer_group_offsets conn"))?;
-                conn.roundtrip(
+                self.roundtrip_known_node(
+                    node,
+                    deadline,
                     OFFSET_FETCH,
                     version,
                     |buf| {
@@ -11107,7 +11120,7 @@ impl Admin {
             let body = match body {
                 Ok(b) => b,
                 Err(e) if e.is_retriable() => {
-                    let _ = self.conns.remove(&node);
+                    self.drop_node_conn(node);
                     self.group_coord = None;
                     self.wait_retry(&mut attempt, deadline).await?;
                     continue;
@@ -11118,7 +11131,7 @@ impl Admin {
                 Ok(t) => return Ok(t),
                 Err(e) if e.broker_code().is_some_and(error::coordinator_retriable) => {
                     self.group_coord = None;
-                    let _ = self.conns.remove(&node);
+                    self.drop_node_conn(node);
                     self.wait_retry(&mut attempt, deadline).await?;
                 }
                 Err(e) => return Err(e),
@@ -11198,22 +11211,16 @@ impl Admin {
                 .as_ref()
                 .map(|(_, n)| *n)
                 .ok_or_else(|| Error::protocol("missing group coordinator"))?;
-            self.connect_node_until(node, deadline).await?;
-            let version = self
-                .conns
-                .get(&node)
-                .ok_or_else(|| Error::protocol("missing offset coordinator"))?
-                .offset_version(OFFSET_COMMIT, 2, 9)?;
+            self.prepare_node_until(node, deadline).await?;
+            let version = self.offset_version_on(node, OFFSET_COMMIT, 2, 9)?;
             let timeout = deadline.saturating_duration_since(Instant::now());
             if timeout.is_zero() {
                 return Err(Error::Timeout);
             }
             let body = {
-                let conn = self
-                    .conns
-                    .get_mut(&node)
-                    .ok_or_else(|| Error::protocol("missing alter_consumer_group_offsets conn"))?;
-                conn.roundtrip(
+                self.roundtrip_known_node(
+                    node,
+                    deadline,
                     OFFSET_COMMIT,
                     version,
                     |buf| {
@@ -11235,7 +11242,7 @@ impl Admin {
             let body = match body {
                 Ok(b) => b,
                 Err(e) if e.is_retriable() => {
-                    let _ = self.conns.remove(&node);
+                    self.drop_node_conn(node);
                     self.group_coord = None;
                     self.wait_retry(&mut attempt, deadline).await?;
                     continue;
@@ -11245,7 +11252,7 @@ impl Admin {
             let err = decode_offset_commit_response(&mut body.clone(), version)?;
             if error::coordinator_retriable(err) {
                 self.group_coord = None;
-                let _ = self.conns.remove(&node);
+                self.drop_node_conn(node);
                 self.wait_retry(&mut attempt, deadline).await?;
                 continue;
             }
@@ -13846,35 +13853,39 @@ impl Admin {
             }
             let result = async {
                 if let Some(node) = node {
-                    self.connect_node_until(node, deadline).await?;
+                    self.prepare_node_until(node, deadline).await?;
                 } else {
                     self.ensure_bootstrap(deadline).await?;
                 }
                 let version = if let Some(node) = node {
-                    self.conns
-                        .get(&node)
-                        .and_then(|conn| conn.negotiated(DESCRIBE_LOG_DIRS, 1, 5))
+                    self.negotiated_on(node, DESCRIBE_LOG_DIRS, 1, 5)
                 } else {
                     self.negotiated(DESCRIBE_LOG_DIRS, 1, 5)
                 }
                 .ok_or_else(|| {
                     Error::Unsupported("broker does not support DescribeLogDirs v1-5".into())
                 })?;
-                let conn = if let Some(node) = node {
-                    self.conns
-                        .get_mut(&node)
-                        .ok_or_else(|| Error::protocol("missing describe_log_dirs conn"))?
-                } else {
-                    &mut self.conn
-                };
-                let body = conn
-                    .roundtrip(
+                let remaining = deadline.saturating_duration_since(Instant::now());
+                let body = if let Some(node) = node {
+                    self.roundtrip_known_node(
+                        node,
+                        deadline,
                         DESCRIBE_LOG_DIRS,
                         version,
                         |output| encode(output, version),
-                        deadline.saturating_duration_since(Instant::now()),
+                        remaining,
                     )
-                    .await?;
+                    .await?
+                } else {
+                    self.conn
+                        .roundtrip(
+                            DESCRIBE_LOG_DIRS,
+                            version,
+                            |output| encode(output, version),
+                            remaining,
+                        )
+                        .await?
+                };
                 let mut cursor = body.as_ref();
                 let response = decode_describe_log_dirs_response(&mut cursor, version)?;
                 if !cursor.is_empty() {
@@ -13886,7 +13897,7 @@ impl Admin {
             match result {
                 Err(error) if node.is_some() && error.is_retriable() => {
                     if let Some(node) = node {
-                        let _ = self.conns.remove(&node);
+                        self.drop_node_conn(node);
                     }
                     self.wait_retry(&mut attempt, deadline).await?;
                 }
