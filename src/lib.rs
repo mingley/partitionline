@@ -2531,7 +2531,7 @@
 //! an ISR containing an ineligible replica.
 //! A piggybacked
 //! `NEW_LEADER_ELECTED` still completes without retry,
-//! including when `AcknowledgeErrorMessage` is set (this is not
+//! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `NEW_LEADER_ELECTED`, which fails that poll, and not
 //! piggyback `INELIGIBLE_REPLICA`). Official Java
 //! `ReplicationControlManager` writes this when AlterPartition completes

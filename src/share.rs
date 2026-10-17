@@ -1374,7 +1374,7 @@ pub enum ShareAcquireMode {
 /// an ISR containing an ineligible replica.
 /// A piggybacked
 /// `NEW_LEADER_ELECTED` still completes without retry,
-/// including when `AcknowledgeErrorMessage` is set (Java
+/// including when `AcknowledgeErrorMessage` is set or empty (Java
 /// `handleShareFetchSuccess` completes piggyback acks and still
 /// delivers the fetch; this is not partition
 /// `NEW_LEADER_ELECTED`, which fails that poll, and not piggyback
@@ -3500,7 +3500,7 @@ impl ShareGroup {
     /// an ISR containing an ineligible replica.
     /// A piggybacked `NEW_LEADER_ELECTED` still completes
     /// without retry, including when `AcknowledgeErrorMessage` is set
-    /// (Java `handleShareFetchSuccess` completes piggyback acks and still
+    /// or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
     /// delivers the fetch; this is not partition
     /// `NEW_LEADER_ELECTED`, which fails that poll, and not piggyback
     /// `INELIGIBLE_REPLICA`). Official Java
