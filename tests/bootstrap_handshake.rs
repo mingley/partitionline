@@ -1843,6 +1843,32 @@ async fn group_close_closes_the_member_socket() {
     );
 }
 
+/// An idle group must drop every socket when the broker stops writing.
+#[tokio::test(flavor = "current_thread")]
+async fn idle_group_drops_sockets_when_the_broker_stops_writing() {
+    let mock = common::Mock::start().await;
+    mock.set_topic_partitions("t", 1);
+    mock.set_cg_heartbeat_interval_ms(30_000);
+    let mut cfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    cfg.request_timeout = Duration::from_secs(2);
+    cfg.max_wait_ms = 10;
+    cfg.session_timeout_ms = 60_000;
+    cfg.heartbeat_interval = Duration::from_secs(30);
+    let group = ConsumerGroup::join(cfg, "g-idle", "t").await.unwrap();
+    tokio::time::sleep(Duration::from_millis(50)).await;
+    let open = mock.open_conns();
+    assert!(open > 0, "joined group should hold a broker socket");
+    mock.shutdown_writes();
+    let window = Instant::now();
+    while mock.open_conns() >= open {
+        if window.elapsed() > Duration::from_millis(400) {
+            panic!("idle group kept every socket after the broker stopped writing; open {open}");
+        }
+        tokio::task::yield_now().await;
+    }
+    group.close().await.unwrap();
+}
+
 /// A broker that closes during linger is dialed again before that linger ends.
 #[tokio::test(flavor = "current_thread")]
 async fn produce_reconnects_when_the_broker_closes_during_linger() {

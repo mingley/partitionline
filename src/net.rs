@@ -686,9 +686,69 @@ impl AsyncWrite for ConnIo {
     }
 }
 
+fn poll_idle_read(io: &mut ConnIo, buf: &mut [u8]) -> Poll<io::Result<usize>> {
+    let waker = std::task::Waker::noop();
+    let mut cx = Context::from_waker(waker);
+    let mut read = ReadBuf::new(buf);
+    match Pin::new(io).poll_read(&mut cx, &mut read) {
+        Poll::Pending => Poll::Pending,
+        Poll::Ready(Ok(())) => Poll::Ready(Ok(read.filled().len())),
+        Poll::Ready(Err(error)) => Poll::Ready(Err(error)),
+    }
+}
+
+/// Notice a broker that stops writing while the owner is not reading.
+///
+/// The owner holds the stream lock for the whole read or write, so this
+/// watch only runs when the connection is idle. Bytes it does read stay in
+/// `prefetch` for the next framed read.
+fn spawn_idle_watch(
+    stream: Arc<tokio::sync::Mutex<ConnIo>>,
+    prefetch: Arc<parking_lot::Mutex<BytesMut>>,
+    closed: Arc<AtomicBool>,
+) -> tokio::task::AbortHandle {
+    tokio::spawn(async move {
+        let mut buf = [0u8; 1024];
+        loop {
+            if closed.load(Ordering::SeqCst) {
+                if let Ok(mut io) = stream.try_lock() {
+                    drop(poll_fn(|cx| Pin::new(&mut *io).poll_shutdown(cx)).await);
+                }
+                return;
+            }
+            tokio::time::sleep(Duration::from_millis(20)).await;
+            let Ok(mut io) = stream.try_lock() else {
+                continue;
+            };
+            if closed.load(Ordering::SeqCst) {
+                drop(poll_fn(|cx| Pin::new(&mut *io).poll_shutdown(cx)).await);
+                return;
+            }
+            match poll_idle_read(&mut io, &mut buf) {
+                Poll::Pending => {}
+                Poll::Ready(Ok(0)) | Poll::Ready(Err(_)) => {
+                    closed.store(true, Ordering::SeqCst);
+                    drop(poll_fn(|cx| Pin::new(&mut *io).poll_shutdown(cx)).await);
+                    return;
+                }
+                Poll::Ready(Ok(n)) => {
+                    if let Some(chunk) = buf.get(..n) {
+                        prefetch.lock().extend_from_slice(chunk);
+                    }
+                }
+            }
+        }
+    })
+    .abort_handle()
+}
+
 /// One TCP or TLS connection to a Kafka broker.
 pub struct BrokerConn {
-    stream: ConnIo,
+    stream: Arc<tokio::sync::Mutex<ConnIo>>,
+    /// Bytes an idle watch read so the owner can finish the frame.
+    prefetch: Arc<parking_lot::Mutex<BytesMut>>,
+    /// Stops the idle watch when this connection is dropped.
+    idle_watch: tokio::task::AbortHandle,
     read_buf: BytesMut,
     write_buf: BytesMut,
     next_correlation: i32,
@@ -760,7 +820,26 @@ pub struct BrokerConn {
     pub(crate) in_flight: usize,
 }
 
+impl Drop for BrokerConn {
+    fn drop(&mut self) {
+        self.idle_watch.abort();
+    }
+}
+
 impl BrokerConn {
+    /// Move bytes the idle watch already read into the frame buffer.
+    ///
+    /// Callers hold the stream lock, which is the same order the watch uses
+    /// when it appends those bytes.
+    fn drain_prefetch(&mut self) {
+        let mut extra = self.prefetch.lock();
+        if extra.is_empty() {
+            return;
+        }
+        let bytes = extra.split();
+        self.read_buf.extend_from_slice(&bytes);
+    }
+
     /// Connect without TLS.
     pub async fn connect(addr: &str, client_id: &str, connect_timeout: Duration) -> Result<Self> {
         Self::connect_tls(addr, client_id, connect_timeout, None).await
@@ -879,8 +958,18 @@ impl BrokerConn {
         } else {
             ConnIo::Tcp(tcp)
         };
+        let stream = Arc::new(tokio::sync::Mutex::new(stream));
+        let prefetch = Arc::new(parking_lot::Mutex::new(BytesMut::new()));
+        let closed = Arc::new(AtomicBool::new(false));
+        let idle_watch = spawn_idle_watch(
+            Arc::clone(&stream),
+            Arc::clone(&prefetch),
+            Arc::clone(&closed),
+        );
         Ok(Self {
             stream,
+            prefetch,
+            idle_watch,
             read_buf: BytesMut::with_capacity(8 * 1024),
             write_buf: BytesMut::with_capacity(16 * 1024),
             next_correlation: 1,
@@ -888,7 +977,7 @@ impl BrokerConn {
             client_id: client_id.to_string(),
             addr: addr.to_string(),
             last_io: Instant::now(),
-            closed: Arc::new(AtomicBool::new(false)),
+            closed,
             stats: None,
             produce_version: -1,
             fetch_version: -1,
@@ -976,7 +1065,9 @@ impl BrokerConn {
         if !self.is_closed() {
             return;
         }
-        drop(self.stream.shutdown().await);
+        let stream = Arc::clone(&self.stream);
+        let mut stream = stream.lock().await;
+        drop(stream.shutdown().await);
     }
 
     /// Broker session lifetime in milliseconds, if negotiated via SaslAuthenticate v1+ (KIP-368).
@@ -1092,8 +1183,11 @@ impl BrokerConn {
             return Err(Error::Closed);
         }
         let mut guard = CloseOnDrop::new(self.closed.clone());
+        let stream = Arc::clone(&self.stream);
+        let mut stream = stream.lock().await;
+        self.drain_prefetch();
         deadline
-            .run_io(write_all_pump(&mut self.stream, &mut self.read_buf, bytes))
+            .run_io(write_all_pump(&mut *stream, &mut self.read_buf, bytes))
             .await?;
         guard.complete();
         self.touch();
@@ -1122,6 +1216,12 @@ impl BrokerConn {
         if inbound_satisfied(&self.read_buf) || !self.read_buf.is_empty() {
             return Ok(());
         }
+        let stream = Arc::clone(&self.stream);
+        let mut stream = stream.lock().await;
+        self.drain_prefetch();
+        if inbound_satisfied(&self.read_buf) || !self.read_buf.is_empty() {
+            return Ok(());
+        }
         let result = poll_fn(|cx| {
             if self.is_closed() {
                 return Poll::Ready(Err(Error::Closed));
@@ -1138,7 +1238,7 @@ impl BrokerConn {
                 }
                 let polled = {
                     let mut limited = (&mut self.read_buf).limit(budget);
-                    let mut read = std::pin::pin!(self.stream.read_buf(&mut limited));
+                    let mut read = std::pin::pin!(stream.read_buf(&mut limited));
                     read.as_mut().poll(cx)
                 };
                 match polled {
@@ -1165,6 +1265,7 @@ impl BrokerConn {
             }
         })
         .await;
+        drop(stream);
         if self.is_closed() {
             self.release_if_closed().await;
         }
@@ -1220,17 +1321,23 @@ impl BrokerConn {
                 }
                 reserve_frame(&mut self.read_buf, total);
             }
-            let n = match deadline
-                .run_io(self.stream.read_buf(&mut self.read_buf))
-                .await
-            {
+            let buffered = self.read_buf.len();
+            let stream = Arc::clone(&self.stream);
+            let mut stream = stream.lock().await;
+            self.drain_prefetch();
+            if self.read_buf.len() > buffered {
+                continue;
+            }
+            let n = match deadline.run_io(stream.read_buf(&mut self.read_buf)).await {
                 Ok(n) => n,
                 Err(e) => {
+                    drop(stream);
                     self.close();
                     self.release_if_closed().await;
                     return Err(e);
                 }
             };
+            drop(stream);
             if n == 0 {
                 self.close();
                 self.release_if_closed().await;
