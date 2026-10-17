@@ -1265,6 +1265,15 @@ pub enum ShareAcquireMode {
 /// `ScramImage` DescribeUserScramCredentials writes this when the
 /// same user is requested twice.
 /// A piggybacked
+/// `UNACCEPTABLE_CREDENTIAL` still completes without retry,
+/// including when `AcknowledgeErrorMessage` is set (Java
+/// `handleShareFetchSuccess` completes piggyback acks and still
+/// delivers the fetch; this is not partition
+/// `UNACCEPTABLE_CREDENTIAL`, which fails that poll, and not piggyback
+/// `DUPLICATE_RESOURCE`). Official Java
+/// `ScramControlManager` writes this when a SCRAM upsert has too few
+/// iterations.
+/// A piggybacked
 /// `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a
 /// sibling partition whose `AcknowledgeErrorCode` is none, including
 /// when `AcknowledgeErrorMessage` is set or empty. A piggybacked
@@ -3249,6 +3258,14 @@ impl ShareGroup {
     /// `RESOURCE_NOT_FOUND`). Official Java
     /// `ScramImage` DescribeUserScramCredentials writes this when the
     /// same user is requested twice.
+    /// A piggybacked `UNACCEPTABLE_CREDENTIAL` still completes
+    /// without retry, including when `AcknowledgeErrorMessage` is set
+    /// (Java `handleShareFetchSuccess` completes piggyback acks and still
+    /// delivers the fetch; this is not partition
+    /// `UNACCEPTABLE_CREDENTIAL`, which fails that poll, and not piggyback
+    /// `DUPLICATE_RESOURCE`). Official Java
+    /// `ScramControlManager` writes this when a SCRAM upsert has too few
+    /// iterations.
     /// A piggybacked `TOPIC_AUTHORIZATION_FAILED` on one partition
     /// does not fail a sibling whose `AcknowledgeErrorCode` is none,
     /// including when `AcknowledgeErrorMessage` is set or empty.
