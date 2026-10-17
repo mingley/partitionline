@@ -1421,6 +1421,17 @@ impl BrokerConn {
             .await
     }
 
+    async fn shutdown_if_prefix_rejected(&mut self) -> Result<()> {
+        if !frame_prefix_rejected(self.read_buf.as_ref()) {
+            return Ok(());
+        }
+        if !self.is_closed() {
+            self.close();
+        }
+        self.release_if_closed().await;
+        Err(Error::protocol("invalid frame size"))
+    }
+
     /// Wait until at least one response byte is buffered.
     ///
     /// Bytes already queued on the socket are taken straight into the frame
@@ -1428,6 +1439,7 @@ impl BrokerConn {
     /// open. The following framed read consumes what this call stored.
     pub(crate) async fn inbound_ready(&mut self) -> Result<()> {
         if inbound_satisfied(&self.read_buf) || !self.read_buf.is_empty() {
+            self.shutdown_if_prefix_rejected().await?;
             return Ok(());
         }
         let mut rearm = Rearm::arm(Arc::clone(&self.idle_arm));
@@ -1439,6 +1451,7 @@ impl BrokerConn {
         if inbound_satisfied(&self.read_buf) || !self.read_buf.is_empty() {
             self.release_stream(stream);
             rearm.disarm();
+            self.shutdown_if_prefix_rejected().await?;
             return Ok(());
         }
         if self.is_closed() {
@@ -1494,6 +1507,7 @@ impl BrokerConn {
         .await;
         self.release_stream(stream);
         rearm.disarm();
+        self.shutdown_if_prefix_rejected().await?;
         if self.is_closed() {
             self.release_if_closed().await;
         }
@@ -3423,6 +3437,38 @@ mod tests {
         assert!(
             matches!(saw, Ok(Ok(0))),
             "an illegal length left the peer blocked in its read: {saw:?}"
+        );
+        drop(conn);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn inbound_ready_shuts_an_illegal_length_down() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let (go_tx, go_rx) = tokio::sync::oneshot::channel::<()>();
+        let accepted = tokio::spawn(async move {
+            let (socket, _) = listener.accept().await.unwrap();
+            let (mut reader, mut writer) = socket.into_split();
+            go_rx.await.unwrap();
+            writer.write_all(&i32::MAX.to_be_bytes()).await.unwrap();
+            let mut buf = [0u8; 8];
+            tokio::time::timeout(Duration::from_millis(300), reader.read(&mut buf)).await
+        });
+        let mut conn = BrokerConn::connect(&addr, "ready-bad-len", Duration::from_secs(2))
+            .await
+            .unwrap();
+        let result = {
+            let reading = conn.inbound_ready();
+            tokio::pin!(reading);
+            tokio::time::sleep(Duration::from_millis(30)).await;
+            go_tx.send(()).unwrap();
+            tokio::time::timeout(Duration::from_millis(200), &mut reading).await
+        };
+        assert!(result.is_ok(), "the illegal length never reached the read");
+        let saw = accepted.await.unwrap();
+        assert!(
+            matches!(saw, Ok(Ok(0))),
+            "an illegal length read left the peer blocked: {saw:?}"
         );
         drop(conn);
     }
