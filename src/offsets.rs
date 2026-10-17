@@ -310,29 +310,36 @@ impl OffsetClient {
         options: &OffsetOptions,
         deadline: Deadline,
     ) -> Result<OffsetCommitResponseData> {
-        let mut control_bytes = 0;
-        let mut response_bytes = 0;
-        let mut last = Error::Timeout;
-        for attempt in 0..MAX_ATTEMPTS {
-            match self
-                .commit_once(
-                    request,
-                    options,
-                    deadline,
-                    &mut control_bytes,
-                    &mut response_bytes,
-                )
-                .await
-            {
-                Ok(response) => return Ok(response),
-                Err(err) if retryable(&err) => last = err,
-                Err(err) => return Err(err),
+        let finished = async {
+            let mut control_bytes = 0;
+            let mut response_bytes = 0;
+            let mut last = Error::Timeout;
+            for attempt in 0..MAX_ATTEMPTS {
+                match self
+                    .commit_once(
+                        request,
+                        options,
+                        deadline,
+                        &mut control_bytes,
+                        &mut response_bytes,
+                    )
+                    .await
+                {
+                    Ok(response) => return Ok(response),
+                    Err(err) if retryable(&err) => last = err,
+                    Err(err) => return Err(err),
+                }
+                if attempt + 1 < MAX_ATTEMPTS {
+                    self.backoff(&last, attempt, deadline).await?;
+                }
             }
-            if attempt + 1 < MAX_ATTEMPTS {
-                self.backoff(&last, attempt, deadline).await?;
-            }
+            Err(last)
         }
-        Err(last)
+        .await;
+        for _ in 0..8 {
+            tokio::task::yield_now().await;
+        }
+        finished
     }
 
     async fn fetch_until(
@@ -341,29 +348,36 @@ impl OffsetClient {
         options: &OffsetOptions,
         deadline: Deadline,
     ) -> Result<OffsetFetchResponseData> {
-        let mut control_bytes = 0;
-        let mut response_bytes = 0;
-        let mut last = Error::Timeout;
-        for attempt in 0..MAX_ATTEMPTS {
-            match self
-                .fetch_once(
-                    request,
-                    options,
-                    deadline,
-                    &mut control_bytes,
-                    &mut response_bytes,
-                )
-                .await
-            {
-                Ok(response) => return Ok(response),
-                Err(err) if retryable(&err) => last = err,
-                Err(err) => return Err(err),
+        let finished = async {
+            let mut control_bytes = 0;
+            let mut response_bytes = 0;
+            let mut last = Error::Timeout;
+            for attempt in 0..MAX_ATTEMPTS {
+                match self
+                    .fetch_once(
+                        request,
+                        options,
+                        deadline,
+                        &mut control_bytes,
+                        &mut response_bytes,
+                    )
+                    .await
+                {
+                    Ok(response) => return Ok(response),
+                    Err(err) if retryable(&err) => last = err,
+                    Err(err) => return Err(err),
+                }
+                if attempt + 1 < MAX_ATTEMPTS {
+                    self.backoff(&last, attempt, deadline).await?;
+                }
             }
-            if attempt + 1 < MAX_ATTEMPTS {
-                self.backoff(&last, attempt, deadline).await?;
-            }
+            Err(last)
         }
-        Err(last)
+        .await;
+        for _ in 0..8 {
+            tokio::task::yield_now().await;
+        }
+        finished
     }
 
     fn version(versions: &ApiVersionsResponse, api: i16, ids: bool, member: bool) -> Result<i16> {

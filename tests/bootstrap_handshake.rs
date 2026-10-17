@@ -1634,6 +1634,52 @@ async fn offset_fetch_finishes_a_blocked_coordinator_dial() {
     let _ = slow_addr;
 }
 
+/// An offset fetch timeout closes the bootstrap socket before the call returns.
+#[tokio::test(flavor = "current_thread")]
+async fn offset_fetch_timeout_closes_the_bootstrap_socket() {
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::sync::Arc;
+    use tokio::io::AsyncReadExt;
+
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap().to_string();
+    let open = Arc::new(AtomicUsize::new(0));
+    let open_flag = Arc::clone(&open);
+    let peer = tokio::spawn(async move {
+        loop {
+            let (mut sock, _) = listener.accept().await.unwrap();
+            let _started = open_flag.fetch_add(1, Ordering::SeqCst);
+            let open_flag = Arc::clone(&open_flag);
+            let _reader = tokio::spawn(async move {
+                let mut buf = [0u8; 64];
+                loop {
+                    match sock.read(&mut buf).await {
+                        Ok(0) | Err(_) => break,
+                        Ok(_) => continue,
+                    }
+                }
+                let _left = open_flag.fetch_sub(1, Ordering::SeqCst);
+            });
+        }
+    });
+    let mut cfg = AdminConfig::bootstrap([addr]);
+    cfg.request_timeout = Duration::from_millis(200);
+    cfg.connect_timeout = Duration::from_millis(200);
+    cfg.retry_backoff = Duration::ZERO;
+    cfg.retry_backoff_max = Duration::ZERO;
+    let mut client = OffsetClient::new(cfg).unwrap();
+    let mut options = offset_options();
+    options.timeout = Some(Duration::from_millis(200));
+    let result = client.fetch(&offset_fetch("g"), &options).await;
+    assert!(result.is_err(), "the offset fetch should time out");
+    assert_eq!(
+        open.load(Ordering::SeqCst),
+        0,
+        "offset fetch left the bootstrap socket blocked in a broker read"
+    );
+    peer.abort();
+}
+
 /// A failed coordinator handshake still finishes the next dial already in flight.
 #[tokio::test(flavor = "current_thread")]
 async fn offset_fetch_finishes_a_dial_when_an_earlier_handshake_fails() {
