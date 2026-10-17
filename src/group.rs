@@ -3596,6 +3596,7 @@ impl ConsumerGroup {
         let left_max_poll = self.left_max_poll.clone();
         let cfg = self.cfg.clone();
         let bootstrap_keys = self.consumer.copy_api_keys();
+        let address_keys = self.consumer.copy_learned_broker_keys();
         Arc::new(tokio::spawn(async move {
             let mut conn: Option<BrokerConn> = None;
             let mut remembered: Option<KnownCoord> = None;
@@ -3657,226 +3658,229 @@ impl ConsumerGroup {
                 }
                 let sleep_duration = wake_deadline.saturating_duration_since(Instant::now());
                 tokio::select! {
-                    res = stop.changed() => {
-                        if res.is_err() || *stop.borrow() {
-                            *hb_deadline.lock() = None;
-                            break;
-                        }
-                    }
-                    _ = tokio::time::sleep(sleep_duration) => {
-                        // Re-read the shared id every tick: the broker may
-                        // rotate it mid-session (KL03-15). An unchanged id
-                        // keeps the existing string.
-                        copy_member_id(&mut member_id, &hb_member_id.lock());
-                        if leave_if_max_poll(
-                            &cfg,
-                            &group_id,
-                            &member_id,
-                            true,
-                            &last_poll,
-                            &left_max_poll,
-                            &mut conn,
-                            &bootstrap_keys,
-                            &mut remembered,
-                            &mut prior_coords,
-                        )
-                        .await
-                        {
-                            *hb_deadline.lock() = None;
-                            break;
-                        }
-                        if Instant::now() < next_hb_deadline {
-                            continue;
-                        }
-                        let deadline = Instant::now() + cfg.request_timeout;
-                        if conn.is_none() {
-                            if let Some(known) = remembered.take() {
-                                conn = Box::pin(rediscover_known_coord(
-                                    &cfg,
-                                    &group_id,
-                                    COORDINATOR_GROUP,
-                                    &known,
-                                    &mut prior_coords,
-                                ))
-                                .await
-                                .ok();
-                            }
-                        }
-                        reopen_idle_coordinator(
-                            &mut conn,
-                            &cfg,
-                            &group_id,
-                            deadline,
-                            &bootstrap_keys,
-                            &mut prior_coords,
-                        )
-                        .await;
-                        let Some(c) = conn.as_mut() else {
-                            let retry_delay = cfg.retry_backoff.max(Duration::from_millis(50));
-                            next_hb_deadline = Instant::now() + retry_delay;
-                            *hb_deadline.lock() = Some(next_hb_deadline);
-                            continue;
-                        };
-                        let timeout = deadline.saturating_duration_since(Instant::now());
-                        if timeout.is_zero() {
-                            let retry_delay = cfg.retry_backoff.max(Duration::from_millis(50));
-                            next_hb_deadline = Instant::now() + retry_delay;
-                            *hb_deadline.lock() = Some(next_hb_deadline);
-                            continue;
-                        }
-                        let epoch = hb_generation.load(Ordering::SeqCst);
-                        let joining =
-                            epoch == ConsumerGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH;
-                        let rebalance_timeout_ms = if joining {
-                            if cfg.max_poll_interval.is_zero() {
-                                i32::MAX
-                            } else {
-                                duration_millis_i32(cfg.max_poll_interval)
-                            }
-                        } else {
-                            ConsumerGroupHeartbeatRequest::UNCHANGED_REBALANCE_TIMEOUT_MS
-                        };
-                        let version = c.consumer_group_heartbeat_version;
-                        if spoken_consumer_group_heartbeat(version).is_err() {
-                            conn = None;
-                            hb_err.store(error::UNSUPPORTED_VERSION, Ordering::SeqCst);
-                            let retry_delay = cfg.retry_backoff.max(Duration::from_millis(50));
-                            next_hb_deadline = Instant::now() + retry_delay;
-                            *hb_deadline.lock() = Some(next_hb_deadline);
-                            continue;
-                        }
-                        copy_member_id(&mut heartbeat.member_id, &member_id);
-                        heartbeat.member_epoch = epoch;
-                        heartbeat.rebalance_timeout_ms = rebalance_timeout_ms;
-                        if joining {
-                            reuse_topic_names(
-                                &mut heartbeat.subscribed_topic_names,
-                                &hb_topics.lock(),
-                            );
-                            if heartbeat
-                                .topic_partitions
-                                .as_ref()
-                                .is_none_or(|parts| !parts.is_empty())
-                            {
-                                heartbeat.topic_partitions = Some(Vec::new());
-                            }
-                        } else {
-                            heartbeat.subscribed_topic_names = None;
-                            reuse_topic_partitions(
-                                &mut heartbeat.topic_partitions,
-                                &hb_ack.lock(),
-                            );
-                        }
-                        let res = c
-                            .roundtrip(
-                                CONSUMER_GROUP_HEARTBEAT,
-                                version,
-                                |buf| {
-                                    encode_consumer_group_heartbeat_request(
-                                        buf,
-                                        version,
-                                        &heartbeat,
-                                    )
-                                },
-                                timeout,
-                            )
-                            .await;
-                        match res {
-                            Ok(body) => {
-                                if let Ok(resp) = decode_consumer_group_heartbeat_response(
-                                    &mut body.clone(),
-                                    version,
-                                ) {
-                                    if error::coordinator_retriable(resp.error_code) {
-                                        if let Some(current) = conn.as_ref() {
-                                            remembered = Some(
-                                                KnownCoord::capture(current)
-                                                    .with_bootstrap_keys(&bootstrap_keys),
-                                            );
+                                    res = stop.changed() => {
+                                        if res.is_err() || *stop.borrow() {
+                                            *hb_deadline.lock() = None;
+                                            break;
                                         }
-                                        conn = None;
-                                        let retry_delay = cfg.retry_backoff.max(Duration::from_millis(50));
-                                        next_hb_deadline = Instant::now() + retry_delay;
-                                        *hb_deadline.lock() = Some(next_hb_deadline);
-                                    } else {
-                                        hb_err.store(resp.error_code, Ordering::SeqCst);
-                                        hb_generation.store(
-                                            kip848_heartbeat_epoch(
-                                                resp.error_code,
-                                                resp.member_epoch,
-                                                hb_generation.load(Ordering::SeqCst),
-                                            ),
-                                            Ordering::SeqCst,
-                                        );
-                                        // The broker owns member ids; adopt a
-                                        // rotated id for later heartbeats and
-                                        // the poll path (KL03-15).
-                                        if let Some(id) = resp.member_id.as_deref() {
-                                            if id != member_id {
-                                                copy_member_id(&mut member_id, id);
-                                                copy_member_id(&mut heartbeat.member_id, id);
-                                                copy_member_id(&mut hb_member_id.lock(), &member_id);
+                                    }
+                                    _ = tokio::time::sleep(sleep_duration) => {
+                                        // Re-read the shared id every tick: the broker may
+                                        // rotate it mid-session (KL03-15). An unchanged id
+                                        // keeps the existing string.
+                                        copy_member_id(&mut member_id, &hb_member_id.lock());
+                                        if leave_if_max_poll(
+                                            &cfg,
+                                            &group_id,
+                                            &member_id,
+                                            true,
+                                            &last_poll,
+                                            &left_max_poll,
+                                            &mut conn,
+                                            &bootstrap_keys,
+                                            &mut remembered,
+                                            &mut prior_coords,
+                                        )
+                                        .await
+                                        {
+                                            *hb_deadline.lock() = None;
+                                            break;
+                                        }
+                                        if Instant::now() < next_hb_deadline {
+                                            continue;
+                                        }
+                                        let deadline = Instant::now() + cfg.request_timeout;
+                                        if conn.is_none() {
+                                            if let Some(known) = remembered.take() {
+                                                conn = Box::pin(rediscover_known_coord(
+                                                    &cfg,
+                                                    &group_id,
+                                                    COORDINATOR_GROUP,
+                                                    &known,
+                                                    &mut prior_coords,
+                                                ))
+                                                .await
+                                                .ok();
                                             }
                                         }
-                                        if resp.error_code == 0 {
-                                            if let Some(assignment) = resp.assignment {
-                                                *hb_assignment.lock() = Some(assignment);
-                                                *hb_ack.lock() = None;
+                                        reopen_idle_coordinator(
+                                            &mut conn,
+                                            &cfg,
+                                            &group_id,
+                                            deadline,
+                                            &bootstrap_keys,
+                                            &mut prior_coords,
+                                        )
+                                        .await;
+                                        let Some(c) = conn.as_mut() else {
+                                            let retry_delay = cfg.retry_backoff.max(Duration::from_millis(50));
+                                            next_hb_deadline = Instant::now() + retry_delay;
+                                            *hb_deadline.lock() = Some(next_hb_deadline);
+                                            continue;
+                                        };
+                                        let timeout = deadline.saturating_duration_since(Instant::now());
+                                        if timeout.is_zero() {
+                                            let retry_delay = cfg.retry_backoff.max(Duration::from_millis(50));
+                                            next_hb_deadline = Instant::now() + retry_delay;
+                                            *hb_deadline.lock() = Some(next_hb_deadline);
+                                            continue;
+                                        }
+                                        let epoch = hb_generation.load(Ordering::SeqCst);
+                                        let joining =
+                                            epoch == ConsumerGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH;
+                                        let rebalance_timeout_ms = if joining {
+                                            if cfg.max_poll_interval.is_zero() {
+                                                i32::MAX
                                             } else {
-                                                *hb_ack.lock() = None;
-                                            }
-                                            if resp.heartbeat_interval_ms <= 0 {
-                                                hb_err.store(error::INVALID_REQUEST, Ordering::SeqCst);
-                                                next_hb_deadline = Instant::now() + current_interval;
-                                                *hb_deadline.lock() = Some(next_hb_deadline);
-                                            } else if let Ok(ms_u64) = u64::try_from(resp.heartbeat_interval_ms) {
-                                                current_interval = Duration::from_millis(ms_u64);
-                                                hb_interval_ms.store(resp.heartbeat_interval_ms, Ordering::SeqCst);
-                                                next_hb_deadline = Instant::now() + current_interval;
-                                                *hb_deadline.lock() = Some(next_hb_deadline);
-                                            } else {
-                                                next_hb_deadline = Instant::now() + current_interval;
-                                                *hb_deadline.lock() = Some(next_hb_deadline);
+                                                duration_millis_i32(cfg.max_poll_interval)
                                             }
                                         } else {
-                                            next_hb_deadline = Instant::now() + current_interval;
+                                            ConsumerGroupHeartbeatRequest::UNCHANGED_REBALANCE_TIMEOUT_MS
+                                        };
+                                        let version = c.consumer_group_heartbeat_version;
+                                        if spoken_consumer_group_heartbeat(version).is_err() {
+                                            conn = None;
+                                            hb_err.store(error::UNSUPPORTED_VERSION, Ordering::SeqCst);
+                                            let retry_delay = cfg.retry_backoff.max(Duration::from_millis(50));
+                                            next_hb_deadline = Instant::now() + retry_delay;
                                             *hb_deadline.lock() = Some(next_hb_deadline);
+                                            continue;
+                                        }
+                                        copy_member_id(&mut heartbeat.member_id, &member_id);
+                                        heartbeat.member_epoch = epoch;
+                                        heartbeat.rebalance_timeout_ms = rebalance_timeout_ms;
+                                        if joining {
+                                            reuse_topic_names(
+                                                &mut heartbeat.subscribed_topic_names,
+                                                &hb_topics.lock(),
+                                            );
+                                            if heartbeat
+                                                .topic_partitions
+                                                .as_ref()
+                                                .is_none_or(|parts| !parts.is_empty())
+                                            {
+                                                heartbeat.topic_partitions = Some(Vec::new());
+                                            }
+                                        } else {
+                                            heartbeat.subscribed_topic_names = None;
+                                            reuse_topic_partitions(
+                                                &mut heartbeat.topic_partitions,
+                                                &hb_ack.lock(),
+                                            );
+                                        }
+                                        let res = c
+                                            .roundtrip(
+                                                CONSUMER_GROUP_HEARTBEAT,
+                                                version,
+                                                |buf| {
+                                                    encode_consumer_group_heartbeat_request(
+                                                        buf,
+                                                        version,
+                                                        &heartbeat,
+                                                    )
+                                                },
+                                                timeout,
+                                            )
+                                            .await;
+                                        match res {
+                                            Ok(body) => {
+                                                if let Ok(resp) = decode_consumer_group_heartbeat_response(
+                                                    &mut body.clone(),
+                                                    version,
+                                                ) {
+                                                    if error::coordinator_retriable(resp.error_code) {
+                                                        if let Some(current) = conn.as_ref() {
+                                                            remembered = Some(
+                                                                KnownCoord::capture(current)
+                                                                    .with_bootstrap_keys(&bootstrap_keys)
+                                                                    .with_address_keys(&address_keys),
+                                                            );
+                                                        }
+                                                        conn = None;
+                                                        let retry_delay = cfg.retry_backoff.max(Duration::from_millis(50));
+                                                        next_hb_deadline = Instant::now() + retry_delay;
+                                                        *hb_deadline.lock() = Some(next_hb_deadline);
+                                                    } else {
+                                                        hb_err.store(resp.error_code, Ordering::SeqCst);
+                                                        hb_generation.store(
+                                                            kip848_heartbeat_epoch(
+                                                                resp.error_code,
+                                                                resp.member_epoch,
+                                                                hb_generation.load(Ordering::SeqCst),
+                                                            ),
+                                                            Ordering::SeqCst,
+                                                        );
+                                                        // The broker owns member ids; adopt a
+                                                        // rotated id for later heartbeats and
+                                                        // the poll path (KL03-15).
+                                                        if let Some(id) = resp.member_id.as_deref() {
+                                                            if id != member_id {
+                                                                copy_member_id(&mut member_id, id);
+                                                                copy_member_id(&mut heartbeat.member_id, id);
+                                                                copy_member_id(&mut hb_member_id.lock(), &member_id);
+                                                            }
+                                                        }
+                                                        if resp.error_code == 0 {
+                                                            if let Some(assignment) = resp.assignment {
+                                                                *hb_assignment.lock() = Some(assignment);
+                                                                *hb_ack.lock() = None;
+                                                            } else {
+                                                                *hb_ack.lock() = None;
+                                                            }
+                                                            if resp.heartbeat_interval_ms <= 0 {
+                                                                hb_err.store(error::INVALID_REQUEST, Ordering::SeqCst);
+                                                                next_hb_deadline = Instant::now() + current_interval;
+                                                                *hb_deadline.lock() = Some(next_hb_deadline);
+                                                            } else if let Ok(ms_u64) = u64::try_from(resp.heartbeat_interval_ms) {
+                                                                current_interval = Duration::from_millis(ms_u64);
+                                                                hb_interval_ms.store(resp.heartbeat_interval_ms, Ordering::SeqCst);
+                                                                next_hb_deadline = Instant::now() + current_interval;
+                                                                *hb_deadline.lock() = Some(next_hb_deadline);
+                                                            } else {
+                                                                next_hb_deadline = Instant::now() + current_interval;
+                                                                *hb_deadline.lock() = Some(next_hb_deadline);
+                                                            }
+                                                        } else {
+                                                            next_hb_deadline = Instant::now() + current_interval;
+                                                            *hb_deadline.lock() = Some(next_hb_deadline);
+                                                        }
+                                                    }
+                                                } else {
+                                                    // Undecodable bytes are a broker protocol
+                                                    // violation, not a blip: mark it so poll
+                                                    // surfaces it instead of spinning
+                                                    // silently. Transport failures below stay
+                                                    // silent-retry by design (KL03-15).
+                                                    if let Some(current) = conn.as_ref() {
+                                                        remembered = Some(
+                KnownCoord::capture(current)
+                                                        .with_bootstrap_keys(&bootstrap_keys)
+                                                        .with_address_keys(&address_keys),
+                                                        );
+                                                    }
+                                                    hb_err.store(error::INVALID_REQUEST, Ordering::SeqCst);
+                                                    conn = None;
+                                                    let retry_delay = cfg.retry_backoff.max(Duration::from_millis(50));
+                                                    next_hb_deadline = Instant::now() + retry_delay;
+                                                    *hb_deadline.lock() = Some(next_hb_deadline);
+                                                }
+                                            }
+                                            Err(_) => {
+                                                if let Some(current) = conn.as_ref() {
+                                                    remembered = Some(
+                                                        KnownCoord::capture(current)
+                                                            .with_bootstrap_keys(&bootstrap_keys)
+                                                            .with_address_keys(&address_keys),
+                                                    );
+                                                }
+                                                conn = None;
+                                                let retry_delay = cfg.retry_backoff.max(Duration::from_millis(50));
+                                                next_hb_deadline = Instant::now() + retry_delay;
+                                                *hb_deadline.lock() = Some(next_hb_deadline);
+                                            }
                                         }
                                     }
-                                } else {
-                                    // Undecodable bytes are a broker protocol
-                                    // violation, not a blip: mark it so poll
-                                    // surfaces it instead of spinning
-                                    // silently. Transport failures below stay
-                                    // silent-retry by design (KL03-15).
-                                    if let Some(current) = conn.as_ref() {
-                                        remembered = Some(
-                                            KnownCoord::capture(current)
-                                                .with_bootstrap_keys(&bootstrap_keys),
-                                        );
-                                    }
-                                    hb_err.store(error::INVALID_REQUEST, Ordering::SeqCst);
-                                    conn = None;
-                                    let retry_delay = cfg.retry_backoff.max(Duration::from_millis(50));
-                                    next_hb_deadline = Instant::now() + retry_delay;
-                                    *hb_deadline.lock() = Some(next_hb_deadline);
                                 }
-                            }
-                            Err(_) => {
-                                if let Some(current) = conn.as_ref() {
-                                    remembered = Some(
-                                        KnownCoord::capture(current)
-                                            .with_bootstrap_keys(&bootstrap_keys),
-                                    );
-                                }
-                                conn = None;
-                                let retry_delay = cfg.retry_backoff.max(Duration::from_millis(50));
-                                next_hb_deadline = Instant::now() + retry_delay;
-                                *hb_deadline.lock() = Some(next_hb_deadline);
-                            }
-                        }
-                    }
-                }
             }
         }))
     }
@@ -3890,6 +3894,7 @@ impl ConsumerGroup {
         let left_max_poll = self.left_max_poll.clone();
         let cfg = self.cfg.clone();
         let bootstrap_keys = self.consumer.copy_api_keys();
+        let address_keys = self.consumer.copy_learned_broker_keys();
         Arc::new(tokio::spawn(async move {
             let mut conn: Option<BrokerConn> = None;
             let mut remembered: Option<KnownCoord> = None;
@@ -3986,7 +3991,8 @@ impl ConsumerGroup {
                                         if let Some(current) = conn.as_ref() {
                                             remembered = Some(
                                                 KnownCoord::capture(current)
-                                                    .with_bootstrap_keys(&bootstrap_keys),
+                                                    .with_bootstrap_keys(&bootstrap_keys)
+                                                    .with_address_keys(&address_keys),
                                             );
                                         }
                                         conn = None;
@@ -3999,7 +4005,8 @@ impl ConsumerGroup {
                                 if let Some(current) = conn.as_ref() {
                                     remembered = Some(
                                         KnownCoord::capture(current)
-                                            .with_bootstrap_keys(&bootstrap_keys),
+                                            .with_bootstrap_keys(&bootstrap_keys)
+                                            .with_address_keys(&address_keys),
                                     );
                                 }
                                 conn = None;
@@ -5265,6 +5272,9 @@ fn remembered_dial(
             return RememberedDial::Known(previous.clone());
         }
     }
+    if let Some(keys) = known.address_keys.get(addr).filter(|keys| !keys.is_empty()) {
+        return RememberedDial::Keys(keys.clone());
+    }
     if cfg
         .bootstrap
         .first()
@@ -5595,6 +5605,9 @@ pub(crate) struct KnownCoord {
     find_coordinator_version: i16,
     /// ApiVersions for the bootstrap broker, used when this coordinator is elsewhere.
     bootstrap_keys: Vec<ApiVersion>,
+    /// ApiVersions already learned for other broker addresses, usually the
+    /// other bootstrap servers from startup.
+    address_keys: HashMap<String, Vec<ApiVersion>>,
 }
 
 impl KnownCoord {
@@ -5614,11 +5627,17 @@ impl KnownCoord {
             sasl_authenticate_version: conn.sasl_authenticate_version,
             find_coordinator_version: conn.find_coordinator_version,
             bootstrap_keys: Vec::new(),
+            address_keys: HashMap::new(),
         }
     }
 
     pub(crate) fn with_bootstrap_keys(mut self, keys: &[ApiVersion]) -> Self {
         self.bootstrap_keys = keys.to_vec();
+        self
+    }
+
+    pub(crate) fn with_address_keys(mut self, keys: &HashMap<String, Vec<ApiVersion>>) -> Self {
+        self.address_keys = keys.clone();
         self
     }
 
@@ -5743,6 +5762,10 @@ async fn open_discovered_coord(
         && !known.bootstrap_keys.is_empty()
     {
         let (conn, _, _) = open_coord_with_keys(cfg, addr, &known.bootstrap_keys).await?;
+        return Ok(conn);
+    }
+    if let Some(keys) = known.address_keys.get(addr).filter(|keys| !keys.is_empty()) {
+        let (conn, _, _) = open_coord_with_keys(cfg, addr, keys).await?;
         return Ok(conn);
     }
     if let Some(previous) = prior.get(addr) {

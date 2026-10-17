@@ -5067,6 +5067,7 @@ impl ShareGroup {
         let hb_wake = self.hb_wake.clone();
         let cfg = self.cfg.clone();
         let bootstrap_keys = self.consumer.copy_api_keys();
+        let address_keys = self.consumer.copy_learned_broker_keys();
         Arc::new(tokio::spawn(async move {
             if *stop.borrow() {
                 return;
@@ -5212,7 +5213,8 @@ impl ShareGroup {
                                         if let Some(current) = conn.as_ref() {
                                             remembered = Some(
                                                 crate::group::KnownCoord::capture(current)
-                                                    .with_bootstrap_keys(&bootstrap_keys),
+                                                    .with_bootstrap_keys(&bootstrap_keys)
+                                                    .with_address_keys(&address_keys),
                                             );
                                         }
                                         conn = None;
@@ -5268,7 +5270,8 @@ impl ShareGroup {
                                     if let Some(current) = conn.as_ref() {
                                         remembered = Some(
                                             crate::group::KnownCoord::capture(current)
-                                                .with_bootstrap_keys(&bootstrap_keys),
+                                                .with_bootstrap_keys(&bootstrap_keys)
+                                                    .with_address_keys(&address_keys),
                                         );
                                     }
                                     conn = None;
@@ -5281,7 +5284,8 @@ impl ShareGroup {
                                 if let Some(current) = conn.as_ref() {
                                     remembered = Some(
                                         crate::group::KnownCoord::capture(current)
-                                            .with_bootstrap_keys(&bootstrap_keys),
+                                            .with_bootstrap_keys(&bootstrap_keys)
+                                                    .with_address_keys(&address_keys),
                                     );
                                 }
                                 conn = None;
