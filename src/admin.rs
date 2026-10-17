@@ -6340,13 +6340,10 @@ impl Admin {
                 self.refresh_broker_directory(deadline).await?;
             }
             let node = self.cluster.controller()?;
-            self.connect_node_until(node, deadline).await?;
             let body = {
-                let conn = self
-                    .conns
-                    .get_mut(&node)
-                    .ok_or_else(|| Error::protocol("missing list_partition_reassignments conn"))?;
-                conn.roundtrip(
+                self.roundtrip_known_node(
+                    node,
+                    deadline,
                     LIST_PARTITION_REASSIGNMENTS,
                     version,
                     |buf| {
@@ -6363,7 +6360,7 @@ impl Admin {
             let body = match body {
                 Ok(b) => b,
                 Err(e) if e.is_retriable() => {
-                    let _ = self.conns.remove(&node);
+                    self.drop_node_conn(node);
                     self.forget_controller();
                     self.wait_retry(&mut attempt, deadline).await?;
                     continue;
@@ -6374,7 +6371,7 @@ impl Admin {
             if resp.error_code == error::NOT_CONTROLLER {
                 // NOT_CONTROLLER (41): Metadata, then the new controller.
                 self.forget_controller();
-                let _ = self.conns.remove(&node);
+                self.drop_node_conn(node);
                 self.wait_retry(&mut attempt, deadline).await?;
                 self.refresh_broker_directory(deadline).await?;
                 continue;

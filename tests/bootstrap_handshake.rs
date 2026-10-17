@@ -359,6 +359,33 @@ async fn create_acls_stays_on_the_bootstrap_socket() {
     );
 }
 
+/// ListPartitionReassignments on the bootstrap controller does not open another socket.
+#[tokio::test]
+async fn list_partition_reassignments_stays_on_the_bootstrap_socket() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    let accepts_before = mock.accepts();
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let started = Instant::now();
+    let listed = admin
+        .list_partition_reassignments(None, 10_000)
+        .await
+        .unwrap();
+    let elapsed = started.elapsed();
+    assert!(listed.is_empty(), "{listed:?}");
+    assert_eq!(
+        mock.accepts(),
+        accepts_before,
+        "ListPartitionReassignments should stay on the admin bootstrap socket"
+    );
+    assert!(
+        elapsed < Duration::from_millis(200),
+        "list partition reassignments opened another socket: {elapsed:?}"
+    );
+}
+
 /// A later controller call to the bootstrap broker does not repeat ApiVersions.
 #[tokio::test]
 async fn delete_topics_skips_a_second_handshake_on_the_bootstrap_broker() {
