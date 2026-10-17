@@ -706,6 +706,42 @@ async fn close_timeout_finishes_a_stalled_worker() {
     );
 }
 
+/// Close cancels a reconnect timer that is still sleeping.
+#[tokio::test(flavor = "current_thread")]
+async fn close_finishes_a_sleeping_reconnect_timer() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_topic_partitions("t", 1);
+    mock.set_partition_leader("t", 0, 2);
+    let producer = Producer::new(
+        ProducerConfig::bootstrap([mock.addr.clone()])
+            .linger(Duration::ZERO)
+            .max_block(Duration::from_millis(200))
+            .reconnect_backoff(Duration::from_secs(30))
+            .reconnect_backoff_max(Duration::from_secs(30)),
+    )
+    .await
+    .unwrap();
+    mock.refuse_connections(20);
+    let err = producer
+        .send(ProduceRecord::to("t").value(&b"dial"[..]))
+        .await
+        .expect_err("refused leader dial");
+    assert!(
+        matches!(err, Error::Timeout | Error::QueueFull),
+        "refused dial should time out, got {err:?}"
+    );
+    let tasks = producer.test_reconnect_tasks();
+    assert!(
+        !tasks.is_empty(),
+        "a refused dial should schedule a reconnect timer"
+    );
+    producer.close().await.unwrap();
+    assert!(
+        tasks.iter().all(|task| task.is_finished()),
+        "close returned while a reconnect timer was still sleeping"
+    );
+}
+
 /// Close waits until the background control tasks have actually stopped.
 #[tokio::test(flavor = "current_thread")]
 async fn close_finishes_control_tasks_before_returning() {

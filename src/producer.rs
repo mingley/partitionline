@@ -1047,6 +1047,8 @@ struct Shared {
     reconnect_fails: parking_lot::Mutex<HashMap<i32, u32>>,
     /// (Broker, slot) pairs with a connect or reconnect-backoff in flight.
     reconnect_busy: parking_lot::Mutex<HashSet<(i32, usize)>>,
+    /// Sleeping reconnect timers. Close aborts them so they do not outlive the producer.
+    reconnect_tasks: parking_lot::Mutex<Vec<Arc<tokio::task::JoinHandle<()>>>>,
     retries_out: AtomicUsize,
     in_txn: AtomicBool,
     txn_partitions: parking_lot::Mutex<TxnPartSet>,
@@ -1093,6 +1095,9 @@ impl Drop for Inner {
             .collect();
         for w in &workers {
             w.task.abort();
+        }
+        for task in self.shared.reconnect_tasks.lock().drain(..) {
+            task.abort();
         }
         self.shared.nodes.lock().clear();
         self.shared.fast.write().clear();
@@ -1857,6 +1862,7 @@ impl Producer {
             throttle_metrics: crate::metrics::ThrottleTracker::default(),
             reconnect_fails: parking_lot::Mutex::new(HashMap::new()),
             reconnect_busy: parking_lot::Mutex::new(HashSet::new()),
+            reconnect_tasks: parking_lot::Mutex::new(Vec::new()),
             retries_out: AtomicUsize::new(0),
             in_txn: AtomicBool::new(false),
             txn_partitions: parking_lot::Mutex::new(HashMap::new()),
@@ -2855,6 +2861,12 @@ impl Producer {
             .store(epoch, Ordering::SeqCst);
     }
 
+    /// Test hook: sleeping reconnect timers.
+    #[doc(hidden)]
+    pub fn test_reconnect_tasks(&self) -> Vec<Arc<tokio::task::JoinHandle<()>>> {
+        self.inner.shared.reconnect_tasks.lock().clone()
+    }
+
     /// Test hook: background control tasks started with this producer.
     #[doc(hidden)]
     pub fn test_control_tasks(&self) -> Vec<Arc<tokio::task::JoinHandle<()>>> {
@@ -3569,6 +3581,11 @@ impl Producer {
             tasks
         };
         for task in control_tasks {
+            task.abort();
+            wait_until_finished(&task, deadline).await;
+        }
+        let reconnect_tasks = std::mem::take(&mut *self.inner.shared.reconnect_tasks.lock());
+        for task in reconnect_tasks {
             task.abort();
             wait_until_finished(&task, deadline).await;
         }
@@ -5206,15 +5223,21 @@ fn finish_slot_connect(
                     fails,
                 );
                 let weak = weak.clone();
-                drop(tokio::spawn(async move {
+                let task = Arc::new(tokio::spawn(async move {
                     if !delay.is_zero() {
                         tokio::time::sleep(delay).await;
                     }
                     if let Some(shared) = weak.upgrade() {
+                        if shared.closed.load(Ordering::SeqCst) {
+                            return;
+                        }
                         let _ = shared.reconnect_busy.lock().remove(&(node, slot));
                         try_nudge_slot(&shared.connect_tx, node, slot);
                     }
                 }));
+                let mut tasks = shared.reconnect_tasks.lock();
+                tasks.retain(|task| !task.is_finished());
+                tasks.push(task);
             } else {
                 let _ = shared.reconnect_busy.lock().remove(&(node, slot));
                 publish_meta_err(shared, Some(clone_err(&e)));
