@@ -1328,6 +1328,15 @@ pub enum ShareAcquireMode {
 /// `ClusterControlManager` writes this when another broker is already
 /// registered with that broker id.
 /// A piggybacked
+/// `BROKER_ID_NOT_REGISTERED` still completes without retry,
+/// including when `AcknowledgeErrorMessage` is set (Java
+/// `handleShareFetchSuccess` completes piggyback acks and still
+/// delivers the fetch; this is not partition
+/// `BROKER_ID_NOT_REGISTERED`, which fails that poll, and not piggyback
+/// `DUPLICATE_BROKER_REGISTRATION`). Official Java
+/// `ReplicationControlManager` writes this when the requested broker id
+/// is not currently registered.
+/// A piggybacked
 /// `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a
 /// sibling partition whose `AcknowledgeErrorCode` is none, including
 /// when `AcknowledgeErrorMessage` is set or empty. A piggybacked
@@ -3389,6 +3398,14 @@ impl ShareGroup {
     /// `POSITION_OUT_OF_RANGE`). Official Java
     /// `ClusterControlManager` writes this when another broker is already
     /// registered with that broker id.
+    /// A piggybacked `BROKER_ID_NOT_REGISTERED` still completes
+    /// without retry, including when `AcknowledgeErrorMessage` is set
+    /// (Java `handleShareFetchSuccess` completes piggyback acks and still
+    /// delivers the fetch; this is not partition
+    /// `BROKER_ID_NOT_REGISTERED`, which fails that poll, and not piggyback
+    /// `DUPLICATE_BROKER_REGISTRATION`). Official Java
+    /// `ReplicationControlManager` writes this when the requested broker id
+    /// is not currently registered.
     /// A piggybacked `TOPIC_AUTHORIZATION_FAILED` on one partition
     /// does not fail a sibling whose `AcknowledgeErrorCode` is none,
     /// including when `AcknowledgeErrorMessage` is set or empty.
