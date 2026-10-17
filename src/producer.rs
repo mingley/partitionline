@@ -891,6 +891,17 @@ struct WorkerHandle {
     task: Arc<tokio::task::JoinHandle<()>>,
 }
 
+impl Drop for WorkerHandle {
+    fn drop(&mut self) {
+        // The dial that created this worker can be cancelled before the handle
+        // is stored. Dropping the last handle must abort that task; dropping
+        // the `JoinHandle` alone would detach it.
+        if Arc::strong_count(&self.task) == 1 {
+            self.task.abort();
+        }
+    }
+}
+
 /// Topics kept with a ready partition-to-connection map.
 const FAST_ROUTE_TOPICS: usize = 8;
 
@@ -1049,6 +1060,9 @@ struct Shared {
     reconnect_busy: parking_lot::Mutex<HashSet<(i32, usize)>>,
     /// Sleeping reconnect timers. Close aborts them so they do not outlive the producer.
     reconnect_tasks: parking_lot::Mutex<Vec<Arc<tokio::task::JoinHandle<()>>>>,
+    /// Worker tasks inside `Worker::run`, including one whose handle was dropped
+    /// before close could wait on it.
+    live_workers: AtomicUsize,
     retries_out: AtomicUsize,
     in_txn: AtomicBool,
     txn_partitions: parking_lot::Mutex<TxnPartSet>,
@@ -1863,6 +1877,7 @@ impl Producer {
             reconnect_fails: parking_lot::Mutex::new(HashMap::new()),
             reconnect_busy: parking_lot::Mutex::new(HashSet::new()),
             reconnect_tasks: parking_lot::Mutex::new(Vec::new()),
+            live_workers: AtomicUsize::new(0),
             retries_out: AtomicUsize::new(0),
             in_txn: AtomicBool::new(false),
             txn_partitions: parking_lot::Mutex::new(HashMap::new()),
@@ -3564,9 +3579,6 @@ impl Producer {
             }
         }
 
-        self.inner.shared.nodes.lock().clear();
-        self.inner.shared.fast.write().clear();
-
         let control_tasks = {
             let mut tasks = Vec::new();
             if let Some(task) = self.inner.shared.meta_task.lock().take() {
@@ -3584,14 +3596,39 @@ impl Producer {
             task.abort();
             wait_until_finished(&task, deadline).await;
         }
+        // Connect can publish a worker until it has actually stopped. Snapshot
+        // after that so a handle inserted during shutdown is aborted too.
+        let published: Vec<WorkerHandle> = self
+            .inner
+            .shared
+            .nodes
+            .lock()
+            .values()
+            .flatten()
+            .flatten()
+            .cloned()
+            .collect();
+        self.inner.shared.nodes.lock().clear();
+        self.inner.shared.fast.write().clear();
         let reconnect_tasks = std::mem::take(&mut *self.inner.shared.reconnect_tasks.lock());
         for task in reconnect_tasks {
             task.abort();
             wait_until_finished(&task, deadline).await;
         }
-        for w in &workers {
+        for w in &published {
             w.task.abort();
             wait_until_finished(&w.task, deadline).await;
+        }
+        let mut extra = 0u32;
+        while self.inner.shared.live_workers.load(Ordering::SeqCst) > 0 {
+            let open = deadline.is_none_or(|deadline| Instant::now() < deadline);
+            if !open {
+                if extra >= 8 {
+                    break;
+                }
+                extra = extra.saturating_add(1);
+            }
+            tokio::task::yield_now().await;
         }
         self.inner.shared.clear_sticky();
     }
@@ -6209,6 +6246,15 @@ impl Worker {
     }
 
     async fn run(mut self) {
+        let live = Arc::clone(&self.shared);
+        let _started = live.live_workers.fetch_add(1, Ordering::SeqCst);
+        struct ExitLive(Arc<Shared>);
+        impl Drop for ExitLive {
+            fn drop(&mut self) {
+                let _left = self.0.live_workers.fetch_sub(1, Ordering::SeqCst);
+            }
+        }
+        let _exit_live = ExitLive(live);
         let mut linger_start: Option<Instant> = None;
         // One timer for linger and delivery deadlines. Resetting it avoids a
         // new sleep registration on every wait.
@@ -8900,6 +8946,37 @@ fn record_metadata(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn dropping_the_last_worker_handle_stops_the_task() {
+        let task = Arc::new(tokio::spawn(async {
+            tokio::time::sleep(Duration::from_secs(30)).await;
+        }));
+        let watch = task.abort_handle();
+        let handle = WorkerHandle {
+            id: Arc::new(()),
+            data: mpsc::channel(1).0,
+            ctrl: mpsc::channel(1).0,
+            task,
+        };
+        assert!(!watch.is_finished(), "the worker should still be sleeping");
+        drop(handle);
+        let started = Instant::now();
+        let mut turns = 0u32;
+        while !watch.is_finished() && turns < 8 {
+            turns = turns.saturating_add(1);
+            tokio::task::yield_now().await;
+        }
+        assert!(
+            started.elapsed() < Duration::from_millis(200),
+            "drop waited for the worker: {:?}",
+            started.elapsed()
+        );
+        assert!(
+            watch.is_finished(),
+            "dropping the last handle left the worker running"
+        );
+    }
 
     fn queued(topic: &str, partition: Option<i32>) -> Pending {
         let now = Instant::now();
