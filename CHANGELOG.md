@@ -727,7 +727,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   deserialize the request principal. A
   piggybacked `SNAPSHOT_NOT_FOUND` still
   completes without retry, including when `AcknowledgeErrorMessage` is
-  set (Java `handleShareFetchSuccess` completes piggyback acks and still
+  set or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
   delivers the fetch; this is not partition `SNAPSHOT_NOT_FOUND`,
   which fails that poll, and not piggyback `PRINCIPAL_DESERIALIZATION_FAILURE`). Official
   Java `KafkaRaftClient` writes this when the requested snapshot id does

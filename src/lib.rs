@@ -2475,7 +2475,7 @@
 //! deserialize the request principal.
 //! A piggybacked
 //! `SNAPSHOT_NOT_FOUND` still completes without retry,
-//! including when `AcknowledgeErrorMessage` is set (this is not
+//! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `SNAPSHOT_NOT_FOUND`, which fails that poll, and not
 //! piggyback `PRINCIPAL_DESERIALIZATION_FAILURE`). Official Java
 //! `KafkaRaftClient` writes this when the requested snapshot id does

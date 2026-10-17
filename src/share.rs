@@ -1302,7 +1302,7 @@ pub enum ShareAcquireMode {
 /// deserialize the request principal.
 /// A piggybacked
 /// `SNAPSHOT_NOT_FOUND` still completes without retry,
-/// including when `AcknowledgeErrorMessage` is set (Java
+/// including when `AcknowledgeErrorMessage` is set or empty (Java
 /// `handleShareFetchSuccess` completes piggyback acks and still
 /// delivers the fetch; this is not partition
 /// `SNAPSHOT_NOT_FOUND`, which fails that poll, and not piggyback
@@ -3340,7 +3340,7 @@ impl ShareGroup {
     /// deserialize the request principal.
     /// A piggybacked `SNAPSHOT_NOT_FOUND` still completes
     /// without retry, including when `AcknowledgeErrorMessage` is set
-    /// (Java `handleShareFetchSuccess` completes piggyback acks and still
+    /// or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
     /// delivers the fetch; this is not partition
     /// `SNAPSHOT_NOT_FOUND`, which fails that poll, and not piggyback
     /// `PRINCIPAL_DESERIALIZATION_FAILURE`). Official Java
