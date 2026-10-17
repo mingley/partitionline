@@ -1319,6 +1319,15 @@ pub enum ShareAcquireMode {
 /// `KafkaRaftClient` writes this when the requested snapshot offset is
 /// out of range.
 /// A piggybacked
+/// `DUPLICATE_BROKER_REGISTRATION` still completes without retry,
+/// including when `AcknowledgeErrorMessage` is set (Java
+/// `handleShareFetchSuccess` completes piggyback acks and still
+/// delivers the fetch; this is not partition
+/// `DUPLICATE_BROKER_REGISTRATION`, which fails that poll, and not piggyback
+/// `POSITION_OUT_OF_RANGE`). Official Java
+/// `ClusterControlManager` writes this when another broker is already
+/// registered with that broker id.
+/// A piggybacked
 /// `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a
 /// sibling partition whose `AcknowledgeErrorCode` is none, including
 /// when `AcknowledgeErrorMessage` is set or empty. A piggybacked
@@ -3369,6 +3378,14 @@ impl ShareGroup {
     /// `SNAPSHOT_NOT_FOUND`). Official Java
     /// `KafkaRaftClient` writes this when the requested snapshot offset is
     /// out of range.
+    /// A piggybacked `DUPLICATE_BROKER_REGISTRATION` still completes
+    /// without retry, including when `AcknowledgeErrorMessage` is set
+    /// (Java `handleShareFetchSuccess` completes piggyback acks and still
+    /// delivers the fetch; this is not partition
+    /// `DUPLICATE_BROKER_REGISTRATION`, which fails that poll, and not piggyback
+    /// `POSITION_OUT_OF_RANGE`). Official Java
+    /// `ClusterControlManager` writes this when another broker is already
+    /// registered with that broker id.
     /// A piggybacked `TOPIC_AUTHORIZATION_FAILED` on one partition
     /// does not fail a sibling whose `AcknowledgeErrorCode` is none,
     /// including when `AcknowledgeErrorMessage` is set or empty.
