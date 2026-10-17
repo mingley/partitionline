@@ -1807,6 +1807,12 @@ async fn run_pipeline_loop(
                         front.deadline,
                         false,
                     ).await
+                } else if !conn.is_closed() {
+                    // Nothing is in flight. A broker that stops writing must
+                    // not stay blocked in its read until the next request.
+                    let ready = conn.inbound_ready().await;
+                    drop(ready);
+                    Err(Error::Closed)
                 } else {
                     std::future::pending::<Result<Bytes>>().await
                 }
@@ -2955,6 +2961,29 @@ mod tests {
             })
             .await;
         assert!(matches!(res, Err(Error::Timeout)));
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn idle_pipeline_shuts_down_when_the_broker_stops_writing() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        let accepted = tokio::spawn(async move {
+            let (socket, _) = listener.accept().await.unwrap();
+            let (mut reader, mut writer) = socket.into_split();
+            writer.shutdown().await.unwrap();
+            let mut buf = [0u8; 8];
+            tokio::time::timeout(Duration::from_millis(300), reader.read(&mut buf)).await
+        });
+        let conn = BrokerConn::connect(&addr.to_string(), "pipeline-idle", Duration::from_secs(2))
+            .await
+            .unwrap();
+        let pipeline = BrokerPipeline::new(conn);
+        let saw = accepted.await.unwrap();
+        assert!(
+            matches!(saw, Ok(Ok(0))),
+            "peer stayed in the read after its write shutdown: {saw:?}"
+        );
+        drop(pipeline);
     }
 
     #[tokio::test(flavor = "current_thread")]
