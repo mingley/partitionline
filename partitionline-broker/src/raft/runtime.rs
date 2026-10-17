@@ -1804,15 +1804,30 @@ async fn read_exact_spare(
 struct WireBuf {
     read: Vec<u8>,
     write: Vec<u8>,
+    /// Bytes read while a command was running, ahead of the next frame.
+    unread: Vec<u8>,
 }
 impl WireBuf {
     fn new() -> Self {
         Self {
             read: Vec::new(),
             write: Vec::new(),
+            unread: Vec::new(),
         }
     }
 }
+
+fn take_unread(unread: &mut Vec<u8>, dest: &mut Vec<u8>, n: usize) {
+    let have = unread.len().min(n);
+    if have == 0 {
+        return;
+    }
+    if let Some(chunk) = unread.get(..have) {
+        dest.extend_from_slice(chunk);
+    }
+    let _taken = unread.drain(..have);
+}
+
 async fn read_frame(
     socket: &mut TcpStream,
     limit: usize,
@@ -1821,12 +1836,30 @@ async fn read_frame(
     wire: &mut WireBuf,
 ) -> Result<Frame> {
     tokio::time::timeout_at(deadline, async {
-        let length = socket.read_u32().await? as usize;
+        let mut prefix = Vec::with_capacity(4);
+        take_unread(&mut wire.unread, &mut prefix, 4);
+        if prefix.len() < 4 {
+            let mut tail = Vec::new();
+            read_exact_spare(&mut *socket, &mut tail, 4 - prefix.len()).await?;
+            prefix.append(&mut tail);
+        }
+        let raw = prefix
+            .get(..4)
+            .ok_or(Error::Peer)?
+            .try_into()
+            .map_err(|_| Error::Peer)?;
+        let length = u32::from_be_bytes(raw) as usize;
         if !(28..=limit).contains(&length) {
             return Err(Error::Peer);
         }
         wire.read.clear();
-        read_exact_spare(&mut *socket, &mut wire.read, length).await?;
+        take_unread(&mut wire.unread, &mut wire.read, length);
+        let need = length.saturating_sub(wire.read.len());
+        if need > 0 {
+            let mut tail = Vec::new();
+            read_exact_spare(&mut *socket, &mut tail, need).await?;
+            wire.read.append(&mut tail);
+        }
         Ok(peer_codec::decode(&wire.read, limit, max_records)?)
     })
     .await
@@ -1927,13 +1960,17 @@ async fn rpc(
     }
     Ok(response.message)
 }
-async fn peer_socket_closed(socket: &TcpStream) {
-    let mut buf = [0u8; 1];
-    match socket.peek(&mut buf).await {
-        Ok(0) | Err(_) => {}
-        // Bytes already queued are the next request. Leave them for the
-        // command that is still running; this wait only cares about a close.
-        Ok(_) => std::future::pending::<()>().await,
+async fn peer_socket_closed(socket: &mut TcpStream, unread: &mut Vec<u8>) {
+    let mut buf = [0u8; 1024];
+    loop {
+        match socket.read(&mut buf).await {
+            Ok(0) | Err(_) => return,
+            Ok(n) => {
+                if let Some(chunk) = buf.get(..n) {
+                    unread.extend_from_slice(chunk);
+                }
+            }
+        }
     }
 }
 
@@ -2198,7 +2235,7 @@ async fn serve(
             biased;
             // The command can outlive the peer. A close during that wait
             // must drop this socket instead of holding it until the deadline.
-            _ = peer_socket_closed(&socket) => break,
+            _ = peer_socket_closed(&mut socket, &mut wire.unread) => break,
             result = &mut call => match result {
                 Ok(Reply::Message(message)) => message,
                 _ => Message::Failure {
@@ -2776,7 +2813,7 @@ mod ownership_tests {
         )
         .await?;
         let response = read_frame(&mut client_socket, bound, 64, deadline, &mut wire).await?;
-        if response.message != Message::HelloAck(hello) {
+        if response.message != Message::HelloAck(hello.clone()) {
             return Err("hello was not acknowledged".into());
         }
         let request = replication::DynamicVoteRequest {
@@ -2797,6 +2834,29 @@ mod ownership_tests {
             &Frame {
                 rpc: 1,
                 message: Message::Vote(request),
+            },
+            bound,
+            deadline,
+            &mut wire,
+        )
+        .await?;
+        write_frame(
+            &mut client_socket,
+            &Frame {
+                rpc: 2,
+                message: Message::Vote(replication::DynamicVoteRequest {
+                    context: replication::Context {
+                        leader: peer_key,
+                        peer: local_key,
+                        configuration_epoch: 0,
+                    },
+                    sequence: 2,
+                    request: super::super::election::VoteRequest {
+                        term: 2,
+                        candidate: peer_key.id,
+                        log: LogPosition::default(),
+                    },
+                }),
             },
             bound,
             deadline,
