@@ -6090,11 +6090,20 @@ async fn open_coord_with_keys(
     addr: &str,
     keys: &[ApiVersion],
 ) -> Result<(BrokerConn, i16, ApiVersionsResponse)> {
-    let (mut conn, bound) = open_coord_socket(cfg, addr).await?;
-    let resp = remembered_coord_versions(keys);
-    let version = stamp_coord_versions(&mut conn, &resp)?;
-    authenticate_coord(&mut conn, cfg, bound).await?;
-    Ok((conn, version, resp))
+    let opened = async {
+        let (mut conn, bound) = open_coord_socket(cfg, addr).await?;
+        let resp = remembered_coord_versions(keys);
+        let version = stamp_coord_versions(&mut conn, &resp)?;
+        authenticate_coord(&mut conn, cfg, bound).await?;
+        Ok((conn, version, resp))
+    }
+    .await;
+    if opened.is_err() {
+        for _ in 0..8 {
+            tokio::task::yield_now().await;
+        }
+    }
+    opened
 }
 
 async fn open_coord_with_find_version(
@@ -7089,7 +7098,8 @@ mod tests {
 #[cfg(test)]
 mod rediscover_stop_tests {
     use super::{
-        connect_known_coord, open_coord_with_find_version, rediscover_known_coord, KnownCoord,
+        connect_known_coord, open_coord_with_find_version, open_coord_with_keys,
+        rediscover_known_coord, KnownCoord,
     };
     use crate::protocol::group::COORDINATOR_GROUP;
     use crate::ConsumerConfig;
@@ -7097,6 +7107,61 @@ mod rediscover_stop_tests {
     use std::sync::atomic::{AtomicBool, Ordering};
     use std::sync::Arc;
     use std::time::Duration;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn remembered_keys_sasl_timeout_closes_the_socket() {
+        use crate::protocol::api::ApiVersion;
+        use crate::protocol::api_keys::{FIND_COORDINATOR, SASL_AUTHENTICATE, SASL_HANDSHAKE};
+        use std::sync::atomic::AtomicUsize;
+        use tokio::io::AsyncReadExt;
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let open = Arc::new(AtomicUsize::new(0));
+        let open_flag = Arc::clone(&open);
+        let peer = tokio::spawn(async move {
+            let (mut sock, _) = listener.accept().await.unwrap();
+            let _started = open_flag.fetch_add(1, Ordering::SeqCst);
+            let mut buf = [0u8; 64];
+            loop {
+                match sock.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = open_flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let mut cfg = ConsumerConfig::bootstrap([addr.clone()]);
+        cfg.request_timeout = Duration::from_millis(200);
+        cfg.connect_timeout = Duration::from_millis(200);
+        cfg.max_wait_ms = 10;
+        cfg.sasl_plain = Some(("user".into(), "pass".into()));
+        let keys = [
+            ApiVersion {
+                api_key: FIND_COORDINATOR,
+                min_version: 0,
+                max_version: 6,
+            },
+            ApiVersion {
+                api_key: SASL_HANDSHAKE,
+                min_version: 0,
+                max_version: 1,
+            },
+            ApiVersion {
+                api_key: SASL_AUTHENTICATE,
+                min_version: 0,
+                max_version: 2,
+            },
+        ];
+        let result = open_coord_with_keys(&cfg, &addr, &keys).await;
+        assert!(matches!(result, Err(crate::Error::Timeout)));
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "remembered coordinator sasl left the socket open"
+        );
+        peer.abort();
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn remembered_sasl_timeout_closes_the_socket() {
