@@ -9746,6 +9746,33 @@ impl Admin {
         }
     }
 
+    /// Cancel leader dials and RPCs that did not finish and wait until they stop.
+    ///
+    /// Abort only schedules cancellation. On a current-thread runtime a read
+    /// stays inside the broker until this caller yields.
+    async fn stop_leader_exchange<D: 'static, R: 'static>(
+        dialing: tokio::task::JoinSet<D>,
+        rpcing: tokio::task::JoinSet<R>,
+    ) {
+        Self::finish_aborted_handshakes(dialing).await;
+        Self::finish_aborted_handshakes(rpcing).await;
+    }
+
+    /// Dial one stalled leader and return once that handshake has stopped.
+    ///
+    /// The caller's deadline aborts the dial. Later work must not run while
+    /// the broker read is still in flight.
+    #[doc(hidden)]
+    pub async fn test_exchange_stall(&mut self, addr: String) {
+        let _prev = self.cluster.brokers.insert(9, addr);
+        let deadline = Instant::now() + Duration::from_millis(200);
+        let _finished = self
+            .exchange_leaders(&[9], deadline, |_admin, _node, _conn, _timeout| {
+                Err(Error::protocol("stall dial should not reach an RPC"))
+            })
+            .await;
+    }
+
     async fn exchange_leaders<F>(
         &mut self,
         nodes: &[i32],
@@ -9788,8 +9815,7 @@ impl Admin {
                     &mut waiting_rpc,
                     &mut self.reconnect_fails,
                 );
-                dialing.abort_all();
-                rpcing.abort_all();
+                Self::stop_leader_exchange(dialing, rpcing).await;
                 break;
             }
             while dialing.len() < PARALLELISM {
@@ -9868,8 +9894,7 @@ impl Admin {
                     &mut waiting_rpc,
                     &mut self.reconnect_fails,
                 );
-                dialing.abort_all();
-                rpcing.abort_all();
+                Self::stop_leader_exchange(dialing, rpcing).await;
                 break;
             }
             tokio::select! {
@@ -9905,8 +9930,7 @@ impl Admin {
                         &mut waiting_rpc,
                         &mut self.reconnect_fails,
                     );
-                    dialing.abort_all();
-                    rpcing.abort_all();
+                    Self::stop_leader_exchange(dialing, rpcing).await;
                     break;
                 }
             }
