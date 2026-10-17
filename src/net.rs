@@ -780,7 +780,22 @@ fn spawn_idle_watch(
                 }) => {
                     match seen {
                         IdleRead::Busy => tokio::time::sleep(Duration::from_millis(20)).await,
-                        IdleRead::Data => {}
+                        IdleRead::Data => {
+                            // An idle socket has no request in flight. More
+                            // than one max frame is not a response waiting
+                            // for the owner. Shut the socket down instead of
+                            // buffering the peer's write without a limit.
+                            let too_big = prefetch.lock().len()
+                                > usize::try_from(MAX_FRAME).unwrap_or(usize::MAX);
+                            if too_big {
+                                closed.store(true, Ordering::SeqCst);
+                                if let Ok(mut io) = stream.try_lock() {
+                                    drop(poll_fn(|cx| Pin::new(&mut *io).poll_shutdown(cx)).await);
+                                }
+                                arm.notify_one();
+                                return;
+                            }
+                        }
                         IdleRead::Eof => {
                             closed.store(true, Ordering::SeqCst);
                             if let Ok(mut io) = stream.try_lock() {
@@ -3421,6 +3436,37 @@ mod tests {
             matches!(saw, Ok(Ok(0))),
             "peer stayed in the read after a late write shutdown: {saw:?}"
         );
+        drop(conn);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn idle_watch_stops_a_flood_of_unsolicited_bytes() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        let accepted = tokio::spawn(async move {
+            let (socket, _) = listener.accept().await.unwrap();
+            let (mut reader, mut writer) = socket.into_split();
+            let chunk = vec![0xabu8; 64 * 1024];
+            let limit = usize::try_from(MAX_FRAME).unwrap_or(usize::MAX) + chunk.len();
+            let mut sent = 0usize;
+            while sent < limit {
+                if writer.write_all(&chunk).await.is_err() {
+                    break;
+                }
+                sent += chunk.len();
+            }
+            let mut buf = [0u8; 8];
+            tokio::time::timeout(Duration::from_millis(300), reader.read(&mut buf)).await
+        });
+        let conn = BrokerConn::connect(&addr.to_string(), "idle-flood", Duration::from_secs(2))
+            .await
+            .unwrap();
+        let saw = accepted.await.unwrap();
+        assert!(
+            matches!(saw, Ok(Ok(0))),
+            "an idle flood left the peer blocked in its read: {saw:?}"
+        );
+        assert!(conn.is_closed(), "an idle flood left the connection open");
         drop(conn);
     }
 
