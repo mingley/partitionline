@@ -3784,37 +3784,11 @@ impl Consumer {
     async fn reconnect_bootstrap(&mut self, deadline: Instant) -> Result<()> {
         self.conns.clear();
         let addr = self.conn.addr().to_string();
-        let mut conn = BrokerConn::connect_tls(
-            &addr,
-            &self.cfg.client_id,
-            self.cfg.connect_timeout.min(startup_remaining(deadline)?),
-            self.cfg.tls.as_ref(),
-        )
-        .await?;
-        let resp =
-            crate::protocol::api::negotiate_api_versions(&mut conn, startup_remaining(deadline)?)
-                .await?;
-        sasl::apply_api_keys(&mut conn, &resp.api_keys);
-        sasl::authenticate(
-            &mut conn,
-            self.cfg.sasl_plain.as_ref(),
-            self.cfg.sasl_scram.as_ref(),
-            self.cfg.sasl_scram_sha512.as_ref(),
-            self.cfg.sasl_oauthbearer.as_deref(),
-            self.cfg.sasl_oauthbearer_oidc.as_ref(),
-            startup_remaining(deadline)?,
-        )
-        .await?;
+        let (conn, resp) = self.open_leader_socket(&addr, deadline).await?;
         self.metadata_version = resp
             .api_version(METADATA)
             .and_then(|v| pick_version(v.min_version, v.max_version, 0, 13))
             .ok_or_else(|| Error::Unsupported("broker does not support Metadata".into()))?;
-        if let Some(version) = resp
-            .api_version(FETCH)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 4, FETCH_CRATE_MAX_VERSION))
-        {
-            conn.set_fetch_version(version);
-        }
         self.versions = resp
             .api_keys
             .into_iter()

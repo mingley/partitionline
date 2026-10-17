@@ -3400,6 +3400,40 @@ async fn fetch_reuses_bootstrap_api_versions_after_idle() {
     );
     consumer.close().await.unwrap();
 }
+
+/// An idle metadata refresh reconnects the bootstrap socket without ApiVersions.
+#[tokio::test]
+async fn metadata_reuses_bootstrap_api_versions_after_idle() {
+    let mock = common::Mock::start().await;
+    let mut cfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    cfg.metadata_max_age = Duration::ZERO;
+    cfg.connections_max_idle = Duration::from_millis(40);
+    let mut consumer = Consumer::new(cfg).await.unwrap();
+    let _warm = consumer.list_topics().await.unwrap();
+    tokio::time::sleep(Duration::from_millis(60)).await;
+    let versions_before = mock.api_versions_versions().len();
+    let accepts_before = mock.accepts();
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let started = Instant::now();
+    let _topics = consumer.list_topics().await.unwrap();
+    let elapsed = started.elapsed();
+    assert_eq!(
+        mock.api_versions_versions().len(),
+        versions_before,
+        "an idle metadata refresh should reuse the versions already learned"
+    );
+    assert_eq!(
+        mock.accepts(),
+        accepts_before + 1,
+        "idle expiry replaces the TCP socket"
+    );
+    assert!(
+        elapsed < Duration::from_millis(200),
+        "idle metadata refresh repeated ApiVersions: {elapsed:?}"
+    );
+    consumer.close().await.unwrap();
+}
+
 #[tokio::test]
 async fn group_heartbeat_dials_coordinator_while_finding_it() {
     let mock = common::Mock::start_two_node().await;
