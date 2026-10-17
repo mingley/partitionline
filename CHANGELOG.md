@@ -837,6 +837,13 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   which fails that poll, and not piggyback `MISMATCHED_ENDPOINT_TYPE`). Official
   Java `AuthHelper` writes this when DescribeCluster names an unknown
   endpoint type. A
+  piggybacked `UNKNOWN_CONTROLLER_ID` still
+  completes without retry, including when `AcknowledgeErrorMessage` is
+  set (Java `handleShareFetchSuccess` completes piggyback acks and still
+  delivers the fetch; this is not partition `UNKNOWN_CONTROLLER_ID`,
+  which fails that poll, and not piggyback `UNSUPPORTED_ENDPOINT_TYPE`). Official
+  Java `Errors` writes this KIP-919 code when a controller ID is not
+  known. A
   piggybacked `TOPIC_AUTHORIZATION_FAILED` on
   one partition does not fail a sibling whose `AcknowledgeErrorCode`
   is none, including when `AcknowledgeErrorMessage` is set or empty. A
