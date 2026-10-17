@@ -2474,6 +2474,13 @@
 //! `EnvelopeUtils` writes this when envelope forwarding cannot
 //! deserialize the request principal.
 //! A piggybacked
+//! `SNAPSHOT_NOT_FOUND` still completes without retry,
+//! including when `AcknowledgeErrorMessage` is set (this is not
+//! partition `SNAPSHOT_NOT_FOUND`, which fails that poll, and not
+//! piggyback `PRINCIPAL_DESERIALIZATION_FAILURE`). Official Java
+//! `KafkaRaftClient` writes this when the requested snapshot id does
+//! not exist.
+//! A piggybacked
 //! `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a
 //! sibling whose `AcknowledgeErrorCode` is none, including when
 //! `AcknowledgeErrorMessage` is set or empty. A piggybacked
