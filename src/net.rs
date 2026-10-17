@@ -676,6 +676,14 @@ where
     // Complete frames already parsed. The next stall read continues here.
     let mut scanned = 0usize;
     poll_fn(|cx| {
+        // A length already buffered is not waiting on another read. The
+        // peer is not reading, so the write must not sit until its deadline.
+        if stalled_write_read_rejected(read_buf) {
+            return Poll::Ready(Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "stalled write buffered more than one max frame",
+            )));
+        }
         let Some(remaining) = bytes.get(pos..) else {
             return Poll::Ready(Err(io::Error::new(
                 io::ErrorKind::InvalidInput,
@@ -3023,6 +3031,61 @@ mod tests {
         assert!(
             matches!(result, Ok(Err(_))),
             "an illegal length after a frame waited out the write: {elapsed:?}"
+        );
+    }
+
+    /// The illegal length is already buffered. The peer accepts no more
+    /// writes and sends nothing else.
+    struct StuckWrite;
+
+    impl AsyncRead for StuckWrite {
+        fn poll_read(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            _buf: &mut ReadBuf<'_>,
+        ) -> Poll<io::Result<()>> {
+            Poll::Pending
+        }
+    }
+
+    impl AsyncWrite for StuckWrite {
+        fn poll_write(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            _buf: &[u8],
+        ) -> Poll<io::Result<usize>> {
+            Poll::Pending
+        }
+
+        fn poll_flush(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<io::Result<()>> {
+            Poll::Ready(Ok(()))
+        }
+
+        fn poll_shutdown(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<io::Result<()>> {
+            Poll::Ready(Ok(()))
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn an_illegal_length_already_buffered_does_not_wait_out_the_write() {
+        let payload = vec![1u8; 32];
+        let mut read_buf = BytesMut::new();
+        read_buf.extend_from_slice(&0i32.to_be_bytes());
+        read_buf.extend_from_slice(&i32::MAX.to_be_bytes());
+        let started = std::time::Instant::now();
+        let result = tokio::time::timeout(
+            Duration::from_millis(200),
+            Deadline::from_timeout(Duration::from_secs(5)).run_io(write_all_pump(
+                &mut StuckWrite,
+                &mut read_buf,
+                &payload,
+            )),
+        )
+        .await;
+        let elapsed = started.elapsed();
+        assert!(
+            matches!(result, Ok(Err(_))),
+            "an illegal length already buffered waited out the write: {elapsed:?}"
         );
     }
 
