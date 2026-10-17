@@ -1168,7 +1168,7 @@ pub enum ShareAcquireMode {
 /// `QuorumController.processBrokerHeartbeat` writes this when the
 /// broker epoch has changed. A piggybacked
 /// `MEMBER_ID_REQUIRED` still completes without retry,
-/// including when `AcknowledgeErrorMessage` is set (Java
+/// including when `AcknowledgeErrorMessage` is set or empty (Java
 /// `handleShareFetchSuccess` completes piggyback acks and still
 /// delivers the fetch; this is not partition
 /// `MEMBER_ID_REQUIRED`, which fails that poll, and not piggyback
@@ -3031,7 +3031,7 @@ impl ShareGroup {
     /// broker epoch has changed.
     /// A piggybacked `MEMBER_ID_REQUIRED` still completes
     /// without retry, including when `AcknowledgeErrorMessage` is set
-    /// (Java `handleShareFetchSuccess` completes piggyback acks and still
+    /// or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
     /// delivers the fetch; this is not partition
     /// `MEMBER_ID_REQUIRED`, which fails that poll, and not piggyback
     /// `STALE_BROKER_EPOCH`). Official Java GroupCoordinator JoinGroup

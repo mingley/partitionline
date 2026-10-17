@@ -616,7 +616,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   broker epoch has changed. A
   piggybacked `MEMBER_ID_REQUIRED` still
   completes without retry, including when `AcknowledgeErrorMessage` is
-  set (Java `handleShareFetchSuccess` completes piggyback acks and still
+  set or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
   delivers the fetch; this is not partition `MEMBER_ID_REQUIRED`,
   which fails that poll, and not piggyback `STALE_BROKER_EPOCH`). Official
   Java GroupCoordinator JoinGroup writes this when the member id is
