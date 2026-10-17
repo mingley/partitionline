@@ -1365,7 +1365,7 @@ pub enum ShareAcquireMode {
 /// does not match the session.
 /// A piggybacked
 /// `INELIGIBLE_REPLICA` still completes without retry,
-/// including when `AcknowledgeErrorMessage` is set (Java
+/// including when `AcknowledgeErrorMessage` is set or empty (Java
 /// `handleShareFetchSuccess` completes piggyback acks and still
 /// delivers the fetch; this is not partition
 /// `INELIGIBLE_REPLICA`, which fails that poll, and not piggyback
@@ -3480,7 +3480,7 @@ impl ShareGroup {
     /// does not match the session.
     /// A piggybacked `INELIGIBLE_REPLICA` still completes
     /// without retry, including when `AcknowledgeErrorMessage` is set
-    /// (Java `handleShareFetchSuccess` completes piggyback acks and still
+    /// or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
     /// delivers the fetch; this is not partition
     /// `INELIGIBLE_REPLICA`, which fails that poll, and not piggyback
     /// `FETCH_SESSION_TOPIC_ID_ERROR`). Official Java
