@@ -9063,7 +9063,7 @@ impl Admin {
                             still.extend(retry);
                         }
                         Err(e) if e.is_retriable() => {
-                            let _ = self.conns.remove(&node);
+                            self.drop_node_conn(node);
                             still.extend(idxs);
                         }
                         Err(e) => return Err(e),
@@ -9114,24 +9114,20 @@ impl Admin {
         deadline: Instant,
     ) -> Result<(Vec<(usize, i64, i16)>, Vec<usize>)> {
         let topics = delete_records_topics(records, idxs);
-        self.connect_node_until(node, deadline).await?;
         let timeout = deadline.saturating_duration_since(Instant::now());
         if timeout.is_zero() {
             return Err(Error::Timeout);
         }
-        let body = {
-            let conn = self
-                .conns
-                .get_mut(&node)
-                .ok_or_else(|| Error::protocol("missing delete_records conn"))?;
-            conn.roundtrip(
+        let body = self
+            .roundtrip_known_node(
+                node,
+                deadline,
                 DELETE_RECORDS,
                 version,
                 |buf| encode_delete_records_named_topics(buf, version, &topics, timeout_ms),
                 timeout,
             )
-            .await
-        }?;
+            .await?;
         self.apply_delete_records_body(node, version, records, idxs, body)
     }
 

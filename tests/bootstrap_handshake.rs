@@ -228,6 +228,30 @@ async fn delete_records_leader_dials_overlap() {
     assert_eq!(deleted.len(), 2, "{deleted:?}");
 }
 
+/// DeleteRecords on the bootstrap leader does not open another socket.
+#[tokio::test]
+async fn delete_records_stays_on_the_bootstrap_socket() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    let accepts_before = mock.accepts();
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let started = Instant::now();
+    let deleted = admin.delete_records(("t", 0), 1i64, 10_000).await.unwrap();
+    let elapsed = started.elapsed();
+    assert_eq!(deleted.error_code(), 0);
+    assert_eq!(
+        mock.accepts(),
+        accepts_before,
+        "DeleteRecords should stay on the admin bootstrap socket"
+    );
+    assert!(
+        elapsed < Duration::from_millis(200),
+        "delete records opened another socket: {elapsed:?}"
+    );
+}
+
 #[tokio::test]
 async fn describe_groups_coordinator_dials_overlap() {
     let (mock, mut admin) = two_leader_admin().await;
