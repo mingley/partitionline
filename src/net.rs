@@ -702,6 +702,7 @@ fn spawn_idle_watch(
     stream: Arc<tokio::sync::Mutex<ConnIo>>,
     prefetch: Arc<parking_lot::Mutex<BytesMut>>,
     closed: Arc<AtomicBool>,
+    arm: Arc<tokio::sync::Notify>,
 ) -> tokio::task::AbortHandle {
     tokio::spawn(async move {
         let mut buf = [0u8; 1024];
@@ -712,7 +713,12 @@ fn spawn_idle_watch(
                 }
                 return;
             }
-            let seen = poll_fn(|cx| {
+            tokio::select! {
+                biased;
+                // A request replaced this watch's socket registration. Poll
+                // again now that the owner has released the stream.
+                _ = arm.notified() => continue,
+                seen = poll_fn(|cx| {
                 let Ok(mut io) = stream.try_lock() else {
                     return Poll::Ready(IdleRead::Busy);
                 };
@@ -735,17 +741,18 @@ fn spawn_idle_watch(
                         }
                     }
                 }
-            })
-            .await;
-            match seen {
-                IdleRead::Busy => tokio::time::sleep(Duration::from_millis(20)).await,
-                IdleRead::Data => {}
-                IdleRead::Eof => {
-                    closed.store(true, Ordering::SeqCst);
-                    if let Ok(mut io) = stream.try_lock() {
-                        drop(poll_fn(|cx| Pin::new(&mut *io).poll_shutdown(cx)).await);
+            }) => {
+                    match seen {
+                        IdleRead::Busy => tokio::time::sleep(Duration::from_millis(20)).await,
+                        IdleRead::Data => {}
+                        IdleRead::Eof => {
+                            closed.store(true, Ordering::SeqCst);
+                            if let Ok(mut io) = stream.try_lock() {
+                                drop(poll_fn(|cx| Pin::new(&mut *io).poll_shutdown(cx)).await);
+                            }
+                            return;
+                        }
                     }
-                    return;
                 }
             }
         }
@@ -760,6 +767,8 @@ pub struct BrokerConn {
     prefetch: Arc<parking_lot::Mutex<BytesMut>>,
     /// Stops the idle watch when this connection is dropped.
     idle_watch: tokio::task::AbortHandle,
+    /// Wakes the idle watch after a request releases the stream.
+    idle_arm: Arc<tokio::sync::Notify>,
     read_buf: BytesMut,
     write_buf: BytesMut,
     next_correlation: i32,
@@ -842,6 +851,12 @@ impl BrokerConn {
     ///
     /// Callers hold the stream lock, which is the same order the watch uses
     /// when it appends those bytes.
+    /// Drop a stream lock and wake the idle watch so it can register again.
+    fn release_stream(&self, stream: tokio::sync::MutexGuard<'_, ConnIo>) {
+        drop(stream);
+        self.idle_arm.notify_one();
+    }
+
     fn drain_prefetch(&mut self) {
         let mut extra = self.prefetch.lock();
         if extra.is_empty() {
@@ -972,15 +987,18 @@ impl BrokerConn {
         let stream = Arc::new(tokio::sync::Mutex::new(stream));
         let prefetch = Arc::new(parking_lot::Mutex::new(BytesMut::new()));
         let closed = Arc::new(AtomicBool::new(false));
+        let idle_arm = Arc::new(tokio::sync::Notify::new());
         let idle_watch = spawn_idle_watch(
             Arc::clone(&stream),
             Arc::clone(&prefetch),
             Arc::clone(&closed),
+            Arc::clone(&idle_arm),
         );
         Ok(Self {
             stream,
             prefetch,
             idle_watch,
+            idle_arm,
             read_buf: BytesMut::with_capacity(8 * 1024),
             write_buf: BytesMut::with_capacity(16 * 1024),
             next_correlation: 1,
@@ -1079,6 +1097,7 @@ impl BrokerConn {
         let stream = Arc::clone(&self.stream);
         let mut stream = stream.lock().await;
         drop(stream.shutdown().await);
+        self.release_stream(stream);
     }
 
     /// Broker session lifetime in milliseconds, if negotiated via SaslAuthenticate v1+ (KIP-368).
@@ -1197,9 +1216,11 @@ impl BrokerConn {
         let stream = Arc::clone(&self.stream);
         let mut stream = stream.lock().await;
         self.drain_prefetch();
-        deadline
+        let wrote = deadline
             .run_io(write_all_pump(&mut *stream, &mut self.read_buf, bytes))
-            .await?;
+            .await;
+        self.release_stream(stream);
+        wrote?;
         guard.complete();
         self.touch();
         Ok(())
@@ -1231,6 +1252,7 @@ impl BrokerConn {
         let mut stream = stream.lock().await;
         self.drain_prefetch();
         if inbound_satisfied(&self.read_buf) || !self.read_buf.is_empty() {
+            self.release_stream(stream);
             return Ok(());
         }
         let result = poll_fn(|cx| {
@@ -1276,7 +1298,7 @@ impl BrokerConn {
             }
         })
         .await;
-        drop(stream);
+        self.release_stream(stream);
         if self.is_closed() {
             self.release_if_closed().await;
         }
@@ -1337,18 +1359,19 @@ impl BrokerConn {
             let mut stream = stream.lock().await;
             self.drain_prefetch();
             if self.read_buf.len() > buffered {
+                self.release_stream(stream);
                 continue;
             }
             let n = match deadline.run_io(stream.read_buf(&mut self.read_buf)).await {
                 Ok(n) => n,
                 Err(e) => {
-                    drop(stream);
+                    self.release_stream(stream);
                     self.close();
                     self.release_if_closed().await;
                     return Err(e);
                 }
             };
-            drop(stream);
+            self.release_stream(stream);
             if n == 0 {
                 self.close();
                 self.release_if_closed().await;
@@ -3079,6 +3102,38 @@ mod tests {
             })
             .await;
         assert!(matches!(res, Err(Error::Timeout)));
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn idle_watch_sees_a_close_after_a_finished_read() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        let (byte_tx, byte_rx) = tokio::sync::oneshot::channel::<()>();
+        let (gate_tx, gate_rx) = tokio::sync::oneshot::channel::<()>();
+        let accepted = tokio::spawn(async move {
+            let (socket, _) = listener.accept().await.unwrap();
+            let (mut reader, mut writer) = socket.into_split();
+            byte_rx.await.unwrap();
+            writer.write_all(&[0x01]).await.unwrap();
+            gate_rx.await.unwrap();
+            writer.shutdown().await.unwrap();
+            let mut buf = [0u8; 8];
+            tokio::time::timeout(Duration::from_millis(300), reader.read(&mut buf)).await
+        });
+        let mut conn =
+            BrokerConn::connect(&addr.to_string(), "idle-after-read", Duration::from_secs(2))
+                .await
+                .unwrap();
+        tokio::time::sleep(Duration::from_millis(50)).await;
+        byte_tx.send(()).unwrap();
+        conn.inbound_ready().await.unwrap();
+        gate_tx.send(()).unwrap();
+        let saw = accepted.await.unwrap();
+        assert!(
+            matches!(saw, Ok(Ok(0))),
+            "peer stayed in the read after a close that followed a finished read: {saw:?}"
+        );
+        drop(conn);
     }
 
     #[tokio::test(flavor = "current_thread")]
