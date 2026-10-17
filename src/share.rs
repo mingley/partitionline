@@ -1110,7 +1110,7 @@ pub enum ShareAcquireMode {
 /// `INVALID_PRINCIPAL_TYPE`, which fails that poll, and not piggyback
 /// `DELEGATION_TOKEN_EXPIRED`). A piggybacked
 /// `NON_EMPTY_GROUP` still completes without retry,
-/// including when `AcknowledgeErrorMessage` is set (Java
+/// including when `AcknowledgeErrorMessage` is set or empty (Java
 /// `handleShareFetchSuccess` completes piggyback acks and still
 /// delivers the fetch; this is not partition
 /// `NON_EMPTY_GROUP`, which fails that poll, and not piggyback
@@ -2890,7 +2890,7 @@ impl ShareGroup {
     /// `DELEGATION_TOKEN_EXPIRED`).
     /// A piggybacked `NON_EMPTY_GROUP` still completes
     /// without retry, including when `AcknowledgeErrorMessage` is set
-    /// (Java `handleShareFetchSuccess` completes piggyback acks and still
+    /// or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
     /// delivers the fetch; this is not partition
     /// `NON_EMPTY_GROUP`, which fails that poll, and not piggyback
     /// `INVALID_PRINCIPAL_TYPE`).
