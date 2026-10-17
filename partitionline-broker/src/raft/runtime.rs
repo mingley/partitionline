@@ -2023,7 +2023,41 @@ async fn outbound(control: Arc<Control>, peer: Peer, mut jobs: mpsc::Receiver<Jo
                 None
             },
             value=jobs.recv()=>match value{Some(j)=>Some(j),None=>break},
-            _ = tick.tick()=>match control.call(Command::Prepare(peer.key()),None,Some(reservation.clone()),admission).await{Ok(Reply::Job(j))=>j,_=>None},
+            _ = tick.tick() => {
+                // Prepare waits on the owner. A peer that leaves during that
+                // wait must not stay connected until the heartbeat deadline.
+                let prepare = control.call(
+                    Command::Prepare(peer.key()),
+                    None,
+                    Some(reservation.clone()),
+                    admission,
+                );
+                tokio::pin!(prepare);
+                let early = tokio::select! {
+                    biased;
+                    _ = async {
+                        if let Some((open, _, _)) = &mut socket {
+                            peer_socket_closed(
+                                open,
+                                &mut wire.unread,
+                                control.config.limits.frame_bytes,
+                            )
+                            .await;
+                        } else {
+                            std::future::pending::<()>().await;
+                        }
+                    } => None,
+                    result = &mut prepare => Some(result),
+                };
+                match early {
+                    None => {
+                        peer_left = true;
+                        None
+                    }
+                    Some(Ok(Reply::Job(job))) => job,
+                    Some(_) => None,
+                }
+            },
         };
         if peer_left {
             wire.unread.clear();
@@ -3262,6 +3296,124 @@ mod ownership_tests {
         match saw {
             Ok(Ok(0)) => Ok(()),
             _ => Err("outbound kept the socket while the peer was idle and closed".into()),
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn outbound_closes_when_the_peer_leaves_during_prepare() -> TestResult {
+        let owner = LocalOwner::open_profile(0, 5, 5, 16, StorageLimits::standard()?, 40).await?;
+        let voter = LocalOwner::open(1, 5, 16).await?;
+        tokio::time::sleep(Duration::from_millis(3)).await;
+        let jobs = match owner.control.reliable(Command::Tick).await? {
+            Reply::Votes(jobs) => jobs,
+            _ => return Err("campaign".into()),
+        };
+        let request = jobs
+            .into_iter()
+            .find_map(|job| match job {
+                Job::Vote(q) if q.context.peer.id == 1 => Some(q),
+                _ => None,
+            })
+            .ok_or("vote for peer 1")?;
+        let before = owner.state().await?.election.granted_votes;
+        let granted = grant(&voter, request).await?;
+        let Message::VoteReply(granted) = granted else {
+            return Err("genuine vote reply".into());
+        };
+        let listener = TcpListener::bind("127.0.0.1:0").await?;
+        let address = listener.local_addr()?;
+        let route = Peer::new(voter.control.config.bootstrap.local().clone(), address)?;
+        let (tx, rx) = mpsc::channel(1);
+        let control = owner.control.clone();
+        let running = tokio::spawn(async move {
+            outbound(control, route, rx).await;
+        });
+        tokio::time::sleep(Duration::from_millis(20)).await;
+        tx.send(Job::Vote(request)).await.map_err(|_| "send vote")?;
+        let (mut socket, _) = tokio::time::timeout(Duration::from_secs(2), listener.accept())
+            .await
+            .map_err(|_| "outbound did not connect")??;
+        let bound = owner.control.config.limits.frame_bytes;
+        let mut wire = WireBuf::new();
+        let deadline = Instant::now() + Duration::from_secs(2);
+        let hello = read_frame(&mut socket, bound, 64, deadline, &mut wire).await?;
+        let Message::Hello(hello) = hello.message else {
+            return Err("hello".into());
+        };
+        write_frame(
+            &mut socket,
+            &Frame {
+                rpc: 0,
+                message: Message::HelloAck(hello),
+            },
+            bound,
+            deadline,
+            &mut wire,
+        )
+        .await?;
+        let vote = read_frame(&mut socket, bound, 64, deadline, &mut wire).await?;
+        let Message::Vote(vote_request) = vote.message else {
+            return Err("vote".into());
+        };
+        if vote_request != granted.request {
+            running.abort();
+            return Err("wire vote did not match the campaign".into());
+        }
+        write_frame(
+            &mut socket,
+            &Frame {
+                rpc: vote.rpc,
+                message: Message::VoteReply(granted),
+            },
+            bound,
+            deadline,
+            &mut wire,
+        )
+        .await?;
+        let wait_grant = Instant::now() + Duration::from_millis(500);
+        loop {
+            if owner.state().await?.election.granted_votes > before {
+                break;
+            }
+            if Instant::now() >= wait_grant {
+                running.abort();
+                return Err("vote was not acknowledged".into());
+            }
+            tokio::task::yield_now().await;
+        }
+        tokio::time::sleep(Duration::from_millis(20)).await;
+        let (envelope, _reply, entered, release) = gate(Command::State);
+        owner
+            .control
+            .commands
+            .send(envelope)
+            .await
+            .map_err(|_| "gate admission")?;
+        let _entered = entered.await?;
+        // The next heartbeat blocks in Prepare while the owner is held.
+        tokio::time::sleep(Duration::from_millis(100)).await;
+        let mut buf = [0u8; 8];
+        let still_open = tokio::time::timeout(
+            Duration::from_millis(30),
+            tokio::io::AsyncReadExt::read(&mut socket, &mut buf),
+        )
+        .await;
+        if !matches!(still_open, Err(_)) {
+            let _ = release.send(());
+            running.abort();
+            return Err("outbound dropped the socket before prepare".into());
+        }
+        socket.shutdown().await.map_err(|_| "shutdown write")?;
+        let saw = tokio::time::timeout(
+            Duration::from_millis(300),
+            tokio::io::AsyncReadExt::read(&mut socket, &mut buf),
+        )
+        .await;
+        let _ = release.send(());
+        running.abort();
+        match saw {
+            Ok(Ok(0)) => Ok(()),
+            _ => Err("outbound kept the socket while prepare waited on the owner".into()),
         }
     }
 
