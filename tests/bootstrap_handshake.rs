@@ -1755,6 +1755,31 @@ async fn admin_close_closes_the_bootstrap_socket() {
     );
 }
 
+/// A coordinator that closes during the heartbeat interval is dialed again.
+#[tokio::test(flavor = "current_thread")]
+async fn group_heartbeat_reconnects_when_the_coordinator_closes() {
+    let mock = common::Mock::start().await;
+    mock.set_cg_heartbeat_interval_ms(30_000);
+    let mut cfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    cfg.request_timeout = Duration::from_secs(2);
+    cfg.max_wait_ms = 10;
+    cfg.heartbeat_interval = Duration::from_secs(30);
+    cfg.session_timeout_ms = 60_000;
+    let group = ConsumerGroup::join(cfg, "g-reconn", "t").await.unwrap();
+    tokio::time::sleep(Duration::from_millis(50)).await;
+    let accepts = mock.accepts();
+    mock.drop_connections();
+    let started = Instant::now();
+    while mock.accepts() == accepts {
+        if started.elapsed() > Duration::from_millis(400) {
+            panic!("heartbeat did not reconnect after the coordinator closed");
+        }
+        tokio::task::yield_now().await;
+        tokio::time::sleep(Duration::from_millis(5)).await;
+    }
+    group.close().await.unwrap();
+}
+
 /// Closing a consumer group closes its sockets before close returns.
 #[tokio::test(flavor = "current_thread")]
 async fn group_close_closes_the_member_socket() {

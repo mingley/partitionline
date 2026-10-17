@@ -1139,7 +1139,16 @@ impl BrokerConn {
                         };
                     }
                     Poll::Ready(Err(error)) => return Poll::Ready(Err(Error::from(error))),
-                    Poll::Ready(Ok(0)) => return Poll::Ready(Ok(())),
+                    Poll::Ready(Ok(0)) => {
+                        if self.read_buf.is_empty() {
+                            self.close();
+                            return Poll::Ready(Err(Error::Io(std::io::Error::new(
+                                std::io::ErrorKind::UnexpectedEof,
+                                "broker closed connection",
+                            ))));
+                        }
+                        return Poll::Ready(Ok(()));
+                    }
                     Poll::Ready(Ok(_)) => {}
                 }
             }
@@ -2587,6 +2596,32 @@ mod tests {
             .unwrap_err();
         assert_eq!(error.kind(), io::ErrorKind::UnexpectedEof);
         assert!(read_buf.is_empty());
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn inbound_ready_closes_when_the_peer_closes() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let server = tokio::spawn(async move {
+            let (socket, _) = listener.accept().await.unwrap();
+            drop(socket);
+        });
+        let mut conn = BrokerConn::connect(&addr, "eof", Duration::from_secs(2))
+            .await
+            .unwrap();
+        for _ in 0..8 {
+            tokio::task::yield_now().await;
+        }
+        let result = conn.inbound_ready().await;
+        assert!(
+            result.is_err(),
+            "a closed peer should not look like a queued response"
+        );
+        assert!(
+            conn.is_closed(),
+            "a closed peer should close the connection"
+        );
+        server.abort();
     }
 
     #[tokio::test]

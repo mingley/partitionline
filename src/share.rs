@@ -5273,177 +5273,238 @@ impl ShareGroup {
                 }
                 let wake_deadline = next_hb_deadline;
                 let sleep_duration = wake_deadline.saturating_duration_since(Instant::now());
-                tokio::select! {
+                enum Wake {
+                    Stop,
+                    Again,
+                    Beat,
+                }
+                let wake = tokio::select! {
                     res = stop.changed() => {
                         if res.is_err() || *stop.borrow() {
-                            break;
+                            Wake::Stop
+                        } else {
+                            Wake::Again
                         }
                     }
-                    _ = hb_wake.notified() => {
-                        continue;
+                    _ = hb_wake.notified() => Wake::Again,
+                    _ = tokio::time::sleep(sleep_duration) => Wake::Beat,
+                    () = crate::group::coordinator_lost(&mut conn) => {
+                        conn = None;
+                        next_hb_deadline = Instant::now();
+                        Wake::Beat
                     }
-                    _ = tokio::time::sleep(sleep_duration) => {
-                        if Instant::now() < next_hb_deadline {
-                            continue;
-                        }
-                        let deadline = Instant::now() + cfg.request_timeout;
-                        if conn.is_none() {
-                            if let Some(known) = remembered.take() {
-                                conn = Box::pin(crate::group::rediscover_known_coord(
-                                    &cfg,
-                                    &group_id,
-                                    crate::protocol::group::COORDINATOR_GROUP,
-                                    &known,
-                                    &mut prior_coords,
-                                ))
-                                .await
-                                .ok();
-                            }
-                        }
-                        crate::group::reopen_idle_coordinator(
-                            &mut conn,
+                };
+                match wake {
+                    Wake::Stop => break,
+                    Wake::Again => continue,
+                    Wake::Beat => {}
+                }
+                if Instant::now() < next_hb_deadline {
+                    continue;
+                }
+                let deadline = Instant::now() + cfg.request_timeout;
+                if conn.is_none() {
+                    if let Some(known) = remembered.take() {
+                        conn = Box::pin(crate::group::rediscover_known_coord(
                             &cfg,
                             &group_id,
-                            deadline,
-                            &bootstrap_keys,
-                            &address_keys,
+                            crate::protocol::group::COORDINATOR_GROUP,
+                            &known,
                             &mut prior_coords,
-                        )
-                            .await;
-                        if *stop.borrow() { break; }
-                        let Some(c) = conn.as_mut() else {
-                            let retry_delay = cfg.retry_backoff.max(Duration::from_millis(50));
-                            next_hb_deadline = Instant::now() + retry_delay;
-                            if !update_share_heartbeat_deadline(&hb_deadline, &stop, next_hb_deadline) { break; }
-                            continue;
-                        };
-                        let epoch = hb_epoch.load(Ordering::SeqCst);
-                        let Ok(version) =
-                            spoken_share_group_heartbeat(c.share_group_heartbeat_version)
-                        else {
-                            conn = None;
-                            hb_err.store(error::UNSUPPORTED_VERSION, Ordering::SeqCst);
-                            let retry_delay = cfg.retry_backoff.max(Duration::from_millis(50));
-                            next_hb_deadline = Instant::now() + retry_delay;
-                            if !update_share_heartbeat_deadline(&hb_deadline, &stop, next_hb_deadline) { break; }
-                            continue;
-                        };
-                        let timeout = deadline.saturating_duration_since(Instant::now());
-                        if timeout.is_zero() {
-                            let retry_delay = cfg.retry_backoff.max(Duration::from_millis(50));
-                            next_hb_deadline = Instant::now() + retry_delay;
-                            if !update_share_heartbeat_deadline(&hb_deadline, &stop, next_hb_deadline) { break; }
-                            continue;
-                        }
-                        crate::group::copy_member_id(&mut member_id, &hb_member_id.lock());
-                        crate::group::copy_member_id(&mut heartbeat.member_id, &member_id);
-                        heartbeat.member_epoch = epoch;
-                        if epoch == ShareGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH {
-                            reuse_share_subscription(&mut heartbeat, &hb_topics.lock());
-                        } else {
-                            heartbeat.subscribed_topic_names = None;
-                        }
-                        let res = c
-                            .roundtrip(
-                                SHARE_GROUP_HEARTBEAT,
-                                version,
-                                |buf| {
-                                    encode_share_group_heartbeat_request(buf, version, &heartbeat)
-                                },
-                                timeout,
-                            )
-                            .await;
-                        if *stop.borrow() { break; }
-                        match res {
-                            Ok(body) => {
-                                if let Ok(resp) = decode_share_group_heartbeat_response(
-                                    &mut body.clone(),
-                                    version,
-                                ) {
-                                    if crate::error::coordinator_retriable(resp.error_code) {
-                                        if let Some(current) = conn.as_ref() {
-                                            remembered = Some(
-                                                crate::group::KnownCoord::capture(current)
-                                                    .with_bootstrap_keys(&bootstrap_keys)
-                                                    .with_address_keys(&address_keys),
-                                            );
-                                        }
-                                        conn = None;
-                                        let retry_delay = cfg.retry_backoff.max(Duration::from_millis(50));
-                                        next_hb_deadline = Instant::now() + retry_delay;
-                                        if !update_share_heartbeat_deadline(&hb_deadline, &stop, next_hb_deadline) { break; }
-                                    } else {
-                                        hb_err.store(resp.error_code, Ordering::SeqCst);
-                                        if let Some(id) = resp.member_id.as_deref() {
-                                            if !id.is_empty() && id != member_id {
-                                                publish_member_id(
-                                                    &mut member_id,
-                                                    &mut hb_member_id.lock(),
-                                                    id,
-                                                );
-                                                crate::group::copy_member_id(
-                                                    &mut heartbeat.member_id,
-                                                    &member_id,
-                                                );
-                                            }
-                                        }
-                                        hb_epoch.store(
-                                            share_heartbeat_epoch(
-                                                resp.error_code,
-                                                resp.member_epoch,
-                                                hb_epoch.load(Ordering::SeqCst),
-                                            ),
-                                            Ordering::SeqCst,
-                                        );
-                                        if let Some(assignment) = resp.assignment {
-                                            *hb_assignment.lock() = Some(assignment);
-                                        }
-                                        if resp.error_code == 0 {
-                                            if resp.heartbeat_interval_ms <= 0 {
-                                                hb_err.store(error::INVALID_REQUEST, Ordering::SeqCst);
-                                                next_hb_deadline = Instant::now() + current_interval;
-                                                if !update_share_heartbeat_deadline(&hb_deadline, &stop, next_hb_deadline) { break; }
-                                            } else if let Ok(ms_u64) = u64::try_from(resp.heartbeat_interval_ms) {
-                                                current_interval = Duration::from_millis(ms_u64);
-                                                hb_interval_ms.store(resp.heartbeat_interval_ms, Ordering::SeqCst);
-                                                next_hb_deadline = Instant::now() + current_interval;
-                                                if !update_share_heartbeat_deadline(&hb_deadline, &stop, next_hb_deadline) { break; }
-                                            } else {
-                                                next_hb_deadline = Instant::now() + current_interval;
-                                                if !update_share_heartbeat_deadline(&hb_deadline, &stop, next_hb_deadline) { break; }
-                                            }
-                                        } else {
-                                            next_hb_deadline = Instant::now() + current_interval;
-                                            if !update_share_heartbeat_deadline(&hb_deadline, &stop, next_hb_deadline) { break; }
-                                        }
-                                    }
-                                } else {
-                                    if let Some(current) = conn.as_ref() {
-                                        remembered = Some(
-                                            crate::group::KnownCoord::capture(current)
-                                                .with_bootstrap_keys(&bootstrap_keys)
-                                                    .with_address_keys(&address_keys),
-                                        );
-                                    }
-                                    conn = None;
-                                    let retry_delay = cfg.retry_backoff.max(Duration::from_millis(50));
-                                    next_hb_deadline = Instant::now() + retry_delay;
-                                    if !update_share_heartbeat_deadline(&hb_deadline, &stop, next_hb_deadline) { break; }
-                                }
-                            }
-                            Err(_) => {
+                        ))
+                        .await
+                        .ok();
+                    }
+                }
+                crate::group::reopen_idle_coordinator(
+                    &mut conn,
+                    &cfg,
+                    &group_id,
+                    deadline,
+                    &bootstrap_keys,
+                    &address_keys,
+                    &mut prior_coords,
+                )
+                .await;
+                if *stop.borrow() {
+                    break;
+                }
+                let Some(c) = conn.as_mut() else {
+                    let retry_delay = cfg.retry_backoff.max(Duration::from_millis(50));
+                    next_hb_deadline = Instant::now() + retry_delay;
+                    if !update_share_heartbeat_deadline(&hb_deadline, &stop, next_hb_deadline) {
+                        break;
+                    }
+                    continue;
+                };
+                let epoch = hb_epoch.load(Ordering::SeqCst);
+                let Ok(version) = spoken_share_group_heartbeat(c.share_group_heartbeat_version)
+                else {
+                    conn = None;
+                    hb_err.store(error::UNSUPPORTED_VERSION, Ordering::SeqCst);
+                    let retry_delay = cfg.retry_backoff.max(Duration::from_millis(50));
+                    next_hb_deadline = Instant::now() + retry_delay;
+                    if !update_share_heartbeat_deadline(&hb_deadline, &stop, next_hb_deadline) {
+                        break;
+                    }
+                    continue;
+                };
+                let timeout = deadline.saturating_duration_since(Instant::now());
+                if timeout.is_zero() {
+                    let retry_delay = cfg.retry_backoff.max(Duration::from_millis(50));
+                    next_hb_deadline = Instant::now() + retry_delay;
+                    if !update_share_heartbeat_deadline(&hb_deadline, &stop, next_hb_deadline) {
+                        break;
+                    }
+                    continue;
+                }
+                crate::group::copy_member_id(&mut member_id, &hb_member_id.lock());
+                crate::group::copy_member_id(&mut heartbeat.member_id, &member_id);
+                heartbeat.member_epoch = epoch;
+                if epoch == ShareGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH {
+                    reuse_share_subscription(&mut heartbeat, &hb_topics.lock());
+                } else {
+                    heartbeat.subscribed_topic_names = None;
+                }
+                let res = c
+                    .roundtrip(
+                        SHARE_GROUP_HEARTBEAT,
+                        version,
+                        |buf| encode_share_group_heartbeat_request(buf, version, &heartbeat),
+                        timeout,
+                    )
+                    .await;
+                if *stop.borrow() {
+                    break;
+                }
+                match res {
+                    Ok(body) => {
+                        if let Ok(resp) =
+                            decode_share_group_heartbeat_response(&mut body.clone(), version)
+                        {
+                            if crate::error::coordinator_retriable(resp.error_code) {
                                 if let Some(current) = conn.as_ref() {
                                     remembered = Some(
                                         crate::group::KnownCoord::capture(current)
                                             .with_bootstrap_keys(&bootstrap_keys)
-                                                    .with_address_keys(&address_keys),
+                                            .with_address_keys(&address_keys),
                                     );
                                 }
                                 conn = None;
                                 let retry_delay = cfg.retry_backoff.max(Duration::from_millis(50));
                                 next_hb_deadline = Instant::now() + retry_delay;
-                                if !update_share_heartbeat_deadline(&hb_deadline, &stop, next_hb_deadline) { break; }
+                                if !update_share_heartbeat_deadline(
+                                    &hb_deadline,
+                                    &stop,
+                                    next_hb_deadline,
+                                ) {
+                                    break;
+                                }
+                            } else {
+                                hb_err.store(resp.error_code, Ordering::SeqCst);
+                                if let Some(id) = resp.member_id.as_deref() {
+                                    if !id.is_empty() && id != member_id {
+                                        publish_member_id(
+                                            &mut member_id,
+                                            &mut hb_member_id.lock(),
+                                            id,
+                                        );
+                                        crate::group::copy_member_id(
+                                            &mut heartbeat.member_id,
+                                            &member_id,
+                                        );
+                                    }
+                                }
+                                hb_epoch.store(
+                                    share_heartbeat_epoch(
+                                        resp.error_code,
+                                        resp.member_epoch,
+                                        hb_epoch.load(Ordering::SeqCst),
+                                    ),
+                                    Ordering::SeqCst,
+                                );
+                                if let Some(assignment) = resp.assignment {
+                                    *hb_assignment.lock() = Some(assignment);
+                                }
+                                if resp.error_code == 0 {
+                                    if resp.heartbeat_interval_ms <= 0 {
+                                        hb_err.store(error::INVALID_REQUEST, Ordering::SeqCst);
+                                        next_hb_deadline = Instant::now() + current_interval;
+                                        if !update_share_heartbeat_deadline(
+                                            &hb_deadline,
+                                            &stop,
+                                            next_hb_deadline,
+                                        ) {
+                                            break;
+                                        }
+                                    } else if let Ok(ms_u64) =
+                                        u64::try_from(resp.heartbeat_interval_ms)
+                                    {
+                                        current_interval = Duration::from_millis(ms_u64);
+                                        hb_interval_ms
+                                            .store(resp.heartbeat_interval_ms, Ordering::SeqCst);
+                                        next_hb_deadline = Instant::now() + current_interval;
+                                        if !update_share_heartbeat_deadline(
+                                            &hb_deadline,
+                                            &stop,
+                                            next_hb_deadline,
+                                        ) {
+                                            break;
+                                        }
+                                    } else {
+                                        next_hb_deadline = Instant::now() + current_interval;
+                                        if !update_share_heartbeat_deadline(
+                                            &hb_deadline,
+                                            &stop,
+                                            next_hb_deadline,
+                                        ) {
+                                            break;
+                                        }
+                                    }
+                                } else {
+                                    next_hb_deadline = Instant::now() + current_interval;
+                                    if !update_share_heartbeat_deadline(
+                                        &hb_deadline,
+                                        &stop,
+                                        next_hb_deadline,
+                                    ) {
+                                        break;
+                                    }
+                                }
                             }
+                        } else {
+                            if let Some(current) = conn.as_ref() {
+                                remembered = Some(
+                                    crate::group::KnownCoord::capture(current)
+                                        .with_bootstrap_keys(&bootstrap_keys)
+                                        .with_address_keys(&address_keys),
+                                );
+                            }
+                            conn = None;
+                            let retry_delay = cfg.retry_backoff.max(Duration::from_millis(50));
+                            next_hb_deadline = Instant::now() + retry_delay;
+                            if !update_share_heartbeat_deadline(
+                                &hb_deadline,
+                                &stop,
+                                next_hb_deadline,
+                            ) {
+                                break;
+                            }
+                        }
+                    }
+                    Err(_) => {
+                        if let Some(current) = conn.as_ref() {
+                            remembered = Some(
+                                crate::group::KnownCoord::capture(current)
+                                    .with_bootstrap_keys(&bootstrap_keys)
+                                    .with_address_keys(&address_keys),
+                            );
+                        }
+                        conn = None;
+                        let retry_delay = cfg.retry_backoff.max(Duration::from_millis(50));
+                        next_hb_deadline = Instant::now() + retry_delay;
+                        if !update_share_heartbeat_deadline(&hb_deadline, &stop, next_hb_deadline) {
+                            break;
                         }
                     }
                 }

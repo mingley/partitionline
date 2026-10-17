@@ -59,6 +59,46 @@ async fn produce(mock: &common::Mock, entries: &[(i32, &[u8])]) {
     producer.close().await.unwrap();
 }
 
+/// A share coordinator that closes during the heartbeat interval is dialed again.
+#[tokio::test(flavor = "current_thread")]
+async fn share_heartbeat_reconnects_when_the_coordinator_closes() {
+    let mock = common::Mock::start().await;
+    v2(&mock);
+    mock.set_topic_partitions("t", 1);
+    mock.set_share_heartbeat_interval_ms(40);
+    let mut cfg = config(&mock);
+    cfg.heartbeat_interval = Duration::from_millis(40);
+    cfg.session_timeout_ms = 60_000;
+    let group = ShareGroup::join(cfg, "share-reconn", "t").await.unwrap();
+    let started = Instant::now();
+    while mock.share_heartbeat_calls() < 1 {
+        if started.elapsed() > Duration::from_secs(2) {
+            panic!("share heartbeat did not start");
+        }
+        tokio::time::sleep(Duration::from_millis(5)).await;
+    }
+    mock.set_share_heartbeat_interval_ms(30_000);
+    let learned = mock.share_heartbeat_calls();
+    while mock.share_heartbeat_calls() == learned {
+        if started.elapsed() > Duration::from_secs(2) {
+            panic!("share heartbeat did not learn the long interval");
+        }
+        tokio::time::sleep(Duration::from_millis(5)).await;
+    }
+    tokio::time::sleep(Duration::from_millis(50)).await;
+    let accepts = mock.accepts();
+    mock.drop_connections();
+    let started = Instant::now();
+    while mock.accepts() == accepts {
+        if started.elapsed() > Duration::from_millis(400) {
+            panic!("share heartbeat did not reconnect after the coordinator closed");
+        }
+        tokio::task::yield_now().await;
+        tokio::time::sleep(Duration::from_millis(5)).await;
+    }
+    group.close().await.unwrap();
+}
+
 /// Closing a share group closes its sockets before close returns.
 #[tokio::test(flavor = "current_thread")]
 async fn share_close_closes_the_member_socket() {

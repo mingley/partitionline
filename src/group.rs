@@ -3942,107 +3942,109 @@ impl ConsumerGroup {
             let mut tick =
                 tokio::time::interval(cfg.heartbeat_interval.max(Duration::from_millis(1)));
             loop {
-                tokio::select! {
+                enum Wake {
+                    Stop,
+                    Again,
+                    Beat,
+                }
+                let wake = tokio::select! {
                     res = stop.changed() => {
                         if res.is_err() || *stop.borrow() {
-                            break;
+                            Wake::Stop
+                        } else {
+                            Wake::Again
                         }
                     }
-                    _ = tick.tick() => {
-                        if leave_if_max_poll(
+                    _ = tick.tick() => Wake::Beat,
+                    () = coordinator_lost(&mut conn) => {
+                        conn = None;
+                        Wake::Beat
+                    }
+                };
+                match wake {
+                    Wake::Stop => break,
+                    Wake::Again => continue,
+                    Wake::Beat => {}
+                }
+                if leave_if_max_poll(
+                    &cfg,
+                    &group_id,
+                    &member_id,
+                    false,
+                    &last_poll,
+                    &left_max_poll,
+                    &mut conn,
+                    &bootstrap_keys,
+                    &mut remembered,
+                    &mut prior_coords,
+                )
+                .await
+                {
+                    break;
+                }
+                let deadline = Instant::now() + cfg.request_timeout;
+                if conn.is_none() {
+                    if let Some(known) = remembered.take() {
+                        conn = Box::pin(rediscover_known_coord(
                             &cfg,
                             &group_id,
-                            &member_id,
-                            false,
-                            &last_poll,
-                            &left_max_poll,
-                            &mut conn,
-                            &bootstrap_keys,
-                            &mut remembered,
+                            COORDINATOR_GROUP,
+                            &known,
                             &mut prior_coords,
-                        )
+                        ))
                         .await
-                        {
-                            break;
-                        }
-                        let deadline = Instant::now() + cfg.request_timeout;
-                        if conn.is_none() {
-                            if let Some(known) = remembered.take() {
-                                conn = Box::pin(rediscover_known_coord(
-                                    &cfg,
-                                    &group_id,
-                                    COORDINATOR_GROUP,
-                                    &known,
-                                    &mut prior_coords,
-                                ))
-                                .await
-                                .ok();
-                            }
-                        }
-                        reopen_idle_coordinator(
-                            &mut conn,
-                            &cfg,
-                            &group_id,
-                            deadline,
-                            &bootstrap_keys,
-                            &address_keys,
-                            &mut prior_coords,
-                        )
-                        .await;
-                        let Some(c) = conn.as_mut() else {
-                            continue;
-                        };
-                        let timeout = deadline.saturating_duration_since(Instant::now());
-                        if timeout.is_zero() {
-                            continue;
-                        }
-                        let generation = hb_generation.load(Ordering::SeqCst);
-                        let Ok(version) = spoken_heartbeat(c.heartbeat_version) else {
-                            // A coordinator that joined us and then omits Heartbeat
-                            // cannot keep the member alive. Drop the socket and
-                            // surface the miss; the next successful heartbeat
-                            // stores error 0 and clears it.
-                            conn = None;
-                            hb_err.store(error::UNSUPPORTED_VERSION, Ordering::SeqCst);
-                            continue;
-                        };
-                        let res = c
-                            .roundtrip(
-                                HEARTBEAT,
+                        .ok();
+                    }
+                }
+                reopen_idle_coordinator(
+                    &mut conn,
+                    &cfg,
+                    &group_id,
+                    deadline,
+                    &bootstrap_keys,
+                    &address_keys,
+                    &mut prior_coords,
+                )
+                .await;
+                let Some(c) = conn.as_mut() else {
+                    continue;
+                };
+                let timeout = deadline.saturating_duration_since(Instant::now());
+                if timeout.is_zero() {
+                    continue;
+                }
+                let generation = hb_generation.load(Ordering::SeqCst);
+                let Ok(version) = spoken_heartbeat(c.heartbeat_version) else {
+                    // A coordinator that joined us and then omits Heartbeat
+                    // cannot keep the member alive. Drop the socket and
+                    // surface the miss; the next successful heartbeat
+                    // stores error 0 and clears it.
+                    conn = None;
+                    hb_err.store(error::UNSUPPORTED_VERSION, Ordering::SeqCst);
+                    continue;
+                };
+                let res = c
+                    .roundtrip(
+                        HEARTBEAT,
+                        version,
+                        |buf| {
+                            encode_heartbeat_request(
+                                buf,
                                 version,
-                                |buf| {
-                                    encode_heartbeat_request(
-                                        buf,
-                                        version,
-                                        &group_id,
-                                        generation,
-                                        &member_id,
-                                        cfg.group_instance_id.as_deref(),
-                                    )
-                                },
-                                timeout,
+                                &group_id,
+                                generation,
+                                &member_id,
+                                cfg.group_instance_id.as_deref(),
                             )
-                            .await;
-                        match res {
-                            Ok(body) => {
-                                if let Ok((err, ..)) =
-                                    decode_heartbeat_response(&mut body.clone(), version)
-                                {
-                                    if error::coordinator_retriable(err) {
-                                        if let Some(current) = conn.as_ref() {
-                                            remembered = Some(
-                                                KnownCoord::capture(current)
-                                                    .with_bootstrap_keys(&bootstrap_keys)
-                                                    .with_address_keys(&address_keys),
-                                            );
-                                        }
-                                        conn = None;
-                                    } else {
-                                        hb_err.store(err, Ordering::SeqCst);
-                                    }
-                                }
-                            }
-                            Err(_) => {
+                        },
+                        timeout,
+                    )
+                    .await;
+                match res {
+                    Ok(body) => {
+                        if let Ok((err, ..)) = decode_heartbeat_response(&mut body.clone(), version)
+                        {
+                            if error::coordinator_retriable(err) {
                                 if let Some(current) = conn.as_ref() {
                                     remembered = Some(
                                         KnownCoord::capture(current)
@@ -4051,8 +4053,20 @@ impl ConsumerGroup {
                                     );
                                 }
                                 conn = None;
+                            } else {
+                                hb_err.store(err, Ordering::SeqCst);
                             }
                         }
+                    }
+                    Err(_) => {
+                        if let Some(current) = conn.as_ref() {
+                            remembered = Some(
+                                KnownCoord::capture(current)
+                                    .with_bootstrap_keys(&bootstrap_keys)
+                                    .with_address_keys(&address_keys),
+                            );
+                        }
+                        conn = None;
                     }
                 }
             }
@@ -5174,6 +5188,22 @@ pub(crate) async fn connect_member_and_coordinator(
         tokio::task::yield_now().await;
     }
     started
+}
+
+/// Wait until `conn` is closed by the coordinator.
+///
+/// A queued response is left in the buffer for the next heartbeat. No socket
+/// waits here forever so the interval can still fire.
+pub(crate) async fn coordinator_lost(conn: &mut Option<BrokerConn>) {
+    let Some(current) = conn.as_mut() else {
+        std::future::pending::<()>().await;
+        return;
+    };
+    match current.inbound_ready().await {
+        Err(_) => {}
+        Ok(()) if current.is_closed() => {}
+        Ok(()) => std::future::pending::<()>().await,
+    }
 }
 
 /// Reconnect an idle coordinator while its address is checked again.
