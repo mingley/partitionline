@@ -648,8 +648,8 @@ async fn establish<H: Handler>(
             .await
             {
                 Ok(Ok(stream)) => stream,
-                Ok(Err(_)) => return Exit::TlsError,
-                Err(_) => return Exit::TlsDeadline,
+                Ok(Err(_)) => return rejected_handshake(Exit::TlsError).await,
+                Err(_) => return rejected_handshake(Exit::TlsDeadline).await,
             };
             let mut peer = peer;
             peer.tls = match crate::security::tls::VerifiedPeer::new(
@@ -657,7 +657,7 @@ async fn establish<H: Handler>(
                 stream.get_ref().1.peer_certificates(),
             ) {
                 Ok(verified) => Some(verified),
-                Err(_) => return Exit::TlsError,
+                Err(_) => return rejected_handshake(Exit::TlsError).await,
             };
             exchange(stream, config, handler, handlers, peer, Some(auth)).await
         }
@@ -670,8 +670,8 @@ async fn establish<H: Handler>(
             .await
             {
                 Ok(Ok(stream)) => stream,
-                Ok(Err(_)) => return Exit::TlsError,
-                Err(_) => return Exit::TlsDeadline,
+                Ok(Err(_)) => return rejected_handshake(Exit::TlsError).await,
+                Err(_) => return rejected_handshake(Exit::TlsDeadline).await,
             };
             let mut peer = peer;
             peer.tls = match crate::security::tls::VerifiedPeer::new(
@@ -679,7 +679,7 @@ async fn establish<H: Handler>(
                 stream.get_ref().1.peer_certificates(),
             ) {
                 Ok(verified) => Some(verified),
-                Err(_) => return Exit::TlsError,
+                Err(_) => return rejected_handshake(Exit::TlsError).await,
             };
             exchange(
                 stream,
@@ -693,6 +693,16 @@ async fn establish<H: Handler>(
             .await
         }
     }
+}
+
+#[cfg(feature = "tls")]
+async fn rejected_handshake(exit: Exit) -> Exit {
+    // Dropping the accepted socket only schedules the close. Yield so the
+    // peer observes it before this handshake failure returns.
+    for _ in 0..8 {
+        tokio::task::yield_now().await;
+    }
+    exit
 }
 
 fn read_error(error: io::Error) -> Exit {
@@ -1462,5 +1472,113 @@ mod sasl_frame_tests {
         let parked = super::park_request(bytes);
         assert!(parked.is_empty());
         assert!(parked.capacity() >= capacity);
+    }
+}
+
+#[cfg(all(test, feature = "tls"))]
+mod tls_deadline_tests {
+    use super::{establish, Config, Exit, Handler, Peer, Session};
+    use crate::security::tls::{Acceptor, ClientAuth, Limits};
+    use std::future::Future;
+    use std::net::SocketAddr;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::sync::Arc;
+    use std::time::Duration;
+    use tokio::io::AsyncReadExt;
+    use tokio::net::{TcpListener, TcpStream};
+    use tokio::sync::Semaphore;
+    use tokio::time::Instant;
+
+    struct Nop;
+
+    impl Handler for Nop {
+        type Error = std::io::Error;
+
+        fn handle(
+            &self,
+            request: Vec<u8>,
+        ) -> impl Future<Output = Result<Option<Vec<u8>>, Self::Error>> + Send {
+            std::future::ready(Ok(Some(request)))
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn tls_handshake_deadline_closes_the_socket() {
+        let listener = TcpListener::bind("127.0.0.1:0")
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        let address = listener
+            .local_addr()
+            .unwrap_or_else(|error| panic!("{error}"));
+        let open = Arc::new(AtomicUsize::new(0));
+        let open_flag = Arc::clone(&open);
+        let client = tokio::spawn(async move {
+            let mut socket = TcpStream::connect(address)
+                .await
+                .unwrap_or_else(|error| panic!("{error}"));
+            let _started = open_flag.fetch_add(1, Ordering::SeqCst);
+            let mut buf = [0u8; 8];
+            loop {
+                match socket.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = open_flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let (server, _) = listener
+            .accept()
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        while open.load(Ordering::SeqCst) == 0 {
+            tokio::task::yield_now().await;
+        }
+        let acceptor = Acceptor::new(
+            vec![include_bytes!("../tests/fixtures/tls/server1.cert.der").to_vec()],
+            include_bytes!("../tests/fixtures/tls/server1.key.der").to_vec(),
+            ClientAuth::ServerOnly,
+            Limits {
+                handshake_timeout: Duration::from_millis(200),
+                ..Limits::default()
+            },
+        )
+        .unwrap_or_else(|error| panic!("{error}"));
+        let snapshot = acceptor.snapshot();
+        let config = Config::new(
+            1,
+            1,
+            1024,
+            1024,
+            Duration::from_secs(1),
+            Duration::from_secs(1),
+            Duration::from_secs(1),
+        )
+        .unwrap_or_else(|error| panic!("{error}"));
+        let result = establish(
+            server,
+            config,
+            Arc::new(Nop),
+            Arc::new(Semaphore::new(1)),
+            Peer {
+                address: "127.0.0.1:9"
+                    .parse::<SocketAddr>()
+                    .unwrap_or_else(|error| panic!("{error}")),
+                #[cfg(feature = "sasl")]
+                identity: None,
+                tls: None,
+            },
+            Session::Tls {
+                snapshot,
+                deadline: Instant::now() + Duration::from_millis(200),
+            },
+        )
+        .await;
+        assert!(matches!(result, Exit::TlsDeadline));
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "tls handshake deadline left the accepted socket blocked in a read"
+        );
+        client.abort();
     }
 }
