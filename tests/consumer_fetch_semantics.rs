@@ -3911,6 +3911,59 @@ async fn multi_bootstrap_join_reuses_the_other_bootstrap_handshake() {
     group.leave().await.unwrap();
 }
 
+/// A multi-bootstrap heartbeat rediscovers the coordinator without repeating ApiVersions.
+#[tokio::test]
+async fn multi_bootstrap_heartbeat_reuses_known_coordinator_handshakes() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_topic_partitions("t", 1);
+    mock.set_partition_leader("t", 0, 1);
+    mock.set_coordinator(2);
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    let _sent = producer
+        .send(ProduceRecord::to("t").value(&b"v"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+    let addr2 = mock.broker_addr(2).unwrap();
+    let mut cfg = ConsumerConfig::bootstrap([mock.addr.clone(), addr2]).max_wait_ms(10);
+    cfg.heartbeat_interval = Duration::from_millis(40);
+    let group = ConsumerGroup::join(cfg, "hb-multi-known", "t")
+        .await
+        .unwrap();
+    let started_first = Instant::now();
+    while mock.heartbeat_total("hb-multi-known") < 3 {
+        if started_first.elapsed() > Duration::from_secs(2) {
+            panic!("heartbeat did not settle");
+        }
+        tokio::time::sleep(Duration::from_millis(5)).await;
+    }
+    let versions_before = mock.api_versions_versions().len();
+    let beats_before = mock.heartbeat_total("hb-multi-known");
+    mock.fail_heartbeat_once(14);
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let started = Instant::now();
+    while mock.heartbeat_total("hb-multi-known") < beats_before + 2 {
+        if started.elapsed() > Duration::from_secs(2) {
+            panic!("heartbeat did not retry");
+        }
+        tokio::time::sleep(Duration::from_millis(5)).await;
+    }
+    let elapsed = started.elapsed();
+    assert_eq!(
+        mock.api_versions_versions().len(),
+        versions_before,
+        "rediscovery renegotiated a broker that was already learned"
+    );
+    assert!(
+        elapsed < Duration::from_millis(200),
+        "multi-bootstrap heartbeat rediscovery repeated ApiVersions: {elapsed:?}"
+    );
+    group.leave().await.unwrap();
+}
+
 /// A fetch from the group coordinator reuses that broker's handshake.
 #[tokio::test]
 async fn fetch_reuses_the_group_coordinator_handshake() {

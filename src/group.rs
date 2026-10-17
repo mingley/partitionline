@@ -5125,7 +5125,8 @@ async fn discover_coord_once(
 ) -> Result<(BrokerConn, crate::protocol::api::ApiVersionsResponse)> {
     let deadline = crate::net::Deadline::from_std(deadline);
     if cfg.bootstrap.len() > 1 {
-        return discover_coord_raced(cfg, group_id, key_type, deadline).await;
+        return discover_coord_raced(cfg, group_id, key_type, deadline, None, &HashMap::new())
+            .await;
     }
     let mut last = Error::protocol("find coordinator failed");
     for addr in &cfg.bootstrap {
@@ -5145,20 +5146,81 @@ async fn discover_coord_once(
     Err(last)
 }
 
+/// How to open one broker while a coordinator is rediscovered.
+enum RememberedDial {
+    /// Stamp versions already learned for this address.
+    Known(KnownCoord),
+    /// Apply a stored ApiVersions list. No new handshake.
+    Keys(Vec<ApiVersion>),
+    /// First contact. Negotiate ApiVersions.
+    Negotiate,
+}
+
+fn remembered_dial(
+    addr: &str,
+    cfg: &ConsumerConfig,
+    known: Option<&KnownCoord>,
+    prior: &HashMap<String, KnownCoord>,
+) -> RememberedDial {
+    let Some(known) = known else {
+        return RememberedDial::Negotiate;
+    };
+    if addr == known.addr && known.find_coordinator_version >= 0 {
+        return RememberedDial::Known(known.clone());
+    }
+    if let Some(previous) = prior.get(addr) {
+        if previous.find_coordinator_version >= 0 {
+            return RememberedDial::Known(previous.clone());
+        }
+    }
+    if cfg
+        .bootstrap
+        .first()
+        .is_some_and(|bootstrap| bootstrap == addr)
+        && !known.bootstrap_keys.is_empty()
+    {
+        return RememberedDial::Keys(known.bootstrap_keys.clone());
+    }
+    RememberedDial::Negotiate
+}
+
+async fn open_remembered_dial(
+    cfg: &ConsumerConfig,
+    addr: &str,
+    dial: RememberedDial,
+) -> Result<CoordHandshake> {
+    match dial {
+        RememberedDial::Known(known) => {
+            let conn = connect_known_coord(cfg, &known).await?;
+            let version = conn.find_coordinator_version;
+            Ok((
+                conn,
+                version,
+                remembered_coord_versions(&known.bootstrap_keys),
+            ))
+        }
+        RememberedDial::Keys(keys) => open_coord_with_keys(cfg, addr, &keys).await,
+        RememberedDial::Negotiate => open_coord_with_find_version(cfg, addr).await,
+    }
+}
+
 async fn discover_coord_raced(
     cfg: &ConsumerConfig,
     group_id: &str,
     key_type: i8,
     deadline: crate::net::Deadline,
+    known: Option<&KnownCoord>,
+    prior: &HashMap<String, KnownCoord>,
 ) -> Result<(BrokerConn, crate::protocol::api::ApiVersionsResponse)> {
     type Handshake = (BrokerConn, i16, crate::protocol::api::ApiVersionsResponse);
     let mut inflight = tokio::task::JoinSet::<(usize, Result<Handshake>)>::new();
     for (index, addr) in cfg.bootstrap.iter().enumerate() {
-        let cfg = cfg.clone();
-        let addr = addr.clone();
+        let cfg_task = cfg.clone();
+        let addr_task = addr.clone();
+        let dial = remembered_dial(addr, cfg, known, prior);
         let _ = inflight.spawn(async move {
-            let result = match bounded_coord_config(&cfg, deadline) {
-                Ok(bounded) => open_coord_with_find_version(&bounded, &addr).await,
+            let result = match bounded_coord_config(&cfg_task, deadline) {
+                Ok(bounded) => open_remembered_dial(&bounded, &addr_task, dial).await,
                 Err(error) => Err(error),
             };
             (index, result)
@@ -5225,7 +5287,7 @@ async fn discover_coord_raced(
                         break;
                     };
                     match ask_ready_coordinator(
-                        cfg, group_id, key_type, deadline, &mut ready, index,
+                        cfg, group_id, key_type, deadline, &mut ready, index, known, prior,
                     )
                     .await
                     {
@@ -5243,7 +5305,7 @@ async fn discover_coord_raced(
                 }
                 Some(_) => {
                     match ask_ready_coordinator(
-                        cfg, group_id, key_type, deadline, &mut ready, cursor,
+                        cfg, group_id, key_type, deadline, &mut ready, cursor, known, prior,
                     )
                     .await
                     {
@@ -5279,6 +5341,10 @@ enum CoordAsk {
     Retry(Error),
 }
 
+#[expect(
+    clippy::too_many_arguments,
+    reason = "rediscovery carries the coordinator versions learned on earlier visits"
+)]
 async fn ask_ready_coordinator(
     cfg: &ConsumerConfig,
     group_id: &str,
@@ -5286,6 +5352,8 @@ async fn ask_ready_coordinator(
     deadline: crate::net::Deadline,
     ready: &mut [Option<Result<CoordHandshake>>],
     index: usize,
+    known: Option<&KnownCoord>,
+    prior: &HashMap<String, KnownCoord>,
 ) -> CoordAsk {
     let Some(slot) = ready.get_mut(index).and_then(Option::take) else {
         return CoordAsk::Retry(Error::protocol("missing coordinator handshake"));
@@ -5303,6 +5371,8 @@ async fn ask_ready_coordinator(
         key_type,
         deadline,
         Some(ready),
+        known,
+        prior,
     )
     .await;
     match asked {
@@ -5328,7 +5398,16 @@ async fn probe_bootstrap(
     let bounded = bounded_coord_config(cfg, deadline)?;
     let (hop, version, versions) = open_coord_with_find_version(&bounded, addr).await?;
     find_coordinator_on(
-        cfg, hop, version, versions, group_id, key_type, deadline, None,
+        cfg,
+        hop,
+        version,
+        versions,
+        group_id,
+        key_type,
+        deadline,
+        None,
+        None,
+        &HashMap::new(),
     )
     .await
 }
@@ -5346,6 +5425,8 @@ async fn find_coordinator_on(
     key_type: i8,
     deadline: crate::net::Deadline,
     ready: Option<&mut [Option<Result<CoordHandshake>>]>,
+    known: Option<&KnownCoord>,
+    prior: &HashMap<String, KnownCoord>,
 ) -> Result<(BrokerConn, crate::protocol::api::ApiVersionsResponse)> {
     let body = hop
         .roundtrip(
@@ -5372,7 +5453,12 @@ async fn find_coordinator_on(
         }
     }
     let bounded = bounded_coord_config(cfg, deadline)?;
-    let (conn, _, versions) = open_coord_with_find_version(&bounded, &coord_addr).await?;
+    let (conn, _, versions) = open_remembered_dial(
+        &bounded,
+        &coord_addr,
+        remembered_dial(&coord_addr, cfg, known, prior),
+    )
+    .await?;
     Ok((conn, versions))
 }
 
@@ -5501,10 +5587,27 @@ pub(crate) async fn rediscover_known_coord(
     prior: &mut HashMap<String, KnownCoord>,
 ) -> Result<BrokerConn> {
     let _stored = prior.insert(known.addr.clone(), known.clone());
-    if known.find_coordinator_version < 0 || cfg.bootstrap.len() != 1 {
+    if known.find_coordinator_version < 0 {
         // Heap-allocate the full handshake. Inlining it here makes the
         // caller's state machine large enough to overflow the stack.
         return Box::pin(rediscover_coord(cfg, group_id, key_type, &known.addr)).await;
+    }
+    if cfg.bootstrap.len() != 1 {
+        let deadline = Instant::now()
+            .checked_add(cfg.request_timeout)
+            .ok_or(Error::Timeout)?;
+        let deadline = crate::net::Deadline::from_std(deadline);
+        let bounded = bounded_coord_config(cfg, deadline)?;
+        let (conn, _) = Box::pin(discover_coord_raced(
+            &bounded,
+            group_id,
+            key_type,
+            deadline,
+            Some(known),
+            prior,
+        ))
+        .await?;
+        return Ok(conn);
     }
     let deadline = Instant::now()
         .checked_add(cfg.request_timeout)
