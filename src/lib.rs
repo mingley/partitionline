@@ -2250,6 +2250,10 @@
 //! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `OUT_OF_ORDER_SEQUENCE_NUMBER`, which fails that poll, and not
 //! piggyback `POLICY_VIOLATION`). A piggybacked
+//! `DUPLICATE_SEQUENCE_NUMBER` still completes without retry,
+//! including when `AcknowledgeErrorMessage` is set (this is not
+//! partition `DUPLICATE_SEQUENCE_NUMBER`, which fails that poll, and not
+//! piggyback `OUT_OF_ORDER_SEQUENCE_NUMBER`). A piggybacked
 //! `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a
 //! sibling whose `AcknowledgeErrorCode` is none, including when
 //! `AcknowledgeErrorMessage` is set or empty. A piggybacked
