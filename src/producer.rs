@@ -1663,6 +1663,7 @@ impl Producer {
                     COORDINATOR_TRANSACTION,
                     version,
                     deadline,
+                    &resp.api_keys,
                 )
                 .await?
             } else {
@@ -4220,6 +4221,7 @@ async fn discover_from_bootstrap(
     key_type: i8,
     version: i16,
     deadline: Instant,
+    keys: &[ApiVersion],
 ) -> Result<CoordinatorConnection> {
     let body = bootstrap
         .roundtrip(
@@ -4235,6 +4237,11 @@ async fn discover_from_bootstrap(
     }
     let addr = crate::net::format_address(&host, port);
     let bounded = bounded_producer_config(cfg, deadline)?;
+    if addr == bootstrap.addr() && !keys.is_empty() {
+        let conn = open_conn_with_known_versions(&addr, &bounded, false, keys).await?;
+        let versions = known_api_versions(keys);
+        return Ok(coordinator_connection(conn, &versions));
+    }
     let (conn, versions) = open_conn_with_versions(&addr, &bounded, false).await?;
     Ok(coordinator_connection(conn, &versions))
 }

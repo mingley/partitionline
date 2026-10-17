@@ -932,6 +932,31 @@ async fn transactional_startup_reuses_the_bootstrap_socket() {
     producer.close().await.unwrap();
 }
 
+/// A transaction coordinator on the bootstrap broker does not repeat ApiVersions.
+#[tokio::test]
+async fn transactional_startup_skips_a_second_bootstrap_handshake() {
+    let mock = common::Mock::start().await;
+    let delay = Duration::from_millis(250);
+    mock.set_api_versions_delay(delay);
+    mock.set_find_coordinator_delay(delay);
+    let mut cfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    cfg.linger = Duration::ZERO;
+    cfg.transactional_id = Some("tx-same".into());
+    let started = Instant::now();
+    let producer = Producer::new(cfg).await.unwrap();
+    let elapsed = started.elapsed();
+    assert_eq!(
+        mock.api_versions_versions().len(),
+        1,
+        "the coordinator socket should reuse the bootstrap broker's versions"
+    );
+    assert!(
+        elapsed < Duration::from_millis(650),
+        "transactional startup repeated ApiVersions on the bootstrap broker: {elapsed:?}"
+    );
+    producer.close().await.unwrap();
+}
+
 /// An EndTxn coordinator retry looks up the coordinator while that broker reconnects.
 #[tokio::test]
 async fn commit_redials_txn_coordinator_while_finding_it() {
