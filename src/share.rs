@@ -1437,7 +1437,7 @@ pub enum ShareAcquireMode {
 /// that does not match the endpoint that received the request.
 /// A piggybacked
 /// `UNSUPPORTED_ENDPOINT_TYPE` still completes without retry,
-/// including when `AcknowledgeErrorMessage` is set (Java
+/// including when `AcknowledgeErrorMessage` is set or empty (Java
 /// `handleShareFetchSuccess` completes piggyback acks and still
 /// delivers the fetch; this is not partition
 /// `UNSUPPORTED_ENDPOINT_TYPE`, which fails that poll, and not piggyback
@@ -3640,7 +3640,7 @@ impl ShareGroup {
     /// that does not match the endpoint that received the request.
     /// A piggybacked `UNSUPPORTED_ENDPOINT_TYPE` still completes
     /// without retry, including when `AcknowledgeErrorMessage` is set
-    /// (Java `handleShareFetchSuccess` completes piggyback acks and still
+    /// or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
     /// delivers the fetch; this is not partition
     /// `UNSUPPORTED_ENDPOINT_TYPE`, which fails that poll, and not piggyback
     /// `MISMATCHED_ENDPOINT_TYPE`). Official Java
