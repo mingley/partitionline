@@ -10121,7 +10121,7 @@ impl Admin {
                             still.extend(retry);
                         }
                         Err(e) if e.is_retriable() => {
-                            let _ = self.conns.remove(&node);
+                            self.drop_node_conn(node);
                             still.extend(idxs);
                         }
                         Err(e) => return Err(e),
@@ -10177,24 +10177,20 @@ impl Admin {
         pin_broker: bool,
     ) -> Result<DescribeProducersNodeOutcome> {
         let topics = describe_producers_topics(partitions, idxs);
-        self.connect_node_until(node, deadline).await?;
         let timeout = deadline.saturating_duration_since(Instant::now());
         if timeout.is_zero() {
             return Err(Error::Timeout);
         }
-        let body = {
-            let conn = self
-                .conns
-                .get_mut(&node)
-                .ok_or_else(|| Error::protocol("missing describe_producers conn"))?;
-            conn.roundtrip(
+        let body = self
+            .roundtrip_known_node(
+                node,
+                deadline,
                 DESCRIBE_PRODUCERS,
                 version,
                 |buf| encode_describe_producers_named_topics(buf, &topics),
                 timeout,
             )
-            .await
-        }?;
+            .await?;
         self.apply_describe_producers_body(partitions, idxs, body, pin_broker)
     }
 
