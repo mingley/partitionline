@@ -1103,7 +1103,6 @@ async fn write_and_prefetch<S: AsyncRead + AsyncWrite + Unpin>(
     }
     let length = i32::try_from(response.len()).map_err(|_| Exit::OversizedResponse)?;
     let prefix = length.to_be_bytes();
-    let mut saw_read_error = false;
     timeout_at(deadline, async {
         let mut slices = [IoSlice::new(&prefix), IoSlice::new(response)];
         let mut bufs: &mut [IoSlice<'_>] = &mut slices;
@@ -1155,10 +1154,10 @@ async fn write_and_prefetch<S: AsyncRead + AsyncWrite + Unpin>(
                             match polled {
                                 Poll::Pending => return Poll::Pending,
                                 Poll::Ready(Ok(0)) => stop_read = true,
-                                Poll::Ready(Err(_)) => {
-                                    stop_read = true;
-                                    saw_read_error = true;
-                                }
+                                // The peer is already gone. Waiting for the
+                                // rest of the response keeps the socket until
+                                // the write deadline.
+                                Poll::Ready(Err(error)) => return Poll::Ready(Err(error)),
                                 Poll::Ready(Ok(_)) => {
                                     // Ready bytes keep this poll in the read
                                     // loop, so the write deadline cannot run
@@ -1201,9 +1200,6 @@ async fn write_and_prefetch<S: AsyncRead + AsyncWrite + Unpin>(
     .await
     .map_err(|_| Exit::WriteDeadline)?
     .map_err(|_| Exit::Io)?;
-    if saw_read_error {
-        return Err(Exit::Io);
-    }
     Ok(())
 }
 
@@ -2451,6 +2447,60 @@ mod write_prefetch_tests {
         assert!(
             matches!(result, Ok(Err(_))),
             "an illegal prefetch length waited out the write: {elapsed:?}"
+        );
+    }
+
+    /// The next read fails immediately. The response write is not accepted.
+    struct FailedPrefetch;
+
+    impl AsyncRead for FailedPrefetch {
+        fn poll_read(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            _buf: &mut ReadBuf<'_>,
+        ) -> Poll<std::io::Result<()>> {
+            Poll::Ready(Err(std::io::Error::new(
+                std::io::ErrorKind::ConnectionReset,
+                "prefetch reset",
+            )))
+        }
+    }
+
+    impl AsyncWrite for FailedPrefetch {
+        fn poll_write(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            _buf: &[u8],
+        ) -> Poll<std::io::Result<usize>> {
+            Poll::Pending
+        }
+
+        fn poll_flush(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
+            Poll::Ready(Ok(()))
+        }
+
+        fn poll_shutdown(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
+            Poll::Ready(Ok(()))
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn a_failed_prefetch_does_not_wait_out_the_write() {
+        let result = tokio::time::timeout(
+            Duration::from_millis(200),
+            write_and_prefetch(
+                &mut FailedPrefetch,
+                b"response",
+                Instant::now() + Duration::from_secs(5),
+                &mut ReadAhead::new(),
+                1024,
+                true,
+            ),
+        )
+        .await;
+        assert!(
+            matches!(result, Ok(Err(Exit::Io))),
+            "a failed prefetch waited out the write"
         );
     }
 }
