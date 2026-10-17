@@ -3948,6 +3948,20 @@ struct RediscoverProducer<'a> {
     previous: &'a str,
     previous_keys: &'a [ApiVersion],
     bootstrap_keys: &'a [ApiVersion],
+    /// Versions already learned for other broker addresses.
+    known_by_addr: &'a HashMap<String, Vec<ApiVersion>>,
+}
+
+async fn open_recorded_peer(
+    addr: &str,
+    cfg: &ProducerConfig,
+    known: &HashMap<String, Vec<ApiVersion>>,
+) -> Result<(BrokerConn, ApiVersionsResponse)> {
+    if let Some(keys) = known.get(addr).filter(|keys| !keys.is_empty()) {
+        let conn = open_conn_with_known_versions(addr, cfg, false, keys).await?;
+        return Ok((conn, known_api_versions(keys)));
+    }
+    open_conn_with_versions(addr, cfg, false).await
 }
 
 async fn rediscover_producer_coordinator(
@@ -3975,7 +3989,8 @@ async fn rediscover_producer_coordinator(
                 let (conn, versions) = opened?;
                 return Ok(coordinator_connection(conn, &versions));
             }
-            let (conn, versions) = open_conn_with_versions(&addr, &bounded, false).await?;
+            let (conn, versions) =
+                open_recorded_peer(&addr, &bounded, known.known_by_addr).await?;
             return Ok(coordinator_connection(conn, &versions));
         }
     };
@@ -3983,7 +3998,7 @@ async fn rediscover_producer_coordinator(
         let (conn, versions) = speculative.await?;
         return Ok(coordinator_connection(conn, &versions));
     }
-    let (conn, versions) = open_conn_with_versions(&addr, &bounded, false).await?;
+    let (conn, versions) = open_recorded_peer(&addr, &bounded, known.known_by_addr).await?;
     Ok(coordinator_connection(conn, &versions))
 }
 
@@ -4073,6 +4088,7 @@ async fn init_producer_id_roundtrip(
                 .as_ref()
                 .map(|coord| coord.keys.clone())
                 .unwrap_or_default();
+            let recorded = HashMap::new();
             let new = if let Some(previous) = previous_addr.as_deref() {
                 rediscover_producer_coordinator(
                     cfg,
@@ -4083,6 +4099,7 @@ async fn init_producer_id_roundtrip(
                         previous,
                         previous_keys: &previous_keys,
                         bootstrap_keys,
+                        known_by_addr: &recorded,
                     },
                     deadline,
                 )
@@ -4411,6 +4428,7 @@ async fn txn_roundtrip(
             .as_ref()
             .map(|coord| (coord.conn.addr().to_string(), coord.keys.clone()))
     };
+    let recorded = shared.produce_keys.lock().clone();
     let new = if let Some((previous_addr, previous_keys)) = found {
         rediscover_producer_coordinator(
             &shared.cfg,
@@ -4421,6 +4439,7 @@ async fn txn_roundtrip(
                 previous: &previous_addr,
                 previous_keys: &previous_keys,
                 bootstrap_keys: &shared.api_keys,
+                known_by_addr: &recorded,
             },
             deadline,
         )
@@ -4473,6 +4492,7 @@ async fn group_coord_roundtrip(
         return Ok(body);
     }
     let previous = coord.conn.addr().to_string();
+    let recorded = shared.produce_keys.lock().clone();
     coord = rediscover_producer_coordinator(
         &shared.cfg,
         group_id,
@@ -4482,6 +4502,7 @@ async fn group_coord_roundtrip(
             previous: &previous,
             previous_keys: &coord.keys,
             bootstrap_keys: &shared.api_keys,
+            known_by_addr: &recorded,
         },
         deadline,
     )
