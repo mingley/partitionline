@@ -8773,6 +8773,10 @@ impl Consumer {
                 .iter()
                 .map(|(topic, partition, _)| (topic.as_ref(), *partition)),
         )?;
+        // The in-flight fetch still carries the pre-seek offset. Abort only
+        // schedules cancellation, so wait until that read has left the runtime
+        // before ListOffsets uses the leader socket.
+        self.finish_inflight_fetches(self.cfg.request_timeout).await;
         let deadline = offset_lookup_deadline(self.cfg.request_timeout)?;
         let queries: Vec<(Arc<str>, i32, i64)> = self
             .assigned
@@ -8810,6 +8814,8 @@ impl Consumer {
                 .iter()
                 .map(|(topic, partition)| (topic.as_str(), *partition)),
         )?;
+        // Same as `seek_assigned`: a blocked fetch must stop before ListOffsets.
+        self.finish_inflight_fetches(self.cfg.request_timeout).await;
         let deadline = offset_lookup_deadline(self.cfg.request_timeout)?;
         let queries: Vec<(String, i32, i64)> = partitions
             .into_iter()
