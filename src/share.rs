@@ -1055,6 +1055,12 @@ pub enum ShareAcquireMode {
 /// delivers the fetch; this is not partition
 /// `SASL_AUTHENTICATION_FAILED`, which fails that poll, and not piggyback
 /// `LOG_DIR_NOT_FOUND`). A piggybacked
+/// `UNKNOWN_PRODUCER_ID` still completes without retry,
+/// including when `AcknowledgeErrorMessage` is set (Java
+/// `handleShareFetchSuccess` completes piggyback acks and still
+/// delivers the fetch; this is not partition
+/// `UNKNOWN_PRODUCER_ID`, which fails that poll, and not piggyback
+/// `SASL_AUTHENTICATION_FAILED`). A piggybacked
 /// `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a
 /// sibling partition whose `AcknowledgeErrorCode` is none, including
 /// when `AcknowledgeErrorMessage` is set or empty. A piggybacked
@@ -2747,6 +2753,12 @@ impl ShareGroup {
     /// delivers the fetch; this is not partition
     /// `SASL_AUTHENTICATION_FAILED`, which fails that poll, and not piggyback
     /// `LOG_DIR_NOT_FOUND`).
+    /// A piggybacked `UNKNOWN_PRODUCER_ID` still completes
+    /// without retry, including when `AcknowledgeErrorMessage` is set
+    /// (Java `handleShareFetchSuccess` completes piggyback acks and still
+    /// delivers the fetch; this is not partition
+    /// `UNKNOWN_PRODUCER_ID`, which fails that poll, and not piggyback
+    /// `SASL_AUTHENTICATION_FAILED`).
     /// A piggybacked `TOPIC_AUTHORIZATION_FAILED` on one partition
     /// does not fail a sibling whose `AcknowledgeErrorCode` is none,
     /// including when `AcknowledgeErrorMessage` is set or empty.
