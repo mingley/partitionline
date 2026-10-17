@@ -1951,6 +1951,18 @@ pub struct BrokerPipeline {
     cmd_tx: tokio::sync::mpsc::Sender<PipelineCommand>,
     closed: Arc<AtomicBool>,
     shared_state: Arc<AtomicU8>,
+    task: Arc<tokio::task::JoinHandle<()>>,
+}
+
+impl Drop for BrokerPipeline {
+    fn drop(&mut self) {
+        // The loop can be inside a socket write, where it does not watch the
+        // command channel. Dropping the last handle aborts that write.
+        // Dropping a `JoinHandle` alone would detach it.
+        if Arc::strong_count(&self.task) == 1 {
+            self.task.abort();
+        }
+    }
 }
 
 impl fmt::Debug for BrokerPipeline {
@@ -1975,7 +1987,7 @@ impl BrokerPipeline {
         let (cmd_tx, cmd_rx) = tokio::sync::mpsc::channel(128);
         let closed = conn.closed.clone();
         let shared_state = Arc::new(AtomicU8::new(PipelineState::Active.to_u8()));
-        drop(tokio::spawn(run_pipeline_loop(
+        let task = Arc::new(tokio::spawn(run_pipeline_loop(
             conn,
             max_in_flight.max(1),
             cmd_rx,
@@ -1985,7 +1997,15 @@ impl BrokerPipeline {
             cmd_tx,
             closed,
             shared_state,
+            task,
         }
+    }
+
+    /// Test hook: the connection loop task.
+    #[doc(hidden)]
+    #[must_use]
+    pub fn test_task(&self) -> Arc<tokio::task::JoinHandle<()>> {
+        Arc::clone(&self.task)
     }
 
     /// Whether this pipeline's underlying connection is closed.
@@ -2720,5 +2740,56 @@ mod tests {
             })
             .await;
         assert!(matches!(res, Err(Error::Timeout)));
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn dropping_a_pipeline_stops_a_blocked_write() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        let hold = tokio::spawn(async move {
+            let (sock, _) = listener.accept().await.unwrap();
+            std::future::pending::<()>().await;
+            drop(sock);
+        });
+        let conn = BrokerConn::connect(&addr.to_string(), "pipeline-drop", Duration::from_secs(2))
+            .await
+            .unwrap();
+        let pipeline = BrokerPipeline::with_max_in_flight(conn, 1);
+        let watch = pipeline.test_task().abort_handle();
+        let sender = pipeline.clone();
+        let request = tokio::spawn(async move {
+            let body = vec![0u8; 8 * 1024 * 1024];
+            let _result = sender
+                .request(
+                    18,
+                    0,
+                    move |buf| {
+                        buf.extend_from_slice(&body);
+                        Ok(())
+                    },
+                    Duration::from_secs(30),
+                )
+                .await;
+        });
+        tokio::time::sleep(Duration::from_millis(20)).await;
+        assert!(!watch.is_finished(), "the pipeline should still be writing");
+        drop(pipeline);
+        request.abort();
+        let started = std::time::Instant::now();
+        let mut turns = 0u32;
+        while !watch.is_finished() && turns < 8 {
+            turns = turns.saturating_add(1);
+            tokio::task::yield_now().await;
+        }
+        assert!(
+            started.elapsed() < Duration::from_millis(200),
+            "drop waited for the blocked write: {:?}",
+            started.elapsed()
+        );
+        assert!(
+            watch.is_finished(),
+            "dropping the pipeline left its connection loop running"
+        );
+        hold.abort();
     }
 }
