@@ -3788,6 +3788,70 @@ async fn find_producer_coordinator(
     }
 }
 
+async fn rediscover_producer_coordinator(
+    cfg: &ProducerConfig,
+    key: &str,
+    key_type: i8,
+    version: i16,
+    previous: &str,
+    deadline: Instant,
+) -> Result<CoordinatorConnection> {
+    if cfg.bootstrap.len() != 1 {
+        return discover_within(cfg, key, key_type, version, deadline).await;
+    }
+    let bounded = bounded_producer_config(cfg, deadline)?;
+    let speculative = open_conn_with_versions(previous, &bounded, false);
+    let located = locate_producer_coordinator(cfg, key, key_type, version, deadline);
+    tokio::pin!(speculative);
+    tokio::pin!(located);
+    let addr = tokio::select! {
+        biased;
+        addr = &mut located => addr?,
+        opened = &mut speculative => {
+            let addr = located.await?;
+            if addr == previous {
+                let (conn, versions) = opened?;
+                return Ok(coordinator_connection(conn, &versions));
+            }
+            let (conn, versions) = open_conn_with_versions(&addr, &bounded, false).await?;
+            return Ok(coordinator_connection(conn, &versions));
+        }
+    };
+    if addr == previous {
+        let (conn, versions) = speculative.await?;
+        return Ok(coordinator_connection(conn, &versions));
+    }
+    let (conn, versions) = open_conn_with_versions(&addr, &bounded, false).await?;
+    Ok(coordinator_connection(conn, &versions))
+}
+
+async fn locate_producer_coordinator(
+    cfg: &ProducerConfig,
+    key: &str,
+    key_type: i8,
+    version: i16,
+    deadline: Instant,
+) -> Result<String> {
+    let Some(addr) = cfg.bootstrap.first() else {
+        return Err(Error::protocol("find coordinator failed"));
+    };
+    let bounded = bounded_producer_config(cfg, deadline)?;
+    let (mut hop, _) = open_conn_with_versions(addr, &bounded, false).await?;
+    let body = hop
+        .roundtrip(
+            FIND_COORDINATOR,
+            version,
+            |buf| encode_find_coordinator_request_typed(buf, version, key, key_type),
+            timeout_remaining(deadline)?,
+        )
+        .await?;
+    let (err, _node, host, port) = decode_find_coordinator_response(&mut body.clone(), version)?;
+    if err != 0 {
+        return Err(Error::broker(err, "FindCoordinator"));
+    }
+    Ok(crate::net::format_address(&host, port))
+}
+
 fn coordinator_connection(
     conn: BrokerConn,
     versions: &ApiVersionsResponse,
@@ -3829,14 +3893,21 @@ async fn init_producer_id_roundtrip(
             let tid = txn_id
                 .as_deref()
                 .ok_or_else(|| Error::protocol("no transactional id"))?;
-            let new = discover_within(
-                cfg,
-                tid,
-                COORDINATOR_TRANSACTION,
-                required_find_coordinator(find_coord_version)?,
-                deadline,
-            )
-            .await?;
+            let find_version = required_find_coordinator(find_coord_version)?;
+            let previous = txn.as_ref().map(|coord| coord.conn.addr().to_string());
+            let new = if let Some(previous) = previous.as_deref() {
+                rediscover_producer_coordinator(
+                    cfg,
+                    tid,
+                    COORDINATOR_TRANSACTION,
+                    find_version,
+                    previous,
+                    deadline,
+                )
+                .await?
+            } else {
+                discover_within(cfg, tid, COORDINATOR_TRANSACTION, find_version, deadline).await?
+            };
             *txn = Some(new);
         }
         let timeout = timeout_remaining(deadline)?;
@@ -4063,14 +4134,31 @@ async fn txn_roundtrip(
         Err(e) if e.is_retriable() || matches!(e, Error::Closed) => {}
         Err(e) => return Err(e),
     }
-    let new = discover_within(
-        &shared.cfg,
-        &tid,
-        COORDINATOR_TRANSACTION,
-        required_find_coordinator(shared.find_coord_version)?,
-        deadline,
-    )
-    .await?;
+    let find_version = required_find_coordinator(shared.find_coord_version)?;
+    let previous = {
+        let guard = shared.txn.lock().await;
+        guard.as_ref().map(|coord| coord.conn.addr().to_string())
+    };
+    let new = if let Some(previous) = previous.as_deref() {
+        rediscover_producer_coordinator(
+            &shared.cfg,
+            &tid,
+            COORDINATOR_TRANSACTION,
+            find_version,
+            previous,
+            deadline,
+        )
+        .await?
+    } else {
+        discover_within(
+            &shared.cfg,
+            &tid,
+            COORDINATOR_TRANSACTION,
+            find_version,
+            deadline,
+        )
+        .await?
+    };
     let remaining = timeout_remaining(deadline)?;
     let mut guard = shared.txn.lock().await;
     *guard = Some(new);
@@ -4118,11 +4206,13 @@ async fn group_coord_roundtrip(
     if !error::coordinator_retriable(error_of(&body)?) {
         return Ok(body);
     }
-    coord = discover_within(
+    let previous = coord.conn.addr().to_string();
+    coord = rediscover_producer_coordinator(
         cfg,
         group_id,
         COORDINATOR_GROUP,
         find_coord_version,
+        &previous,
         deadline,
     )
     .await?;

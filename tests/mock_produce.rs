@@ -848,3 +848,32 @@ async fn describe_groups_redials_while_finding_coordinator_after_not_coordinator
         "describe groups found the coordinator before redialing after not-coordinator: {elapsed:?}"
     );
 }
+
+/// An EndTxn coordinator retry looks up the coordinator while that broker reconnects.
+#[tokio::test]
+async fn commit_redials_txn_coordinator_while_finding_it() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_topic_partitions("t", 1);
+    mock.set_txn_coordinator(2);
+    let mut cfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    cfg.linger = Duration::ZERO;
+    cfg.transactional_id = Some("tx-redial".into());
+    let producer = Producer::new(cfg).await.unwrap();
+    producer.begin_transaction().await.unwrap();
+    let _sent = producer
+        .send(ProduceRecord::to("t").value(&b"v"[..]))
+        .await
+        .unwrap();
+    mock.set_end_txn_error_times(NOT_COORDINATOR, 1);
+    let delay = Duration::from_millis(250);
+    mock.set_find_coordinator_delay(delay);
+    mock.set_api_versions_delay(delay);
+    let started = Instant::now();
+    producer.commit_transaction().await.unwrap();
+    let elapsed = started.elapsed();
+    assert!(
+        elapsed < Duration::from_millis(650),
+        "commit found the transaction coordinator before redialing it: {elapsed:?}"
+    );
+    producer.close().await.unwrap();
+}
