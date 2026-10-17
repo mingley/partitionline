@@ -408,6 +408,64 @@ async fn wakeup_interrupts_share_poll_and_accept_once() {
     group.leave().await.unwrap();
 }
 
+/// A share poll timeout closes a leader handshake before the call returns.
+#[tokio::test(flavor = "current_thread")]
+async fn share_poll_timeout_closes_the_leader_socket() {
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::sync::Arc;
+    use tokio::io::AsyncReadExt;
+
+    let mock = common::Mock::start_two_node().await;
+    v2(&mock);
+    mock.set_topic_partitions("t", 1);
+    mock.set_partition_leader("t", 0, 2);
+    produce(&mock, &[(0, b"share")]).await;
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let slow = listener.local_addr().unwrap();
+    let open = Arc::new(AtomicUsize::new(0));
+    let open_flag = Arc::clone(&open);
+    let peer = tokio::spawn(async move {
+        loop {
+            let (mut sock, _) = listener.accept().await.unwrap();
+            let _started = open_flag.fetch_add(1, Ordering::SeqCst);
+            let open_flag = Arc::clone(&open_flag);
+            let _reader = tokio::spawn(async move {
+                let mut buf = [0u8; 64];
+                loop {
+                    match sock.read(&mut buf).await {
+                        Ok(0) | Err(_) => break,
+                        Ok(_) => continue,
+                    }
+                }
+                let _left = open_flag.fetch_sub(1, Ordering::SeqCst);
+            });
+        }
+    });
+    mock.set_broker_address(2, "127.0.0.1", i32::from(slow.port()));
+    let mut cfg = config(&mock);
+    cfg.request_timeout = Duration::from_millis(400);
+    cfg.connect_timeout = Duration::from_millis(200);
+    cfg.reconnect_backoff = Duration::ZERO;
+    cfg.reconnect_backoff_max = Duration::ZERO;
+    cfg.retry_backoff = Duration::ZERO;
+    cfg.retry_backoff_max = Duration::ZERO;
+    cfg.max_wait_ms = 10;
+    cfg.heartbeat_interval = Duration::from_secs(5);
+    cfg.metadata_max_age = Duration::from_secs(300);
+    let mut group = ShareGroup::join(cfg, "share-leader-stop", "t")
+        .await
+        .unwrap();
+    let result = group.poll().await;
+    assert!(result.is_err(), "share poll should time out");
+    assert_eq!(
+        open.load(Ordering::SeqCst),
+        0,
+        "share poll left the leader socket blocked in a broker read"
+    );
+    peer.abort();
+    group.leave().await.unwrap();
+}
+
 /// Wakeup stops share fetches that were already sent.
 #[tokio::test(flavor = "current_thread")]
 async fn wakeup_finishes_share_fetches_already_sent() {

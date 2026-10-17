@@ -2737,141 +2737,150 @@ impl ShareGroup {
         api: i16,
         deadline: Instant,
     ) -> Result<i16> {
-        if self
-            .share_conns
-            .get(&node)
-            .is_some_and(|peer| peer.conn.is_closed())
-        {
-            self.reset_node_session(node);
-        } else if self
-            .share_conns
-            .get(&node)
-            .is_some_and(|peer| peer.conn.idle_expired(self.cfg.connections_max_idle))
-        {
-            // A clean idle reconnect preserves broker-side member/session state.
-            // Cancelled or failed roundtrips instead invalidate ambiguous locks.
-            let _ = self.share_conns.remove(&node);
-        }
-        if let std::collections::hash_map::Entry::Vacant(entry) = self.share_conns.entry(node) {
-            let addr = self
-                .assigned
-                .iter()
-                .find_map(|(topic, part)| {
-                    self.consumer
-                        .leader_of(topic, *part)
-                        .ok()
-                        .filter(|(id, _)| *id == node)
-                        .map(|(_, addr)| addr)
-                })
-                .or_else(|| self.share_addresses.get(&node).cloned())
-                .ok_or_else(|| Error::protocol(format!("unknown share broker {node}")))?;
-            let rest = deadline.saturating_duration_since(Instant::now());
-            if rest.is_zero() {
-                return Err(Error::Timeout);
+        // A failed handshake drops its socket in this call. Yield so the
+        // broker observes that close before the error returns.
+        let resolved = async {
+            if self
+                .share_conns
+                .get(&node)
+                .is_some_and(|peer| peer.conn.is_closed())
+            {
+                self.reset_node_session(node);
+            } else if self
+                .share_conns
+                .get(&node)
+                .is_some_and(|peer| peer.conn.idle_expired(self.cfg.connections_max_idle))
+            {
+                // A clean idle reconnect preserves broker-side member/session state.
+                // Cancelled or failed roundtrips instead invalidate ambiguous locks.
+                let _ = self.share_conns.remove(&node);
             }
-            let reuse = addr == self.consumer.bootstrap_addr() && self.consumer.has_api_keys();
-            let remembered = if reuse {
-                None
-            } else if addr == self.coord_addr && !self.coord_keys.is_empty() {
-                Some(self.coord_keys.clone())
-            } else if let Some(keys) = self.consumer.learned_keys_for(&addr) {
-                Some(keys)
-            } else {
-                self.share_api_keys.get(&node).cloned()
-            };
-            let (mut conn, versions, already_authenticated) = if reuse {
-                let opened = self.consumer.open_leader_socket(&addr, deadline).await?;
-                (opened.0, opened.1, true)
-            } else if let Some(keys) = remembered {
-                let opened = Consumer::open_fetch_conn_known(
-                    &addr,
-                    &self.cfg.client_id,
-                    self.cfg.connect_timeout,
-                    self.cfg.tls.as_ref(),
-                    self.cfg.sasl_plain.as_ref(),
-                    self.cfg.sasl_scram.as_ref(),
-                    self.cfg.sasl_scram_sha512.as_ref(),
-                    self.cfg.sasl_oauthbearer.as_deref(),
-                    self.cfg.sasl_oauthbearer_oidc.as_ref(),
-                    &keys,
-                    deadline,
-                )
-                .await?;
-                (opened.0, opened.1, true)
-            } else {
-                let mut conn = BrokerConn::connect_tls(
-                    &addr,
-                    &self.cfg.client_id,
-                    self.cfg.connect_timeout.min(rest),
-                    self.cfg.tls.as_ref(),
-                )
-                .await?;
+            if let std::collections::hash_map::Entry::Vacant(entry) = self.share_conns.entry(node) {
+                let addr = self
+                    .assigned
+                    .iter()
+                    .find_map(|(topic, part)| {
+                        self.consumer
+                            .leader_of(topic, *part)
+                            .ok()
+                            .filter(|(id, _)| *id == node)
+                            .map(|(_, addr)| addr)
+                    })
+                    .or_else(|| self.share_addresses.get(&node).cloned())
+                    .ok_or_else(|| Error::protocol(format!("unknown share broker {node}")))?;
                 let rest = deadline.saturating_duration_since(Instant::now());
                 if rest.is_zero() {
                     return Err(Error::Timeout);
                 }
-                let versions =
-                    crate::protocol::api::negotiate_api_versions(&mut conn, rest).await?;
-                (conn, versions, false)
-            };
-            let fetch_version = versions
-                .api_version(SHARE_FETCH)
-                .and_then(|v| {
-                    pick_version(
-                        v.min_version,
-                        v.max_version,
-                        0,
-                        SHARE_FETCH_RUNTIME_MAX_VERSION,
+                let reuse = addr == self.consumer.bootstrap_addr() && self.consumer.has_api_keys();
+                let remembered = if reuse {
+                    None
+                } else if addr == self.coord_addr && !self.coord_keys.is_empty() {
+                    Some(self.coord_keys.clone())
+                } else if let Some(keys) = self.consumer.learned_keys_for(&addr) {
+                    Some(keys)
+                } else {
+                    self.share_api_keys.get(&node).cloned()
+                };
+                let (mut conn, versions, already_authenticated) = if reuse {
+                    let opened = self.consumer.open_leader_socket(&addr, deadline).await?;
+                    (opened.0, opened.1, true)
+                } else if let Some(keys) = remembered {
+                    let opened = Consumer::open_fetch_conn_known(
+                        &addr,
+                        &self.cfg.client_id,
+                        self.cfg.connect_timeout,
+                        self.cfg.tls.as_ref(),
+                        self.cfg.sasl_plain.as_ref(),
+                        self.cfg.sasl_scram.as_ref(),
+                        self.cfg.sasl_scram_sha512.as_ref(),
+                        self.cfg.sasl_oauthbearer.as_deref(),
+                        self.cfg.sasl_oauthbearer_oidc.as_ref(),
+                        &keys,
+                        deadline,
                     )
-                })
-                .unwrap_or(-1);
-            let acknowledge_version = versions
-                .api_version(SHARE_ACKNOWLEDGE)
-                .and_then(|v| {
-                    pick_version(
-                        v.min_version,
-                        v.max_version,
-                        0,
-                        SHARE_ACKNOWLEDGE_RUNTIME_MAX_VERSION,
+                    .await?;
+                    (opened.0, opened.1, true)
+                } else {
+                    let mut conn = BrokerConn::connect_tls(
+                        &addr,
+                        &self.cfg.client_id,
+                        self.cfg.connect_timeout.min(rest),
+                        self.cfg.tls.as_ref(),
                     )
-                })
-                .unwrap_or(-1);
-            if !already_authenticated {
-                crate::protocol::sasl::apply_api_keys(&mut conn, &versions.api_keys);
-                let rest = deadline.saturating_duration_since(Instant::now());
-                if rest.is_zero() {
-                    return Err(Error::Timeout);
+                    .await?;
+                    let rest = deadline.saturating_duration_since(Instant::now());
+                    if rest.is_zero() {
+                        return Err(Error::Timeout);
+                    }
+                    let versions =
+                        crate::protocol::api::negotiate_api_versions(&mut conn, rest).await?;
+                    (conn, versions, false)
+                };
+                let fetch_version = versions
+                    .api_version(SHARE_FETCH)
+                    .and_then(|v| {
+                        pick_version(
+                            v.min_version,
+                            v.max_version,
+                            0,
+                            SHARE_FETCH_RUNTIME_MAX_VERSION,
+                        )
+                    })
+                    .unwrap_or(-1);
+                let acknowledge_version = versions
+                    .api_version(SHARE_ACKNOWLEDGE)
+                    .and_then(|v| {
+                        pick_version(
+                            v.min_version,
+                            v.max_version,
+                            0,
+                            SHARE_ACKNOWLEDGE_RUNTIME_MAX_VERSION,
+                        )
+                    })
+                    .unwrap_or(-1);
+                if !already_authenticated {
+                    crate::protocol::sasl::apply_api_keys(&mut conn, &versions.api_keys);
+                    let rest = deadline.saturating_duration_since(Instant::now());
+                    if rest.is_zero() {
+                        return Err(Error::Timeout);
+                    }
+                    crate::protocol::sasl::authenticate(
+                        &mut conn,
+                        self.cfg.sasl_plain.as_ref(),
+                        self.cfg.sasl_scram.as_ref(),
+                        self.cfg.sasl_scram_sha512.as_ref(),
+                        self.cfg.sasl_oauthbearer.as_deref(),
+                        self.cfg.sasl_oauthbearer_oidc.as_ref(),
+                        rest,
+                    )
+                    .await?;
                 }
-                crate::protocol::sasl::authenticate(
-                    &mut conn,
-                    self.cfg.sasl_plain.as_ref(),
-                    self.cfg.sasl_scram.as_ref(),
-                    self.cfg.sasl_scram_sha512.as_ref(),
-                    self.cfg.sasl_oauthbearer.as_deref(),
-                    self.cfg.sasl_oauthbearer_oidc.as_ref(),
-                    rest,
-                )
-                .await?;
+                let _stored = self.share_api_keys.insert(node, versions.api_keys);
+                let _ = self.share_addresses.insert(node, addr);
+                let _ = entry.insert(ShareNodeConnection {
+                    conn,
+                    fetch_version,
+                    acknowledge_version,
+                });
             }
-            let _stored = self.share_api_keys.insert(node, versions.api_keys);
-            let _ = self.share_addresses.insert(node, addr);
-            let _ = entry.insert(ShareNodeConnection {
-                conn,
-                fetch_version,
-                acknowledge_version,
-            });
+            let peer = self
+                .share_conns
+                .get(&node)
+                .ok_or_else(|| Error::protocol("missing share peer"))?;
+            if api == SHARE_FETCH {
+                // Do not acquire records on a peer whose locks cannot be acknowledged.
+                let _ = spoken_share_acknowledge(peer.acknowledge_version)?;
+                spoken_share_fetch(peer.fetch_version)
+            } else {
+                spoken_share_acknowledge(peer.acknowledge_version)
+            }
         }
-        let peer = self
-            .share_conns
-            .get(&node)
-            .ok_or_else(|| Error::protocol("missing share peer"))?;
-        if api == SHARE_FETCH {
-            // Do not acquire records on a peer whose locks cannot be acknowledged.
-            let _ = spoken_share_acknowledge(peer.acknowledge_version)?;
-            spoken_share_fetch(peer.fetch_version)
-        } else {
-            spoken_share_acknowledge(peer.acknowledge_version)
+        .await;
+        for _ in 0..8 {
+            tokio::task::yield_now().await;
         }
+        resolved
     }
 
     fn session_epoch(&self, node: i32) -> i32 {
