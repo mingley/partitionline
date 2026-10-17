@@ -180,6 +180,49 @@ impl OffsetClient {
         }
         Err(last)
     }
+    /// Race bootstrap handshakes and return as soon as the losers have stopped.
+    ///
+    /// Later offset RPCs await again after this race, which hides a handshake
+    /// that was only aborted.
+    #[doc(hidden)]
+    pub async fn test_race_bootstrap(&mut self) -> Result<()> {
+        let deadline = Deadline::from_std(
+            Instant::now()
+                .checked_add(self.cfg.request_timeout)
+                .ok_or(Error::Timeout)?,
+        );
+        let _opened = self.bootstrap(OFFSET_FETCH, false, false, deadline).await?;
+        Ok(())
+    }
+
+    /// Cancel handshakes that lost the bootstrap race and wait until they stop.
+    ///
+    /// Abort only schedules cancellation. On a current-thread runtime a read
+    /// stays inside the broker until this caller yields.
+    async fn finish_aborted_handshakes<T: 'static>(mut set: tokio::task::JoinSet<T>) {
+        set.abort_all();
+        let mut extra = 0u32;
+        while !set.is_empty() {
+            tokio::select! {
+                biased;
+                joined = set.join_next() => {
+                    if joined.is_none() {
+                        break;
+                    }
+                }
+                () = tokio::task::yield_now() => {
+                    extra = extra.saturating_add(1);
+                    if extra >= 8 {
+                        break;
+                    }
+                }
+            }
+        }
+        // The aborted task drops its socket when it is polled. One more turn
+        // lets the peer observe that close before this race returns.
+        tokio::task::yield_now().await;
+    }
+
     /// Validate connection settings without network I/O.
     pub fn new(mut cfg: AdminConfig) -> Result<Self> {
         if cfg.bootstrap.len() > 16 {
@@ -459,7 +502,7 @@ impl OffsetClient {
                 Err(error) => last = Error::protocol(format!("offset bootstrap: {error}")),
             }
         }
-        inflight.abort_all();
+        Self::finish_aborted_handshakes(inflight).await;
         for spare in &finished {
             self.remember_versions(spare.0.addr(), &spare.1.api_keys);
         }
