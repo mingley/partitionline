@@ -3778,6 +3778,43 @@ async fn max_poll_leave_reuses_a_dropped_remote_coordinator() {
     drop(group);
 }
 
+/// A fetch from the group coordinator reuses that broker's handshake.
+#[tokio::test]
+async fn fetch_reuses_the_group_coordinator_handshake() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_topic_partitions("t", 1);
+    mock.set_partition_leader("t", 0, 2);
+    mock.move_coordinator();
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    let _sent = producer
+        .send(ProduceRecord::to("t").value(&b"v"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+    let mut cfg = ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10);
+    cfg.heartbeat_interval = Duration::from_secs(5);
+    let mut group = ConsumerGroup::join(cfg, "fetch-coord", "t").await.unwrap();
+    let versions_before = mock.api_versions_versions().len();
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let started = Instant::now();
+    let got = group.poll().await.unwrap();
+    let elapsed = started.elapsed();
+    assert_eq!(got.len(), 1);
+    assert_eq!(
+        mock.api_versions_versions().len(),
+        versions_before,
+        "the fetch leader should reuse the coordinator handshake"
+    );
+    assert!(
+        elapsed < Duration::from_millis(200),
+        "fetch repeated the coordinator handshake: {elapsed:?}"
+    );
+    group.leave().await.unwrap();
+}
+
 /// Leaving a moved group negotiates the new coordinator and not bootstrap again.
 #[tokio::test]
 async fn group_leave_negotiates_only_the_new_coordinator() {

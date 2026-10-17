@@ -2858,6 +2858,28 @@ impl Consumer {
         self.versions.values().cloned().collect()
     }
 
+    /// Remember ApiVersions for the broker at `addr`.
+    ///
+    /// A later fetch to that leader skips ApiVersions. Unknown addresses are
+    /// ignored until metadata names the broker.
+    pub(crate) fn remember_broker_versions(&mut self, addr: &str, keys: Vec<ApiVersion>) {
+        if keys.is_empty() {
+            return;
+        }
+        let Some(node) = self
+            .cluster
+            .brokers
+            .iter()
+            .find_map(|(id, broker)| (broker == addr).then_some(*id))
+        else {
+            return;
+        };
+        if self.node_api_keys.contains_key(&node) {
+            return;
+        }
+        let _stored = self.node_api_keys.insert(node, keys);
+    }
+
     /// Connect with default config to one bootstrap server.
     pub async fn connect(bootstrap: impl Into<String>) -> Result<Self> {
         Self::new(ConsumerConfig::bootstrap([bootstrap.into()])).await

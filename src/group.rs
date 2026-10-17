@@ -796,7 +796,7 @@ impl ConsumerGroup {
         let started = Instant::now()
             .checked_add(cfg.request_timeout)
             .ok_or(Error::Timeout)?;
-        let (consumer, coord) = connect_member_and_coordinator(
+        let (mut consumer, coord) = connect_member_and_coordinator(
             &cfg,
             &group_id,
             &topics,
@@ -804,7 +804,13 @@ impl ConsumerGroup {
             started,
         )
         .await?;
-        let coord = coord.map(|(conn, _keys)| conn)?;
+        let coord = match coord {
+            Ok((conn, keys)) => {
+                consumer.remember_broker_versions(conn.addr(), keys);
+                conn
+            }
+            Err(error) => return Err(error),
+        };
 
         let hb_err = Arc::new(AtomicI16::new(0));
         let hb_generation = Arc::new(AtomicI32::new(0));
@@ -964,7 +970,7 @@ impl ConsumerGroup {
         let started = Instant::now()
             .checked_add(cfg.request_timeout)
             .ok_or(Error::Timeout)?;
-        let (consumer, coord) = connect_member_and_coordinator(
+        let (mut consumer, coord) = connect_member_and_coordinator(
             &cfg,
             &group_id,
             &topics,
@@ -972,7 +978,13 @@ impl ConsumerGroup {
             started,
         )
         .await?;
-        let coord = coord.map(|(conn, _keys)| conn)?;
+        let coord = match coord {
+            Ok((conn, keys)) => {
+                consumer.remember_broker_versions(conn.addr(), keys);
+                conn
+            }
+            Err(error) => return Err(error),
+        };
         let hb_err = Arc::new(AtomicI16::new(0));
         let hb_generation = Arc::new(AtomicI32::new(
             ConsumerGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH,
