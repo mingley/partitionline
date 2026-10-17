@@ -1885,7 +1885,7 @@ impl Producer {
                 while let Ok(topic) = meta_rx.try_recv() {
                     queued.push(topic);
                 }
-                match refresh_queued_topics(&shared, &queued).await {
+                match refresh_queued_topics(&shared, &queued, shared.cfg.request_timeout).await {
                     None => {}
                     Some(Ok(())) => publish_meta_err(&shared, None),
                     Some(Err(error)) => publish_meta_err(&shared, Some(clone_err(&error))),
@@ -4870,8 +4870,12 @@ fn unfresh_topic_error(shared: &Shared, topic: &Arc<str>) -> Option<Error> {
 /// `None` means each topic was still fresh, so a previous metadata error
 /// stays published. A later topic's broker error replaces an earlier one,
 /// matching a queue that refreshed those topics one after another.
-async fn refresh_queued_topics(shared: &Shared, topics: &[Arc<str>]) -> Option<Result<()>> {
-    let requested = match refresh_topics_within(shared, topics, shared.cfg.request_timeout).await {
+async fn refresh_queued_topics(
+    shared: &Shared,
+    topics: &[Arc<str>],
+    timeout: Duration,
+) -> Option<Result<()>> {
+    let requested = match refresh_topics_within(shared, topics, timeout).await {
         Ok(names) if names.is_empty() => return None,
         Ok(names) => names,
         Err(error) => return Some(Err(error)),
@@ -5331,7 +5335,15 @@ async fn retry_loop(weak: std::sync::Weak<Shared>, mut rx: mpsc::Receiver<Pendin
             for topic in &topics {
                 invalidate_cached_topic(&shared, topic);
             }
-            match refresh_queued_topics(&shared, &topics).await {
+            let now = Instant::now();
+            let mut meta_timeout = shared.cfg.request_timeout;
+            for pending in &batch {
+                let rest = pending.deadline.saturating_duration_since(now);
+                if rest < meta_timeout {
+                    meta_timeout = rest;
+                }
+            }
+            match refresh_queued_topics(&shared, &topics, meta_timeout).await {
                 None | Some(Ok(())) => true,
                 Some(Err(error)) => {
                     publish_meta_err(&shared, Some(clone_err(&error)));
