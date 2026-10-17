@@ -1941,8 +1941,8 @@ impl Producer {
 
     /// Queue every record, then wait for every offset.
     ///
-    /// Records that already have metadata are handed to workers before a
-    /// later topic is resolved, so batches fill while that lookup runs.
+    /// Records that already have metadata are handed to workers while a
+    /// stale topic is resolved, so those batches fill during the lookup.
     /// Topics that still need metadata share one request. Empty input
     /// returns an empty vec.
     pub async fn send_all(
@@ -1954,33 +1954,71 @@ impl Producer {
         if recs.is_empty() {
             return Ok(Vec::new());
         }
-        let mut pending: VecDeque<ProduceRecord> = recs.into();
-        let mut rxs = Vec::with_capacity(pending.len());
+        let mut pending: VecDeque<(usize, ProduceRecord)> = recs.into_iter().enumerate().collect();
+        let mut slots = Vec::new();
+        slots.resize_with(pending.len(), || None);
         let mut failed: Vec<(Arc<str>, Error)> = Vec::new();
-        while let Some(rec) = pending.pop_front() {
+        while let Some((index, rec)) = pending.pop_front() {
             if let Some(error) = prepared_topic_error(&failed, &rec.topic) {
                 return Err(error);
             }
             if topic_needs_metadata(&self.inner.shared, &rec.topic) {
                 let mut topics = vec![Arc::clone(&rec.topic)];
-                for later in &pending {
-                    if topic_needs_metadata(&self.inner.shared, &later.topic)
-                        && topics
+                let mut ready = Vec::new();
+                let mut rest = VecDeque::new();
+                while let Some(later) = pending.pop_front() {
+                    if topic_needs_metadata(&self.inner.shared, &later.1.topic) {
+                        if topics
                             .iter()
-                            .all(|topic| topic.as_ref() != later.topic.as_ref())
-                    {
-                        topics.push(Arc::clone(&later.topic));
+                            .all(|topic| topic.as_ref() != later.1.topic.as_ref())
+                        {
+                            topics.push(Arc::clone(&later.1.topic));
+                        }
+                        rest.push_back(later);
+                    } else {
+                        ready.push(later);
                     }
                 }
-                if topics.len() > 1 {
+                pending = rest;
+                let refresh_now = !ready.is_empty() || topics.len() > 1;
+                if refresh_now {
                     let budget = self.inner.shared.cfg.max_block;
                     if budget.is_zero() {
                         return Err(Error::Timeout);
                     }
                     let timeout = self.inner.shared.cfg.request_timeout.min(budget);
-                    self.reconnect_cached_leaders(std::iter::once(&rec).chain(pending.iter()));
-                    let requested =
-                        refresh_topics_within(&self.inner.shared, &topics, timeout).await?;
+                    self.reconnect_cached_leaders(
+                        std::iter::once(&rec)
+                            .chain(ready.iter().map(|(_, rec)| rec))
+                            .chain(pending.iter().map(|(_, rec)| rec)),
+                    );
+                    let requested = if ready.is_empty() {
+                        refresh_topics_within(&self.inner.shared, &topics, timeout).await?
+                    } else {
+                        self.nudge_known_leaders(ready.iter().map(|(_, rec)| rec));
+                        let shared = Arc::clone(&self.inner.shared);
+                        let refresh_topics = topics.clone();
+                        let refresh = tokio::spawn(async move {
+                            refresh_topics_within(&shared, &refresh_topics, timeout).await
+                        });
+                        for (ready_index, ready_rec) in ready {
+                            let rx = match self.enqueue_one(ready_rec).await {
+                                Ok(rx) => rx,
+                                Err(error) => {
+                                    refresh.abort();
+                                    return Err(error);
+                                }
+                            };
+                            if let Some(slot) = slots.get_mut(ready_index) {
+                                *slot = Some(rx);
+                            }
+                        }
+                        match refresh.await {
+                            Ok(Ok(requested)) => requested,
+                            Ok(Err(error)) => return Err(error),
+                            Err(_) => return Err(Error::Closed),
+                        }
+                    };
                     for topic in &requested {
                         if prepared_topic_error(&failed, topic).is_some() {
                             continue;
@@ -1996,11 +2034,19 @@ impl Producer {
             }
             // Start every known leader handshake before this record waits
             // for its own worker, so a later leader is already dialing.
-            self.nudge_known_leaders(std::iter::once(&rec).chain(pending.iter()));
-            rxs.push(self.enqueue_one(rec).await?);
+            self.nudge_known_leaders(
+                std::iter::once(&rec).chain(pending.iter().map(|(_, rec)| rec)),
+            );
+            let rx = self.enqueue_one(rec).await?;
+            if let Some(slot) = slots.get_mut(index) {
+                *slot = Some(rx);
+            }
         }
-        let mut out = Vec::with_capacity(rxs.len());
-        for rx in rxs {
+        let mut out = Vec::with_capacity(slots.len());
+        for slot in slots {
+            let Some(rx) = slot else {
+                return Err(Error::protocol("missing produce result"));
+            };
             out.push(rx.await.map_err(|_| Error::Closed)??);
         }
         Ok(out)

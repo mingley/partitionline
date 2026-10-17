@@ -9,6 +9,40 @@ use partitionline::{
 };
 use std::time::{Duration, Instant};
 
+/// A known leader accepts records while an unknown topic is resolved.
+#[tokio::test]
+async fn send_all_produces_known_topics_while_loading_metadata() {
+    let mock = common::Mock::start().await;
+    mock.set_topic_partitions("t", 1);
+    let mut cfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    cfg.linger = Duration::ZERO;
+    let producer = Producer::new(cfg).await.unwrap();
+    let _warm = producer
+        .send(ProduceRecord::to("t").value(&b"warm"[..]))
+        .await
+        .unwrap();
+    mock.set_topic_partitions("u", 1);
+    let delay = Duration::from_millis(250);
+    mock.set_metadata_delay(delay);
+    mock.set_produce_delay_times(delay, 1);
+    let started = Instant::now();
+    let sent = producer
+        .send_all([
+            ProduceRecord::to("u").value(&b"new"[..]),
+            ProduceRecord::to("t").value(&b"known"[..]),
+        ])
+        .await
+        .unwrap();
+    let elapsed = started.elapsed();
+    assert_eq!(sent.len(), 2);
+    assert!(sent.iter().all(|meta| meta.offset >= 0));
+    assert!(
+        elapsed < Duration::from_millis(450),
+        "known produce waited for the unknown topic: {elapsed:?}"
+    );
+    producer.close().await.unwrap();
+}
+
 #[tokio::test(flavor = "current_thread")]
 async fn ack_completes_while_the_next_batch_lingers() {
     let mock = common::Mock::start().await;
