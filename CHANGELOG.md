@@ -720,7 +720,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   the requested feature changes were valid. A
   piggybacked `PRINCIPAL_DESERIALIZATION_FAILURE` still
   completes without retry, including when `AcknowledgeErrorMessage` is
-  set (Java `handleShareFetchSuccess` completes piggyback acks and still
+  set or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
   delivers the fetch; this is not partition `PRINCIPAL_DESERIALIZATION_FAILURE`,
   which fails that poll, and not piggyback `FEATURE_UPDATE_FAILED`). Official
   Java `EnvelopeUtils` writes this when envelope forwarding cannot

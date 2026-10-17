@@ -2468,7 +2468,7 @@
 //! the requested feature changes were valid.
 //! A piggybacked
 //! `PRINCIPAL_DESERIALIZATION_FAILURE` still completes without retry,
-//! including when `AcknowledgeErrorMessage` is set (this is not
+//! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `PRINCIPAL_DESERIALIZATION_FAILURE`, which fails that poll, and not
 //! piggyback `FEATURE_UPDATE_FAILED`). Official Java
 //! `EnvelopeUtils` writes this when envelope forwarding cannot
