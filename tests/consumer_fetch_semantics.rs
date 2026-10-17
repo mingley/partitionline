@@ -5593,6 +5593,30 @@ async fn group_leave_closes_fetch_sessions_while_leaving() {
     );
 }
 
+/// Leave waits until the heartbeat task has actually stopped.
+#[tokio::test(flavor = "current_thread")]
+async fn leave_finishes_the_heartbeat_task() {
+    let mock = common::Mock::start().await;
+    mock.set_topic_partitions("t", 1);
+    let mut cfg = ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10);
+    cfg.heartbeat_interval = Duration::from_millis(40);
+    cfg.request_timeout = Duration::from_millis(400);
+    mock.set_heartbeat_delay(Duration::from_secs(5));
+    let group = ConsumerGroup::join(cfg, "hb-stop", "t").await.unwrap();
+    tokio::time::sleep(Duration::from_millis(30)).await;
+    let task = group.test_heartbeat_task().expect("heartbeat task");
+    let started = Instant::now();
+    group.leave().await.unwrap();
+    assert!(
+        started.elapsed() < Duration::from_millis(800),
+        "leave waited for the delayed heartbeat"
+    );
+    assert!(
+        task.is_finished(),
+        "leave returned while the heartbeat task was still alive"
+    );
+}
+
 /// Unsubscribe retires fetch sessions while LeaveGroup is in flight.
 #[tokio::test]
 async fn group_unsubscribe_closes_fetch_sessions_while_leaving() {

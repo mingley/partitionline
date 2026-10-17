@@ -764,6 +764,8 @@ struct State {
     hb_by_node: HashMap<i32, u32>,
     /// One-shot Heartbeat error codes, consumed before the normal member check.
     heartbeat_faults: VecDeque<i16>,
+    /// Delay before each classic Heartbeat response.
+    heartbeat_delay: Option<Duration>,
     kip848_groups: HashMap<String, Kip848Reg>,
 }
 
@@ -1255,6 +1257,7 @@ fn new_state(
         last_txn_offset_commit_node: None,
         hb_by_node: HashMap::new(),
         heartbeat_faults: VecDeque::new(),
+        heartbeat_delay: None,
         kip848_groups: HashMap::new(),
         tls_acceptor: None,
         tls_server_identity_pem: None,
@@ -3787,6 +3790,11 @@ impl Mock {
 
     pub fn fail_heartbeat_once(&self, code: i16) {
         self.state.lock().heartbeat_faults.push_back(code);
+    }
+
+    /// Hold each classic Heartbeat response for `delay`.
+    pub fn set_heartbeat_delay(&self, delay: Duration) {
+        self.state.lock().heartbeat_delay = Some(delay);
     }
 
     pub fn last_heartbeat_version(&self) -> Option<i16> {
@@ -8525,6 +8533,10 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 encode_sync_group_response(&mut body, header.api_version, 0, &asg).unwrap();
             }
             HEARTBEAT => {
+                let delay = state.lock().heartbeat_delay;
+                if let Some(delay) = delay {
+                    tokio::time::sleep(delay).await;
+                }
                 let (gid, _gen, member_id, ..) =
                     decode_heartbeat_request(&mut frame, header.api_version).unwrap();
                 let mut st = state.lock();

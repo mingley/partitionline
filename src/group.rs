@@ -646,6 +646,8 @@ pub struct ConsumerGroup {
     hb_interval_ms: Arc<AtomicI32>,
     hb_deadline: Arc<parking_lot::Mutex<Option<Instant>>>,
     hb_stop: watch::Sender<bool>,
+    /// Background heartbeat task. [`Self::leave`] waits for it to stop.
+    hb_task: Option<Arc<tokio::task::JoinHandle<()>>>,
     last_auto_commit: Instant,
     last_delivered_positions: Option<Vec<(Arc<str>, i32, i64)>>,
     last_delivered_topic_ids: DeliveredTopicIds,
@@ -844,6 +846,7 @@ impl ConsumerGroup {
             hb_interval_ms,
             hb_deadline,
             hb_stop,
+            hb_task: None,
             last_auto_commit: Instant::now(),
             last_delivered_positions: None,
             last_delivered_topic_ids: HashMap::new(),
@@ -867,7 +870,7 @@ impl ConsumerGroup {
             g.last_match_refresh = Instant::now();
         }
         g.rejoin_within(started).await?;
-        g.spawn_heartbeat(hb_rx);
+        g.hb_task = Some(g.spawn_heartbeat(hb_rx));
         Ok(g)
     }
 
@@ -1019,6 +1022,7 @@ impl ConsumerGroup {
             hb_interval_ms,
             hb_deadline,
             hb_stop,
+            hb_task: None,
             last_auto_commit: Instant::now(),
             last_delivered_positions: None,
             last_delivered_topic_ids: HashMap::new(),
@@ -1042,8 +1046,14 @@ impl ConsumerGroup {
             g.last_match_refresh = Instant::now();
         }
         g.heartbeat_join_within(started).await?;
-        g.spawn_heartbeat_consumer(hb_rx);
+        g.hb_task = Some(g.spawn_heartbeat_consumer(hb_rx));
         Ok(g)
+    }
+
+    /// Test hook: the background heartbeat task, if one has been started.
+    #[doc(hidden)]
+    pub fn test_heartbeat_task(&self) -> Option<Arc<tokio::task::JoinHandle<()>>> {
+        self.hb_task.as_ref().map(Arc::clone)
     }
 
     /// Subscribed topic names, in join order.
@@ -2199,18 +2209,22 @@ impl ConsumerGroup {
         if self.consumer.take_wakeup() {
             return Err(Error::Wakeup);
         }
+        let deadline = Instant::now() + self.cfg.request_timeout;
+        self.hb_stop.send(true).unwrap_or(());
+        let heartbeat = self.hb_task.take();
         if self.member_id.is_empty() {
             self.topics.clear();
             self.publish_hb_topics();
             self.topic_match = None;
             self.consumer.clear_assignment();
+            if let Some(heartbeat) = heartbeat {
+                finish_heartbeat_task(heartbeat, deadline).await;
+            }
             return Ok(());
         }
-        let deadline = Instant::now() + self.cfg.request_timeout;
         self.flush_async_commits(deadline).await;
         // KL-02: do not auto-commit on unsubscribe — poll-interval auto-commit
         // and explicit commit* are the only OffsetCommit paths for positions.
-        self.hb_stop.send(true).unwrap_or(());
         *self.hb_deadline.lock() = None;
         let revoked = self.assignment();
         if self.kip848 {
@@ -2254,6 +2268,9 @@ impl ConsumerGroup {
         *self.hb_assignment.lock() = None;
         *self.hb_ack.lock() = None;
         self.prev_assignment.clear();
+        if let Some(heartbeat) = heartbeat {
+            finish_heartbeat_task(heartbeat, deadline).await;
+        }
         Ok(())
     }
 
@@ -2352,10 +2369,10 @@ impl ConsumerGroup {
         self.hb_stop = hb_stop;
         if self.kip848 {
             self.heartbeat_join_within(deadline).await?;
-            self.spawn_heartbeat_consumer(hb_rx);
+            self.hb_task = Some(self.spawn_heartbeat_consumer(hb_rx));
         } else {
             self.rejoin_within(deadline).await?;
-            self.spawn_heartbeat(hb_rx);
+            self.hb_task = Some(self.spawn_heartbeat(hb_rx));
         }
         Ok(())
     }
@@ -2407,18 +2424,21 @@ impl ConsumerGroup {
     }
 
     async fn leave_within(mut self, deadline: Instant) -> Result<()> {
+        self.hb_stop.send(true).unwrap_or(());
+        let heartbeat = self.hb_task.take();
         if self.member_id.is_empty() {
-            self.hb_stop.send(true).unwrap_or(());
             *self.hb_deadline.lock() = None;
             self.consumer.close_interceptors();
             self.consumer
                 .close_fetch_sessions(deadline.saturating_duration_since(Instant::now()))
                 .await;
+            if let Some(heartbeat) = heartbeat {
+                finish_heartbeat_task(heartbeat, deadline).await;
+            }
             return Ok(());
         }
         self.flush_async_commits(deadline).await;
         // KL-02: never auto-commit positions on leave/close.
-        self.hb_stop.send(true).unwrap_or(());
         *self.hb_deadline.lock() = None;
         if self.kip848 {
             self.adopt_kip848_member_id();
@@ -2447,6 +2467,9 @@ impl ConsumerGroup {
             consumer.close_fetch_sessions(timeout),
         );
         self.consumer.close_interceptors();
+        if let Some(heartbeat) = heartbeat {
+            finish_heartbeat_task(heartbeat, deadline).await;
+        }
         out
     }
 
@@ -3505,7 +3528,10 @@ impl ConsumerGroup {
         Ok(revoked)
     }
 
-    fn spawn_heartbeat_consumer(&self, mut stop: watch::Receiver<bool>) {
+    fn spawn_heartbeat_consumer(
+        &self,
+        mut stop: watch::Receiver<bool>,
+    ) -> Arc<tokio::task::JoinHandle<()>> {
         let group_id = self.group_id.clone();
         let hb_member_id = self.hb_member_id.clone();
         let hb_err = self.hb_err.clone();
@@ -3519,7 +3545,7 @@ impl ConsumerGroup {
         let left_max_poll = self.left_max_poll.clone();
         let cfg = self.cfg.clone();
         let bootstrap_keys = self.consumer.copy_api_keys();
-        drop(tokio::spawn(async move {
+        Arc::new(tokio::spawn(async move {
             let mut conn: Option<BrokerConn> = None;
             let mut remembered: Option<KnownCoord> = None;
             let mut prior_coords = HashMap::new();
@@ -3801,10 +3827,10 @@ impl ConsumerGroup {
                     }
                 }
             }
-        }));
+        }))
     }
 
-    fn spawn_heartbeat(&self, mut stop: watch::Receiver<bool>) {
+    fn spawn_heartbeat(&self, mut stop: watch::Receiver<bool>) -> Arc<tokio::task::JoinHandle<()>> {
         let group_id = self.group_id.clone();
         let member_id = self.member_id.clone();
         let hb_err = self.hb_err.clone();
@@ -3813,7 +3839,7 @@ impl ConsumerGroup {
         let left_max_poll = self.left_max_poll.clone();
         let cfg = self.cfg.clone();
         let bootstrap_keys = self.consumer.copy_api_keys();
-        drop(tokio::spawn(async move {
+        Arc::new(tokio::spawn(async move {
             let mut conn: Option<BrokerConn> = None;
             let mut remembered: Option<KnownCoord> = None;
             let mut prior_coords = HashMap::new();
@@ -3821,8 +3847,8 @@ impl ConsumerGroup {
                 tokio::time::interval(cfg.heartbeat_interval.max(Duration::from_millis(1)));
             loop {
                 tokio::select! {
-                    _ = stop.changed() => {
-                        if *stop.borrow() {
+                    res = stop.changed() => {
+                        if res.is_err() || *stop.borrow() {
                             break;
                         }
                     }
@@ -3931,7 +3957,22 @@ impl ConsumerGroup {
                     }
                 }
             }
-        }));
+        }))
+    }
+}
+
+/// Stop a heartbeat task that has been signalled, then abort it if it is still running.
+async fn finish_heartbeat_task(task: Arc<tokio::task::JoinHandle<()>>, deadline: Instant) {
+    while !task.is_finished() && Instant::now() < deadline {
+        tokio::task::yield_now().await;
+    }
+    if !task.is_finished() {
+        task.abort();
+    }
+    let mut turns = 0u32;
+    while !task.is_finished() && turns < 8 {
+        turns = turns.saturating_add(1);
+        tokio::task::yield_now().await;
     }
 }
 
