@@ -3810,6 +3810,54 @@ async fn multi_leader_fetch_reuses_bootstrap_api_versions() {
     );
     consumer.close().await.unwrap();
 }
+
+/// A preferred replica that is the bootstrap broker does not negotiate again.
+#[tokio::test]
+async fn preferred_bootstrap_replica_reuses_api_versions() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_topic_partitions("t", 1);
+    mock.set_partition_leader("t", 0, 2);
+    mock.set_preferred_read_replica("t", 0, 1);
+    let mut consumer = Consumer::new(
+        ConsumerConfig::bootstrap([mock.addr.clone()])
+            .max_wait_ms(10)
+            .rack("r1"),
+    )
+    .await
+    .unwrap();
+    consumer.assign("t", 0, 0).await.unwrap();
+    let first = consumer.fetch().await.unwrap();
+    assert!(first.is_empty());
+    let versions_before = mock.api_versions_versions().len();
+    let accepts_before = mock.accepts();
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let started = Instant::now();
+    let second = consumer.fetch().await.unwrap();
+    let elapsed = started.elapsed();
+    assert!(second.is_empty());
+    assert_eq!(
+        mock.api_versions_versions().len(),
+        versions_before,
+        "the bootstrap preferred replica should reuse the versions already learned"
+    );
+    assert_eq!(
+        mock.accepts(),
+        accepts_before,
+        "the bootstrap preferred replica should stay on the open socket"
+    );
+    assert!(
+        elapsed < Duration::from_millis(200),
+        "preferred bootstrap replica repeated ApiVersions: {elapsed:?}"
+    );
+    let nodes = mock.fetch_nodes();
+    assert_eq!(
+        nodes.last().copied(),
+        Some(1),
+        "the preferred replica fetch should land on the bootstrap broker, got {nodes:?}"
+    );
+    consumer.close().await.unwrap();
+}
+
 #[tokio::test]
 async fn fetch_throttle_delays_next_request_without_delaying_returned_records() {
     let mock = common::Mock::start().await;

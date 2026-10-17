@@ -4644,6 +4644,9 @@ impl Consumer {
             .get(&node)
             .cloned()
             .ok_or_else(|| Error::protocol(format!("unknown broker {node}")))?;
+        if self.conn.fetch_version() >= 0 && addr == self.conn.addr() {
+            return self.connect_node(node, deadline).await;
+        }
         if let Some(session) = self.fetch_sessions.get_mut(&node) {
             session.reset();
         }
