@@ -594,6 +594,13 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   which fails that poll, and not piggyback `INVALID_FETCH_SESSION_EPOCH`). Official
   Java SocketServer writes this when the requested listener name is
   missing; it is not a share-session code. A
+  piggybacked `TOPIC_DELETION_DISABLED` still
+  completes without retry, including when `AcknowledgeErrorMessage` is
+  set (Java `handleShareFetchSuccess` completes piggyback acks and still
+  delivers the fetch; this is not partition `TOPIC_DELETION_DISABLED`,
+  which fails that poll, and not piggyback `LISTENER_NOT_FOUND`). Official
+  Java Admin deleteTopics writes this when `delete.topic.enable` is
+  false. A
   piggybacked `TOPIC_AUTHORIZATION_FAILED` on
   one partition does not fail a sibling whose `AcknowledgeErrorCode`
   is none, including when `AcknowledgeErrorMessage` is set or empty. A
