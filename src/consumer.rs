@@ -5196,7 +5196,7 @@ impl Consumer {
         let deadline = Instant::now().checked_add(timeout).ok_or(Error::Timeout)?;
         if self.conn.idle_expired(self.cfg.connections_max_idle) {
             let addr = self.conn.addr().to_string();
-            let (conn, versions) = self.open_node_conn_until(&addr, deadline).await?;
+            let (conn, versions) = self.open_leader_socket(&addr, deadline).await?;
             self.versions = versions
                 .api_keys
                 .into_iter()

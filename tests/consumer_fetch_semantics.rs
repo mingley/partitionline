@@ -5450,11 +5450,24 @@ async fn idle_client_instance_id_resets_the_bootstrap_fetch_session() {
     assert!(consumer.fetch().await.unwrap().is_empty());
     tokio::time::sleep(Duration::from_millis(30)).await;
     let before = mock.accept_count();
+    let versions_before = mock.api_versions_versions().len();
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let started = Instant::now();
     let _id = consumer.client_instance_id().await.unwrap();
+    let elapsed = started.elapsed();
     let after = mock.accept_count();
     assert!(
         after > before,
         "idle clientInstanceId must replace the bootstrap socket"
+    );
+    assert_eq!(
+        mock.api_versions_versions().len(),
+        versions_before,
+        "idle clientInstanceId should reuse the versions already learned"
+    );
+    assert!(
+        elapsed < Duration::from_millis(200),
+        "idle clientInstanceId repeated ApiVersions: {elapsed:?}"
     );
     assert!(consumer.fetch().await.unwrap().is_empty());
     assert_eq!(
