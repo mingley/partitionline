@@ -6369,6 +6369,45 @@ async fn kip848_resubscribe_loads_metadata_while_joining() {
     group.leave().await.unwrap();
 }
 
+/// An assignment reload rediscovers a coordinator that moved to the other bootstrap.
+#[tokio::test]
+async fn kip848_assignment_reuses_the_other_bootstrap_handshake() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_topic_partitions("t", 1);
+    mock.set_partition_leader("t", 0, 1);
+    mock.set_cg_heartbeat_interval_ms(200);
+    let addr2 = mock.broker_addr(2).unwrap();
+    let mut cfg = ConsumerConfig::bootstrap([mock.addr.clone(), addr2]).max_wait_ms(10);
+    cfg.metadata_max_age = Duration::from_millis(30);
+    let mut group = ConsumerGroup::join_consumer(cfg, "k848-assign-moved", "t")
+        .await
+        .unwrap();
+    assert_eq!(group.assignment().len(), 1);
+    mock.set_topic_partitions("t", 2);
+    mock.set_partition_leader("t", 0, 1);
+    mock.set_partition_leader("t", 1, 1);
+    mock.set_cg_heartbeat_interval_ms(60_000);
+    mock.refresh_kip848_assignments();
+    tokio::time::sleep(Duration::from_millis(400)).await;
+    let versions_before = mock.api_versions_versions().len();
+    mock.set_coordinator(2);
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let started = Instant::now();
+    let _got = group.poll().await.unwrap();
+    let elapsed = started.elapsed();
+    assert_eq!(group.assignment().len(), 2);
+    assert_eq!(
+        mock.api_versions_versions().len(),
+        versions_before,
+        "assignment offset fetch renegotiated the other bootstrap"
+    );
+    assert!(
+        elapsed < Duration::from_millis(400),
+        "assignment offset fetch repeated ApiVersions: {elapsed:?}"
+    );
+    group.leave().await.unwrap();
+}
+
 /// A KIP-848 assignment reload fetches offsets while stale metadata reloads.
 #[tokio::test]
 async fn kip848_assignment_fetches_offsets_while_refreshing_metadata() {

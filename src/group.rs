@@ -3315,11 +3315,12 @@ impl ConsumerGroup {
                 };
                 let group_id = self.group_id.clone();
                 let bootstrap_keys = self.consumer.copy_api_keys();
+                let address_keys = self.consumer.copy_learned_broker_keys();
                 let fetched = {
                     let refresh_fut = self
                         .consumer
                         .refresh_metadata_timeout(Some(&self.topics), timeout);
-                    let fetch_fut = coord_roundtrip(
+                    let fetch_fut = coord_roundtrip_with_bootstrap(
                         &mut self.coord,
                         &self.cfg,
                         &group_id,
@@ -3337,6 +3338,7 @@ impl ConsumerGroup {
                             )
                         },
                         &bootstrap_keys,
+                        &address_keys,
                         &mut self.prior_coords,
                         timeout,
                     );
@@ -3421,8 +3423,9 @@ impl ConsumerGroup {
                 };
                 let group_id = self.group_id.clone();
                 let bootstrap_keys = self.consumer.copy_api_keys();
+                let address_keys = self.consumer.copy_learned_broker_keys();
                 let fetched = {
-                    let fetch_fut = coord_roundtrip(
+                    let fetch_fut = coord_roundtrip_with_bootstrap(
                         &mut self.coord,
                         &self.cfg,
                         &group_id,
@@ -3440,6 +3443,7 @@ impl ConsumerGroup {
                             )
                         },
                         &bootstrap_keys,
+                        &address_keys,
                         &mut self.prior_coords,
                         timeout,
                     );
