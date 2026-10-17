@@ -106,6 +106,71 @@ async fn discovery_and_allocation_share_the_original_initialization_deadline() {
     assert!(matches!(result, Ok(Err(Error::Timeout))));
 }
 
+/// A FindCoordinator backoff must drop the bootstrap socket when that broker stops writing.
+#[tokio::test(flavor = "current_thread")]
+async fn find_coordinator_drops_the_socket_when_the_broker_closes_during_backoff() {
+    let mock = common::Mock::start().await;
+    mock.fail_find_coordinator_once(error::COORDINATOR_LOAD_IN_PROGRESS);
+    let mut cfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    cfg.transactional_id = Some("tx-find-backoff".into());
+    cfg.linger = Duration::ZERO;
+    cfg.retry_backoff = Duration::from_secs(5);
+    cfg.retry_backoff_max = Duration::from_secs(5);
+    cfg.request_timeout = Duration::from_secs(30);
+    let mut opening = std::pin::pin!(Producer::new(cfg));
+    let started = Instant::now();
+    loop {
+        if mock.find_coordinator_calls() >= 1 {
+            break;
+        }
+        tokio::select! {
+            _ = &mut opening => panic!("init finished before FindCoordinator"),
+            _ = tokio::time::sleep(Duration::from_millis(10)) => {}
+        }
+        if started.elapsed() > Duration::from_secs(2) {
+            panic!("did not see FindCoordinator");
+        }
+    }
+    let settle = Instant::now();
+    while settle.elapsed() < Duration::from_millis(80) {
+        tokio::select! {
+            _ = &mut opening => panic!("init left the find backoff early"),
+            _ = tokio::time::sleep(Duration::from_millis(10)) => {}
+        }
+    }
+    assert_eq!(
+        mock.find_coordinator_calls(),
+        1,
+        "a second FindCoordinator means the client is not waiting out the backoff"
+    );
+    let open = mock.open_conns();
+    assert!(open > 0, "coordinator lookup had no socket");
+    mock.shutdown_writes();
+    let window = Instant::now();
+    loop {
+        if mock.open_conns() < open {
+            break;
+        }
+        if window.elapsed() > Duration::from_millis(400) {
+            panic!("find coordinator kept the socket during backoff; open {open}");
+        }
+        tokio::select! {
+            result = &mut opening => {
+                let _finished = result;
+                let left = Instant::now();
+                while mock.open_conns() >= open {
+                    if left.elapsed() > Duration::from_millis(400) {
+                        panic!("init finished with the lookup socket still open");
+                    }
+                    tokio::task::yield_now().await;
+                }
+                return;
+            }
+            _ = tokio::time::sleep(Duration::from_millis(10)) => {}
+        }
+    }
+}
+
 /// A coordinator-load backoff must drop the socket when that broker stops writing.
 #[tokio::test(flavor = "current_thread")]
 async fn init_producer_id_drops_the_socket_when_the_broker_closes_during_load_backoff() {

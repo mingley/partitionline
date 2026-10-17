@@ -4982,27 +4982,42 @@ async fn discover_from_bootstrap(
     deadline: Instant,
     keys: &[ApiVersion],
 ) -> Result<CoordinatorConnection> {
-    let body = bootstrap
-        .roundtrip(
-            FIND_COORDINATOR,
-            version,
-            |buf| encode_find_coordinator_request_typed(buf, version, key, key_type),
-            timeout_remaining(deadline)?,
-        )
-        .await?;
-    let (err, _node, host, port) = decode_find_coordinator_response(&mut body.clone(), version)?;
-    if err != 0 {
-        return Err(Error::broker(err, "FindCoordinator"));
+    let mut attempt = 0u32;
+    loop {
+        if Instant::now() >= deadline {
+            return Err(Error::Timeout);
+        }
+        let body = bootstrap
+            .roundtrip(
+                FIND_COORDINATOR,
+                version,
+                |buf| encode_find_coordinator_request_typed(buf, version, key, key_type),
+                timeout_remaining(deadline)?,
+            )
+            .await?;
+        let (err, _node, host, port) =
+            decode_find_coordinator_response(&mut body.clone(), version)?;
+        if err == 0 {
+            let addr = crate::net::format_address(&host, port);
+            let bounded = bounded_producer_config(cfg, deadline)?;
+            if addr == bootstrap.addr() && !keys.is_empty() {
+                let conn = open_conn_with_known_versions(&addr, &bounded, false, keys).await?;
+                let versions = known_api_versions(keys);
+                return Ok(coordinator_connection(conn, &versions));
+            }
+            let (conn, versions) = open_conn_with_versions(&addr, &bounded, false).await?;
+            return Ok(coordinator_connection(conn, &versions));
+        }
+        if !error::coordinator_retriable(err) {
+            return Err(Error::broker(err, "FindCoordinator"));
+        }
+        // The bootstrap socket stays open across these retries. A broker
+        // that leaves during the backoff must not stay unread until it ends.
+        if watch_init_retry(cfg, bootstrap, attempt, deadline).await {
+            return Err(Error::Closed);
+        }
+        attempt = attempt.saturating_add(1);
     }
-    let addr = crate::net::format_address(&host, port);
-    let bounded = bounded_producer_config(cfg, deadline)?;
-    if addr == bootstrap.addr() && !keys.is_empty() {
-        let conn = open_conn_with_known_versions(&addr, &bounded, false, keys).await?;
-        let versions = known_api_versions(keys);
-        return Ok(coordinator_connection(conn, &versions));
-    }
-    let (conn, versions) = open_conn_with_versions(&addr, &bounded, false).await?;
-    Ok(coordinator_connection(conn, &versions))
 }
 
 fn remembered_produce_keys(shared: &Shared, addr: &str) -> Option<Vec<ApiVersion>> {
