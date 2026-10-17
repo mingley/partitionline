@@ -2939,6 +2939,8 @@ pub struct Admin {
     describe_delegation_token_version: Option<i16>,
     cluster: Cluster,
     conns: HashMap<i32, AdminOffsetConn>,
+    /// ApiVersions learned for a broker address. A later dial skips the handshake.
+    peer_versions: HashMap<String, Vec<ApiVersion>>,
     /// Controller broker dropped after `NOT_CONTROLLER`. Dialed again while
     /// the broker directory reloads.
     controller_redial: Option<i32>,
@@ -3580,6 +3582,66 @@ async fn dial_admin_socket(
     Ok(AdminOffsetConn::new(conn, &versions_resp))
 }
 
+async fn dial_known_admin_socket(
+    addr: &str,
+    cfg: &AdminConfig,
+    stats: &Arc<crate::metrics::AdminTracker>,
+    keys: &[ApiVersion],
+    deadline: Instant,
+) -> Result<AdminOffsetConn> {
+    let rest = deadline.saturating_duration_since(Instant::now());
+    if rest.is_zero() {
+        return Err(Error::Timeout);
+    }
+    let mut conn = BrokerConn::connect_tls(
+        addr,
+        &cfg.client_id,
+        cfg.connect_timeout.min(rest),
+        cfg.tls.as_ref(),
+    )
+    .await?;
+    conn.set_stats(Arc::clone(stats));
+    let versions_resp = ApiVersionsResponse {
+        error_code: 0,
+        api_keys: keys.to_vec(),
+        throttle_time_ms: 0,
+        supported_features: Vec::new(),
+        finalized_features_epoch: None,
+        finalized_features: Vec::new(),
+        zk_migration_ready: false,
+    };
+    sasl::apply_api_keys(&mut conn, &versions_resp.api_keys);
+    let rest = deadline.saturating_duration_since(Instant::now());
+    if rest.is_zero() {
+        return Err(Error::Timeout);
+    }
+    sasl::authenticate(
+        &mut conn,
+        cfg.sasl_plain.as_ref(),
+        cfg.sasl_scram.as_ref(),
+        cfg.sasl_scram_sha512.as_ref(),
+        cfg.sasl_oauthbearer.as_deref(),
+        cfg.sasl_oauthbearer_oidc.as_ref(),
+        rest,
+    )
+    .await?;
+    Ok(AdminOffsetConn::new(conn, &versions_resp))
+}
+
+async fn dial_admin_peer(
+    addr: &str,
+    cfg: &AdminConfig,
+    stats: &Arc<crate::metrics::AdminTracker>,
+    keys: &[ApiVersion],
+    deadline: Instant,
+) -> Result<AdminOffsetConn> {
+    if keys.is_empty() {
+        dial_admin_socket(addr, cfg, stats, deadline).await
+    } else {
+        dial_known_admin_socket(addr, cfg, stats, keys, deadline).await
+    }
+}
+
 impl Admin {
     /// Add a metadata-quorum voter (KIP-853), using AddRaftVoter v0 or v1.
     ///
@@ -3661,7 +3723,8 @@ impl Admin {
             let result = async {
                 if reconnect {
                     let addr = self.conn.addr().to_owned();
-                    self.adopt_bootstrap(self.open_node_conn_until(&addr, deadline).await?)?;
+                    let opened = self.open_node_conn_until(&addr, deadline).await?;
+                    self.adopt_bootstrap(opened)?;
                     reconnect = false;
                 }
                 self.ensure_bootstrap(deadline).await?;
@@ -3804,7 +3867,8 @@ impl Admin {
             let result = async {
                 if reconnect {
                     let addr = self.conn.addr().to_owned();
-                    self.adopt_bootstrap(self.open_node_conn_until(&addr, deadline).await?)?;
+                    let opened = self.open_node_conn_until(&addr, deadline).await?;
+                    self.adopt_bootstrap(opened)?;
                     reconnect = false;
                 }
                 self.ensure_bootstrap(deadline).await?;
@@ -3903,7 +3967,8 @@ impl Admin {
             let result = async {
                 if reconnect {
                     let addr = self.conn.addr().to_owned();
-                    self.adopt_bootstrap(self.open_node_conn_until(&addr, deadline).await?)?;
+                    let opened = self.open_node_conn_until(&addr, deadline).await?;
+                    self.adopt_bootstrap(opened)?;
                     reconnect = false;
                 }
                 self.ensure_bootstrap(deadline).await?;
@@ -4559,6 +4624,7 @@ impl Admin {
             describe_delegation_token_version,
             cluster: Cluster::default(),
             conns: HashMap::new(),
+            peer_versions: HashMap::new(),
             controller_redial: None,
             reconnect_fails: HashMap::new(),
             group_coord: None,
@@ -6180,7 +6246,8 @@ impl Admin {
                 if self.cluster.controller().is_err() {
                     if self.conn.is_closed() {
                         let addr = self.conn.addr().to_owned();
-                        self.adopt_bootstrap(self.open_node_conn_until(&addr, deadline).await?)?;
+                        let opened = self.open_node_conn_until(&addr, deadline).await?;
+                    self.adopt_bootstrap(opened)?;
                     }
                     self.refresh_broker_directory(deadline).await?;
                 }
@@ -8748,11 +8815,7 @@ impl Admin {
             if Instant::now() >= deadline {
                 return Err(Error::Timeout);
             }
-            let opened = if addr == self.conn.addr() && !self.versions.is_empty() {
-                self.open_known_peer_until(&addr, deadline).await
-            } else {
-                self.open_node_conn_until(&addr, deadline).await
-            };
+            let opened = self.open_node_conn_until(&addr, deadline).await;
             match opened {
                 Ok(conn) => {
                     let _ = self.reconnect_fails.remove(&node);
@@ -8775,9 +8838,29 @@ impl Admin {
         }
     }
 
-    /// Dial, negotiate, and authenticate inside `deadline`.
-    async fn open_node_conn_until(&self, addr: &str, deadline: Instant) -> Result<AdminOffsetConn> {
-        dial_admin_socket(addr, &self.cfg, &self.stats, deadline).await
+    /// Dial and authenticate inside `deadline`, skipping ApiVersions when this
+    /// address was already learned.
+    async fn open_node_conn_until(
+        &mut self,
+        addr: &str,
+        deadline: Instant,
+    ) -> Result<AdminOffsetConn> {
+        if addr == self.conn.addr() && !self.versions.is_empty() {
+            return self.open_known_peer_until(addr, deadline).await;
+        }
+        let known = self.peer_versions.get(addr).cloned().unwrap_or_default();
+        let conn = dial_admin_peer(addr, &self.cfg, &self.stats, &known, deadline).await?;
+        self.remember_peer(&conn);
+        Ok(conn)
+    }
+
+    fn remember_peer(&mut self, conn: &AdminOffsetConn) {
+        if conn.apis.is_empty() || self.peer_versions.contains_key(conn.addr()) {
+            return;
+        }
+        let _stored = self
+            .peer_versions
+            .insert(conn.addr().to_string(), conn.apis.clone());
     }
 
     /// Open another socket to the bootstrap broker without repeating ApiVersions.
@@ -9459,7 +9542,7 @@ impl Admin {
     /// Dial every leader together, then run one prepared RPC on each socket.
     /// A slow handshake does not hold the other leaders. Missing entries
     /// did not finish before `deadline`.
-    fn take_broker_dials(&mut self, nodes: &[i32]) -> Vec<(i32, String)> {
+    fn take_broker_dials(&mut self, nodes: &[i32]) -> Vec<(i32, String, Vec<ApiVersion>)> {
         let mut dials = Vec::new();
         for &node in nodes {
             if self
@@ -9475,7 +9558,8 @@ impl Admin {
             let Some(addr) = self.cluster.brokers.get(&node).cloned() else {
                 continue;
             };
-            dials.push((node, addr));
+            let keys = self.peer_versions.get(&addr).cloned().unwrap_or_default();
+            dials.push((node, addr, keys));
         }
         dials
     }
@@ -9483,7 +9567,7 @@ impl Admin {
     async fn dial_admin_nodes(
         cfg: AdminConfig,
         stats: Arc<crate::metrics::AdminTracker>,
-        dials: Vec<(i32, String)>,
+        dials: Vec<(i32, String, Vec<ApiVersion>)>,
         deadline: Instant,
     ) -> Vec<(i32, Result<AdminOffsetConn>)> {
         if dials.is_empty() {
@@ -9492,13 +9576,13 @@ impl Admin {
         let mut waiting = dials.into_iter();
         let mut inflight = tokio::task::JoinSet::new();
         while inflight.len() < 8 {
-            let Some((node, addr)) = waiting.next() else {
+            let Some((node, addr, keys)) = waiting.next() else {
                 break;
             };
             let cfg = cfg.clone();
             let stats = Arc::clone(&stats);
             let _ = inflight.spawn(async move {
-                let result = dial_admin_socket(&addr, &cfg, &stats, deadline).await;
+                let result = dial_admin_peer(&addr, &cfg, &stats, &keys, deadline).await;
                 (node, result)
             });
         }
@@ -9508,13 +9592,13 @@ impl Admin {
                 opened.push((node, result));
             }
             while inflight.len() < 8 {
-                let Some((node, addr)) = waiting.next() else {
+                let Some((node, addr, keys)) = waiting.next() else {
                     break;
                 };
                 let cfg = cfg.clone();
                 let stats = Arc::clone(&stats);
                 let _ = inflight.spawn(async move {
-                    let result = dial_admin_socket(&addr, &cfg, &stats, deadline).await;
+                    let result = dial_admin_peer(&addr, &cfg, &stats, &keys, deadline).await;
                     (node, result)
                 });
             }
@@ -9526,6 +9610,7 @@ impl Admin {
         for (node, result) in dialed {
             match result {
                 Ok(conn) => {
+                    self.remember_peer(&conn);
                     let _ = self.reconnect_fails.remove(&node);
                     let _prev = self.conns.insert(node, conn);
                 }
@@ -9588,8 +9673,9 @@ impl Admin {
                 };
                 let cfg = self.cfg.clone();
                 let stats = Arc::clone(&self.stats);
+                let keys = self.peer_versions.get(&addr).cloned().unwrap_or_default();
                 let _ = dialing.spawn(async move {
-                    let result = dial_admin_socket(&addr, &cfg, &stats, deadline).await;
+                    let result = dial_admin_peer(&addr, &cfg, &stats, &keys, deadline).await;
                     (node, result)
                 });
             }
@@ -9678,6 +9764,7 @@ impl Admin {
             }
         }
         for (node, conn) in held {
+            self.remember_peer(&conn);
             let _prev = self.conns.insert(node, conn);
         }
         finished

@@ -217,6 +217,108 @@ async fn list_offsets_leader_dials_overlap() {
     assert_eq!(listed.len(), 2, "{listed:?}");
 }
 
+/// An idle socket to a leader that is not the bootstrap broker keeps the versions
+/// learned on the first dial.
+#[tokio::test]
+async fn list_offsets_redials_a_remote_leader_without_another_handshake() {
+    let mock = common::Mock::start_two_node().await;
+    let mut cfg =
+        AdminConfig::bootstrap([mock.addr.clone()]).connections_max_idle(Duration::from_millis(40));
+    cfg.request_timeout = Duration::from_secs(3);
+    let mut admin = Admin::new(cfg).await.unwrap();
+    let listed = admin
+        .list_offsets([(("t", 0), OffsetSpec::latest())])
+        .await
+        .unwrap();
+    assert_eq!(listed.len(), 1, "{listed:?}");
+    assert_eq!(mock.api_versions_versions().len(), 2);
+    tokio::time::sleep(Duration::from_millis(60)).await;
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let started = Instant::now();
+    let listed = admin
+        .list_offsets([(("t", 0), OffsetSpec::latest())])
+        .await
+        .unwrap();
+    let elapsed = started.elapsed();
+    assert_eq!(listed.len(), 1, "{listed:?}");
+    assert!(
+        elapsed < Duration::from_millis(200),
+        "remote leader redial repeated ApiVersions: {elapsed:?}"
+    );
+    assert_eq!(mock.api_versions_versions().len(), 2);
+}
+
+/// Parallel leader dials reuse versions after the sockets expire.
+#[tokio::test]
+async fn list_offsets_redials_remote_leaders_together_without_another_handshake() {
+    let mock = common::Mock::start_three_node().await;
+    mock.set_topic_partitions("t", 2);
+    mock.set_partition_leader("t", 0, 2);
+    mock.set_partition_leader("t", 1, 3);
+    let mut cfg =
+        AdminConfig::bootstrap([mock.addr.clone()]).connections_max_idle(Duration::from_millis(40));
+    cfg.request_timeout = Duration::from_secs(3);
+    let mut admin = Admin::new(cfg).await.unwrap();
+    let listed = admin
+        .list_offsets([
+            (("t", 0), OffsetSpec::latest()),
+            (("t", 1), OffsetSpec::latest()),
+        ])
+        .await
+        .unwrap();
+    assert_eq!(listed.len(), 2, "{listed:?}");
+    assert_eq!(mock.api_versions_versions().len(), 3);
+    tokio::time::sleep(Duration::from_millis(60)).await;
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let started = Instant::now();
+    let listed = admin
+        .list_offsets([
+            (("t", 0), OffsetSpec::latest()),
+            (("t", 1), OffsetSpec::latest()),
+        ])
+        .await
+        .unwrap();
+    let elapsed = started.elapsed();
+    assert_eq!(listed.len(), 2, "{listed:?}");
+    assert!(
+        elapsed < Duration::from_millis(400),
+        "remote leader redials repeated ApiVersions: {elapsed:?}"
+    );
+    assert_eq!(mock.api_versions_versions().len(), 3);
+}
+
+/// A leader that has never been contacted still negotiates.
+#[tokio::test]
+async fn list_offsets_negotiates_a_new_leader() {
+    let mock = common::Mock::start_three_node().await;
+    mock.set_topic_partitions("t", 2);
+    mock.set_partition_leader("t", 0, 2);
+    mock.set_partition_leader("t", 1, 3);
+    let mut cfg = AdminConfig::bootstrap([mock.addr.clone()]);
+    cfg.request_timeout = Duration::from_secs(3);
+    let mut admin = Admin::new(cfg).await.unwrap();
+    let listed = admin
+        .list_offsets([(("t", 0), OffsetSpec::latest())])
+        .await
+        .unwrap();
+    assert_eq!(listed.len(), 1, "{listed:?}");
+    let before = mock.api_versions_versions().len();
+    assert_eq!(before, 2);
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let started = Instant::now();
+    let listed = admin
+        .list_offsets([(("t", 1), OffsetSpec::latest())])
+        .await
+        .unwrap();
+    let elapsed = started.elapsed();
+    assert_eq!(listed.len(), 1, "{listed:?}");
+    assert_eq!(mock.api_versions_versions().len(), before + 1);
+    assert!(
+        elapsed < Duration::from_millis(450),
+        "new leader redid a handshake that was already known: {elapsed:?}"
+    );
+}
+
 async fn two_leader_admin() -> (common::Mock, Admin) {
     let mock = common::Mock::start_two_node().await;
     mock.set_topic_partitions("t", 2);
