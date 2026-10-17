@@ -411,13 +411,10 @@ async fn fetch_client_credentials_token_response_once(
         parse_oidc_token_response(text)
     }
     .await;
-    // A failed token request drops its socket in this call. Yield so the
-    // endpoint observes that close before the error returns. A successful
-    // fetch has already finished the response and does not wait.
-    if fetched.is_err() {
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
-        }
+    // The request socket, when one was opened, drops as this block ends.
+    // Yield so the endpoint observes that close before the result returns.
+    for _ in 0..8 {
+        tokio::task::yield_now().await;
     }
     fetched
 }
@@ -2314,6 +2311,49 @@ mod tests {
     use super::*;
     use tokio::io::AsyncWriteExt;
     use tokio::net::TcpListener;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn token_response_closes_the_socket() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let port = listener.local_addr().unwrap().port();
+        let open = Arc::new(AtomicUsize::new(0));
+        let open_flag = Arc::clone(&open);
+        let peer = tokio::spawn(async move {
+            let (mut sock, _) = listener.accept().await.unwrap();
+            let _started = open_flag.fetch_add(1, Ordering::SeqCst);
+            let mut buf = vec![0u8; 2048];
+            let _n = sock.read(&mut buf).await.unwrap();
+            let body = "{\"access_token\":\"tok-1\",\"token_type\":\"Bearer\"}";
+            let resp = format!(
+                "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+                body.len()
+            );
+            sock.write_all(resp.as_bytes()).await.unwrap();
+            let mut tmp = [0u8; 8];
+            loop {
+                match sock.read(&mut tmp).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = open_flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let cfg = OidcConfig::new(format!("http://127.0.0.1:{port}/token"), "client", "secret");
+        let result = fetch_client_credentials_token_response_once(
+            &cfg,
+            Instant::now() + Duration::from_secs(2),
+        )
+        .await;
+        assert!(result.is_ok(), "the token response should succeed");
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "token response left the socket blocked in a read"
+        );
+        peer.abort();
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn token_request_timeout_closes_the_socket() {
