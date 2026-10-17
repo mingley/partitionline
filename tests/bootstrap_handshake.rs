@@ -1755,6 +1755,48 @@ async fn admin_close_closes_the_bootstrap_socket() {
     );
 }
 
+/// A consumer-protocol coordinator that closes during the interval is dialed again.
+#[tokio::test(flavor = "current_thread")]
+async fn consumer_protocol_heartbeat_reconnects_when_the_coordinator_closes() {
+    let mock = common::Mock::start().await;
+    mock.set_cg_heartbeat_interval_ms(40);
+    let mut cfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    cfg.request_timeout = Duration::from_secs(2);
+    cfg.max_wait_ms = 10;
+    cfg.heartbeat_interval = Duration::from_millis(40);
+    cfg.session_timeout_ms = 60_000;
+    let group = ConsumerGroup::join_consumer(cfg, "g848-reconn", "t")
+        .await
+        .unwrap();
+    let started = Instant::now();
+    while mock.cg_heartbeat_calls() < 1 {
+        if started.elapsed() > Duration::from_secs(2) {
+            panic!("consumer-protocol heartbeat did not start");
+        }
+        tokio::time::sleep(Duration::from_millis(5)).await;
+    }
+    mock.set_cg_heartbeat_interval_ms(30_000);
+    let learned = mock.cg_heartbeat_calls();
+    while mock.cg_heartbeat_calls() == learned {
+        if started.elapsed() > Duration::from_secs(2) {
+            panic!("consumer-protocol heartbeat did not learn the long interval");
+        }
+        tokio::time::sleep(Duration::from_millis(5)).await;
+    }
+    tokio::time::sleep(Duration::from_millis(50)).await;
+    let accepts = mock.accepts();
+    mock.drop_connections();
+    let started = Instant::now();
+    while mock.accepts() == accepts {
+        if started.elapsed() > Duration::from_millis(400) {
+            panic!("consumer-protocol heartbeat did not reconnect after the coordinator closed");
+        }
+        tokio::task::yield_now().await;
+        tokio::time::sleep(Duration::from_millis(5)).await;
+    }
+    group.close().await.unwrap();
+}
+
 /// A coordinator that closes during the heartbeat interval is dialed again.
 #[tokio::test(flavor = "current_thread")]
 async fn group_heartbeat_reconnects_when_the_coordinator_closes() {
