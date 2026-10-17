@@ -1062,21 +1062,27 @@ async fn write_and_prefetch<S: AsyncRead + AsyncWrite + Unpin>(
         let mut slices = [IoSlice::new(&prefix), IoSlice::new(response)];
         let mut bufs: &mut [IoSlice<'_>] = &mut slices;
         let mut stop_read = !prefetch;
-        poll_fn(|cx| loop {
+        poll_fn(|cx| {
             if bufs.is_empty() {
                 return Poll::Ready(Ok(()));
             }
             match Pin::new(&mut *socket).poll_write_vectored(cx, bufs) {
-                Poll::Ready(Ok(0)) => {
-                    return Poll::Ready(Err(io::Error::new(
-                        io::ErrorKind::WriteZero,
-                        "response write returned 0",
-                    )));
-                }
+                Poll::Ready(Ok(0)) => Poll::Ready(Err(io::Error::new(
+                    io::ErrorKind::WriteZero,
+                    "response write returned 0",
+                ))),
                 Poll::Ready(Ok(n)) => {
                     IoSlice::advance_slices(&mut bufs, n);
+                    if bufs.is_empty() {
+                        Poll::Ready(Ok(()))
+                    } else {
+                        // A client that accepts one byte at a time keeps this
+                        // poll running, so the write deadline cannot stop it.
+                        cx.waker().wake_by_ref();
+                        Poll::Pending
+                    }
                 }
-                Poll::Ready(Err(error)) => return Poll::Ready(Err(error)),
+                Poll::Ready(Err(error)) => Poll::Ready(Err(error)),
                 Poll::Pending => {
                     if !stop_read
                         && matches!(classify_ahead(ahead.pending(), max_request), Ahead::Need(_))
@@ -1123,12 +1129,18 @@ async fn write_and_prefetch<S: AsyncRead + AsyncWrite + Unpin>(
                             }
                             Poll::Ready(Ok(n)) => {
                                 IoSlice::advance_slices(&mut bufs, n);
-                                continue;
+                                if bufs.is_empty() {
+                                    return Poll::Ready(Ok(()));
+                                }
+                                cx.waker().wake_by_ref();
+                                return Poll::Pending;
                             }
                             Poll::Ready(Err(error)) => return Poll::Ready(Err(error)),
                             Poll::Pending => return Poll::Pending,
                         }
                     }
+                    cx.waker().wake_by_ref();
+                    Poll::Pending
                 }
             }
         })
@@ -2193,6 +2205,63 @@ mod write_prefetch_tests {
         assert!(
             elapsed < Duration::from_millis(80),
             "a ready prefetch held the write past its deadline: {elapsed:?}"
+        );
+    }
+
+    struct SlowAccept;
+
+    impl AsyncRead for SlowAccept {
+        fn poll_read(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            _buf: &mut ReadBuf<'_>,
+        ) -> Poll<std::io::Result<()>> {
+            Poll::Pending
+        }
+    }
+
+    impl AsyncWrite for SlowAccept {
+        fn poll_write(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            buf: &[u8],
+        ) -> Poll<std::io::Result<usize>> {
+            if buf.is_empty() {
+                return Poll::Ready(Ok(0));
+            }
+            let start = std::time::Instant::now();
+            while start.elapsed() < Duration::from_millis(3) {}
+            Poll::Ready(Ok(1))
+        }
+
+        fn poll_flush(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
+            Poll::Ready(Ok(()))
+        }
+
+        fn poll_shutdown(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
+            Poll::Ready(Ok(()))
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn write_deadline_stops_a_ready_partial_write() {
+        let mut socket = SlowAccept;
+        let response = vec![9u8; 40];
+        let started = Instant::now();
+        let result = write_and_prefetch(
+            &mut socket,
+            &response,
+            Instant::now() + Duration::from_millis(30),
+            &mut ReadAhead::new(),
+            1024,
+            false,
+        )
+        .await;
+        let elapsed = started.elapsed();
+        let deadline = matches!(result, Err(Exit::WriteDeadline));
+        assert!(
+            deadline && elapsed < Duration::from_millis(80),
+            "a ready partial write held the response past its deadline: {elapsed:?} deadline {deadline}"
         );
     }
 }
