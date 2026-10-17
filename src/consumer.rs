@@ -4291,105 +4291,112 @@ impl Consumer {
         reuse_bootstrap: bool,
         deadline: Instant,
     ) -> Result<()> {
-        if self
-            .conns
-            .get(&node)
-            .is_some_and(|c| c.idle_expired(self.cfg.connections_max_idle))
-        {
-            let _ = self.conns.remove(&node);
-            let _ = self.list_offsets_ranges.remove(&node);
-            let _ = self.leader_epoch_ranges.remove(&node);
-            if let Some(session) = self.fetch_sessions.get_mut(&node) {
-                session.reset();
-            }
-        }
-        if self.conns.contains_key(&node) {
-            return Ok(());
-        }
-        // The one-node leader is the bootstrap socket, which is not stored in
-        // `conns`. Match that address without copying it. A dial still copies
-        // the address it has to keep across the handshake.
-        enum CachedBroker {
-            Missing,
-            Bootstrap,
-            Other,
-        }
-        let known = match self.cluster.brokers.get(&node) {
-            None => CachedBroker::Missing,
-            Some(addr)
-                if reuse_bootstrap
-                    && self.conn.fetch_version() >= 0
-                    && addr == self.conn.addr() =>
+        let connected = async {
+            if self
+                .conns
+                .get(&node)
+                .is_some_and(|c| c.idle_expired(self.cfg.connections_max_idle))
             {
-                CachedBroker::Bootstrap
-            }
-            Some(_) => CachedBroker::Other,
-        };
-        if matches!(known, CachedBroker::Missing) {
-            return Err(Error::protocol(format!("unknown broker {node}")));
-        }
-        if matches!(known, CachedBroker::Bootstrap) {
-            if self.conn.idle_expired(self.cfg.connections_max_idle) {
+                let _ = self.conns.remove(&node);
+                let _ = self.list_offsets_ranges.remove(&node);
+                let _ = self.leader_epoch_ranges.remove(&node);
                 if let Some(session) = self.fetch_sessions.get_mut(&node) {
                     session.reset();
                 }
-                let addr = self
-                    .cluster
-                    .brokers
-                    .get(&node)
-                    .cloned()
-                    .ok_or_else(|| Error::protocol(format!("unknown broker {node}")))?;
-                let (conn, versions) = if self.versions.is_empty() {
-                    self.open_node_conn_until(&addr, deadline).await?
-                } else {
-                    self.open_leader_socket(&addr, deadline).await?
-                };
-                self.versions = versions
-                    .api_keys
-                    .into_iter()
-                    .map(|api| (api.api_key, api))
-                    .collect();
-                self.conn = conn;
             }
-            return Ok(());
-        }
-        let addr = self
-            .cluster
-            .brokers
-            .get(&node)
-            .cloned()
-            .ok_or_else(|| Error::protocol(format!("unknown broker {node}")))?;
-        if let Some(session) = self.fetch_sessions.get_mut(&node) {
-            session.reset();
-        }
-        loop {
-            if self.woken() {
-                return Err(Error::Wakeup);
+            if self.conns.contains_key(&node) {
+                return Ok(());
             }
-            let fails = self.reconnect_fails.get(&node).copied().unwrap_or(0);
-            self.sleep_reconnect_backoff(fails, deadline).await?;
-            if Instant::now() >= deadline {
-                return Err(Error::Timeout);
+            // The one-node leader is the bootstrap socket, which is not stored in
+            // `conns`. Match that address without copying it. A dial still copies
+            // the address it has to keep across the handshake.
+            enum CachedBroker {
+                Missing,
+                Bootstrap,
+                Other,
             }
-            let opened = self.open_node_or_remembered(node, &addr, deadline).await;
-            match opened {
-                Ok((conn, versions)) => {
-                    let _ = self.reconnect_fails.remove(&node);
-                    self.remember_opened_conn(node, conn, &versions);
-                    return Ok(());
+            let known = match self.cluster.brokers.get(&node) {
+                None => CachedBroker::Missing,
+                Some(addr)
+                    if reuse_bootstrap
+                        && self.conn.fetch_version() >= 0
+                        && addr == self.conn.addr() =>
+                {
+                    CachedBroker::Bootstrap
                 }
-                Err(e) if e.is_retriable() => {
-                    self.note_reconnect_failure(node);
-                    if Instant::now() >= deadline {
-                        return Err(Error::Timeout);
+                Some(_) => CachedBroker::Other,
+            };
+            if matches!(known, CachedBroker::Missing) {
+                return Err(Error::protocol(format!("unknown broker {node}")));
+            }
+            if matches!(known, CachedBroker::Bootstrap) {
+                if self.conn.idle_expired(self.cfg.connections_max_idle) {
+                    if let Some(session) = self.fetch_sessions.get_mut(&node) {
+                        session.reset();
+                    }
+                    let addr = self
+                        .cluster
+                        .brokers
+                        .get(&node)
+                        .cloned()
+                        .ok_or_else(|| Error::protocol(format!("unknown broker {node}")))?;
+                    let (conn, versions) = if self.versions.is_empty() {
+                        self.open_node_conn_until(&addr, deadline).await?
+                    } else {
+                        self.open_leader_socket(&addr, deadline).await?
+                    };
+                    self.versions = versions
+                        .api_keys
+                        .into_iter()
+                        .map(|api| (api.api_key, api))
+                        .collect();
+                    self.conn = conn;
+                }
+                return Ok(());
+            }
+            let addr = self
+                .cluster
+                .brokers
+                .get(&node)
+                .cloned()
+                .ok_or_else(|| Error::protocol(format!("unknown broker {node}")))?;
+            if let Some(session) = self.fetch_sessions.get_mut(&node) {
+                session.reset();
+            }
+            loop {
+                if self.woken() {
+                    return Err(Error::Wakeup);
+                }
+                let fails = self.reconnect_fails.get(&node).copied().unwrap_or(0);
+                self.sleep_reconnect_backoff(fails, deadline).await?;
+                if Instant::now() >= deadline {
+                    return Err(Error::Timeout);
+                }
+                let opened = self.open_node_or_remembered(node, &addr, deadline).await;
+                match opened {
+                    Ok((conn, versions)) => {
+                        let _ = self.reconnect_fails.remove(&node);
+                        self.remember_opened_conn(node, conn, &versions);
+                        return Ok(());
+                    }
+                    Err(e) if e.is_retriable() => {
+                        self.note_reconnect_failure(node);
+                        if Instant::now() >= deadline {
+                            return Err(Error::Timeout);
+                        }
+                    }
+                    Err(e) => {
+                        self.note_reconnect_failure(node);
+                        return Err(e);
                     }
                 }
-                Err(e) => {
-                    self.note_reconnect_failure(node);
-                    return Err(e);
-                }
             }
         }
+        .await;
+        for _ in 0..8 {
+            tokio::task::yield_now().await;
+        }
+        connected
     }
 
     /// Dial, negotiate, and authenticate inside `deadline`.
