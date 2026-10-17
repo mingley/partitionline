@@ -1099,6 +1099,35 @@ type ShareFetchTask = (
     Vec<ShareFetchTopic>,
 );
 
+/// Cancel every task in `set` and poll until each one leaves the runtime.
+///
+/// Abort only schedules cancellation. On a current-thread runtime a fetch
+/// blocked in a broker read stays alive until this caller yields. The wait
+/// stops at `deadline`, then a few extra turns let a task already at an
+/// await notice the abort.
+async fn finish_aborted_join_set<T: 'static>(mut set: tokio::task::JoinSet<T>, deadline: Instant) {
+    set.abort_all();
+    let mut extra = 0u32;
+    while !set.is_empty() {
+        let open = Instant::now() < deadline;
+        if !open {
+            if extra >= 8 {
+                break;
+            }
+            extra = extra.saturating_add(1);
+        }
+        tokio::select! {
+            biased;
+            joined = set.join_next() => {
+                if joined.is_none() {
+                    break;
+                }
+            }
+            () = tokio::task::yield_now() => {}
+        }
+    }
+}
+
 /// Aborts parked share fetches if this round is cancelled before they are stored.
 struct InflightShareFetches {
     set: Option<tokio::task::JoinSet<ShareFetchTask>>,
@@ -2948,11 +2977,13 @@ impl ShareGroup {
         Ok(())
     }
 
-    fn abort_inflight_share_fetches(&mut self) {
-        if let Some(mut set) = self.inflight_share_fetches.take() {
-            set.abort_all();
-        }
+    async fn finish_inflight_share_fetches(&mut self, deadline: Instant) {
+        let Some(set) = self.inflight_share_fetches.take() else {
+            self.inflight_share_nodes.clear();
+            return;
+        };
         self.inflight_share_nodes.clear();
+        finish_aborted_join_set(set, deadline).await;
     }
 
     /// Send prepared fetches and collect the replies that finish in time.
@@ -3349,7 +3380,7 @@ impl ShareGroup {
         self.topic_match = None;
         *self.hb_deadline.lock() = None;
         self.hb_interval_ms.store(0, Ordering::SeqCst);
-        self.abort_inflight_share_fetches();
+        self.finish_inflight_share_fetches(deadline).await;
         let (set, prepare_error) = self.spawn_final_share_acks(deadline);
         let close = Self::finish_final_share_acks(set, prepare_error);
         let leave = self.leave_coordinator(deadline);
@@ -3424,7 +3455,7 @@ impl ShareGroup {
         if rejoining && self.share_close_sockets_are_open() {
             // Final acknowledgements use the leader sockets. Metadata for the
             // new names uses the member socket, so both fit in one budget.
-            self.abort_inflight_share_fetches();
+            self.finish_inflight_share_fetches(deadline).await;
             let (set, prepare_error) = self.spawn_final_share_acks(deadline);
             let close = Self::finish_final_share_acks(set, prepare_error);
             let refresh = Self::refresh_topic_names_within(&mut self.consumer, &topics, deadline);
@@ -4734,7 +4765,7 @@ impl ShareGroup {
     }
 
     async fn close_share_session(&mut self, deadline: Instant) -> Result<()> {
-        self.abort_inflight_share_fetches();
+        self.finish_inflight_share_fetches(deadline).await;
         let open: Vec<_> = self
             .share_epochs
             .iter()
@@ -4949,7 +4980,7 @@ impl ShareGroup {
             return Ok(());
         }
         *self.hb_deadline.lock() = None;
-        self.abort_inflight_share_fetches();
+        self.finish_inflight_share_fetches(deadline).await;
         let (set, prepare_error) = self.spawn_final_share_acks(deadline);
         let close = Self::finish_final_share_acks(set, prepare_error);
         let out = self.leave_coordinator(deadline);
@@ -7246,5 +7277,45 @@ mod dial_tests {
         let mut nodes: Vec<i32> = opened.iter().map(|dial| dial.node).collect();
         nodes.sort_unstable();
         assert_eq!(nodes, vec![1, 2]);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn finishing_aborted_share_fetches_stops_the_task() {
+        use tokio::io::AsyncReadExt;
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        let accepted = Arc::new(AtomicBool::new(false));
+        let flag = Arc::clone(&accepted);
+        let hold = tokio::spawn(async move {
+            let (sock, _) = listener.accept().await.unwrap();
+            flag.store(true, Ordering::SeqCst);
+            std::future::pending::<()>().await;
+            drop(sock);
+        });
+        let mut set = tokio::task::JoinSet::new();
+        let handle = set.spawn(async move {
+            let mut sock = tokio::net::TcpStream::connect(addr).await.unwrap();
+            let mut buf = [0u8; 1];
+            let _n = sock.read(&mut buf).await;
+        });
+        while !accepted.load(Ordering::SeqCst) {
+            tokio::task::yield_now().await;
+        }
+        assert!(
+            !handle.is_finished(),
+            "the fetch should still be waiting on the broker"
+        );
+        let started = Instant::now();
+        finish_aborted_join_set(set, Instant::now()).await;
+        assert!(
+            started.elapsed() < Duration::from_millis(200),
+            "finish waited for the broker read: {:?}",
+            started.elapsed()
+        );
+        assert!(
+            handle.is_finished(),
+            "finish returned while the share fetch was still alive"
+        );
+        hold.abort();
     }
 }
