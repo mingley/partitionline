@@ -629,6 +629,8 @@ struct State {
     share_heartbeat_error_code: i16,
     share_heartbeat_error_left: u32,
     share_heartbeat_interval_ms: i32,
+    /// Delay before each ShareGroupHeartbeat response.
+    share_heartbeat_delay: Option<Duration>,
     /// Epoch-0 share heartbeats return no assignment while this is set.
     share_hold_assignment: bool,
     share_fetch_calls: u32,
@@ -1135,6 +1137,7 @@ fn new_state(
         share_heartbeat_error_code: 0,
         share_heartbeat_error_left: 0,
         share_heartbeat_interval_ms: 150,
+        share_heartbeat_delay: None,
         share_hold_assignment: false,
         share_fetch_calls: 0,
         share_ack_calls: 0,
@@ -3701,6 +3704,11 @@ impl Mock {
 
     pub fn set_share_heartbeat_interval_ms(&self, ms: i32) {
         self.state.lock().share_heartbeat_interval_ms = ms;
+    }
+
+    /// Hold each ShareGroupHeartbeat response for `delay`.
+    pub fn set_share_heartbeat_delay(&self, delay: Duration) {
+        self.state.lock().share_heartbeat_delay = Some(delay);
     }
 
     /// While held, epoch-0 ShareGroupHeartbeat responses omit the assignment.
@@ -7957,9 +7965,20 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
             SHARE_GROUP_HEARTBEAT => {
                 let version = header.api_version;
                 let req = decode_share_group_heartbeat_request(&mut frame, version).unwrap();
+                let delay = {
+                    let mut st = state.lock();
+                    st.share_heartbeat_calls = st.share_heartbeat_calls.saturating_add(1);
+                    if req.member_epoch >= 0 {
+                        st.share_heartbeat_delay
+                    } else {
+                        None
+                    }
+                };
+                if let Some(delay) = delay {
+                    tokio::time::sleep(delay).await;
+                }
                 let mut st = state.lock();
                 st.last_share_group_heartbeat_version = Some(version);
-                st.share_heartbeat_calls = st.share_heartbeat_calls.saturating_add(1);
                 let n = st.hb_by_node.entry(node_id).or_insert(0);
                 *n = n.saturating_add(1);
                 let (member_id, epoch, assignment) = match req.member_epoch.cmp(&0) {

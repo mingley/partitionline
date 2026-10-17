@@ -1046,6 +1046,8 @@ pub struct ShareGroup {
     hb_deadline: Arc<Mutex<Option<Instant>>>,
     hb_wake: Arc<Notify>,
     hb_stop: watch::Sender<bool>,
+    /// Background heartbeat task. [`Self::leave`] waits for it to stop.
+    hb_task: Option<Arc<tokio::task::JoinHandle<()>>>,
     fetch_rounds: u64,
     records_fetched: u64,
     bytes_fetched: u64,
@@ -1700,6 +1702,7 @@ impl ShareGroup {
             hb_deadline,
             hb_wake,
             hb_stop,
+            hb_task: None,
             fetch_rounds: 0,
             records_fetched: 0,
             bytes_fetched: 0,
@@ -1720,8 +1723,14 @@ impl ShareGroup {
 
         g.heartbeat_join_within(discovery_deadline).await?;
 
-        g.spawn_heartbeat(hb_rx);
+        g.hb_task = Some(g.spawn_heartbeat(hb_rx));
         Ok(g)
+    }
+
+    /// Test hook: the background heartbeat task, if one has been started.
+    #[doc(hidden)]
+    pub fn test_heartbeat_task(&self) -> Option<Arc<tokio::task::JoinHandle<()>>> {
+        self.hb_task.as_ref().map(Arc::clone)
     }
 
     /// Set the share acquisition mode. Each partition leader is negotiated
@@ -3316,6 +3325,9 @@ impl ShareGroup {
         if self.consumer.take_wakeup() {
             return Err(Error::Wakeup);
         }
+        let deadline = Instant::now() + self.cfg.request_timeout;
+        self.hb_stop.send(true).unwrap_or(());
+        let heartbeat = self.hb_task.take();
         if self.member_id.is_empty() {
             self.topic_match = None;
             self.topics.clear();
@@ -3329,13 +3341,14 @@ impl ShareGroup {
             *self.hb_assignment.lock() = None;
             *self.hb_deadline.lock() = None;
             self.hb_interval_ms.store(0, Ordering::SeqCst);
+            if let Some(heartbeat) = heartbeat {
+                finish_share_heartbeat(heartbeat, deadline).await;
+            }
             return Ok(());
         }
         self.topic_match = None;
-        self.hb_stop.send(true).unwrap_or(());
         *self.hb_deadline.lock() = None;
         self.hb_interval_ms.store(0, Ordering::SeqCst);
-        let deadline = Instant::now() + self.cfg.request_timeout;
         self.abort_inflight_share_fetches();
         let (set, prepare_error) = self.spawn_final_share_acks(deadline);
         let close = Self::finish_final_share_acks(set, prepare_error);
@@ -3355,6 +3368,9 @@ impl ShareGroup {
             Ordering::SeqCst,
         );
         self.hb_err.store(0, Ordering::SeqCst);
+        if let Some(heartbeat) = heartbeat {
+            finish_share_heartbeat(heartbeat, deadline).await;
+        }
         close.and(leave)
     }
 
@@ -3487,7 +3503,7 @@ impl ShareGroup {
         let (hb_stop, hb_rx) = watch::channel(false);
         self.hb_stop = hb_stop;
         self.heartbeat_join_within(deadline).await?;
-        self.spawn_heartbeat(hb_rx);
+        self.hb_task = Some(self.spawn_heartbeat(hb_rx));
         Ok(())
     }
 
@@ -4922,13 +4938,16 @@ impl ShareGroup {
     }
 
     async fn leave_within(mut self, deadline: Instant) -> Result<()> {
+        self.hb_stop.send(true).unwrap_or(());
+        let heartbeat = self.hb_task.take();
         if self.member_id.is_empty() {
-            self.hb_stop.send(true).unwrap_or(());
             *self.hb_deadline.lock() = None;
             self.consumer.close_interceptors();
+            if let Some(heartbeat) = heartbeat {
+                finish_share_heartbeat(heartbeat, deadline).await;
+            }
             return Ok(());
         }
-        self.hb_stop.send(true).unwrap_or(());
         *self.hb_deadline.lock() = None;
         self.abort_inflight_share_fetches();
         let (set, prepare_error) = self.spawn_final_share_acks(deadline);
@@ -4936,6 +4955,9 @@ impl ShareGroup {
         let out = self.leave_coordinator(deadline);
         let (close, out) = tokio::join!(close, out);
         self.consumer.close_interceptors();
+        if let Some(heartbeat) = heartbeat {
+            finish_share_heartbeat(heartbeat, deadline).await;
+        }
         close.and(out)
     }
 
@@ -4991,7 +5013,7 @@ impl ShareGroup {
         self.leave_within(deadline).await
     }
 
-    fn spawn_heartbeat(&self, mut stop: watch::Receiver<bool>) {
+    fn spawn_heartbeat(&self, mut stop: watch::Receiver<bool>) -> Arc<tokio::task::JoinHandle<()>> {
         let group_id = self.group_id.clone();
         let hb_member_id = self.hb_member_id.clone();
         let hb_err = self.hb_err.clone();
@@ -5003,7 +5025,7 @@ impl ShareGroup {
         let hb_wake = self.hb_wake.clone();
         let cfg = self.cfg.clone();
         let bootstrap_keys = self.consumer.copy_api_keys();
-        drop(tokio::spawn(async move {
+        Arc::new(tokio::spawn(async move {
             if *stop.borrow() {
                 return;
             }
@@ -5229,7 +5251,22 @@ impl ShareGroup {
                     }
                 }
             }
-        }));
+        }))
+    }
+}
+
+/// Stop a share heartbeat task that has been signalled, then abort it if it is still running.
+async fn finish_share_heartbeat(task: Arc<tokio::task::JoinHandle<()>>, deadline: Instant) {
+    while !task.is_finished() && Instant::now() < deadline {
+        tokio::task::yield_now().await;
+    }
+    if !task.is_finished() {
+        task.abort();
+    }
+    let mut turns = 0u32;
+    while !task.is_finished() && turns < 8 {
+        turns = turns.saturating_add(1);
+        tokio::task::yield_now().await;
     }
 }
 

@@ -59,6 +59,43 @@ async fn produce(mock: &common::Mock, entries: &[(i32, &[u8])]) {
     producer.close().await.unwrap();
 }
 
+/// Leave waits until a share heartbeat stuck on the broker has stopped.
+#[tokio::test(flavor = "current_thread")]
+async fn leave_finishes_the_share_heartbeat_task() {
+    let mock = common::Mock::start().await;
+    v2(&mock);
+    mock.set_topic_partitions("t", 1);
+    mock.set_share_heartbeat_interval_ms(40);
+    produce(&mock, &[(0, b"share")]).await;
+    let mut cfg = config(&mock);
+    cfg.heartbeat_interval = Duration::from_millis(40);
+    cfg.request_timeout = Duration::from_secs(2);
+    let group = ShareGroup::join(cfg, "share-hb-stop", "t").await.unwrap();
+    let before = mock.share_heartbeat_calls();
+    mock.set_share_heartbeat_delay(Duration::from_secs(5));
+    let started_wait = Instant::now();
+    while mock.share_heartbeat_calls() == before {
+        if started_wait.elapsed() > Duration::from_secs(2) {
+            panic!("share heartbeat did not reach the broker");
+        }
+        tokio::time::sleep(Duration::from_millis(5)).await;
+    }
+    let task = group.test_heartbeat_task().expect("heartbeat task");
+    let started = Instant::now();
+    group
+        .close_timeout(Duration::from_millis(400))
+        .await
+        .unwrap();
+    assert!(
+        started.elapsed() < Duration::from_millis(800),
+        "leave waited for the delayed share heartbeat"
+    );
+    assert!(
+        task.is_finished(),
+        "leave returned while the share heartbeat task was still alive"
+    );
+}
+
 /// A share-group heartbeat retry reuses the coordinator handshake.
 #[tokio::test]
 async fn share_heartbeat_retries_without_another_handshake() {
