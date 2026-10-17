@@ -1195,7 +1195,12 @@ async fn watch_disconnect<S: AsyncRead + Unpin>(
         let mut limited = frame_mut(&mut ahead.bytes).limit(budget);
         match socket.read_buf(&mut limited).await {
             Ok(0) => return Exit::PeerClosed,
-            Ok(_) => continue,
+            Ok(_) => {
+                // A ready socket never returns from this read, so the
+                // handler and its deadline do not run until the buffer
+                // fills. Yield between chunks.
+                tokio::task::yield_now().await;
+            }
             Err(error) => return read_error(error),
         }
     }
@@ -2182,6 +2187,148 @@ mod write_prefetch_tests {
         assert!(
             elapsed < Duration::from_millis(80),
             "a ready prefetch held the write past its deadline: {elapsed:?}"
+        );
+    }
+}
+
+#[cfg(test)]
+mod handler_deadline_tests {
+    use super::{exchange, Config, Exit, Handler, Peer};
+    use std::future::Future;
+    use std::net::SocketAddr;
+    use std::pin::Pin;
+    use std::sync::Arc;
+    use std::task::{Context, Poll};
+    use std::time::Duration;
+    use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
+    use tokio::sync::Semaphore;
+    use tokio::time::Instant;
+
+    struct Stuck;
+
+    impl Handler for Stuck {
+        type Error = std::io::Error;
+
+        fn handle(
+            &self,
+            _request: Vec<u8>,
+        ) -> impl Future<Output = Result<Option<Vec<u8>>, Self::Error>> + Send {
+            std::future::pending()
+        }
+    }
+
+    /// One small request, then a pipelined frame that stays readable and
+    /// burns time on every chunk.
+    struct SlowPipeline {
+        phase: u8,
+        left: usize,
+    }
+
+    impl AsyncRead for SlowPipeline {
+        fn poll_read(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            buf: &mut ReadBuf<'_>,
+        ) -> Poll<std::io::Result<()>> {
+            let this = self.get_mut();
+            let dst = buf.initialize_unfilled();
+            if dst.is_empty() {
+                return Poll::Ready(Ok(()));
+            }
+            if this.phase == 0 {
+                this.phase = 1;
+                let len = 4i32.to_be_bytes();
+                let n = len.len().min(dst.len());
+                dst[..n].copy_from_slice(&len[..n]);
+                buf.advance(n);
+                return Poll::Ready(Ok(()));
+            }
+            if this.phase == 1 {
+                this.phase = 2;
+                let n = 4.min(dst.len());
+                dst[..n].fill(0);
+                buf.advance(n);
+                return Poll::Ready(Ok(()));
+            }
+            if this.phase == 2 {
+                this.phase = 3;
+                let len = i32::try_from(this.left).unwrap_or(i32::MAX).to_be_bytes();
+                let n = len.len().min(dst.len());
+                dst[..n].copy_from_slice(&len[..n]);
+                buf.advance(n);
+                return Poll::Ready(Ok(()));
+            }
+            if this.left == 0 {
+                return Poll::Pending;
+            }
+            let n = dst.len().min(this.left).min(1024);
+            dst[..n].fill(2);
+            buf.advance(n);
+            this.left -= n;
+            let start = std::time::Instant::now();
+            while start.elapsed() < Duration::from_micros(150) {}
+            Poll::Ready(Ok(()))
+        }
+    }
+
+    impl AsyncWrite for SlowPipeline {
+        fn poll_write(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            buf: &[u8],
+        ) -> Poll<std::io::Result<usize>> {
+            Poll::Ready(Ok(buf.len()))
+        }
+
+        fn poll_flush(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
+            Poll::Ready(Ok(()))
+        }
+
+        fn poll_shutdown(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
+            Poll::Ready(Ok(()))
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn handler_deadline_runs_during_a_ready_prefetch() {
+        let config = Config::new(
+            1,
+            1,
+            1024 * 1024,
+            1024,
+            Duration::from_secs(5),
+            Duration::from_millis(30),
+            Duration::from_secs(5),
+        )
+        .unwrap_or_else(|error| panic!("{error}"));
+        let socket = SlowPipeline {
+            phase: 0,
+            left: 1024 * 1024,
+        };
+        let started = Instant::now();
+        let result = exchange(
+            socket,
+            config,
+            Arc::new(Stuck),
+            Arc::new(Semaphore::new(1)),
+            Peer {
+                address: "127.0.0.1:9"
+                    .parse::<SocketAddr>()
+                    .unwrap_or_else(|error| panic!("{error}")),
+                #[cfg(feature = "sasl")]
+                identity: None,
+                #[cfg(feature = "tls")]
+                tls: None,
+            },
+            #[cfg(feature = "sasl")]
+            None,
+        )
+        .await;
+        let elapsed = started.elapsed();
+        let deadline = matches!(result, Exit::HandlerDeadline);
+        assert!(
+            deadline && elapsed < Duration::from_millis(80),
+            "handler deadline did not run during a ready prefetch: {elapsed:?} deadline {deadline}"
         );
     }
 }
