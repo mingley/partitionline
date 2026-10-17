@@ -1098,7 +1098,7 @@ pub enum ShareAcquireMode {
 /// `DELEGATION_TOKEN_AUTHORIZATION_FAILED`, which fails that poll, and not piggyback
 /// `DELEGATION_TOKEN_REQUEST_NOT_ALLOWED`). A piggybacked
 /// `DELEGATION_TOKEN_EXPIRED` still completes without retry,
-/// including when `AcknowledgeErrorMessage` is set (Java
+/// including when `AcknowledgeErrorMessage` is set or empty (Java
 /// `handleShareFetchSuccess` completes piggyback acks and still
 /// delivers the fetch; this is not partition
 /// `DELEGATION_TOKEN_EXPIRED`, which fails that poll, and not piggyback
@@ -2860,7 +2860,7 @@ impl ShareGroup {
     /// `DELEGATION_TOKEN_REQUEST_NOT_ALLOWED`).
     /// A piggybacked `DELEGATION_TOKEN_EXPIRED` still completes
     /// without retry, including when `AcknowledgeErrorMessage` is set
-    /// (Java `handleShareFetchSuccess` completes piggyback acks and still
+    /// or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
     /// delivers the fetch; this is not partition
     /// `DELEGATION_TOKEN_EXPIRED`, which fails that poll, and not piggyback
     /// `DELEGATION_TOKEN_AUTHORIZATION_FAILED`).

@@ -2323,7 +2323,7 @@
 //! partition `DELEGATION_TOKEN_AUTHORIZATION_FAILED`, which fails that poll, and not
 //! piggyback `DELEGATION_TOKEN_REQUEST_NOT_ALLOWED`). A piggybacked
 //! `DELEGATION_TOKEN_EXPIRED` still completes without retry,
-//! including when `AcknowledgeErrorMessage` is set (this is not
+//! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `DELEGATION_TOKEN_EXPIRED`, which fails that poll, and not
 //! piggyback `DELEGATION_TOKEN_AUTHORIZATION_FAILED`). A piggybacked
 //! `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a
