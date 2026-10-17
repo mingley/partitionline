@@ -31,6 +31,25 @@ fn response(code: i16) -> Vec<u8> {
     bytes
 }
 
+/// A coordinator that stays put is retried without another ApiVersions handshake.
+#[tokio::test]
+async fn coordinator_load_retries_without_another_handshake() {
+    let peer = Peer::start().await;
+    peer.script(1, [Reply::Body(response(14)), Reply::Body(response(0))])
+        .await;
+    let mut client = StreamsClient::new(peer.config()).unwrap();
+    let result = client.heartbeat(&request()).await.unwrap();
+    assert_eq!(result.error_code, 0);
+    drop(client);
+    let frames = peer.close().await;
+    assert_eq!(frames.iter().filter(|frame| frame.api == 88).count(), 2);
+    assert_eq!(
+        frames.iter().filter(|frame| frame.api == 18).count(),
+        4,
+        "coordinator retry repeated ApiVersions"
+    );
+}
+
 #[tokio::test]
 async fn explicit_policy_and_invalid_limits_fail_without_network() {
     let peer = Peer::start().await;
@@ -250,6 +269,12 @@ async fn coordinator_errors_and_lost_socket_refresh_route_with_identical_request
         assert_eq!(beats.iter().map(|f| f.slot).collect::<Vec<_>>(), [1, 2]);
         assert_eq!(beats[0].body, beats[1].body);
         assert_eq!(frames.iter().filter(|f| f.api == 10).count(), 2);
+        assert!(
+            frames
+                .iter()
+                .any(|frame| frame.slot == 2 && frame.api == 18),
+            "a moved Streams coordinator must negotiate"
+        );
     }
 }
 

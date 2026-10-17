@@ -250,13 +250,14 @@ impl StreamsClient {
                 .heartbeat_once(request, body, deadline, cached.take(), learned.clone())
                 .await
             {
-                Ok((response, _conn, _)) if error::coordinator_retriable(response.error_code) => {
-                    learned = None;
+                Ok((response, _conn, known))
+                    if error::coordinator_retriable(response.error_code) =>
+                {
+                    learned = Some(known);
                     last = Error::broker(response.error_code, "StreamsGroupHeartbeat");
                 }
                 Ok(response) => return Ok(response),
                 Err(err) if err.is_retriable() => {
-                    learned = None;
                     last = err;
                 }
                 Err(err) => return Err(err),
