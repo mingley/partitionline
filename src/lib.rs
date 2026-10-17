@@ -2636,7 +2636,7 @@
 //! epoch does not match the cached session.
 //! A piggybacked
 //! `INVALID_VOTER_KEY` still completes without retry,
-//! including when `AcknowledgeErrorMessage` is set (this is not
+//! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `INVALID_VOTER_KEY`, which fails that poll, and not
 //! piggyback `INVALID_SHARE_SESSION_EPOCH`). Official Java
 //! `KafkaRaftClient` writes this when a VOTE or BEGIN_QUORUM_EPOCH

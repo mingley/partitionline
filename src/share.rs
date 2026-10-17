@@ -1509,7 +1509,7 @@ pub enum ShareAcquireMode {
 /// epoch does not match the cached session.
 /// A piggybacked
 /// `INVALID_VOTER_KEY` still completes without retry,
-/// including when `AcknowledgeErrorMessage` is set (Java
+/// including when `AcknowledgeErrorMessage` is set or empty (Java
 /// `handleShareFetchSuccess` completes piggyback acks and still
 /// delivers the fetch; this is not partition
 /// `INVALID_VOTER_KEY`, which fails that poll, and not piggyback
@@ -3800,7 +3800,7 @@ impl ShareGroup {
     /// epoch does not match the cached session.
     /// A piggybacked `INVALID_VOTER_KEY` still completes
     /// without retry, including when `AcknowledgeErrorMessage` is set
-    /// (Java `handleShareFetchSuccess` completes piggyback acks and still
+    /// or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
     /// delivers the fetch; this is not partition
     /// `INVALID_VOTER_KEY`, which fails that poll, and not piggyback
     /// `INVALID_SHARE_SESSION_EPOCH`). Official Java
