@@ -359,54 +359,67 @@ async fn fetch_client_credentials_token_response_once(
     cfg: &OidcConfig,
     deadline: Instant,
 ) -> Result<OidcTokenResponse> {
-    let url = parse_http_url(&cfg.token_url)?;
-    let addr = connect_addr(&url.host, url.port);
-    let left = time_left(deadline)?;
-    let mut stream = match timeout(left, TcpStream::connect(&addr)).await {
-        Ok(Ok(s)) => s,
-        Ok(Err(e)) => return Err(e.into()),
-        Err(_) => return Err(Error::Timeout),
-    };
-    let default_port = if url.https { 443 } else { 80 };
-    let host_header = host_header(&url.host, url.port, default_port);
-    let auth = basic_auth(&cfg.client_id, &cfg.client_secret);
-    let req = format!(
-        "POST {path} HTTP/1.1\r\n\
-         Host: {host}\r\n\
-         Authorization: Basic {auth}\r\n\
-         Content-Type: application/x-www-form-urlencoded\r\n\
-         Accept: application/json\r\n\
-         Content-Length: {len}\r\n\
-         Connection: close\r\n\
-         \r\n\
-         {FORM_BODY}",
-        path = url.path,
-        host = host_header,
-        auth = auth,
-        len = FORM_BODY.len(),
-    );
-    let (status, body) = if url.https {
-        let tls = cfg.tls.clone().unwrap_or_default();
+    let fetched = async {
+        let url = parse_http_url(&cfg.token_url)?;
+        let addr = connect_addr(&url.host, url.port);
         let left = time_left(deadline)?;
-        let mut tls_stream = match timeout(left, crate::net::wrap_tls(stream, &addr, &tls)).await {
+        let mut stream = match timeout(left, TcpStream::connect(&addr)).await {
             Ok(Ok(s)) => s,
-            Ok(Err(e)) => return Err(e),
+            Ok(Err(e)) => return Err(e.into()),
             Err(_) => return Err(Error::Timeout),
         };
-        token_http_roundtrip(&mut tls_stream, req.as_bytes(), deadline).await?
-    } else {
-        token_http_roundtrip(&mut stream, req.as_bytes(), deadline).await?
-    };
-    if status != 200 {
-        // Do not embed IdP response bodies in Error — they can echo client_secret,
-        // tokens, or other credential-adjacent material (KL-06 error hygiene).
-        return Err(Error::protocol(format!(
-            "oidc token endpoint HTTP {status}"
-        )));
+        let default_port = if url.https { 443 } else { 80 };
+        let host_header = host_header(&url.host, url.port, default_port);
+        let auth = basic_auth(&cfg.client_id, &cfg.client_secret);
+        let req = format!(
+            "POST {path} HTTP/1.1\r\n\
+             Host: {host}\r\n\
+             Authorization: Basic {auth}\r\n\
+             Content-Type: application/x-www-form-urlencoded\r\n\
+             Accept: application/json\r\n\
+             Content-Length: {len}\r\n\
+             Connection: close\r\n\
+             \r\n\
+             {FORM_BODY}",
+            path = url.path,
+            host = host_header,
+            auth = auth,
+            len = FORM_BODY.len(),
+        );
+        let (status, body) = if url.https {
+            let tls = cfg.tls.clone().unwrap_or_default();
+            let left = time_left(deadline)?;
+            let mut tls_stream =
+                match timeout(left, crate::net::wrap_tls(stream, &addr, &tls)).await {
+                    Ok(Ok(s)) => s,
+                    Ok(Err(e)) => return Err(e),
+                    Err(_) => return Err(Error::Timeout),
+                };
+            token_http_roundtrip(&mut tls_stream, req.as_bytes(), deadline).await?
+        } else {
+            token_http_roundtrip(&mut stream, req.as_bytes(), deadline).await?
+        };
+        if status != 200 {
+            // Do not embed IdP response bodies in Error — they can echo client_secret,
+            // tokens, or other credential-adjacent material (KL-06 error hygiene).
+            return Err(Error::protocol(format!(
+                "oidc token endpoint HTTP {status}"
+            )));
+        }
+        let text = std::str::from_utf8(&body)
+            .map_err(|_| Error::protocol("oidc token response not utf8"))?;
+        parse_oidc_token_response(text)
     }
-    let text =
-        std::str::from_utf8(&body).map_err(|_| Error::protocol("oidc token response not utf8"))?;
-    parse_oidc_token_response(text)
+    .await;
+    // A failed token request drops its socket in this call. Yield so the
+    // endpoint observes that close before the error returns. A successful
+    // fetch has already finished the response and does not wait.
+    if fetched.is_err() {
+        for _ in 0..8 {
+            tokio::task::yield_now().await;
+        }
+    }
+    fetched
 }
 
 fn time_left(deadline: Instant) -> Result<Duration> {
@@ -2301,6 +2314,44 @@ mod tests {
     use super::*;
     use tokio::io::AsyncWriteExt;
     use tokio::net::TcpListener;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn token_request_timeout_closes_the_socket() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let port = listener.local_addr().unwrap().port();
+        let open = Arc::new(AtomicUsize::new(0));
+        let open_flag = Arc::clone(&open);
+        let peer = tokio::spawn(async move {
+            let (mut sock, _) = listener.accept().await.unwrap();
+            let _started = open_flag.fetch_add(1, Ordering::SeqCst);
+            let mut buf = [0u8; 64];
+            loop {
+                match sock.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = open_flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let cfg = OidcConfig::new(format!("http://127.0.0.1:{port}/token"), "client", "secret");
+        let result = fetch_client_credentials_token_response_once(
+            &cfg,
+            Instant::now() + Duration::from_millis(200),
+        )
+        .await;
+        assert!(
+            matches!(result, Err(Error::Timeout)),
+            "a silent token endpoint should time out"
+        );
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "token request left the socket blocked in a read"
+        );
+        peer.abort();
+    }
 
     #[test]
     fn shared_cache_caps_active_managers_and_evicts_only_idle_entries() {
