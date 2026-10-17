@@ -6680,14 +6680,29 @@ impl Worker {
                 _ = linger_timer.as_mut(), if next_wake.is_some() => {
                     self.purge_expired_pending();
                 }
-                ready = self.conn.inbound_ready(), if !self.in_flight.is_empty() && !self.conn.is_closed() => {
-                    let read = match ready {
-                        Ok(()) => self.wait_one().await,
-                        Err(error) => Err(error),
-                    };
-                    if let Err(error) = read {
-                        self.fail_kept_inflight(clone_err(&error));
-                        self.note_fail(error);
+                ready = self.conn.inbound_ready(), if !self.conn.is_closed() => {
+                    if self.in_flight.is_empty() {
+                        // Linger has not sent yet. A broker that closes, or
+                        // that sends bytes with nothing in flight, cannot take
+                        // the next Produce. Replace the socket before the
+                        // batch is due.
+                        drop(ready);
+                        self.conn.close();
+                        let addr = self.conn.addr().to_string();
+                        if let Ok(conn) = open_produce_socket(&self.shared, &addr).await {
+                            if conn.produce_version() >= 0 {
+                                self.conn = conn;
+                            }
+                        }
+                    } else {
+                        let read = match ready {
+                            Ok(()) => self.wait_one().await,
+                            Err(error) => Err(error),
+                        };
+                        if let Err(error) = read {
+                            self.fail_kept_inflight(clone_err(&error));
+                            self.note_fail(error);
+                        }
                     }
                 }
             }

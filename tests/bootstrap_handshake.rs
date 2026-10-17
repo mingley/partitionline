@@ -9,8 +9,9 @@ use partitionline::{
     ClientQuotaAlteration, ClientQuotaEntity, ClientQuotaOp, ConfigResource, Consumer,
     ConsumerConfig, ConsumerGroup, DescribeShareGroupOffsetsGroup, ElectLeadersOptions, Error,
     FeatureUpdate, ListConsumerGroupOffsetsSpec, MemberToRemove, NewTopic, OffsetAndMetadata,
-    OffsetClient, OffsetOptions, OffsetSpec, PartitionReassignment, Producer, ProducerConfig,
-    ScramMechanism, TopicPartition, TopicPartitionReplica, UserScramCredentialUpsertion,
+    OffsetClient, OffsetOptions, OffsetSpec, PartitionReassignment, ProduceRecord, Producer,
+    ProducerConfig, ScramMechanism, TopicPartition, TopicPartitionReplica,
+    UserScramCredentialUpsertion,
 };
 use std::time::{Duration, Instant};
 
@@ -1840,6 +1841,45 @@ async fn group_close_closes_the_member_socket() {
         0,
         "group close left a socket blocked in a broker read"
     );
+}
+
+/// A broker that closes during linger is dialed again before that linger ends.
+#[tokio::test(flavor = "current_thread")]
+async fn produce_reconnects_when_the_broker_closes_during_linger() {
+    let mock = common::Mock::start().await;
+    mock.set_topic_partitions("t", 1);
+    let mut cfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    cfg.linger = Duration::from_secs(30);
+    cfg.request_timeout = Duration::from_secs(2);
+    cfg.delivery_timeout = Duration::from_secs(60);
+    let producer = Producer::new(cfg).await.unwrap();
+    let sending = producer.clone();
+    let send = sending.send(ProduceRecord::to("t").value(b"x".to_vec()));
+    tokio::pin!(send);
+    let started = Instant::now();
+    while mock.open_conns() < 2 {
+        if started.elapsed() > Duration::from_secs(2) {
+            panic!("produce socket did not open");
+        }
+        tokio::select! {
+            result = &mut send => panic!("send finished before the broker closed: {result:?}"),
+            _ = tokio::time::sleep(Duration::from_millis(5)) => {}
+        }
+    }
+    let accepts = mock.accepts();
+    mock.drop_connections();
+    let started = Instant::now();
+    while mock.accepts() == accepts {
+        if started.elapsed() > Duration::from_millis(400) {
+            panic!("produce did not reconnect during linger");
+        }
+        tokio::select! {
+            result = &mut send => panic!("send finished during reconnect wait: {result:?}"),
+            _ = tokio::time::sleep(Duration::from_millis(5)) => {}
+        }
+    }
+    drop(send);
+    producer.close().await.unwrap();
 }
 
 /// Closing a producer closes the metadata socket before close returns.
