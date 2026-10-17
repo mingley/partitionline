@@ -2382,6 +2382,12 @@
 //! partition `GROUP_MAX_SIZE_REACHED`, which fails that poll, and not
 //! piggyback `MEMBER_ID_REQUIRED`). Official Java GroupCoordinator
 //! writes this when the group has reached `group.max.size`. A piggybacked
+//! `FENCED_INSTANCE_ID` still completes without retry,
+//! including when `AcknowledgeErrorMessage` is set (this is not
+//! partition `FENCED_INSTANCE_ID`, which fails that poll, and not
+//! piggyback `GROUP_MAX_SIZE_REACHED`). Official Java GroupCoordinator
+//! writes this when another consumer with the same `group.instance.id`
+//! has registered with a different member id. A piggybacked
 //! `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a
 //! sibling whose `AcknowledgeErrorCode` is none, including when
 //! `AcknowledgeErrorMessage` is set or empty. A piggybacked
