@@ -2419,7 +2419,7 @@
 //! `LogValidator` writes this when a produce record fails validation.
 //! A piggybacked
 //! `UNSTABLE_OFFSET_COMMIT` still completes without retry,
-//! including when `AcknowledgeErrorMessage` is set (this is not
+//! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `UNSTABLE_OFFSET_COMMIT`, which fails that poll, and not
 //! piggyback `INVALID_RECORD`). Official Java
 //! `OffsetMetadataManager` OffsetFetch writes this when unstable

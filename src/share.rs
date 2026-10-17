@@ -1230,7 +1230,7 @@ pub enum ShareAcquireMode {
 /// `LogValidator` writes this when a produce record fails validation.
 /// A piggybacked
 /// `UNSTABLE_OFFSET_COMMIT` still completes without retry,
-/// including when `AcknowledgeErrorMessage` is set (Java
+/// including when `AcknowledgeErrorMessage` is set or empty (Java
 /// `handleShareFetchSuccess` completes piggyback acks and still
 /// delivers the fetch; this is not partition
 /// `UNSTABLE_OFFSET_COMMIT`, which fails that poll, and not piggyback
@@ -3180,7 +3180,7 @@ impl ShareGroup {
     /// `LogValidator` writes this when a produce record fails validation.
     /// A piggybacked `UNSTABLE_OFFSET_COMMIT` still completes
     /// without retry, including when `AcknowledgeErrorMessage` is set
-    /// (Java `handleShareFetchSuccess` completes piggyback acks and still
+    /// or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
     /// delivers the fetch; this is not partition
     /// `UNSTABLE_OFFSET_COMMIT`, which fails that poll, and not piggyback
     /// `INVALID_RECORD`). Official Java
