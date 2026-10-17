@@ -261,6 +261,7 @@ async fn delete_topics_skips_a_second_handshake_on_the_bootstrap_broker() {
     assert_eq!(created[0].error_code, 0);
     mock.set_api_versions_delay(Duration::from_millis(250));
     let versions_before = mock.api_versions_versions().len();
+    let accepts_before = mock.accepts();
     let started = Instant::now();
     let deleted = admin.delete_topics(&["gone"], 10_000).await.unwrap();
     let elapsed = started.elapsed();
@@ -270,6 +271,11 @@ async fn delete_topics_skips_a_second_handshake_on_the_bootstrap_broker() {
         mock.api_versions_versions().len(),
         versions_before,
         "deleting on the bootstrap broker should reuse the versions already learned"
+    );
+    assert_eq!(
+        mock.accepts(),
+        accepts_before,
+        "DeleteTopics should stay on the admin bootstrap socket"
     );
     assert!(
         elapsed < Duration::from_millis(200),

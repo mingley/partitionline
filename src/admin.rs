@@ -5127,13 +5127,10 @@ impl Admin {
                 self.refresh_broker_directory(deadline).await?;
             }
             let node = self.cluster.controller()?;
-            self.connect_node_until(node, deadline).await?;
-            let body = {
-                let conn = self
-                    .conns
-                    .get_mut(&node)
-                    .ok_or_else(|| Error::protocol("missing delete_topics conn"))?;
-                conn.roundtrip(
+            let body = self
+                .roundtrip_known_node(
+                    node,
+                    deadline,
                     DELETE_TOPICS,
                     version,
                     |buf| {
@@ -5147,12 +5144,11 @@ impl Admin {
                     },
                     deadline.saturating_duration_since(Instant::now()),
                 )
-                .await
-            };
+                .await;
             let body = match body {
                 Ok(b) => b,
                 Err(e) if e.is_retriable() => {
-                    let _ = self.conns.remove(&node);
+                    self.drop_node_conn(node);
                     self.forget_controller();
                     self.wait_retry(&mut attempt, deadline).await?;
                     continue;
@@ -5166,7 +5162,7 @@ impl Admin {
             {
                 // NOT_CONTROLLER (41): Metadata, then the new controller.
                 self.forget_controller();
-                let _ = self.conns.remove(&node);
+                self.drop_node_conn(node);
                 self.wait_retry(&mut attempt, deadline).await?;
                 self.refresh_broker_directory(deadline).await?;
                 continue;
@@ -5747,13 +5743,10 @@ impl Admin {
                 self.refresh_broker_directory(deadline).await?;
             }
             let node = self.cluster.controller()?;
-            self.connect_node_until(node, deadline).await?;
-            let body = {
-                let conn = self
-                    .conns
-                    .get_mut(&node)
-                    .ok_or_else(|| Error::protocol("missing create_partitions conn"))?;
-                conn.roundtrip(
+            let body = self
+                .roundtrip_known_node(
+                    node,
+                    deadline,
                     CREATE_PARTITIONS,
                     version,
                     |buf| {
@@ -5767,12 +5760,11 @@ impl Admin {
                     },
                     deadline.saturating_duration_since(Instant::now()),
                 )
-                .await
-            };
+                .await;
             let body = match body {
                 Ok(b) => b,
                 Err(e) if e.is_retriable() => {
-                    let _ = self.conns.remove(&node);
+                    self.drop_node_conn(node);
                     self.forget_controller();
                     self.wait_retry(&mut attempt, deadline).await?;
                     continue;
@@ -5786,7 +5778,7 @@ impl Admin {
             {
                 // NOT_CONTROLLER (41): Metadata, then the new controller.
                 self.forget_controller();
-                let _ = self.conns.remove(&node);
+                self.drop_node_conn(node);
                 self.wait_retry(&mut attempt, deadline).await?;
                 self.refresh_broker_directory(deadline).await?;
                 continue;
@@ -14976,21 +14968,17 @@ impl Admin {
         deadline: Instant,
     ) -> Result<Vec<(usize, TransactionState)>> {
         let subset = borrowed_ids(ids, idxs);
-        self.connect_node_until(node, deadline).await?;
         let timeout = startup_remaining(deadline)?;
-        let body = {
-            let conn = self
-                .conns
-                .get_mut(&node)
-                .ok_or_else(|| Error::protocol("missing describe_transactions conn"))?;
-            conn.roundtrip(
+        let body = self
+            .roundtrip_known_node(
+                node,
+                deadline,
                 DESCRIBE_TRANSACTIONS,
                 version,
                 |buf| encode_describe_transactions_ids(buf, &subset),
                 timeout,
             )
-            .await
-        }?;
+            .await?;
         Self::apply_describe_transactions_body(ids, idxs, body)
     }
 
