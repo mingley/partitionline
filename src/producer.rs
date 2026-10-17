@@ -2056,6 +2056,7 @@ impl Producer {
                         shared.cache_nudge.notify_waiters();
                     }
                     () = watch_idle_metadata_socket(&shared) => {}
+                    () = watch_idle_txn_socket(&shared) => {}
                 }
             }
         });
@@ -5383,6 +5384,39 @@ async fn watch_idle_metadata_socket(shared: &Shared) {
         () = std::future::ready(()) => true,
     };
     drop(conn);
+    if quiet {
+        tokio::time::sleep(Duration::from_millis(20)).await;
+    }
+}
+
+/// Notice a broker that stops writing on the idle transaction coordinator.
+///
+/// No coordinator waits outside the lock. A closed coordinator is shut
+/// down, then this wait yields so the task does not spin.
+async fn watch_idle_txn_socket(shared: &Shared) {
+    let mut guard = shared.txn.lock().await;
+    let Some(coord) = guard.as_mut() else {
+        drop(guard);
+        tokio::time::sleep(Duration::from_millis(20)).await;
+        return;
+    };
+    if coord.conn.is_closed() {
+        coord.conn.release_if_closed().await;
+        drop(guard);
+        tokio::time::sleep(Duration::from_millis(20)).await;
+        return;
+    }
+    let quiet = tokio::select! {
+        biased;
+        ready = coord.conn.inbound_ready() => {
+            drop(ready);
+            coord.conn.close();
+            coord.conn.release_if_closed().await;
+            false
+        }
+        () = std::future::ready(()) => true,
+    };
+    drop(guard);
     if quiet {
         tokio::time::sleep(Duration::from_millis(20)).await;
     }

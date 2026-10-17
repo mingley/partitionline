@@ -1564,3 +1564,32 @@ async fn idle_metadata_socket_drops_when_the_broker_stops_writing() {
     }
     drop(producer);
 }
+
+/// An idle transactional producer must drop its coordinator socket when that broker stops writing.
+#[tokio::test(flavor = "current_thread")]
+async fn idle_coordinator_socket_drops_when_the_broker_stops_writing() {
+    let mock = common::Mock::start().await;
+    let mut cfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    cfg.linger = Duration::ZERO;
+    cfg.metadata_max_age = Duration::from_secs(300);
+    cfg.transactional_id = Some("tx-idle-coord".into());
+    let producer = Producer::new(cfg).await.unwrap();
+    tokio::time::sleep(Duration::from_millis(30)).await;
+    let open = mock.open_conns();
+    assert!(
+        open >= 2,
+        "transactional producer should hold the metadata and coordinator sockets, open {open}"
+    );
+    mock.shutdown_writes();
+    let window = Instant::now();
+    while mock.open_conns() > 0 {
+        if window.elapsed() > Duration::from_millis(400) {
+            panic!(
+                "idle coordinator socket stayed open; open {}",
+                mock.open_conns()
+            );
+        }
+        tokio::task::yield_now().await;
+    }
+    drop(producer);
+}
