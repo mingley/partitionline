@@ -774,6 +774,13 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   which fails that poll, and not piggyback `TRANSACTIONAL_ID_NOT_FOUND`). Official
   Java `FetchSession` writes this when the request version's topic ID usage
   does not match the session. A
+  piggybacked `INELIGIBLE_REPLICA` still
+  completes without retry, including when `AcknowledgeErrorMessage` is
+  set (Java `handleShareFetchSuccess` completes piggyback acks and still
+  delivers the fetch; this is not partition `INELIGIBLE_REPLICA`,
+  which fails that poll, and not piggyback `FETCH_SESSION_TOPIC_ID_ERROR`). Official
+  Java `ReplicationControlManager` writes this when AlterPartition specifies
+  an ISR containing an ineligible replica. A
   piggybacked `TOPIC_AUTHORIZATION_FAILED` on
   one partition does not fail a sibling whose `AcknowledgeErrorCode`
   is none, including when `AcknowledgeErrorMessage` is set or empty. A
