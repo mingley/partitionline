@@ -757,6 +757,41 @@ async fn close_timeout_finishes_a_stalled_worker() {
     );
 }
 
+/// Transaction discovery drops a slower handshake before the race returns.
+#[tokio::test(flavor = "current_thread")]
+async fn transaction_discovery_finishes_a_blocked_bootstrap_handshake() {
+    use std::sync::atomic::{AtomicBool, Ordering};
+    use std::sync::Arc;
+    use tokio::io::AsyncReadExt;
+
+    let mock = common::Mock::start().await;
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let slow = listener.local_addr().unwrap().to_string();
+    let dropped = Arc::new(AtomicBool::new(false));
+    let flag = Arc::clone(&dropped);
+    let peer = tokio::spawn(async move {
+        let (mut sock, _) = listener.accept().await.unwrap();
+        let mut buf = [0u8; 64];
+        loop {
+            match sock.read(&mut buf).await {
+                Ok(0) | Err(_) => break,
+                Ok(_) => continue,
+            }
+        }
+        flag.store(true, Ordering::SeqCst);
+    });
+    let mut cfg = ProducerConfig::bootstrap([mock.addr.clone(), slow.clone()]);
+    cfg.request_timeout = Duration::from_secs(2);
+    Producer::test_race_transaction_coordinator(cfg)
+        .await
+        .unwrap();
+    assert!(
+        dropped.load(Ordering::SeqCst),
+        "discovery left the slower bootstrap handshake blocked in a broker read"
+    );
+    peer.abort();
+}
+
 /// Startup drops a slower bootstrap handshake before `Producer::new` returns.
 #[tokio::test(flavor = "current_thread")]
 async fn startup_finishes_a_blocked_bootstrap_handshake() {

@@ -1659,6 +1659,21 @@ impl Producer {
         Ok((conn, resp))
     }
 
+    /// Race transaction-coordinator handshakes and return once the losers have stopped.
+    ///
+    /// `Producer::new` continues with initialization after this race, and those
+    /// later awaits hide a handshake that was only aborted.
+    #[doc(hidden)]
+    pub async fn test_race_transaction_coordinator(cfg: ProducerConfig) -> Result<()> {
+        let deadline = Instant::now()
+            .checked_add(cfg.request_timeout)
+            .ok_or(Error::Timeout)?;
+        let _found =
+            discover_typed_coord(&cfg, "txn-race", COORDINATOR_TRANSACTION, 1, deadline, None)
+                .await?;
+        Ok(())
+    }
+
     /// Race bootstrap handshakes and return as soon as the losers have stopped.
     ///
     /// `Producer::new` continues with metadata after this race, and those later
@@ -4093,14 +4108,14 @@ async fn discover_typed_coord_raced(
     let mut last = Error::protocol("find coordinator failed");
     while !inflight.is_empty() {
         if Instant::now() >= deadline {
-            inflight.abort_all();
+            Producer::finish_aborted_handshakes(inflight).await;
             return Err(Error::Timeout);
         }
         let rest = timeout_remaining(deadline).unwrap_or(Duration::ZERO);
         let joined = tokio::select! {
             joined = inflight.join_next() => joined,
             () = tokio::time::sleep(rest) => {
-                inflight.abort_all();
+                Producer::finish_aborted_handshakes(inflight).await;
                 return Err(Error::Timeout);
             }
         };
@@ -4154,11 +4169,11 @@ async fn discover_typed_coord_raced(
                     .await
                     {
                         ProducerCoordAsk::Found(found) => {
-                            inflight.abort_all();
+                            Producer::finish_aborted_handshakes(inflight).await;
                             return Ok(*found);
                         }
                         ProducerCoordAsk::Fatal(error) => {
-                            inflight.abort_all();
+                            Producer::finish_aborted_handshakes(inflight).await;
                             return Err(error);
                         }
                         ProducerCoordAsk::Retry(error) => last = error,
@@ -4172,11 +4187,11 @@ async fn discover_typed_coord_raced(
                     .await
                     {
                         ProducerCoordAsk::Found(found) => {
-                            inflight.abort_all();
+                            Producer::finish_aborted_handshakes(inflight).await;
                             return Ok(*found);
                         }
                         ProducerCoordAsk::Fatal(error) => {
-                            inflight.abort_all();
+                            Producer::finish_aborted_handshakes(inflight).await;
                             return Err(error);
                         }
                         ProducerCoordAsk::Retry(error) => {
@@ -4188,7 +4203,7 @@ async fn discover_typed_coord_raced(
             }
         }
     }
-    inflight.abort_all();
+    Producer::finish_aborted_handshakes(inflight).await;
     if Instant::now() >= deadline {
         return Err(Error::Timeout);
     }
