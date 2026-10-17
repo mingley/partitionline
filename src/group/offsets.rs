@@ -103,6 +103,7 @@ impl ConsumerGroup {
         let limits = OffsetLimits::default();
         let group_id = self.group_id.as_str();
         let bootstrap_keys = self.consumer.copy_api_keys();
+        let address_keys = self.consumer.copy_learned_broker_keys();
         let coord = &mut self.coord;
         let cfg = &self.cfg;
         let consumer = &mut self.consumer;
@@ -115,6 +116,7 @@ impl ConsumerGroup {
             crate::protocol::api_keys::OFFSET_COMMIT,
             |buf| encode_offset_commit_request_into(buf, &request, 10, limits),
             &bootstrap_keys,
+            &address_keys,
             prior,
             timeout,
         );
@@ -388,6 +390,7 @@ impl ConsumerGroup {
     ) -> Result<()> {
         let limits = OffsetLimits::default();
         let bootstrap_keys = self.consumer.copy_api_keys();
+        let address_keys = self.consumer.copy_learned_broker_keys();
         let sent = coord_offsets_v10(
             &mut self.coord,
             &self.cfg,
@@ -396,6 +399,7 @@ impl ConsumerGroup {
             crate::protocol::api_keys::OFFSET_COMMIT,
             |buf| encode_offset_commit_request_into(buf, &request, 10, limits),
             &bootstrap_keys,
+            &address_keys,
             &mut self.prior_coords,
             timeout,
         )
@@ -429,6 +433,7 @@ impl ConsumerGroup {
         }
         let limits = OffsetLimits::default();
         let bootstrap_keys = self.consumer.copy_api_keys();
+        let address_keys = self.consumer.copy_learned_broker_keys();
         let sent = coord_offsets_v10(
             &mut self.coord,
             &self.cfg,
@@ -437,6 +442,7 @@ impl ConsumerGroup {
             crate::protocol::api_keys::OFFSET_FETCH,
             |buf| encode_offset_fetch_request_into(buf, &request, 10, limits),
             &bootstrap_keys,
+            &address_keys,
             &mut self.prior_coords,
             timeout,
         )
@@ -689,6 +695,7 @@ pub(super) async fn coord_offsets_v10(
     api: i16,
     mut encode: impl FnMut(&mut bytes::BytesMut) -> Result<()>,
     bootstrap_keys: &[crate::protocol::api::ApiVersion],
+    address_keys: &std::collections::HashMap<String, Vec<crate::protocol::api::ApiVersion>>,
     prior: &mut std::collections::HashMap<String, super::KnownCoord>,
     timeout: Duration,
 ) -> Result<bytes::Bytes> {
@@ -718,7 +725,9 @@ pub(super) async fn coord_offsets_v10(
     };
     if v10_coordinator_code(api, &body).is_some_and(crate::error::coordinator_retriable) {
         let bounded = bounded_consumer_config(cfg, deadline)?;
-        let known = super::KnownCoord::capture(coord).with_bootstrap_keys(bootstrap_keys);
+        let known = super::KnownCoord::capture(coord)
+            .with_bootstrap_keys(bootstrap_keys)
+            .with_address_keys(address_keys);
         *coord = Box::pin(super::rediscover_known_coord(
             &bounded, group_id, key_type, &known, prior,
         ))
@@ -754,6 +763,7 @@ pub(super) async fn coord_offsets_legacy(
     version: i16,
     mut encode: impl FnMut(&mut bytes::BytesMut) -> Result<()>,
     bootstrap_keys: &[crate::protocol::api::ApiVersion],
+    address_keys: &std::collections::HashMap<String, Vec<crate::protocol::api::ApiVersion>>,
     prior: &mut std::collections::HashMap<String, super::KnownCoord>,
     timeout: Duration,
 ) -> Result<bytes::Bytes> {
@@ -791,7 +801,9 @@ pub(super) async fn coord_offsets_legacy(
             .is_some_and(crate::error::coordinator_retriable)
         {
             let bounded = bounded_consumer_config(cfg, deadline)?;
-            let known = super::KnownCoord::capture(coord).with_bootstrap_keys(bootstrap_keys);
+            let known = super::KnownCoord::capture(coord)
+                .with_bootstrap_keys(bootstrap_keys)
+                .with_address_keys(address_keys);
             *coord = Box::pin(super::rediscover_known_coord(
                 &bounded, group_id, key_type, &known, prior,
             ))

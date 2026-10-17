@@ -3719,6 +3719,45 @@ async fn max_poll_leave_reuses_the_heartbeat_socket() {
     drop(group);
 }
 
+/// An offset commit rediscovers a coordinator that moved to the other bootstrap.
+#[tokio::test]
+async fn offset_commit_reuses_the_other_bootstrap_handshake() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_topic_partitions("t", 1);
+    mock.set_partition_leader("t", 0, 1);
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    let _sent = producer
+        .send(ProduceRecord::to("t").value(&b"v"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+    let addr2 = mock.broker_addr(2).unwrap();
+    let mut cfg = ConsumerConfig::bootstrap([mock.addr.clone(), addr2]).max_wait_ms(10);
+    cfg.heartbeat_interval = Duration::from_secs(5);
+    let mut group = ConsumerGroup::join(cfg, "commit-other", "t").await.unwrap();
+    assert_eq!(group.poll().await.unwrap().len(), 1);
+    group.commit().await.unwrap();
+    let versions_before = mock.api_versions_versions().len();
+    mock.set_coordinator(2);
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let started = Instant::now();
+    group.commit().await.unwrap();
+    let elapsed = started.elapsed();
+    assert_eq!(
+        mock.api_versions_versions().len(),
+        versions_before,
+        "offset commit rediscovery renegotiated the other bootstrap"
+    );
+    assert!(
+        elapsed < Duration::from_millis(400),
+        "offset commit rediscovery repeated ApiVersions: {elapsed:?}"
+    );
+    group.leave().await.unwrap();
+}
+
 /// A heartbeat after a failed idle reconnect reuses the coordinator already learned.
 #[tokio::test]
 async fn heartbeat_after_failed_idle_reconnect_reuses_known_versions() {

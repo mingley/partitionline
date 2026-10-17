@@ -1394,6 +1394,7 @@ impl ConsumerGroup {
             (None, -1)
         };
         let bootstrap_keys = self.consumer.copy_api_keys();
+        let address_keys = self.consumer.copy_learned_broker_keys();
         let (version, body) = coord_roundtrip_with_bootstrap(
             &mut self.coord,
             &self.cfg,
@@ -1412,6 +1413,7 @@ impl ConsumerGroup {
                 )
             },
             &bootstrap_keys,
+            &address_keys,
             &mut self.prior_coords,
             timeout,
         )
@@ -1905,6 +1907,7 @@ impl ConsumerGroup {
         timeout: Duration,
     ) -> Result<()> {
         let bootstrap_keys = self.consumer.copy_api_keys();
+        let address_keys = self.consumer.copy_learned_broker_keys();
         let (version, body) = coord_roundtrip_with_bootstrap(
             &mut self.coord,
             &self.cfg,
@@ -1924,6 +1927,7 @@ impl ConsumerGroup {
                 )
             },
             &bootstrap_keys,
+            &address_keys,
             &mut self.prior_coords,
             timeout,
         )
@@ -6030,6 +6034,7 @@ pub(crate) async fn coord_roundtrip(
         api_key,
         encode_body,
         bootstrap_keys,
+        &HashMap::new(),
         prior,
         request_timeout,
     )
@@ -6048,6 +6053,7 @@ async fn coord_roundtrip_with_bootstrap(
     api_key: i16,
     mut encode_body: impl FnMut(i16, &mut BytesMut) -> Result<()>,
     bootstrap_keys: &[ApiVersion],
+    address_keys: &HashMap<String, Vec<ApiVersion>>,
     prior: &mut HashMap<String, KnownCoord>,
     request_timeout: Duration,
 ) -> Result<(i16, Bytes)> {
@@ -6067,6 +6073,7 @@ async fn coord_roundtrip_with_bootstrap(
             version,
             |buf| encode_body(version, buf),
             bootstrap_keys,
+            address_keys,
             prior,
             deadline.remaining()?,
         )
