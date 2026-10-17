@@ -7752,6 +7752,41 @@ async fn controller_metadata_omits_topics() {
     );
 }
 
+/// A NOT_CONTROLLER retry reloads the broker directory while the controller reconnects.
+#[tokio::test]
+async fn create_topics_redials_controller_while_refreshing_metadata() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_controller(2);
+    let mut admin = Admin::new(
+        AdminConfig::bootstrap([mock.addr.clone()])
+            .retry_backoff(Duration::from_millis(1))
+            .retry_backoff_max(Duration::from_millis(1)),
+    )
+    .await
+    .unwrap();
+    let warm = admin
+        .create_topics(&[NewTopic::new("warm", 1, 1)], 10_000, false)
+        .await
+        .unwrap();
+    assert_eq!(warm[0].error_code, 0);
+    mock.fail_create_topics_once(error::NOT_CONTROLLER);
+    let delay = Duration::from_millis(250);
+    mock.set_metadata_delay(delay);
+    mock.set_api_versions_delay(delay);
+    let started = Instant::now();
+    let created = admin
+        .create_topics(&[NewTopic::new("again", 1, 1)], 10_000, false)
+        .await
+        .unwrap();
+    let elapsed = started.elapsed();
+    assert_eq!(created[0].error_code, 0);
+    assert_eq!(mock.last_create_topics_node(), Some(2));
+    assert!(
+        elapsed < Duration::from_millis(450),
+        "create topics refreshed metadata before redialing the controller: {elapsed:?}"
+    );
+}
+
 #[tokio::test]
 async fn create_topics_negotiates_below_v7_when_broker_caps() {
     let mock = common::Mock::start().await;

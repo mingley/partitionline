@@ -2939,6 +2939,9 @@ pub struct Admin {
     describe_delegation_token_version: Option<i16>,
     cluster: Cluster,
     conns: HashMap<i32, AdminOffsetConn>,
+    /// Controller broker dropped after `NOT_CONTROLLER`. Dialed again while
+    /// the broker directory reloads.
+    controller_redial: Option<i32>,
     reconnect_fails: HashMap<i32, u32>,
     group_coord: Option<(String, i32)>,
     group_coords: HashMap<String, i32>,
@@ -3728,7 +3731,7 @@ impl Admin {
                         || matches!(err, Error::Io(_) | Error::Closed | Error::Timeout) =>
                 {
                     if err.broker_code() == Some(error::NOT_CONTROLLER) {
-                        self.cluster.invalidate_controller();
+                        self.forget_controller();
                         refresh = true;
                     } else {
                         reconnect = true;
@@ -3847,7 +3850,7 @@ impl Admin {
                         || matches!(err, Error::Io(_) | Error::Closed | Error::Timeout) =>
                 {
                     if err.broker_code() == Some(error::NOT_CONTROLLER) {
-                        self.cluster.invalidate_controller();
+                        self.forget_controller();
                         refresh = true;
                     } else {
                         reconnect = true;
@@ -3981,7 +3984,7 @@ impl Admin {
                         return Err(err);
                     }
                     if err.broker_code() == Some(error::NOT_CONTROLLER) {
-                        self.cluster.invalidate_controller();
+                        self.forget_controller();
                         refresh = true;
                     }
                     if matches!(err, Error::Io(_) | Error::Closed | Error::Timeout) {
@@ -4101,7 +4104,7 @@ impl Admin {
                 Ok(body) => body,
                 Err(err) if err.is_retriable() || matches!(err, Error::Closed) => {
                     let _ = self.conns.remove(&node);
-                    self.cluster.invalidate_controller();
+                    self.forget_controller();
                     self.wait_retry(&mut attempt, deadline).await?;
                     continue;
                 }
@@ -4112,7 +4115,7 @@ impl Admin {
             throttle_time_ms = throttle_time_ms.max(response.throttle_time_ms);
             if response.error_code == error::NOT_CONTROLLER {
                 let _ = self.conns.remove(&node);
-                self.cluster.invalidate_controller();
+                self.forget_controller();
                 self.wait_retry(&mut attempt, deadline).await?;
                 continue;
             }
@@ -4205,7 +4208,7 @@ impl Admin {
             if !retry.is_empty() {
                 pending = Some(retry);
                 let _ = self.conns.remove(&node);
-                self.cluster.invalidate_controller();
+                self.forget_controller();
                 self.wait_retry(&mut attempt, deadline).await?;
                 continue;
             }
@@ -4553,6 +4556,7 @@ impl Admin {
             describe_delegation_token_version,
             cluster: Cluster::default(),
             conns: HashMap::new(),
+            controller_redial: None,
             reconnect_fails: HashMap::new(),
             group_coord: None,
             group_coords: HashMap::new(),
@@ -4780,7 +4784,7 @@ impl Admin {
                 Ok(b) => b,
                 Err(e) if e.is_retriable() => {
                     let _ = self.conns.remove(&node);
-                    self.cluster.invalidate_controller();
+                    self.forget_controller();
                     self.wait_retry(&mut attempt, deadline).await?;
                     continue;
                 }
@@ -4792,7 +4796,7 @@ impl Admin {
                 .any(|r| r.error_code == error::NOT_CONTROLLER)
             {
                 // NOT_CONTROLLER (41): Metadata, then the new controller.
-                self.cluster.invalidate_controller();
+                self.forget_controller();
                 let _ = self.conns.remove(&node);
                 self.wait_retry(&mut attempt, deadline).await?;
                 self.refresh_broker_directory(deadline).await?;
@@ -5145,7 +5149,7 @@ impl Admin {
                 Ok(b) => b,
                 Err(e) if e.is_retriable() => {
                     let _ = self.conns.remove(&node);
-                    self.cluster.invalidate_controller();
+                    self.forget_controller();
                     self.wait_retry(&mut attempt, deadline).await?;
                     continue;
                 }
@@ -5157,7 +5161,7 @@ impl Admin {
                 .any(|r| r.error_code == error::NOT_CONTROLLER)
             {
                 // NOT_CONTROLLER (41): Metadata, then the new controller.
-                self.cluster.invalidate_controller();
+                self.forget_controller();
                 let _ = self.conns.remove(&node);
                 self.wait_retry(&mut attempt, deadline).await?;
                 self.refresh_broker_directory(deadline).await?;
@@ -5765,7 +5769,7 @@ impl Admin {
                 Ok(b) => b,
                 Err(e) if e.is_retriable() => {
                     let _ = self.conns.remove(&node);
-                    self.cluster.invalidate_controller();
+                    self.forget_controller();
                     self.wait_retry(&mut attempt, deadline).await?;
                     continue;
                 }
@@ -5777,7 +5781,7 @@ impl Admin {
                 .any(|r| r.error_code == error::NOT_CONTROLLER)
             {
                 // NOT_CONTROLLER (41): Metadata, then the new controller.
-                self.cluster.invalidate_controller();
+                self.forget_controller();
                 let _ = self.conns.remove(&node);
                 self.wait_retry(&mut attempt, deadline).await?;
                 self.refresh_broker_directory(deadline).await?;
@@ -5946,7 +5950,7 @@ impl Admin {
                 Ok(b) => b,
                 Err(e) if e.is_retriable() => {
                     let _ = self.conns.remove(&node);
-                    self.cluster.invalidate_controller();
+                    self.forget_controller();
                     self.wait_retry(&mut attempt, deadline).await?;
                     continue;
                 }
@@ -5958,7 +5962,7 @@ impl Admin {
                 .iter()
                 .any(|r| r.error_code == error::NOT_CONTROLLER)
             {
-                self.cluster.invalidate_controller();
+                self.forget_controller();
                 let _ = self.conns.remove(&node);
                 self.wait_retry(&mut attempt, deadline).await?;
                 self.refresh_broker_directory(deadline).await?;
@@ -6026,7 +6030,7 @@ impl Admin {
                 Ok(b) => b,
                 Err(e) if e.is_retriable() => {
                     let _ = self.conns.remove(&node);
-                    self.cluster.invalidate_controller();
+                    self.forget_controller();
                     self.wait_retry(&mut attempt, deadline).await?;
                     continue;
                 }
@@ -6038,7 +6042,7 @@ impl Admin {
                 .any(|r| r.error_code == error::NOT_CONTROLLER)
             {
                 // NOT_CONTROLLER (41): Metadata, then the new controller.
-                self.cluster.invalidate_controller();
+                self.forget_controller();
                 let _ = self.conns.remove(&node);
                 self.wait_retry(&mut attempt, deadline).await?;
                 self.refresh_broker_directory(deadline).await?;
@@ -6245,7 +6249,7 @@ impl Admin {
                     if let Ok(node) = self.cluster.controller() {
                         let _removed = self.conns.remove(&node);
                     }
-                    self.cluster.invalidate_controller();
+                    self.forget_controller();
                     if attempt >= 8 {
                         return Err(Error::Timeout);
                     }
@@ -6370,7 +6374,7 @@ impl Admin {
                 Ok(b) => b,
                 Err(e) if e.is_retriable() => {
                     let _ = self.conns.remove(&node);
-                    self.cluster.invalidate_controller();
+                    self.forget_controller();
                     self.wait_retry(&mut attempt, deadline).await?;
                     continue;
                 }
@@ -6379,7 +6383,7 @@ impl Admin {
             let resp = decode_list_partition_reassignments_response(&mut body.clone())?;
             if resp.error_code == error::NOT_CONTROLLER {
                 // NOT_CONTROLLER (41): Metadata, then the new controller.
-                self.cluster.invalidate_controller();
+                self.forget_controller();
                 let _ = self.conns.remove(&node);
                 self.wait_retry(&mut attempt, deadline).await?;
                 self.refresh_broker_directory(deadline).await?;
@@ -6543,7 +6547,7 @@ impl Admin {
                 Ok(b) => b,
                 Err(e) if e.is_retriable() => {
                     let _ = self.conns.remove(&node);
-                    self.cluster.invalidate_controller();
+                    self.forget_controller();
                     self.wait_retry(&mut attempt, deadline).await?;
                     continue;
                 }
@@ -6552,7 +6556,7 @@ impl Admin {
             let resp = decode_update_features_response(&mut body.clone(), version)?;
             if resp.error_code == error::NOT_CONTROLLER {
                 // NOT_CONTROLLER (41): Metadata, then the new controller.
-                self.cluster.invalidate_controller();
+                self.forget_controller();
                 let _ = self.conns.remove(&node);
                 self.wait_retry(&mut attempt, deadline).await?;
                 self.refresh_broker_directory(deadline).await?;
@@ -6749,7 +6753,7 @@ impl Admin {
                 Ok(b) => b,
                 Err(e) if e.is_retriable() => {
                     let _ = self.conns.remove(&node);
-                    self.cluster.invalidate_controller();
+                    self.forget_controller();
                     self.wait_retry(&mut attempt, deadline).await?;
                     continue;
                 }
@@ -6761,7 +6765,7 @@ impl Admin {
                 .any(|r| r.error_code == error::NOT_CONTROLLER)
             {
                 // NOT_CONTROLLER (41): Metadata, then the new controller.
-                self.cluster.invalidate_controller();
+                self.forget_controller();
                 let _ = self.conns.remove(&node);
                 self.wait_retry(&mut attempt, deadline).await?;
                 self.refresh_broker_directory(deadline).await?;
@@ -6838,7 +6842,7 @@ impl Admin {
                 Ok(b) => b,
                 Err(e) if e.is_retriable() => {
                     let _ = self.conns.remove(&node);
-                    self.cluster.invalidate_controller();
+                    self.forget_controller();
                     self.wait_retry(&mut attempt, deadline).await?;
                     continue;
                 }
@@ -6847,7 +6851,7 @@ impl Admin {
             let resp = decode_describe_user_scram_credentials_response(&mut body.clone())?;
             if resp.error_code == error::NOT_CONTROLLER {
                 // NOT_CONTROLLER (41): Metadata, then the new controller.
-                self.cluster.invalidate_controller();
+                self.forget_controller();
                 let _ = self.conns.remove(&node);
                 self.wait_retry(&mut attempt, deadline).await?;
                 self.refresh_broker_directory(deadline).await?;
@@ -6939,7 +6943,7 @@ impl Admin {
                 Ok(b) => b,
                 Err(e) if e.is_retriable() => {
                     let _ = self.conns.remove(&node);
-                    self.cluster.invalidate_controller();
+                    self.forget_controller();
                     self.wait_retry(&mut attempt, deadline).await?;
                     continue;
                 }
@@ -6948,7 +6952,7 @@ impl Admin {
             let resp = decode_unregister_broker_response(&mut body.clone())?;
             if resp.error_code == error::NOT_CONTROLLER {
                 // NOT_CONTROLLER (41): Metadata, then the new controller.
-                self.cluster.invalidate_controller();
+                self.forget_controller();
                 let _ = self.conns.remove(&node);
                 self.wait_retry(&mut attempt, deadline).await?;
                 self.refresh_broker_directory(deadline).await?;
@@ -7119,7 +7123,7 @@ impl Admin {
                 Ok(b) => b,
                 Err(e) if e.is_retriable() => {
                     let _ = self.conns.remove(&node);
-                    self.cluster.invalidate_controller();
+                    self.forget_controller();
                     self.wait_retry(&mut attempt, deadline).await?;
                     continue;
                 }
@@ -7131,7 +7135,7 @@ impl Admin {
                 .any(|r| r.error_code == error::NOT_CONTROLLER)
             {
                 // NOT_CONTROLLER (41): Metadata, then the new controller.
-                self.cluster.invalidate_controller();
+                self.forget_controller();
                 let _ = self.conns.remove(&node);
                 self.wait_retry(&mut attempt, deadline).await?;
                 self.refresh_broker_directory(deadline).await?;
@@ -7198,7 +7202,7 @@ impl Admin {
                 Ok(b) => b,
                 Err(e) if e.is_retriable() => {
                     let _ = self.conns.remove(&node);
-                    self.cluster.invalidate_controller();
+                    self.forget_controller();
                     self.wait_retry(&mut attempt, deadline).await?;
                     continue;
                 }
@@ -7207,7 +7211,7 @@ impl Admin {
             let resp = decode_allocate_producer_ids_response(&mut body.clone())?;
             if resp.error_code == error::NOT_CONTROLLER {
                 // NOT_CONTROLLER (41): Metadata, then the new controller.
-                self.cluster.invalidate_controller();
+                self.forget_controller();
                 let _ = self.conns.remove(&node);
                 self.wait_retry(&mut attempt, deadline).await?;
                 self.refresh_broker_directory(deadline).await?;
@@ -8561,7 +8565,31 @@ impl Admin {
     ///
     /// Metadata v1+ empty topic array is that directory. v0 cannot say
     /// "no topics", so it still asks for every topic.
+    fn forget_controller(&mut self) {
+        if let Ok(node) = self.cluster.controller() {
+            self.controller_redial = Some(node);
+        }
+        self.cluster.invalidate_controller();
+    }
+
     async fn refresh_broker_directory(&mut self, deadline: Instant) -> Result<()> {
+        let mut nodes = Vec::new();
+        if let Some(node) = self.controller_redial.take() {
+            nodes.push(node);
+        }
+        let dials = self.take_broker_dials(&nodes);
+        if dials.is_empty() {
+            return self.refresh_directory_metadata(deadline).await;
+        }
+        let opened =
+            Self::dial_admin_nodes(self.cfg.clone(), Arc::clone(&self.stats), dials, deadline);
+        let refreshed = self.refresh_directory_metadata(deadline);
+        let (opened, refreshed) = tokio::join!(opened, refreshed);
+        self.store_admin_dials(opened);
+        refreshed
+    }
+
+    async fn refresh_directory_metadata(&mut self, deadline: Instant) -> Result<()> {
         if self.metadata_version == 0 {
             return self.refresh_metadata_until(None, deadline).await;
         }
@@ -13283,7 +13311,7 @@ impl Admin {
                 Ok(b) => b,
                 Err(e) if e.is_retriable() => {
                     let _ = self.conns.remove(&node);
-                    self.cluster.invalidate_controller();
+                    self.forget_controller();
                     self.wait_retry(&mut attempt, deadline).await?;
                     continue;
                 }
@@ -13292,7 +13320,7 @@ impl Admin {
             let resp = decode_assign_replicas_to_dirs_response(&mut body.clone())?;
             if resp.error_code == error::NOT_CONTROLLER {
                 // NOT_CONTROLLER (41): Metadata, then the new controller.
-                self.cluster.invalidate_controller();
+                self.forget_controller();
                 let _ = self.conns.remove(&node);
                 self.wait_retry(&mut attempt, deadline).await?;
                 self.refresh_broker_directory(deadline).await?;

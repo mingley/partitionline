@@ -397,6 +397,8 @@ struct State {
     last_create_topics_replication_factor: Option<i16>,
     last_create_topics_names: Option<Vec<String>>,
     create_topics_quota_once: HashSet<String>,
+    /// Next CreateTopics response uses this error once, for every topic.
+    create_topics_fault: Option<i16>,
     create_topics_quota_hits: u32,
     create_topics_not_controller: u32,
     last_delete_topics_node: Option<i32>,
@@ -895,6 +897,7 @@ fn new_state(
         last_create_topics_replication_factor: None,
         last_create_topics_names: None,
         create_topics_quota_once: HashSet::new(),
+        create_topics_fault: None,
         create_topics_quota_hits: 0,
         create_topics_not_controller: 0,
         last_delete_topics_node: None,
@@ -2792,6 +2795,11 @@ impl Mock {
 
     pub fn last_create_topics_names(&self) -> Option<Vec<String>> {
         self.state.lock().last_create_topics_names.clone()
+    }
+
+    /// The next CreateTopics response returns `code` once for every topic.
+    pub fn fail_create_topics_once(&self, code: i16) {
+        self.state.lock().create_topics_fault = Some(code);
     }
 
     pub fn create_topics_quota_once(&self, name: &str) {
@@ -5070,7 +5078,11 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     st.last_create_topics_num_partitions = Some(t.num_partitions);
                     st.last_create_topics_replication_factor = Some(t.replication_factor);
                 }
-                if st.controller_node != node_id {
+                if let Some(code) = st.create_topics_fault.take() {
+                    for t in req.topics {
+                        results.push(TopicResult::new(t.name, code, None));
+                    }
+                } else if st.controller_node != node_id {
                     st.create_topics_not_controller =
                         st.create_topics_not_controller.saturating_add(1);
                     for t in req.topics {
