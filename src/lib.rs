@@ -2400,6 +2400,12 @@
 //! piggyback `ELIGIBLE_LEADERS_NOT_AVAILABLE`). Official Java
 //! `ReplicationControlManager.electLeader` writes this when the
 //! partition already has the requested leader. A piggybacked
+//! `NO_REASSIGNMENT_IN_PROGRESS` still completes without retry,
+//! including when `AcknowledgeErrorMessage` is set (this is not
+//! partition `NO_REASSIGNMENT_IN_PROGRESS`, which fails that poll, and not
+//! piggyback `ELECTION_NOT_NEEDED`). Official Java
+//! `ReplicationControlManager.cancelPartitionReassignment` writes this
+//! when no reassignment is in progress. A piggybacked
 //! `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a
 //! sibling whose `AcknowledgeErrorCode` is none, including when
 //! `AcknowledgeErrorMessage` is set or empty. A piggybacked
