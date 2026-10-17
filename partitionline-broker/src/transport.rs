@@ -1246,8 +1246,12 @@ async fn watch_disconnect<S: AsyncRead + Unpin>(
 ) -> Exit {
     loop {
         // One pipelined frame fits in the request limit, including its length
-        // prefix. More than that during a handler is not one request.
-        if ahead.pending().len() > max_request.saturating_add(4) {
+        // prefix. More than that during a handler is not one request. A
+        // length after a finished frame is not a request either, even when
+        // the first frame is still legal.
+        if ahead.pending().len() > max_request.saturating_add(4)
+            || ahead_has_rejected_length(ahead.pending(), max_request)
+        {
             return Exit::InvalidLength;
         }
         let budget = match classify_ahead(ahead.pending(), max_request) {
@@ -2589,6 +2593,102 @@ mod handler_deadline_tests {
         assert!(
             deadline && elapsed < Duration::from_millis(80),
             "handler deadline did not run during a ready prefetch: {elapsed:?} deadline {deadline}"
+        );
+    }
+
+    /// One empty request, then a finished empty frame followed by a length
+    /// this connection will not accept. The later length stays readable and
+    /// then the socket waits.
+    struct IllegalAfterFrame {
+        phase: u8,
+    }
+
+    impl AsyncRead for IllegalAfterFrame {
+        fn poll_read(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            buf: &mut ReadBuf<'_>,
+        ) -> Poll<std::io::Result<()>> {
+            let this = self.get_mut();
+            let dst = buf.initialize_unfilled();
+            if dst.is_empty() {
+                return Poll::Ready(Ok(()));
+            }
+            if this.phase == 0 {
+                this.phase = 1;
+                let n = 4.min(dst.len());
+                dst[..n].fill(0);
+                buf.advance(n);
+                return Poll::Ready(Ok(()));
+            }
+            if this.phase == 1 {
+                this.phase = 2;
+                if dst.len() < 8 {
+                    return Poll::Pending;
+                }
+                dst[..4].fill(0);
+                dst[4..8].copy_from_slice(&i32::MAX.to_be_bytes());
+                buf.advance(8);
+                return Poll::Ready(Ok(()));
+            }
+            Poll::Pending
+        }
+    }
+
+    impl AsyncWrite for IllegalAfterFrame {
+        fn poll_write(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            buf: &[u8],
+        ) -> Poll<std::io::Result<usize>> {
+            Poll::Ready(Ok(buf.len()))
+        }
+
+        fn poll_flush(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
+            Poll::Ready(Ok(()))
+        }
+
+        fn poll_shutdown(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
+            Poll::Ready(Ok(()))
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn an_illegal_length_after_a_frame_stops_the_handler() {
+        let config = Config::new(
+            1,
+            1,
+            1024,
+            1024,
+            Duration::from_secs(5),
+            Duration::from_secs(5),
+            Duration::from_secs(5),
+        )
+        .unwrap_or_else(|error| panic!("{error}"));
+        let result = tokio::time::timeout(
+            Duration::from_millis(200),
+            exchange(
+                IllegalAfterFrame { phase: 0 },
+                config,
+                Arc::new(Stuck),
+                Arc::new(Semaphore::new(1)),
+                Peer {
+                    address: "127.0.0.1:9"
+                        .parse::<SocketAddr>()
+                        .unwrap_or_else(|error| panic!("{error}")),
+                    #[cfg(feature = "sasl")]
+                    identity: None,
+                    #[cfg(feature = "tls")]
+                    tls: None,
+                },
+                #[cfg(feature = "sasl")]
+                None,
+            ),
+        )
+        .await;
+        assert!(
+            matches!(result, Ok(Exit::InvalidLength)),
+            "an illegal length after a frame left the handler running"
         );
     }
 }
