@@ -3443,6 +3443,49 @@ async fn group_commit_redials_coordinator_while_finding_it() {
     group.leave().await.unwrap();
 }
 
+/// Resubscribe commits delivered offsets while the new topic loads.
+#[tokio::test]
+async fn group_resubscribe_commits_while_loading_metadata() {
+    let mock = common::Mock::start().await;
+    mock.set_topic_partitions("t", 1);
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    let _sent = producer
+        .send(ProduceRecord::to("t").value(&b"v"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+    let mut cfg = ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10);
+    cfg.enable_auto_commit = true;
+    cfg.auto_commit_interval = Duration::from_secs(3600);
+    let mut group = ConsumerGroup::join(cfg, "resub-commit", "t").await.unwrap();
+    assert_eq!(group.poll().await.unwrap().len(), 1);
+    mock.set_topic_partitions("u", 1);
+    let delay = Duration::from_millis(250);
+    mock.set_offset_commit_delay(delay);
+    mock.set_metadata_delay(delay);
+    let metadata_before = mock.metadata_calls();
+    let commits_before = mock.offset_commit_calls();
+    let started = Instant::now();
+    group.subscribe(["t", "u"]).await.unwrap();
+    let elapsed = started.elapsed();
+    assert!(
+        mock.metadata_calls() > metadata_before,
+        "resubscribe should load the new topic"
+    );
+    assert!(
+        mock.offset_commit_calls() > commits_before,
+        "resubscribe should commit the delivered offset"
+    );
+    assert!(
+        elapsed < Duration::from_millis(450),
+        "resubscribe committed before loading metadata: {elapsed:?}"
+    );
+    group.leave().await.unwrap();
+}
+
 /// A rejoin opens the assigned leader while SyncGroup is still in flight.
 #[tokio::test]
 async fn group_rejoin_dials_leaders_during_sync() {

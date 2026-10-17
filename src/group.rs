@@ -2288,7 +2288,15 @@ impl ConsumerGroup {
                     if timeout.is_zero() {
                         return Err(Error::Timeout);
                     }
-                    self.commit_metadata_offsets(to_commit, timeout).await?;
+                    let stale = topics
+                        .iter()
+                        .any(|topic| !self.consumer.topic_metadata_fresh(topic));
+                    if stale {
+                        self.commit_offsets_while_refreshing(&to_commit, &topics, timeout)
+                            .await?;
+                    } else {
+                        self.commit_metadata_offsets(to_commit, timeout).await?;
+                    }
                 }
             }
             let revoked = self.assignment();

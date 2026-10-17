@@ -9,6 +9,139 @@ use std::collections::HashMap;
 use std::time::Duration;
 
 impl ConsumerGroup {
+    /// Commit delivered offsets while metadata for `names` reloads.
+    ///
+    /// OffsetCommit uses the coordinator. Metadata uses the member socket.
+    /// The commit outcome is returned first.
+    pub(super) async fn commit_offsets_while_refreshing(
+        &mut self,
+        offsets: &[(TopicPartition, OffsetAndMetadata)],
+        names: &[String],
+        timeout: Duration,
+    ) -> Result<()> {
+        if offsets.is_empty() {
+            return self
+                .consumer
+                .refresh_metadata_timeout(Some(names), timeout)
+                .await;
+        }
+        if self.coord.offset_commit_version == 10 {
+            return self
+                .commit_v10_while_refreshing(offsets, names, timeout)
+                .await;
+        }
+        let mut commit_topics = std::mem::take(&mut self.classic_commit_topics);
+        super::refill_offset_topics(&mut commit_topics, offsets);
+        let group_id = self.group_id.as_str();
+        let member_id = self.member_id.as_str();
+        let generation_id = self.generation_id;
+        let instance = self.cfg.group_instance_id.as_deref();
+        let coord = &mut self.coord;
+        let cfg = &self.cfg;
+        let consumer = &mut self.consumer;
+        let rpc = super::coord_roundtrip(
+            coord,
+            cfg,
+            group_id,
+            COORDINATOR_GROUP,
+            crate::protocol::api_keys::OFFSET_COMMIT,
+            |version, buf| {
+                encode_offset_commit_request(
+                    buf,
+                    version,
+                    group_id,
+                    generation_id,
+                    member_id,
+                    instance,
+                    DEFAULT_RETENTION_TIME,
+                    &commit_topics,
+                )
+            },
+            timeout,
+        );
+        let refreshed = consumer.refresh_metadata_timeout(Some(names), timeout);
+        let (rpc, refreshed) = tokio::join!(rpc, refreshed);
+        self.classic_commit_topics = commit_topics;
+        let (version, body) = match rpc {
+            Ok(response) => response,
+            Err(error) => {
+                self.note_commit(false);
+                return Err(error);
+            }
+        };
+        let err = match decode_offset_commit_response(&mut body.clone(), version) {
+            Ok(err) => err,
+            Err(error) => {
+                self.note_commit(false);
+                return Err(error);
+            }
+        };
+        if err != 0 {
+            self.note_commit(false);
+            return Err(Error::broker(err, "OffsetCommit"));
+        }
+        self.cfg.interceptors.on_commit(offsets);
+        self.note_commit(true);
+        refreshed
+    }
+
+    async fn commit_v10_while_refreshing(
+        &mut self,
+        offsets: &[(TopicPartition, OffsetAndMetadata)],
+        names: &[String],
+        timeout: Duration,
+    ) -> Result<()> {
+        let mut request = std::mem::take(&mut self.commit_v10);
+        if let Err(error) = self.fill_explicit_commit(&mut request, offsets, None) {
+            self.commit_v10 = request;
+            return Err(error);
+        }
+        let limits = OffsetLimits::default();
+        let group_id = self.group_id.as_str();
+        let coord = &mut self.coord;
+        let cfg = &self.cfg;
+        let consumer = &mut self.consumer;
+        let sent = coord_offsets_v10(
+            coord,
+            cfg,
+            group_id,
+            COORDINATOR_GROUP,
+            crate::protocol::api_keys::OFFSET_COMMIT,
+            |buf| encode_offset_commit_request_into(buf, &request, 10, limits),
+            timeout,
+        );
+        let refreshed = consumer.refresh_metadata_timeout(Some(names), timeout);
+        let (sent, refreshed) = tokio::join!(sent, refreshed);
+        self.commit_v10 = request;
+        let body = match sent {
+            Ok(body) => body,
+            Err(error) => {
+                self.note_commit(false);
+                return Err(error);
+            }
+        };
+        let response = match decode_offset_commit_response_data(&body, 10, limits) {
+            Ok(response) => response,
+            Err(error) => {
+                self.note_commit(false);
+                return Err(error);
+            }
+        };
+        if let Some(code) = response
+            .topics
+            .iter()
+            .flat_map(|topic| &topic.partitions)
+            .map(|partition| partition.error_code)
+            .find(|code| *code != 0)
+        {
+            self.note_commit(false);
+            return Err(Error::broker(code, "OffsetCommit"));
+        }
+        self.cfg.interceptors.on_commit(offsets);
+        self.note_commit(true);
+        refreshed
+    }
+
     pub(super) fn snapshot_delivered_positions(&mut self) {
         let mut positions = self.last_delivered_positions.take().unwrap_or_default();
         self.consumer
