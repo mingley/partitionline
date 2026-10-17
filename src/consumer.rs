@@ -5634,7 +5634,12 @@ impl Consumer {
     pub async fn close_timeout(mut self, timeout: Duration) -> Result<()> {
         self.cfg.interceptors.close();
         self.close_fetch_sessions(timeout).await;
-        self.conns.clear();
+        // Dropping the remaining sockets only schedules their close. Yield so
+        // the broker observes it before close returns.
+        drop(self);
+        for _ in 0..8 {
+            tokio::task::yield_now().await;
+        }
         Ok(())
     }
 

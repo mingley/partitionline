@@ -1755,6 +1755,27 @@ async fn admin_close_closes_the_bootstrap_socket() {
     );
 }
 
+/// Closing a manual consumer closes the bootstrap socket before close returns.
+#[tokio::test(flavor = "current_thread")]
+async fn consumer_close_closes_the_bootstrap_socket() {
+    let mock = common::Mock::start().await;
+    let mut cfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    cfg.request_timeout = Duration::from_secs(2);
+    cfg.max_wait_ms = 10;
+    let consumer = Consumer::new(cfg).await.unwrap();
+    assert_eq!(
+        mock.open_conns(),
+        1,
+        "consumer connect should hold the bootstrap socket"
+    );
+    consumer.close().await.unwrap();
+    assert_eq!(
+        mock.open_conns(),
+        0,
+        "consumer close left the socket blocked in a broker read"
+    );
+}
+
 /// A second socket to a known admin broker closes when SASL times out.
 #[tokio::test(flavor = "current_thread")]
 async fn known_admin_peer_timeout_closes_the_socket() {
