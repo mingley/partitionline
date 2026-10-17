@@ -5617,6 +5617,36 @@ async fn leave_finishes_the_heartbeat_task() {
     );
 }
 
+/// Dropping a group aborts a heartbeat blocked in a broker read.
+#[tokio::test(flavor = "current_thread")]
+async fn drop_aborts_a_blocked_heartbeat() {
+    let mock = common::Mock::start().await;
+    mock.set_topic_partitions("t", 1);
+    let mut cfg = ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10);
+    cfg.heartbeat_interval = Duration::from_millis(40);
+    cfg.request_timeout = Duration::from_millis(400);
+    mock.set_heartbeat_delay(Duration::from_secs(5));
+    let group = ConsumerGroup::join(cfg, "hb-drop", "t").await.unwrap();
+    tokio::time::sleep(Duration::from_millis(30)).await;
+    let task = group.test_heartbeat_task().expect("heartbeat task");
+    drop(group);
+    let started = Instant::now();
+    let mut turns = 0u32;
+    while !task.is_finished() && turns < 8 {
+        turns = turns.saturating_add(1);
+        tokio::task::yield_now().await;
+    }
+    assert!(
+        started.elapsed() < Duration::from_millis(200),
+        "drop waited for the delayed heartbeat: {:?}",
+        started.elapsed()
+    );
+    assert!(
+        task.is_finished(),
+        "drop left the heartbeat task blocked in a broker read"
+    );
+}
+
 /// Close waits until a fetch blocked in a broker read has stopped.
 #[tokio::test(flavor = "current_thread")]
 async fn close_finishes_an_inflight_fetch() {

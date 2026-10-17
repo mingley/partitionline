@@ -677,6 +677,17 @@ pub struct ConsumerGroup {
     prior_coords: HashMap<String, KnownCoord>,
 }
 
+impl Drop for ConsumerGroup {
+    fn drop(&mut self) {
+        // Leave waits for this task. Dropping the group without leave only
+        // drops the handle, which would detach a heartbeat stuck in a broker
+        // read. Abort it so the next poll of the runtime stops that call.
+        if let Some(task) = self.hb_task.take() {
+            task.abort();
+        }
+    }
+}
+
 impl ConsumerGroup {
     /// Join with the Java range assignor. One topic.
     ///

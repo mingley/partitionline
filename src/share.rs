@@ -1552,6 +1552,17 @@ fn share_partition_leader(topic: &str, partition: i32, leaders: &[i32]) -> Resul
         })
 }
 
+impl Drop for ShareGroup {
+    fn drop(&mut self) {
+        // Leave waits for this task. Dropping the group without leave only
+        // drops the handle, which would detach a heartbeat stuck in a broker
+        // read. Abort it so the next poll of the runtime stops that call.
+        if let Some(task) = self.hb_task.take() {
+            task.abort();
+        }
+    }
+}
+
 impl ShareGroup {
     /// Join a share group. One topic.
     ///

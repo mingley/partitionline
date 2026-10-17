@@ -96,6 +96,46 @@ async fn leave_finishes_the_share_heartbeat_task() {
     );
 }
 
+/// Dropping a share group aborts a heartbeat blocked in a broker read.
+#[tokio::test(flavor = "current_thread")]
+async fn drop_aborts_a_blocked_share_heartbeat() {
+    let mock = common::Mock::start().await;
+    v2(&mock);
+    mock.set_topic_partitions("t", 1);
+    mock.set_share_heartbeat_interval_ms(40);
+    produce(&mock, &[(0, b"share")]).await;
+    let mut cfg = config(&mock);
+    cfg.heartbeat_interval = Duration::from_millis(40);
+    cfg.request_timeout = Duration::from_secs(2);
+    let group = ShareGroup::join(cfg, "share-hb-drop", "t").await.unwrap();
+    let before = mock.share_heartbeat_calls();
+    mock.set_share_heartbeat_delay(Duration::from_secs(5));
+    let started_wait = Instant::now();
+    while mock.share_heartbeat_calls() == before {
+        if started_wait.elapsed() > Duration::from_secs(2) {
+            panic!("share heartbeat did not reach the broker");
+        }
+        tokio::time::sleep(Duration::from_millis(5)).await;
+    }
+    let task = group.test_heartbeat_task().expect("heartbeat task");
+    drop(group);
+    let started = Instant::now();
+    let mut turns = 0u32;
+    while !task.is_finished() && turns < 8 {
+        turns = turns.saturating_add(1);
+        tokio::task::yield_now().await;
+    }
+    assert!(
+        started.elapsed() < Duration::from_millis(200),
+        "drop waited for the delayed share heartbeat: {:?}",
+        started.elapsed()
+    );
+    assert!(
+        task.is_finished(),
+        "drop left the share heartbeat task blocked in a broker read"
+    );
+}
+
 /// A share-group heartbeat retry reuses the coordinator handshake.
 #[tokio::test]
 async fn share_heartbeat_retries_without_another_handshake() {
