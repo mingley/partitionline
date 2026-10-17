@@ -3368,7 +3368,38 @@ async fn fetch_dials_leaders_while_refreshing_metadata() {
     consumer.close().await.unwrap();
 }
 
-/// An idle heartbeat looks up the coordinator while that broker reconnects.
+/// An idle bootstrap fetch socket reconnects without a second ApiVersions handshake.
+#[tokio::test]
+async fn fetch_reuses_bootstrap_api_versions_after_idle() {
+    let mock = common::Mock::start().await;
+    let mut cfg = ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10);
+    cfg.connections_max_idle = Duration::from_millis(40);
+    let mut consumer = Consumer::new(cfg).await.unwrap();
+    consumer.assign("t", 0, 0).await.unwrap();
+    let _first = consumer.fetch().await.unwrap();
+    tokio::time::sleep(Duration::from_millis(60)).await;
+    let versions_before = mock.api_versions_versions().len();
+    let accepts_before = mock.accepts();
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let started = Instant::now();
+    let _again = consumer.fetch().await.unwrap();
+    let elapsed = started.elapsed();
+    assert_eq!(
+        mock.api_versions_versions().len(),
+        versions_before,
+        "an idle bootstrap fetch should reuse the versions already learned"
+    );
+    assert_eq!(
+        mock.accepts(),
+        accepts_before + 1,
+        "idle expiry replaces the TCP socket"
+    );
+    assert!(
+        elapsed < Duration::from_millis(200),
+        "idle bootstrap fetch repeated ApiVersions: {elapsed:?}"
+    );
+    consumer.close().await.unwrap();
+}
 #[tokio::test]
 async fn group_heartbeat_dials_coordinator_while_finding_it() {
     let mock = common::Mock::start_two_node().await;

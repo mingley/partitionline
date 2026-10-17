@@ -4213,7 +4213,11 @@ impl Consumer {
                     .get(&node)
                     .cloned()
                     .ok_or_else(|| Error::protocol(format!("unknown broker {node}")))?;
-                let (conn, versions) = self.open_node_conn_until(&addr, deadline).await?;
+                let (conn, versions) = if self.versions.is_empty() {
+                    self.open_node_conn_until(&addr, deadline).await?
+                } else {
+                    self.open_leader_socket(&addr, deadline).await?
+                };
                 self.versions = versions
                     .api_keys
                     .into_iter()

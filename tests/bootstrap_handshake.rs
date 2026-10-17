@@ -29,6 +29,39 @@ async fn stall_listener() -> String {
     stall.to_string()
 }
 
+/// An idle admin socket reconnects without a second ApiVersions handshake.
+#[tokio::test]
+async fn admin_reuses_bootstrap_api_versions_after_idle() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::new(
+        AdminConfig::bootstrap([mock.addr.clone()]).connections_max_idle(Duration::from_millis(40)),
+    )
+    .await
+    .unwrap();
+    let _first = admin.describe_cluster().await.unwrap();
+    tokio::time::sleep(Duration::from_millis(60)).await;
+    let versions_before = mock.api_versions_versions().len();
+    let accepts_before = mock.accepts();
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let started = Instant::now();
+    let _again = admin.describe_cluster().await.unwrap();
+    let elapsed = started.elapsed();
+    assert_eq!(
+        mock.api_versions_versions().len(),
+        versions_before,
+        "an idle admin socket should reuse the versions already learned"
+    );
+    assert_eq!(
+        mock.accepts(),
+        accepts_before + 1,
+        "idle expiry replaces the TCP socket"
+    );
+    assert!(
+        elapsed < Duration::from_millis(200),
+        "idle admin reconnect repeated ApiVersions: {elapsed:?}"
+    );
+}
+
 #[tokio::test]
 async fn a_slow_bootstrap_does_not_hold_admin_startup() {
     let mock = common::Mock::start().await;

@@ -8613,7 +8613,11 @@ impl Admin {
             return Ok(());
         }
         let addr = self.conn.addr().to_string();
-        let replacement = self.open_node_conn_until(&addr, deadline).await?;
+        let replacement = if self.versions.is_empty() {
+            self.open_node_conn_until(&addr, deadline).await?
+        } else {
+            self.open_known_peer_until(&addr, deadline).await?
+        };
         self.adopt_bootstrap(replacement)
     }
 
