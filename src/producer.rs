@@ -4065,30 +4065,38 @@ async fn discover_typed_coord(
     deadline: Instant,
     known: Option<&RediscoverProducer<'_>>,
 ) -> Result<CoordinatorConnection> {
-    let mut attempt = 0u32;
-    loop {
-        if Instant::now() >= deadline {
-            return Err(Error::Timeout);
-        }
-        let result = discover_typed_coord_once(cfg, key, key_type, version, deadline, known).await;
-        match result {
-            Err(error)
-                if error
-                    .broker_code()
-                    .is_some_and(error::coordinator_retriable) =>
-            {
-                crate::config::sleep_retry_backoff(
-                    cfg.retry_backoff.max(Duration::from_millis(1)),
-                    cfg.retry_backoff_max.max(Duration::from_millis(1)),
-                    attempt,
-                    deadline,
-                )
-                .await;
-                attempt = attempt.saturating_add(1);
+    let discovered = async {
+        let mut attempt = 0u32;
+        loop {
+            if Instant::now() >= deadline {
+                return Err(Error::Timeout);
             }
-            result => return result,
+            let result =
+                discover_typed_coord_once(cfg, key, key_type, version, deadline, known).await;
+            match result {
+                Err(error)
+                    if error
+                        .broker_code()
+                        .is_some_and(error::coordinator_retriable) =>
+                {
+                    crate::config::sleep_retry_backoff(
+                        cfg.retry_backoff.max(Duration::from_millis(1)),
+                        cfg.retry_backoff_max.max(Duration::from_millis(1)),
+                        attempt,
+                        deadline,
+                    )
+                    .await;
+                    attempt = attempt.saturating_add(1);
+                }
+                result => return result,
+            }
         }
     }
+    .await;
+    for _ in 0..8 {
+        tokio::task::yield_now().await;
+    }
+    discovered
 }
 
 async fn discover_typed_coord_once(
@@ -10230,7 +10238,7 @@ mod tests {
 
 #[cfg(test)]
 mod rediscover_stop_tests {
-    use super::{rediscover_producer_coordinator, RediscoverProducer};
+    use super::{discover_typed_coord, rediscover_producer_coordinator, RediscoverProducer};
     use crate::protocol::group::COORDINATOR_TRANSACTION;
     use crate::ProducerConfig;
     use std::collections::HashMap;
@@ -10295,6 +10303,53 @@ mod rediscover_stop_tests {
         );
         peer.abort();
         lookup_peer.abort();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn transaction_discovery_timeout_closes_the_bootstrap_socket() {
+        use std::sync::atomic::AtomicUsize;
+        use tokio::io::AsyncReadExt;
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let open = Arc::new(AtomicUsize::new(0));
+        let open_flag = Arc::clone(&open);
+        let peer = tokio::spawn(async move {
+            loop {
+                let (mut sock, _) = listener.accept().await.unwrap();
+                let _started = open_flag.fetch_add(1, Ordering::SeqCst);
+                let open_flag = Arc::clone(&open_flag);
+                let _reader = tokio::spawn(async move {
+                    let mut buf = [0u8; 64];
+                    loop {
+                        match sock.read(&mut buf).await {
+                            Ok(0) | Err(_) => break,
+                            Ok(_) => continue,
+                        }
+                    }
+                    let _left = open_flag.fetch_sub(1, Ordering::SeqCst);
+                });
+            }
+        });
+        let mut cfg = ProducerConfig::bootstrap([addr]);
+        cfg.request_timeout = Duration::from_millis(200);
+        cfg.connect_timeout = Duration::from_millis(200);
+        let result = discover_typed_coord(
+            &cfg,
+            "txn",
+            COORDINATOR_TRANSACTION,
+            1,
+            Instant::now() + Duration::from_millis(200),
+            None,
+        )
+        .await;
+        assert!(result.is_err(), "transaction discovery should time out");
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "discovery left the bootstrap socket blocked in a broker read"
+        );
+        peer.abort();
     }
 
     #[tokio::test(flavor = "current_thread")]
