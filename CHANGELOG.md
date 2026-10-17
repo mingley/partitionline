@@ -713,7 +713,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   an observer or from a non-voter. A
   piggybacked `FEATURE_UPDATE_FAILED` still
   completes without retry, including when `AcknowledgeErrorMessage` is
-  set (Java `handleShareFetchSuccess` completes piggyback acks and still
+  set or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
   delivers the fetch; this is not partition `FEATURE_UPDATE_FAILED`,
   which fails that poll, and not piggyback `INCONSISTENT_VOTER_SET`). Official
   Java `KafkaController` writes this when a FeatureZNode update fails after
