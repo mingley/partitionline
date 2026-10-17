@@ -635,6 +635,13 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   which fails that poll, and not piggyback `GROUP_MAX_SIZE_REACHED`). Official
   Java GroupCoordinator writes this when another consumer with the same
   `group.instance.id` has registered with a different member id. A
+  piggybacked `ELIGIBLE_LEADERS_NOT_AVAILABLE` still
+  completes without retry, including when `AcknowledgeErrorMessage` is
+  set (Java `handleShareFetchSuccess` completes piggyback acks and still
+  delivers the fetch; this is not partition `ELIGIBLE_LEADERS_NOT_AVAILABLE`,
+  which fails that poll, and not piggyback `FENCED_INSTANCE_ID`). Official
+  Java `ReplicationControlManager.electLeader` writes this when an unclean
+  election finds no eligible leader. A
   piggybacked `TOPIC_AUTHORIZATION_FAILED` on
   one partition does not fail a sibling whose `AcknowledgeErrorCode`
   is none, including when `AcknowledgeErrorMessage` is set or empty. A
