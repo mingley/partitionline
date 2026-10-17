@@ -5129,10 +5129,6 @@ async fn find_coordinator_on(
     Ok((conn, versions))
 }
 
-pub(crate) async fn open_coord(cfg: &ConsumerConfig, addr: &str) -> Result<BrokerConn> {
-    Ok(open_coord_with_find_version(cfg, addr).await?.0)
-}
-
 /// Open a new TCP socket to a coordinator whose versions were already learned.
 ///
 /// Idle expiry and a dropped connection still need a new socket. The broker
@@ -5145,7 +5141,7 @@ pub(crate) async fn reopen_known_coord(
 }
 
 /// Versions already learned for one coordinator address.
-struct KnownCoord {
+pub(crate) struct KnownCoord {
     addr: String,
     offset_commit_version: i16,
     offset_fetch_version: i16,
@@ -5161,7 +5157,8 @@ struct KnownCoord {
 }
 
 impl KnownCoord {
-    fn capture(conn: &BrokerConn) -> Self {
+    /// Copy the negotiated versions off `conn`.
+    pub(crate) fn capture(conn: &BrokerConn) -> Self {
         Self {
             addr: conn.addr().to_string(),
             offset_commit_version: conn.offset_commit_version,
@@ -5193,7 +5190,11 @@ impl KnownCoord {
     }
 }
 
-async fn connect_known_coord(cfg: &ConsumerConfig, known: &KnownCoord) -> Result<BrokerConn> {
+/// Dial `known.addr` and stamp the versions already learned there.
+pub(crate) async fn connect_known_coord(
+    cfg: &ConsumerConfig,
+    known: &KnownCoord,
+) -> Result<BrokerConn> {
     let deadline = Instant::now()
         .checked_add(cfg.request_timeout)
         .ok_or(Error::Timeout)?;

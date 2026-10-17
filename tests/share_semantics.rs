@@ -462,7 +462,43 @@ async fn share_resubscribe_dials_idle_leader_while_loading_metadata() {
     group.leave().await.unwrap();
 }
 
-/// A zero metadata age still loads the image while the share join heartbeat runs.
+/// An idle share resubscribe reconnects the bootstrap coordinator without ApiVersions.
+#[tokio::test]
+async fn share_resubscribe_reuses_coordinator_api_versions_after_idle() {
+    let mock = common::Mock::start().await;
+    v2(&mock);
+    mock.set_share_heartbeat_interval_ms(60_000);
+    produce(&mock, &[(0, b"held")]).await;
+    let mut cfg = config(&mock);
+    cfg.connections_max_idle = Duration::from_millis(40);
+    cfg.heartbeat_interval = Duration::from_secs(5);
+    let mut group = ShareGroup::join(cfg, "resub-boot", "t").await.unwrap();
+    let got = group.poll().await.unwrap();
+    assert_eq!(got.len(), 1, "the share session has to be open");
+    tokio::time::sleep(Duration::from_millis(60)).await;
+    let _listed = group.list_topics().await.unwrap();
+    mock.set_topic_partitions("u", 1);
+    let versions_before = mock.api_versions_versions().len();
+    let accepts_before = mock.accepts();
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let started = Instant::now();
+    group.subscribe(["t", "u"]).await.unwrap();
+    let elapsed = started.elapsed();
+    assert_eq!(
+        mock.api_versions_versions().len(),
+        versions_before,
+        "the bootstrap coordinator should reuse the versions already learned"
+    );
+    assert!(
+        mock.accepts() > accepts_before,
+        "idle expiry replaces the coordinator socket"
+    );
+    assert!(
+        elapsed < Duration::from_millis(200),
+        "idle share resubscribe repeated ApiVersions: {elapsed:?}"
+    );
+    group.leave().await.unwrap();
+}
 #[tokio::test]
 async fn share_join_heartbeat_loads_metadata_while_joining() {
     let mock = common::Mock::start_two_node().await;

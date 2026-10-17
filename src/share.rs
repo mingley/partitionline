@@ -3341,14 +3341,14 @@ impl ShareGroup {
                 Vec::new()
             };
             if !targets.is_empty() {
-                let coord_addr = coord_idle.then(|| self.coord.addr().to_string());
+                let known = coord_idle.then(|| crate::group::KnownCoord::capture(&self.coord));
                 let cfg = self.cfg.clone();
                 let opened = Self::open_share_dials(self.share_dial_config(), targets, deadline);
                 let refreshed =
                     Self::refresh_topic_names_within(&mut self.consumer, &topics, deadline);
                 let coord_opened = async move {
-                    match coord_addr {
-                        Some(addr) => crate::group::open_coord(&cfg, &addr).await.ok(),
+                    match known {
+                        Some(known) => crate::group::connect_known_coord(&cfg, &known).await.ok(),
                         None => None,
                     }
                 };
