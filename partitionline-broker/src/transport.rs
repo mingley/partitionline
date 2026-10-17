@@ -1151,173 +1151,183 @@ async fn exchange<H: Handler, S: AsyncRead + AsyncWrite + Unpin>(
     #[allow(unused_mut)] mut peer: Peer,
     #[cfg(feature = "sasl")] mut auth: Option<Box<crate::security::session::Session>>,
 ) -> Exit {
-    // Bytes of the next request read while the previous response was written.
-    // Empty unless the client pipelined. Handlers still run one at a time.
-    // The request body and response body stay on this connection and are refilled.
-    let mut ahead = ReadAhead::new();
-    let mut request_spare = new_frame();
-    let mut response_spare = Vec::new();
-    loop {
-        #[allow(unused_mut)]
-        let mut frame_config = config;
-        #[cfg(feature = "sasl")]
-        let preauth_deadline = auth.as_ref().and_then(|auth| auth.operation_deadline());
-        #[cfg(not(feature = "sasl"))]
-        let preauth_deadline: Option<Instant> = None;
-        #[cfg(feature = "sasl")]
-        if let Some(auth) = &auth {
-            frame_config.max_request_bytes = auth.frame_limit(config.max_request_bytes);
-        }
-        let read_deadline = operation_deadline(preauth_deadline, config.read_timeout);
-        let read = read_frame(
-            &mut socket,
-            frame_config,
-            read_deadline,
-            &mut ahead,
-            std::mem::replace(&mut request_spare, new_frame()),
-        );
-        #[cfg(feature = "oidc")]
-        let read = authorized(auth.as_ref().and_then(|a| a.lease()), read);
-        let request = match read.await {
-            Ok(request) => {
-                if Instant::now() >= read_deadline {
-                    return Exit::ReadDeadline;
-                }
-                request
+    // The socket is dropped when this block ends, before the yields below.
+    let exit = async move {
+        // Bytes of the next request read while the previous response was written.
+        // Empty unless the client pipelined. Handlers still run one at a time.
+        // The request body and response body stay on this connection and are refilled.
+        let mut ahead = ReadAhead::new();
+        let mut request_spare = new_frame();
+        let mut response_spare = Vec::new();
+        loop {
+            #[allow(unused_mut)]
+            let mut frame_config = config;
+            #[cfg(feature = "sasl")]
+            let preauth_deadline = auth.as_ref().and_then(|auth| auth.operation_deadline());
+            #[cfg(not(feature = "sasl"))]
+            let preauth_deadline: Option<Instant> = None;
+            #[cfg(feature = "sasl")]
+            if let Some(auth) = &auth {
+                frame_config.max_request_bytes = auth.frame_limit(config.max_request_bytes);
             }
-            Err(exit) => return exit,
-        };
-        #[cfg(feature = "sasl")]
-        let received = Instant::now();
-        #[cfg(feature = "sasl")]
-        let request_authority = auth
-            .as_ref()
-            .and_then(|auth| auth.request_deadline(&request, received));
-        #[cfg(not(feature = "sasl"))]
-        let request_authority = preauth_deadline;
-        let deadline = request_authority
-            .map_or(Instant::now() + config.handler_timeout, |deadline| {
-                deadline.min(Instant::now() + config.handler_timeout)
-            });
-        #[allow(unused_mut)]
-        let mut close = false;
-        #[cfg(feature = "oidc")]
-        let lease = auth.as_ref().and_then(|a| a.lease());
-        let response_buf = std::mem::take(&mut response_spare);
-        let operation = async {
-            timeout_at(deadline, async {
-                let permit = handlers.acquire().await.map_err(|_| Exit::Shutdown)?;
-                if Instant::now() >= deadline {
-                    return Err(Exit::HandlerDeadline);
+            let read_deadline = operation_deadline(preauth_deadline, config.read_timeout);
+            let read = read_frame(
+                &mut socket,
+                frame_config,
+                read_deadline,
+                &mut ahead,
+                std::mem::replace(&mut request_spare, new_frame()),
+            );
+            #[cfg(feature = "oidc")]
+            let read = authorized(auth.as_ref().and_then(|a| a.lease()), read);
+            let request = match read.await {
+                Ok(request) => {
+                    if Instant::now() >= read_deadline {
+                        return Exit::ReadDeadline;
+                    }
+                    request
                 }
-                #[cfg(feature = "sasl")]
-                if let Some(auth) = &mut auth {
-                    match auth
-                        .handle(&request, received)
-                        .await
-                        .map_err(|_| Exit::HandlerError)?
-                    {
-                        crate::security::session::Decision::Reply {
-                            bytes,
-                            close: terminal,
-                        } => {
-                            close = terminal;
-                            peer.identity = auth.identity();
-                            drop(permit);
-                            let mut request = dispatch_frame(request);
-                            wipe_credential(&mut request);
-                            return Ok(ExchangeOutcome {
-                                response: Some(bytes),
-                                request,
-                                spare: response_buf,
-                            });
-                        }
-                        crate::security::session::Decision::Dispatch => {
-                            peer.identity = auth.identity();
-                            #[cfg(feature = "oidc")]
-                            if auth.lease().is_some_and(|l| l.failure().is_some()) {
-                                return Err(Exit::HandlerError);
+                Err(exit) => return exit,
+            };
+            #[cfg(feature = "sasl")]
+            let received = Instant::now();
+            #[cfg(feature = "sasl")]
+            let request_authority = auth
+                .as_ref()
+                .and_then(|auth| auth.request_deadline(&request, received));
+            #[cfg(not(feature = "sasl"))]
+            let request_authority = preauth_deadline;
+            let deadline = request_authority
+                .map_or(Instant::now() + config.handler_timeout, |deadline| {
+                    deadline.min(Instant::now() + config.handler_timeout)
+                });
+            #[allow(unused_mut)]
+            let mut close = false;
+            #[cfg(feature = "oidc")]
+            let lease = auth.as_ref().and_then(|a| a.lease());
+            let response_buf = std::mem::take(&mut response_spare);
+            let operation = async {
+                timeout_at(deadline, async {
+                    let permit = handlers.acquire().await.map_err(|_| Exit::Shutdown)?;
+                    if Instant::now() >= deadline {
+                        return Err(Exit::HandlerDeadline);
+                    }
+                    #[cfg(feature = "sasl")]
+                    if let Some(auth) = &mut auth {
+                        match auth
+                            .handle(&request, received)
+                            .await
+                            .map_err(|_| Exit::HandlerError)?
+                        {
+                            crate::security::session::Decision::Reply {
+                                bytes,
+                                close: terminal,
+                            } => {
+                                close = terminal;
+                                peer.identity = auth.identity();
+                                drop(permit);
+                                let mut request = dispatch_frame(request);
+                                wipe_credential(&mut request);
+                                return Ok(ExchangeOutcome {
+                                    response: Some(bytes),
+                                    request,
+                                    spare: response_buf,
+                                });
+                            }
+                            crate::security::session::Decision::Dispatch => {
+                                peer.identity = auth.identity();
+                                #[cfg(feature = "oidc")]
+                                if auth.lease().is_some_and(|l| l.failure().is_some()) {
+                                    return Err(Exit::HandlerError);
+                                }
                             }
                         }
                     }
+                    let outcome = handler
+                        .exchange_request(&peer, dispatch_frame(request), response_buf)
+                        .await
+                        .map_err(|_| Exit::HandlerError)?;
+                    drop(permit);
+                    Ok(outcome)
+                })
+                .await
+                .map_err(|_| Exit::HandlerDeadline)?
+            };
+            #[cfg(feature = "oidc")]
+            let operation = authorized(lease, operation);
+            let outcome = match operation.await {
+                Ok(outcome) => {
+                    // timeout_at cannot preempt a synchronously Ready handler.
+                    // Recheck the original bound before accepting its result.
+                    if Instant::now() >= deadline {
+                        return Exit::HandlerDeadline;
+                    }
+                    outcome
                 }
-                let outcome = handler
-                    .exchange_request(&peer, dispatch_frame(request), response_buf)
-                    .await
-                    .map_err(|_| Exit::HandlerError)?;
-                drop(permit);
-                Ok(outcome)
-            })
-            .await
-            .map_err(|_| Exit::HandlerDeadline)?
-        };
-        #[cfg(feature = "oidc")]
-        let operation = authorized(lease, operation);
-        let outcome = match operation.await {
-            Ok(outcome) => {
-                // timeout_at cannot preempt a synchronously Ready handler.
-                // Recheck the original bound before accepting its result.
-                if Instant::now() >= deadline {
-                    return Exit::HandlerDeadline;
-                }
-                outcome
+                Err(exit) => return exit,
+            };
+            request_spare = park_request(outcome.request);
+            let Some(response) = outcome.response else {
+                response_spare = park_response(outcome.spare, Vec::new());
+                continue;
+            };
+            if response.len() > config.max_response_bytes {
+                return Exit::OversizedResponse;
             }
-            Err(exit) => return exit,
-        };
-        request_spare = park_request(outcome.request);
-        let Some(response) = outcome.response else {
-            response_spare = park_response(outcome.spare, Vec::new());
-            continue;
-        };
-        if response.len() > config.max_response_bytes {
-            return Exit::OversizedResponse;
-        }
-        if i32::try_from(response.len()).is_err() {
-            return Exit::OversizedResponse;
-        }
-        // Handshake may have just begun a bounded renewal; retain the earlier
-        // operation's deadline and the freshly installed authentication deadline.
-        #[cfg(feature = "sasl")]
-        let write_authority = match (
-            request_authority,
-            auth.as_ref().and_then(|a| a.operation_deadline()),
-        ) {
-            (Some(a), Some(b)) => Some(a.min(b)),
-            (a, b) => a.or(b),
-        };
-        #[cfg(not(feature = "sasl"))]
-        let write_authority = preauth_deadline;
-        let deadline = operation_deadline(write_authority, config.write_timeout);
-        // One vectored write so a deadline that lands between the length and
-        // the body cannot commit a prefix and then drop the payload. The next
-        // request is read only while this write waits, and only when the
-        // connection will stay open for another handler.
-        let prefetch = !close;
-        let write = write_and_prefetch(
-            &mut socket,
-            &response,
-            deadline,
-            &mut ahead,
-            frame_config.max_request_bytes,
-            prefetch,
-        );
-        #[cfg(feature = "oidc")]
-        let write = authorized(auth.as_ref().and_then(|a| a.lease()), write);
-        if let Err(exit) = write.await {
-            return exit;
-        }
-        response_spare = park_response(response, outcome.spare);
-        #[cfg(feature = "sasl")]
-        if let Some(auth) = &mut auth {
-            if auth.response_written().is_err() {
+            if i32::try_from(response.len()).is_err() {
+                return Exit::OversizedResponse;
+            }
+            // Handshake may have just begun a bounded renewal; retain the earlier
+            // operation's deadline and the freshly installed authentication deadline.
+            #[cfg(feature = "sasl")]
+            let write_authority = match (
+                request_authority,
+                auth.as_ref().and_then(|a| a.operation_deadline()),
+            ) {
+                (Some(a), Some(b)) => Some(a.min(b)),
+                (a, b) => a.or(b),
+            };
+            #[cfg(not(feature = "sasl"))]
+            let write_authority = preauth_deadline;
+            let deadline = operation_deadline(write_authority, config.write_timeout);
+            // One vectored write so a deadline that lands between the length and
+            // the body cannot commit a prefix and then drop the payload. The next
+            // request is read only while this write waits, and only when the
+            // connection will stay open for another handler.
+            let prefetch = !close;
+            let write = write_and_prefetch(
+                &mut socket,
+                &response,
+                deadline,
+                &mut ahead,
+                frame_config.max_request_bytes,
+                prefetch,
+            );
+            #[cfg(feature = "oidc")]
+            let write = authorized(auth.as_ref().and_then(|a| a.lease()), write);
+            if let Err(exit) = write.await {
+                return exit;
+            }
+            response_spare = park_response(response, outcome.spare);
+            #[cfg(feature = "sasl")]
+            if let Some(auth) = &mut auth {
+                if auth.response_written().is_err() {
+                    return Exit::HandlerError;
+                }
+                peer.identity = auth.identity();
+            }
+            if close {
                 return Exit::HandlerError;
             }
-            peer.identity = auth.identity();
-        }
-        if close {
-            return Exit::HandlerError;
         }
     }
+    .await;
+    // Dropping the socket only schedules the close. Yield so the peer
+    // observes it before this connection failure returns.
+    for _ in 0..8 {
+        tokio::task::yield_now().await;
+    }
+    exit
 }
 
 #[cfg(test)]
@@ -1578,6 +1588,100 @@ mod tls_deadline_tests {
             open.load(Ordering::SeqCst),
             0,
             "tls handshake deadline left the accepted socket blocked in a read"
+        );
+        client.abort();
+    }
+}
+
+#[cfg(test)]
+mod read_deadline_tests {
+    use super::{exchange, Config, Exit, Handler, Peer};
+    use std::future::Future;
+    use std::net::SocketAddr;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::sync::Arc;
+    use std::time::Duration;
+    use tokio::io::AsyncReadExt;
+    use tokio::net::{TcpListener, TcpStream};
+    use tokio::sync::Semaphore;
+
+    struct Nop;
+
+    impl Handler for Nop {
+        type Error = std::io::Error;
+
+        fn handle(
+            &self,
+            request: Vec<u8>,
+        ) -> impl Future<Output = Result<Option<Vec<u8>>, Self::Error>> + Send {
+            std::future::ready(Ok(Some(request)))
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn read_deadline_closes_the_socket() {
+        let listener = TcpListener::bind("127.0.0.1:0")
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        let address = listener
+            .local_addr()
+            .unwrap_or_else(|error| panic!("{error}"));
+        let open = Arc::new(AtomicUsize::new(0));
+        let open_flag = Arc::clone(&open);
+        let client = tokio::spawn(async move {
+            let mut socket = TcpStream::connect(address)
+                .await
+                .unwrap_or_else(|error| panic!("{error}"));
+            let _started = open_flag.fetch_add(1, Ordering::SeqCst);
+            let mut buf = [0u8; 8];
+            loop {
+                match socket.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = open_flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let (server, _) = listener
+            .accept()
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        while open.load(Ordering::SeqCst) == 0 {
+            tokio::task::yield_now().await;
+        }
+        let config = Config::new(
+            1,
+            1,
+            1024,
+            1024,
+            Duration::from_millis(200),
+            Duration::from_secs(1),
+            Duration::from_secs(1),
+        )
+        .unwrap_or_else(|error| panic!("{error}"));
+        let result = exchange(
+            server,
+            config,
+            Arc::new(Nop),
+            Arc::new(Semaphore::new(1)),
+            Peer {
+                address: "127.0.0.1:9"
+                    .parse::<SocketAddr>()
+                    .unwrap_or_else(|error| panic!("{error}")),
+                #[cfg(feature = "sasl")]
+                identity: None,
+                #[cfg(feature = "tls")]
+                tls: None,
+            },
+            #[cfg(feature = "sasl")]
+            None,
+        )
+        .await;
+        assert!(matches!(result, Exit::ReadDeadline));
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "read deadline left the accepted socket blocked in a read"
         );
         client.abort();
     }
