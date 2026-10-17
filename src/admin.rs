@@ -8994,6 +8994,37 @@ impl Admin {
             .insert(conn.addr().to_string(), conn.apis.clone());
     }
 
+    /// Open a remembered bootstrap socket and return once SASL has stopped.
+    ///
+    /// The versions were already learned. A peer that accepts and then stalls
+    /// in SASL must not stay open after this call returns.
+    #[doc(hidden)]
+    pub async fn test_open_known_sasl_peer(&mut self, addr: &str) -> Result<()> {
+        use crate::protocol::api_keys::{SASL_AUTHENTICATE, SASL_HANDSHAKE};
+        self.cfg.sasl_plain = Some(("user".into(), "pass".into()));
+        self.cfg.connect_timeout = Duration::from_millis(200);
+        let _ = self.versions.insert(
+            SASL_HANDSHAKE,
+            ApiVersion {
+                api_key: SASL_HANDSHAKE,
+                min_version: 0,
+                max_version: 1,
+            },
+        );
+        let _ = self.versions.insert(
+            SASL_AUTHENTICATE,
+            ApiVersion {
+                api_key: SASL_AUTHENTICATE,
+                min_version: 0,
+                max_version: 2,
+            },
+        );
+        let _peer = self
+            .open_known_peer_until(addr, Instant::now() + Duration::from_millis(200))
+            .await?;
+        Ok(())
+    }
+
     /// Open another socket to the bootstrap broker without repeating ApiVersions.
     ///
     /// The first socket already learned the broker's versions. A second
@@ -9003,43 +9034,8 @@ impl Admin {
         addr: &str,
         deadline: Instant,
     ) -> Result<AdminOffsetConn> {
-        let rest = deadline.saturating_duration_since(Instant::now());
-        if rest.is_zero() {
-            return Err(Error::Timeout);
-        }
-        let mut conn = BrokerConn::connect_tls(
-            addr,
-            &self.cfg.client_id,
-            self.cfg.connect_timeout.min(rest),
-            self.cfg.tls.as_ref(),
-        )
-        .await?;
-        conn.set_stats(Arc::clone(&self.stats));
-        let versions_resp = ApiVersionsResponse {
-            error_code: 0,
-            api_keys: self.versions.values().cloned().collect(),
-            throttle_time_ms: 0,
-            supported_features: Vec::new(),
-            finalized_features_epoch: None,
-            finalized_features: Vec::new(),
-            zk_migration_ready: false,
-        };
-        sasl::apply_api_keys(&mut conn, &versions_resp.api_keys);
-        let rest = deadline.saturating_duration_since(Instant::now());
-        if rest.is_zero() {
-            return Err(Error::Timeout);
-        }
-        sasl::authenticate(
-            &mut conn,
-            self.cfg.sasl_plain.as_ref(),
-            self.cfg.sasl_scram.as_ref(),
-            self.cfg.sasl_scram_sha512.as_ref(),
-            self.cfg.sasl_oauthbearer.as_deref(),
-            self.cfg.sasl_oauthbearer_oidc.as_ref(),
-            rest,
-        )
-        .await?;
-        Ok(AdminOffsetConn::new(conn, &versions_resp))
+        let keys: Vec<ApiVersion> = self.versions.values().cloned().collect();
+        dial_known_admin_socket(addr, &self.cfg, &self.stats, &keys, deadline).await
     }
 
     /// Delete records before `offset` (`DeleteRecords`).
