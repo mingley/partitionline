@@ -311,13 +311,20 @@ impl StreamsClient {
         open_streams_heartbeat(&self.cfg.connection, address, deadline).await
     }
 
-    async fn open_any(&self, deadline: Deadline) -> Result<(BrokerConn, ApiVersionsResponse)> {
+    async fn open_any(
+        &self,
+        deadline: Deadline,
+    ) -> Result<(
+        BrokerConn,
+        ApiVersionsResponse,
+        Vec<(String, Vec<ApiVersion>)>,
+    )> {
         let addresses = &self.cfg.connection.bootstrap;
         if addresses.len() <= 1 {
             let mut last = Error::Timeout;
             for address in addresses {
                 match self.open(address, deadline).await {
-                    Ok(opened) => return Ok(opened),
+                    Ok((conn, versions)) => return Ok((conn, versions, Vec::new())),
                     Err(err) if err.is_retriable() => last = err,
                     Err(err) => return Err(err),
                 }
@@ -325,24 +332,61 @@ impl StreamsClient {
             return Err(last);
         }
         let mut inflight = tokio::task::JoinSet::new();
-        for address in addresses {
+        for (index, address) in addresses.iter().enumerate() {
             let cfg = self.cfg.connection.clone();
             let address = address.clone();
-            let _ = inflight
-                .spawn(async move { open_streams_heartbeat(&cfg, &address, deadline).await });
+            let _ = inflight.spawn(async move {
+                let opened = open_streams_heartbeat(&cfg, &address, deadline).await;
+                (index, opened)
+            });
         }
         let mut last = Error::protocol("all bootstrap servers failed");
-        while let Some(joined) = inflight.join_next().await {
+        let mut finished = Vec::new();
+        while !inflight.is_empty() {
+            let Some(joined) = inflight.join_next().await else {
+                break;
+            };
             match joined {
-                Ok(Ok(opened)) => {
-                    inflight.abort_all();
-                    return Ok(opened);
+                Ok((index, Ok(opened))) => {
+                    finished.push((index, opened));
+                    let gather = deadline
+                        .remaining()
+                        .unwrap_or(Duration::ZERO)
+                        .min(Duration::from_millis(5));
+                    let gather_done = tokio::time::sleep(gather);
+                    tokio::pin!(gather_done);
+                    loop {
+                        tokio::select! {
+                            biased;
+                            joined = inflight.join_next(), if !inflight.is_empty() => {
+                                match joined {
+                                    Some(Ok((index, Ok(opened)))) => finished.push((index, opened)),
+                                    Some(Ok((_, Err(error)))) => last = error,
+                                    _ => {}
+                                }
+                            }
+                            () = &mut gather_done => break,
+                        }
+                    }
+                    break;
                 }
-                Ok(Err(error)) => last = error,
+                Ok((_, Err(error))) => last = error,
                 Err(error) => last = Error::protocol(format!("streams bootstrap: {error}")),
             }
         }
-        Err(last)
+        inflight.abort_all();
+        finished.sort_by_key(|(index, _)| *index);
+        let mut rest = finished.into_iter();
+        let Some((_, (conn, versions))) = rest.next() else {
+            return Err(last);
+        };
+        let mut learned = Vec::new();
+        for (_, (spare, spare_versions)) in rest {
+            if !spare_versions.api_keys.is_empty() {
+                learned.push((spare.addr().to_string(), spare_versions.api_keys));
+            }
+        }
+        Ok((conn, versions, learned))
     }
 
     async fn discover(
@@ -350,7 +394,7 @@ impl StreamsClient {
         request: &StreamsGroupHeartbeatRequest,
         deadline: Deadline,
     ) -> Result<(BrokerConn, LearnedStreams)> {
-        let (mut bootstrap, versions) = self.open_any(deadline).await?;
+        let (mut bootstrap, versions, siblings) = self.open_any(deadline).await?;
         let version = versions
             .api_version(FIND_COORDINATOR)
             .and_then(|api| pick_version(api.min_version, api.max_version, 1, 6))
@@ -384,6 +428,24 @@ impl StreamsClient {
                     find_version: version,
                     coord_addr: address,
                     coord_keys: bootstrap_keys,
+                    prior: HashMap::new(),
+                },
+            ));
+        }
+        if let Some(keys) = siblings
+            .iter()
+            .find(|(addr, keys)| addr == &address && !keys.is_empty())
+            .map(|(_, keys)| keys.clone())
+        {
+            let conn = open_known_streams(&self.cfg.connection, &address, &keys, deadline).await?;
+            return Ok((
+                conn,
+                LearnedStreams {
+                    bootstrap_addr,
+                    bootstrap_keys,
+                    find_version: version,
+                    coord_addr: address,
+                    coord_keys: keys,
                     prior: HashMap::new(),
                 },
             ));

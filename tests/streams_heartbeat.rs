@@ -67,6 +67,33 @@ async fn coordinator_return_reuses_the_previous_handshake() {
     );
 }
 
+/// A coordinator that is another bootstrap reuses that finished handshake.
+#[tokio::test]
+async fn coordinator_on_another_bootstrap_reuses_that_handshake() {
+    let peer = Peer::start().await;
+    peer.script(1, [Reply::Body(response(0))]).await;
+    let mut cfg = peer.config();
+    cfg.connection.bootstrap = vec![peer.addresses[0].to_string(), peer.addresses[1].to_string()];
+    let mut client = StreamsClient::new(cfg).unwrap();
+    let beat = client.heartbeat(&request()).await.unwrap();
+    assert_eq!(beat.error_code, 0);
+    drop(client);
+    let frames = peer.close().await;
+    assert_eq!(
+        frames
+            .iter()
+            .filter(|frame| frame.api == 18 && frame.slot == 1)
+            .count(),
+        2,
+        "the coordinator bootstrap was negotiated twice"
+    );
+    assert_eq!(
+        frames.iter().filter(|frame| frame.api == 18).count(),
+        4,
+        "startup negotiated a bootstrap more than once"
+    );
+}
+
 /// A coordinator that stays put is retried without another ApiVersions handshake.
 #[tokio::test]
 async fn coordinator_load_retries_without_another_handshake() {
