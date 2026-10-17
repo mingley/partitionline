@@ -3692,6 +3692,12 @@ impl Producer {
         let flush = self.flush_until(deadline).await;
         self.shutdown_workers(Some(deadline)).await;
         self.inner.shared.interceptors.close();
+        // The metadata socket drops with this handle. Yield so the broker
+        // observes that close before the result returns.
+        drop(self);
+        for _ in 0..8 {
+            tokio::task::yield_now().await;
+        }
         match flush {
             Err(Error::Timeout) => Err(Error::Timeout),
             _ => Ok(()),
@@ -3706,6 +3712,12 @@ impl Producer {
         let flush = self.flush_until(deadline).await;
         self.shutdown_workers(Some(deadline)).await;
         self.inner.shared.interceptors.close();
+        // The metadata socket drops with this handle. Yield so the broker
+        // observes that close before the result returns.
+        drop(self);
+        for _ in 0..8 {
+            tokio::task::yield_now().await;
+        }
         match flush {
             Err(Error::Timeout) => Err(Error::Timeout),
             _ => Ok(()),

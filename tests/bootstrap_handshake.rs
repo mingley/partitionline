@@ -1755,6 +1755,26 @@ async fn admin_close_closes_the_bootstrap_socket() {
     );
 }
 
+/// Closing a producer closes the metadata socket before close returns.
+#[tokio::test(flavor = "current_thread")]
+async fn producer_close_closes_the_metadata_socket() {
+    let mock = common::Mock::start().await;
+    let mut cfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    cfg.request_timeout = Duration::from_secs(2);
+    let producer = Producer::new(cfg).await.unwrap();
+    assert_eq!(
+        mock.open_conns(),
+        1,
+        "producer connect should hold the metadata socket"
+    );
+    producer.close().await.unwrap();
+    assert_eq!(
+        mock.open_conns(),
+        0,
+        "producer close left the socket blocked in a broker read"
+    );
+}
+
 /// Closing a manual consumer closes the bootstrap socket before close returns.
 #[tokio::test(flavor = "current_thread")]
 async fn consumer_close_closes_the_bootstrap_socket() {
