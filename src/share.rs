@@ -3289,6 +3289,52 @@ impl ShareGroup {
             return Ok(());
         }
         if rejoining {
+            // Idle leader sockets are dialed again before the final
+            // acknowledgement. That handshake, a stale metadata load, and an
+            // idle coordinator reconnect use different sockets.
+            let open: Vec<i32> = self
+                .share_epochs
+                .iter()
+                .filter(|(_, epoch)| **epoch > 0)
+                .map(|(node, _)| *node)
+                .collect();
+            let metadata_stale = topics
+                .iter()
+                .any(|topic| !self.consumer.topic_metadata_fresh(topic));
+            let coord_idle = self.coord.idle_expired(self.cfg.connections_max_idle);
+            let targets = if (metadata_stale || coord_idle) && !open.is_empty() {
+                self.share_dial_targets(&open)
+            } else {
+                Vec::new()
+            };
+            if !targets.is_empty() {
+                let coord_addr = coord_idle.then(|| self.coord.addr().to_string());
+                let cfg = self.cfg.clone();
+                let opened = Self::open_share_dials(self.share_dial_config(), targets, deadline);
+                let refreshed =
+                    Self::refresh_topic_names_within(&mut self.consumer, &topics, deadline);
+                let coord_opened = async move {
+                    match coord_addr {
+                        Some(addr) => crate::group::open_coord(&cfg, &addr).await.ok(),
+                        None => None,
+                    }
+                };
+                let (opened, refreshed, coord_opened) =
+                    tokio::join!(opened, refreshed, coord_opened);
+                self.store_opened_share_dials(opened);
+                if let Some(conn) = coord_opened {
+                    self.coord = conn;
+                }
+                self.close_share_session(deadline).await?;
+                self.assigned.clear();
+                self.topic_ids.clear();
+                self.share_epochs.clear();
+                self.topics = topics;
+                self.publish_hb_topics();
+                refreshed?;
+                self.heartbeat_join_within(deadline).await?;
+                return Ok(());
+            }
             self.close_share_session(deadline).await?;
             self.assigned.clear();
             self.topic_ids.clear();

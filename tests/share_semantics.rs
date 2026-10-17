@@ -386,6 +386,54 @@ async fn share_resubscribe_refreshes_metadata_while_closing_sessions() {
     group.leave().await.unwrap();
 }
 
+/// An idle resubscribe dials the share leader while the new topic loads.
+#[tokio::test]
+async fn share_resubscribe_dials_idle_leader_while_loading_metadata() {
+    let mock = common::Mock::start_two_node().await;
+    v2(&mock);
+    mock.set_share_heartbeat_interval_ms(60_000);
+    mock.set_topic_partitions("t", 1);
+    mock.set_partition_leader("t", 0, 2);
+    produce(&mock, &[(0, b"held")]).await;
+    let mut cfg = config(&mock);
+    cfg.connections_max_idle = Duration::from_millis(40);
+    cfg.heartbeat_interval = Duration::from_secs(5);
+    let mut group = ShareGroup::join(cfg, "resub-idle", "t").await.unwrap();
+    let got = group.poll().await.unwrap();
+    assert_eq!(got.len(), 1, "the share session has to be open");
+    tokio::time::sleep(Duration::from_millis(60)).await;
+    let _listed = group.list_topics().await.unwrap();
+    mock.set_topic_partitions("u", 1);
+    mock.set_partition_leader("u", 0, 1);
+    let delay = Duration::from_millis(250);
+    mock.set_metadata_delay(delay);
+    mock.set_api_versions_delay(delay);
+    let before = mock.metadata_calls();
+    let versions_before = mock.api_versions_versions().len();
+    let started = Instant::now();
+    group.subscribe(["t", "u"]).await.unwrap();
+    let elapsed = started.elapsed();
+    assert!(
+        mock.metadata_calls() > before,
+        "resubscribe should load metadata for the new topic"
+    );
+    assert!(
+        mock.api_versions_versions().len() > versions_before,
+        "resubscribe should handshake the idle share leader"
+    );
+    assert!(
+        mock.share_ack_history()
+            .iter()
+            .any(|(_, epoch)| *epoch == ShareRequestMetadata::FINAL_EPOCH),
+        "resubscribe should retire the previous share session"
+    );
+    assert!(
+        elapsed < Duration::from_millis(450),
+        "idle resubscribe loaded metadata before dialing the leader: {elapsed:?}"
+    );
+    group.leave().await.unwrap();
+}
+
 /// A zero metadata age still loads the image while the share join heartbeat runs.
 #[tokio::test]
 async fn share_join_heartbeat_loads_metadata_while_joining() {
