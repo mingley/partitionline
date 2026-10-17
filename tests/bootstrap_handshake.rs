@@ -1686,6 +1686,55 @@ async fn fetch_timeout_closes_the_leader_socket() {
     peer.abort();
 }
 
+/// A group-coordinator lookup closes the coordinator handshake before the error returns.
+#[tokio::test(flavor = "current_thread")]
+async fn group_coordinator_timeout_closes_the_socket() {
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::sync::Arc;
+    use tokio::io::AsyncReadExt;
+
+    let mock = common::Mock::start_two_node().await;
+    let mut cfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    cfg.request_timeout = Duration::from_millis(400);
+    cfg.connect_timeout = Duration::from_millis(200);
+    cfg.reconnect_backoff = Duration::ZERO;
+    cfg.reconnect_backoff_max = Duration::ZERO;
+    cfg.retry_backoff = Duration::ZERO;
+    cfg.retry_backoff_max = Duration::ZERO;
+    let producer = Producer::new(cfg).await.unwrap();
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let slow = listener.local_addr().unwrap();
+    let open = Arc::new(AtomicUsize::new(0));
+    let open_flag = Arc::clone(&open);
+    let peer = tokio::spawn(async move {
+        loop {
+            let (mut sock, _) = listener.accept().await.unwrap();
+            let _started = open_flag.fetch_add(1, Ordering::SeqCst);
+            let open_flag = Arc::clone(&open_flag);
+            let _reader = tokio::spawn(async move {
+                let mut buf = [0u8; 64];
+                loop {
+                    match sock.read(&mut buf).await {
+                        Ok(0) | Err(_) => break,
+                        Ok(_) => continue,
+                    }
+                }
+                let _left = open_flag.fetch_sub(1, Ordering::SeqCst);
+            });
+        }
+    });
+    mock.set_broker_address(2, "127.0.0.1", i32::from(slow.port()));
+    mock.set_group_coordinator("g-stop", 2);
+    let result = producer.test_discover_group_coordinator("g-stop").await;
+    assert!(result.is_err(), "group coordinator lookup should time out");
+    assert_eq!(
+        open.load(Ordering::SeqCst),
+        0,
+        "group coordinator lookup left the socket blocked in a broker read"
+    );
+    peer.abort();
+}
+
 /// A fetch that reloads metadata closes the leader dial started beside that reload.
 #[tokio::test(flavor = "current_thread")]
 async fn fetch_refresh_timeout_closes_the_leader_socket() {

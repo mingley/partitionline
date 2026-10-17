@@ -1680,6 +1680,22 @@ impl Producer {
         Ok(())
     }
 
+    /// Look up one group coordinator and return once that dial has stopped.
+    ///
+    /// `send_offsets_to_transaction` continues after this lookup. A coordinator
+    /// that accepts and then stalls would stay open across those later steps.
+    #[doc(hidden)]
+    pub async fn test_discover_group_coordinator(&self, group_id: &str) -> Result<()> {
+        let deadline = Instant::now()
+            .checked_add(self.inner.shared.cfg.request_timeout)
+            .ok_or(Error::Timeout)?;
+        let version = required_find_coordinator(self.inner.shared.find_coord_version)?;
+        let found =
+            discover_group_coordinator(&self.inner.shared, group_id, version, deadline).await?;
+        drop(found);
+        Ok(())
+    }
+
     /// Race bootstrap handshakes and return as soon as the losers have stopped.
     ///
     /// `Producer::new` continues with metadata after this race, and those later
@@ -4030,31 +4046,43 @@ async fn open_conn_with_versions(
     cfg: &ProducerConfig,
     transaction_v2: bool,
 ) -> Result<(BrokerConn, ApiVersionsResponse)> {
-    let deadline = Instant::now()
-        .checked_add(cfg.request_timeout)
-        .ok_or(Error::Timeout)?;
-    let mut conn = BrokerConn::connect_tls(
-        addr,
-        &cfg.client_id,
-        cfg.connect_timeout.min(timeout_remaining(deadline)?),
-        cfg.tls.as_ref(),
-    )
-    .await?;
-    let versions_resp =
-        crate::protocol::api::negotiate_api_versions(&mut conn, timeout_remaining(deadline)?)
-            .await?;
-    configure_produce_conn(&mut conn, &versions_resp, cfg, transaction_v2);
-    crate::protocol::sasl::authenticate(
-        &mut conn,
-        cfg.sasl_plain.as_ref(),
-        cfg.sasl_scram.as_ref(),
-        cfg.sasl_scram_sha512.as_ref(),
-        cfg.sasl_oauthbearer.as_deref(),
-        cfg.sasl_oauthbearer_oidc.as_ref(),
-        timeout_remaining(deadline)?,
-    )
-    .await?;
-    Ok((conn, versions_resp))
+    let opened = async {
+        let deadline = Instant::now()
+            .checked_add(cfg.request_timeout)
+            .ok_or(Error::Timeout)?;
+        let mut conn = BrokerConn::connect_tls(
+            addr,
+            &cfg.client_id,
+            cfg.connect_timeout.min(timeout_remaining(deadline)?),
+            cfg.tls.as_ref(),
+        )
+        .await?;
+        let versions_resp =
+            crate::protocol::api::negotiate_api_versions(&mut conn, timeout_remaining(deadline)?)
+                .await?;
+        configure_produce_conn(&mut conn, &versions_resp, cfg, transaction_v2);
+        crate::protocol::sasl::authenticate(
+            &mut conn,
+            cfg.sasl_plain.as_ref(),
+            cfg.sasl_scram.as_ref(),
+            cfg.sasl_scram_sha512.as_ref(),
+            cfg.sasl_oauthbearer.as_deref(),
+            cfg.sasl_oauthbearer_oidc.as_ref(),
+            timeout_remaining(deadline)?,
+        )
+        .await?;
+        Ok((conn, versions_resp))
+    }
+    .await;
+    // A failed handshake drops its socket in this call. Yield so the broker
+    // observes that close before the error returns. A successful dial keeps
+    // the socket and does not wait.
+    if opened.is_err() {
+        for _ in 0..8 {
+            tokio::task::yield_now().await;
+        }
+    }
+    opened
 }
 
 async fn discover_typed_coord(
