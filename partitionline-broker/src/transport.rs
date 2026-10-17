@@ -1169,6 +1169,11 @@ async fn watch_disconnect<S: AsyncRead + Unpin>(
     max_request: usize,
 ) -> Exit {
     loop {
+        // One pipelined frame fits in the request limit, including its length
+        // prefix. More than that during a handler is not one request.
+        if ahead.pending().len() > max_request.saturating_add(4) {
+            return Exit::InvalidLength;
+        }
         let budget = match classify_ahead(ahead.pending(), max_request) {
             Ahead::Need(budget) => budget,
             // A complete next frame is already buffered. Read past it so a
@@ -1660,7 +1665,7 @@ mod disconnect_tests {
     use std::sync::atomic::{AtomicUsize, Ordering};
     use std::sync::Arc;
     use std::time::Duration;
-    use tokio::io::AsyncWriteExt;
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
     use tokio::net::TcpStream;
     use tokio::sync::Notify;
 
@@ -1801,6 +1806,63 @@ mod disconnect_tests {
             .shutdown()
             .await
             .unwrap_or_else(|error| panic!("{error}"));
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn flooded_request_stops_the_handler() {
+        let started = Arc::new(AtomicUsize::new(0));
+        let stopped = Arc::new(AtomicUsize::new(0));
+        let release = Arc::new(Notify::new());
+        let config = Config::new(
+            4,
+            1,
+            1024,
+            1024,
+            Duration::from_secs(30),
+            Duration::from_secs(30),
+            Duration::from_secs(30),
+        )
+        .unwrap_or_else(|error| panic!("{error}"));
+        let bound = config.max_request_bytes();
+        let mut transport = Transport::bind(
+            "127.0.0.1:0"
+                .parse::<SocketAddr>()
+                .unwrap_or_else(|error| panic!("{error}")),
+            config,
+            Arc::new(Hold {
+                started: Arc::clone(&started),
+                stopped: Arc::clone(&stopped),
+                release: Arc::clone(&release),
+            }),
+        )
+        .await
+        .unwrap_or_else(|error| panic!("{error}"));
+        let socket = TcpStream::connect(transport.local_addr())
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        let (mut reader, mut writer) = socket.into_split();
+        writer
+            .write_all(&0i32.to_be_bytes())
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        while started.load(Ordering::SeqCst) == 0 {
+            tokio::task::yield_now().await;
+        }
+        // Keep the write half open. Dropping it would look like a disconnect.
+        let flood = vec![0u8; bound.saturating_add(5)];
+        let _wrote = writer.write_all(&flood).await;
+        let mut buf = [0u8; 8];
+        let saw = tokio::time::timeout(Duration::from_millis(300), reader.read(&mut buf)).await;
+        drop(writer);
+        release.notify_waiters();
+        transport
+            .shutdown()
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert!(
+            matches!(saw, Ok(Ok(0))),
+            "handler kept the socket while the client flooded the connection"
+        );
     }
 }
 
