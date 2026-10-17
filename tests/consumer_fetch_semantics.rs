@@ -3443,6 +3443,51 @@ async fn group_commit_redials_coordinator_while_finding_it() {
     group.leave().await.unwrap();
 }
 
+/// A rejoin opens the assigned leader while SyncGroup is still in flight.
+#[tokio::test]
+async fn group_rejoin_dials_leaders_during_sync() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_topic_partitions("t", 1);
+    mock.set_partition_leader("t", 0, 2);
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    let _sent = producer
+        .send(ProduceRecord::to("t").value(&b"v"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+    let mut cfg = ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10);
+    cfg.connections_max_idle = Duration::from_millis(40);
+    cfg.heartbeat_interval = Duration::from_secs(5);
+    let mut group = ConsumerGroup::join(cfg, "sync-dial", "t").await.unwrap();
+    assert_eq!(group.poll().await.unwrap().len(), 1);
+    tokio::time::sleep(Duration::from_millis(60)).await;
+    group
+        .commit_offsets([(TopicPartition::new("t", 0), 1)])
+        .await
+        .unwrap();
+    let delay = Duration::from_millis(250);
+    mock.set_sync_group_delay(delay);
+    mock.set_api_versions_delay(delay);
+    let versions_before = mock.api_versions_versions().len();
+    group.enforce_rebalance();
+    let started = Instant::now();
+    let _recs = group.poll().await.unwrap();
+    let elapsed = started.elapsed();
+    let versions_delta = mock.api_versions_versions().len() - versions_before;
+    assert_eq!(
+        versions_delta, 1,
+        "rejoin should handshake the idle leader once"
+    );
+    assert!(
+        elapsed < Duration::from_millis(450),
+        "rejoin synced before dialing the leader: {elapsed:?}"
+    );
+    group.leave().await.unwrap();
+}
+
 /// ListOffsets dials leaders it already knows while unknown topics load.
 #[tokio::test]
 async fn list_offsets_dials_known_leaders_while_loading_metadata() {

@@ -2705,27 +2705,48 @@ impl ConsumerGroup {
                 by_topic.push((topic.clone(), self.consumer.partition_ids(topic)?));
             }
         }
-        let assignments =
-            if JoinGroupResponse::is_leader(&self.member_id, &leader) && !skip_assignment {
-                let map = match self.protocol.as_str() {
-                    "cooperative-sticky" => {
-                        assign_cooperative_sticky_subscribed(&member_subs, &by_topic, &owned_prev)
-                    }
-                    "sticky" => assign_sticky_subscribed(&member_subs, &by_topic, &owned_prev),
-                    _ => assign_range_subscribed(&member_subs, &by_topic),
-                };
-                self.prev_assignment = map.clone();
-                map.into_iter()
-                    .map(|(id, tps)| Ok((id, encode_tp_assignment(&tps)?)))
-                    .collect::<Result<Vec<_>>>()?
-            } else {
-                Vec::new()
+        let assigning = JoinGroupResponse::is_leader(&self.member_id, &leader) && !skip_assignment;
+        let assignments = if assigning {
+            let map = match self.protocol.as_str() {
+                "cooperative-sticky" => {
+                    assign_cooperative_sticky_subscribed(&member_subs, &by_topic, &owned_prev)
+                }
+                "sticky" => assign_sticky_subscribed(&member_subs, &by_topic, &owned_prev),
+                _ => assign_range_subscribed(&member_subs, &by_topic),
             };
+            self.prev_assignment = map.clone();
+            map.into_iter()
+                .map(|(id, tps)| Ok((id, encode_tp_assignment(&tps)?)))
+                .collect::<Result<Vec<_>>>()?
+        } else {
+            Vec::new()
+        };
+        // The assigning leader already chose its partitions. Dial those
+        // brokers while SyncGroup runs so offset fetch and the next poll
+        // do not pay the handshake after the coordinator answers.
+        let mut leaders = Vec::new();
+        if assigning {
+            if let Some(parts) = self.prev_assignment.get(&self.member_id) {
+                for (topic, partition) in parts {
+                    let Ok(node) = self.consumer.cluster().leader_id(topic, *partition) else {
+                        continue;
+                    };
+                    if !leaders.contains(&node) {
+                        leaders.push(node);
+                    }
+                }
+            }
+        }
         let timeout = deadline.saturating_duration_since(Instant::now());
         if timeout.is_zero() {
             return Err(Error::Timeout);
         }
-        let (version, body) = coord_roundtrip(
+        let mut flight = if leaders.is_empty() {
+            None
+        } else {
+            Some(self.consumer.start_leader_dials(&leaders, deadline))
+        };
+        let sync_fut = coord_roundtrip(
             &mut self.coord,
             &self.cfg,
             &self.group_id,
@@ -2747,12 +2768,21 @@ impl ConsumerGroup {
                 )
             },
             timeout,
-        )
-        .await?;
+        );
+        let synced = if let Some(flight) = flight.as_mut() {
+            let (synced, ()) = tokio::join!(sync_fut, flight);
+            synced
+        } else {
+            sync_fut.await
+        };
+        let (version, body) = synced?;
         let (err, assignment, ..) = decode_sync_group_response(&mut body.clone(), version)
             .map_err(|e| group_decode_context(e, "SyncGroup", version, body.len()))?;
         if err != 0 {
             return Err(Error::broker(err, "SyncGroup"));
+        }
+        if let Some(flight) = flight {
+            flight.store(&mut self.consumer);
         }
         let assigned = decode_assignment(&assignment).map_err(|e| {
             group_decode_context(e, "ConsumerProtocol assignment", version, assignment.len())
