@@ -868,6 +868,13 @@ type ShareDialAttempt = (
     Result<(BrokerConn, crate::protocol::api::ApiVersionsResponse)>,
 );
 
+enum ShareDialEvent {
+    Joined(Box<Option<std::result::Result<ShareDialAttempt, tokio::task::JoinError>>>),
+    Wake,
+    Timeout,
+    WatchClosed,
+}
+
 fn push_opened_share_dial(
     opened: &mut Vec<OpenedShareDial>,
     node: i32,
@@ -2553,6 +2560,7 @@ impl ShareGroup {
         dials: Vec<(i32, String)>,
         deadline: Instant,
         wakeup: Arc<AtomicBool>,
+        mut wakeup_rx: watch::Receiver<bool>,
     ) -> Vec<OpenedShareDial> {
         if dials.is_empty() || Instant::now() >= deadline {
             return Vec::new();
@@ -2628,18 +2636,37 @@ impl ShareGroup {
             spawn(&mut inflight, node, addr);
         }
         let mut opened = Vec::new();
+        let mut watch_live = true;
         while !inflight.is_empty() {
             if wakeup.load(Ordering::SeqCst) || Instant::now() >= deadline {
                 Self::keep_completed_share_dials(&mut inflight, &mut opened);
-                inflight.abort_all();
+                finish_aborted_join_set(std::mem::take(&mut inflight), Instant::now()).await;
                 break;
             }
             let rest = deadline.saturating_duration_since(Instant::now());
-            let joined = tokio::select! {
-                joined = inflight.join_next() => joined,
-                _ = tokio::time::sleep(rest) => {
+            let event = tokio::select! {
+                biased;
+                joined = inflight.join_next() => ShareDialEvent::Joined(Box::new(joined)),
+                result = wakeup_rx.wait_for(|on| *on), if watch_live => {
+                    match result {
+                        Ok(flag) => {
+                            drop(flag);
+                            ShareDialEvent::Wake
+                        }
+                        Err(_) => ShareDialEvent::WatchClosed,
+                    }
+                }
+                () = tokio::time::sleep(rest) => ShareDialEvent::Timeout,
+            };
+            let joined = match event {
+                ShareDialEvent::Joined(joined) => *joined,
+                ShareDialEvent::WatchClosed => {
+                    watch_live = false;
+                    continue;
+                }
+                ShareDialEvent::Wake | ShareDialEvent::Timeout => {
                     Self::keep_completed_share_dials(&mut inflight, &mut opened);
-                    inflight.abort_all();
+                    finish_aborted_join_set(std::mem::take(&mut inflight), Instant::now()).await;
                     break;
                 }
             };
@@ -2690,8 +2717,10 @@ impl ShareGroup {
     async fn warm_share_leaders(&mut self, nodes: &[i32], deadline: Instant) {
         let dials = self.share_dial_targets(nodes);
         let wakeup = self.consumer.wakeup_flag();
+        let wakeup_rx = self.consumer.subscribe_wakeup();
         let opened =
-            Self::open_share_dials(self.share_dial_config(), dials, deadline, wakeup).await;
+            Self::open_share_dials(self.share_dial_config(), dials, deadline, wakeup, wakeup_rx)
+                .await;
         self.store_opened_share_dials(opened);
     }
 
@@ -2894,7 +2923,14 @@ impl ShareGroup {
                 .await;
         }
         let wakeup = self.consumer.wakeup_flag();
-        let opened = Self::open_share_dials(self.share_dial_config(), targets, deadline, wakeup);
+        let wakeup_rx = self.consumer.subscribe_wakeup();
+        let opened = Self::open_share_dials(
+            self.share_dial_config(),
+            targets,
+            deadline,
+            wakeup,
+            wakeup_rx,
+        );
         let refreshed = self
             .consumer
             .refresh_metadata_timeout(Some(&self.topics), timeout);
@@ -2980,8 +3016,14 @@ impl ShareGroup {
                 refreshed?;
             } else {
                 let wakeup = self.consumer.wakeup_flag();
-                let opened =
-                    Self::open_share_dials(self.share_dial_config(), targets, deadline, wakeup);
+                let wakeup_rx = self.consumer.subscribe_wakeup();
+                let opened = Self::open_share_dials(
+                    self.share_dial_config(),
+                    targets,
+                    deadline,
+                    wakeup,
+                    wakeup_rx,
+                );
                 let refreshed = self.consumer.refresh_metadata_timeout(Some(&stale), rest);
                 let (opened, refreshed) = tokio::join!(opened, refreshed);
                 self.store_opened_share_dials(opened);
@@ -3527,8 +3569,14 @@ impl ShareGroup {
                 let known = coord_idle.then(|| crate::group::KnownCoord::capture(&self.coord));
                 let cfg = self.cfg.clone();
                 let wakeup = self.consumer.wakeup_flag();
-                let opened =
-                    Self::open_share_dials(self.share_dial_config(), targets, deadline, wakeup);
+                let wakeup_rx = self.consumer.subscribe_wakeup();
+                let opened = Self::open_share_dials(
+                    self.share_dial_config(),
+                    targets,
+                    deadline,
+                    wakeup,
+                    wakeup_rx,
+                );
                 let refreshed =
                     Self::refresh_topic_names_within(&mut self.consumer, &topics, deadline);
                 let coord_opened = async move {
@@ -7313,12 +7361,81 @@ mod dial_tests {
             vec![(1, addr_a), (2, addr_b)],
             Instant::now() + Duration::from_secs(2),
             wakeup,
+            tokio::sync::watch::channel(false).1,
         )
         .await;
         hold.abort();
         let mut nodes: Vec<i32> = opened.iter().map(|dial| dial.node).collect();
         nodes.sort_unstable();
         assert_eq!(nodes, vec![1, 2]);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn wakeup_stops_a_blocked_share_dial() {
+        use tokio::io::AsyncReadExt;
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let accepted = Arc::new(AtomicBool::new(false));
+        let dropped = Arc::new(AtomicBool::new(false));
+        let accepted_flag = Arc::clone(&accepted);
+        let dropped_flag = Arc::clone(&dropped);
+        let peer = tokio::spawn(async move {
+            let (mut sock, _) = listener.accept().await.unwrap();
+            accepted_flag.store(true, Ordering::SeqCst);
+            let mut buf = [0u8; 1];
+            let _read = sock.read(&mut buf).await;
+            dropped_flag.store(true, Ordering::SeqCst);
+        });
+        let wakeup = Arc::new(AtomicBool::new(false));
+        let (wake_tx, wake_rx) = tokio::sync::watch::channel(false);
+        let dial = ShareGroup::open_share_dials(
+            ShareDialConfig {
+                client_id: "share-wake".to_string(),
+                connect_timeout: Duration::from_secs(30),
+                tls: None,
+                sasl_plain: None,
+                sasl_scram: None,
+                sasl_scram_sha512: None,
+                sasl_oauthbearer: None,
+                sasl_oauthbearer_oidc: None,
+                bootstrap_addr: String::new(),
+                known_keys: Vec::new(),
+                node_keys: HashMap::new(),
+                addr_keys: HashMap::new(),
+                coord_addr: String::new(),
+                coord_keys: Vec::new(),
+            },
+            vec![(2, addr)],
+            Instant::now() + Duration::from_secs(2),
+            Arc::clone(&wakeup),
+            wake_rx,
+        );
+        tokio::pin!(dial);
+        while !accepted.load(Ordering::SeqCst) {
+            tokio::select! {
+                biased;
+                _ = &mut dial => panic!("dial returned before the broker accepted"),
+                () = tokio::task::yield_now() => {}
+            }
+        }
+        wakeup.store(true, Ordering::SeqCst);
+        wake_tx.send(true).unwrap_or(());
+        let started = Instant::now();
+        let opened = (&mut dial).await;
+        assert!(
+            opened.is_empty(),
+            "a blocked handshake is not a finished dial"
+        );
+        assert!(
+            started.elapsed() < Duration::from_millis(200),
+            "wakeup waited for the blocked handshake: {:?}",
+            started.elapsed()
+        );
+        assert!(
+            dropped.load(Ordering::SeqCst),
+            "wakeup left the share dial blocked in a broker read"
+        );
+        peer.abort();
     }
 
     #[tokio::test(flavor = "current_thread")]

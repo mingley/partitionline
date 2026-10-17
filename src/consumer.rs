@@ -5530,6 +5530,11 @@ impl Consumer {
         Arc::clone(&self.wakeup)
     }
 
+    /// Watch the same flag [`Self::wakeup`] sets, so a dial can stop mid-read.
+    pub(crate) fn subscribe_wakeup(&self) -> watch::Receiver<bool> {
+        self.wakeup_tx.subscribe()
+    }
+
     /// Interrupt [`Self::fetch`] (and group `poll` that calls it).
     ///
     /// Safe to call while fetch is running on this task. From another task,
