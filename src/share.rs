@@ -996,7 +996,7 @@ pub enum ShareAcquireMode {
 /// `DUPLICATE_SEQUENCE_NUMBER`, which fails that poll, and not piggyback
 /// `OUT_OF_ORDER_SEQUENCE_NUMBER`). A piggybacked
 /// `INVALID_PRODUCER_EPOCH` still completes without retry,
-/// including when `AcknowledgeErrorMessage` is set (Java
+/// including when `AcknowledgeErrorMessage` is set or empty (Java
 /// `handleShareFetchSuccess` completes piggyback acks and still
 /// delivers the fetch; this is not partition
 /// `INVALID_PRODUCER_EPOCH`, which fails that poll, and not piggyback
@@ -2605,7 +2605,7 @@ impl ShareGroup {
     /// `OUT_OF_ORDER_SEQUENCE_NUMBER`).
     /// A piggybacked `INVALID_PRODUCER_EPOCH` still completes
     /// without retry, including when `AcknowledgeErrorMessage` is set
-    /// (Java `handleShareFetchSuccess` completes piggyback acks and still
+    /// or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
     /// delivers the fetch; this is not partition
     /// `INVALID_PRODUCER_EPOCH`, which fails that poll, and not piggyback
     /// `DUPLICATE_SEQUENCE_NUMBER`).
