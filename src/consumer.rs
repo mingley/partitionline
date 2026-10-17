@@ -2844,11 +2844,10 @@ async fn send_fetch_session_close(
             }
             // The quota wait is off the socket read. A broker that leaves
             // during it must not keep this connection until the quota ends.
-            closed = conn.inbound_ready() => {
-                if let Err(error) = closed {
-                    conn.close();
-                    return Err(error);
-                }
+            // A queued response must not finish the wait: that skips the
+            // quota and sends the close immediately.
+            _ = conn.peer_left() => {
+                return Err(Error::Closed);
             }
             _ = tokio::time::sleep(until.saturating_duration_since(Instant::now())) => {}
         }
@@ -11178,6 +11177,69 @@ mod tests {
     use super::*;
     use crate::protocol::api::ApiVersion;
     use crate::protocol::api_keys::FETCH;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn queued_byte_does_not_skip_the_fetch_close_quota() {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        let (wrote_tx, wrote_rx) = tokio::sync::oneshot::channel::<Instant>();
+        let accepted = tokio::spawn(async move {
+            let (socket, _) = listener.accept().await.unwrap();
+            let (mut reader, mut writer) = socket.into_split();
+            writer.write_all(&[0x01]).await.unwrap();
+            let mut buf = [0u8; 64];
+            let n = reader.read(&mut buf).await.unwrap();
+            let _ = wrote_tx.send(Instant::now());
+            assert!(n > 0, "the fetch close was not written");
+            tokio::time::sleep(Duration::from_secs(2)).await;
+        });
+        let mut conn = crate::net::BrokerConn::connect(
+            &addr.to_string(),
+            "fetch-close",
+            Duration::from_secs(2),
+        )
+        .await
+        .unwrap();
+        conn.set_fetch_version(11);
+        let queued = tokio::time::timeout(Duration::from_millis(300), async {
+            loop {
+                if conn.has_queued_response() {
+                    break;
+                }
+                tokio::task::yield_now().await;
+            }
+        })
+        .await;
+        assert!(queued.is_ok(), "the queued byte never became visible");
+        let started = Instant::now();
+        let (wakeup_tx, _wakeup_rx) = watch::channel(false);
+        let session = BrokerFetchSession::default();
+        let mut cfg = ConsumerConfig::bootstrap([addr.to_string()]);
+        cfg.max_wait_ms = 10;
+        let closing = send_fetch_session_close(
+            &mut conn,
+            &session,
+            Some(Instant::now() + Duration::from_millis(400)),
+            &wakeup_tx,
+            &cfg,
+            Instant::now() + Duration::from_secs(2),
+        );
+        tokio::pin!(closing);
+        let wrote = tokio::select! {
+            result = &mut closing => panic!("the close finished before the peer read it: {result:?}"),
+            wrote = wrote_rx => wrote,
+        };
+        let wrote = wrote.unwrap();
+        assert!(
+            wrote.saturating_duration_since(started) >= Duration::from_millis(300),
+            "a queued byte skipped the fetch-close quota: {:?}",
+            wrote.saturating_duration_since(started)
+        );
+        drop(closing);
+        drop(accepted);
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn bootstrap_handshake_timeout_closes_the_socket() {
