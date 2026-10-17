@@ -4578,6 +4578,36 @@ async fn kip848_resubscribe_loads_metadata_while_joining() {
     group.leave().await.unwrap();
 }
 
+/// A KIP-848 assignment reload fetches offsets while stale metadata reloads.
+#[tokio::test]
+async fn kip848_assignment_fetches_offsets_while_refreshing_metadata() {
+    let mock = common::Mock::start().await;
+    mock.set_topic_partitions("t", 1);
+    mock.set_cg_heartbeat_interval_ms(200);
+    let mut cfg = ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10);
+    cfg.metadata_max_age = Duration::from_millis(30);
+    let mut group = ConsumerGroup::join_consumer(cfg, "k848-offsets", "t")
+        .await
+        .unwrap();
+    assert_eq!(group.assignment().len(), 1);
+    mock.set_topic_partitions("t", 2);
+    mock.set_cg_heartbeat_interval_ms(60_000);
+    mock.refresh_kip848_assignments();
+    tokio::time::sleep(Duration::from_millis(400)).await;
+    let delay = Duration::from_millis(250);
+    mock.set_metadata_delay(delay);
+    mock.set_offset_fetch_delay(delay);
+    let started = Instant::now();
+    let _got = group.poll().await.unwrap();
+    let elapsed = started.elapsed();
+    assert_eq!(group.assignment().len(), 2);
+    assert!(
+        elapsed < Duration::from_millis(450),
+        "assignment refreshed metadata before fetching offsets: {elapsed:?}"
+    );
+    group.leave().await.unwrap();
+}
+
 /// Unknown log bounds on an out-of-range fetch are resolved once per leader.
 #[tokio::test]
 async fn out_of_range_reset_lists_each_leaders_offsets_together() {

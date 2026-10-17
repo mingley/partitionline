@@ -2758,7 +2758,7 @@ impl ConsumerGroup {
             group_decode_context(e, "ConsumerProtocol assignment", version, assignment.len())
         })?;
         let wanted = expand_topic_partitions(assigned);
-        let revoked = self.assign_committed(&wanted, deadline).await?;
+        let revoked = self.assign_committed(&wanted, deadline, false).await?;
         self.hb_generation
             .store(self.generation_id, Ordering::SeqCst);
         self.hb_err.store(0, Ordering::SeqCst);
@@ -2887,7 +2887,7 @@ impl ConsumerGroup {
             ));
         }
         let wanted = wanted_from_kip848(&self.topics, names, &assignment);
-        let _ = self.assign_committed(&wanted, deadline).await?;
+        let _ = self.assign_committed(&wanted, deadline, false).await?;
         *self.hb_ack.lock() = Some(assignment);
         self.hb_generation
             .store(self.generation_id, Ordering::SeqCst);
@@ -2963,7 +2963,10 @@ impl ConsumerGroup {
             .topics
             .iter()
             .any(|topic| !self.consumer.topic_metadata_fresh(topic));
-        if missing_topic || stale {
+        // Topic ids have to be known before the assignment can be named.
+        // A stale image can reload while OffsetFetch runs.
+        let overlap_metadata = stale && !missing_topic;
+        if missing_topic {
             let timeout = deadline.saturating_duration_since(Instant::now());
             if timeout.is_zero() {
                 return Err(Error::Timeout);
@@ -2986,7 +2989,9 @@ impl ConsumerGroup {
         if !kip848_assignment_can_apply(&wanted, &assignment) {
             return Ok(());
         }
-        let _revoked = self.assign_committed(&wanted, deadline).await?;
+        let _revoked = self
+            .assign_committed(&wanted, deadline, overlap_metadata)
+            .await?;
         {
             let mut pending = self.hb_assignment.lock();
             if pending.as_ref() == Some(&assignment) {
@@ -3002,6 +3007,7 @@ impl ConsumerGroup {
         &mut self,
         wanted: &[(String, i32)],
         deadline: Instant,
+        overlap_metadata: bool,
     ) -> Result<Vec<(String, i32)>> {
         let identities = self.consumer.topic_name_ids().clone();
         let all_current = self.consumer.assigned_offsets().to_vec();
@@ -3091,6 +3097,15 @@ impl ConsumerGroup {
         let reset = self.cfg.auto_offset_reset;
         let mut warm_leaders = false;
         let fetched = if added.is_empty() {
+            if overlap_metadata {
+                let timeout = deadline.saturating_duration_since(Instant::now());
+                if timeout.is_zero() {
+                    return Err(Error::Timeout);
+                }
+                self.consumer
+                    .refresh_metadata_timeout(Some(&self.topics), timeout)
+                    .await?;
+            }
             Vec::new()
         } else {
             let mut topics = std::mem::take(&mut self.classic_fetch_topics);
@@ -3108,9 +3123,102 @@ impl ConsumerGroup {
             let overlap_dials =
                 self.coord.offset_fetch_version != 10 && !matches!(reset, AutoOffsetReset::None);
             if !overlap_dials {
+                if overlap_metadata {
+                    self.consumer
+                        .refresh_metadata_timeout(Some(&self.topics), timeout)
+                        .await?;
+                }
+                let timeout = deadline.saturating_duration_since(Instant::now());
+                if timeout.is_zero() {
+                    self.classic_fetch_topics = topics;
+                    return Err(Error::Timeout);
+                }
                 let fetched = self.offset_fetch(&topics, timeout).await;
                 self.classic_fetch_topics = topics;
                 fetched?
+            } else if overlap_metadata {
+                let mut leaders = Vec::new();
+                for (topic, partition) in &added {
+                    let Ok(node) = self.consumer.cluster().leader_id(topic, *partition) else {
+                        continue;
+                    };
+                    if !leaders.contains(&node) {
+                        leaders.push(node);
+                    }
+                }
+                let mut dials = self.consumer.start_leader_dials(&leaders, deadline);
+                let require_stable = self.cfg.isolation_level == IsolationLevel::ReadCommitted;
+                let member_epoch = if self.kip848 { self.generation_id } else { -1 };
+                let member_id = if self.kip848 {
+                    Some(self.member_id.clone())
+                } else {
+                    None
+                };
+                let group_id = self.group_id.clone();
+                let fetched = {
+                    let refresh_fut = self
+                        .consumer
+                        .refresh_metadata_timeout(Some(&self.topics), timeout);
+                    let fetch_fut = coord_roundtrip(
+                        &mut self.coord,
+                        &self.cfg,
+                        &group_id,
+                        COORDINATOR_GROUP,
+                        OFFSET_FETCH,
+                        |version, buf| {
+                            encode_offset_fetch_request(
+                                buf,
+                                version,
+                                &group_id,
+                                member_id.as_deref(),
+                                member_epoch,
+                                require_stable,
+                                Some(&topics),
+                            )
+                        },
+                        timeout,
+                    );
+                    tokio::pin!(refresh_fut);
+                    tokio::pin!(fetch_fut);
+                    let mut metadata_refresh = None;
+                    let fetched_rpc = loop {
+                        tokio::select! {
+                            biased;
+                            result = &mut fetch_fut => break result,
+                            result = &mut refresh_fut, if metadata_refresh.is_none() => {
+                                metadata_refresh = Some(result);
+                            }
+                            _ = &mut dials, if !warm_leaders => {
+                                warm_leaders = true;
+                            }
+                        }
+                    };
+                    if metadata_refresh.is_none() {
+                        metadata_refresh = Some((&mut refresh_fut).await);
+                    }
+                    let (version, body) = fetched_rpc?;
+                    let fetched = decode_offset_fetch_response(&mut body.clone(), version)
+                        .map_err(|e| group_decode_context(e, "OffsetFetch", version, body.len()))?;
+                    if let Some(Err(error)) = metadata_refresh {
+                        return Err(error);
+                    }
+                    let needs_reset = added.iter().any(|(topic, partition)| {
+                        fetched_committed(&fetched, topic, *partition)
+                            .map(|part| part.offset)
+                            .unwrap_or(OffsetAndMetadata::INVALID_OFFSET)
+                            < 0
+                    });
+                    if needs_reset && !warm_leaders {
+                        (&mut dials).await;
+                        warm_leaders = true;
+                    }
+                    fetched
+                };
+                if warm_leaders {
+                    dials.store(&mut self.consumer);
+                }
+                self.classic_fetch_topics = topics;
+                fetched
             } else {
                 let mut leaders = Vec::new();
                 for (topic, partition) in &added {

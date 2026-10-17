@@ -1756,6 +1756,54 @@ struct LeaderDialConfig {
 
 type LeaderDialAttempt = (i32, Result<(BrokerConn, ApiVersionsResponse)>);
 
+/// Leader handshakes started by [`Consumer::start_leader_dials`].
+pub(crate) struct LeaderDialFlight {
+    task: tokio::task::JoinHandle<Vec<OpenedLeaderDial>>,
+    ready: Option<Vec<OpenedLeaderDial>>,
+}
+
+impl LeaderDialFlight {
+    /// Keep finished sockets. A flight that is still dialing is aborted.
+    pub(crate) fn store(mut self, consumer: &mut Consumer) {
+        if let Some(opened) = self.ready.take() {
+            consumer.store_opened_leaders(opened);
+        }
+    }
+}
+
+impl Drop for LeaderDialFlight {
+    fn drop(&mut self) {
+        if self.ready.is_none() {
+            self.task.abort();
+        }
+    }
+}
+
+impl std::future::Future for LeaderDialFlight {
+    type Output = ();
+
+    fn poll(
+        self: std::pin::Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<()> {
+        let this = self.get_mut();
+        if this.ready.is_some() {
+            return std::task::Poll::Ready(());
+        }
+        match std::pin::Pin::new(&mut this.task).poll(cx) {
+            std::task::Poll::Ready(Ok(opened)) => {
+                this.ready = Some(opened);
+                std::task::Poll::Ready(())
+            }
+            std::task::Poll::Ready(Err(_)) => {
+                this.ready = Some(Vec::new());
+                std::task::Poll::Ready(())
+            }
+            std::task::Poll::Pending => std::task::Poll::Pending,
+        }
+    }
+}
+
 struct OpenedLeaderDial {
     node: i32,
     conn: BrokerConn,
@@ -7676,6 +7724,25 @@ impl Consumer {
             sasl_oauthbearer: self.cfg.sasl_oauthbearer.clone(),
             sasl_oauthbearer_oidc: self.cfg.sasl_oauthbearer_oidc.clone(),
         }
+    }
+
+    /// Start leader handshakes without holding this consumer across the dials.
+    ///
+    /// Drop the flight to abort dials that are no longer needed. [`LeaderDialFlight::store`]
+    /// keeps the sockets that finished.
+    pub(crate) fn start_leader_dials(
+        &mut self,
+        nodes: &[i32],
+        deadline: Instant,
+    ) -> LeaderDialFlight {
+        let dials = self.leader_dials_for(nodes);
+        let cfg = self.leader_dial_config();
+        let wakeup = Arc::clone(&self.wakeup);
+        let task =
+            tokio::spawn(
+                async move { Consumer::open_leader_dials(cfg, dials, wakeup, deadline).await },
+            );
+        LeaderDialFlight { task, ready: None }
     }
 
     async fn open_leader_dials(

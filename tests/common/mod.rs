@@ -3586,6 +3586,17 @@ impl Mock {
         self.state.lock().cg_heartbeat_interval_ms = ms;
     }
 
+    /// Recompute KIP-848 assignments from the current topic partition counts.
+    ///
+    /// A changed assignment is returned on the next heartbeat.
+    pub fn refresh_kip848_assignments(&self) {
+        let mut st = self.state.lock();
+        let ids: Vec<String> = st.kip848_groups.keys().cloned().collect();
+        for id in ids {
+            kip848_recompute(&mut st, &id);
+        }
+    }
+
     pub fn set_cg_heartbeat_delay(&self, delay: Duration) {
         self.state.lock().cg_heartbeat_delay = Some(delay);
     }
