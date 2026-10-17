@@ -1160,6 +1160,35 @@ async fn authorized<T>(
     }
 }
 
+/// Buffer a pipelined request while a handler runs, and finish when the peer
+/// closes. A full frame already buffered is left for the next handler.
+async fn watch_disconnect<S: AsyncRead + Unpin>(
+    socket: &mut S,
+    ahead: &mut ReadAhead,
+    max_request: usize,
+) -> Exit {
+    loop {
+        let budget = match classify_ahead(ahead.pending(), max_request) {
+            Ahead::Need(budget) => budget,
+            Ahead::Ready => {
+                std::future::pending::<()>().await;
+                continue;
+            }
+            Ahead::Invalid => return Exit::InvalidLength,
+        };
+        ahead.compact();
+        if frame_mut(&mut ahead.bytes).try_reserve(budget).is_err() {
+            return Exit::Io;
+        }
+        let mut limited = frame_mut(&mut ahead.bytes).limit(budget);
+        match socket.read_buf(&mut limited).await {
+            Ok(0) => return Exit::PeerClosed,
+            Ok(_) => continue,
+            Err(error) => return read_error(error),
+        }
+    }
+}
+
 async fn exchange<H: Handler, S: AsyncRead + AsyncWrite + Unpin>(
     mut socket: S,
     config: Config,
@@ -1272,7 +1301,18 @@ async fn exchange<H: Handler, S: AsyncRead + AsyncWrite + Unpin>(
             };
             #[cfg(feature = "oidc")]
             let operation = authorized(lease, operation);
-            let outcome = match operation.await {
+            // A client that closes while the handler is still running must not
+            // keep that handler and its connection until the handler deadline.
+            let outcome = tokio::select! {
+                biased;
+                closed = watch_disconnect(
+                    &mut socket,
+                    &mut ahead,
+                    frame_config.max_request_bytes,
+                ) => return closed,
+                result = operation => result,
+            };
+            let outcome = match outcome {
                 Ok(outcome) => {
                     // timeout_at cannot preempt a synchronously Ready handler.
                     // Recheck the original bound before accepting its result.
@@ -1607,6 +1647,105 @@ mod tls_deadline_tests {
             "tls handshake deadline left the accepted socket blocked in a read"
         );
         client.abort();
+    }
+}
+
+#[cfg(test)]
+mod disconnect_tests {
+    use super::{Config, Handler, Transport};
+    use std::future::Future;
+    use std::io;
+    use std::net::SocketAddr;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::sync::Arc;
+    use std::time::Duration;
+    use tokio::io::AsyncWriteExt;
+    use tokio::net::TcpStream;
+    use tokio::sync::Notify;
+
+    struct Hold {
+        started: Arc<AtomicUsize>,
+        stopped: Arc<AtomicUsize>,
+        release: Arc<Notify>,
+    }
+
+    impl Handler for Hold {
+        type Error = io::Error;
+
+        fn handle(
+            &self,
+            request: Vec<u8>,
+        ) -> impl Future<Output = Result<Option<Vec<u8>>, Self::Error>> + Send {
+            let started = Arc::clone(&self.started);
+            let stopped = Arc::clone(&self.stopped);
+            let release = Arc::clone(&self.release);
+            async move {
+                struct Guard(Arc<AtomicUsize>);
+                impl Drop for Guard {
+                    fn drop(&mut self) {
+                        self.0.fetch_add(1, Ordering::SeqCst);
+                    }
+                }
+                let _guard = Guard(stopped);
+                started.fetch_add(1, Ordering::SeqCst);
+                release.notified().await;
+                Ok(Some(request))
+            }
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn client_disconnect_stops_the_handler() {
+        let started = Arc::new(AtomicUsize::new(0));
+        let stopped = Arc::new(AtomicUsize::new(0));
+        let release = Arc::new(Notify::new());
+        let config = Config::new(
+            4,
+            1,
+            1024,
+            1024,
+            Duration::from_secs(30),
+            Duration::from_secs(30),
+            Duration::from_secs(30),
+        )
+        .unwrap_or_else(|error| panic!("{error}"));
+        let mut transport = Transport::bind(
+            "127.0.0.1:0"
+                .parse::<SocketAddr>()
+                .unwrap_or_else(|error| panic!("{error}")),
+            config,
+            Arc::new(Hold {
+                started: Arc::clone(&started),
+                stopped: Arc::clone(&stopped),
+                release: Arc::clone(&release),
+            }),
+        )
+        .await
+        .unwrap_or_else(|error| panic!("{error}"));
+        let mut socket = TcpStream::connect(transport.local_addr())
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        socket
+            .write_all(&0i32.to_be_bytes())
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        while started.load(Ordering::SeqCst) == 0 {
+            tokio::task::yield_now().await;
+        }
+        drop(socket);
+        for _ in 0..32 {
+            tokio::task::yield_now().await;
+        }
+        assert_eq!(
+            stopped.load(Ordering::SeqCst),
+            1,
+            "client disconnect left the handler running"
+        );
+        release.notify_waiters();
+        transport
+            .shutdown()
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
     }
 }
 
