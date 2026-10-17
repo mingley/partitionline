@@ -1996,8 +1996,30 @@ async fn outbound(control: Arc<Control>, peer: Peer, mut jobs: mpsc::Receiver<Jo
     tick.set_missed_tick_behavior(MissedTickBehavior::Skip);
     loop {
         let admission = Instant::now() + Duration::from_millis(control.config.limits.rpc_ms);
-        let reservation =
-            tokio::select! {_ = control.stopping()=>break,r=control.reserve_frame(admission)=>r};
+        // An open peer can leave while the next frame reservation waits.
+        let reservation = tokio::select! {
+            biased;
+            _ = control.stopping()=>break,
+            _ = async {
+                if let Some((open, _, _)) = &mut socket {
+                    peer_socket_closed(
+                        open,
+                        &mut wire.unread,
+                        control.config.limits.frame_bytes,
+                    )
+                    .await;
+                } else {
+                    std::future::pending::<()>().await;
+                }
+            } => {
+                wire.unread.clear();
+                if let Some(open) = socket.take() {
+                    abandon_peer_socket(open).await;
+                }
+                continue;
+            },
+            r = control.reserve_frame(admission) => r,
+        };
         let Ok(reservation) = reservation else {
             continue;
         };
@@ -3418,6 +3440,120 @@ mod ownership_tests {
         match saw {
             Ok(Ok(0)) => Ok(()),
             _ => Err("outbound kept the socket while the peer was idle and closed".into()),
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn outbound_closes_when_the_peer_leaves_during_frame_admission() -> TestResult {
+        let owner = LocalOwner::open_profile(0, 5, 5, 16, StorageLimits::standard()?, 1000).await?;
+        let voter = LocalOwner::open(1, 5, 16).await?;
+        tokio::time::sleep(Duration::from_millis(3)).await;
+        let jobs = match owner.control.reliable(Command::Tick).await? {
+            Reply::Votes(jobs) => jobs,
+            _ => return Err("campaign".into()),
+        };
+        let request = jobs
+            .into_iter()
+            .find_map(|job| match job {
+                Job::Vote(q) if q.context.peer.id == 1 => Some(q),
+                _ => None,
+            })
+            .ok_or("vote for peer 1")?;
+        let before = owner.state().await?.election.granted_votes;
+        let granted = grant(&voter, request).await?;
+        let Message::VoteReply(granted) = granted else {
+            return Err("genuine vote reply".into());
+        };
+        let listener = TcpListener::bind("127.0.0.1:0").await?;
+        let address = listener.local_addr()?;
+        let route = Peer::new(voter.control.config.bootstrap.local().clone(), address)?;
+        let (tx, rx) = mpsc::channel(1);
+        let control = owner.control.clone();
+        let running = tokio::spawn(async move {
+            outbound(control, route, rx).await;
+        });
+        tokio::time::sleep(Duration::from_millis(20)).await;
+        tx.send(Job::Vote(request)).await.map_err(|_| "send vote")?;
+        let (mut socket, _) = tokio::time::timeout(Duration::from_secs(2), listener.accept())
+            .await
+            .map_err(|_| "outbound did not connect")??;
+        let bound = owner.control.config.limits.frame_bytes;
+        let mut wire = WireBuf::new();
+        let deadline = Instant::now() + Duration::from_secs(2);
+        let hello = read_frame(&mut socket, bound, 64, deadline, &mut wire).await?;
+        let Message::Hello(hello) = hello.message else {
+            return Err("hello".into());
+        };
+        write_frame(
+            &mut socket,
+            &Frame {
+                rpc: 0,
+                message: Message::HelloAck(hello),
+            },
+            bound,
+            deadline,
+            &mut wire,
+        )
+        .await?;
+        let vote = read_frame(&mut socket, bound, 64, deadline, &mut wire).await?;
+        let Message::Vote(vote_request) = vote.message else {
+            return Err("vote".into());
+        };
+        if vote_request != granted.request {
+            running.abort();
+            return Err("wire vote did not match the campaign".into());
+        }
+        let permits = u32::try_from(owner.control.config.pool).map_err(|_| "pool")?;
+        let bytes = owner.control.bytes.clone();
+        let holding = tokio::spawn(async move { bytes.acquire_many_owned(permits).await });
+        write_frame(
+            &mut socket,
+            &Frame {
+                rpc: vote.rpc,
+                message: Message::VoteReply(granted),
+            },
+            bound,
+            deadline,
+            &mut wire,
+        )
+        .await?;
+        let wait_grant = Instant::now() + Duration::from_millis(500);
+        loop {
+            if owner.state().await?.election.granted_votes > before {
+                break;
+            }
+            if Instant::now() >= wait_grant {
+                running.abort();
+                return Err("vote was not acknowledged".into());
+            }
+            tokio::task::yield_now().await;
+        }
+        let _held = tokio::time::timeout(Duration::from_millis(500), holding)
+            .await
+            .map_err(|_| "frame memory was not taken")?
+            .map_err(|_| "frame memory task")?
+            .map_err(|_| "frame memory closed")?;
+        tokio::time::sleep(Duration::from_millis(20)).await;
+        let mut buf = [0u8; 8];
+        let still_open = tokio::time::timeout(
+            Duration::from_millis(30),
+            tokio::io::AsyncReadExt::read(&mut socket, &mut buf),
+        )
+        .await;
+        if !matches!(still_open, Err(_)) {
+            running.abort();
+            return Err("outbound dropped the socket before frame admission waited".into());
+        }
+        socket.shutdown().await.map_err(|_| "shutdown write")?;
+        let saw = tokio::time::timeout(
+            Duration::from_millis(300),
+            tokio::io::AsyncReadExt::read(&mut socket, &mut buf),
+        )
+        .await;
+        running.abort();
+        match saw {
+            Ok(Ok(0)) => Ok(()),
+            _ => Err("outbound kept the socket while frame admission waited".into()),
         }
     }
 
