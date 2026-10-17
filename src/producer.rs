@@ -5380,6 +5380,19 @@ async fn idle_socket_quiet(conn: &mut BrokerConn) -> bool {
     false
 }
 
+/// Watch a produce socket during linger.
+///
+/// With requests in flight, the next response byte should be read. With
+/// nothing in flight, only a close ends the wait. A queued response must
+/// not replace a live broker before the batch is due.
+async fn linger_socket_left(conn: &mut BrokerConn, in_flight: bool) -> Result<()> {
+    if in_flight {
+        conn.inbound_ready().await
+    } else {
+        conn.peer_left().await
+    }
+}
+
 /// Notice a broker that stops writing on the idle metadata socket.
 ///
 /// The lock is held only for one poll. A quiet socket waits outside the
@@ -6872,12 +6885,11 @@ impl Worker {
                 _ = linger_timer.as_mut(), if next_wake.is_some() => {
                     self.purge_expired_pending();
                 }
-                ready = self.conn.inbound_ready(), if !self.conn.is_closed() => {
+                ready = linger_socket_left(&mut self.conn, !self.in_flight.is_empty()), if !self.conn.is_closed() => {
                     if self.in_flight.is_empty() {
-                        // Linger has not sent yet. A broker that closes, or
-                        // that sends bytes with nothing in flight, cannot take
-                        // the next Produce. Replace the socket before the
-                        // batch is due.
+                        // Linger has not sent yet. A broker that closes cannot
+                        // take the next Produce. A queued response is not that
+                        // close; replacing the socket would drop a live broker.
                         drop(ready);
                         self.conn.close();
                         let addr = self.conn.addr().to_string();
@@ -9470,6 +9482,58 @@ fn record_metadata(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn queued_byte_does_not_replace_a_linger_socket() {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        let (gate_tx, gate_rx) = tokio::sync::oneshot::channel::<()>();
+        let accepted = tokio::spawn(async move {
+            let (socket, _) = listener.accept().await.unwrap();
+            let (mut reader, mut writer) = socket.into_split();
+            writer.write_all(&[0x01]).await.unwrap();
+            gate_rx.await.unwrap();
+            writer.shutdown().await.unwrap();
+            let mut buf = [0u8; 8];
+            tokio::time::timeout(Duration::from_millis(300), reader.read(&mut buf)).await
+        });
+        let mut conn =
+            BrokerConn::connect(&addr.to_string(), "linger-byte", Duration::from_secs(2))
+                .await
+                .unwrap();
+        let queued = tokio::time::timeout(Duration::from_millis(300), async {
+            loop {
+                if conn.has_queued_response() {
+                    break;
+                }
+                tokio::task::yield_now().await;
+            }
+        })
+        .await;
+        assert!(queued.is_ok(), "the queued byte never became visible");
+        {
+            let mut waiting = std::pin::pin!(linger_socket_left(&mut conn, false));
+            tokio::select! {
+                biased;
+                result = &mut waiting => panic!("a queued byte ended the linger watch: {result:?}"),
+                _ = tokio::time::sleep(Duration::from_millis(30)) => {}
+            }
+            gate_tx.send(()).unwrap();
+            let noticed = tokio::time::timeout(Duration::from_millis(300), waiting).await;
+            assert!(
+                noticed.is_ok(),
+                "a close after a queued byte was not noticed during linger"
+            );
+        }
+        let saw = accepted.await.unwrap();
+        assert!(
+            matches!(saw, Ok(Ok(0))),
+            "peer stayed in the read after it closed a linger socket that already had a queued byte: {saw:?}"
+        );
+        drop(conn);
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn queued_byte_does_not_drop_an_idle_metadata_socket() {
