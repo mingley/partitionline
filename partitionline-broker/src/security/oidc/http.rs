@@ -73,6 +73,50 @@ mod tests {
         })
     }
 
+    #[tokio::test(flavor = "current_thread")]
+    async fn https_timeout_closes_the_socket() {
+        use tokio::io::AsyncReadExt;
+        use tokio::net::TcpListener;
+
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let port = listener.local_addr().unwrap().port();
+        let open = Arc::new(AtomicUsize::new(0));
+        let open_flag = Arc::clone(&open);
+        let peer = tokio::spawn(async move {
+            let Ok((mut socket, _)) = listener.accept().await else {
+                return;
+            };
+            let _started = open_flag.fetch_add(1, Ordering::SeqCst);
+            let mut buf = [0u8; 8];
+            loop {
+                match socket.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = open_flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let client = Client::new(HttpsTrust {
+            roots: vec![include_bytes!("../../../tests/fixtures/tls/ca1.cert.der").to_vec()],
+            limits: HttpLimits {
+                jobs: 1,
+                timeout: Duration::from_millis(200),
+                ..HttpLimits::default()
+            },
+        })
+        .unwrap();
+        let endpoint = Endpoint::parse(&format!("https://127.0.0.1:{port}/token")).unwrap();
+        let result = client.get(&endpoint).await;
+        assert!(result.is_err(), "a silent peer should time out");
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "https timeout left the accepted socket blocked in a read"
+        );
+        peer.abort();
+        client.shutdown().await.unwrap();
+    }
+
     #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
     async fn cancelled_resolution_keeps_http_admission_and_is_joined() {
         let client = client().unwrap();
@@ -485,7 +529,26 @@ impl Client {
                 _ = &mut connection => receive.await,
             }
         });
-        tokio::select! { biased; _=stopped.changed()=>Err(Error::Unavailable),result=operation=>result.map_err(|_|Error::Unavailable)? }
+        tokio::select! {
+            biased;
+            _ = stopped.changed() => {
+                // Cancelling the request drops its socket in this poll.
+                for _ in 0..8 {
+                    tokio::task::yield_now().await;
+                }
+                Err(Error::Unavailable)
+            }
+            result = operation => match result {
+                Ok(value) => value,
+                Err(_) => {
+                    // The deadline drops the socket before this arm runs.
+                    for _ in 0..8 {
+                        tokio::task::yield_now().await;
+                    }
+                    Err(Error::Unavailable)
+                }
+            },
+        }
     }
     async fn resolve(
         &self,
