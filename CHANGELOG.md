@@ -614,6 +614,13 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   which fails that poll, and not piggyback `UNSUPPORTED_COMPRESSION_TYPE`). Official
   Java `QuorumController.processBrokerHeartbeat` writes this when the
   broker epoch has changed. A
+  piggybacked `MEMBER_ID_REQUIRED` still
+  completes without retry, including when `AcknowledgeErrorMessage` is
+  set (Java `handleShareFetchSuccess` completes piggyback acks and still
+  delivers the fetch; this is not partition `MEMBER_ID_REQUIRED`,
+  which fails that poll, and not piggyback `STALE_BROKER_EPOCH`). Official
+  Java GroupCoordinator JoinGroup writes this when the member id is
+  empty. A
   piggybacked `TOPIC_AUTHORIZATION_FAILED` on
   one partition does not fail a sibling whose `AcknowledgeErrorCode`
   is none, including when `AcknowledgeErrorMessage` is set or empty. A
