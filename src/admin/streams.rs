@@ -237,6 +237,18 @@ impl Admin {
         Ok(())
     }
 
+    /// Point later Streams describe dials at `address`.
+    #[doc(hidden)]
+    pub fn test_point_bootstrap(&mut self, address: String) {
+        self.cfg.bootstrap = vec![address];
+        self.cfg.retry_backoff = Duration::ZERO;
+        self.cfg.retry_backoff_max = Duration::ZERO;
+        self.cfg.reconnect_backoff = Duration::ZERO;
+        self.cfg.reconnect_backoff_max = Duration::ZERO;
+        self.cfg.connect_timeout = Duration::from_millis(200);
+        self.cfg.request_timeout = Duration::from_millis(200);
+    }
+
     async fn open_streams_describe(
         &self,
         address: &str,
@@ -390,187 +402,198 @@ impl Admin {
         options: &DescribeStreamsGroupsOptions,
         deadline: Deadline,
     ) -> Result<Vec<StreamsGroupDescription>> {
-        let mut results: Vec<Option<StreamsGroupDescription>> =
-            (0..ids.len()).map(|_| None).collect();
-        let mut last: Vec<Option<Arc<Error>>> = (0..ids.len()).map(|_| None).collect();
-        let mut control_bytes = 0usize;
-        let mut response_bytes = 0usize;
-        for attempt in 0..MAX_ATTEMPTS {
-            let (mut bootstrap, versions, siblings) = match self.streams_bootstrap(deadline).await {
-                Ok(opened) => opened,
-                Err(err) if streams_retryable(&err) => {
-                    let err = Arc::new(err);
-                    for (result, previous) in results.iter().zip(&mut last) {
-                        if result.is_none() {
-                            *previous = Some(Arc::clone(&err));
-                        }
-                    }
-                    self.streams_describe_backoff(attempt, deadline, true)
-                        .await?;
-                    continue;
-                }
-                Err(err) => return Err(err),
-            };
-            for (addr, keys) in siblings {
-                if !keys.is_empty() && !self.peer_versions.contains_key(&addr) {
-                    let _stored = self.peer_versions.insert(addr, keys);
-                }
-            }
-            let version = versions
-                .api_version(FIND_COORDINATOR)
-                .and_then(|api| pick_version(api.min_version, api.max_version, 1, 6))
-                .ok_or_else(|| {
-                    Error::Unsupported("broker does not support GROUP FindCoordinator v1-6".into())
-                })?;
-            let mut routes: BTreeMap<String, Vec<usize>> = BTreeMap::new();
-            let mut transport_retry = false;
-            for (index, id) in ids.iter().enumerate() {
-                if results.get(index).is_some_and(Option::is_some) {
-                    continue;
-                }
-                match Self::streams_coordinator(
-                    &mut bootstrap,
-                    id,
-                    version,
-                    deadline,
-                    &mut control_bytes,
-                )
-                .await
-                {
-                    Ok(address) => {
-                        if !routes.contains_key(&address) && routes.len() >= MAX_NODES {
-                            return Err(Error::protocol("too many Streams coordinators"));
-                        }
-                        routes.entry(address).or_default().push(index);
-                    }
-                    Err(err) if streams_retryable(&err) => {
-                        transport_retry |= err.broker_code().is_none();
-                        *last
-                            .get_mut(index)
-                            .ok_or_else(|| Error::protocol("missing Streams retry slot"))? =
-                            Some(Arc::new(err));
-                    }
-                    Err(err @ Error::Broker { .. }) => {
-                        *results
-                            .get_mut(index)
-                            .ok_or_else(|| Error::protocol("missing Streams result slot"))? =
-                            Some(StreamsGroupDescription {
-                                group_id: id.clone(),
-                                description: Err(Arc::new(err)),
-                            });
-                    }
-                    Err(err) => return Err(err),
-                }
-            }
-            let bootstrap_addr = bootstrap.addr().to_string();
-            let mut bootstrap = Some(bootstrap);
-            for (address, indexes) in routes {
-                let queried = if address == bootstrap_addr {
-                    match bootstrap.take() {
-                        Some(conn) => {
-                            Self::streams_describe_conn(conn, ids, &indexes, options, deadline)
-                                .await
-                        }
-                        None => {
-                            self.streams_describe_node(&address, ids, &indexes, options, deadline)
-                                .await
-                        }
-                    }
-                } else {
-                    self.streams_describe_node(&address, ids, &indexes, options, deadline)
-                        .await
-                };
-                let address_for_retry = address.clone();
-                match queried {
-                    Ok(response) => {
-                        response_bytes = response_bytes
-                            .checked_add(response.0)
-                            .ok_or_else(|| Error::protocol("Streams response bytes overflow"))?;
-                        if response_bytes > options.limits.wire_bytes.saturating_mul(8) {
-                            return Err(Error::protocol(
-                                "Streams cumulative responses exceed limit",
-                            ));
-                        }
-                        let retained = results
-                            .iter()
-                            .filter_map(|group| {
-                                group
-                                    .as_ref()
-                                    .and_then(|group| group.description.as_ref().ok())
-                            })
-                            .chain(response.1.iter())
-                            .collect::<Vec<_>>();
-                        streams::validate_described_groups(&retained, options.limits)?;
-                        for (index, group) in indexes.iter().copied().zip(response.1) {
-                            if error::coordinator_retriable(group.error_code) {
-                                *last.get_mut(index).ok_or_else(|| {
-                                    Error::protocol("missing Streams retry slot")
-                                })? = Some(Arc::new(Error::broker(
-                                    group.error_code,
-                                    "StreamsGroupDescribe",
-                                )));
-                            } else {
-                                *results.get_mut(index).ok_or_else(|| {
-                                    Error::protocol("missing Streams result slot")
-                                })? = Some(StreamsGroupDescription {
-                                    group_id: group.group_id.clone(),
-                                    description: Ok(group),
-                                });
+        let finished = async {
+            let mut results: Vec<Option<StreamsGroupDescription>> =
+                (0..ids.len()).map(|_| None).collect();
+            let mut last: Vec<Option<Arc<Error>>> = (0..ids.len()).map(|_| None).collect();
+            let mut control_bytes = 0usize;
+            let mut response_bytes = 0usize;
+            for attempt in 0..MAX_ATTEMPTS {
+                let (mut bootstrap, versions, siblings) =
+                    match self.streams_bootstrap(deadline).await {
+                        Ok(opened) => opened,
+                        Err(err) if streams_retryable(&err) => {
+                            let err = Arc::new(err);
+                            for (result, previous) in results.iter().zip(&mut last) {
+                                if result.is_none() {
+                                    *previous = Some(Arc::clone(&err));
+                                }
                             }
+                            self.streams_describe_backoff(attempt, deadline, true)
+                                .await?;
+                            continue;
                         }
+                        Err(err) => return Err(err),
+                    };
+                for (addr, keys) in siblings {
+                    if !keys.is_empty() && !self.peer_versions.contains_key(&addr) {
+                        let _stored = self.peer_versions.insert(addr, keys);
                     }
-                    Err(err) if streams_retryable(&err) => {
-                        transport_retry |= err.broker_code().is_none();
-                        if err.broker_code().is_none() {
-                            let _removed = self.peer_versions.remove(&address_for_retry);
+                }
+                let version = versions
+                    .api_version(FIND_COORDINATOR)
+                    .and_then(|api| pick_version(api.min_version, api.max_version, 1, 6))
+                    .ok_or_else(|| {
+                        Error::Unsupported(
+                            "broker does not support GROUP FindCoordinator v1-6".into(),
+                        )
+                    })?;
+                let mut routes: BTreeMap<String, Vec<usize>> = BTreeMap::new();
+                let mut transport_retry = false;
+                for (index, id) in ids.iter().enumerate() {
+                    if results.get(index).is_some_and(Option::is_some) {
+                        continue;
+                    }
+                    match Self::streams_coordinator(
+                        &mut bootstrap,
+                        id,
+                        version,
+                        deadline,
+                        &mut control_bytes,
+                    )
+                    .await
+                    {
+                        Ok(address) => {
+                            if !routes.contains_key(&address) && routes.len() >= MAX_NODES {
+                                return Err(Error::protocol("too many Streams coordinators"));
+                            }
+                            routes.entry(address).or_default().push(index);
                         }
-                        let err = Arc::new(err);
-                        for index in indexes {
+                        Err(err) if streams_retryable(&err) => {
+                            transport_retry |= err.broker_code().is_none();
                             *last
                                 .get_mut(index)
                                 .ok_or_else(|| Error::protocol("missing Streams retry slot"))? =
-                                Some(Arc::clone(&err));
+                                Some(Arc::new(err));
                         }
-                    }
-                    Err(err @ Error::Unsupported(_)) => {
-                        let err = Arc::new(err);
-                        for index in indexes {
+                        Err(err @ Error::Broker { .. }) => {
                             *results
                                 .get_mut(index)
                                 .ok_or_else(|| Error::protocol("missing Streams result slot"))? =
                                 Some(StreamsGroupDescription {
+                                    group_id: id.clone(),
+                                    description: Err(Arc::new(err)),
+                                });
+                        }
+                        Err(err) => return Err(err),
+                    }
+                }
+                let bootstrap_addr = bootstrap.addr().to_string();
+                let mut bootstrap = Some(bootstrap);
+                for (address, indexes) in routes {
+                    let queried = if address == bootstrap_addr {
+                        match bootstrap.take() {
+                            Some(conn) => {
+                                Self::streams_describe_conn(conn, ids, &indexes, options, deadline)
+                                    .await
+                            }
+                            None => {
+                                self.streams_describe_node(
+                                    &address, ids, &indexes, options, deadline,
+                                )
+                                .await
+                            }
+                        }
+                    } else {
+                        self.streams_describe_node(&address, ids, &indexes, options, deadline)
+                            .await
+                    };
+                    let address_for_retry = address.clone();
+                    match queried {
+                        Ok(response) => {
+                            response_bytes =
+                                response_bytes.checked_add(response.0).ok_or_else(|| {
+                                    Error::protocol("Streams response bytes overflow")
+                                })?;
+                            if response_bytes > options.limits.wire_bytes.saturating_mul(8) {
+                                return Err(Error::protocol(
+                                    "Streams cumulative responses exceed limit",
+                                ));
+                            }
+                            let retained = results
+                                .iter()
+                                .filter_map(|group| {
+                                    group
+                                        .as_ref()
+                                        .and_then(|group| group.description.as_ref().ok())
+                                })
+                                .chain(response.1.iter())
+                                .collect::<Vec<_>>();
+                            streams::validate_described_groups(&retained, options.limits)?;
+                            for (index, group) in indexes.iter().copied().zip(response.1) {
+                                if error::coordinator_retriable(group.error_code) {
+                                    *last.get_mut(index).ok_or_else(|| {
+                                        Error::protocol("missing Streams retry slot")
+                                    })? = Some(Arc::new(Error::broker(
+                                        group.error_code,
+                                        "StreamsGroupDescribe",
+                                    )));
+                                } else {
+                                    *results.get_mut(index).ok_or_else(|| {
+                                        Error::protocol("missing Streams result slot")
+                                    })? = Some(StreamsGroupDescription {
+                                        group_id: group.group_id.clone(),
+                                        description: Ok(group),
+                                    });
+                                }
+                            }
+                        }
+                        Err(err) if streams_retryable(&err) => {
+                            transport_retry |= err.broker_code().is_none();
+                            if err.broker_code().is_none() {
+                                let _removed = self.peer_versions.remove(&address_for_retry);
+                            }
+                            let err = Arc::new(err);
+                            for index in indexes {
+                                *last.get_mut(index).ok_or_else(|| {
+                                    Error::protocol("missing Streams retry slot")
+                                })? = Some(Arc::clone(&err));
+                            }
+                        }
+                        Err(err @ Error::Unsupported(_)) => {
+                            let err = Arc::new(err);
+                            for index in indexes {
+                                *results.get_mut(index).ok_or_else(|| {
+                                    Error::protocol("missing Streams result slot")
+                                })? = Some(StreamsGroupDescription {
                                     group_id: ids
                                         .get(index)
                                         .ok_or_else(|| Error::protocol("missing Streams ID"))?
                                         .clone(),
                                     description: Err(Arc::clone(&err)),
                                 });
+                            }
                         }
+                        Err(err) => return Err(err),
                     }
-                    Err(err) => return Err(err),
                 }
+                if results.iter().all(Option::is_some) {
+                    break;
+                }
+                self.streams_describe_backoff(attempt, deadline, transport_retry)
+                    .await?;
             }
-            if results.iter().all(Option::is_some) {
-                break;
-            }
-            self.streams_describe_backoff(attempt, deadline, transport_retry)
-                .await?;
-        }
-        results
-            .into_iter()
-            .zip(last)
-            .zip(ids)
-            .map(|((result, last), id)| {
-                result
-                    .or_else(|| {
-                        last.map(|err| StreamsGroupDescription {
-                            group_id: id.clone(),
-                            description: Err(err),
+            results
+                .into_iter()
+                .zip(last)
+                .zip(ids)
+                .map(|((result, last), id)| {
+                    result
+                        .or_else(|| {
+                            last.map(|err| StreamsGroupDescription {
+                                group_id: id.clone(),
+                                description: Err(err),
+                            })
                         })
-                    })
-                    .ok_or_else(|| Error::protocol("missing Streams group result"))
-            })
-            .collect()
+                        .ok_or_else(|| Error::protocol("missing Streams group result"))
+                })
+                .collect()
+        }
+        .await;
+        for _ in 0..8 {
+            tokio::task::yield_now().await;
+        }
+        finished
     }
 
     async fn streams_describe_backoff(

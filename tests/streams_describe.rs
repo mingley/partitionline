@@ -47,6 +47,49 @@ fn code(body: Vec<u8>, code: i16) -> Vec<u8> {
     value.groups[0].error_code = code;
     streams::encode_streams_group_describe_response(&value, 0, StreamsLimits::default()).unwrap()
 }
+/// A describe timeout closes the bootstrap socket before the call returns.
+#[tokio::test(flavor = "current_thread")]
+async fn describe_timeout_closes_the_bootstrap_socket() {
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::sync::Arc;
+    use tokio::io::AsyncReadExt;
+
+    let ready = socket_peer::Peer::start().await;
+    let mut admin = ready.admin().await;
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap().to_string();
+    let open = Arc::new(AtomicUsize::new(0));
+    let open_flag = Arc::clone(&open);
+    let peer = tokio::spawn(async move {
+        loop {
+            let (mut sock, _) = listener.accept().await.unwrap();
+            let _started = open_flag.fetch_add(1, Ordering::SeqCst);
+            let open_flag = Arc::clone(&open_flag);
+            let _reader = tokio::spawn(async move {
+                let mut buf = [0u8; 64];
+                loop {
+                    match sock.read(&mut buf).await {
+                        Ok(0) | Err(_) => break,
+                        Ok(_) => continue,
+                    }
+                }
+                let _left = open_flag.fetch_sub(1, Ordering::SeqCst);
+            });
+        }
+    });
+    admin.test_point_bootstrap(addr);
+    let mut opts = options();
+    opts.timeout = Some(Duration::from_millis(200));
+    let result = admin.describe_streams_groups(&["alpha"], &opts).await;
+    assert!(result.is_err(), "describe should time out");
+    assert_eq!(
+        open.load(Ordering::SeqCst),
+        0,
+        "describe left the bootstrap socket blocked in a broker read"
+    );
+    peer.abort();
+}
+
 #[tokio::test]
 async fn local_policy_limits_and_empty_are_no_io() {
     let peer = prepared().await;
