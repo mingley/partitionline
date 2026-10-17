@@ -1239,7 +1239,7 @@ pub enum ShareAcquireMode {
 /// offsets are present.
 /// A piggybacked
 /// `PRODUCER_FENCED` still completes without retry,
-/// including when `AcknowledgeErrorMessage` is set (Java
+/// including when `AcknowledgeErrorMessage` is set or empty (Java
 /// `handleShareFetchSuccess` completes piggyback acks and still
 /// delivers the fetch; this is not partition
 /// `PRODUCER_FENCED`, which fails that poll, and not piggyback
@@ -3200,7 +3200,7 @@ impl ShareGroup {
     /// offsets are present.
     /// A piggybacked `PRODUCER_FENCED` still completes
     /// without retry, including when `AcknowledgeErrorMessage` is set
-    /// (Java `handleShareFetchSuccess` completes piggyback acks and still
+    /// or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
     /// delivers the fetch; this is not partition
     /// `PRODUCER_FENCED`, which fails that poll, and not piggyback
     /// `UNSTABLE_OFFSET_COMMIT`). Official Java
