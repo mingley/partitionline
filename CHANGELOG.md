@@ -545,7 +545,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   which fails that poll, and not piggyback `DELEGATION_TOKEN_NOT_FOUND`). A
   piggybacked `DELEGATION_TOKEN_REQUEST_NOT_ALLOWED` still
   completes without retry, including when `AcknowledgeErrorMessage` is
-  set (Java `handleShareFetchSuccess` completes piggyback acks and still
+  set or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
   delivers the fetch; this is not partition `DELEGATION_TOKEN_REQUEST_NOT_ALLOWED`,
   which fails that poll, and not piggyback `DELEGATION_TOKEN_OWNER_MISMATCH`). A
   piggybacked `TOPIC_AUTHORIZATION_FAILED` on
