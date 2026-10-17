@@ -1714,7 +1714,27 @@ impl Producer {
                 )
                 .await?
             } else {
-                discover_within(&cfg, tid, COORDINATOR_TRANSACTION, version, deadline).await?
+                let mut known_by_addr = HashMap::new();
+                for (addr, keys) in &siblings {
+                    if !keys.is_empty() {
+                        let _stored = known_by_addr.insert(addr.clone(), keys.clone());
+                    }
+                }
+                let meta_addr = meta.addr().to_string();
+                discover_typed_coord(
+                    &cfg,
+                    tid,
+                    COORDINATOR_TRANSACTION,
+                    version,
+                    deadline,
+                    Some(&RediscoverProducer {
+                        previous: &meta_addr,
+                        previous_keys: &resp.api_keys,
+                        bootstrap_keys: &resp.api_keys,
+                        known_by_addr: &known_by_addr,
+                    }),
+                )
+                .await?
             })
         } else {
             None

@@ -1176,12 +1176,12 @@ async fn multi_bootstrap_transaction_reuses_the_other_bootstrap_handshake() {
     let producer = Producer::new(cfg).await.unwrap();
     let elapsed = started.elapsed();
     assert!(
-        mock.api_versions_versions().len() <= 4,
+        mock.api_versions_versions().len() <= 2,
         "startup negotiated a bootstrap that was already open: {}",
         mock.api_versions_versions().len()
     );
     assert!(
-        elapsed < Duration::from_millis(700),
+        elapsed < Duration::from_millis(400),
         "startup repeated a bootstrap handshake: {elapsed:?}"
     );
     producer.close().await.unwrap();
