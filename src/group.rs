@@ -4830,9 +4830,14 @@ pub(crate) async fn reopen_idle_coordinator(
         return;
     }
     *conn = if let Some(known) = known {
-        rediscover_known_coord(cfg, group_id, COORDINATOR_GROUP, &known)
-            .await
-            .ok()
+        Box::pin(rediscover_known_coord(
+            cfg,
+            group_id,
+            COORDINATOR_GROUP,
+            &known,
+        ))
+        .await
+        .ok()
     } else {
         discover_coord_within(cfg, group_id, COORDINATOR_GROUP, deadline)
             .await
@@ -5231,7 +5236,9 @@ async fn rediscover_known_coord(
     known: &KnownCoord,
 ) -> Result<BrokerConn> {
     if known.find_coordinator_version < 0 || cfg.bootstrap.len() != 1 {
-        return rediscover_coord(cfg, group_id, key_type, &known.addr).await;
+        // Heap-allocate the full handshake. Inlining it here makes the
+        // caller's state machine large enough to overflow the stack.
+        return Box::pin(rediscover_coord(cfg, group_id, key_type, &known.addr)).await;
     }
     let deadline = Instant::now()
         .checked_add(cfg.request_timeout)
@@ -5291,32 +5298,6 @@ async fn locate_known_coordinator(
     }
     crate::cluster::dial_address(&host, port)
         .ok_or_else(|| Error::protocol("invalid coordinator address"))
-}
-
-/// Find the coordinator again while the previous address is dialed.
-///
-/// A coordinator that stays put reuses that handshake. A moved coordinator
-/// is dialed after the lookup.
-pub(super) async fn rediscover_coord_supporting(
-    cfg: &ConsumerConfig,
-    group_id: &str,
-    key_type: i8,
-    previous: &str,
-    api_key: i16,
-    version: i16,
-) -> Result<BrokerConn> {
-    let conn = rediscover_coord(cfg, group_id, key_type, previous).await?;
-    let spoken = match api_key {
-        OFFSET_COMMIT => conn.offset_commit_version,
-        OFFSET_FETCH => conn.offset_fetch_version,
-        _ => version,
-    };
-    if spoken < version {
-        return Err(Error::Unsupported(format!(
-            "coordinator does not support api {api_key} version {version}"
-        )));
-    }
-    Ok(conn)
 }
 
 async fn rediscover_coord(
@@ -5380,38 +5361,6 @@ async fn locate_coordinator_address(
     }
     crate::cluster::dial_address(&host, port)
         .ok_or_else(|| Error::protocol("invalid coordinator address"))
-}
-
-pub(super) async fn discover_coord_supporting(
-    cfg: &ConsumerConfig,
-    group_id: &str,
-    key_type: i8,
-    api_key: i16,
-    version: i16,
-) -> Result<BrokerConn> {
-    let deadline = Instant::now()
-        .checked_add(cfg.request_timeout)
-        .ok_or(Error::Timeout)?;
-    let (conn, versions) = discover_coord_with_versions(cfg, group_id, key_type, deadline).await?;
-    version_supported(&versions, api_key, version)?;
-    Ok(conn)
-}
-
-fn version_supported(
-    versions: &crate::protocol::api::ApiVersionsResponse,
-    api_key: i16,
-    version: i16,
-) -> Result<()> {
-    if versions
-        .api_version(api_key)
-        .is_some_and(|range| range.min_version <= version && range.max_version >= version)
-    {
-        Ok(())
-    } else {
-        Err(Error::Unsupported(
-            "moved coordinator cannot represent the name-based offset request".into(),
-        ))
-    }
 }
 
 async fn open_coord_with_find_version(
@@ -5584,8 +5533,8 @@ async fn finish_coord_roundtrip(
 ) -> Result<(i16, Bytes)> {
     if coordinator_error(api_key, version, &body).is_some_and(error::coordinator_retriable) {
         let bounded = bounded_coord_config(cfg, deadline)?;
-        let previous = coord.addr().to_string();
-        *coord = rediscover_coord(&bounded, group_id, key_type, &previous).await?;
+        let known = KnownCoord::capture(coord);
+        *coord = Box::pin(rediscover_known_coord(&bounded, group_id, key_type, &known)).await?;
         let version = negotiated_coord_version(coord, api_key)?;
         let body = coord
             .roundtrip_deadline(api_key, version, |buf| encode_body(version, buf), deadline)

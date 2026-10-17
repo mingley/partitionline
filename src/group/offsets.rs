@@ -698,7 +698,21 @@ pub(super) async fn coord_offsets_v10(
     };
     if v10_coordinator_code(api, &body).is_some_and(crate::error::coordinator_retriable) {
         let bounded = bounded_consumer_config(cfg, deadline)?;
-        *coord = super::discover_coord_supporting(&bounded, group_id, key_type, api, 10).await?;
+        let known = super::KnownCoord::capture(coord);
+        *coord = Box::pin(super::rediscover_known_coord(
+            &bounded, group_id, key_type, &known,
+        ))
+        .await?;
+        let picked = if api == crate::protocol::api_keys::OFFSET_FETCH {
+            coord.offset_fetch_version
+        } else {
+            coord.offset_commit_version
+        };
+        if picked < 10 {
+            return Err(Error::Unsupported(
+                "moved coordinator cannot represent the offset request".into(),
+            ));
+        }
         coord
             .roundtrip_deadline(api, 10, |buf| encode(buf), deadline)
             .await
@@ -755,11 +769,12 @@ pub(super) async fn coord_offsets_legacy(
             .is_some_and(crate::error::coordinator_retriable)
         {
             let bounded = bounded_consumer_config(cfg, deadline)?;
-            let previous = coord.addr().to_string();
-            *coord = super::rediscover_coord_supporting(
-                &bounded, group_id, key_type, &previous, api, version,
-            )
+            let known = super::KnownCoord::capture(coord);
+            *coord = Box::pin(super::rediscover_known_coord(
+                &bounded, group_id, key_type, &known,
+            ))
             .await?;
+            require_copied_coord_version(coord, api, version)?;
             coord
                 .roundtrip_deadline(api, version, |buf| encode(buf), deadline)
                 .await

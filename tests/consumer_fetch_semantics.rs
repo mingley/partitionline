@@ -3588,6 +3588,76 @@ async fn group_commit_redials_coordinator_while_finding_it() {
     group.leave().await.unwrap();
 }
 
+/// A coordinator that stays put is redialed without another ApiVersions handshake.
+#[tokio::test]
+async fn group_commit_retries_a_known_coordinator_without_another_handshake() {
+    let mock = common::Mock::start().await;
+    mock.set_topic_partitions("t", 1);
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    let _sent = producer
+        .send(ProduceRecord::to("t").value(&b"v"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+    let mut cfg = ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10);
+    cfg.heartbeat_interval = Duration::from_secs(5);
+    let mut group = ConsumerGroup::join(cfg, "commit-known", "t").await.unwrap();
+    assert_eq!(group.poll().await.unwrap().len(), 1);
+    let versions_before = mock.api_versions_versions().len();
+    mock.offset_commit_load_once();
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let started = Instant::now();
+    group.commit().await.unwrap();
+    let elapsed = started.elapsed();
+    assert_eq!(mock.offset_commit_load_in_progress(), 1);
+    assert!(
+        elapsed < Duration::from_millis(200),
+        "coordinator retry repeated ApiVersions: {elapsed:?}"
+    );
+    assert_eq!(mock.api_versions_versions().len(), versions_before);
+    group.leave().await.unwrap();
+}
+
+/// A coordinator that moved is still negotiated on the new broker.
+#[tokio::test]
+async fn group_commit_negotiates_a_moved_coordinator() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_topic_partitions("t", 1);
+    mock.set_partition_leader("t", 0, 1);
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    let _sent = producer
+        .send(ProduceRecord::to("t").value(&b"v"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+    let mut cfg = ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10);
+    cfg.heartbeat_interval = Duration::from_secs(5);
+    let mut group = ConsumerGroup::join(cfg, "commit-moved", "t").await.unwrap();
+    assert_eq!(group.poll().await.unwrap().len(), 1);
+    mock.move_coordinator();
+    let versions_before = mock.api_versions_versions().len();
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let started = Instant::now();
+    group.commit().await.unwrap();
+    let elapsed = started.elapsed();
+    assert_eq!(mock.last_offset_commit_node(), Some(2));
+    assert!(
+        mock.api_versions_versions().len() > versions_before,
+        "a moved coordinator must negotiate"
+    );
+    assert!(
+        elapsed < Duration::from_millis(450),
+        "moved coordinator redid a handshake that was already known: {elapsed:?}"
+    );
+    group.leave().await.unwrap();
+}
+
 /// Resubscribe commits delivered offsets while the new topic loads.
 #[tokio::test]
 async fn group_resubscribe_commits_while_loading_metadata() {
