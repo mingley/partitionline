@@ -203,13 +203,17 @@ impl Deadline {
 
 struct CloseOnDrop {
     closed: Arc<AtomicBool>,
+    /// Wakes the idle watch. Dropping a read only sets the flag; the watch
+    /// is parked on the socket and will not shut it down until it is woken.
+    idle_arm: Arc<tokio::sync::Notify>,
     completed: bool,
 }
 
 impl CloseOnDrop {
-    fn new(closed: Arc<AtomicBool>) -> Self {
+    fn new(closed: Arc<AtomicBool>, idle_arm: Arc<tokio::sync::Notify>) -> Self {
         Self {
             closed,
+            idle_arm,
             completed: false,
         }
     }
@@ -223,6 +227,35 @@ impl Drop for CloseOnDrop {
     fn drop(&mut self) {
         if !self.completed {
             self.closed.store(true, Ordering::SeqCst);
+            self.idle_arm.notify_one();
+        }
+    }
+}
+
+/// Wake the idle watch if a stream lock is dropped before it is released.
+///
+/// A read replaces the watch's socket registration. Cancelling that read
+/// drops the lock without [`BrokerConn::release_stream`], so the watch
+/// stays parked and a later close never becomes a FIN.
+struct Rearm {
+    arm: Arc<tokio::sync::Notify>,
+    armed: bool,
+}
+
+impl Rearm {
+    fn arm(arm: Arc<tokio::sync::Notify>) -> Self {
+        Self { arm, armed: true }
+    }
+
+    fn disarm(&mut self) {
+        self.armed = false;
+    }
+}
+
+impl Drop for Rearm {
+    fn drop(&mut self) {
+        if self.armed {
+            self.arm.notify_one();
         }
     }
 }
@@ -1127,10 +1160,12 @@ impl BrokerConn {
         if !self.is_closed() {
             return;
         }
+        let mut rearm = Rearm::arm(Arc::clone(&self.idle_arm));
         let stream = Arc::clone(&self.stream);
         let mut stream = stream.lock().await;
         drop(stream.shutdown().await);
         self.release_stream(stream);
+        rearm.disarm();
     }
 
     /// Broker session lifetime in milliseconds, if negotiated via SaslAuthenticate v1+ (KIP-368).
@@ -1245,7 +1280,8 @@ impl BrokerConn {
         if self.is_closed() {
             return Err(Error::Closed);
         }
-        let mut guard = CloseOnDrop::new(self.closed.clone());
+        let mut guard = CloseOnDrop::new(self.closed.clone(), Arc::clone(&self.idle_arm));
+        let mut rearm = Rearm::arm(Arc::clone(&self.idle_arm));
         let stream = Arc::clone(&self.stream);
         let mut stream = stream.lock().await;
         self.drain_prefetch();
@@ -1253,6 +1289,7 @@ impl BrokerConn {
             .run_io(write_all_pump(&mut *stream, &mut self.read_buf, bytes))
             .await;
         self.release_stream(stream);
+        rearm.disarm();
         wrote?;
         guard.complete();
         self.touch();
@@ -1278,6 +1315,7 @@ impl BrokerConn {
         if inbound_satisfied(&self.read_buf) || !self.read_buf.is_empty() {
             return Ok(());
         }
+        let mut rearm = Rearm::arm(Arc::clone(&self.idle_arm));
         let stream = Arc::clone(&self.stream);
         let mut stream = stream.lock().await;
         // The idle watch may have stored the response and then observed the
@@ -1285,10 +1323,12 @@ impl BrokerConn {
         self.drain_prefetch();
         if inbound_satisfied(&self.read_buf) || !self.read_buf.is_empty() {
             self.release_stream(stream);
+            rearm.disarm();
             return Ok(());
         }
         if self.is_closed() {
             self.release_stream(stream);
+            rearm.disarm();
             return Err(Error::Closed);
         }
         let result = poll_fn(|cx| {
@@ -1335,6 +1375,7 @@ impl BrokerConn {
         })
         .await;
         self.release_stream(stream);
+        rearm.disarm();
         if self.is_closed() {
             self.release_if_closed().await;
         }
@@ -1352,7 +1393,10 @@ impl BrokerConn {
         close_on_drop: bool,
     ) -> Result<Bytes> {
         let mut guard = if close_on_drop {
-            Some(CloseOnDrop::new(self.closed.clone()))
+            Some(CloseOnDrop::new(
+                self.closed.clone(),
+                Arc::clone(&self.idle_arm),
+            ))
         } else {
             None
         };
@@ -1388,27 +1432,32 @@ impl BrokerConn {
                 reserve_frame(&mut self.read_buf, total);
             }
             let buffered = self.read_buf.len();
+            let mut rearm = Rearm::arm(Arc::clone(&self.idle_arm));
             let stream = Arc::clone(&self.stream);
             let mut stream = stream.lock().await;
             self.drain_prefetch();
             if self.read_buf.len() > buffered {
                 self.release_stream(stream);
+                rearm.disarm();
                 continue;
             }
             if self.is_closed() && self.read_buf.is_empty() {
                 self.release_stream(stream);
+                rearm.disarm();
                 return Err(Error::Closed);
             }
             let n = match deadline.run_io(stream.read_buf(&mut self.read_buf)).await {
                 Ok(n) => n,
                 Err(e) => {
                     self.release_stream(stream);
+                    rearm.disarm();
                     self.close();
                     self.release_if_closed().await;
                     return Err(e);
                 }
             };
             self.release_stream(stream);
+            rearm.disarm();
             if n == 0 {
                 self.close();
                 self.release_if_closed().await;
@@ -1444,7 +1493,10 @@ impl BrokerConn {
             return Err(Error::Closed);
         }
         let mut guard = if close_on_drop {
-            Some(CloseOnDrop::new(self.closed.clone()))
+            Some(CloseOnDrop::new(
+                self.closed.clone(),
+                Arc::clone(&self.idle_arm),
+            ))
         } else {
             None
         };
@@ -1608,7 +1660,7 @@ impl BrokerConn {
             return Err(Error::Closed);
         }
         let started = Instant::now();
-        let mut guard = CloseOnDrop::new(self.closed.clone());
+        let mut guard = CloseOnDrop::new(self.closed.clone(), Arc::clone(&self.idle_arm));
         let correlation = self
             .send_deadline(api_key, api_version, encode_body, deadline)
             .await?;
@@ -1681,7 +1733,7 @@ impl BrokerConn {
             ));
         }
         let started = Instant::now();
-        let mut guard = CloseOnDrop::new(self.closed.clone());
+        let mut guard = CloseOnDrop::new(self.closed.clone(), Arc::clone(&self.idle_arm));
         let correlation = self.next_sasl_correlation();
         self.write_request_deadline(api_key, api_version, correlation, encode_body, deadline)
             .await?;
@@ -3189,6 +3241,41 @@ mod tests {
         assert!(
             matches!(saw, Ok(Ok(0))),
             "peer stayed in the read after the connection was marked closed: {saw:?}"
+        );
+        drop(conn);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn cancelled_read_rearms_the_idle_watch() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        let (gate_tx, gate_rx) = tokio::sync::oneshot::channel::<()>();
+        let accepted = tokio::spawn(async move {
+            let (socket, _) = listener.accept().await.unwrap();
+            let (mut reader, mut writer) = socket.into_split();
+            gate_rx.await.unwrap();
+            writer.shutdown().await.unwrap();
+            let mut buf = [0u8; 8];
+            tokio::time::timeout(Duration::from_millis(300), reader.read(&mut buf)).await
+        });
+        let mut conn =
+            BrokerConn::connect(&addr.to_string(), "cancel-read", Duration::from_secs(2))
+                .await
+                .unwrap();
+        // Let the idle watch register before this read replaces that registration.
+        tokio::time::sleep(Duration::from_millis(50)).await;
+        {
+            let mut ready = std::pin::pin!(conn.inbound_ready());
+            tokio::select! {
+                result = &mut ready => panic!("the read finished before it was cancelled: {result:?}"),
+                _ = tokio::time::sleep(Duration::from_millis(30)) => {}
+            }
+        }
+        gate_tx.send(()).unwrap();
+        let saw = accepted.await.unwrap();
+        assert!(
+            matches!(saw, Ok(Ok(0))),
+            "peer stayed in the read after a cancelled read stole the idle watch: {saw:?}"
         );
         drop(conn);
     }
