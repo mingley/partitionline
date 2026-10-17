@@ -5123,6 +5123,12 @@ impl ShareGroup {
             if let Some(heartbeat) = heartbeat {
                 finish_share_heartbeat(heartbeat, deadline).await;
             }
+            // The member socket drops with this group. Yield so the broker
+            // observes that close before leave returns.
+            drop(self);
+            for _ in 0..8 {
+                tokio::task::yield_now().await;
+            }
             return Ok(());
         }
         *self.hb_deadline.lock() = None;
@@ -5135,7 +5141,14 @@ impl ShareGroup {
         if let Some(heartbeat) = heartbeat {
             finish_share_heartbeat(heartbeat, deadline).await;
         }
-        close.and(out)
+        let result = close.and(out);
+        // Member and coordinator sockets drop with this group. Yield so the
+        // broker observes that close before leave returns.
+        drop(self);
+        for _ in 0..8 {
+            tokio::task::yield_now().await;
+        }
+        result
     }
 
     async fn leave_coordinator(&mut self, deadline: Instant) -> Result<()> {

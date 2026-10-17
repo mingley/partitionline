@@ -59,6 +59,26 @@ async fn produce(mock: &common::Mock, entries: &[(i32, &[u8])]) {
     producer.close().await.unwrap();
 }
 
+/// Closing a share group closes its sockets before close returns.
+#[tokio::test(flavor = "current_thread")]
+async fn share_close_closes_the_member_socket() {
+    let mock = common::Mock::start().await;
+    v2(&mock);
+    mock.set_topic_partitions("t", 1);
+    let cfg = config(&mock);
+    let group = ShareGroup::join(cfg, "share-close", "t").await.unwrap();
+    assert!(
+        mock.open_conns() >= 1,
+        "share join should hold a broker socket"
+    );
+    group.close().await.unwrap();
+    assert_eq!(
+        mock.open_conns(),
+        0,
+        "share close left a socket blocked in a broker read"
+    );
+}
+
 /// Leave waits until a share heartbeat stuck on the broker has stopped.
 #[tokio::test(flavor = "current_thread")]
 async fn leave_finishes_the_share_heartbeat_task() {
