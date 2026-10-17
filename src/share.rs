@@ -1074,6 +1074,8 @@ pub struct ShareGroup {
     /// returns after the collection window once any peer has responded.
     inflight_share_fetches: Option<tokio::task::JoinSet<ShareFetchTask>>,
     inflight_share_nodes: HashMap<i32, InflightShareMeta>,
+    /// Abort handles for [`Self::inflight_share_fetches`].
+    inflight_share_tasks: Vec<tokio::task::AbortHandle>,
 }
 
 struct InflightShareMeta {
@@ -1162,6 +1164,9 @@ impl InflightShareFetches {
             group.inflight_share_fetches = Some(set);
             group.inflight_share_nodes = pending;
         }
+        group
+            .inflight_share_tasks
+            .retain(|handle| !handle.is_finished());
     }
 }
 
@@ -1763,6 +1768,7 @@ impl ShareGroup {
             fetch_member_id,
             inflight_share_fetches: None,
             inflight_share_nodes: HashMap::new(),
+            inflight_share_tasks: Vec::new(),
         };
         if g.topic_match.is_some() {
             g.topics = g.matching_topic_names_within(discovery_deadline).await?;
@@ -2336,6 +2342,7 @@ impl ShareGroup {
                 Err(Error::Timeout) if !self.pending_delivery.is_empty() => {
                     self.drain_pending_delivery()
                 }
+                Err(Error::Wakeup) => return Err(Error::Wakeup),
                 Err(e) if share_leader_retriable(&e) || share_fetch_session_reset(&e) => {
                     if Instant::now() >= deadline {
                         if self.pending_delivery.is_empty() {
@@ -3054,6 +3061,32 @@ impl ShareGroup {
         Ok(())
     }
 
+    /// Test hook: share fetches whose replies have not been applied yet.
+    #[doc(hidden)]
+    #[must_use]
+    pub fn test_inflight_share_fetches(&self) -> Vec<tokio::task::AbortHandle> {
+        self.inflight_share_tasks.clone()
+    }
+
+    /// Stop share reads cancelled by wakeup.
+    ///
+    /// Abort only schedules cancellation. On a current-thread runtime a fetch
+    /// blocked in a broker read stays alive until this caller yields.
+    async fn stop_share_fetch_flight(&mut self, mut inflight: InflightShareFetches) {
+        let nodes: Vec<i32> = inflight.pending.keys().copied().collect();
+        let Some(set) = inflight.set.take() else {
+            self.inflight_share_nodes.clear();
+            return;
+        };
+        self.inflight_share_nodes.clear();
+        for node in nodes {
+            // The fetch task owns the socket. Aborting it drops that socket,
+            // so the session cannot be acknowledged on it.
+            self.reset_node_session(node);
+        }
+        finish_aborted_join_set(set, Instant::now()).await;
+    }
+
     async fn finish_inflight_share_fetches(&mut self, deadline: Instant) {
         let Some(set) = self.inflight_share_fetches.take() else {
             self.inflight_share_nodes.clear();
@@ -3106,7 +3139,7 @@ impl ShareGroup {
                         by_id,
                     },
                 );
-                let _ = set.spawn(async move {
+                let handle = set.spawn(async move {
                     let result = peer
                         .conn
                         .roundtrip(
@@ -3118,12 +3151,15 @@ impl ShareGroup {
                         .await;
                     (node, peer, result, job.topics)
                 });
+                self.inflight_share_tasks.push(handle);
             }
         } else {
             self.park_prepared(prepared);
             return Err(Error::protocol("inflight share fetch set missing"));
         }
         let mut first_reply: Option<Instant> = None;
+        let wakeup = self.consumer.wakeup_flag();
+        let mut wakeup_rx = self.consumer.subscribe_wakeup();
         while inflight.set.as_ref().is_some_and(|set| !set.is_empty()) {
             let wait = if let Some(started) = first_reply {
                 crate::consumer::multi_leader_grace(
@@ -3136,13 +3172,25 @@ impl ShareGroup {
             if wait.is_zero() {
                 break;
             }
+            if wakeup.load(Ordering::SeqCst) {
+                self.stop_share_fetch_flight(inflight).await;
+                return Err(Error::Wakeup);
+            }
             let Some(set) = inflight.set.as_mut() else {
                 break;
             };
-            let joined = tokio::select! {
+            let woken = tokio::select! {
                 biased;
-                joined = set.join_next() => joined,
-                () = tokio::time::sleep(wait) => break,
+                joined = set.join_next() => Some(joined),
+                result = wakeup_rx.wait_for(|on| *on) => {
+                    drop(result);
+                    None
+                }
+                () = tokio::time::sleep(wait) => Some(None),
+            };
+            let Some(joined) = woken else {
+                self.stop_share_fetch_flight(inflight).await;
+                return Err(Error::Wakeup);
             };
             let Some(joined) = joined else {
                 break;

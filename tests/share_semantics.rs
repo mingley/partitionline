@@ -408,6 +408,43 @@ async fn wakeup_interrupts_share_poll_and_accept_once() {
     group.leave().await.unwrap();
 }
 
+/// Wakeup stops share fetches that were already sent.
+#[tokio::test(flavor = "current_thread")]
+async fn wakeup_finishes_share_fetches_already_sent() {
+    let mock = common::Mock::start_two_node().await;
+    v2(&mock);
+    mock.set_topic_partitions("t", 2);
+    mock.set_partition_leader("t", 0, 1);
+    mock.set_partition_leader("t", 1, 2);
+    produce(&mock, &[(0, b"a"), (1, b"b")]).await;
+    let mut cfg = config(&mock);
+    cfg.heartbeat_interval = Duration::from_secs(5);
+    let mut group = ShareGroup::join(cfg, "share-wake-fetch", "t")
+        .await
+        .unwrap();
+    let _ = group.poll().await.unwrap();
+    mock.set_share_fetch_delay_once(1, Duration::from_secs(30));
+    mock.set_share_fetch_delay_once(2, Duration::from_secs(30));
+    let handle = group.wakeup_handle();
+    let wake = tokio::spawn(async move {
+        tokio::time::sleep(Duration::from_millis(40)).await;
+        handle.wakeup();
+    });
+    let err = group.poll().await.expect_err("wakeup");
+    assert!(matches!(err, Error::Wakeup), "expected wakeup, got {err:?}");
+    wake.await.unwrap();
+    let tasks = group.test_inflight_share_fetches();
+    assert!(
+        !tasks.is_empty(),
+        "wakeup should interrupt share fetches that were already sent"
+    );
+    assert!(
+        tasks.iter().all(|task| task.is_finished()),
+        "wakeup returned while a share read was still in flight"
+    );
+    group.leave().await.unwrap();
+}
+
 fn assert_broker(error: Error, expected: i16) {
     assert!(
         matches!(error, Error::Broker { code, .. } if code == expected),

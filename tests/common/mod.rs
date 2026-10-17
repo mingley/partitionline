@@ -598,6 +598,7 @@ struct State {
     accepted_fetch: Vec<i32>,
     fetch_throttles: HashMap<i32, VecDeque<i32>>,
     fetch_delays: HashMap<i32, VecDeque<std::time::Duration>>,
+    share_fetch_delays: HashMap<i32, VecDeque<std::time::Duration>>,
     fetch_session_nodes: HashSet<i32>,
     fetch_session_maps: HashMap<(i32, i32), (i32, Vec<FetchTopic>)>,
     next_fetch_session: i32,
@@ -1104,6 +1105,7 @@ fn new_state(
         accepted_fetch: Vec::new(),
         fetch_throttles: HashMap::new(),
         fetch_delays: HashMap::new(),
+        share_fetch_delays: HashMap::new(),
         fetch_session_nodes: HashSet::new(),
         fetch_session_maps: HashMap::new(),
         next_fetch_session: 10_000,
@@ -2572,6 +2574,15 @@ impl Mock {
             .state
             .lock()
             .fetch_delays
+            .insert(node, VecDeque::from([delay]));
+    }
+
+    /// Delay the next ShareFetch on `node` before the response is written.
+    pub fn set_share_fetch_delay_once(&self, node: i32, delay: std::time::Duration) {
+        let _ = self
+            .state
+            .lock()
+            .share_fetch_delays
             .insert(node, VecDeque::from([delay]));
     }
 
@@ -8054,6 +8065,14 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 .unwrap();
             }
             SHARE_FETCH => {
+                let delay = state
+                    .lock()
+                    .share_fetch_delays
+                    .get_mut(&node_id)
+                    .and_then(VecDeque::pop_front);
+                if let Some(delay) = delay {
+                    tokio::time::sleep(delay).await;
+                }
                 let version = header.api_version;
                 let (
                     group_id,
