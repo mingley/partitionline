@@ -2250,6 +2250,7 @@ impl ConsumerGroup {
         let group_id = self.group_id.clone();
         let member_id = self.member_id.clone();
         let bootstrap_keys = self.consumer.copy_api_keys();
+        let address_keys = self.consumer.copy_learned_broker_keys();
         let coord = &mut self.coord;
         let cfg = &self.cfg;
         let consumer = &mut self.consumer;
@@ -2263,6 +2264,7 @@ impl ConsumerGroup {
                 kip848,
                 LEAVE_GROUP_REASON_UNSUBSCRIBED,
                 &bootstrap_keys,
+                &address_keys,
                 prior,
                 deadline,
             ),
@@ -2463,6 +2465,7 @@ impl ConsumerGroup {
         let group_id = self.group_id.clone();
         let member_id = self.member_id.clone();
         let bootstrap_keys = self.consumer.copy_api_keys();
+        let address_keys = self.consumer.copy_learned_broker_keys();
         let coord = &mut self.coord;
         let cfg = &self.cfg;
         let consumer = &mut self.consumer;
@@ -2476,6 +2479,7 @@ impl ConsumerGroup {
                 kip848,
                 LEAVE_GROUP_REASON_CLOSED,
                 &bootstrap_keys,
+                &address_keys,
                 prior,
                 deadline,
             ),
@@ -2517,6 +2521,7 @@ impl ConsumerGroup {
         kip848: bool,
         reason: &str,
         bootstrap_keys: &[ApiVersion],
+        address_keys: &HashMap<String, Vec<ApiVersion>>,
         prior: &mut HashMap<String, KnownCoord>,
         deadline: Instant,
     ) -> Result<()> {
@@ -2539,7 +2544,7 @@ impl ConsumerGroup {
                 server_assignor: None,
                 topic_partitions: None,
             };
-            let (version, body) = coord_roundtrip(
+            let (version, body) = coord_roundtrip_with_bootstrap(
                 coord,
                 cfg,
                 group_id,
@@ -2547,6 +2552,7 @@ impl ConsumerGroup {
                 CONSUMER_GROUP_HEARTBEAT,
                 |version, buf| encode_consumer_group_heartbeat_request(buf, version, &req),
                 bootstrap_keys,
+                address_keys,
                 prior,
                 timeout,
             )
@@ -2565,7 +2571,7 @@ impl ConsumerGroup {
             group_instance_id: cfg.group_instance_id.clone(),
             reason: Some(truncate_group_reason(reason)),
         }];
-        let (version, body) = coord_roundtrip(
+        let (version, body) = coord_roundtrip_with_bootstrap(
             coord,
             cfg,
             group_id,
@@ -2573,6 +2579,7 @@ impl ConsumerGroup {
             LEAVE_GROUP,
             |version, buf| encode_leave_group_request_members(buf, version, group_id, &members),
             bootstrap_keys,
+            address_keys,
             prior,
             timeout,
         )
@@ -6106,6 +6113,9 @@ async fn coord_roundtrip_with_bootstrap(
                 version,
                 body,
                 &mut encode_body,
+                bootstrap_keys,
+                address_keys,
+                prior,
                 deadline,
             )
             .await;
@@ -6121,6 +6131,9 @@ async fn coord_roundtrip_with_bootstrap(
         version,
         body,
         &mut encode_body,
+        bootstrap_keys,
+        address_keys,
+        prior,
         deadline,
     )
     .await
@@ -6139,7 +6152,7 @@ fn bounded_coord_config(
 
 #[expect(
     clippy::too_many_arguments,
-    reason = "coord roundtrip is one wire call plus rediscovery identity"
+    reason = "coordinator rediscovery carries startup addresses and earlier visits"
 )]
 async fn finish_coord_roundtrip(
     coord: &mut BrokerConn,
@@ -6150,14 +6163,18 @@ async fn finish_coord_roundtrip(
     version: i16,
     body: Bytes,
     encode_body: &mut impl FnMut(i16, &mut BytesMut) -> Result<()>,
+    bootstrap_keys: &[ApiVersion],
+    address_keys: &HashMap<String, Vec<ApiVersion>>,
+    prior: &mut HashMap<String, KnownCoord>,
     deadline: crate::net::Deadline,
 ) -> Result<(i16, Bytes)> {
     if coordinator_error(api_key, version, &body).is_some_and(error::coordinator_retriable) {
         let bounded = bounded_coord_config(cfg, deadline)?;
-        let known = KnownCoord::capture(coord);
-        let mut prior = HashMap::new();
+        let known = KnownCoord::capture(coord)
+            .with_bootstrap_keys(bootstrap_keys)
+            .with_address_keys(address_keys);
         *coord = Box::pin(rediscover_known_coord(
-            &bounded, group_id, key_type, &known, &mut prior,
+            &bounded, group_id, key_type, &known, prior,
         ))
         .await?;
         let version = negotiated_coord_version(coord, api_key)?;
