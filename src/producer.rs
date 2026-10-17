@@ -5355,6 +5355,31 @@ async fn refresh_queued_topics(
     Some(last)
 }
 
+/// One idle poll. A queued response leaves the socket connected.
+///
+/// Returns true when the caller should wait before looking again. A close
+/// shuts the socket down. The poll does not wait: the metadata lock has to
+/// be free for a refresh.
+async fn idle_socket_quiet(conn: &mut BrokerConn) -> bool {
+    if conn.is_closed() {
+        conn.release_if_closed().await;
+        return false;
+    }
+    let left = tokio::select! {
+        biased;
+        result = conn.inbound_ready() => result.is_err() || conn.is_closed(),
+        () = std::future::ready(()) => false,
+    };
+    if !left {
+        return true;
+    }
+    if !conn.is_closed() {
+        conn.close();
+    }
+    conn.release_if_closed().await;
+    false
+}
+
 /// Notice a broker that stops writing on the idle metadata socket.
 ///
 /// The lock is held only for one poll. A quiet socket waits outside the
@@ -5362,26 +5387,9 @@ async fn refresh_queued_topics(
 /// down, then this wait yields so the task does not spin.
 async fn watch_idle_metadata_socket(shared: &Shared) {
     let mut conn = shared.meta.lock().await;
-    if conn.is_closed() {
-        conn.release_if_closed().await;
-        drop(conn);
-        tokio::time::sleep(Duration::from_millis(20)).await;
-        return;
-    }
-    let quiet = tokio::select! {
-        biased;
-        ready = conn.inbound_ready() => {
-            drop(ready);
-            conn.close();
-            conn.release_if_closed().await;
-            false
-        }
-        () = std::future::ready(()) => true,
-    };
+    let _quiet = idle_socket_quiet(&mut conn).await;
     drop(conn);
-    if quiet {
-        tokio::time::sleep(Duration::from_millis(20)).await;
-    }
+    tokio::time::sleep(Duration::from_millis(20)).await;
 }
 
 /// Notice a broker that stops writing on the idle transaction coordinator.
@@ -5395,26 +5403,9 @@ async fn watch_idle_txn_socket(shared: &Shared) {
         tokio::time::sleep(Duration::from_millis(20)).await;
         return;
     };
-    if coord.conn.is_closed() {
-        coord.conn.release_if_closed().await;
-        drop(guard);
-        tokio::time::sleep(Duration::from_millis(20)).await;
-        return;
-    }
-    let quiet = tokio::select! {
-        biased;
-        ready = coord.conn.inbound_ready() => {
-            drop(ready);
-            coord.conn.close();
-            coord.conn.release_if_closed().await;
-            false
-        }
-        () = std::future::ready(()) => true,
-    };
+    let _quiet = idle_socket_quiet(&mut coord.conn).await;
     drop(guard);
-    if quiet {
-        tokio::time::sleep(Duration::from_millis(20)).await;
-    }
+    tokio::time::sleep(Duration::from_millis(20)).await;
 }
 
 /// Fetch every stale name in `topics` with one Metadata request.
@@ -9479,6 +9470,42 @@ fn record_metadata(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn queued_byte_does_not_drop_an_idle_metadata_socket() {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        let accepted = tokio::spawn(async move {
+            let (socket, _) = listener.accept().await.unwrap();
+            let (mut reader, mut writer) = socket.into_split();
+            writer.write_all(&[0x01]).await.unwrap();
+            let mut buf = [0u8; 8];
+            tokio::time::timeout(Duration::from_millis(300), reader.read(&mut buf)).await
+        });
+        let mut conn = BrokerConn::connect(&addr.to_string(), "idle-meta", Duration::from_secs(2))
+            .await
+            .unwrap();
+        let queued = tokio::time::timeout(Duration::from_millis(300), async {
+            loop {
+                if conn.has_queued_response() {
+                    break;
+                }
+                tokio::task::yield_now().await;
+            }
+        })
+        .await;
+        assert!(queued.is_ok(), "the queued byte never became visible");
+        let quiet = idle_socket_quiet(&mut conn).await;
+        assert!(quiet, "a queued byte was treated as a lost metadata socket");
+        let saw = accepted.await.unwrap();
+        assert!(
+            matches!(saw, Err(_)),
+            "a queued byte shut the metadata socket down: {saw:?}"
+        );
+        drop(conn);
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn queued_byte_does_not_skip_the_init_producer_id_backoff() {
