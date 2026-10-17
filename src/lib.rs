@@ -2502,6 +2502,13 @@
 //! `ReplicationControlManager` writes this when the requested broker id
 //! is not currently registered.
 //! A piggybacked
+//! `INCONSISTENT_CLUSTER_ID` still completes without retry,
+//! including when `AcknowledgeErrorMessage` is set (this is not
+//! partition `INCONSISTENT_CLUSTER_ID`, which fails that poll, and not
+//! piggyback `BROKER_ID_NOT_REGISTERED`). Official Java
+//! `ClusterControlManager` writes this when a broker registration
+//! cluster id does not match.
+//! A piggybacked
 //! `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a
 //! sibling whose `AcknowledgeErrorCode` is none, including when
 //! `AcknowledgeErrorMessage` is set or empty. A piggybacked
