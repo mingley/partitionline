@@ -1563,16 +1563,24 @@ impl Producer {
     }
 
     /// Handshake every bootstrap together and keep the first full success.
+    ///
+    /// Handshakes that finish with the first one are returned as learned
+    /// versions. A later produce to one of those brokers skips ApiVersions.
     async fn open_bootstrap(
         cfg: &ProducerConfig,
         deadline: Instant,
-    ) -> Result<(BrokerConn, ApiVersionsResponse)> {
+    ) -> Result<(
+        BrokerConn,
+        ApiVersionsResponse,
+        Vec<(String, Vec<ApiVersion>)>,
+    )> {
         if cfg.bootstrap.len() <= 1 {
             let addr = cfg
                 .bootstrap
                 .first()
                 .ok_or_else(|| Error::protocol("all bootstrap servers failed"))?;
-            return Self::open_one_bootstrap(cfg, addr, deadline).await;
+            let (conn, resp) = Self::open_one_bootstrap(cfg, addr, deadline).await?;
+            return Ok((conn, resp, Vec::new()));
         }
         let mut inflight = tokio::task::JoinSet::new();
         for addr in &cfg.bootstrap {
@@ -1582,17 +1590,50 @@ impl Producer {
                 .spawn(async move { Producer::open_one_bootstrap(&cfg, &addr, deadline).await });
         }
         let mut last = Error::protocol("all bootstrap servers failed");
-        while let Some(joined) = inflight.join_next().await {
+        let mut finished = Vec::new();
+        while !inflight.is_empty() {
+            let Some(joined) = inflight.join_next().await else {
+                break;
+            };
             match joined {
                 Ok(Ok(opened)) => {
-                    inflight.abort_all();
-                    return Ok(opened);
+                    finished.push(opened);
+                    let gather = deadline
+                        .saturating_duration_since(Instant::now())
+                        .min(Duration::from_millis(5));
+                    let gather_done = tokio::time::sleep(gather);
+                    tokio::pin!(gather_done);
+                    loop {
+                        tokio::select! {
+                            biased;
+                            joined = inflight.join_next(), if !inflight.is_empty() => {
+                                match joined {
+                                    Some(Ok(Ok(opened))) => finished.push(opened),
+                                    Some(Ok(Err(error))) => last = error,
+                                    _ => {}
+                                }
+                            }
+                            () = &mut gather_done => break,
+                        }
+                    }
+                    break;
                 }
                 Ok(Err(error)) => last = error,
                 Err(error) => last = Error::protocol(format!("bootstrap handshake: {error}")),
             }
         }
-        Err(last)
+        inflight.abort_all();
+        let mut rest = finished.into_iter();
+        let Some((conn, resp)) = rest.next() else {
+            return Err(last);
+        };
+        let mut learned = Vec::new();
+        for (spare, versions) in rest {
+            if !versions.api_keys.is_empty() {
+                learned.push((spare.addr().to_string(), versions.api_keys));
+            }
+        }
+        Ok((conn, resp, learned))
     }
 
     async fn new_until(cfg: ProducerConfig, deadline: Instant) -> Result<Self> {
@@ -1606,7 +1647,7 @@ impl Producer {
             return Err(Error::protocol("acks must be -1, 0, or 1"));
         }
         cfg.bootstrap = crate::net::parse_and_validate_addresses(&cfg.bootstrap)?;
-        let (mut meta, resp) = Self::open_bootstrap(&cfg, deadline).await?;
+        let (mut meta, resp, siblings) = Self::open_bootstrap(&cfg, deadline).await?;
         let mut versions = HashMap::new();
         for api in &resp.api_keys {
             let _prev = versions.insert(api.api_key, api.clone());
@@ -1718,6 +1759,11 @@ impl Producer {
         if let Some(coord) = txn.as_ref() {
             if coord.conn.addr() != meta.addr() && !coord.keys.is_empty() {
                 let _stored = seeded_keys.insert(coord.conn.addr().to_string(), coord.keys.clone());
+            }
+        }
+        for (addr, keys) in siblings {
+            if addr != meta.addr() && !keys.is_empty() && !seeded_keys.contains_key(&addr) {
+                let _stored = seeded_keys.insert(addr, keys);
             }
         }
         let shared = Arc::new(Shared {

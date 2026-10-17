@@ -1754,6 +1754,8 @@ struct LeaderDialConfig {
     sasl_oauthbearer_oidc: Option<crate::OidcConfig>,
     /// ApiVersions already learned for each node, used when that socket is replaced.
     node_keys: HashMap<i32, Vec<ApiVersion>>,
+    /// ApiVersions already learned for a broker address.
+    addr_keys: HashMap<String, Vec<ApiVersion>>,
 }
 
 type LeaderDialAttempt = (i32, Result<(BrokerConn, ApiVersionsResponse)>);
@@ -2105,6 +2107,8 @@ pub struct Consumer {
     ///
     /// Kept after the socket goes idle so the replacement skips that handshake.
     node_api_keys: HashMap<i32, Vec<ApiVersion>>,
+    /// ApiVersions learned for a broker address before its node id is known.
+    learned_broker_keys: HashMap<String, Vec<ApiVersion>>,
     fetch_throttles: HashMap<i32, Instant>,
     fetch_sessions: HashMap<i32, BrokerFetchSession>,
     /// Reused fetch grouping. Cleared and refilled each round so a stable
@@ -2860,11 +2864,16 @@ impl Consumer {
 
     /// Remember ApiVersions for the broker at `addr`.
     ///
-    /// A later fetch to that leader skips ApiVersions. Unknown addresses are
-    /// ignored until metadata names the broker.
+    /// A later fetch to that leader skips ApiVersions. The node id is recorded
+    /// too once metadata names that address.
     pub(crate) fn remember_broker_versions(&mut self, addr: &str, keys: Vec<ApiVersion>) {
-        if keys.is_empty() {
+        if keys.is_empty() || addr.is_empty() {
             return;
+        }
+        if !self.learned_broker_keys.contains_key(addr) {
+            let _stored = self
+                .learned_broker_keys
+                .insert(addr.to_string(), keys.clone());
         }
         let Some(node) = self
             .cluster
@@ -2878,6 +2887,10 @@ impl Consumer {
             return;
         }
         let _stored = self.node_api_keys.insert(node, keys);
+    }
+
+    fn learned_keys_for(&self, addr: &str) -> Option<Vec<ApiVersion>> {
+        self.learned_broker_keys.get(addr).cloned()
     }
 
     /// Connect with default config to one bootstrap server.
@@ -2926,13 +2939,18 @@ impl Consumer {
     async fn open_bootstrap(
         cfg: &ConsumerConfig,
         deadline: Instant,
-    ) -> Result<(BrokerConn, crate::protocol::api::ApiVersionsResponse)> {
+    ) -> Result<(
+        BrokerConn,
+        crate::protocol::api::ApiVersionsResponse,
+        Vec<(String, Vec<ApiVersion>)>,
+    )> {
         if cfg.bootstrap.len() <= 1 {
             let addr = cfg
                 .bootstrap
                 .first()
                 .ok_or_else(|| Error::protocol("all bootstrap servers failed"))?;
-            return Self::open_one_bootstrap(cfg, addr, deadline).await;
+            let (conn, resp) = Self::open_one_bootstrap(cfg, addr, deadline).await?;
+            return Ok((conn, resp, Vec::new()));
         }
         let mut inflight = tokio::task::JoinSet::new();
         for addr in &cfg.bootstrap {
@@ -2942,17 +2960,50 @@ impl Consumer {
                 .spawn(async move { Consumer::open_one_bootstrap(&cfg, &addr, deadline).await });
         }
         let mut last = Error::protocol("all bootstrap servers failed");
-        while let Some(joined) = inflight.join_next().await {
+        let mut finished = Vec::new();
+        while !inflight.is_empty() {
+            let Some(joined) = inflight.join_next().await else {
+                break;
+            };
             match joined {
                 Ok(Ok(opened)) => {
-                    inflight.abort_all();
-                    return Ok(opened);
+                    finished.push(opened);
+                    let gather = deadline
+                        .saturating_duration_since(Instant::now())
+                        .min(Duration::from_millis(5));
+                    let gather_done = tokio::time::sleep(gather);
+                    tokio::pin!(gather_done);
+                    loop {
+                        tokio::select! {
+                            biased;
+                            joined = inflight.join_next(), if !inflight.is_empty() => {
+                                match joined {
+                                    Some(Ok(Ok(opened))) => finished.push(opened),
+                                    Some(Ok(Err(error))) => last = error,
+                                    _ => {}
+                                }
+                            }
+                            () = &mut gather_done => break,
+                        }
+                    }
+                    break;
                 }
                 Ok(Err(error)) => last = error,
                 Err(error) => last = Error::protocol(format!("bootstrap handshake: {error}")),
             }
         }
-        Err(last)
+        inflight.abort_all();
+        let mut rest = finished.into_iter();
+        let Some((conn, resp)) = rest.next() else {
+            return Err(last);
+        };
+        let mut learned = Vec::new();
+        for (spare, versions) in rest {
+            if !versions.api_keys.is_empty() {
+                learned.push((spare.addr().to_string(), versions.api_keys));
+            }
+        }
+        Ok((conn, resp, learned))
     }
 
     pub(crate) async fn connect_within(cfg: ConsumerConfig, deadline: Instant) -> Result<Self> {
@@ -3002,7 +3053,7 @@ impl Consumer {
         }
         cfg.bootstrap = crate::net::parse_and_validate_addresses(&cfg.bootstrap)?;
         let rack_id = cfg.rack.as_deref().map(Arc::<str>::from);
-        let (mut conn, resp) = Self::open_bootstrap(&cfg, deadline).await?;
+        let (mut conn, resp, siblings) = Self::open_bootstrap(&cfg, deadline).await?;
         let mut versions = HashMap::new();
         for api in resp.api_keys {
             let _prev = versions.insert(api.api_key, api);
@@ -3038,6 +3089,7 @@ impl Consumer {
             list_offsets_ranges: HashMap::new(),
             leader_epoch_ranges: HashMap::new(),
             node_api_keys: HashMap::new(),
+            learned_broker_keys: siblings.into_iter().collect(),
             fetch_throttles: HashMap::new(),
             fetch_sessions: HashMap::new(),
             fetch_plan: HashMap::new(),
@@ -4339,6 +4391,22 @@ impl Consumer {
         addr: &str,
         deadline: Instant,
     ) -> Result<(BrokerConn, ApiVersionsResponse)> {
+        if let Some(keys) = self.learned_keys_for(addr) {
+            return Self::open_fetch_conn_known(
+                addr,
+                &self.cfg.client_id,
+                self.cfg.connect_timeout,
+                self.cfg.tls.as_ref(),
+                self.cfg.sasl_plain.as_ref(),
+                self.cfg.sasl_scram.as_ref(),
+                self.cfg.sasl_scram_sha512.as_ref(),
+                self.cfg.sasl_oauthbearer.as_deref(),
+                self.cfg.sasl_oauthbearer_oidc.as_ref(),
+                &keys,
+                deadline,
+            )
+            .await;
+        }
         if addr == self.conn.addr() && !self.versions.is_empty() {
             let keys: Vec<ApiVersion> = self.versions.values().cloned().collect();
             return Self::open_fetch_conn_known(
@@ -4489,6 +4557,7 @@ impl Consumer {
             self.copy_api_keys()
         };
         let node_api_keys = self.node_api_keys.clone();
+        let learned_broker_keys = self.learned_broker_keys.clone();
         let mut waiting: VecDeque<(i32, String)> = dials.into();
         let mut inflight = tokio::task::JoinSet::new();
         let mut inflight_ids = HashSet::new();
@@ -4508,7 +4577,10 @@ impl Consumer {
             let sasl_oauthbearer_oidc = sasl_oauthbearer_oidc.clone();
             let known_keys = known_keys.clone();
             let bootstrap_addr = bootstrap_addr.clone();
-            let node_keys = node_api_keys.get(&node).cloned();
+            let node_keys = node_api_keys
+                .get(&node)
+                .cloned()
+                .or_else(|| learned_broker_keys.get(&addr).cloned());
             let _ = inflight.spawn(async move {
                 let result = if addr == bootstrap_addr && !known_keys.is_empty() {
                     Consumer::open_fetch_conn_known(
@@ -4742,6 +4814,22 @@ impl Consumer {
     ) -> Result<(BrokerConn, ApiVersionsResponse)> {
         if addr == self.conn.addr() && !self.versions.is_empty() {
             return self.open_leader_socket(addr, deadline).await;
+        }
+        if let Some(keys) = self.learned_keys_for(addr) {
+            return Self::open_fetch_conn_known(
+                addr,
+                &self.cfg.client_id,
+                self.cfg.connect_timeout,
+                self.cfg.tls.as_ref(),
+                self.cfg.sasl_plain.as_ref(),
+                self.cfg.sasl_scram.as_ref(),
+                self.cfg.sasl_scram_sha512.as_ref(),
+                self.cfg.sasl_oauthbearer.as_deref(),
+                self.cfg.sasl_oauthbearer_oidc.as_ref(),
+                &keys,
+                deadline,
+            )
+            .await;
         }
         if let Some(keys) = self.node_api_keys.get(&node) {
             return Self::open_fetch_conn_known(
@@ -7918,6 +8006,7 @@ impl Consumer {
             sasl_oauthbearer: self.cfg.sasl_oauthbearer.clone(),
             sasl_oauthbearer_oidc: self.cfg.sasl_oauthbearer_oidc.clone(),
             node_keys: self.node_api_keys.clone(),
+            addr_keys: self.learned_broker_keys.clone(),
         }
     }
 
@@ -7963,8 +8052,13 @@ impl Consumer {
                     sasl_oauthbearer: cfg.sasl_oauthbearer.clone(),
                     sasl_oauthbearer_oidc: cfg.sasl_oauthbearer_oidc.clone(),
                     node_keys: cfg.node_keys.clone(),
+                    addr_keys: cfg.addr_keys.clone(),
                 };
-                let node_keys = cfg.node_keys.get(&node).cloned();
+                let node_keys = cfg
+                    .node_keys
+                    .get(&node)
+                    .cloned()
+                    .or_else(|| cfg.addr_keys.get(&addr).cloned());
                 let _ = inflight.spawn(async move {
                     let result = if let Some(keys) = node_keys {
                         Consumer::open_fetch_conn_known(

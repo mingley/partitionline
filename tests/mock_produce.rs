@@ -1121,6 +1121,47 @@ async fn commit_reuses_bootstrap_when_the_coordinator_returns() {
     producer.close().await.unwrap();
 }
 
+/// A produce to another bootstrap reuses the handshake that finished at startup.
+#[tokio::test]
+async fn produce_reuses_a_finished_bootstrap_handshake() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_topic_partitions("t", 1);
+    mock.set_partition_leader("t", 0, 2);
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let addr2 = mock.broker_addr(2).unwrap();
+    let mut cfg = ProducerConfig::bootstrap([mock.addr.clone(), addr2]);
+    cfg.linger = Duration::ZERO;
+    let started = Instant::now();
+    let producer = Producer::new(cfg).await.unwrap();
+    let startup = started.elapsed();
+    let versions = mock.api_versions_versions().len();
+    assert!(
+        versions <= 4,
+        "startup negotiated a bootstrap more than once: {versions}"
+    );
+    assert!(
+        startup < Duration::from_millis(700),
+        "startup repeated a bootstrap handshake: {startup:?}"
+    );
+    let started = Instant::now();
+    let sent = producer
+        .send(ProduceRecord::to("t").value(&b"v"[..]))
+        .await
+        .unwrap();
+    let elapsed = started.elapsed();
+    assert!(sent.offset >= 0);
+    assert_eq!(
+        mock.api_versions_versions().len(),
+        versions,
+        "produce renegotiated a bootstrap that finished at startup"
+    );
+    assert!(
+        elapsed < Duration::from_millis(200),
+        "produce repeated ApiVersions: {elapsed:?}"
+    );
+    producer.close().await.unwrap();
+}
+
 /// Two bootstraps share one handshake when the transaction coordinator is the other one.
 #[tokio::test]
 async fn multi_bootstrap_transaction_reuses_the_other_bootstrap_handshake() {
