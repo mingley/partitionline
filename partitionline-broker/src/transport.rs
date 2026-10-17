@@ -1095,7 +1095,13 @@ async fn write_and_prefetch<S: AsyncRead + AsyncWrite + Unpin>(
                                     stop_read = true;
                                     saw_read_error = true;
                                 }
-                                Poll::Ready(Ok(_)) => {}
+                                Poll::Ready(Ok(_)) => {
+                                    // Ready bytes keep this poll in the read
+                                    // loop, so the write deadline cannot run
+                                    // until the next frame is fully buffered.
+                                    cx.waker().wake_by_ref();
+                                    return Poll::Pending;
+                                }
                             }
                         }
                     }
@@ -2084,5 +2090,98 @@ mod read_deadline_tests {
             "read deadline left the accepted socket blocked in a read"
         );
         client.abort();
+    }
+}
+
+#[cfg(test)]
+mod write_prefetch_tests {
+    use super::{write_and_prefetch, Exit, ReadAhead};
+    use std::pin::Pin;
+    use std::task::{Context, Poll};
+    use std::time::Duration;
+    use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
+    use tokio::time::Instant;
+
+    /// Writes never accept a byte. Reads stay ready with one legal frame,
+    /// a little at a time, so a poll that does not yield spends the whole
+    /// frame inside the write deadline.
+    struct ReadyFrame {
+        announced: bool,
+        left: usize,
+    }
+
+    impl AsyncRead for ReadyFrame {
+        fn poll_read(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            buf: &mut ReadBuf<'_>,
+        ) -> Poll<std::io::Result<()>> {
+            let this = self.get_mut();
+            if !this.announced {
+                this.announced = true;
+                let len = i32::try_from(this.left).unwrap_or(i32::MAX).to_be_bytes();
+                let dst = buf.initialize_unfilled();
+                let n = len.len().min(dst.len());
+                dst[..n].copy_from_slice(&len[..n]);
+                buf.advance(n);
+                return Poll::Ready(Ok(()));
+            }
+            if this.left == 0 {
+                return Poll::Pending;
+            }
+            let dst = buf.initialize_unfilled();
+            let n = dst.len().min(this.left).min(1024);
+            dst[..n].fill(1);
+            buf.advance(n);
+            this.left -= n;
+            let start = std::time::Instant::now();
+            while start.elapsed() < Duration::from_micros(40) {}
+            Poll::Ready(Ok(()))
+        }
+    }
+
+    impl AsyncWrite for ReadyFrame {
+        fn poll_write(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            _buf: &[u8],
+        ) -> Poll<std::io::Result<usize>> {
+            Poll::Pending
+        }
+
+        fn poll_flush(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
+            Poll::Ready(Ok(()))
+        }
+
+        fn poll_shutdown(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
+            Poll::Ready(Ok(()))
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn write_deadline_stops_a_ready_prefetch() {
+        let mut socket = ReadyFrame {
+            announced: false,
+            left: 4 * 1024 * 1024,
+        };
+        let started = Instant::now();
+        let result = write_and_prefetch(
+            &mut socket,
+            b"response-bytes",
+            Instant::now() + Duration::from_millis(30),
+            &mut ReadAhead::new(),
+            8 * 1024 * 1024,
+            true,
+        )
+        .await;
+        let elapsed = started.elapsed();
+        assert!(
+            matches!(result, Err(Exit::WriteDeadline)),
+            "prefetch finished the write instead of hitting the deadline"
+        );
+        assert!(
+            elapsed < Duration::from_millis(80),
+            "a ready prefetch held the write past its deadline: {elapsed:?}"
+        );
     }
 }
