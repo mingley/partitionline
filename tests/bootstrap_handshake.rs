@@ -1287,6 +1287,108 @@ async fn offset_fetch_reuses_the_bootstrap_coordinator_socket() {
     );
 }
 
+fn offset_fetch(group: &str) -> OffsetFetchRequestData {
+    OffsetFetchRequestData {
+        groups: vec![OffsetFetchGroupData {
+            group_id: group.into(),
+            member_id: None,
+            member_epoch: -1,
+            topics: None,
+        }],
+        require_stable: false,
+    }
+}
+
+fn offset_options() -> OffsetOptions {
+    OffsetOptions {
+        topic_ids: false,
+        timeout: Some(Duration::from_secs(3)),
+        ..OffsetOptions::default()
+    }
+}
+
+/// A second offset fetch reuses ApiVersions learned on the first contact.
+#[tokio::test]
+async fn offset_fetch_repeats_without_another_handshake() {
+    let mock = common::Mock::start().await;
+    mock.set_group_coordinator("g", 1);
+    let mut cfg = AdminConfig::bootstrap([mock.addr.clone()]);
+    cfg.request_timeout = Duration::from_secs(3);
+    let mut client = OffsetClient::new(cfg).unwrap();
+    let request = offset_fetch("g");
+    let options = offset_options();
+    let fetched = client.fetch(&request, &options).await.unwrap();
+    assert_eq!(fetched.groups.len(), 1);
+    assert_eq!(mock.api_versions_versions().len(), 1);
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let started = Instant::now();
+    let fetched = client.fetch(&request, &options).await.unwrap();
+    assert_eq!(fetched.groups.len(), 1);
+    let elapsed = started.elapsed();
+    assert!(
+        elapsed < Duration::from_millis(200),
+        "repeated offset fetch negotiated again: {elapsed:?}"
+    );
+    assert_eq!(mock.api_versions_versions().len(), 1);
+}
+
+/// A coordinator that is not the bootstrap broker is remembered too.
+#[tokio::test]
+async fn offset_fetch_repeats_a_remote_coordinator_without_another_handshake() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_group_coordinator("g", 2);
+    let mut cfg = AdminConfig::bootstrap([mock.addr.clone()]);
+    cfg.request_timeout = Duration::from_secs(3);
+    let mut client = OffsetClient::new(cfg).unwrap();
+    let request = offset_fetch("g");
+    let options = offset_options();
+    let fetched = client.fetch(&request, &options).await.unwrap();
+    assert_eq!(fetched.groups.len(), 1);
+    assert_eq!(mock.api_versions_versions().len(), 2);
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let started = Instant::now();
+    let fetched = client.fetch(&request, &options).await.unwrap();
+    assert_eq!(fetched.groups.len(), 1);
+    let elapsed = started.elapsed();
+    assert!(
+        elapsed < Duration::from_millis(200),
+        "repeated remote offset fetch negotiated again: {elapsed:?}"
+    );
+    assert_eq!(mock.api_versions_versions().len(), 2);
+}
+
+/// A coordinator that has never been contacted still negotiates.
+#[tokio::test]
+async fn offset_fetch_negotiates_a_new_coordinator() {
+    let mock = common::Mock::start_three_node().await;
+    mock.set_group_coordinator("known", 2);
+    mock.set_group_coordinator("fresh", 3);
+    let mut cfg = AdminConfig::bootstrap([mock.addr.clone()]);
+    cfg.request_timeout = Duration::from_secs(3);
+    let mut client = OffsetClient::new(cfg).unwrap();
+    let options = offset_options();
+    let fetched = client
+        .fetch(&offset_fetch("known"), &options)
+        .await
+        .unwrap();
+    assert_eq!(fetched.groups.len(), 1);
+    let before = mock.api_versions_versions().len();
+    assert_eq!(before, 2);
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let started = Instant::now();
+    let fetched = client
+        .fetch(&offset_fetch("fresh"), &options)
+        .await
+        .unwrap();
+    assert_eq!(fetched.groups.len(), 1);
+    let elapsed = started.elapsed();
+    assert_eq!(mock.api_versions_versions().len(), before + 1);
+    assert!(
+        elapsed < Duration::from_millis(450),
+        "new coordinator redid the bootstrap handshake: {elapsed:?}"
+    );
+}
+
 #[tokio::test]
 async fn offset_client_uses_the_first_bootstrap_that_finishes() {
     let mock = common::Mock::start().await;

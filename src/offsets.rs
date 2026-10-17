@@ -6,7 +6,7 @@ use std::time::{Duration, Instant};
 use crate::admin::AdminConfig;
 use crate::error::{self, Error, Result};
 use crate::net::{BrokerConn, Deadline};
-use crate::protocol::api::{negotiate_api_versions, ApiVersionsResponse};
+use crate::protocol::api::{negotiate_api_versions, ApiVersion, ApiVersionsResponse};
 use crate::protocol::api_keys::{
     pick_version, FIND_COORDINATOR, METADATA, OFFSET_COMMIT, OFFSET_FETCH,
 };
@@ -43,45 +43,72 @@ pub struct OffsetOptions {
 
 /// Typed offset operations without group membership or background tasks.
 ///
-/// Every operation negotiates on the actual coordinator and owns at most two
-/// sockets, including overlapped coordinator handshakes. OffsetFetch responses
-/// are still checked in coordinator order before the next fetch is sent.
-/// Cancellation drops the sockets. OffsetCommit supplies the caller's group
-/// generation or member epoch; this client does not join or heartbeat a group.
+/// The first contact with a broker negotiates ApiVersions. A later dial to
+/// that same address reuses the learned versions. Each operation still owns
+/// at most two sockets, including overlapped coordinator handshakes.
+/// OffsetFetch responses are checked in coordinator order before the next
+/// fetch is sent. Cancellation drops the sockets. OffsetCommit supplies the
+/// caller's group generation or member epoch; this client does not join or
+/// heartbeat a group.
 pub struct OffsetClient {
     cfg: AdminConfig,
     stats: Option<std::sync::Arc<crate::metrics::AdminTracker>>,
+    /// ApiVersions learned by broker address. A redial skips the handshake.
+    known_versions: HashMap<String, Vec<ApiVersion>>,
 }
 
-async fn open_offset_socket(
-    cfg: &AdminConfig,
-    stats: Option<&std::sync::Arc<crate::metrics::AdminTracker>>,
-    address: &str,
+type OffsetDial = (String, Result<(BrokerConn, Vec<ApiVersion>, i16)>);
+
+struct OffsetSocketRequest<'a> {
+    cfg: &'a AdminConfig,
+    stats: Option<&'a std::sync::Arc<crate::metrics::AdminTracker>>,
     api: i16,
     ids: bool,
     member: bool,
+    known: &'a [ApiVersion],
+}
+
+fn remembered_api_versions(keys: &[ApiVersion]) -> ApiVersionsResponse {
+    ApiVersionsResponse {
+        error_code: 0,
+        api_keys: keys.to_vec(),
+        throttle_time_ms: 0,
+        supported_features: Vec::new(),
+        finalized_features_epoch: None,
+        finalized_features: Vec::new(),
+        zk_migration_ready: false,
+    }
+}
+
+async fn open_offset_socket(
+    address: &str,
+    request: OffsetSocketRequest<'_>,
     deadline: Deadline,
 ) -> Result<(BrokerConn, ApiVersionsResponse, i16)> {
     let mut conn = BrokerConn::connect_tls(
         address,
-        &cfg.client_id,
-        cfg.connect_timeout.min(deadline.remaining()?),
-        cfg.tls.as_ref(),
+        &request.cfg.client_id,
+        request.cfg.connect_timeout.min(deadline.remaining()?),
+        request.cfg.tls.as_ref(),
     )
     .await?;
-    if let Some(stats) = stats {
+    if let Some(stats) = request.stats {
         conn.set_stats(std::sync::Arc::clone(stats));
     }
-    let versions = negotiate_api_versions(&mut conn, deadline.remaining()?).await?;
-    let version = OffsetClient::version(&versions, api, ids, member)?;
+    let versions = if request.known.is_empty() {
+        negotiate_api_versions(&mut conn, deadline.remaining()?).await?
+    } else {
+        remembered_api_versions(request.known)
+    };
+    let version = OffsetClient::version(&versions, request.api, request.ids, request.member)?;
     sasl::apply_api_keys(&mut conn, &versions.api_keys);
     sasl::authenticate(
         &mut conn,
-        cfg.sasl_plain.as_ref(),
-        cfg.sasl_scram.as_ref(),
-        cfg.sasl_scram_sha512.as_ref(),
-        cfg.sasl_oauthbearer.as_deref(),
-        cfg.sasl_oauthbearer_oidc.as_ref(),
+        request.cfg.sasl_plain.as_ref(),
+        request.cfg.sasl_scram.as_ref(),
+        request.cfg.sasl_scram_sha512.as_ref(),
+        request.cfg.sasl_oauthbearer.as_deref(),
+        request.cfg.sasl_oauthbearer_oidc.as_ref(),
         deadline.remaining()?,
     )
     .await?;
@@ -98,7 +125,7 @@ impl OffsetClient {
         self.stats = Some(stats);
     }
     pub(crate) async fn resolve_names(
-        &self,
+        &mut self,
         names: Option<&[String]>,
         api: i16,
         deadline: Deadline,
@@ -162,7 +189,11 @@ impl OffsetClient {
             return Err(Error::protocol("offset client ID exceeds header limit"));
         }
         cfg.bootstrap = crate::net::parse_and_validate_addresses(&cfg.bootstrap)?;
-        Ok(Self { cfg, stats: None })
+        Ok(Self {
+            cfg,
+            stats: None,
+            known_versions: HashMap::new(),
+        })
     }
 
     fn deadline(&self, options: &OffsetOptions) -> Result<Deadline> {
@@ -231,7 +262,7 @@ impl OffsetClient {
     }
 
     async fn commit_until(
-        &self,
+        &mut self,
         request: &OffsetCommitRequestData,
         options: &OffsetOptions,
         deadline: Deadline,
@@ -262,7 +293,7 @@ impl OffsetClient {
     }
 
     async fn fetch_until(
-        &self,
+        &mut self,
         request: &OffsetFetchRequestData,
         options: &OffsetOptions,
         deadline: Deadline,
@@ -308,28 +339,47 @@ impl OffsetClient {
             })
     }
 
+    fn remember_versions(&mut self, address: &str, keys: &[ApiVersion]) {
+        if keys.is_empty() || self.known_versions.contains_key(address) {
+            return;
+        }
+        let _stored = self
+            .known_versions
+            .insert(address.to_string(), keys.to_vec());
+    }
+
     async fn open(
-        &self,
+        &mut self,
         address: &str,
         api: i16,
         ids: bool,
         member: bool,
         deadline: Deadline,
     ) -> Result<(BrokerConn, ApiVersionsResponse, i16)> {
-        open_offset_socket(
-            &self.cfg,
-            self.stats.as_ref(),
+        let known = self
+            .known_versions
+            .get(address)
+            .cloned()
+            .unwrap_or_default();
+        let opened = open_offset_socket(
             address,
-            api,
-            ids,
-            member,
+            OffsetSocketRequest {
+                cfg: &self.cfg,
+                stats: self.stats.as_ref(),
+                api,
+                ids,
+                member,
+                known: &known,
+            },
             deadline,
         )
-        .await
+        .await?;
+        self.remember_versions(address, &opened.1.api_keys);
+        Ok(opened)
     }
 
     async fn bootstrap(
-        &self,
+        &mut self,
         api: i16,
         ids: bool,
         member: bool,
@@ -337,7 +387,8 @@ impl OffsetClient {
     ) -> Result<(BrokerConn, ApiVersionsResponse, i16)> {
         if self.cfg.bootstrap.len() <= 1 {
             let mut last = Error::Timeout;
-            for address in &self.cfg.bootstrap {
+            let addresses = self.cfg.bootstrap.clone();
+            for address in &addresses {
                 match self.open(address, api, ids, member, deadline).await {
                     Ok(conn) => return Ok(conn),
                     Err(err) if retryable(&err) => last = err,
@@ -351,8 +402,25 @@ impl OffsetClient {
             let cfg = self.cfg.clone();
             let stats = self.stats.clone();
             let address = address.clone();
+            let known = self
+                .known_versions
+                .get(&address)
+                .cloned()
+                .unwrap_or_default();
             let _ = inflight.spawn(async move {
-                open_offset_socket(&cfg, stats.as_ref(), &address, api, ids, member, deadline).await
+                open_offset_socket(
+                    &address,
+                    OffsetSocketRequest {
+                        cfg: &cfg,
+                        stats: stats.as_ref(),
+                        api,
+                        ids,
+                        member,
+                        known: &known,
+                    },
+                    deadline,
+                )
+                .await
             });
         }
         let mut last = Error::protocol("all bootstrap servers failed");
@@ -360,6 +428,8 @@ impl OffsetClient {
             match joined {
                 Ok(Ok(opened)) => {
                     inflight.abort_all();
+                    let address = opened.0.addr().to_string();
+                    self.remember_versions(&address, &opened.1.api_keys);
                     return Ok(opened);
                 }
                 Ok(Err(error)) => last = error,
@@ -475,7 +545,7 @@ impl OffsetClient {
     }
 
     async fn commit_once(
-        &self,
+        &mut self,
         request: &OffsetCommitRequestData,
         options: &OffsetOptions,
         deadline: Deadline,
@@ -527,7 +597,7 @@ impl OffsetClient {
     }
 
     async fn fetch_once(
-        &self,
+        &mut self,
         request: &OffsetFetchRequestData,
         options: &OffsetOptions,
         deadline: Deadline,
@@ -553,7 +623,7 @@ impl OffsetClient {
         let bootstrap_addr = bootstrap.addr().to_string();
         let bootstrap_version = Self::version(&versions, OFFSET_FETCH, options.topic_ids, member)?;
         let mut next_dial = 0usize;
-        let mut dialing = tokio::task::JoinSet::<(String, Result<(BrokerConn, i16)>)>::new();
+        let mut dialing = tokio::task::JoinSet::<OffsetDial>::new();
         let mut ready: HashMap<String, Result<(BrokerConn, i16)>> = HashMap::new();
         if order.iter().any(|(address, _)| address == &bootstrap_addr) {
             let _prev = ready.insert(bootstrap_addr, Ok((bootstrap, bootstrap_version)));
@@ -564,30 +634,33 @@ impl OffsetClient {
         let cfg = self.cfg.clone();
         let stats = self.stats.clone();
         let topic_ids = options.topic_ids;
-        let start_dial =
-            |dialing: &mut tokio::task::JoinSet<(String, Result<(BrokerConn, i16)>)>,
-             index: usize| {
-                let Some((address, _)) = order.get(index) else {
-                    return;
-                };
-                let address = address.clone();
-                let cfg = cfg.clone();
-                let stats = stats.clone();
-                let _ = dialing.spawn(async move {
-                    let result = open_offset_socket(
-                        &cfg,
-                        stats.as_ref(),
-                        &address,
-                        OFFSET_FETCH,
-                        topic_ids,
-                        member,
-                        deadline,
-                    )
-                    .await
-                    .map(|(conn, _versions, version)| (conn, version));
-                    (address, result)
-                });
+        let known_versions = self.known_versions.clone();
+        let start_dial = |dialing: &mut tokio::task::JoinSet<OffsetDial>, index: usize| {
+            let Some((address, _)) = order.get(index) else {
+                return;
             };
+            let address = address.clone();
+            let cfg = cfg.clone();
+            let stats = stats.clone();
+            let known = known_versions.get(&address).cloned().unwrap_or_default();
+            let _ = dialing.spawn(async move {
+                let result = open_offset_socket(
+                    &address,
+                    OffsetSocketRequest {
+                        cfg: &cfg,
+                        stats: stats.as_ref(),
+                        api: OFFSET_FETCH,
+                        ids: topic_ids,
+                        member,
+                        known: &known,
+                    },
+                    deadline,
+                )
+                .await
+                .map(|(conn, versions, version)| (conn, versions.api_keys, version));
+                (address, result)
+            });
+        };
         while next_dial < order.len() && dialing.len() + ready.len() + in_use < 2 {
             if order
                 .get(next_dial)
@@ -613,6 +686,13 @@ impl OffsetClient {
                 };
                 let Ok((dialed, result)) = joined else {
                     return Err(Error::protocol("offset coordinator handshake failed"));
+                };
+                let result = match result {
+                    Ok((conn, keys, version)) => {
+                        self.remember_versions(&dialed, &keys);
+                        Ok((conn, version))
+                    }
+                    Err(error) => Err(error),
                 };
                 let _prev = ready.insert(dialed, result);
             }
