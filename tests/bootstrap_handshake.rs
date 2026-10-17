@@ -4,11 +4,11 @@ mod common;
 use partitionline::protocol::api_keys::OFFSET_FETCH;
 use partitionline::protocol::group::{OffsetFetchGroupData, OffsetFetchRequestData};
 use partitionline::{
-    error, AclBinding, Admin, AdminConfig, AlterConfig, ClientQuotaAlteration, ClientQuotaEntity,
-    ClientQuotaOp, ConfigResource, Consumer, ConsumerConfig, ConsumerGroup,
-    DescribeShareGroupOffsetsGroup, Error, FeatureUpdate, ListConsumerGroupOffsetsSpec, NewTopic,
-    OffsetClient, OffsetOptions, OffsetSpec, Producer, ProducerConfig, ScramMechanism,
-    UserScramCredentialUpsertion,
+    error, AbortTransactionSpec, AclBinding, Admin, AdminConfig, AlterConfig,
+    ClientQuotaAlteration, ClientQuotaEntity, ClientQuotaOp, ConfigResource, Consumer,
+    ConsumerConfig, ConsumerGroup, DescribeShareGroupOffsetsGroup, Error, FeatureUpdate,
+    ListConsumerGroupOffsetsSpec, NewTopic, OffsetClient, OffsetOptions, OffsetSpec, Producer,
+    ProducerConfig, ScramMechanism, UserScramCredentialUpsertion,
 };
 use std::time::{Duration, Instant};
 
@@ -552,6 +552,57 @@ async fn allocate_producer_ids_stays_on_the_bootstrap_socket() {
     assert!(
         elapsed < Duration::from_millis(200),
         "allocate producer ids opened another socket: {elapsed:?}"
+    );
+}
+
+/// InitProducerId on the bootstrap transaction coordinator does not open another socket.
+#[tokio::test]
+async fn fence_producers_stays_on_the_bootstrap_socket() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    let accepts_before = mock.accepts();
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let started = Instant::now();
+    let fenced = admin.fence_producers(["tid-boot"]).await.unwrap();
+    let elapsed = started.elapsed();
+    assert_eq!(fenced.len(), 1);
+    assert_eq!(fenced[0].producer_id, 1000);
+    assert_eq!(
+        mock.accepts(),
+        accepts_before,
+        "InitProducerId should stay on the admin bootstrap socket"
+    );
+    assert!(
+        elapsed < Duration::from_millis(200),
+        "fence producers opened another socket: {elapsed:?}"
+    );
+}
+
+/// WriteTxnMarkers on the bootstrap leader does not open another socket.
+#[tokio::test]
+async fn abort_transaction_stays_on_the_bootstrap_socket() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    let accepts_before = mock.accepts();
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let started = Instant::now();
+    admin
+        .abort_transaction(AbortTransactionSpec::new(("t", 0), 1000, 0, 1))
+        .await
+        .unwrap();
+    let elapsed = started.elapsed();
+    assert_eq!(
+        mock.accepts(),
+        accepts_before,
+        "WriteTxnMarkers should stay on the admin bootstrap socket"
+    );
+    assert!(
+        elapsed < Duration::from_millis(200),
+        "abort transaction opened another socket: {elapsed:?}"
     );
 }
 

@@ -7446,13 +7446,10 @@ impl Admin {
                 .as_ref()
                 .map(|(_, n)| *n)
                 .ok_or_else(|| Error::protocol("missing transaction coordinator"))?;
-            self.connect_node_until(node, deadline).await?;
             let body = {
-                let conn = self
-                    .conns
-                    .get_mut(&node)
-                    .ok_or_else(|| Error::protocol("missing fence_producers conn"))?;
-                conn.roundtrip(
+                self.roundtrip_known_node(
+                    node,
+                    deadline,
                     INIT_PRODUCER_ID,
                     version,
                     |buf| {
@@ -7472,7 +7469,7 @@ impl Admin {
             let body = match body {
                 Ok(b) => b,
                 Err(e) if e.is_retriable() => {
-                    let _ = self.conns.remove(&node);
+                    self.drop_node_conn(node);
                     self.txn_coord = None;
                     self.wait_retry(&mut attempt, deadline).await?;
                     continue;
@@ -7486,7 +7483,7 @@ impl Admin {
             }
             if error::coordinator_retriable(err) {
                 self.txn_coord = None;
-                let _ = self.conns.remove(&node);
+                self.drop_node_conn(node);
                 self.wait_retry(&mut attempt, deadline).await?;
                 continue;
             }
@@ -7551,13 +7548,10 @@ impl Admin {
                 self.refresh_metadata_ref(Some(&topics), deadline).await?;
             }
             let node = self.cluster.leader_id(&spec.topic, spec.partition)?;
-            self.connect_node_until(node, deadline).await?;
             let body = {
-                let conn = self
-                    .conns
-                    .get_mut(&node)
-                    .ok_or_else(|| Error::protocol("missing abort_transaction conn"))?;
-                conn.roundtrip(
+                self.roundtrip_known_node(
+                    node,
+                    deadline,
                     WRITE_TXN_MARKERS,
                     version,
                     |buf| encode_write_txn_markers_named(buf, version, &marker),
@@ -7568,7 +7562,7 @@ impl Admin {
             let body = match body {
                 Ok(b) => b,
                 Err(e) if e.is_retriable() => {
-                    let _ = self.conns.remove(&node);
+                    self.drop_node_conn(node);
                     self.wait_retry(&mut attempt, deadline).await?;
                     continue;
                 }
