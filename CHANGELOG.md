@@ -741,7 +741,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   out of range. A
   piggybacked `DUPLICATE_BROKER_REGISTRATION` still
   completes without retry, including when `AcknowledgeErrorMessage` is
-  set (Java `handleShareFetchSuccess` completes piggyback acks and still
+  set or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
   delivers the fetch; this is not partition `DUPLICATE_BROKER_REGISTRATION`,
   which fails that poll, and not piggyback `POSITION_OUT_OF_RANGE`). Official
   Java `ClusterControlManager` writes this when another broker is already

@@ -1320,7 +1320,7 @@ pub enum ShareAcquireMode {
 /// out of range.
 /// A piggybacked
 /// `DUPLICATE_BROKER_REGISTRATION` still completes without retry,
-/// including when `AcknowledgeErrorMessage` is set (Java
+/// including when `AcknowledgeErrorMessage` is set or empty (Java
 /// `handleShareFetchSuccess` completes piggyback acks and still
 /// delivers the fetch; this is not partition
 /// `DUPLICATE_BROKER_REGISTRATION`, which fails that poll, and not piggyback
@@ -3380,7 +3380,7 @@ impl ShareGroup {
     /// out of range.
     /// A piggybacked `DUPLICATE_BROKER_REGISTRATION` still completes
     /// without retry, including when `AcknowledgeErrorMessage` is set
-    /// (Java `handleShareFetchSuccess` completes piggyback acks and still
+    /// or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
     /// delivers the fetch; this is not partition
     /// `DUPLICATE_BROKER_REGISTRATION`, which fails that poll, and not piggyback
     /// `POSITION_OUT_OF_RANGE`). Official Java
