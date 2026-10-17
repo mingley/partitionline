@@ -247,6 +247,40 @@ async fn describe_groups_coordinator_dials_overlap() {
     assert!(described.iter().all(|group| group.error_code == 0));
 }
 
+/// The first coordinator lookup uses the host from FindCoordinator.
+#[tokio::test]
+async fn describe_groups_uses_find_coordinator_address() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_group_coordinator("g-addr", 2);
+    let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    let delay = Duration::from_millis(250);
+    mock.set_metadata_delay(delay);
+    mock.set_find_coordinator_delay(delay);
+    mock.set_api_versions_delay(delay);
+    let metadata_before = mock.metadata_calls();
+    let versions_before = mock.api_versions_versions().len();
+    let started = Instant::now();
+    let described = admin.describe_groups(&["g-addr"], false).await.unwrap();
+    let elapsed = started.elapsed();
+    assert_eq!(described.len(), 1);
+    assert_eq!(described[0].error_code, 0);
+    assert_eq!(
+        mock.metadata_calls(),
+        metadata_before,
+        "FindCoordinator already returned the coordinator address"
+    );
+    assert!(
+        mock.api_versions_versions().len() > versions_before,
+        "the coordinator socket should still be negotiated"
+    );
+    assert!(
+        elapsed < Duration::from_millis(650),
+        "coordinator lookup loaded the broker list first: {elapsed:?}"
+    );
+}
+
 #[tokio::test]
 async fn consumer_group_describe_coordinator_dials_overlap() {
     let (mock, mut admin) = two_leader_admin().await;

@@ -14269,15 +14269,54 @@ impl Admin {
             .await
     }
 
+    /// Store a FindCoordinator host when it can be dialed.
+    ///
+    /// A missing or unusable host leaves the broker map unchanged so the
+    /// caller can load the directory.
+    fn remember_coordinator(&mut self, node: i32, host: &str, port: i32) -> Result<bool> {
+        let Some(address) = crate::cluster::dial_address(host, port) else {
+            return Ok(false);
+        };
+        if node < 0 {
+            return Ok(false);
+        }
+        if !self.cluster.brokers.contains_key(&node) && self.cluster.brokers.len() >= 256 {
+            return Err(Error::protocol("coordinator broker limit"));
+        }
+        if self.cluster.brokers.get(&node) != Some(&address) {
+            let _removed = self.conns.remove(&node);
+            let _old = self.cluster.brokers.insert(node, address);
+        }
+        Ok(true)
+    }
+
+    async fn ensure_coordinator_node(
+        &mut self,
+        node: i32,
+        host: &str,
+        port: i32,
+        deadline: Instant,
+    ) -> Result<()> {
+        if self.remember_coordinator(node, host, port)? {
+            return Ok(());
+        }
+        if !self.cluster.brokers.contains_key(&node) {
+            self.refresh_broker_directory(deadline).await?;
+        }
+        if !self.cluster.brokers.contains_key(&node) {
+            return Err(Error::protocol("invalid coordinator address"));
+        }
+        Ok(())
+    }
+
     async fn discover_group_coord(&mut self, group_id: &str, deadline: Instant) -> Result<i32> {
         if group_id.len() > i16::MAX as usize {
             return Err(Error::protocol("coordinator key exceeds discovery limit"));
         }
-        let version = self.find_coord_version.ok_or_else(|| {
-            Error::Unsupported("broker does not support FindCoordinator v0-6".into())
-        })?;
-        if version > 0 && self.cluster.brokers.is_empty() {
-            self.refresh_broker_directory(deadline).await?;
+        if self.find_coord_version.is_none() {
+            return Err(Error::Unsupported(
+                "broker does not support FindCoordinator v0-6".into(),
+            ));
         }
         let mut attempt = 0u32;
         loop {
@@ -14317,25 +14356,8 @@ impl Admin {
             let (err, node, host, port) =
                 decode_find_coordinator_response(&mut body.clone(), version)?;
             if err == 0 {
-                if version == 0 {
-                    if node < 0 || host.is_empty() || !(1..=65535).contains(&port) {
-                        return Err(Error::protocol("invalid coordinator address"));
-                    }
-                    if !self.cluster.brokers.contains_key(&node)
-                        && self.cluster.brokers.len() >= 256
-                    {
-                        return Err(Error::protocol("coordinator broker limit"));
-                    }
-                    let address = crate::net::format_address(&host, port);
-                    if self.cluster.brokers.get(&node) != Some(&address) {
-                        let _old = self.conns.remove(&node);
-                        let _old = self.cluster.brokers.insert(node, address);
-                    }
-                    return Ok(node);
-                }
-                if !self.cluster.brokers.contains_key(&node) {
-                    self.refresh_broker_directory(deadline).await?;
-                }
+                self.ensure_coordinator_node(node, &host, port, deadline)
+                    .await?;
                 return Ok(node);
             }
             if error::coordinator_retriable(err) {
@@ -14394,9 +14416,6 @@ impl Admin {
             }
             return Ok(out);
         }
-        if self.cluster.brokers.is_empty() {
-            self.refresh_broker_directory(deadline).await?;
-        }
         let mut attempt = 0u32;
         loop {
             if Instant::now() >= deadline {
@@ -14420,21 +14439,19 @@ impl Admin {
             };
             let (coords, ..) =
                 decode_find_coordinator_response_coordinators(&mut body.clone(), version)?;
-            let mut by_key: HashMap<String, (i16, i32)> = HashMap::new();
+            let mut by_key: HashMap<String, (i16, i32, String, i32)> = HashMap::new();
             for c in coords {
-                let _prev = by_key.insert(c.key, (c.error_code, c.node_id));
+                let _prev = by_key.insert(c.key, (c.error_code, c.node_id, c.host, c.port));
             }
             let mut retry = false;
             let mut out = HashMap::new();
             for k in &uniq {
-                let (err, node) = by_key
-                    .get(*k)
-                    .copied()
+                let (err, node, host, port) = by_key
+                    .remove(*k)
                     .ok_or_else(|| Error::protocol(format!("FindCoordinator missing {k}")))?;
                 if err == 0 {
-                    if !self.cluster.brokers.contains_key(&node) {
-                        self.refresh_broker_directory(deadline).await?;
-                    }
+                    self.ensure_coordinator_node(node, &host, port, deadline)
+                        .await?;
                     let _prev = out.insert((*k).to_owned(), node);
                     continue;
                 }
@@ -14943,9 +14960,6 @@ impl Admin {
                 "transaction discovery requires FindCoordinator v1-6".into(),
             ));
         }
-        if self.cluster.brokers.is_empty() {
-            self.refresh_broker_directory(deadline).await?;
-        }
         let mut attempt = 0u32;
         loop {
             if Instant::now() >= deadline {
@@ -14974,12 +14988,11 @@ impl Admin {
                 }
                 Err(e) => return Err(e),
             };
-            let (err, node, _host, _port) =
+            let (err, node, host, port) =
                 decode_find_coordinator_response(&mut body.clone(), version)?;
             if err == 0 {
-                if !self.cluster.brokers.contains_key(&node) {
-                    self.refresh_broker_directory(deadline).await?;
-                }
+                self.ensure_coordinator_node(node, &host, port, deadline)
+                    .await?;
                 return Ok(node);
             }
             if error::coordinator_retriable(err) {
