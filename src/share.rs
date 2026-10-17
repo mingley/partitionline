@@ -1490,6 +1490,15 @@ pub enum ShareAcquireMode {
 /// `TransactionCoordinator` writes this when AddPartitionsToTxn
 /// verify finds a partition that is not already in the transaction.
 /// A piggybacked
+/// `SHARE_SESSION_NOT_FOUND` still completes without retry,
+/// including when `AcknowledgeErrorMessage` is set (Java
+/// `handleShareFetchSuccess` completes piggyback acks and still
+/// delivers the fetch; this is not partition
+/// `SHARE_SESSION_NOT_FOUND`, which fails that poll, and not piggyback
+/// `TRANSACTION_ABORTABLE`). Official Java
+/// `SharePartitionManager` writes this when the share session cache
+/// has no session for the request key.
+/// A piggybacked
 /// `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a
 /// sibling partition whose `AcknowledgeErrorCode` is none, including
 /// when `AcknowledgeErrorMessage` is set or empty. A piggybacked
@@ -3749,6 +3758,14 @@ impl ShareGroup {
     /// `INVALID_REGISTRATION`). Official Java
     /// `TransactionCoordinator` writes this when AddPartitionsToTxn
     /// verify finds a partition that is not already in the transaction.
+    /// A piggybacked `SHARE_SESSION_NOT_FOUND` still completes
+    /// without retry, including when `AcknowledgeErrorMessage` is set
+    /// (Java `handleShareFetchSuccess` completes piggyback acks and still
+    /// delivers the fetch; this is not partition
+    /// `SHARE_SESSION_NOT_FOUND`, which fails that poll, and not piggyback
+    /// `TRANSACTION_ABORTABLE`). Official Java
+    /// `SharePartitionManager` writes this when the share session cache
+    /// has no session for the request key.
     /// A piggybacked `TOPIC_AUTHORIZATION_FAILED` on one partition
     /// does not fail a sibling whose `AcknowledgeErrorCode` is none,
     /// including when `AcknowledgeErrorMessage` is set or empty.
