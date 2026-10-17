@@ -2842,6 +2842,14 @@ async fn send_fetch_session_close(
                 drop(result);
                 return Err(Error::Wakeup);
             }
+            // The quota wait is off the socket read. A broker that leaves
+            // during it must not keep this connection until the quota ends.
+            closed = conn.inbound_ready() => {
+                if let Err(error) = closed {
+                    conn.close();
+                    return Err(error);
+                }
+            }
             _ = tokio::time::sleep(until.saturating_duration_since(Instant::now())) => {}
         }
     }

@@ -1980,6 +1980,54 @@ async fn fetch_drops_the_socket_when_the_broker_closes_during_throttle() {
     drop(fetch);
 }
 
+/// Closing a throttled fetch drops the leader socket when that broker is already gone.
+#[tokio::test(flavor = "current_thread")]
+async fn fetch_close_drops_the_socket_when_the_broker_closes_during_throttle() {
+    let mock = common::Mock::start().await;
+    mock.enable_fetch_sessions([1]);
+    mock.set_fetch_throttles(1, [5_000]);
+    let mut cfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    cfg.request_timeout = Duration::from_secs(30);
+    cfg.max_wait_ms = 10;
+    let mut consumer = Consumer::new(cfg).await.unwrap();
+    consumer.assign("t", 0, 0).await.unwrap();
+    let _first = consumer.fetch().await.unwrap();
+    assert!(mock.fetch_session_id(1).is_some());
+    let close = consumer.close_timeout(Duration::from_secs(30));
+    tokio::pin!(close);
+    let started = Instant::now();
+    while started.elapsed() < Duration::from_millis(50) {
+        tokio::select! {
+            result = &mut close => panic!("close finished before the quota wait: {result:?}"),
+            _ = tokio::time::sleep(Duration::from_millis(5)) => {}
+        }
+    }
+    let open = mock.open_conns();
+    if open == 0 {
+        panic!("fetch close did not keep a broker socket through the quota wait");
+    }
+    mock.shutdown_writes();
+    let started = Instant::now();
+    loop {
+        if mock.open_conns() < open {
+            break;
+        }
+        if started.elapsed() > Duration::from_millis(400) {
+            panic!("fetch close kept the socket while the broker quota wait ran");
+        }
+        tokio::select! {
+            result = &mut close => {
+                if mock.open_conns() < open {
+                    result.expect("close");
+                    break;
+                }
+                panic!("close finished while the broker was still reading: {result:?}");
+            }
+            _ = tokio::time::sleep(Duration::from_millis(5)) => {}
+        }
+    }
+}
+
 /// Closing a producer closes the metadata socket before close returns.
 #[tokio::test(flavor = "current_thread")]
 async fn producer_close_closes_the_metadata_socket() {
