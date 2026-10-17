@@ -2635,6 +2635,8 @@ impl ShareGroup {
                 None
             } else if addr == self.coord_addr && !self.coord_keys.is_empty() {
                 Some(self.coord_keys.clone())
+            } else if let Some(keys) = self.consumer.learned_keys_for(&addr) {
+                Some(keys)
             } else {
                 self.share_api_keys.get(&node).cloned()
             };

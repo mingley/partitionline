@@ -2889,7 +2889,7 @@ impl Consumer {
         let _stored = self.node_api_keys.insert(node, keys);
     }
 
-    fn learned_keys_for(&self, addr: &str) -> Option<Vec<ApiVersion>> {
+    pub(crate) fn learned_keys_for(&self, addr: &str) -> Option<Vec<ApiVersion>> {
         self.learned_broker_keys.get(addr).cloned()
     }
 

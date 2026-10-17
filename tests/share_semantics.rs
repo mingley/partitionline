@@ -101,6 +101,49 @@ async fn share_heartbeat_retries_without_another_handshake() {
     group.leave().await.unwrap();
 }
 
+/// A share fetch to another bootstrap reuses the handshake from startup.
+#[tokio::test]
+async fn share_fetch_reuses_a_finished_bootstrap_handshake() {
+    let mock = common::Mock::start_two_node().await;
+    v2(&mock);
+    mock.set_topic_partitions("t", 1);
+    mock.set_partition_leader("t", 0, 2);
+    mock.set_share_heartbeat_interval_ms(60_000);
+    produce(&mock, &[(0, b"share")]).await;
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let addr2 = mock.broker_addr(2).unwrap();
+    let mut cfg = config(&mock);
+    cfg.bootstrap = vec![mock.addr.clone(), addr2];
+    cfg.heartbeat_interval = Duration::from_secs(5);
+    cfg.request_timeout = Duration::from_secs(3);
+    let started = Instant::now();
+    let mut group = ShareGroup::join(cfg, "share-boot", "t").await.unwrap();
+    let startup = started.elapsed();
+    let versions = mock.api_versions_versions().len();
+    assert!(
+        versions <= 8,
+        "startup negotiated a bootstrap more than once: {versions}"
+    );
+    assert!(
+        startup < Duration::from_millis(700),
+        "startup repeated a bootstrap handshake: {startup:?}"
+    );
+    let started = Instant::now();
+    let got = group.poll().await.unwrap();
+    let elapsed = started.elapsed();
+    assert_eq!(got.len(), 1);
+    assert_eq!(
+        mock.api_versions_versions().len(),
+        versions,
+        "share fetch renegotiated a bootstrap that finished at startup"
+    );
+    assert!(
+        elapsed < Duration::from_millis(200),
+        "share fetch repeated ApiVersions: {elapsed:?}"
+    );
+    group.leave().await.unwrap();
+}
+
 /// A share fetch from the group coordinator does not repeat ApiVersions.
 #[tokio::test]
 async fn share_fetch_reuses_the_coordinator_handshake() {
