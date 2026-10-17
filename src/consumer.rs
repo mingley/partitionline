@@ -6336,19 +6336,13 @@ impl Consumer {
                         self.fetch_plan = by_leader;
                         return Ok(self.finish_fetch(out));
                     }
-                    if let Some((node, until)) = earliest {
+                    if let Some((_, until)) = earliest {
                         let wake = until.min(deadline).min(poll_deadline);
                         let mut rx = self.wakeup_tx.subscribe();
-                        // The quota wait is off the fetch read. A leader that
-                        // leaves during it must not keep this socket until the
-                        // quota ends.
-                        let on_bootstrap = !self.conns.contains_key(&node)
-                            && self
-                                .cluster
-                                .brokers
-                                .get(&node)
-                                .is_some_and(|addr| addr == self.conn.addr());
-                        let peer_left = tokio::select! {
+                        let muted: Vec<i32> = self.fetch_throttles.keys().copied().collect();
+                        // The quota wait is off the fetch read. Every muted
+                        // leader is watched, not only the soonest one.
+                        tokio::select! {
                             biased;
                             result = rx.wait_for(|on| *on) => {
                                 drop(result);
@@ -6356,38 +6350,8 @@ impl Consumer {
                                 self.park_fetch_records(out);
                                 return Err(Error::Wakeup);
                             }
-                            closed = async {
-                                if let Some(conn) = self.conns.get_mut(&node) {
-                                    conn.inbound_ready().await.is_err()
-                                } else if on_bootstrap {
-                                    self.conn.inbound_ready().await.is_err()
-                                } else {
-                                    std::future::pending().await
-                                }
-                            } => closed,
-                            _ = tokio::time::sleep(wake.saturating_duration_since(now)) => false,
-                        };
-                        if peer_left {
-                            if self.conns.contains_key(&node) {
-                                if let Some(conn) = self.conns.remove(&node) {
-                                    drop(conn);
-                                }
-                            } else if on_bootstrap {
-                                let addr = self.conn.addr().to_string();
-                                let dial_deadline = Instant::now() + self.cfg.connect_timeout;
-                                if let Ok((conn, versions)) =
-                                    self.open_leader_socket(&addr, dial_deadline).await
-                                {
-                                    self.versions = versions
-                                        .api_keys
-                                        .into_iter()
-                                        .map(|api| (api.api_key, api))
-                                        .collect();
-                                    self.conn = conn;
-                                } else {
-                                    self.conn.close();
-                                }
-                            }
+                            _closed = self.watch_muted_fetch_sockets(&muted) => {}
+                            _ = tokio::time::sleep(wake.saturating_duration_since(now)) => {}
                         }
                         self.fetch_plan = by_leader;
                         continue;
@@ -7068,6 +7032,102 @@ impl Consumer {
         }
         out.sort_by_key(|reply| reply.node);
         Ok(out)
+    }
+
+    /// Read muted leader sockets until one closes or every watch is idle.
+    ///
+    /// Closed dedicated sockets are dropped. A closed bootstrap socket is
+    /// replaced so the next fetch does not write to it.
+    async fn watch_muted_fetch_sockets(&mut self, nodes: &[i32]) -> bool {
+        let (stop_tx, _) = tokio::sync::broadcast::channel::<()>(1);
+        let mut set = tokio::task::JoinSet::new();
+        let mut watched = Vec::new();
+        for &node in nodes {
+            let Some(mut conn) = self.conns.remove(&node) else {
+                continue;
+            };
+            watched.push(node);
+            let mut stop = stop_tx.subscribe();
+            let _ = set.spawn(async move {
+                let closed = tokio::select! {
+                    biased;
+                    _ = stop.recv() => false,
+                    result = conn.inbound_ready() => result.is_err(),
+                };
+                (node, conn, closed)
+            });
+        }
+        let mut watch_bootstrap = nodes.iter().copied().any(|node| {
+            !watched.contains(&node)
+                && self
+                    .cluster
+                    .brokers
+                    .get(&node)
+                    .is_some_and(|addr| addr == self.conn.addr())
+        });
+        let mut closed_any = false;
+        loop {
+            if set.is_empty() && (!watch_bootstrap || closed_any) {
+                break;
+            }
+            if set.is_empty() {
+                closed_any = self.conn.inbound_ready().await.is_err();
+                break;
+            }
+            let mut returned = Vec::new();
+            tokio::select! {
+                biased;
+                result = self.conn.inbound_ready(), if watch_bootstrap && !closed_any => {
+                    if result.is_err() {
+                        closed_any = true;
+                        let _listeners = stop_tx.send(()).unwrap_or(0);
+                    } else {
+                        watch_bootstrap = false;
+                    }
+                }
+                joined = set.join_next(), if !set.is_empty() => {
+                    if let Some(Ok((node, conn, closed))) = joined {
+                        if closed {
+                            drop(conn);
+                            if !closed_any {
+                                closed_any = true;
+                                let _listeners = stop_tx.send(()).unwrap_or(0);
+                            }
+                        } else {
+                            returned.push((node, conn));
+                        }
+                    }
+                }
+            }
+            for (node, conn) in returned {
+                let _ = self.conns.insert(node, conn);
+            }
+        }
+        while let Some(joined) = set.join_next().await {
+            if let Ok((node, conn, closed)) = joined {
+                if closed {
+                    drop(conn);
+                    closed_any = true;
+                } else {
+                    let _ = self.conns.insert(node, conn);
+                }
+            }
+        }
+        if closed_any && watch_bootstrap {
+            let addr = self.conn.addr().to_string();
+            let dial_deadline = Instant::now() + self.cfg.connect_timeout;
+            if let Ok((conn, versions)) = self.open_leader_socket(&addr, dial_deadline).await {
+                self.versions = versions
+                    .api_keys
+                    .into_iter()
+                    .map(|api| (api.api_key, api))
+                    .collect();
+                self.conn = conn;
+            } else {
+                self.conn.close();
+            }
+        }
+        closed_any
     }
 
     fn observe_fetch_throttle(&mut self, node: i32, millis: i32, received_at: Instant) {

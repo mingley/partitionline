@@ -1980,6 +1980,69 @@ async fn fetch_drops_the_socket_when_the_broker_closes_during_throttle() {
     drop(fetch);
 }
 
+/// A later muted leader is dropped when it closes, even if an earlier quota is still running.
+#[tokio::test(flavor = "current_thread")]
+async fn fetch_drops_a_later_leader_when_it_closes_during_throttle() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_topic_partitions("t", 2);
+    mock.set_partition_leader("t", 0, 1);
+    mock.set_partition_leader("t", 1, 2);
+    let mut producer_cfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    producer_cfg.linger = Duration::ZERO;
+    let producer = Producer::new(producer_cfg).await.unwrap();
+    for partition in 0..2 {
+        let _sent = producer
+            .send(
+                ProduceRecord::to("t")
+                    .partition(partition)
+                    .value(b"v".to_vec()),
+            )
+            .await
+            .unwrap();
+    }
+    mock.set_fetch_throttles(1, [5_000]);
+    mock.set_fetch_throttles(2, [8_000]);
+    let mut cfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    cfg.request_timeout = Duration::from_secs(30);
+    cfg.max_wait_ms = 10_000;
+    let mut consumer = Consumer::new(cfg).await.unwrap();
+    consumer
+        .assign_many([(("t", 0), 0), (("t", 1), 0)])
+        .await
+        .unwrap();
+    let first = consumer.fetch().await.unwrap();
+    assert_eq!(first.len(), 2);
+    producer.close().await.unwrap();
+    let fetch = consumer.fetch();
+    tokio::pin!(fetch);
+    let started = Instant::now();
+    while started.elapsed() < Duration::from_millis(50) {
+        tokio::select! {
+            result = &mut fetch => panic!("fetch finished before the later leader closed: {result:?}"),
+            _ = tokio::time::sleep(Duration::from_millis(5)) => {}
+        }
+    }
+    let open = mock.open_conns();
+    if open == 0 {
+        panic!("throttled fetch did not keep a broker socket");
+    }
+    mock.shutdown_node_writes(2);
+    let started = Instant::now();
+    loop {
+        if mock.open_conns() < open {
+            break;
+        }
+        if started.elapsed() > Duration::from_millis(400) {
+            panic!("fetch kept the later leader socket while an earlier quota wait ran");
+        }
+        tokio::select! {
+            result = &mut fetch => panic!("fetch finished during the quota wait: {result:?}"),
+            _ = tokio::time::sleep(Duration::from_millis(5)) => {}
+        }
+    }
+    drop(fetch);
+}
+
 /// Closing a throttled fetch drops the leader socket when that broker is already gone.
 #[tokio::test(flavor = "current_thread")]
 async fn fetch_close_drops_the_socket_when_the_broker_closes_during_throttle() {
