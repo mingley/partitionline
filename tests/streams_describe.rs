@@ -110,6 +110,40 @@ async fn order_duplicates_and_all_fields_over_three_discovery_versions() {
         assert!(request.include_authorized_operations);
     }
 }
+/// Startup drops a slower Streams bootstrap handshake before the race returns.
+#[tokio::test(flavor = "current_thread")]
+async fn streams_startup_finishes_a_blocked_bootstrap_handshake() {
+    use std::sync::atomic::{AtomicBool, Ordering};
+    use std::sync::Arc;
+    use tokio::io::AsyncReadExt;
+
+    let peer = prepared().await;
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let slow = listener.local_addr().unwrap().to_string();
+    let dropped = Arc::new(AtomicBool::new(false));
+    let flag = Arc::clone(&dropped);
+    let stalled = tokio::spawn(async move {
+        let (mut sock, _) = listener.accept().await.unwrap();
+        let mut buf = [0u8; 64];
+        loop {
+            match sock.read(&mut buf).await {
+                Ok(0) | Err(_) => break,
+                Ok(_) => continue,
+            }
+        }
+        flag.store(true, Ordering::SeqCst);
+    });
+    let mut admin = peer.admin().await;
+    admin.test_race_streams_bootstrap(slow).await.unwrap();
+    assert!(
+        dropped.load(Ordering::SeqCst),
+        "startup left the slower bootstrap handshake blocked in a broker read"
+    );
+    drop(admin);
+    stalled.abort();
+    let _frames = peer.close().await;
+}
+
 /// A coordinator that is another bootstrap reuses that finished handshake.
 #[tokio::test]
 async fn describe_reuses_a_finished_bootstrap_handshake() {

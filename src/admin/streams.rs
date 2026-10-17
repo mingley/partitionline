@@ -221,6 +221,22 @@ impl Admin {
         Ok(output)
     }
 
+    /// Race Streams describe handshakes and return once the losers have stopped.
+    ///
+    /// A later describe continues with coordinator lookup, which hides a
+    /// handshake that was only aborted.
+    #[doc(hidden)]
+    pub async fn test_race_streams_bootstrap(&mut self, extra: String) -> Result<()> {
+        self.cfg.bootstrap.push(extra);
+        let deadline = Deadline::from_std(
+            Instant::now()
+                .checked_add(self.cfg.request_timeout)
+                .ok_or(Error::Timeout)?,
+        );
+        let _opened = self.streams_bootstrap(deadline).await?;
+        Ok(())
+    }
+
     async fn open_streams_describe(
         &self,
         address: &str,
@@ -308,7 +324,7 @@ impl Admin {
                 Err(error) => last = Error::protocol(format!("streams bootstrap: {error}")),
             }
         }
-        inflight.abort_all();
+        Admin::finish_aborted_handshakes(inflight).await;
         finished.sort_by_key(|(index, _)| *index);
         let mut rest = finished.into_iter();
         let Some((_, (conn, versions))) = rest.next() else {
