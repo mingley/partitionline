@@ -675,3 +675,24 @@ async fn delivery_deadline_bounds_metadata_refresh_during_retry() {
     );
     producer.close().await.unwrap();
 }
+
+/// Close waits until the background control tasks have actually stopped.
+#[tokio::test(flavor = "current_thread")]
+async fn close_finishes_control_tasks_before_returning() {
+    let mock = common::Mock::start().await;
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    let tasks = producer.test_control_tasks();
+    assert_eq!(
+        tasks.len(),
+        3,
+        "metadata, connect, and retry tasks are running"
+    );
+    producer.close().await.unwrap();
+    assert!(
+        tasks.iter().all(|task| task.is_finished()),
+        "close returned while a control task was still alive"
+    );
+}

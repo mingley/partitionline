@@ -1034,9 +1034,9 @@ struct Shared {
     meta_tx: mpsc::Sender<Arc<str>>,
     connect_tx: mpsc::Sender<(i32, usize)>,
     retry_tx: mpsc::Sender<Pending>,
-    meta_task: parking_lot::Mutex<Option<tokio::task::JoinHandle<()>>>,
-    connect_task: parking_lot::Mutex<Option<tokio::task::JoinHandle<()>>>,
-    retry_task: parking_lot::Mutex<Option<tokio::task::JoinHandle<()>>>,
+    meta_task: parking_lot::Mutex<Option<Arc<tokio::task::JoinHandle<()>>>>,
+    connect_task: parking_lot::Mutex<Option<Arc<tokio::task::JoinHandle<()>>>>,
+    retry_task: parking_lot::Mutex<Option<Arc<tokio::task::JoinHandle<()>>>>,
     last_meta_err: parking_lot::Mutex<Option<Error>>,
     /// Set when [`Self::last_meta_err`] holds an error. The produce fast path
     /// loads this before taking the mutex.
@@ -1114,6 +1114,22 @@ impl Drop for Inner {
 
 /// Per-record queue-to-ack latency against one batch ack timestamp
 /// (no clock read; definition preserved: ack time minus queued_at).
+/// Let an aborted task reach its next await before close returns.
+///
+/// Abort only schedules cancellation. On a current-thread runtime the task
+/// stays alive until this caller yields. The wait stops at `deadline`.
+async fn wait_until_finished(handle: &tokio::task::JoinHandle<()>, deadline: Option<Instant>) {
+    let Some(deadline) = deadline else {
+        return;
+    };
+    while !handle.is_finished() {
+        if Instant::now() >= deadline {
+            return;
+        }
+        tokio::task::yield_now().await;
+    }
+}
+
 fn ack_latency_ns(ack: Instant, queued_at: Instant) -> u64 {
     u64::try_from(ack.saturating_duration_since(queued_at).as_nanos()).unwrap_or(u64::MAX)
 }
@@ -1886,9 +1902,9 @@ impl Producer {
             retry_loop(weak, retry_rx).await;
         });
 
-        *shared.meta_task.lock() = Some(meta_handle);
-        *shared.connect_task.lock() = Some(connect_handle);
-        *shared.retry_task.lock() = Some(retry_handle);
+        *shared.meta_task.lock() = Some(Arc::new(meta_handle));
+        *shared.connect_task.lock() = Some(Arc::new(connect_handle));
+        *shared.retry_task.lock() = Some(Arc::new(retry_handle));
 
         Ok(Self {
             inner: Arc::new(Inner { shared }),
@@ -2835,6 +2851,19 @@ impl Producer {
             .store(epoch, Ordering::SeqCst);
     }
 
+    /// Test hook: background control tasks started with this producer.
+    #[doc(hidden)]
+    pub fn test_control_tasks(&self) -> Vec<Arc<tokio::task::JoinHandle<()>>> {
+        [
+            self.inner.shared.meta_task.lock().clone(),
+            self.inner.shared.connect_task.lock().clone(),
+            self.inner.shared.retry_task.lock().clone(),
+        ]
+        .into_iter()
+        .flatten()
+        .collect()
+    }
+
     /// Test hook: inspect worker task handles to verify task termination.
     #[doc(hidden)]
     pub fn test_worker_tasks(&self) -> Vec<Arc<tokio::task::JoinHandle<()>>> {
@@ -3525,14 +3554,22 @@ impl Producer {
         self.inner.shared.nodes.lock().clear();
         self.inner.shared.fast.write().clear();
 
-        if let Some(h) = self.inner.shared.meta_task.lock().take() {
-            h.abort();
-        }
-        if let Some(h) = self.inner.shared.connect_task.lock().take() {
-            h.abort();
-        }
-        if let Some(h) = self.inner.shared.retry_task.lock().take() {
-            h.abort();
+        let control_tasks = {
+            let mut tasks = Vec::new();
+            if let Some(task) = self.inner.shared.meta_task.lock().take() {
+                tasks.push(task);
+            }
+            if let Some(task) = self.inner.shared.connect_task.lock().take() {
+                tasks.push(task);
+            }
+            if let Some(task) = self.inner.shared.retry_task.lock().take() {
+                tasks.push(task);
+            }
+            tasks
+        };
+        for task in control_tasks {
+            task.abort();
+            wait_until_finished(&task, deadline).await;
         }
         self.inner.shared.clear_sticky();
     }
