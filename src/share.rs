@@ -1311,7 +1311,7 @@ pub enum ShareAcquireMode {
 /// not exist.
 /// A piggybacked
 /// `POSITION_OUT_OF_RANGE` still completes without retry,
-/// including when `AcknowledgeErrorMessage` is set (Java
+/// including when `AcknowledgeErrorMessage` is set or empty (Java
 /// `handleShareFetchSuccess` completes piggyback acks and still
 /// delivers the fetch; this is not partition
 /// `POSITION_OUT_OF_RANGE`, which fails that poll, and not piggyback
@@ -3360,7 +3360,7 @@ impl ShareGroup {
     /// not exist.
     /// A piggybacked `POSITION_OUT_OF_RANGE` still completes
     /// without retry, including when `AcknowledgeErrorMessage` is set
-    /// (Java `handleShareFetchSuccess` completes piggyback acks and still
+    /// or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
     /// delivers the fetch; this is not partition
     /// `POSITION_OUT_OF_RANGE`, which fails that poll, and not piggyback
     /// `SNAPSHOT_NOT_FOUND`). Official Java

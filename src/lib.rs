@@ -2482,7 +2482,7 @@
 //! not exist.
 //! A piggybacked
 //! `POSITION_OUT_OF_RANGE` still completes without retry,
-//! including when `AcknowledgeErrorMessage` is set (this is not
+//! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `POSITION_OUT_OF_RANGE`, which fails that poll, and not
 //! piggyback `SNAPSHOT_NOT_FOUND`). Official Java
 //! `KafkaRaftClient` writes this when the requested snapshot offset is

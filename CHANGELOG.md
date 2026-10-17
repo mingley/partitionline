@@ -734,7 +734,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   not exist. A
   piggybacked `POSITION_OUT_OF_RANGE` still
   completes without retry, including when `AcknowledgeErrorMessage` is
-  set (Java `handleShareFetchSuccess` completes piggyback acks and still
+  set or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
   delivers the fetch; this is not partition `POSITION_OUT_OF_RANGE`,
   which fails that poll, and not piggyback `SNAPSHOT_NOT_FOUND`). Official
   Java `KafkaRaftClient` writes this when the requested snapshot offset is
