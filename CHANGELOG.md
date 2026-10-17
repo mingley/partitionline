@@ -637,7 +637,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `group.instance.id` has registered with a different member id. A
   piggybacked `ELIGIBLE_LEADERS_NOT_AVAILABLE` still
   completes without retry, including when `AcknowledgeErrorMessage` is
-  set (Java `handleShareFetchSuccess` completes piggyback acks and still
+  set or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
   delivers the fetch; this is not partition `ELIGIBLE_LEADERS_NOT_AVAILABLE`,
   which fails that poll, and not piggyback `FENCED_INSTANCE_ID`). Official
   Java `ReplicationControlManager.electLeader` writes this when an unclean

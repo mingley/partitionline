@@ -1190,7 +1190,7 @@ pub enum ShareAcquireMode {
 /// when another consumer with the same `group.instance.id` has registered
 /// with a different member id. A piggybacked
 /// `ELIGIBLE_LEADERS_NOT_AVAILABLE` still completes without retry,
-/// including when `AcknowledgeErrorMessage` is set (Java
+/// including when `AcknowledgeErrorMessage` is set or empty (Java
 /// `handleShareFetchSuccess` completes piggyback acks and still
 /// delivers the fetch; this is not partition
 /// `ELIGIBLE_LEADERS_NOT_AVAILABLE`, which fails that poll, and not piggyback
@@ -3085,7 +3085,7 @@ impl ShareGroup {
     /// with a different member id.
     /// A piggybacked `ELIGIBLE_LEADERS_NOT_AVAILABLE` still completes
     /// without retry, including when `AcknowledgeErrorMessage` is set
-    /// (Java `handleShareFetchSuccess` completes piggyback acks and still
+    /// or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
     /// delivers the fetch; this is not partition
     /// `ELIGIBLE_LEADERS_NOT_AVAILABLE`, which fails that poll, and not piggyback
     /// `FENCED_INSTANCE_ID`). Official Java

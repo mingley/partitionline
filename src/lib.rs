@@ -2389,7 +2389,7 @@
 //! writes this when another consumer with the same `group.instance.id`
 //! has registered with a different member id. A piggybacked
 //! `ELIGIBLE_LEADERS_NOT_AVAILABLE` still completes without retry,
-//! including when `AcknowledgeErrorMessage` is set (this is not
+//! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `ELIGIBLE_LEADERS_NOT_AVAILABLE`, which fails that poll, and not
 //! piggyback `FENCED_INSTANCE_ID`). Official Java
 //! `ReplicationControlManager.electLeader` writes this when an unclean
