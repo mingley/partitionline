@@ -984,7 +984,7 @@ pub enum ShareAcquireMode {
 /// `POLICY_VIOLATION`, which fails that poll, and not piggyback
 /// `INVALID_REQUEST`). A piggybacked
 /// `OUT_OF_ORDER_SEQUENCE_NUMBER` still completes without retry,
-/// including when `AcknowledgeErrorMessage` is set (Java
+/// including when `AcknowledgeErrorMessage` is set or empty (Java
 /// `handleShareFetchSuccess` completes piggyback acks and still
 /// delivers the fetch; this is not partition
 /// `OUT_OF_ORDER_SEQUENCE_NUMBER`, which fails that poll, and not piggyback
@@ -2575,7 +2575,7 @@ impl ShareGroup {
     /// `INVALID_REQUEST`).
     /// A piggybacked `OUT_OF_ORDER_SEQUENCE_NUMBER` still completes
     /// without retry, including when `AcknowledgeErrorMessage` is set
-    /// (Java `handleShareFetchSuccess` completes piggyback acks and still
+    /// or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
     /// delivers the fetch; this is not partition
     /// `OUT_OF_ORDER_SEQUENCE_NUMBER`, which fails that poll, and not piggyback
     /// `POLICY_VIOLATION`).
