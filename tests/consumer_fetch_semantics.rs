@@ -3631,6 +3631,48 @@ async fn consumer_group_heartbeat_retries_without_another_handshake() {
     group.leave().await.unwrap();
 }
 
+/// Leaving after max.poll.interval uses the heartbeat socket.
+#[tokio::test]
+async fn max_poll_leave_reuses_the_heartbeat_socket() {
+    let mock = common::Mock::start().await;
+    mock.set_topic_partitions("t", 1);
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    let _sent = producer
+        .send(ProduceRecord::to("t").value(&b"v"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+    let mut cfg = ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10);
+    cfg.heartbeat_interval = Duration::from_millis(30);
+    cfg.max_poll_interval = Duration::from_millis(80);
+    let mut group = ConsumerGroup::join(cfg, "leave-known", "t").await.unwrap();
+    assert_eq!(group.poll().await.unwrap().len(), 1);
+    let started_first = Instant::now();
+    while mock.heartbeat_total("leave-known") < 1 {
+        if started_first.elapsed() > Duration::from_secs(2) {
+            panic!("heartbeat did not start");
+        }
+        tokio::time::sleep(Duration::from_millis(5)).await;
+    }
+    let versions_before = mock.api_versions_versions().len();
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    tokio::time::sleep(Duration::from_millis(400)).await;
+    assert_eq!(
+        mock.last_leave_group_node(),
+        Some(1),
+        "max poll should leave the group"
+    );
+    assert_eq!(
+        mock.api_versions_versions().len(),
+        versions_before,
+        "max poll leave repeated ApiVersions"
+    );
+    drop(group);
+}
+
 /// A classic heartbeat retry reuses the coordinator handshake.
 #[tokio::test]
 async fn group_heartbeat_retries_without_another_handshake() {

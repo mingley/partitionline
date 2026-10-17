@@ -3531,6 +3531,8 @@ impl ConsumerGroup {
                             true,
                             &last_poll,
                             &left_max_poll,
+                            &mut conn,
+                            &bootstrap_keys,
                         )
                         .await
                         {
@@ -3760,6 +3762,8 @@ impl ConsumerGroup {
                             false,
                             &last_poll,
                             &left_max_poll,
+                            &mut conn,
+                            &bootstrap_keys,
                         )
                         .await
                         {
@@ -3929,6 +3933,36 @@ mod member_id_tests {
     }
 }
 
+async fn leave_coordinator(
+    cfg: &ConsumerConfig,
+    group_id: &str,
+    deadline: Instant,
+    bootstrap_keys: &[ApiVersion],
+) -> Option<BrokerConn> {
+    let addr = cfg.bootstrap.first()?;
+    if bootstrap_keys.is_empty() {
+        return discover_coord_within(cfg, group_id, COORDINATOR_GROUP, deadline)
+            .await
+            .ok();
+    }
+    let bound = crate::net::Deadline::from_std(deadline);
+    let (mut hop, version, _) = open_coord_with_keys(cfg, addr, bootstrap_keys).await.ok()?;
+    let coord_addr = coordinator_address_of(&mut hop, version, group_id, COORDINATOR_GROUP, bound)
+        .await
+        .ok()?;
+    if coord_addr == hop.addr() {
+        return Some(hop);
+    }
+    open_coord_with_find_version(cfg, &coord_addr)
+        .await
+        .ok()
+        .map(|(conn, _, _)| conn)
+}
+
+#[expect(
+    clippy::too_many_arguments,
+    reason = "max poll leave carries the open coordinator and its bootstrap versions"
+)]
 async fn leave_if_max_poll(
     cfg: &ConsumerConfig,
     group_id: &str,
@@ -3936,6 +3970,8 @@ async fn leave_if_max_poll(
     kip848: bool,
     last_poll: &parking_lot::Mutex<Option<Instant>>,
     left: &AtomicBool,
+    conn: &mut Option<BrokerConn>,
+    bootstrap_keys: &[ApiVersion],
 ) -> bool {
     if left.load(Ordering::SeqCst) {
         return true;
@@ -3951,7 +3987,10 @@ async fn leave_if_max_poll(
     }
     left.store(true, Ordering::SeqCst);
     let deadline = Instant::now() + cfg.request_timeout;
-    if let Ok(mut c) = discover_coord_within(cfg, group_id, COORDINATOR_GROUP, deadline).await {
+    if conn.is_none() {
+        *conn = leave_coordinator(cfg, group_id, deadline, bootstrap_keys).await;
+    }
+    if let Some(c) = conn.as_mut() {
         let timeout = deadline.saturating_duration_since(Instant::now());
         if timeout.is_zero() {
             return true;
