@@ -650,30 +650,30 @@ where
     let mut pos = 0usize;
     // Complete frames already parsed. The next stall read continues here.
     let mut scanned = 0usize;
-    poll_fn(|cx| loop {
-        let remaining = match bytes.get(pos..) {
-            Some(r) => r,
-            None => {
-                return Poll::Ready(Err(io::Error::new(
-                    io::ErrorKind::InvalidInput,
-                    "write pos past end",
-                )));
-            }
+    poll_fn(|cx| {
+        let Some(remaining) = bytes.get(pos..) else {
+            return Poll::Ready(Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "write pos past end",
+            )));
         };
         match Pin::new(&mut *stream).poll_write(cx, remaining) {
-            Poll::Ready(Ok(0)) => {
-                return Poll::Ready(Err(io::Error::new(
-                    io::ErrorKind::WriteZero,
-                    "broker write returned 0",
-                )));
-            }
+            Poll::Ready(Ok(0)) => Poll::Ready(Err(io::Error::new(
+                io::ErrorKind::WriteZero,
+                "broker write returned 0",
+            ))),
             Poll::Ready(Ok(n)) => {
                 pos += n;
                 if pos >= bytes.len() {
-                    return Poll::Ready(Ok(()));
+                    Poll::Ready(Ok(()))
+                } else {
+                    // A socket that accepts one byte at a time keeps this poll
+                    // running, so the write deadline cannot stop it.
+                    cx.waker().wake_by_ref();
+                    Poll::Pending
                 }
             }
-            Poll::Ready(Err(e)) => return Poll::Ready(Err(e)),
+            Poll::Ready(Err(e)) => Poll::Ready(Err(e)),
             Poll::Pending => {
                 // Read straight into `read_buf` spare capacity. The framed
                 // reader and a stalled TLS handshake both need those bytes,
@@ -690,14 +690,12 @@ where
                 // dropping this future on Pending does not lose bytes.
                 let mut read = std::pin::pin!(stream.read_buf(&mut limited));
                 match read.as_mut().poll(cx) {
-                    Poll::Ready(Ok(0)) => {
-                        return Poll::Ready(Err(io::Error::new(
-                            io::ErrorKind::UnexpectedEof,
-                            "broker closed connection",
-                        )));
-                    }
+                    Poll::Ready(Ok(0)) => Poll::Ready(Err(io::Error::new(
+                        io::ErrorKind::UnexpectedEof,
+                        "broker closed connection",
+                    ))),
                     Poll::Ready(Ok(_)) => {
-                        // Ready data keeps this poll looping, so the write
+                        // Ready data keeps this poll going, so the write
                         // deadline never gets another turn. Stop after one
                         // max frame instead of buffering the peer without a
                         // limit.
@@ -710,10 +708,10 @@ where
                         // The bytes stay buffered. Yield so the write deadline
                         // can stop a peer that keeps the read ready.
                         cx.waker().wake_by_ref();
-                        return Poll::Pending;
+                        Poll::Pending
                     }
-                    Poll::Ready(Err(e)) => return Poll::Ready(Err(e)),
-                    Poll::Pending => return Poll::Pending,
+                    Poll::Ready(Err(e)) => Poll::Ready(Err(e)),
+                    Poll::Pending => Poll::Pending,
                 }
             }
         }
@@ -2858,6 +2856,57 @@ mod tests {
         fn poll_shutdown(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<io::Result<()>> {
             Poll::Ready(Ok(()))
         }
+    }
+
+    struct SlowAccept;
+
+    impl AsyncRead for SlowAccept {
+        fn poll_read(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            _buf: &mut ReadBuf<'_>,
+        ) -> Poll<io::Result<()>> {
+            Poll::Pending
+        }
+    }
+
+    impl AsyncWrite for SlowAccept {
+        fn poll_write(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            buf: &[u8],
+        ) -> Poll<io::Result<usize>> {
+            if buf.is_empty() {
+                return Poll::Ready(Ok(0));
+            }
+            let start = std::time::Instant::now();
+            while start.elapsed() < Duration::from_millis(3) {}
+            Poll::Ready(Ok(1))
+        }
+
+        fn poll_flush(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<io::Result<()>> {
+            Poll::Ready(Ok(()))
+        }
+
+        fn poll_shutdown(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<io::Result<()>> {
+            Poll::Ready(Ok(()))
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn write_deadline_stops_a_ready_partial_write() {
+        let payload = vec![1u8; 40];
+        let mut read_buf = BytesMut::new();
+        let started = std::time::Instant::now();
+        let result = Deadline::from_timeout(Duration::from_millis(30))
+            .run_io(write_all_pump(&mut SlowAccept, &mut read_buf, &payload))
+            .await;
+        let elapsed = started.elapsed();
+        let deadline = matches!(result, Err(Error::Timeout));
+        assert!(
+            deadline && elapsed < Duration::from_millis(80),
+            "a ready partial write held the deadline: {elapsed:?} deadline {deadline}"
+        );
     }
 
     #[tokio::test]
