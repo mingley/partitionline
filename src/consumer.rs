@@ -5598,6 +5598,16 @@ impl Consumer {
         self.inflight_fetch_tasks.clone()
     }
 
+    /// Test hook: force the negotiated Fetch version on an open leader socket.
+    #[doc(hidden)]
+    pub fn test_set_node_fetch_version(&mut self, node: i32, version: i16) -> bool {
+        let Some(conn) = self.conns.get_mut(&node) else {
+            return false;
+        };
+        conn.set_fetch_version(version);
+        true
+    }
+
     fn abort_inflight_fetches(&mut self) {
         if let Some(mut set) = self.inflight_fetches.take() {
             set.abort_all();
@@ -5610,6 +5620,36 @@ impl Consumer {
         inflight.park(self);
         self.inflight_fetch_tasks
             .retain(|handle| !handle.is_finished());
+    }
+
+    /// Stop leader fetches that this round will not park.
+    ///
+    /// A later leader can fail after an earlier fetch is already in a broker
+    /// read. Dropping that set only schedules the abort. The abort handles stay
+    /// so the caller can see that those reads have finished.
+    async fn abandon_fetch_flight(&mut self, mut inflight: InflightFetches) {
+        let Some(mut set) = inflight.set.take() else {
+            self.inflight_nodes.clear();
+            return;
+        };
+        set.abort_all();
+        self.inflight_nodes.clear();
+        let mut extra = 0u32;
+        while !set.is_empty() {
+            if extra >= 8 {
+                break;
+            }
+            extra = extra.saturating_add(1);
+            tokio::select! {
+                biased;
+                joined = set.join_next() => {
+                    if joined.is_none() {
+                        break;
+                    }
+                }
+                () = tokio::task::yield_now() => {}
+            }
+        }
     }
 
     /// Cancel leader fetches and poll until they leave the runtime.
@@ -6742,11 +6782,13 @@ impl Consumer {
             let fetch_version = {
                 let Some(conn) = self.conns.get(&node) else {
                     self.park_connected(nodes);
+                    self.abandon_fetch_flight(inflight).await;
                     return Err(Error::protocol("missing fetch conn"));
                 };
                 if conn.fetch_version() < 0 {
                     let addr = conn.addr().to_string();
                     self.park_connected(nodes);
+                    self.abandon_fetch_flight(inflight).await;
                     return Err(Error::Unsupported(format!(
                         "broker at {addr} does not support Fetch v4-17"
                     )));
@@ -6755,6 +6797,7 @@ impl Consumer {
             };
             let Some(mut conn) = self.conns.remove(&node) else {
                 self.park_connected(nodes);
+                self.abandon_fetch_flight(inflight).await;
                 return Err(Error::protocol("missing fetch conn"));
             };
             let request = self
@@ -6769,6 +6812,7 @@ impl Consumer {
                     session.reclaim_request_partitions(request);
                 }
                 self.park_connected(nodes);
+                self.abandon_fetch_flight(inflight).await;
                 return Err(Error::protocol("inflight fetch set missing"));
             };
             let handle = set.spawn(async move {

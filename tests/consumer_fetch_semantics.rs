@@ -53,8 +53,8 @@ use partitionline::protocol::records::{
     Record, RecordBatch,
 };
 use partitionline::{
-    AutoOffsetReset, Consumer, ConsumerConfig, ConsumerGroup, IsolationLevel, OffsetAndMetadata,
-    ProduceRecord, Producer, ProducerConfig, TopicPartition,
+    AutoOffsetReset, Consumer, ConsumerConfig, ConsumerGroup, Error, IsolationLevel,
+    OffsetAndMetadata, ProduceRecord, Producer, ProducerConfig, TopicPartition,
 };
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
@@ -6152,6 +6152,57 @@ async fn close_finishes_an_inflight_fetch() {
     assert!(
         tasks.iter().all(|task| task.is_finished()),
         "close returned while a fetch was still in flight"
+    );
+}
+
+/// A leader that cannot fetch still stops a read already sent to another leader.
+#[tokio::test(flavor = "current_thread")]
+async fn unsupported_leader_finishes_an_earlier_fetch() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_topic_partitions("t", 2);
+    mock.set_partition_leader("t", 0, 1);
+    mock.set_partition_leader("t", 1, 2);
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    let _ = producer
+        .send(ProduceRecord::to("t").partition(0).value(&b"a"[..]))
+        .await
+        .unwrap();
+    let _ = producer
+        .send(ProduceRecord::to("t").partition(1).value(&b"b"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+    let mut consumer = Consumer::new(
+        ConsumerConfig::bootstrap([mock.addr.clone()])
+            .max_wait_ms(10)
+            .request_timeout(Duration::from_secs(2)),
+    )
+    .await
+    .unwrap();
+    consumer.assign("t", 0, 0).await.unwrap();
+    consumer.assign("t", 1, 0).await.unwrap();
+    let _ = consumer.fetch().await.unwrap();
+    assert!(
+        consumer.test_set_node_fetch_version(1, -1),
+        "leader 1 should already be connected"
+    );
+    mock.set_fetch_delay_once(2, Duration::from_secs(30));
+    let err = consumer.fetch().await.expect_err("leader 1 cannot fetch");
+    assert!(
+        matches!(err, Error::Unsupported(_)),
+        "expected an unsupported fetch version, got {err:?}"
+    );
+    let tasks = consumer.test_inflight_fetches();
+    assert!(
+        !tasks.is_empty(),
+        "the earlier leader fetch should have been started"
+    );
+    assert!(
+        tasks.iter().all(|task| task.is_finished()),
+        "fetch returned while an earlier leader read was still in flight"
     );
 }
 
