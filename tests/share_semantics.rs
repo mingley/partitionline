@@ -445,9 +445,10 @@ async fn share_resubscribe_dials_idle_leader_while_loading_metadata() {
         mock.metadata_calls() > before,
         "resubscribe should load metadata for the new topic"
     );
-    assert!(
-        mock.api_versions_versions().len() > versions_before,
-        "resubscribe should handshake the idle share leader"
+    assert_eq!(
+        mock.api_versions_versions().len(),
+        versions_before,
+        "the idle share leader should reuse the versions already learned"
     );
     assert!(
         mock.share_ack_history()
@@ -499,6 +500,46 @@ async fn share_resubscribe_reuses_coordinator_api_versions_after_idle() {
     );
     group.leave().await.unwrap();
 }
+
+/// An idle share leader reconnects without ApiVersions.
+#[tokio::test]
+async fn idle_share_leader_reuses_learned_api_versions() {
+    let mock = common::Mock::start_two_node().await;
+    v2(&mock);
+    mock.set_share_heartbeat_interval_ms(60_000);
+    mock.set_topic_partitions("t", 1);
+    mock.set_partition_leader("t", 0, 2);
+    produce(&mock, &[(0, b"held")]).await;
+    let mut cfg = config(&mock);
+    cfg.connections_max_idle = Duration::from_millis(40);
+    cfg.heartbeat_interval = Duration::from_secs(5);
+    let mut group = ShareGroup::join(cfg, "share-idle", "t").await.unwrap();
+    let first = group.poll().await.unwrap();
+    assert_eq!(first.len(), 1, "the share session has to be open");
+    tokio::time::sleep(Duration::from_millis(60)).await;
+    let _listed = group.list_topics().await.unwrap();
+    let versions_before = mock.api_versions_versions().len();
+    let accepts_before = mock.accepts();
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let started = Instant::now();
+    let _again = group.poll().await.unwrap();
+    let elapsed = started.elapsed();
+    assert_eq!(
+        mock.api_versions_versions().len(),
+        versions_before,
+        "an idle share leader should reuse the versions already learned"
+    );
+    assert!(
+        mock.accepts() > accepts_before,
+        "idle expiry replaces the share leader socket"
+    );
+    assert!(
+        elapsed < Duration::from_millis(200),
+        "idle share fetch repeated ApiVersions: {elapsed:?}"
+    );
+    group.leave().await.unwrap();
+}
+
 #[tokio::test]
 async fn share_join_heartbeat_loads_metadata_while_joining() {
     let mock = common::Mock::start_two_node().await;

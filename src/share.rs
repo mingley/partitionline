@@ -854,6 +854,8 @@ struct ShareDialConfig {
     sasl_oauthbearer_oidc: Option<crate::OidcConfig>,
     bootstrap_addr: String,
     known_keys: Vec<crate::protocol::api::ApiVersion>,
+    /// Versions already learned for each share leader.
+    node_keys: HashMap<i32, Vec<crate::protocol::api::ApiVersion>>,
 }
 
 type ShareDialAttempt = (
@@ -868,6 +870,7 @@ struct OpenedShareDial {
     conn: BrokerConn,
     fetch_version: i16,
     acknowledge_version: i16,
+    keys: Vec<crate::protocol::api::ApiVersion>,
 }
 
 struct PreparedShareAck {
@@ -970,6 +973,8 @@ pub struct ShareGroup {
     share_epochs: HashMap<i32, i32>,
     share_conns: HashMap<i32, ShareNodeConnection>,
     share_addresses: HashMap<i32, String>,
+    /// ApiVersions learned on each share leader. An idle replacement reuses them.
+    share_api_keys: HashMap<i32, Vec<crate::protocol::api::ApiVersion>>,
     /// CurrentLeader values from the latest share response. A metadata refresh
     /// drops cached leaders, and these patches are put back afterward.
     leader_patches: Vec<ShareLeaderPatch>,
@@ -1628,6 +1633,7 @@ impl ShareGroup {
             share_epochs: HashMap::new(),
             share_conns: HashMap::new(),
             share_addresses: HashMap::new(),
+            share_api_keys: HashMap::new(),
             leader_patches: Vec::new(),
             share_redial_nodes: Vec::new(),
             acquisitions: HashMap::new(),
@@ -2404,6 +2410,7 @@ impl ShareGroup {
             sasl_oauthbearer_oidc: self.cfg.sasl_oauthbearer_oidc.clone(),
             bootstrap_addr: self.consumer.bootstrap_addr().to_string(),
             known_keys: self.consumer.copy_api_keys(),
+            node_keys: self.share_api_keys.clone(),
         }
     }
 
@@ -2431,8 +2438,10 @@ impl ShareGroup {
                 sasl_oauthbearer_oidc: cfg.sasl_oauthbearer_oidc.clone(),
                 bootstrap_addr: cfg.bootstrap_addr.clone(),
                 known_keys: cfg.known_keys.clone(),
+                node_keys: cfg.node_keys.clone(),
             };
             let addr_for_task = addr.clone();
+            let node_keys = cfg.node_keys.get(&node).cloned();
             let _ = inflight.spawn(async move {
                 let result = if addr_for_task == cfg.bootstrap_addr && !cfg.known_keys.is_empty() {
                     Consumer::open_fetch_conn_known(
@@ -2446,6 +2455,21 @@ impl ShareGroup {
                         cfg.sasl_oauthbearer.as_deref(),
                         cfg.sasl_oauthbearer_oidc.as_ref(),
                         &cfg.known_keys,
+                        deadline,
+                    )
+                    .await
+                } else if let Some(keys) = node_keys {
+                    Consumer::open_fetch_conn_known(
+                        &addr_for_task,
+                        &cfg.client_id,
+                        cfg.connect_timeout,
+                        cfg.tls.as_ref(),
+                        cfg.sasl_plain.as_ref(),
+                        cfg.sasl_scram.as_ref(),
+                        cfg.sasl_scram_sha512.as_ref(),
+                        cfg.sasl_oauthbearer.as_deref(),
+                        cfg.sasl_oauthbearer_oidc.as_ref(),
+                        &keys,
                         deadline,
                     )
                     .await
@@ -2519,6 +2543,7 @@ impl ShareGroup {
                     conn,
                     fetch_version,
                     acknowledge_version,
+                    keys: versions.api_keys,
                 });
             }
             while inflight.len() < 8 {
@@ -2534,6 +2559,7 @@ impl ShareGroup {
     fn store_opened_share_dials(&mut self, opened: Vec<OpenedShareDial>) {
         for dial in opened {
             let _ = self.share_addresses.insert(dial.node, dial.addr);
+            let _stored = self.share_api_keys.insert(dial.node, dial.keys);
             let _ = self.share_conns.insert(
                 dial.node,
                 ShareNodeConnection {
@@ -2590,8 +2616,30 @@ impl ShareGroup {
                 return Err(Error::Timeout);
             }
             let reuse = addr == self.consumer.bootstrap_addr() && self.consumer.has_api_keys();
-            let (mut conn, versions) = if reuse {
-                self.consumer.open_leader_socket(&addr, deadline).await?
+            let remembered = if reuse {
+                None
+            } else {
+                self.share_api_keys.get(&node).cloned()
+            };
+            let (mut conn, versions, already_authenticated) = if reuse {
+                let opened = self.consumer.open_leader_socket(&addr, deadline).await?;
+                (opened.0, opened.1, true)
+            } else if let Some(keys) = remembered {
+                let opened = Consumer::open_fetch_conn_known(
+                    &addr,
+                    &self.cfg.client_id,
+                    self.cfg.connect_timeout,
+                    self.cfg.tls.as_ref(),
+                    self.cfg.sasl_plain.as_ref(),
+                    self.cfg.sasl_scram.as_ref(),
+                    self.cfg.sasl_scram_sha512.as_ref(),
+                    self.cfg.sasl_oauthbearer.as_deref(),
+                    self.cfg.sasl_oauthbearer_oidc.as_ref(),
+                    &keys,
+                    deadline,
+                )
+                .await?;
+                (opened.0, opened.1, true)
             } else {
                 let mut conn = BrokerConn::connect_tls(
                     &addr,
@@ -2606,7 +2654,7 @@ impl ShareGroup {
                 }
                 let versions =
                     crate::protocol::api::negotiate_api_versions(&mut conn, rest).await?;
-                (conn, versions)
+                (conn, versions, false)
             };
             let fetch_version = versions
                 .api_version(SHARE_FETCH)
@@ -2630,7 +2678,7 @@ impl ShareGroup {
                     )
                 })
                 .unwrap_or(-1);
-            if !reuse {
+            if !already_authenticated {
                 crate::protocol::sasl::apply_api_keys(&mut conn, &versions.api_keys);
                 let rest = deadline.saturating_duration_since(Instant::now());
                 if rest.is_zero() {
@@ -2647,6 +2695,7 @@ impl ShareGroup {
                 )
                 .await?;
             }
+            let _stored = self.share_api_keys.insert(node, versions.api_keys);
             let _ = self.share_addresses.insert(node, addr);
             let _ = entry.insert(ShareNodeConnection {
                 conn,
