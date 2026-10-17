@@ -975,6 +975,9 @@ struct Shared {
     /// Transaction coordinator. `None` when `transactional.id` is unset.
     txn: Mutex<Option<CoordinatorConnection>>,
     metadata_version: i16,
+    /// ApiVersions learned on the metadata socket. Another connection to
+    /// that same broker reuses them instead of repeating the handshake.
+    api_keys: Vec<ApiVersion>,
     /// Last metadata image. The next refresh refills it.
     metadata_image: parking_lot::Mutex<MetadataResponse>,
     /// Fixed at initialization: finalized transaction.version >= 2 and EndTxn v5.
@@ -1707,6 +1710,7 @@ impl Producer {
             meta: Mutex::new(meta),
             txn: Mutex::new(txn),
             metadata_version,
+            api_keys: resp.api_keys.clone(),
             metadata_image: parking_lot::Mutex::new(MetadataResponse::blank()),
             transaction_v2,
             add_partitions_version,
@@ -3505,24 +3509,24 @@ async fn open_conn(addr: &str, cfg: &ProducerConfig, transaction_v2: bool) -> Re
     Ok(open_conn_with_versions(addr, cfg, transaction_v2).await?.0)
 }
 
-async fn open_conn_with_versions(
-    addr: &str,
+fn known_api_versions(keys: &[ApiVersion]) -> ApiVersionsResponse {
+    ApiVersionsResponse {
+        error_code: 0,
+        api_keys: keys.to_vec(),
+        throttle_time_ms: 0,
+        supported_features: Vec::new(),
+        finalized_features_epoch: None,
+        finalized_features: Vec::new(),
+        zk_migration_ready: false,
+    }
+}
+
+fn configure_produce_conn(
+    conn: &mut BrokerConn,
+    versions_resp: &ApiVersionsResponse,
     cfg: &ProducerConfig,
     transaction_v2: bool,
-) -> Result<(BrokerConn, ApiVersionsResponse)> {
-    let deadline = Instant::now()
-        .checked_add(cfg.request_timeout)
-        .ok_or(Error::Timeout)?;
-    let mut conn = BrokerConn::connect_tls(
-        addr,
-        &cfg.client_id,
-        cfg.connect_timeout.min(timeout_remaining(deadline)?),
-        cfg.tls.as_ref(),
-    )
-    .await?;
-    let versions_resp =
-        crate::protocol::api::negotiate_api_versions(&mut conn, timeout_remaining(deadline)?)
-            .await?;
+) {
     // Topic identity requires Metadata10+, and transactionV1 must retain the
     // v11 ceiling: v12/13 imply transactionV2 on the partition leader.
     // A supported EndTxn range alone does not enable the finalized feature.
@@ -3548,7 +3552,73 @@ async fn open_conn_with_versions(
     {
         conn.set_produce_version(pv);
     }
-    crate::protocol::sasl::apply_api_keys(&mut conn, &versions_resp.api_keys);
+    crate::protocol::sasl::apply_api_keys(conn, &versions_resp.api_keys);
+}
+
+async fn open_conn_with_known_versions(
+    addr: &str,
+    cfg: &ProducerConfig,
+    transaction_v2: bool,
+    keys: &[ApiVersion],
+) -> Result<BrokerConn> {
+    let deadline = Instant::now()
+        .checked_add(cfg.request_timeout)
+        .ok_or(Error::Timeout)?;
+    let mut conn = BrokerConn::connect_tls(
+        addr,
+        &cfg.client_id,
+        cfg.connect_timeout.min(timeout_remaining(deadline)?),
+        cfg.tls.as_ref(),
+    )
+    .await?;
+    let versions_resp = known_api_versions(keys);
+    configure_produce_conn(&mut conn, &versions_resp, cfg, transaction_v2);
+    crate::protocol::sasl::authenticate(
+        &mut conn,
+        cfg.sasl_plain.as_ref(),
+        cfg.sasl_scram.as_ref(),
+        cfg.sasl_scram_sha512.as_ref(),
+        cfg.sasl_oauthbearer.as_deref(),
+        cfg.sasl_oauthbearer_oidc.as_ref(),
+        timeout_remaining(deadline)?,
+    )
+    .await?;
+    Ok(conn)
+}
+
+async fn open_produce_socket(shared: &Shared, addr: &str) -> Result<BrokerConn> {
+    let meta_addr = shared.meta.lock().await.addr().to_string();
+    if addr == meta_addr && !shared.api_keys.is_empty() {
+        return open_conn_with_known_versions(
+            addr,
+            &shared.cfg,
+            shared.transaction_v2,
+            &shared.api_keys,
+        )
+        .await;
+    }
+    open_conn(addr, &shared.cfg, shared.transaction_v2).await
+}
+
+async fn open_conn_with_versions(
+    addr: &str,
+    cfg: &ProducerConfig,
+    transaction_v2: bool,
+) -> Result<(BrokerConn, ApiVersionsResponse)> {
+    let deadline = Instant::now()
+        .checked_add(cfg.request_timeout)
+        .ok_or(Error::Timeout)?;
+    let mut conn = BrokerConn::connect_tls(
+        addr,
+        &cfg.client_id,
+        cfg.connect_timeout.min(timeout_remaining(deadline)?),
+        cfg.tls.as_ref(),
+    )
+    .await?;
+    let versions_resp =
+        crate::protocol::api::negotiate_api_versions(&mut conn, timeout_remaining(deadline)?)
+            .await?;
+    configure_produce_conn(&mut conn, &versions_resp, cfg, transaction_v2);
     crate::protocol::sasl::authenticate(
         &mut conn,
         cfg.sasl_plain.as_ref(),
@@ -4712,7 +4782,7 @@ async fn spawn_slot_worker(
     if shared.closed.load(Ordering::SeqCst) {
         return Err(Error::Closed);
     }
-    let conn = open_conn(addr, &shared.cfg, shared.transaction_v2).await?;
+    let conn = open_produce_socket(shared, addr).await?;
     if conn.produce_version() < 0 {
         return Err(Error::Unsupported(format!(
             "broker at {addr} does not support usable Produce v3-13"
@@ -5802,7 +5872,7 @@ impl Worker {
             return;
         }
         let addr = self.conn.addr().to_string();
-        if let Ok(conn) = open_conn(&addr, &self.shared.cfg, self.shared.transaction_v2).await {
+        if let Ok(conn) = open_produce_socket(&self.shared, &addr).await {
             if conn.produce_version() >= 0 {
                 self.conn = conn;
             }
@@ -5849,7 +5919,7 @@ impl Worker {
         if self.in_flight.is_empty() && self.conn.idle_expired(self.shared.cfg.connections_max_idle)
         {
             let addr = self.conn.addr().to_string();
-            match open_conn(&addr, &self.shared.cfg, self.shared.transaction_v2).await {
+            match open_produce_socket(&self.shared, &addr).await {
                 Ok(c) if c.produce_version() >= 0 => self.conn = c,
                 Ok(_) => {
                     let e = Error::Unsupported(format!(

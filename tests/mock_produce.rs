@@ -9,6 +9,34 @@ use partitionline::{
 };
 use std::time::{Duration, Instant};
 
+/// The first produce to the bootstrap broker does not repeat ApiVersions.
+#[tokio::test]
+async fn produce_reuses_bootstrap_api_versions() {
+    let mock = common::Mock::start().await;
+    mock.set_topic_partitions("t", 1);
+    let mut cfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    cfg.linger = Duration::ZERO;
+    let producer = Producer::new(cfg).await.unwrap();
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let versions_before = mock.api_versions_versions().len();
+    let started = Instant::now();
+    let _sent = producer
+        .send(ProduceRecord::to("t").value(&b"v"[..]))
+        .await
+        .unwrap();
+    let elapsed = started.elapsed();
+    assert_eq!(
+        mock.api_versions_versions().len(),
+        versions_before,
+        "the produce socket should reuse the bootstrap broker's versions"
+    );
+    assert!(
+        elapsed < Duration::from_millis(200),
+        "the first produce repeated ApiVersions: {elapsed:?}"
+    );
+    producer.close().await.unwrap();
+}
+
 /// A known leader accepts records while an unknown topic is resolved.
 #[tokio::test]
 async fn send_all_produces_known_topics_while_loading_metadata() {
@@ -333,8 +361,8 @@ async fn multi_broker_produce_dials_overlap() {
     let (a, b) = (a.unwrap(), b.unwrap());
     assert_eq!((a.partition, b.partition), (0, 1));
     assert!(
-        mock.api_versions_versions().len() >= before + 2,
-        "both leaders should negotiate"
+        mock.api_versions_versions().len() >= before + 1,
+        "the non-bootstrap leader should negotiate"
     );
     assert!(
         elapsed < Duration::from_millis(400),
