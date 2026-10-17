@@ -52,6 +52,28 @@ async fn explicit_policy_and_invalid_limits_fail_without_network() {
 }
 
 #[tokio::test]
+async fn idle_heartbeat_reuses_learned_api_versions() {
+    let peer = Peer::start().await;
+    peer.script(1, [Reply::Body(response(0)), Reply::Body(response(0))])
+        .await;
+    let mut cfg = peer.config();
+    cfg.connection.connections_max_idle = Duration::from_millis(20);
+    let mut client = StreamsClient::new(cfg).unwrap();
+    let _first = client.heartbeat(&request()).await.unwrap();
+    tokio::time::sleep(Duration::from_millis(40)).await;
+    let _second = client.heartbeat(&request()).await.unwrap();
+    drop(client);
+    let frames = peer.close().await;
+    let versions = frames.iter().filter(|frame| frame.api == 18).count();
+    let heartbeats = frames.iter().filter(|frame| frame.api == 88).count();
+    assert_eq!(heartbeats, 2, "both heartbeats must reach the coordinator");
+    assert_eq!(
+        versions, 4,
+        "idle heartbeat repeated ApiVersions, saw {versions} api 18 frames"
+    );
+}
+
+#[tokio::test]
 async fn typed_epochs_topology_assignment_and_nullable_fields_reach_group_coordinator() {
     for fc_version in [1, 3, 6] {
         let peer = Peer::start().await;

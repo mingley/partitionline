@@ -5,7 +5,7 @@ use std::time::Duration;
 use crate::admin::AdminConfig;
 use crate::error::{self, Error, Result};
 use crate::net::{BrokerConn, Deadline};
-use crate::protocol::api::{negotiate_api_versions, ApiVersionsResponse};
+use crate::protocol::api::{negotiate_api_versions, ApiVersion, ApiVersionsResponse};
 use crate::protocol::api_keys::{pick_version, FIND_COORDINATOR, STREAMS_GROUP_HEARTBEAT};
 use crate::protocol::group::{
     decode_find_coordinator_response_coordinators, encode_find_coordinator_request_typed,
@@ -53,6 +53,67 @@ async fn open_streams_heartbeat(
     .await?;
     Ok((conn, versions))
 }
+
+/// Versions learned for the bootstrap lookup and the coordinator socket.
+#[derive(Clone)]
+struct LearnedStreams {
+    bootstrap_addr: String,
+    bootstrap_keys: Vec<ApiVersion>,
+    find_version: i16,
+    coord_addr: String,
+    coord_keys: Vec<ApiVersion>,
+}
+
+async fn open_known_streams(
+    cfg: &AdminConfig,
+    address: &str,
+    keys: &[ApiVersion],
+    deadline: Deadline,
+) -> Result<BrokerConn> {
+    let mut conn = BrokerConn::connect_tls(
+        address,
+        &cfg.client_id,
+        cfg.connect_timeout.min(deadline.remaining()?),
+        cfg.tls.as_ref(),
+    )
+    .await?;
+    sasl::apply_api_keys(&mut conn, keys);
+    sasl::authenticate(
+        &mut conn,
+        cfg.sasl_plain.as_ref(),
+        cfg.sasl_scram.as_ref(),
+        cfg.sasl_scram_sha512.as_ref(),
+        cfg.sasl_oauthbearer.as_deref(),
+        cfg.sasl_oauthbearer_oidc.as_ref(),
+        deadline.remaining()?,
+    )
+    .await?;
+    Ok(conn)
+}
+
+fn coordinator_address(body: &[u8], version: i16, group_id: &str) -> Result<String> {
+    if body.len() > MAX_COORDINATOR_BODY || (version >= 4 && body.get(4) != Some(&2)) {
+        return Err(Error::protocol(
+            "Streams coordinator response exceeds bounds",
+        ));
+    }
+    let mut cursor = body;
+    let (mut coords, _) = decode_find_coordinator_response_coordinators(&mut cursor, version)?;
+    if !cursor.is_empty() || coords.len() != 1 {
+        return Err(Error::protocol("invalid Streams coordinator response"));
+    }
+    let coord = coords
+        .pop()
+        .ok_or_else(|| Error::protocol("missing Streams coordinator"))?;
+    if version >= 4 && coord.key != group_id {
+        return Err(Error::protocol("Streams coordinator key differs"));
+    }
+    if coord.error_code != 0 {
+        return Err(Error::broker(coord.error_code, "FindCoordinator"));
+    }
+    crate::cluster::dial_address(&coord.host, coord.port)
+        .ok_or_else(|| Error::protocol("invalid Streams coordinator address"))
+}
 const MAX_ATTEMPTS: u32 = 8;
 const MAX_COORDINATOR_BODY: usize = 64 * 1024;
 
@@ -90,6 +151,7 @@ impl StreamsConfig {
 pub struct StreamsClient {
     cfg: StreamsConfig,
     cached: Option<(String, BrokerConn)>,
+    learned: Option<LearnedStreams>,
 }
 
 impl StreamsClient {
@@ -109,7 +171,11 @@ impl StreamsClient {
         }
         cfg.connection.bootstrap =
             crate::net::parse_and_validate_addresses(&cfg.connection.bootstrap)?;
-        Ok(Self { cfg, cached: None })
+        Ok(Self {
+            cfg,
+            cached: None,
+            learned: None,
+        })
     }
 
     /// Send a typed heartbeat using the configured total request timeout.
@@ -144,17 +210,23 @@ impl StreamsClient {
             self.cfg.limits,
         )?;
         deadline.check_expired()?;
+        let cached_group = self.cached.as_ref().map(|(group, _)| group.clone());
         let cached = self.cached.take().and_then(|(group, conn)| {
             (group == request.group_id
                 && !conn.idle_expired(self.cfg.connection.connections_max_idle))
             .then_some(conn)
         });
-        let (response, conn) = self
-            .heartbeat_until(request, &body, deadline, cached)
+        if cached_group.as_deref() != Some(request.group_id.as_str()) {
+            self.learned = None;
+        }
+        let learned = self.learned.clone();
+        let (response, conn, learned) = self
+            .heartbeat_until(request, &body, deadline, cached, learned)
             .await?;
         let group = request.group_id.clone();
         deadline.check_expired()?;
         self.cached = Some((group, conn));
+        self.learned = Some(learned);
         Ok(response)
     }
 
@@ -170,18 +242,23 @@ impl StreamsClient {
         body: &[u8],
         deadline: Deadline,
         mut cached: Option<BrokerConn>,
-    ) -> Result<(StreamsGroupHeartbeatResponse, BrokerConn)> {
+        mut learned: Option<LearnedStreams>,
+    ) -> Result<(StreamsGroupHeartbeatResponse, BrokerConn, LearnedStreams)> {
         let mut last = Error::Timeout;
         for attempt in 0..MAX_ATTEMPTS {
             match self
-                .heartbeat_once(request, body, deadline, cached.take())
+                .heartbeat_once(request, body, deadline, cached.take(), learned.clone())
                 .await
             {
-                Ok((response, _conn)) if error::coordinator_retriable(response.error_code) => {
+                Ok((response, _conn, _)) if error::coordinator_retriable(response.error_code) => {
+                    learned = None;
                     last = Error::broker(response.error_code, "StreamsGroupHeartbeat");
                 }
                 Ok(response) => return Ok(response),
-                Err(err) if err.is_retriable() => last = err,
+                Err(err) if err.is_retriable() => {
+                    learned = None;
+                    last = err;
+                }
                 Err(err) => return Err(err),
             }
             if attempt + 1 < MAX_ATTEMPTS {
@@ -250,7 +327,7 @@ impl StreamsClient {
         &self,
         request: &StreamsGroupHeartbeatRequest,
         deadline: Deadline,
-    ) -> Result<BrokerConn> {
+    ) -> Result<(BrokerConn, LearnedStreams)> {
         let (mut bootstrap, versions) = self.open_any(deadline).await?;
         let version = versions
             .api_version(FIND_COORDINATOR)
@@ -273,33 +350,83 @@ impl StreamsClient {
                 deadline,
             )
             .await?;
-        if body.len() > MAX_COORDINATOR_BODY || (version >= 4 && body.get(4) != Some(&2)) {
-            return Err(Error::protocol(
-                "Streams coordinator response exceeds bounds",
+        let address = coordinator_address(&body, version, &request.group_id)?;
+        let bootstrap_addr = bootstrap.addr().to_string();
+        let bootstrap_keys = versions.api_keys.clone();
+        if address == bootstrap.addr() {
+            return Ok((
+                bootstrap,
+                LearnedStreams {
+                    bootstrap_addr,
+                    bootstrap_keys: bootstrap_keys.clone(),
+                    find_version: version,
+                    coord_addr: address,
+                    coord_keys: bootstrap_keys,
+                },
             ));
         }
-        let mut cursor = body.as_ref();
-        let (mut coords, _) = decode_find_coordinator_response_coordinators(&mut cursor, version)?;
-        if !cursor.is_empty() || coords.len() != 1 {
-            return Err(Error::protocol("invalid Streams coordinator response"));
+        let (conn, coord_versions) = self.open(&address, deadline).await?;
+        Ok((
+            conn,
+            LearnedStreams {
+                bootstrap_addr,
+                bootstrap_keys,
+                find_version: version,
+                coord_addr: address,
+                coord_keys: coord_versions.api_keys,
+            },
+        ))
+    }
+
+    async fn rediscover(
+        &self,
+        request: &StreamsGroupHeartbeatRequest,
+        deadline: Deadline,
+        known: &LearnedStreams,
+    ) -> Result<(BrokerConn, LearnedStreams)> {
+        let mut hop = open_known_streams(
+            &self.cfg.connection,
+            &known.bootstrap_addr,
+            &known.bootstrap_keys,
+            deadline,
+        )
+        .await?;
+        let body = hop
+            .roundtrip_deadline(
+                FIND_COORDINATOR,
+                known.find_version,
+                |buf| {
+                    encode_find_coordinator_request_typed(
+                        buf,
+                        known.find_version,
+                        &request.group_id,
+                        COORDINATOR_GROUP,
+                    )
+                },
+                deadline,
+            )
+            .await?;
+        let address = coordinator_address(&body, known.find_version, &request.group_id)?;
+        if address == known.coord_addr {
+            if address == hop.addr() {
+                return Ok((hop, known.clone()));
+            }
+            let conn =
+                open_known_streams(&self.cfg.connection, &address, &known.coord_keys, deadline)
+                    .await?;
+            return Ok((conn, known.clone()));
         }
-        let coord = coords
-            .pop()
-            .ok_or_else(|| Error::protocol("missing Streams coordinator"))?;
-        if version >= 4 && coord.key != request.group_id {
-            return Err(Error::protocol("Streams coordinator key differs"));
-        }
-        if coord.error_code != 0 {
-            return Err(Error::broker(coord.error_code, "FindCoordinator"));
-        }
-        let Some(address) = crate::cluster::dial_address(&coord.host, coord.port) else {
-            return Err(Error::protocol("invalid Streams coordinator address"));
-        };
-        if address == bootstrap.addr() {
-            Ok(bootstrap)
-        } else {
-            Ok(self.open(&address, deadline).await?.0)
-        }
+        let (conn, coord_versions) = self.open(&address, deadline).await?;
+        Ok((
+            conn,
+            LearnedStreams {
+                bootstrap_addr: known.bootstrap_addr.clone(),
+                bootstrap_keys: known.bootstrap_keys.clone(),
+                find_version: known.find_version,
+                coord_addr: address,
+                coord_keys: coord_versions.api_keys,
+            },
+        ))
     }
 
     async fn heartbeat_once(
@@ -308,10 +435,17 @@ impl StreamsClient {
         encoded: &[u8],
         deadline: Deadline,
         cached: Option<BrokerConn>,
-    ) -> Result<(StreamsGroupHeartbeatResponse, BrokerConn)> {
-        let mut conn = match cached {
-            Some(conn) => conn,
-            None => self.discover(request, deadline).await?,
+        learned: Option<LearnedStreams>,
+    ) -> Result<(StreamsGroupHeartbeatResponse, BrokerConn, LearnedStreams)> {
+        let (mut conn, learned) = match cached {
+            Some(conn) => (
+                conn,
+                learned.ok_or_else(|| Error::protocol("missing Streams versions"))?,
+            ),
+            None => match learned {
+                Some(known) => self.rediscover(request, deadline, &known).await?,
+                None => self.discover(request, deadline).await?,
+            },
         };
         let response = conn
             .roundtrip_deadline(
@@ -330,6 +464,6 @@ impl StreamsClient {
             self.cfg.limits,
         )?;
         deadline.check_expired()?;
-        Ok((decoded, conn))
+        Ok((decoded, conn, learned))
     }
 }
