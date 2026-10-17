@@ -2394,6 +2394,12 @@
 //! piggyback `FENCED_INSTANCE_ID`). Official Java
 //! `ReplicationControlManager.electLeader` writes this when an unclean
 //! election finds no eligible leader. A piggybacked
+//! `ELECTION_NOT_NEEDED` still completes without retry,
+//! including when `AcknowledgeErrorMessage` is set (this is not
+//! partition `ELECTION_NOT_NEEDED`, which fails that poll, and not
+//! piggyback `ELIGIBLE_LEADERS_NOT_AVAILABLE`). Official Java
+//! `ReplicationControlManager.electLeader` writes this when the
+//! partition already has the requested leader. A piggybacked
 //! `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a
 //! sibling whose `AcknowledgeErrorCode` is none, including when
 //! `AcknowledgeErrorMessage` is set or empty. A piggybacked
