@@ -2433,7 +2433,7 @@
 //! when the expected producer epoch does not match.
 //! A piggybacked
 //! `RESOURCE_NOT_FOUND` still completes without retry,
-//! including when `AcknowledgeErrorMessage` is set (this is not
+//! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `RESOURCE_NOT_FOUND`, which fails that poll, and not
 //! piggyback `PRODUCER_FENCED`). Official Java
 //! `ScramImage` DescribeUserScramCredentials writes this when the
