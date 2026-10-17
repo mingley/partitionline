@@ -2955,6 +2955,7 @@ impl ConsumerGroup {
         let mut metadata_refresh = None;
         let (version, body) = if stale {
             let bootstrap_keys = self.consumer.copy_api_keys();
+            let address_keys = self.consumer.copy_learned_broker_keys();
             let group_id = self.group_id.as_str();
             let coord = &mut self.coord;
             let cfg = &self.cfg;
@@ -2962,7 +2963,7 @@ impl ConsumerGroup {
             let topics = &self.topics;
             let prior = &mut self.prior_coords;
             let refresh = consumer.refresh_metadata_timeout(Some(topics), timeout);
-            let rpc = coord_roundtrip(
+            let rpc = coord_roundtrip_with_bootstrap(
                 coord,
                 cfg,
                 group_id,
@@ -2970,6 +2971,7 @@ impl ConsumerGroup {
                 CONSUMER_GROUP_HEARTBEAT,
                 |version, buf| encode_consumer_group_heartbeat_request(buf, version, &req),
                 &bootstrap_keys,
+                &address_keys,
                 prior,
                 timeout,
             );
@@ -2982,7 +2984,8 @@ impl ConsumerGroup {
                 return Err(Error::Timeout);
             }
             let bootstrap_keys = self.consumer.copy_api_keys();
-            coord_roundtrip(
+            let address_keys = self.consumer.copy_learned_broker_keys();
+            coord_roundtrip_with_bootstrap(
                 &mut self.coord,
                 &self.cfg,
                 &self.group_id,
@@ -2990,6 +2993,7 @@ impl ConsumerGroup {
                 CONSUMER_GROUP_HEARTBEAT,
                 |version, buf| encode_consumer_group_heartbeat_request(buf, version, &req),
                 &bootstrap_keys,
+                &address_keys,
                 &mut self.prior_coords,
                 timeout,
             )
