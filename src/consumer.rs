@@ -5622,6 +5622,47 @@ impl Consumer {
             .retain(|handle| !handle.is_finished());
     }
 
+    /// Stop leader reads cancelled by wakeup.
+    ///
+    /// The fetch future's drop only schedules those aborts. On a current-thread
+    /// runtime the broker read stays alive until this caller yields.
+    async fn finish_cancelled_fetches(&mut self) {
+        if let Some(mut set) = self.inflight_fetches.take() {
+            set.abort_all();
+            let mut extra = 0u32;
+            while !set.is_empty() {
+                if extra >= 8 {
+                    break;
+                }
+                extra = extra.saturating_add(1);
+                tokio::select! {
+                    biased;
+                    joined = set.join_next() => {
+                        if joined.is_none() {
+                            break;
+                        }
+                    }
+                    () = tokio::task::yield_now() => {}
+                }
+            }
+        }
+        for handle in &self.inflight_fetch_tasks {
+            handle.abort();
+        }
+        let mut extra = 0u32;
+        while self
+            .inflight_fetch_tasks
+            .iter()
+            .any(|task| !task.is_finished())
+        {
+            if extra >= 8 {
+                break;
+            }
+            extra = extra.saturating_add(1);
+            tokio::task::yield_now().await;
+        }
+    }
+
     /// Stop leader fetches that this round will not park.
     ///
     /// A later leader can fail after an earlier fetch is already in a broker
@@ -6510,6 +6551,9 @@ impl Consumer {
             biased;
             result = rx.wait_for(|on| *on) => {
                 drop(result);
+                // Cancelling the fetch only schedules aborts for leader reads
+                // that were already sent. Wait until those tasks leave.
+                self.finish_cancelled_fetches().await;
                 self.conns.clear();
                 Err(Error::Wakeup)
             }
