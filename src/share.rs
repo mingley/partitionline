@@ -1159,6 +1159,14 @@ pub enum ShareAcquireMode {
 /// `UNSUPPORTED_COMPRESSION_TYPE`, which fails that poll, and not piggyback
 /// `TOPIC_DELETION_DISABLED`). Official Java CompressionType writes
 /// this when the codec is unknown. A piggybacked
+/// `STALE_BROKER_EPOCH` still completes without retry,
+/// including when `AcknowledgeErrorMessage` is set (Java
+/// `handleShareFetchSuccess` completes piggyback acks and still
+/// delivers the fetch; this is not partition
+/// `STALE_BROKER_EPOCH`, which fails that poll, and not piggyback
+/// `UNSUPPORTED_COMPRESSION_TYPE`). Official Java
+/// `QuorumController.processBrokerHeartbeat` writes this when the
+/// broker epoch has changed. A piggybacked
 /// `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a
 /// sibling partition whose `AcknowledgeErrorCode` is none, including
 /// when `AcknowledgeErrorMessage` is set or empty. A piggybacked
@@ -3003,6 +3011,14 @@ impl ShareGroup {
     /// `UNSUPPORTED_COMPRESSION_TYPE`, which fails that poll, and not piggyback
     /// `TOPIC_DELETION_DISABLED`). Official Java CompressionType writes
     /// this when the codec is unknown.
+    /// A piggybacked `STALE_BROKER_EPOCH` still completes
+    /// without retry, including when `AcknowledgeErrorMessage` is set
+    /// (Java `handleShareFetchSuccess` completes piggyback acks and still
+    /// delivers the fetch; this is not partition
+    /// `STALE_BROKER_EPOCH`, which fails that poll, and not piggyback
+    /// `UNSUPPORTED_COMPRESSION_TYPE`). Official Java
+    /// `QuorumController.processBrokerHeartbeat` writes this when the
+    /// broker epoch has changed.
     /// A piggybacked `TOPIC_AUTHORIZATION_FAILED` on one partition
     /// does not fail a sibling whose `AcknowledgeErrorCode` is none,
     /// including when `AcknowledgeErrorMessage` is set or empty.
