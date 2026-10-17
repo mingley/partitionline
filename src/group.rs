@@ -5102,6 +5102,95 @@ pub(super) async fn open_coord_supporting(
     Ok(conn)
 }
 
+/// Find the coordinator again while the previous address is dialed.
+///
+/// A coordinator that stays put reuses that handshake. A moved coordinator
+/// is dialed after the lookup.
+pub(super) async fn rediscover_coord_supporting(
+    cfg: &ConsumerConfig,
+    group_id: &str,
+    key_type: i8,
+    previous: &str,
+    api_key: i16,
+    version: i16,
+) -> Result<BrokerConn> {
+    let conn = rediscover_coord(cfg, group_id, key_type, previous).await?;
+    let spoken = match api_key {
+        OFFSET_COMMIT => conn.offset_commit_version,
+        OFFSET_FETCH => conn.offset_fetch_version,
+        _ => version,
+    };
+    if spoken < version {
+        return Err(Error::Unsupported(format!(
+            "coordinator does not support api {api_key} version {version}"
+        )));
+    }
+    Ok(conn)
+}
+
+async fn rediscover_coord(
+    cfg: &ConsumerConfig,
+    group_id: &str,
+    key_type: i8,
+    previous: &str,
+) -> Result<BrokerConn> {
+    if cfg.bootstrap.len() != 1 {
+        return discover_coord(cfg, group_id, key_type).await;
+    }
+    let deadline = Instant::now()
+        .checked_add(cfg.request_timeout)
+        .ok_or(Error::Timeout)?;
+    let bounded = bounded_coord_config(cfg, crate::net::Deadline::from_std(deadline))?;
+    let speculative = open_coord_with_find_version(&bounded, previous);
+    let located = locate_coordinator_address(&bounded, group_id, key_type, deadline);
+    tokio::pin!(speculative);
+    tokio::pin!(located);
+    let addr = tokio::select! {
+        biased;
+        addr = &mut located => addr?,
+        opened = &mut speculative => {
+            let addr = located.await?;
+            if addr == previous {
+                return Ok(opened?.0);
+            }
+            return Ok(open_coord_with_find_version(&bounded, &addr).await?.0);
+        }
+    };
+    if addr == previous {
+        return Ok(speculative.await?.0);
+    }
+    Ok(open_coord_with_find_version(&bounded, &addr).await?.0)
+}
+
+async fn locate_coordinator_address(
+    cfg: &ConsumerConfig,
+    group_id: &str,
+    key_type: i8,
+    deadline: Instant,
+) -> Result<String> {
+    let deadline = crate::net::Deadline::from_std(deadline);
+    let bounded = bounded_coord_config(cfg, deadline)?;
+    let Some(addr) = cfg.bootstrap.first() else {
+        return Err(Error::protocol("find coordinator failed"));
+    };
+    let (mut hop, version, _) = open_coord_with_find_version(&bounded, addr).await?;
+    let body = hop
+        .roundtrip(
+            FIND_COORDINATOR,
+            version,
+            |buf| encode_find_coordinator_request_typed(buf, version, group_id, key_type),
+            deadline.remaining()?,
+        )
+        .await?;
+    let (err, _node, host, port) = decode_find_coordinator_response(&mut body.clone(), version)
+        .map_err(|e| group_decode_context(e, "FindCoordinator", version, body.len()))?;
+    if err != 0 {
+        return Err(Error::broker(err, "FindCoordinator"));
+    }
+    crate::cluster::dial_address(&host, port)
+        .ok_or_else(|| Error::protocol("invalid coordinator address"))
+}
+
 pub(super) async fn discover_coord_supporting(
     cfg: &ConsumerConfig,
     group_id: &str,
@@ -5303,7 +5392,8 @@ async fn finish_coord_roundtrip(
 ) -> Result<(i16, Bytes)> {
     if coordinator_error(api_key, version, &body).is_some_and(error::coordinator_retriable) {
         let bounded = bounded_coord_config(cfg, deadline)?;
-        *coord = discover_coord(&bounded, group_id, key_type).await?;
+        let previous = coord.addr().to_string();
+        *coord = rediscover_coord(&bounded, group_id, key_type, &previous).await?;
         let version = negotiated_coord_version(coord, api_key)?;
         let body = coord
             .roundtrip_deadline(api_key, version, |buf| encode_body(version, buf), deadline)

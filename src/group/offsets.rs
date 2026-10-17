@@ -607,8 +607,11 @@ pub(super) async fn coord_offsets_legacy(
             .is_some_and(crate::error::coordinator_retriable)
         {
             let bounded = bounded_consumer_config(cfg, deadline)?;
-            *coord = super::discover_coord_supporting(&bounded, group_id, key_type, api, version)
-                .await?;
+            let previous = coord.addr().to_string();
+            *coord = super::rediscover_coord_supporting(
+                &bounded, group_id, key_type, &previous, api, version,
+            )
+            .await?;
             coord
                 .roundtrip_deadline(api, version, |buf| encode(buf), deadline)
                 .await

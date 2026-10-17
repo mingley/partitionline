@@ -3368,6 +3368,45 @@ async fn fetch_dials_leaders_while_refreshing_metadata() {
     consumer.close().await.unwrap();
 }
 
+/// A coordinator retry looks up the coordinator while that broker reconnects.
+#[tokio::test]
+async fn group_commit_redials_coordinator_while_finding_it() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_topic_partitions("t", 1);
+    mock.set_partition_leader("t", 0, 1);
+    mock.move_coordinator();
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    let _ = producer
+        .send(ProduceRecord::to("t").value(&b"v"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+    let mut group = ConsumerGroup::join(
+        ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10),
+        "commit-coord",
+        "t",
+    )
+    .await
+    .unwrap();
+    assert_eq!(group.poll().await.unwrap().len(), 1);
+    mock.offset_commit_load_once();
+    let delay = Duration::from_millis(250);
+    mock.set_find_coordinator_delay(delay);
+    mock.set_api_versions_delay(delay);
+    let started = Instant::now();
+    group.commit().await.unwrap();
+    let elapsed = started.elapsed();
+    assert_eq!(mock.offset_commit_load_in_progress(), 1);
+    assert!(
+        elapsed < Duration::from_millis(650),
+        "commit found the coordinator before redialing it: {elapsed:?}"
+    );
+    group.leave().await.unwrap();
+}
+
 /// ListOffsets dials leaders it already knows while unknown topics load.
 #[tokio::test]
 async fn list_offsets_dials_known_leaders_while_loading_metadata() {
