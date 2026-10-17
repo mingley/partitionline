@@ -14718,14 +14718,11 @@ impl Admin {
         deadline: Instant,
     ) -> Result<Vec<(usize, DescribedGroup)>> {
         let subset = borrowed_ids(ids, idxs);
-        self.connect_node_until(node, deadline).await?;
         let timeout = startup_remaining(deadline)?;
-        let body = {
-            let conn = self
-                .conns
-                .get_mut(&node)
-                .ok_or_else(|| Error::protocol("missing describe_groups conn"))?;
-            conn.roundtrip(
+        let body = self
+            .roundtrip_known_node(
+                node,
+                deadline,
                 DESCRIBE_GROUPS,
                 version,
                 |buf| {
@@ -14733,8 +14730,7 @@ impl Admin {
                 },
                 timeout,
             )
-            .await
-        }?;
+            .await?;
         Self::apply_describe_groups_body(version, ids, idxs, body)
     }
 
@@ -14770,21 +14766,17 @@ impl Admin {
         deadline: Instant,
     ) -> Result<Vec<(usize, DeletableGroupResult)>> {
         let subset = borrowed_ids(ids, idxs);
-        self.connect_node_until(node, deadline).await?;
         let timeout = startup_remaining(deadline)?;
-        let body = {
-            let conn = self
-                .conns
-                .get_mut(&node)
-                .ok_or_else(|| Error::protocol("missing delete_groups conn"))?;
-            conn.roundtrip(
+        let body = self
+            .roundtrip_known_node(
+                node,
+                deadline,
                 DELETE_GROUPS,
                 version,
                 |buf| encode_delete_groups_ids(buf, version, &subset),
                 timeout,
             )
-            .await
-        }?;
+            .await?;
         Self::apply_delete_groups_body(version, ids, idxs, body)
     }
 
@@ -14821,14 +14813,11 @@ impl Admin {
         deadline: Instant,
     ) -> Result<Vec<(usize, DescribedConsumerGroup)>> {
         let subset = borrowed_ids(ids, idxs);
-        self.connect_node_until(node, deadline).await?;
         let timeout = startup_remaining(deadline)?;
-        let body = {
-            let conn = self
-                .conns
-                .get_mut(&node)
-                .ok_or_else(|| Error::protocol("missing consumer_group_describe conn"))?;
-            conn.roundtrip(
+        let body = self
+            .roundtrip_known_node(
+                node,
+                deadline,
                 CONSUMER_GROUP_DESCRIBE,
                 version,
                 |buf| {
@@ -14841,8 +14830,7 @@ impl Admin {
                 },
                 timeout,
             )
-            .await
-        }?;
+            .await?;
         Self::apply_consumer_group_describe_body(version, ids, idxs, body)
     }
 
@@ -14879,14 +14867,11 @@ impl Admin {
         deadline: Instant,
     ) -> Result<Vec<(usize, DescribedShareGroup)>> {
         let subset = borrowed_ids(ids, idxs);
-        self.connect_node_until(node, deadline).await?;
         let timeout = startup_remaining(deadline)?;
-        let body = {
-            let conn = self
-                .conns
-                .get_mut(&node)
-                .ok_or_else(|| Error::protocol("missing share_group_describe conn"))?;
-            conn.roundtrip(
+        let body = self
+            .roundtrip_known_node(
+                node,
+                deadline,
                 SHARE_GROUP_DESCRIBE,
                 version,
                 |buf| {
@@ -14899,8 +14884,7 @@ impl Admin {
                 },
                 timeout,
             )
-            .await
-        }?;
+            .await?;
         Self::apply_share_group_describe_body(version, ids, idxs, body)
     }
 
@@ -14937,21 +14921,17 @@ impl Admin {
     ) -> Result<Vec<(usize, DescribedShareGroupOffsetsWithLag)>> {
         let subset: Vec<&DescribeShareGroupOffsetsGroup> =
             idxs.iter().filter_map(|&i| groups.get(i)).collect();
-        self.connect_node_until(node, deadline).await?;
         let timeout = startup_remaining(deadline)?;
-        let body = {
-            let conn = self
-                .conns
-                .get_mut(&node)
-                .ok_or_else(|| Error::protocol("missing describe_share_group_offsets conn"))?;
-            conn.roundtrip(
+        let body = self
+            .roundtrip_known_node(
+                node,
+                deadline,
                 DESCRIBE_SHARE_GROUP_OFFSETS,
                 version,
                 |buf| encode_describe_share_group_offsets_request_refs(buf, version, &subset),
                 timeout,
             )
-            .await
-        }?;
+            .await?;
         Self::apply_describe_share_group_offsets_body(version, groups, idxs, body)
     }
 

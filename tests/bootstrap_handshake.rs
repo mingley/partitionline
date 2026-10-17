@@ -277,6 +277,31 @@ async fn delete_topics_skips_a_second_handshake_on_the_bootstrap_broker() {
     );
 }
 
+/// DescribeGroups on the bootstrap coordinator does not open another socket.
+#[tokio::test]
+async fn describe_groups_stays_on_the_bootstrap_socket() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    let accepts_before = mock.accepts();
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let started = Instant::now();
+    let described = admin.describe_groups(&["g"], false).await.unwrap();
+    let elapsed = started.elapsed();
+    assert_eq!(described.len(), 1);
+    assert_eq!(described[0].error_code, 0);
+    assert_eq!(
+        mock.accepts(),
+        accepts_before,
+        "DescribeGroups should stay on the admin bootstrap socket"
+    );
+    assert!(
+        elapsed < Duration::from_millis(200),
+        "describe groups opened another socket: {elapsed:?}"
+    );
+}
+
 /// CreateTopics on the bootstrap broker reuses that socket.
 #[tokio::test]
 async fn create_topics_reuses_the_bootstrap_socket() {

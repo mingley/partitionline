@@ -1785,6 +1785,11 @@ fn node_endpoints_for(st: &State, leader_ids: impl IntoIterator<Item = i32>) -> 
 }
 
 impl Mock {
+    /// TCP connections accepted since the listeners started.
+    pub fn accepts(&self) -> u32 {
+        self.state.lock().accepts
+    }
+
     pub async fn start() -> Self {
         Self::start_with_sasl(None).await
     }
