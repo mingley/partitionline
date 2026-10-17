@@ -2510,7 +2510,7 @@
 //! cluster id does not match.
 //! A piggybacked
 //! `TRANSACTIONAL_ID_NOT_FOUND` still completes without retry,
-//! including when `AcknowledgeErrorMessage` is set (this is not
+//! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `TRANSACTIONAL_ID_NOT_FOUND`, which fails that poll, and not
 //! piggyback `INCONSISTENT_CLUSTER_ID`). Official Java
 //! `TransactionCoordinator` writes this when the transactional id has

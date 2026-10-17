@@ -762,7 +762,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   cluster id does not match. A
   piggybacked `TRANSACTIONAL_ID_NOT_FOUND` still
   completes without retry, including when `AcknowledgeErrorMessage` is
-  set (Java `handleShareFetchSuccess` completes piggyback acks and still
+  set or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
   delivers the fetch; this is not partition `TRANSACTIONAL_ID_NOT_FOUND`,
   which fails that poll, and not piggyback `INCONSISTENT_CLUSTER_ID`). Official
   Java `TransactionCoordinator` writes this when the transactional id has
