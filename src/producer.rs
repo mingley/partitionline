@@ -4792,14 +4792,65 @@ async fn init_producer_id_roundtrip(
             }
             Err(e) => return Err(e),
         }
-        crate::config::sleep_retry_backoff(
-            cfg.retry_backoff.max(Duration::from_millis(1)),
-            cfg.retry_backoff_max.max(Duration::from_millis(1)),
-            attempt,
-            deadline,
-        )
-        .await;
+        let left = match txn.as_mut() {
+            Some(coord) => watch_init_retry(cfg, &mut coord.conn, attempt, deadline).await,
+            None => match meta.as_deref_mut() {
+                Some(conn) => watch_init_retry(cfg, conn, attempt, deadline).await,
+                None => {
+                    crate::config::sleep_retry_backoff(
+                        cfg.retry_backoff.max(Duration::from_millis(1)),
+                        cfg.retry_backoff_max.max(Duration::from_millis(1)),
+                        attempt,
+                        deadline,
+                    )
+                    .await;
+                    false
+                }
+            },
+        };
+        if left && txn.is_some() {
+            // The coordinator left during the backoff. The next attempt
+            // must dial again instead of writing to the socket just closed.
+            rediscover = true;
+        }
         attempt = attempt.saturating_add(1);
+    }
+}
+
+/// Wait out an InitProducerId retry and drop the socket if the broker leaves.
+///
+/// Returns true when that socket was shut down. A broker that stays up is
+/// left connected for the next attempt.
+async fn watch_init_retry(
+    cfg: &ProducerConfig,
+    conn: &mut BrokerConn,
+    attempt: u32,
+    deadline: Instant,
+) -> bool {
+    let delay = crate::config::retry_backoff_delay(
+        cfg.retry_backoff.max(Duration::from_millis(1)),
+        cfg.retry_backoff_max.max(Duration::from_millis(1)),
+        attempt,
+    );
+    if delay.is_zero() || Instant::now() >= deadline {
+        return false;
+    }
+    let rest = delay.min(deadline.saturating_duration_since(Instant::now()));
+    let sleep = tokio::time::sleep(rest);
+    tokio::pin!(sleep);
+    if conn.is_closed() {
+        conn.release_if_closed().await;
+        return true;
+    }
+    tokio::select! {
+        biased;
+        ready = conn.inbound_ready() => {
+            drop(ready);
+            conn.close();
+            conn.release_if_closed().await;
+            true
+        }
+        () = &mut sleep => false,
     }
 }
 

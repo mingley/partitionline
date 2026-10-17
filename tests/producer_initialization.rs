@@ -105,3 +105,65 @@ async fn discovery_and_allocation_share_the_original_initialization_deadline() {
     let result = tokio::time::timeout(Duration::from_millis(160), Producer::new(cfg)).await;
     assert!(matches!(result, Ok(Err(Error::Timeout))));
 }
+
+/// A coordinator-load backoff must drop the socket when that broker stops writing.
+#[tokio::test(flavor = "current_thread")]
+async fn init_producer_id_drops_the_socket_when_the_broker_closes_during_load_backoff() {
+    let mock = common::Mock::start().await;
+    mock.fail_init_producer_id_once(error::COORDINATOR_LOAD_IN_PROGRESS);
+    let mut cfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    cfg.transactional_id = Some("tx-load-backoff".into());
+    cfg.linger = Duration::ZERO;
+    cfg.retry_backoff = Duration::from_secs(5);
+    cfg.retry_backoff_max = Duration::from_secs(5);
+    cfg.request_timeout = Duration::from_secs(30);
+    let mut opening = std::pin::pin!(Producer::new(cfg));
+    let started = Instant::now();
+    loop {
+        if !mock.init_producer_id_nodes().is_empty() {
+            break;
+        }
+        tokio::select! {
+            _ = &mut opening => panic!("init finished before the load response"),
+            _ = tokio::time::sleep(Duration::from_millis(10)) => {}
+        }
+        if started.elapsed() > Duration::from_secs(2) {
+            panic!("did not see InitProducerId");
+        }
+    }
+    let settle = Instant::now();
+    while settle.elapsed() < Duration::from_millis(80) {
+        tokio::select! {
+            _ = &mut opening => panic!("init left the load backoff early"),
+            _ = tokio::time::sleep(Duration::from_millis(10)) => {}
+        }
+    }
+    assert_eq!(
+        mock.init_producer_id_nodes().len(),
+        1,
+        "a second InitProducerId means the client is not waiting out the backoff"
+    );
+    let before = mock.accepts();
+    mock.shutdown_writes();
+    let window = Instant::now();
+    loop {
+        if mock.accepts() > before {
+            break;
+        }
+        if window.elapsed() > Duration::from_millis(400) {
+            panic!("init kept the socket during coordinator load backoff; accepts {before}");
+        }
+        tokio::select! {
+            result = &mut opening => {
+                let producer = result.expect("init after the broker closed");
+                assert!(
+                    mock.accepts() > before,
+                    "init finished without replacing the closed coordinator socket"
+                );
+                producer.close().await.unwrap();
+                return;
+            }
+            _ = tokio::time::sleep(Duration::from_millis(10)) => {}
+        }
+    }
+}
