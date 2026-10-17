@@ -1933,6 +1933,75 @@ async fn produce_reconnects_when_the_broker_closes_during_throttle() {
     drop(producer);
 }
 
+/// A fetch session retry drops the leader socket when that broker closes during backoff.
+#[tokio::test(flavor = "current_thread")]
+async fn fetch_drops_the_socket_when_the_broker_closes_during_session_retry() {
+    let mock = common::Mock::start().await;
+    mock.enable_fetch_sessions([1]);
+    let mut producer_cfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    producer_cfg.linger = Duration::ZERO;
+    let producer = Producer::new(producer_cfg).await.unwrap();
+    let _sent = producer
+        .send(ProduceRecord::to("t").value(b"session".to_vec()))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+    let mut cfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    cfg.request_timeout = Duration::from_secs(30);
+    cfg.max_wait_ms = 10;
+    cfg.retry_backoff = Duration::from_secs(5);
+    cfg.retry_backoff_max = Duration::from_secs(5);
+    let mut consumer = Consumer::new(cfg).await.unwrap();
+    consumer.assign("t", 0, 0).await.unwrap();
+    let first = consumer.fetch().await.unwrap();
+    assert_eq!(first.len(), 1);
+    assert!(mock.fetch_session_id(1).is_some());
+    mock.reset_fetch_sessions(1);
+    let before = mock.fetch_session_requests().len();
+    let fetch = consumer.fetch();
+    tokio::pin!(fetch);
+    let started = Instant::now();
+    loop {
+        if mock.fetch_session_requests().len() > before {
+            break;
+        }
+        if started.elapsed() > Duration::from_secs(2) {
+            panic!("incremental fetch was not sent");
+        }
+        tokio::select! {
+            result = &mut fetch => panic!("fetch finished before the session retry: {result:?}"),
+            _ = tokio::time::sleep(Duration::from_millis(5)) => {}
+        }
+    }
+    let seen = mock.fetch_session_requests().len();
+    let started = Instant::now();
+    while started.elapsed() < Duration::from_millis(80) {
+        if mock.fetch_session_requests().len() != seen {
+            panic!("session retry did not stay in backoff");
+        }
+        tokio::select! {
+            result = &mut fetch => panic!("fetch finished before the retry backoff: {result:?}"),
+            _ = tokio::time::sleep(Duration::from_millis(5)) => {}
+        }
+    }
+    let accepts = mock.accepts();
+    mock.shutdown_writes();
+    let started = Instant::now();
+    loop {
+        if mock.accepts() > accepts {
+            break;
+        }
+        if started.elapsed() > Duration::from_millis(400) {
+            panic!("fetch kept the socket during session retry backoff");
+        }
+        tokio::select! {
+            result = &mut fetch => panic!("fetch finished during session retry backoff: {result:?}"),
+            _ = tokio::time::sleep(Duration::from_millis(5)) => {}
+        }
+    }
+    drop(fetch);
+}
+
 /// A fetch waiting on a broker quota drops the leader socket when that broker closes.
 #[tokio::test(flavor = "current_thread")]
 async fn fetch_drops_the_socket_when_the_broker_closes_during_throttle() {

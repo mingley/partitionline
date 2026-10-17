@@ -5992,6 +5992,59 @@ impl Consumer {
     }
 
     /// Wait [`ConsumerConfig::retry_backoff`] (exponential) unless a wakeup arrives.
+    /// Wait out a fetch retry and drop a leader socket that closes during it.
+    async fn sleep_fetch_retry(&mut self, attempt: u32, deadline: Instant) -> Result<()> {
+        if self.woken() {
+            return Err(Error::Wakeup);
+        }
+        let delay = crate::config::retry_backoff_delay(
+            self.cfg.retry_backoff,
+            self.cfg.retry_backoff_max,
+            attempt,
+        );
+        if delay.is_zero() || Instant::now() >= deadline {
+            return Ok(());
+        }
+        let rest = delay.min(deadline.saturating_duration_since(Instant::now()));
+        let sleep = tokio::time::sleep(rest);
+        tokio::pin!(sleep);
+        let mut wakeup = self.wakeup_tx.subscribe();
+        let mut watch = !self.conns.is_empty()
+            || self
+                .cluster
+                .brokers
+                .values()
+                .any(|addr| addr == self.conn.addr());
+        loop {
+            let mut nodes: Vec<i32> = self.conns.keys().copied().collect();
+            if let Some((&id, _)) = self
+                .cluster
+                .brokers
+                .iter()
+                .find(|(_, addr)| *addr == self.conn.addr())
+            {
+                if !nodes.contains(&id) {
+                    nodes.push(id);
+                }
+            }
+            tokio::select! {
+                biased;
+                result = wakeup.wait_for(|on| *on) => {
+                    drop(result);
+                    return Err(Error::Wakeup);
+                }
+                () = &mut sleep => return Ok(()),
+                _closed = self.watch_muted_fetch_sockets(&nodes), if watch => {
+                    watch = !self.conns.is_empty();
+                }
+            }
+        }
+    }
+
+    #[expect(
+        dead_code,
+        reason = "share retry inlines this wait so it can also watch leader sockets"
+    )]
     pub(crate) async fn sleep_retry_backoff(&self, attempt: u32, deadline: Instant) -> Result<()> {
         if self.woken() {
             return Err(Error::Wakeup);
@@ -6251,7 +6304,7 @@ impl Consumer {
                         Err(Error::Timeout)
                     };
                 }
-                if let Err(error) = self.sleep_retry_backoff(attempt, deadline).await {
+                if let Err(error) = self.sleep_fetch_retry(attempt, deadline).await {
                     self.fetch_plan = by_leader;
                     self.park_fetch_records(out);
                     return Err(error);
@@ -6519,7 +6572,7 @@ impl Consumer {
                     };
                 }
                 if retry.needs_backoff() {
-                    self.sleep_retry_backoff(attempt, deadline).await?;
+                    self.sleep_fetch_retry(attempt, deadline).await?;
                     attempt = attempt.saturating_add(1);
                     if Instant::now() >= deadline {
                         return if !out.is_empty() {
