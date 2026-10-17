@@ -17,6 +17,7 @@ use crate::consumer::{
 };
 use crate::error::{self, Error, Result};
 use crate::net::BrokerConn;
+use crate::protocol::api::{ApiVersion, ApiVersionsResponse};
 use crate::protocol::api_keys::{
     pick_version, CONSUMER_GROUP_HEARTBEAT, FIND_COORDINATOR, HEARTBEAT, JOIN_GROUP, LEAVE_GROUP,
     OFFSET_COMMIT, OFFSET_FETCH, SHARE_GROUP_HEARTBEAT, SYNC_GROUP,
@@ -1863,7 +1864,8 @@ impl ConsumerGroup {
         topics: &[OffsetTopic],
         timeout: Duration,
     ) -> Result<()> {
-        let (version, body) = coord_roundtrip(
+        let bootstrap_keys = self.consumer.copy_api_keys();
+        let (version, body) = coord_roundtrip_with_bootstrap(
             &mut self.coord,
             &self.cfg,
             &self.group_id,
@@ -1881,6 +1883,7 @@ impl ConsumerGroup {
                     topics,
                 )
             },
+            &bootstrap_keys,
             timeout,
         )
         .await?;
@@ -5159,6 +5162,8 @@ pub(crate) struct KnownCoord {
     sasl_handshake_version: i16,
     sasl_authenticate_version: i16,
     find_coordinator_version: i16,
+    /// ApiVersions for the bootstrap broker, used when this coordinator is elsewhere.
+    bootstrap_keys: Vec<ApiVersion>,
 }
 
 impl KnownCoord {
@@ -5177,7 +5182,13 @@ impl KnownCoord {
             sasl_handshake_version: conn.sasl_handshake_version,
             sasl_authenticate_version: conn.sasl_authenticate_version,
             find_coordinator_version: conn.find_coordinator_version,
+            bootstrap_keys: Vec::new(),
         }
+    }
+
+    fn with_bootstrap_keys(mut self, keys: &[ApiVersion]) -> Self {
+        self.bootstrap_keys = keys.to_vec();
+        self
     }
 
     fn apply(&self, conn: &mut BrokerConn) {
@@ -5277,7 +5288,14 @@ async fn locate_known_coordinator(
         .first()
         .ok_or_else(|| Error::protocol("find coordinator failed"))?;
     if bootstrap != &known.addr {
-        return locate_coordinator_address(cfg, group_id, key_type, deadline).await;
+        if known.bootstrap_keys.is_empty() {
+            return locate_coordinator_address(cfg, group_id, key_type, deadline).await;
+        }
+        let deadline = crate::net::Deadline::from_std(deadline);
+        let bounded = bounded_coord_config(cfg, deadline)?;
+        let (mut hop, version, _) =
+            open_coord_with_keys(&bounded, bootstrap, &known.bootstrap_keys).await?;
+        return coordinator_address_of(&mut hop, version, group_id, key_type, deadline).await;
     }
     let deadline = crate::net::Deadline::from_std(deadline);
     let bounded = bounded_coord_config(cfg, deadline)?;
@@ -5346,6 +5364,16 @@ async fn locate_coordinator_address(
         return Err(Error::protocol("find coordinator failed"));
     };
     let (mut hop, version, _) = open_coord_with_find_version(&bounded, addr).await?;
+    coordinator_address_of(&mut hop, version, group_id, key_type, deadline).await
+}
+
+async fn coordinator_address_of(
+    hop: &mut BrokerConn,
+    version: i16,
+    group_id: &str,
+    key_type: i8,
+    deadline: crate::net::Deadline,
+) -> Result<String> {
     let body = hop
         .roundtrip(
             FIND_COORDINATOR,
@@ -5363,22 +5391,19 @@ async fn locate_coordinator_address(
         .ok_or_else(|| Error::protocol("invalid coordinator address"))
 }
 
-async fn open_coord_with_find_version(
-    cfg: &ConsumerConfig,
-    addr: &str,
-) -> Result<(BrokerConn, i16, crate::protocol::api::ApiVersionsResponse)> {
-    let deadline = Instant::now()
-        .checked_add(cfg.request_timeout)
-        .ok_or(Error::Timeout)?;
-    let bound = crate::net::Deadline::from_std(deadline);
-    let mut conn = BrokerConn::connect_tls(
-        addr,
-        &cfg.client_id,
-        cfg.connect_timeout.min(bound.remaining()?),
-        cfg.tls.as_ref(),
-    )
-    .await?;
-    let resp = crate::protocol::api::negotiate_api_versions(&mut conn, bound.remaining()?).await?;
+fn remembered_coord_versions(keys: &[ApiVersion]) -> ApiVersionsResponse {
+    ApiVersionsResponse {
+        error_code: 0,
+        api_keys: keys.to_vec(),
+        throttle_time_ms: 0,
+        supported_features: Vec::new(),
+        finalized_features_epoch: None,
+        finalized_features: Vec::new(),
+        zk_migration_ready: false,
+    }
+}
+
+fn stamp_coord_versions(conn: &mut BrokerConn, resp: &ApiVersionsResponse) -> Result<i16> {
     let version = resp
         .api_version(FIND_COORDINATOR)
         .and_then(|v| pick_version(v.min_version, v.max_version, 0, 6))
@@ -5416,9 +5441,35 @@ async fn open_coord_with_find_version(
         .and_then(|v| pick_version(v.min_version, v.max_version, 0, 1))
         .unwrap_or(-1);
     conn.find_coordinator_version = version;
-    sasl::apply_api_keys(&mut conn, &resp.api_keys);
+    sasl::apply_api_keys(conn, &resp.api_keys);
+    Ok(version)
+}
+
+async fn open_coord_socket(
+    cfg: &ConsumerConfig,
+    addr: &str,
+) -> Result<(BrokerConn, crate::net::Deadline)> {
+    let deadline = Instant::now()
+        .checked_add(cfg.request_timeout)
+        .ok_or(Error::Timeout)?;
+    let bound = crate::net::Deadline::from_std(deadline);
+    let conn = BrokerConn::connect_tls(
+        addr,
+        &cfg.client_id,
+        cfg.connect_timeout.min(bound.remaining()?),
+        cfg.tls.as_ref(),
+    )
+    .await?;
+    Ok((conn, bound))
+}
+
+async fn authenticate_coord(
+    conn: &mut BrokerConn,
+    cfg: &ConsumerConfig,
+    bound: crate::net::Deadline,
+) -> Result<()> {
     sasl::authenticate(
-        &mut conn,
+        conn,
         cfg.sasl_plain.as_ref(),
         cfg.sasl_scram.as_ref(),
         cfg.sasl_scram_sha512.as_ref(),
@@ -5426,7 +5477,29 @@ async fn open_coord_with_find_version(
         cfg.sasl_oauthbearer_oidc.as_ref(),
         bound.remaining()?,
     )
-    .await?;
+    .await
+}
+
+async fn open_coord_with_keys(
+    cfg: &ConsumerConfig,
+    addr: &str,
+    keys: &[ApiVersion],
+) -> Result<(BrokerConn, i16, ApiVersionsResponse)> {
+    let (mut conn, bound) = open_coord_socket(cfg, addr).await?;
+    let resp = remembered_coord_versions(keys);
+    let version = stamp_coord_versions(&mut conn, &resp)?;
+    authenticate_coord(&mut conn, cfg, bound).await?;
+    Ok((conn, version, resp))
+}
+
+async fn open_coord_with_find_version(
+    cfg: &ConsumerConfig,
+    addr: &str,
+) -> Result<(BrokerConn, i16, ApiVersionsResponse)> {
+    let (mut conn, bound) = open_coord_socket(cfg, addr).await?;
+    let resp = crate::protocol::api::negotiate_api_versions(&mut conn, bound.remaining()?).await?;
+    let version = stamp_coord_versions(&mut conn, &resp)?;
+    authenticate_coord(&mut conn, cfg, bound).await?;
     Ok((conn, version, resp))
 }
 
@@ -5436,7 +5509,34 @@ pub(crate) async fn coord_roundtrip(
     group_id: &str,
     key_type: i8,
     api_key: i16,
+    encode_body: impl FnMut(i16, &mut BytesMut) -> Result<()>,
+    request_timeout: Duration,
+) -> Result<(i16, Bytes)> {
+    coord_roundtrip_with_bootstrap(
+        coord,
+        cfg,
+        group_id,
+        key_type,
+        api_key,
+        encode_body,
+        &[],
+        request_timeout,
+    )
+    .await
+}
+
+#[expect(
+    clippy::too_many_arguments,
+    reason = "coordinator RPC carries the learned bootstrap versions"
+)]
+async fn coord_roundtrip_with_bootstrap(
+    coord: &mut BrokerConn,
+    cfg: &ConsumerConfig,
+    group_id: &str,
+    key_type: i8,
+    api_key: i16,
     mut encode_body: impl FnMut(i16, &mut BytesMut) -> Result<()>,
+    bootstrap_keys: &[ApiVersion],
     request_timeout: Duration,
 ) -> Result<(i16, Bytes)> {
     let deadline = crate::net::Deadline::from_std(
@@ -5454,6 +5554,7 @@ pub(crate) async fn coord_roundtrip(
             api_key,
             version,
             |buf| encode_body(version, buf),
+            bootstrap_keys,
             deadline.remaining()?,
         )
         .await?;

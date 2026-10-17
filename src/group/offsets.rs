@@ -98,6 +98,7 @@ impl ConsumerGroup {
         }
         let limits = OffsetLimits::default();
         let group_id = self.group_id.as_str();
+        let bootstrap_keys = self.consumer.copy_api_keys();
         let coord = &mut self.coord;
         let cfg = &self.cfg;
         let consumer = &mut self.consumer;
@@ -108,6 +109,7 @@ impl ConsumerGroup {
             COORDINATOR_GROUP,
             crate::protocol::api_keys::OFFSET_COMMIT,
             |buf| encode_offset_commit_request_into(buf, &request, 10, limits),
+            &bootstrap_keys,
             timeout,
         );
         let refreshed = consumer.refresh_metadata_timeout(Some(names), timeout);
@@ -379,6 +381,7 @@ impl ConsumerGroup {
         timeout: Duration,
     ) -> Result<()> {
         let limits = OffsetLimits::default();
+        let bootstrap_keys = self.consumer.copy_api_keys();
         let sent = coord_offsets_v10(
             &mut self.coord,
             &self.cfg,
@@ -386,6 +389,7 @@ impl ConsumerGroup {
             super::COORDINATOR_GROUP,
             crate::protocol::api_keys::OFFSET_COMMIT,
             |buf| encode_offset_commit_request_into(buf, &request, 10, limits),
+            &bootstrap_keys,
             timeout,
         )
         .await;
@@ -417,6 +421,7 @@ impl ConsumerGroup {
             return Err(error);
         }
         let limits = OffsetLimits::default();
+        let bootstrap_keys = self.consumer.copy_api_keys();
         let sent = coord_offsets_v10(
             &mut self.coord,
             &self.cfg,
@@ -424,6 +429,7 @@ impl ConsumerGroup {
             super::COORDINATOR_GROUP,
             crate::protocol::api_keys::OFFSET_FETCH,
             |buf| encode_offset_fetch_request_into(buf, &request, 10, limits),
+            &bootstrap_keys,
             timeout,
         )
         .await;
@@ -663,6 +669,10 @@ fn require_copied_coord_version(coord: &BrokerConn, api: i16, version: i16) -> R
 /// The body is the typed UUID request. A coordinator error rediscovers that
 /// broker on the caller's deadline. Name-only v2–v9 stays on
 /// [`coord_offsets_legacy`].
+#[expect(
+    clippy::too_many_arguments,
+    reason = "v10 offset RPC carries the learned bootstrap versions"
+)]
 pub(super) async fn coord_offsets_v10(
     coord: &mut BrokerConn,
     cfg: &crate::ConsumerConfig,
@@ -670,6 +680,7 @@ pub(super) async fn coord_offsets_v10(
     key_type: i8,
     api: i16,
     mut encode: impl FnMut(&mut bytes::BytesMut) -> Result<()>,
+    bootstrap_keys: &[crate::protocol::api::ApiVersion],
     timeout: Duration,
 ) -> Result<bytes::Bytes> {
     let target = std::time::Instant::now()
@@ -698,7 +709,7 @@ pub(super) async fn coord_offsets_v10(
     };
     if v10_coordinator_code(api, &body).is_some_and(crate::error::coordinator_retriable) {
         let bounded = bounded_consumer_config(cfg, deadline)?;
-        let known = super::KnownCoord::capture(coord);
+        let known = super::KnownCoord::capture(coord).with_bootstrap_keys(bootstrap_keys);
         *coord = Box::pin(super::rediscover_known_coord(
             &bounded, group_id, key_type, &known,
         ))
@@ -733,6 +744,7 @@ pub(super) async fn coord_offsets_legacy(
     api: i16,
     version: i16,
     mut encode: impl FnMut(&mut bytes::BytesMut) -> Result<()>,
+    bootstrap_keys: &[crate::protocol::api::ApiVersion],
     timeout: Duration,
 ) -> Result<bytes::Bytes> {
     if version >= 10 {
@@ -769,7 +781,7 @@ pub(super) async fn coord_offsets_legacy(
             .is_some_and(crate::error::coordinator_retriable)
         {
             let bounded = bounded_consumer_config(cfg, deadline)?;
-            let known = super::KnownCoord::capture(coord);
+            let known = super::KnownCoord::capture(coord).with_bootstrap_keys(bootstrap_keys);
             *coord = Box::pin(super::rediscover_known_coord(
                 &bounded, group_id, key_type, &known,
             ))
