@@ -473,6 +473,11 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   set or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
   delivers the fetch; this is not partition `INVALID_PRODUCER_EPOCH`,
   which fails that poll, and not piggyback `DUPLICATE_SEQUENCE_NUMBER`). A
+  piggybacked `INVALID_TXN_STATE` still
+  completes without retry, including when `AcknowledgeErrorMessage` is
+  set (Java `handleShareFetchSuccess` completes piggyback acks and still
+  delivers the fetch; this is not partition `INVALID_TXN_STATE`,
+  which fails that poll, and not piggyback `INVALID_PRODUCER_EPOCH`). A
   piggybacked `TOPIC_AUTHORIZATION_FAILED` on
   one partition does not fail a sibling whose `AcknowledgeErrorCode`
   is none, including when `AcknowledgeErrorMessage` is set or empty. A
