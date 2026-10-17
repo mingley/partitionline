@@ -1383,7 +1383,7 @@ pub enum ShareAcquireMode {
 /// a reassignment and the leader changes.
 /// A piggybacked
 /// `OFFSET_MOVED_TO_TIERED_STORAGE` still completes without retry,
-/// including when `AcknowledgeErrorMessage` is set (Java
+/// including when `AcknowledgeErrorMessage` is set or empty (Java
 /// `handleShareFetchSuccess` completes piggyback acks and still
 /// delivers the fetch; this is not partition
 /// `OFFSET_MOVED_TO_TIERED_STORAGE`, which fails that poll, and not piggyback
@@ -3520,7 +3520,7 @@ impl ShareGroup {
     /// a reassignment and the leader changes.
     /// A piggybacked `OFFSET_MOVED_TO_TIERED_STORAGE` still completes
     /// without retry, including when `AcknowledgeErrorMessage` is set
-    /// (Java `handleShareFetchSuccess` completes piggyback acks and still
+    /// or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
     /// delivers the fetch; this is not partition
     /// `OFFSET_MOVED_TO_TIERED_STORAGE`, which fails that poll, and not piggyback
     /// `NEW_LEADER_ELECTED`). Official Java
