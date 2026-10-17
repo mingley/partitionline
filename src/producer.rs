@@ -4947,13 +4947,36 @@ async fn renew_nontransactional_identity(shared: &Shared) -> Result<()> {
 /// of a retriable broker code. Retries never invent identities: every
 /// attempt reuses the broker-authorized producer id and epoch.
 async fn txn_retry_sleep(shared: &Shared, attempt: u32, deadline: Instant) {
-    crate::config::sleep_retry_backoff(
+    let delay = crate::config::retry_backoff_delay(
         shared.cfg.retry_backoff,
         shared.cfg.retry_backoff_max,
         attempt,
-        deadline,
-    )
-    .await;
+    );
+    if delay.is_zero() || Instant::now() >= deadline {
+        return;
+    }
+    let rest = delay.min(deadline.saturating_duration_since(Instant::now()));
+    let sleep = tokio::time::sleep(rest);
+    tokio::pin!(sleep);
+    let mut guard = shared.txn.lock().await;
+    let Some(coord) = guard.as_mut() else {
+        drop(guard);
+        sleep.await;
+        return;
+    };
+    if coord.conn.is_closed() {
+        coord.conn.release_if_closed().await;
+        return;
+    }
+    tokio::select! {
+        biased;
+        ready = coord.conn.inbound_ready() => {
+            drop(ready);
+            coord.conn.close();
+            coord.conn.release_if_closed().await;
+        }
+        () = &mut sleep => {}
+    }
 }
 
 fn timeout_remaining(deadline: Instant) -> Result<Duration> {

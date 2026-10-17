@@ -701,6 +701,7 @@ struct State {
     offset_commit_load_left: u32,
     offset_commit_load_in_progress: u32,
     add_partitions_to_txn_calls: u32,
+    add_partitions_attempts: u32,
     last_add_partitions_to_txn: usize,
     last_add_partitions_to_txn_version: Option<i16>,
     last_add_partitions_producer_epoch: Option<i16>,
@@ -1213,6 +1214,7 @@ fn new_state(
         offset_commit_load_left: 0,
         offset_commit_load_in_progress: 0,
         add_partitions_to_txn_calls: 0,
+        add_partitions_attempts: 0,
         last_add_partitions_to_txn: 0,
         last_add_partitions_to_txn_version: None,
         last_add_partitions_producer_epoch: None,
@@ -3917,6 +3919,11 @@ impl Mock {
 
     pub fn add_partitions_to_txn_calls(&self) -> u32 {
         self.state.lock().add_partitions_to_txn_calls
+    }
+
+    /// AddPartitionsToTxn requests, including ones answered with an error.
+    pub fn add_partitions_attempts(&self) -> u32 {
+        self.state.lock().add_partitions_attempts
     }
 
     pub fn last_add_partitions_to_txn(&self) -> usize {
@@ -6708,6 +6715,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 let (_tid, _pid, epoch, topics) =
                     decode_add_partitions_to_txn_request(&mut frame, header.api_version).unwrap();
                 let mut st = state.lock();
+                st.add_partitions_attempts = st.add_partitions_attempts.saturating_add(1);
                 let forced = match (st.add_partitions_error, st.add_partitions_error_left) {
                     (Some(_), Some(0)) => {
                         st.add_partitions_error = None;

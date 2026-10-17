@@ -1468,3 +1468,77 @@ async fn commit_redials_txn_coordinator_while_finding_it() {
     );
     producer.close().await.unwrap();
 }
+
+/// An AddPartitions retry must drop the coordinator socket when that broker stops writing.
+#[tokio::test(flavor = "current_thread")]
+async fn add_partitions_drops_the_coordinator_when_it_closes_during_backoff() {
+    let mock = common::Mock::start().await;
+    mock.set_topic_partitions("t", 1);
+    mock.set_transaction_version(Some(1));
+    let mut cfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    cfg.linger = Duration::ZERO;
+    cfg.connections = 1;
+    cfg.transactional_id = Some("tx-add-backoff".into());
+    cfg.retry_backoff = Duration::from_secs(5);
+    cfg.retry_backoff_max = Duration::from_secs(5);
+    cfg.request_timeout = Duration::from_secs(30);
+    cfg.delivery_timeout = Duration::from_secs(30);
+    let producer = Producer::new(cfg).await.unwrap();
+    producer.begin_transaction().await.unwrap();
+    mock.set_add_partitions_error_times(partitionline::error::CONCURRENT_TRANSACTIONS, 1);
+    let sending = producer.clone();
+    let mut sending = std::pin::pin!(sending.send(ProduceRecord::to("t").value(&b"v"[..])));
+    let started = Instant::now();
+    loop {
+        if mock.add_partitions_attempts() >= 1 {
+            break;
+        }
+        tokio::select! {
+            _ = &mut sending => panic!("send finished before AddPartitions"),
+            _ = tokio::time::sleep(Duration::from_millis(10)) => {}
+        }
+        if started.elapsed() > Duration::from_secs(2) {
+            panic!("did not see AddPartitions");
+        }
+    }
+    let settle = Instant::now();
+    while settle.elapsed() < Duration::from_millis(80) {
+        tokio::select! {
+            _ = &mut sending => panic!("send left the add-partitions backoff early"),
+            _ = tokio::time::sleep(Duration::from_millis(10)) => {}
+        }
+    }
+    assert_eq!(
+        mock.add_partitions_attempts(),
+        1,
+        "a second AddPartitions means the client is not waiting out the backoff"
+    );
+    let before = mock.accepts();
+    let open = mock.open_conns();
+    assert!(open > 0, "add partitions had no socket");
+    mock.shutdown_writes();
+    let window = Instant::now();
+    loop {
+        if mock.accepts() > before || mock.open_conns() < open {
+            break;
+        }
+        if window.elapsed() > Duration::from_millis(400) {
+            panic!(
+                "add partitions kept the coordinator socket during backoff; accepts {before} open {open}"
+            );
+        }
+        tokio::select! {
+            result = &mut sending => {
+                let _sent = result;
+                assert!(
+                    mock.accepts() > before || mock.open_conns() < open,
+                    "send finished with the coordinator socket still open"
+                );
+                drop(producer);
+                return;
+            }
+            _ = tokio::time::sleep(Duration::from_millis(10)) => {}
+        }
+    }
+    drop(producer);
+}
