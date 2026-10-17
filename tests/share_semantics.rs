@@ -59,6 +59,48 @@ async fn produce(mock: &common::Mock, entries: &[(i32, &[u8])]) {
     producer.close().await.unwrap();
 }
 
+/// A share-group heartbeat retry reuses the coordinator handshake.
+#[tokio::test]
+async fn share_heartbeat_retries_without_another_handshake() {
+    let mock = common::Mock::start_two_node().await;
+    v2(&mock);
+    mock.set_topic_partitions("t", 1);
+    mock.set_partition_leader("t", 0, 1);
+    mock.move_coordinator();
+    mock.set_share_heartbeat_interval_ms(40);
+    produce(&mock, &[(0, b"share")]).await;
+    let mut cfg = config(&mock);
+    cfg.heartbeat_interval = Duration::from_millis(40);
+    cfg.retry_backoff = Duration::from_millis(20);
+    cfg.retry_backoff_max = Duration::from_millis(20);
+    let group = ShareGroup::join(cfg, "share-hb-known", "t").await.unwrap();
+    let started_first = Instant::now();
+    while mock.share_heartbeat_calls() < 3 {
+        if started_first.elapsed() > Duration::from_secs(2) {
+            panic!("share heartbeat did not settle");
+        }
+        tokio::time::sleep(Duration::from_millis(5)).await;
+    }
+    let versions_before = mock.api_versions_versions().len();
+    let beats_before = mock.share_heartbeat_calls();
+    mock.set_share_heartbeat_error_times(14, 1);
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let started = Instant::now();
+    while mock.share_heartbeat_calls() < beats_before + 2 {
+        if started.elapsed() > Duration::from_secs(2) {
+            panic!("share heartbeat did not retry");
+        }
+        tokio::time::sleep(Duration::from_millis(5)).await;
+    }
+    let elapsed = started.elapsed();
+    assert!(
+        elapsed < Duration::from_millis(200),
+        "share heartbeat retry repeated ApiVersions: {elapsed:?}"
+    );
+    assert_eq!(mock.api_versions_versions().len(), versions_before);
+    group.leave().await.unwrap();
+}
+
 /// A share fetch from the bootstrap broker does not repeat ApiVersions.
 #[tokio::test]
 async fn share_fetch_reuses_bootstrap_api_versions() {

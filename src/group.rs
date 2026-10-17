@@ -5261,7 +5261,7 @@ impl KnownCoord {
         }
     }
 
-    fn with_bootstrap_keys(mut self, keys: &[ApiVersion]) -> Self {
+    pub(crate) fn with_bootstrap_keys(mut self, keys: &[ApiVersion]) -> Self {
         self.bootstrap_keys = keys.to_vec();
         self
     }
@@ -5315,7 +5315,7 @@ pub(crate) async fn connect_known_coord(
 ///
 /// A coordinator that stays put reuses that handshake. A moved coordinator
 /// is dialed after the lookup.
-async fn rediscover_known_coord(
+pub(crate) async fn rediscover_known_coord(
     cfg: &ConsumerConfig,
     group_id: &str,
     key_type: i8,

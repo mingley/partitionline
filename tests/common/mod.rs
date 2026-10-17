@@ -626,6 +626,8 @@ struct State {
     cg_heartbeat_interval_ms: i32,
     sync_group_calls: u32,
     share_heartbeat_calls: u32,
+    share_heartbeat_error_code: i16,
+    share_heartbeat_error_left: u32,
     share_heartbeat_interval_ms: i32,
     /// Epoch-0 share heartbeats return no assignment while this is set.
     share_hold_assignment: bool,
@@ -1128,6 +1130,8 @@ fn new_state(
         cg_heartbeat_interval_ms: 150,
         sync_group_calls: 0,
         share_heartbeat_calls: 0,
+        share_heartbeat_error_code: 0,
+        share_heartbeat_error_left: 0,
         share_heartbeat_interval_ms: 150,
         share_hold_assignment: false,
         share_fetch_calls: 0,
@@ -3684,6 +3688,12 @@ impl Mock {
 
     pub fn share_heartbeat_calls(&self) -> u32 {
         self.state.lock().share_heartbeat_calls
+    }
+
+    pub fn set_share_heartbeat_error_times(&self, code: i16, n: u32) {
+        let mut st = self.state.lock();
+        st.share_heartbeat_error_code = code;
+        st.share_heartbeat_error_left = n;
     }
 
     pub fn set_share_heartbeat_interval_ms(&self, ms: i32) {
@@ -7970,12 +7980,18 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     std::cmp::Ordering::Greater => (req.member_id, req.member_epoch, None),
                 };
                 let hb_interval = st.share_heartbeat_interval_ms;
+                let err = if st.share_heartbeat_error_left > 0 {
+                    st.share_heartbeat_error_left = st.share_heartbeat_error_left.saturating_sub(1);
+                    st.share_heartbeat_error_code
+                } else {
+                    0
+                };
                 encode_share_group_heartbeat_response(
                     &mut body,
                     version,
                     &ShareGroupHeartbeatResponse {
                         throttle_time_ms: 0,
-                        error_code: 0,
+                        error_code: err,
                         error_message: None,
                         member_id: Some(member_id),
                         member_epoch: epoch,

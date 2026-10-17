@@ -4945,11 +4945,13 @@ impl ShareGroup {
         let hb_deadline = self.hb_deadline.clone();
         let hb_wake = self.hb_wake.clone();
         let cfg = self.cfg.clone();
+        let bootstrap_keys = self.consumer.copy_api_keys();
         drop(tokio::spawn(async move {
             if *stop.borrow() {
                 return;
             }
             let mut conn: Option<BrokerConn> = None;
+            let mut remembered: Option<crate::group::KnownCoord> = None;
             let init_ms = hb_interval_ms.load(Ordering::SeqCst);
             let mut current_interval = if let Ok(ms_u64) = u64::try_from(init_ms) {
                 if ms_u64 > 0 {
@@ -5012,12 +5014,24 @@ impl ShareGroup {
                             continue;
                         }
                         let deadline = Instant::now() + cfg.request_timeout;
+                        if conn.is_none() {
+                            if let Some(known) = remembered.take() {
+                                conn = Box::pin(crate::group::rediscover_known_coord(
+                                    &cfg,
+                                    &group_id,
+                                    crate::protocol::group::COORDINATOR_GROUP,
+                                    &known,
+                                ))
+                                .await
+                                .ok();
+                            }
+                        }
                         crate::group::reopen_idle_coordinator(
                             &mut conn,
                             &cfg,
                             &group_id,
                             deadline,
-                            &[],
+                            &bootstrap_keys,
                         )
                             .await;
                         if *stop.borrow() { break; }
@@ -5071,6 +5085,12 @@ impl ShareGroup {
                                     version,
                                 ) {
                                     if crate::error::coordinator_retriable(resp.error_code) {
+                                        if let Some(current) = conn.as_ref() {
+                                            remembered = Some(
+                                                crate::group::KnownCoord::capture(current)
+                                                    .with_bootstrap_keys(&bootstrap_keys),
+                                            );
+                                        }
                                         conn = None;
                                         let retry_delay = cfg.retry_backoff.max(Duration::from_millis(50));
                                         next_hb_deadline = Instant::now() + retry_delay;
@@ -5121,6 +5141,12 @@ impl ShareGroup {
                                         }
                                     }
                                 } else {
+                                    if let Some(current) = conn.as_ref() {
+                                        remembered = Some(
+                                            crate::group::KnownCoord::capture(current)
+                                                .with_bootstrap_keys(&bootstrap_keys),
+                                        );
+                                    }
                                     conn = None;
                                     let retry_delay = cfg.retry_backoff.max(Duration::from_millis(50));
                                     next_hb_deadline = Instant::now() + retry_delay;
@@ -5128,6 +5154,12 @@ impl ShareGroup {
                                 }
                             }
                             Err(_) => {
+                                if let Some(current) = conn.as_ref() {
+                                    remembered = Some(
+                                        crate::group::KnownCoord::capture(current)
+                                            .with_bootstrap_keys(&bootstrap_keys),
+                                    );
+                                }
                                 conn = None;
                                 let retry_delay = cfg.retry_backoff.max(Duration::from_millis(50));
                                 next_hb_deadline = Instant::now() + retry_delay;
