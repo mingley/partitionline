@@ -2265,7 +2265,13 @@ async fn serve(
     }
     let mut wire = WireBuf::new();
     let deadline = Instant::now() + Duration::from_millis(control.config.limits.rpc_ms);
-    let reservation = control.reserve_frame(deadline).await;
+    // Frame memory can be exhausted while the peer is already gone. Do not
+    // hold this socket until that reservation times out.
+    let reservation = tokio::select! {
+        biased;
+        _ = peer_socket_closed(&mut socket, &mut wire.unread, control.config.limits.frame_bytes) => return,
+        r = control.reserve_frame(deadline) => r,
+    };
     let Ok(reservation) = reservation else {
         return;
     };
@@ -2315,8 +2321,12 @@ async fn serve(
     let mut last_rpc = 0;
     loop {
         let deadline = Instant::now() + Duration::from_millis(control.config.limits.rpc_ms);
-        let reservation =
-            tokio::select! {_ = control.stopping()=>break,r=control.reserve_frame(deadline)=>r};
+        let reservation = tokio::select! {
+            biased;
+            _ = control.stopping()=>break,
+            _ = peer_socket_closed(&mut socket, &mut wire.unread, control.config.limits.frame_bytes) => break,
+            r = control.reserve_frame(deadline) => r,
+        };
         let Ok(reservation) = reservation else {
             break;
         };
@@ -2865,6 +2875,105 @@ mod ownership_tests {
         }
         peer.abort();
         Ok(())
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn serve_closes_when_the_peer_leaves_during_frame_admission() -> TestResult {
+        use super::super::membership::{Bootstrap, Endpoint, Key, Voter, Voters};
+        use super::super::protocol;
+        use super::super::snapshot;
+
+        let listener = TcpListener::bind("127.0.0.1:0").await?;
+        let address = listener.local_addr()?;
+        let peer_addr = "127.0.0.1:10".parse::<std::net::SocketAddr>()?;
+        let local = Voter::new(
+            Key::new(0, [1; 16])?,
+            vec![Endpoint::new("CONTROLLER".into(), "127.0.0.1".into(), 9)?],
+            0,
+            1,
+        )?;
+        let remote = Voter::new(
+            Key::new(1, [2; 16])?,
+            vec![Endpoint::new("CONTROLLER".into(), "127.0.0.1".into(), 10)?],
+            0,
+            1,
+        )?;
+        let genesis = Voters::new(0, Default::default(), 1, vec![local.clone()])?;
+        let bootstrap = Bootstrap::new(local, genesis, "CONTROLLER".into())?;
+        let routes = vec![Peer::new(remote, peer_addr)?];
+        let mut controller = protocol::Config::new(0, vec![0], "private-serve-stop".into())?;
+        controller.timer_seed = 1;
+        let storage = StorageLimits {
+            record_bytes: 64 * 1024,
+            chunk_bytes: 256 * 1024,
+            live_entries: 64,
+            live_bytes: 1024 * 1024,
+            operations: 4096,
+            wal_bytes: 8 * 1024 * 1024,
+            fetch_bytes: 256 * 1024,
+            images: snapshot::Limits::new(
+                2 * 1024 * 1024,
+                64,
+                1024 * 1024,
+                64 * 1024,
+                32 * 1024,
+                8,
+                32,
+            )?,
+        };
+        let limits = Limits {
+            incoming: 1,
+            client_slots: 4,
+            frame_bytes: 512 * 1024,
+            election_min_ms: 80,
+            election_max_ms: 160,
+            quorum_ms: 1500,
+            tick_ms: 10,
+            heartbeat_ms: 40,
+            connect_ms: 250,
+            rpc_ms: 500,
+            transfer_ms: 1000,
+            command_ms: 3000,
+        };
+        let config = Arc::new(Config::new(controller, bootstrap, routes, storage, limits)?);
+        let (_commands_tx, _commands_rx) = mpsc::channel(1);
+        let (_ready_tx, ready_rx) = watch::channel(0u8);
+        let control = Arc::new(Control {
+            stopped: AtomicBool::new(false),
+            notify: Notify::new(),
+            commands: _commands_tx,
+            clients: Arc::new(Semaphore::new(config.limits.client_slots)),
+            bytes: Arc::new(Semaphore::new(0)),
+            startup: ready_rx,
+            tasks: AtomicUsize::new(0),
+            sockets: AtomicUsize::new(0),
+            metrics: Arc::new(TestMetrics::default()),
+            capture_root: None,
+            config,
+        });
+        let served = tokio::spawn(async move {
+            let socket = TcpStream::connect(address).await?;
+            let permit = Arc::new(Semaphore::new(1))
+                .acquire_owned()
+                .await
+                .map_err(|_| std::io::Error::other("incoming permit closed"))?;
+            serve(control, socket, permit, Arc::new(Vec::new())).await;
+            Ok::<_, std::io::Error>(())
+        });
+        let (mut peer, _) = listener.accept().await?;
+        tokio::time::sleep(Duration::from_millis(30)).await;
+        peer.shutdown().await.map_err(|_| "shutdown write")?;
+        let mut buf = [0u8; 8];
+        let saw = tokio::time::timeout(
+            Duration::from_millis(300),
+            tokio::io::AsyncReadExt::read(&mut peer, &mut buf),
+        )
+        .await;
+        served.abort();
+        match saw {
+            Ok(Ok(0)) => Ok(()),
+            _ => Err("serve kept the socket while frame admission waited".into()),
+        }
     }
 
     #[tokio::test(flavor = "current_thread")]
