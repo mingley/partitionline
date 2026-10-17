@@ -2425,6 +2425,13 @@
 //! `OffsetMetadataManager` OffsetFetch writes this when unstable
 //! offsets are present.
 //! A piggybacked
+//! `PRODUCER_FENCED` still completes without retry,
+//! including when `AcknowledgeErrorMessage` is set (this is not
+//! partition `PRODUCER_FENCED`, which fails that poll, and not
+//! piggyback `UNSTABLE_OFFSET_COMMIT`). Official Java
+//! `TransactionMetadata.prepareIncrementProducerEpoch` writes this
+//! when the expected producer epoch does not match.
+//! A piggybacked
 //! `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a
 //! sibling whose `AcknowledgeErrorCode` is none, including when
 //! `AcknowledgeErrorMessage` is set or empty. A piggybacked
