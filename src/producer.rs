@@ -1689,6 +1689,7 @@ impl Producer {
                 ipid_version,
                 find_coord_version,
                 (RecordBatch::NO_PRODUCER_ID, RecordBatch::NO_PRODUCER_EPOCH),
+                &resp.api_keys,
                 deadline,
             )
             .await?;
@@ -4035,6 +4036,10 @@ fn required_find_coordinator(version: Option<i16>) -> Result<i16> {
     })
 }
 
+#[expect(
+    clippy::too_many_arguments,
+    reason = "InitProducerId carries the startup deadline and the learned bootstrap versions"
+)]
 async fn init_producer_id_roundtrip(
     cfg: &ProducerConfig,
     txn: &mut Option<CoordinatorConnection>,
@@ -4042,6 +4047,7 @@ async fn init_producer_id_roundtrip(
     version: i16,
     find_coord_version: Option<i16>,
     identity: (i64, i16),
+    bootstrap_keys: &[ApiVersion],
     deadline: Instant,
 ) -> Result<(Bytes, i16)> {
     let txn_id = cfg.transactional_id.clone();
@@ -4072,7 +4078,7 @@ async fn init_producer_id_roundtrip(
                     RediscoverProducer {
                         previous,
                         previous_keys: &previous_keys,
-                        bootstrap_keys: &[],
+                        bootstrap_keys,
                     },
                     deadline,
                 )
@@ -4176,6 +4182,7 @@ async fn bump_producer_epoch(shared: &Shared) -> Result<()> {
         version,
         shared.find_coord_version,
         (pid, epoch),
+        &shared.api_keys,
         deadline,
     )
     .await?;
@@ -4215,6 +4222,7 @@ async fn renew_nontransactional_identity(shared: &Shared) -> Result<()> {
         version,
         shared.find_coord_version,
         (RecordBatch::NO_PRODUCER_ID, RecordBatch::NO_PRODUCER_EPOCH),
+        &shared.api_keys,
         deadline,
     )
     .await?;

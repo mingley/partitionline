@@ -1080,6 +1080,33 @@ async fn send_offsets_negotiates_a_new_group_coordinator() {
     producer.close().await.unwrap();
 }
 
+/// Reloading a remote transaction coordinator does not repeat the bootstrap handshake.
+#[tokio::test]
+async fn transactional_rediscover_skips_a_remote_bootstrap_handshake() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_txn_coordinator(2);
+    mock.fail_init_producer_id_once(partitionline::error::COORDINATOR_LOAD_IN_PROGRESS);
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let mut cfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    cfg.linger = Duration::ZERO;
+    cfg.retry_backoff = Duration::from_millis(1);
+    cfg.retry_backoff_max = Duration::from_millis(1);
+    cfg.transactional_id = Some("tx-remote-reload".into());
+    let started = Instant::now();
+    let producer = Producer::new(cfg).await.unwrap();
+    let elapsed = started.elapsed();
+    assert_eq!(
+        mock.api_versions_versions().len(),
+        2,
+        "reloading a remote coordinator should not negotiate the bootstrap broker again"
+    );
+    assert!(
+        elapsed < Duration::from_millis(650),
+        "transactional rediscovery repeated the bootstrap handshake: {elapsed:?}"
+    );
+    producer.close().await.unwrap();
+}
+
 /// An EndTxn coordinator retry looks up the coordinator while that broker reconnects.
 #[tokio::test]
 async fn commit_redials_txn_coordinator_while_finding_it() {
