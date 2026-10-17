@@ -31,6 +31,42 @@ fn response(code: i16) -> Vec<u8> {
     bytes
 }
 
+/// A coordinator that returns to a broker already contacted skips ApiVersions.
+#[tokio::test]
+async fn coordinator_return_reuses_the_previous_handshake() {
+    let peer = Peer::start().await;
+    peer.state.lock().await.routes.extend([1, 2, 1]);
+    peer.script(1, [Reply::Body(response(16)), Reply::Body(response(0))])
+        .await;
+    peer.script(2, [Reply::Body(response(16))]).await;
+    let mut client = StreamsClient::new(peer.config()).unwrap();
+    let result = client.heartbeat(&request()).await.unwrap();
+    assert_eq!(result.error_code, 0);
+    drop(client);
+    let frames = peer.close().await;
+    assert_eq!(
+        frames
+            .iter()
+            .filter(|frame| frame.api == 88)
+            .map(|frame| frame.slot)
+            .collect::<Vec<_>>(),
+        vec![1, 2, 1]
+    );
+    assert_eq!(
+        frames
+            .iter()
+            .filter(|frame| frame.api == 18 && frame.slot == 1)
+            .count(),
+        2,
+        "returning to the first coordinator repeated ApiVersions"
+    );
+    assert_eq!(
+        frames.iter().filter(|frame| frame.api == 18).count(),
+        6,
+        "returning to a known coordinator repeated ApiVersions"
+    );
+}
+
 /// A coordinator that stays put is retried without another ApiVersions handshake.
 #[tokio::test]
 async fn coordinator_load_retries_without_another_handshake() {

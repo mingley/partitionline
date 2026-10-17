@@ -1,5 +1,6 @@
 //! Caller-driven Streams group heartbeats. The caller runs and reconciles tasks.
 
+use std::collections::HashMap;
 use std::time::Duration;
 
 use crate::admin::AdminConfig;
@@ -62,6 +63,26 @@ struct LearnedStreams {
     find_version: i16,
     coord_addr: String,
     coord_keys: Vec<ApiVersion>,
+    /// ApiVersions already learned for a coordinator this member left.
+    prior: HashMap<String, Vec<ApiVersion>>,
+}
+
+impl LearnedStreams {
+    /// Remember the current coordinator, then record `address`.
+    fn moved_to(&self, address: &str, keys: Vec<ApiVersion>) -> Self {
+        let mut prior = self.prior.clone();
+        if address != self.coord_addr && !self.coord_keys.is_empty() {
+            let _stored = prior.insert(self.coord_addr.clone(), self.coord_keys.clone());
+        }
+        Self {
+            bootstrap_addr: self.bootstrap_addr.clone(),
+            bootstrap_keys: self.bootstrap_keys.clone(),
+            find_version: self.find_version,
+            coord_addr: address.to_string(),
+            coord_keys: keys,
+            prior,
+        }
+    }
 }
 
 async fn open_known_streams(
@@ -363,6 +384,7 @@ impl StreamsClient {
                     find_version: version,
                     coord_addr: address,
                     coord_keys: bootstrap_keys,
+                    prior: HashMap::new(),
                 },
             ));
         }
@@ -375,6 +397,7 @@ impl StreamsClient {
                 find_version: version,
                 coord_addr: address,
                 coord_keys: coord_versions.api_keys,
+                prior: HashMap::new(),
             },
         ))
     }
@@ -417,17 +440,30 @@ impl StreamsClient {
                     .await?;
             return Ok((conn, known.clone()));
         }
+        if address == hop.addr() {
+            return Ok((hop, known.moved_to(&address, known.bootstrap_keys.clone())));
+        }
+        if let Some(keys) = known
+            .prior
+            .get(&address)
+            .filter(|keys| !keys.is_empty())
+            .cloned()
+        {
+            let conn = open_known_streams(&self.cfg.connection, &address, &keys, deadline).await?;
+            return Ok((conn, known.moved_to(&address, keys)));
+        }
+        if address == known.bootstrap_addr && !known.bootstrap_keys.is_empty() {
+            let conn = open_known_streams(
+                &self.cfg.connection,
+                &address,
+                &known.bootstrap_keys,
+                deadline,
+            )
+            .await?;
+            return Ok((conn, known.moved_to(&address, known.bootstrap_keys.clone())));
+        }
         let (conn, coord_versions) = self.open(&address, deadline).await?;
-        Ok((
-            conn,
-            LearnedStreams {
-                bootstrap_addr: known.bootstrap_addr.clone(),
-                bootstrap_keys: known.bootstrap_keys.clone(),
-                find_version: known.find_version,
-                coord_addr: address,
-                coord_keys: coord_versions.api_keys,
-            },
-        ))
+        Ok((conn, known.moved_to(&address, coord_versions.api_keys)))
     }
 
     async fn heartbeat_once(
