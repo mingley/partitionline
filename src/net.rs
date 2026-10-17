@@ -2074,8 +2074,10 @@ async fn run_pipeline_loop(
                 } else if !conn.is_closed() {
                     // Nothing is in flight. A broker that stops writing must
                     // not stay blocked in its read until the next request.
-                    let ready = conn.inbound_ready().await;
-                    drop(ready);
+                    // A queued response is not that close. The next request
+                    // still uses this socket, and the command channel has to
+                    // stay reachable while the byte sits in the buffer.
+                    let _left = conn.peer_left().await;
                     Err(Error::Closed)
                 } else {
                     std::future::pending::<Result<Bytes>>().await
@@ -3420,6 +3422,33 @@ mod tests {
             "peer stayed in the read after a late write shutdown: {saw:?}"
         );
         drop(conn);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn queued_byte_does_not_close_an_idle_pipeline() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        let accepted = tokio::spawn(async move {
+            let (socket, _) = listener.accept().await.unwrap();
+            let (mut reader, mut writer) = socket.into_split();
+            writer.write_all(&[0x01]).await.unwrap();
+            let mut buf = [0u8; 8];
+            tokio::time::timeout(Duration::from_millis(300), reader.read(&mut buf)).await
+        });
+        let conn = BrokerConn::connect(&addr.to_string(), "pipe-byte", Duration::from_secs(2))
+            .await
+            .unwrap();
+        let pipeline = BrokerPipeline::new(conn);
+        let saw = accepted.await.unwrap();
+        assert!(
+            matches!(saw, Err(_)),
+            "a queued byte closed an idle pipeline: {saw:?}"
+        );
+        assert!(
+            !pipeline.is_closed(),
+            "a queued byte marked the pipeline closed"
+        );
+        drop(pipeline);
     }
 
     #[tokio::test(flavor = "current_thread")]
