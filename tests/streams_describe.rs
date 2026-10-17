@@ -110,6 +110,46 @@ async fn order_duplicates_and_all_fields_over_three_discovery_versions() {
         assert!(request.include_authorized_operations);
     }
 }
+/// A second describe of the same remote coordinator does not negotiate again.
+#[tokio::test]
+async fn describe_repeats_a_remote_coordinator_without_another_handshake() {
+    let peer = prepared().await;
+    let mut admin = peer.admin().await;
+    let first = admin
+        .describe_streams_groups(&["alpha"], &options())
+        .await
+        .unwrap();
+    assert_eq!(first[0].description.as_ref().unwrap().error_code, 0);
+    let before = peer
+        .state
+        .lock()
+        .await
+        .frames
+        .iter()
+        .filter(|frame| frame.api == 18)
+        .count();
+    let second = admin
+        .describe_streams_groups(&["alpha"], &options())
+        .await
+        .unwrap();
+    assert_eq!(second[0].description.as_ref().unwrap().error_code, 0);
+    let after = peer
+        .state
+        .lock()
+        .await
+        .frames
+        .iter()
+        .filter(|frame| frame.api == 18)
+        .count();
+    assert_eq!(
+        after,
+        before + 2,
+        "repeated describe negotiated the coordinator again; only the bootstrap lookup should handshake"
+    );
+    drop(admin);
+    let _closed = peer.close().await;
+}
+
 /// A group coordinated by the bootstrap broker is described on that socket.
 #[tokio::test]
 async fn bootstrap_coordinator_is_described_on_the_open_socket() {
@@ -251,6 +291,12 @@ async fn coordinator_and_disconnect_retries_use_new_authority() {
                 .map(|f| f.slot)
                 .collect::<Vec<_>>(),
             [1, 2]
+        );
+        assert!(
+            frames
+                .iter()
+                .any(|frame| frame.slot == 2 && frame.api == 18),
+            "a moved Streams coordinator must negotiate"
         );
     }
 }

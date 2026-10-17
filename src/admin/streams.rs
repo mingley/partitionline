@@ -87,6 +87,53 @@ async fn open_streams_describe_socket(
     Ok((conn, versions))
 }
 
+async fn open_streams_describe_known(
+    cfg: &AdminConfig,
+    stats: &Arc<crate::metrics::AdminTracker>,
+    address: &str,
+    keys: &[crate::protocol::api::ApiVersion],
+    deadline: Deadline,
+) -> Result<(BrokerConn, ApiVersionsResponse)> {
+    let mut conn = BrokerConn::connect_tls(
+        address,
+        &cfg.client_id,
+        cfg.connect_timeout.min(deadline.remaining()?),
+        cfg.tls.as_ref(),
+    )
+    .await?;
+    conn.set_stats(Arc::clone(stats));
+    let versions = ApiVersionsResponse {
+        error_code: 0,
+        api_keys: keys.to_vec(),
+        throttle_time_ms: 0,
+        supported_features: Vec::new(),
+        finalized_features_epoch: None,
+        finalized_features: Vec::new(),
+        zk_migration_ready: false,
+    };
+    if versions
+        .api_version(STREAMS_GROUP_DESCRIBE)
+        .and_then(|api| pick_version(api.min_version, api.max_version, 0, 0))
+        .is_none()
+    {
+        return Err(Error::Unsupported(
+            "broker does not support StreamsGroupDescribe v0".into(),
+        ));
+    }
+    sasl::apply_api_keys(&mut conn, &versions.api_keys);
+    sasl::authenticate(
+        &mut conn,
+        cfg.sasl_plain.as_ref(),
+        cfg.sasl_scram.as_ref(),
+        cfg.sasl_scram_sha512.as_ref(),
+        cfg.sasl_oauthbearer.as_deref(),
+        cfg.sasl_oauthbearer_oidc.as_ref(),
+        deadline.remaining()?,
+    )
+    .await?;
+    Ok((conn, versions))
+}
+
 fn streams_retryable(err: &Error) -> bool {
     matches!(err, Error::Io(_) | Error::Timeout)
         || err.broker_code().is_some_and(error::coordinator_retriable)
@@ -179,6 +226,10 @@ impl Admin {
         address: &str,
         deadline: Deadline,
     ) -> Result<(BrokerConn, ApiVersionsResponse)> {
+        if let Some(keys) = self.peer_versions.get(address).cloned() {
+            return open_streams_describe_known(&self.cfg, &self.stats, address, &keys, deadline)
+                .await;
+        }
         open_streams_describe_socket(&self.cfg, &self.stats, address, deadline).await
     }
 
@@ -269,7 +320,7 @@ impl Admin {
     }
 
     async fn describe_streams_until(
-        &self,
+        &mut self,
         ids: &[String],
         options: &DescribeStreamsGroupsOptions,
         deadline: Deadline,
@@ -359,6 +410,7 @@ impl Admin {
                     self.streams_describe_node(&address, ids, &indexes, options, deadline)
                         .await
                 };
+                let address_for_retry = address.clone();
                 match queried {
                     Ok(response) => {
                         response_bytes = response_bytes
@@ -399,6 +451,9 @@ impl Admin {
                     }
                     Err(err) if streams_retryable(&err) => {
                         transport_retry |= err.broker_code().is_none();
+                        if err.broker_code().is_none() {
+                            let _removed = self.peer_versions.remove(&address_for_retry);
+                        }
                         let err = Arc::new(err);
                         for index in indexes {
                             *last
@@ -468,15 +523,20 @@ impl Admin {
     }
 
     async fn streams_describe_node(
-        &self,
+        &mut self,
         address: &str,
         ids: &[String],
         indexes: &[usize],
         options: &DescribeStreamsGroupsOptions,
         deadline: Deadline,
     ) -> Result<(usize, Vec<streams::DescribedStreamsGroup>)> {
-        let (conn, _) = self.open_streams_describe(address, deadline).await?;
-        Self::streams_describe_conn(conn, ids, indexes, options, deadline).await
+        let (conn, versions) = self.open_streams_describe(address, deadline).await?;
+        let keys = versions.api_keys.clone();
+        let described = Self::streams_describe_conn(conn, ids, indexes, options, deadline).await?;
+        if !keys.is_empty() && !self.peer_versions.contains_key(address) {
+            let _stored = self.peer_versions.insert(address.to_string(), keys);
+        }
+        Ok(described)
     }
 
     async fn streams_describe_conn(
