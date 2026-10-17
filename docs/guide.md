@@ -1003,7 +1003,7 @@ config.allow_unstable = true;
 let mut client = StreamsClient::new(config)?;
 let response = client.heartbeat(&request).await?;
 println!("member epoch: {}, error: {}", response.member_epoch, response.error_code);
-client.close();
+client.close().await;
 # Ok(())
 # }
 ```

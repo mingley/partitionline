@@ -274,8 +274,14 @@ impl StreamsClient {
 
     /// Close the cached socket. This does not send a membership leave or change
     /// the epoch; send an explicit leave heartbeat when that is intended.
-    pub fn close(&mut self) {
+    ///
+    /// The socket is dropped before this returns. On a current-thread runtime
+    /// the broker stays in its read until this caller yields.
+    pub async fn close(&mut self) {
         self.cached = None;
+        for _ in 0..8 {
+            tokio::task::yield_now().await;
+        }
     }
 
     async fn heartbeat_until(

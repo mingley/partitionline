@@ -31,6 +31,25 @@ fn response(code: i16) -> Vec<u8> {
     bytes
 }
 
+/// Closing a streams client closes the cached coordinator before close returns.
+#[tokio::test(flavor = "current_thread")]
+async fn streams_close_closes_the_coordinator_socket() {
+    let peer = Peer::start().await;
+    peer.script(1, [Reply::Body(response(0))]).await;
+    let mut client = StreamsClient::new(peer.config()).unwrap();
+    assert_eq!(client.heartbeat(&request()).await.unwrap().error_code, 0);
+    assert!(
+        peer.state.lock().await.active_workers >= 1,
+        "a heartbeat should leave a coordinator socket open"
+    );
+    client.close().await;
+    assert_eq!(
+        peer.state.lock().await.active_workers,
+        0,
+        "streams close left the coordinator socket blocked in a broker read"
+    );
+}
+
 /// A heartbeat timeout closes the bootstrap socket before the call returns.
 #[tokio::test(flavor = "current_thread")]
 async fn heartbeat_timeout_closes_the_bootstrap_socket() {
@@ -327,7 +346,7 @@ async fn a_stalled_bootstrap_does_not_hold_streams_heartbeat() {
         "streams heartbeat waited for the stalled bootstrap: {:?}",
         started.elapsed()
     );
-    client.close();
+    client.close().await;
     drop(peer);
 }
 
@@ -363,7 +382,7 @@ async fn warm_heartbeats_reuse_socket_and_close_or_group_change_forces_discovery
             .count(),
         1
     );
-    client.close();
+    client.close().await;
     tokio::time::timeout(Duration::from_millis(250), async {
         loop {
             if peer.state.lock().await.active_workers == 0 {
