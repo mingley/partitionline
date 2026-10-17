@@ -2960,6 +2960,19 @@ impl Consumer {
         Self::connect_within(cfg, deadline).await
     }
 
+    /// Race bootstrap handshakes and return as soon as the losers have stopped.
+    ///
+    /// [`Self::new`] continues with metadata after this race, and those later
+    /// awaits hide a handshake that was only aborted.
+    #[doc(hidden)]
+    pub async fn test_race_bootstrap(cfg: ConsumerConfig) -> Result<()> {
+        let deadline = Instant::now()
+            .checked_add(cfg.request_timeout)
+            .ok_or(Error::Timeout)?;
+        let _opened = Self::open_bootstrap(&cfg, deadline).await?;
+        Ok(())
+    }
+
     /// Connect using only the time still left on `deadline`.
     async fn open_one_bootstrap(
         cfg: &ConsumerConfig,
@@ -3046,7 +3059,10 @@ impl Consumer {
                 Err(error) => last = Error::protocol(format!("bootstrap handshake: {error}")),
             }
         }
-        inflight.abort_all();
+        Self::finish_aborted_dial_set(&mut inflight).await;
+        // The aborted task drops its socket when it is polled. One more turn
+        // lets the peer observe that close before this race returns.
+        tokio::task::yield_now().await;
         let mut rest = finished.into_iter();
         let Some((conn, resp)) = rest.next() else {
             return Err(last);
