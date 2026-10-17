@@ -1065,6 +1065,9 @@ struct Shared {
     live_workers: AtomicUsize,
     /// `send_all` metadata refreshes still inside their broker call.
     live_metadata_refreshes: AtomicUsize,
+    /// Abort handles for those refreshes. Close cancels a refresh blocked in
+    /// a broker read and waits until it leaves the runtime.
+    metadata_refreshes: parking_lot::Mutex<Vec<tokio::task::AbortHandle>>,
     retries_out: AtomicUsize,
     in_txn: AtomicBool,
     txn_partitions: parking_lot::Mutex<TxnPartSet>,
@@ -1126,6 +1129,9 @@ impl Drop for Inner {
         }
         if let Some(h) = self.shared.retry_task.lock().take() {
             h.abort();
+        }
+        for task in self.shared.metadata_refreshes.lock().drain(..) {
+            task.abort();
         }
 
         self.shared.clear_sticky();
@@ -1965,6 +1971,7 @@ impl Producer {
             reconnect_tasks: parking_lot::Mutex::new(Vec::new()),
             live_workers: AtomicUsize::new(0),
             live_metadata_refreshes: AtomicUsize::new(0),
+            metadata_refreshes: parking_lot::Mutex::new(Vec::new()),
             retries_out: AtomicUsize::new(0),
             in_txn: AtomicBool::new(false),
             txn_partitions: parking_lot::Mutex::new(HashMap::new()),
@@ -2213,11 +2220,16 @@ impl Producer {
                         self.nudge_known_leaders(ready.iter().map(|(_, rec)| rec));
                         let shared = Arc::clone(&self.inner.shared);
                         let refresh_topics = topics.clone();
-                        let refresh = AbortOnDrop::new(tokio::spawn(async move {
-                            let _started = shared
-                                .live_metadata_refreshes
-                                .fetch_add(1, Ordering::SeqCst);
+                        let task = tokio::spawn(async move {
                             struct ExitRefresh(Arc<Shared>);
+                            impl ExitRefresh {
+                                fn enter(shared: Arc<Shared>) -> Self {
+                                    let _started = shared
+                                        .live_metadata_refreshes
+                                        .fetch_add(1, Ordering::SeqCst);
+                                    Self(shared)
+                                }
+                            }
                             impl Drop for ExitRefresh {
                                 fn drop(&mut self) {
                                     let _left = self
@@ -2226,14 +2238,21 @@ impl Producer {
                                         .fetch_sub(1, Ordering::SeqCst);
                                 }
                             }
-                            let _exit = ExitRefresh(Arc::clone(&shared));
+                            let _exit = ExitRefresh::enter(Arc::clone(&shared));
                             refresh_topics_within(&shared, &refresh_topics, timeout).await
-                        }));
+                        });
+                        {
+                            let mut refreshes = self.inner.shared.metadata_refreshes.lock();
+                            refreshes.retain(|handle| !handle.is_finished());
+                            refreshes.push(task.abort_handle());
+                        }
+                        let refresh = AbortOnDrop::new(task);
                         for (ready_index, ready_rec) in ready {
                             let rx = match self.enqueue_one(ready_rec).await {
                                 Ok(rx) => rx,
                                 Err(error) => {
                                     drop(refresh);
+                                    self.finish_metadata_refreshes(Some(Instant::now())).await;
                                     return Err(error);
                                 }
                             };
@@ -3663,11 +3682,44 @@ impl Producer {
         }
     }
 
+    /// Abort `send_all` metadata refreshes and wait until they leave the runtime.
+    ///
+    /// Abort only schedules cancellation. On a current-thread runtime a refresh
+    /// blocked in a broker read stays alive until this caller yields. Broker
+    /// waits stop at `deadline`. A few extra turns let a task already at an
+    /// await notice the abort.
+    async fn finish_metadata_refreshes(&self, deadline: Option<Instant>) {
+        let tasks = std::mem::take(&mut *self.inner.shared.metadata_refreshes.lock());
+        for task in &tasks {
+            task.abort();
+        }
+        let mut extra = 0u32;
+        while self
+            .inner
+            .shared
+            .live_metadata_refreshes
+            .load(Ordering::SeqCst)
+            > 0
+        {
+            let open = deadline.is_none_or(|deadline| Instant::now() < deadline);
+            if !open {
+                if extra >= 8 {
+                    break;
+                }
+                extra = extra.saturating_add(1);
+            }
+            tokio::task::yield_now().await;
+        }
+    }
+
     async fn shutdown_workers(&self, deadline: Option<Instant>) {
         // Refuse new enqueue before workers drain so clones observe Closed.
         self.inner.shared.closed.store(true, Ordering::SeqCst);
         self.inner.shared.buffer_nudge.notify_waiters();
         self.inner.shared.cache_nudge.notify_waiters();
+        // A send_all refresh keeps the metadata socket. Abort it before the
+        // control tasks so shutdown does not return while that read is open.
+        self.finish_metadata_refreshes(deadline).await;
 
         let workers: Vec<WorkerHandle> = self
             .inner

@@ -80,6 +80,53 @@ async fn dropping_send_all_stops_the_metadata_refresh() {
     producer.close().await.unwrap();
 }
 
+/// Close stops a metadata refresh that is blocked in a broker read.
+#[tokio::test(flavor = "current_thread")]
+async fn close_finishes_a_blocked_metadata_refresh() {
+    let mock = common::Mock::start().await;
+    mock.set_topic_partitions("known", 1);
+    let producer = Producer::new(
+        ProducerConfig::bootstrap([mock.addr.clone()])
+            .linger(Duration::ZERO)
+            .request_timeout(Duration::from_secs(2)),
+    )
+    .await
+    .unwrap();
+    let _md = producer
+        .send(ProduceRecord::to("known").value(&b"warm"[..]))
+        .await
+        .unwrap();
+    mock.set_metadata_delay(Duration::from_secs(30));
+    let caller = producer.clone();
+    let send = caller.send_all([
+        ProduceRecord::to("fresh").value(&b"a"[..]),
+        ProduceRecord::to("known").value(&b"b"[..]),
+    ]);
+    tokio::pin!(send);
+    let started = Instant::now();
+    loop {
+        tokio::select! {
+            biased;
+            result = &mut send => {
+                panic!("send_all finished during the metadata delay: {result:?}");
+            }
+            () = tokio::time::sleep(Duration::from_millis(5)) => {}
+        }
+        if caller.test_live_metadata_refreshes() > 0 {
+            break;
+        }
+        if started.elapsed() > Duration::from_secs(2) {
+            panic!("metadata refresh did not start");
+        }
+    }
+    let _ = producer.close_timeout(Duration::from_millis(200)).await;
+    assert_eq!(
+        caller.test_live_metadata_refreshes(),
+        0,
+        "close left the metadata refresh blocked in a broker read"
+    );
+}
+
 #[tokio::test]
 async fn send_fails_when_broker_returns_produce_error() {
     let mock = common::Mock::start().await;
