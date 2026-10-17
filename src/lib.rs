@@ -2275,7 +2275,7 @@
 //! partition `CONCURRENT_TRANSACTIONS`, which fails that poll, and not
 //! piggyback `INVALID_TRANSACTION_TIMEOUT`). A piggybacked
 //! `TRANSACTION_COORDINATOR_FENCED` still completes without retry,
-//! including when `AcknowledgeErrorMessage` is set (this is not
+//! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `TRANSACTION_COORDINATOR_FENCED`, which fails that poll, and not
 //! piggyback `CONCURRENT_TRANSACTIONS`). A piggybacked
 //! `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a
