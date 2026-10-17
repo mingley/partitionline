@@ -2259,7 +2259,7 @@
 //! partition `INVALID_PRODUCER_EPOCH`, which fails that poll, and not
 //! piggyback `DUPLICATE_SEQUENCE_NUMBER`). A piggybacked
 //! `INVALID_TXN_STATE` still completes without retry,
-//! including when `AcknowledgeErrorMessage` is set (this is not
+//! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `INVALID_TXN_STATE`, which fails that poll, and not
 //! piggyback `INVALID_PRODUCER_EPOCH`). A piggybacked
 //! `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a

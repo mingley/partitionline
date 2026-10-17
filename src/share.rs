@@ -1002,7 +1002,7 @@ pub enum ShareAcquireMode {
 /// `INVALID_PRODUCER_EPOCH`, which fails that poll, and not piggyback
 /// `DUPLICATE_SEQUENCE_NUMBER`). A piggybacked
 /// `INVALID_TXN_STATE` still completes without retry,
-/// including when `AcknowledgeErrorMessage` is set (Java
+/// including when `AcknowledgeErrorMessage` is set or empty (Java
 /// `handleShareFetchSuccess` completes piggyback acks and still
 /// delivers the fetch; this is not partition
 /// `INVALID_TXN_STATE`, which fails that poll, and not piggyback
@@ -2620,7 +2620,7 @@ impl ShareGroup {
     /// `DUPLICATE_SEQUENCE_NUMBER`).
     /// A piggybacked `INVALID_TXN_STATE` still completes
     /// without retry, including when `AcknowledgeErrorMessage` is set
-    /// (Java `handleShareFetchSuccess` completes piggyback acks and still
+    /// or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
     /// delivers the fetch; this is not partition
     /// `INVALID_TXN_STATE`, which fails that poll, and not piggyback
     /// `INVALID_PRODUCER_EPOCH`).
