@@ -2823,9 +2823,16 @@ impl Producer {
         let version = self.inner.shared.telemetry_version.ok_or_else(|| {
             Error::Unsupported("broker does not support GetTelemetrySubscriptions".into())
         })?;
+        let deadline = Instant::now().checked_add(timeout).ok_or(Error::Timeout)?;
         let mut meta = self.inner.shared.meta.lock().await;
-        let id =
-            crate::admin::fetch_client_instance_id(&mut meta, version, timeout, [0; 16]).await?;
+        reopen_meta_if_idle(&self.inner.shared, &mut meta, deadline).await?;
+        let id = crate::admin::fetch_client_instance_id(
+            &mut meta,
+            version,
+            timeout_remaining(deadline)?,
+            [0; 16],
+        )
+        .await?;
         drop(meta);
         *self.inner.shared.client_instance_id.lock() = Some(id);
         Ok(crate::Uuid::from_bytes(id))
@@ -3481,7 +3488,9 @@ impl Producer {
         timeout: Duration,
     ) -> Result<Vec<crate::PartitionInfo>> {
         let topic = topic.into();
+        let deadline = Instant::now().checked_add(timeout).ok_or(Error::Timeout)?;
         let mut conn = self.inner.shared.meta.lock().await;
+        reopen_meta_if_idle(&self.inner.shared, &mut conn, deadline).await?;
         let version = self.inner.shared.metadata_version;
         let allow = self.inner.shared.cfg.allow_auto_topic_creation;
         let body = conn
@@ -3491,7 +3500,7 @@ impl Producer {
                 |buf| {
                     encode_metadata_request(buf, version, Some(std::slice::from_ref(&topic)), allow)
                 },
-                timeout,
+                timeout_remaining(deadline)?,
             )
             .await?;
         drop(conn);
@@ -3563,6 +3572,52 @@ fn configure_produce_conn(
         conn.set_produce_version(pv);
     }
     crate::protocol::sasl::apply_api_keys(conn, &versions_resp.api_keys);
+}
+
+/// Replace a closed or idle metadata socket before the next RPC.
+///
+/// Versions learned at startup are applied to the replacement, so the dial
+/// does not repeat ApiVersions. `deadline` bounds the connect and SASL steps.
+async fn reopen_meta_if_idle(
+    shared: &Shared,
+    conn: &mut BrokerConn,
+    deadline: Instant,
+) -> Result<()> {
+    if !conn.idle_expired(shared.cfg.connections_max_idle) {
+        return Ok(());
+    }
+    let addr = conn.addr().to_string();
+    let mut opened = BrokerConn::connect_tls(
+        &addr,
+        &shared.cfg.client_id,
+        shared.cfg.connect_timeout.min(timeout_remaining(deadline)?),
+        shared.cfg.tls.as_ref(),
+    )
+    .await?;
+    let versions_resp = if shared.api_keys.is_empty() {
+        crate::protocol::api::negotiate_api_versions(&mut opened, timeout_remaining(deadline)?)
+            .await?
+    } else {
+        known_api_versions(&shared.api_keys)
+    };
+    configure_produce_conn(
+        &mut opened,
+        &versions_resp,
+        &shared.cfg,
+        shared.transaction_v2,
+    );
+    crate::protocol::sasl::authenticate(
+        &mut opened,
+        shared.cfg.sasl_plain.as_ref(),
+        shared.cfg.sasl_scram.as_ref(),
+        shared.cfg.sasl_scram_sha512.as_ref(),
+        shared.cfg.sasl_oauthbearer.as_deref(),
+        shared.cfg.sasl_oauthbearer_oidc.as_ref(),
+        timeout_remaining(deadline)?,
+    )
+    .await?;
+    *conn = opened;
+    Ok(())
 }
 
 async fn open_conn_with_known_versions(
@@ -4236,6 +4291,7 @@ async fn renew_nontransactional_identity(shared: &Shared) -> Result<()> {
         .ok_or(Error::Timeout)?;
     let mut txn: Option<CoordinatorConnection> = None;
     let mut meta = shared.meta.lock().await;
+    reopen_meta_if_idle(shared, &mut meta, deadline).await?;
     let (body, version) = init_producer_id_roundtrip(
         &shared.cfg,
         &mut txn,
@@ -4640,6 +4696,7 @@ async fn refresh_topics_within(
         Ok(guard) => guard,
         Err(_) => return Err(Error::Timeout),
     };
+    reopen_meta_if_idle(shared, &mut conn, deadline.target().into_std()).await?;
     let version = shared.metadata_version;
     let allow = shared.cfg.allow_auto_topic_creation;
     let names: Vec<&str> = requested.iter().map(|topic| topic.as_ref()).collect();
@@ -4703,6 +4760,7 @@ async fn partitions_for_timeout(
         Ok(guard) => guard,
         Err(_) => return Err(Error::Timeout),
     };
+    reopen_meta_if_idle(shared, &mut conn, deadline.target().into_std()).await?;
     let version = shared.metadata_version;
     let allow = shared.cfg.allow_auto_topic_creation;
     let names = [topic.as_ref()];

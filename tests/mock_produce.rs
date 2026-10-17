@@ -77,6 +77,41 @@ async fn idle_produce_leader_reuses_learned_api_versions() {
     producer.close().await.unwrap();
 }
 
+/// An idle metadata socket reconnects without ApiVersions.
+#[tokio::test]
+async fn idle_metadata_reuses_learned_api_versions() {
+    let mock = common::Mock::start().await;
+    mock.set_topic_partitions("t", 1);
+    let mut cfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    cfg.connections_max_idle = Duration::from_millis(40);
+    let producer = Producer::new(cfg).await.unwrap();
+    let first = producer.partitions_for("t").await.unwrap();
+    assert_eq!(first.len(), 1);
+    tokio::time::sleep(Duration::from_millis(60)).await;
+    let versions_before = mock.api_versions_versions().len();
+    let accepts_before = mock.accepts();
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let started = Instant::now();
+    let second = producer.partitions_for("t").await.unwrap();
+    let elapsed = started.elapsed();
+    assert_eq!(second.len(), 1);
+    assert_eq!(
+        mock.api_versions_versions().len(),
+        versions_before,
+        "an idle metadata refresh should reuse the versions already learned"
+    );
+    assert_eq!(
+        mock.accepts(),
+        accepts_before + 1,
+        "idle expiry replaces the metadata socket"
+    );
+    assert!(
+        elapsed < Duration::from_millis(200),
+        "idle metadata refresh repeated ApiVersions: {elapsed:?}"
+    );
+    producer.close().await.unwrap();
+}
+
 /// A known leader accepts records while an unknown topic is resolved.
 #[tokio::test]
 async fn send_all_produces_known_topics_while_loading_metadata() {
