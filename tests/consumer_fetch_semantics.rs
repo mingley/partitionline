@@ -3719,6 +3719,64 @@ async fn max_poll_leave_reuses_the_heartbeat_socket() {
     drop(group);
 }
 
+/// A heartbeat after a failed idle reconnect reuses the coordinator already learned.
+#[tokio::test]
+async fn heartbeat_after_failed_idle_reconnect_reuses_known_versions() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_topic_partitions("t", 1);
+    mock.set_partition_leader("t", 0, 1);
+    mock.set_coordinator(2);
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    let _sent = producer
+        .send(ProduceRecord::to("t").value(&b"v"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+    let mut cfg = ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10);
+    cfg.heartbeat_interval = Duration::from_millis(40);
+    cfg.connections_max_idle = Duration::from_millis(15);
+    let group = ConsumerGroup::join(cfg, "hb-idle-fail", "t").await.unwrap();
+    let started_first = Instant::now();
+    while mock.heartbeat_total("hb-idle-fail") < 3 {
+        if started_first.elapsed() > Duration::from_secs(2) {
+            panic!("heartbeat did not settle");
+        }
+        tokio::time::sleep(Duration::from_millis(5)).await;
+    }
+    mock.refuse_connections(20);
+    tokio::time::sleep(Duration::from_millis(80)).await;
+    mock.refuse_connections(0);
+    let versions_before = mock.api_versions_versions().len();
+    let accepts_before = mock.accepts();
+    let beats_before = mock.heartbeat_total("hb-idle-fail");
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let started = Instant::now();
+    while mock.heartbeat_total("hb-idle-fail") <= beats_before {
+        if started.elapsed() > Duration::from_secs(2) {
+            panic!("heartbeat did not resume");
+        }
+        tokio::time::sleep(Duration::from_millis(5)).await;
+    }
+    let elapsed = started.elapsed();
+    assert!(
+        mock.accepts() > accepts_before,
+        "resumed heartbeat should open a new coordinator socket"
+    );
+    assert_eq!(
+        mock.api_versions_versions().len(),
+        versions_before,
+        "resumed heartbeat negotiated the coordinator again"
+    );
+    assert!(
+        elapsed < Duration::from_millis(200),
+        "resumed heartbeat repeated ApiVersions: {elapsed:?}"
+    );
+    group.leave().await.unwrap();
+}
+
 /// Max-poll leave after a dropped heartbeat reuses that coordinator's versions.
 #[tokio::test]
 async fn max_poll_leave_reuses_a_dropped_remote_coordinator() {

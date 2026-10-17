@@ -4014,6 +4014,7 @@ async fn leave_coordinator(
     group_id: &str,
     deadline: Instant,
     bootstrap_keys: &[ApiVersion],
+    prior: &HashMap<String, KnownCoord>,
 ) -> Option<BrokerConn> {
     let addr = cfg.bootstrap.first()?;
     if bootstrap_keys.is_empty() {
@@ -4028,6 +4029,9 @@ async fn leave_coordinator(
         .ok()?;
     if coord_addr == hop.addr() {
         return Some(hop);
+    }
+    if let Some(known) = prior.get(&coord_addr) {
+        return connect_known_coord(cfg, known).await.ok();
     }
     open_coord_with_find_version(cfg, &coord_addr)
         .await
@@ -4079,7 +4083,7 @@ async fn leave_if_max_poll(
         }
     }
     if conn.is_none() {
-        *conn = leave_coordinator(cfg, group_id, deadline, bootstrap_keys).await;
+        *conn = leave_coordinator(cfg, group_id, deadline, bootstrap_keys, prior).await;
     }
     if let Some(c) = conn.as_mut() {
         let timeout = deadline.saturating_duration_since(Instant::now());
@@ -5052,6 +5056,8 @@ pub(crate) async fn reopen_idle_coordinator(
         ))
         .await
         .ok()
+    } else if !prior.is_empty() && !bootstrap_keys.is_empty() {
+        leave_coordinator(cfg, group_id, deadline, bootstrap_keys, prior).await
     } else {
         discover_coord_within(cfg, group_id, COORDINATOR_GROUP, deadline)
             .await
