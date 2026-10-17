@@ -1198,7 +1198,7 @@ pub enum ShareAcquireMode {
 /// `ReplicationControlManager.electLeader` writes this when an unclean
 /// election finds no eligible leader. A piggybacked
 /// `ELECTION_NOT_NEEDED` still completes without retry,
-/// including when `AcknowledgeErrorMessage` is set (Java
+/// including when `AcknowledgeErrorMessage` is set or empty (Java
 /// `handleShareFetchSuccess` completes piggyback acks and still
 /// delivers the fetch; this is not partition
 /// `ELECTION_NOT_NEEDED`, which fails that poll, and not piggyback
@@ -3104,7 +3104,7 @@ impl ShareGroup {
     /// election finds no eligible leader.
     /// A piggybacked `ELECTION_NOT_NEEDED` still completes
     /// without retry, including when `AcknowledgeErrorMessage` is set
-    /// (Java `handleShareFetchSuccess` completes piggyback acks and still
+    /// or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
     /// delivers the fetch; this is not partition
     /// `ELECTION_NOT_NEEDED`, which fails that poll, and not piggyback
     /// `ELIGIBLE_LEADERS_NOT_AVAILABLE`). Official Java

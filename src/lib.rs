@@ -2395,7 +2395,7 @@
 //! `ReplicationControlManager.electLeader` writes this when an unclean
 //! election finds no eligible leader. A piggybacked
 //! `ELECTION_NOT_NEEDED` still completes without retry,
-//! including when `AcknowledgeErrorMessage` is set (this is not
+//! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `ELECTION_NOT_NEEDED`, which fails that poll, and not
 //! piggyback `ELIGIBLE_LEADERS_NOT_AVAILABLE`). Official Java
 //! `ReplicationControlManager.electLeader` writes this when the

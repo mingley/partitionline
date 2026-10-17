@@ -644,7 +644,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   election finds no eligible leader. A
   piggybacked `ELECTION_NOT_NEEDED` still
   completes without retry, including when `AcknowledgeErrorMessage` is
-  set (Java `handleShareFetchSuccess` completes piggyback acks and still
+  set or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
   delivers the fetch; this is not partition `ELECTION_NOT_NEEDED`,
   which fails that poll, and not piggyback `ELIGIBLE_LEADERS_NOT_AVAILABLE`). Official
   Java `ReplicationControlManager.electLeader` writes this when the
