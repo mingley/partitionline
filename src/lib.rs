@@ -2467,6 +2467,13 @@
 //! `KafkaController` writes this when a FeatureZNode update fails after
 //! the requested feature changes were valid.
 //! A piggybacked
+//! `PRINCIPAL_DESERIALIZATION_FAILURE` still completes without retry,
+//! including when `AcknowledgeErrorMessage` is set (this is not
+//! partition `PRINCIPAL_DESERIALIZATION_FAILURE`, which fails that poll, and not
+//! piggyback `FEATURE_UPDATE_FAILED`). Official Java
+//! `EnvelopeUtils` writes this when envelope forwarding cannot
+//! deserialize the request principal.
+//! A piggybacked
 //! `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a
 //! sibling whose `AcknowledgeErrorCode` is none, including when
 //! `AcknowledgeErrorMessage` is set or empty. A piggybacked

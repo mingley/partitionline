@@ -1292,6 +1292,15 @@ pub enum ShareAcquireMode {
 /// `KafkaController` writes this when a FeatureZNode update fails after
 /// the requested feature changes were valid.
 /// A piggybacked
+/// `PRINCIPAL_DESERIALIZATION_FAILURE` still completes without retry,
+/// including when `AcknowledgeErrorMessage` is set (Java
+/// `handleShareFetchSuccess` completes piggyback acks and still
+/// delivers the fetch; this is not partition
+/// `PRINCIPAL_DESERIALIZATION_FAILURE`, which fails that poll, and not piggyback
+/// `FEATURE_UPDATE_FAILED`). Official Java
+/// `EnvelopeUtils` writes this when envelope forwarding cannot
+/// deserialize the request principal.
+/// A piggybacked
 /// `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a
 /// sibling partition whose `AcknowledgeErrorCode` is none, including
 /// when `AcknowledgeErrorMessage` is set or empty. A piggybacked
@@ -3309,6 +3318,14 @@ impl ShareGroup {
     /// `INCONSISTENT_VOTER_SET`). Official Java
     /// `KafkaController` writes this when a FeatureZNode update fails after
     /// the requested feature changes were valid.
+    /// A piggybacked `PRINCIPAL_DESERIALIZATION_FAILURE` still completes
+    /// without retry, including when `AcknowledgeErrorMessage` is set
+    /// (Java `handleShareFetchSuccess` completes piggyback acks and still
+    /// delivers the fetch; this is not partition
+    /// `PRINCIPAL_DESERIALIZATION_FAILURE`, which fails that poll, and not piggyback
+    /// `FEATURE_UPDATE_FAILED`). Official Java
+    /// `EnvelopeUtils` writes this when envelope forwarding cannot
+    /// deserialize the request principal.
     /// A piggybacked `TOPIC_AUTHORIZATION_FAILED` on one partition
     /// does not fail a sibling whose `AcknowledgeErrorCode` is none,
     /// including when `AcknowledgeErrorMessage` is set or empty.
