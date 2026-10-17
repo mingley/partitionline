@@ -2893,6 +2893,11 @@ impl Consumer {
         self.learned_broker_keys.get(addr).cloned()
     }
 
+    /// ApiVersions learned by broker address, including sibling bootstraps.
+    pub(crate) fn copy_learned_broker_keys(&self) -> HashMap<String, Vec<ApiVersion>> {
+        self.learned_broker_keys.clone()
+    }
+
     /// Connect with default config to one bootstrap server.
     pub async fn connect(bootstrap: impl Into<String>) -> Result<Self> {
         Self::new(ConsumerConfig::bootstrap([bootstrap.into()])).await

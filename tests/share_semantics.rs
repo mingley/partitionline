@@ -144,6 +144,42 @@ async fn share_fetch_reuses_a_finished_bootstrap_handshake() {
     group.leave().await.unwrap();
 }
 
+/// Overlapped share leaders reuse bootstraps that finished at startup.
+#[tokio::test]
+async fn share_fetch_overlaps_leaders_without_repeating_bootstrap_handshakes() {
+    let mock = common::Mock::start_two_node().await;
+    v2(&mock);
+    mock.set_topic_partitions("t", 2);
+    mock.set_partition_leader("t", 0, 1);
+    mock.set_partition_leader("t", 1, 2);
+    mock.set_share_heartbeat_interval_ms(60_000);
+    produce(&mock, &[(0, b"left"), (1, b"right")]).await;
+    let addr2 = mock.broker_addr(2).unwrap();
+    let mut cfg = config(&mock);
+    cfg.bootstrap = vec![mock.addr.clone(), addr2];
+    cfg.heartbeat_interval = Duration::from_secs(5);
+    cfg.request_timeout = Duration::from_secs(3);
+    let mut group = ShareGroup::join(cfg, "share-two-leaders", "t")
+        .await
+        .unwrap();
+    let versions_before = mock.api_versions_versions().len();
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let started = Instant::now();
+    let got = group.poll().await.unwrap();
+    let elapsed = started.elapsed();
+    assert_eq!(got.len(), 2, "one poll collects both leaders");
+    assert_eq!(
+        mock.api_versions_versions().len(),
+        versions_before,
+        "overlapped share dials renegotiated a bootstrap"
+    );
+    assert!(
+        elapsed < Duration::from_millis(200),
+        "overlapped share dials repeated ApiVersions: {elapsed:?}"
+    );
+    group.leave().await.unwrap();
+}
+
 /// A share fetch from the group coordinator does not repeat ApiVersions.
 #[tokio::test]
 async fn share_fetch_reuses_the_coordinator_handshake() {

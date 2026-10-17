@@ -854,6 +854,10 @@ struct ShareDialConfig {
     known_keys: Vec<crate::protocol::api::ApiVersion>,
     /// Versions already learned for each share leader.
     node_keys: HashMap<i32, Vec<crate::protocol::api::ApiVersion>>,
+    /// Versions learned for a broker address, including sibling bootstraps.
+    addr_keys: HashMap<String, Vec<crate::protocol::api::ApiVersion>>,
+    coord_addr: String,
+    coord_keys: Vec<crate::protocol::api::ApiVersion>,
 }
 
 type ShareDialAttempt = (
@@ -2426,6 +2430,9 @@ impl ShareGroup {
             bootstrap_addr: self.consumer.bootstrap_addr().to_string(),
             known_keys: self.consumer.copy_api_keys(),
             node_keys: self.share_api_keys.clone(),
+            addr_keys: self.consumer.copy_learned_broker_keys(),
+            coord_addr: self.coord_addr.clone(),
+            coord_keys: self.coord_keys.clone(),
         }
     }
 
@@ -2439,73 +2446,68 @@ impl ShareGroup {
         }
         let mut waiting = dials.into_iter();
         let mut inflight = tokio::task::JoinSet::<ShareDialAttempt>::new();
-        let spawn = |inflight: &mut tokio::task::JoinSet<ShareDialAttempt>,
-                     node: i32,
-                     addr: String| {
-            let cfg = ShareDialConfig {
-                client_id: cfg.client_id.clone(),
-                connect_timeout: cfg.connect_timeout,
-                tls: cfg.tls.clone(),
-                sasl_plain: cfg.sasl_plain.clone(),
-                sasl_scram: cfg.sasl_scram.clone(),
-                sasl_scram_sha512: cfg.sasl_scram_sha512.clone(),
-                sasl_oauthbearer: cfg.sasl_oauthbearer.clone(),
-                sasl_oauthbearer_oidc: cfg.sasl_oauthbearer_oidc.clone(),
-                bootstrap_addr: cfg.bootstrap_addr.clone(),
-                known_keys: cfg.known_keys.clone(),
-                node_keys: cfg.node_keys.clone(),
-            };
-            let addr_for_task = addr.clone();
-            let node_keys = cfg.node_keys.get(&node).cloned();
-            let _ = inflight.spawn(async move {
-                let result = if addr_for_task == cfg.bootstrap_addr && !cfg.known_keys.is_empty() {
-                    Consumer::open_fetch_conn_known(
-                        &addr_for_task,
-                        &cfg.client_id,
-                        cfg.connect_timeout,
-                        cfg.tls.as_ref(),
-                        cfg.sasl_plain.as_ref(),
-                        cfg.sasl_scram.as_ref(),
-                        cfg.sasl_scram_sha512.as_ref(),
-                        cfg.sasl_oauthbearer.as_deref(),
-                        cfg.sasl_oauthbearer_oidc.as_ref(),
-                        &cfg.known_keys,
-                        deadline,
-                    )
-                    .await
-                } else if let Some(keys) = node_keys {
-                    Consumer::open_fetch_conn_known(
-                        &addr_for_task,
-                        &cfg.client_id,
-                        cfg.connect_timeout,
-                        cfg.tls.as_ref(),
-                        cfg.sasl_plain.as_ref(),
-                        cfg.sasl_scram.as_ref(),
-                        cfg.sasl_scram_sha512.as_ref(),
-                        cfg.sasl_oauthbearer.as_deref(),
-                        cfg.sasl_oauthbearer_oidc.as_ref(),
-                        &keys,
-                        deadline,
-                    )
-                    .await
-                } else {
-                    Consumer::open_fetch_conn(
-                        &addr_for_task,
-                        &cfg.client_id,
-                        cfg.connect_timeout,
-                        cfg.tls.as_ref(),
-                        cfg.sasl_plain.as_ref(),
-                        cfg.sasl_scram.as_ref(),
-                        cfg.sasl_scram_sha512.as_ref(),
-                        cfg.sasl_oauthbearer.as_deref(),
-                        cfg.sasl_oauthbearer_oidc.as_ref(),
-                        deadline,
-                    )
-                    .await
+        let spawn =
+            |inflight: &mut tokio::task::JoinSet<ShareDialAttempt>, node: i32, addr: String| {
+                let cfg = ShareDialConfig {
+                    client_id: cfg.client_id.clone(),
+                    connect_timeout: cfg.connect_timeout,
+                    tls: cfg.tls.clone(),
+                    sasl_plain: cfg.sasl_plain.clone(),
+                    sasl_scram: cfg.sasl_scram.clone(),
+                    sasl_scram_sha512: cfg.sasl_scram_sha512.clone(),
+                    sasl_oauthbearer: cfg.sasl_oauthbearer.clone(),
+                    sasl_oauthbearer_oidc: cfg.sasl_oauthbearer_oidc.clone(),
+                    bootstrap_addr: cfg.bootstrap_addr.clone(),
+                    known_keys: cfg.known_keys.clone(),
+                    node_keys: cfg.node_keys.clone(),
+                    addr_keys: cfg.addr_keys.clone(),
+                    coord_addr: cfg.coord_addr.clone(),
+                    coord_keys: cfg.coord_keys.clone(),
                 };
-                (node, addr, result)
-            });
-        };
+                let addr_for_task = addr.clone();
+                let reused = if addr_for_task == cfg.bootstrap_addr && !cfg.known_keys.is_empty() {
+                    Some(cfg.known_keys.clone())
+                } else if addr_for_task == cfg.coord_addr && !cfg.coord_keys.is_empty() {
+                    Some(cfg.coord_keys.clone())
+                } else if let Some(keys) = cfg.addr_keys.get(&addr_for_task).cloned() {
+                    Some(keys)
+                } else {
+                    cfg.node_keys.get(&node).cloned()
+                };
+                let _ = inflight.spawn(async move {
+                    let result = if let Some(keys) = reused {
+                        Consumer::open_fetch_conn_known(
+                            &addr_for_task,
+                            &cfg.client_id,
+                            cfg.connect_timeout,
+                            cfg.tls.as_ref(),
+                            cfg.sasl_plain.as_ref(),
+                            cfg.sasl_scram.as_ref(),
+                            cfg.sasl_scram_sha512.as_ref(),
+                            cfg.sasl_oauthbearer.as_deref(),
+                            cfg.sasl_oauthbearer_oidc.as_ref(),
+                            &keys,
+                            deadline,
+                        )
+                        .await
+                    } else {
+                        Consumer::open_fetch_conn(
+                            &addr_for_task,
+                            &cfg.client_id,
+                            cfg.connect_timeout,
+                            cfg.tls.as_ref(),
+                            cfg.sasl_plain.as_ref(),
+                            cfg.sasl_scram.as_ref(),
+                            cfg.sasl_scram_sha512.as_ref(),
+                            cfg.sasl_oauthbearer.as_deref(),
+                            cfg.sasl_oauthbearer_oidc.as_ref(),
+                            deadline,
+                        )
+                        .await
+                    };
+                    (node, addr, result)
+                });
+            };
         while inflight.len() < 8 {
             let Some((node, addr)) = waiting.next() else {
                 break;
