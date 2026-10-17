@@ -760,6 +760,8 @@ struct State {
     txn_pending_offsets: Vec<((String, String, i32), CommittedOffset)>,
     last_txn_offset_commit_node: Option<i32>,
     hb_by_node: HashMap<i32, u32>,
+    /// One-shot Heartbeat error codes, consumed before the normal member check.
+    heartbeat_faults: VecDeque<i16>,
     kip848_groups: HashMap<String, Kip848Reg>,
 }
 
@@ -1248,6 +1250,7 @@ fn new_state(
         txn_pending_offsets: Vec::new(),
         last_txn_offset_commit_node: None,
         hb_by_node: HashMap::new(),
+        heartbeat_faults: VecDeque::new(),
         kip848_groups: HashMap::new(),
         tls_acceptor: None,
         tls_server_identity_pem: None,
@@ -3770,6 +3773,10 @@ impl Mock {
 
     pub fn last_offset_commit_version(&self) -> Option<i16> {
         self.state.lock().last_offset_commit_version
+    }
+
+    pub fn fail_heartbeat_once(&self, code: i16) {
+        self.state.lock().heartbeat_faults.push_back(code);
     }
 
     pub fn last_heartbeat_version(&self) -> Option<i16> {
@@ -8507,6 +8514,9 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     if g.members.contains_key(&member_id) && !g.joined.contains(&member_id) {
                         err = 27;
                     }
+                }
+                if let Some(code) = st.heartbeat_faults.pop_front() {
+                    err = code;
                 }
                 let n = st.hb_by_node.entry(node_id).or_insert(0);
                 *n = n.saturating_add(1);

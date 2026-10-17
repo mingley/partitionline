@@ -3539,7 +3539,7 @@ impl ConsumerGroup {
                             continue;
                         }
                         let deadline = Instant::now() + cfg.request_timeout;
-                        reopen_idle_coordinator(&mut conn, &cfg, &group_id, deadline).await;
+                        reopen_idle_coordinator(&mut conn, &cfg, &group_id, deadline, &[]).await;
                         let Some(c) = conn.as_mut() else {
                             let retry_delay = cfg.retry_backoff.max(Duration::from_millis(50));
                             next_hb_deadline = Instant::now() + retry_delay;
@@ -3700,8 +3700,10 @@ impl ConsumerGroup {
         let last_poll = self.last_poll.clone();
         let left_max_poll = self.left_max_poll.clone();
         let cfg = self.cfg.clone();
+        let bootstrap_keys = self.consumer.copy_api_keys();
         drop(tokio::spawn(async move {
             let mut conn: Option<BrokerConn> = None;
+            let mut remembered: Option<KnownCoord> = None;
             let mut tick =
                 tokio::time::interval(cfg.heartbeat_interval.max(Duration::from_millis(1)));
             loop {
@@ -3725,7 +3727,26 @@ impl ConsumerGroup {
                             break;
                         }
                         let deadline = Instant::now() + cfg.request_timeout;
-                        reopen_idle_coordinator(&mut conn, &cfg, &group_id, deadline).await;
+                        if conn.is_none() {
+                            if let Some(known) = remembered.take() {
+                                conn = Box::pin(rediscover_known_coord(
+                                    &cfg,
+                                    &group_id,
+                                    COORDINATOR_GROUP,
+                                    &known,
+                                ))
+                                .await
+                                .ok();
+                            }
+                        }
+                        reopen_idle_coordinator(
+                            &mut conn,
+                            &cfg,
+                            &group_id,
+                            deadline,
+                            &bootstrap_keys,
+                        )
+                        .await;
                         let Some(c) = conn.as_mut() else {
                             continue;
                         };
@@ -3766,6 +3787,12 @@ impl ConsumerGroup {
                                     decode_heartbeat_response(&mut body.clone(), version)
                                 {
                                     if error::coordinator_retriable(err) {
+                                        if let Some(current) = conn.as_ref() {
+                                            remembered = Some(
+                                                KnownCoord::capture(current)
+                                                    .with_bootstrap_keys(&bootstrap_keys),
+                                            );
+                                        }
                                         conn = None;
                                     } else {
                                         hb_err.store(err, Ordering::SeqCst);
@@ -3773,6 +3800,12 @@ impl ConsumerGroup {
                                 }
                             }
                             Err(_) => {
+                                if let Some(current) = conn.as_ref() {
+                                    remembered = Some(
+                                        KnownCoord::capture(current)
+                                            .with_bootstrap_keys(&bootstrap_keys),
+                                    );
+                                }
                                 conn = None;
                             }
                         }
@@ -4818,12 +4851,15 @@ pub(crate) async fn reopen_idle_coordinator(
     cfg: &ConsumerConfig,
     group_id: &str,
     deadline: Instant,
+    bootstrap_keys: &[ApiVersion],
 ) {
     let known = if conn
         .as_ref()
         .is_some_and(|c| c.idle_expired(cfg.connections_max_idle))
     {
-        let snap = conn.as_ref().map(KnownCoord::capture);
+        let snap = conn
+            .as_ref()
+            .map(|conn| KnownCoord::capture(conn).with_bootstrap_keys(bootstrap_keys));
         *conn = None;
         snap
     } else {

@@ -3588,6 +3588,52 @@ async fn group_commit_redials_coordinator_while_finding_it() {
     group.leave().await.unwrap();
 }
 
+/// A classic heartbeat retry reuses the coordinator handshake.
+#[tokio::test]
+async fn group_heartbeat_retries_without_another_handshake() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_topic_partitions("t", 1);
+    mock.set_partition_leader("t", 0, 1);
+    mock.move_coordinator();
+    let mut cfg = ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10);
+    cfg.heartbeat_interval = Duration::from_millis(40);
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    let _sent = producer
+        .send(ProduceRecord::to("t").value(&b"v"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+    let group = ConsumerGroup::join(cfg, "hb-known", "t").await.unwrap();
+    let started_first = Instant::now();
+    while mock.heartbeat_total("hb-known") < 1 {
+        if started_first.elapsed() > Duration::from_secs(2) {
+            panic!("first heartbeat did not arrive");
+        }
+        tokio::time::sleep(Duration::from_millis(5)).await;
+    }
+    let versions_before = mock.api_versions_versions().len();
+    let beats_before = mock.heartbeat_total("hb-known");
+    mock.fail_heartbeat_once(14);
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let started = Instant::now();
+    while mock.heartbeat_total("hb-known") < beats_before + 2 {
+        if started.elapsed() > Duration::from_secs(2) {
+            panic!("heartbeat did not retry");
+        }
+        tokio::time::sleep(Duration::from_millis(5)).await;
+    }
+    let elapsed = started.elapsed();
+    assert!(
+        elapsed < Duration::from_millis(200),
+        "heartbeat retry repeated ApiVersions: {elapsed:?}"
+    );
+    assert_eq!(mock.api_versions_versions().len(), versions_before);
+    group.leave().await.unwrap();
+}
+
 /// A remote coordinator retry reuses the bootstrap handshake.
 #[tokio::test]
 async fn group_commit_retries_a_remote_coordinator_without_another_bootstrap_handshake() {

@@ -5012,7 +5012,13 @@ impl ShareGroup {
                             continue;
                         }
                         let deadline = Instant::now() + cfg.request_timeout;
-                        crate::group::reopen_idle_coordinator(&mut conn, &cfg, &group_id, deadline)
+                        crate::group::reopen_idle_coordinator(
+                            &mut conn,
+                            &cfg,
+                            &group_id,
+                            deadline,
+                            &[],
+                        )
                             .await;
                         if *stop.borrow() { break; }
                         let Some(c) = conn.as_mut() else {
