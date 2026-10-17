@@ -658,7 +658,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   when no reassignment is in progress. A
   piggybacked `GROUP_SUBSCRIBED_TO_TOPIC` still
   completes without retry, including when `AcknowledgeErrorMessage` is
-  set (Java `handleShareFetchSuccess` completes piggyback acks and still
+  set or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
   delivers the fetch; this is not partition `GROUP_SUBSCRIBED_TO_TOPIC`,
   which fails that poll, and not piggyback `NO_REASSIGNMENT_IN_PROGRESS`). Official
   Java `OffsetMetadataManager` OffsetDelete writes this when the consumer

@@ -2407,7 +2407,7 @@
 //! `ReplicationControlManager.cancelPartitionReassignment` writes this
 //! when no reassignment is in progress. A piggybacked
 //! `GROUP_SUBSCRIBED_TO_TOPIC` still completes without retry,
-//! including when `AcknowledgeErrorMessage` is set (this is not
+//! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `GROUP_SUBSCRIBED_TO_TOPIC`, which fails that poll, and not
 //! piggyback `NO_REASSIGNMENT_IN_PROGRESS`). Official Java
 //! `OffsetMetadataManager` OffsetDelete writes this when the consumer
