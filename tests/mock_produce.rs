@@ -2,7 +2,7 @@
 
 mod common;
 
-use partitionline::error::NOT_LEADER_OR_FOLLOWER;
+use partitionline::error::{NOT_COORDINATOR, NOT_LEADER_OR_FOLLOWER};
 use partitionline::protocol::api_keys::TXN_OFFSET_COMMIT;
 use partitionline::{
     Admin, AdminConfig, Error, NewTopic, ProduceRecord, Producer, ProducerConfig, TopicPartition,
@@ -818,5 +818,33 @@ async fn describe_groups_dials_known_coordinators_while_finding_new_ones() {
     assert!(
         elapsed < Duration::from_millis(450),
         "describe groups found a coordinator before redialing the known one: {elapsed:?}"
+    );
+}
+
+/// A not-coordinator retry finds the coordinator while that broker reconnects.
+#[tokio::test]
+async fn describe_groups_redials_while_finding_coordinator_after_not_coordinator() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_group_coordinator("ga", 2);
+    let mut admin = Admin::new(
+        AdminConfig::bootstrap([mock.addr.clone()])
+            .retry_backoff(Duration::from_millis(1))
+            .retry_backoff_max(Duration::from_millis(1)),
+    )
+    .await
+    .unwrap();
+    let _warm = admin.describe_groups(&["ga"], false).await.unwrap();
+    mock.fail_describe_groups_once(NOT_COORDINATOR);
+    let delay = Duration::from_millis(250);
+    mock.set_find_coordinator_delay(delay);
+    mock.set_api_versions_delay(delay);
+    let started = Instant::now();
+    let described = admin.describe_groups(&["ga"], false).await.unwrap();
+    let elapsed = started.elapsed();
+    assert_eq!(described.len(), 1);
+    assert_eq!(described[0].error_code, 0);
+    assert!(
+        elapsed < Duration::from_millis(450),
+        "describe groups found the coordinator before redialing after not-coordinator: {elapsed:?}"
     );
 }

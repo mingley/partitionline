@@ -521,6 +521,8 @@ struct State {
     last_describe_groups_n: usize,
     describe_groups_calls: u32,
     describe_groups_not_coordinator: u32,
+    /// Next DescribeGroups response uses this error once for every group.
+    describe_groups_fault: Option<i16>,
     last_leave_group_node: Option<i32>,
     last_leave_group_members: Option<Vec<LeaveGroupMember>>,
     last_leave_group_version: Option<i16>,
@@ -1016,6 +1018,7 @@ fn new_state(
         last_describe_groups_n: 0,
         describe_groups_calls: 0,
         describe_groups_not_coordinator: 0,
+        describe_groups_fault: None,
         last_leave_group_node: None,
         last_leave_group_members: None,
         last_leave_group_version: None,
@@ -3301,6 +3304,11 @@ impl Mock {
 
     pub fn describe_groups_calls(&self) -> u32 {
         self.state.lock().describe_groups_calls
+    }
+
+    /// The next DescribeGroups response returns `code` once for every group.
+    pub fn fail_describe_groups_once(&self, code: i16) {
+        self.state.lock().describe_groups_fault = Some(code);
     }
 
     pub fn describe_groups_not_coordinator(&self) -> u32 {
@@ -8744,10 +8752,14 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 st.last_describe_groups_include = Some(include);
                 st.last_describe_groups_n = ids.len();
                 st.describe_groups_calls = st.describe_groups_calls.saturating_add(1);
+                let fault = st.describe_groups_fault.take();
                 let mut saw_foreign = false;
                 let results: Vec<DescribedGroup> = ids
                     .into_iter()
                     .map(|group_id| {
+                        if let Some(code) = fault {
+                            return DescribedGroup::new(group_id, code);
+                        }
                         let owner = st
                             .group_coord_overrides
                             .get(&group_id)

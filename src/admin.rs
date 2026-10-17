@@ -2945,8 +2945,14 @@ pub struct Admin {
     reconnect_fails: HashMap<i32, u32>,
     group_coord: Option<(String, i32)>,
     group_coords: HashMap<String, i32>,
+    /// Group coordinators dropped after a retriable coordinator error.
+    /// Dialed again while FindCoordinator reloads those groups.
+    group_coord_redial: Vec<i32>,
     txn_coord: Option<(String, i32)>,
     txn_coords: HashMap<String, i32>,
+    /// Transaction coordinators dropped after a retriable coordinator error.
+    /// Dialed again while FindCoordinator reloads those ids.
+    txn_coord_redial: Vec<i32>,
     stats: Arc<crate::metrics::AdminTracker>,
 }
 
@@ -4560,8 +4566,10 @@ impl Admin {
             reconnect_fails: HashMap::new(),
             group_coord: None,
             group_coords: HashMap::new(),
+            group_coord_redial: Vec::new(),
             txn_coord: None,
             txn_coords: HashMap::new(),
+            txn_coord_redial: Vec::new(),
             stats,
         })
     }
@@ -14473,6 +14481,11 @@ impl Admin {
                     known_nodes.push(node);
                 }
             }
+            for node in self.group_coord_redial.drain(..) {
+                if !known_nodes.contains(&node) {
+                    known_nodes.push(node);
+                }
+            }
             let dials = self.take_broker_dials(&known_nodes);
             let found = if dials.is_empty() {
                 self.discover_group_coords(&need, deadline).await?
@@ -14503,6 +14516,9 @@ impl Admin {
     }
 
     fn invalidate_group_coord_idxs<T: AsRef<str>>(&mut self, ids: &[T], idxs: &[usize], node: i32) {
+        if node >= 0 && !self.group_coord_redial.contains(&node) {
+            self.group_coord_redial.push(node);
+        }
         let _ = self.conns.remove(&node);
         for &i in idxs {
             if let Some(id) = ids.get(i) {
@@ -14540,6 +14556,11 @@ impl Admin {
                     known_nodes.push(node);
                 }
             }
+            for node in self.txn_coord_redial.drain(..) {
+                if !known_nodes.contains(&node) {
+                    known_nodes.push(node);
+                }
+            }
             let dials = self.take_broker_dials(&known_nodes);
             let found = if dials.is_empty() {
                 self.discover_txn_coords(&need, deadline).await?
@@ -14570,6 +14591,9 @@ impl Admin {
     }
 
     fn invalidate_txn_coord_idxs<T: AsRef<str>>(&mut self, ids: &[T], idxs: &[usize], node: i32) {
+        if node >= 0 && !self.txn_coord_redial.contains(&node) {
+            self.txn_coord_redial.push(node);
+        }
         let _ = self.conns.remove(&node);
         for &i in idxs {
             if let Some(id) = ids.get(i) {
