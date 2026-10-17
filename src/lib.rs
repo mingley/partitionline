@@ -2271,7 +2271,7 @@
 //! partition `INVALID_TRANSACTION_TIMEOUT`, which fails that poll, and not
 //! piggyback `INVALID_PRODUCER_ID_MAPPING`). A piggybacked
 //! `CONCURRENT_TRANSACTIONS` still completes without retry,
-//! including when `AcknowledgeErrorMessage` is set (this is not
+//! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `CONCURRENT_TRANSACTIONS`, which fails that poll, and not
 //! piggyback `INVALID_TRANSACTION_TIMEOUT`). A piggybacked
 //! `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a
