@@ -2552,7 +2552,7 @@
 //! epoch is ahead of or behind the coordinator's stored epoch.
 //! A piggybacked
 //! `UNRELEASED_INSTANCE_ID` still completes without retry,
-//! including when `AcknowledgeErrorMessage` is set (this is not
+//! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `UNRELEASED_INSTANCE_ID`, which fails that poll, and not
 //! piggyback `FENCED_MEMBER_EPOCH`). Official Java
 //! `GroupMetadataManager` writes this when a static member joins while

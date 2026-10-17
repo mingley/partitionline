@@ -804,7 +804,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   epoch is ahead of or behind the coordinator's stored epoch. A
   piggybacked `UNRELEASED_INSTANCE_ID` still
   completes without retry, including when `AcknowledgeErrorMessage` is
-  set (Java `handleShareFetchSuccess` completes piggyback acks and still
+  set or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
   delivers the fetch; this is not partition `UNRELEASED_INSTANCE_ID`,
   which fails that poll, and not piggyback `FENCED_MEMBER_EPOCH`). Official
   Java `GroupMetadataManager` writes this when a static member joins while
