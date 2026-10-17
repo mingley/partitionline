@@ -1968,14 +1968,32 @@ async fn rpc(
     Ok(response.message)
 }
 fn peer_length_rejected(unread: &[u8], limit: usize) -> bool {
-    let Some(prefix) = unread.get(..4) else {
-        return false;
-    };
-    let Ok(raw) = <[u8; 4]>::try_from(prefix) else {
-        return true;
-    };
-    let length = u32::from_be_bytes(raw) as usize;
-    !(28..=limit).contains(&length)
+    let mut offset = 0usize;
+    while unread.len().saturating_sub(offset) >= 4 {
+        let Some(prefix) = unread.get(offset..offset.saturating_add(4)) else {
+            return true;
+        };
+        let Ok(raw) = <[u8; 4]>::try_from(prefix) else {
+            return true;
+        };
+        let length = u32::from_be_bytes(raw) as usize;
+        if !(28..=limit).contains(&length) {
+            return true;
+        }
+        let Some(total) = 4usize.checked_add(length) else {
+            return true;
+        };
+        let Some(frame_end) = offset.checked_add(total) else {
+            return true;
+        };
+        // A short tail of the next frame is still arriving. Only a finished
+        // frame can hide a later length this peer will not accept.
+        if unread.len() < frame_end {
+            return false;
+        }
+        offset = frame_end;
+    }
+    false
 }
 
 async fn peer_socket_closed<S: AsyncRead + Unpin>(
@@ -2984,6 +3002,49 @@ mod frame_deadline_tests {
         assert!(
             result.is_ok(),
             "an illegal peer length left the idle read parked"
+        );
+    }
+
+    /// A finished minimum frame, then a length below the minimum.
+    struct IllegalLenAfterFrame {
+        sent: bool,
+    }
+
+    impl AsyncRead for IllegalLenAfterFrame {
+        fn poll_read(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            buf: &mut ReadBuf<'_>,
+        ) -> Poll<std::io::Result<()>> {
+            let this = self.get_mut();
+            if this.sent {
+                return Poll::Pending;
+            }
+            let dst = buf.initialize_unfilled();
+            if dst.len() < 36 {
+                return Poll::Pending;
+            }
+            dst[..4].copy_from_slice(&28u32.to_be_bytes());
+            dst[4..32].fill(0);
+            dst[32..36].copy_from_slice(&1u32.to_be_bytes());
+            buf.advance(36);
+            this.sent = true;
+            Poll::Ready(Ok(()))
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn an_illegal_length_after_a_frame_ends_the_idle_read() {
+        let mut socket = IllegalLenAfterFrame { sent: false };
+        let mut unread = Vec::new();
+        let result = tokio::time::timeout(
+            Duration::from_millis(200),
+            super::peer_socket_closed(&mut socket, &mut unread, 1024 * 1024),
+        )
+        .await;
+        assert!(
+            result.is_ok(),
+            "an illegal length after a frame left the idle read parked"
         );
     }
 }
