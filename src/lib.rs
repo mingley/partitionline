@@ -2439,6 +2439,13 @@
 //! `ScramImage` DescribeUserScramCredentials writes this when the
 //! user does not exist.
 //! A piggybacked
+//! `DUPLICATE_RESOURCE` still completes without retry,
+//! including when `AcknowledgeErrorMessage` is set (this is not
+//! partition `DUPLICATE_RESOURCE`, which fails that poll, and not
+//! piggyback `RESOURCE_NOT_FOUND`). Official Java
+//! `ScramImage` DescribeUserScramCredentials writes this when the
+//! same user is requested twice.
+//! A piggybacked
 //! `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a
 //! sibling whose `AcknowledgeErrorCode` is none, including when
 //! `AcknowledgeErrorMessage` is set or empty. A piggybacked
