@@ -6746,7 +6746,23 @@ impl Worker {
             let rest = self.earliest_pending_deadline().map_or(rest, |dl| {
                 rest.min(dl.saturating_duration_since(Instant::now()))
             });
-            tokio::time::sleep(rest).await;
+            // Flush waits out the quota here, off the worker select. A broker
+            // that leaves during that wait must be replaced before the quota ends.
+            tokio::select! {
+                biased;
+                ready = self.conn.inbound_ready(), if !self.conn.is_closed() => {
+                    if ready.is_err() {
+                        self.conn.close();
+                        let addr = self.conn.addr().to_string();
+                        if let Ok(conn) = open_produce_socket(&self.shared, &addr).await {
+                            if conn.produce_version() >= 0 {
+                                self.conn = conn;
+                            }
+                        }
+                    }
+                }
+                _ = tokio::time::sleep(rest) => {}
+            }
         }
         self.purge_expired_pending();
         if self.pending.is_empty() {

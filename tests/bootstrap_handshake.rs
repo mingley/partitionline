@@ -1882,6 +1882,57 @@ async fn produce_reconnects_when_the_broker_closes_during_linger() {
     producer.close().await.unwrap();
 }
 
+/// A flush waiting on a broker quota replaces a socket the broker has already closed.
+#[tokio::test(flavor = "current_thread")]
+async fn produce_reconnects_when_the_broker_closes_during_throttle() {
+    let mock = common::Mock::start().await;
+    mock.set_topic_partitions("t", 1);
+    mock.set_produce_throttles(1, [5_000]);
+    let mut cfg = ProducerConfig::bootstrap([mock.addr.clone()])
+        .batch_records(1)
+        .connections(1);
+    cfg.linger = Duration::ZERO;
+    cfg.request_timeout = Duration::from_secs(2);
+    cfg.delivery_timeout = Duration::from_secs(30);
+    let producer = Producer::new(cfg).await.unwrap();
+    let _sent = producer
+        .send(ProduceRecord::to("t").value(b"first".to_vec()))
+        .await
+        .unwrap();
+    let queued = producer.metrics().records_queued;
+    let sending = producer.clone();
+    let send = sending.send(ProduceRecord::to("t").value(b"second".to_vec()));
+    tokio::pin!(send);
+    let started = Instant::now();
+    while producer.metrics().records_queued <= queued {
+        if started.elapsed() > Duration::from_secs(2) {
+            panic!("second record was not queued");
+        }
+        tokio::select! {
+            result = &mut send => panic!("send finished before the broker closed: {result:?}"),
+            _ = tokio::time::sleep(Duration::from_millis(5)) => {}
+        }
+    }
+    let flushing = producer.clone();
+    let flush = tokio::spawn(async move { flushing.flush().await });
+    tokio::time::sleep(Duration::from_millis(50)).await;
+    let accepts = mock.accepts();
+    mock.drop_connections();
+    let started = Instant::now();
+    while mock.accepts() == accepts {
+        if started.elapsed() > Duration::from_millis(400) {
+            panic!("produce did not reconnect during throttle");
+        }
+        tokio::select! {
+            result = &mut send => panic!("send finished during reconnect wait: {result:?}"),
+            _ = tokio::time::sleep(Duration::from_millis(5)) => {}
+        }
+    }
+    flush.abort();
+    drop(send);
+    drop(producer);
+}
+
 /// Closing a producer closes the metadata socket before close returns.
 #[tokio::test(flavor = "current_thread")]
 async fn producer_close_closes_the_metadata_socket() {
