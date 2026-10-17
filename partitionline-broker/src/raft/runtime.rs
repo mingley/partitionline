@@ -1960,9 +1960,14 @@ async fn rpc(
     }
     Ok(response.message)
 }
-async fn peer_socket_closed(socket: &mut TcpStream, unread: &mut Vec<u8>) {
+async fn peer_socket_closed(socket: &mut TcpStream, unread: &mut Vec<u8>, limit: usize) {
     let mut buf = [0u8; 1024];
     loop {
+        // One next frame fits in the frame limit. More than that during a
+        // command is not a single pipelined request, so the socket is closed.
+        if unread.len() > limit {
+            return;
+        }
         match socket.read(&mut buf).await {
             Ok(0) | Err(_) => return,
             Ok(n) => {
@@ -2235,7 +2240,11 @@ async fn serve(
             biased;
             // The command can outlive the peer. A close during that wait
             // must drop this socket instead of holding it until the deadline.
-            _ = peer_socket_closed(&mut socket, &mut wire.unread) => break,
+            _ = peer_socket_closed(
+                &mut socket,
+                &mut wire.unread,
+                control.config.limits.frame_bytes,
+            ) => break,
             result = &mut call => match result {
                 Ok(Reply::Message(message)) => message,
                 _ => Message::Failure {
@@ -2878,6 +2887,108 @@ mod ownership_tests {
         match saw {
             Ok(Ok(0)) => Ok(()),
             _ => Err("serve kept the socket while the peer had already closed".into()),
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn serve_closes_when_a_command_is_flooded() -> TestResult {
+        let owner = LocalOwner::open(0, 2, 16).await?;
+        let (envelope, _reply, entered, release) = gate(Command::Tick);
+        owner
+            .control
+            .commands
+            .send(envelope)
+            .await
+            .map_err(|_| "gate admission")?;
+        let _entered = entered.await?;
+        let listener = TcpListener::bind("127.0.0.1:0").await?;
+        let address = listener.local_addr()?;
+        let control = owner.control.clone();
+        let served = tokio::spawn(async move {
+            let (server, _) = listener.accept().await?;
+            let slots = Arc::new(
+                control
+                    .config
+                    .peers
+                    .iter()
+                    .map(|_| AtomicBool::new(false))
+                    .collect::<Vec<_>>(),
+            );
+            let permit = Arc::new(Semaphore::new(1))
+                .acquire_owned()
+                .await
+                .map_err(|_| std::io::Error::other("incoming permit closed"))?;
+            serve(control, server, permit, slots).await;
+            Ok::<_, std::io::Error>(())
+        });
+        let mut client_socket = TcpStream::connect(address).await?;
+        let peer_key = owner.control.config.peers.first().ok_or("peer")?.key();
+        let local_key = owner.control.config.bootstrap.local().key();
+        let group = owner.control.config.group.clone();
+        let bound = owner.control.config.limits.frame_bytes;
+        let mut wire = WireBuf::new();
+        let deadline = Instant::now() + Duration::from_secs(2);
+        let hello = Hello {
+            source: peer_key,
+            target: local_key,
+            group,
+        };
+        write_frame(
+            &mut client_socket,
+            &Frame {
+                rpc: 0,
+                message: Message::Hello(hello.clone()),
+            },
+            bound,
+            deadline,
+            &mut wire,
+        )
+        .await?;
+        let response = read_frame(&mut client_socket, bound, 64, deadline, &mut wire).await?;
+        if response.message != Message::HelloAck(hello) {
+            return Err("hello was not acknowledged".into());
+        }
+        let request = replication::DynamicVoteRequest {
+            context: replication::Context {
+                leader: peer_key,
+                peer: local_key,
+                configuration_epoch: 0,
+            },
+            sequence: 1,
+            request: super::super::election::VoteRequest {
+                term: 2,
+                candidate: peer_key.id,
+                log: LogPosition::default(),
+            },
+        };
+        write_frame(
+            &mut client_socket,
+            &Frame {
+                rpc: 1,
+                message: Message::Vote(request),
+            },
+            bound,
+            deadline,
+            &mut wire,
+        )
+        .await?;
+        let (mut reader, mut writer) = client_socket.into_split();
+        // Hold the write half open. Dropping it would look like a disconnect
+        // and close the socket without a flood bound.
+        let flood = vec![0u8; bound.saturating_add(1)];
+        let wrote = writer.write_all(&flood).await;
+        let mut buf = [0u8; 8];
+        let saw = tokio::time::timeout(
+            Duration::from_millis(300),
+            tokio::io::AsyncReadExt::read(&mut reader, &mut buf),
+        )
+        .await;
+        let _ = release.send(());
+        drop(writer);
+        served.abort();
+        match (wrote, saw) {
+            (_, Ok(Ok(0))) => Ok(()),
+            _ => Err("serve kept the socket while a command was flooded".into()),
         }
     }
 
