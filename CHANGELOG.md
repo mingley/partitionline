@@ -797,7 +797,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `localLogStartOffset` but at or above `logStartOffset`. A
   piggybacked `FENCED_MEMBER_EPOCH` still
   completes without retry, including when `AcknowledgeErrorMessage` is
-  set (Java `handleShareFetchSuccess` completes piggyback acks and still
+  set or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
   delivers the fetch; this is not partition `FENCED_MEMBER_EPOCH`,
   which fails that poll, and not piggyback `OFFSET_MOVED_TO_TIERED_STORAGE`). Official
   Java `GroupMetadataManager` writes this when a share-group heartbeat member

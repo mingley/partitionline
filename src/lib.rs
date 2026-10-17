@@ -2545,7 +2545,7 @@
 //! `localLogStartOffset` but at or above `logStartOffset`.
 //! A piggybacked
 //! `FENCED_MEMBER_EPOCH` still completes without retry,
-//! including when `AcknowledgeErrorMessage` is set (this is not
+//! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `FENCED_MEMBER_EPOCH`, which fails that poll, and not
 //! piggyback `OFFSET_MOVED_TO_TIERED_STORAGE`). Official Java
 //! `GroupMetadataManager` writes this when a share-group heartbeat member
