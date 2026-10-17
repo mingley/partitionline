@@ -3797,7 +3797,7 @@ async fn discover_typed_coord_once(
     deadline: Instant,
 ) -> Result<CoordinatorConnection> {
     if cfg.bootstrap.len() > 1 {
-        return discover_typed_coord_raced(cfg, key, key_type, version, deadline).await;
+        return discover_typed_coord_raced(cfg, key, key_type, version, deadline, None).await;
     }
     let mut last = Error::protocol("find coordinator failed");
     for addr in &cfg.bootstrap {
@@ -3817,6 +3817,7 @@ async fn discover_typed_coord_once(
             key_type,
             version,
             deadline,
+            None,
             None,
         )
         .await
@@ -3849,14 +3850,26 @@ async fn discover_typed_coord_raced(
     key_type: i8,
     version: i16,
     deadline: Instant,
+    known: Option<&RediscoverProducer<'_>>,
 ) -> Result<CoordinatorConnection> {
     let mut inflight = tokio::task::JoinSet::<(usize, Result<ProducerHandshake>)>::new();
     for (index, addr) in cfg.bootstrap.iter().enumerate() {
-        let cfg = cfg.clone();
-        let addr = addr.clone();
+        let cfg_task = cfg.clone();
+        let addr_task = addr.clone();
+        let known_keys =
+            known.and_then(|known| keys_for_rediscover(known, cfg, addr).map(|keys| keys.to_vec()));
         let _ = inflight.spawn(async move {
-            let result = match bounded_producer_config(&cfg, deadline) {
-                Ok(bounded) => open_conn_with_versions(&addr, &bounded, false).await,
+            let result = match bounded_producer_config(&cfg_task, deadline) {
+                Ok(bounded) => match known_keys.as_deref() {
+                    Some(keys) if !keys.is_empty() => {
+                        match open_conn_with_known_versions(&addr_task, &bounded, false, keys).await
+                        {
+                            Ok(conn) => Ok((conn, known_api_versions(keys))),
+                            Err(error) => Err(error),
+                        }
+                    }
+                    _ => open_conn_with_versions(&addr_task, &bounded, false).await,
+                },
                 Err(error) => Err(error),
             };
             (index, result)
@@ -3923,7 +3936,7 @@ async fn discover_typed_coord_raced(
                         break;
                     };
                     match ask_ready_producer_coordinator(
-                        cfg, key, key_type, version, deadline, &mut ready, index,
+                        cfg, key, key_type, version, deadline, &mut ready, index, known,
                     )
                     .await
                     {
@@ -3941,7 +3954,7 @@ async fn discover_typed_coord_raced(
                 }
                 Some(_) => {
                     match ask_ready_producer_coordinator(
-                        cfg, key, key_type, version, deadline, &mut ready, cursor,
+                        cfg, key, key_type, version, deadline, &mut ready, cursor, known,
                     )
                     .await
                     {
@@ -3969,6 +3982,10 @@ async fn discover_typed_coord_raced(
     Err(last)
 }
 
+#[expect(
+    clippy::too_many_arguments,
+    reason = "a rediscovery can reuse versions already learned for each bootstrap"
+)]
 async fn ask_ready_producer_coordinator(
     cfg: &ProducerConfig,
     key: &str,
@@ -3977,6 +3994,7 @@ async fn ask_ready_producer_coordinator(
     deadline: Instant,
     ready: &mut [Option<Result<ProducerHandshake>>],
     index: usize,
+    known: Option<&RediscoverProducer<'_>>,
 ) -> ProducerCoordAsk {
     let Some(slot) = ready.get_mut(index).and_then(Option::take) else {
         return ProducerCoordAsk::Retry(Error::protocol("missing coordinator handshake"));
@@ -3994,6 +4012,7 @@ async fn ask_ready_producer_coordinator(
         version,
         deadline,
         Some(ready),
+        known,
     )
     .await
     {
@@ -4016,6 +4035,7 @@ async fn find_producer_coordinator(
     version: i16,
     deadline: Instant,
     ready: Option<&mut [Option<Result<ProducerHandshake>>]>,
+    known: Option<&RediscoverProducer<'_>>,
 ) -> HopFind {
     let rest = match timeout_remaining(deadline) {
         Ok(rest) => rest,
@@ -4058,7 +4078,16 @@ async fn find_producer_coordinator(
         Ok(bounded) => bounded,
         Err(error) => return HopFind::Stop(error),
     };
-    match open_conn_with_versions(&coord_addr, &bounded, false).await {
+    let opened =
+        if let Some(keys) = known.and_then(|known| keys_for_rediscover(known, cfg, &coord_addr)) {
+            match open_conn_with_known_versions(&coord_addr, &bounded, false, keys).await {
+                Ok(conn) => Ok((conn, known_api_versions(keys))),
+                Err(error) => Err(error),
+            }
+        } else {
+            open_conn_with_versions(&coord_addr, &bounded, false).await
+        };
+    match opened {
         Ok((conn, versions)) => HopFind::Found(Box::new(coordinator_connection(conn, &versions))),
         Err(error) => HopFind::Stop(error),
     }
@@ -4120,6 +4149,33 @@ async fn open_recorded_peer(
     open_conn_with_versions(addr, cfg, false).await
 }
 
+/// Versions already learned for `addr` during this producer session.
+fn keys_for_rediscover<'a>(
+    known: &'a RediscoverProducer<'a>,
+    cfg: &ProducerConfig,
+    addr: &str,
+) -> Option<&'a [ApiVersion]> {
+    if addr == known.previous && !known.previous_keys.is_empty() {
+        return Some(known.previous_keys);
+    }
+    if let Some(keys) = known
+        .known_by_addr
+        .get(addr)
+        .filter(|keys| !keys.is_empty())
+    {
+        return Some(keys.as_slice());
+    }
+    if cfg
+        .bootstrap
+        .first()
+        .is_some_and(|bootstrap| bootstrap == addr)
+        && !known.bootstrap_keys.is_empty()
+    {
+        return Some(known.bootstrap_keys);
+    }
+    None
+}
+
 async fn rediscover_producer_coordinator(
     cfg: &ProducerConfig,
     key: &str,
@@ -4129,7 +4185,8 @@ async fn rediscover_producer_coordinator(
     deadline: Instant,
 ) -> Result<CoordinatorConnection> {
     if cfg.bootstrap.len() != 1 {
-        return discover_within(cfg, key, key_type, version, deadline).await;
+        return discover_typed_coord_raced(cfg, key, key_type, version, deadline, Some(&known))
+            .await;
     }
     let bounded = bounded_producer_config(cfg, deadline)?;
     let speculative = open_producer_peer(known.previous, &bounded, known.previous_keys);

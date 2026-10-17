@@ -1187,6 +1187,41 @@ async fn multi_bootstrap_transaction_reuses_the_other_bootstrap_handshake() {
     producer.close().await.unwrap();
 }
 
+/// A multi-bootstrap commit rediscovers the coordinator without repeating ApiVersions.
+#[tokio::test]
+async fn multi_bootstrap_commit_reuses_known_coordinator_handshakes() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_topic_partitions("t", 1);
+    mock.set_partition_leader("t", 0, 2);
+    mock.set_txn_coordinator(2);
+    let addr2 = mock.broker_addr(2).unwrap();
+    let mut cfg = ProducerConfig::bootstrap([mock.addr.clone(), addr2]);
+    cfg.linger = Duration::ZERO;
+    cfg.transactional_id = Some("tx-multi-rediscover".into());
+    let producer = Producer::new(cfg).await.unwrap();
+    producer.begin_transaction().await.unwrap();
+    let _sent = producer
+        .send(ProduceRecord::to("t").value(&b"v"[..]))
+        .await
+        .unwrap();
+    let versions_before = mock.api_versions_versions().len();
+    mock.set_txn_coordinator(1);
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let started = Instant::now();
+    producer.commit_transaction().await.unwrap();
+    let elapsed = started.elapsed();
+    assert_eq!(
+        mock.api_versions_versions().len(),
+        versions_before,
+        "rediscovery renegotiated a broker that was already learned"
+    );
+    assert!(
+        elapsed < Duration::from_millis(200),
+        "multi-bootstrap rediscovery repeated ApiVersions: {elapsed:?}"
+    );
+    producer.close().await.unwrap();
+}
+
 /// An epoch bump reuses a handshake learned by produce.
 #[tokio::test]
 async fn epoch_bump_reuses_a_produce_handshake() {
