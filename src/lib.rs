@@ -2573,7 +2573,7 @@
 //! or OffsetFetch member epoch does not match the coordinator's stored epoch.
 //! A piggybacked
 //! `MISMATCHED_ENDPOINT_TYPE` still completes without retry,
-//! including when `AcknowledgeErrorMessage` is set (this is not
+//! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `MISMATCHED_ENDPOINT_TYPE`, which fails that poll, and not
 //! piggyback `STALE_MEMBER_EPOCH`). Official Java
 //! `AuthHelper` writes this when DescribeCluster names an endpoint type

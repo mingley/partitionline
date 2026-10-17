@@ -1428,7 +1428,7 @@ pub enum ShareAcquireMode {
 /// or OffsetFetch member epoch does not match the coordinator's stored epoch.
 /// A piggybacked
 /// `MISMATCHED_ENDPOINT_TYPE` still completes without retry,
-/// including when `AcknowledgeErrorMessage` is set (Java
+/// including when `AcknowledgeErrorMessage` is set or empty (Java
 /// `handleShareFetchSuccess` completes piggyback acks and still
 /// delivers the fetch; this is not partition
 /// `MISMATCHED_ENDPOINT_TYPE`, which fails that poll, and not piggyback
@@ -3620,7 +3620,7 @@ impl ShareGroup {
     /// or OffsetFetch member epoch does not match the coordinator's stored epoch.
     /// A piggybacked `MISMATCHED_ENDPOINT_TYPE` still completes
     /// without retry, including when `AcknowledgeErrorMessage` is set
-    /// (Java `handleShareFetchSuccess` completes piggyback acks and still
+    /// or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
     /// delivers the fetch; this is not partition
     /// `MISMATCHED_ENDPOINT_TYPE`, which fails that poll, and not piggyback
     /// `STALE_MEMBER_EPOCH`). Official Java
