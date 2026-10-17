@@ -9669,6 +9669,41 @@ impl Admin {
         }
     }
 
+    /// Keep leader dials and RPCs that already finished before the rest are aborted.
+    fn reap_leader_exchange(
+        dialing: &mut tokio::task::JoinSet<(i32, Result<AdminOffsetConn>)>,
+        rpcing: &mut tokio::task::JoinSet<(i32, i16, AdminOffsetConn, Result<Bytes>)>,
+        held: &mut HashMap<i32, AdminOffsetConn>,
+        finished: &mut LeaderExchange,
+        waiting_rpc: &mut VecDeque<i32>,
+        reconnect_fails: &mut HashMap<i32, u32>,
+    ) {
+        while let Some(joined) = dialing.try_join_next() {
+            let Ok((node, result)) = joined else {
+                continue;
+            };
+            match result {
+                Ok(conn) => {
+                    let _ = reconnect_fails.remove(&node);
+                    let _prev = held.insert(node, conn);
+                    waiting_rpc.push_back(node);
+                }
+                Err(error) => {
+                    let _fails = crate::config::bump_reconnect_fails(reconnect_fails, node);
+                    let _prev = finished.insert(node, (0, Err(error)));
+                }
+            }
+        }
+        while let Some(joined) = rpcing.try_join_next() {
+            let Ok((node, version, conn, body)) = joined else {
+                continue;
+            };
+            waiting_rpc.retain(|id| *id != node);
+            let _prev = held.insert(node, conn);
+            let _prev = finished.insert(node, (version, body));
+        }
+    }
+
     async fn exchange_leaders<F>(
         &mut self,
         nodes: &[i32],
@@ -9703,6 +9738,14 @@ impl Admin {
         let mut finished = LeaderExchange::new();
         loop {
             if Instant::now() >= deadline {
+                Self::reap_leader_exchange(
+                    &mut dialing,
+                    &mut rpcing,
+                    &mut held,
+                    &mut finished,
+                    &mut waiting_rpc,
+                    &mut self.reconnect_fails,
+                );
                 dialing.abort_all();
                 rpcing.abort_all();
                 break;
@@ -9775,6 +9818,14 @@ impl Admin {
             }
             let rest = deadline.saturating_duration_since(Instant::now());
             if rest.is_zero() {
+                Self::reap_leader_exchange(
+                    &mut dialing,
+                    &mut rpcing,
+                    &mut held,
+                    &mut finished,
+                    &mut waiting_rpc,
+                    &mut self.reconnect_fails,
+                );
                 dialing.abort_all();
                 rpcing.abort_all();
                 break;
@@ -9804,6 +9855,14 @@ impl Admin {
                     }
                 }
                 () = tokio::time::sleep(rest) => {
+                    Self::reap_leader_exchange(
+                        &mut dialing,
+                        &mut rpcing,
+                        &mut held,
+                        &mut finished,
+                        &mut waiting_rpc,
+                        &mut self.reconnect_fails,
+                    );
                     dialing.abort_all();
                     rpcing.abort_all();
                     break;
@@ -9868,7 +9927,7 @@ impl Admin {
         for &node in nodes {
             let idxs = by_node.get(&node).cloned().unwrap_or_default();
             let Some((version, body)) = finished.remove(&node) else {
-                let _ = self.conns.remove(&node);
+                // A dial that finished without an RPC is still a clean socket.
                 still.extend(idxs);
                 continue;
             };
@@ -17553,5 +17612,58 @@ mod tests {
         assert_eq!(topics[0].1[0].timestamp, crate::EARLIEST_TIMESTAMP);
         assert_eq!(topics[0].1[1].timestamp, crate::LATEST_TIMESTAMP);
         assert_eq!(topics[0].1[2].partition, 1);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn a_finished_leader_rpc_is_kept_when_the_rest_abort() {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        let hold = tokio::spawn(async move {
+            let accepted = listener.accept().await.unwrap();
+            std::future::pending::<()>().await;
+            drop(accepted);
+        });
+        let conn = BrokerConn::connect(&addr.to_string(), "admin-reap", Duration::from_secs(1))
+            .await
+            .unwrap();
+        let versions = crate::protocol::api::ApiVersionsResponse {
+            api_keys: vec![crate::protocol::api::ApiVersion {
+                api_key: crate::protocol::api_keys::LIST_OFFSETS,
+                min_version: 0,
+                max_version: 10,
+            }],
+            ..Default::default()
+        };
+        let opened = AdminOffsetConn::new(conn, &versions);
+        let mut rpcing = tokio::task::JoinSet::new();
+        let _ = rpcing.spawn(async move { (4, 7i16, opened, Ok(Bytes::from_static(b"ok"))) });
+        let _ = rpcing.spawn(async {
+            std::future::pending::<(i32, i16, AdminOffsetConn, Result<Bytes>)>().await
+        });
+        let mut dialing = tokio::task::JoinSet::new();
+        let mut held = HashMap::new();
+        let mut finished = LeaderExchange::new();
+        let mut waiting_rpc = VecDeque::new();
+        let mut reconnect_fails = HashMap::new();
+        for _ in 0..20 {
+            Admin::reap_leader_exchange(
+                &mut dialing,
+                &mut rpcing,
+                &mut held,
+                &mut finished,
+                &mut waiting_rpc,
+                &mut reconnect_fails,
+            );
+            if finished.contains_key(&4) {
+                break;
+            }
+            tokio::task::yield_now().await;
+        }
+        rpcing.abort_all();
+        hold.abort();
+        let kept = finished.get(&4).and_then(|(_, body)| body.as_ref().ok());
+        assert_eq!(kept.map(bytes::Bytes::as_ref), Some(&b"ok"[..]));
+        assert!(held.contains_key(&4));
+        assert!(!finished.contains_key(&9));
     }
 }
