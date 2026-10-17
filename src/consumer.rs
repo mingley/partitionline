@@ -4219,7 +4219,12 @@ impl Consumer {
             if Instant::now() >= deadline {
                 return Err(Error::Timeout);
             }
-            match self.open_node_conn_until(&addr, deadline).await {
+            let opened = if addr == self.conn.addr() && !self.versions.is_empty() {
+                self.open_leader_socket(&addr, deadline).await
+            } else {
+                self.open_node_conn_until(&addr, deadline).await
+            };
+            match opened {
                 Ok((conn, versions)) => {
                     let _ = self.reconnect_fails.remove(&node);
                     self.remember_opened_conn(node, conn, &versions);

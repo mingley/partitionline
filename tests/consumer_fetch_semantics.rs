@@ -3811,7 +3811,33 @@ async fn multi_leader_fetch_reuses_bootstrap_api_versions() {
     consumer.close().await.unwrap();
 }
 
-/// A preferred replica that is the bootstrap broker does not negotiate again.
+/// A refused bootstrap fetch socket is opened again without ApiVersions.
+#[tokio::test]
+async fn refused_bootstrap_fetch_leader_reuses_api_versions() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_topic_partitions("t", 2);
+    mock.set_partition_leader("t", 0, 1);
+    mock.set_partition_leader("t", 1, 2);
+    let mut consumer =
+        Consumer::new(ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10))
+            .await
+            .unwrap();
+    consumer
+        .assign_many([(("t", 0), 0), (("t", 1), 0)])
+        .await
+        .unwrap();
+    let versions_before = mock.api_versions_versions().len();
+    mock.refuse_connections(1);
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let got = consumer.fetch().await.unwrap();
+    assert!(got.is_empty());
+    assert_eq!(
+        mock.api_versions_versions().len(),
+        versions_before + 1,
+        "a retried bootstrap leader must not repeat ApiVersions"
+    );
+    consumer.close().await.unwrap();
+}
 #[tokio::test]
 async fn preferred_bootstrap_replica_reuses_api_versions() {
     let mock = common::Mock::start_two_node().await;
