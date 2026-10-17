@@ -2286,6 +2286,10 @@
 //! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `OPERATION_NOT_ATTEMPTED`, which fails that poll, and not
 //! piggyback `SECURITY_DISABLED`). A piggybacked
+//! `LOG_DIR_NOT_FOUND` still completes without retry,
+//! including when `AcknowledgeErrorMessage` is set (this is not
+//! partition `LOG_DIR_NOT_FOUND`, which fails that poll, and not
+//! piggyback `OPERATION_NOT_ATTEMPTED`). A piggybacked
 //! `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a
 //! sibling whose `AcknowledgeErrorCode` is none, including when
 //! `AcknowledgeErrorMessage` is set or empty. A piggybacked
