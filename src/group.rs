@@ -5071,6 +5071,7 @@ pub(crate) async fn connect_member_and_coordinator(
     prefetch_all: bool,
     deadline: Instant,
 ) -> Result<(Consumer, Result<(BrokerConn, Vec<ApiVersion>)>)> {
+    let started = async {
     let member = Consumer::connect_within(cfg.clone(), deadline);
     let coordinator = async {
         discover_coord_with_versions(cfg, group_id, COORDINATOR_GROUP, deadline)
@@ -5155,6 +5156,12 @@ pub(crate) async fn connect_member_and_coordinator(
         consumer,
         Ok(opened_coordinator.ok_or_else(|| Error::protocol("coordinator connection"))?),
     ))
+    }
+    .await;
+    for _ in 0..8 {
+        tokio::task::yield_now().await;
+    }
+    started
 }
 
 /// Reconnect an idle coordinator while its address is checked again.
@@ -7119,5 +7126,53 @@ mod rediscover_stop_tests {
         );
         peer.abort();
         lookup_peer.abort();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn failed_member_connect_finishes_the_coordinator_dial() {
+        use super::connect_member_and_coordinator;
+        use std::sync::atomic::AtomicUsize;
+        use tokio::io::AsyncReadExt;
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let open = Arc::new(AtomicUsize::new(0));
+        let open_flag = Arc::clone(&open);
+        let peer = tokio::spawn(async move {
+            loop {
+                let (mut sock, _) = listener.accept().await.unwrap();
+                let _started = open_flag.fetch_add(1, Ordering::SeqCst);
+                let open_flag = Arc::clone(&open_flag);
+                let _reader = tokio::spawn(async move {
+                    let mut buf = [0u8; 64];
+                    loop {
+                        match sock.read(&mut buf).await {
+                            Ok(0) | Err(_) => break,
+                            Ok(_) => continue,
+                        }
+                    }
+                    let _left = open_flag.fetch_sub(1, Ordering::SeqCst);
+                });
+            }
+        });
+        let mut cfg = ConsumerConfig::bootstrap([addr]);
+        cfg.max_wait_ms = 10;
+        cfg.request_timeout = Duration::from_millis(200);
+        cfg.connect_timeout = Duration::from_millis(200);
+        let result = connect_member_and_coordinator(
+            &cfg,
+            "g",
+            &[],
+            false,
+            std::time::Instant::now() + Duration::from_millis(200),
+        )
+        .await;
+        assert!(result.is_err(), "the stalled member connect should fail");
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "member setup left the coordinator dial blocked in a broker read"
+        );
+        peer.abort();
     }
 }
