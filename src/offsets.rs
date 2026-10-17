@@ -549,11 +549,17 @@ impl OffsetClient {
             control_bytes,
         )
         .await?;
-        drop(bootstrap);
         let order: Vec<(String, Vec<usize>)> = routes.into_iter().collect();
+        let bootstrap_addr = bootstrap.addr().to_string();
+        let bootstrap_version = Self::version(&versions, OFFSET_FETCH, options.topic_ids, member)?;
         let mut next_dial = 0usize;
         let mut dialing = tokio::task::JoinSet::<(String, Result<(BrokerConn, i16)>)>::new();
         let mut ready: HashMap<String, Result<(BrokerConn, i16)>> = HashMap::new();
+        if order.iter().any(|(address, _)| address == &bootstrap_addr) {
+            let _prev = ready.insert(bootstrap_addr, Ok((bootstrap, bootstrap_version)));
+        } else {
+            drop(bootstrap);
+        }
         let mut in_use = 0usize;
         let cfg = self.cfg.clone();
         let stats = self.stats.clone();
@@ -583,6 +589,13 @@ impl OffsetClient {
                 });
             };
         while next_dial < order.len() && dialing.len() + ready.len() + in_use < 2 {
+            if order
+                .get(next_dial)
+                .is_some_and(|(address, _)| ready.contains_key(address))
+            {
+                next_dial += 1;
+                continue;
+            }
             start_dial(&mut dialing, next_dial);
             next_dial += 1;
         }
@@ -608,6 +621,13 @@ impl OffsetClient {
                 .ok_or_else(|| Error::protocol("missing offset coordinator socket"))??;
             in_use = 1;
             while next_dial < order.len() && dialing.len() + ready.len() + in_use < 2 {
+                if order
+                    .get(next_dial)
+                    .is_some_and(|(address, _)| ready.contains_key(address))
+                {
+                    next_dial += 1;
+                    continue;
+                }
                 start_dial(&mut dialing, next_dial);
                 next_dial += 1;
             }
@@ -692,6 +712,13 @@ impl OffsetClient {
             drop(conn);
             in_use = 0;
             while next_dial < order.len() && dialing.len() + ready.len() + in_use < 2 {
+                if order
+                    .get(next_dial)
+                    .is_some_and(|(address, _)| ready.contains_key(address))
+                {
+                    next_dial += 1;
+                    continue;
+                }
                 start_dial(&mut dialing, next_dial);
                 next_dial += 1;
             }

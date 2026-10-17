@@ -483,6 +483,50 @@ async fn list_group_offsets_coordinator_dials_overlap() {
     assert_eq!(listed.len(), 2, "{listed:?}");
 }
 
+/// OffsetFetch on the bootstrap coordinator keeps that socket.
+#[tokio::test]
+async fn offset_fetch_reuses_the_bootstrap_coordinator_socket() {
+    let mock = common::Mock::start().await;
+    mock.set_group_coordinator("g", 1);
+    let mut cfg = AdminConfig::bootstrap([mock.addr.clone()]);
+    cfg.request_timeout = Duration::from_secs(3);
+    let mut client = OffsetClient::new(cfg).unwrap();
+    let delay = Duration::from_millis(250);
+    mock.set_api_versions_delay(delay);
+    mock.set_find_coordinator_delay(delay);
+    let started = Instant::now();
+    let fetched = client
+        .fetch(
+            &OffsetFetchRequestData {
+                groups: vec![OffsetFetchGroupData {
+                    group_id: "g".into(),
+                    member_id: None,
+                    member_epoch: -1,
+                    topics: None,
+                }],
+                require_stable: false,
+            },
+            &OffsetOptions {
+                topic_ids: false,
+                timeout: Some(Duration::from_secs(3)),
+                ..OffsetOptions::default()
+            },
+        )
+        .await
+        .unwrap();
+    let elapsed = started.elapsed();
+    assert_eq!(fetched.groups.len(), 1);
+    assert_eq!(
+        mock.api_versions_versions().len(),
+        1,
+        "offset fetch should keep the bootstrap coordinator socket"
+    );
+    assert!(
+        elapsed < Duration::from_millis(650),
+        "offset fetch opened a second socket to the bootstrap broker: {elapsed:?}"
+    );
+}
+
 #[tokio::test]
 async fn offset_client_uses_the_first_bootstrap_that_finishes() {
     let mock = common::Mock::start().await;
