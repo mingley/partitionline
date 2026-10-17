@@ -711,6 +711,9 @@ fn spawn_idle_watch(
                 if let Ok(mut io) = stream.try_lock() {
                     drop(poll_fn(|cx| Pin::new(&mut *io).poll_shutdown(cx)).await);
                 }
+                // `close` may have woken this watch instead of a heartbeat
+                // that is waiting on bytes already in the buffer.
+                arm.notify_one();
                 return;
             }
             tokio::select! {
@@ -719,29 +722,29 @@ fn spawn_idle_watch(
                 // again now that the owner has released the stream.
                 _ = arm.notified() => continue,
                 seen = poll_fn(|cx| {
-                let Ok(mut io) = stream.try_lock() else {
-                    return Poll::Ready(IdleRead::Busy);
-                };
-                if closed.load(Ordering::SeqCst) {
-                    return Poll::Ready(IdleRead::Eof);
-                }
-                let mut read = ReadBuf::new(&mut buf);
-                match Pin::new(&mut *io).poll_read(cx, &mut read) {
-                    Poll::Pending => Poll::Pending,
-                    Poll::Ready(Err(_)) => Poll::Ready(IdleRead::Eof),
-                    Poll::Ready(Ok(())) => {
-                        let filled = read.filled().len();
-                        if filled == 0 {
-                            Poll::Ready(IdleRead::Eof)
-                        } else if let Some(chunk) = buf.get(..filled) {
-                            prefetch.lock().extend_from_slice(chunk);
-                            Poll::Ready(IdleRead::Data)
-                        } else {
-                            Poll::Ready(IdleRead::Data)
+                    let Ok(mut io) = stream.try_lock() else {
+                        return Poll::Ready(IdleRead::Busy);
+                    };
+                    if closed.load(Ordering::SeqCst) {
+                        return Poll::Ready(IdleRead::Eof);
+                    }
+                    let mut read = ReadBuf::new(&mut buf);
+                    match Pin::new(&mut *io).poll_read(cx, &mut read) {
+                        Poll::Pending => Poll::Pending,
+                        Poll::Ready(Err(_)) => Poll::Ready(IdleRead::Eof),
+                        Poll::Ready(Ok(())) => {
+                            let filled = read.filled().len();
+                            if filled == 0 {
+                                Poll::Ready(IdleRead::Eof)
+                            } else if let Some(chunk) = buf.get(..filled) {
+                                prefetch.lock().extend_from_slice(chunk);
+                                Poll::Ready(IdleRead::Data)
+                            } else {
+                                Poll::Ready(IdleRead::Data)
+                            }
                         }
                     }
-                }
-            }) => {
+                }) => {
                     match seen {
                         IdleRead::Busy => tokio::time::sleep(Duration::from_millis(20)).await,
                         IdleRead::Data => {}
@@ -750,6 +753,11 @@ fn spawn_idle_watch(
                             if let Ok(mut io) = stream.try_lock() {
                                 drop(poll_fn(|cx| Pin::new(&mut *io).poll_shutdown(cx)).await);
                             }
+                            // Shut the write half down before waking a heartbeat
+                            // that already has bytes buffered. That waiter is
+                            // not sitting in a socket read, and it drops the
+                            // connection when this returns.
+                            arm.notify_one();
                             return;
                         }
                     }
@@ -1080,6 +1088,14 @@ impl BrokerConn {
         self.closed.load(Ordering::SeqCst)
     }
 
+    /// Whether a response byte is already buffered for the next read.
+    ///
+    /// [`Self::inbound_ready`] returns immediately in that case. A heartbeat
+    /// that still wants the later close has to wait on [`Self::wait_until_closed`].
+    pub(crate) fn has_queued_response(&self) -> bool {
+        !self.read_buf.is_empty() || !self.prefetch.lock().is_empty()
+    }
+
     /// Mark this connection as permanently closed/failed.
     pub fn close(&mut self) {
         self.closed.store(true, Ordering::SeqCst);
@@ -1087,6 +1103,20 @@ impl BrokerConn {
         // The idle watch is parked on the socket. Wake it so the flag
         // becomes a FIN instead of waiting for the broker to write.
         self.idle_arm.notify_one();
+    }
+
+    /// Wait until the idle watch has marked this connection closed.
+    ///
+    /// A caller that already has response bytes buffered cannot sit in
+    /// [`Self::inbound_ready`] — that returns immediately — so it waits here
+    /// for the peer to finish closing.
+    pub(crate) async fn wait_until_closed(&self) {
+        loop {
+            if self.is_closed() {
+                return;
+            }
+            self.idle_arm.notified().await;
+        }
     }
 
     /// Send FIN for a connection that is already marked closed.

@@ -3673,7 +3673,6 @@ impl ConsumerGroup {
                 server_assignor: None,
                 topic_partitions: None,
             };
-            let mut queued_bytes = false;
             loop {
                 let now = Instant::now();
                 if let Some(extern_deadline) = *hb_deadline.lock() {
@@ -3710,19 +3709,11 @@ impl ConsumerGroup {
                             Wake::Again
                         }
                     }
-                    _ = tokio::time::sleep(sleep_duration) => {
-                        queued_bytes = false;
+                    _ = tokio::time::sleep(sleep_duration) => Wake::Beat,
+                    _ = coordinator_lost(&mut conn) => {
+                        conn = None;
+                        next_hb_deadline = Instant::now();
                         Wake::Beat
-                    }
-                    lost = coordinator_lost(&mut conn), if !queued_bytes => {
-                        if lost {
-                            conn = None;
-                            next_hb_deadline = Instant::now();
-                            Wake::Beat
-                        } else {
-                            queued_bytes = true;
-                            Wake::Again
-                        }
                     }
                 };
                 match wake {
@@ -3957,7 +3948,6 @@ impl ConsumerGroup {
             let mut prior_coords = HashMap::new();
             let mut tick =
                 tokio::time::interval(cfg.heartbeat_interval.max(Duration::from_millis(1)));
-            let mut queued_bytes = false;
             loop {
                 enum Wake {
                     Stop,
@@ -3972,18 +3962,10 @@ impl ConsumerGroup {
                             Wake::Again
                         }
                     }
-                    _ = tick.tick() => {
-                        queued_bytes = false;
+                    _ = tick.tick() => Wake::Beat,
+                    _ = coordinator_lost(&mut conn) => {
+                        conn = None;
                         Wake::Beat
-                    }
-                    lost = coordinator_lost(&mut conn), if !queued_bytes => {
-                        if lost {
-                            conn = None;
-                            Wake::Beat
-                        } else {
-                            queued_bytes = true;
-                            Wake::Again
-                        }
                     }
                 };
                 match wake {
@@ -5215,21 +5197,25 @@ pub(crate) async fn connect_member_and_coordinator(
     started
 }
 
-/// Wait until `conn` is closed by the coordinator.
+/// Wait until the coordinator closes `conn`.
 ///
-/// Returns `true` when the socket is gone. A queued response returns `false`
-/// and stays in the buffer for the next heartbeat, so the interval can still
-/// fire. Callers must not watch again until that response is consumed, or a
-/// full buffer makes this return immediately.
+/// A response that is already buffered does not finish this wait. The
+/// heartbeat interval stays armed beside it and reads those bytes. The wait
+/// ends when the peer later closes, after the idle watch has shut the
+/// socket down.
 pub(crate) async fn coordinator_lost(conn: &mut Option<BrokerConn>) -> bool {
     let Some(current) = conn.as_mut() else {
         return std::future::pending::<bool>().await;
     };
-    match current.inbound_ready().await {
-        Err(_) => true,
-        Ok(()) if current.is_closed() => true,
-        Ok(()) => false,
+    if !current.has_queued_response() {
+        match current.inbound_ready().await {
+            Err(_) => return true,
+            Ok(()) if current.is_closed() => return true,
+            Ok(()) => {}
+        }
     }
+    current.wait_until_closed().await;
+    true
 }
 
 /// Reconnect an idle coordinator while its address is checked again.
@@ -6395,7 +6381,7 @@ mod tests {
     use std::collections::HashMap;
     use std::sync::Arc;
     use std::time::Duration;
-    use tokio::io::AsyncWriteExt;
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
     use tokio::net::TcpListener;
 
     #[tokio::test(flavor = "current_thread")]
@@ -6413,18 +6399,84 @@ mod tests {
             .await
             .unwrap();
         let mut conn = Some(conn);
-        let result =
-            tokio::time::timeout(Duration::from_millis(300), coordinator_lost(&mut conn)).await;
+        let queued = tokio::time::timeout(Duration::from_millis(300), async {
+            loop {
+                if conn.as_ref().is_some_and(BrokerConn::has_queued_response) {
+                    break;
+                }
+                tokio::task::yield_now().await;
+            }
+        })
+        .await;
         assert!(
-            result.is_ok(),
-            "queued bytes blocked the heartbeat wait: {result:?}"
+            queued.is_ok(),
+            "queued bytes never became visible to the heartbeat"
         );
+        {
+            let mut waiting = std::pin::pin!(coordinator_lost(&mut conn));
+            tokio::select! {
+                _ = &mut waiting => panic!("queued bytes ended the heartbeat wait"),
+                _ = tokio::time::sleep(Duration::from_millis(50)) => {}
+            }
+        }
         assert!(
             conn.is_some(),
             "queued bytes dropped the coordinator socket"
         );
         drop(conn);
         drop(accepted);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn close_after_queued_bytes_shuts_the_heartbeat_socket() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        let (gate_tx, gate_rx) = tokio::sync::oneshot::channel::<()>();
+        let accepted = tokio::spawn(async move {
+            let (socket, _) = listener.accept().await.unwrap();
+            let (mut reader, mut writer) = socket.into_split();
+            writer.write_all(&[0x01]).await.unwrap();
+            gate_rx.await.unwrap();
+            writer.shutdown().await.unwrap();
+            let mut buf = [0u8; 8];
+            tokio::time::timeout(Duration::from_millis(300), reader.read(&mut buf)).await
+        });
+        let conn = BrokerConn::connect(&addr.to_string(), "queued-close", Duration::from_secs(2))
+            .await
+            .unwrap();
+        let mut conn = Some(conn);
+        let queued = tokio::time::timeout(Duration::from_millis(300), async {
+            loop {
+                if conn.as_ref().is_some_and(BrokerConn::has_queued_response) {
+                    break;
+                }
+                tokio::task::yield_now().await;
+            }
+        })
+        .await;
+        assert!(
+            queued.is_ok(),
+            "queued bytes never became visible to the heartbeat"
+        );
+        {
+            let mut waiting = std::pin::pin!(coordinator_lost(&mut conn));
+            tokio::select! {
+                _ = &mut waiting => panic!("closed before the peer shut its write half"),
+                _ = tokio::time::sleep(Duration::from_millis(30)) => {}
+            }
+            gate_tx.send(()).unwrap();
+            let noticed = tokio::time::timeout(Duration::from_millis(300), waiting).await;
+            assert!(
+                noticed.is_ok(),
+                "a close after queued bytes was not noticed before the heartbeat interval"
+            );
+        }
+        let saw = accepted.await.unwrap();
+        assert!(
+            matches!(saw, Ok(Ok(0))),
+            "peer stayed in the read after it closed a socket that already had queued bytes: {saw:?}"
+        );
+        drop(conn);
     }
 
     #[test]
