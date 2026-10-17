@@ -4563,34 +4563,46 @@ impl Consumer {
         keys: &[ApiVersion],
         deadline: Instant,
     ) -> Result<(BrokerConn, ApiVersionsResponse)> {
-        let mut conn = BrokerConn::connect_tls(
-            addr,
-            client_id,
-            connect_timeout.min(startup_remaining(deadline)?),
-            tls,
-        )
-        .await?;
-        let versions_resp = ApiVersionsResponse {
-            error_code: 0,
-            api_keys: keys.to_vec(),
-            throttle_time_ms: 0,
-            supported_features: Vec::new(),
-            finalized_features_epoch: None,
-            finalized_features: Vec::new(),
-            zk_migration_ready: false,
-        };
-        configure_fetch_conn(&mut conn, &versions_resp);
-        sasl::authenticate(
-            &mut conn,
-            sasl_plain,
-            sasl_scram,
-            sasl_scram_sha512,
-            sasl_oauthbearer,
-            sasl_oauthbearer_oidc,
-            startup_remaining(deadline)?,
-        )
-        .await?;
-        Ok((conn, versions_resp))
+        let opened = async {
+            let mut conn = BrokerConn::connect_tls(
+                addr,
+                client_id,
+                connect_timeout.min(startup_remaining(deadline)?),
+                tls,
+            )
+            .await?;
+            let versions_resp = ApiVersionsResponse {
+                error_code: 0,
+                api_keys: keys.to_vec(),
+                throttle_time_ms: 0,
+                supported_features: Vec::new(),
+                finalized_features_epoch: None,
+                finalized_features: Vec::new(),
+                zk_migration_ready: false,
+            };
+            configure_fetch_conn(&mut conn, &versions_resp);
+            sasl::authenticate(
+                &mut conn,
+                sasl_plain,
+                sasl_scram,
+                sasl_scram_sha512,
+                sasl_oauthbearer,
+                sasl_oauthbearer_oidc,
+                startup_remaining(deadline)?,
+            )
+            .await?;
+            Ok((conn, versions_resp))
+        }
+        .await;
+        // A failed SASL handshake drops its socket in this call. Yield so the
+        // broker observes that close before the error returns. A successful
+        // dial keeps the socket and does not wait.
+        if opened.is_err() {
+            for _ in 0..8 {
+                tokio::task::yield_now().await;
+            }
+        }
+        opened
     }
 
     async fn connect_parallel_fetch_nodes(
@@ -11034,6 +11046,68 @@ mod tests {
             open.load(Ordering::SeqCst),
             0,
             "bootstrap handshake left the socket blocked in a broker read"
+        );
+        peer.abort();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn sasl_handshake_timeout_closes_the_socket() {
+        use crate::protocol::api::ApiVersion;
+        use crate::protocol::api_keys::{SASL_AUTHENTICATE, SASL_HANDSHAKE};
+        use std::sync::atomic::AtomicUsize;
+        use tokio::io::AsyncReadExt;
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let open = Arc::new(AtomicUsize::new(0));
+        let open_flag = Arc::clone(&open);
+        let peer = tokio::spawn(async move {
+            let (mut sock, _) = listener.accept().await.unwrap();
+            let _started = open_flag.fetch_add(1, Ordering::SeqCst);
+            let mut buf = [0u8; 64];
+            loop {
+                match sock.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = open_flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let keys = [
+            ApiVersion {
+                api_key: SASL_HANDSHAKE,
+                min_version: 0,
+                max_version: 1,
+            },
+            ApiVersion {
+                api_key: SASL_AUTHENTICATE,
+                min_version: 0,
+                max_version: 2,
+            },
+        ];
+        let plain = ("user".to_string(), "pass".to_string());
+        let result = Consumer::open_fetch_conn_known(
+            &addr,
+            "fetch-sasl",
+            Duration::from_millis(200),
+            None,
+            Some(&plain),
+            None,
+            None,
+            None,
+            None,
+            &keys,
+            Instant::now() + Duration::from_millis(200),
+        )
+        .await;
+        assert!(
+            matches!(result, Err(Error::Timeout)),
+            "a silent peer should time out SASL"
+        );
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "sasl handshake left the socket blocked in a broker read"
         );
         peer.abort();
     }
