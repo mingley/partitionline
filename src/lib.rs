@@ -2587,7 +2587,7 @@
 //! endpoint type.
 //! A piggybacked
 //! `UNKNOWN_CONTROLLER_ID` still completes without retry,
-//! including when `AcknowledgeErrorMessage` is set (this is not
+//! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `UNKNOWN_CONTROLLER_ID`, which fails that poll, and not
 //! piggyback `UNSUPPORTED_ENDPOINT_TYPE`). Official Java
 //! `Errors` writes this KIP-919 code when a controller ID is not
