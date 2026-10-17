@@ -12289,12 +12289,10 @@ impl Admin {
                 .as_ref()
                 .map(|(_, n)| *n)
                 .ok_or_else(|| Error::protocol("missing group coordinator"))?;
-            self.connect_node_until(node, deadline).await?;
             let body = {
-                let conn = self.conns.get_mut(&node).ok_or_else(|| {
-                    Error::protocol("missing remove_members_from_consumer_group conn")
-                })?;
-                conn.roundtrip(
+                self.roundtrip_known_node(
+                    node,
+                    deadline,
                     LEAVE_GROUP,
                     version,
                     |buf| encode_leave_group_request_members(buf, version, group_id, &members),
@@ -12305,7 +12303,7 @@ impl Admin {
             let body = match body {
                 Ok(b) => b,
                 Err(e) if e.is_retriable() => {
-                    let _ = self.conns.remove(&node);
+                    self.drop_node_conn(node);
                     self.group_coord = None;
                     self.wait_retry(&mut attempt, deadline).await?;
                     continue;
@@ -12316,7 +12314,7 @@ impl Admin {
                 decode_leave_group_response_version(&mut body.clone(), version)?;
             if error::coordinator_retriable(err) {
                 self.group_coord = None;
-                let _ = self.conns.remove(&node);
+                self.drop_node_conn(node);
                 self.wait_retry(&mut attempt, deadline).await?;
                 continue;
             }
@@ -12800,13 +12798,10 @@ impl Admin {
                 .as_ref()
                 .map(|(_, n)| *n)
                 .ok_or_else(|| Error::protocol("missing group coordinator"))?;
-            self.connect_node_until(node, deadline).await?;
             let body = {
-                let conn = self
-                    .conns
-                    .get_mut(&node)
-                    .ok_or_else(|| Error::protocol("missing alter_share_group_offsets conn"))?;
-                conn.roundtrip(
+                self.roundtrip_known_node(
+                    node,
+                    deadline,
                     ALTER_SHARE_GROUP_OFFSETS,
                     version,
                     |buf| encode_alter_share_group_offsets_request(buf, group_id, topics),
@@ -12817,7 +12812,7 @@ impl Admin {
             let body = match body {
                 Ok(b) => b,
                 Err(e) if e.is_retriable() => {
-                    let _ = self.conns.remove(&node);
+                    self.drop_node_conn(node);
                     self.group_coord = None;
                     self.wait_retry(&mut attempt, deadline).await?;
                     continue;
@@ -12828,7 +12823,7 @@ impl Admin {
             if error::coordinator_retriable(result.error_code) {
                 // 14/15/16: FindCoordinator, then the new group coordinator.
                 self.group_coord = None;
-                let _ = self.conns.remove(&node);
+                self.drop_node_conn(node);
                 self.wait_retry(&mut attempt, deadline).await?;
                 continue;
             }
@@ -12895,13 +12890,10 @@ impl Admin {
                 .as_ref()
                 .map(|(_, n)| *n)
                 .ok_or_else(|| Error::protocol("missing group coordinator"))?;
-            self.connect_node_until(node, deadline).await?;
             let body = {
-                let conn = self
-                    .conns
-                    .get_mut(&node)
-                    .ok_or_else(|| Error::protocol("missing delete_share_group_offsets conn"))?;
-                conn.roundtrip(
+                self.roundtrip_known_node(
+                    node,
+                    deadline,
                     DELETE_SHARE_GROUP_OFFSETS,
                     version,
                     |buf| encode_delete_share_group_offsets_request(buf, group_id, topics),
@@ -12912,7 +12904,7 @@ impl Admin {
             let body = match body {
                 Ok(b) => b,
                 Err(e) if e.is_retriable() => {
-                    let _ = self.conns.remove(&node);
+                    self.drop_node_conn(node);
                     self.group_coord = None;
                     self.wait_retry(&mut attempt, deadline).await?;
                     continue;
@@ -12923,7 +12915,7 @@ impl Admin {
             if error::coordinator_retriable(result.error_code) {
                 // 14/15/16: FindCoordinator, then the new group coordinator.
                 self.group_coord = None;
-                let _ = self.conns.remove(&node);
+                self.drop_node_conn(node);
                 self.wait_retry(&mut attempt, deadline).await?;
                 continue;
             }
@@ -13342,13 +13334,10 @@ impl Admin {
                 self.refresh_broker_directory(deadline).await?;
             }
             let node = self.cluster.controller()?;
-            self.connect_node_until(node, deadline).await?;
             let body = {
-                let conn = self
-                    .conns
-                    .get_mut(&node)
-                    .ok_or_else(|| Error::protocol("missing assign_replicas_to_dirs conn"))?;
-                conn.roundtrip(
+                self.roundtrip_known_node(
+                    node,
+                    deadline,
                     ASSIGN_REPLICAS_TO_DIRS,
                     version,
                     |buf| encode_assign_replicas_to_dirs_request(buf, &req),
@@ -13359,7 +13348,7 @@ impl Admin {
             let body = match body {
                 Ok(b) => b,
                 Err(e) if e.is_retriable() => {
-                    let _ = self.conns.remove(&node);
+                    self.drop_node_conn(node);
                     self.forget_controller();
                     self.wait_retry(&mut attempt, deadline).await?;
                     continue;
@@ -13370,7 +13359,7 @@ impl Admin {
             if resp.error_code == error::NOT_CONTROLLER {
                 // NOT_CONTROLLER (41): Metadata, then the new controller.
                 self.forget_controller();
-                let _ = self.conns.remove(&node);
+                self.drop_node_conn(node);
                 self.wait_retry(&mut attempt, deadline).await?;
                 self.refresh_broker_directory(deadline).await?;
                 continue;
@@ -13918,13 +13907,10 @@ impl Admin {
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         loop {
-            self.connect_node_until(node, deadline).await?;
             let body = {
-                let conn = self
-                    .conns
-                    .get_mut(&node)
-                    .ok_or_else(|| Error::protocol("missing alter_replica_log_dirs conn"))?;
-                conn.roundtrip(
+                self.roundtrip_known_node(
+                    node,
+                    deadline,
                     ALTER_REPLICA_LOG_DIRS,
                     version,
                     |buf| encode_alter_replica_log_dirs_named(buf, version, dirs),
@@ -13935,7 +13921,7 @@ impl Admin {
             let body = match body {
                 Ok(b) => b,
                 Err(e) if e.is_retriable() => {
-                    let _ = self.conns.remove(&node);
+                    self.drop_node_conn(node);
                     self.wait_retry(&mut attempt, deadline).await?;
                     continue;
                 }

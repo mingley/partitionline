@@ -5,10 +5,12 @@ use partitionline::protocol::api_keys::OFFSET_FETCH;
 use partitionline::protocol::group::{OffsetFetchGroupData, OffsetFetchRequestData};
 use partitionline::{
     error, AbortTransactionSpec, AclBinding, Admin, AdminConfig, AlterConfig,
+    AssignReplicasToDirsDirectory, AssignReplicasToDirsPartition, AssignReplicasToDirsTopic,
     ClientQuotaAlteration, ClientQuotaEntity, ClientQuotaOp, ConfigResource, Consumer,
     ConsumerConfig, ConsumerGroup, DescribeShareGroupOffsetsGroup, Error, FeatureUpdate,
-    ListConsumerGroupOffsetsSpec, NewTopic, OffsetClient, OffsetOptions, OffsetSpec, Producer,
-    ProducerConfig, ScramMechanism, UserScramCredentialUpsertion,
+    ListConsumerGroupOffsetsSpec, MemberToRemove, NewTopic, OffsetClient, OffsetOptions,
+    OffsetSpec, Producer, ProducerConfig, ScramMechanism, TopicPartitionReplica,
+    UserScramCredentialUpsertion,
 };
 use std::time::{Duration, Instant};
 
@@ -603,6 +605,160 @@ async fn abort_transaction_stays_on_the_bootstrap_socket() {
     assert!(
         elapsed < Duration::from_millis(200),
         "abort transaction opened another socket: {elapsed:?}"
+    );
+}
+
+/// LeaveGroup on the bootstrap group coordinator does not open another socket.
+#[tokio::test]
+async fn remove_members_stays_on_the_bootstrap_socket() {
+    let mock = common::Mock::start().await;
+    let group = ConsumerGroup::join(
+        ConsumerConfig::bootstrap([mock.addr.clone()])
+            .max_wait_ms(10)
+            .group_instance_id("worker-boot"),
+        "g-boot",
+        "t",
+    )
+    .await
+    .unwrap();
+    let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    let accepts_before = mock.accepts();
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let started = Instant::now();
+    let removed = admin
+        .remove_members_from_consumer_group("g-boot", [MemberToRemove::new("worker-boot")])
+        .await
+        .unwrap();
+    let elapsed = started.elapsed();
+    assert_eq!(removed.len(), 1);
+    assert_eq!(removed[0].error_code, 0);
+    assert_eq!(
+        mock.accepts(),
+        accepts_before,
+        "LeaveGroup should stay on the admin bootstrap socket"
+    );
+    assert!(
+        elapsed < Duration::from_millis(200),
+        "remove members opened another socket: {elapsed:?}"
+    );
+    group.close().await.unwrap();
+}
+
+/// AlterShareGroupOffsets on the bootstrap coordinator does not open another socket.
+#[tokio::test]
+async fn alter_share_group_offsets_stays_on_the_bootstrap_socket() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    let accepts_before = mock.accepts();
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let started = Instant::now();
+    let altered = admin
+        .alter_share_group_offsets("sg-boot", &[])
+        .await
+        .unwrap();
+    let elapsed = started.elapsed();
+    assert_eq!(altered.error_code(), 0);
+    assert_eq!(
+        mock.accepts(),
+        accepts_before,
+        "AlterShareGroupOffsets should stay on the admin bootstrap socket"
+    );
+    assert!(
+        elapsed < Duration::from_millis(200),
+        "alter share group offsets opened another socket: {elapsed:?}"
+    );
+}
+
+/// DeleteShareGroupOffsets on the bootstrap coordinator does not open another socket.
+#[tokio::test]
+async fn delete_share_group_offsets_stays_on_the_bootstrap_socket() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    let accepts_before = mock.accepts();
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let started = Instant::now();
+    let deleted = admin
+        .delete_share_group_offsets("sg-boot", &[])
+        .await
+        .unwrap();
+    let elapsed = started.elapsed();
+    assert_eq!(deleted.error_code(), 0);
+    assert_eq!(
+        mock.accepts(),
+        accepts_before,
+        "DeleteShareGroupOffsets should stay on the admin bootstrap socket"
+    );
+    assert!(
+        elapsed < Duration::from_millis(200),
+        "delete share group offsets opened another socket: {elapsed:?}"
+    );
+}
+
+/// AssignReplicasToDirs on the bootstrap controller does not open another socket.
+#[tokio::test]
+async fn assign_replicas_to_dirs_stays_on_the_bootstrap_socket() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    let accepts_before = mock.accepts();
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let started = Instant::now();
+    let dir = AssignReplicasToDirsDirectory::new(
+        [0x11; 16],
+        vec![AssignReplicasToDirsTopic::new(
+            [0x22; 16],
+            vec![AssignReplicasToDirsPartition::new(0)],
+        )],
+    );
+    let assigned = admin
+        .assign_replicas_to_dirs(7, -1, vec![dir])
+        .await
+        .unwrap();
+    let elapsed = started.elapsed();
+    assert_eq!(assigned.error_code(), 0);
+    assert_eq!(
+        mock.accepts(),
+        accepts_before,
+        "AssignReplicasToDirs should stay on the admin bootstrap socket"
+    );
+    assert!(
+        elapsed < Duration::from_millis(200),
+        "assign replicas to dirs opened another socket: {elapsed:?}"
+    );
+}
+
+/// AlterReplicaLogDirs for the bootstrap broker does not open another socket.
+#[tokio::test]
+async fn alter_replica_log_dirs_for_stays_on_the_bootstrap_socket() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    let accepts_before = mock.accepts();
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let started = Instant::now();
+    let altered = admin
+        .alter_replica_log_dirs_for([(TopicPartitionReplica::new("t", 0, 1), "/d")])
+        .await
+        .unwrap();
+    let elapsed = started.elapsed();
+    assert_eq!(altered.len(), 1);
+    assert_eq!(altered[0].1, 0);
+    assert_eq!(
+        mock.accepts(),
+        accepts_before,
+        "AlterReplicaLogDirs should stay on the admin bootstrap socket"
+    );
+    assert!(
+        elapsed < Duration::from_millis(200),
+        "alter replica log dirs opened another socket: {elapsed:?}"
     );
 }
 
