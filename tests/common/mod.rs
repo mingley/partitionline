@@ -3946,6 +3946,11 @@ impl Mock {
         self.state.lock().txn_coord_node = node_id;
     }
 
+    /// Place every group on `node_id`.
+    pub fn set_coordinator(&self, node_id: i32) {
+        self.state.lock().coord_node = node_id;
+    }
+
     /// Place one group on a coordinator. Other groups keep [`Self::move_coordinator`].
     pub fn set_group_coordinator(&self, group: &str, node_id: i32) {
         self.state

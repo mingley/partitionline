@@ -3456,6 +3456,7 @@ impl ConsumerGroup {
         drop(tokio::spawn(async move {
             let mut conn: Option<BrokerConn> = None;
             let mut remembered: Option<KnownCoord> = None;
+            let mut prior_coords = HashMap::new();
             let init_ms = hb_interval_ms.load(Ordering::SeqCst);
             let mut current_interval = if let Ok(ms_u64) = u64::try_from(init_ms) {
                 if ms_u64 > 0 {
@@ -3534,6 +3535,7 @@ impl ConsumerGroup {
                             &mut conn,
                             &bootstrap_keys,
                             &mut remembered,
+                            &mut prior_coords,
                         )
                         .await
                         {
@@ -3551,6 +3553,7 @@ impl ConsumerGroup {
                                     &group_id,
                                     COORDINATOR_GROUP,
                                     &known,
+                                    &mut prior_coords,
                                 ))
                                 .await
                                 .ok();
@@ -3562,6 +3565,7 @@ impl ConsumerGroup {
                             &group_id,
                             deadline,
                             &bootstrap_keys,
+                            &mut prior_coords,
                         )
                         .await;
                         let Some(c) = conn.as_mut() else {
@@ -3746,6 +3750,7 @@ impl ConsumerGroup {
         drop(tokio::spawn(async move {
             let mut conn: Option<BrokerConn> = None;
             let mut remembered: Option<KnownCoord> = None;
+            let mut prior_coords = HashMap::new();
             let mut tick =
                 tokio::time::interval(cfg.heartbeat_interval.max(Duration::from_millis(1)));
             loop {
@@ -3766,6 +3771,7 @@ impl ConsumerGroup {
                             &mut conn,
                             &bootstrap_keys,
                             &mut remembered,
+                            &mut prior_coords,
                         )
                         .await
                         {
@@ -3779,6 +3785,7 @@ impl ConsumerGroup {
                                     &group_id,
                                     COORDINATOR_GROUP,
                                     &known,
+                                    &mut prior_coords,
                                 ))
                                 .await
                                 .ok();
@@ -3790,6 +3797,7 @@ impl ConsumerGroup {
                             &group_id,
                             deadline,
                             &bootstrap_keys,
+                            &mut prior_coords,
                         )
                         .await;
                         let Some(c) = conn.as_mut() else {
@@ -3975,6 +3983,7 @@ async fn leave_if_max_poll(
     conn: &mut Option<BrokerConn>,
     bootstrap_keys: &[ApiVersion],
     remembered: &mut Option<KnownCoord>,
+    prior: &mut HashMap<String, KnownCoord>,
 ) -> bool {
     if left.load(Ordering::SeqCst) {
         return true;
@@ -3997,6 +4006,7 @@ async fn leave_if_max_poll(
                 group_id,
                 COORDINATOR_GROUP,
                 &known,
+                prior,
             ))
             .await
             .ok();
@@ -4945,6 +4955,7 @@ pub(crate) async fn reopen_idle_coordinator(
     group_id: &str,
     deadline: Instant,
     bootstrap_keys: &[ApiVersion],
+    prior: &mut HashMap<String, KnownCoord>,
 ) {
     let known = if conn
         .as_ref()
@@ -4967,6 +4978,7 @@ pub(crate) async fn reopen_idle_coordinator(
             group_id,
             COORDINATOR_GROUP,
             &known,
+            prior,
         ))
         .await
         .ok()
@@ -5278,6 +5290,7 @@ pub(crate) async fn reopen_known_coord(
 }
 
 /// Versions already learned for one coordinator address.
+#[derive(Clone)]
 pub(crate) struct KnownCoord {
     addr: String,
     offset_commit_version: i16,
@@ -5374,7 +5387,9 @@ pub(crate) async fn rediscover_known_coord(
     group_id: &str,
     key_type: i8,
     known: &KnownCoord,
+    prior: &mut HashMap<String, KnownCoord>,
 ) -> Result<BrokerConn> {
+    let _stored = prior.insert(known.addr.clone(), known.clone());
     if known.find_coordinator_version < 0 || cfg.bootstrap.len() != 1 {
         // Heap-allocate the full handshake. Inlining it here makes the
         // caller's state machine large enough to overflow the stack.
@@ -5396,13 +5411,13 @@ pub(crate) async fn rediscover_known_coord(
             if addr == known.addr {
                 return opened;
             }
-            return open_discovered_coord(&bounded, &addr, known).await;
+            return open_discovered_coord(&bounded, &addr, known, prior).await;
         }
     };
     if addr == known.addr {
         return speculative.await;
     }
-    open_discovered_coord(&bounded, &addr, known).await
+    open_discovered_coord(&bounded, &addr, known, prior).await
 }
 
 /// Dial a coordinator found by lookup.
@@ -5413,6 +5428,7 @@ async fn open_discovered_coord(
     cfg: &ConsumerConfig,
     addr: &str,
     known: &KnownCoord,
+    prior: &HashMap<String, KnownCoord>,
 ) -> Result<BrokerConn> {
     if cfg
         .bootstrap
@@ -5422,6 +5438,9 @@ async fn open_discovered_coord(
     {
         let (conn, _, _) = open_coord_with_keys(cfg, addr, &known.bootstrap_keys).await?;
         return Ok(conn);
+    }
+    if let Some(previous) = prior.get(addr) {
+        return connect_known_coord(cfg, previous).await;
     }
     let (conn, _, _) = open_coord_with_find_version(cfg, addr).await?;
     Ok(conn)
@@ -5786,7 +5805,11 @@ async fn finish_coord_roundtrip(
     if coordinator_error(api_key, version, &body).is_some_and(error::coordinator_retriable) {
         let bounded = bounded_coord_config(cfg, deadline)?;
         let known = KnownCoord::capture(coord);
-        *coord = Box::pin(rediscover_known_coord(&bounded, group_id, key_type, &known)).await?;
+        let mut prior = HashMap::new();
+        *coord = Box::pin(rediscover_known_coord(
+            &bounded, group_id, key_type, &known, &mut prior,
+        ))
+        .await?;
         let version = negotiated_coord_version(coord, api_key)?;
         let body = coord
             .roundtrip_deadline(api_key, version, |buf| encode_body(version, buf), deadline)

@@ -4952,6 +4952,7 @@ impl ShareGroup {
             }
             let mut conn: Option<BrokerConn> = None;
             let mut remembered: Option<crate::group::KnownCoord> = None;
+            let mut prior_coords = std::collections::HashMap::new();
             let init_ms = hb_interval_ms.load(Ordering::SeqCst);
             let mut current_interval = if let Ok(ms_u64) = u64::try_from(init_ms) {
                 if ms_u64 > 0 {
@@ -5021,6 +5022,7 @@ impl ShareGroup {
                                     &group_id,
                                     crate::protocol::group::COORDINATOR_GROUP,
                                     &known,
+                                    &mut prior_coords,
                                 ))
                                 .await
                                 .ok();
@@ -5032,6 +5034,7 @@ impl ShareGroup {
                             &group_id,
                             deadline,
                             &bootstrap_keys,
+                            &mut prior_coords,
                         )
                             .await;
                         if *stop.borrow() { break; }

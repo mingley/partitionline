@@ -3778,6 +3778,70 @@ async fn max_poll_leave_reuses_a_dropped_remote_coordinator() {
     drop(group);
 }
 
+/// A coordinator that returns to a broker already contacted skips ApiVersions.
+#[tokio::test]
+async fn group_heartbeat_reuses_a_previous_coordinator() {
+    let mock = common::Mock::start_three_node().await;
+    mock.set_topic_partitions("t", 1);
+    mock.set_partition_leader("t", 0, 1);
+    mock.set_coordinator(2);
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    let _sent = producer
+        .send(ProduceRecord::to("t").value(&b"v"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+    let mut cfg = ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10);
+    cfg.heartbeat_interval = Duration::from_millis(40);
+    let group = ConsumerGroup::join(cfg, "hb-return", "t").await.unwrap();
+    let started_first = Instant::now();
+    while mock.heartbeat_total("hb-return") < 3 {
+        if started_first.elapsed() > Duration::from_secs(2) {
+            panic!("heartbeat did not settle");
+        }
+        tokio::time::sleep(Duration::from_millis(5)).await;
+    }
+    let versions_before = mock.api_versions_versions().len();
+    let beats_before = mock.heartbeat_total("hb-return");
+    mock.set_coordinator(3);
+    let moved = Instant::now();
+    while mock.heartbeat_total("hb-return") <= beats_before {
+        if moved.elapsed() > Duration::from_secs(2) {
+            panic!("heartbeat did not follow the moved coordinator");
+        }
+        tokio::time::sleep(Duration::from_millis(5)).await;
+    }
+    let versions_moved = mock.api_versions_versions().len();
+    assert!(
+        versions_moved > versions_before,
+        "a new coordinator must negotiate"
+    );
+    let beats_moved = mock.heartbeat_total("hb-return");
+    mock.set_coordinator(2);
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let started = Instant::now();
+    while mock.heartbeat_total("hb-return") <= beats_moved {
+        if started.elapsed() > Duration::from_secs(2) {
+            panic!("heartbeat did not return");
+        }
+        tokio::time::sleep(Duration::from_millis(5)).await;
+    }
+    let elapsed = started.elapsed();
+    assert_eq!(
+        mock.api_versions_versions().len(),
+        versions_moved,
+        "returning to a known coordinator repeated ApiVersions"
+    );
+    assert!(
+        elapsed < Duration::from_millis(200),
+        "returning to a known coordinator repeated ApiVersions: {elapsed:?}"
+    );
+    group.leave().await.unwrap();
+}
+
 /// A classic heartbeat retry reuses the coordinator handshake.
 #[tokio::test]
 async fn group_heartbeat_retries_without_another_handshake() {

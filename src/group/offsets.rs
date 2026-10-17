@@ -710,8 +710,9 @@ pub(super) async fn coord_offsets_v10(
     if v10_coordinator_code(api, &body).is_some_and(crate::error::coordinator_retriable) {
         let bounded = bounded_consumer_config(cfg, deadline)?;
         let known = super::KnownCoord::capture(coord).with_bootstrap_keys(bootstrap_keys);
+        let mut prior = std::collections::HashMap::new();
         *coord = Box::pin(super::rediscover_known_coord(
-            &bounded, group_id, key_type, &known,
+            &bounded, group_id, key_type, &known, &mut prior,
         ))
         .await?;
         let picked = if api == crate::protocol::api_keys::OFFSET_FETCH {
@@ -782,8 +783,9 @@ pub(super) async fn coord_offsets_legacy(
         {
             let bounded = bounded_consumer_config(cfg, deadline)?;
             let known = super::KnownCoord::capture(coord).with_bootstrap_keys(bootstrap_keys);
+            let mut prior = std::collections::HashMap::new();
             *coord = Box::pin(super::rediscover_known_coord(
-                &bounded, group_id, key_type, &known,
+                &bounded, group_id, key_type, &known, &mut prior,
             ))
             .await?;
             require_copied_coord_version(coord, api, version)?;
