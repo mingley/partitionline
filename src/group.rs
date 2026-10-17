@@ -2666,6 +2666,7 @@ impl ConsumerGroup {
                     .any(|topic| !self.consumer.topic_metadata_fresh(topic));
             let (version, body) = if prefetch {
                 let bootstrap_keys = self.consumer.copy_api_keys();
+                let address_keys = self.consumer.copy_learned_broker_keys();
                 let group_id = self.group_id.as_str();
                 let member_id = self.member_id.as_str();
                 let instance = self.cfg.group_instance_id.as_deref();
@@ -2676,7 +2677,7 @@ impl ConsumerGroup {
                 let topics = &self.topics;
                 let prior = &mut self.prior_coords;
                 let refresh = consumer.refresh_metadata_timeout(Some(topics), timeout);
-                let rpc = coord_roundtrip(
+                let rpc = coord_roundtrip_with_bootstrap(
                     coord,
                     cfg,
                     group_id,
@@ -2699,6 +2700,7 @@ impl ConsumerGroup {
                         )
                     },
                     &bootstrap_keys,
+                    &address_keys,
                     prior,
                     timeout,
                 );
@@ -2707,7 +2709,8 @@ impl ConsumerGroup {
                 rpc?
             } else {
                 let bootstrap_keys = self.consumer.copy_api_keys();
-                coord_roundtrip(
+                let address_keys = self.consumer.copy_learned_broker_keys();
+                coord_roundtrip_with_bootstrap(
                     &mut self.coord,
                     &self.cfg,
                     &self.group_id,
@@ -2730,6 +2733,7 @@ impl ConsumerGroup {
                         )
                     },
                     &bootstrap_keys,
+                    &address_keys,
                     &mut self.prior_coords,
                     timeout,
                 )
