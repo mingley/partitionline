@@ -1089,6 +1089,37 @@ async fn commit_reuses_a_produce_handshake_for_the_moved_coordinator() {
     producer.close().await.unwrap();
 }
 
+/// A transaction coordinator that returns to the bootstrap broker reuses that handshake.
+#[tokio::test]
+async fn commit_reuses_bootstrap_when_the_coordinator_returns() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_topic_partitions("t", 1);
+    mock.set_partition_leader("t", 0, 1);
+    mock.set_txn_coordinator(2);
+    let mut cfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    cfg.linger = Duration::ZERO;
+    cfg.transactional_id = Some("tx-returned".into());
+    let producer = Producer::new(cfg).await.unwrap();
+    producer.begin_transaction().await.unwrap();
+    let _sent = producer
+        .send(ProduceRecord::to("t").value(&b"v"[..]))
+        .await
+        .unwrap();
+    let versions_before = mock.api_versions_versions().len();
+    assert_eq!(versions_before, 2);
+    mock.set_txn_coordinator(1);
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let started = Instant::now();
+    producer.commit_transaction().await.unwrap();
+    let elapsed = started.elapsed();
+    assert!(
+        elapsed < Duration::from_millis(200),
+        "a coordinator that returned to bootstrap repeated ApiVersions: {elapsed:?}"
+    );
+    assert_eq!(mock.api_versions_versions().len(), versions_before);
+    producer.close().await.unwrap();
+}
+
 /// A produce to the transaction coordinator reuses that broker's handshake.
 #[tokio::test]
 async fn produce_reuses_the_transaction_coordinator_handshake() {

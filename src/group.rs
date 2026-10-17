@@ -5381,13 +5381,35 @@ pub(crate) async fn rediscover_known_coord(
             if addr == known.addr {
                 return opened;
             }
-            return Ok(open_coord_with_find_version(&bounded, &addr).await?.0);
+            return open_discovered_coord(&bounded, &addr, known).await;
         }
     };
     if addr == known.addr {
         return speculative.await;
     }
-    Ok(open_coord_with_find_version(&bounded, &addr).await?.0)
+    open_discovered_coord(&bounded, &addr, known).await
+}
+
+/// Dial a coordinator found by lookup.
+///
+/// The bootstrap broker already completed ApiVersions at startup. A
+/// coordinator that returns there reuses those versions.
+async fn open_discovered_coord(
+    cfg: &ConsumerConfig,
+    addr: &str,
+    known: &KnownCoord,
+) -> Result<BrokerConn> {
+    if cfg
+        .bootstrap
+        .first()
+        .is_some_and(|bootstrap| bootstrap == addr)
+        && !known.bootstrap_keys.is_empty()
+    {
+        let (conn, _, _) = open_coord_with_keys(cfg, addr, &known.bootstrap_keys).await?;
+        return Ok(conn);
+    }
+    let (conn, _, _) = open_coord_with_find_version(cfg, addr).await?;
+    Ok(conn)
 }
 
 async fn locate_known_coordinator(

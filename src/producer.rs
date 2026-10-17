@@ -4011,10 +4011,20 @@ async fn open_recorded_peer(
     addr: &str,
     cfg: &ProducerConfig,
     known: &HashMap<String, Vec<ApiVersion>>,
+    bootstrap_keys: &[ApiVersion],
 ) -> Result<(BrokerConn, ApiVersionsResponse)> {
     if let Some(keys) = known.get(addr).filter(|keys| !keys.is_empty()) {
         let conn = open_conn_with_known_versions(addr, cfg, false, keys).await?;
         return Ok((conn, known_api_versions(keys)));
+    }
+    if cfg
+        .bootstrap
+        .first()
+        .is_some_and(|bootstrap| bootstrap == addr)
+        && !bootstrap_keys.is_empty()
+    {
+        let conn = open_conn_with_known_versions(addr, cfg, false, bootstrap_keys).await?;
+        return Ok((conn, known_api_versions(bootstrap_keys)));
     }
     open_conn_with_versions(addr, cfg, false).await
 }
@@ -4044,8 +4054,13 @@ async fn rediscover_producer_coordinator(
                 let (conn, versions) = opened?;
                 return Ok(coordinator_connection(conn, &versions));
             }
-            let (conn, versions) =
-                open_recorded_peer(&addr, &bounded, known.known_by_addr).await?;
+            let (conn, versions) = open_recorded_peer(
+                &addr,
+                &bounded,
+                known.known_by_addr,
+                known.bootstrap_keys,
+            )
+            .await?;
             return Ok(coordinator_connection(conn, &versions));
         }
     };
@@ -4053,7 +4068,8 @@ async fn rediscover_producer_coordinator(
         let (conn, versions) = speculative.await?;
         return Ok(coordinator_connection(conn, &versions));
     }
-    let (conn, versions) = open_recorded_peer(&addr, &bounded, known.known_by_addr).await?;
+    let (conn, versions) =
+        open_recorded_peer(&addr, &bounded, known.known_by_addr, known.bootstrap_keys).await?;
     Ok(coordinator_connection(conn, &versions))
 }
 
