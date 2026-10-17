@@ -3966,37 +3966,60 @@ async fn reopen_meta_if_idle(
         return Ok(());
     }
     let addr = conn.addr().to_string();
-    let mut opened = BrokerConn::connect_tls(
+    *conn = open_idle_replacement(
         &addr,
-        &shared.cfg.client_id,
-        shared.cfg.connect_timeout.min(timeout_remaining(deadline)?),
-        shared.cfg.tls.as_ref(),
-    )
-    .await?;
-    let versions_resp = if shared.api_keys.is_empty() {
-        crate::protocol::api::negotiate_api_versions(&mut opened, timeout_remaining(deadline)?)
-            .await?
-    } else {
-        known_api_versions(&shared.api_keys)
-    };
-    configure_produce_conn(
-        &mut opened,
-        &versions_resp,
         &shared.cfg,
+        &shared.api_keys,
         shared.transaction_v2,
-    );
-    crate::protocol::sasl::authenticate(
-        &mut opened,
-        shared.cfg.sasl_plain.as_ref(),
-        shared.cfg.sasl_scram.as_ref(),
-        shared.cfg.sasl_scram_sha512.as_ref(),
-        shared.cfg.sasl_oauthbearer.as_deref(),
-        shared.cfg.sasl_oauthbearer_oidc.as_ref(),
-        timeout_remaining(deadline)?,
+        deadline,
     )
     .await?;
-    *conn = opened;
     Ok(())
+}
+
+async fn open_idle_replacement(
+    addr: &str,
+    cfg: &ProducerConfig,
+    keys: &[ApiVersion],
+    transaction_v2: bool,
+    deadline: Instant,
+) -> Result<BrokerConn> {
+    let opened = async {
+        let mut conn = BrokerConn::connect_tls(
+            addr,
+            &cfg.client_id,
+            cfg.connect_timeout.min(timeout_remaining(deadline)?),
+            cfg.tls.as_ref(),
+        )
+        .await?;
+        let versions_resp = if keys.is_empty() {
+            crate::protocol::api::negotiate_api_versions(&mut conn, timeout_remaining(deadline)?)
+                .await?
+        } else {
+            known_api_versions(keys)
+        };
+        configure_produce_conn(&mut conn, &versions_resp, cfg, transaction_v2);
+        crate::protocol::sasl::authenticate(
+            &mut conn,
+            cfg.sasl_plain.as_ref(),
+            cfg.sasl_scram.as_ref(),
+            cfg.sasl_scram_sha512.as_ref(),
+            cfg.sasl_oauthbearer.as_deref(),
+            cfg.sasl_oauthbearer_oidc.as_ref(),
+            timeout_remaining(deadline)?,
+        )
+        .await?;
+        Ok(conn)
+    }
+    .await;
+    // A failed replacement drops its socket in this call. Yield so the broker
+    // observes that close before the error returns.
+    if opened.is_err() {
+        for _ in 0..8 {
+            tokio::task::yield_now().await;
+        }
+    }
+    opened
 }
 
 async fn open_conn_with_known_versions(
@@ -9257,6 +9280,62 @@ mod tests {
             open.load(Ordering::SeqCst),
             0,
             "produce sasl left the socket open"
+        );
+        peer.abort();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn idle_replacement_timeout_closes_the_socket() {
+        use crate::protocol::api::ApiVersion;
+        use crate::protocol::api_keys::{SASL_AUTHENTICATE, SASL_HANDSHAKE};
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use tokio::io::AsyncReadExt;
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let open = Arc::new(AtomicUsize::new(0));
+        let open_flag = Arc::clone(&open);
+        let peer = tokio::spawn(async move {
+            let (mut sock, _) = listener.accept().await.unwrap();
+            let _started = open_flag.fetch_add(1, Ordering::SeqCst);
+            let mut buf = [0u8; 64];
+            loop {
+                match sock.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = open_flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let mut cfg = ProducerConfig::bootstrap([addr.clone()]);
+        cfg.request_timeout = Duration::from_millis(200);
+        cfg.connect_timeout = Duration::from_millis(200);
+        cfg.sasl_plain = Some(("user".into(), "pass".into()));
+        let keys = [
+            ApiVersion {
+                api_key: SASL_HANDSHAKE,
+                min_version: 0,
+                max_version: 1,
+            },
+            ApiVersion {
+                api_key: SASL_AUTHENTICATE,
+                min_version: 0,
+                max_version: 2,
+            },
+        ];
+        let result = open_idle_replacement(
+            &addr,
+            &cfg,
+            &keys,
+            false,
+            Instant::now() + Duration::from_millis(200),
+        )
+        .await;
+        assert!(matches!(result, Err(Error::Timeout)));
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "idle replacement left the socket open"
         );
         peer.abort();
     }
