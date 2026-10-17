@@ -350,6 +350,17 @@ fn stalled_write_read_rejected(read_buf: &BytesMut) -> bool {
     !(0..=MAX_FRAME).contains(&i32::from_be_bytes(raw))
 }
 
+/// True when `buf` starts with a length this connection will not accept.
+fn frame_prefix_rejected(buf: &[u8]) -> bool {
+    let Some(prefix) = buf.get(..4) else {
+        return false;
+    };
+    let Ok(raw) = <[u8; 4]>::try_from(prefix) else {
+        return true;
+    };
+    !(0..=MAX_FRAME).contains(&i32::from_be_bytes(raw))
+}
+
 /// True when `buf` holds one full frame, or a length the framed reader will reject.
 fn inbound_satisfied(buf: &BytesMut) -> bool {
     let Some(prefix) = buf.get(..4) else {
@@ -830,8 +841,12 @@ fn spawn_idle_watch(
                             // than one max frame is not a response waiting
                             // for the owner. Shut the socket down instead of
                             // buffering the peer's write without a limit.
-                            let too_big = prefetch.lock().len()
-                                > usize::try_from(MAX_FRAME).unwrap_or(usize::MAX);
+                            let too_big = {
+                                let buffered = prefetch.lock();
+                                frame_prefix_rejected(&buffered)
+                                    || buffered.len()
+                                        > usize::try_from(MAX_FRAME).unwrap_or(usize::MAX)
+                            };
                             if too_big {
                                 closed.store(true, Ordering::SeqCst);
                                 if let Ok(mut io) = stream.try_lock() {
@@ -1234,6 +1249,15 @@ impl BrokerConn {
                 }
                 Ok(()) => {}
             }
+        }
+        let rejected = frame_prefix_rejected(self.read_buf.as_ref())
+            || frame_prefix_rejected(&self.prefetch.lock());
+        if rejected {
+            if !self.is_closed() {
+                self.close();
+            }
+            self.release_if_closed().await;
+            return Err(Error::protocol("invalid frame size"));
         }
         self.wait_until_closed().await;
         if !self.is_closed() {
@@ -3366,6 +3390,40 @@ mod tests {
         assert!(conn.buffered_len() > 0, "the response byte was not kept");
         let saw = accepted.await.unwrap();
         assert!(matches!(saw, Ok(Ok(0))), "peer stayed in the read: {saw:?}");
+        drop(conn);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn an_illegal_length_does_not_leave_the_peer_blocked() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let accepted = tokio::spawn(async move {
+            let (socket, _) = listener.accept().await.unwrap();
+            let (mut reader, mut writer) = socket.into_split();
+            writer.write_all(&i32::MAX.to_be_bytes()).await.unwrap();
+            let mut buf = [0u8; 8];
+            tokio::time::timeout(Duration::from_millis(300), reader.read(&mut buf)).await
+        });
+        let mut conn = BrokerConn::connect(&addr, "bad-len", Duration::from_secs(2))
+            .await
+            .unwrap();
+        let queued = tokio::time::timeout(Duration::from_millis(300), async {
+            loop {
+                if conn.has_queued_response() {
+                    break;
+                }
+                tokio::task::yield_now().await;
+            }
+        })
+        .await;
+        assert!(queued.is_ok(), "the illegal length never became visible");
+        let noticed = tokio::time::timeout(Duration::from_millis(200), conn.peer_left()).await;
+        assert!(noticed.is_ok(), "an illegal length left the wait parked");
+        let saw = accepted.await.unwrap();
+        assert!(
+            matches!(saw, Ok(Ok(0))),
+            "an illegal length left the peer blocked in its read: {saw:?}"
+        );
         drop(conn);
     }
 
