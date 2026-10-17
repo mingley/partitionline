@@ -1634,6 +1634,83 @@ async fn offset_fetch_finishes_a_blocked_coordinator_dial() {
     let _ = slow_addr;
 }
 
+/// A failed coordinator handshake still finishes the next dial already in flight.
+#[tokio::test(flavor = "current_thread")]
+async fn offset_fetch_finishes_a_dial_when_an_earlier_handshake_fails() {
+    use std::sync::atomic::{AtomicBool, Ordering};
+    use std::sync::Arc;
+    use tokio::io::AsyncReadExt;
+
+    let mock = common::Mock::start_two_node().await;
+    let mut closed = None;
+    let mut listener = None;
+    for _ in 0..32 {
+        let refused = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let blackhole = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let refused_addr = refused.local_addr().unwrap().to_string();
+        let blackhole_addr = blackhole.local_addr().unwrap().to_string();
+        if refused_addr < blackhole_addr {
+            closed = Some(refused.local_addr().unwrap());
+            listener = Some(blackhole);
+            drop(refused);
+            break;
+        }
+    }
+    let closed = closed.expect("refused port sorts before the blackhole");
+    let listener = listener.expect("blackhole");
+    let slow = listener.local_addr().unwrap();
+    let dropped = Arc::new(AtomicBool::new(false));
+    let flag = Arc::clone(&dropped);
+    let peer = tokio::spawn(async move {
+        let (mut sock, _) = listener.accept().await.unwrap();
+        let mut buf = [0u8; 64];
+        loop {
+            match sock.read(&mut buf).await {
+                Ok(0) | Err(_) => break,
+                Ok(_) => continue,
+            }
+        }
+        flag.store(true, Ordering::SeqCst);
+    });
+    mock.set_broker_address(1, "127.0.0.1", i32::from(closed.port()));
+    mock.set_broker_address(2, "127.0.0.1", i32::from(slow.port()));
+    mock.set_group_coordinator("fail", 1);
+    mock.set_group_coordinator("slow", 2);
+    let mut cfg = AdminConfig::bootstrap([mock.addr.clone()]);
+    cfg.request_timeout = Duration::from_secs(2);
+    cfg.connect_timeout = Duration::from_millis(500);
+    let mut client = OffsetClient::new(cfg).unwrap();
+    let request = OffsetFetchRequestData {
+        groups: vec![
+            OffsetFetchGroupData {
+                group_id: "fail".into(),
+                member_id: None,
+                member_epoch: -1,
+                topics: None,
+            },
+            OffsetFetchGroupData {
+                group_id: "slow".into(),
+                member_id: None,
+                member_epoch: -1,
+                topics: None,
+            },
+        ],
+        require_stable: false,
+    };
+    let mut options = offset_options();
+    options.timeout = Some(Duration::from_secs(2));
+    let result = client.test_fetch_once(&request, &options).await;
+    assert!(
+        result.is_err(),
+        "the refused coordinator should fail the fetch"
+    );
+    assert!(
+        dropped.load(Ordering::SeqCst),
+        "offset fetch left the next coordinator dial blocked in a broker read"
+    );
+    peer.abort();
+}
+
 fn offset_fetch(group: &str) -> OffsetFetchRequestData {
     OffsetFetchRequestData {
         groups: vec![OffsetFetchGroupData {

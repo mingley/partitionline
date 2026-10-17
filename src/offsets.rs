@@ -742,161 +742,160 @@ impl OffsetClient {
             start_dial(&mut dialing, next_dial);
             next_dial += 1;
         }
-        let mut slots = vec![None; request.groups.len()];
-        let mut throttle_time_ms = 0;
-        for pos in 0..order.len() {
-            let Some((address, indexes)) = order.get(pos) else {
-                break;
-            };
-            let address = address.clone();
-            let indexes = indexes.clone();
-            while !ready.contains_key(&address) {
-                let Some(joined) = dialing.join_next().await else {
-                    return Err(Error::protocol("missing offset coordinator socket"));
+        // Handshake errors, decode errors, and timeouts leave through this
+        // exit, after coordinator dials that already started have stopped.
+        let outcome = async {
+            let mut slots = vec![None; request.groups.len()];
+            let mut throttle_time_ms = 0;
+            for pos in 0..order.len() {
+                let Some((address, indexes)) = order.get(pos) else {
+                    break;
                 };
-                let Ok((dialed, result)) = joined else {
-                    return Err(Error::protocol("offset coordinator handshake failed"));
-                };
-                let result = match result {
-                    Ok((conn, keys, version)) => {
-                        self.remember_versions(&dialed, &keys);
-                        Ok((conn, version))
+                let address = address.clone();
+                let indexes = indexes.clone();
+                while !ready.contains_key(&address) {
+                    let Some(joined) = dialing.join_next().await else {
+                        return Err(Error::protocol("missing offset coordinator socket"));
+                    };
+                    let Ok((dialed, result)) = joined else {
+                        return Err(Error::protocol("offset coordinator handshake failed"));
+                    };
+                    let result = match result {
+                        Ok((conn, keys, version)) => {
+                            self.remember_versions(&dialed, &keys);
+                            Ok((conn, version))
+                        }
+                        Err(error) => Err(error),
+                    };
+                    let _prev = ready.insert(dialed, result);
+                }
+                let (mut conn, version) = ready
+                    .remove(&address)
+                    .ok_or_else(|| Error::protocol("missing offset coordinator socket"))??;
+                in_use = 1;
+                while next_dial < order.len() && dialing.len() + ready.len() + in_use < 2 {
+                    if order
+                        .get(next_dial)
+                        .is_some_and(|(address, _)| ready.contains_key(address))
+                    {
+                        next_dial += 1;
+                        continue;
                     }
-                    Err(error) => Err(error),
-                };
-                let _prev = ready.insert(dialed, result);
-            }
-            let (mut conn, version) = ready
-                .remove(&address)
-                .ok_or_else(|| Error::protocol("missing offset coordinator socket"))??;
-            in_use = 1;
-            while next_dial < order.len() && dialing.len() + ready.len() + in_use < 2 {
-                if order
-                    .get(next_dial)
-                    .is_some_and(|(address, _)| ready.contains_key(address))
-                {
+                    start_dial(&mut dialing, next_dial);
                     next_dial += 1;
-                    continue;
                 }
-                start_dial(&mut dialing, next_dial);
-                next_dial += 1;
-            }
-            let groups = indexes
-                .iter()
-                .map(|index| {
-                    request
-                        .groups
-                        .get(*index)
-                        .cloned()
-                        .ok_or_else(|| Error::protocol("missing offset request group"))
-                })
-                .collect::<Result<Vec<_>>>()?;
-            let batched = OffsetFetchRequestData {
-                groups,
-                require_stable: request.require_stable,
-            };
-            deadline.check_expired()?;
-            let body = match conn
-                .roundtrip_deadline(
-                    OFFSET_FETCH,
-                    version,
-                    |buf| encode_offset_fetch_request_into(buf, &batched, version, options.limits),
-                    deadline,
-                )
-                .await
-            {
-                Ok(body) => body,
-                Err(error) => {
-                    Self::finish_aborted_handshakes(dialing).await;
-                    return Err(error);
-                }
-            };
-            charge_bytes(response_bytes, body.len(), response_limit(options.limits)?)?;
-            let response = decode_offset_fetch_response_data(&body, version, options.limits)?;
-            validate_fetch_response(&batched, &response)?;
-            if let Some(code) = response
-                .groups
-                .iter()
-                .flat_map(|group| {
-                    std::iter::once(group.error_code).chain(
-                        group
-                            .topics
-                            .iter()
-                            .flat_map(|topic| &topic.partitions)
-                            .map(|partition| partition.error_code),
+                let groups = indexes
+                    .iter()
+                    .map(|index| {
+                        request
+                            .groups
+                            .get(*index)
+                            .cloned()
+                            .ok_or_else(|| Error::protocol("missing offset request group"))
+                    })
+                    .collect::<Result<Vec<_>>>()?;
+                let batched = OffsetFetchRequestData {
+                    groups,
+                    require_stable: request.require_stable,
+                };
+                deadline.check_expired()?;
+                let body = match conn
+                    .roundtrip_deadline(
+                        OFFSET_FETCH,
+                        version,
+                        |buf| {
+                            encode_offset_fetch_request_into(buf, &batched, version, options.limits)
+                        },
+                        deadline,
                     )
-                })
-                .find(|code| error::coordinator_retriable(*code))
-            {
-                Self::finish_aborted_handshakes(dialing).await;
-                return Err(Error::broker(code, "OffsetFetch"));
-            }
-            throttle_time_ms = throttle_time_ms.max(response.throttle_time_ms);
-            for group in response.groups {
-                let index = request
+                    .await
+                {
+                    Ok(body) => body,
+                    Err(error) => return Err(error),
+                };
+                charge_bytes(response_bytes, body.len(), response_limit(options.limits)?)?;
+                let response = decode_offset_fetch_response_data(&body, version, options.limits)?;
+                validate_fetch_response(&batched, &response)?;
+                if let Some(code) = response
                     .groups
                     .iter()
-                    .position(|requested| requested.group_id == group.group_id)
-                    .ok_or_else(|| Error::protocol("unexpected offset group"))?;
-                *slots
-                    .get_mut(index)
-                    .ok_or_else(|| Error::protocol("missing offset result slot"))? = Some(group);
+                    .flat_map(|group| {
+                        std::iter::once(group.error_code).chain(
+                            group
+                                .topics
+                                .iter()
+                                .flat_map(|topic| &topic.partitions)
+                                .map(|partition| partition.error_code),
+                        )
+                    })
+                    .find(|code| error::coordinator_retriable(*code))
+                {
+                    return Err(Error::broker(code, "OffsetFetch"));
+                }
+                throttle_time_ms = throttle_time_ms.max(response.throttle_time_ms);
+                for group in response.groups {
+                    let index = request
+                        .groups
+                        .iter()
+                        .position(|requested| requested.group_id == group.group_id)
+                        .ok_or_else(|| Error::protocol("unexpected offset group"))?;
+                    *slots
+                        .get_mut(index)
+                        .ok_or_else(|| Error::protocol("missing offset result slot"))? =
+                        Some(group);
+                }
+                // Bound accumulated results before accepting another coordinator.
+                let groups = slots
+                    .iter_mut()
+                    .filter_map(Option::take)
+                    .collect::<Vec<_>>();
+                let retained = OffsetFetchResponseData {
+                    throttle_time_ms,
+                    groups,
+                };
+                validate_offset_fetch_response_data(
+                    &retained,
+                    if options.topic_ids { 10 } else { 9 },
+                    options.limits,
+                )?;
+                for group in retained.groups {
+                    let index = request
+                        .groups
+                        .iter()
+                        .position(|requested| requested.group_id == group.group_id)
+                        .ok_or_else(|| Error::protocol("unexpected retained offset group"))?;
+                    *slots
+                        .get_mut(index)
+                        .ok_or_else(|| Error::protocol("missing retained offset slot"))? =
+                        Some(group);
+                }
+                deadline.check_expired()?;
+                drop(conn);
+                in_use = 0;
+                while next_dial < order.len() && dialing.len() + ready.len() + in_use < 2 {
+                    if order
+                        .get(next_dial)
+                        .is_some_and(|(address, _)| ready.contains_key(address))
+                    {
+                        next_dial += 1;
+                        continue;
+                    }
+                    start_dial(&mut dialing, next_dial);
+                    next_dial += 1;
+                }
             }
-            // Bound accumulated results before accepting another coordinator.
             let groups = slots
-                .iter_mut()
-                .filter_map(Option::take)
-                .collect::<Vec<_>>();
-            let retained = OffsetFetchResponseData {
+                .into_iter()
+                .map(|slot| slot.ok_or_else(|| Error::protocol("missing offset result group")))
+                .collect::<Result<Vec<_>>>()?;
+            Ok(OffsetFetchResponseData {
                 throttle_time_ms,
                 groups,
-            };
-            validate_offset_fetch_response_data(
-                &retained,
-                if options.topic_ids { 10 } else { 9 },
-                options.limits,
-            )?;
-            for group in retained.groups {
-                let index = request
-                    .groups
-                    .iter()
-                    .position(|requested| requested.group_id == group.group_id)
-                    .ok_or_else(|| Error::protocol("unexpected retained offset group"))?;
-                *slots
-                    .get_mut(index)
-                    .ok_or_else(|| Error::protocol("missing retained offset slot"))? = Some(group);
-            }
-            deadline.check_expired()?;
-            drop(conn);
-            in_use = 0;
-            while next_dial < order.len() && dialing.len() + ready.len() + in_use < 2 {
-                if order
-                    .get(next_dial)
-                    .is_some_and(|(address, _)| ready.contains_key(address))
-                {
-                    next_dial += 1;
-                    continue;
-                }
-                start_dial(&mut dialing, next_dial);
-                next_dial += 1;
-            }
+            })
         }
-        let groups = match slots
-            .into_iter()
-            .map(|slot| slot.ok_or_else(|| Error::protocol("missing offset result group")))
-            .collect::<Result<Vec<_>>>()
-        {
-            Ok(groups) => groups,
-            Err(error) => {
-                Self::finish_aborted_handshakes(dialing).await;
-                return Err(error);
-            }
-        };
+        .await;
         Self::finish_aborted_handshakes(dialing).await;
-        Ok(OffsetFetchResponseData {
-            throttle_time_ms,
-            groups,
-        })
+        outcome
     }
 
     /// One offset-fetch attempt, without the retry loop.
