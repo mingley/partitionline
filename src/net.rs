@@ -291,8 +291,20 @@ const STALLED_WRITE_READ_CHUNK: usize = 8 * 1024;
 /// Complete frames already buffered are skipped so a later frame is still
 /// read. An illegal length is not reserved; the framed reader rejects it.
 fn stalled_write_read(read_buf: &BytesMut) -> (usize, Option<usize>) {
+    let (budget, frame_end, _) = stalled_write_read_from(read_buf, 0);
+    (budget, frame_end)
+}
+
+/// Like [`stalled_write_read`], continuing from `scanned` so a stalled write
+/// does not walk every complete frame again after each chunk.
+fn stalled_write_read_from(
+    read_buf: &BytesMut,
+    mut offset: usize,
+) -> (usize, Option<usize>, usize) {
     let bytes = read_buf.as_ref();
-    let mut offset = 0usize;
+    if offset > bytes.len() {
+        offset = 0;
+    }
     while bytes.len().saturating_sub(offset) >= 4 {
         let Some(prefix) = bytes.get(offset..offset.saturating_add(4)) else {
             break;
@@ -302,23 +314,23 @@ fn stalled_write_read(read_buf: &BytesMut) -> (usize, Option<usize>) {
         };
         let size = i32::from_be_bytes(raw);
         if !(0..=MAX_FRAME).contains(&size) {
-            return (STALLED_WRITE_READ_CHUNK, None);
+            return (STALLED_WRITE_READ_CHUNK, None, offset);
         }
         let Ok(size) = usize::try_from(size) else {
-            return (STALLED_WRITE_READ_CHUNK, None);
+            return (STALLED_WRITE_READ_CHUNK, None, offset);
         };
         let Some(total) = 4usize.checked_add(size) else {
-            return (STALLED_WRITE_READ_CHUNK, None);
+            return (STALLED_WRITE_READ_CHUNK, None, offset);
         };
         let Some(frame_end) = offset.checked_add(total) else {
-            return (STALLED_WRITE_READ_CHUNK, None);
+            return (STALLED_WRITE_READ_CHUNK, None, offset);
         };
         if bytes.len() < frame_end {
-            return (frame_end - bytes.len(), Some(frame_end));
+            return (frame_end - bytes.len(), Some(frame_end), offset);
         }
         offset = frame_end;
     }
-    (STALLED_WRITE_READ_CHUNK, None)
+    (STALLED_WRITE_READ_CHUNK, None, offset)
 }
 
 /// A stalled write is also the socket's reader. One max frame is enough for
@@ -636,6 +648,8 @@ where
     S: AsyncRead + AsyncWrite + Unpin,
 {
     let mut pos = 0usize;
+    // Complete frames already parsed. The next stall read continues here.
+    let mut scanned = 0usize;
     poll_fn(|cx| loop {
         let remaining = match bytes.get(pos..) {
             Some(r) => r,
@@ -664,7 +678,8 @@ where
                 // Read straight into `read_buf` spare capacity. The framed
                 // reader and a stalled TLS handshake both need those bytes,
                 // and a stack buffer would copy them once on the way in.
-                let (budget, frame_end) = stalled_write_read(read_buf);
+                let (budget, frame_end, next) = stalled_write_read_from(read_buf, scanned);
+                scanned = next;
                 if let Some(end) = frame_end {
                     reserve_frame(read_buf, end);
                 } else {
@@ -692,6 +707,10 @@ where
                                 "stalled write buffered more than one max frame",
                             )));
                         }
+                        // The bytes stay buffered. Yield so the write deadline
+                        // can stop a peer that keeps the read ready.
+                        cx.waker().wake_by_ref();
+                        return Poll::Pending;
                     }
                     Poll::Ready(Err(e)) => return Poll::Ready(Err(e)),
                     Poll::Pending => return Poll::Pending,
@@ -3591,7 +3610,7 @@ mod tests {
             "a flood of empty frames let the stalled write finish"
         );
         assert!(
-            started.elapsed() < Duration::from_secs(8),
+            started.elapsed() < Duration::from_millis(500),
             "a flood of empty frames kept the stalled write running: {:?}",
             started.elapsed()
         );
