@@ -4439,28 +4439,42 @@ impl Consumer {
         sasl_oauthbearer_oidc: Option<&crate::OidcConfig>,
         deadline: Instant,
     ) -> Result<(BrokerConn, ApiVersionsResponse)> {
-        let mut conn = BrokerConn::connect_tls(
-            addr,
-            client_id,
-            connect_timeout.min(startup_remaining(deadline)?),
-            tls,
-        )
-        .await?;
-        let versions_resp =
-            crate::protocol::api::negotiate_api_versions(&mut conn, startup_remaining(deadline)?)
-                .await?;
-        configure_fetch_conn(&mut conn, &versions_resp);
-        sasl::authenticate(
-            &mut conn,
-            sasl_plain,
-            sasl_scram,
-            sasl_scram_sha512,
-            sasl_oauthbearer,
-            sasl_oauthbearer_oidc,
-            startup_remaining(deadline)?,
-        )
-        .await?;
-        Ok((conn, versions_resp))
+        let opened = async {
+            let mut conn = BrokerConn::connect_tls(
+                addr,
+                client_id,
+                connect_timeout.min(startup_remaining(deadline)?),
+                tls,
+            )
+            .await?;
+            let versions_resp = crate::protocol::api::negotiate_api_versions(
+                &mut conn,
+                startup_remaining(deadline)?,
+            )
+            .await?;
+            configure_fetch_conn(&mut conn, &versions_resp);
+            sasl::authenticate(
+                &mut conn,
+                sasl_plain,
+                sasl_scram,
+                sasl_scram_sha512,
+                sasl_oauthbearer,
+                sasl_oauthbearer_oidc,
+                startup_remaining(deadline)?,
+            )
+            .await?;
+            Ok((conn, versions_resp))
+        }
+        .await;
+        // A failed handshake drops its socket in this call. Yield so the broker
+        // observes that close before the error returns. A successful dial keeps
+        // the socket and does not wait.
+        if opened.is_err() {
+            for _ in 0..8 {
+                tokio::task::yield_now().await;
+            }
+        }
+        opened
     }
 
     /// Open a leader socket, reusing bootstrap versions when the address matches.
@@ -10969,6 +10983,52 @@ mod tests {
     use super::*;
     use crate::protocol::api::ApiVersion;
     use crate::protocol::api_keys::FETCH;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn fetch_handshake_timeout_closes_the_socket() {
+        use std::sync::atomic::AtomicUsize;
+        use tokio::io::AsyncReadExt;
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let open = Arc::new(AtomicUsize::new(0));
+        let open_flag = Arc::clone(&open);
+        let peer = tokio::spawn(async move {
+            let (mut sock, _) = listener.accept().await.unwrap();
+            let _started = open_flag.fetch_add(1, Ordering::SeqCst);
+            let mut buf = [0u8; 64];
+            loop {
+                match sock.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = open_flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let result = Consumer::open_fetch_conn(
+            &addr,
+            "fetch-stop",
+            Duration::from_millis(200),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            Instant::now() + Duration::from_millis(200),
+        )
+        .await;
+        assert!(
+            matches!(result, Err(Error::Timeout)),
+            "a silent leader should time out the handshake"
+        );
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "fetch handshake left the socket blocked in a broker read"
+        );
+        peer.abort();
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn wakeup_stops_a_blocked_leader_dial() {
