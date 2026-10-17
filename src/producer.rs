@@ -3763,8 +3763,17 @@ async fn discover_typed_coord_once(
                 continue;
             }
         };
-        match find_producer_coordinator(cfg, hop, hop_versions, key, key_type, version, deadline)
-            .await
+        match find_producer_coordinator(
+            cfg,
+            hop,
+            hop_versions,
+            key,
+            key_type,
+            version,
+            deadline,
+            None,
+        )
+        .await
         {
             HopFind::Found(found) => return Ok(*found),
             HopFind::Continue(error) => last = error,
@@ -3930,13 +3939,28 @@ async fn ask_ready_producer_coordinator(
         Ok(handshake) => handshake,
         Err(error) => return ProducerCoordAsk::Retry(error),
     };
-    match find_producer_coordinator(cfg, hop, versions, key, key_type, version, deadline).await {
+    match find_producer_coordinator(
+        cfg,
+        hop,
+        versions,
+        key,
+        key_type,
+        version,
+        deadline,
+        Some(ready),
+    )
+    .await
+    {
         HopFind::Found(found) => ProducerCoordAsk::Found(found),
         HopFind::Stop(error) => ProducerCoordAsk::Fatal(error),
         HopFind::Continue(error) => ProducerCoordAsk::Retry(error),
     }
 }
 
+#[expect(
+    clippy::too_many_arguments,
+    reason = "coordinator lookup can reuse a bootstrap handshake that is already open"
+)]
 async fn find_producer_coordinator(
     cfg: &ProducerConfig,
     mut hop: BrokerConn,
@@ -3945,6 +3969,7 @@ async fn find_producer_coordinator(
     key_type: i8,
     version: i16,
     deadline: Instant,
+    ready: Option<&mut [Option<Result<ProducerHandshake>>]>,
 ) -> HopFind {
     let rest = match timeout_remaining(deadline) {
         Ok(rest) => rest,
@@ -3978,6 +4003,11 @@ async fn find_producer_coordinator(
     if coord_addr == hop.addr() {
         return HopFind::Found(Box::new(coordinator_connection(hop, &hop_versions)));
     }
+    if let Some(ready) = ready {
+        if let Some((conn, versions)) = take_ready_producer_handshake(ready, &coord_addr) {
+            return HopFind::Found(Box::new(coordinator_connection(conn, &versions)));
+        }
+    }
     let bounded = match bounded_producer_config(cfg, deadline) {
         Ok(bounded) => bounded,
         Err(error) => return HopFind::Stop(error),
@@ -3986,6 +4016,19 @@ async fn find_producer_coordinator(
         Ok((conn, versions)) => HopFind::Found(Box::new(coordinator_connection(conn, &versions))),
         Err(error) => HopFind::Stop(error),
     }
+}
+
+/// Take a bootstrap handshake whose address is already the coordinator.
+fn take_ready_producer_handshake(
+    ready: &mut [Option<Result<ProducerHandshake>>],
+    addr: &str,
+) -> Option<ProducerHandshake> {
+    let index = ready.iter().position(|slot| {
+        slot.as_ref()
+            .and_then(|result| result.as_ref().ok())
+            .is_some_and(|(conn, _)| conn.addr() == addr)
+    })?;
+    ready.get_mut(index)?.take()?.ok()
 }
 
 async fn open_producer_peer(
