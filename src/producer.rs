@@ -1682,6 +1682,7 @@ impl Producer {
             let ipid_version = pick(&versions, INIT_PRODUCER_ID, 0, 6).ok_or_else(|| {
                 Error::Unsupported("broker does not support InitProducerId".into())
             })?;
+            let known_brokers = HashMap::new();
             let (body, ipid_version) = init_producer_id_roundtrip(
                 &cfg,
                 &mut txn,
@@ -1690,6 +1691,7 @@ impl Producer {
                 find_coord_version,
                 (RecordBatch::NO_PRODUCER_ID, RecordBatch::NO_PRODUCER_EPOCH),
                 &resp.api_keys,
+                &known_brokers,
                 deadline,
             )
             .await?;
@@ -4138,6 +4140,7 @@ async fn init_producer_id_roundtrip(
     find_coord_version: Option<i16>,
     identity: (i64, i16),
     bootstrap_keys: &[ApiVersion],
+    known_by_addr: &HashMap<String, Vec<ApiVersion>>,
     deadline: Instant,
 ) -> Result<(Bytes, i16)> {
     let txn_id = cfg.transactional_id.clone();
@@ -4159,7 +4162,6 @@ async fn init_producer_id_roundtrip(
                 .as_ref()
                 .map(|coord| coord.keys.clone())
                 .unwrap_or_default();
-            let recorded = HashMap::new();
             let new = if let Some(previous) = previous_addr.as_deref() {
                 rediscover_producer_coordinator(
                     cfg,
@@ -4170,7 +4172,7 @@ async fn init_producer_id_roundtrip(
                         previous,
                         previous_keys: &previous_keys,
                         bootstrap_keys,
-                        known_by_addr: &recorded,
+                        known_by_addr,
                     },
                     deadline,
                 )
@@ -4266,6 +4268,7 @@ async fn bump_producer_epoch(shared: &Shared) -> Result<()> {
     let deadline = Instant::now()
         .checked_add(shared.cfg.request_timeout)
         .ok_or(Error::Timeout)?;
+    let recorded = shared.produce_keys.lock().clone();
     let mut txn = shared.txn.lock().await;
     let (body, version) = init_producer_id_roundtrip(
         &shared.cfg,
@@ -4275,6 +4278,7 @@ async fn bump_producer_epoch(shared: &Shared) -> Result<()> {
         shared.find_coord_version,
         (pid, epoch),
         &shared.api_keys,
+        &recorded,
         deadline,
     )
     .await?;
@@ -4305,6 +4309,7 @@ async fn renew_nontransactional_identity(shared: &Shared) -> Result<()> {
     let deadline = Instant::now()
         .checked_add(shared.cfg.request_timeout)
         .ok_or(Error::Timeout)?;
+    let recorded = shared.produce_keys.lock().clone();
     let mut txn: Option<CoordinatorConnection> = None;
     let mut meta = shared.meta.lock().await;
     reopen_meta_if_idle(shared, &mut meta, deadline).await?;
@@ -4316,6 +4321,7 @@ async fn renew_nontransactional_identity(shared: &Shared) -> Result<()> {
         shared.find_coord_version,
         (RecordBatch::NO_PRODUCER_ID, RecordBatch::NO_PRODUCER_EPOCH),
         &shared.api_keys,
+        &recorded,
         deadline,
     )
     .await?;

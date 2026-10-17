@@ -2,7 +2,8 @@
 
 mod common;
 
-use partitionline::error::{NOT_COORDINATOR, NOT_LEADER_OR_FOLLOWER};
+use partitionline::error::{NOT_COORDINATOR, NOT_LEADER_OR_FOLLOWER, UNKNOWN_PRODUCER_ID};
+use partitionline::protocol::api_keys::END_TXN;
 use partitionline::protocol::api_keys::TXN_OFFSET_COMMIT;
 use partitionline::{
     Admin, AdminConfig, Error, NewTopic, ProduceRecord, Producer, ProducerConfig, TopicPartition,
@@ -1115,6 +1116,44 @@ async fn commit_reuses_bootstrap_when_the_coordinator_returns() {
     assert!(
         elapsed < Duration::from_millis(200),
         "a coordinator that returned to bootstrap repeated ApiVersions: {elapsed:?}"
+    );
+    assert_eq!(mock.api_versions_versions().len(), versions_before);
+    producer.close().await.unwrap();
+}
+
+/// An epoch bump reuses a handshake learned by produce.
+#[tokio::test]
+async fn epoch_bump_reuses_a_produce_handshake() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_api_max(END_TXN, 4);
+    mock.set_topic_partitions("t", 1);
+    mock.set_partition_leader("t", 0, 2);
+    let mut cfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    cfg.linger = Duration::ZERO;
+    cfg.transactional_id = Some("tx-bump-known".into());
+    let producer = Producer::new(cfg).await.unwrap();
+    producer.begin_transaction().await.unwrap();
+    let _sent = producer
+        .send(ProduceRecord::to("t").value(&b"v"[..]))
+        .await
+        .unwrap();
+    mock.set_produce_error_times(UNKNOWN_PRODUCER_ID, 1);
+    let failed = producer
+        .send(ProduceRecord::to("t").value(&b"lost"[..]))
+        .await
+        .unwrap_err();
+    assert_eq!(failed.broker_code(), Some(UNKNOWN_PRODUCER_ID));
+    let versions_before = mock.api_versions_versions().len();
+    assert_eq!(versions_before, 2);
+    mock.set_txn_id_coordinator("tx-bump-known", 2);
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let started = Instant::now();
+    producer.abort_transaction().await.unwrap();
+    let elapsed = started.elapsed();
+    assert_eq!(mock.last_init_producer_id_node(), Some(2));
+    assert!(
+        elapsed < Duration::from_millis(200),
+        "epoch bump repeated a produce handshake: {elapsed:?}"
     );
     assert_eq!(mock.api_versions_versions().len(), versions_before);
     producer.close().await.unwrap();
