@@ -1601,6 +1601,34 @@ impl Producer {
             .await
     }
 
+    /// Cancel handshakes that lost the bootstrap race and wait until they stop.
+    ///
+    /// Abort only schedules cancellation. On a current-thread runtime a read
+    /// stays inside the broker until this caller yields.
+    async fn finish_aborted_handshakes<T: 'static>(mut set: tokio::task::JoinSet<T>) {
+        set.abort_all();
+        let mut extra = 0u32;
+        while !set.is_empty() {
+            tokio::select! {
+                biased;
+                joined = set.join_next() => {
+                    if joined.is_none() {
+                        break;
+                    }
+                }
+                () = tokio::task::yield_now() => {
+                    extra = extra.saturating_add(1);
+                    if extra >= 8 {
+                        break;
+                    }
+                }
+            }
+        }
+        // The aborted task drops its socket when it is polled. One more turn
+        // lets the peer observe that close before this race returns.
+        tokio::task::yield_now().await;
+    }
+
     /// TCP, ApiVersions, and SASL on one bootstrap, bounded by `deadline`.
     async fn open_one_bootstrap(
         cfg: &ProducerConfig,
@@ -1629,6 +1657,19 @@ impl Producer {
         )
         .await?;
         Ok((conn, resp))
+    }
+
+    /// Race bootstrap handshakes and return as soon as the losers have stopped.
+    ///
+    /// `Producer::new` continues with metadata after this race, and those later
+    /// awaits hide a handshake that was only aborted.
+    #[doc(hidden)]
+    pub async fn test_race_bootstrap(cfg: ProducerConfig) -> Result<()> {
+        let deadline = Instant::now()
+            .checked_add(cfg.request_timeout)
+            .ok_or(Error::Timeout)?;
+        let _opened = Self::open_bootstrap(&cfg, deadline).await?;
+        Ok(())
     }
 
     /// Handshake every bootstrap together and keep the first full success.
@@ -1691,7 +1732,7 @@ impl Producer {
                 Err(error) => last = Error::protocol(format!("bootstrap handshake: {error}")),
             }
         }
-        inflight.abort_all();
+        Self::finish_aborted_handshakes(inflight).await;
         let mut rest = finished.into_iter();
         let Some((conn, resp)) = rest.next() else {
             return Err(last);
