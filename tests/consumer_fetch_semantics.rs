@@ -3434,6 +3434,45 @@ async fn metadata_reuses_bootstrap_api_versions_after_idle() {
     consumer.close().await.unwrap();
 }
 
+/// An idle group commit reconnects the coordinator without ApiVersions.
+#[tokio::test]
+async fn group_commit_reuses_coordinator_api_versions_after_idle() {
+    let mock = common::Mock::start().await;
+    let mut cfg = ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10);
+    cfg.connections_max_idle = Duration::from_millis(40);
+    cfg.heartbeat_interval = Duration::from_secs(5);
+    let mut group = ConsumerGroup::join(cfg, "idle-commit", "t").await.unwrap();
+    group
+        .commit_offsets([(TopicPartition::new("t", 0), 1)])
+        .await
+        .unwrap();
+    tokio::time::sleep(Duration::from_millis(60)).await;
+    let versions_before = mock.api_versions_versions().len();
+    let accepts_before = mock.accepts();
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let started = Instant::now();
+    group
+        .commit_offsets([(TopicPartition::new("t", 0), 1)])
+        .await
+        .unwrap();
+    let elapsed = started.elapsed();
+    assert_eq!(
+        mock.api_versions_versions().len(),
+        versions_before,
+        "an idle group commit should reuse the coordinator versions already learned"
+    );
+    assert!(
+        mock.accepts() > accepts_before,
+        "idle expiry replaces the coordinator socket"
+    );
+    assert!(
+        elapsed < Duration::from_millis(200),
+        "idle group commit repeated ApiVersions: {elapsed:?}"
+    );
+    group.leave().await.unwrap();
+}
+
+/// An idle heartbeat looks up the coordinator while that broker reconnects.
 #[tokio::test]
 async fn group_heartbeat_dials_coordinator_while_finding_it() {
     let mock = common::Mock::start_two_node().await;

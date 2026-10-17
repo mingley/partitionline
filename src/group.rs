@@ -5133,14 +5133,45 @@ pub(crate) async fn open_coord(cfg: &ConsumerConfig, addr: &str) -> Result<Broke
     Ok(open_coord_with_find_version(cfg, addr).await?.0)
 }
 
-pub(super) async fn open_coord_supporting(
+/// Open a new TCP socket to a coordinator whose versions were already learned.
+///
+/// Idle expiry and a dropped connection still need a new socket. The broker
+/// address did not change, so ApiVersions would only repeat the previous handshake.
+pub(crate) async fn reopen_known_coord(
     cfg: &ConsumerConfig,
-    addr: &str,
-    api_key: i16,
-    version: i16,
+    previous: &BrokerConn,
 ) -> Result<BrokerConn> {
-    let (conn, _, versions) = open_coord_with_find_version(cfg, addr).await?;
-    version_supported(&versions, api_key, version)?;
+    let deadline = Instant::now()
+        .checked_add(cfg.request_timeout)
+        .ok_or(Error::Timeout)?;
+    let bound = crate::net::Deadline::from_std(deadline);
+    let mut conn = BrokerConn::connect_tls(
+        previous.addr(),
+        &cfg.client_id,
+        cfg.connect_timeout.min(bound.remaining()?),
+        cfg.tls.as_ref(),
+    )
+    .await?;
+    conn.offset_commit_version = previous.offset_commit_version;
+    conn.offset_fetch_version = previous.offset_fetch_version;
+    conn.heartbeat_version = previous.heartbeat_version;
+    conn.sync_group_version = previous.sync_group_version;
+    conn.join_group_version = previous.join_group_version;
+    conn.leave_group_version = previous.leave_group_version;
+    conn.consumer_group_heartbeat_version = previous.consumer_group_heartbeat_version;
+    conn.share_group_heartbeat_version = previous.share_group_heartbeat_version;
+    conn.sasl_handshake_version = previous.sasl_handshake_version;
+    conn.sasl_authenticate_version = previous.sasl_authenticate_version;
+    sasl::authenticate(
+        &mut conn,
+        cfg.sasl_plain.as_ref(),
+        cfg.sasl_scram.as_ref(),
+        cfg.sasl_scram_sha512.as_ref(),
+        cfg.sasl_oauthbearer.as_deref(),
+        cfg.sasl_oauthbearer_oidc.as_ref(),
+        bound.remaining()?,
+    )
+    .await?;
     Ok(conn)
 }
 
@@ -5362,7 +5393,7 @@ pub(crate) async fn coord_roundtrip(
     }
     if coord.idle_expired(cfg.connections_max_idle) {
         let bounded = bounded_coord_config(cfg, deadline)?;
-        *coord = open_coord(&bounded, coord.addr()).await?;
+        *coord = reopen_known_coord(&bounded, coord).await?;
     }
     let version = negotiated_coord_version(coord, api_key)?;
     let body = match coord
@@ -5372,7 +5403,7 @@ pub(crate) async fn coord_roundtrip(
         Ok(body) => body,
         Err(e) if e.is_retriable() => {
             let bounded = bounded_coord_config(cfg, deadline)?;
-            *coord = open_coord(&bounded, coord.addr()).await?;
+            *coord = reopen_known_coord(&bounded, coord).await?;
             let version = negotiated_coord_version(coord, api_key)?;
             let body = coord
                 .roundtrip_deadline(api_key, version, |buf| encode_body(version, buf), deadline)

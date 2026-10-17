@@ -647,6 +647,17 @@ fn v10_coordinator_code(api: i16, body: &[u8]) -> Option<i16> {
     }
 }
 
+fn require_copied_coord_version(coord: &BrokerConn, api: i16, version: i16) -> Result<()> {
+    let spoken = super::negotiated_coord_version(coord, api)?;
+    if spoken < version {
+        Err(Error::Unsupported(
+            "moved coordinator cannot represent the name-based offset request".into(),
+        ))
+    } else {
+        Ok(())
+    }
+}
+
 /// OffsetCommit or OffsetFetch v10 on the group's coordinator.
 ///
 /// The body is the typed UUID request. A coordinator error rediscovers that
@@ -667,7 +678,8 @@ pub(super) async fn coord_offsets_v10(
     let deadline = Deadline::from_std(target);
     if coord.idle_expired(cfg.connections_max_idle) {
         let bounded = bounded_consumer_config(cfg, deadline)?;
-        *coord = super::open_coord_supporting(&bounded, coord.addr(), api, 10).await?;
+        *coord = super::reopen_known_coord(&bounded, coord).await?;
+        require_copied_coord_version(coord, api, 10)?;
     }
     let body = match coord
         .roundtrip_deadline(api, 10, |buf| encode(buf), deadline)
@@ -676,7 +688,8 @@ pub(super) async fn coord_offsets_v10(
         Ok(body) => body,
         Err(Error::Io(_) | Error::Timeout) => {
             let bounded = bounded_consumer_config(cfg, deadline)?;
-            *coord = super::open_coord_supporting(&bounded, coord.addr(), api, 10).await?;
+            *coord = super::reopen_known_coord(&bounded, coord).await?;
+            require_copied_coord_version(coord, api, 10)?;
             coord
                 .roundtrip_deadline(api, 10, |buf| encode(buf), deadline)
                 .await?
@@ -720,7 +733,8 @@ pub(super) async fn coord_offsets_legacy(
     {
         if coord.idle_expired(cfg.connections_max_idle) {
             let bounded = bounded_consumer_config(cfg, deadline)?;
-            *coord = super::open_coord_supporting(&bounded, coord.addr(), api, version).await?;
+            *coord = super::reopen_known_coord(&bounded, coord).await?;
+            require_copied_coord_version(coord, api, version)?;
         }
         let body = match coord
             .roundtrip_deadline(api, version, |buf| encode(buf), deadline)
@@ -729,7 +743,8 @@ pub(super) async fn coord_offsets_legacy(
             Ok(body) => body,
             Err(Error::Io(_) | Error::Timeout) => {
                 let bounded = bounded_consumer_config(cfg, deadline)?;
-                *coord = super::open_coord_supporting(&bounded, coord.addr(), api, version).await?;
+                *coord = super::reopen_known_coord(&bounded, coord).await?;
+                require_copied_coord_version(coord, api, version)?;
                 coord
                     .roundtrip_deadline(api, version, |buf| encode(buf), deadline)
                     .await?
