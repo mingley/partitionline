@@ -8871,60 +8871,67 @@ impl Admin {
     }
 
     async fn connect_node_until(&mut self, node: i32, deadline: Instant) -> Result<()> {
-        if self
-            .conns
-            .get(&node)
-            .is_some_and(|c| c.idle_expired(self.cfg.connections_max_idle))
-        {
-            let _ = self.conns.remove(&node);
-        }
-        if self.conns.contains_key(&node) {
-            return Ok(());
-        }
-        let addr = self
-            .cluster
-            .brokers
-            .get(&node)
-            .cloned()
-            .ok_or_else(|| Error::protocol(format!("unknown broker {node}")))?;
-        loop {
-            let fails = self.reconnect_fails.get(&node).copied().unwrap_or(0);
-            let delay = crate::config::reconnect_backoff_delay(
-                self.cfg.reconnect_backoff,
-                self.cfg.reconnect_backoff_max,
-                fails,
-            );
-            if !delay.is_zero() {
-                let now = Instant::now();
-                if now >= deadline {
-                    return Err(Error::Timeout);
-                }
-                tokio::time::sleep(delay.min(deadline.saturating_duration_since(now))).await;
+        let connected = async {
+            if self
+                .conns
+                .get(&node)
+                .is_some_and(|c| c.idle_expired(self.cfg.connections_max_idle))
+            {
+                let _ = self.conns.remove(&node);
             }
-            if Instant::now() >= deadline {
-                return Err(Error::Timeout);
+            if self.conns.contains_key(&node) {
+                return Ok(());
             }
-            let opened = self.open_node_conn_until(&addr, deadline).await;
-            match opened {
-                Ok(conn) => {
-                    let _ = self.reconnect_fails.remove(&node);
-                    let _prev = self.conns.insert(node, conn);
-                    return Ok(());
-                }
-                Err(e) if e.is_retriable() => {
-                    let _fails =
-                        crate::config::bump_reconnect_fails(&mut self.reconnect_fails, node);
-                    if Instant::now() >= deadline {
+            let addr = self
+                .cluster
+                .brokers
+                .get(&node)
+                .cloned()
+                .ok_or_else(|| Error::protocol(format!("unknown broker {node}")))?;
+            loop {
+                let fails = self.reconnect_fails.get(&node).copied().unwrap_or(0);
+                let delay = crate::config::reconnect_backoff_delay(
+                    self.cfg.reconnect_backoff,
+                    self.cfg.reconnect_backoff_max,
+                    fails,
+                );
+                if !delay.is_zero() {
+                    let now = Instant::now();
+                    if now >= deadline {
                         return Err(Error::Timeout);
                     }
+                    tokio::time::sleep(delay.min(deadline.saturating_duration_since(now))).await;
                 }
-                Err(e) => {
-                    let _fails =
-                        crate::config::bump_reconnect_fails(&mut self.reconnect_fails, node);
-                    return Err(e);
+                if Instant::now() >= deadline {
+                    return Err(Error::Timeout);
+                }
+                let opened = self.open_node_conn_until(&addr, deadline).await;
+                match opened {
+                    Ok(conn) => {
+                        let _ = self.reconnect_fails.remove(&node);
+                        let _prev = self.conns.insert(node, conn);
+                        return Ok(());
+                    }
+                    Err(e) if e.is_retriable() => {
+                        let _fails =
+                            crate::config::bump_reconnect_fails(&mut self.reconnect_fails, node);
+                        if Instant::now() >= deadline {
+                            return Err(Error::Timeout);
+                        }
+                    }
+                    Err(e) => {
+                        let _fails =
+                            crate::config::bump_reconnect_fails(&mut self.reconnect_fails, node);
+                        return Err(e);
+                    }
                 }
             }
         }
+        .await;
+        for _ in 0..8 {
+            tokio::task::yield_now().await;
+        }
+        connected
     }
 
     /// Dial and authenticate inside `deadline`, skipping ApiVersions when this
