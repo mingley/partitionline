@@ -1275,7 +1275,7 @@ pub enum ShareAcquireMode {
 /// iterations.
 /// A piggybacked
 /// `INCONSISTENT_VOTER_SET` still completes without retry,
-/// including when `AcknowledgeErrorMessage` is set (Java
+/// including when `AcknowledgeErrorMessage` is set or empty (Java
 /// `handleShareFetchSuccess` completes piggyback acks and still
 /// delivers the fetch; this is not partition
 /// `INCONSISTENT_VOTER_SET`, which fails that poll, and not piggyback
@@ -3280,7 +3280,7 @@ impl ShareGroup {
     /// iterations.
     /// A piggybacked `INCONSISTENT_VOTER_SET` still completes
     /// without retry, including when `AcknowledgeErrorMessage` is set
-    /// (Java `handleShareFetchSuccess` completes piggyback acks and still
+    /// or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
     /// delivers the fetch; this is not partition
     /// `INCONSISTENT_VOTER_SET`, which fails that poll, and not piggyback
     /// `UNACCEPTABLE_CREDENTIAL`). Official Java

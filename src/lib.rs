@@ -2454,7 +2454,7 @@
 //! iterations.
 //! A piggybacked
 //! `INCONSISTENT_VOTER_SET` still completes without retry,
-//! including when `AcknowledgeErrorMessage` is set (this is not
+//! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `INCONSISTENT_VOTER_SET`, which fails that poll, and not
 //! piggyback `UNACCEPTABLE_CREDENTIAL`). Official Java
 //! `KafkaRaftClient` writes this when a voter-only request arrives at

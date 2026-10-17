@@ -706,7 +706,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   iterations. A
   piggybacked `INCONSISTENT_VOTER_SET` still
   completes without retry, including when `AcknowledgeErrorMessage` is
-  set (Java `handleShareFetchSuccess` completes piggyback acks and still
+  set or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
   delivers the fetch; this is not partition `INCONSISTENT_VOTER_SET`,
   which fails that poll, and not piggyback `UNACCEPTABLE_CREDENTIAL`). Official
   Java `KafkaRaftClient` writes this when a voter-only request arrives at
