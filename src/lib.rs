@@ -2544,6 +2544,13 @@
 //! `ReplicaManager` writes this when a follower fetch offset is below
 //! `localLogStartOffset` but at or above `logStartOffset`.
 //! A piggybacked
+//! `FENCED_MEMBER_EPOCH` still completes without retry,
+//! including when `AcknowledgeErrorMessage` is set (this is not
+//! partition `FENCED_MEMBER_EPOCH`, which fails that poll, and not
+//! piggyback `OFFSET_MOVED_TO_TIERED_STORAGE`). Official Java
+//! `GroupMetadataManager` writes this when a share-group heartbeat member
+//! epoch is ahead of or behind the coordinator's stored epoch.
+//! A piggybacked
 //! `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a
 //! sibling whose `AcknowledgeErrorCode` is none, including when
 //! `AcknowledgeErrorMessage` is set or empty. A piggybacked

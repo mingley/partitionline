@@ -795,6 +795,13 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   which fails that poll, and not piggyback `NEW_LEADER_ELECTED`). Official
   Java `ReplicaManager` writes this when a follower fetch offset is below
   `localLogStartOffset` but at or above `logStartOffset`. A
+  piggybacked `FENCED_MEMBER_EPOCH` still
+  completes without retry, including when `AcknowledgeErrorMessage` is
+  set (Java `handleShareFetchSuccess` completes piggyback acks and still
+  delivers the fetch; this is not partition `FENCED_MEMBER_EPOCH`,
+  which fails that poll, and not piggyback `OFFSET_MOVED_TO_TIERED_STORAGE`). Official
+  Java `GroupMetadataManager` writes this when a share-group heartbeat member
+  epoch is ahead of or behind the coordinator's stored epoch. A
   piggybacked `TOPIC_AUTHORIZATION_FAILED` on
   one partition does not fail a sibling whose `AcknowledgeErrorCode`
   is none, including when `AcknowledgeErrorMessage` is set or empty. A
