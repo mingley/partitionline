@@ -1641,28 +1641,42 @@ impl Producer {
         addr: &str,
         deadline: Instant,
     ) -> Result<(BrokerConn, ApiVersionsResponse)> {
-        let mut conn = BrokerConn::connect_tls(
-            addr,
-            &cfg.client_id,
-            cfg.connect_timeout.min(timeout_remaining(deadline)?),
-            cfg.tls.as_ref(),
-        )
-        .await?;
-        let resp =
-            crate::protocol::api::negotiate_api_versions(&mut conn, timeout_remaining(deadline)?)
-                .await?;
-        crate::protocol::sasl::apply_api_keys(&mut conn, &resp.api_keys);
-        crate::protocol::sasl::authenticate(
-            &mut conn,
-            cfg.sasl_plain.as_ref(),
-            cfg.sasl_scram.as_ref(),
-            cfg.sasl_scram_sha512.as_ref(),
-            cfg.sasl_oauthbearer.as_deref(),
-            cfg.sasl_oauthbearer_oidc.as_ref(),
-            timeout_remaining(deadline)?,
-        )
-        .await?;
-        Ok((conn, resp))
+        let opened = async {
+            let mut conn = BrokerConn::connect_tls(
+                addr,
+                &cfg.client_id,
+                cfg.connect_timeout.min(timeout_remaining(deadline)?),
+                cfg.tls.as_ref(),
+            )
+            .await?;
+            let resp = crate::protocol::api::negotiate_api_versions(
+                &mut conn,
+                timeout_remaining(deadline)?,
+            )
+            .await?;
+            crate::protocol::sasl::apply_api_keys(&mut conn, &resp.api_keys);
+            crate::protocol::sasl::authenticate(
+                &mut conn,
+                cfg.sasl_plain.as_ref(),
+                cfg.sasl_scram.as_ref(),
+                cfg.sasl_scram_sha512.as_ref(),
+                cfg.sasl_oauthbearer.as_deref(),
+                cfg.sasl_oauthbearer_oidc.as_ref(),
+                timeout_remaining(deadline)?,
+            )
+            .await?;
+            Ok((conn, resp))
+        }
+        .await;
+        // A failed handshake drops its socket in this call. Yield so the broker
+        // observes that close before the error returns. A successful dial keeps
+        // the socket and does not wait.
+        if opened.is_err() {
+            for _ in 0..8 {
+                tokio::task::yield_now().await;
+            }
+        }
+        opened
     }
 
     /// Race transaction-coordinator handshakes and return once the losers have stopped.
@@ -9188,6 +9202,45 @@ fn record_metadata(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn bootstrap_handshake_timeout_closes_the_socket() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use tokio::io::AsyncReadExt;
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let open = Arc::new(AtomicUsize::new(0));
+        let open_flag = Arc::clone(&open);
+        let peer = tokio::spawn(async move {
+            let (mut sock, _) = listener.accept().await.unwrap();
+            let _started = open_flag.fetch_add(1, Ordering::SeqCst);
+            let mut buf = [0u8; 64];
+            loop {
+                match sock.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = open_flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let mut cfg = ProducerConfig::bootstrap([addr.clone()]);
+        cfg.request_timeout = Duration::from_millis(200);
+        cfg.connect_timeout = Duration::from_millis(200);
+        let result =
+            Producer::open_one_bootstrap(&cfg, &addr, Instant::now() + Duration::from_millis(200))
+                .await;
+        assert!(
+            matches!(result, Err(Error::Timeout)),
+            "a silent bootstrap should time out the handshake"
+        );
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "bootstrap handshake left the socket blocked in a broker read"
+        );
+        peer.abort();
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn dropping_the_last_worker_handle_stops_the_task() {

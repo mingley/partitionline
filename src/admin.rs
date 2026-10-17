@@ -4378,29 +4378,43 @@ impl Admin {
         stats: &Arc<crate::metrics::AdminTracker>,
         deadline: Instant,
     ) -> Result<(BrokerConn, crate::protocol::api::ApiVersionsResponse)> {
-        let mut conn = BrokerConn::connect_tls(
-            addr,
-            &cfg.client_id,
-            cfg.connect_timeout.min(startup_remaining(deadline)?),
-            cfg.tls.as_ref(),
-        )
-        .await?;
-        conn.set_stats(Arc::clone(stats));
-        let resp =
-            crate::protocol::api::negotiate_api_versions(&mut conn, startup_remaining(deadline)?)
-                .await?;
-        sasl::apply_api_keys(&mut conn, &resp.api_keys);
-        sasl::authenticate(
-            &mut conn,
-            cfg.sasl_plain.as_ref(),
-            cfg.sasl_scram.as_ref(),
-            cfg.sasl_scram_sha512.as_ref(),
-            cfg.sasl_oauthbearer.as_deref(),
-            cfg.sasl_oauthbearer_oidc.as_ref(),
-            startup_remaining(deadline)?,
-        )
-        .await?;
-        Ok((conn, resp))
+        let opened = async {
+            let mut conn = BrokerConn::connect_tls(
+                addr,
+                &cfg.client_id,
+                cfg.connect_timeout.min(startup_remaining(deadline)?),
+                cfg.tls.as_ref(),
+            )
+            .await?;
+            conn.set_stats(Arc::clone(stats));
+            let resp = crate::protocol::api::negotiate_api_versions(
+                &mut conn,
+                startup_remaining(deadline)?,
+            )
+            .await?;
+            sasl::apply_api_keys(&mut conn, &resp.api_keys);
+            sasl::authenticate(
+                &mut conn,
+                cfg.sasl_plain.as_ref(),
+                cfg.sasl_scram.as_ref(),
+                cfg.sasl_scram_sha512.as_ref(),
+                cfg.sasl_oauthbearer.as_deref(),
+                cfg.sasl_oauthbearer_oidc.as_ref(),
+                startup_remaining(deadline)?,
+            )
+            .await?;
+            Ok((conn, resp))
+        }
+        .await;
+        // A failed handshake drops its socket in this call. Yield so the broker
+        // observes that close before the error returns. A successful dial keeps
+        // the socket and does not wait.
+        if opened.is_err() {
+            for _ in 0..8 {
+                tokio::task::yield_now().await;
+            }
+        }
+        opened
     }
 
     /// Race bootstrap handshakes and return as soon as the losers have stopped.
@@ -15832,6 +15846,50 @@ mod tests {
         CreatedTopicConfig, ListConfigResourcesResponse, TopicConfig,
     };
     use bytes::BytesMut;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn bootstrap_handshake_timeout_closes_the_socket() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use tokio::io::AsyncReadExt;
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let open = Arc::new(AtomicUsize::new(0));
+        let open_flag = Arc::clone(&open);
+        let peer = tokio::spawn(async move {
+            let (mut sock, _) = listener.accept().await.unwrap();
+            let _started = open_flag.fetch_add(1, Ordering::SeqCst);
+            let mut buf = [0u8; 64];
+            loop {
+                match sock.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = open_flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let mut cfg = AdminConfig::bootstrap([addr.clone()]);
+        cfg.request_timeout = Duration::from_millis(200);
+        cfg.connect_timeout = Duration::from_millis(200);
+        let stats = Arc::new(crate::metrics::AdminTracker::default());
+        let result = Admin::open_one_bootstrap(
+            &cfg,
+            &addr,
+            &stats,
+            Instant::now() + Duration::from_millis(200),
+        )
+        .await;
+        assert!(
+            matches!(result, Err(Error::Timeout)),
+            "a silent bootstrap should time out the handshake"
+        );
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "bootstrap handshake left the socket blocked in a broker read"
+        );
+        peer.abort();
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn admin_handshake_timeout_closes_the_socket() {
