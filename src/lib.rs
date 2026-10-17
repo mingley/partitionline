@@ -2283,7 +2283,7 @@
 //! partition `SECURITY_DISABLED`, which fails that poll, and not
 //! piggyback `TRANSACTION_COORDINATOR_FENCED`). A piggybacked
 //! `OPERATION_NOT_ATTEMPTED` still completes without retry,
-//! including when `AcknowledgeErrorMessage` is set (this is not
+//! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `OPERATION_NOT_ATTEMPTED`, which fails that poll, and not
 //! piggyback `SECURITY_DISABLED`). A piggybacked
 //! `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a
