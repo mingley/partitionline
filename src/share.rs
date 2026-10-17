@@ -5,7 +5,7 @@ mod acquired;
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fmt;
 use std::ops::Deref;
-use std::sync::atomic::{AtomicI16, AtomicI32, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicI16, AtomicI32, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
@@ -865,6 +865,45 @@ type ShareDialAttempt = (
     String,
     Result<(BrokerConn, crate::protocol::api::ApiVersionsResponse)>,
 );
+
+fn push_opened_share_dial(
+    opened: &mut Vec<OpenedShareDial>,
+    node: i32,
+    addr: String,
+    conn: BrokerConn,
+    versions: crate::protocol::api::ApiVersionsResponse,
+) {
+    let fetch_version = versions
+        .api_version(SHARE_FETCH)
+        .and_then(|version| {
+            pick_version(
+                version.min_version,
+                version.max_version,
+                0,
+                SHARE_FETCH_RUNTIME_MAX_VERSION,
+            )
+        })
+        .unwrap_or(-1);
+    let acknowledge_version = versions
+        .api_version(SHARE_ACKNOWLEDGE)
+        .and_then(|version| {
+            pick_version(
+                version.min_version,
+                version.max_version,
+                0,
+                SHARE_ACKNOWLEDGE_RUNTIME_MAX_VERSION,
+            )
+        })
+        .unwrap_or(-1);
+    opened.push(OpenedShareDial {
+        node,
+        addr,
+        conn,
+        fetch_version,
+        acknowledge_version,
+        keys: versions.api_keys,
+    });
+}
 
 struct OpenedShareDial {
     node: i32,
@@ -2440,6 +2479,7 @@ impl ShareGroup {
         cfg: ShareDialConfig,
         dials: Vec<(i32, String)>,
         deadline: Instant,
+        wakeup: Arc<AtomicBool>,
     ) -> Vec<OpenedShareDial> {
         if dials.is_empty() || Instant::now() >= deadline {
             return Vec::new();
@@ -2516,7 +2556,8 @@ impl ShareGroup {
         }
         let mut opened = Vec::new();
         while !inflight.is_empty() {
-            if Instant::now() >= deadline {
+            if wakeup.load(Ordering::SeqCst) || Instant::now() >= deadline {
+                Self::keep_completed_share_dials(&mut inflight, &mut opened);
                 inflight.abort_all();
                 break;
             }
@@ -2524,6 +2565,7 @@ impl ShareGroup {
             let joined = tokio::select! {
                 joined = inflight.join_next() => joined,
                 _ = tokio::time::sleep(rest) => {
+                    Self::keep_completed_share_dials(&mut inflight, &mut opened);
                     inflight.abort_all();
                     break;
                 }
@@ -2532,36 +2574,7 @@ impl ShareGroup {
                 break;
             };
             if let Ok((conn, versions)) = result {
-                let fetch_version = versions
-                    .api_version(SHARE_FETCH)
-                    .and_then(|version| {
-                        pick_version(
-                            version.min_version,
-                            version.max_version,
-                            0,
-                            SHARE_FETCH_RUNTIME_MAX_VERSION,
-                        )
-                    })
-                    .unwrap_or(-1);
-                let acknowledge_version = versions
-                    .api_version(SHARE_ACKNOWLEDGE)
-                    .and_then(|version| {
-                        pick_version(
-                            version.min_version,
-                            version.max_version,
-                            0,
-                            SHARE_ACKNOWLEDGE_RUNTIME_MAX_VERSION,
-                        )
-                    })
-                    .unwrap_or(-1);
-                opened.push(OpenedShareDial {
-                    node,
-                    addr,
-                    conn,
-                    fetch_version,
-                    acknowledge_version,
-                    keys: versions.api_keys,
-                });
+                push_opened_share_dial(&mut opened, node, addr, conn, versions);
             }
             while inflight.len() < 8 {
                 let Some((node, addr)) = waiting.next() else {
@@ -2571,6 +2584,19 @@ impl ShareGroup {
             }
         }
         opened
+    }
+
+    /// Keep share-leader sockets that already finished before the rest of the wave is aborted.
+    fn keep_completed_share_dials(
+        inflight: &mut tokio::task::JoinSet<ShareDialAttempt>,
+        opened: &mut Vec<OpenedShareDial>,
+    ) {
+        while let Some(joined) = inflight.try_join_next() {
+            let Ok((node, addr, Ok((conn, versions)))) = joined else {
+                continue;
+            };
+            push_opened_share_dial(opened, node, addr, conn, versions);
+        }
     }
 
     fn store_opened_share_dials(&mut self, opened: Vec<OpenedShareDial>) {
@@ -2590,7 +2616,9 @@ impl ShareGroup {
 
     async fn warm_share_leaders(&mut self, nodes: &[i32], deadline: Instant) {
         let dials = self.share_dial_targets(nodes);
-        let opened = Self::open_share_dials(self.share_dial_config(), dials, deadline).await;
+        let wakeup = self.consumer.wakeup_flag();
+        let opened =
+            Self::open_share_dials(self.share_dial_config(), dials, deadline, wakeup).await;
         self.store_opened_share_dials(opened);
     }
 
@@ -2792,7 +2820,8 @@ impl ShareGroup {
                 .refresh_metadata_timeout(Some(&self.topics), timeout)
                 .await;
         }
-        let opened = Self::open_share_dials(self.share_dial_config(), targets, deadline);
+        let wakeup = self.consumer.wakeup_flag();
+        let opened = Self::open_share_dials(self.share_dial_config(), targets, deadline, wakeup);
         let refreshed = self
             .consumer
             .refresh_metadata_timeout(Some(&self.topics), timeout);
@@ -2877,7 +2906,9 @@ impl ShareGroup {
                 self.stale_metadata_names = stale;
                 refreshed?;
             } else {
-                let opened = Self::open_share_dials(self.share_dial_config(), targets, deadline);
+                let wakeup = self.consumer.wakeup_flag();
+                let opened =
+                    Self::open_share_dials(self.share_dial_config(), targets, deadline, wakeup);
                 let refreshed = self.consumer.refresh_metadata_timeout(Some(&stale), rest);
                 let (opened, refreshed) = tokio::join!(opened, refreshed);
                 self.store_opened_share_dials(opened);
@@ -3413,7 +3444,9 @@ impl ShareGroup {
             if !targets.is_empty() {
                 let known = coord_idle.then(|| crate::group::KnownCoord::capture(&self.coord));
                 let cfg = self.cfg.clone();
-                let opened = Self::open_share_dials(self.share_dial_config(), targets, deadline);
+                let wakeup = self.consumer.wakeup_flag();
+                let opened =
+                    Self::open_share_dials(self.share_dial_config(), targets, deadline, wakeup);
                 let refreshed =
                     Self::refresh_topic_names_within(&mut self.consumer, &topics, deadline);
                 let coord_opened = async move {
@@ -7115,5 +7148,66 @@ mod tests {
             assert_eq!(node, 2);
             assert_eq!(address, "[2001:db8::9]:9092");
         }
+    }
+}
+
+#[cfg(test)]
+mod dial_tests {
+    use std::collections::HashMap;
+    use std::sync::atomic::AtomicBool;
+    use std::sync::Arc;
+
+    use super::*;
+    use crate::protocol::api::ApiVersion;
+    use crate::protocol::api_keys::FETCH;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn wakeup_keeps_a_share_dial_that_already_finished() {
+        let listener_a = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let listener_b = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr_a = listener_a.local_addr().unwrap().to_string();
+        let addr_b = listener_b.local_addr().unwrap().to_string();
+        let wakeup = Arc::new(AtomicBool::new(false));
+        let flag = Arc::clone(&wakeup);
+        let hold = tokio::spawn(async move {
+            let accepted = tokio::join!(listener_a.accept(), listener_b.accept());
+            flag.store(true, Ordering::SeqCst);
+            std::future::pending::<()>().await;
+            drop(accepted);
+        });
+        let mut node_keys = HashMap::new();
+        let learned = vec![ApiVersion {
+            api_key: FETCH,
+            min_version: 0,
+            max_version: 4,
+        }];
+        let _ = node_keys.insert(1, learned.clone());
+        let _ = node_keys.insert(2, learned);
+        let opened = ShareGroup::open_share_dials(
+            ShareDialConfig {
+                client_id: "share-dial".to_string(),
+                connect_timeout: Duration::from_secs(2),
+                tls: None,
+                sasl_plain: None,
+                sasl_scram: None,
+                sasl_scram_sha512: None,
+                sasl_oauthbearer: None,
+                sasl_oauthbearer_oidc: None,
+                bootstrap_addr: String::new(),
+                known_keys: Vec::new(),
+                node_keys,
+                addr_keys: HashMap::new(),
+                coord_addr: String::new(),
+                coord_keys: Vec::new(),
+            },
+            vec![(1, addr_a), (2, addr_b)],
+            Instant::now() + Duration::from_secs(2),
+            wakeup,
+        )
+        .await;
+        hold.abort();
+        let mut nodes: Vec<i32> = opened.iter().map(|dial| dial.node).collect();
+        nodes.sort_unstable();
+        assert_eq!(nodes, vec![1, 2]);
     }
 }

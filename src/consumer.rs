@@ -5458,6 +5458,10 @@ impl Consumer {
         Ok(crate::Uuid::from_bytes(id))
     }
 
+    pub(crate) fn wakeup_flag(&self) -> Arc<AtomicBool> {
+        Arc::clone(&self.wakeup)
+    }
+
     /// Interrupt [`Self::fetch`] (and group `poll` that calls it).
     ///
     /// Safe to call while fetch is running on this task. From another task,
