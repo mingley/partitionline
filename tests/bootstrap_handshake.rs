@@ -1735,6 +1735,26 @@ async fn group_coordinator_timeout_closes_the_socket() {
     peer.abort();
 }
 
+/// Closing an admin client closes the bootstrap socket before close returns.
+#[tokio::test(flavor = "current_thread")]
+async fn admin_close_closes_the_bootstrap_socket() {
+    let mock = common::Mock::start().await;
+    let mut cfg = AdminConfig::bootstrap([mock.addr.clone()]);
+    cfg.request_timeout = Duration::from_secs(2);
+    let admin = Admin::new(cfg).await.unwrap();
+    assert_eq!(
+        mock.open_conns(),
+        1,
+        "admin connect should hold the bootstrap socket"
+    );
+    admin.close().await.unwrap();
+    assert_eq!(
+        mock.open_conns(),
+        0,
+        "admin close left the socket blocked in a broker read"
+    );
+}
+
 /// A second socket to a known admin broker closes when SASL times out.
 #[tokio::test(flavor = "current_thread")]
 async fn known_admin_peer_timeout_closes_the_socket() {

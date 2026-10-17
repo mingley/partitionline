@@ -714,6 +714,7 @@ struct State {
     drop_node_gen: HashMap<i32, watch::Sender<u32>>,
     refuse_conns: u32,
     accepts: u32,
+    open_conns: u32,
     coord_node: i32,
     txn_coord_node: i32,
     group_coord_overrides: HashMap<String, i32>,
@@ -1222,6 +1223,7 @@ fn new_state(
         drop_node_gen: HashMap::new(),
         refuse_conns: 0,
         accepts: 0,
+        open_conns: 0,
         coord_node: 1,
         txn_coord_node: 1,
         group_coord_overrides: HashMap::new(),
@@ -1806,6 +1808,11 @@ impl Mock {
     /// TCP connections accepted since the listeners started.
     pub fn accepts(&self) -> u32 {
         self.state.lock().accepts
+    }
+
+    /// TCP connections still inside a broker read.
+    pub fn open_conns(&self) -> u32 {
+        self.state.lock().open_conns
     }
 
     pub async fn start() -> Self {
@@ -4974,11 +4981,25 @@ fn encode_not_coordinator(api_key: i16, api_version: i16, body: &mut BytesMut) {
     }
 }
 
+struct LiveConn<'a>(&'a Mutex<State>);
+
+impl Drop for LiveConn<'_> {
+    fn drop(&mut self) {
+        let mut st = self.0.lock();
+        st.open_conns = st.open_conns.saturating_sub(1);
+    }
+}
+
 async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
     mut stream: S,
     node_id: i32,
     state: Arc<Mutex<State>>,
 ) {
+    {
+        let mut st = state.lock();
+        st.open_conns = st.open_conns.saturating_add(1);
+    }
+    let _live = LiveConn(&state);
     let mut buf = BytesMut::new();
     let mut drop_rx = state.lock().drop_gen.subscribe();
     let mut node_drop_rx = {

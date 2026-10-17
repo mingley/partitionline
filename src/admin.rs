@@ -4801,7 +4801,14 @@ impl Admin {
     }
 
     /// Drop the admin connection.
+    ///
+    /// Sockets are dropped before this returns. On a current-thread runtime
+    /// the broker stays in its read until this caller yields.
     pub async fn close(self) -> Result<()> {
+        drop(self);
+        for _ in 0..8 {
+            tokio::task::yield_now().await;
+        }
         Ok(())
     }
 
