@@ -4640,10 +4640,12 @@ impl Consumer {
         let mut retry = Vec::new();
         while !inflight.is_empty() {
             if self.woken() {
+                self.keep_completed_fetch_dials(&mut inflight, &mut inflight_ids, connected);
                 inflight.abort_all();
                 return Err(Error::Wakeup);
             }
             if Instant::now() >= deadline {
+                self.keep_completed_fetch_dials(&mut inflight, &mut inflight_ids, connected);
                 inflight.abort_all();
                 break;
             }
@@ -4651,6 +4653,7 @@ impl Consumer {
             let joined = tokio::select! {
                 joined = inflight.join_next() => joined,
                 _ = tokio::time::sleep(rest) => {
+                    self.keep_completed_fetch_dials(&mut inflight, &mut inflight_ids, connected);
                     inflight.abort_all();
                     break;
                 }
@@ -4688,6 +4691,11 @@ impl Consumer {
                                 continue;
                             }
                             let Some(addr) = self.cluster.brokers.get(&leader).cloned() else {
+                                self.keep_completed_fetch_dials(
+                                    &mut inflight,
+                                    &mut inflight_ids,
+                                    connected,
+                                );
                                 inflight.abort_all();
                                 return Err(Error::protocol(format!("unknown broker {leader}")));
                             };
@@ -4699,6 +4707,11 @@ impl Consumer {
                     } else if matches!(error, Error::Timeout) {
                         stop_scheduling = true;
                     } else {
+                        self.keep_completed_fetch_dials(
+                            &mut inflight,
+                            &mut inflight_ids,
+                            connected,
+                        );
                         inflight.abort_all();
                         return Err(Error::Timeout);
                     }
@@ -4708,6 +4721,7 @@ impl Consumer {
                     retry.push(node);
                 }
                 Err(error) => {
+                    self.keep_completed_fetch_dials(&mut inflight, &mut inflight_ids, connected);
                     inflight.abort_all();
                     return Err(error);
                 }
@@ -4803,6 +4817,35 @@ impl Consumer {
         );
         let _previous = self.conns.insert(node, conn);
         let _previous_keys = self.node_api_keys.insert(node, versions.api_keys.clone());
+    }
+
+    /// Keep leader sockets that already finished before the rest of the wave is aborted.
+    ///
+    /// `abort_all` drops a `JoinHandle` output that was never joined. A dial that
+    /// has already returned stays usable for the next fetch.
+    fn keep_completed_fetch_dials(
+        &mut self,
+        inflight: &mut tokio::task::JoinSet<(i32, Result<(BrokerConn, ApiVersionsResponse)>)>,
+        inflight_ids: &mut HashSet<i32>,
+        connected: &mut Vec<i32>,
+    ) {
+        while let Some(joined) = inflight.try_join_next() {
+            let Ok((node, result)) = joined else {
+                continue;
+            };
+            let _ = inflight_ids.remove(&node);
+            match result {
+                Ok((conn, versions)) => {
+                    let _ = self.reconnect_fails.remove(&node);
+                    self.remember_opened_conn(node, conn, &versions);
+                    connected.push(node);
+                }
+                Err(error) if error.is_retriable() => {
+                    self.note_reconnect_failure(node);
+                }
+                Err(_) => {}
+            }
+        }
     }
 
     /// Open a leader socket, reusing versions already learned for this broker.
@@ -8029,6 +8072,23 @@ impl Consumer {
         LeaderDialFlight { task, ready: None }
     }
 
+    /// Keep leader sockets that already finished before the rest of the wave is aborted.
+    fn keep_completed_leader_dials(
+        inflight: &mut tokio::task::JoinSet<LeaderDialAttempt>,
+        opened: &mut Vec<OpenedLeaderDial>,
+    ) {
+        while let Some(joined) = inflight.try_join_next() {
+            let Ok((node, Ok((conn, versions)))) = joined else {
+                continue;
+            };
+            opened.push(OpenedLeaderDial {
+                node,
+                conn,
+                versions,
+            });
+        }
+    }
+
     async fn open_leader_dials(
         cfg: LeaderDialConfig,
         dials: Vec<(i32, String)>,
@@ -8102,6 +8162,7 @@ impl Consumer {
         let mut opened = Vec::new();
         while !inflight.is_empty() {
             if wakeup.load(Ordering::SeqCst) || Instant::now() >= deadline {
+                Self::keep_completed_leader_dials(&mut inflight, &mut opened);
                 inflight.abort_all();
                 break;
             }
@@ -8109,6 +8170,7 @@ impl Consumer {
             let joined = tokio::select! {
                 joined = inflight.join_next() => joined,
                 () = tokio::time::sleep(rest) => {
+                    Self::keep_completed_leader_dials(&mut inflight, &mut opened);
                     inflight.abort_all();
                     break;
                 }
@@ -10593,7 +10655,57 @@ pub(crate) fn partition_infos_from(
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+
     use super::*;
+    use crate::protocol::api::ApiVersion;
+    use crate::protocol::api_keys::FETCH;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn wakeup_keeps_a_leader_dial_that_already_finished() {
+        let listener_a = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let listener_b = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr_a = listener_a.local_addr().unwrap().to_string();
+        let addr_b = listener_b.local_addr().unwrap().to_string();
+        let wakeup = Arc::new(AtomicBool::new(false));
+        let flag = Arc::clone(&wakeup);
+        let hold = tokio::spawn(async move {
+            let accepted = tokio::join!(listener_a.accept(), listener_b.accept());
+            flag.store(true, Ordering::SeqCst);
+            std::future::pending::<()>().await;
+            drop(accepted);
+        });
+        let mut node_keys = HashMap::new();
+        let learned = vec![ApiVersion {
+            api_key: FETCH,
+            min_version: 0,
+            max_version: 4,
+        }];
+        let _ = node_keys.insert(1, learned.clone());
+        let _ = node_keys.insert(2, learned);
+        let opened = Consumer::open_leader_dials(
+            LeaderDialConfig {
+                client_id: "dial-drain".to_string(),
+                connect_timeout: Duration::from_secs(2),
+                tls: None,
+                sasl_plain: None,
+                sasl_scram: None,
+                sasl_scram_sha512: None,
+                sasl_oauthbearer: None,
+                sasl_oauthbearer_oidc: None,
+                node_keys,
+                addr_keys: HashMap::new(),
+            },
+            vec![(1, addr_a), (2, addr_b)],
+            wakeup,
+            Instant::now() + Duration::from_secs(2),
+        )
+        .await;
+        hold.abort();
+        let mut nodes: Vec<i32> = opened.iter().map(|dial| dial.node).collect();
+        nodes.sort_unstable();
+        assert_eq!(nodes, vec![1, 2]);
+    }
 
     #[test]
     fn an_aborted_interval_is_remembered_once() {
