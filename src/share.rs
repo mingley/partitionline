@@ -1056,7 +1056,7 @@ pub enum ShareAcquireMode {
 /// `SASL_AUTHENTICATION_FAILED`, which fails that poll, and not piggyback
 /// `LOG_DIR_NOT_FOUND`). A piggybacked
 /// `UNKNOWN_PRODUCER_ID` still completes without retry,
-/// including when `AcknowledgeErrorMessage` is set (Java
+/// including when `AcknowledgeErrorMessage` is set or empty (Java
 /// `handleShareFetchSuccess` completes piggyback acks and still
 /// delivers the fetch; this is not partition
 /// `UNKNOWN_PRODUCER_ID`, which fails that poll, and not piggyback
@@ -2755,7 +2755,7 @@ impl ShareGroup {
     /// `LOG_DIR_NOT_FOUND`).
     /// A piggybacked `UNKNOWN_PRODUCER_ID` still completes
     /// without retry, including when `AcknowledgeErrorMessage` is set
-    /// (Java `handleShareFetchSuccess` completes piggyback acks and still
+    /// or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
     /// delivers the fetch; this is not partition
     /// `UNKNOWN_PRODUCER_ID`, which fails that poll, and not piggyback
     /// `SASL_AUTHENTICATION_FAILED`).

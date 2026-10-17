@@ -2295,7 +2295,7 @@
 //! partition `SASL_AUTHENTICATION_FAILED`, which fails that poll, and not
 //! piggyback `LOG_DIR_NOT_FOUND`). A piggybacked
 //! `UNKNOWN_PRODUCER_ID` still completes without retry,
-//! including when `AcknowledgeErrorMessage` is set (this is not
+//! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `UNKNOWN_PRODUCER_ID`, which fails that poll, and not
 //! piggyback `SASL_AUTHENTICATION_FAILED`). A piggybacked
 //! `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a
