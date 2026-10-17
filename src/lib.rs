@@ -2614,6 +2614,13 @@
 //! `ClusterControlManager` writes this when BrokerRegistration names
 //! no directories, a reserved directory ID, or a duplicate directory ID.
 //! A piggybacked
+//! `TRANSACTION_ABORTABLE` still completes without retry,
+//! including when `AcknowledgeErrorMessage` is set (this is not
+//! partition `TRANSACTION_ABORTABLE`, which fails that poll, and not
+//! piggyback `INVALID_REGISTRATION`). Official Java
+//! `TransactionCoordinator` writes this when AddPartitionsToTxn
+//! verify finds a partition that is not already in the transaction.
+//! A piggybacked
 //! `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a
 //! sibling whose `AcknowledgeErrorCode` is none, including when
 //! `AcknowledgeErrorMessage` is set or empty. A piggybacked
