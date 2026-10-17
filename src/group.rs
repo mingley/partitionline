@@ -2046,6 +2046,7 @@ impl ConsumerGroup {
         let group_id = self.group_id.clone();
         let member_id = self.member_id.clone();
         let instance = self.cfg.group_instance_id.clone();
+        let bootstrap_keys = self.consumer.copy_api_keys();
         let coord = &mut self.coord;
         let cfg = &self.cfg;
         let consumer = &mut self.consumer;
@@ -2069,6 +2070,7 @@ impl ConsumerGroup {
                         &topics,
                     )
                 },
+                &bootstrap_keys,
                 prior,
                 timeout,
             ),
@@ -2206,6 +2208,7 @@ impl ConsumerGroup {
         let kip848 = self.kip848;
         let group_id = self.group_id.clone();
         let member_id = self.member_id.clone();
+        let bootstrap_keys = self.consumer.copy_api_keys();
         let coord = &mut self.coord;
         let cfg = &self.cfg;
         let consumer = &mut self.consumer;
@@ -2218,6 +2221,7 @@ impl ConsumerGroup {
                 &member_id,
                 kip848,
                 LEAVE_GROUP_REASON_UNSUBSCRIBED,
+                &bootstrap_keys,
                 prior,
                 deadline,
             ),
@@ -2411,6 +2415,7 @@ impl ConsumerGroup {
         let kip848 = self.kip848;
         let group_id = self.group_id.clone();
         let member_id = self.member_id.clone();
+        let bootstrap_keys = self.consumer.copy_api_keys();
         let coord = &mut self.coord;
         let cfg = &self.cfg;
         let consumer = &mut self.consumer;
@@ -2423,6 +2428,7 @@ impl ConsumerGroup {
                 &member_id,
                 kip848,
                 LEAVE_GROUP_REASON_CLOSED,
+                &bootstrap_keys,
                 prior,
                 deadline,
             ),
@@ -2460,6 +2466,7 @@ impl ConsumerGroup {
         member_id: &str,
         kip848: bool,
         reason: &str,
+        bootstrap_keys: &[ApiVersion],
         prior: &mut HashMap<String, KnownCoord>,
         deadline: Instant,
     ) -> Result<()> {
@@ -2489,6 +2496,7 @@ impl ConsumerGroup {
                 COORDINATOR_GROUP,
                 CONSUMER_GROUP_HEARTBEAT,
                 |version, buf| encode_consumer_group_heartbeat_request(buf, version, &req),
+                bootstrap_keys,
                 prior,
                 timeout,
             )
@@ -2514,6 +2522,7 @@ impl ConsumerGroup {
             COORDINATOR_GROUP,
             LEAVE_GROUP,
             |version, buf| encode_leave_group_request_members(buf, version, group_id, &members),
+            bootstrap_keys,
             prior,
             timeout,
         )
@@ -2599,6 +2608,7 @@ impl ConsumerGroup {
                     .iter()
                     .any(|topic| !self.consumer.topic_metadata_fresh(topic));
             let (version, body) = if prefetch {
+                let bootstrap_keys = self.consumer.copy_api_keys();
                 let group_id = self.group_id.as_str();
                 let member_id = self.member_id.as_str();
                 let instance = self.cfg.group_instance_id.as_deref();
@@ -2631,6 +2641,7 @@ impl ConsumerGroup {
                             },
                         )
                     },
+                    &bootstrap_keys,
                     prior,
                     timeout,
                 );
@@ -2638,6 +2649,7 @@ impl ConsumerGroup {
                 metadata_prefetch = Some(refresh);
                 rpc?
             } else {
+                let bootstrap_keys = self.consumer.copy_api_keys();
                 coord_roundtrip(
                     &mut self.coord,
                     &self.cfg,
@@ -2660,6 +2672,7 @@ impl ConsumerGroup {
                             },
                         )
                     },
+                    &bootstrap_keys,
                     &mut self.prior_coords,
                     timeout,
                 )
@@ -2776,6 +2789,7 @@ impl ConsumerGroup {
         if timeout.is_zero() {
             return Err(Error::Timeout);
         }
+        let bootstrap_keys = self.consumer.copy_api_keys();
         let mut flight = if leaders.is_empty() {
             None
         } else {
@@ -2802,6 +2816,7 @@ impl ConsumerGroup {
                     },
                 )
             },
+            &bootstrap_keys,
             &mut self.prior_coords,
             timeout,
         );
@@ -2876,6 +2891,7 @@ impl ConsumerGroup {
             .any(|topic| !self.consumer.topic_metadata_fresh(topic));
         let mut metadata_refresh = None;
         let (version, body) = if stale {
+            let bootstrap_keys = self.consumer.copy_api_keys();
             let group_id = self.group_id.as_str();
             let coord = &mut self.coord;
             let cfg = &self.cfg;
@@ -2890,6 +2906,7 @@ impl ConsumerGroup {
                 COORDINATOR_GROUP,
                 CONSUMER_GROUP_HEARTBEAT,
                 |version, buf| encode_consumer_group_heartbeat_request(buf, version, &req),
+                &bootstrap_keys,
                 prior,
                 timeout,
             );
@@ -2901,6 +2918,7 @@ impl ConsumerGroup {
             if timeout.is_zero() {
                 return Err(Error::Timeout);
             }
+            let bootstrap_keys = self.consumer.copy_api_keys();
             coord_roundtrip(
                 &mut self.coord,
                 &self.cfg,
@@ -2908,6 +2926,7 @@ impl ConsumerGroup {
                 COORDINATOR_GROUP,
                 CONSUMER_GROUP_HEARTBEAT,
                 |version, buf| encode_consumer_group_heartbeat_request(buf, version, &req),
+                &bootstrap_keys,
                 &mut self.prior_coords,
                 timeout,
             )
@@ -3224,6 +3243,7 @@ impl ConsumerGroup {
                     None
                 };
                 let group_id = self.group_id.clone();
+                let bootstrap_keys = self.consumer.copy_api_keys();
                 let fetched = {
                     let refresh_fut = self
                         .consumer
@@ -3245,6 +3265,7 @@ impl ConsumerGroup {
                                 Some(&topics),
                             )
                         },
+                        &bootstrap_keys,
                         &mut self.prior_coords,
                         timeout,
                     );
@@ -3307,6 +3328,7 @@ impl ConsumerGroup {
                     None
                 };
                 let group_id = self.group_id.clone();
+                let bootstrap_keys = self.consumer.copy_api_keys();
                 let coord = &mut self.coord;
                 let cfg = &self.cfg;
                 let consumer = &mut self.consumer;
@@ -3329,6 +3351,7 @@ impl ConsumerGroup {
                                 Some(&topics),
                             )
                         },
+                        &bootstrap_keys,
                         prior,
                         timeout,
                     );
@@ -5715,6 +5738,7 @@ pub(crate) async fn coord_roundtrip(
     key_type: i8,
     api_key: i16,
     encode_body: impl FnMut(i16, &mut BytesMut) -> Result<()>,
+    bootstrap_keys: &[ApiVersion],
     prior: &mut HashMap<String, KnownCoord>,
     request_timeout: Duration,
 ) -> Result<(i16, Bytes)> {
@@ -5725,7 +5749,7 @@ pub(crate) async fn coord_roundtrip(
         key_type,
         api_key,
         encode_body,
-        &[],
+        bootstrap_keys,
         prior,
         request_timeout,
     )

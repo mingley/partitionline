@@ -2076,6 +2076,7 @@ impl ShareGroup {
                 .iter()
                 .any(|topic| !self.consumer.topic_metadata_fresh(topic));
             let (version, body, metadata_refresh) = if stale {
+                let bootstrap_keys = self.consumer.copy_api_keys();
                 let coord = &mut self.coord;
                 let consumer = &mut self.consumer;
                 let topics = &self.topics;
@@ -2090,6 +2091,7 @@ impl ShareGroup {
                     COORDINATOR_GROUP,
                     SHARE_GROUP_HEARTBEAT,
                     |version, buf| encode_share_group_heartbeat_request(buf, version, &req),
+                    &bootstrap_keys,
                     prior,
                     timeout,
                 );
@@ -2097,6 +2099,7 @@ impl ShareGroup {
                 let (version, body) = rpc?;
                 (version, body, Some(refresh))
             } else {
+                let bootstrap_keys = self.consumer.copy_api_keys();
                 let (version, body) = coord_roundtrip(
                     &mut self.coord,
                     &self.cfg,
@@ -2104,6 +2107,7 @@ impl ShareGroup {
                     COORDINATOR_GROUP,
                     SHARE_GROUP_HEARTBEAT,
                     |version, buf| encode_share_group_heartbeat_request(buf, version, &req),
+                    &bootstrap_keys,
                     &mut self.prior_coords,
                     timeout,
                 )
@@ -4904,6 +4908,7 @@ impl ShareGroup {
             rack_id: self.cfg.rack.clone(),
             subscribed_topic_names: None,
         };
+        let bootstrap_keys = self.consumer.copy_api_keys();
         let (version, body) = coord_roundtrip(
             &mut self.coord,
             &self.cfg,
@@ -4911,6 +4916,7 @@ impl ShareGroup {
             COORDINATOR_GROUP,
             SHARE_GROUP_HEARTBEAT,
             |version, buf| encode_share_group_heartbeat_request(buf, version, &req),
+            &bootstrap_keys,
             &mut self.prior_coords,
             timeout,
         )

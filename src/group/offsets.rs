@@ -36,6 +36,7 @@ impl ConsumerGroup {
         let member_id = self.member_id.as_str();
         let generation_id = self.generation_id;
         let instance = self.cfg.group_instance_id.as_deref();
+        let bootstrap_keys = self.consumer.copy_api_keys();
         let coord = &mut self.coord;
         let cfg = &self.cfg;
         let consumer = &mut self.consumer;
@@ -58,6 +59,7 @@ impl ConsumerGroup {
                     &commit_topics,
                 )
             },
+            &bootstrap_keys,
             prior,
             timeout,
         );
