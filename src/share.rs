@@ -843,6 +843,52 @@ struct ShareNodeConnection {
     acknowledge_version: i16,
 }
 
+/// Read share leader sockets until one closes. Closed sockets are dropped.
+///
+/// A queued response does not finish a socket's watch. That would park the
+/// retry without noticing a later close.
+async fn drop_closed_share_conns(conns: &mut HashMap<i32, ShareNodeConnection>) {
+    if conns.is_empty() {
+        std::future::pending::<()>().await;
+        return;
+    }
+    let (stop_tx, _) = tokio::sync::broadcast::channel::<()>(1);
+    let mut set = tokio::task::JoinSet::new();
+    let nodes: Vec<i32> = conns.keys().copied().collect();
+    for node in nodes {
+        let Some(mut peer) = conns.remove(&node) else {
+            continue;
+        };
+        let mut stop = stop_tx.subscribe();
+        let _task = set.spawn(async move {
+            let closed = tokio::select! {
+                biased;
+                _ = stop.recv() => false,
+                _ = peer.conn.peer_left() => true,
+            };
+            (node, peer, closed)
+        });
+    }
+    let mut closed_any = false;
+    while let Some(joined) = set.join_next().await {
+        let Ok((node, peer, closed)) = joined else {
+            continue;
+        };
+        if closed {
+            drop(peer);
+            if !closed_any {
+                closed_any = true;
+                let _listeners = stop_tx.send(()).unwrap_or(0);
+            }
+        } else {
+            let _ = conns.insert(node, peer);
+        }
+    }
+    if !closed_any {
+        std::future::pending::<()>().await;
+    }
+}
+
 struct ShareDialConfig {
     client_id: String,
     connect_timeout: Duration,
@@ -4298,45 +4344,7 @@ impl ShareGroup {
 
     /// Read share leader sockets until one closes. Closed sockets are dropped.
     async fn drop_closed_share_sockets(&mut self) {
-        if self.share_conns.is_empty() {
-            std::future::pending::<()>().await;
-            return;
-        }
-        let (stop_tx, _) = tokio::sync::broadcast::channel::<()>(1);
-        let mut set = tokio::task::JoinSet::new();
-        let nodes: Vec<i32> = self.share_conns.keys().copied().collect();
-        for node in nodes {
-            let Some(mut peer) = self.share_conns.remove(&node) else {
-                continue;
-            };
-            let mut stop = stop_tx.subscribe();
-            let _task = set.spawn(async move {
-                let closed = tokio::select! {
-                    biased;
-                    _ = stop.recv() => false,
-                    result = peer.conn.inbound_ready() => result.is_err(),
-                };
-                (node, peer, closed)
-            });
-        }
-        let mut closed_any = false;
-        while let Some(joined) = set.join_next().await {
-            let Ok((node, peer, closed)) = joined else {
-                continue;
-            };
-            if closed {
-                drop(peer);
-                if !closed_any {
-                    closed_any = true;
-                    let _listeners = stop_tx.send(()).unwrap_or(0);
-                }
-            } else {
-                let _ = self.share_conns.insert(node, peer);
-            }
-        }
-        if !closed_any {
-            std::future::pending::<()>().await;
-        }
+        drop_closed_share_conns(&mut self.share_conns).await;
     }
 
     async fn acknowledge_leaders(
@@ -7528,6 +7536,65 @@ mod dial_tests {
     use super::*;
     use crate::protocol::api::ApiVersion;
     use crate::protocol::api_keys::FETCH;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn queued_byte_does_not_hide_a_later_share_close() {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        let (gate_tx, gate_rx) = tokio::sync::oneshot::channel::<()>();
+        let accepted = tokio::spawn(async move {
+            let (socket, _) = listener.accept().await.unwrap();
+            let (mut reader, mut writer) = socket.into_split();
+            writer.write_all(&[0x01]).await.unwrap();
+            gate_rx.await.unwrap();
+            writer.shutdown().await.unwrap();
+            let mut buf = [0u8; 8];
+            tokio::time::timeout(Duration::from_millis(300), reader.read(&mut buf)).await
+        });
+        let conn = BrokerConn::connect(&addr.to_string(), "share-byte", Duration::from_secs(2))
+            .await
+            .unwrap();
+        let queued = tokio::time::timeout(Duration::from_millis(300), async {
+            loop {
+                if conn.has_queued_response() {
+                    break;
+                }
+                tokio::task::yield_now().await;
+            }
+        })
+        .await;
+        assert!(queued.is_ok(), "the queued byte never became visible");
+        let mut conns = HashMap::new();
+        let _ = conns.insert(
+            1,
+            ShareNodeConnection {
+                conn,
+                fetch_version: 0,
+                acknowledge_version: 0,
+            },
+        );
+        {
+            let mut waiting = std::pin::pin!(drop_closed_share_conns(&mut conns));
+            tokio::select! {
+                biased;
+                _ = &mut waiting => panic!("a queued byte finished the share retry watch"),
+                _ = tokio::time::sleep(Duration::from_millis(30)) => {}
+            }
+            gate_tx.send(()).unwrap();
+            let noticed = tokio::time::timeout(Duration::from_millis(300), waiting).await;
+            assert!(
+                noticed.is_ok(),
+                "a close after a queued byte was not noticed during the share retry"
+            );
+        }
+        let saw = accepted.await.unwrap();
+        assert!(
+            matches!(saw, Ok(Ok(0))),
+            "peer stayed in the read after it closed a share socket that already had a queued byte: {saw:?}"
+        );
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn wakeup_keeps_a_share_dial_that_already_finished() {
