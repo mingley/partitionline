@@ -1152,6 +1152,37 @@ impl BrokerConn {
         }
     }
 
+    /// Wait until the peer closes, then shut this socket down.
+    ///
+    /// A buffered response does not finish the wait. Polling
+    /// [`Self::inbound_ready`] again would return immediately and, on a
+    /// current-thread runtime, spin without ever yielding. The later close
+    /// would then leave the peer blocked in its read.
+    pub(crate) async fn peer_left(&mut self) -> Result<()> {
+        if !self.has_queued_response() {
+            match self.inbound_ready().await {
+                Err(error) => {
+                    if !self.is_closed() {
+                        self.close();
+                    }
+                    self.release_if_closed().await;
+                    return Err(error);
+                }
+                Ok(()) if self.is_closed() => {
+                    self.release_if_closed().await;
+                    return Err(Error::Closed);
+                }
+                Ok(()) => {}
+            }
+        }
+        self.wait_until_closed().await;
+        if !self.is_closed() {
+            self.close();
+        }
+        self.release_if_closed().await;
+        Err(Error::Closed)
+    }
+
     /// Send FIN for a connection that is already marked closed.
     ///
     /// [`Self::close`] only sets the flag. The broker stays in its read until
@@ -1360,8 +1391,11 @@ impl BrokerConn {
                     }
                     Poll::Ready(Err(error)) => return Poll::Ready(Err(Error::from(error))),
                     Poll::Ready(Ok(0)) => {
+                        // Keep any bytes already read. The peer is still gone,
+                        // so the caller must be able to shut the socket down
+                        // instead of treating the short buffer as a live wait.
+                        self.close();
                         if self.read_buf.is_empty() {
-                            self.close();
                             return Poll::Ready(Err(Error::Io(std::io::Error::new(
                                 std::io::ErrorKind::UnexpectedEof,
                                 "broker closed connection",
@@ -3241,6 +3275,56 @@ mod tests {
         assert!(
             matches!(saw, Ok(Ok(0))),
             "peer stayed in the read after the connection was marked closed: {saw:?}"
+        );
+        drop(conn);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn queued_byte_does_not_spin_through_a_later_close() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        let (gate_tx, gate_rx) = tokio::sync::oneshot::channel::<()>();
+        let accepted = tokio::spawn(async move {
+            let (socket, _) = listener.accept().await.unwrap();
+            let (mut reader, mut writer) = socket.into_split();
+            writer.write_all(&[0x01]).await.unwrap();
+            gate_rx.await.unwrap();
+            writer.shutdown().await.unwrap();
+            let mut buf = [0u8; 8];
+            tokio::time::timeout(Duration::from_millis(300), reader.read(&mut buf)).await
+        });
+        let mut conn = BrokerConn::connect(&addr.to_string(), "spin-close", Duration::from_secs(2))
+            .await
+            .unwrap();
+        let queued = tokio::time::timeout(Duration::from_millis(300), async {
+            loop {
+                if conn.has_queued_response() {
+                    break;
+                }
+                tokio::task::yield_now().await;
+            }
+        })
+        .await;
+        assert!(queued.is_ok(), "the queued byte never became visible");
+        gate_tx.send(()).unwrap();
+        let noticed = tokio::time::timeout(Duration::from_millis(300), async {
+            loop {
+                tokio::select! {
+                    biased;
+                    _ = conn.peer_left(), if !conn.is_closed() => break,
+                    _ = tokio::time::sleep(Duration::from_millis(50)) => break,
+                }
+            }
+        })
+        .await;
+        assert!(
+            noticed.is_ok(),
+            "a queued byte spun the wait so the later close was never observed"
+        );
+        let saw = accepted.await.unwrap();
+        assert!(
+            matches!(saw, Ok(Ok(0))),
+            "peer stayed in the read after it closed a socket that already had a queued byte: {saw:?}"
         );
         drop(conn);
     }

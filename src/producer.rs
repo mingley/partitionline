@@ -6919,14 +6919,15 @@ impl Worker {
             // that leaves during that wait must be replaced before the quota ends.
             tokio::select! {
                 biased;
-                ready = self.conn.inbound_ready(), if !self.conn.is_closed() => {
-                    if ready.is_err() {
-                        self.conn.close();
-                        let addr = self.conn.addr().to_string();
-                        if let Ok(conn) = open_produce_socket(&self.shared, &addr).await {
-                            if conn.produce_version() >= 0 {
-                                self.conn = conn;
-                            }
+                // A queued response must not complete this arm. Polling it
+                // again would spin and never yield, so a later close could
+                // not replace the socket before the quota ends.
+                _ = self.conn.peer_left(), if !self.conn.is_closed() => {
+                    self.conn.close();
+                    let addr = self.conn.addr().to_string();
+                    if let Ok(conn) = open_produce_socket(&self.shared, &addr).await {
+                        if conn.produce_version() >= 0 {
+                            self.conn = conn;
                         }
                     }
                 }

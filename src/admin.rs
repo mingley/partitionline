@@ -8819,12 +8819,10 @@ impl Admin {
                 tokio::select! {
                     biased;
                     () = &mut sleep => break,
-                    closed = self.conn.inbound_ready(), if !self.conn.is_closed() => {
-                        if closed.is_err() {
-                            self.conn.close();
-                            self.conn.release_if_closed().await;
-                        }
-                    }
+                    // A queued response must not complete this arm. Polling
+                    // it again would spin and never yield, so a later close
+                    // could not shut the socket down.
+                    _ = self.conn.peer_left(), if !self.conn.is_closed() => {}
                 }
             }
         }
