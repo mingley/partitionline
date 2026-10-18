@@ -2170,9 +2170,10 @@ impl ConsumerGroup {
             self.commit_shared_v10(positions, timeout).await
         } else {
             let mut topics = std::mem::take(&mut self.classic_commit_topics);
-            refill_shared_offset_topics(&mut topics, positions, |topic, partition| {
+            refill_shared_offset_topics_cooperative(&mut topics, positions, |topic, partition| {
                 self.consumer.position_epoch(topic, partition)
-            });
+            })
+            .await;
             if topics.is_empty() {
                 self.classic_commit_topics = topics;
                 return Ok(());
@@ -2389,9 +2390,10 @@ impl ConsumerGroup {
         }
         let timeout = self.cfg.request_timeout;
         let mut topics = std::mem::take(&mut self.classic_commit_topics);
-        refill_shared_offset_topics(&mut topics, &to_commit, |topic, partition| {
+        refill_shared_offset_topics_cooperative(&mut topics, &to_commit, |topic, partition| {
             self.consumer.position_epoch(topic, partition)
-        });
+        })
+        .await;
         if topics.is_empty() {
             self.classic_commit_topics = topics;
             return self.fetch_for_poll(wait).await;
@@ -4918,6 +4920,7 @@ fn group_shared_offset_topics(
     topics
 }
 
+#[cfg(test)]
 fn refill_shared_offset_topics(
     topics: &mut Vec<OffsetTopic>,
     items: &[(Arc<str>, i32, i64)],
@@ -4955,6 +4958,52 @@ fn refill_shared_offset_topics(
             });
         }
         used = used.saturating_add(1);
+    }
+    topics.truncate(used);
+}
+
+async fn refill_shared_offset_topics_cooperative(
+    topics: &mut Vec<OffsetTopic>,
+    items: &[(Arc<str>, i32, i64)],
+    epoch_of: impl Fn(&str, i32) -> i32,
+) {
+    let mut used = 0usize;
+    let mut walked = 0usize;
+    for (topic, partition, offset) in items {
+        let part = OffsetPartition {
+            partition: *partition,
+            offset: *offset,
+            leader_epoch: epoch_of(topic.as_ref(), *partition),
+            metadata: String::new(),
+        };
+        let existing = topics
+            .iter()
+            .take(used)
+            .position(|slot| slot.topic == topic.as_ref());
+        if let Some(index) = existing {
+            if let Some(slot) = topics.get_mut(index) {
+                slot.partitions.push(part);
+            }
+        } else if let Some(slot) = topics.get_mut(used) {
+            if slot.topic != topic.as_ref() {
+                slot.topic.clear();
+                slot.topic.push_str(topic.as_ref());
+            }
+            slot.partitions.clear();
+            slot.partitions.push(part);
+            used = used.saturating_add(1);
+        } else {
+            topics.push(OffsetTopic {
+                topic: topic.as_ref().to_owned(),
+                partitions: vec![part],
+            });
+            used = used.saturating_add(1);
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
     }
     topics.truncate(used);
 }
@@ -7207,6 +7256,45 @@ mod tests {
                 )
             })
             .collect()
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn refilling_many_shared_offsets_does_not_hold_the_caller() {
+        // 1_500_000 partitions: placing them held the caller 130ms.
+        let topic: Arc<str> = Arc::from("orders");
+        let items: Vec<(Arc<str>, i32, i64)> = (0..1_500_000)
+            .map(|index| (Arc::clone(&topic), index, 1))
+            .collect();
+        let mut topics = Vec::new();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = refill_shared_offset_topics_cooperative(&mut topics, &items, |_, _| 0) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "refilling shared offsets held the caller for {elapsed:?}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn cooperative_shared_offset_refill_matches_one_shot() {
+        let topic: Arc<str> = Arc::from("orders");
+        let items = vec![
+            (Arc::clone(&topic), 1, 4),
+            (Arc::clone(&topic), 0, 2),
+            (Arc::from("payments"), 3, 9),
+        ];
+        let mut one = Vec::new();
+        refill_shared_offset_topics(&mut one, &items, |_, _| 7);
+        let mut two = Vec::new();
+        refill_shared_offset_topics_cooperative(&mut two, &items, |_, _| 7).await;
+        assert_eq!(one.len(), two.len());
+        assert_eq!(one[0].partitions.len(), two[0].partitions.len());
+        assert_eq!(one[0].partitions[0].offset, two[0].partitions[0].offset);
+        assert_eq!(one[0].partitions[0].leader_epoch, 7);
+        assert_eq!(one[1].topic, two[1].topic);
     }
 
     #[tokio::test(flavor = "current_thread")]
