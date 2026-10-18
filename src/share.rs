@@ -2137,7 +2137,7 @@ pub enum ShareAcquireMode {
 /// for cluster-resource authorization failures. A top-level
 /// ShareAcknowledge `INVALID_TIMESTAMP` completes without
 /// retry and does not request Metadata, including when `ErrorMessage`
-/// is set (Java `handleShareAcknowledgeSuccess` has no
+/// is set or empty (Java `handleShareAcknowledgeSuccess` has no
 /// `metadata.requestUpdate`; this is not top-level
 /// `CLUSTER_AUTHORIZATION_FAILED`). Official Java `LogValidator` writes
 /// this when a record timestamp is outside the acceptable range. A top-level
@@ -4934,7 +4934,7 @@ impl ShareGroup {
     /// failures.
     /// A top-level ShareAcknowledge `INVALID_TIMESTAMP`
     /// completes without retry and does not request Metadata,
-    /// including when `ErrorMessage` is set (Java
+    /// including when `ErrorMessage` is set or empty (Java
     /// `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`;
     /// this is not top-level `CLUSTER_AUTHORIZATION_FAILED`). Official
     /// Java `LogValidator` writes this when a record timestamp is

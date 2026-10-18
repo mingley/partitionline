@@ -3216,7 +3216,7 @@
 //! for cluster-resource authorization failures.
 //! Top-level ShareAcknowledge `INVALID_TIMESTAMP` completes
 //! without retry and does not request Metadata, including when
-//! `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+//! `ErrorMessage` is set or empty (Java `handleShareAcknowledgeSuccess` has no
 //! `metadata.requestUpdate`; this is not top-level
 //! `CLUSTER_AUTHORIZATION_FAILED`). Official Java `LogValidator` writes
 //! this when a record timestamp is outside the acceptable range.
