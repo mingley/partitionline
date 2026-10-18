@@ -1577,7 +1577,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `INVALID_REPLICATION_FACTOR`). Official Java `ReplicationControlManager` writes
   this when CreateTopics supplies an invalid manual replica assignment.
   Top-level `INVALID_CONFIG` still fails that poll
-  without Metadata, including when `ErrorMessage` is set (Java
+  without Metadata, including when `ErrorMessage` is set or empty (Java
   `handleShareFetchSuccess` only `requestUpdate`s for top-level
   `UNKNOWN_TOPIC_ID`; this is not top-level
   `INVALID_REPLICA_ASSIGNMENT`). Official Java `ReplicationControlManager` writes
