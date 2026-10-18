@@ -311,6 +311,12 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `metadata.requestUpdate`; this is not top-level
   `INVALID_PRODUCER_ID_MAPPING`). Official Java `TransactionCoordinator` writes
   this when InitProducerId uses a transaction timeout that is not positive or exceeds `transaction.max.timeout.ms`.
+  A top-level ShareAcknowledge `TRANSACTION_COORDINATOR_FENCED` completes
+  without retry and does not request Metadata, including when
+  `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+  `metadata.requestUpdate`; this is not top-level
+  `INVALID_TRANSACTION_TIMEOUT`). Official Java `ProducerAppendInfo` writes
+  this when an end-transaction marker uses a coordinator epoch older than the current epoch for that producerId.
   A piggybacked ShareFetch
   `AcknowledgeErrorMessage` that is empty uses
   `ShareFetch acknowledgement {topic}-{partition}`. A piggybacked
