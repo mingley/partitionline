@@ -58841,6 +58841,44 @@ async fn share_fetch_top_level_invalid_replication_factor_empty_message_fails_wi
 }
 
 #[tokio::test]
+async fn share_fetch_top_level_invalid_replica_assignment_message_fails_without_metadata() {
+    let mock = common::Mock::start().await;
+    v2(&mock);
+    produce(&mock, &[(0, b"keep")]).await;
+    let mut group = ShareGroup::join(config(&mock), "fetch-ira-top-msg", "t")
+        .await
+        .unwrap();
+    let version = mock.last_share_fetch_version().unwrap_or(2);
+    let mut injected = BytesMut::new();
+    encode_share_fetch_error_with_message(
+        &mut injected,
+        version,
+        error::INVALID_REPLICA_ASSIGNMENT,
+        Some("invalid replica assignment"),
+    )
+    .unwrap();
+    mock.inject_share_fetch_response_once(&injected);
+    match group.poll().await.unwrap_err() {
+        Error::Broker { code, message } => {
+            assert_eq!(code, error::INVALID_REPLICA_ASSIGNMENT);
+            assert_eq!(message, "invalid replica assignment");
+        }
+        other => panic!("{other:?}"),
+    }
+    let after_err = mock.metadata_calls();
+    let got = group.poll().await.unwrap();
+    assert_eq!(got.len(), 1);
+    assert_eq!(got[0].value.as_deref(), Some(&b"keep"[..]));
+    assert_eq!(
+        mock.metadata_calls(),
+        after_err,
+        "Java handleShareFetchSuccess only requestUpdates for top-level UNKNOWN_TOPIC_ID"
+    );
+    group.accept(&got).await.unwrap();
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn share_fetch_top_level_unknown_topic_id_message_still_refreshes_topic_id() {
     let mock = common::Mock::start().await;
     v2(&mock);

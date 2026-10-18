@@ -3182,7 +3182,13 @@
 //! `handleShareFetchSuccess` only `requestUpdate`s for
 //! `UNKNOWN_TOPIC_ID`; this is not top-level
 //! `INVALID_PARTITIONS`). Official Java `ReplicationControlManager` writes
-//! this when CreateTopics sets `replicationFactor` to an invalid non-positive value. Partition
+//! this when CreateTopics sets `replicationFactor` to an invalid non-positive value. Top-level
+//! `INVALID_REPLICA_ASSIGNMENT` still fails that poll without
+//! Metadata, including when `ErrorMessage` is set (Java
+//! `handleShareFetchSuccess` only `requestUpdate`s for
+//! `UNKNOWN_TOPIC_ID`; this is not top-level
+//! `INVALID_REPLICATION_FACTOR`). Official Java `ReplicationControlManager` writes
+//! this when CreateTopics supplies an invalid manual replica assignment. Partition
 //! `INCONSISTENT_TOPIC_ID` / `UNKNOWN_TOPIC_OR_PARTITION` /
 //! `UNKNOWN_TOPIC_ID` / `REPLICA_NOT_AVAILABLE` /
 //! `OFFSET_NOT_AVAILABLE` / `KAFKA_STORAGE_ERROR` skip without throwing,
