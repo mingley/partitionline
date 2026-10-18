@@ -14142,7 +14142,7 @@ impl Admin {
         let ids = replica_broker_ids(&replicas);
         if ids.len() <= 1 {
             for broker_id in ids {
-                let topics = describable_topics_for_broker(&replicas, broker_id);
+                let topics = describable_topics_for_broker_cooperative(&replicas, broker_id).await;
                 let resp = self
                     .describe_log_dirs_with(Some(broker_id), timeout, |output, version| {
                         encode_describe_log_dirs_named(output, version, Some(topics.as_slice()))
@@ -14157,10 +14157,13 @@ impl Admin {
             for id in &ids {
                 self.ensure_broker(*id, deadline).await?;
             }
-            let topics_of: HashMap<i32, Vec<(&str, Vec<i32>)>> = ids
-                .iter()
-                .map(|id| (*id, describable_topics_for_broker(&replicas, *id)))
-                .collect();
+            let mut topics_of: HashMap<i32, Vec<(&str, Vec<i32>)>> = HashMap::new();
+            for id in &ids {
+                let _ = topics_of.insert(
+                    *id,
+                    describable_topics_for_broker_cooperative(&replicas, *id).await,
+                );
+            }
             let mut finished = self
                 .exchange_leaders(&ids, deadline, |_admin, node, conn, _timeout| {
                     let version = conn.negotiated(DESCRIBE_LOG_DIRS, 1, 5).ok_or_else(|| {
@@ -14183,7 +14186,8 @@ impl Admin {
                 let resp = match body {
                     Err(error) if error.is_retriable() && !matches!(error, Error::Timeout) => {
                         self.discard_node_conn(broker_id).await;
-                        let topics = describable_topics_for_broker(&replicas, broker_id);
+                        let topics =
+                            describable_topics_for_broker_cooperative(&replicas, broker_id).await;
                         self.describe_log_dirs_with(Some(broker_id), timeout, |output, version| {
                             encode_describe_log_dirs_named(output, version, Some(topics.as_slice()))
                         })
@@ -15976,28 +15980,79 @@ fn alter_replica_partition_error(
     0
 }
 
+fn place_describable_topic<'a>(
+    groups: &mut Vec<(&'a str, Vec<i32>)>,
+    slots: &mut HashMap<&'a str, usize>,
+    seen: &mut Vec<HashSet<i32>>,
+    topic: &'a str,
+    partition: i32,
+) {
+    if let Some(&slot) = slots.get(topic) {
+        let fresh = seen
+            .get_mut(slot)
+            .is_some_and(|known| known.insert(partition));
+        if !fresh {
+            return;
+        }
+        if let Some((_, parts)) = groups.get_mut(slot) {
+            parts.push(partition);
+        }
+        return;
+    }
+    let slot = groups.len();
+    let mut known = HashSet::new();
+    let _ = known.insert(partition);
+    seen.push(known);
+    let _ = slots.insert(topic, slot);
+    groups.push((topic, vec![partition]));
+}
+
+#[cfg(test)]
 fn describable_topics_for_broker(
     replicas: &[TopicPartitionReplica],
     broker_id: i32,
 ) -> Vec<(&str, Vec<i32>)> {
-    let mut groups: Vec<(&str, Vec<i32>)> = Vec::new();
-    let mut slots: HashMap<&str, usize> = HashMap::new();
-    for r in replicas {
-        if r.broker_id != broker_id {
+    let mut groups = Vec::new();
+    let mut slots = HashMap::new();
+    let mut seen = Vec::new();
+    for replica in replicas {
+        if replica.broker_id != broker_id {
             continue;
         }
-        let topic = r.topic.as_str();
-        if let Some(&slot) = slots.get(topic) {
-            if let Some((_, parts)) = groups.get_mut(slot) {
-                if !parts.contains(&r.partition) {
-                    parts.push(r.partition);
-                }
-                continue;
-            }
+        place_describable_topic(
+            &mut groups,
+            &mut slots,
+            &mut seen,
+            replica.topic.as_str(),
+            replica.partition,
+        );
+    }
+    groups
+}
+
+async fn describable_topics_for_broker_cooperative(
+    replicas: &[TopicPartitionReplica],
+    broker_id: i32,
+) -> Vec<(&str, Vec<i32>)> {
+    let mut groups = Vec::new();
+    let mut slots = HashMap::new();
+    let mut seen = Vec::new();
+    let mut walked = 0usize;
+    for replica in replicas {
+        if replica.broker_id == broker_id {
+            place_describable_topic(
+                &mut groups,
+                &mut slots,
+                &mut seen,
+                replica.topic.as_str(),
+                replica.partition,
+            );
         }
-        let slot = groups.len();
-        let _ = slots.insert(topic, slot);
-        groups.push((topic, vec![r.partition]));
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
     }
     groups
 }
@@ -18700,6 +18755,40 @@ mod tests {
         assert_eq!(named[1].error_code, error::UNKNOWN_TOPIC_OR_PARTITION);
         assert_eq!(named[2].name, "missing");
         assert_eq!(named[2].error_code, error::UNKNOWN_TOPIC_OR_PARTITION);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn grouping_many_describable_replicas_does_not_hold_the_caller() {
+        // 20_000 replicas: scanning the growing list held the caller 701ms.
+        // A longer walk still has to pause after membership is a set.
+        let replicas: Vec<TopicPartitionReplica> = (0..500_000)
+            .map(|index| TopicPartitionReplica::new("orders", index, 2))
+            .collect();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = describable_topics_for_broker_cooperative(&replicas, 2) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "grouping describable replicas held the caller for {elapsed:?}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn cooperative_describable_topics_match_one_shot() {
+        let replicas = [
+            TopicPartitionReplica::new("orders", 1, 2),
+            TopicPartitionReplica::new("orders", 1, 2),
+            TopicPartitionReplica::new("orders", 0, 2),
+            TopicPartitionReplica::new("payments", 4, 1),
+        ];
+        let one = describable_topics_for_broker(&replicas, 2);
+        let two = describable_topics_for_broker_cooperative(&replicas, 2).await;
+        assert_eq!(one.len(), 1);
+        assert_eq!(one[0].0, two[0].0);
+        assert_eq!(one[0].1, two[0].1);
     }
 
     #[test]
