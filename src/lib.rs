@@ -3410,6 +3410,12 @@
 //! `metadata.requestUpdate`; this is not top-level
 //! `INVALID_TXN_STATE`). Official Java `TransactionCoordinator` writes
 //! this when a transactional request uses a producerId that is not currently assigned to that transactional id.
+//! Top-level ShareAcknowledge `INVALID_TRANSACTION_TIMEOUT` completes
+//! without retry and does not request Metadata, including when
+//! `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+//! `metadata.requestUpdate`; this is not top-level
+//! `INVALID_PRODUCER_ID_MAPPING`). Official Java `TransactionCoordinator` writes
+//! this when InitProducerId uses a transaction timeout that is not positive or exceeds `transaction.max.timeout.ms`.
 //! Top-level ShareAcknowledge
 //! `SHARE_SESSION_LIMIT_REACHED` completes without retry and advances
 //! the session epoch (Java `ShareSessionHandler.handleResponse`
