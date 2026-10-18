@@ -703,6 +703,31 @@ fn acquisition_at<'a>(
     acquisition_run(map.get(topic)?, partition, offset).map(|run| &run.acquisition)
 }
 
+/// Reject an acknowledgement whose delivery count is no longer the stored one.
+///
+/// A long batch pauses between slices so the check can still reach a deadline.
+async fn reject_stale_share_acks(map: &AcquisitionMap, recs: &[ShareRecord]) -> Result<()> {
+    let mut walked = 0usize;
+    for record in recs {
+        let acquired = acquisition_at(map, &record.topic, record.partition, record.offset);
+        if acquired.is_none_or(|a| a.delivery_count != record.delivery_count) {
+            return Err(Error::broker(
+                error::INVALID_RECORD_STATE,
+                format!(
+                    "stale share acknowledgement {}-{}@{}",
+                    record.topic, record.partition, record.offset
+                ),
+            ));
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    Ok(())
+}
+
 fn acquisition_node(map: &AcquisitionMap, topic: &str, partition: i32, offset: i64) -> Option<i32> {
     acquisition_run(map.get(topic)?, partition, offset).map(|run| run.acquisition.node)
 }
@@ -4294,23 +4319,7 @@ impl ShareGroup {
         }
         self.refresh_share_topic_ids();
         self.prune_expired_acquisitions().await;
-        for record in recs {
-            let acquired = acquisition_at(
-                &self.acquisitions,
-                &record.topic,
-                record.partition,
-                record.offset,
-            );
-            if acquired.is_none_or(|a| a.delivery_count != record.delivery_count) {
-                return Err(Error::broker(
-                    error::INVALID_RECORD_STATE,
-                    format!(
-                        "stale share acknowledgement {}-{}@{}",
-                        record.topic, record.partition, record.offset
-                    ),
-                ));
-            }
-        }
+        reject_stale_share_acks(&self.acquisitions, recs).await?;
         let mut partitions = std::mem::take(&mut self.ack_partitions);
         acknowledgement_batches_with(
             recs,
@@ -6915,6 +6924,53 @@ mod tests {
     use std::sync::Arc;
 
     use super::*;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn checking_many_share_acks_does_not_hold_the_caller() {
+        // 2_000_000 records: checking stored acquisitions held the caller 694ms.
+        let topic = crate::consumer::TopicName::from("orders");
+        let mut runs = TopicRuns::new();
+        runs.runs.push(AcquisitionRun {
+            partition: 0,
+            first: 0,
+            last: 1_999_999,
+            acquisition: Acquisition {
+                node: 1,
+                delivery_count: 1,
+                expires_at: None,
+            },
+        });
+        let _ = runs.by_partition.insert(0, vec![0]);
+        let mut map = AcquisitionMap::new();
+        let _ = map.insert(topic.clone(), runs);
+        let mut recs = Vec::with_capacity(2_000_000);
+        for offset in 0..2_000_000 {
+            recs.push(ShareRecord {
+                topic: topic.clone(),
+                partition: 0,
+                offset,
+                timestamp: 1,
+                timestamp_type: TimestampType::CreateTime,
+                key: None,
+                value: None,
+                headers: Vec::new(),
+                delivery_count: 1,
+                leader_epoch: None,
+            });
+        }
+        let started = std::time::Instant::now();
+        tokio::select! {
+            result = reject_stale_share_acks(&map, &recs) => {
+                assert!(result.is_ok());
+            }
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "checking share acknowledgements held the caller for {elapsed:?}"
+        );
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn grouping_many_share_acks_does_not_hold_the_caller() {
