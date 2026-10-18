@@ -2360,6 +2360,12 @@ pub enum ShareAcquireMode {
 /// `RESOURCE_NOT_FOUND`). Official Java `ScramImage`
 /// DescribeUserScramCredentials writes this when the same user is
 /// requested twice.
+/// Top-level `UNACCEPTABLE_CREDENTIAL` still fails that poll
+/// and does not request Metadata, including when `ErrorMessage` is
+/// set (Java `handleShareFetchSuccess` only `requestUpdate`s for
+/// `UNKNOWN_TOPIC_ID`; this is not top-level
+/// `DUPLICATE_RESOURCE`). Official Java `ScramControlManager` writes
+/// this when a SCRAM upsert has too few iterations.
 /// Top-level
 /// `SHARE_SESSION_LIMIT_REACHED` resets the share session and does
 /// not request Metadata, including when `ErrorMessage` is set or
@@ -5464,6 +5470,12 @@ impl ShareGroup {
     /// `RESOURCE_NOT_FOUND`). Official Java `ScramImage`
     /// DescribeUserScramCredentials writes this when the same user
     /// is requested twice. Top-level
+    /// `UNACCEPTABLE_CREDENTIAL` still fails that poll without
+    /// Metadata, including when `ErrorMessage` is set (Java
+    /// `handleShareFetchSuccess` only `requestUpdate`s for
+    /// `UNKNOWN_TOPIC_ID`; this is not top-level
+    /// `DUPLICATE_RESOURCE`). Official Java `ScramControlManager`
+    /// writes this when a SCRAM upsert has too few iterations. Top-level
     /// `SHARE_SESSION_LIMIT_REACHED` resets the share session and
     /// does not request Metadata, including when `ErrorMessage` is
     /// set or empty (Java `handleShareFetchSuccess` only

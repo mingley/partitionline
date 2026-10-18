@@ -3410,7 +3410,13 @@
 //! `UNKNOWN_TOPIC_ID`; this is not top-level
 //! `RESOURCE_NOT_FOUND`). Official Java `ScramImage`
 //! DescribeUserScramCredentials writes this when the same user is
-//! requested twice. Partition
+//! requested twice. Top-level
+//! `UNACCEPTABLE_CREDENTIAL` still fails that poll without
+//! Metadata, including when `ErrorMessage` is set (Java
+//! `handleShareFetchSuccess` only `requestUpdate`s for
+//! `UNKNOWN_TOPIC_ID`; this is not top-level
+//! `DUPLICATE_RESOURCE`). Official Java `ScramControlManager` writes
+//! this when a SCRAM upsert has too few iterations. Partition
 //! `INCONSISTENT_TOPIC_ID` / `UNKNOWN_TOPIC_OR_PARTITION` /
 //! `UNKNOWN_TOPIC_ID` / `REPLICA_NOT_AVAILABLE` /
 //! `OFFSET_NOT_AVAILABLE` / `KAFKA_STORAGE_ERROR` skip without throwing,
