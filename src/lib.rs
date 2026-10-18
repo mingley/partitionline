@@ -3218,7 +3218,13 @@
 //! `handleShareFetchSuccess` only `requestUpdate`s for
 //! `UNKNOWN_TOPIC_ID`; this is not top-level
 //! `POLICY_VIOLATION`). Official Java `ProducerAppendInfo` writes
-//! this when an idempotent produce batch is not the next expected sequence for that producerId. Partition
+//! this when an idempotent produce batch is not the next expected sequence for that producerId. Top-level
+//! `INVALID_PRODUCER_EPOCH` still fails that poll without
+//! Metadata, including when `ErrorMessage` is set (Java
+//! `handleShareFetchSuccess` only `requestUpdate`s for
+//! `UNKNOWN_TOPIC_ID`; this is not top-level
+//! `OUT_OF_ORDER_SEQUENCE_NUMBER`). Official Java `ProducerAppendInfo` writes
+//! this when an idempotent produce batch uses a producer epoch older than the current epoch for that producerId. Partition
 //! `INCONSISTENT_TOPIC_ID` / `UNKNOWN_TOPIC_OR_PARTITION` /
 //! `UNKNOWN_TOPIC_ID` / `REPLICA_NOT_AVAILABLE` /
 //! `OFFSET_NOT_AVAILABLE` / `KAFKA_STORAGE_ERROR` skip without throwing,

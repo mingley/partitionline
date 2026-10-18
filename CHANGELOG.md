@@ -1636,6 +1636,12 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `UNKNOWN_TOPIC_ID`; this is not top-level
   `POLICY_VIOLATION`). Official Java `ProducerAppendInfo` writes
   this when an idempotent produce batch is not the next expected sequence for that producerId.
+  Top-level `INVALID_PRODUCER_EPOCH` still fails that poll
+  without Metadata, including when `ErrorMessage` is set (Java
+  `handleShareFetchSuccess` only `requestUpdate`s for top-level
+  `UNKNOWN_TOPIC_ID`; this is not top-level
+  `OUT_OF_ORDER_SEQUENCE_NUMBER`). Official Java `ProducerAppendInfo` writes
+  this when an idempotent produce batch uses a producer epoch older than the current epoch for that producerId.
   A non-empty
   throwable partition or top-level ShareFetch `ErrorMessage` is
   preferred; empty uses `ShareFetch {topic}-{partition}` or
