@@ -3159,7 +3159,7 @@
 //! writes this when a request other than `SASL_AUTHENTICATE` arrives
 //! during SASL authentication. Top-level
 //! `UNSUPPORTED_VERSION` still fails that poll without
-//! Metadata, including when `ErrorMessage` is set (Java
+//! Metadata, including when `ErrorMessage` is set or empty (Java
 //! `handleShareFetchSuccess` only `requestUpdate`s for
 //! `UNKNOWN_TOPIC_ID`; this is not top-level
 //! `ILLEGAL_SASL_STATE`). Official Java `SaslServerAuthenticator` writes

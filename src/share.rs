@@ -2086,7 +2086,7 @@ pub enum ShareAcquireMode {
 /// during SASL authentication.
 /// Top-level `UNSUPPORTED_VERSION` still fails that poll
 /// and does not request Metadata, including when `ErrorMessage` is
-/// set (Java `handleShareFetchSuccess` only `requestUpdate`s for
+/// set or empty (Java `handleShareFetchSuccess` only `requestUpdate`s for
 /// `UNKNOWN_TOPIC_ID`; this is not top-level
 /// `ILLEGAL_SASL_STATE`). Official Java `SaslServerAuthenticator` writes
 /// this when an ApiVersions request version is unsupported during SASL
@@ -4627,7 +4627,7 @@ impl ShareGroup {
     /// `SaslServerAuthenticator` writes this when a request other than
     /// `SASL_AUTHENTICATE` arrives during SASL authentication. Top-level
     /// `UNSUPPORTED_VERSION` still fails that poll without
-    /// Metadata, including when `ErrorMessage` is set (Java
+    /// Metadata, including when `ErrorMessage` is set or empty (Java
     /// `handleShareFetchSuccess` only `requestUpdate`s for
     /// `UNKNOWN_TOPIC_ID`; this is not top-level
     /// `ILLEGAL_SASL_STATE`). Official Java `SaslServerAuthenticator`
