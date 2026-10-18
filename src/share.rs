@@ -2512,6 +2512,13 @@ pub enum ShareAcquireMode {
 /// `DELEGATION_TOKEN_REQUEST_NOT_ALLOWED`). Official Java `KafkaApis`
 /// writes this when the requester is not the owner and lacks
 /// `CREATE_TOKENS` on the owner user. A top-level
+/// ShareAcknowledge `DELEGATION_TOKEN_EXPIRED` completes without
+/// retry and does not request Metadata, including when `ErrorMessage`
+/// is set (Java `handleShareAcknowledgeSuccess` has no
+/// `metadata.requestUpdate`; this is not top-level
+/// `DELEGATION_TOKEN_AUTHORIZATION_FAILED`). Official Java
+/// `DelegationTokenControlManager` writes this when a requested
+/// delegation token is already expired. A top-level
 /// ShareAcknowledge `SHARE_SESSION_LIMIT_REACHED` completes without
 /// retry and does not request Metadata, including when `ErrorMessage`
 /// is set or empty (Java `handleShareAcknowledgeSuccess` has no
@@ -5704,6 +5711,13 @@ impl ShareGroup {
     /// this is not top-level `DELEGATION_TOKEN_REQUEST_NOT_ALLOWED`). Official
     /// Java `KafkaApis` writes this when the requester is not the
     /// owner and lacks `CREATE_TOKENS` on the owner user.
+    /// A top-level ShareAcknowledge `DELEGATION_TOKEN_EXPIRED`
+    /// completes without retry and does not request Metadata,
+    /// including when `ErrorMessage` is set (Java
+    /// `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`;
+    /// this is not top-level `DELEGATION_TOKEN_AUTHORIZATION_FAILED`). Official
+    /// Java `DelegationTokenControlManager` writes this when a
+    /// requested delegation token is already expired.
     /// Top-level `SHARE_SESSION_LIMIT_REACHED`
     /// completes without retry and advances the session epoch (Java
     /// `ShareSessionHandler.handleResponse` `nextEpoch`), including
