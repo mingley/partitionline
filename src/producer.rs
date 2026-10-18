@@ -9492,7 +9492,7 @@ async fn encode_flexible_partition_async(
         base_sequence,
         transactional,
     )?;
-    reserve_compressed_section(&header, pendings, now, scratch)?;
+    reserve_compressed_section(&header, pendings, now, scratch).await?;
     let batch_len = pack_compressed_pendings(&header, pendings, now, scratch).await?;
     let compact = crate::protocol::buf::u32_from_usize(batch_len)?
         .checked_add(1)
@@ -9538,7 +9538,7 @@ async fn encode_classic_partition_async(
     let batch_len = if compression == Compression::None {
         uncompressed_pending_len(&header, pendings, now).await?
     } else {
-        reserve_compressed_section(&header, pendings, now, scratch)?;
+        reserve_compressed_section(&header, pendings, now, scratch).await?;
         pack_compressed_pendings(&header, pendings, now, scratch).await?
     };
     let wire_len = crate::protocol::buf::i32_from_usize(batch_len)?;
@@ -9621,7 +9621,7 @@ fn reserve_produce_tail(buf: &mut BytesMut, extra: usize) {
     }
 }
 
-fn reserve_compressed_section(
+async fn reserve_compressed_section(
     header: &BatchHeader,
     pendings: &[Pending],
     now: i64,
@@ -9630,15 +9630,31 @@ fn reserve_compressed_section(
     if Compression::from_attributes(header.attributes)? == Compression::None {
         return Ok(());
     }
-    let section = crate::protocol::records::uncompressed_section_len(
-        header,
-        pendings.iter().map(|pending| EncodeRecord {
+    let mut section = 0usize;
+    let mut index = 0usize;
+    let mut walked = 0usize;
+    while index < pendings.len() {
+        let Some(pending) = pendings.get(index) else {
+            break;
+        };
+        let record = EncodeRecord {
             timestamp: pending.rec.timestamp.unwrap_or(now),
             key: pending.rec.key.as_deref(),
             value: pending.rec.value.as_deref(),
             headers: &pending.rec.headers,
-        }),
-    )?;
+        };
+        section = section
+            .checked_add(crate::protocol::records::encoded_record_wire(
+                header, index, &record,
+            )?)
+            .ok_or_else(|| Error::protocol("batch size overflow"))?;
+        index = index.saturating_add(1);
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
     scratch.reserve_section(section);
     Ok(())
 }
@@ -9683,7 +9699,7 @@ async fn encode_pendings(
     {
         return write_uncompressed_pendings(buf, header, pendings, now, scratch).await;
     }
-    reserve_compressed_section(header, pendings, now, scratch)?;
+    reserve_compressed_section(header, pendings, now, scratch).await?;
     let _batch_len = pack_compressed_pendings(header, pendings, now, scratch).await?;
     crate::protocol::records::write_packed_batch(buf, header, scratch)?;
     scratch.shrink_to_caps();

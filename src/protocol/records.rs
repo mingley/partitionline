@@ -2841,6 +2841,7 @@ where
 /// Uncompressed record bytes that a compressed batch writes before packing.
 ///
 /// This is [`uncompressed_batch_len`] without [`RecordBatch::RECORD_BATCH_OVERHEAD`].
+#[cfg(test)]
 pub(crate) fn uncompressed_section_len<'a, I>(header: &BatchHeader, records: I) -> Result<usize>
 where
     I: IntoIterator<Item = EncodeRecord<'a>>,
@@ -4443,6 +4444,33 @@ fn read_bytes_varint<B: Buf>(buf: &mut B) -> Result<Option<Bytes>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn measuring_many_record_bytes_does_not_hold_the_caller() {
+        // 2_000_000 records: measuring the batch held the caller 365ms.
+        let header = BatchHeader::default();
+        let records: Vec<EncodeRecord<'_>> = (0..2_000_000)
+            .map(|_| EncodeRecord {
+                timestamp: 1,
+                key: None,
+                value: Some(b"x"),
+                headers: &[],
+            })
+            .collect();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            size = uncompressed_batch_len_cooperative(&header, records) => {
+                let size = size.unwrap_or_else(|error| panic!("{error}"));
+                assert!(size > 0);
+            }
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "measuring record bytes held the caller for {elapsed:?}"
+        );
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn decoding_a_long_batch_run_does_not_hold_the_caller() {
