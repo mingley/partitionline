@@ -3711,7 +3711,7 @@ impl ConsumerGroup {
                     }
                     _ = tokio::time::sleep(sleep_duration) => Wake::Beat,
                     _ = coordinator_lost(&mut conn) => {
-                        conn = None;
+                        retire_group_conn(&mut conn).await;
                         next_hb_deadline = Instant::now();
                         Wake::Beat
                     }
@@ -3798,7 +3798,7 @@ impl ConsumerGroup {
                 };
                 let version = c.consumer_group_heartbeat_version;
                 if spoken_consumer_group_heartbeat(version).is_err() {
-                    conn = None;
+                    retire_group_conn(&mut conn).await;
                     hb_err.store(error::UNSUPPORTED_VERSION, Ordering::SeqCst);
                     let retry_delay = cfg.retry_backoff.max(Duration::from_millis(50));
                     next_hb_deadline = Instant::now() + retry_delay;
@@ -3842,7 +3842,7 @@ impl ConsumerGroup {
                                             .with_address_keys(&address_keys),
                                     );
                                 }
-                                conn = None;
+                                retire_group_conn(&mut conn).await;
                                 let retry_delay = cfg.retry_backoff.max(Duration::from_millis(50));
                                 next_hb_deadline = Instant::now() + retry_delay;
                                 *hb_deadline.lock() = Some(next_hb_deadline);
@@ -3908,7 +3908,7 @@ impl ConsumerGroup {
                                 );
                             }
                             hb_err.store(error::INVALID_REQUEST, Ordering::SeqCst);
-                            conn = None;
+                            retire_group_conn(&mut conn).await;
                             let retry_delay = cfg.retry_backoff.max(Duration::from_millis(50));
                             next_hb_deadline = Instant::now() + retry_delay;
                             *hb_deadline.lock() = Some(next_hb_deadline);
@@ -3922,7 +3922,7 @@ impl ConsumerGroup {
                                     .with_address_keys(&address_keys),
                             );
                         }
-                        conn = None;
+                        retire_group_conn(&mut conn).await;
                         let retry_delay = cfg.retry_backoff.max(Duration::from_millis(50));
                         next_hb_deadline = Instant::now() + retry_delay;
                         *hb_deadline.lock() = Some(next_hb_deadline);
@@ -3964,7 +3964,7 @@ impl ConsumerGroup {
                     }
                     _ = tick.tick() => Wake::Beat,
                     _ = coordinator_lost(&mut conn) => {
-                        conn = None;
+                        retire_group_conn(&mut conn).await;
                         Wake::Beat
                     }
                 };
@@ -4026,7 +4026,7 @@ impl ConsumerGroup {
                     // cannot keep the member alive. Drop the socket and
                     // surface the miss; the next successful heartbeat
                     // stores error 0 and clears it.
-                    conn = None;
+                    retire_group_conn(&mut conn).await;
                     hb_err.store(error::UNSUPPORTED_VERSION, Ordering::SeqCst);
                     continue;
                 };
@@ -4059,7 +4059,7 @@ impl ConsumerGroup {
                                             .with_address_keys(&address_keys),
                                     );
                                 }
-                                conn = None;
+                                retire_group_conn(&mut conn).await;
                             } else {
                                 hb_err.store(err, Ordering::SeqCst);
                             }
@@ -4073,7 +4073,7 @@ impl ConsumerGroup {
                                     .with_address_keys(&address_keys),
                             );
                         }
-                        conn = None;
+                        retire_group_conn(&mut conn).await;
                     }
                 }
             }
@@ -5218,6 +5218,13 @@ pub(crate) async fn coordinator_lost(conn: &mut Option<BrokerConn>) -> bool {
     true
 }
 
+async fn retire_group_conn(conn: &mut Option<BrokerConn>) {
+    if let Some(mut current) = conn.take() {
+        current.close();
+        current.release_if_closed().await;
+    }
+}
+
 /// Reconnect an idle coordinator while its address is checked again.
 ///
 /// The first connection still uses a normal lookup. An idle socket keeps its
@@ -5240,7 +5247,7 @@ pub(crate) async fn reopen_idle_coordinator(
                 .with_bootstrap_keys(bootstrap_keys)
                 .with_address_keys(address_keys)
         });
-        *conn = None;
+        retire_group_conn(conn).await;
         snap
     } else {
         None
@@ -6383,6 +6390,44 @@ mod tests {
     use std::time::Duration;
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
     use tokio::net::TcpListener;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn retiring_a_coordinator_lets_the_broker_leave() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let open = Arc::new(AtomicUsize::new(0));
+        let flag = Arc::clone(&open);
+        let peer = tokio::spawn(async move {
+            let Ok((mut socket, _)) = listener.accept().await else {
+                return;
+            };
+            let _started = flag.fetch_add(1, Ordering::SeqCst);
+            let mut buf = [0u8; 8];
+            loop {
+                match socket.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let conn = BrokerConn::connect(&addr, "group-coord", Duration::from_secs(2))
+            .await
+            .unwrap();
+        while open.load(Ordering::SeqCst) == 0 {
+            tokio::task::yield_now().await;
+        }
+        let mut held = Some(conn);
+        retire_group_conn(&mut held).await;
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "retiring a coordinator left the broker blocked in a read"
+        );
+        peer.abort();
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn queued_bytes_do_not_block_the_heartbeat_interval() {
