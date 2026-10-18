@@ -2772,7 +2772,7 @@ pub enum ShareAcquireMode {
 /// writes this when a feature update version is invalid. A top-level
 /// ShareAcknowledge `FEATURE_UPDATE_FAILED` completes without
 /// retry and does not request Metadata, including when `ErrorMessage`
-/// is set (Java `handleShareAcknowledgeSuccess` has no
+/// is set or empty (Java `handleShareAcknowledgeSuccess` has no
 /// `metadata.requestUpdate`; this is not top-level
 /// `INVALID_UPDATE_VERSION`). Official Java `KafkaController` writes
 /// this when a FeatureZNode update fails after the requested feature
@@ -6235,7 +6235,7 @@ impl ShareGroup {
     /// version is invalid.
     /// A top-level ShareAcknowledge `FEATURE_UPDATE_FAILED`
     /// completes without retry and does not request Metadata,
-    /// including when `ErrorMessage` is set (Java
+    /// including when `ErrorMessage` is set or empty (Java
     /// `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`;
     /// this is not top-level `INVALID_UPDATE_VERSION`). Official Java
     /// `KafkaController` writes this when a FeatureZNode update fails
