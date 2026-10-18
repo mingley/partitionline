@@ -3274,7 +3274,7 @@
 //! `OPERATION_NOT_ATTEMPTED`). Official Java `LogManager` writes
 //! this when a requested log directory is not in the broker config. Top-level
 //! `SASL_AUTHENTICATION_FAILED` still fails that poll without
-//! Metadata, including when `ErrorMessage` is set (Java
+//! Metadata, including when `ErrorMessage` is set or empty (Java
 //! `handleShareFetchSuccess` only `requestUpdate`s for
 //! `UNKNOWN_TOPIC_ID`; this is not top-level
 //! `LOG_DIR_NOT_FOUND`). Official Java `SaslServerAuthenticator` writes
