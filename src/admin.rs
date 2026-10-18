@@ -3150,7 +3150,7 @@ pub(crate) async fn fetch_client_instance_id(
     Ok(resp.client_instance_id)
 }
 
-fn borrowed_offset_fetch_groups<'a>(
+async fn borrowed_offset_fetch_groups<'a>(
     jobs: &'a [(String, ListConsumerGroupOffsetsSpec)],
     idxs: &[usize],
 ) -> Result<Vec<BorrowedOffsetFetchRequestGroup<'a>>> {
@@ -3159,11 +3159,12 @@ fn borrowed_offset_fetch_groups<'a>(
         let job = jobs
             .get(i)
             .ok_or_else(|| Error::protocol("missing group spec"))?;
-        let topics = job.1.partitions.as_ref().map(|parts| {
-            crate::group::group_borrowed_offset_fetch_topics(
-                parts.iter().map(|tp| (tp.topic.as_str(), tp.partition)),
-            )
-        });
+        let topics = match job.1.partitions.as_deref() {
+            Some(parts) => {
+                Some(crate::group::group_borrowed_offset_fetch_topics_cooperative(parts).await)
+            }
+            None => None,
+        };
         groups.push(BorrowedOffsetFetchRequestGroup {
             group_id: job.0.as_str(),
             member_id: None,
@@ -11298,16 +11299,21 @@ impl Admin {
                     let mut next_remaining = Vec::new();
                     let mut retry = false;
                     if nodes.len() > 1 {
+                        let mut prepared = HashMap::new();
+                        for node in &nodes {
+                            let idxs = by_node.get(node).map(Vec::as_slice).unwrap_or(&[]);
+                            let _ = prepared
+                                .insert(*node, borrowed_offset_fetch_groups(&jobs, idxs).await?);
+                        }
                         let mut finished = self
                             .exchange_leaders(&nodes, deadline, |_admin, node, conn, _timeout| {
-                                let idxs = by_node.get(&node).map(Vec::as_slice).unwrap_or(&[]);
-                                let groups = borrowed_offset_fetch_groups(&jobs, idxs)?;
+                                let groups = prepared.get(&node).map(Vec::as_slice).unwrap_or(&[]);
                                 let version = conn.offset_version(OFFSET_FETCH, 8, 9)?;
                                 let mut payload = BytesMut::new();
                                 encode_offset_fetch_groups_named(
                                     &mut payload,
                                     version,
-                                    &groups,
+                                    groups,
                                     require_stable,
                                 )?;
                                 Ok(LeaderFrame {
@@ -11351,7 +11357,7 @@ impl Admin {
                     } else {
                         for node in nodes {
                             let idxs = by_node.get(&node).cloned().unwrap_or_default();
-                            let groups = borrowed_offset_fetch_groups(&jobs, &idxs)?;
+                            let groups = borrowed_offset_fetch_groups(&jobs, &idxs).await?;
                             self.prepare_node_until(node, deadline).await?;
                             let version = self.offset_version_on(node, OFFSET_FETCH, 8, 9)?;
                             let timeout = deadline.saturating_duration_since(Instant::now());
@@ -11558,11 +11564,12 @@ impl Admin {
                 .fetch_named_offsets_v10(group_id, topics.as_deref(), require_stable, deadline)
                 .await;
         }
-        let topics = partitions.map(|parts| {
-            crate::group::group_borrowed_offset_fetch_topics(
-                parts.iter().map(|tp| (tp.topic.as_str(), tp.partition)),
-            )
-        });
+        let topics = match partitions {
+            Some(parts) => {
+                Some(crate::group::group_borrowed_offset_fetch_topics_cooperative(parts).await)
+            }
+            None => None,
+        };
         let client_min = if topics.is_none() { 2 } else { 1 };
         let _bootstrap_version = self
             .versions

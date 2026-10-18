@@ -5220,23 +5220,64 @@ pub(crate) fn group_offset_fetch_topics<'a>(
     topics
 }
 
+fn place_borrowed_fetch_topic<'a>(
+    groups: &mut Vec<(&'a str, Vec<i32>)>,
+    slots: &mut HashMap<&'a str, usize>,
+    seen: &mut Vec<HashSet<i32>>,
+    topic: &'a str,
+    part: i32,
+) {
+    if let Some(&slot) = slots.get(topic) {
+        let fresh = seen.get_mut(slot).is_some_and(|known| known.insert(part));
+        if !fresh {
+            return;
+        }
+        if let Some((_, parts)) = groups.get_mut(slot) {
+            parts.push(part);
+        }
+        return;
+    }
+    let slot = groups.len();
+    let mut known = HashSet::new();
+    let _ = known.insert(part);
+    seen.push(known);
+    let _ = slots.insert(topic, slot);
+    groups.push((topic, vec![part]));
+}
+
+#[cfg(test)]
 pub(crate) fn group_borrowed_offset_fetch_topics<'a>(
     wanted: impl IntoIterator<Item = (&'a str, i32)>,
 ) -> Vec<(&'a str, Vec<i32>)> {
-    let mut groups: Vec<(&str, Vec<i32>)> = Vec::new();
-    let mut slots: HashMap<&str, usize> = HashMap::new();
+    let mut groups = Vec::new();
+    let mut slots = HashMap::new();
+    let mut seen = Vec::new();
     for (topic, part) in wanted {
-        if let Some(&slot) = slots.get(topic) {
-            if let Some((_, parts)) = groups.get_mut(slot) {
-                if !parts.contains(&part) {
-                    parts.push(part);
-                }
-                continue;
-            }
+        place_borrowed_fetch_topic(&mut groups, &mut slots, &mut seen, topic, part);
+    }
+    groups
+}
+
+pub(crate) async fn group_borrowed_offset_fetch_topics_cooperative(
+    wanted: &[TopicPartition],
+) -> Vec<(&str, Vec<i32>)> {
+    let mut groups = Vec::new();
+    let mut slots = HashMap::new();
+    let mut seen = Vec::new();
+    let mut walked = 0usize;
+    for tp in wanted {
+        place_borrowed_fetch_topic(
+            &mut groups,
+            &mut slots,
+            &mut seen,
+            tp.topic.as_str(),
+            tp.partition,
+        );
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
         }
-        let slot = groups.len();
-        let _ = slots.insert(topic, slot);
-        groups.push((topic, vec![part]));
     }
     groups
 }
@@ -7256,6 +7297,42 @@ mod tests {
                 )
             })
             .collect()
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn grouping_many_borrowed_offset_fetches_does_not_hold_the_caller() {
+        // 20_000 partitions: scanning the growing list held the caller 725ms.
+        // A longer walk still has to pause after membership is a set.
+        let wanted: Vec<TopicPartition> = (0..500_000)
+            .map(|index| TopicPartition::new("orders", index))
+            .collect();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = group_borrowed_offset_fetch_topics_cooperative(&wanted) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "grouping borrowed offset fetches held the caller for {elapsed:?}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn cooperative_borrowed_offset_fetch_matches_one_shot() {
+        let wanted = vec![
+            TopicPartition::new("orders", 0),
+            TopicPartition::new("orders", 0),
+            TopicPartition::new("orders", 1),
+            TopicPartition::new("payments", 4),
+        ];
+        let one = group_borrowed_offset_fetch_topics(
+            wanted.iter().map(|tp| (tp.topic.as_str(), tp.partition)),
+        );
+        let two = group_borrowed_offset_fetch_topics_cooperative(&wanted).await;
+        assert_eq!(one.len(), two.len());
+        assert_eq!(one[0].1, two[0].1);
+        assert_eq!(one[1].0, two[1].0);
     }
 
     #[tokio::test(flavor = "current_thread")]
