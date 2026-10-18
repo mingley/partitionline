@@ -36,7 +36,7 @@ use crate::protocol::offsets::{
     encode_list_offsets_request, minimum_version_for_timestamp, ListOffsetsPartitionRequest,
 };
 use crate::protocol::records::{
-    split_record_batches, write_java_optional, write_java_optional_bytes,
+    split_record_batches_cooperative, write_java_optional, write_java_optional_bytes,
     write_java_record_headers, BatchList, EncodedBatch, Header, SlotList, TimestampType,
 };
 use crate::protocol::sasl;
@@ -6575,7 +6575,9 @@ impl Consumer {
             // Decode each envelope once, before any record application. Validate
             // every session even when the record budget will discard its body.
             let mut decoded = self.take_decoded(bodies.len());
-            decoded.extend(bodies.drain(..).map(|reply| self.decode_fetch_reply(reply)));
+            for reply in bodies.drain(..) {
+                decoded.push(self.decode_fetch_reply(reply).await);
+            }
             self.park_replies(bodies);
             let mut retry = FetchRetry::None;
             let mut fenced = Vec::new();
@@ -7323,12 +7325,12 @@ impl Consumer {
         }
     }
 
-    fn decode_fetch_reply(&mut self, reply: FetchReply) -> DecodedFetchReply {
+    async fn decode_fetch_reply(&mut self, reply: FetchReply) -> DecodedFetchReply {
         let mut recovery = None;
         let session = self.fetch_sessions.get_mut(&reply.node);
         let mut session = session;
         let mut retained_topics = Vec::new();
-        let body = (|| {
+        let body = async {
             let mut bytes = reply.body?;
             let full = session.as_ref().is_some_and(|s| s.metadata.is_full());
             if let Some(session) = session.as_mut() {
@@ -7352,7 +7354,7 @@ impl Consumer {
             for partitions in raw {
                 let mut split = SlotList::with_capacity(partitions.len());
                 for bytes in partitions {
-                    split.push(split_record_batches(bytes)?);
+                    split.push(split_record_batches_cooperative(bytes).await?);
                 }
                 batches.push(split);
             }
@@ -7381,7 +7383,8 @@ impl Consumer {
                 batches,
                 endpoints,
             })
-        })();
+        }
+        .await;
         if body.is_err() {
             if let Some(session) = session {
                 session.reset();

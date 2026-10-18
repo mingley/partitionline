@@ -3143,6 +3143,7 @@ impl Iterator for BatchListIntoIter {
 /// Split consecutive magic-v2 batches like [`decode_record_batches`] (a
 /// trailing partial batch is ignored), checking framing, magic, CRC32-C and
 /// codec without decompressing anything.
+#[cfg(test)]
 pub(crate) fn split_record_batches(mut buf: Bytes) -> Result<BatchList> {
     let Some(first) = next_framed_batch(&mut buf)? else {
         return Ok(BatchList::Empty);
@@ -3160,6 +3161,34 @@ pub(crate) fn split_record_batches(mut buf: Bytes) -> Result<BatchList> {
     many.push(first);
     while let Some(batch) = next_framed_batch(&mut buf)? {
         many.push(batch);
+    }
+    Ok(BatchList::Many(many))
+}
+
+/// [`split_record_batches`], yielding while a long run of batches is counted.
+pub(crate) async fn split_record_batches_cooperative(mut buf: Bytes) -> Result<BatchList> {
+    let Some(first) = next_framed_batch(&mut buf)? else {
+        return Ok(BatchList::Empty);
+    };
+    if buf.remaining() < 12 {
+        return Ok(BatchList::One(first));
+    }
+    let extra = count_framed_batches_cooperative(buf.as_ref()).await?;
+    if extra == 0 {
+        return Ok(BatchList::One(first));
+    }
+    let mut many = Vec::new();
+    many.try_reserve_exact(extra.saturating_add(1))
+        .map_err(|_| Error::protocol("record batch reserve"))?;
+    many.push(first);
+    let mut walked = 0usize;
+    while let Some(batch) = next_framed_batch(&mut buf)? {
+        many.push(batch);
+        walked = walked.saturating_add(1);
+        if walked == 64 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
     }
     Ok(BatchList::Many(many))
 }
@@ -3203,9 +3232,22 @@ fn next_framed_batch(buf: &mut Bytes) -> Result<Option<EncodedBatch>> {
 ///
 /// A truncated tail is not counted. A negative batch length is an error.
 pub(crate) fn count_framed_batches(bytes: &[u8]) -> Result<usize> {
-    let mut offset = 0usize;
+    count_framed_batches_from(bytes, 0, usize::MAX).map(|(count, _)| count)
+}
+
+/// Count complete batches from `start`, stopping after `budget` bytes.
+///
+/// Returns the number of batches in this slice and the offset to resume at.
+/// A long run of batches is still legal. Counting all of it in one turn
+/// keeps the caller from running until the walk finishes.
+fn count_framed_batches_from(bytes: &[u8], start: usize, budget: usize) -> Result<(usize, usize)> {
+    let mut offset = start.min(bytes.len());
+    let limit = offset.saturating_add(budget.max(12));
     let mut count = 0usize;
     while bytes.len().saturating_sub(offset) >= 12 {
+        if offset >= limit && count > 0 {
+            return Ok((count, offset));
+        }
         let len_at = offset.saturating_add(8);
         let len_bytes = bytes
             .get(len_at..len_at.saturating_add(4))
@@ -3225,7 +3267,22 @@ pub(crate) fn count_framed_batches(bytes: &[u8]) -> Result<usize> {
         offset = offset.saturating_add(need);
         count = count.saturating_add(1);
     }
-    Ok(count)
+    Ok((count, offset))
+}
+
+/// [`count_framed_batches`], yielding between slices so a caller can run.
+pub(crate) async fn count_framed_batches_cooperative(bytes: &[u8]) -> Result<usize> {
+    let mut offset = 0usize;
+    let mut total = 0usize;
+    loop {
+        let (count, next) = count_framed_batches_from(bytes, offset, 64 * 1024)?;
+        total = total.saturating_add(count);
+        if next <= offset || next >= bytes.len() || bytes.len().saturating_sub(next) < 12 {
+            return Ok(total);
+        }
+        offset = next;
+        tokio::task::yield_now().await;
+    }
 }
 
 /// Decode one magic-v2 batch (CRC32-C checked), enforcing [`DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES`].
@@ -3708,6 +3765,21 @@ fn read_bytes_varint<B: Buf>(buf: &mut B) -> Result<Option<Bytes>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn counting_framed_batches_does_not_hold_the_caller() {
+        let raw = vec![0u8; 48 * 1024 * 1024];
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = count_framed_batches_cooperative(&raw) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "counting framed batches held the caller for {elapsed:?}"
+        );
+    }
 
     #[test]
     fn header_getters_match_java() {
