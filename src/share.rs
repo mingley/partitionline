@@ -4233,24 +4233,7 @@ impl ShareGroup {
                 acquired.clear();
             }
         }
-        let incoming_bytes = incoming
-            .iter()
-            .map(share_record_storage_bytes)
-            .fold(0usize, usize::saturating_add);
-        let new_metadata_bytes = incoming
-            .iter()
-            .filter(|record| {
-                acquisition_at(
-                    &self.acquisitions,
-                    &record.topic,
-                    record.partition,
-                    record.offset,
-                )
-                .is_none()
-            })
-            .map(|record| acquisition_storage_bytes(&record.topic))
-            .fold(0usize, usize::saturating_add);
-        let retained_bytes = incoming_bytes.saturating_add(new_metadata_bytes);
+        let retained_bytes = share_delivery_accounted_bytes(&incoming, &self.acquisitions).await;
         *remaining = match remaining.checked_sub(retained_bytes.max(decoded_bytes)) {
             Some(left) => left,
             None => {
@@ -6043,6 +6026,29 @@ fn share_record_storage_bytes(rec: &ShareRecord) -> usize {
         )
 }
 
+/// Record bytes plus new acquisition metadata, pausing between slices.
+async fn share_delivery_accounted_bytes(
+    incoming: &[ShareRecord],
+    acquisitions: &AcquisitionMap,
+) -> usize {
+    let mut incoming_bytes = 0usize;
+    let mut new_metadata_bytes = 0usize;
+    let mut walked = 0usize;
+    for record in incoming {
+        incoming_bytes = incoming_bytes.saturating_add(share_record_storage_bytes(record));
+        if acquisition_at(acquisitions, &record.topic, record.partition, record.offset).is_none() {
+            new_metadata_bytes =
+                new_metadata_bytes.saturating_add(acquisition_storage_bytes(&record.topic));
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    incoming_bytes.saturating_add(new_metadata_bytes)
+}
+
 fn update_share_heartbeat_deadline(
     shared: &Mutex<Option<Instant>>,
     stop: &watch::Receiver<bool>,
@@ -6985,6 +6991,59 @@ mod tests {
     }
 
     #[tokio::test(flavor = "current_thread")]
+    async fn accounting_many_share_records_does_not_hold_the_caller() {
+        // 2_000_000 records: accounting a share delivery held the caller 165ms.
+        let topic = crate::consumer::TopicName::from("orders");
+        let few = [
+            share_rec(&topic, 0),
+            share_rec(&topic, 1),
+            share_rec(&topic, 2),
+        ];
+        let mut stored = AcquisitionMap::new();
+        remember_acquisition(
+            &mut stored,
+            &topic,
+            0,
+            1,
+            Acquisition {
+                node: 4,
+                delivery_count: 1,
+                expires_at: None,
+            },
+        );
+        let expected_records = few
+            .iter()
+            .map(share_record_storage_bytes)
+            .fold(0usize, usize::saturating_add);
+        let expected_metadata = few
+            .iter()
+            .filter(|record| {
+                acquisition_at(&stored, &record.topic, record.partition, record.offset).is_none()
+            })
+            .map(|record| acquisition_storage_bytes(record.topic()))
+            .fold(0usize, usize::saturating_add);
+        assert_eq!(
+            share_delivery_accounted_bytes(&few, &stored).await,
+            expected_records.saturating_add(expected_metadata)
+        );
+        let mut incoming = Vec::with_capacity(2_000_000);
+        for offset in 0..2_000_000 {
+            incoming.push(share_rec(&topic, offset));
+        }
+        let map = AcquisitionMap::new();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = share_delivery_accounted_bytes(&incoming, &map) => {}
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "accounting share delivery held the caller for {elapsed:?}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
     async fn collapsing_many_ack_offsets_does_not_hold_the_caller() {
         // 2_000_000 gapped offsets: collapsing acknowledgements held the caller 284ms.
         let mut offsets: Vec<i64> = (0..2_000_000).map(|offset| offset * 2).collect();
@@ -7723,6 +7782,21 @@ mod tests {
         assert!(super::note_share_offset(&mut cursors, &mut spilled, 0, 3));
         assert!(super::note_share_offset(&mut cursors, &mut spilled, 0, 4));
         assert!(!super::note_share_offset(&mut cursors, &mut spilled, 0, 5));
+    }
+
+    fn share_rec(topic: &crate::consumer::TopicName, offset: i64) -> ShareRecord {
+        ShareRecord {
+            topic: topic.clone(),
+            partition: 0,
+            offset,
+            timestamp: 1,
+            timestamp_type: TimestampType::CreateTime,
+            key: None,
+            value: None,
+            headers: Vec::new(),
+            delivery_count: 1,
+            leader_epoch: None,
+        }
     }
 
     fn rec(partition: i32, offset: i64) -> ShareRecord {
