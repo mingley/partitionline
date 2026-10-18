@@ -262,7 +262,7 @@ impl Admin {
         deadline: Deadline,
     ) -> Result<()> {
         let limits = crate::protocol::group::OffsetLimits::default();
-        let topics = crate::group::group_offset_topics(offsets);
+        let topics = crate::group::group_offset_topics_cooperative(offsets).await;
         let mut request = OffsetCommitRequestData {
             group_id: group_id.to_owned(),
             topics: topics

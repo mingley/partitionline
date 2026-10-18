@@ -31,7 +31,7 @@ impl ConsumerGroup {
                 .await;
         }
         let mut commit_topics = std::mem::take(&mut self.classic_commit_topics);
-        super::refill_offset_topics(&mut commit_topics, offsets);
+        super::refill_offset_topics_cooperative(&mut commit_topics, offsets).await;
         let group_id = self.group_id.as_str();
         let member_id = self.member_id.as_str();
         let generation_id = self.generation_id;

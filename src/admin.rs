@@ -11688,7 +11688,7 @@ impl Admin {
                 .commit_named_offsets_v10(group_id, &offsets, deadline)
                 .await;
         }
-        let topics = crate::group::group_borrowed_offset_topics(&offsets);
+        let topics = crate::group::group_borrowed_offset_topics_cooperative(&offsets).await;
         let _bootstrap_version = self
             .versions
             .get(&OFFSET_COMMIT)
