@@ -150,6 +150,15 @@ async fn retire_ready_offsets(ready: &mut HashMap<String, Result<(BrokerConn, i1
     }
 }
 
+async fn retire_dialing_offsets(dialing: &mut tokio::task::JoinSet<OffsetDial>) {
+    dialing.abort_all();
+    while let Some(joined) = dialing.join_next().await {
+        if let Ok((_, Ok((conn, _, _)))) = joined {
+            retire_offset_conn(conn).await;
+        }
+    }
+}
+
 impl OffsetClient {
     pub(crate) fn set_stats(&mut self, stats: std::sync::Arc<crate::metrics::AdminTracker>) {
         self.stats = Some(stats);
@@ -1004,7 +1013,11 @@ impl OffsetClient {
                 }
                 .await;
                 retire_offset_conn(conn).await;
-                fetched?;
+                if let Err(error) = fetched {
+                    retire_ready_offsets(&mut ready).await;
+                    retire_dialing_offsets(&mut dialing).await;
+                    return Err(error);
+                }
                 in_use = 0;
                 while next_dial < order.len() && dialing.len() + ready.len() + in_use < 2 {
                     if order
@@ -1532,6 +1545,209 @@ mod tests {
             "a failed offset dial left the bootstrap broker blocked in a read"
         );
         peer.abort();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn a_failed_offset_fetch_lets_the_other_coordinator_leave() {
+        use super::OffsetClient;
+        use crate::net::Deadline;
+        use crate::protocol::api::ApiVersion;
+        use crate::protocol::api_keys::{FIND_COORDINATOR, OFFSET_FETCH};
+        use crate::protocol::group::{
+            encode_find_coordinator_response_coordinators, CoordinatorResult, OffsetFetchGroupData,
+            OffsetFetchRequestData,
+        };
+        use crate::AdminConfig;
+        use bytes::BytesMut;
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use std::sync::Arc;
+        use std::time::Duration;
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+        let bootstrap_listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let left_listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let right_listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let bootstrap_addr = bootstrap_listener.local_addr().unwrap();
+        let left_addr = left_listener.local_addr().unwrap();
+        let right_addr = right_listener.local_addr().unwrap();
+        let (slow_listener, fast_listener, slow_addr, fast_addr) =
+            if left_addr.to_string() <= right_addr.to_string() {
+                (left_listener, right_listener, left_addr, right_addr)
+            } else {
+                (right_listener, left_listener, right_addr, left_addr)
+            };
+        let open = Arc::new(AtomicUsize::new(0));
+        let bootstrap_flag = Arc::clone(&open);
+        let bootstrap = tokio::spawn(async move {
+            let Ok((mut socket, _)) = bootstrap_listener.accept().await else {
+                return;
+            };
+            let _started = bootstrap_flag.fetch_add(1, Ordering::SeqCst);
+            let mut size_buf = [0u8; 4];
+            if socket.read_exact(&mut size_buf).await.is_ok() {
+                let size = i32::from_be_bytes(size_buf).max(0) as usize;
+                let mut request = vec![0u8; size];
+                if socket.read_exact(&mut request).await.is_ok() {
+                    if let Some(bytes) = request.get(4..8) {
+                        let correlation = i32::from_be_bytes([
+                            bytes.first().copied().unwrap_or(0),
+                            bytes.get(1).copied().unwrap_or(0),
+                            bytes.get(2).copied().unwrap_or(0),
+                            bytes.get(3).copied().unwrap_or(0),
+                        ]);
+                        let mut body = BytesMut::new();
+                        let encoded = encode_find_coordinator_response_coordinators(
+                            &mut body,
+                            4,
+                            &[
+                                CoordinatorResult {
+                                    key: "a".to_string(),
+                                    node_id: 1,
+                                    host: "127.0.0.1".to_string(),
+                                    port: i32::from(slow_addr.port()),
+                                    error_code: 0,
+                                    error_message: None,
+                                },
+                                CoordinatorResult {
+                                    key: "b".to_string(),
+                                    node_id: 2,
+                                    host: "127.0.0.1".to_string(),
+                                    port: i32::from(fast_addr.port()),
+                                    error_code: 0,
+                                    error_message: None,
+                                },
+                            ],
+                        );
+                        if encoded.is_ok() {
+                            let mut response = Vec::new();
+                            let len = i32::try_from(5 + body.len()).unwrap_or(0);
+                            response.extend_from_slice(&len.to_be_bytes());
+                            response.extend_from_slice(&correlation.to_be_bytes());
+                            response.push(0);
+                            response.extend_from_slice(&body);
+                            let _wrote = socket.write_all(&response).await;
+                        }
+                    }
+                }
+            }
+            let mut buf = [0u8; 8];
+            loop {
+                match socket.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = bootstrap_flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let slow_flag = Arc::clone(&open);
+        let slow = tokio::spawn(async move {
+            tokio::time::sleep(Duration::from_millis(30)).await;
+            let Ok((mut socket, _)) = slow_listener.accept().await else {
+                return;
+            };
+            let _started = slow_flag.fetch_add(1, Ordering::SeqCst);
+            let mut size_buf = [0u8; 4];
+            if socket.read_exact(&mut size_buf).await.is_ok() {
+                let size = i32::from_be_bytes(size_buf).max(0) as usize;
+                let mut request = vec![0u8; size];
+                if socket.read_exact(&mut request).await.is_ok() {
+                    if let Some(bytes) = request.get(4..8) {
+                        let correlation = i32::from_be_bytes([
+                            bytes.first().copied().unwrap_or(0),
+                            bytes.get(1).copied().unwrap_or(0),
+                            bytes.get(2).copied().unwrap_or(0),
+                            bytes.get(3).copied().unwrap_or(0),
+                        ]);
+                        let mut response = Vec::new();
+                        response.extend_from_slice(&5i32.to_be_bytes());
+                        response.extend_from_slice(&correlation.to_be_bytes());
+                        response.push(0);
+                        let _wrote = socket.write_all(&response).await;
+                    }
+                }
+            }
+            let mut buf = [0u8; 8];
+            loop {
+                match socket.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = slow_flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let fast_flag = Arc::clone(&open);
+        let fast = tokio::spawn(async move {
+            let Ok((mut socket, _)) = fast_listener.accept().await else {
+                return;
+            };
+            let _started = fast_flag.fetch_add(1, Ordering::SeqCst);
+            let mut buf = [0u8; 8];
+            loop {
+                match socket.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = fast_flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let mut client =
+            OffsetClient::new(AdminConfig::bootstrap([bootstrap_addr.to_string()])).unwrap();
+        let lookup = vec![
+            ApiVersion {
+                api_key: FIND_COORDINATOR,
+                min_version: 4,
+                max_version: 4,
+            },
+            ApiVersion {
+                api_key: OFFSET_FETCH,
+                min_version: 8,
+                max_version: 8,
+            },
+        ];
+        let fetch = vec![ApiVersion {
+            api_key: OFFSET_FETCH,
+            min_version: 8,
+            max_version: 8,
+        }];
+        let _stored = client
+            .known_versions
+            .insert(bootstrap_addr.to_string(), lookup);
+        let _stored = client
+            .known_versions
+            .insert(slow_addr.to_string(), fetch.clone());
+        let _stored = client.known_versions.insert(fast_addr.to_string(), fetch);
+        let request = OffsetFetchRequestData {
+            groups: vec![
+                OffsetFetchGroupData {
+                    group_id: "a".to_string(),
+                    ..OffsetFetchGroupData::default()
+                },
+                OffsetFetchGroupData {
+                    group_id: "b".to_string(),
+                    ..OffsetFetchGroupData::default()
+                },
+            ],
+            require_stable: false,
+        };
+        let mut control = 0usize;
+        let mut response_bytes = 0usize;
+        let _fetched = client
+            .fetch_once(
+                &request,
+                &super::OffsetOptions::default(),
+                Deadline::from_timeout(Duration::from_secs(2)),
+                &mut control,
+                &mut response_bytes,
+            )
+            .await;
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "a failed offset fetch left another coordinator blocked in a read"
+        );
+        bootstrap.abort();
+        slow.abort();
+        fast.abort();
     }
 
     #[tokio::test(flavor = "current_thread")]
