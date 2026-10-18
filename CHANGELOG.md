@@ -403,7 +403,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   this when a requested group id is not found.
   A top-level ShareAcknowledge `TOPIC_DELETION_DISABLED` completes
   without retry and does not request Metadata, including when
-  `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+  `ErrorMessage` is set or empty (Java `handleShareAcknowledgeSuccess` has no
   `metadata.requestUpdate`; this is not top-level
   `GROUP_ID_NOT_FOUND`). Official Java `ControllerApis` writes
   this when DeleteTopics runs with `delete.topic.enable` false.
