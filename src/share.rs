@@ -2610,7 +2610,7 @@ pub enum ShareAcquireMode {
 /// broker epoch has changed. A top-level
 /// ShareAcknowledge `MEMBER_ID_REQUIRED` completes without
 /// retry and does not request Metadata, including when `ErrorMessage`
-/// is set (Java `handleShareAcknowledgeSuccess` has no
+/// is set or empty (Java `handleShareAcknowledgeSuccess` has no
 /// `metadata.requestUpdate`; this is not top-level
 /// `STALE_BROKER_EPOCH`). Official Java `GroupMetadataManager`
 /// writes this when a JoinGroup dynamic member has an unknown
@@ -5906,7 +5906,7 @@ impl ShareGroup {
     /// when the broker epoch has changed.
     /// A top-level ShareAcknowledge `MEMBER_ID_REQUIRED`
     /// completes without retry and does not request Metadata,
-    /// including when `ErrorMessage` is set (Java
+    /// including when `ErrorMessage` is set or empty (Java
     /// `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`;
     /// this is not top-level `STALE_BROKER_EPOCH`). Official
     /// Java `GroupMetadataManager` writes this when a JoinGroup
