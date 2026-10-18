@@ -4359,18 +4359,22 @@ impl Consumer {
         }
     }
 
-    fn drop_broker_conn(&mut self, node: i32) {
+    async fn drop_broker_conn(&mut self, node: i32) {
         let used_bootstrap = !self.conns.contains_key(&node)
             && self
                 .cluster
                 .brokers
                 .get(&node)
                 .is_some_and(|addr| addr == self.conn.addr());
-        let _ = self.conns.remove(&node);
+        if let Some(mut conn) = self.conns.remove(&node) {
+            conn.close();
+            conn.release_if_closed().await;
+        }
         let _ = self.list_offsets_ranges.remove(&node);
         let _ = self.leader_epoch_ranges.remove(&node);
         if used_bootstrap {
             self.conn.close();
+            self.conn.release_if_closed().await;
         }
     }
 
@@ -5316,7 +5320,7 @@ impl Consumer {
                 let body = match body {
                     Ok(b) => b,
                     Err(e) if e.is_retriable() => {
-                        self.drop_broker_conn(node);
+                        self.drop_broker_conn(node).await;
                         retry.extend(parts);
                         continue;
                     }
@@ -5326,12 +5330,12 @@ impl Consumer {
                     Ok((got, ..)) => {
                         let more = self.apply_epoch_end_offsets(&parts, &got)?;
                         if !more.is_empty() {
-                            self.drop_broker_conn(node);
+                            self.drop_broker_conn(node).await;
                             retry.extend(more);
                         }
                     }
                     Err(e) if e.is_retriable() => {
-                        self.drop_broker_conn(node);
+                        self.drop_broker_conn(node).await;
                         retry.extend(parts);
                     }
                     Err(e) => return Err(e),
@@ -5409,7 +5413,7 @@ impl Consumer {
             let body = match flight.body {
                 Ok(body) => body,
                 Err(error) if error.is_retriable() => {
-                    self.drop_broker_conn(flight.node);
+                    self.drop_broker_conn(flight.node).await;
                     retry.extend(parts);
                     continue;
                 }
@@ -5420,12 +5424,12 @@ impl Consumer {
                 Ok((got, ..)) => {
                     let more = self.apply_epoch_end_offsets(&parts, &got)?;
                     if !more.is_empty() {
-                        self.drop_broker_conn(flight.node);
+                        self.drop_broker_conn(flight.node).await;
                         retry.extend(more);
                     }
                 }
                 Err(error) if error.is_retriable() => {
-                    self.drop_broker_conn(flight.node);
+                    self.drop_broker_conn(flight.node).await;
                     retry.extend(parts);
                 }
                 Err(error) => return Err(error),
@@ -8108,7 +8112,7 @@ impl Consumer {
             let body = match body {
                 Ok(b) => b,
                 Err(e) if e.is_retriable() => {
-                    self.drop_broker_conn(node);
+                    self.drop_broker_conn(node).await;
                     if Instant::now() >= deadline {
                         return Err(Error::Timeout);
                     }
@@ -8161,7 +8165,7 @@ impl Consumer {
                     // while the previous leader socket is opened again. A
                     // moved leader is dialed on the next attempt.
                     let previous = node;
-                    self.drop_broker_conn(previous);
+                    self.drop_broker_conn(previous).await;
                     let dials = self.leader_dials_for(&[previous]);
                     self.cluster.invalidate_topic(topic);
                     if Instant::now() >= deadline {
@@ -8414,14 +8418,14 @@ impl Consumer {
         let body = match body {
             Ok(body) => body,
             Err(error) if error.is_retriable() => {
-                self.drop_broker_conn(node);
+                self.drop_broker_conn(node).await;
                 return Ok(());
             }
             Err(error) => return Err(error),
         };
         let read = self.read_list_offset_body(queries, indexes, version, body, slots)?;
         if read.drop_conn {
-            self.drop_broker_conn(node);
+            self.drop_broker_conn(node).await;
         }
         if !read.fenced.is_empty() {
             if let Err(error) = self.recover_leader_epochs(&read.fenced, deadline).await {
@@ -8880,7 +8884,7 @@ impl Consumer {
         for flight in flights {
             match flight.body {
                 Err(error) if error.is_retriable() => {
-                    self.drop_broker_conn(flight.node);
+                    self.drop_broker_conn(flight.node).await;
                 }
                 Err(error) => {
                     for index in &flight.indexes {
@@ -8901,7 +8905,7 @@ impl Consumer {
                     ) {
                         Ok(read) => {
                             if read.drop_conn {
-                                self.drop_broker_conn(flight.node);
+                                self.drop_broker_conn(flight.node).await;
                             }
                             fenced.extend(read.fenced);
                             fenced_indexes.extend(read.fenced_indexes);
@@ -11219,6 +11223,50 @@ mod tests {
     use super::*;
     use crate::protocol::api::ApiVersion;
     use crate::protocol::api_keys::FETCH;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn dropping_the_bootstrap_socket_lets_the_broker_leave() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use std::sync::Arc;
+        use tokio::io::AsyncReadExt;
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let open = Arc::new(AtomicUsize::new(0));
+        let flag = Arc::clone(&open);
+        let peer = tokio::spawn(async move {
+            let Ok((mut socket, _)) = listener.accept().await else {
+                return;
+            };
+            let _started = flag.fetch_add(1, Ordering::SeqCst);
+            let mut buf = [0u8; 8];
+            loop {
+                match socket.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let conn = crate::net::BrokerConn::connect(&addr, "drop-bootstrap", Duration::from_secs(2))
+            .await
+            .unwrap();
+        while open.load(Ordering::SeqCst) == 0 {
+            tokio::task::yield_now().await;
+        }
+        let mut consumer = Consumer::test_holding(ConsumerConfig::default(), conn);
+        let _inserted = consumer
+            .cluster
+            .brokers
+            .insert(1, consumer.conn.addr().to_string());
+        consumer.drop_broker_conn(1).await;
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "dropping the bootstrap socket left the broker blocked in a read"
+        );
+        peer.abort();
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn ending_a_fetch_quota_watch_keeps_the_leader_socket() {
