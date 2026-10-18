@@ -4620,13 +4620,17 @@ async fn rediscover_producer_coordinator(
                     let (conn, versions) = opened?;
                     return Ok(coordinator_connection(conn, &versions));
                 }
-                let (conn, versions) = open_recorded_peer(
+                let recorded = open_recorded_peer(
                     &addr,
                     &bounded,
                     known.known_by_addr,
                     known.bootstrap_keys,
                 )
-                .await?;
+                .await;
+                if let Ok((conn, _)) = opened {
+                    retire_owned_conn(conn).await;
+                }
+                let (conn, versions) = recorded?;
                 return Ok(coordinator_connection(conn, &versions));
             }
         };
@@ -4673,9 +4677,13 @@ async fn locate_producer_coordinator(
         .await?;
     let (err, _node, host, port) = decode_find_coordinator_response(&mut body.clone(), version)?;
     if err != 0 {
-        return Err(Error::broker(err, "FindCoordinator"));
+        let error = Err(Error::broker(err, "FindCoordinator"));
+        retire_owned_conn(hop).await;
+        return error;
     }
-    Ok(crate::net::format_address(&host, port))
+    let address = crate::net::format_address(&host, port);
+    retire_owned_conn(hop).await;
+    Ok(address)
 }
 
 fn coordinator_connection(
@@ -5111,17 +5119,23 @@ async fn discover_group_coordinator(
         .await?;
     let (err, _node, host, port) = decode_find_coordinator_response(&mut body.clone(), version)?;
     if err != 0 {
-        return Err(Error::broker(err, "FindCoordinator"));
+        let error = Err(Error::broker(err, "FindCoordinator"));
+        retire_owned_conn(hop).await;
+        return error;
     }
     let coord_addr = crate::net::format_address(&host, port);
     if coord_addr == hop.addr() {
         return Ok(coordinator_connection(hop, &versions));
     }
     if let Some(keys) = remembered_produce_keys(shared, &coord_addr) {
-        let conn = open_conn_with_known_versions(&coord_addr, &bounded, false, &keys).await?;
+        let opened = open_conn_with_known_versions(&coord_addr, &bounded, false, &keys).await;
+        retire_owned_conn(hop).await;
+        let conn = opened?;
         return Ok(coordinator_connection(conn, &known_api_versions(&keys)));
     }
-    let (conn, opened) = open_conn_with_versions(&coord_addr, &bounded, false).await?;
+    let opened = open_conn_with_versions(&coord_addr, &bounded, false).await;
+    retire_owned_conn(hop).await;
+    let (conn, opened) = opened?;
     remember_produce_keys(shared, &coord_addr, &opened.api_keys);
     Ok(coordinator_connection(conn, &opened))
 }
@@ -5205,6 +5219,9 @@ async fn txn_roundtrip(
     remember_produce_keys(shared, new.conn.addr(), &new.keys);
     let remaining = timeout_remaining(deadline)?;
     let mut guard = shared.txn.lock().await;
+    if let Some(previous) = guard.take() {
+        retire_owned_conn(previous.conn).await;
+    }
     *guard = Some(new);
     let conn = guard
         .as_mut()
@@ -5241,7 +5258,7 @@ async fn group_coord_roundtrip(
     }
     let previous = coord.conn.addr().to_string();
     let recorded = shared.produce_keys.lock().clone();
-    coord = rediscover_producer_coordinator(
+    let mut replacement = rediscover_producer_coordinator(
         &shared.cfg,
         group_id,
         COORDINATOR_GROUP,
@@ -5255,7 +5272,8 @@ async fn group_coord_roundtrip(
         deadline,
     )
     .await?;
-    coord
+    retire_owned_conn(coord.conn).await;
+    replacement
         .conn
         .roundtrip(
             api_key,
@@ -5400,6 +5418,14 @@ async fn linger_socket_left(conn: &mut BrokerConn, in_flight: bool) -> Result<()
 async fn retire_produce_conn(current: &mut BrokerConn) {
     current.close();
     current.release_if_closed().await;
+}
+
+/// Shut a coordinator socket down before another connection replaces it.
+///
+/// Dropping the connection aborts its idle watch, so the broker stays in its
+/// read until that watch is scheduled.
+async fn retire_owned_conn(mut conn: BrokerConn) {
+    retire_produce_conn(&mut conn).await;
 }
 
 /// Notice a broker that stops writing on the idle metadata socket.
@@ -9495,6 +9521,44 @@ fn record_metadata(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn replacing_a_coordinator_socket_lets_the_broker_leave() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use tokio::io::AsyncReadExt;
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let open = Arc::new(AtomicUsize::new(0));
+        let flag = Arc::clone(&open);
+        let peer = tokio::spawn(async move {
+            let Ok((mut socket, _)) = listener.accept().await else {
+                return;
+            };
+            let _started = flag.fetch_add(1, Ordering::SeqCst);
+            let mut buf = [0u8; 8];
+            loop {
+                match socket.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let conn = BrokerConn::connect(&addr, "coord-replace", Duration::from_secs(2))
+            .await
+            .unwrap();
+        while open.load(Ordering::SeqCst) == 0 {
+            tokio::task::yield_now().await;
+        }
+        retire_owned_conn(conn).await;
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "replacing a coordinator socket left the broker blocked in a read"
+        );
+        peer.abort();
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn replacing_a_produce_socket_lets_the_broker_leave() {
