@@ -3342,7 +3342,7 @@ impl Consumer {
         if let Some(parts) = self.assigned_topic_ids.get_mut(topic.as_ref()) {
             let _previous = parts.remove(&partition);
         }
-        self.capture_assigned_topic_ids();
+        self.capture_assigned_topic_ids().await;
         Ok(())
     }
 
@@ -3459,7 +3459,7 @@ impl Consumer {
         }
         self.cursor_index = None;
         self.cursor_slots = None;
-        self.capture_assigned_topic_ids();
+        self.capture_assigned_topic_ids().await;
         Ok(())
     }
 
@@ -4000,35 +4000,59 @@ impl Consumer {
             }
         }
         self.retain_pending_assigned();
-        self.capture_assigned_topic_ids();
+        self.capture_assigned_topic_ids().await;
         Ok(())
     }
 
-    fn capture_assigned_topic_ids(&mut self) {
-        let mut names = HashSet::new();
-        let mut live = HashSet::new();
-        for (topic, partition, _) in &self.assigned {
-            let _ = names.insert(topic.as_ref());
-            let _ = live.insert((topic.as_ref(), *partition));
-        }
-        self.assigned_topic_ids.retain(|topic, parts| {
-            if !names.contains(topic.as_ref()) {
-                return false;
+    async fn index_live_partitions(
+        assigned: &[(Arc<str>, i32, i64)],
+    ) -> HashMap<Arc<str>, HashSet<i32>> {
+        let mut live: HashMap<Arc<str>, HashSet<i32>> = HashMap::new();
+        let mut walked = 0usize;
+        for (topic, partition, _) in assigned {
+            if let Some(parts) = live.get_mut(topic.as_ref()) {
+                let _ = parts.insert(*partition);
+            } else {
+                let mut parts = HashSet::new();
+                let _ = parts.insert(*partition);
+                let _ = live.insert(Arc::clone(topic), parts);
             }
-            parts.retain(|partition, _| live.contains(&(topic.as_ref(), *partition)));
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+        live
+    }
+
+    async fn capture_assigned_topic_ids(&mut self) {
+        let live = Self::index_live_partitions(&self.assigned).await;
+        self.assigned_topic_ids.retain(|topic, parts| {
+            let Some(kept) = live.get(topic.as_ref()) else {
+                return false;
+            };
+            parts.retain(|partition, _| kept.contains(partition));
             !parts.is_empty()
         });
-        let captured: Vec<(Arc<str>, i32, [u8; 16])> = self
-            .assigned
-            .iter()
-            .filter_map(|(topic, partition, _)| {
-                self.name_to_id
-                    .get(topic.as_ref())
-                    .copied()
-                    .filter(|id| *id != [0; 16])
-                    .map(|id| (Arc::clone(topic), *partition, id))
-            })
-            .collect();
+        let mut captured = Vec::new();
+        let mut walked = 0usize;
+        for (topic, partition, _) in &self.assigned {
+            if let Some(id) = self
+                .name_to_id
+                .get(topic.as_ref())
+                .copied()
+                .filter(|id| *id != [0; 16])
+            {
+                captured.push((Arc::clone(topic), *partition, id));
+            }
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+        walked = 0;
         for (topic, partition, id) in captured {
             let _previous = self
                 .assigned_topic_ids
@@ -4036,6 +4060,11 @@ impl Consumer {
                 .or_default()
                 .entry(partition)
                 .or_insert(id);
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
         }
     }
 
@@ -11579,6 +11608,30 @@ mod tests {
     use std::collections::HashMap;
 
     use super::*;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn indexing_many_live_partitions_does_not_hold_the_caller() {
+        // 2_000_000 partitions: indexing the live set held the caller 1.40s.
+        let topic: Arc<str> = Arc::from("orders");
+        let assigned: Vec<(Arc<str>, i32, i64)> = (0..2_000_000)
+            .map(|partition| (Arc::clone(&topic), partition, 0))
+            .collect();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            live = Consumer::index_live_partitions(&assigned) => {
+                assert_eq!(
+                    live.get(topic.as_ref()).map(|parts| parts.len()),
+                    Some(2_000_000)
+                );
+            }
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "indexing live partitions held the caller for {elapsed:?}"
+        );
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn copying_many_positions_does_not_hold_the_caller() {
