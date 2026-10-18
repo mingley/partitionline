@@ -2279,7 +2279,7 @@ pub enum ShareAcquireMode {
 /// magic version before v2. A top-level
 /// ShareAcknowledge `POLICY_VIOLATION` completes without
 /// retry and does not request Metadata, including when `ErrorMessage`
-/// is set (Java `handleShareAcknowledgeSuccess` has no
+/// is set or empty (Java `handleShareAcknowledgeSuccess` has no
 /// `metadata.requestUpdate`; this is not top-level
 /// `UNSUPPORTED_FOR_MESSAGE_FORMAT`). Official Java `ReplicationControlManager`
 /// writes this when CreateTopics fails a configured `CreateTopicPolicy`.
@@ -5231,7 +5231,7 @@ impl ShareGroup {
     /// idempotent record batch uses a magic version before v2.
     /// A top-level ShareAcknowledge `POLICY_VIOLATION`
     /// completes without retry and does not request Metadata,
-    /// including when `ErrorMessage` is set (Java
+    /// including when `ErrorMessage` is set or empty (Java
     /// `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`;
     /// this is not top-level `UNSUPPORTED_FOR_MESSAGE_FORMAT`). Official
     /// Java `ReplicationControlManager` writes this when CreateTopics
