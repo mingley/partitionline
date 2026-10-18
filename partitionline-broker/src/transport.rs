@@ -869,34 +869,49 @@ fn classify_ahead(ahead: &[u8], max_request: usize) -> Ahead {
     }
 }
 
-/// True when a length after one or more complete frames will not be accepted.
-fn ahead_has_rejected_length(ahead: &[u8], max_request: usize) -> bool {
-    let mut offset = 0usize;
+enum AheadScan {
+    Rejected,
+    /// Walked through `at`. Anything after that is a short tail or empty.
+    Rest(usize),
+    /// Walked through `at` and more complete frames are still buffered.
+    Partial(usize),
+}
+
+/// Walk complete frames from `start`, stopping after `budget` bytes.
+///
+/// A long run of empty frames is still legal. Scanning all of it in one
+/// turn keeps the handler from running until the walk finishes.
+fn scan_ahead(ahead: &[u8], start: usize, max_request: usize, budget: usize) -> AheadScan {
+    let mut offset = start.min(ahead.len());
+    let limit = offset.saturating_add(budget.max(4));
     while ahead.len().saturating_sub(offset) >= 4 {
+        if offset >= limit {
+            return AheadScan::Partial(offset);
+        }
         let Some(prefix) = ahead.get(offset..offset.saturating_add(4)) else {
-            return true;
+            return AheadScan::Rejected;
         };
         let Ok(raw) = <[u8; 4]>::try_from(prefix) else {
-            return true;
+            return AheadScan::Rejected;
         };
         let Ok(length) = usize::try_from(i32::from_be_bytes(raw)) else {
-            return true;
+            return AheadScan::Rejected;
         };
         if length > max_request {
-            return true;
+            return AheadScan::Rejected;
         }
         let Some(total) = 4usize.checked_add(length) else {
-            return true;
+            return AheadScan::Rejected;
         };
         let Some(frame_end) = offset.checked_add(total) else {
-            return true;
+            return AheadScan::Rejected;
         };
         if ahead.len() < frame_end {
-            return false;
+            return AheadScan::Rest(offset);
         }
         offset = frame_end;
     }
-    false
+    AheadScan::Rest(offset)
 }
 
 fn frame_mut(frame: &mut Frame) -> &mut Vec<u8> {
@@ -1131,15 +1146,30 @@ async fn write_and_prefetch<S: AsyncRead + AsyncWrite + Unpin>(
         let mut slices = [IoSlice::new(&prefix), IoSlice::new(response)];
         let mut bufs: &mut [IoSlice<'_>] = &mut slices;
         let mut stop_read = !prefetch;
+        let mut scanned = 0usize;
         poll_fn(|cx| {
             if bufs.is_empty() {
                 return Poll::Ready(Ok(()));
             }
-            if prefetch && ahead_has_rejected_length(ahead.pending(), max_request) {
-                return Poll::Ready(Err(io::Error::new(
-                    io::ErrorKind::InvalidData,
-                    "invalid frame length",
-                )));
+            if prefetch {
+                let pending = ahead.pending();
+                if scanned > pending.len() {
+                    scanned = 0;
+                }
+                match scan_ahead(pending, scanned, max_request, 64 * 1024) {
+                    AheadScan::Rejected => {
+                        return Poll::Ready(Err(io::Error::new(
+                            io::ErrorKind::InvalidData,
+                            "invalid frame length",
+                        )));
+                    }
+                    AheadScan::Rest(at) => scanned = at,
+                    AheadScan::Partial(at) => {
+                        scanned = at;
+                        cx.waker().wake_by_ref();
+                        return Poll::Pending;
+                    }
+                }
             }
             match poll_write_chunk(socket, cx, bufs) {
                 Poll::Ready(Ok(0)) => Poll::Ready(Err(io::Error::new(
@@ -1268,15 +1298,29 @@ async fn watch_disconnect<S: AsyncRead + Unpin>(
     ahead: &mut ReadAhead,
     max_request: usize,
 ) -> Exit {
+    let mut scanned = 0usize;
     loop {
         // One pipelined frame fits in the request limit, including its length
         // prefix. More than that during a handler is not one request. A
         // length after a finished frame is not a request either, even when
         // the first frame is still legal.
-        if ahead.pending().len() > max_request.saturating_add(4)
-            || ahead_has_rejected_length(ahead.pending(), max_request)
-        {
+        let pending = ahead.pending();
+        if scanned > pending.len() {
+            scanned = 0;
+        }
+        if pending.len() > max_request.saturating_add(4) {
             return Exit::InvalidLength;
+        }
+        match scan_ahead(pending, scanned, max_request, 64 * 1024) {
+            AheadScan::Rejected => return Exit::InvalidLength,
+            AheadScan::Rest(at) => scanned = at,
+            AheadScan::Partial(at) => {
+                scanned = at;
+                // More complete frames are buffered. Yield before walking
+                // the rest so the handler deadline can run.
+                tokio::task::yield_now().await;
+                continue;
+            }
         }
         let budget = match classify_ahead(ahead.pending(), max_request) {
             Ahead::Need(budget) => budget,
@@ -2914,6 +2958,35 @@ mod frame_read_deadline_tests {
     use std::time::Duration;
     use tokio::io::{AsyncRead, ReadBuf};
     use tokio::time::Instant;
+
+    struct PendingRead;
+
+    impl AsyncRead for PendingRead {
+        fn poll_read(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            _buf: &mut ReadBuf<'_>,
+        ) -> Poll<std::io::Result<()>> {
+            Poll::Pending
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn a_run_of_empty_frames_does_not_hold_the_handler_watch() {
+        let mut ahead = ReadAhead::new();
+        frame_mut(&mut ahead.bytes).resize(16 * 1024 * 1024, 0);
+        let mut socket = PendingRead;
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = watch_disconnect(&mut socket, &mut ahead, 32 * 1024 * 1024) => {}
+            _ = tokio::time::sleep(Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < Duration::from_millis(80),
+            "scanning empty frames held the handler watch for {elapsed:?}"
+        );
+    }
 
     /// A legal frame that stays readable and burns time on every body chunk.
     struct SlowFrame {
