@@ -5469,6 +5469,11 @@ async fn finish_aborted_group_handshakes(
             }
         }
     }
+    // A cancelled group handshake drops its socket when the task is polled.
+    // The idle watch then has to run before that broker sees the close.
+    for _ in 0..8 {
+        tokio::task::yield_now().await;
+    }
 }
 
 async fn discover_coord_raced(
@@ -9080,6 +9085,54 @@ mod rediscover_stop_tests {
             open.load(Ordering::SeqCst),
             0,
             "stopping a group heartbeat left the broker blocked in a read"
+        );
+        peer.abort();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn an_aborted_group_handshake_lets_the_broker_leave() {
+        use super::{finish_aborted_group_handshakes, CoordHandshake};
+        use crate::net::BrokerConn;
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use tokio::io::AsyncReadExt;
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let open = Arc::new(AtomicUsize::new(0));
+        let flag = Arc::clone(&open);
+        let peer = tokio::spawn(async move {
+            let Ok((mut socket, _)) = listener.accept().await else {
+                return;
+            };
+            let _started = flag.fetch_add(1, Ordering::SeqCst);
+            let mut buf = [0u8; 8];
+            loop {
+                match socket.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let conn = BrokerConn::connect(&addr, "abort-group", Duration::from_secs(2))
+            .await
+            .unwrap();
+        while open.load(Ordering::SeqCst) == 0 {
+            tokio::task::yield_now().await;
+        }
+        let mut inflight = tokio::task::JoinSet::new();
+        let _spawned = inflight.spawn(async move {
+            let _hold = conn;
+            std::future::pending::<(usize, crate::Result<CoordHandshake>)>().await
+        });
+        for _ in 0..8 {
+            tokio::task::yield_now().await;
+        }
+        finish_aborted_group_handshakes(inflight).await;
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "an aborted group handshake left the broker blocked in a read"
         );
         peer.abort();
     }
