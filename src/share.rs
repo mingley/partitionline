@@ -848,6 +848,19 @@ async fn retire_share_socket(mut peer: ShareNodeConnection) {
     peer.conn.release_if_closed().await;
 }
 
+/// Drop every share leader socket.
+///
+/// Clearing the map drops each connection. The idle watch is aborted with
+/// that drop, so the broker stays in its read until the watch is scheduled.
+async fn discard_share_sockets(conns: &mut HashMap<i32, ShareNodeConnection>) {
+    let nodes: Vec<i32> = conns.keys().copied().collect();
+    for node in nodes {
+        if let Some(peer) = conns.remove(&node) {
+            retire_share_socket(peer).await;
+        }
+    }
+}
+
 /// Read share leader sockets until one closes. Closed sockets are dropped.
 ///
 /// The sockets stay in `conns`. Cancelling this wait, which is how a retry
@@ -3630,7 +3643,7 @@ impl ShareGroup {
             self.assigned.clear();
             self.topic_ids.clear();
             self.share_epochs.clear();
-            self.share_conns.clear();
+            discard_share_sockets(&mut self.share_conns).await;
             self.acquisitions.clear();
             self.pending_delivery.clear();
             *self.hb_assignment.lock() = None;
@@ -5087,7 +5100,7 @@ impl ShareGroup {
             self.close_share_sessions_in_order(&open, deadline).await
         };
         self.share_epochs.clear();
-        self.share_conns.clear();
+        discard_share_sockets(&mut self.share_conns).await;
         self.acquisitions.clear();
         self.pending_delivery.clear();
         last
@@ -7661,6 +7674,53 @@ mod dial_tests {
             open.load(Ordering::SeqCst),
             0,
             "retiring a share coordinator left the broker blocked in a read"
+        );
+        peer.abort();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn leaving_a_share_group_lets_the_leader_leave() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use tokio::io::AsyncReadExt;
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let open = Arc::new(AtomicUsize::new(0));
+        let flag = Arc::clone(&open);
+        let peer = tokio::spawn(async move {
+            let Ok((mut socket, _)) = listener.accept().await else {
+                return;
+            };
+            let _started = flag.fetch_add(1, Ordering::SeqCst);
+            let mut buf = [0u8; 8];
+            loop {
+                match socket.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let conn = BrokerConn::connect(&addr, "share-leave", Duration::from_secs(2))
+            .await
+            .unwrap();
+        while open.load(Ordering::SeqCst) == 0 {
+            tokio::task::yield_now().await;
+        }
+        let mut conns = HashMap::new();
+        let _stored = conns.insert(
+            1,
+            ShareNodeConnection {
+                conn,
+                fetch_version: 0,
+                acknowledge_version: 0,
+            },
+        );
+        discard_share_sockets(&mut conns).await;
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "leaving a share group left the leader blocked in a read"
         );
         peer.abort();
     }
