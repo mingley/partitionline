@@ -4454,7 +4454,10 @@ async fn find_producer_coordinator(
 ) -> HopFind {
     let rest = match timeout_remaining(deadline) {
         Ok(rest) => rest,
-        Err(error) => return HopFind::Stop(error),
+        Err(error) => {
+            retire_owned_conn(hop).await;
+            return HopFind::Stop(error);
+        }
     };
     let body = match hop
         .roundtrip(
@@ -4466,15 +4469,22 @@ async fn find_producer_coordinator(
         .await
     {
         Ok(body) => body,
-        Err(error) => return HopFind::Continue(error),
+        Err(error) => {
+            retire_owned_conn(hop).await;
+            return HopFind::Continue(error);
+        }
     };
     let (err, _node, host, port) =
         match decode_find_coordinator_response(&mut body.clone(), version) {
             Ok(decoded) => decoded,
-            Err(error) => return HopFind::Stop(error),
+            Err(error) => {
+                retire_owned_conn(hop).await;
+                return HopFind::Stop(error);
+            }
         };
     if err != 0 {
         let error = Error::broker(err, "FindCoordinator");
+        retire_owned_conn(hop).await;
         if error::coordinator_retriable(err) {
             return HopFind::Continue(error);
         }
@@ -4486,12 +4496,16 @@ async fn find_producer_coordinator(
     }
     if let Some(ready) = ready {
         if let Some((conn, versions)) = take_ready_producer_handshake(ready, &coord_addr) {
+            retire_owned_conn(hop).await;
             return HopFind::Found(Box::new(coordinator_connection(conn, &versions)));
         }
     }
     let bounded = match bounded_producer_config(cfg, deadline) {
         Ok(bounded) => bounded,
-        Err(error) => return HopFind::Stop(error),
+        Err(error) => {
+            retire_owned_conn(hop).await;
+            return HopFind::Stop(error);
+        }
     };
     let opened =
         if let Some(keys) = known.and_then(|known| keys_for_rediscover(known, cfg, &coord_addr)) {
@@ -4502,6 +4516,7 @@ async fn find_producer_coordinator(
         } else {
             open_conn_with_versions(&coord_addr, &bounded, false).await
         };
+    retire_owned_conn(hop).await;
     match opened {
         Ok((conn, versions)) => HopFind::Found(Box::new(coordinator_connection(conn, &versions))),
         Err(error) => HopFind::Stop(error),
@@ -9521,6 +9536,81 @@ fn record_metadata(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn a_producer_coordinator_lookup_lets_the_broker_leave() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let open = Arc::new(AtomicUsize::new(0));
+        let flag = Arc::clone(&open);
+        let peer = tokio::spawn(async move {
+            let Ok((mut socket, _)) = listener.accept().await else {
+                return;
+            };
+            let _started = flag.fetch_add(1, Ordering::SeqCst);
+            let mut size_buf = [0u8; 4];
+            if socket.read_exact(&mut size_buf).await.is_err() {
+                return;
+            }
+            let size = i32::from_be_bytes(size_buf).max(0) as usize;
+            let mut request = vec![0u8; size];
+            if socket.read_exact(&mut request).await.is_err() {
+                return;
+            }
+            let correlation = request.get(4..8).map(|bytes| {
+                i32::from_be_bytes([
+                    bytes.first().copied().unwrap_or(0),
+                    bytes.get(1).copied().unwrap_or(0),
+                    bytes.get(2).copied().unwrap_or(0),
+                    bytes.get(3).copied().unwrap_or(0),
+                ])
+            });
+            if let Some(correlation) = correlation {
+                let mut response = Vec::with_capacity(8);
+                response.extend_from_slice(&4i32.to_be_bytes());
+                response.extend_from_slice(&correlation.to_be_bytes());
+                if socket.write_all(&response).await.is_err() {
+                    return;
+                }
+            }
+            let mut buf = [0u8; 8];
+            loop {
+                match socket.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let conn = BrokerConn::connect(&addr, "producer-lookup", Duration::from_secs(2))
+            .await
+            .unwrap();
+        while open.load(Ordering::SeqCst) == 0 {
+            tokio::task::yield_now().await;
+        }
+        let cfg = ProducerConfig::bootstrap(["127.0.0.1:9"]);
+        let _found = find_producer_coordinator(
+            &cfg,
+            conn,
+            known_api_versions(&[]),
+            "group",
+            crate::protocol::group::COORDINATOR_GROUP,
+            0,
+            Instant::now() + Duration::from_secs(2),
+            None,
+            None,
+        )
+        .await;
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "a producer coordinator lookup left the broker blocked in a read"
+        );
+        peer.abort();
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn replacing_a_coordinator_socket_lets_the_broker_leave() {
