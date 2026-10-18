@@ -1862,8 +1862,14 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   without Metadata, including when `ErrorMessage` is set or empty (Java
   `handleShareFetchSuccess` only `requestUpdate`s for top-level
   `UNKNOWN_TOPIC_ID`; this is not top-level
-  `NON_EMPTY_GROUP`). Official Java `GroupMetadataManager` writes
+  `NON_EMPTY_GROUP`).   Official Java `GroupMetadataManager` writes
   this when a requested group id is not found.
+  Top-level `TOPIC_DELETION_DISABLED` still fails that poll
+  without Metadata, including when `ErrorMessage` is set (Java
+  `handleShareFetchSuccess` only `requestUpdate`s for top-level
+  `UNKNOWN_TOPIC_ID`; this is not top-level
+  `GROUP_ID_NOT_FOUND`). Official Java `ControllerApis` writes
+  this when DeleteTopics runs with `delete.topic.enable` false.
   A non-empty
   throwable partition or top-level ShareFetch `ErrorMessage` is
   preferred; empty uses `ShareFetch {topic}-{partition}` or
