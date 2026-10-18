@@ -1560,7 +1560,7 @@ pub enum ShareAcquireMode {
 /// partition count.
 /// A piggybacked
 /// `GROUP_DELETION_FAILED` still completes without retry,
-/// including when `AcknowledgeErrorMessage` is set (this is not
+/// including when `AcknowledgeErrorMessage` is set or empty (this is not
 /// partition `GROUP_DELETION_FAILED`, which fails that poll, and not
 /// piggyback `STREAMS_INVALID_TOPOLOGY`). Official Java
 /// `StreamsGroupTopologyDescriptionManager` writes this when
@@ -3916,7 +3916,7 @@ impl ShareGroup {
     /// partition count.
     /// A piggybacked `GROUP_DELETION_FAILED` still completes
     /// without retry, including when `AcknowledgeErrorMessage` is set
-    /// (Java `handleShareFetchSuccess` completes piggyback acks and still
+    /// or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
     /// delivers the fetch; this is not partition
     /// `GROUP_DELETION_FAILED`, which fails that poll, and not piggyback
     /// `STREAMS_INVALID_TOPOLOGY`). Official Java
