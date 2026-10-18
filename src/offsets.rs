@@ -366,7 +366,7 @@ impl OffsetClient {
         let deadline = self.deadline(options)?;
         let version = if options.topic_ids { 10 } else { 9 };
         validate_offset_fetch_request_data(request, version, options.limits)?;
-        validate_fetch(request)?;
+        validate_fetch(request).await?;
         deadline.check_expired()?;
         if request.groups.is_empty() {
             return Ok(OffsetFetchResponseData::default());
@@ -1099,7 +1099,7 @@ impl OffsetClient {
         let deadline = self.deadline(options)?;
         let version = if options.topic_ids { 10 } else { 9 };
         validate_offset_fetch_request_data(request, version, options.limits)?;
-        validate_fetch(request)?;
+        validate_fetch(request).await?;
         let mut control_bytes = 0;
         let mut response_bytes = 0;
         self.fetch_once(
@@ -1289,11 +1289,12 @@ async fn validate_commit(request: &OffsetCommitRequestData) -> Result<()> {
     Ok(())
 }
 
-fn validate_fetch(request: &OffsetFetchRequestData) -> Result<()> {
+async fn validate_fetch(request: &OffsetFetchRequestData) -> Result<()> {
     if request.groups.len() > MAX_GROUPS {
         return Err(Error::protocol("too many offset groups"));
     }
     let mut groups = HashSet::new();
+    let mut walked = 0usize;
     for group in &request.groups {
         if !groups.insert(&group.group_id) {
             return Err(Error::protocol("duplicate offset fetch group"));
@@ -1308,6 +1309,11 @@ fn validate_fetch(request: &OffsetFetchRequestData) -> Result<()> {
                 for partition in &topic.partition_indexes {
                     if !partitions.insert(partition) {
                         return Err(Error::protocol("duplicate offset fetch partition"));
+                    }
+                    walked = walked.saturating_add(1);
+                    if walked == 8 * 1024 {
+                        walked = 0;
+                        tokio::task::yield_now().await;
                     }
                 }
             }
@@ -1578,6 +1584,24 @@ mod tests {
             }],
         };
         (request, response)
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn validating_many_fetch_requests_does_not_hold_the_caller() {
+        // 1_000_000 partitions: checking the request held the caller 457ms.
+        let (request, _) = offset_fetch_pair(1_000_000);
+        let started = std::time::Instant::now();
+        tokio::select! {
+            result = super::validate_fetch(&request) => {
+                result.unwrap_or_else(|error| panic!("{error}"));
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "validating an offset fetch request held the caller for {elapsed:?}"
+        );
     }
 
     #[tokio::test(flavor = "current_thread")]
