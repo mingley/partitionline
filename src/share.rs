@@ -2500,7 +2500,7 @@ pub enum ShareAcquireMode {
 /// one-way SSL, or a token-authenticated channel. A top-level
 /// ShareAcknowledge `DELEGATION_TOKEN_AUTHORIZATION_FAILED` completes without
 /// retry and does not request Metadata, including when `ErrorMessage`
-/// is set (Java `handleShareAcknowledgeSuccess` has no
+/// is set or empty (Java `handleShareAcknowledgeSuccess` has no
 /// `metadata.requestUpdate`; this is not top-level
 /// `DELEGATION_TOKEN_REQUEST_NOT_ALLOWED`). Official Java `KafkaApis`
 /// writes this when the requester is not the owner and lacks
@@ -5685,7 +5685,7 @@ impl ShareGroup {
     /// channel.
     /// A top-level ShareAcknowledge `DELEGATION_TOKEN_AUTHORIZATION_FAILED`
     /// completes without retry and does not request Metadata,
-    /// including when `ErrorMessage` is set (Java
+    /// including when `ErrorMessage` is set or empty (Java
     /// `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`;
     /// this is not top-level `DELEGATION_TOKEN_REQUEST_NOT_ALLOWED`). Official
     /// Java `KafkaApis` writes this when the requester is not the
