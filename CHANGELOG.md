@@ -914,6 +914,13 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   which fails that poll, and not piggyback `VOTER_NOT_FOUND`). Official
   Java `GroupMetadataManager` writes this when a consumer-group member
   first subscribes a topic regex that is not a valid regular expression. A
+  piggybacked `REBOOTSTRAP_REQUIRED` still
+  completes without retry, including when `AcknowledgeErrorMessage` is
+  set (Java `handleShareFetchSuccess` completes piggyback acks and still
+  delivers the fetch; this is not partition `REBOOTSTRAP_REQUIRED`,
+  which fails that poll, and not piggyback `INVALID_REGULAR_EXPRESSION`). Official
+  Java `KafkaApis` writes this when an ApiVersions request carries a
+  cluster id or node id that does not match the local broker. A
   piggybacked `TOPIC_AUTHORIZATION_FAILED` on
   one partition does not fail a sibling whose `AcknowledgeErrorCode`
   is none, including when `AcknowledgeErrorMessage` is set or empty. A
