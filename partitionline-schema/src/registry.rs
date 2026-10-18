@@ -700,7 +700,7 @@ impl RegistryClient {
         for reference in references {
             self.cache.validate_subject(&reference.subject)?;
         }
-        timeout(self.request_timeout, async {
+        let outcome = timeout(self.request_timeout, async {
             let mut out = Vec::with_capacity(references.len());
             for reference in references {
                 out.push(
@@ -713,12 +713,17 @@ impl RegistryClient {
             }
             Ok(out)
         })
-        .await
-        .map_err(|_| RegistryError::Timeout)?
+        .await;
+        // Cancelling the batch drops a lookup socket in this poll. Yield so
+        // the registry observes that close before the timeout returns.
+        for _ in 0..8 {
+            arm_yield().await;
+        }
+        outcome.map_err(|_| RegistryError::Timeout)?
     }
 
     async fn lookup(&self, key: Key) -> Result<Arc<Value>, RegistryError> {
-        timeout(self.request_timeout, async {
+        let outcome = timeout(self.request_timeout, async {
             loop {
                 // Register before observing capacity to avoid losing a release
                 // notification between unlocking state and awaiting the signal.
@@ -747,8 +752,13 @@ impl RegistryClient {
                 }
             }
         })
-        .await
-        .map_err(|_| RegistryError::Timeout)?
+        .await;
+        // Cancelling the lookup drops its socket in this poll. Yield so the
+        // registry observes that close before the timeout returns.
+        for _ in 0..8 {
+            arm_yield().await;
+        }
+        outcome.map_err(|_| RegistryError::Timeout)?
     }
 
     async fn lookup_uncached(&self, key: &Key) -> Result<Value, RegistryError> {
@@ -836,42 +846,52 @@ impl RegistryClient {
 
     /// One `GET` attempt: connect, optional TLS handshake, roundtrip.
     async fn get_once(&self, path: &str, deadline: Instant) -> Result<HttpResponse, RegistryError> {
-        let left = time_left(deadline).ok_or(RegistryError::Timeout)?;
-        let addr = connect_addr(&self.base.host, self.base.port);
-        let stream = match timeout(left.min(self.connect_timeout), TcpStream::connect(addr)).await {
-            Ok(Ok(stream)) => stream,
-            Ok(Err(err)) => return Err(RegistryError::transport(err)),
-            Err(_) => return Err(RegistryError::Timeout),
-        };
-        // Contains the Authorization header; never logged.
-        let request = self.request_bytes(path);
-        if self.base.https {
+        let outcome = async {
             let left = time_left(deadline).ok_or(RegistryError::Timeout)?;
-            let name = ServerName::try_from(self.base.host.clone()).map_err(|_| {
-                RegistryError::invalid_config("host is not a valid TLS server name")
-            })?;
-            let connector = TlsConnector::from(self.tls.clone());
-            let mut tls = match timeout(
-                left.min(self.connect_timeout),
-                connector.connect(name, stream),
-            )
-            .await
-            {
-                Ok(Ok(tls)) => tls,
-                Ok(Err(err)) => return Err(RegistryError::tls(err)),
-                Err(_) => return Err(RegistryError::Timeout),
-            };
-            http_roundtrip(&mut tls, request.as_bytes(), deadline, self.max_body_bytes).await
-        } else {
-            let mut plain = stream;
-            http_roundtrip(
-                &mut plain,
-                request.as_bytes(),
-                deadline,
-                self.max_body_bytes,
-            )
-            .await
+            let addr = connect_addr(&self.base.host, self.base.port);
+            let stream =
+                match timeout(left.min(self.connect_timeout), TcpStream::connect(addr)).await {
+                    Ok(Ok(stream)) => stream,
+                    Ok(Err(err)) => return Err(RegistryError::transport(err)),
+                    Err(_) => return Err(RegistryError::Timeout),
+                };
+            // Contains the Authorization header; never logged.
+            let request = self.request_bytes(path);
+            if self.base.https {
+                let left = time_left(deadline).ok_or(RegistryError::Timeout)?;
+                let name = ServerName::try_from(self.base.host.clone()).map_err(|_| {
+                    RegistryError::invalid_config("host is not a valid TLS server name")
+                })?;
+                let connector = TlsConnector::from(self.tls.clone());
+                let mut tls = match timeout(
+                    left.min(self.connect_timeout),
+                    connector.connect(name, stream),
+                )
+                .await
+                {
+                    Ok(Ok(tls)) => tls,
+                    Ok(Err(err)) => return Err(RegistryError::tls(err)),
+                    Err(_) => return Err(RegistryError::Timeout),
+                };
+                http_roundtrip(&mut tls, request.as_bytes(), deadline, self.max_body_bytes).await
+            } else {
+                let mut plain = stream;
+                http_roundtrip(
+                    &mut plain,
+                    request.as_bytes(),
+                    deadline,
+                    self.max_body_bytes,
+                )
+                .await
+            }
         }
+        .await;
+        // The lookup socket drops as the attempt ends. Yield so the registry
+        // observes that close before this attempt returns.
+        for _ in 0..8 {
+            arm_yield().await;
+        }
+        outcome
     }
 
     /// Render the `GET` request bytes (holds secrets; never logged).
@@ -909,6 +929,21 @@ async fn sleep_within(deadline: Instant, delay: Duration) -> bool {
     }
     tokio::time::sleep(delay.min(left)).await;
     true
+}
+
+/// One executor turn. The schema crate does not enable Tokio's `rt` feature,
+/// so this is the same pending-then-ready yield the runtime provides.
+fn arm_yield() -> impl std::future::Future<Output = ()> {
+    let mut pending = true;
+    poll_fn(move |cx| {
+        if pending {
+            pending = false;
+            cx.waker().wake_by_ref();
+            std::task::Poll::Pending
+        } else {
+            std::task::Poll::Ready(())
+        }
+    })
 }
 
 fn time_left(deadline: Instant) -> Option<Duration> {
@@ -2883,6 +2918,93 @@ mod tests {
         .await;
         let schema = fast_client(&server).get_schema_by_id(100).await.unwrap();
         assert_eq!(schema.id, 100);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn a_timed_out_lookup_lets_the_registry_leave() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use tokio::io::AsyncReadExt;
+
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let port = listener.local_addr().unwrap().port();
+        let open = Arc::new(AtomicUsize::new(0));
+        let flag = Arc::clone(&open);
+        let peer = tokio::spawn(async move {
+            let Ok((mut socket, _)) = listener.accept().await else {
+                return;
+            };
+            let _started = flag.fetch_add(1, Ordering::SeqCst);
+            let mut buf = [0u8; 8];
+            loop {
+                match socket.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let client = RegistryClient::new(
+            RegistryClientConfig::new(format!("http://127.0.0.1:{port}"))
+                .request_timeout(Duration::from_millis(200))
+                .connect_timeout(Duration::from_secs(2))
+                .max_attempts(1),
+        )
+        .unwrap();
+        let err = client.get_schema_by_id(1).await.unwrap_err();
+        assert_eq!(err, RegistryError::Timeout);
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "a timed out lookup left the registry blocked in a read"
+        );
+        peer.abort();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn a_timed_out_reference_lookup_lets_the_registry_leave() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use tokio::io::AsyncReadExt;
+
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let port = listener.local_addr().unwrap().port();
+        let open = Arc::new(AtomicUsize::new(0));
+        let flag = Arc::clone(&open);
+        let peer = tokio::spawn(async move {
+            let Ok((mut socket, _)) = listener.accept().await else {
+                return;
+            };
+            let _started = flag.fetch_add(1, Ordering::SeqCst);
+            let mut buf = [0u8; 8];
+            loop {
+                match socket.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let client = RegistryClient::new(
+            RegistryClientConfig::new(format!("http://127.0.0.1:{port}"))
+                .request_timeout(Duration::from_millis(200))
+                .connect_timeout(Duration::from_secs(2))
+                .max_attempts(1),
+        )
+        .unwrap();
+        let err = client
+            .fetch_references(&[SchemaReference {
+                name: "n".into(),
+                subject: "s".into(),
+                version: 1,
+            }])
+            .await
+            .unwrap_err();
+        assert_eq!(err, RegistryError::Timeout);
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "a timed out reference lookup left the registry blocked in a read"
+        );
+        peer.abort();
     }
 
     #[tokio::test]
