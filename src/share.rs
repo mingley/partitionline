@@ -2430,6 +2430,12 @@ pub enum ShareAcquireMode {
 /// `OPERATION_NOT_ATTEMPTED`). Official Java `LogManager`
 /// writes this when a requested log directory is not in the broker
 /// config. A top-level
+/// ShareAcknowledge `SASL_AUTHENTICATION_FAILED` completes without
+/// retry and does not request Metadata, including when `ErrorMessage`
+/// is set (Java `handleShareAcknowledgeSuccess` has no
+/// `metadata.requestUpdate`; this is not top-level
+/// `LOG_DIR_NOT_FOUND`). Official Java `SaslServerAuthenticator`
+/// writes this when SaslAuthenticate evaluateResponse fails. A top-level
 /// ShareAcknowledge `SHARE_SESSION_LIMIT_REACHED` completes without
 /// retry and does not request Metadata, including when `ErrorMessage`
 /// is set or empty (Java `handleShareAcknowledgeSuccess` has no
@@ -5537,6 +5543,13 @@ impl ShareGroup {
     /// this is not top-level `OPERATION_NOT_ATTEMPTED`). Official
     /// Java `LogManager` writes this when a requested log directory
     /// is not in the broker config.
+    /// A top-level ShareAcknowledge `SASL_AUTHENTICATION_FAILED`
+    /// completes without retry and does not request Metadata,
+    /// including when `ErrorMessage` is set (Java
+    /// `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`;
+    /// this is not top-level `LOG_DIR_NOT_FOUND`). Official
+    /// Java `SaslServerAuthenticator` writes this when
+    /// SaslAuthenticate evaluateResponse fails.
     /// Top-level `SHARE_SESSION_LIMIT_REACHED`
     /// completes without retry and advances the session epoch (Java
     /// `ShareSessionHandler.handleResponse` `nextEpoch`), including

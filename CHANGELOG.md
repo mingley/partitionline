@@ -341,6 +341,12 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `metadata.requestUpdate`; this is not top-level
   `OPERATION_NOT_ATTEMPTED`). Official Java `LogManager` writes
   this when a requested log directory is not in the broker config.
+  A top-level ShareAcknowledge `SASL_AUTHENTICATION_FAILED` completes
+  without retry and does not request Metadata, including when
+  `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+  `metadata.requestUpdate`; this is not top-level
+  `LOG_DIR_NOT_FOUND`). Official Java `SaslServerAuthenticator` writes
+  this when SaslAuthenticate evaluateResponse fails.
   A piggybacked ShareFetch
   `AcknowledgeErrorMessage` that is empty uses
   `ShareFetch acknowledgement {topic}-{partition}`. A piggybacked
