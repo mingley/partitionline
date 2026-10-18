@@ -1,7 +1,7 @@
 //! Consumer-group join / sync / heartbeat / commit.
 mod offsets;
 
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeSet, HashMap, HashSet};
 use std::fmt;
 use std::sync::atomic::{AtomicBool, AtomicI16, AtomicI32, AtomicU64, Ordering};
 use std::sync::Arc;
@@ -158,21 +158,20 @@ fn assign_sticky_from<'a>(
         .filter(|p| !used.contains(p))
         .collect();
     remaining.sort();
-    for p in remaining {
-        let target = out
-            .iter()
-            .min_by(|(left_member, left_parts), (right_member, right_parts)| {
-                left_parts
-                    .len()
-                    .cmp(&right_parts.len())
-                    .then_with(|| left_member.as_str().cmp(right_member.as_str()))
-            })
-            .map(|(member, _)| (*member).clone());
-        if let Some(m) = target {
-            if let Some(slot) = out.get_mut(&m) {
-                slot.push(p);
-            }
+    let mut load: BTreeSet<(usize, &str)> = members
+        .iter()
+        .copied()
+        .map(|member| (out.get(member).map(Vec::len).unwrap_or(0), member))
+        .collect();
+    for partition in remaining {
+        let Some(&(count, member)) = load.iter().next() else {
+            break;
+        };
+        let _ = load.remove(&(count, member));
+        if let Some(slot) = out.get_mut(member) {
+            slot.push(partition);
         }
+        let _ = load.insert((count.saturating_add(1), member));
     }
     rebalance_counts(&mut out);
     out
@@ -737,22 +736,21 @@ async fn assign_sticky_from_cooperative<'a>(
         }
     }
     remaining.sort();
+    let mut load: BTreeSet<(usize, &str)> = members
+        .iter()
+        .copied()
+        .map(|member| (out.get(member).map(Vec::len).unwrap_or(0), member))
+        .collect();
     walked = 0;
     for partition in remaining {
-        let target = out
-            .iter()
-            .min_by(|(left_member, left_parts), (right_member, right_parts)| {
-                left_parts
-                    .len()
-                    .cmp(&right_parts.len())
-                    .then_with(|| left_member.as_str().cmp(right_member.as_str()))
-            })
-            .map(|(member, _)| (*member).clone());
-        if let Some(member) = target {
-            if let Some(slot) = out.get_mut(&member) {
-                slot.push(partition);
-            }
+        let Some(&(count, member)) = load.iter().next() else {
+            break;
+        };
+        let _ = load.remove(&(count, member));
+        if let Some(slot) = out.get_mut(member) {
+            slot.push(partition);
         }
+        let _ = load.insert((count.saturating_add(1), member));
         walked = walked.saturating_add(1);
         if walked == 8 * 1024 {
             walked = 0;
@@ -7877,6 +7875,25 @@ mod tests {
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "assigning range partitions held the caller for {elapsed:?}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn balancing_many_sticky_members_does_not_hold_the_caller() {
+        // 2_048 members and 8_192 partitions: scanning every member for each
+        // partition held the caller 401ms.
+        let members: Vec<String> = (0..2_048).map(|index| format!("m{index:04}")).collect();
+        let member_refs: Vec<&str> = members.iter().map(String::as_str).collect();
+        let partitions: Vec<i32> = (0..8_192).collect();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = assign_sticky_from_cooperative(&member_refs, &partitions, std::iter::empty()) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "balancing sticky members held the caller for {elapsed:?}"
         );
     }
 
