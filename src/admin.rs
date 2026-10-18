@@ -15717,13 +15717,23 @@ fn topic_descriptions_for_names<T: AsRef<str>>(
     md: &MetadataResponse,
     names: &[T],
 ) -> Vec<TopicDescription> {
+    let mut slots: HashMap<&str, usize> = HashMap::with_capacity(md.topics.len());
+    for (index, topic) in md.topics.iter().enumerate() {
+        let Some(name) = topic.name.as_deref() else {
+            continue;
+        };
+        if slots.contains_key(name) {
+            continue;
+        }
+        let _ = slots.insert(name, index);
+    }
     names
         .iter()
         .map(|name| {
             let name = name.as_ref();
-            md.topics
-                .iter()
-                .find(|t| t.name.as_deref() == Some(name))
+            slots
+                .get(name)
+                .and_then(|index| md.topics.get(*index))
                 .map(topic_description_from)
                 .unwrap_or_else(|| {
                     TopicDescription::new(
@@ -16450,6 +16460,38 @@ mod tests {
         CreatedTopicConfig, ListConfigResourcesResponse, TopicConfig,
     };
     use bytes::BytesMut;
+
+    #[test]
+    fn describing_many_named_topics_does_not_hold_the_caller() {
+        // 20_000 names: scanning the image for each name held the caller 1.84s.
+        let mut md = MetadataResponse::blank();
+        md.topics = (0..20_000)
+            .map(|index| {
+                crate::protocol::api::TopicMetadata::new(0, format!("t{index}"), false, Vec::new())
+            })
+            .collect();
+        md.topics.push(crate::protocol::api::TopicMetadata::new(
+            5,
+            "t0",
+            false,
+            Vec::new(),
+        ));
+        let names: Vec<String> = (0..20_000).map(|index| format!("t{index}")).collect();
+        let started = std::time::Instant::now();
+        let described = topic_descriptions_for_names(&md, &names);
+        let elapsed = started.elapsed();
+        assert_eq!(described.len(), 20_000);
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "describing named topics held the caller for {elapsed:?}"
+        );
+        assert_eq!(described.first().map(|topic| topic.error_code), Some(0));
+        let missing = topic_descriptions_for_names(&md, &["other".to_string()]);
+        assert_eq!(
+            missing.first().map(|topic| topic.error_code),
+            Some(error::UNKNOWN_TOPIC_OR_PARTITION)
+        );
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn extending_many_described_topics_does_not_hold_the_caller() {
