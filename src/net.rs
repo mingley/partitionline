@@ -2124,6 +2124,15 @@ fn make_status(
     }
 }
 
+async fn retire_pipeline_conn(conn: &mut BrokerConn) {
+    if !conn.is_closed() {
+        conn.close();
+    }
+    // Callers are told after this returns. The broker has to be gone by then,
+    // not merely marked closed for the idle watch.
+    conn.release_if_closed().await;
+}
+
 async fn run_pipeline_loop(
     mut conn: BrokerConn,
     max_in_flight: usize,
@@ -2143,7 +2152,7 @@ async fn run_pipeline_loop(
             && !conn.is_closed()
         {
             if conn.is_session_expired() {
-                conn.close();
+                retire_pipeline_conn(&mut conn).await;
                 state = PipelineState::Closed;
                 shared_state.store(state.to_u8(), Ordering::SeqCst);
                 let err = Error::protocol(
@@ -2178,7 +2187,7 @@ async fn run_pipeline_loop(
                     });
                 }
                 Err(e) => {
-                    conn.close();
+                    retire_pipeline_conn(&mut conn).await;
                     state = PipelineState::Closed;
                     shared_state.store(state.to_u8(), Ordering::SeqCst);
                     drop(item.tx.send(Err(e.clone())));
@@ -2229,7 +2238,7 @@ async fn run_pipeline_loop(
                         }
                     }
                     Err(e) => {
-                        conn.close();
+                        retire_pipeline_conn(&mut conn).await;
                         state = PipelineState::Closed;
                         shared_state.store(state.to_u8(), Ordering::SeqCst);
                         fail_all_requests(&mut in_flight, &mut queued, &mut quiesce_waiters, &e);
@@ -2238,7 +2247,7 @@ async fn run_pipeline_loop(
             }
             cmd_opt = cmd_rx.recv() => {
                 let Some(cmd) = cmd_opt else {
-                    conn.close();
+                    retire_pipeline_conn(&mut conn).await;
                     state = PipelineState::Closed;
                     shared_state.store(state.to_u8(), Ordering::SeqCst);
                     break;
@@ -2254,7 +2263,7 @@ async fn run_pipeline_loop(
                         if conn.is_closed() || state == PipelineState::Closed {
                             drop(tx.send(Err(Error::Closed)));
                         } else if conn.is_session_expired() {
-                            conn.close();
+                            retire_pipeline_conn(&mut conn).await;
                             state = PipelineState::Closed;
                             shared_state.store(state.to_u8(), Ordering::SeqCst);
                             let err = Error::protocol(
@@ -2277,7 +2286,7 @@ async fn run_pipeline_loop(
                                         });
                                     }
                                     Err(e) => {
-                                        conn.close();
+                                        retire_pipeline_conn(&mut conn).await;
                                         state = PipelineState::Closed;
                                         shared_state.store(state.to_u8(), Ordering::SeqCst);
                                         drop(tx.send(Err(e.clone())));
@@ -2354,7 +2363,7 @@ async fn run_pipeline_loop(
                                         drop(stat_tx.send(make_status(&conn, state, in_flight.len(), queued.len())));
                                     }
                                     PipelineCommand::Shutdown { tx: shut_tx } => {
-                                        conn.close();
+                                        retire_pipeline_conn(&mut conn).await;
                                         state = PipelineState::Closed;
                                         shared_state.store(state.to_u8(), Ordering::SeqCst);
                                         fail_all_requests(&mut in_flight, &mut queued, &mut quiesce_waiters, &Error::Closed);
@@ -2377,7 +2386,7 @@ async fn run_pipeline_loop(
                         }
 
                         if let Some(e) = drain_err {
-                            conn.close();
+                            retire_pipeline_conn(&mut conn).await;
                             state = PipelineState::Closed;
                             shared_state.store(state.to_u8(), Ordering::SeqCst);
                             drop(tx.send(Err(e.clone())));
@@ -2399,7 +2408,7 @@ async fn run_pipeline_loop(
                                 drop(tx.send(Ok(())));
                             }
                             Err(e) => {
-                                conn.close();
+                                retire_pipeline_conn(&mut conn).await;
                                 state = PipelineState::Closed;
                                 shared_state.store(state.to_u8(), Ordering::SeqCst);
                                 drop(tx.send(Err(e.clone())));
@@ -2411,7 +2420,7 @@ async fn run_pipeline_loop(
                         drop(tx.send(make_status(&conn, state, in_flight.len(), queued.len())));
                     }
                     PipelineCommand::Shutdown { tx } => {
-                        conn.close();
+                        retire_pipeline_conn(&mut conn).await;
                         state = PipelineState::Closed;
                         shared_state.store(state.to_u8(), Ordering::SeqCst);
                         fail_all_requests(&mut in_flight, &mut queued, &mut quiesce_waiters, &Error::Closed);
@@ -3641,6 +3650,54 @@ mod tests {
             "a write timeout left the broker blocked in a read"
         );
         accepted.abort();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn an_expired_pipeline_lets_the_broker_leave() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use std::sync::Arc;
+
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let open = Arc::new(AtomicUsize::new(0));
+        let flag = Arc::clone(&open);
+        let peer = tokio::spawn(async move {
+            let Ok((mut socket, _)) = listener.accept().await else {
+                return;
+            };
+            let _started = flag.fetch_add(1, Ordering::SeqCst);
+            let mut buf = [0u8; 8];
+            loop {
+                match socket.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let mut conn = BrokerConn::connect(&addr, "pipeline", Duration::from_secs(2))
+            .await
+            .unwrap();
+        while open.load(Ordering::SeqCst) == 0 {
+            tokio::task::yield_now().await;
+        }
+        conn.record_sasl_session_lifetime_at(1, Instant::now() - Duration::from_secs(60));
+        let pipeline = BrokerPipeline::new(conn);
+        let result = pipeline
+            .request(
+                crate::protocol::api_keys::API_VERSIONS,
+                0,
+                |_buf| Ok(()),
+                Duration::from_secs(2),
+            )
+            .await;
+        assert!(result.is_err(), "an expired session still sent the request");
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "an expired pipeline left the broker blocked in a read"
+        );
+        peer.abort();
     }
 
     #[tokio::test(flavor = "current_thread")]
