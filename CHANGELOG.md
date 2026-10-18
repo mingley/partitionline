@@ -1955,6 +1955,13 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `FENCED_INSTANCE_ID`). Official Java
   `ReplicationControlManager.cancelPartitionReassignment` writes this
   when no reassignment is in progress.
+  Top-level `GROUP_SUBSCRIBED_TO_TOPIC` still fails that poll
+  without Metadata, including when `ErrorMessage` is set (Java
+  `handleShareFetchSuccess` only `requestUpdate`s for top-level
+  `UNKNOWN_TOPIC_ID`; this is not top-level
+  `NO_REASSIGNMENT_IN_PROGRESS`). Official Java `OffsetMetadataManager`
+  OffsetDelete writes this when the consumer group is actively
+  subscribed to the topic.
   A non-empty
   throwable partition or top-level ShareFetch `ErrorMessage` is
   preferred; empty uses `ShareFetch {topic}-{partition}` or
