@@ -3314,6 +3314,12 @@
 //! `metadata.requestUpdate`; this is not top-level
 //! `INVALID_REPLICATION_FACTOR`). Official Java `ReplicationControlManager` writes
 //! this when CreateTopics supplies an invalid manual replica assignment.
+//! Top-level ShareAcknowledge `INVALID_CONFIG` completes
+//! without retry and does not request Metadata, including when
+//! `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+//! `metadata.requestUpdate`; this is not top-level
+//! `INVALID_REPLICA_ASSIGNMENT`). Official Java `ReplicationControlManager` writes
+//! this when CreateTopics supplies a null topic config value.
 //! Top-level ShareAcknowledge
 //! `SHARE_SESSION_LIMIT_REACHED` completes without retry and advances
 //! the session epoch (Java `ShareSessionHandler.handleResponse`
