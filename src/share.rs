@@ -2556,7 +2556,7 @@ pub enum ShareAcquireMode {
 /// not empty. A top-level
 /// ShareAcknowledge `GROUP_ID_NOT_FOUND` completes without
 /// retry and does not request Metadata, including when `ErrorMessage`
-/// is set (Java `handleShareAcknowledgeSuccess` has no
+/// is set or empty (Java `handleShareAcknowledgeSuccess` has no
 /// `metadata.requestUpdate`; this is not top-level
 /// `NON_EMPTY_GROUP`). Official Java `GroupMetadataManager`
 /// writes this when a requested group id is not found. A top-level
@@ -5796,7 +5796,7 @@ impl ShareGroup {
     /// targets a share group that is not empty.
     /// A top-level ShareAcknowledge `GROUP_ID_NOT_FOUND`
     /// completes without retry and does not request Metadata,
-    /// including when `ErrorMessage` is set (Java
+    /// including when `ErrorMessage` is set or empty (Java
     /// `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`;
     /// this is not top-level `NON_EMPTY_GROUP`). Official
     /// Java `GroupMetadataManager` writes this when a requested
