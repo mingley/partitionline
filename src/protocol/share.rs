@@ -645,18 +645,23 @@ impl ShareFetchResponse {
     pub fn to_message(
         entries: &[([u8; 16], i32, ShareFetchedPartition)],
     ) -> Vec<ShareFetchedTopic> {
-        let mut topics: Vec<ShareFetchedTopic> = Vec::new();
+        let mut topics: Vec<ShareFetchedTopic> = Vec::with_capacity(entries.len());
+        let mut slots: HashMap<[u8; 16], usize> = HashMap::with_capacity(entries.len());
         for (topic_id, partition, body) in entries {
             let mut body = body.clone();
             body.partition = *partition;
-            if let Some(topic) = topics.iter_mut().find(|topic| topic.topic_id == *topic_id) {
-                topic.partitions.push(body);
-            } else {
-                topics.push(ShareFetchedTopic {
-                    topic_id: *topic_id,
-                    partitions: vec![body],
-                });
+            if let Some(&slot) = slots.get(topic_id) {
+                if let Some(topic) = topics.get_mut(slot) {
+                    topic.partitions.push(body);
+                }
+                continue;
             }
+            let slot = topics.len();
+            let _previous = slots.insert(*topic_id, slot);
+            topics.push(ShareFetchedTopic {
+                topic_id: *topic_id,
+                partitions: vec![body],
+            });
         }
         topics
     }
@@ -832,18 +837,23 @@ impl ShareAcknowledgeResponse {
     pub fn to_message(
         entries: &[([u8; 16], i32, ShareAcknowledgeResponsePartition)],
     ) -> Vec<ShareAcknowledgeResponseTopic> {
-        let mut topics: Vec<ShareAcknowledgeResponseTopic> = Vec::new();
+        let mut topics: Vec<ShareAcknowledgeResponseTopic> = Vec::with_capacity(entries.len());
+        let mut slots: HashMap<[u8; 16], usize> = HashMap::with_capacity(entries.len());
         for (topic_id, partition, body) in entries {
             let mut body = body.clone();
             body.partition = *partition;
-            if let Some(topic) = topics.iter_mut().find(|topic| topic.topic_id == *topic_id) {
-                topic.partitions.push(body);
-            } else {
-                topics.push(ShareAcknowledgeResponseTopic {
-                    topic_id: *topic_id,
-                    partitions: vec![body],
-                });
+            if let Some(&slot) = slots.get(topic_id) {
+                if let Some(topic) = topics.get_mut(slot) {
+                    topic.partitions.push(body);
+                }
+                continue;
             }
+            let slot = topics.len();
+            let _previous = slots.insert(*topic_id, slot);
+            topics.push(ShareAcknowledgeResponseTopic {
+                topic_id: *topic_id,
+                partitions: vec![body],
+            });
         }
         topics
     }
@@ -6556,6 +6566,27 @@ mod tests {
     }
 
     #[test]
+    fn grouping_many_share_acks_does_not_hold_the_caller() {
+        // 20_000 topic ids: finding each id held the caller 704ms.
+        let body = ShareAcknowledgeResponsePartition::partition_response(0, 0);
+        let entries: Vec<_> = (0..20_000u32)
+            .map(|index| {
+                let mut id = [0u8; 16];
+                id[..4].copy_from_slice(&index.to_be_bytes());
+                (id, index as i32, body.clone())
+            })
+            .collect();
+        let started = std::time::Instant::now();
+        let grouped = ShareAcknowledgeResponse::to_message(&entries);
+        let elapsed = started.elapsed();
+        assert_eq!(grouped.len(), 20_000);
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "grouping share acknowledgements held the caller for {elapsed:?}"
+        );
+    }
+
+    #[test]
     fn share_acknowledge_response_to_message_matches_java() {
         // Java ShareAcknowledgeResponse.toMessage: LinkedHashMap by
         // topicId, first-seen order, setPartitionIndex from the key.
@@ -7852,6 +7883,27 @@ mod tests {
             !cur.has_remaining(),
             "ShareFetch v{version} shareFetchData {empty}leftover-empty; leftover {} bytes",
             cur.remaining()
+        );
+    }
+
+    #[test]
+    fn grouping_many_share_fetches_does_not_hold_the_caller() {
+        // 20_000 topic ids: finding each id held the caller 793ms.
+        let body = ShareFetchedPartition::partition_response(0, 0);
+        let entries: Vec<_> = (0..20_000u32)
+            .map(|index| {
+                let mut id = [0u8; 16];
+                id[..4].copy_from_slice(&index.to_be_bytes());
+                (id, index as i32, body.clone())
+            })
+            .collect();
+        let started = std::time::Instant::now();
+        let grouped = ShareFetchResponse::to_message(&entries);
+        let elapsed = started.elapsed();
+        assert_eq!(grouped.len(), 20_000);
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "grouping share fetches held the caller for {elapsed:?}"
         );
     }
 
