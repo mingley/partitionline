@@ -3152,7 +3152,7 @@
 //! `INVALID_TIMESTAMP`). Official Java `SaslServerAuthenticator` writes
 //! this when the client SASL mechanism is not enabled on the broker. Top-level
 //! `ILLEGAL_SASL_STATE` still fails that poll without
-//! Metadata, including when `ErrorMessage` is set (Java
+//! Metadata, including when `ErrorMessage` is set or empty (Java
 //! `handleShareFetchSuccess` only `requestUpdate`s for
 //! `UNKNOWN_TOPIC_ID`; this is not top-level
 //! `UNSUPPORTED_SASL_MECHANISM`). Official Java `SaslServerAuthenticator`
