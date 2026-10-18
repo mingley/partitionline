@@ -1268,7 +1268,10 @@ async fn watch_disconnect<S: AsyncRead + Unpin>(
         if frame_mut(&mut ahead.bytes).try_reserve(budget).is_err() {
             return Exit::Io;
         }
-        let mut limited = frame_mut(&mut ahead.bytes).limit(budget);
+        // The rest of a pipelined frame stays reserved. One read still stops
+        // after a chunk so the handler deadline runs before that body is copied.
+        let step = budget.min(8 * 1024);
+        let mut limited = frame_mut(&mut ahead.bytes).limit(step);
         match socket.read_buf(&mut limited).await {
             Ok(0) => return Exit::PeerClosed,
             Ok(_) => {
@@ -2751,7 +2754,7 @@ mod handler_deadline_tests {
 
 #[cfg(test)]
 mod frame_read_deadline_tests {
-    use super::{frame_mut, new_frame, read_frame, Config, Exit, ReadAhead};
+    use super::{frame_mut, new_frame, read_frame, watch_disconnect, Config, Exit, ReadAhead};
     use std::pin::Pin;
     use std::task::{Context, Poll};
     use std::time::Duration;
@@ -2935,6 +2938,29 @@ mod frame_read_deadline_tests {
         assert!(
             deadline && elapsed < Duration::from_millis(80),
             "a buffered greedy body held the read past its deadline: {elapsed:?} deadline {deadline}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn a_handler_deadline_stops_a_greedy_pipeline() {
+        let body_len = 64 * 1024;
+        let mut ahead = ReadAhead::new();
+        frame_mut(&mut ahead.bytes)
+            .extend_from_slice(&i32::try_from(body_len).unwrap_or(i32::MAX).to_be_bytes());
+        let mut socket = GreedyFrame {
+            announced: true,
+            left: body_len,
+        };
+        let started = Instant::now();
+        let result = tokio::time::timeout_at(
+            Instant::now() + Duration::from_millis(40),
+            watch_disconnect(&mut socket, &mut ahead, 2 * 1024 * 1024),
+        )
+        .await;
+        let elapsed = started.elapsed();
+        assert!(
+            result.is_err() && elapsed < Duration::from_millis(80),
+            "a pipelined body held the handler deadline for {elapsed:?}"
         );
     }
 
