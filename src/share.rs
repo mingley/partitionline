@@ -2418,7 +2418,7 @@ pub enum ShareAcquireMode {
 /// after a sibling topic fails authorization or is unknown. A top-level
 /// ShareAcknowledge `LOG_DIR_NOT_FOUND` completes without
 /// retry and does not request Metadata, including when `ErrorMessage`
-/// is set (Java `handleShareAcknowledgeSuccess` has no
+/// is set or empty (Java `handleShareAcknowledgeSuccess` has no
 /// `metadata.requestUpdate`; this is not top-level
 /// `OPERATION_NOT_ATTEMPTED`). Official Java `LogManager`
 /// writes this when a requested log directory is not in the broker
@@ -5518,7 +5518,7 @@ impl ShareGroup {
     /// or is unknown.
     /// A top-level ShareAcknowledge `LOG_DIR_NOT_FOUND`
     /// completes without retry and does not request Metadata,
-    /// including when `ErrorMessage` is set (Java
+    /// including when `ErrorMessage` is set or empty (Java
     /// `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`;
     /// this is not top-level `OPERATION_NOT_ATTEMPTED`). Official
     /// Java `LogManager` writes this when a requested log directory
