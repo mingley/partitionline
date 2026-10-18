@@ -1890,11 +1890,22 @@ async fn write_frame<S: AsyncWrite + Unpin>(
         return Err(Error::Peer);
     }
     tokio::time::timeout_at(deadline, async {
-        // One vectored send so the length prefix is not a separate packet.
+        // The length stays in front of the body. A large body is sent in
+        // chunks so a deadline can stop the copy.
         let mut slices = [IoSlice::new(&len), IoSlice::new(bytes)];
         let mut bufs: &mut [IoSlice<'_>] = &mut slices;
         while !bufs.is_empty() {
-            let n = socket.write_vectored(bufs).await?;
+            // A ready socket can accept the whole frame. Offer one chunk so
+            // the deadline runs before the rest is copied.
+            let Some(first) = bufs.first() else {
+                break;
+            };
+            let take = first.len().min(8 * 1024);
+            if take == 0 {
+                return Err(Error::Peer);
+            }
+            let head = [IoSlice::new(&first[..take])];
+            let n = socket.write_vectored(&head).await?;
             if n == 0 {
                 return Err(Error::Peer);
             }
@@ -2989,6 +3000,89 @@ mod frame_deadline_tests {
         assert!(
             deadline && elapsed < Duration::from_millis(80),
             "a ready peer write held the frame past its deadline: {elapsed:?} deadline {deadline}"
+        );
+    }
+
+    /// Accepts every offered byte and spends time in proportion to that copy.
+    struct GreedySink;
+
+    impl AsyncWrite for GreedySink {
+        fn poll_write(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            buf: &[u8],
+        ) -> Poll<std::io::Result<usize>> {
+            if buf.is_empty() {
+                return Poll::Ready(Ok(0));
+            }
+            let units = u32::try_from(buf.len().div_ceil(1024)).unwrap_or(u32::MAX);
+            let start = std::time::Instant::now();
+            while start.elapsed() < Duration::from_millis(2).saturating_mul(units) {}
+            Poll::Ready(Ok(buf.len()))
+        }
+
+        fn poll_flush(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
+            Poll::Ready(Ok(()))
+        }
+
+        fn poll_shutdown(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
+            Poll::Ready(Ok(()))
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn write_deadline_stops_a_greedy_peer_frame() {
+        use super::super::election::LogPosition;
+        use super::super::membership::Key;
+        use super::super::peer_codec::{Frame, Message};
+        use super::super::replication::{Context, DynamicSnapshotRequest, SnapshotRequest};
+        use super::super::snapshot::Descriptor;
+
+        let key = Key::new(1, [1; 16]).unwrap_or_else(|error| panic!("{error}"));
+        let frame = Frame {
+            rpc: 1,
+            message: Message::Chunk {
+                offer: DynamicSnapshotRequest {
+                    context: Context {
+                        leader: key,
+                        peer: key,
+                        configuration_epoch: 0,
+                    },
+                    request: SnapshotRequest {
+                        leader: key.id,
+                        peer: key.id,
+                        sequence: 1,
+                        term: 2,
+                        leader_commit: 1,
+                        descriptor: Descriptor {
+                            generation: [1; 16],
+                            base: LogPosition { term: 1, index: 1 },
+                            records: 1,
+                            payload_bytes: 0,
+                            bytes: 64,
+                            checksum: 1,
+                        },
+                    },
+                },
+                offset: 0,
+                bytes: vec![9u8; 64 * 1024],
+            },
+        };
+        let mut wire = WireBuf::new();
+        let started = Instant::now();
+        let result = super::write_frame(
+            &mut GreedySink,
+            &frame,
+            2 * 1024 * 1024,
+            Instant::now() + Duration::from_millis(40),
+            &mut wire,
+        )
+        .await;
+        let elapsed = started.elapsed();
+        let deadline = matches!(result, Err(Error::Deadline));
+        assert!(
+            deadline && elapsed < Duration::from_millis(80),
+            "a greedy peer write held the frame past its deadline: {elapsed:?} deadline {deadline}"
         );
     }
 
