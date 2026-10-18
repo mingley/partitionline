@@ -409,7 +409,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   this when DeleteTopics runs with `delete.topic.enable` false.
   A top-level ShareAcknowledge `UNSUPPORTED_COMPRESSION_TYPE` completes
   without retry and does not request Metadata, including when
-  `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+  `ErrorMessage` is set or empty (Java `handleShareAcknowledgeSuccess` has no
   `metadata.requestUpdate`; this is not top-level
   `TOPIC_DELETION_DISABLED`). Official Java `ProduceRequest` writes
   this when a Produce version below 7 uses ZSTD compression.

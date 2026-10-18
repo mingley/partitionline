@@ -2582,7 +2582,7 @@ pub enum ShareAcquireMode {
 /// false. A top-level
 /// ShareAcknowledge `UNSUPPORTED_COMPRESSION_TYPE` completes without
 /// retry and does not request Metadata, including when `ErrorMessage`
-/// is set (Java `handleShareAcknowledgeSuccess` has no
+/// is set or empty (Java `handleShareAcknowledgeSuccess` has no
 /// `metadata.requestUpdate`; this is not top-level
 /// `TOPIC_DELETION_DISABLED`). Official Java `ProduceRequest`
 /// writes this when a Produce version below 7 uses ZSTD
@@ -5850,7 +5850,7 @@ impl ShareGroup {
     /// runs with `delete.topic.enable` false.
     /// A top-level ShareAcknowledge `UNSUPPORTED_COMPRESSION_TYPE`
     /// completes without retry and does not request Metadata,
-    /// including when `ErrorMessage` is set (Java
+    /// including when `ErrorMessage` is set or empty (Java
     /// `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`;
     /// this is not top-level `TOPIC_DELETION_DISABLED`). Official
     /// Java `ProduceRequest` writes this when a Produce
