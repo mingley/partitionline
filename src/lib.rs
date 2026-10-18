@@ -3344,7 +3344,14 @@
 //! `handleShareFetchSuccess` only `requestUpdate`s for
 //! `UNKNOWN_TOPIC_ID`; this is not top-level
 //! `TOPIC_DELETION_DISABLED`). Official Java `ProduceRequest` writes
-//! this when a Produce version below 7 uses ZSTD compression. Partition
+//! this when a Produce version below 7 uses ZSTD compression. Top-level
+//! `STALE_BROKER_EPOCH` still fails that poll without
+//! Metadata, including when `ErrorMessage` is set (Java
+//! `handleShareFetchSuccess` only `requestUpdate`s for
+//! `UNKNOWN_TOPIC_ID`; this is not top-level
+//! `UNSUPPORTED_COMPRESSION_TYPE`). Official Java
+//! `QuorumController.processBrokerHeartbeat` writes this when the
+//! broker epoch has changed. Partition
 //! `INCONSISTENT_TOPIC_ID` / `UNKNOWN_TOPIC_OR_PARTITION` /
 //! `UNKNOWN_TOPIC_ID` / `REPLICA_NOT_AVAILABLE` /
 //! `OFFSET_NOT_AVAILABLE` / `KAFKA_STORAGE_ERROR` skip without throwing,
