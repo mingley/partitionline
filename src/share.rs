@@ -2339,6 +2339,13 @@ pub enum ShareAcquireMode {
 /// `UNKNOWN_TOPIC_ID`; this is not top-level
 /// `GROUP_SUBSCRIBED_TO_TOPIC`). Official Java `LogValidator`
 /// writes this when a produce record fails validation.
+/// Top-level `PRODUCER_FENCED` still fails that poll
+/// and does not request Metadata, including when `ErrorMessage` is
+/// set (Java `handleShareFetchSuccess` only `requestUpdate`s for
+/// `UNKNOWN_TOPIC_ID`; this is not top-level
+/// `INVALID_RECORD`). Official Java
+/// `TransactionMetadata.prepareIncrementProducerEpoch` writes this
+/// when the expected producer epoch does not match.
 /// Top-level
 /// `SHARE_SESSION_LIMIT_REACHED` resets the share session and does
 /// not request Metadata, including when `ErrorMessage` is set or
@@ -5402,6 +5409,13 @@ impl ShareGroup {
     /// `UNKNOWN_TOPIC_ID`; this is not top-level
     /// `GROUP_SUBSCRIBED_TO_TOPIC`). Official Java `LogValidator`
     /// writes this when a produce record fails validation. Top-level
+    /// `PRODUCER_FENCED` still fails that poll without
+    /// Metadata, including when `ErrorMessage` is set (Java
+    /// `handleShareFetchSuccess` only `requestUpdate`s for
+    /// `UNKNOWN_TOPIC_ID`; this is not top-level
+    /// `INVALID_RECORD`). Official Java
+    /// `TransactionMetadata.prepareIncrementProducerEpoch` writes
+    /// this when the expected producer epoch does not match. Top-level
     /// `SHARE_SESSION_LIMIT_REACHED` resets the share session and
     /// does not request Metadata, including when `ErrorMessage` is
     /// set or empty (Java `handleShareFetchSuccess` only

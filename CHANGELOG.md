@@ -1981,6 +1981,13 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `UNKNOWN_TOPIC_ID`; this is not top-level
   `GROUP_SUBSCRIBED_TO_TOPIC`). Official Java `LogValidator` writes
   this when a produce record fails validation.
+  Top-level `PRODUCER_FENCED` still fails that poll
+  without Metadata, including when `ErrorMessage` is set (Java
+  `handleShareFetchSuccess` only `requestUpdate`s for top-level
+  `UNKNOWN_TOPIC_ID`; this is not top-level
+  `INVALID_RECORD`). Official Java
+  `TransactionMetadata.prepareIncrementProducerEpoch` writes this
+  when the expected producer epoch does not match.
   A non-empty
   throwable partition or top-level ShareFetch `ErrorMessage` is
   preferred; empty uses `ShareFetch {topic}-{partition}` or

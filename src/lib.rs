@@ -3390,7 +3390,14 @@
 //! `handleShareFetchSuccess` only `requestUpdate`s for
 //! `UNKNOWN_TOPIC_ID`; this is not top-level
 //! `GROUP_SUBSCRIBED_TO_TOPIC`). Official Java `LogValidator` writes
-//! this when a produce record fails validation. Partition
+//! this when a produce record fails validation. Top-level
+//! `PRODUCER_FENCED` still fails that poll without
+//! Metadata, including when `ErrorMessage` is set (Java
+//! `handleShareFetchSuccess` only `requestUpdate`s for
+//! `UNKNOWN_TOPIC_ID`; this is not top-level
+//! `INVALID_RECORD`). Official Java
+//! `TransactionMetadata.prepareIncrementProducerEpoch` writes this
+//! when the expected producer epoch does not match. Partition
 //! `INCONSISTENT_TOPIC_ID` / `UNKNOWN_TOPIC_OR_PARTITION` /
 //! `UNKNOWN_TOPIC_ID` / `REPLICA_NOT_AVAILABLE` /
 //! `OFFSET_NOT_AVAILABLE` / `KAFKA_STORAGE_ERROR` skip without throwing,
