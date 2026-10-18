@@ -410,6 +410,70 @@ pub fn resolve_sticky_owned_partitions(
     out
 }
 
+/// [`resolve_sticky_owned_partitions`], yielding while a long claim list is resolved.
+pub async fn resolve_sticky_owned_partitions_cooperative(
+    claims: &[StickyOwnedClaim],
+) -> HashMap<String, Vec<(String, i32)>> {
+    let mut out: HashMap<String, Vec<(String, i32)>> = HashMap::new();
+    for (member, _, _) in claims {
+        if !out.contains_key(member.as_str()) {
+            let _ = out.insert(member.clone(), Vec::new());
+        }
+    }
+    let mut owner: HashMap<&str, HashMap<i32, StickyOwner<'_>>> = HashMap::new();
+    let mut walked = 0usize;
+    for (member, owned, generation) in claims {
+        for (topic, partition) in owned {
+            let current = owner
+                .get(topic.as_str())
+                .and_then(|parts| parts.get(partition))
+                .copied();
+            let claim = StickyOwner {
+                member: member.as_str(),
+                generation: *generation,
+            };
+            match current {
+                None => {
+                    if let Some(slot) = out.get_mut(member.as_str()) {
+                        slot.push((topic.clone(), *partition));
+                    }
+                    remember_sticky_owner(&mut owner, topic.as_str(), *partition, claim);
+                }
+                Some(StickyOwner {
+                    member: other,
+                    generation: other_generation,
+                }) => match generation.cmp(&other_generation) {
+                    std::cmp::Ordering::Equal => {
+                        if other != member.as_str() {
+                            if let Some(other_slot) = out.get_mut(other) {
+                                other_slot
+                                    .retain(|(name, part)| name != topic || *part != *partition);
+                            }
+                            remember_sticky_owner(&mut owner, topic.as_str(), *partition, claim);
+                        }
+                    }
+                    std::cmp::Ordering::Greater => {
+                        if let Some(other_slot) = out.get_mut(other) {
+                            other_slot.retain(|(name, part)| name != topic || *part != *partition);
+                        }
+                        if let Some(slot) = out.get_mut(member.as_str()) {
+                            slot.push((topic.clone(), *partition));
+                        }
+                        remember_sticky_owner(&mut owner, topic.as_str(), *partition, claim);
+                    }
+                    std::cmp::Ordering::Less => {}
+                },
+            }
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+    }
+    out
+}
+
 /// Sticky-assign each topic among the members subscribed to it.
 pub fn assign_sticky_subscribed(
     member_subs: &[(String, Vec<String>)],
@@ -2798,7 +2862,7 @@ impl ConsumerGroup {
             member_subs.push((m.member_id.clone(), sub.topics));
             owned_claims.push((m.member_id.clone(), sub.owned_partitions, sub.generation_id));
         }
-        let owned_prev = resolve_sticky_owned_partitions(&owned_claims);
+        let owned_prev = resolve_sticky_owned_partitions_cooperative(&owned_claims).await;
         let timeout = deadline.saturating_duration_since(Instant::now());
         if timeout.is_zero() {
             return Err(Error::Timeout);
@@ -6508,6 +6572,25 @@ mod tests {
     use tokio::net::TcpListener;
 
     #[tokio::test(flavor = "current_thread")]
+    async fn resolving_many_owned_partitions_does_not_hold_the_caller() {
+        let mut owned = Vec::with_capacity(1_000_000);
+        for index in 0..1_000_000 {
+            owned.push(("orders".to_string(), index));
+        }
+        let claims = vec![("member".to_string(), owned, 1)];
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = resolve_sticky_owned_partitions_cooperative(&claims) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "resolving owned partitions held the caller for {elapsed:?}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
     async fn a_raced_group_lookup_lets_the_other_broker_leave() {
         use std::sync::atomic::{AtomicUsize, Ordering};
 
@@ -7069,6 +7152,12 @@ mod tests {
             ("b".into(), vec![("t".into(), 0), ("t".into(), 2)], 3),
         ];
         let got = resolve_sticky_owned_partitions(&claims);
+        let cooperative = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap()
+            .block_on(resolve_sticky_owned_partitions_cooperative(&claims));
+        assert_eq!(cooperative, got);
         assert_eq!(
             got.get("a").cloned().unwrap_or_default(),
             vec![("t".into(), 1)]
