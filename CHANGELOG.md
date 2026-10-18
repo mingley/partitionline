@@ -1942,7 +1942,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   this when a static member's `group.instance.id` is already owned by a
   different member id.
   Top-level `NO_REASSIGNMENT_IN_PROGRESS` still fails that poll
-  without Metadata, including when `ErrorMessage` is set (Java
+  without Metadata, including when `ErrorMessage` is set or empty (Java
   `handleShareFetchSuccess` only `requestUpdate`s for top-level
   `UNKNOWN_TOPIC_ID`; this is not top-level
   `FENCED_INSTANCE_ID`). Official Java
