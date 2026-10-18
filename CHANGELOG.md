@@ -432,6 +432,13 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `metadata.requestUpdate`; this is not top-level
   `MEMBER_ID_REQUIRED`). Official Java `GroupMetadataManager` writes
   this when a JoinGroup would exceed the classic group max size.
+  A top-level ShareAcknowledge `FENCED_INSTANCE_ID` completes
+  without retry and does not request Metadata, including when
+  `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+  `metadata.requestUpdate`; this is not top-level
+  `GROUP_MAX_SIZE_REACHED`). Official Java `GroupMetadataManager` writes
+  this when a static member's `group.instance.id` is already owned by a
+  different member id.
   A piggybacked ShareFetch
   `AcknowledgeErrorMessage` that is empty uses
   `ShareFetch acknowledgement {topic}-{partition}`. A piggybacked
