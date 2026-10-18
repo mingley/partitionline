@@ -2129,7 +2129,7 @@ pub enum ShareAcquireMode {
 /// this when CreateTopics supplies a manual partition assignment without setting `replicationFactor` to -1.
 /// Top-level `UNSUPPORTED_FOR_MESSAGE_FORMAT` still fails that poll
 /// and does not request Metadata, including when `ErrorMessage` is
-/// set (Java `handleShareFetchSuccess` only `requestUpdate`s for
+/// set or empty (Java `handleShareFetchSuccess` only `requestUpdate`s for
 /// `UNKNOWN_TOPIC_ID`; this is not top-level
 /// `INVALID_REQUEST`). Official Java `LogValidator` writes
 /// this when a transactional or idempotent record batch uses a magic version before v2.
@@ -4765,7 +4765,7 @@ impl ShareGroup {
     /// writes this when CreateTopics supplies a manual partition
     /// assignment without setting `replicationFactor` to -1. Top-level
     /// `UNSUPPORTED_FOR_MESSAGE_FORMAT` still fails that poll without
-    /// Metadata, including when `ErrorMessage` is set (Java
+    /// Metadata, including when `ErrorMessage` is set or empty (Java
     /// `handleShareFetchSuccess` only `requestUpdate`s for
     /// `UNKNOWN_TOPIC_ID`; this is not top-level
     /// `INVALID_REQUEST`). Official Java `LogValidator`
