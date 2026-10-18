@@ -5825,6 +5825,11 @@ impl Consumer {
             extra = extra.saturating_add(1);
             tokio::task::yield_now().await;
         }
+        // A cancelled fetch drops its socket when the task is polled. The idle
+        // watch then has to run before that broker sees the close.
+        for _ in 0..8 {
+            tokio::task::yield_now().await;
+        }
     }
 
     /// Stop leader fetches that this round will not park.
@@ -14046,6 +14051,77 @@ mod tests {
             open.load(Ordering::SeqCst),
             0,
             "a wakeup left a finished fetch broker blocked in a read"
+        );
+        peer.abort();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn cancelling_an_inflight_fetch_lets_the_broker_leave() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use std::sync::Arc;
+        use tokio::io::AsyncReadExt;
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let open = Arc::new(AtomicUsize::new(0));
+        let flag = Arc::clone(&open);
+        let peer = tokio::spawn(async move {
+            let mut first = true;
+            loop {
+                let Ok((mut socket, _)) = listener.accept().await else {
+                    return;
+                };
+                if first {
+                    first = false;
+                    let flag = Arc::clone(&flag);
+                    let _started = flag.fetch_add(1, Ordering::SeqCst);
+                    let _reader = tokio::spawn(async move {
+                        let mut buf = [0u8; 8];
+                        loop {
+                            match socket.read(&mut buf).await {
+                                Ok(0) | Err(_) => break,
+                                Ok(_) => continue,
+                            }
+                        }
+                        let _left = flag.fetch_sub(1, Ordering::SeqCst);
+                    });
+                } else {
+                    let _held = tokio::spawn(async move {
+                        let mut buf = [0u8; 8];
+                        loop {
+                            match socket.read(&mut buf).await {
+                                Ok(0) | Err(_) => break,
+                                Ok(_) => continue,
+                            }
+                        }
+                    });
+                }
+            }
+        });
+        let leader = BrokerConn::connect(&addr, "cancel-fetch", Duration::from_secs(2))
+            .await
+            .unwrap();
+        while open.load(Ordering::SeqCst) == 0 {
+            tokio::task::yield_now().await;
+        }
+        let holding = BrokerConn::connect(&addr, "cancel-holder", Duration::from_secs(2))
+            .await
+            .unwrap();
+        let mut set = tokio::task::JoinSet::new();
+        let _spawned = set.spawn(async move {
+            let _hold = leader;
+            std::future::pending::<(FetchReply, BrokerConn, SessionFetchRequest)>().await
+        });
+        for _ in 0..8 {
+            tokio::task::yield_now().await;
+        }
+        let mut consumer = Consumer::test_holding(ConsumerConfig::default(), holding);
+        consumer.inflight_fetches = Some(set);
+        consumer.finish_cancelled_fetches().await;
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "cancelling an in-flight fetch left the broker blocked in a read"
         );
         peer.abort();
     }
