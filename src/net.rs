@@ -968,6 +968,27 @@ fn spawn_idle_watch(
                                 closed.store(true, Ordering::SeqCst);
                                 if let Ok(mut io) = stream.try_lock() {
                                     drop(poll_fn(|cx| Pin::new(&mut *io).poll_shutdown(cx)).await);
+                                    // The peer can still be writing. Discard
+                                    // those bytes so that write can finish and
+                                    // the peer can observe this shutdown.
+                                    let mut discard = [0u8; 8 * 1024];
+                                    loop {
+                                        let n = poll_fn(|cx| {
+                                            let mut read = ReadBuf::new(&mut discard);
+                                            match Pin::new(&mut *io).poll_read(cx, &mut read) {
+                                                Poll::Pending => Poll::Pending,
+                                                Poll::Ready(Err(_)) => Poll::Ready(0),
+                                                Poll::Ready(Ok(())) => {
+                                                    Poll::Ready(read.filled().len())
+                                                }
+                                            }
+                                        })
+                                        .await;
+                                        if n == 0 {
+                                            break;
+                                        }
+                                        tokio::task::yield_now().await;
+                                    }
                                 }
                                 arm.notify_one();
                                 return;
@@ -4308,6 +4329,45 @@ mod tests {
             matches!(saw, Ok(Ok(0))),
             "peer stayed in the read after a late write shutdown: {saw:?}"
         );
+        drop(conn);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn an_idle_flood_lets_the_peer_finish_writing() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        let accepted = tokio::spawn(async move {
+            let (socket, _) = listener.accept().await.unwrap();
+            let (mut reader, mut writer) = socket.into_split();
+            let chunk = vec![0xabu8; 64 * 1024];
+            let write = async {
+                for _ in 0..64 {
+                    writer.write_all(&chunk).await?;
+                }
+                Ok::<(), std::io::Error>(())
+            };
+            let wrote = tokio::time::timeout(Duration::from_millis(300), write).await;
+            let saw =
+                tokio::time::timeout(Duration::from_millis(300), reader.read(&mut [0u8; 8])).await;
+            (wrote, saw)
+        });
+        let conn = BrokerConn::connect(
+            &addr.to_string(),
+            "idle-flood-write",
+            Duration::from_secs(2),
+        )
+        .await
+        .unwrap();
+        let (wrote, saw) = accepted.await.unwrap();
+        assert!(
+            wrote.is_ok(),
+            "an idle flood left the peer blocked in its write: {wrote:?}"
+        );
+        assert!(
+            matches!(saw, Ok(Ok(0))),
+            "an idle flood left the peer blocked in its read: {saw:?}"
+        );
+        assert!(conn.is_closed(), "an idle flood left the connection open");
         drop(conn);
     }
 
