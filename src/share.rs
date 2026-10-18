@@ -2596,7 +2596,7 @@ pub enum ShareAcquireMode {
 /// compression. A top-level
 /// ShareAcknowledge `STALE_BROKER_EPOCH` completes without
 /// retry and does not request Metadata, including when `ErrorMessage`
-/// is set (Java `handleShareAcknowledgeSuccess` has no
+/// is set or empty (Java `handleShareAcknowledgeSuccess` has no
 /// `metadata.requestUpdate`; this is not top-level
 /// `UNSUPPORTED_COMPRESSION_TYPE`). Official Java
 /// `QuorumController.processBrokerHeartbeat` writes this when the
@@ -5878,7 +5878,7 @@ impl ShareGroup {
     /// version below 7 uses ZSTD compression.
     /// A top-level ShareAcknowledge `STALE_BROKER_EPOCH`
     /// completes without retry and does not request Metadata,
-    /// including when `ErrorMessage` is set (Java
+    /// including when `ErrorMessage` is set or empty (Java
     /// `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`;
     /// this is not top-level `UNSUPPORTED_COMPRESSION_TYPE`). Official
     /// Java `QuorumController.processBrokerHeartbeat` writes this
