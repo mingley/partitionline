@@ -5491,6 +5491,7 @@ async fn discover_coord_raced(
     let mut last = Error::protocol("find coordinator failed");
     while !inflight.is_empty() {
         if deadline.remaining().is_err() {
+            retire_ready_lookups(&mut ready).await;
             finish_aborted_handshakes(inflight).await;
             return Err(Error::Timeout);
         }
@@ -5498,6 +5499,7 @@ async fn discover_coord_raced(
         let joined = tokio::select! {
             joined = inflight.join_next() => joined,
             _ = tokio::time::sleep(rest) => {
+                retire_ready_lookups(&mut ready).await;
                 finish_aborted_handshakes(inflight).await;
                 return Err(Error::Timeout);
             }
@@ -5552,10 +5554,12 @@ async fn discover_coord_raced(
                     .await
                     {
                         CoordAsk::Found(found) => {
+                            retire_ready_lookups(&mut ready).await;
                             finish_aborted_handshakes(inflight).await;
                             return Ok(*found);
                         }
                         CoordAsk::Fatal(error) => {
+                            retire_ready_lookups(&mut ready).await;
                             finish_aborted_handshakes(inflight).await;
                             return Err(error);
                         }
@@ -5570,10 +5574,12 @@ async fn discover_coord_raced(
                     .await
                     {
                         CoordAsk::Found(found) => {
+                            retire_ready_lookups(&mut ready).await;
                             finish_aborted_handshakes(inflight).await;
                             return Ok(*found);
                         }
                         CoordAsk::Fatal(error) => {
+                            retire_ready_lookups(&mut ready).await;
                             finish_aborted_handshakes(inflight).await;
                             return Err(error);
                         }
@@ -5586,6 +5592,7 @@ async fn discover_coord_raced(
             }
         }
     }
+    retire_ready_lookups(&mut ready).await;
     finish_aborted_handshakes(inflight).await;
     if deadline.remaining().is_err() {
         return Err(Error::Timeout);
@@ -5594,6 +5601,14 @@ async fn discover_coord_raced(
 }
 
 type CoordHandshake = (BrokerConn, i16, crate::protocol::api::ApiVersionsResponse);
+
+async fn retire_ready_lookups(ready: &mut [Option<Result<CoordHandshake>>]) {
+    for slot in ready {
+        if let Some(Ok((conn, _, _))) = slot.take() {
+            retire_lookup_conn(conn).await;
+        }
+    }
+}
 
 enum CoordAsk {
     Found(Box<(BrokerConn, crate::protocol::api::ApiVersionsResponse)>),
@@ -6426,6 +6441,123 @@ mod tests {
     use std::time::Duration;
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
     use tokio::net::TcpListener;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn a_raced_group_lookup_lets_the_other_broker_leave() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+
+        let first = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let second = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let first_addr = first.local_addr().unwrap().to_string();
+        let second_addr = second.local_addr().unwrap().to_string();
+        let open = Arc::new(AtomicUsize::new(0));
+        let first_flag = Arc::clone(&open);
+        let second_flag = Arc::clone(&open);
+        let mut find_body = bytes::BytesMut::new();
+        crate::protocol::group::encode_find_coordinator_response(
+            &mut find_body,
+            1,
+            1,
+            "127.0.0.1",
+            1,
+            "group",
+        )
+        .unwrap();
+        find_body[4..6].copy_from_slice(&42i16.to_be_bytes());
+        let find_body = find_body.freeze();
+        let first_peer = tokio::spawn(async move {
+            use tokio::io::AsyncWriteExt;
+            let Ok((mut socket, _)) = first.accept().await else {
+                return;
+            };
+            let _started = first_flag.fetch_add(1, Ordering::SeqCst);
+            let mut size_buf = [0u8; 4];
+            if socket.read_exact(&mut size_buf).await.is_ok() {
+                let size = i32::from_be_bytes(size_buf).max(0) as usize;
+                let mut request = vec![0u8; size];
+                if socket.read_exact(&mut request).await.is_ok() {
+                    if let Some(bytes) = request.get(4..8) {
+                        let correlation = i32::from_be_bytes([
+                            bytes.first().copied().unwrap_or(0),
+                            bytes.get(1).copied().unwrap_or(0),
+                            bytes.get(2).copied().unwrap_or(0),
+                            bytes.get(3).copied().unwrap_or(0),
+                        ]);
+                        let mut response = Vec::new();
+                        let len = i32::try_from(4 + find_body.len()).unwrap_or(0);
+                        response.extend_from_slice(&len.to_be_bytes());
+                        response.extend_from_slice(&correlation.to_be_bytes());
+                        response.extend_from_slice(&find_body);
+                        let _wrote = socket.write_all(&response).await;
+                    }
+                }
+            }
+            let mut buf = [0u8; 8];
+            loop {
+                match socket.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = first_flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let second_peer = tokio::spawn(async move {
+            let Ok((mut socket, _)) = second.accept().await else {
+                return;
+            };
+            let _started = second_flag.fetch_add(1, Ordering::SeqCst);
+            let mut buf = [0u8; 8];
+            loop {
+                match socket.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = second_flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let cfg =
+            crate::consumer::ConsumerConfig::bootstrap([first_addr.clone(), second_addr.clone()]);
+        let keys = vec![ApiVersion {
+            api_key: FIND_COORDINATOR,
+            min_version: 1,
+            max_version: 1,
+        }];
+        let mut address_keys = HashMap::new();
+        let _stored = address_keys.insert(first_addr.clone(), keys.clone());
+        let _stored = address_keys.insert(second_addr, keys.clone());
+        let known = KnownCoord {
+            addr: first_addr,
+            offset_commit_version: 0,
+            offset_fetch_version: 0,
+            heartbeat_version: -1,
+            sync_group_version: -1,
+            join_group_version: 0,
+            leave_group_version: -1,
+            consumer_group_heartbeat_version: -1,
+            share_group_heartbeat_version: -1,
+            sasl_handshake_version: -1,
+            sasl_authenticate_version: -1,
+            find_coordinator_version: 1,
+            bootstrap_keys: keys,
+            address_keys,
+        };
+        let _found = discover_coord_raced(
+            &cfg,
+            "group",
+            COORDINATOR_GROUP,
+            crate::net::Deadline::from_timeout(Duration::from_secs(2)),
+            Some(&known),
+            &HashMap::new(),
+        )
+        .await;
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "a raced group lookup left a broker blocked in a read"
+        );
+        first_peer.abort();
+        second_peer.abort();
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn replacing_a_lookup_socket_lets_the_broker_leave() {
