@@ -2190,7 +2190,7 @@ pub enum ShareAcquireMode {
 /// on that transactional id.
 /// Top-level `SECURITY_DISABLED` still fails that poll
 /// and does not request Metadata, including when `ErrorMessage` is
-/// set (Java `handleShareFetchSuccess` only `requestUpdate`s for
+/// set or empty (Java `handleShareFetchSuccess` only `requestUpdate`s for
 /// `UNKNOWN_TOPIC_ID`; this is not top-level
 /// `TRANSACTIONAL_ID_AUTHORIZATION_FAILED`). Official Java `AclApis`
 /// writes this when an ACL request runs with no Authorizer
@@ -4955,7 +4955,7 @@ impl ShareGroup {
     /// `KafkaApis` writes this when a transactional produce request
     /// is missing WRITE on that transactional id. Top-level
     /// `SECURITY_DISABLED` still fails that poll without
-    /// Metadata, including when `ErrorMessage` is set (Java
+    /// Metadata, including when `ErrorMessage` is set or empty (Java
     /// `handleShareFetchSuccess` only `requestUpdate`s for
     /// `UNKNOWN_TOPIC_ID`; this is not top-level
     /// `TRANSACTIONAL_ID_AUTHORIZATION_FAILED`). Official Java
