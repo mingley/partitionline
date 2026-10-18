@@ -1885,9 +1885,21 @@ async fn write_frame<S: AsyncWrite + Unpin>(
         .to_be_bytes();
     // A length already read while the previous command ran is not a later
     // socket read. The peer is not accepting this frame, so the write must
-    // not sit until its deadline.
-    if peer_length_rejected(&wire.unread, limit) {
-        return Err(Error::Peer);
+    // not sit until its deadline. A long run of frames is walked in slices
+    // so a command beside this write can run.
+    let mut scanned = 0usize;
+    loop {
+        if scanned > wire.unread.len() {
+            scanned = 0;
+        }
+        match scan_peer_frames(&wire.unread, scanned, limit, 64 * 1024) {
+            PeerScan::Rejected => return Err(Error::Peer),
+            PeerScan::Rest(_) => break,
+            PeerScan::Partial(at) => {
+                scanned = at;
+                tokio::task::yield_now().await;
+            }
+        }
     }
     tokio::time::timeout_at(deadline, async {
         // The length stays in front of the body. A large body is sent in
@@ -1987,33 +1999,49 @@ async fn rpc(
     }
     Ok(response.message)
 }
-fn peer_length_rejected(unread: &[u8], limit: usize) -> bool {
-    let mut offset = 0usize;
+enum PeerScan {
+    Rejected,
+    /// Walked through `at`. Anything after that is a short tail or empty.
+    Rest(usize),
+    /// Walked through `at` and more complete frames are still buffered.
+    Partial(usize),
+}
+
+/// Walk complete frames from `start`, stopping after `budget` bytes.
+///
+/// A long run of minimum frames is still legal. Scanning all of it in one
+/// turn keeps a command beside this peer from running until the walk finishes.
+fn scan_peer_frames(unread: &[u8], start: usize, limit: usize, budget: usize) -> PeerScan {
+    let mut offset = start.min(unread.len());
+    let end = offset.saturating_add(budget.max(4));
     while unread.len().saturating_sub(offset) >= 4 {
+        if offset >= end {
+            return PeerScan::Partial(offset);
+        }
         let Some(prefix) = unread.get(offset..offset.saturating_add(4)) else {
-            return true;
+            return PeerScan::Rejected;
         };
         let Ok(raw) = <[u8; 4]>::try_from(prefix) else {
-            return true;
+            return PeerScan::Rejected;
         };
         let length = u32::from_be_bytes(raw) as usize;
         if !(28..=limit).contains(&length) {
-            return true;
+            return PeerScan::Rejected;
         }
         let Some(total) = 4usize.checked_add(length) else {
-            return true;
+            return PeerScan::Rejected;
         };
         let Some(frame_end) = offset.checked_add(total) else {
-            return true;
+            return PeerScan::Rejected;
         };
         // A short tail of the next frame is still arriving. Only a finished
         // frame can hide a later length this peer will not accept.
         if unread.len() < frame_end {
-            return false;
+            return PeerScan::Rest(offset);
         }
         offset = frame_end;
     }
-    false
+    PeerScan::Rest(offset)
 }
 
 async fn peer_socket_closed<S: AsyncRead + Unpin>(
@@ -2022,12 +2050,27 @@ async fn peer_socket_closed<S: AsyncRead + Unpin>(
     limit: usize,
 ) {
     let mut buf = [0u8; 1024];
+    let mut scanned = 0usize;
     loop {
         // One next frame fits in the frame limit. More than that during a
         // command is not a single pipelined request, so the socket is closed.
         // A length this peer will not accept is not a frame either.
-        if unread.len() > limit || peer_length_rejected(unread, limit) {
+        if unread.len() > limit {
             return;
+        }
+        if scanned > unread.len() {
+            scanned = 0;
+        }
+        match scan_peer_frames(unread, scanned, limit, 64 * 1024) {
+            PeerScan::Rejected => return,
+            PeerScan::Rest(at) => scanned = at,
+            PeerScan::Partial(at) => {
+                scanned = at;
+                // More complete frames are buffered. Yield before walking
+                // the rest so a command beside this peer can run.
+                tokio::task::yield_now().await;
+                continue;
+            }
         }
         match socket.read(&mut buf).await {
             Ok(0) | Err(_) => return,
@@ -2816,6 +2859,44 @@ mod frame_deadline_tests {
     use std::time::Duration;
     use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
     use tokio::time::Instant;
+
+    struct PendingRead;
+
+    impl AsyncRead for PendingRead {
+        fn poll_read(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            _buf: &mut ReadBuf<'_>,
+        ) -> Poll<std::io::Result<()>> {
+            Poll::Pending
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn a_run_of_minimum_frames_does_not_hold_the_peer_watch() {
+        let frame = {
+            let mut one = vec![0u8; 32];
+            one[..4].copy_from_slice(&28u32.to_be_bytes());
+            one
+        };
+        let frames = (128 * 1024 * 1024) / frame.len();
+        let mut unread = Vec::with_capacity(frames.saturating_mul(frame.len()));
+        for _ in 0..frames {
+            unread.extend_from_slice(&frame);
+        }
+        let limit = unread.len();
+        let mut socket = PendingRead;
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = super::peer_socket_closed(&mut socket, &mut unread, limit) => {}
+            _ = tokio::time::sleep(Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < Duration::from_millis(80),
+            "scanning peer frames held the command wait for {elapsed:?}"
+        );
+    }
 
     struct SlowFrame {
         announced: bool,
