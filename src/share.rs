@@ -2147,6 +2147,12 @@ pub enum ShareAcquireMode {
 /// `metadata.requestUpdate`; this is not top-level
 /// `CLUSTER_AUTHORIZATION_FAILED`). Official Java `LogValidator` writes
 /// this when a record timestamp is outside the acceptable range. A top-level
+/// ShareAcknowledge `UNSUPPORTED_SASL_MECHANISM` completes without
+/// retry and does not request Metadata, including when `ErrorMessage`
+/// is set (Java `handleShareAcknowledgeSuccess` has no
+/// `metadata.requestUpdate`; this is not top-level
+/// `INVALID_TIMESTAMP`). Official Java `SaslServerAuthenticator` writes
+/// this when the client SASL mechanism is not enabled on the broker. A top-level
 /// ShareAcknowledge `SHARE_SESSION_LIMIT_REACHED` completes without
 /// retry and does not request Metadata, including when `ErrorMessage`
 /// is set or empty (Java `handleShareAcknowledgeSuccess` has no
@@ -4952,6 +4958,13 @@ impl ShareGroup {
     /// this is not top-level `CLUSTER_AUTHORIZATION_FAILED`). Official
     /// Java `LogValidator` writes this when a record timestamp is
     /// outside the acceptable range.
+    /// A top-level ShareAcknowledge `UNSUPPORTED_SASL_MECHANISM`
+    /// completes without retry and does not request Metadata,
+    /// including when `ErrorMessage` is set (Java
+    /// `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`;
+    /// this is not top-level `INVALID_TIMESTAMP`). Official
+    /// Java `SaslServerAuthenticator` writes this when the client SASL
+    /// mechanism is not enabled on the broker.
     /// Top-level `SHARE_SESSION_LIMIT_REACHED`
     /// completes without retry and advances the session epoch (Java
     /// `ShareSessionHandler.handleResponse` `nextEpoch`), including

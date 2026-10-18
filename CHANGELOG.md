@@ -213,6 +213,12 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `metadata.requestUpdate`; this is not top-level
   `CLUSTER_AUTHORIZATION_FAILED`). Official Java `LogValidator` writes
   this when a record timestamp is outside the acceptable range.
+  A top-level ShareAcknowledge `UNSUPPORTED_SASL_MECHANISM` completes
+  without retry and does not request Metadata, including when
+  `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+  `metadata.requestUpdate`; this is not top-level
+  `INVALID_TIMESTAMP`). Official Java `SaslServerAuthenticator` writes
+  this when the client SASL mechanism is not enabled on the broker.
   A piggybacked ShareFetch
   `AcknowledgeErrorMessage` that is empty uses
   `ShareFetch acknowledgement {topic}-{partition}`. A piggybacked
