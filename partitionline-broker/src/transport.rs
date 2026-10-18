@@ -1153,7 +1153,11 @@ async fn write_and_prefetch<S: AsyncRead + AsyncWrite + Unpin>(
                             stop_read = true;
                         } else {
                             let polled = {
-                                let mut limited = frame_mut(&mut ahead.bytes).limit(budget);
+                                // The rest of the next frame stays reserved.
+                                // One read still stops after a chunk so the
+                                // write deadline runs before that body is copied.
+                                let step = budget.min(8 * 1024);
+                                let mut limited = frame_mut(&mut ahead.bytes).limit(step);
                                 let mut read = std::pin::pin!(socket.read_buf(&mut limited));
                                 read.as_mut().poll(cx)
                             };
@@ -2179,7 +2183,7 @@ mod read_deadline_tests {
 
 #[cfg(test)]
 mod write_prefetch_tests {
-    use super::{write_and_prefetch, Exit, ReadAhead};
+    use super::{frame_mut, write_and_prefetch, Exit, ReadAhead};
     use std::pin::Pin;
     use std::task::{Context, Poll};
     use std::time::Duration;
@@ -2266,6 +2270,79 @@ mod write_prefetch_tests {
         assert!(
             elapsed < Duration::from_millis(80),
             "a ready prefetch held the write past its deadline: {elapsed:?}"
+        );
+    }
+
+    /// Writes never accept a byte. The next body fills every spare byte.
+    struct GreedyPrefetch {
+        left: usize,
+    }
+
+    impl AsyncRead for GreedyPrefetch {
+        fn poll_read(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            buf: &mut ReadBuf<'_>,
+        ) -> Poll<std::io::Result<()>> {
+            let this = self.get_mut();
+            if this.left == 0 {
+                return Poll::Pending;
+            }
+            let dst = buf.initialize_unfilled();
+            if dst.is_empty() {
+                return Poll::Ready(Ok(()));
+            }
+            let n = dst.len().min(this.left);
+            dst[..n].fill(1);
+            buf.advance(n);
+            this.left -= n;
+            let units = u32::try_from(n.div_ceil(1024)).unwrap_or(u32::MAX);
+            let start = std::time::Instant::now();
+            while start.elapsed() < Duration::from_millis(2).saturating_mul(units) {}
+            Poll::Ready(Ok(()))
+        }
+    }
+
+    impl AsyncWrite for GreedyPrefetch {
+        fn poll_write(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            _buf: &[u8],
+        ) -> Poll<std::io::Result<usize>> {
+            Poll::Pending
+        }
+
+        fn poll_flush(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
+            Poll::Ready(Ok(()))
+        }
+
+        fn poll_shutdown(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
+            Poll::Ready(Ok(()))
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn write_deadline_stops_a_greedy_prefetch() {
+        let body_len = 64 * 1024;
+        let mut ahead = ReadAhead::new();
+        frame_mut(&mut ahead.bytes)
+            .extend_from_slice(&i32::try_from(body_len).unwrap_or(i32::MAX).to_be_bytes());
+        let mut socket = GreedyPrefetch { left: body_len };
+        let started = Instant::now();
+        let result = write_and_prefetch(
+            &mut socket,
+            b"response-bytes",
+            Instant::now() + Duration::from_millis(40),
+            &mut ahead,
+            8 * 1024 * 1024,
+            true,
+        )
+        .await;
+        let elapsed = started.elapsed();
+        let deadline = matches!(result, Err(Exit::WriteDeadline));
+        assert!(
+            deadline && elapsed < Duration::from_millis(80),
+            "a greedy prefetch held the write past its deadline: {elapsed:?} deadline {deadline}"
         );
     }
 
