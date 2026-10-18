@@ -2458,7 +2458,7 @@ pub enum ShareAcquireMode {
 /// disabled. A top-level
 /// ShareAcknowledge `DELEGATION_TOKEN_NOT_FOUND` completes without
 /// retry and does not request Metadata, including when `ErrorMessage`
-/// is set (Java `handleShareAcknowledgeSuccess` has no
+/// is set or empty (Java `handleShareAcknowledgeSuccess` has no
 /// `metadata.requestUpdate`; this is not top-level
 /// `DELEGATION_TOKEN_AUTH_DISABLED`). Official Java `DelegationTokenControlManager`
 /// writes this when a requested delegation token is not found on the
@@ -5600,7 +5600,7 @@ impl ShareGroup {
     /// delegation token request runs with token auth disabled.
     /// A top-level ShareAcknowledge `DELEGATION_TOKEN_NOT_FOUND`
     /// completes without retry and does not request Metadata,
-    /// including when `ErrorMessage` is set (Java
+    /// including when `ErrorMessage` is set or empty (Java
     /// `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`;
     /// this is not top-level `DELEGATION_TOKEN_AUTH_DISABLED`). Official
     /// Java `DelegationTokenControlManager` writes this when a

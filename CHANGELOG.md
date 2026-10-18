@@ -355,7 +355,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   this when a delegation token request runs with token auth disabled.
   A top-level ShareAcknowledge `DELEGATION_TOKEN_NOT_FOUND` completes
   without retry and does not request Metadata, including when
-  `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+  `ErrorMessage` is set or empty (Java `handleShareAcknowledgeSuccess` has no
   `metadata.requestUpdate`; this is not top-level
   `DELEGATION_TOKEN_AUTH_DISABLED`). Official Java `DelegationTokenControlManager` writes
   this when a requested delegation token is not found on the server.
