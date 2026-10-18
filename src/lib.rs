@@ -3532,7 +3532,7 @@
 //! this when the requester is not a valid owner or renewer of the token.
 //! Top-level ShareAcknowledge `DELEGATION_TOKEN_REQUEST_NOT_ALLOWED` completes
 //! without retry and does not request Metadata, including when
-//! `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+//! `ErrorMessage` is set or empty (Java `handleShareAcknowledgeSuccess` has no
 //! `metadata.requestUpdate`; this is not top-level
 //! `DELEGATION_TOKEN_OWNER_MISMATCH`). Official Java `KafkaApis` writes
 //! this when a delegation token request arrives on PLAINTEXT, one-way SSL, or a token-authenticated channel.
