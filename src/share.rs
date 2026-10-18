@@ -2666,7 +2666,7 @@ pub enum ShareAcquireMode {
 /// when no reassignment is in progress. A top-level
 /// ShareAcknowledge `GROUP_SUBSCRIBED_TO_TOPIC` completes without
 /// retry and does not request Metadata, including when `ErrorMessage`
-/// is set (Java `handleShareAcknowledgeSuccess` has no
+/// is set or empty (Java `handleShareAcknowledgeSuccess` has no
 /// `metadata.requestUpdate`; this is not top-level
 /// `NO_REASSIGNMENT_IN_PROGRESS`). Official Java
 /// `OffsetMetadataManager` OffsetDelete writes this when the
@@ -6019,7 +6019,7 @@ impl ShareGroup {
     /// writes this when no reassignment is in progress.
     /// A top-level ShareAcknowledge `GROUP_SUBSCRIBED_TO_TOPIC`
     /// completes without retry and does not request Metadata,
-    /// including when `ErrorMessage` is set (Java
+    /// including when `ErrorMessage` is set or empty (Java
     /// `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`;
     /// this is not top-level `NO_REASSIGNMENT_IN_PROGRESS`). Official
     /// Java `OffsetMetadataManager` OffsetDelete writes this when
