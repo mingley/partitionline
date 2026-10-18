@@ -3098,10 +3098,11 @@ impl Consumer {
             return Err(last);
         };
         let mut learned = Vec::new();
-        for (spare, versions) in rest {
+        for (mut spare, versions) in rest {
             if !versions.api_keys.is_empty() {
                 learned.push((spare.addr().to_string(), versions.api_keys));
             }
+            Self::retire_consumer_socket(&mut spare).await;
         }
         Ok((conn, resp, learned))
     }
@@ -11373,6 +11374,111 @@ mod tests {
         drop(consumer);
         leader_peer.abort();
         other_peer.abort();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn a_consumer_bootstrap_race_lets_the_other_broker_leave() {
+        use crate::protocol::api::{encode_api_versions_response, ApiVersionsResponse};
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use std::sync::Arc;
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+        async fn answer(
+            mut socket: tokio::net::TcpStream,
+            open: Arc<AtomicUsize>,
+            accepted: Arc<AtomicUsize>,
+        ) {
+            let _accepted = accepted.fetch_add(1, Ordering::SeqCst);
+            let _started = open.fetch_add(1, Ordering::SeqCst);
+            let mut size_buf = [0u8; 4];
+            if socket.read_exact(&mut size_buf).await.is_ok() {
+                let size = i32::from_be_bytes(size_buf).max(0) as usize;
+                let mut request = vec![0u8; size];
+                if socket.read_exact(&mut request).await.is_ok() {
+                    if let Some(bytes) = request.get(4..8) {
+                        let correlation = i32::from_be_bytes([
+                            bytes.first().copied().unwrap_or(0),
+                            bytes.get(1).copied().unwrap_or(0),
+                            bytes.get(2).copied().unwrap_or(0),
+                            bytes.get(3).copied().unwrap_or(0),
+                        ]);
+                        let mut body = bytes::BytesMut::new();
+                        let encoded = encode_api_versions_response(
+                            &mut body,
+                            4,
+                            &ApiVersionsResponse {
+                                error_code: 0,
+                                api_keys: Vec::new(),
+                                throttle_time_ms: 0,
+                                supported_features: Vec::new(),
+                                finalized_features_epoch: None,
+                                finalized_features: Vec::new(),
+                                zk_migration_ready: false,
+                            },
+                        );
+                        if encoded.is_ok() {
+                            let mut response = Vec::new();
+                            let len = i32::try_from(4 + body.len()).unwrap_or(0);
+                            response.extend_from_slice(&len.to_be_bytes());
+                            response.extend_from_slice(&correlation.to_be_bytes());
+                            response.extend_from_slice(&body);
+                            let _wrote = socket.write_all(&response).await;
+                        }
+                    }
+                }
+            }
+            let mut buf = [0u8; 8];
+            loop {
+                match socket.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = open.fetch_sub(1, Ordering::SeqCst);
+        }
+
+        let first = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let second = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let first_addr = first.local_addr().unwrap().to_string();
+        let second_addr = second.local_addr().unwrap().to_string();
+        let open = Arc::new(AtomicUsize::new(0));
+        let accepted = Arc::new(AtomicUsize::new(0));
+        let first_peer = {
+            let open = Arc::clone(&open);
+            let accepted = Arc::clone(&accepted);
+            tokio::spawn(async move {
+                let Ok((socket, _)) = first.accept().await else {
+                    return;
+                };
+                answer(socket, open, accepted).await;
+            })
+        };
+        let second_peer = {
+            let open = Arc::clone(&open);
+            let accepted = Arc::clone(&accepted);
+            tokio::spawn(async move {
+                let Ok((socket, _)) = second.accept().await else {
+                    return;
+                };
+                answer(socket, open, accepted).await;
+            })
+        };
+        let cfg = ConsumerConfig::bootstrap([first_addr, second_addr]);
+        let opened = Consumer::open_bootstrap(&cfg, Instant::now() + Duration::from_secs(2)).await;
+        assert!(opened.is_ok(), "the consumer bootstrap race did not finish");
+        assert_eq!(
+            accepted.load(Ordering::SeqCst),
+            2,
+            "a bootstrap was not dialed"
+        );
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            1,
+            "a consumer bootstrap race left the unused broker blocked in a read"
+        );
+        drop(opened);
+        first_peer.abort();
+        second_peer.abort();
     }
 
     #[tokio::test(flavor = "current_thread")]
