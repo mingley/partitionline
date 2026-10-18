@@ -6634,8 +6634,8 @@ impl Drop for Worker {
                 self.requeue_pendings(pendings);
             }
         } else {
-            if !self.in_flight.is_empty() {
-                self.fail_kept_inflight(Error::Timeout);
+            while let Some(inflight) = self.in_flight.pop_front() {
+                fail_groups(&self.shared, inflight.groups, Error::Timeout);
             }
             if !self.pending.is_empty() {
                 let pendings = std::mem::take(&mut self.pending);
@@ -6854,7 +6854,7 @@ impl Worker {
                 self.pending = retained;
                 self.recompute_pending_estimate().await;
                 if cancelled {
-                    self.fail_kept_batch(batch, Error::Timeout);
+                    self.fail_kept_batch(batch, Error::Timeout).await;
                     continue;
                 }
                 batch.sort_by_key(|p| p.sticky.map_or(0, |tag| tag.index));
@@ -6916,7 +6916,7 @@ impl Worker {
         }
         if !expired.is_empty() {
             self.recompute_pending_estimate().await;
-            self.fail_kept_batch(expired, Error::Timeout);
+            self.fail_kept_batch(expired, Error::Timeout).await;
         }
     }
 
@@ -7067,7 +7067,7 @@ impl Worker {
                     && (self.pending.is_empty() || self.throttle.remaining().is_some()))
             {
                 if let Err(e) = self.wait_one().await {
-                    self.fail_kept_inflight(clone_err(&e));
+                    self.fail_kept_inflight(clone_err(&e)).await;
                     self.note_fail(e);
                 }
                 continue;
@@ -7181,7 +7181,7 @@ impl Worker {
                             Err(error) => Err(error),
                         };
                         if let Err(error) = read {
-                            self.fail_kept_inflight(clone_err(&error));
+                            self.fail_kept_inflight(clone_err(&error)).await;
                             self.note_fail(error);
                         }
                     }
@@ -7222,7 +7222,7 @@ impl Worker {
             };
             if !self.in_flight.is_empty() {
                 if let Err(e) = self.wait_one().await {
-                    self.fail_kept_inflight(clone_err(&e));
+                    self.fail_kept_inflight(clone_err(&e)).await;
                     return Err(e);
                 }
                 continue;
@@ -7278,7 +7278,7 @@ impl Worker {
                         "broker at {addr} does not support usable Produce v3-13"
                     ));
                     let pending = self.take_all_pending();
-                    self.fail_kept_batch(pending, clone_err(&e));
+                    self.fail_kept_batch(pending, clone_err(&e)).await;
                     self.note_fail(e.clone());
                     return Err(e);
                 }
@@ -7289,7 +7289,7 @@ impl Worker {
                         self.requeue_pendings(pending);
                         return Ok(());
                     }
-                    self.fail_kept_batch(pending, clone_err(&e));
+                    self.fail_kept_batch(pending, clone_err(&e)).await;
                     self.note_fail(e.clone());
                     return Err(e);
                 }
@@ -7308,7 +7308,7 @@ impl Worker {
         };
         if let Some(p) = batch.iter().find(|p| p.rec.partition.is_none()) {
             let e = Error::protocol(format!("produce without partition topic={}", p.rec.topic));
-            self.fail_kept_batch(batch, clone_err(&e));
+            self.fail_kept_batch(batch, clone_err(&e)).await;
             self.note_fail(e.clone());
             return Err(e);
         }
@@ -7379,7 +7379,7 @@ impl Worker {
             match identities {
                 Ok(ids) => ids,
                 Err(error) => {
-                    self.fail_kept_groups(groups, clone_err(&error));
+                    self.fail_kept_groups(groups, clone_err(&error)).await;
                     self.note_fail(error.clone());
                     return Err(error);
                 }
@@ -7416,13 +7416,13 @@ impl Worker {
                 "injected transaction partition failure",
             );
             rollback_sequences(&groups, producer_id, &self.shared.seqs);
-            self.fail_kept_groups(groups, clone_err(&e));
+            self.fail_kept_groups(groups, clone_err(&e)).await;
             self.note_fail(e.clone());
             return Err(e);
         }
         if let Err(e) = self.add_txn_partitions(&groups).await {
             rollback_sequences(&groups, producer_id, &self.shared.seqs);
-            self.fail_kept_groups(groups, clone_err(&e));
+            self.fail_kept_groups(groups, clone_err(&e)).await;
             self.note_fail(e.clone());
             return Err(e);
         }
@@ -7450,7 +7450,7 @@ impl Worker {
         if fault == Some(PreSendFault::Encode) {
             let e = Error::protocol("injected produce encode failure");
             rollback_sequences(&groups, producer_id, &self.shared.seqs);
-            self.fail_kept_groups(groups, clone_err(&e));
+            self.fail_kept_groups(groups, clone_err(&e)).await;
             self.note_fail(e.clone());
             return Err(e);
         }
@@ -7462,7 +7462,7 @@ impl Worker {
             Some(self.conn.client_id()),
         ) {
             rollback_sequences(&groups, producer_id, &self.shared.seqs);
-            self.fail_kept_groups(groups, clone_err(&e));
+            self.fail_kept_groups(groups, clone_err(&e)).await;
             self.note_fail(e.clone());
             return Err(e);
         }
@@ -7484,7 +7484,7 @@ impl Worker {
         .await
         {
             rollback_sequences(&groups, producer_id, &self.shared.seqs);
-            self.fail_kept_groups(groups, clone_err(&e));
+            self.fail_kept_groups(groups, clone_err(&e)).await;
             self.note_fail(e.clone());
             return Err(e);
         }
@@ -7493,14 +7493,14 @@ impl Worker {
                 Ok(s) => s,
                 Err(e) => {
                     rollback_sequences(&groups, producer_id, &self.shared.seqs);
-                    self.fail_kept_groups(groups, clone_err(&e));
+                    self.fail_kept_groups(groups, clone_err(&e)).await;
                     self.note_fail(e.clone());
                     return Err(e);
                 }
             };
         if let Err(e) = crate::protocol::buf::patch_i32(&mut self.write_buf, 0, size) {
             rollback_sequences(&groups, producer_id, &self.shared.seqs);
-            self.fail_kept_groups(groups, clone_err(&e));
+            self.fail_kept_groups(groups, clone_err(&e)).await;
             self.note_fail(e.clone());
             return Err(e);
         }
@@ -7511,7 +7511,7 @@ impl Worker {
                 "injected socket write failure",
             ));
             rollback_sequences(&groups, producer_id, &self.shared.seqs);
-            self.fail_kept_groups(groups, clone_err(&e));
+            self.fail_kept_groups(groups, clone_err(&e)).await;
             self.note_fail(e.clone());
             return Err(e);
         }
@@ -7523,7 +7523,7 @@ impl Worker {
         let now_inst = Instant::now();
         if now_inst >= batch_deadline {
             rollback_sequences(&groups, producer_id, &self.shared.seqs);
-            self.fail_kept_groups(groups, Error::Timeout);
+            self.fail_kept_groups(groups, Error::Timeout).await;
             return Ok(());
         }
         let write_timeout = self
@@ -7547,7 +7547,7 @@ impl Worker {
                 return Ok(());
             }
             rollback_sequences(&groups, producer_id, &self.shared.seqs);
-            self.fail_kept_groups(groups, clone_err(&e));
+            self.fail_kept_groups(groups, clone_err(&e)).await;
             self.note_fail(e.clone());
             return Err(e);
         }
@@ -7617,7 +7617,7 @@ impl Worker {
                         self.requeue_pendings(pending);
                         return Ok(());
                     }
-                    self.fail_kept_groups(inf.groups, clone_err(&e));
+                    self.fail_kept_groups(inf.groups, clone_err(&e)).await;
                 }
                 return Err(e);
             }
@@ -7685,7 +7685,7 @@ impl Worker {
             Err(e) => {
                 self.spare_acks = acks;
                 if let Some(inf) = guard.inf.take() {
-                    self.fail_kept_groups(inf.groups, clone_err(&e));
+                    self.fail_kept_groups(inf.groups, clone_err(&e)).await;
                 }
                 return Err(e);
             }
@@ -7719,7 +7719,7 @@ impl Worker {
                     Err(error) => {
                         self.ack_slots = slots;
                         self.spare_acks = responses;
-                        self.fail_kept_groups(inf.groups, clone_err(&error));
+                        self.fail_kept_groups(inf.groups, clone_err(&error)).await;
                         return Err(error);
                     }
                 }
@@ -7743,7 +7743,7 @@ impl Worker {
                         let e = Error::protocol("produce response topic is not utf-8");
                         self.ack_slots = slots;
                         self.spare_acks = responses;
-                        self.fail_kept_groups(inf.groups, clone_err(&e));
+                        self.fail_kept_groups(inf.groups, clone_err(&e)).await;
                         return Err(e);
                     }
                     continue;
@@ -7767,7 +7767,7 @@ impl Worker {
                 match found {
                     None => {
                         let e = Error::protocol("missing produce response");
-                        self.fail_kept_batch(pendings, clone_err(&e));
+                        self.fail_kept_batch(pendings, clone_err(&e)).await;
                         if first_err.is_none() {
                             first_err = Some(e);
                         }
@@ -7822,7 +7822,7 @@ impl Worker {
                                         self.requeue_pendings(pendings);
                                     }
                                     Err(renew_err) => {
-                                        self.fail_kept_batch(pendings, clone_err(&renew_err));
+                                        self.fail_kept_batch(pendings, clone_err(&renew_err)).await;
                                         if first_err.is_none() {
                                             first_err = Some(renew_err);
                                         }
@@ -7861,12 +7861,12 @@ impl Worker {
                                     }
                                 }
                             }
-                            self.fail_kept_batch(pendings, clone_err(&e));
+                            self.fail_kept_batch(pendings, clone_err(&e)).await;
                             if first_err.is_none() {
                                 first_err = Some(e);
                             }
                         } else {
-                            self.fail_kept_batch(pendings, clone_err(&e));
+                            self.fail_kept_batch(pendings, clone_err(&e)).await;
                             if first_err.is_none() {
                                 first_err = Some(e);
                             }
@@ -8108,20 +8108,20 @@ impl Worker {
     }
 
     /// Fail every record and keep the batch allocation for the next send.
-    fn fail_kept_batch(&mut self, batch: Vec<Pending>, err: Error) {
-        let empty = fail_kept_pendings(&self.shared, batch, err);
+    async fn fail_kept_batch(&mut self, batch: Vec<Pending>, err: Error) {
+        let empty = fail_kept_pendings(&self.shared, batch, err).await;
         self.park_batch(empty);
     }
 
     /// Fail grouped records and keep the largest emptied batch list.
-    fn fail_kept_groups(&mut self, groups: ProduceGroups, err: Error) {
+    async fn fail_kept_groups(&mut self, groups: ProduceGroups, err: Error) {
         let OpenedProduceGroups { one, mut shell } = groups.into_one_many();
         let mut best = Vec::new();
         if let Some((_, _, pendings)) = one {
-            best = fail_kept_pendings(&self.shared, pendings, clone_err(&err));
+            best = fail_kept_pendings(&self.shared, pendings, clone_err(&err)).await;
         }
         for (_, _, pendings) in shell.drain(..) {
-            let empty = fail_kept_pendings(&self.shared, pendings, clone_err(&err));
+            let empty = fail_kept_pendings(&self.shared, pendings, clone_err(&err)).await;
             if empty.capacity() > best.capacity() {
                 best = empty;
             }
@@ -8131,19 +8131,19 @@ impl Worker {
     }
 
     /// Fail every in-flight batch and keep the largest emptied list.
-    fn fail_kept_inflight(&mut self, err: Error) {
+    async fn fail_kept_inflight(&mut self, err: Error) {
         let mut best = Vec::new();
         let mut best_shell = Vec::new();
         while let Some(inflight) = self.in_flight.pop_front() {
             let OpenedProduceGroups { one, mut shell } = inflight.groups.into_one_many();
             if let Some((_, _, pendings)) = one {
-                let empty = fail_kept_pendings(&self.shared, pendings, clone_err(&err));
+                let empty = fail_kept_pendings(&self.shared, pendings, clone_err(&err)).await;
                 if empty.capacity() > best.capacity() {
                     best = empty;
                 }
             }
             for (_, _, pendings) in shell.drain(..) {
-                let empty = fail_kept_pendings(&self.shared, pendings, clone_err(&err));
+                let empty = fail_kept_pendings(&self.shared, pendings, clone_err(&err)).await;
                 if empty.capacity() > best.capacity() {
                     best = empty;
                 }
@@ -8226,7 +8226,7 @@ impl Worker {
             if !self.pending.is_empty() {
                 while self.in_flight.len() >= self.shared.cfg.max_in_flight {
                     if let Err(e) = self.wait_one().await {
-                        self.fail_kept_inflight(clone_err(&e));
+                        self.fail_kept_inflight(clone_err(&e)).await;
                         self.note_fail(e);
                     }
                 }
@@ -8234,7 +8234,7 @@ impl Worker {
                     self.note_fail(e);
                 }
             } else if let Err(e) = self.wait_one().await {
-                self.fail_kept_inflight(clone_err(&e));
+                self.fail_kept_inflight(clone_err(&e)).await;
                 self.note_fail(e);
             }
         }
@@ -10014,18 +10014,39 @@ fn fail_groups(
 }
 
 fn fail_pendings(shared: &Shared, pendings: Vec<Pending>, err: Error) {
-    let _empty = fail_kept_pendings(shared, pendings, err);
+    let _empty = fail_kept_pendings_sync(shared, pendings, err);
 }
 
-/// Fail every record and return the emptied batch so its allocation can be reused.
-fn fail_kept_pendings(shared: &Shared, mut pendings: Vec<Pending>, err: Error) -> Vec<Pending> {
-    shared.retire_sticky(&pendings, true);
-    shared.release_buffer(pendings_bytes(&pendings));
-    let one_topic = pendings.first().is_some_and(|first| {
+fn fail_one_pending(shared: &Shared, pending: Pending, err: &Error, one_topic: bool) {
+    if !one_topic {
+        shared.note_errors(&pending.rec.topic, 1);
+    }
+    shared.interceptors.on_error(err);
+    if let Some(tx) = pending.tx {
+        drop(tx.send(Err(clone_err(err))));
+    }
+}
+
+fn one_failure_topic(pendings: &[Pending]) -> bool {
+    pendings.first().is_some_and(|first| {
         pendings
             .iter()
             .all(|pending| Arc::ptr_eq(&pending.rec.topic, &first.rec.topic))
-    });
+    })
+}
+
+/// Fail every record and return the emptied batch so its allocation can be reused.
+///
+/// Drop paths use this synchronous form. The worker uses
+/// [`fail_kept_pendings`], which pauses while a long batch is still being released.
+fn fail_kept_pendings_sync(
+    shared: &Shared,
+    mut pendings: Vec<Pending>,
+    err: Error,
+) -> Vec<Pending> {
+    shared.retire_sticky(&pendings, true);
+    shared.release_buffer(pendings_bytes(&pendings));
+    let one_topic = one_failure_topic(&pendings);
     if one_topic {
         if let Some(first) = pendings.first() {
             let n = u64::try_from(pendings.len()).unwrap_or(u64::MAX);
@@ -10033,15 +10054,67 @@ fn fail_kept_pendings(shared: &Shared, mut pendings: Vec<Pending>, err: Error) -
         }
     }
     for pending in pendings.drain(..) {
-        if !one_topic {
-            shared.note_errors(&pending.rec.topic, 1);
-        }
-        shared.interceptors.on_error(&err);
-        if let Some(tx) = pending.tx {
-            drop(tx.send(Err(clone_err(&err))));
-        }
+        fail_one_pending(shared, pending, &err, one_topic);
     }
     pendings
+}
+
+/// [`fail_kept_pendings_sync`], pausing while record sizes and callbacks are still running.
+async fn fail_kept_pendings(
+    shared: &Shared,
+    mut pendings: Vec<Pending>,
+    err: Error,
+) -> Vec<Pending> {
+    shared.retire_sticky(&pendings, true);
+    let bytes = sum_pending_bytes(&pendings).await;
+    shared.release_buffer(bytes);
+    let one_topic = one_failure_topic(&pendings);
+    if one_topic {
+        if let Some(first) = pendings.first() {
+            let n = u64::try_from(pendings.len()).unwrap_or(u64::MAX);
+            shared.note_errors(&first.rec.topic, n);
+        }
+    }
+    let chunks = detach_pending_chunks(&mut pendings).await;
+    for mut chunk in chunks {
+        for pending in chunk.drain(..) {
+            fail_one_pending(shared, pending, &err, one_topic);
+        }
+        tokio::task::yield_now().await;
+    }
+    pendings
+}
+
+/// Move records off `pendings` in order, leaving its allocation in place.
+///
+/// Each slice is taken from the tail and the slices are restored to front-to-back
+/// order. A long batch pauses between slices.
+async fn detach_pending_chunks(pendings: &mut Vec<Pending>) -> Vec<Vec<Pending>> {
+    let mut chunks = Vec::new();
+    while !pendings.is_empty() {
+        let start = pendings.len().saturating_sub(8 * 1024);
+        chunks.push(pendings.split_off(start));
+        tokio::task::yield_now().await;
+    }
+    chunks.reverse();
+    chunks
+}
+
+async fn sum_pending_bytes(pendings: &[Pending]) -> u64 {
+    let mut total = 0u64;
+    let mut walked = 0usize;
+    for pending in pendings {
+        total = total.saturating_add(rec_bytes(&pending.rec));
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    if walked != 0 {
+        tokio::task::yield_now().await;
+    }
+    total
 }
 
 fn clone_err(err: &Error) -> Error {
@@ -11066,6 +11139,60 @@ mod tests {
         assert!(
             watch.is_finished(),
             "dropping the last handle left the worker running"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn releasing_many_failed_records_does_not_hold_the_caller() {
+        // 4_000_000 records: summing failed record sizes held the caller 166ms.
+        let topic: Arc<str> = Arc::from("orders");
+        let mut batch = Vec::with_capacity(4_000_000);
+        for _ in 0..4_000_000 {
+            let mut pending = queued("orders", Some(0));
+            pending.rec.topic = Arc::clone(&topic);
+            batch.push(pending);
+        }
+        let started = std::time::Instant::now();
+        tokio::select! {
+            bytes = sum_pending_bytes(&batch) => {
+                assert_eq!(bytes, 0);
+            }
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "summing failed record sizes held the caller for {elapsed:?}"
+        );
+        let mut small = vec![
+            queued("orders", Some(0)),
+            queued("orders", Some(1)),
+            queued("payments", Some(2)),
+        ];
+        let small_ptr = small.as_ptr();
+        let small_cap = small.capacity();
+        let chunks = detach_pending_chunks(&mut small).await;
+        assert!(small.is_empty());
+        assert!(small.capacity() >= small_cap);
+        assert_eq!(small.as_ptr(), small_ptr);
+        assert_eq!(chunks.len(), 1);
+        assert_eq!(
+            chunks
+                .first()
+                .and_then(|chunk| chunk.get(1))
+                .and_then(|pending| pending.rec.partition),
+            Some(1)
+        );
+
+        // 4_000_000 records: detaching the failed batch held the caller 926ms.
+        let started = std::time::Instant::now();
+        let worker = tokio::spawn(async move { detach_pending_chunks(&mut batch).await.len() });
+        tokio::time::sleep(std::time::Duration::from_millis(30)).await;
+        worker.abort();
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "releasing failed records held the caller for {elapsed:?}"
         );
     }
 
