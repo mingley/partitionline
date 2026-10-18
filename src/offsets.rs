@@ -141,6 +141,15 @@ async fn retire_offset_conn(mut conn: BrokerConn) {
     conn.release_if_closed().await;
 }
 
+async fn retire_ready_offsets(ready: &mut HashMap<String, Result<(BrokerConn, i16)>>) {
+    let addresses = ready.keys().cloned().collect::<Vec<_>>();
+    for address in addresses {
+        if let Some(Ok((conn, _))) = ready.remove(&address) {
+            retire_offset_conn(conn).await;
+        }
+    }
+}
+
 impl OffsetClient {
     pub(crate) fn set_stats(&mut self, stats: std::sync::Arc<crate::metrics::AdminTracker>) {
         self.stats = Some(stats);
@@ -856,9 +865,11 @@ impl OffsetClient {
                 let indexes = indexes.clone();
                 while !ready.contains_key(&address) {
                     let Some(joined) = dialing.join_next().await else {
+                        retire_ready_offsets(&mut ready).await;
                         return Err(Error::protocol("missing offset coordinator socket"));
                     };
                     let Ok((dialed, result)) = joined else {
+                        retire_ready_offsets(&mut ready).await;
                         return Err(Error::protocol("offset coordinator handshake failed"));
                     };
                     let result = match result {
@@ -870,9 +881,20 @@ impl OffsetClient {
                     };
                     let _prev = ready.insert(dialed, result);
                 }
-                let (mut conn, version) = ready
-                    .remove(&address)
-                    .ok_or_else(|| Error::protocol("missing offset coordinator socket"))??;
+                let removed = match ready.remove(&address) {
+                    Some(result) => result,
+                    None => {
+                        retire_ready_offsets(&mut ready).await;
+                        return Err(Error::protocol("missing offset coordinator socket"));
+                    }
+                };
+                let (mut conn, version) = match removed {
+                    Ok(conn) => conn,
+                    Err(error) => {
+                        retire_ready_offsets(&mut ready).await;
+                        return Err(error);
+                    }
+                };
                 in_use = 1;
                 while next_dial < order.len() && dialing.len() + ready.len() + in_use < 2 {
                     if order
@@ -1378,6 +1400,136 @@ mod tests {
             open.load(Ordering::SeqCst),
             0,
             "finishing an offset fetch left the broker blocked in a read"
+        );
+        peer.abort();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn a_failed_offset_dial_lets_the_bootstrap_leave() {
+        use super::OffsetClient;
+        use crate::net::Deadline;
+        use crate::protocol::api::ApiVersion;
+        use crate::protocol::api_keys::{FIND_COORDINATOR, OFFSET_FETCH};
+        use crate::protocol::group::{
+            encode_find_coordinator_response_coordinators, CoordinatorResult, OffsetFetchGroupData,
+            OffsetFetchRequestData,
+        };
+        use crate::AdminConfig;
+        use bytes::BytesMut;
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use std::sync::Arc;
+        use std::time::Duration;
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        let open = Arc::new(AtomicUsize::new(0));
+        let flag = Arc::clone(&open);
+        let peer = tokio::spawn(async move {
+            let Ok((mut socket, _)) = listener.accept().await else {
+                return;
+            };
+            let _started = flag.fetch_add(1, Ordering::SeqCst);
+            let mut size_buf = [0u8; 4];
+            if socket.read_exact(&mut size_buf).await.is_ok() {
+                let size = i32::from_be_bytes(size_buf).max(0) as usize;
+                let mut request = vec![0u8; size];
+                if socket.read_exact(&mut request).await.is_ok() {
+                    if let Some(bytes) = request.get(4..8) {
+                        let correlation = i32::from_be_bytes([
+                            bytes.first().copied().unwrap_or(0),
+                            bytes.get(1).copied().unwrap_or(0),
+                            bytes.get(2).copied().unwrap_or(0),
+                            bytes.get(3).copied().unwrap_or(0),
+                        ]);
+                        let mut body = BytesMut::new();
+                        let encoded = encode_find_coordinator_response_coordinators(
+                            &mut body,
+                            4,
+                            &[
+                                CoordinatorResult {
+                                    key: "a".to_string(),
+                                    node_id: 1,
+                                    host: "127.0.0.1".to_string(),
+                                    port: 1,
+                                    error_code: 0,
+                                    error_message: None,
+                                },
+                                CoordinatorResult {
+                                    key: "group".to_string(),
+                                    node_id: 2,
+                                    host: "127.0.0.1".to_string(),
+                                    port: i32::from(addr.port()),
+                                    error_code: 0,
+                                    error_message: None,
+                                },
+                            ],
+                        );
+                        if encoded.is_ok() {
+                            let mut response = Vec::new();
+                            let len = i32::try_from(5 + body.len()).unwrap_or(0);
+                            response.extend_from_slice(&len.to_be_bytes());
+                            response.extend_from_slice(&correlation.to_be_bytes());
+                            response.push(0);
+                            response.extend_from_slice(&body);
+                            let _wrote = socket.write_all(&response).await;
+                        }
+                    }
+                }
+            }
+            let mut buf = [0u8; 8];
+            loop {
+                match socket.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let mut client = OffsetClient::new(AdminConfig::bootstrap([addr.to_string()])).unwrap();
+        let _stored = client.known_versions.insert(
+            addr.to_string(),
+            vec![
+                ApiVersion {
+                    api_key: FIND_COORDINATOR,
+                    min_version: 4,
+                    max_version: 4,
+                },
+                ApiVersion {
+                    api_key: OFFSET_FETCH,
+                    min_version: 8,
+                    max_version: 8,
+                },
+            ],
+        );
+        let request = OffsetFetchRequestData {
+            groups: vec![
+                OffsetFetchGroupData {
+                    group_id: "a".to_string(),
+                    ..OffsetFetchGroupData::default()
+                },
+                OffsetFetchGroupData {
+                    group_id: "group".to_string(),
+                    ..OffsetFetchGroupData::default()
+                },
+            ],
+            require_stable: false,
+        };
+        let mut control = 0usize;
+        let mut response_bytes = 0usize;
+        let _fetched = client
+            .fetch_once(
+                &request,
+                &super::OffsetOptions::default(),
+                Deadline::from_timeout(Duration::from_secs(2)),
+                &mut control,
+                &mut response_bytes,
+            )
+            .await;
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "a failed offset dial left the bootstrap broker blocked in a read"
         );
         peer.abort();
     }
