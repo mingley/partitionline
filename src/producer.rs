@@ -6693,19 +6693,11 @@ impl Worker {
         self.pending.push(pending);
     }
 
-    fn account_pending_from(&mut self, from: usize) {
+    async fn account_pending_from(&mut self, from: usize) {
         let Some(added) = self.pending.get(from..) else {
             return;
         };
-        let mut extra = 0usize;
-        let mut earliest = self.earliest_deadline;
-        for pending in added {
-            extra = extra.saturating_add(estimate(pending));
-            earliest = Some(match earliest {
-                Some(current) if current <= pending.deadline => current,
-                _ => pending.deadline,
-            });
-        }
+        let (extra, earliest) = fold_pending_estimates(added, self.earliest_deadline).await;
         self.pending_estimate = self.pending_estimate.saturating_add(extra);
         self.earliest_deadline = earliest;
     }
@@ -6737,31 +6729,30 @@ impl Worker {
         }
     }
 
-    fn drain_pending(&mut self, n: usize) -> Vec<Pending> {
+    async fn drain_pending(&mut self, n: usize) -> Vec<Pending> {
         let batch = fill_spare(&mut self.spare_batch, &mut self.pending, n);
         let mut refresh_deadline = false;
+        let mut walked = 0usize;
         for pending in &batch {
             self.pending_estimate = self.pending_estimate.saturating_sub(estimate(pending));
             if self.earliest_deadline == Some(pending.deadline) {
                 refresh_deadline = true;
             }
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
         }
         if refresh_deadline {
-            self.earliest_deadline = self.pending.iter().map(|pending| pending.deadline).min();
+            let (_, earliest) = fold_pending_estimates(&self.pending, None).await;
+            self.earliest_deadline = earliest;
         }
         batch
     }
 
-    fn recompute_pending_estimate(&mut self) {
-        let mut total = 0usize;
-        let mut earliest = None;
-        for pending in &self.pending {
-            total = total.saturating_add(estimate(pending));
-            earliest = Some(match earliest {
-                Some(current) if current <= pending.deadline => current,
-                _ => pending.deadline,
-            });
-        }
+    async fn recompute_pending_estimate(&mut self) {
+        let (total, earliest) = fold_pending_estimates(&self.pending, None).await;
         self.pending_estimate = total;
         self.earliest_deadline = earliest;
     }
@@ -6787,26 +6778,27 @@ impl Worker {
                     >= policy.members(tag))
     }
 
-    fn requeue_displaced_sticky(&mut self) {
+    async fn requeue_displaced_sticky(&mut self) {
         let shared = Arc::clone(&self.shared);
         let Some(policy) = &shared.sticky else {
             return;
         };
-        let policy = policy.lock();
         let mut retained = Vec::with_capacity(self.pending.len());
         let mut displaced = Vec::new();
-        for p in std::mem::take(&mut self.pending) {
-            if p.sticky
-                .is_some_and(|tag| !policy.cancelled(tag) && !policy.owned_by(tag, &self.id))
-            {
-                displaced.push(p);
-            } else {
-                retained.push(p);
+        {
+            let policy = policy.lock();
+            for p in std::mem::take(&mut self.pending) {
+                if p.sticky
+                    .is_some_and(|tag| !policy.cancelled(tag) && !policy.owned_by(tag, &self.id))
+                {
+                    displaced.push(p);
+                } else {
+                    retained.push(p);
+                }
             }
         }
         self.pending = retained;
-        self.recompute_pending_estimate();
-        drop(policy);
+        self.recompute_pending_estimate().await;
         if !displaced.is_empty() {
             self.requeue_pendings(displaced);
         }
@@ -6816,11 +6808,12 @@ impl Worker {
         let shared = Arc::clone(&self.shared);
         loop {
             self.pull_ready();
-            self.purge_expired_pending();
-            self.requeue_displaced_sticky();
+            self.purge_expired_pending().await;
+            self.requeue_displaced_sticky().await;
             if self.pending.is_empty() {
                 return Vec::new();
             }
+            let mut sealed: Option<(bool, Vec<Pending>)> = None;
             {
                 let cluster = shared.cluster.lock();
                 let Some(policy) = &shared.sticky else {
@@ -6865,16 +6858,17 @@ impl Worker {
                         }
                     }
                     self.pending = retained;
-                    self.recompute_pending_estimate();
-                    if cancelled {
-                        drop(policy);
-                        drop(cluster);
-                        self.fail_kept_batch(batch, Error::Timeout);
-                        continue;
-                    }
-                    batch.sort_by_key(|p| p.sticky.map_or(0, |tag| tag.index));
-                    return batch;
+                    sealed = Some((cancelled, batch));
                 }
+            }
+            if let Some((cancelled, mut batch)) = sealed {
+                self.recompute_pending_estimate().await;
+                if cancelled {
+                    self.fail_kept_batch(batch, Error::Timeout);
+                    continue;
+                }
+                batch.sort_by_key(|p| p.sticky.map_or(0, |tag| tag.index));
+                return batch;
             }
             // A retry may be in transit or expire in another actor. Its terminal
             // callback shrinks membership and wakes this wait. No busy linger loop.
@@ -6888,7 +6882,8 @@ impl Worker {
             tokio::select! {
                 n = self.data.recv_many(&mut self.pending, shared.cfg.batch_records.max(1)) => {
                     if n == 0 { return Vec::new(); }
-                    self.account_pending_from(self.pending.len().saturating_sub(n));
+                    self.account_pending_from(self.pending.len().saturating_sub(n))
+                        .await;
                 }
                 _ = notified => {}
                 _ = tokio::time::sleep(rest.min(Duration::from_millis(10))) => {}
@@ -6906,7 +6901,7 @@ impl Worker {
             })
     }
 
-    fn purge_expired_pending(&mut self) {
+    async fn purge_expired_pending(&mut self) {
         if self.pending.is_empty() {
             return;
         }
@@ -6928,7 +6923,7 @@ impl Worker {
             }
         }
         if !expired.is_empty() {
-            self.recompute_pending_estimate();
+            self.recompute_pending_estimate().await;
             self.fail_kept_batch(expired, Error::Timeout);
         }
     }
@@ -7034,8 +7029,8 @@ impl Worker {
                 break;
             }
             self.pull_ready();
-            self.purge_expired_pending();
-            self.requeue_displaced_sticky();
+            self.purge_expired_pending().await;
+            self.requeue_displaced_sticky().await;
             if self.pending.is_empty() {
                 linger_start = None;
             } else if linger_start.is_none() {
@@ -7045,7 +7040,7 @@ impl Worker {
                 if let Err(e) = self.fire().await {
                     self.note_fail(e);
                 }
-                self.purge_expired_pending();
+                self.purge_expired_pending().await;
                 linger_start = if self.pending.is_empty() {
                     None
                 } else {
@@ -7110,13 +7105,14 @@ impl Worker {
                 biased;
                 _ = wake_shared.cache_nudge.notified(), if wake_shared.sticky.is_some() => {}
                 n = self.data.recv_many(&mut self.pending, room) => {
-                    self.account_pending_from(self.pending.len().saturating_sub(n));
+                    self.account_pending_from(self.pending.len().saturating_sub(n))
+                        .await;
                     if n == 0 {
                         self.pull_ready();
                         self.drain_inflight().await;
                         break;
                     }
-                    self.purge_expired_pending();
+                    self.purge_expired_pending().await;
                     if linger_start.is_none() && !self.pending.is_empty() {
                         linger_start = Some(Instant::now());
                     }
@@ -7149,7 +7145,7 @@ impl Worker {
                     }
                 }
                 _ = linger_timer.as_mut(), if next_wake.is_some() => {
-                    self.purge_expired_pending();
+                    self.purge_expired_pending().await;
                 }
                 ready = linger_socket_left(&mut self.conn, !self.in_flight.is_empty()), if !self.conn.is_closed() => {
                     if self.in_flight.is_empty() {
@@ -7204,7 +7200,7 @@ impl Worker {
         // Existing responses remain readable while new sends are muted. Sleep
         // is cancellation-safe: shutdown aborts workers at its original budget.
         loop {
-            self.purge_expired_pending();
+            self.purge_expired_pending().await;
             if self.pending.is_empty() {
                 return Ok(());
             }
@@ -7242,7 +7238,7 @@ impl Worker {
                 _ = tokio::time::sleep(rest) => {}
             }
         }
-        self.purge_expired_pending();
+        self.purge_expired_pending().await;
         if self.pending.is_empty() {
             return Ok(());
         }
@@ -7295,7 +7291,7 @@ impl Worker {
                 self.shared.cfg.produce_batch_bytes(),
                 &mut self.group_scratch.batch_bases,
             );
-            self.drain_pending(n)
+            self.drain_pending(n).await
         };
         if let Some(p) = batch.iter().find(|p| p.rec.partition.is_none()) {
             let e = Error::protocol(format!("produce without partition topic={}", p.rec.topic));
@@ -8213,7 +8209,7 @@ impl Worker {
 
     async fn drain_inflight(&mut self) {
         while !self.pending.is_empty() || !self.in_flight.is_empty() {
-            self.purge_expired_pending();
+            self.purge_expired_pending().await;
             if !self.pending.is_empty() {
                 while self.in_flight.len() >= self.shared.cfg.max_in_flight {
                     if let Err(e) = self.wait_one().await {
@@ -8886,6 +8882,31 @@ fn take_count_in(
 /// queue total used for readiness omits that overhead; firing early is
 /// harmless because the take enforces the bound. Overflow fails closed to `usize::MAX`
 /// (record travels alone); queue-time rejection makes it unreachable.
+/// Sum record-size estimates and the earliest delivery deadline.
+///
+/// A long queue pauses between slices so admission accounting can still reach
+/// a deadline.
+async fn fold_pending_estimates(
+    pendings: &[Pending],
+    mut earliest: Option<Instant>,
+) -> (usize, Option<Instant>) {
+    let mut total = 0usize;
+    let mut walked = 0usize;
+    for pending in pendings {
+        total = total.saturating_add(estimate(pending));
+        earliest = Some(match earliest {
+            Some(current) if current <= pending.deadline => current,
+            _ => pending.deadline,
+        });
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    (total, earliest)
+}
+
 fn estimate(p: &Pending) -> usize {
     let key = p.rec.key.as_deref();
     let value = p.rec.value.as_deref();
@@ -10991,6 +11012,30 @@ mod tests {
         assert!(
             watch.is_finished(),
             "dropping the last handle left the worker running"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn estimating_many_queued_records_does_not_hold_the_caller() {
+        // 4_000_000 records: summing queued record sizes held the caller 356ms.
+        let topic: Arc<str> = Arc::from("orders");
+        let mut batch = Vec::with_capacity(4_000_000);
+        for _ in 0..4_000_000 {
+            let mut pending = queued("orders", Some(0));
+            pending.rec.topic = Arc::clone(&topic);
+            batch.push(pending);
+        }
+        let started = std::time::Instant::now();
+        tokio::select! {
+            (total, _) = fold_pending_estimates(&batch, None) => {
+                assert_eq!(total, 96_000_000);
+            }
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "estimating queued records held the caller for {elapsed:?}"
         );
     }
 
