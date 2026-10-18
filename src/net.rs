@@ -345,34 +345,54 @@ fn stalled_write_read_rejected(read_buf: &BytesMut) -> bool {
 ///
 /// Complete frames are skipped. A length after an empty frame is still
 /// rejected, and a short tail of the next frame is not.
-fn frame_prefix_rejected(buf: &[u8]) -> bool {
-    let mut offset = 0usize;
+enum PrefixScan {
+    Rejected,
+    /// Walked through `at`. Anything after that is a short tail or empty.
+    Rest(usize),
+    /// Walked through `at` and more complete frames are still buffered.
+    Partial(usize),
+}
+
+/// Walk complete frames from `start`, stopping after `budget` bytes.
+///
+/// A long run of empty frames is still legal. Scanning all of it in one
+/// turn keeps the caller from running until the walk finishes.
+fn scan_frame_prefix(buf: &[u8], start: usize, budget: usize) -> PrefixScan {
+    let mut offset = start.min(buf.len());
+    let limit = offset.saturating_add(budget.max(4));
     while buf.len().saturating_sub(offset) >= 4 {
+        if offset >= limit {
+            return PrefixScan::Partial(offset);
+        }
         let Some(prefix) = buf.get(offset..offset.saturating_add(4)) else {
-            return true;
+            return PrefixScan::Rejected;
         };
         let Ok(raw) = <[u8; 4]>::try_from(prefix) else {
-            return true;
+            return PrefixScan::Rejected;
         };
         let size = i32::from_be_bytes(raw);
         if !(0..=MAX_FRAME).contains(&size) {
-            return true;
+            return PrefixScan::Rejected;
         }
         let Ok(size) = usize::try_from(size) else {
-            return true;
+            return PrefixScan::Rejected;
         };
         let Some(total) = 4usize.checked_add(size) else {
-            return true;
+            return PrefixScan::Rejected;
         };
         let Some(frame_end) = offset.checked_add(total) else {
-            return true;
+            return PrefixScan::Rejected;
         };
         if buf.len() < frame_end {
-            return false;
+            return PrefixScan::Rest(offset);
         }
         offset = frame_end;
     }
-    false
+    PrefixScan::Rest(offset)
+}
+
+fn frame_prefix_rejected(buf: &[u8]) -> bool {
+    matches!(scan_frame_prefix(buf, 0, usize::MAX), PrefixScan::Rejected)
 }
 
 /// True when `buf` holds one full frame, or a length the framed reader will reject.
@@ -928,6 +948,9 @@ fn spawn_idle_watch(
         // Yield often enough that a ready flood cannot hold the runtime, and
         // rarely enough that a full unsolicited frame still reaches its cap.
         let mut since_yield = 0usize;
+        // Resume point for the prefix walk. A full rescan of a long run of
+        // empty frames would hold this task until the buffer is capped.
+        let mut scanned = 0usize;
         loop {
             if closed.load(Ordering::SeqCst) {
                 if let Ok(mut io) = stream.try_lock() {
@@ -992,20 +1015,44 @@ fn spawn_idle_watch(
                             // than one max frame is not a response waiting
                             // for the owner. Shut the socket down instead of
                             // buffering the peer's write without a limit.
-                            let too_big = {
-                                let buffered = prefetch.lock();
-                                frame_prefix_rejected(&buffered)
-                                    || buffered.len()
-                                        > usize::try_from(MAX_FRAME).unwrap_or(usize::MAX)
-                            };
-                            if too_big {
-                                closed.store(true, Ordering::SeqCst);
-                                if let Ok(mut io) = stream.try_lock() {
-                                    drop(poll_fn(|cx| Pin::new(&mut *io).poll_shutdown(cx)).await);
-                                    discard_peer_write(&mut *io).await;
+                            loop {
+                                let scan = {
+                                    let buffered = prefetch.lock();
+                                    if scanned > buffered.len() {
+                                        scanned = 0;
+                                    }
+                                    let too_long = buffered.len()
+                                        > usize::try_from(MAX_FRAME).unwrap_or(usize::MAX);
+                                    let scan = scan_frame_prefix(&buffered, scanned, 64 * 1024);
+                                    (too_long, scan)
+                                };
+                                let (too_long, scan) = scan;
+                                if too_long || matches!(scan, PrefixScan::Rejected) {
+                                    closed.store(true, Ordering::SeqCst);
+                                    if let Ok(mut io) = stream.try_lock() {
+                                        drop(poll_fn(|cx| {
+                                            Pin::new(&mut *io).poll_shutdown(cx)
+                                        })
+                                        .await);
+                                        discard_peer_write(&mut *io).await;
+                                    }
+                                    arm.notify_one();
+                                    return;
                                 }
-                                arm.notify_one();
-                                return;
+                                match scan {
+                                    PrefixScan::Rejected => return,
+                                    PrefixScan::Rest(at) => {
+                                        scanned = at;
+                                        break;
+                                    }
+                                    PrefixScan::Partial(at) => {
+                                        scanned = at;
+                                        // More complete frames are buffered.
+                                        // Yield before walking the rest so a
+                                        // caller beside this watch can run.
+                                        tokio::task::yield_now().await;
+                                    }
+                                }
                             }
                             // A ready flood never leaves this read, so a caller
                             // beside the watch cannot run until the cap is reached.
@@ -2953,6 +3000,36 @@ mod tests {
     use std::time::Duration;
     use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt, ReadBuf};
     use tokio::net::TcpListener;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn a_run_of_empty_frames_does_not_hold_the_caller() {
+        let body = vec![0u8; 1024];
+        let stream = Arc::new(tokio::sync::Mutex::new(ConnIo::Script(ScriptIo {
+            body,
+            pos: 0,
+            chunk: usize::MAX,
+            pause: Duration::ZERO,
+        })));
+        let mut queued = BytesMut::new();
+        queued.resize(16 * 1024 * 1024, 0);
+        let prefetch = Arc::new(parking_lot::Mutex::new(queued));
+        let closed = Arc::new(AtomicBool::new(false));
+        let arm = Arc::new(tokio::sync::Notify::new());
+        let watch = spawn_idle_watch(
+            Arc::clone(&stream),
+            Arc::clone(&prefetch),
+            Arc::clone(&closed),
+            Arc::clone(&arm),
+        );
+        let started = std::time::Instant::now();
+        tokio::time::sleep(Duration::from_millis(30)).await;
+        let elapsed = started.elapsed();
+        watch.abort();
+        assert!(
+            elapsed < Duration::from_millis(80),
+            "scanning empty frames held the caller for {elapsed:?}"
+        );
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn a_ready_idle_flood_does_not_hold_the_caller() {
