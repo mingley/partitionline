@@ -364,10 +364,11 @@ impl Admin {
             return Err(last);
         };
         let mut learned = Vec::new();
-        for (_, (spare, spare_versions)) in rest {
+        for (_, (mut spare, spare_versions)) in rest {
             if !spare_versions.api_keys.is_empty() {
                 learned.push((spare.addr().to_string(), spare_versions.api_keys));
             }
+            Admin::retire_admin_socket(&mut spare).await;
         }
         Ok((conn, versions, learned))
     }
@@ -718,6 +719,87 @@ mod tests {
     use std::sync::Arc;
     use std::time::{Duration, Instant};
     use tokio::io::AsyncReadExt;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn a_streams_bootstrap_race_lets_the_other_broker_leave() {
+        use super::Admin;
+        use crate::protocol::api::ApiVersion;
+        use crate::protocol::api_keys::STREAMS_GROUP_DESCRIBE;
+
+        let first = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let second = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let dummy = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let first_addr = first.local_addr().unwrap().to_string();
+        let second_addr = second.local_addr().unwrap().to_string();
+        let dummy_addr = dummy.local_addr().unwrap().to_string();
+        let open = Arc::new(AtomicUsize::new(0));
+        let accepted = Arc::new(AtomicUsize::new(0));
+        let spawn_peer = |listener: tokio::net::TcpListener,
+                          open: Arc<AtomicUsize>,
+                          accepted: Arc<AtomicUsize>| {
+            tokio::spawn(async move {
+                let Ok((mut socket, _)) = listener.accept().await else {
+                    return;
+                };
+                let _accepted = accepted.fetch_add(1, Ordering::SeqCst);
+                let _started = open.fetch_add(1, Ordering::SeqCst);
+                let mut buf = [0u8; 8];
+                loop {
+                    match socket.read(&mut buf).await {
+                        Ok(0) | Err(_) => break,
+                        Ok(_) => continue,
+                    }
+                }
+                let _left = open.fetch_sub(1, Ordering::SeqCst);
+            })
+        };
+        let first_peer = spawn_peer(first, Arc::clone(&open), Arc::clone(&accepted));
+        let second_peer = spawn_peer(second, Arc::clone(&open), Arc::clone(&accepted));
+        let dummy_peer = tokio::spawn(async move {
+            let Ok((mut socket, _)) = dummy.accept().await else {
+                return;
+            };
+            let mut buf = [0u8; 8];
+            loop {
+                match socket.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+        });
+        let held =
+            crate::net::BrokerConn::connect(&dummy_addr, "streams-hold", Duration::from_secs(2))
+                .await
+                .unwrap();
+        let mut admin = Admin::test_holding(held);
+        admin.cfg = AdminConfig::bootstrap([first_addr.clone(), second_addr.clone()]);
+        let keys = vec![ApiVersion {
+            api_key: STREAMS_GROUP_DESCRIBE,
+            min_version: 0,
+            max_version: 0,
+        }];
+        let _stored = admin.peer_versions.insert(first_addr, keys.clone());
+        let _stored = admin.peer_versions.insert(second_addr, keys);
+        let opened = admin
+            .streams_bootstrap(Deadline::from_timeout(Duration::from_secs(2)))
+            .await;
+        assert!(opened.is_ok(), "the streams bootstrap race did not finish");
+        assert_eq!(
+            accepted.load(Ordering::SeqCst),
+            2,
+            "a bootstrap was not dialed"
+        );
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            1,
+            "a streams bootstrap race left the unused broker blocked in a read"
+        );
+        drop(opened);
+        drop(admin);
+        first_peer.abort();
+        second_peer.abort();
+        dummy_peer.abort();
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn remembered_sasl_timeout_closes_the_socket() {
