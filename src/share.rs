@@ -3129,6 +3129,9 @@ impl ShareGroup {
     }
 
     async fn share_dial_targets(&mut self, nodes: &[i32]) -> Vec<(i32, String)> {
+        let leaders = share_node_addresses(nodes, &self.assigned, |topic, part| {
+            self.consumer.leader_of(topic, part).ok()
+        });
         let mut dials = Vec::new();
         for &node in nodes {
             if self
@@ -3149,16 +3152,9 @@ impl ShareGroup {
             if self.share_conns.contains_key(&node) {
                 continue;
             }
-            let Some(addr) = self
-                .assigned
-                .iter()
-                .find_map(|(topic, part)| {
-                    self.consumer
-                        .leader_of(topic, *part)
-                        .ok()
-                        .filter(|(id, _)| *id == node)
-                        .map(|(_, addr)| addr)
-                })
+            let Some(addr) = leaders
+                .get(&node)
+                .cloned()
                 .or_else(|| self.share_addresses.get(&node).cloned())
             else {
                 continue;
@@ -6369,6 +6365,25 @@ fn share_heartbeat_epoch(code: i16, response_epoch: i32, current: i32) -> i32 {
     }
 }
 
+fn share_node_addresses(
+    nodes: &[i32],
+    assigned: &[(Arc<str>, i32)],
+    mut leader_of: impl FnMut(&str, i32) -> Option<(i32, String)>,
+) -> HashMap<i32, String> {
+    let wanted: HashSet<i32> = nodes.iter().copied().collect();
+    let mut addresses = HashMap::new();
+    for (topic, part) in assigned {
+        let Some((node, addr)) = leader_of(topic.as_ref(), *part) else {
+            continue;
+        };
+        if !wanted.contains(&node) || addresses.contains_key(&node) {
+            continue;
+        }
+        let _ = addresses.insert(node, addr);
+    }
+    addresses
+}
+
 fn drop_share_records_for_topics(records: &mut Vec<ShareRecord>, topics: &[Arc<str>]) {
     if records.is_empty() || topics.is_empty() {
         return;
@@ -8830,6 +8845,27 @@ mod tests {
             delivery_count: 1,
             leader_epoch: None,
         }
+    }
+
+    #[test]
+    fn finding_many_share_leader_addresses_does_not_hold_the_caller() {
+        // 512 nodes and 8,192 partitions: scanning the assignment for each node
+        // held the caller 195ms.
+        let assigned: Vec<(Arc<str>, i32)> = (0..8_192)
+            .map(|partition| (Arc::from("orders"), partition))
+            .collect();
+        let nodes: Vec<i32> = (0..512).collect();
+        let started = std::time::Instant::now();
+        let found = share_node_addresses(&nodes, &assigned, |_topic, partition| {
+            Some((511, format!("10.0.0.1:{}", 9000 + partition)))
+        });
+        let elapsed = started.elapsed();
+        assert_eq!(found.get(&511).map(String::as_str), Some("10.0.0.1:9000"));
+        assert!(found.get(&0).is_none());
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "finding share leader addresses held the caller for {elapsed:?}"
+        );
     }
 
     #[test]
