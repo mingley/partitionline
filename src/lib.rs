@@ -2693,7 +2693,7 @@
 //! `plugin.setTopology` fails during StreamsGroupTopologyDescriptionUpdate.
 //! A piggybacked
 //! `CONTROLLER_ID_NOT_REGISTERED` still completes without retry,
-//! including when `AcknowledgeErrorMessage` is set (this is not
+//! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `CONTROLLER_ID_NOT_REGISTERED`, which fails that poll, and not
 //! piggyback `STREAMS_TOPOLOGY_DESCRIPTION_UPDATE_FAILED`). Official Java
 //! `ClusterControlManager` writes this when unregistering a

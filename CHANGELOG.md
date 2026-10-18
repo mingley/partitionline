@@ -946,7 +946,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `plugin.setTopology` fails during StreamsGroupTopologyDescriptionUpdate. A
   piggybacked `CONTROLLER_ID_NOT_REGISTERED` still
   completes without retry, including when `AcknowledgeErrorMessage` is
-  set (Java `handleShareFetchSuccess` completes piggyback acks and still
+  set or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
   delivers the fetch; this is not partition `CONTROLLER_ID_NOT_REGISTERED`,
   which fails that poll, and not piggyback
   `STREAMS_TOPOLOGY_DESCRIPTION_UPDATE_FAILED`). Official
