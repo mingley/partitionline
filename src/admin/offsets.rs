@@ -22,6 +22,18 @@ pub(super) struct AdminOffsetConn {
 }
 
 impl AdminOffsetConn {
+    #[cfg(test)]
+    pub(super) fn test_holding(inner: crate::net::BrokerConn) -> Self {
+        Self {
+            inner,
+            commit: None,
+            fetch: None,
+            metadata: None,
+            find: None,
+            apis: Vec::new(),
+        }
+    }
+
     pub(super) fn new(
         inner: crate::net::BrokerConn,
         versions: &crate::protocol::api::ApiVersionsResponse,

@@ -7524,14 +7524,14 @@ impl Admin {
                     return Err(Error::protocol("missing transactional id"));
                 }
                 let Some((spoken, body)) = finished.remove(&node) else {
-                    self.invalidate_txn_coord_idxs(&refs, &[index], node);
+                    self.invalidate_txn_coord_idxs(&refs, &[index], node).await;
                     again.push(index);
                     continue;
                 };
                 match body {
                     Err(error) if matches!(error, Error::Timeout) => return Err(error),
                     Err(error) if error.is_retriable() => {
-                        self.invalidate_txn_coord_idxs(&refs, &[index], node);
+                        self.invalidate_txn_coord_idxs(&refs, &[index], node).await;
                         again.push(index);
                     }
                     Err(error) => return Err(error),
@@ -7543,7 +7543,7 @@ impl Admin {
                                 *slot = Some((producer_id, epoch));
                             }
                         } else if error::coordinator_retriable(err) {
-                            self.invalidate_txn_coord_idxs(&refs, &[index], node);
+                            self.invalidate_txn_coord_idxs(&refs, &[index], node).await;
                             again.push(index);
                         } else {
                             return Err(Error::broker(err, "InitProducerId"));
@@ -7889,13 +7889,13 @@ impl Admin {
                 for node in &nodes {
                     let idxs = by_node.get(node).cloned().unwrap_or_default();
                     let Some((_spoken, body)) = finished.remove(node) else {
-                        self.invalidate_txn_coord_idxs(ids, &idxs, *node);
+                        self.invalidate_txn_coord_idxs(ids, &idxs, *node).await;
                         still.extend(idxs);
                         continue;
                     };
                     match body {
                         Err(error) if error.is_retriable() => {
-                            self.invalidate_txn_coord_idxs(ids, &idxs, *node);
+                            self.invalidate_txn_coord_idxs(ids, &idxs, *node).await;
                             still.extend(idxs);
                         }
                         Err(error) => return Err(error),
@@ -7903,7 +7903,7 @@ impl Admin {
                             let done = Self::apply_describe_transactions_body(ids, &idxs, body)?;
                             for (i, t) in done {
                                 if error::coordinator_retriable(t.error_code) {
-                                    self.invalidate_txn_coord_idxs(ids, &[i], *node);
+                                    self.invalidate_txn_coord_idxs(ids, &[i], *node).await;
                                     still.push(i);
                                 } else if let Some(slot) = out.get_mut(i) {
                                     *slot = Some(t);
@@ -7922,7 +7922,7 @@ impl Admin {
                         Ok(done) => {
                             for (i, t) in done {
                                 if error::coordinator_retriable(t.error_code) {
-                                    self.invalidate_txn_coord_idxs(ids, &[i], node);
+                                    self.invalidate_txn_coord_idxs(ids, &[i], node).await;
                                     still.push(i);
                                 } else if let Some(slot) = out.get_mut(i) {
                                     *slot = Some(t);
@@ -7930,7 +7930,7 @@ impl Admin {
                             }
                         }
                         Err(e) if e.is_retriable() => {
-                            self.invalidate_txn_coord_idxs(ids, &idxs, node);
+                            self.invalidate_txn_coord_idxs(ids, &idxs, node).await;
                             still.extend(idxs);
                         }
                         Err(e) => return Err(e),
@@ -11760,13 +11760,13 @@ impl Admin {
                 for node in &nodes {
                     let idxs = by_node.get(node).cloned().unwrap_or_default();
                     let Some((spoken, body)) = finished.remove(node) else {
-                        self.invalidate_group_coord_idxs(ids, &idxs, *node);
+                        self.invalidate_group_coord_idxs(ids, &idxs, *node).await;
                         still.extend(idxs);
                         continue;
                     };
                     match body {
                         Err(error) if error.is_retriable() => {
-                            self.invalidate_group_coord_idxs(ids, &idxs, *node);
+                            self.invalidate_group_coord_idxs(ids, &idxs, *node).await;
                             still.extend(idxs);
                         }
                         Err(error) => return Err(error),
@@ -11775,7 +11775,7 @@ impl Admin {
                                 Self::apply_consumer_group_describe_body(spoken, ids, &idxs, body)?;
                             for (i, g) in done {
                                 if error::coordinator_retriable(g.error_code) {
-                                    self.invalidate_group_coord_idxs(ids, &[i], *node);
+                                    self.invalidate_group_coord_idxs(ids, &[i], *node).await;
                                     still.push(i);
                                 } else if let Some(slot) = out.get_mut(i) {
                                     *slot = Some(g);
@@ -11801,7 +11801,7 @@ impl Admin {
                         Ok(done) => {
                             for (i, g) in done {
                                 if error::coordinator_retriable(g.error_code) {
-                                    self.invalidate_group_coord_idxs(ids, &[i], node);
+                                    self.invalidate_group_coord_idxs(ids, &[i], node).await;
                                     still.push(i);
                                 } else if let Some(slot) = out.get_mut(i) {
                                     *slot = Some(g);
@@ -11809,7 +11809,7 @@ impl Admin {
                             }
                         }
                         Err(e) if e.is_retriable() => {
-                            self.invalidate_group_coord_idxs(ids, &idxs, node);
+                            self.invalidate_group_coord_idxs(ids, &idxs, node).await;
                             still.extend(idxs);
                         }
                         Err(e) => return Err(e),
@@ -11911,13 +11911,13 @@ impl Admin {
                 for node in &nodes {
                     let idxs = by_node.get(node).cloned().unwrap_or_default();
                     let Some((spoken, body)) = finished.remove(node) else {
-                        self.invalidate_group_coord_idxs(ids, &idxs, *node);
+                        self.invalidate_group_coord_idxs(ids, &idxs, *node).await;
                         still.extend(idxs);
                         continue;
                     };
                     match body {
                         Err(error) if error.is_retriable() => {
-                            self.invalidate_group_coord_idxs(ids, &idxs, *node);
+                            self.invalidate_group_coord_idxs(ids, &idxs, *node).await;
                             still.extend(idxs);
                         }
                         Err(error) => return Err(error),
@@ -11925,7 +11925,7 @@ impl Admin {
                             let done = Self::apply_describe_groups_body(spoken, ids, &idxs, body)?;
                             for (i, g) in done {
                                 if error::coordinator_retriable(g.error_code) {
-                                    self.invalidate_group_coord_idxs(ids, &[i], *node);
+                                    self.invalidate_group_coord_idxs(ids, &[i], *node).await;
                                     still.push(i);
                                 } else if let Some(slot) = out.get_mut(i) {
                                     *slot = Some(g);
@@ -11951,7 +11951,7 @@ impl Admin {
                         Ok(done) => {
                             for (i, g) in done {
                                 if error::coordinator_retriable(g.error_code) {
-                                    self.invalidate_group_coord_idxs(ids, &[i], node);
+                                    self.invalidate_group_coord_idxs(ids, &[i], node).await;
                                     still.push(i);
                                 } else if let Some(slot) = out.get_mut(i) {
                                     *slot = Some(g);
@@ -11959,7 +11959,7 @@ impl Admin {
                             }
                         }
                         Err(e) if e.is_retriable() => {
-                            self.invalidate_group_coord_idxs(ids, &idxs, node);
+                            self.invalidate_group_coord_idxs(ids, &idxs, node).await;
                             still.extend(idxs);
                         }
                         Err(e) => return Err(e),
@@ -12356,13 +12356,13 @@ impl Admin {
                 for node in &nodes {
                     let idxs = by_node.get(node).cloned().unwrap_or_default();
                     let Some((spoken, body)) = finished.remove(node) else {
-                        self.invalidate_group_coord_idxs(ids, &idxs, *node);
+                        self.invalidate_group_coord_idxs(ids, &idxs, *node).await;
                         still.extend(idxs);
                         continue;
                     };
                     match body {
                         Err(error) if error.is_retriable() => {
-                            self.invalidate_group_coord_idxs(ids, &idxs, *node);
+                            self.invalidate_group_coord_idxs(ids, &idxs, *node).await;
                             still.extend(idxs);
                         }
                         Err(error) => return Err(error),
@@ -12370,7 +12370,7 @@ impl Admin {
                             let done = Self::apply_delete_groups_body(spoken, ids, &idxs, body)?;
                             for (i, g) in done {
                                 if error::coordinator_retriable(g.error_code) {
-                                    self.invalidate_group_coord_idxs(ids, &[i], *node);
+                                    self.invalidate_group_coord_idxs(ids, &[i], *node).await;
                                     still.push(i);
                                 } else if let Some(slot) = out.get_mut(i) {
                                     *slot = Some(g);
@@ -12389,7 +12389,7 @@ impl Admin {
                         Ok(done) => {
                             for (i, g) in done {
                                 if error::coordinator_retriable(g.error_code) {
-                                    self.invalidate_group_coord_idxs(ids, &[i], node);
+                                    self.invalidate_group_coord_idxs(ids, &[i], node).await;
                                     still.push(i);
                                 } else if let Some(slot) = out.get_mut(i) {
                                     *slot = Some(g);
@@ -12397,7 +12397,7 @@ impl Admin {
                             }
                         }
                         Err(e) if e.is_retriable() => {
-                            self.invalidate_group_coord_idxs(ids, &idxs, node);
+                            self.invalidate_group_coord_idxs(ids, &idxs, node).await;
                             still.extend(idxs);
                         }
                         Err(e) => return Err(e),
@@ -12839,13 +12839,13 @@ impl Admin {
                 for node in &nodes {
                     let idxs = by_node.get(node).cloned().unwrap_or_default();
                     let Some((spoken, body)) = finished.remove(node) else {
-                        self.invalidate_group_coord_idxs(ids, &idxs, *node);
+                        self.invalidate_group_coord_idxs(ids, &idxs, *node).await;
                         still.extend(idxs);
                         continue;
                     };
                     match body {
                         Err(error) if error.is_retriable() => {
-                            self.invalidate_group_coord_idxs(ids, &idxs, *node);
+                            self.invalidate_group_coord_idxs(ids, &idxs, *node).await;
                             still.extend(idxs);
                         }
                         Err(error) => return Err(error),
@@ -12854,7 +12854,7 @@ impl Admin {
                                 Self::apply_share_group_describe_body(spoken, ids, &idxs, body)?;
                             for (i, g) in done {
                                 if error::coordinator_retriable(g.error_code) {
-                                    self.invalidate_group_coord_idxs(ids, &[i], *node);
+                                    self.invalidate_group_coord_idxs(ids, &[i], *node).await;
                                     still.push(i);
                                 } else if let Some(slot) = out.get_mut(i) {
                                     *slot = Some(g);
@@ -12880,7 +12880,7 @@ impl Admin {
                         Ok(done) => {
                             for (i, g) in done {
                                 if error::coordinator_retriable(g.error_code) {
-                                    self.invalidate_group_coord_idxs(ids, &[i], node);
+                                    self.invalidate_group_coord_idxs(ids, &[i], node).await;
                                     still.push(i);
                                 } else if let Some(slot) = out.get_mut(i) {
                                     *slot = Some(g);
@@ -12888,7 +12888,7 @@ impl Admin {
                             }
                         }
                         Err(e) if e.is_retriable() => {
-                            self.invalidate_group_coord_idxs(ids, &idxs, node);
+                            self.invalidate_group_coord_idxs(ids, &idxs, node).await;
                             still.extend(idxs);
                         }
                         Err(e) => return Err(e),
@@ -13065,13 +13065,13 @@ impl Admin {
                 for node in &nodes {
                     let idxs = by_node.get(node).cloned().unwrap_or_default();
                     let Some((spoken, body)) = finished.remove(node) else {
-                        self.invalidate_group_coord_idxs(&ids, &idxs, *node);
+                        self.invalidate_group_coord_idxs(&ids, &idxs, *node).await;
                         still.extend(idxs);
                         continue;
                     };
                     match body {
                         Err(error) if error.is_retriable() => {
-                            self.invalidate_group_coord_idxs(&ids, &idxs, *node);
+                            self.invalidate_group_coord_idxs(&ids, &idxs, *node).await;
                             still.extend(idxs);
                         }
                         Err(error) => return Err(error),
@@ -13081,7 +13081,7 @@ impl Admin {
                             )?;
                             for (i, g) in done {
                                 if error::coordinator_retriable(g.error_code) {
-                                    self.invalidate_group_coord_idxs(&ids, &[i], *node);
+                                    self.invalidate_group_coord_idxs(&ids, &[i], *node).await;
                                     still.push(i);
                                 } else if let Some(slot) = out.get_mut(i) {
                                     *slot = Some(g);
@@ -13102,7 +13102,7 @@ impl Admin {
                         Ok(done) => {
                             for (i, g) in done {
                                 if error::coordinator_retriable(g.error_code) {
-                                    self.invalidate_group_coord_idxs(&ids, &[i], node);
+                                    self.invalidate_group_coord_idxs(&ids, &[i], node).await;
                                     still.push(i);
                                 } else if let Some(slot) = out.get_mut(i) {
                                     *slot = Some(g);
@@ -13110,7 +13110,7 @@ impl Admin {
                             }
                         }
                         Err(e) if e.is_retriable() => {
-                            self.invalidate_group_coord_idxs(&ids, &idxs, node);
+                            self.invalidate_group_coord_idxs(&ids, &idxs, node).await;
                             still.extend(idxs);
                         }
                         Err(e) => return Err(e),
@@ -14984,11 +14984,19 @@ impl Admin {
         Ok(by_node)
     }
 
-    fn invalidate_group_coord_idxs<T: AsRef<str>>(&mut self, ids: &[T], idxs: &[usize], node: i32) {
+    async fn invalidate_group_coord_idxs<T: AsRef<str>>(
+        &mut self,
+        ids: &[T],
+        idxs: &[usize],
+        node: i32,
+    ) {
         if node >= 0 && !self.group_coord_redial.contains(&node) {
             self.group_coord_redial.push(node);
         }
-        let _ = self.conns.remove(&node);
+        if let Some(mut conn) = self.conns.remove(&node) {
+            conn.inner.close();
+            conn.inner.release_if_closed().await;
+        }
         for &i in idxs {
             if let Some(id) = ids.get(i) {
                 let _ = self.group_coords.remove(id.as_ref());
@@ -15059,11 +15067,19 @@ impl Admin {
         Ok(by_node)
     }
 
-    fn invalidate_txn_coord_idxs<T: AsRef<str>>(&mut self, ids: &[T], idxs: &[usize], node: i32) {
+    async fn invalidate_txn_coord_idxs<T: AsRef<str>>(
+        &mut self,
+        ids: &[T],
+        idxs: &[usize],
+        node: i32,
+    ) {
         if node >= 0 && !self.txn_coord_redial.contains(&node) {
             self.txn_coord_redial.push(node);
         }
-        let _ = self.conns.remove(&node);
+        if let Some(mut conn) = self.conns.remove(&node) {
+            conn.inner.close();
+            conn.inner.release_if_closed().await;
+        }
         for &i in idxs {
             if let Some(id) = ids.get(i) {
                 let _ = self.txn_coords.remove(id.as_ref());
@@ -15955,6 +15971,69 @@ mod tests {
         CreatedTopicConfig, ListConfigResourcesResponse, TopicConfig,
     };
     use bytes::BytesMut;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn dropping_a_group_coordinator_lets_the_broker_leave() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use tokio::io::AsyncReadExt;
+
+        let leader_listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let leader_addr = leader_listener.local_addr().unwrap().to_string();
+        let other = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let other_addr = other.local_addr().unwrap().to_string();
+        let open = Arc::new(AtomicUsize::new(0));
+        let flag = Arc::clone(&open);
+        let leader_peer = tokio::spawn(async move {
+            let Ok((mut socket, _)) = leader_listener.accept().await else {
+                return;
+            };
+            let _started = flag.fetch_add(1, Ordering::SeqCst);
+            let mut buf = [0u8; 8];
+            loop {
+                match socket.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let other_peer = tokio::spawn(async move {
+            let Ok((mut socket, _)) = other.accept().await else {
+                return;
+            };
+            let mut buf = [0u8; 8];
+            loop {
+                match socket.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+        });
+        let leader =
+            crate::net::BrokerConn::connect(&leader_addr, "group-coord", Duration::from_secs(2))
+                .await
+                .unwrap();
+        while open.load(Ordering::SeqCst) == 0 {
+            tokio::task::yield_now().await;
+        }
+        let bootstrap =
+            crate::net::BrokerConn::connect(&other_addr, "admin-boot", Duration::from_secs(2))
+                .await
+                .unwrap();
+        let mut admin = Admin::test_holding(bootstrap);
+        let _stored = admin
+            .conns
+            .insert(4, super::offsets::AdminOffsetConn::test_holding(leader));
+        admin.invalidate_group_coord_idxs(&["group"], &[0], 4).await;
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "dropping a group coordinator left the broker blocked in a read"
+        );
+        drop(admin);
+        leader_peer.abort();
+        other_peer.abort();
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn dropping_the_bootstrap_socket_lets_the_broker_leave() {
