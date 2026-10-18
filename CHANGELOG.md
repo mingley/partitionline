@@ -1552,6 +1552,12 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `UNKNOWN_TOPIC_ID`; this is not top-level
   `TOPIC_ALREADY_EXISTS`). Official Java `ReplicationControlManager` writes
   this when CreateTopics sets `numPartitions` to an invalid non-positive value.
+  Top-level `INVALID_REPLICATION_FACTOR` still fails that poll
+  without Metadata, including when `ErrorMessage` is set (Java
+  `handleShareFetchSuccess` only `requestUpdate`s for top-level
+  `UNKNOWN_TOPIC_ID`; this is not top-level
+  `INVALID_PARTITIONS`). Official Java `ReplicationControlManager` writes
+  this when CreateTopics sets `replicationFactor` to an invalid non-positive value.
   A non-empty
   throwable partition or top-level ShareFetch `ErrorMessage` is
   preferred; empty uses `ShareFetch {topic}-{partition}` or
