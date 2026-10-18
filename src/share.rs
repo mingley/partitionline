@@ -2442,6 +2442,13 @@ pub enum ShareAcquireMode {
 /// `metadata.requestUpdate`; this is not top-level
 /// `LOG_DIR_NOT_FOUND`). Official Java `SaslServerAuthenticator`
 /// writes this when SaslAuthenticate evaluateResponse fails. A top-level
+/// ShareAcknowledge `DELEGATION_TOKEN_AUTH_DISABLED` completes without
+/// retry and does not request Metadata, including when `ErrorMessage`
+/// is set (Java `handleShareAcknowledgeSuccess` has no
+/// `metadata.requestUpdate`; this is not top-level
+/// `SASL_AUTHENTICATION_FAILED`). Official Java `DelegationTokenControlManager`
+/// writes this when a delegation token request runs with token auth
+/// disabled. A top-level
 /// ShareAcknowledge `SHARE_SESSION_LIMIT_REACHED` completes without
 /// retry and does not request Metadata, including when `ErrorMessage`
 /// is set or empty (Java `handleShareAcknowledgeSuccess` has no
@@ -5563,6 +5570,13 @@ impl ShareGroup {
     /// this is not top-level `LOG_DIR_NOT_FOUND`). Official
     /// Java `SaslServerAuthenticator` writes this when
     /// SaslAuthenticate evaluateResponse fails.
+    /// A top-level ShareAcknowledge `DELEGATION_TOKEN_AUTH_DISABLED`
+    /// completes without retry and does not request Metadata,
+    /// including when `ErrorMessage` is set (Java
+    /// `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`;
+    /// this is not top-level `SASL_AUTHENTICATION_FAILED`). Official
+    /// Java `DelegationTokenControlManager` writes this when a
+    /// delegation token request runs with token auth disabled.
     /// Top-level `SHARE_SESSION_LIMIT_REACHED`
     /// completes without retry and advances the session epoch (Java
     /// `ShareSessionHandler.handleResponse` `nextEpoch`), including
