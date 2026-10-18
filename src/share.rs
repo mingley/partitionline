@@ -2174,6 +2174,13 @@ pub enum ShareAcquireMode {
 /// `INVALID_PRODUCER_ID_MAPPING`). Official Java `TransactionCoordinator`
 /// writes this when InitProducerId uses a transaction timeout that
 /// is not positive or exceeds `transaction.max.timeout.ms`.
+/// Top-level `TRANSACTION_COORDINATOR_FENCED` still fails that poll
+/// and does not request Metadata, including when `ErrorMessage` is
+/// set (Java `handleShareFetchSuccess` only `requestUpdate`s for
+/// `UNKNOWN_TOPIC_ID`; this is not top-level
+/// `INVALID_TRANSACTION_TIMEOUT`). Official Java `ProducerAppendInfo`
+/// writes this when an end-transaction marker uses a coordinator
+/// epoch older than the current epoch for that producerId.
 /// Top-level
 /// `SHARE_SESSION_LIMIT_REACHED` resets the share session and does
 /// not request Metadata, including when `ErrorMessage` is set or
@@ -4904,6 +4911,14 @@ impl ShareGroup {
     /// `TransactionCoordinator` writes this when InitProducerId uses
     /// a transaction timeout that is not positive or exceeds
     /// `transaction.max.timeout.ms`. Top-level
+    /// `TRANSACTION_COORDINATOR_FENCED` still fails that poll without
+    /// Metadata, including when `ErrorMessage` is set (Java
+    /// `handleShareFetchSuccess` only `requestUpdate`s for
+    /// `UNKNOWN_TOPIC_ID`; this is not top-level
+    /// `INVALID_TRANSACTION_TIMEOUT`). Official Java
+    /// `ProducerAppendInfo` writes this when an end-transaction
+    /// marker uses a coordinator epoch older than the current epoch
+    /// for that producerId. Top-level
     /// `SHARE_SESSION_LIMIT_REACHED` resets the share session and
     /// does not request Metadata, including when `ErrorMessage` is
     /// set or empty (Java `handleShareFetchSuccess` only
