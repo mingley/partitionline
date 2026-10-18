@@ -1489,7 +1489,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `CLUSTER_AUTHORIZATION_FAILED`). Official Java `LogValidator` writes
   this when a record timestamp is outside the acceptable range.
   Top-level `UNSUPPORTED_SASL_MECHANISM` still fails that poll
-  without Metadata, including when `ErrorMessage` is set (Java
+  without Metadata, including when `ErrorMessage` is set or empty (Java
   `handleShareFetchSuccess` only `requestUpdate`s for top-level
   `UNKNOWN_TOPIC_ID`; this is not top-level
   `INVALID_TIMESTAMP`). Official Java `SaslServerAuthenticator` writes
