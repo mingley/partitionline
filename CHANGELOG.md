@@ -2046,6 +2046,12 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `UNACCEPTABLE_CREDENTIAL`). Official Java `KafkaRaftClient` writes
   this when a voter-only request arrives at an observer or from a
   non-voter.
+  Top-level `INVALID_UPDATE_VERSION` still fails that poll
+  without Metadata, including when `ErrorMessage` is set (Java
+  `handleShareFetchSuccess` only `requestUpdate`s for top-level
+  `UNKNOWN_TOPIC_ID`; this is not top-level
+  `INCONSISTENT_VOTER_SET`). Official Java `FeatureControlManager`
+  writes this when a feature update version is invalid.
   A non-empty
   throwable partition or top-level ShareFetch `ErrorMessage` is
   preferred; empty uses `ShareFetch {topic}-{partition}` or
