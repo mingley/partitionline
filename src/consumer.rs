@@ -6251,16 +6251,18 @@ impl Consumer {
                 let mut fenced = Vec::new();
                 let mut need_offsets = Vec::new();
                 let mut budget_reached = false;
-                let _retry = self.apply_fetch_body(
-                    -1,
-                    body,
-                    &mut out,
-                    &mut out_bytes,
-                    &mut fenced,
-                    &mut need_offsets,
-                    completed,
-                    &mut budget_reached,
-                )?;
+                let _retry = self
+                    .apply_fetch_body(
+                        -1,
+                        body,
+                        &mut out,
+                        &mut out_bytes,
+                        &mut fenced,
+                        &mut need_offsets,
+                        completed,
+                        &mut budget_reached,
+                    )
+                    .await?;
                 if budget_reached {
                     return Ok(self.finish_fetch(out));
                 }
@@ -6539,9 +6541,10 @@ impl Consumer {
                                 .get(&node)
                                 .is_some_and(|addr| addr == self.conn.addr());
                         self.note_fetch_redial(node);
-                        let _ = self.conns.remove(&node);
+                        self.drop_node(node).await;
                         if used_bootstrap {
                             self.conn.close();
+                            self.conn.release_if_closed().await;
                         }
                         retry = retry.merge(FetchRetry::Backoff);
                         continue;
@@ -6551,16 +6554,18 @@ impl Consumer {
                         return Err(e);
                     }
                 };
-                let applied = self.apply_fetch_body(
-                    node,
-                    body,
-                    &mut out,
-                    &mut out_bytes,
-                    &mut fenced,
-                    &mut need_offsets,
-                    completed,
-                    &mut budget_reached,
-                );
+                let applied = self
+                    .apply_fetch_body(
+                        node,
+                        body,
+                        &mut out,
+                        &mut out_bytes,
+                        &mut fenced,
+                        &mut need_offsets,
+                        completed,
+                        &mut budget_reached,
+                    )
+                    .await;
                 if applied.is_err() {
                     if let Some(session) = self.fetch_sessions.get_mut(&node) {
                         session.reset();
@@ -7377,7 +7382,7 @@ impl Consumer {
         clippy::too_many_arguments,
         reason = "private helper accumulates records, byte budgets, error recovery, and completed partitions across leaders"
     )]
-    fn apply_fetch_body(
+    async fn apply_fetch_body(
         &mut self,
         node: i32,
         body: FetchBody,
@@ -7587,13 +7592,13 @@ impl Consumer {
                                 part.current_leader_epoch,
                             );
                         if applied {
-                            let _ = self.conns.remove(&node);
+                            self.drop_node(node).await;
                             retry = retry.merge(FetchRetry::Redirect);
                         } else {
                             self.note_fetch_redial(node);
                             self.cluster.invalidate_topic(&name);
                             topic_leaders_live = false;
-                            let _ = self.conns.remove(&node);
+                            self.drop_node(node).await;
                             retry = retry.merge(FetchRetry::Backoff);
                         }
                         continue;
@@ -11300,6 +11305,110 @@ mod tests {
             open.load(Ordering::SeqCst),
             0,
             "an idle leader socket left the broker blocked in a read"
+        );
+        drop(consumer);
+        leader_peer.abort();
+        other_peer.abort();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn a_retriable_fetch_error_lets_the_broker_leave() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use std::sync::Arc;
+        use tokio::io::AsyncReadExt;
+
+        let leader_listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let leader_addr = leader_listener.local_addr().unwrap().to_string();
+        let other = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let other_addr = other.local_addr().unwrap().to_string();
+        let open = Arc::new(AtomicUsize::new(0));
+        let flag = Arc::clone(&open);
+        let leader_peer = tokio::spawn(async move {
+            let Ok((mut socket, _)) = leader_listener.accept().await else {
+                return;
+            };
+            let _started = flag.fetch_add(1, Ordering::SeqCst);
+            let mut buf = [0u8; 8];
+            loop {
+                match socket.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let other_peer = tokio::spawn(async move {
+            let Ok((mut socket, _)) = other.accept().await else {
+                return;
+            };
+            let mut buf = [0u8; 8];
+            loop {
+                match socket.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+        });
+        let leader =
+            crate::net::BrokerConn::connect(&leader_addr, "fetch-leader", Duration::from_secs(2))
+                .await
+                .unwrap();
+        while open.load(Ordering::SeqCst) == 0 {
+            tokio::task::yield_now().await;
+        }
+        let bootstrap =
+            crate::net::BrokerConn::connect(&other_addr, "fetch-bootstrap", Duration::from_secs(2))
+                .await
+                .unwrap();
+        let mut consumer = Consumer::test_holding(ConsumerConfig::default(), bootstrap);
+        let topic: Arc<str> = Arc::from("t");
+        consumer.assigned.push((Arc::clone(&topic), 0, 0));
+        let _stored = consumer.conns.insert(7, leader);
+        let mut parts = crate::protocol::records::SlotList::with_capacity(1);
+        parts.push(crate::protocol::records::BatchList::Empty);
+        let mut topics = crate::protocol::records::SlotList::with_capacity(1);
+        topics.push(parts);
+        let body = FetchBody {
+            topics: vec![crate::protocol::fetch::FetchedTopic {
+                topic: "t".to_string(),
+                topic_id: [0; 16],
+                partitions: vec![
+                    crate::protocol::fetch::FetchedPartition::partition_response(
+                        0,
+                        crate::error::NOT_LEADER_OR_FOLLOWER,
+                    ),
+                ],
+            }],
+            batches: topics,
+            endpoints: Vec::new(),
+        };
+        let mut out = Vec::new();
+        let mut out_bytes = 0usize;
+        let mut fenced = Vec::new();
+        let mut need_offsets = Vec::new();
+        let mut completed = PartitionMap::new();
+        let mut budget_reached = false;
+        let applied = consumer
+            .apply_fetch_body(
+                7,
+                body,
+                &mut out,
+                &mut out_bytes,
+                &mut fenced,
+                &mut need_offsets,
+                &mut completed,
+                &mut budget_reached,
+            )
+            .await;
+        assert!(applied.is_ok(), "a moved leader was treated as fatal");
+        assert!(
+            !consumer.conns.contains_key(&7),
+            "the leader socket was kept after a retriable fetch error"
+        );
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "a retriable fetch error left the broker blocked in a read"
         );
         drop(consumer);
         leader_peer.abort();
