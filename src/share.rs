@@ -2608,6 +2608,13 @@ pub enum ShareAcquireMode {
 /// `UNSUPPORTED_COMPRESSION_TYPE`). Official Java
 /// `QuorumController.processBrokerHeartbeat` writes this when the
 /// broker epoch has changed. A top-level
+/// ShareAcknowledge `MEMBER_ID_REQUIRED` completes without
+/// retry and does not request Metadata, including when `ErrorMessage`
+/// is set (Java `handleShareAcknowledgeSuccess` has no
+/// `metadata.requestUpdate`; this is not top-level
+/// `STALE_BROKER_EPOCH`). Official Java `GroupMetadataManager`
+/// writes this when a JoinGroup dynamic member has an unknown
+/// member id. A top-level
 /// ShareAcknowledge `SHARE_SESSION_LIMIT_REACHED` completes without
 /// retry and does not request Metadata, including when `ErrorMessage`
 /// is set or empty (Java `handleShareAcknowledgeSuccess` has no
@@ -5897,6 +5904,13 @@ impl ShareGroup {
     /// this is not top-level `UNSUPPORTED_COMPRESSION_TYPE`). Official
     /// Java `QuorumController.processBrokerHeartbeat` writes this
     /// when the broker epoch has changed.
+    /// A top-level ShareAcknowledge `MEMBER_ID_REQUIRED`
+    /// completes without retry and does not request Metadata,
+    /// including when `ErrorMessage` is set (Java
+    /// `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`;
+    /// this is not top-level `STALE_BROKER_EPOCH`). Official
+    /// Java `GroupMetadataManager` writes this when a JoinGroup
+    /// dynamic member has an unknown member id.
     /// Top-level `SHARE_SESSION_LIMIT_REACHED`
     /// completes without retry and advances the session epoch (Java
     /// `ShareSessionHandler.handleResponse` `nextEpoch`), including

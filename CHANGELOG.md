@@ -420,6 +420,12 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `UNSUPPORTED_COMPRESSION_TYPE`). Official Java
   `QuorumController.processBrokerHeartbeat` writes this when the
   broker epoch has changed.
+  A top-level ShareAcknowledge `MEMBER_ID_REQUIRED` completes
+  without retry and does not request Metadata, including when
+  `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+  `metadata.requestUpdate`; this is not top-level
+  `STALE_BROKER_EPOCH`). Official Java `GroupMetadataManager` writes
+  this when a JoinGroup dynamic member has an unknown member id.
   A piggybacked ShareFetch
   `AcknowledgeErrorMessage` that is empty uses
   `ShareFetch acknowledgement {topic}-{partition}`. A piggybacked
