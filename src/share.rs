@@ -30,8 +30,8 @@ use crate::protocol::records::{
 use crate::protocol::share::{
     decode_share_acknowledge_response, decode_share_acknowledge_topics_response_with_lock_timeout,
     decode_share_fetch_response_reusing_cooperative, decode_share_group_heartbeat_response,
-    encode_one_share_acknowledge, encode_share_acknowledge_request,
-    encode_share_acknowledge_topics, encode_share_fetch_request_with_options,
+    encode_one_share_acknowledge_cooperative, encode_share_acknowledge_request,
+    encode_share_acknowledge_topics_cooperative, encode_share_fetch_request_with_options,
     encode_share_group_heartbeat_request, AcknowledgementBatch, ShareAckTopic, ShareFetchPartition,
     ShareFetchRequestOptions, ShareFetchTopic, ShareFetchedTopic, ShareGroupHeartbeatRequest,
     ShareTopicPartitions, ACK_ACCEPT, ACK_REJECT, ACK_RELEASE, ACK_RENEW,
@@ -4413,43 +4413,40 @@ impl ShareGroup {
         if timeout.is_zero() {
             return Err(Error::Timeout);
         }
+        let batches = partitions
+            .first()
+            .map(|part| part.2.as_slice())
+            .unwrap_or(&[]);
+        let mut encoded = BytesMut::new();
+        encode_one_share_acknowledge_cooperative(
+            &mut encoded,
+            version,
+            &self.group_id,
+            &self.member_id,
+            epoch,
+            &topic_id,
+            partition,
+            batches,
+        )
+        .await?;
+        let payload = encoded.freeze();
         let Some(mut peer) = self.share_conns.remove(&node) else {
             self.reset_node_session(node).await;
             return Err(Error::protocol("missing share connection"));
         };
-        let mut encode_failed = false;
         let sent = peer
             .conn
             .roundtrip(
                 SHARE_ACKNOWLEDGE,
                 version,
                 |buf| {
-                    let batches = partitions
-                        .first()
-                        .map(|part| part.2.as_slice())
-                        .unwrap_or(&[]);
-                    encode_one_share_acknowledge(
-                        buf,
-                        version,
-                        &self.group_id,
-                        &self.member_id,
-                        epoch,
-                        &topic_id,
-                        partition,
-                        batches,
-                    )
-                    .inspect_err(|_| encode_failed = true)
+                    buf.extend_from_slice(&payload);
+                    Ok(())
                 },
                 timeout,
             )
             .await;
         let _ = self.share_conns.insert(node, peer);
-        if encode_failed {
-            return match sent {
-                Err(error) => Err(error),
-                Ok(_) => Err(Error::protocol("share acknowledge encode")),
-            };
-        }
         let mut body = match sent {
             Ok(body) => body,
             Err(error) => {
@@ -4700,22 +4697,29 @@ impl ShareGroup {
                 self.reset_node_session(node).await;
                 return Err(Error::protocol("missing share connection"));
             };
-            let mut encode_failed = false;
+            let mut encoded = BytesMut::new();
+            if let Err(error) = encode_share_acknowledge_topics_cooperative(
+                &mut encoded,
+                version,
+                &self.group_id,
+                &self.member_id,
+                epoch,
+                &topics,
+            )
+            .await
+            {
+                let _ = self.share_conns.insert(node, peer);
+                return Err(error);
+            }
+            let payload = encoded.freeze();
             let sent = peer
                 .conn
                 .roundtrip(
                     SHARE_ACKNOWLEDGE,
                     version,
                     |buf| {
-                        encode_share_acknowledge_topics(
-                            buf,
-                            version,
-                            &self.group_id,
-                            &self.member_id,
-                            epoch,
-                            &topics,
-                        )
-                        .inspect_err(|_| encode_failed = true)
+                        buf.extend_from_slice(&payload);
+                        Ok(())
                     },
                     timeout,
                 )
@@ -4729,7 +4733,7 @@ impl ShareGroup {
                 partitions,
                 &mut first_error,
                 sent,
-                encode_failed,
+                false,
             )
             .await?;
         }
@@ -4869,14 +4873,16 @@ impl ShareGroup {
                     .await;
             };
             let mut body = BytesMut::new();
-            if let Err(error) = encode_share_acknowledge_topics(
+            if let Err(error) = encode_share_acknowledge_topics_cooperative(
                 &mut body,
                 version,
                 &self.group_id,
                 &self.member_id,
                 epoch,
                 &topics,
-            ) {
+            )
+            .await
+            {
                 let _ = self.share_conns.insert(node, peer);
                 return self
                     .finish_share_ack_flights(

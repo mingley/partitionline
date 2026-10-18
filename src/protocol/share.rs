@@ -1146,19 +1146,41 @@ fn share_fetch_flexible(version: i16) -> Result<bool> {
     check_share_fetch_version(version).map(|_| true)
 }
 
+fn encode_one_ack_batch(buf: &mut BytesMut, batch: &AcknowledgementBatch) -> Result<()> {
+    buf.put_i64(batch.first_offset);
+    buf.put_i64(batch.last_offset);
+    buf::put_array_len(buf, true, Some(batch.types.len()))?;
+    for kind in &batch.types {
+        buf.put_i8(*kind);
+    }
+    buf::put_empty_tagged_fields(buf);
+    Ok(())
+}
+
 fn encode_ack_batches(
     buf: &mut BytesMut,
     batches: &[AcknowledgementBatch],
 ) -> crate::error::Result<()> {
     buf::put_array_len(buf, true, Some(batches.len()))?;
-    for b in batches {
-        buf.put_i64(b.first_offset);
-        buf.put_i64(b.last_offset);
-        buf::put_array_len(buf, true, Some(b.types.len()))?;
-        for t in &b.types {
-            buf.put_i8(*t);
+    for batch in batches {
+        encode_one_ack_batch(buf, batch)?;
+    }
+    Ok(())
+}
+
+async fn encode_ack_batches_cooperative(
+    buf: &mut BytesMut,
+    batches: &[AcknowledgementBatch],
+) -> Result<()> {
+    buf::put_array_len(buf, true, Some(batches.len()))?;
+    let mut walked = 0usize;
+    for batch in batches {
+        encode_one_ack_batch(buf, batch)?;
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
         }
-        buf::put_empty_tagged_fields(buf);
     }
     Ok(())
 }
@@ -1385,15 +1407,48 @@ fn share_nullable_string_len(value: Option<&str>) -> Result<usize> {
     Ok(buf::unsigned_varint_size(encoded).saturating_add(value.len()))
 }
 
+fn one_ack_batch_len(batch: &AcknowledgementBatch) -> Result<usize> {
+    let mut total = 16usize;
+    total = add_share_len(total, share_array_len(batch.types.len())?)?;
+    total = add_share_len(total, batch.types.len())?;
+    add_share_len(total, buf::unsigned_varint_size(0))
+}
+
 fn ack_batches_len(batches: &[AcknowledgementBatch]) -> Result<usize> {
     let mut total = share_array_len(batches.len())?;
     for batch in batches {
-        total = add_share_len(total, 16)?;
-        total = add_share_len(total, share_array_len(batch.types.len())?)?;
-        total = add_share_len(total, batch.types.len())?;
-        total = add_share_len(total, buf::unsigned_varint_size(0))?;
+        total = add_share_len(total, one_ack_batch_len(batch)?)?;
     }
     Ok(total)
+}
+
+async fn ack_batches_len_cooperative(batches: &[AcknowledgementBatch]) -> Result<usize> {
+    let mut total = share_array_len(batches.len())?;
+    let mut walked = 0usize;
+    for batch in batches {
+        total = add_share_len(total, one_ack_batch_len(batch)?)?;
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    Ok(total)
+}
+
+async fn batches_include_renew(batches: &[AcknowledgementBatch]) -> bool {
+    let mut walked = 0usize;
+    for batch in batches {
+        if batch.types.contains(&ACK_RENEW) {
+            return true;
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    false
 }
 
 fn share_fetch_request_len(
@@ -2936,6 +2991,7 @@ pub fn encode_share_acknowledge_topics_with_renew(
 ///
 /// The bytes match [`encode_share_acknowledge_topics`] for a single topic and
 /// partition. The caller can retry from the same batches.
+#[cfg(test)]
 #[expect(
     clippy::too_many_arguments,
     reason = "one ShareAcknowledge partition is encoded from the caller's existing batches"
@@ -2978,6 +3034,139 @@ pub(crate) fn encode_one_share_acknowledge(
     if flexible {
         buf::put_empty_tagged_fields(buf);
         buf::put_empty_tagged_fields(buf);
+        buf::put_empty_tagged_fields(buf);
+    }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+    Ok(())
+}
+
+/// Encode one ShareAcknowledge partition, pausing while batches are still being written.
+///
+/// The bytes match [`encode_share_acknowledge_topics`] for a single topic and partition.
+#[expect(
+    clippy::too_many_arguments,
+    reason = "one ShareAcknowledge partition is encoded from the caller's existing batches"
+)]
+pub(crate) async fn encode_one_share_acknowledge_cooperative(
+    buf: &mut BytesMut,
+    version: i16,
+    group_id: &str,
+    member_id: &str,
+    share_session_epoch: i32,
+    topic_id: &[u8; 16],
+    partition: i32,
+    batches: &[AcknowledgementBatch],
+) -> crate::error::Result<()> {
+    let flexible = share_acknowledge_flexible(version)?;
+    let is_renew_ack = batches_include_renew(batches).await;
+    check_renew_version(version, is_renew_ack)?;
+    let body_start = buf.len();
+    let mut planned = share_acknowledge_header_len(version, group_id, member_id)?;
+    planned = add_share_len(planned, share_array_len(1)?)?;
+    planned = add_share_len(planned, 16)?;
+    planned = add_share_len(planned, share_array_len(1)?)?;
+    planned = add_share_len(planned, 4)?;
+    planned = add_share_len(planned, ack_batches_len_cooperative(batches).await?)?;
+    if flexible {
+        planned = add_share_len(planned, buf::unsigned_varint_size(0).saturating_mul(3))?;
+    }
+    reserve_share_body(buf, planned);
+    buf::put_string(buf, flexible, Some(group_id))?;
+    buf::put_string(buf, flexible, Some(member_id))?;
+    buf.put_i32(share_session_epoch);
+    if version >= 2 {
+        buf.put_u8(u8::from(is_renew_ack));
+    }
+    buf::put_array_len(buf, flexible, Some(1))?;
+    buf.extend_from_slice(topic_id);
+    buf::put_array_len(buf, flexible, Some(1))?;
+    buf.put_i32(partition);
+    encode_ack_batches_cooperative(buf, batches).await?;
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+        buf::put_empty_tagged_fields(buf);
+        buf::put_empty_tagged_fields(buf);
+    }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+    Ok(())
+}
+
+async fn topics_include_renew(topics: &[ShareAckTopic]) -> bool {
+    let mut walked = 0usize;
+    for topic in topics {
+        for (_, batches) in &topic.partitions {
+            for batch in batches {
+                if batch.types.contains(&ACK_RENEW) {
+                    return true;
+                }
+                walked = walked.saturating_add(1);
+                if walked == 8 * 1024 {
+                    walked = 0;
+                    tokio::task::yield_now().await;
+                }
+            }
+        }
+    }
+    false
+}
+
+async fn share_acknowledge_topics_len_cooperative(topics: &[ShareAckTopic]) -> Result<usize> {
+    let mut total = share_array_len(topics.len())?;
+    for topic in topics {
+        total = add_share_len(total, 16)?;
+        total = add_share_len(total, share_array_len(topic.partitions.len())?)?;
+        for (_, batches) in &topic.partitions {
+            total = add_share_len(total, 4)?;
+            total = add_share_len(total, ack_batches_len_cooperative(batches).await?)?;
+            total = add_share_len(total, buf::unsigned_varint_size(0))?;
+        }
+        total = add_share_len(total, buf::unsigned_varint_size(0))?;
+    }
+    add_share_len(total, buf::unsigned_varint_size(0))
+}
+
+/// Encode several ShareAcknowledge topics, pausing while batches are still being written.
+///
+/// The bytes match [`encode_share_acknowledge_topics`].
+pub(crate) async fn encode_share_acknowledge_topics_cooperative(
+    buf: &mut BytesMut,
+    version: i16,
+    group_id: &str,
+    member_id: &str,
+    share_session_epoch: i32,
+    topics: &[ShareAckTopic],
+) -> crate::error::Result<()> {
+    let flexible = share_acknowledge_flexible(version)?;
+    let is_renew_ack = topics_include_renew(topics).await;
+    check_renew_version(version, is_renew_ack)?;
+    let body_start = buf.len();
+    let planned = add_share_len(
+        share_acknowledge_header_len(version, group_id, member_id)?,
+        share_acknowledge_topics_len_cooperative(topics).await?,
+    )?;
+    reserve_share_body(buf, planned);
+    buf::put_string(buf, flexible, Some(group_id))?;
+    buf::put_string(buf, flexible, Some(member_id))?;
+    buf.put_i32(share_session_epoch);
+    if version >= 2 {
+        buf.put_u8(u8::from(is_renew_ack));
+    }
+    buf::put_array_len(buf, flexible, Some(topics.len()))?;
+    for topic in topics {
+        buf.extend_from_slice(&topic.topic_id);
+        buf::put_array_len(buf, flexible, Some(topic.partitions.len()))?;
+        for (partition, batches) in &topic.partitions {
+            buf.put_i32(*partition);
+            encode_ack_batches_cooperative(buf, batches).await?;
+            if flexible {
+                buf::put_empty_tagged_fields(buf);
+            }
+        }
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+    }
+    if flexible {
         buf::put_empty_tagged_fields(buf);
     }
     debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
@@ -6662,6 +6851,141 @@ mod tests {
                 cur.remaining()
             );
         }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn cooperative_share_acknowledge_matches_sync_bytes() {
+        let batches = vec![
+            AcknowledgementBatch {
+                first_offset: 1,
+                last_offset: 3,
+                types: vec![ACK_ACCEPT],
+            },
+            AcknowledgementBatch {
+                first_offset: 5,
+                last_offset: 5,
+                types: vec![ACK_REJECT],
+            },
+        ];
+        let renew = vec![AcknowledgementBatch {
+            first_offset: 8,
+            last_offset: 9,
+            types: vec![ACK_RENEW],
+        }];
+        for version in [0_i16, 1, 2] {
+            let mut sync_buf = BytesMut::new();
+            let mut coop_buf = BytesMut::new();
+            let sync_result = encode_one_share_acknowledge(
+                &mut sync_buf,
+                version,
+                "group",
+                "member",
+                3,
+                &[4; 16],
+                1,
+                &batches,
+            );
+            let coop_result = encode_one_share_acknowledge_cooperative(
+                &mut coop_buf,
+                version,
+                "group",
+                "member",
+                3,
+                &[4; 16],
+                1,
+                &batches,
+            )
+            .await;
+            assert_eq!(sync_result.is_ok(), coop_result.is_ok());
+            assert_eq!(sync_buf, coop_buf);
+            let topics = vec![ShareAckTopic {
+                topic_id: [4; 16],
+                partitions: vec![(1, batches.clone()), (2, batches.clone())],
+            }];
+            sync_buf.clear();
+            coop_buf.clear();
+            let sync_topics = encode_share_acknowledge_topics(
+                &mut sync_buf,
+                version,
+                "group",
+                "member",
+                3,
+                &topics,
+            );
+            let coop_topics = encode_share_acknowledge_topics_cooperative(
+                &mut coop_buf,
+                version,
+                "group",
+                "member",
+                3,
+                &topics,
+            )
+            .await;
+            assert_eq!(sync_topics.is_ok(), coop_topics.is_ok());
+            assert_eq!(sync_buf, coop_buf);
+            sync_buf.clear();
+            coop_buf.clear();
+            let sync_renew = encode_one_share_acknowledge(
+                &mut sync_buf,
+                version,
+                "group",
+                "member",
+                3,
+                &[4; 16],
+                1,
+                &renew,
+            );
+            let coop_renew = encode_one_share_acknowledge_cooperative(
+                &mut coop_buf,
+                version,
+                "group",
+                "member",
+                3,
+                &[4; 16],
+                1,
+                &renew,
+            )
+            .await;
+            assert_eq!(sync_renew.is_ok(), coop_renew.is_ok());
+            assert_eq!(sync_buf, coop_buf);
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn encoding_many_share_acks_does_not_hold_the_caller() {
+        // 2_000_000 batches: encoding acknowledgements held the caller 549ms.
+        let batches: Vec<_> = (0..2_000_000)
+            .map(|offset| AcknowledgementBatch {
+                first_offset: offset * 2,
+                last_offset: offset * 2,
+                types: vec![ACK_ACCEPT],
+            })
+            .collect();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            result = async {
+                let mut buf = BytesMut::new();
+                encode_one_share_acknowledge_cooperative(
+                    &mut buf,
+                    2,
+                    "g",
+                    "m",
+                    1,
+                    &[7; 16],
+                    0,
+                    &batches,
+                )
+                .await
+            } => {
+                assert!(result.is_ok());
+            }
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "encoding share acknowledgements held the caller for {elapsed:?}"
+        );
     }
 
     #[test]
