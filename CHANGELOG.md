@@ -1541,7 +1541,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `UNSUPPORTED_VERSION`). Official Java `ReplicationControlManager` writes
   this when CreateTopics names a topic that already exists.
   Top-level `INVALID_PARTITIONS` still fails that poll
-  without Metadata, including when `ErrorMessage` is set (Java
+  without Metadata, including when `ErrorMessage` is set or empty (Java
   `handleShareFetchSuccess` only `requestUpdate`s for top-level
   `UNKNOWN_TOPIC_ID`; this is not top-level
   `TOPIC_ALREADY_EXISTS`). Official Java `ReplicationControlManager` writes
