@@ -2346,6 +2346,13 @@ pub enum ShareAcquireMode {
 /// `INVALID_RECORD`). Official Java
 /// `TransactionMetadata.prepareIncrementProducerEpoch` writes this
 /// when the expected producer epoch does not match.
+/// Top-level `RESOURCE_NOT_FOUND` still fails that poll
+/// and does not request Metadata, including when `ErrorMessage` is
+/// set (Java `handleShareFetchSuccess` only `requestUpdate`s for
+/// `UNKNOWN_TOPIC_ID`; this is not top-level
+/// `PRODUCER_FENCED`). Official Java `ScramImage`
+/// DescribeUserScramCredentials writes this when the user does not
+/// exist.
 /// Top-level
 /// `SHARE_SESSION_LIMIT_REACHED` resets the share session and does
 /// not request Metadata, including when `ErrorMessage` is set or
@@ -5423,6 +5430,13 @@ impl ShareGroup {
     /// `INVALID_RECORD`). Official Java
     /// `TransactionMetadata.prepareIncrementProducerEpoch` writes
     /// this when the expected producer epoch does not match. Top-level
+    /// `RESOURCE_NOT_FOUND` still fails that poll without
+    /// Metadata, including when `ErrorMessage` is set (Java
+    /// `handleShareFetchSuccess` only `requestUpdate`s for
+    /// `UNKNOWN_TOPIC_ID`; this is not top-level
+    /// `PRODUCER_FENCED`). Official Java `ScramImage`
+    /// DescribeUserScramCredentials writes this when the user does
+    /// not exist. Top-level
     /// `SHARE_SESSION_LIMIT_REACHED` resets the share session and
     /// does not request Metadata, including when `ErrorMessage` is
     /// set or empty (Java `handleShareFetchSuccess` only

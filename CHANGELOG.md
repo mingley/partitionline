@@ -1994,6 +1994,12 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `INVALID_RECORD`). Official Java
   `TransactionMetadata.prepareIncrementProducerEpoch` writes this
   when the expected producer epoch does not match.
+  Top-level `RESOURCE_NOT_FOUND` still fails that poll
+  without Metadata, including when `ErrorMessage` is set (Java
+  `handleShareFetchSuccess` only `requestUpdate`s for top-level
+  `UNKNOWN_TOPIC_ID`; this is not top-level
+  `PRODUCER_FENCED`). Official Java `ScramImage`
+  DescribeUserScramCredentials writes this when the user does not exist.
   A non-empty
   throwable partition or top-level ShareFetch `ErrorMessage` is
   preferred; empty uses `ShareFetch {topic}-{partition}` or
