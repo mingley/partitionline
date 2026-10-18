@@ -2059,6 +2059,12 @@ pub enum ShareAcquireMode {
 /// and does not request Metadata, including when `ErrorMessage` is
 /// set or empty (Java `handleShareFetchSuccess` only `requestUpdate`s for
 /// `UNKNOWN_TOPIC_ID`).
+/// Top-level `CLUSTER_AUTHORIZATION_FAILED` still fails that poll
+/// and does not request Metadata, including when `ErrorMessage` is
+/// set (Java `handleShareFetchSuccess` only `requestUpdate`s for
+/// `UNKNOWN_TOPIC_ID`; this is not top-level
+/// `GROUP_AUTHORIZATION_FAILED`). Official Java `AclEntry` writes this
+/// for cluster-resource authorization failures.
 /// Top-level
 /// `SHARE_SESSION_LIMIT_REACHED` resets the share session and does
 /// not request Metadata, including when `ErrorMessage` is set or
@@ -4541,6 +4547,12 @@ impl ShareGroup {
     /// that poll without Metadata, including when `ErrorMessage` is
     /// set or empty (Java `handleShareFetchSuccess` only `requestUpdate`s for
     /// `UNKNOWN_TOPIC_ID`). Top-level
+    /// `CLUSTER_AUTHORIZATION_FAILED` still fails that poll without
+    /// Metadata, including when `ErrorMessage` is set (Java
+    /// `handleShareFetchSuccess` only `requestUpdate`s for
+    /// `UNKNOWN_TOPIC_ID`; this is not top-level
+    /// `GROUP_AUTHORIZATION_FAILED`). Official Java `AclEntry` writes
+    /// this for cluster-resource authorization failures. Top-level
     /// `SHARE_SESSION_LIMIT_REACHED` resets the share session and
     /// does not request Metadata, including when `ErrorMessage` is
     /// set or empty (Java `handleShareFetchSuccess` only
