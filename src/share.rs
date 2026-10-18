@@ -2800,7 +2800,7 @@ pub enum ShareAcquireMode {
 /// principal. A top-level
 /// ShareAcknowledge `SNAPSHOT_NOT_FOUND` completes without
 /// retry and does not request Metadata, including when `ErrorMessage`
-/// is set (Java `handleShareAcknowledgeSuccess` has no
+/// is set or empty (Java `handleShareAcknowledgeSuccess` has no
 /// `metadata.requestUpdate`; this is not top-level
 /// `PRINCIPAL_DESERIALIZATION_FAILURE`). Official Java `KafkaRaftClient`
 /// writes this when the requested snapshot id does not exist. A top-level
@@ -6290,7 +6290,7 @@ impl ShareGroup {
     /// deserialize the request principal.
     /// A top-level ShareAcknowledge `SNAPSHOT_NOT_FOUND`
     /// completes without retry and does not request Metadata,
-    /// including when `ErrorMessage` is set (Java
+    /// including when `ErrorMessage` is set or empty (Java
     /// `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`;
     /// this is not top-level `PRINCIPAL_DESERIALIZATION_FAILURE`).
     /// Official Java `KafkaRaftClient` writes this when the requested
