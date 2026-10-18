@@ -2008,6 +2008,45 @@ fn lz4_compress_into(src: &[u8], out: &mut Vec<u8>) -> Result<()> {
     Ok(())
 }
 
+/// [`lz4_compress_into`], feeding the encoder 8 KiB at a time.
+///
+/// Slices are written with no flush between them, so the frame matches
+/// [`lz4_compress_into`]. The pause between slices lets a caller deadline
+/// run while a multi-megabyte section is still being packed.
+async fn lz4_compress_into_cooperative(src: &[u8], out: &mut Vec<u8>) -> Result<()> {
+    use lz4_flex::frame::{BlockMode, BlockSize, FrameEncoder, FrameInfo};
+    let info = FrameInfo::new()
+        .block_mode(BlockMode::Independent)
+        .block_size(BlockSize::Max64KB)
+        .block_checksums(false)
+        .content_checksum(false)
+        .content_size(Some(src.len() as u64));
+    out.clear();
+    let est =
+        estimate_compressed_size_in_bytes(compress_estimate_input(src.len()), Compression::Lz4);
+    out.reserve(buf::usize_from_i32(est).unwrap_or(0));
+    let owned = std::mem::take(out);
+    let mut encoder = FrameEncoder::with_frame_info(info, owned);
+    let mut offset = 0usize;
+    while offset < src.len() {
+        let end = offset.saturating_add(8 * 1024).min(src.len());
+        let piece = src
+            .get(offset..end)
+            .ok_or_else(|| Error::protocol("lz4 chunk"))?;
+        encoder
+            .write_all(piece)
+            .map_err(|e| Error::protocol(e.to_string()))?;
+        offset = end;
+        if offset < src.len() {
+            tokio::task::yield_now().await;
+        }
+    }
+    *out = encoder
+        .finish()
+        .map_err(|e| Error::protocol(e.to_string()))?;
+    Ok(())
+}
+
 fn lz4_declared_size(src: &[u8]) -> Option<u64> {
     if src.len() < 14 || !src.starts_with(&[0x04, 0x22, 0x4D, 0x18]) {
         return None;
@@ -2534,7 +2573,9 @@ async fn compress_packed_payload(
             gzip_compress_into_cooperative(&scratch.section, &mut scratch.packed).await?
         }
         Compression::Snappy => snappy_compress_into(&scratch.section, &mut scratch.packed)?,
-        Compression::Lz4 => lz4_compress_into(&scratch.section, &mut scratch.packed)?,
+        Compression::Lz4 => {
+            lz4_compress_into_cooperative(&scratch.section, &mut scratch.packed).await?
+        }
         #[cfg(feature = "zstd")]
         Compression::Zstd => zstd_compress_into(
             &scratch.section,
@@ -4347,6 +4388,42 @@ mod tests {
             elapsed < std::time::Duration::from_millis(80),
             "gzip of a record section held the caller for {elapsed:?}"
         );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn compressing_a_long_lz4_section_does_not_hold_the_caller() {
+        // 400_000 records: one LZ4 of the 3.8 MiB section held the caller 103ms.
+        let batch = gzip_batch(400_000);
+        let header = batch_header_from(&batch).unwrap();
+        let mut scratch = CompressScratch::new();
+        begin_packed_section(&mut scratch);
+        for (index, rec) in batch.records.iter().enumerate() {
+            let enc = EncodeRecord::from_record(rec);
+            append_packed_record(&mut scratch, &header, index, &enc, Compression::Lz4).unwrap();
+        }
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = lz4_compress_into_cooperative(&scratch.section, &mut scratch.packed) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "lz4 of a record section held the caller for {elapsed:?}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn cooperative_lz4_batch_matches_one_shot() {
+        let mut batch = gzip_batch(10_000);
+        batch.attributes = Compression::Lz4 as i16;
+        let mut one = BytesMut::new();
+        encode_record_batch(&mut one, &batch).unwrap();
+        let mut two = BytesMut::new();
+        encode_record_batch_cooperative(&mut two, &batch)
+            .await
+            .unwrap();
+        assert_eq!(one, two);
     }
 
     #[tokio::test(flavor = "current_thread")]
