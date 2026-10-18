@@ -681,7 +681,8 @@ fn list_offsets_string_len(flexible: bool, value: &str) -> Result<usize> {
     }
 }
 
-trait ListOffsetsTopicView {
+/// Topic name and partitions for a ListOffsets request body.
+pub(crate) trait ListOffsetsTopicView {
     fn list_offsets_name(&self) -> &str;
     fn list_offsets_partitions(&self) -> &[ListOffsetsPartitionRequest];
 }
@@ -785,6 +786,7 @@ pub fn encode_list_offsets_topics_request_with_replica_id(
 }
 
 /// Encode ListOffsets topics whose names are borrowed from the caller.
+#[cfg(test)]
 pub(crate) fn encode_list_offsets_named_topics(
     buf: &mut BytesMut,
     version: i16,
@@ -850,14 +852,17 @@ fn encode_list_offsets_topic_views<T: ListOffsetsTopicView>(
     Ok(())
 }
 
-/// [`encode_list_offsets_named_topics`], pausing while partitions remain.
-pub(crate) async fn encode_list_offsets_named_topics_cooperative(
+/// Encode borrowed or owned ListOffsets topics, pausing while partitions remain.
+pub(crate) async fn encode_list_offsets_named_topics_cooperative<T>(
     buf: &mut BytesMut,
     version: i16,
     isolation_level: i8,
-    topics: &[(&str, Vec<ListOffsetsPartitionRequest>)],
+    topics: &[T],
     timeout_ms: i32,
-) -> Result<()> {
+) -> Result<()>
+where
+    T: ListOffsetsTopicView + Sync,
+{
     let flexible = list_offsets_flexible(version)?;
     let body_start = buf.len();
     let planned = list_offsets_request_len(version, flexible, topics)?;
@@ -871,8 +876,9 @@ pub(crate) async fn encode_list_offsets_named_topics_cooperative(
     }
     buf::put_array_len(buf, flexible, Some(topics.len()))?;
     let mut walked = 0usize;
-    for (topic, partitions) in topics {
-        buf::put_string(buf, flexible, Some(*topic))?;
+    for topic in topics {
+        buf::put_string(buf, flexible, Some(topic.list_offsets_name()))?;
+        let partitions = topic.list_offsets_partitions();
         buf::put_array_len(buf, flexible, Some(partitions.len()))?;
         for partition in partitions {
             buf.put_i32(partition.partition);

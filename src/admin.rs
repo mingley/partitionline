@@ -7,6 +7,8 @@
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::fmt;
+use std::future::Future;
+use std::pin::Pin;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
@@ -106,9 +108,8 @@ use crate::protocol::group::{
 };
 use crate::protocol::idem::{decode_init_producer_id_response, encode_init_producer_id_request};
 use crate::protocol::offsets::{
-    decode_list_offsets_topics_response_cooperative, encode_list_offsets_named_topics,
-    encode_list_offsets_named_topics_cooperative, ListOffsetsPartitionRequest,
-    ListOffsetsResponsePartition,
+    decode_list_offsets_topics_response_cooperative, encode_list_offsets_named_topics_cooperative,
+    ListOffsetsPartitionRequest, ListOffsetsResponsePartition, ListOffsetsTopicRequest,
 };
 use crate::protocol::sasl;
 use crate::protocol::txn::{
@@ -3276,10 +3277,34 @@ fn describe_producers_topics<'a>(
 
 type DescribeProducersNodeOutcome = (Vec<(usize, DescribeProducersPartition)>, Vec<usize>);
 
+type LeaderEncode = Pin<Box<dyn Future<Output = Result<Bytes>> + Send>>;
+
 struct LeaderFrame {
     api_key: i16,
     version: i16,
     body: Bytes,
+    /// Encoded on the leader task so a large body can yield between partitions.
+    deferred: Option<LeaderEncode>,
+}
+
+impl LeaderFrame {
+    fn ready(api_key: i16, version: i16, body: Bytes) -> Self {
+        Self {
+            api_key,
+            version,
+            body,
+            deferred: None,
+        }
+    }
+
+    fn deferred(api_key: i16, version: i16, encode: LeaderEncode) -> Self {
+        Self {
+            api_key,
+            version,
+            body: Bytes::new(),
+            deferred: Some(encode),
+        }
+    }
 }
 
 type LeaderExchange = HashMap<i32, (i16, Result<Bytes>)>;
@@ -7561,11 +7586,11 @@ impl Admin {
                         crate::RecordBatch::NO_PRODUCER_ID,
                         crate::RecordBatch::NO_PRODUCER_EPOCH,
                     )?;
-                    Ok(LeaderFrame {
-                        api_key: INIT_PRODUCER_ID,
+                    Ok(LeaderFrame::ready(
+                        INIT_PRODUCER_ID,
                         version,
-                        body: payload.freeze(),
-                    })
+                        payload.freeze(),
+                    ))
                 })
                 .await;
             let mut again = Vec::new();
@@ -7929,11 +7954,11 @@ impl Admin {
                         let subset = borrowed_ids(ids, idxs);
                         let mut payload = BytesMut::new();
                         encode_describe_transactions_ids(&mut payload, &subset)?;
-                        Ok(LeaderFrame {
-                            api_key: DESCRIBE_TRANSACTIONS,
+                        Ok(LeaderFrame::ready(
+                            DESCRIBE_TRANSACTIONS,
                             version,
-                            body: payload.freeze(),
-                        })
+                            payload.freeze(),
+                        ))
                     })
                     .await;
                 for node in &nodes {
@@ -9392,11 +9417,11 @@ impl Admin {
                             &topics,
                             timeout_ms,
                         )?;
-                        Ok(LeaderFrame {
-                            api_key: DELETE_RECORDS,
+                        Ok(LeaderFrame::ready(
+                            DELETE_RECORDS,
                             version,
-                            body: payload.freeze(),
-                        })
+                            payload.freeze(),
+                        ))
                     })
                     .await;
                 for node in &nodes {
@@ -10106,9 +10131,18 @@ impl Admin {
                     api_key,
                     version,
                     body: payload,
+                    deferred,
                 } = frame;
                 let _ = rpcing.spawn(async move {
                     let mut conn = conn;
+                    let payload = if let Some(deferred) = deferred {
+                        match deferred.await {
+                            Ok(body) => body,
+                            Err(error) => return (node, version, conn, Err(error)),
+                        }
+                    } else {
+                        payload
+                    };
                     let body = conn
                         .roundtrip(
                             api_key,
@@ -10203,7 +10237,8 @@ impl Admin {
         let mut grouped = HashMap::new();
         for &node in nodes {
             let idxs = by_node.get(&node).map(Vec::as_slice).unwrap_or(&[]);
-            let topics = list_offset_topic_requests(queries, idxs, &self.cluster).await;
+            let borrowed = list_offset_topic_requests(queries, idxs, &self.cluster).await;
+            let topics = own_list_offset_topics(borrowed).await;
             let _ = grouped.insert(node, topics);
         }
         let mut finished = self.exchange_leaders(nodes, deadline, |_admin, node, conn, timeout| {
@@ -10222,20 +10257,24 @@ impl Admin {
                     "broker does not support requested ListOffsets selector/isolation (requires v{minimum}+)"
                 ))
             })?;
-            let topics = grouped.get(&node).map(Vec::as_slice).unwrap_or(&[]);
-            let mut payload = BytesMut::new();
-            encode_list_offsets_named_topics(
-                &mut payload,
+            let topics = grouped.remove(&node).unwrap_or_default();
+            let timeout_ms = crate::consumer::duration_millis_i32(timeout);
+            Ok(LeaderFrame::deferred(
+                LIST_OFFSETS,
                 version,
-                isolation,
-                topics,
-                crate::consumer::duration_millis_i32(timeout),
-            )?;
-            Ok(LeaderFrame {
-                api_key: LIST_OFFSETS,
-                version,
-                body: payload.freeze(),
-            })
+                Box::pin(async move {
+                    let mut payload = BytesMut::new();
+                    encode_list_offsets_named_topics_cooperative(
+                        &mut payload,
+                        version,
+                        isolation,
+                        &topics,
+                        timeout_ms,
+                    )
+                    .await?;
+                    Ok(payload.freeze())
+                }),
+            ))
         })
         .await;
         for &node in nodes {
@@ -10574,11 +10613,11 @@ impl Admin {
                         let topics = describe_producers_topics(&partitions, idxs);
                         let mut payload = BytesMut::new();
                         encode_describe_producers_named_topics(&mut payload, &topics)?;
-                        Ok(LeaderFrame {
-                            api_key: DESCRIBE_PRODUCERS,
+                        Ok(LeaderFrame::ready(
+                            DESCRIBE_PRODUCERS,
                             version,
-                            body: payload.freeze(),
-                        })
+                            payload.freeze(),
+                        ))
                     })
                     .await;
                 for node in &nodes {
@@ -11339,11 +11378,7 @@ impl Admin {
                                     groups,
                                     require_stable,
                                 )?;
-                                Ok(LeaderFrame {
-                                    api_key: OFFSET_FETCH,
-                                    version,
-                                    body: payload.freeze(),
-                                })
+                                Ok(LeaderFrame::ready(OFFSET_FETCH, version, payload.freeze()))
                             })
                             .await;
                         for node in &nodes {
@@ -11867,11 +11902,11 @@ impl Admin {
                             &subset,
                             include_authorized_operations,
                         )?;
-                        Ok(LeaderFrame {
-                            api_key: CONSUMER_GROUP_DESCRIBE,
+                        Ok(LeaderFrame::ready(
+                            CONSUMER_GROUP_DESCRIBE,
                             version,
-                            body: payload.freeze(),
-                        })
+                            payload.freeze(),
+                        ))
                     })
                     .await;
                 for node in &nodes {
@@ -12018,11 +12053,11 @@ impl Admin {
                             &subset,
                             include_authorized_operations,
                         )?;
-                        Ok(LeaderFrame {
-                            api_key: DESCRIBE_GROUPS,
+                        Ok(LeaderFrame::ready(
+                            DESCRIBE_GROUPS,
                             version,
-                            body: payload.freeze(),
-                        })
+                            payload.freeze(),
+                        ))
                     })
                     .await;
                 for node in &nodes {
@@ -12463,11 +12498,7 @@ impl Admin {
                         let subset = borrowed_ids(ids, idxs);
                         let mut payload = BytesMut::new();
                         encode_delete_groups_ids(&mut payload, version, &subset)?;
-                        Ok(LeaderFrame {
-                            api_key: DELETE_GROUPS,
-                            version,
-                            body: payload.freeze(),
-                        })
+                        Ok(LeaderFrame::ready(DELETE_GROUPS, version, payload.freeze()))
                     })
                     .await;
                 for node in &nodes {
@@ -12946,11 +12977,11 @@ impl Admin {
                             &subset,
                             include_authorized_operations,
                         )?;
-                        Ok(LeaderFrame {
-                            api_key: SHARE_GROUP_DESCRIBE,
+                        Ok(LeaderFrame::ready(
+                            SHARE_GROUP_DESCRIBE,
                             version,
-                            body: payload.freeze(),
-                        })
+                            payload.freeze(),
+                        ))
                     })
                     .await;
                 for node in &nodes {
@@ -13172,11 +13203,11 @@ impl Admin {
                             version,
                             &subset,
                         )?;
-                        Ok(LeaderFrame {
-                            api_key: DESCRIBE_SHARE_GROUP_OFFSETS,
+                        Ok(LeaderFrame::ready(
+                            DESCRIBE_SHARE_GROUP_OFFSETS,
                             version,
-                            body: payload.freeze(),
-                        })
+                            payload.freeze(),
+                        ))
                     })
                     .await;
                 for node in &nodes {
@@ -14053,11 +14084,11 @@ impl Admin {
                         .unwrap_or(&[]);
                     let mut payload = BytesMut::new();
                     encode_alter_replica_log_dirs_named(&mut payload, version, dirs)?;
-                    Ok(LeaderFrame {
-                        api_key: ALTER_REPLICA_LOG_DIRS,
+                    Ok(LeaderFrame::ready(
+                        ALTER_REPLICA_LOG_DIRS,
                         version,
-                        body: payload.freeze(),
-                    })
+                        payload.freeze(),
+                    ))
                 })
                 .await;
             for (broker_id, dirs) in grouped {
@@ -14203,11 +14234,11 @@ impl Admin {
                     let topics = topics_of.get(&node).map(Vec::as_slice).unwrap_or(&[]);
                     let mut payload = BytesMut::new();
                     encode_describe_log_dirs_named(&mut payload, version, Some(topics))?;
-                    Ok(LeaderFrame {
-                        api_key: DESCRIBE_LOG_DIRS,
+                    Ok(LeaderFrame::ready(
+                        DESCRIBE_LOG_DIRS,
                         version,
-                        body: payload.freeze(),
-                    })
+                        payload.freeze(),
+                    ))
                 })
                 .await;
             for broker_id in ids {
@@ -14311,11 +14342,11 @@ impl Admin {
                 })?;
                 let mut payload = BytesMut::new();
                 encode_describe_log_dirs_request(&mut payload, version, &request)?;
-                Ok(LeaderFrame {
-                    api_key: DESCRIBE_LOG_DIRS,
+                Ok(LeaderFrame::ready(
+                    DESCRIBE_LOG_DIRS,
                     version,
-                    body: payload.freeze(),
-                })
+                    payload.freeze(),
+                ))
             })
             .await;
         let mut out = Vec::with_capacity(ids.len());
@@ -15780,6 +15811,22 @@ fn topic_description_from_dtp(
             AUTHORIZED_OPERATIONS_OMITTED
         },
     }
+}
+
+async fn own_list_offset_topics(
+    borrowed: Vec<(&str, Vec<ListOffsetsPartitionRequest>)>,
+) -> Vec<ListOffsetsTopicRequest> {
+    let mut topics = Vec::with_capacity(borrowed.len());
+    let mut walked = 0usize;
+    for (name, partitions) in borrowed {
+        topics.push(ListOffsetsTopicRequest::new(name, partitions));
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    topics
 }
 
 async fn list_offset_topic_requests<'a>(
