@@ -3208,7 +3208,7 @@
 //! `INVALID_REQUEST`). Official Java `LogValidator` writes
 //! this when a transactional or idempotent record batch uses a magic version before v2. Top-level
 //! `POLICY_VIOLATION` still fails that poll without
-//! Metadata, including when `ErrorMessage` is set (Java
+//! Metadata, including when `ErrorMessage` is set or empty (Java
 //! `handleShareFetchSuccess` only `requestUpdate`s for
 //! `UNKNOWN_TOPIC_ID`; this is not top-level
 //! `UNSUPPORTED_FOR_MESSAGE_FORMAT`). Official Java `ReplicationControlManager` writes
