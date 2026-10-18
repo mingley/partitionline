@@ -3232,7 +3232,7 @@
 //! `INVALID_PRODUCER_EPOCH`). Official Java `UnifiedLog` writes
 //! this when a transactional produce batch is not part of an ongoing transaction. Top-level
 //! `INVALID_PRODUCER_ID_MAPPING` still fails that poll without
-//! Metadata, including when `ErrorMessage` is set (Java
+//! Metadata, including when `ErrorMessage` is set or empty (Java
 //! `handleShareFetchSuccess` only `requestUpdate`s for
 //! `UNKNOWN_TOPIC_ID`; this is not top-level
 //! `INVALID_TXN_STATE`). Official Java `TransactionCoordinator` writes

@@ -2162,7 +2162,7 @@ pub enum ShareAcquireMode {
 /// ongoing transaction.
 /// Top-level `INVALID_PRODUCER_ID_MAPPING` still fails that poll
 /// and does not request Metadata, including when `ErrorMessage` is
-/// set (Java `handleShareFetchSuccess` only `requestUpdate`s for
+/// set or empty (Java `handleShareFetchSuccess` only `requestUpdate`s for
 /// `UNKNOWN_TOPIC_ID`; this is not top-level
 /// `INVALID_TXN_STATE`). Official Java `TransactionCoordinator` writes
 /// this when a transactional request uses a producerId that is
@@ -4869,7 +4869,7 @@ impl ShareGroup {
     /// writes this when a transactional produce batch is not part of
     /// an ongoing transaction. Top-level
     /// `INVALID_PRODUCER_ID_MAPPING` still fails that poll without
-    /// Metadata, including when `ErrorMessage` is set (Java
+    /// Metadata, including when `ErrorMessage` is set or empty (Java
     /// `handleShareFetchSuccess` only `requestUpdate`s for
     /// `UNKNOWN_TOPIC_ID`; this is not top-level
     /// `INVALID_TXN_STATE`). Official Java `TransactionCoordinator`
