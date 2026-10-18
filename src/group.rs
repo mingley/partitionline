@@ -417,6 +417,56 @@ struct StickyOwner<'a> {
     generation: i32,
 }
 
+/// Owned partitions for one member, in the order they were claimed.
+///
+/// A revoked partition is cleared in place so later claims stay after the
+/// partitions that were kept.
+struct OwnedParts {
+    items: Vec<Option<(String, i32)>>,
+    index: HashMap<String, HashMap<i32, usize>>,
+}
+
+impl OwnedParts {
+    fn new() -> Self {
+        Self {
+            items: Vec::new(),
+            index: HashMap::new(),
+        }
+    }
+
+    fn push(&mut self, topic: &str, partition: i32) {
+        let slot = self.items.len();
+        if let Some(parts) = self.index.get_mut(topic) {
+            let _ = parts.insert(partition, slot);
+        } else {
+            let mut parts = HashMap::new();
+            let _ = parts.insert(partition, slot);
+            let _ = self.index.insert(topic.to_owned(), parts);
+        }
+        self.items.push(Some((topic.to_owned(), partition)));
+    }
+
+    fn revoke(&mut self, topic: &str, partition: i32) {
+        let Some(slot) = self
+            .index
+            .get_mut(topic)
+            .and_then(|parts| parts.remove(&partition))
+        else {
+            return;
+        };
+        if self.index.get(topic).is_some_and(|parts| parts.is_empty()) {
+            let _ = self.index.remove(topic);
+        }
+        if let Some(item) = self.items.get_mut(slot) {
+            *item = None;
+        }
+    }
+
+    fn into_vec(self) -> Vec<(String, i32)> {
+        self.items.into_iter().flatten().collect()
+    }
+}
+
 fn remember_sticky_owner<'a>(
     owner: &mut HashMap<&'a str, HashMap<i32, StickyOwner<'a>>>,
     topic: &'a str,
@@ -443,10 +493,10 @@ fn remember_sticky_owner<'a>(
 pub fn resolve_sticky_owned_partitions(
     claims: &[StickyOwnedClaim],
 ) -> HashMap<String, Vec<(String, i32)>> {
-    let mut out: HashMap<String, Vec<(String, i32)>> = HashMap::new();
+    let mut out: HashMap<String, OwnedParts> = HashMap::new();
     for (member, _, _) in claims {
         if !out.contains_key(member.as_str()) {
-            let _ = out.insert(member.clone(), Vec::new());
+            let _ = out.insert(member.clone(), OwnedParts::new());
         }
     }
     let mut owner: HashMap<&str, HashMap<i32, StickyOwner<'_>>> = HashMap::new();
@@ -463,7 +513,7 @@ pub fn resolve_sticky_owned_partitions(
             match current {
                 None => {
                     if let Some(slot) = out.get_mut(member.as_str()) {
-                        slot.push((topic.clone(), *partition));
+                        slot.push(topic, *partition);
                     }
                     remember_sticky_owner(&mut owner, topic.as_str(), *partition, claim);
                 }
@@ -477,18 +527,17 @@ pub fn resolve_sticky_owned_partitions(
                         // it from both (KAFKA-13081).
                         if other != member.as_str() {
                             if let Some(other_slot) = out.get_mut(other) {
-                                other_slot
-                                    .retain(|(name, part)| name != topic || *part != *partition);
+                                other_slot.revoke(topic, *partition);
                             }
                             remember_sticky_owner(&mut owner, topic.as_str(), *partition, claim);
                         }
                     }
                     std::cmp::Ordering::Greater => {
                         if let Some(other_slot) = out.get_mut(other) {
-                            other_slot.retain(|(name, part)| name != topic || *part != *partition);
+                            other_slot.revoke(topic, *partition);
                         }
                         if let Some(slot) = out.get_mut(member.as_str()) {
-                            slot.push((topic.clone(), *partition));
+                            slot.push(topic, *partition);
                         }
                         remember_sticky_owner(&mut owner, topic.as_str(), *partition, claim);
                     }
@@ -497,17 +546,19 @@ pub fn resolve_sticky_owned_partitions(
             }
         }
     }
-    out
+    out.into_iter()
+        .map(|(member, parts)| (member, parts.into_vec()))
+        .collect()
 }
 
 /// [`resolve_sticky_owned_partitions`], yielding while a long claim list is resolved.
 pub async fn resolve_sticky_owned_partitions_cooperative(
     claims: &[StickyOwnedClaim],
 ) -> HashMap<String, Vec<(String, i32)>> {
-    let mut out: HashMap<String, Vec<(String, i32)>> = HashMap::new();
+    let mut out: HashMap<String, OwnedParts> = HashMap::new();
     for (member, _, _) in claims {
         if !out.contains_key(member.as_str()) {
-            let _ = out.insert(member.clone(), Vec::new());
+            let _ = out.insert(member.clone(), OwnedParts::new());
         }
     }
     let mut owner: HashMap<&str, HashMap<i32, StickyOwner<'_>>> = HashMap::new();
@@ -525,7 +576,7 @@ pub async fn resolve_sticky_owned_partitions_cooperative(
             match current {
                 None => {
                     if let Some(slot) = out.get_mut(member.as_str()) {
-                        slot.push((topic.clone(), *partition));
+                        slot.push(topic, *partition);
                     }
                     remember_sticky_owner(&mut owner, topic.as_str(), *partition, claim);
                 }
@@ -536,18 +587,17 @@ pub async fn resolve_sticky_owned_partitions_cooperative(
                     std::cmp::Ordering::Equal => {
                         if other != member.as_str() {
                             if let Some(other_slot) = out.get_mut(other) {
-                                other_slot
-                                    .retain(|(name, part)| name != topic || *part != *partition);
+                                other_slot.revoke(topic, *partition);
                             }
                             remember_sticky_owner(&mut owner, topic.as_str(), *partition, claim);
                         }
                     }
                     std::cmp::Ordering::Greater => {
                         if let Some(other_slot) = out.get_mut(other) {
-                            other_slot.retain(|(name, part)| name != topic || *part != *partition);
+                            other_slot.revoke(topic, *partition);
                         }
                         if let Some(slot) = out.get_mut(member.as_str()) {
-                            slot.push((topic.clone(), *partition));
+                            slot.push(topic, *partition);
                         }
                         remember_sticky_owner(&mut owner, topic.as_str(), *partition, claim);
                     }
@@ -561,7 +611,9 @@ pub async fn resolve_sticky_owned_partitions_cooperative(
             }
         }
     }
-    out
+    out.into_iter()
+        .map(|(member, parts)| (member, parts.into_vec()))
+        .collect()
 }
 
 /// Sticky-assign each topic among the members subscribed to it.
@@ -7843,6 +7895,28 @@ mod tests {
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "assigning sticky partitions held the caller for {elapsed:?}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn revoking_many_owned_partitions_does_not_hold_the_caller() {
+        // 8_192 partitions: scanning one member's claims for each revoke held the caller 685ms.
+        let owned: Vec<(String, i32)> = (0..8_192)
+            .map(|index| ("orders".to_string(), index))
+            .collect();
+        let claims = vec![
+            ("a".to_string(), owned.clone(), 1),
+            ("b".to_string(), owned, 1),
+        ];
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = resolve_sticky_owned_partitions_cooperative(&claims) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "revoking owned partitions held the caller for {elapsed:?}"
         );
     }
 
