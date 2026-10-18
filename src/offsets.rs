@@ -660,34 +660,74 @@ impl OffsetClient {
         let (mut bootstrap, versions, bootstrap_version) = self
             .bootstrap(OFFSET_COMMIT, options.topic_ids, false, deadline)
             .await?;
-        let address = Self::coordinator(
+        let address = match Self::coordinator(
             &mut bootstrap,
             &versions,
             &request.group_id,
             deadline,
             control_bytes,
         )
-        .await?;
+        .await
+        {
+            Ok(address) => address,
+            Err(error) => {
+                retire_offset_conn(bootstrap).await;
+                return Err(error);
+            }
+        };
         let (mut conn, version) = if address == bootstrap.addr() {
             (bootstrap, bootstrap_version)
         } else {
-            let (conn, _, version) = self
+            let opened = self
                 .open(&address, OFFSET_COMMIT, options.topic_ids, false, deadline)
-                .await?;
-            (conn, version)
+                .await;
+            retire_offset_conn(bootstrap).await;
+            match opened {
+                Ok((conn, _, version)) => (conn, version),
+                Err(error) => return Err(error),
+            }
         };
-        deadline.check_expired()?;
-        let body = conn
+        if let Err(error) = deadline.check_expired() {
+            retire_offset_conn(conn).await;
+            return Err(error);
+        }
+        let body = match conn
             .roundtrip_deadline(
                 OFFSET_COMMIT,
                 version,
                 |buf| encode_offset_commit_request_into(buf, request, version, options.limits),
                 deadline,
             )
-            .await?;
-        charge_bytes(response_bytes, body.len(), response_limit(options.limits)?)?;
-        let response = decode_offset_commit_response_data(&body, version, options.limits)?;
-        validate_commit_response(request, &response)?;
+            .await
+        {
+            Ok(body) => body,
+            Err(error) => {
+                retire_offset_conn(conn).await;
+                return Err(error);
+            }
+        };
+        let limit = match response_limit(options.limits) {
+            Ok(limit) => limit,
+            Err(error) => {
+                retire_offset_conn(conn).await;
+                return Err(error);
+            }
+        };
+        if let Err(error) = charge_bytes(response_bytes, body.len(), limit) {
+            retire_offset_conn(conn).await;
+            return Err(error);
+        }
+        let response = match decode_offset_commit_response_data(&body, version, options.limits) {
+            Ok(response) => response,
+            Err(error) => {
+                retire_offset_conn(conn).await;
+                return Err(error);
+            }
+        };
+        if let Err(error) = validate_commit_response(request, &response) {
+            retire_offset_conn(conn).await;
+            return Err(error);
+        }
         if let Some(code) = response
             .topics
             .iter()
@@ -695,9 +735,14 @@ impl OffsetClient {
             .map(|partition| partition.error_code)
             .find(|code| error::coordinator_retriable(*code))
         {
+            retire_offset_conn(conn).await;
             return Err(Error::broker(code, "OffsetCommit"));
         }
-        deadline.check_expired()?;
+        if let Err(error) = deadline.check_expired() {
+            retire_offset_conn(conn).await;
+            return Err(error);
+        }
+        retire_offset_conn(conn).await;
         Ok(response)
     }
 
@@ -1303,6 +1348,156 @@ mod tests {
             "finishing an offset fetch left the broker blocked in a read"
         );
         peer.abort();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn an_offset_commit_lets_the_bootstrap_broker_leave() {
+        use super::OffsetClient;
+        use crate::net::Deadline;
+        use crate::protocol::api::ApiVersion;
+        use crate::protocol::api_keys::{FIND_COORDINATOR, OFFSET_COMMIT};
+        use crate::protocol::group::{
+            encode_find_coordinator_response, encode_offset_commit_response_data,
+            OffsetCommitRequestData, OffsetCommitResponseData, OffsetLimits,
+        };
+        use crate::AdminConfig;
+        use bytes::BytesMut;
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use std::sync::Arc;
+        use std::time::Duration;
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        use tokio::net::TcpStream;
+
+        async fn answer(
+            mut socket: TcpStream,
+            body: Vec<u8>,
+            flexible: bool,
+            open: Arc<AtomicUsize>,
+        ) {
+            let _started = open.fetch_add(1, Ordering::SeqCst);
+            let mut size_buf = [0u8; 4];
+            if socket.read_exact(&mut size_buf).await.is_err() {
+                return;
+            }
+            let size = i32::from_be_bytes(size_buf).max(0) as usize;
+            let mut request = vec![0u8; size];
+            if socket.read_exact(&mut request).await.is_err() {
+                return;
+            }
+            let Some(bytes) = request.get(4..8) else {
+                return;
+            };
+            let correlation = i32::from_be_bytes([
+                bytes.first().copied().unwrap_or(0),
+                bytes.get(1).copied().unwrap_or(0),
+                bytes.get(2).copied().unwrap_or(0),
+                bytes.get(3).copied().unwrap_or(0),
+            ]);
+            let mut response = Vec::new();
+            let header = if flexible { 5 } else { 4 };
+            let len = i32::try_from(header + body.len()).unwrap_or(0);
+            response.extend_from_slice(&len.to_be_bytes());
+            response.extend_from_slice(&correlation.to_be_bytes());
+            if flexible {
+                response.push(0);
+            }
+            response.extend_from_slice(&body);
+            if socket.write_all(&response).await.is_err() {
+                return;
+            }
+            let mut buf = [0u8; 8];
+            loop {
+                match socket.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = open.fetch_sub(1, Ordering::SeqCst);
+        }
+
+        let bootstrap_listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let coordinator_listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let bootstrap_addr = bootstrap_listener.local_addr().unwrap();
+        let coordinator_addr = coordinator_listener.local_addr().unwrap();
+        let open = Arc::new(AtomicUsize::new(0));
+        let bootstrap_flag = Arc::clone(&open);
+        let coordinator_flag = Arc::clone(&open);
+        let mut find_body = BytesMut::new();
+        encode_find_coordinator_response(
+            &mut find_body,
+            1,
+            2,
+            "127.0.0.1",
+            i32::from(coordinator_addr.port()),
+            "g",
+        )
+        .unwrap();
+        let commit_body = encode_offset_commit_response_data(
+            &OffsetCommitResponseData {
+                throttle_time_ms: 0,
+                topics: Vec::new(),
+            },
+            8,
+            OffsetLimits::default(),
+        )
+        .unwrap();
+        let bootstrap_peer = tokio::spawn(async move {
+            let Ok((socket, _)) = bootstrap_listener.accept().await else {
+                return;
+            };
+            answer(socket, find_body.to_vec(), false, bootstrap_flag).await;
+        });
+        let coordinator_peer = tokio::spawn(async move {
+            let Ok((socket, _)) = coordinator_listener.accept().await else {
+                return;
+            };
+            answer(socket, commit_body, true, coordinator_flag).await;
+        });
+        let mut client =
+            OffsetClient::new(AdminConfig::bootstrap([bootstrap_addr.to_string()])).unwrap();
+        let keys = vec![
+            ApiVersion {
+                api_key: FIND_COORDINATOR,
+                min_version: 1,
+                max_version: 1,
+            },
+            ApiVersion {
+                api_key: OFFSET_COMMIT,
+                min_version: 8,
+                max_version: 8,
+            },
+        ];
+        let _stored = client
+            .known_versions
+            .insert(bootstrap_addr.to_string(), keys.clone());
+        let _stored = client
+            .known_versions
+            .insert(coordinator_addr.to_string(), keys);
+        let request = OffsetCommitRequestData {
+            group_id: "g".to_string(),
+            generation_id_or_member_epoch: -1,
+            member_id: String::new(),
+            group_instance_id: None,
+            topics: Vec::new(),
+        };
+        let mut control = 0usize;
+        let mut response_bytes = 0usize;
+        let _committed = client
+            .commit_once(
+                &request,
+                &super::OffsetOptions::default(),
+                Deadline::from_timeout(Duration::from_secs(2)),
+                &mut control,
+                &mut response_bytes,
+            )
+            .await;
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "an offset commit left a broker blocked in a read"
+        );
+        bootstrap_peer.abort();
+        coordinator_peer.abort();
     }
 
     #[tokio::test(flavor = "current_thread")]
