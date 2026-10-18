@@ -2678,6 +2678,12 @@ pub enum ShareAcquireMode {
 /// `NO_REASSIGNMENT_IN_PROGRESS`). Official Java
 /// `OffsetMetadataManager` OffsetDelete writes this when the
 /// consumer group is actively subscribed to the topic. A top-level
+/// ShareAcknowledge `INVALID_RECORD` completes without
+/// retry and does not request Metadata, including when `ErrorMessage`
+/// is set (Java `handleShareAcknowledgeSuccess` has no
+/// `metadata.requestUpdate`; this is not top-level
+/// `GROUP_SUBSCRIBED_TO_TOPIC`). Official Java `LogValidator`
+/// writes this when a produce record fails validation. A top-level
 /// ShareAcknowledge `SHARE_SESSION_LIMIT_REACHED` completes without
 /// retry and does not request Metadata, including when `ErrorMessage`
 /// is set or empty (Java `handleShareAcknowledgeSuccess` has no
@@ -6038,6 +6044,13 @@ impl ShareGroup {
     /// this is not top-level `NO_REASSIGNMENT_IN_PROGRESS`). Official
     /// Java `OffsetMetadataManager` OffsetDelete writes this when
     /// the consumer group is actively subscribed to the topic.
+    /// A top-level ShareAcknowledge `INVALID_RECORD`
+    /// completes without retry and does not request Metadata,
+    /// including when `ErrorMessage` is set (Java
+    /// `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`;
+    /// this is not top-level `GROUP_SUBSCRIBED_TO_TOPIC`). Official
+    /// Java `LogValidator` writes this when a produce record fails
+    /// validation.
     /// Top-level `SHARE_SESSION_LIMIT_REACHED`
     /// completes without retry and advances the session epoch (Java
     /// `ShareSessionHandler.handleResponse` `nextEpoch`), including
