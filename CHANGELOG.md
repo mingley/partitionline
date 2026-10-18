@@ -207,6 +207,12 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `metadata.requestUpdate`; this is not top-level
   `GROUP_AUTHORIZATION_FAILED`). Official Java `AclEntry` writes this
   for cluster-resource authorization failures.
+  A top-level ShareAcknowledge `INVALID_TIMESTAMP` completes
+  without retry and does not request Metadata, including when
+  `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+  `metadata.requestUpdate`; this is not top-level
+  `CLUSTER_AUTHORIZATION_FAILED`). Official Java `LogValidator` writes
+  this when a record timestamp is outside the acceptable range.
   A piggybacked ShareFetch
   `AcknowledgeErrorMessage` that is empty uses
   `ShareFetch acknowledgement {topic}-{partition}`. A piggybacked
