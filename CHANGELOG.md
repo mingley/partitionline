@@ -241,7 +241,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   this when CreateTopics names a topic that already exists.
   A top-level ShareAcknowledge `INVALID_PARTITIONS` completes
   without retry and does not request Metadata, including when
-  `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+  `ErrorMessage` is set or empty (Java `handleShareAcknowledgeSuccess` has no
   `metadata.requestUpdate`; this is not top-level
   `TOPIC_ALREADY_EXISTS`). Official Java `ReplicationControlManager` writes
   this when CreateTopics sets `numPartitions` to an invalid non-positive value.
