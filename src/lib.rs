@@ -3278,6 +3278,12 @@
 //! `metadata.requestUpdate`; this is not top-level
 //! `UNSUPPORTED_VERSION`). Official Java `ReplicationControlManager` writes
 //! this when CreateTopics names a topic that already exists.
+//! Top-level ShareAcknowledge `INVALID_PARTITIONS` completes
+//! without retry and does not request Metadata, including when
+//! `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+//! `metadata.requestUpdate`; this is not top-level
+//! `TOPIC_ALREADY_EXISTS`). Official Java `ReplicationControlManager` writes
+//! this when CreateTopics sets `numPartitions` to an invalid non-positive value.
 //! Top-level ShareAcknowledge
 //! `SHARE_SESSION_LIMIT_REACHED` completes without retry and advances
 //! the session epoch (Java `ShareSessionHandler.handleResponse`
