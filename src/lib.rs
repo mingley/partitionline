@@ -3280,7 +3280,7 @@
 //! `LOG_DIR_NOT_FOUND`). Official Java `SaslServerAuthenticator` writes
 //! this when SaslAuthenticate evaluateResponse fails. Top-level
 //! `DELEGATION_TOKEN_AUTH_DISABLED` still fails that poll without
-//! Metadata, including when `ErrorMessage` is set (Java
+//! Metadata, including when `ErrorMessage` is set or empty (Java
 //! `handleShareFetchSuccess` only `requestUpdate`s for
 //! `UNKNOWN_TOPIC_ID`; this is not top-level
 //! `SASL_AUTHENTICATION_FAILED`). Official Java `DelegationTokenControlManager` writes

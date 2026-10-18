@@ -2217,7 +2217,7 @@ pub enum ShareAcquireMode {
 /// writes this when SaslAuthenticate evaluateResponse fails.
 /// Top-level `DELEGATION_TOKEN_AUTH_DISABLED` still fails that poll
 /// and does not request Metadata, including when `ErrorMessage` is
-/// set (Java `handleShareFetchSuccess` only `requestUpdate`s for
+/// set or empty (Java `handleShareFetchSuccess` only `requestUpdate`s for
 /// `UNKNOWN_TOPIC_ID`; this is not top-level
 /// `SASL_AUTHENTICATION_FAILED`). Official Java `DelegationTokenControlManager`
 /// writes this when a delegation token request runs with token auth
@@ -5038,7 +5038,7 @@ impl ShareGroup {
     /// `SaslServerAuthenticator` writes this when SaslAuthenticate
     /// evaluateResponse fails. Top-level
     /// `DELEGATION_TOKEN_AUTH_DISABLED` still fails that poll without
-    /// Metadata, including when `ErrorMessage` is set (Java
+    /// Metadata, including when `ErrorMessage` is set or empty (Java
     /// `handleShareFetchSuccess` only `requestUpdate`s for
     /// `UNKNOWN_TOPIC_ID`; this is not top-level
     /// `SASL_AUTHENTICATION_FAILED`). Official Java
