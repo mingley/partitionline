@@ -8323,4 +8323,194 @@ mod rediscover_stop_tests {
         drop(conn);
         peer.abort();
     }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn a_retriable_offset_error_lets_the_broker_leave() {
+        use super::offsets::coord_offsets_legacy;
+        use crate::net::BrokerConn;
+        use crate::protocol::api::{encode_api_versions_response, ApiVersion, ApiVersionsResponse};
+        use crate::protocol::api_keys::{API_VERSIONS, FIND_COORDINATOR, OFFSET_FETCH};
+        use crate::protocol::group::encode_find_coordinator_response;
+        use crate::protocol::group::encode_offset_fetch_response;
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        let open = Arc::new(AtomicUsize::new(0));
+        let flag = Arc::clone(&open);
+        let peer = tokio::spawn(async move {
+            let mut first = true;
+            loop {
+                let Ok((mut socket, _)) = listener.accept().await else {
+                    return;
+                };
+                if first {
+                    first = false;
+                    let flag = Arc::clone(&flag);
+                    let _started = flag.fetch_add(1, Ordering::SeqCst);
+                    let _reader = tokio::spawn(async move {
+                        let mut size_buf = [0u8; 4];
+                        if socket.read_exact(&mut size_buf).await.is_ok() {
+                            let size = i32::from_be_bytes(size_buf).max(0) as usize;
+                            let mut request = vec![0u8; size];
+                            if socket.read_exact(&mut request).await.is_ok() {
+                                if let Some(bytes) = request.get(4..8) {
+                                    let correlation = i32::from_be_bytes([
+                                        bytes.first().copied().unwrap_or(0),
+                                        bytes.get(1).copied().unwrap_or(0),
+                                        bytes.get(2).copied().unwrap_or(0),
+                                        bytes.get(3).copied().unwrap_or(0),
+                                    ]);
+                                    let mut body = bytes::BytesMut::new();
+                                    let encoded = encode_offset_fetch_response(
+                                        &mut body,
+                                        2,
+                                        "group",
+                                        &[],
+                                        16,
+                                    );
+                                    if encoded.is_ok() {
+                                        let mut response = Vec::new();
+                                        let len = i32::try_from(4 + body.len()).unwrap_or(0);
+                                        response.extend_from_slice(&len.to_be_bytes());
+                                        response.extend_from_slice(&correlation.to_be_bytes());
+                                        response.extend_from_slice(&body);
+                                        let _wrote = socket.write_all(&response).await;
+                                    }
+                                }
+                            }
+                        }
+                        let mut buf = [0u8; 8];
+                        loop {
+                            match socket.read(&mut buf).await {
+                                Ok(0) | Err(_) => break,
+                                Ok(_) => continue,
+                            }
+                        }
+                        let _left = flag.fetch_sub(1, Ordering::SeqCst);
+                    });
+                    continue;
+                }
+                let port = i32::from(addr.port());
+                let _reader = tokio::spawn(async move {
+                    loop {
+                        let mut size_buf = [0u8; 4];
+                        if socket.read_exact(&mut size_buf).await.is_err() {
+                            return;
+                        }
+                        let size = i32::from_be_bytes(size_buf).max(0) as usize;
+                        let mut request = vec![0u8; size];
+                        if socket.read_exact(&mut request).await.is_err() {
+                            return;
+                        }
+                        let Some(api_bytes) = request.get(0..2) else {
+                            return;
+                        };
+                        let api = i16::from_be_bytes([
+                            api_bytes.first().copied().unwrap_or(0),
+                            api_bytes.get(1).copied().unwrap_or(0),
+                        ]);
+                        let Some(corr_bytes) = request.get(4..8) else {
+                            return;
+                        };
+                        let correlation = i32::from_be_bytes([
+                            corr_bytes.first().copied().unwrap_or(0),
+                            corr_bytes.get(1).copied().unwrap_or(0),
+                            corr_bytes.get(2).copied().unwrap_or(0),
+                            corr_bytes.get(3).copied().unwrap_or(0),
+                        ]);
+                        let mut response = Vec::new();
+                        if api == API_VERSIONS {
+                            let mut body = bytes::BytesMut::new();
+                            let encoded = encode_api_versions_response(
+                                &mut body,
+                                4,
+                                &ApiVersionsResponse {
+                                    error_code: 0,
+                                    api_keys: vec![ApiVersion {
+                                        api_key: FIND_COORDINATOR,
+                                        min_version: 1,
+                                        max_version: 1,
+                                    }],
+                                    throttle_time_ms: 0,
+                                    supported_features: Vec::new(),
+                                    finalized_features_epoch: None,
+                                    finalized_features: Vec::new(),
+                                    zk_migration_ready: false,
+                                },
+                            );
+                            if encoded.is_err() {
+                                return;
+                            }
+                            let len = i32::try_from(4 + body.len()).unwrap_or(0);
+                            response.extend_from_slice(&len.to_be_bytes());
+                            response.extend_from_slice(&correlation.to_be_bytes());
+                            response.extend_from_slice(&body);
+                        } else if api == FIND_COORDINATOR {
+                            let mut body = bytes::BytesMut::new();
+                            let encoded = encode_find_coordinator_response(
+                                &mut body,
+                                1,
+                                1,
+                                "127.0.0.1",
+                                port,
+                                "group",
+                            );
+                            if encoded.is_err() {
+                                return;
+                            }
+                            let len = i32::try_from(4 + body.len()).unwrap_or(0);
+                            response.extend_from_slice(&len.to_be_bytes());
+                            response.extend_from_slice(&correlation.to_be_bytes());
+                            response.extend_from_slice(&body);
+                        } else {
+                            return;
+                        }
+                        if socket.write_all(&response).await.is_err() {
+                            return;
+                        }
+                    }
+                });
+            }
+        });
+        let mut conn = BrokerConn::connect(
+            &addr.to_string(),
+            "retriable-offset",
+            Duration::from_secs(2),
+        )
+        .await
+        .unwrap();
+        conn.offset_fetch_version = 2;
+        while open.load(Ordering::SeqCst) == 0 {
+            tokio::task::yield_now().await;
+        }
+        let mut cfg = ConsumerConfig::bootstrap([addr.to_string()]);
+        cfg.connections_max_idle = Duration::ZERO;
+        cfg.request_timeout = Duration::from_secs(2);
+        cfg.connect_timeout = Duration::from_secs(2);
+        cfg.max_wait_ms = 10;
+        let mut prior = HashMap::new();
+        let _fetched = coord_offsets_legacy(
+            &mut conn,
+            &cfg,
+            "group",
+            COORDINATOR_GROUP,
+            OFFSET_FETCH,
+            2,
+            |_buf| Ok(()),
+            &[],
+            &HashMap::new(),
+            &mut prior,
+            Duration::from_secs(2),
+        )
+        .await;
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "a retriable offset error left the previous broker blocked in a read"
+        );
+        drop(conn);
+        peer.abort();
+    }
 }

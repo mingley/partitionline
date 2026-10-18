@@ -810,10 +810,12 @@ pub(super) async fn coord_offsets_legacy(
             let known = super::KnownCoord::capture(coord)
                 .with_bootstrap_keys(bootstrap_keys)
                 .with_address_keys(address_keys);
-            *coord = Box::pin(super::rediscover_known_coord(
+            let replacement = Box::pin(super::rediscover_known_coord(
                 &bounded, group_id, key_type, &known, prior,
             ))
             .await?;
+            let previous = std::mem::replace(coord, replacement);
+            super::retire_lookup_conn(previous).await;
             require_copied_coord_version(coord, api, version)?;
             coord
                 .roundtrip_deadline(api, version, |buf| encode(buf), deadline)
