@@ -2348,7 +2348,7 @@ pub enum ShareAcquireMode {
 /// when the expected producer epoch does not match.
 /// Top-level `RESOURCE_NOT_FOUND` still fails that poll
 /// and does not request Metadata, including when `ErrorMessage` is
-/// set (Java `handleShareFetchSuccess` only `requestUpdate`s for
+/// set or empty (Java `handleShareFetchSuccess` only `requestUpdate`s for
 /// `UNKNOWN_TOPIC_ID`; this is not top-level
 /// `PRODUCER_FENCED`). Official Java `ScramImage`
 /// DescribeUserScramCredentials writes this when the user does not
@@ -5431,7 +5431,7 @@ impl ShareGroup {
     /// `TransactionMetadata.prepareIncrementProducerEpoch` writes
     /// this when the expected producer epoch does not match. Top-level
     /// `RESOURCE_NOT_FOUND` still fails that poll without
-    /// Metadata, including when `ErrorMessage` is set (Java
+    /// Metadata, including when `ErrorMessage` is set or empty (Java
     /// `handleShareFetchSuccess` only `requestUpdate`s for
     /// `UNKNOWN_TOPIC_ID`; this is not top-level
     /// `PRODUCER_FENCED`). Official Java `ScramImage`
