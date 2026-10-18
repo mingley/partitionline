@@ -1877,7 +1877,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `GROUP_ID_NOT_FOUND`).   Official Java `ControllerApis` writes
   this when DeleteTopics runs with `delete.topic.enable` false.
   Top-level `UNSUPPORTED_COMPRESSION_TYPE` still fails that poll
-  without Metadata, including when `ErrorMessage` is set (Java
+  without Metadata, including when `ErrorMessage` is set or empty (Java
   `handleShareFetchSuccess` only `requestUpdate`s for top-level
   `UNKNOWN_TOPIC_ID`; this is not top-level
   `TOPIC_DELETION_DISABLED`). Official Java `ProduceRequest` writes
