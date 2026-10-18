@@ -3460,7 +3460,7 @@
 //! this when an ACL request runs with no Authorizer configured.
 //! Top-level ShareAcknowledge `OPERATION_NOT_ATTEMPTED` completes
 //! without retry and does not request Metadata, including when
-//! `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+//! `ErrorMessage` is set or empty (Java `handleShareAcknowledgeSuccess` has no
 //! `metadata.requestUpdate`; this is not top-level
 //! `SECURITY_DISABLED`). Official Java `KafkaApis` writes
 //! this when AddPartitionsToTxn skips authorized partitions after a sibling topic fails authorization or is unknown.
