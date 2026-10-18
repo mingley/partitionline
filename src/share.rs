@@ -2386,6 +2386,13 @@ pub enum ShareAcquireMode {
 /// `INVALID_UPDATE_VERSION`). Official Java `KafkaController` writes
 /// this when a FeatureZNode update fails after the requested feature
 /// changes were valid.
+/// Top-level `PRINCIPAL_DESERIALIZATION_FAILURE` still fails that poll
+/// and does not request Metadata, including when `ErrorMessage` is
+/// set (Java `handleShareFetchSuccess` only `requestUpdate`s for
+/// `UNKNOWN_TOPIC_ID`; this is not top-level
+/// `FEATURE_UPDATE_FAILED`). Official Java `EnvelopeUtils` writes
+/// this when envelope forwarding cannot deserialize the request
+/// principal.
 /// Top-level
 /// `SHARE_SESSION_LIMIT_REACHED` resets the share session and does
 /// not request Metadata, including when `ErrorMessage` is set or
@@ -5544,6 +5551,13 @@ impl ShareGroup {
     /// `INVALID_UPDATE_VERSION`). Official Java `KafkaController`
     /// writes this when a FeatureZNode update fails after the
     /// requested feature changes were valid. Top-level
+    /// `PRINCIPAL_DESERIALIZATION_FAILURE` still fails that poll without
+    /// Metadata, including when `ErrorMessage` is set (Java
+    /// `handleShareFetchSuccess` only `requestUpdate`s for
+    /// `UNKNOWN_TOPIC_ID`; this is not top-level
+    /// `FEATURE_UPDATE_FAILED`). Official Java `EnvelopeUtils`
+    /// writes this when envelope forwarding cannot deserialize the
+    /// request principal. Top-level
     /// `SHARE_SESSION_LIMIT_REACHED` resets the share session and
     /// does not request Metadata, including when `ErrorMessage` is
     /// set or empty (Java `handleShareFetchSuccess` only
