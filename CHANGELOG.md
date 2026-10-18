@@ -1672,6 +1672,12 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `UNKNOWN_TOPIC_ID`; this is not top-level
   `INVALID_TXN_STATE`). Official Java `TransactionCoordinator` writes
   this when a transactional request uses a producerId that is not currently assigned to that transactional id.
+  Top-level `INVALID_TRANSACTION_TIMEOUT` still fails that poll
+  without Metadata, including when `ErrorMessage` is set (Java
+  `handleShareFetchSuccess` only `requestUpdate`s for top-level
+  `UNKNOWN_TOPIC_ID`; this is not top-level
+  `INVALID_PRODUCER_ID_MAPPING`). Official Java `TransactionCoordinator` writes
+  this when InitProducerId uses a transaction timeout that is not positive or exceeds `transaction.max.timeout.ms`.
   A non-empty
   throwable partition or top-level ShareFetch `ErrorMessage` is
   preferred; empty uses `ShareFetch {topic}-{partition}` or
