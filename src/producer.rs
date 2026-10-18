@@ -5393,6 +5393,15 @@ async fn linger_socket_left(conn: &mut BrokerConn, in_flight: bool) -> Result<()
     }
 }
 
+/// Shut a produce socket down before another connection replaces it.
+///
+/// Assignment drops the previous connection. The idle watch is aborted with
+/// that drop, so the broker stays in its read until the watch is scheduled.
+async fn retire_produce_conn(current: &mut BrokerConn) {
+    current.close();
+    current.release_if_closed().await;
+}
+
 /// Notice a broker that stops writing on the idle metadata socket.
 ///
 /// The lock is held only for one poll. A quiet socket waits outside the
@@ -6923,6 +6932,7 @@ impl Worker {
         let addr = self.conn.addr().to_string();
         if let Ok(conn) = open_produce_socket(&self.shared, &addr).await {
             if conn.produce_version() >= 0 {
+                retire_produce_conn(&mut self.conn).await;
                 self.conn = conn;
             }
         }
@@ -6986,7 +6996,10 @@ impl Worker {
         {
             let addr = self.conn.addr().to_string();
             match open_produce_socket(&self.shared, &addr).await {
-                Ok(c) if c.produce_version() >= 0 => self.conn = c,
+                Ok(c) if c.produce_version() >= 0 => {
+                    retire_produce_conn(&mut self.conn).await;
+                    self.conn = c;
+                }
                 Ok(_) => {
                     let e = Error::Unsupported(format!(
                         "broker at {addr} does not support usable Produce v3-13"
@@ -9482,6 +9495,44 @@ fn record_metadata(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn replacing_a_produce_socket_lets_the_broker_leave() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use tokio::io::AsyncReadExt;
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let open = Arc::new(AtomicUsize::new(0));
+        let flag = Arc::clone(&open);
+        let peer = tokio::spawn(async move {
+            let Ok((mut socket, _)) = listener.accept().await else {
+                return;
+            };
+            let _started = flag.fetch_add(1, Ordering::SeqCst);
+            let mut buf = [0u8; 8];
+            loop {
+                match socket.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let mut conn = BrokerConn::connect(&addr, "produce-replace", Duration::from_secs(2))
+            .await
+            .unwrap();
+        while open.load(Ordering::SeqCst) == 0 {
+            tokio::task::yield_now().await;
+        }
+        retire_produce_conn(&mut conn).await;
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "replacing a produce socket left the broker blocked in a read"
+        );
+        peer.abort();
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn queued_byte_does_not_replace_a_linger_socket() {
