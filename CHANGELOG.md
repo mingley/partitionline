@@ -1941,6 +1941,13 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `GROUP_MAX_SIZE_REACHED`). Official Java `GroupMetadataManager` writes
   this when a static member's `group.instance.id` is already owned by a
   different member id.
+  Top-level `NO_REASSIGNMENT_IN_PROGRESS` still fails that poll
+  without Metadata, including when `ErrorMessage` is set (Java
+  `handleShareFetchSuccess` only `requestUpdate`s for top-level
+  `UNKNOWN_TOPIC_ID`; this is not top-level
+  `FENCED_INSTANCE_ID`). Official Java
+  `ReplicationControlManager.cancelPartitionReassignment` writes this
+  when no reassignment is in progress.
   A non-empty
   throwable partition or top-level ShareFetch `ErrorMessage` is
   preferred; empty uses `ShareFetch {topic}-{partition}` or

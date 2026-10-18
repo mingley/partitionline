@@ -2319,6 +2319,13 @@ pub enum ShareAcquireMode {
 /// `GROUP_MAX_SIZE_REACHED`). Official Java `GroupMetadataManager`
 /// writes this when a static member's `group.instance.id` is already
 /// owned by a different member id.
+/// Top-level `NO_REASSIGNMENT_IN_PROGRESS` still fails that poll
+/// and does not request Metadata, including when `ErrorMessage` is
+/// set (Java `handleShareFetchSuccess` only `requestUpdate`s for
+/// `UNKNOWN_TOPIC_ID`; this is not top-level
+/// `FENCED_INSTANCE_ID`). Official Java
+/// `ReplicationControlManager.cancelPartitionReassignment` writes this
+/// when no reassignment is in progress.
 /// Top-level
 /// `SHARE_SESSION_LIMIT_REACHED` resets the share session and does
 /// not request Metadata, including when `ErrorMessage` is set or
@@ -5342,6 +5349,13 @@ impl ShareGroup {
     /// `GROUP_MAX_SIZE_REACHED`). Official Java `GroupMetadataManager`
     /// writes this when a static member's `group.instance.id` is
     /// already owned by a different member id. Top-level
+    /// `NO_REASSIGNMENT_IN_PROGRESS` still fails that poll without
+    /// Metadata, including when `ErrorMessage` is set (Java
+    /// `handleShareFetchSuccess` only `requestUpdate`s for
+    /// `UNKNOWN_TOPIC_ID`; this is not top-level
+    /// `FENCED_INSTANCE_ID`). Official Java
+    /// `ReplicationControlManager.cancelPartitionReassignment`
+    /// writes this when no reassignment is in progress. Top-level
     /// `SHARE_SESSION_LIMIT_REACHED` resets the share session and
     /// does not request Metadata, including when `ErrorMessage` is
     /// set or empty (Java `handleShareFetchSuccess` only
