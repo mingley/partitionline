@@ -6708,15 +6708,12 @@ impl Worker {
         std::mem::take(&mut self.pending)
     }
 
-    fn queued_batch_ready(&self) -> bool {
+    async fn queued_batch_ready(&self) -> bool {
         if let Some(first) = self.pending.first() {
             if let Some(base) = first.batch_base_seq {
-                let count = self
-                    .pending
-                    .iter()
-                    .take_while(|pending| pending.batch_base_seq == Some(base))
-                    .count();
-                return count >= first.batch_len;
+                let need = first.batch_len;
+                let count = count_leading_sequence(&self.pending, base).await;
+                return count >= need;
             }
         }
         self.pending.len() >= self.shared.cfg.batch_records
@@ -6808,7 +6805,7 @@ impl Worker {
                 return Vec::new();
             }
             let mut sealed: Option<(bool, u128, Vec<Pending>)> = None;
-            {
+            let counted = {
                 let cluster = shared.cluster.lock();
                 let Some(policy) = &shared.sticky else {
                     return Vec::new();
@@ -6820,20 +6817,12 @@ impl Worker {
                 let Some(tag) = self.pending.first().and_then(|p| p.sticky) else {
                     return Vec::new();
                 };
-                let count = if tag.id == 0 {
-                    1
-                } else {
-                    self.pending
-                        .iter()
-                        .filter(|p| p.sticky.is_some_and(|member| member.id == tag.id))
-                        .count()
-                };
-                if policy.cancelled(tag)
-                    || (policy.owned_by(tag, &self.id) && count >= policy.members(tag))
-                {
-                    let cancelled = policy.cancelled(tag);
-                    policy.drain(tag, &cluster);
-                    if tag.id == 0 {
+                if tag.id == 0 {
+                    if policy.cancelled(tag)
+                        || (policy.owned_by(tag, &self.id) && policy.members(tag) <= 1)
+                    {
+                        let _cancelled = policy.cancelled(tag);
+                        policy.drain(tag, &cluster);
                         let Some(pending) = self.pending.drain(..1).next() else {
                             return Vec::new();
                         };
@@ -6842,8 +6831,33 @@ impl Worker {
                         self.forget_deadline(pending.deadline);
                         return vec![pending];
                     }
-                    let pending = std::mem::take(&mut self.pending);
-                    sealed = Some((cancelled, tag.id, pending));
+                    None
+                } else {
+                    Some((
+                        tag,
+                        policy.members(tag),
+                        policy.cancelled(tag),
+                        policy.owned_by(tag, &self.id),
+                    ))
+                }
+            };
+            if let Some((tag, members, cancelled, owned)) = counted {
+                let count = count_sticky_id(&self.pending, tag.id).await;
+                if cancelled || (owned && count >= members) {
+                    let cluster = shared.cluster.lock();
+                    let Some(policy) = &shared.sticky else {
+                        return Vec::new();
+                    };
+                    let mut policy = policy.lock();
+                    let still = self.pending.first().and_then(|p| p.sticky) == Some(tag)
+                        && (policy.cancelled(tag)
+                            || (policy.owned_by(tag, &self.id) && count >= policy.members(tag)));
+                    if still {
+                        let cancelled = policy.cancelled(tag);
+                        policy.drain(tag, &cluster);
+                        let pending = std::mem::take(&mut self.pending);
+                        sealed = Some((cancelled, tag.id, pending));
+                    }
                 }
             }
             if let Some((cancelled, tag_id, pending)) = sealed {
@@ -6986,7 +7000,7 @@ impl Worker {
         start.map(|s| s.elapsed() >= linger).unwrap_or(false)
     }
 
-    fn can_fire(&self, linger_start: Option<Instant>) -> bool {
+    async fn can_fire(&self, linger_start: Option<Instant>) -> bool {
         if self.pending.is_empty() {
             return false;
         }
@@ -7004,17 +7018,14 @@ impl Worker {
             .filter(|_| self.shared.sticky.is_none())
         {
             if let Some(base) = first.batch_base_seq {
-                let count = self
-                    .pending
-                    .iter()
-                    .take_while(|p| p.batch_base_seq == Some(base))
-                    .count();
-                return count >= first.batch_len;
+                let need = first.batch_len;
+                let count = count_leading_sequence(&self.pending, base).await;
+                return count >= need;
             }
         }
         // Zero linger is ready as soon as a record is queued. Checking it
         // first skips a size scan of the whole pending queue.
-        self.linger_expired(linger_start) || self.queued_batch_ready()
+        self.linger_expired(linger_start) || self.queued_batch_ready().await
     }
 
     async fn run(mut self) {
@@ -7049,7 +7060,7 @@ impl Worker {
             } else if linger_start.is_none() {
                 linger_start = Some(Instant::now());
             }
-            if self.can_fire(linger_start) {
+            if self.can_fire(linger_start).await {
                 if let Err(e) = self.fire().await {
                     self.note_fail(e);
                 }
@@ -8907,6 +8918,46 @@ impl Iterator for ProduceGroupsIntoIter {
         }
         self.many.next()
     }
+}
+
+/// How many leading records share `base`.
+///
+/// A long queue pauses between slices so a readiness check can still reach a
+/// deadline.
+async fn count_leading_sequence(pending: &[Pending], base: i32) -> usize {
+    let mut count = 0usize;
+    let mut walked = 0usize;
+    for record in pending {
+        if record.batch_base_seq != Some(base) {
+            break;
+        }
+        count = count.saturating_add(1);
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    count
+}
+
+/// How many queued records carry this sticky cohort id.
+///
+/// A long queue pauses between slices.
+async fn count_sticky_id(pending: &[Pending], id: u128) -> usize {
+    let mut count = 0usize;
+    let mut walked = 0usize;
+    for record in pending {
+        if record.sticky.is_some_and(|member| member.id == id) {
+            count = count.saturating_add(1);
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    count
 }
 
 #[cfg(test)]
@@ -11291,6 +11342,50 @@ mod tests {
         assert!(
             watch.is_finished(),
             "dropping the last handle left the worker running"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn counting_many_queued_sequences_does_not_hold_the_caller() {
+        // 4_000_000 records: counting one sequence base held the caller 191ms.
+        // Counting one sticky cohort held the caller 188ms.
+        let topic: Arc<str> = Arc::from("orders");
+        let mut batch = Vec::with_capacity(4_000_000);
+        for index in 0..4_000_000 {
+            let mut pending = queued("orders", Some(0));
+            pending.rec.topic = Arc::clone(&topic);
+            pending.batch_base_seq = Some(7);
+            pending.batch_len = 4_000_000;
+            pending.sticky = Some(crate::partitioner::StickyTag {
+                id: 1,
+                index,
+                identity: None,
+            });
+            batch.push(pending);
+        }
+        let started = std::time::Instant::now();
+        tokio::select! {
+            count = count_leading_sequence(&batch, 7) => {
+                assert_eq!(count, 4_000_000);
+            }
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let sequence_elapsed = started.elapsed();
+        assert!(
+            sequence_elapsed < std::time::Duration::from_millis(80),
+            "counting queued sequences held the caller for {sequence_elapsed:?}"
+        );
+        let started = std::time::Instant::now();
+        tokio::select! {
+            count = count_sticky_id(&batch, 1) => {
+                assert_eq!(count, 4_000_000);
+            }
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let sticky_elapsed = started.elapsed();
+        assert!(
+            sticky_elapsed < std::time::Duration::from_millis(80),
+            "counting sticky records held the caller for {sticky_elapsed:?}"
         );
     }
 
