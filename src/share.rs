@@ -2432,7 +2432,7 @@ pub enum ShareAcquireMode {
 /// config. A top-level
 /// ShareAcknowledge `SASL_AUTHENTICATION_FAILED` completes without
 /// retry and does not request Metadata, including when `ErrorMessage`
-/// is set (Java `handleShareAcknowledgeSuccess` has no
+/// is set or empty (Java `handleShareAcknowledgeSuccess` has no
 /// `metadata.requestUpdate`; this is not top-level
 /// `LOG_DIR_NOT_FOUND`). Official Java `SaslServerAuthenticator`
 /// writes this when SaslAuthenticate evaluateResponse fails. A top-level
@@ -5545,7 +5545,7 @@ impl ShareGroup {
     /// is not in the broker config.
     /// A top-level ShareAcknowledge `SASL_AUTHENTICATION_FAILED`
     /// completes without retry and does not request Metadata,
-    /// including when `ErrorMessage` is set (Java
+    /// including when `ErrorMessage` is set or empty (Java
     /// `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`;
     /// this is not top-level `LOG_DIR_NOT_FOUND`). Official
     /// Java `SaslServerAuthenticator` writes this when
