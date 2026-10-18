@@ -885,93 +885,104 @@ impl OffsetClient {
                     start_dial(&mut dialing, next_dial);
                     next_dial += 1;
                 }
-                let groups = indexes
-                    .iter()
-                    .map(|index| {
-                        request
-                            .groups
-                            .get(*index)
-                            .cloned()
-                            .ok_or_else(|| Error::protocol("missing offset request group"))
-                    })
-                    .collect::<Result<Vec<_>>>()?;
-                let batched = OffsetFetchRequestData {
-                    groups,
-                    require_stable: request.require_stable,
-                };
-                deadline.check_expired()?;
-                let body = match conn
-                    .roundtrip_deadline(
-                        OFFSET_FETCH,
-                        version,
-                        |buf| {
-                            encode_offset_fetch_request_into(buf, &batched, version, options.limits)
-                        },
-                        deadline,
-                    )
-                    .await
-                {
-                    Ok(body) => body,
-                    Err(error) => return Err(error),
-                };
-                charge_bytes(response_bytes, body.len(), response_limit(options.limits)?)?;
-                let response = decode_offset_fetch_response_data(&body, version, options.limits)?;
-                validate_fetch_response(&batched, &response)?;
-                if let Some(code) = response
-                    .groups
-                    .iter()
-                    .flat_map(|group| {
-                        std::iter::once(group.error_code).chain(
-                            group
-                                .topics
-                                .iter()
-                                .flat_map(|topic| &topic.partitions)
-                                .map(|partition| partition.error_code),
+                let fetched = async {
+                    let groups = indexes
+                        .iter()
+                        .map(|index| {
+                            request
+                                .groups
+                                .get(*index)
+                                .cloned()
+                                .ok_or_else(|| Error::protocol("missing offset request group"))
+                        })
+                        .collect::<Result<Vec<_>>>()?;
+                    let batched = OffsetFetchRequestData {
+                        groups,
+                        require_stable: request.require_stable,
+                    };
+                    deadline.check_expired()?;
+                    let body = match conn
+                        .roundtrip_deadline(
+                            OFFSET_FETCH,
+                            version,
+                            |buf| {
+                                encode_offset_fetch_request_into(
+                                    buf,
+                                    &batched,
+                                    version,
+                                    options.limits,
+                                )
+                            },
+                            deadline,
                         )
-                    })
-                    .find(|code| error::coordinator_retriable(*code))
-                {
-                    return Err(Error::broker(code, "OffsetFetch"));
-                }
-                throttle_time_ms = throttle_time_ms.max(response.throttle_time_ms);
-                for group in response.groups {
-                    let index = request
+                        .await
+                    {
+                        Ok(body) => body,
+                        Err(error) => return Err(error),
+                    };
+                    charge_bytes(response_bytes, body.len(), response_limit(options.limits)?)?;
+                    let response =
+                        decode_offset_fetch_response_data(&body, version, options.limits)?;
+                    validate_fetch_response(&batched, &response)?;
+                    if let Some(code) = response
                         .groups
                         .iter()
-                        .position(|requested| requested.group_id == group.group_id)
-                        .ok_or_else(|| Error::protocol("unexpected offset group"))?;
-                    *slots
-                        .get_mut(index)
-                        .ok_or_else(|| Error::protocol("missing offset result slot"))? =
-                        Some(group);
+                        .flat_map(|group| {
+                            std::iter::once(group.error_code).chain(
+                                group
+                                    .topics
+                                    .iter()
+                                    .flat_map(|topic| &topic.partitions)
+                                    .map(|partition| partition.error_code),
+                            )
+                        })
+                        .find(|code| error::coordinator_retriable(*code))
+                    {
+                        return Err(Error::broker(code, "OffsetFetch"));
+                    }
+                    throttle_time_ms = throttle_time_ms.max(response.throttle_time_ms);
+                    for group in response.groups {
+                        let index = request
+                            .groups
+                            .iter()
+                            .position(|requested| requested.group_id == group.group_id)
+                            .ok_or_else(|| Error::protocol("unexpected offset group"))?;
+                        *slots
+                            .get_mut(index)
+                            .ok_or_else(|| Error::protocol("missing offset result slot"))? =
+                            Some(group);
+                    }
+                    // Bound accumulated results before accepting another coordinator.
+                    let groups = slots
+                        .iter_mut()
+                        .filter_map(Option::take)
+                        .collect::<Vec<_>>();
+                    let retained = OffsetFetchResponseData {
+                        throttle_time_ms,
+                        groups,
+                    };
+                    validate_offset_fetch_response_data(
+                        &retained,
+                        if options.topic_ids { 10 } else { 9 },
+                        options.limits,
+                    )?;
+                    for group in retained.groups {
+                        let index = request
+                            .groups
+                            .iter()
+                            .position(|requested| requested.group_id == group.group_id)
+                            .ok_or_else(|| Error::protocol("unexpected retained offset group"))?;
+                        *slots
+                            .get_mut(index)
+                            .ok_or_else(|| Error::protocol("missing retained offset slot"))? =
+                            Some(group);
+                    }
+                    deadline.check_expired()?;
+                    Ok(())
                 }
-                // Bound accumulated results before accepting another coordinator.
-                let groups = slots
-                    .iter_mut()
-                    .filter_map(Option::take)
-                    .collect::<Vec<_>>();
-                let retained = OffsetFetchResponseData {
-                    throttle_time_ms,
-                    groups,
-                };
-                validate_offset_fetch_response_data(
-                    &retained,
-                    if options.topic_ids { 10 } else { 9 },
-                    options.limits,
-                )?;
-                for group in retained.groups {
-                    let index = request
-                        .groups
-                        .iter()
-                        .position(|requested| requested.group_id == group.group_id)
-                        .ok_or_else(|| Error::protocol("unexpected retained offset group"))?;
-                    *slots
-                        .get_mut(index)
-                        .ok_or_else(|| Error::protocol("missing retained offset slot"))? =
-                        Some(group);
-                }
-                deadline.check_expired()?;
+                .await;
                 retire_offset_conn(conn).await;
+                fetched?;
                 in_use = 0;
                 while next_dial < order.len() && dialing.len() + ready.len() + in_use < 2 {
                     if order
@@ -1367,6 +1378,125 @@ mod tests {
             open.load(Ordering::SeqCst),
             0,
             "finishing an offset fetch left the broker blocked in a read"
+        );
+        peer.abort();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn a_bad_offset_fetch_lets_the_broker_leave() {
+        use super::OffsetClient;
+        use crate::net::Deadline;
+        use crate::protocol::api::ApiVersion;
+        use crate::protocol::api_keys::{FIND_COORDINATOR, OFFSET_FETCH};
+        use crate::protocol::group::encode_find_coordinator_response;
+        use crate::protocol::group::{OffsetFetchGroupData, OffsetFetchRequestData};
+        use crate::AdminConfig;
+        use bytes::BytesMut;
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use std::sync::Arc;
+        use std::time::Duration;
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        let open = Arc::new(AtomicUsize::new(0));
+        let flag = Arc::clone(&open);
+        let peer = tokio::spawn(async move {
+            let Ok((mut socket, _)) = listener.accept().await else {
+                return;
+            };
+            let _started = flag.fetch_add(1, Ordering::SeqCst);
+            let mut find_body = BytesMut::new();
+            encode_find_coordinator_response(
+                &mut find_body,
+                1,
+                1,
+                "127.0.0.1",
+                i32::from(addr.port()),
+                "group",
+            )
+            .unwrap();
+            for flexible in [false, true] {
+                let mut size_buf = [0u8; 4];
+                if socket.read_exact(&mut size_buf).await.is_err() {
+                    return;
+                }
+                let size = i32::from_be_bytes(size_buf).max(0) as usize;
+                let mut request = vec![0u8; size];
+                if socket.read_exact(&mut request).await.is_err() {
+                    return;
+                }
+                let Some(bytes) = request.get(4..8) else {
+                    return;
+                };
+                let correlation = i32::from_be_bytes([
+                    bytes.first().copied().unwrap_or(0),
+                    bytes.get(1).copied().unwrap_or(0),
+                    bytes.get(2).copied().unwrap_or(0),
+                    bytes.get(3).copied().unwrap_or(0),
+                ]);
+                let mut response = Vec::new();
+                if flexible {
+                    response.extend_from_slice(&5i32.to_be_bytes());
+                    response.extend_from_slice(&correlation.to_be_bytes());
+                    response.push(0);
+                } else {
+                    let len = i32::try_from(4 + find_body.len()).unwrap_or(0);
+                    response.extend_from_slice(&len.to_be_bytes());
+                    response.extend_from_slice(&correlation.to_be_bytes());
+                    response.extend_from_slice(&find_body);
+                }
+                if socket.write_all(&response).await.is_err() {
+                    return;
+                }
+            }
+            let mut buf = [0u8; 8];
+            loop {
+                match socket.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let mut client = OffsetClient::new(AdminConfig::bootstrap([addr.to_string()])).unwrap();
+        let _stored = client.known_versions.insert(
+            addr.to_string(),
+            vec![
+                ApiVersion {
+                    api_key: FIND_COORDINATOR,
+                    min_version: 1,
+                    max_version: 1,
+                },
+                ApiVersion {
+                    api_key: OFFSET_FETCH,
+                    min_version: 8,
+                    max_version: 8,
+                },
+            ],
+        );
+        let request = OffsetFetchRequestData {
+            groups: vec![OffsetFetchGroupData {
+                group_id: "group".to_string(),
+                ..OffsetFetchGroupData::default()
+            }],
+            require_stable: false,
+        };
+        let mut control = 0usize;
+        let mut response_bytes = 0usize;
+        let _fetched = client
+            .fetch_once(
+                &request,
+                &super::OffsetOptions::default(),
+                Deadline::from_timeout(Duration::from_secs(2)),
+                &mut control,
+                &mut response_bytes,
+            )
+            .await;
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "a bad offset fetch left the broker blocked in a read"
         );
         peer.abort();
     }
