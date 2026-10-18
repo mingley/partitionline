@@ -2874,93 +2874,137 @@ pub(crate) fn decode_fetch_response_raw<B: Buf>(
         }
         reserve_fetch_slots(&mut partitions, pn)?;
         let mut raw_partitions = SlotList::with_capacity(pn);
-        for part_index in 0..pn {
-            let partition = buf::get_i32(buf)?;
-            let error_code = buf::get_i16(buf)?;
-            let high_watermark = buf::get_i64(buf)?;
-            let last_stable_offset = buf::get_i64(buf)?;
-            let log_start_offset = if version >= 5 {
-                buf::get_i64(buf)?
-            } else {
-                FetchedPartition::INVALID_LOG_START_OFFSET
-            };
-            let aborted_len = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-            let mut aborted_transactions = if part_index < partitions.len() {
-                partitions
-                    .get_mut(part_index)
-                    .map_or_else(Vec::new, |part| {
-                        std::mem::take(&mut part.aborted_transactions)
-                    })
-            } else {
-                Vec::new()
-            };
-            aborted_transactions.clear();
-            if aborted_len > aborted_transactions.capacity() {
-                aborted_transactions
-                    .try_reserve(aborted_len)
-                    .map_err(|_| Error::protocol("aborted transaction reserve"))?;
+        read_fetch_partitions(
+            buf,
+            version,
+            flexible,
+            &mut partitions,
+            &mut raw_partitions,
+            0,
+            pn,
+        )?;
+        if flexible {
+            buf::skip_tagged_fields(buf)?;
+        }
+        if topic_index < topics.len() {
+            if let Some(slot) = topics.get_mut(topic_index) {
+                slot.topic = topic_name;
+                slot.topic_id = topic_id;
+                slot.partitions = partitions;
             }
-            for _ in 0..aborted_len {
-                let pid = buf::get_i64(buf)?;
-                let first = buf::get_i64(buf)?;
-                if flexible {
-                    buf::skip_tagged_fields(buf)?;
-                }
-                aborted_transactions.push((pid, first));
-            }
-            let preferred_read_replica = if version >= 11 {
-                buf::get_i32(buf)?
-            } else {
-                FetchedPartition::INVALID_PREFERRED_REPLICA_ID
-            };
-            let rec_bytes = if flexible {
-                buf::take_compact_bytes(buf)?.unwrap_or_else(Bytes::new)
-            } else {
-                buf::take_classic_bytes(buf)?.unwrap_or_else(Bytes::new)
-            };
-            raw_partitions.push(rec_bytes);
-            let records = Vec::new();
-            let (
-                diverging_epoch,
-                diverging_end_offset,
-                current_leader_id,
-                current_leader_epoch,
-                snapshot_end_offset,
-                snapshot_epoch,
-            ) = if flexible {
-                decode_fetch_partition_tags(buf)?
-            } else {
-                (
-                    EpochEndOffset::UNDEFINED_EPOCH,
-                    EpochEndOffset::UNDEFINED_EPOCH_OFFSET,
-                    MetadataResponse::NO_LEADER_ID,
-                    RecordBatch::NO_PARTITION_LEADER_EPOCH,
-                    EpochEndOffset::UNDEFINED_EPOCH_OFFSET,
-                    EpochEndOffset::UNDEFINED_EPOCH,
-                )
-            };
-            let built = FetchedPartition {
-                partition,
-                error_code,
-                high_watermark,
-                last_stable_offset,
-                log_start_offset,
-                aborted_transactions,
-                preferred_read_replica,
-                current_leader_id,
-                current_leader_epoch,
-                diverging_epoch,
-                diverging_end_offset,
-                snapshot_end_offset,
-                snapshot_epoch,
-                records,
-            };
-            if part_index < partitions.len() {
-                if let Some(slot) = partitions.get_mut(part_index) {
-                    *slot = built;
-                }
-            } else {
-                partitions.push(built);
+        } else {
+            topics.push(FetchedTopic {
+                topic: topic_name,
+                topic_id,
+                partitions,
+            });
+        }
+        raw_records.push(raw_partitions);
+    }
+    let endpoints = if flexible {
+        super::api::decode_top_level_node_endpoints(buf, version >= 16)?
+    } else {
+        Vec::new()
+    };
+    Ok((
+        topics,
+        Vec::new(),
+        raw_records,
+        endpoints,
+        error_code,
+        session_id,
+        throttle_time_ms,
+    ))
+}
+
+/// [`decode_fetch_response_raw`], yielding while a long partition list is decoded.
+pub(crate) async fn decode_fetch_response_raw_cooperative<B: Buf>(
+    buf: &mut B,
+    version: i16,
+    mut topics: Vec<FetchedTopic>,
+) -> Result<(
+    Vec<FetchedTopic>,
+    Vec<FetchedTopic>,
+    SlotList<SlotList<Bytes>>,
+    Vec<super::api::NodeEndpoint>,
+    i16,
+    i32,
+    i32,
+)> {
+    let flexible = fetch_flexible(version)?;
+    let throttle_time_ms = buf::get_i32(buf)?;
+    let error_code = if version >= 7 { buf::get_i16(buf)? } else { 0 };
+    let session_id = if version >= 7 {
+        buf::get_i32(buf)?
+    } else {
+        FetchMetadata::INVALID_SESSION_ID
+    };
+    let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+    if n == 0 {
+        let endpoints = if flexible {
+            super::api::decode_top_level_node_endpoints(buf, version >= 16)?
+        } else {
+            Vec::new()
+        };
+        return Ok((
+            Vec::new(),
+            topics,
+            SlotList::Empty,
+            endpoints,
+            error_code,
+            session_id,
+            throttle_time_ms,
+        ));
+    }
+    if topics.len() > n {
+        topics.truncate(n);
+    }
+    reserve_fetch_slots(&mut topics, n)?;
+    let mut raw_records = SlotList::with_capacity(n);
+    for topic_index in 0..n {
+        let mut topic_name = if topic_index < topics.len() {
+            topics
+                .get_mut(topic_index)
+                .map(|topic| std::mem::take(&mut topic.topic))
+                .unwrap_or_default()
+        } else {
+            String::new()
+        };
+        let topic_id = if version >= 13 {
+            topic_name.clear();
+            buf::get_uuid(buf)?
+        } else {
+            buf::read_string_into(buf, flexible, &mut topic_name)?;
+            [0; 16]
+        };
+        let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+        let mut partitions = if topic_index < topics.len() {
+            topics
+                .get_mut(topic_index)
+                .map_or_else(Vec::new, |topic| std::mem::take(&mut topic.partitions))
+        } else {
+            Vec::new()
+        };
+        if partitions.len() > pn {
+            partitions.truncate(pn);
+        }
+        reserve_fetch_slots(&mut partitions, pn)?;
+        let mut raw_partitions = SlotList::with_capacity(pn);
+        let mut part_index = 0usize;
+        while part_index < pn {
+            let end = part_index.saturating_add(8 * 1024).min(pn);
+            read_fetch_partitions(
+                buf,
+                version,
+                flexible,
+                &mut partitions,
+                &mut raw_partitions,
+                part_index,
+                end,
+            )?;
+            part_index = end;
+            if part_index < pn {
+                tokio::task::yield_now().await;
             }
         }
         if flexible {
@@ -2997,12 +3041,143 @@ pub(crate) fn decode_fetch_response_raw<B: Buf>(
     ))
 }
 
+fn read_fetch_partitions<B: Buf>(
+    buf: &mut B,
+    version: i16,
+    flexible: bool,
+    partitions: &mut Vec<FetchedPartition>,
+    raw_partitions: &mut SlotList<Bytes>,
+    start: usize,
+    end: usize,
+) -> Result<()> {
+    for part_index in start..end {
+        let partition = buf::get_i32(buf)?;
+        let error_code = buf::get_i16(buf)?;
+        let high_watermark = buf::get_i64(buf)?;
+        let last_stable_offset = buf::get_i64(buf)?;
+        let log_start_offset = if version >= 5 {
+            buf::get_i64(buf)?
+        } else {
+            FetchedPartition::INVALID_LOG_START_OFFSET
+        };
+        let aborted_len = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+        let mut aborted_transactions = if part_index < partitions.len() {
+            partitions
+                .get_mut(part_index)
+                .map_or_else(Vec::new, |part| {
+                    std::mem::take(&mut part.aborted_transactions)
+                })
+        } else {
+            Vec::new()
+        };
+        aborted_transactions.clear();
+        if aborted_len > aborted_transactions.capacity() {
+            aborted_transactions
+                .try_reserve(aborted_len)
+                .map_err(|_| Error::protocol("aborted transaction reserve"))?;
+        }
+        for _ in 0..aborted_len {
+            let pid = buf::get_i64(buf)?;
+            let first = buf::get_i64(buf)?;
+            if flexible {
+                buf::skip_tagged_fields(buf)?;
+            }
+            aborted_transactions.push((pid, first));
+        }
+        let preferred_read_replica = if version >= 11 {
+            buf::get_i32(buf)?
+        } else {
+            FetchedPartition::INVALID_PREFERRED_REPLICA_ID
+        };
+        let rec_bytes = if flexible {
+            buf::take_compact_bytes(buf)?.unwrap_or_else(Bytes::new)
+        } else {
+            buf::take_classic_bytes(buf)?.unwrap_or_else(Bytes::new)
+        };
+        raw_partitions.push(rec_bytes);
+        let (
+            diverging_epoch,
+            diverging_end_offset,
+            current_leader_id,
+            current_leader_epoch,
+            snapshot_end_offset,
+            snapshot_epoch,
+        ) = if flexible {
+            decode_fetch_partition_tags(buf)?
+        } else {
+            (
+                EpochEndOffset::UNDEFINED_EPOCH,
+                EpochEndOffset::UNDEFINED_EPOCH_OFFSET,
+                MetadataResponse::NO_LEADER_ID,
+                RecordBatch::NO_PARTITION_LEADER_EPOCH,
+                EpochEndOffset::UNDEFINED_EPOCH_OFFSET,
+                EpochEndOffset::UNDEFINED_EPOCH,
+            )
+        };
+        let built = FetchedPartition {
+            partition,
+            error_code,
+            high_watermark,
+            last_stable_offset,
+            log_start_offset,
+            aborted_transactions,
+            preferred_read_replica,
+            current_leader_id,
+            current_leader_epoch,
+            diverging_epoch,
+            diverging_end_offset,
+            snapshot_end_offset,
+            snapshot_epoch,
+            records: Vec::new(),
+        };
+        if part_index < partitions.len() {
+            if let Some(slot) = partitions.get_mut(part_index) {
+                *slot = built;
+            }
+        } else {
+            partitions.push(built);
+        }
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::protocol::records::Record;
     use bytes::{Buf, BufMut, Bytes};
     use std::collections::{HashMap, HashSet};
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn decoding_many_fetch_partitions_does_not_hold_the_caller() {
+        let partitions = 300_000i32;
+        let mut body = bytes::BytesMut::new();
+        body.put_i32(0);
+        body.put_i32(1);
+        body.put_i16(1);
+        body.extend_from_slice(b"t");
+        body.put_i32(partitions);
+        let partition = [
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255,
+            255, 255,
+        ];
+        for index in 0..partitions {
+            let mut one = partition;
+            one[0..4].copy_from_slice(&index.to_be_bytes());
+            body.extend_from_slice(&one);
+        }
+        let mut cursor: &[u8] = &body;
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = decode_fetch_response_raw_cooperative(&mut cursor, 4, Vec::new()) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "decoding fetch partitions held the caller for {elapsed:?}"
+        );
+    }
 
     #[test]
     fn fetched_partition_invalid_sentinels_match_java() {

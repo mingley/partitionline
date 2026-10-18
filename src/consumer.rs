@@ -26,8 +26,8 @@ use crate::protocol::epoch::{
     OffsetForLeaderPartition, OffsetForLeaderTopicResult,
 };
 use crate::protocol::fetch::{
-    decode_fetch_response_raw, encode_fetch_request_topics, FetchForgottenTopic, FetchMetadata,
-    FetchPartition, FetchRequestTopic, FetchedTopic, FETCH_CRATE_MAX_VERSION,
+    decode_fetch_response_raw_cooperative, encode_fetch_request_topics, FetchForgottenTopic,
+    FetchMetadata, FetchPartition, FetchRequestTopic, FetchedTopic, FETCH_CRATE_MAX_VERSION,
     INVALID_LOG_START_OFFSET,
 };
 use crate::protocol::group::Topic;
@@ -7348,7 +7348,7 @@ impl Consumer {
             }
             let scratch = std::mem::take(&mut self.spare_fetch_topics);
             let (topics, retained, raw, endpoints, _, _, throttle) =
-                decode_fetch_response_raw(&mut bytes, reply.version, scratch)?;
+                decode_fetch_response_raw_cooperative(&mut bytes, reply.version, scratch).await?;
             retained_topics = retained;
             let mut batches = SlotList::with_capacity(raw.len());
             for partitions in raw {
