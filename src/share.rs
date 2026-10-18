@@ -2292,7 +2292,7 @@ pub enum ShareAcquireMode {
 /// A top-level
 /// ShareAcknowledge `OUT_OF_ORDER_SEQUENCE_NUMBER` completes without
 /// retry and does not request Metadata, including when `ErrorMessage`
-/// is set (Java `handleShareAcknowledgeSuccess` has no
+/// is set or empty (Java `handleShareAcknowledgeSuccess` has no
 /// `metadata.requestUpdate`; this is not top-level
 /// `POLICY_VIOLATION`). Official Java `ProducerAppendInfo`
 /// writes this when an idempotent produce batch is not the next expected
@@ -5258,7 +5258,7 @@ impl ShareGroup {
     /// fails a configured `CreateTopicPolicy`.
     /// A top-level ShareAcknowledge `OUT_OF_ORDER_SEQUENCE_NUMBER`
     /// completes without retry and does not request Metadata,
-    /// including when `ErrorMessage` is set (Java
+    /// including when `ErrorMessage` is set or empty (Java
     /// `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`;
     /// this is not top-level `POLICY_VIOLATION`). Official
     /// Java `ProducerAppendInfo` writes this when an idempotent

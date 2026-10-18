@@ -3364,7 +3364,7 @@
 //! this when CreateTopics fails a configured `CreateTopicPolicy`.
 //! Top-level ShareAcknowledge `OUT_OF_ORDER_SEQUENCE_NUMBER` completes
 //! without retry and does not request Metadata, including when
-//! `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+//! `ErrorMessage` is set or empty (Java `handleShareAcknowledgeSuccess` has no
 //! `metadata.requestUpdate`; this is not top-level
 //! `POLICY_VIOLATION`). Official Java `ProducerAppendInfo` writes
 //! this when an idempotent produce batch is not the next expected sequence for that producerId.
