@@ -2746,7 +2746,7 @@ pub enum ShareAcquireMode {
 /// this when a SCRAM upsert has too few iterations. A top-level
 /// ShareAcknowledge `INCONSISTENT_VOTER_SET` completes without
 /// retry and does not request Metadata, including when `ErrorMessage`
-/// is set (Java `handleShareAcknowledgeSuccess` has no
+/// is set or empty (Java `handleShareAcknowledgeSuccess` has no
 /// `metadata.requestUpdate`; this is not top-level
 /// `UNACCEPTABLE_CREDENTIAL`). Official Java `KafkaRaftClient` writes
 /// this when a voter-only request arrives at an observer or from a
@@ -6181,7 +6181,7 @@ impl ShareGroup {
     /// few iterations.
     /// A top-level ShareAcknowledge `INCONSISTENT_VOTER_SET`
     /// completes without retry and does not request Metadata,
-    /// including when `ErrorMessage` is set (Java
+    /// including when `ErrorMessage` is set or empty (Java
     /// `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`;
     /// this is not top-level `UNACCEPTABLE_CREDENTIAL`). Official Java
     /// `KafkaRaftClient` writes this when a voter-only request arrives
