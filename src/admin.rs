@@ -13534,6 +13534,7 @@ impl Admin {
         let deadline = Instant::now() + timeout;
         let mut cursor: Option<TopicPartitionCursor> = None;
         let mut out: Vec<TopicDescription> = Vec::new();
+        let mut described: HashMap<String, usize> = HashMap::new();
         loop {
             if Instant::now() >= deadline {
                 return Err(Error::Timeout);
@@ -13546,14 +13547,12 @@ impl Admin {
                     timeout,
                 )
                 .await?;
-            for t in &resp.topics {
-                let desc = topic_description_from_dtp(t, include_authorized_operations);
-                if let Some(existing) = out.iter_mut().find(|d| d.name == desc.name) {
-                    existing.partitions.extend(desc.partitions);
-                } else {
-                    out.push(desc);
-                }
-            }
+            let page = resp
+                .topics
+                .iter()
+                .map(|topic| topic_description_from_dtp(topic, include_authorized_operations))
+                .collect();
+            extend_described_topics(&mut out, &mut described, page).await;
             match resp.next_cursor {
                 Some(next) if cursor.as_ref() != Some(&next) => cursor = Some(next),
                 _ => break,
@@ -14957,12 +14956,7 @@ impl Admin {
         key_type: i8,
         deadline: Instant,
     ) -> Result<HashMap<String, i32>> {
-        let mut uniq: Vec<&str> = Vec::new();
-        for k in keys {
-            if !uniq.contains(k) {
-                uniq.push(*k);
-            }
-        }
+        let uniq = unique_in_order(keys).await;
         if uniq.is_empty() {
             return Ok(HashMap::new());
         }
@@ -15806,6 +15800,55 @@ fn list_offset_topic_requests<'a>(
     groups
 }
 
+fn place_described_topic(
+    out: &mut Vec<TopicDescription>,
+    index: &mut HashMap<String, usize>,
+    desc: TopicDescription,
+) {
+    if let Some(&slot) = index.get(desc.name.as_str()) {
+        if let Some(existing) = out.get_mut(slot) {
+            existing.partitions.extend(desc.partitions);
+        }
+        return;
+    }
+    let slot = out.len();
+    let _previous = index.insert(desc.name.clone(), slot);
+    out.push(desc);
+}
+
+async fn extend_described_topics(
+    out: &mut Vec<TopicDescription>,
+    index: &mut HashMap<String, usize>,
+    incoming: Vec<TopicDescription>,
+) {
+    let mut walked = 0usize;
+    for desc in incoming {
+        place_described_topic(out, index, desc);
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+}
+
+async fn unique_in_order<'a>(keys: &[&'a str]) -> Vec<&'a str> {
+    let mut uniq = Vec::new();
+    let mut seen = HashSet::new();
+    let mut walked = 0usize;
+    for key in keys {
+        if seen.insert(*key) {
+            uniq.push(*key);
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    uniq
+}
+
 fn replica_broker_ids(replicas: &[TopicPartitionReplica]) -> Vec<i32> {
     let mut ids = Vec::new();
     for r in replicas {
@@ -16342,6 +16385,111 @@ mod tests {
         CreatedTopicConfig, ListConfigResourcesResponse, TopicConfig,
     };
     use bytes::BytesMut;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn extending_many_described_topics_does_not_hold_the_caller() {
+        // Scanning earlier descriptions is the same name scan that held assignment
+        // grouping for 1.2s. Indexing 1_000_000 topics without a pause held the
+        // caller 1.2s.
+        let incoming: Vec<TopicDescription> = (0..1_000_000)
+            .map(|index| {
+                TopicDescription::new(format!("topic-{index}"), [0; 16], false, 0, Vec::new())
+            })
+            .collect();
+        let mut out = Vec::new();
+        let mut index = std::collections::HashMap::new();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = extend_described_topics(&mut out, &mut index, incoming) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "extending described topics held the caller for {elapsed:?}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn described_topics_keep_the_first_page() {
+        let first = TopicDescription::new(
+            "orders",
+            [1; 16],
+            false,
+            0,
+            vec![crate::PartitionInfo {
+                topic: "orders".into(),
+                partition: 0,
+                leader: 1,
+                leader_epoch: 0,
+                replicas: Vec::new(),
+                isr: Vec::new(),
+                offline_replicas: Vec::new(),
+            }],
+        );
+        let again = TopicDescription::new(
+            "orders",
+            [1; 16],
+            false,
+            0,
+            vec![crate::PartitionInfo {
+                topic: "orders".into(),
+                partition: 1,
+                leader: 1,
+                leader_epoch: 0,
+                replicas: Vec::new(),
+                isr: Vec::new(),
+                offline_replicas: Vec::new(),
+            }],
+        );
+        let other = TopicDescription::new("payments", [2; 16], false, 0, Vec::new());
+        let mut out = Vec::new();
+        let mut index = std::collections::HashMap::new();
+        extend_described_topics(&mut out, &mut index, vec![first, other, again]).await;
+        assert_eq!(out.len(), 2);
+        assert_eq!(out.first().map(|topic| topic.name.as_str()), Some("orders"));
+        assert_eq!(
+            out.first().map(|topic| {
+                topic
+                    .partitions
+                    .iter()
+                    .map(|partition| partition.partition)
+                    .collect::<Vec<_>>()
+            }),
+            Some(vec![0, 1])
+        );
+        assert_eq!(
+            out.get(1).map(|topic| topic.name.as_str()),
+            Some("payments")
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn listing_many_coordinator_keys_does_not_hold_the_caller() {
+        // Scanning earlier keys is the same membership scan that held share
+        // partitions for 714ms. Listing 1_000_000 keys without a pause held the
+        // caller 671ms.
+        let owned: Vec<String> = (0..1_000_000)
+            .map(|index| format!("group-{index}"))
+            .collect();
+        let keys: Vec<&str> = owned.iter().map(String::as_str).collect();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = unique_in_order(&keys) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "listing coordinator keys held the caller for {elapsed:?}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn coordinator_keys_keep_the_first_seen_order() {
+        let keys = unique_in_order(&["b", "a", "b", "a", "c"]).await;
+        assert_eq!(keys, vec!["b", "a", "c"]);
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn replacing_a_coordinator_address_lets_the_broker_leave() {
