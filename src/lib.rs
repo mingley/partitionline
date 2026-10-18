@@ -3405,7 +3405,7 @@
 //! `PRODUCER_FENCED`). Official Java `ScramImage`
 //! DescribeUserScramCredentials writes this when the user does not exist. Top-level
 //! `DUPLICATE_RESOURCE` still fails that poll without
-//! Metadata, including when `ErrorMessage` is set (Java
+//! Metadata, including when `ErrorMessage` is set or empty (Java
 //! `handleShareFetchSuccess` only `requestUpdate`s for
 //! `UNKNOWN_TOPIC_ID`; this is not top-level
 //! `RESOURCE_NOT_FOUND`). Official Java `ScramImage`
