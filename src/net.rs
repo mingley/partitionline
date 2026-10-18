@@ -1432,7 +1432,16 @@ impl BrokerConn {
             .await;
         self.release_stream(stream);
         rearm.disarm();
-        wrote?;
+        if let Err(error) = wrote {
+            if !self.is_closed() {
+                self.close();
+            }
+            // The idle watch is not running while this call still holds the
+            // caller. Shut the socket down here so the broker is gone before
+            // the timeout returns.
+            self.release_if_closed().await;
+            return Err(error);
+        }
         guard.complete();
         self.touch();
         Ok(())
@@ -3572,6 +3581,66 @@ mod tests {
             "a read timeout left the broker blocked in a read"
         );
         peer.abort();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn write_timeout_shuts_the_broker_down() {
+        use std::io::Read;
+
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let (ready_tx, ready_rx) = std::sync::mpsc::channel::<()>();
+        let (gate_tx, gate_rx) = std::sync::mpsc::channel::<()>();
+        let (done_tx, done_rx) = std::sync::mpsc::channel::<()>();
+        let accepted = tokio::spawn(async move {
+            let (socket, _) = listener.accept().await.unwrap();
+            let mut peer = socket.into_std().unwrap();
+            peer.set_nonblocking(false).unwrap();
+            let _thread = std::thread::spawn(move || {
+                let _ = ready_tx.send(());
+                let _ = gate_rx.recv();
+                let mut buf = [0u8; 8];
+                loop {
+                    match peer.read(&mut buf) {
+                        Ok(0) | Err(_) => break,
+                        Ok(_) => continue,
+                    }
+                }
+                let _ = done_tx.send(());
+            });
+        });
+        let mut conn = BrokerConn::connect(&addr, "write-timeout", Duration::from_secs(2))
+            .await
+            .unwrap();
+        let started = std::time::Instant::now();
+        loop {
+            match ready_rx.try_recv() {
+                Ok(()) => break,
+                Err(std::sync::mpsc::TryRecvError::Empty) => {
+                    if started.elapsed() >= Duration::from_secs(1) {
+                        panic!("broker thread did not start");
+                    }
+                    tokio::task::yield_now().await;
+                }
+                Err(std::sync::mpsc::TryRecvError::Disconnected) => {
+                    panic!("broker thread dropped the start signal");
+                }
+            }
+        }
+        let payload = vec![1u8; 8 * 1024 * 1024];
+        let result = conn
+            .write_all_timeout(&payload, Duration::from_millis(200))
+            .await;
+        assert!(
+            matches!(result, Err(Error::Timeout)),
+            "the write finished instead of timing out"
+        );
+        let _ = gate_tx.send(());
+        assert!(
+            done_rx.recv_timeout(Duration::from_millis(300)).is_ok(),
+            "a write timeout left the broker blocked in a read"
+        );
+        accepted.abort();
     }
 
     #[tokio::test(flavor = "current_thread")]
