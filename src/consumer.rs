@@ -22,8 +22,9 @@ use crate::protocol::api_keys::{
     OFFSET_FOR_LEADER_EPOCH,
 };
 use crate::protocol::epoch::{
-    decode_offset_for_leader_epoch_topics_response, encode_borrowed_offset_for_leader_epoch_topics,
-    OffsetForLeaderPartition, OffsetForLeaderTopicResult,
+    decode_offset_for_leader_epoch_topics_response_cooperative,
+    encode_borrowed_offset_for_leader_epoch_topics, OffsetForLeaderPartition,
+    OffsetForLeaderTopicResult,
 };
 use crate::protocol::fetch::{
     decode_fetch_response_raw_cooperative, encode_fetch_request_topics, FetchForgottenTopic,
@@ -5353,7 +5354,12 @@ impl Consumer {
                     }
                     Err(e) => return Err(e),
                 };
-                match decode_offset_for_leader_epoch_topics_response(&mut body.clone(), version) {
+                match decode_offset_for_leader_epoch_topics_response_cooperative(
+                    &mut body.clone(),
+                    version,
+                )
+                .await
+                {
                     Ok((got, ..)) => {
                         let more = self.apply_epoch_end_offsets(&parts, &got)?;
                         if !more.is_empty() {
@@ -5446,7 +5452,11 @@ impl Consumer {
                 }
                 Err(error) => return Err(error),
             };
-            match decode_offset_for_leader_epoch_topics_response(&mut body.clone(), flight.version)
+            match decode_offset_for_leader_epoch_topics_response_cooperative(
+                &mut body.clone(),
+                flight.version,
+            )
+            .await
             {
                 Ok((got, ..)) => {
                     let more = self.apply_epoch_end_offsets(&parts, &got)?;

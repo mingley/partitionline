@@ -674,6 +674,34 @@ pub fn decode_offset_for_leader_epoch_response<B: Buf>(
 ///
 /// Returns `(topics, throttle_time_ms)`. Below v2 ThrottleTimeMs is
 /// omitted; decode fills `0`. There is no top-level ErrorCode.
+fn read_epoch_end_offset<B: Buf>(
+    buf: &mut B,
+    version: i16,
+    flexible: bool,
+) -> Result<EpochEndOffset> {
+    let error_code = buf::get_i16(buf)?;
+    let partition = buf::get_i32(buf)?;
+    let leader_epoch = if version >= 1 {
+        buf::get_i32(buf)?
+    } else {
+        EpochEndOffset::UNDEFINED_EPOCH
+    };
+    let end_offset = buf::get_i64(buf)?;
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
+    }
+    Ok(EpochEndOffset::new(
+        error_code,
+        partition,
+        leader_epoch,
+        end_offset,
+    ))
+}
+
+/// Decode OffsetForLeaderEpoch Topics of N (v0–v4).
+///
+/// Returns `(topics, throttle_time_ms)`. Below v2 ThrottleTimeMs is
+/// omitted; decode fills `0`. There is no top-level ErrorCode.
 pub fn decode_offset_for_leader_epoch_topics_response<B: Buf>(
     buf: &mut B,
     version: i16,
@@ -687,23 +715,40 @@ pub fn decode_offset_for_leader_epoch_topics_response<B: Buf>(
         let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
         let mut partitions = Vec::with_capacity(pn);
         for _ in 0..pn {
-            let error_code = buf::get_i16(buf)?;
-            let partition = buf::get_i32(buf)?;
-            let leader_epoch = if version >= 1 {
-                buf::get_i32(buf)?
-            } else {
-                EpochEndOffset::UNDEFINED_EPOCH
-            };
-            let end_offset = buf::get_i64(buf)?;
-            if flexible {
-                buf::skip_tagged_fields(buf)?; // partition
+            partitions.push(read_epoch_end_offset(buf, version, flexible)?);
+        }
+        if flexible {
+            buf::skip_tagged_fields(buf)?; // topic
+        }
+        topics.push(OffsetForLeaderTopicResult::new(topic, partitions));
+    }
+    if flexible {
+        buf::skip_tagged_fields(buf)?; // top-level
+    }
+    Ok((topics, throttle_time_ms))
+}
+
+/// [`decode_offset_for_leader_epoch_topics_response`], pausing while partitions remain.
+pub async fn decode_offset_for_leader_epoch_topics_response_cooperative<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<(Vec<OffsetForLeaderTopicResult>, i32)> {
+    let flexible = offset_for_leader_epoch_flexible(version)?;
+    let throttle_time_ms = if version >= 2 { buf::get_i32(buf)? } else { 0 };
+    let tn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+    let mut topics = Vec::with_capacity(tn);
+    let mut walked = 0usize;
+    for _ in 0..tn {
+        let topic = buf::get_string(buf, flexible)?.unwrap_or_default();
+        let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+        let mut partitions = Vec::with_capacity(pn);
+        for _ in 0..pn {
+            partitions.push(read_epoch_end_offset(buf, version, flexible)?);
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
             }
-            partitions.push(EpochEndOffset::new(
-                error_code,
-                partition,
-                leader_epoch,
-                end_offset,
-            ));
         }
         if flexible {
             buf::skip_tagged_fields(buf)?; // topic
@@ -721,6 +766,53 @@ mod tests {
     use super::*;
     use bytes::Buf;
     use std::collections::HashMap;
+
+    fn epoch_response(count: i32) -> bytes::BytesMut {
+        use bytes::BufMut;
+        let mut raw = bytes::BytesMut::with_capacity(16 + usize::try_from(count).unwrap_or(0) * 18);
+        raw.put_i32(0);
+        raw.put_i32(1);
+        raw.put_i16(1);
+        raw.put_u8(b't');
+        raw.put_i32(count);
+        for index in 0..count {
+            raw.put_i16(0);
+            raw.put_i32(index);
+            raw.put_i32(1);
+            raw.put_i64(0);
+        }
+        raw
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn decoding_many_epoch_offsets_does_not_hold_the_caller() {
+        // 1_000_000 partitions: reading the response held the caller 221ms.
+        let mut raw = epoch_response(1_000_000);
+        let started = std::time::Instant::now();
+        tokio::select! {
+            result = decode_offset_for_leader_epoch_topics_response_cooperative(&mut raw, 2) => {
+                let _decoded = result.unwrap_or_else(|error| panic!("{error}"));
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "decoding leader epochs held the caller for {elapsed:?}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn cooperative_epoch_decode_matches_one_shot() {
+        let mut raw = epoch_response(3);
+        let mut again = raw.clone();
+        let one = decode_offset_for_leader_epoch_topics_response(&mut raw, 2)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let two = decode_offset_for_leader_epoch_topics_response_cooperative(&mut again, 2)
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(one, two);
+    }
 
     #[test]
     fn epoch_end_offset_undefined_sentinels_match_java() {
