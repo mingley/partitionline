@@ -3429,7 +3429,14 @@
 //! `handleShareFetchSuccess` only `requestUpdate`s for
 //! `UNKNOWN_TOPIC_ID`; this is not top-level
 //! `INCONSISTENT_VOTER_SET`). Official Java `FeatureControlManager`
-//! writes this when a feature update version is invalid. Partition
+//! writes this when a feature update version is invalid. Top-level
+//! `FEATURE_UPDATE_FAILED` still fails that poll without
+//! Metadata, including when `ErrorMessage` is set (Java
+//! `handleShareFetchSuccess` only `requestUpdate`s for
+//! `UNKNOWN_TOPIC_ID`; this is not top-level
+//! `INVALID_UPDATE_VERSION`). Official Java `KafkaController` writes
+//! this when a FeatureZNode update fails after the requested feature
+//! changes were valid. Partition
 //! `INCONSISTENT_TOPIC_ID` / `UNKNOWN_TOPIC_OR_PARTITION` /
 //! `UNKNOWN_TOPIC_ID` / `REPLICA_NOT_AVAILABLE` /
 //! `OFFSET_NOT_AVAILABLE` / `KAFKA_STORAGE_ERROR` skip without throwing,
