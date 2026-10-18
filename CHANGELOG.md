@@ -446,6 +446,13 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `FENCED_INSTANCE_ID`). Official Java
   `ReplicationControlManager.cancelPartitionReassignment` writes this
   when no reassignment is in progress.
+  A top-level ShareAcknowledge `GROUP_SUBSCRIBED_TO_TOPIC` completes
+  without retry and does not request Metadata, including when
+  `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+  `metadata.requestUpdate`; this is not top-level
+  `NO_REASSIGNMENT_IN_PROGRESS`). Official Java `OffsetMetadataManager`
+  OffsetDelete writes this when the consumer group is actively
+  subscribed to the topic.
   A piggybacked ShareFetch
   `AcknowledgeErrorMessage` that is empty uses
   `ShareFetch acknowledgement {topic}-{partition}`. A piggybacked
