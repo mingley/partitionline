@@ -2305,6 +2305,13 @@ pub enum ShareAcquireMode {
 /// `STALE_BROKER_EPOCH`). Official Java `GroupMetadataManager`
 /// writes this when a JoinGroup dynamic member has an unknown member
 /// id.
+/// Top-level `GROUP_MAX_SIZE_REACHED` still fails that poll
+/// and does not request Metadata, including when `ErrorMessage` is
+/// set (Java `handleShareFetchSuccess` only `requestUpdate`s for
+/// `UNKNOWN_TOPIC_ID`; this is not top-level
+/// `MEMBER_ID_REQUIRED`). Official Java `GroupMetadataManager`
+/// writes this when a JoinGroup would exceed the classic group max
+/// size.
 /// Top-level
 /// `SHARE_SESSION_LIMIT_REACHED` resets the share session and does
 /// not request Metadata, including when `ErrorMessage` is set or
@@ -5300,6 +5307,13 @@ impl ShareGroup {
     /// `STALE_BROKER_EPOCH`). Official Java `GroupMetadataManager`
     /// writes this when a JoinGroup dynamic member has an unknown
     /// member id. Top-level
+    /// `GROUP_MAX_SIZE_REACHED` still fails that poll without
+    /// Metadata, including when `ErrorMessage` is set (Java
+    /// `handleShareFetchSuccess` only `requestUpdate`s for
+    /// `UNKNOWN_TOPIC_ID`; this is not top-level
+    /// `MEMBER_ID_REQUIRED`). Official Java `GroupMetadataManager`
+    /// writes this when a JoinGroup would exceed the classic group
+    /// max size. Top-level
     /// `SHARE_SESSION_LIMIT_REACHED` resets the share session and
     /// does not request Metadata, including when `ErrorMessage` is
     /// set or empty (Java `handleShareFetchSuccess` only
