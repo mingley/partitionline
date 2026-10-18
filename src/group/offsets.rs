@@ -719,7 +719,9 @@ pub(super) async fn coord_offsets_v10(
         Ok(body) => body,
         Err(Error::Io(_) | Error::Timeout) => {
             let bounded = bounded_consumer_config(cfg, deadline)?;
-            *coord = super::reopen_known_coord(&bounded, coord).await?;
+            let replacement = super::reopen_known_coord(&bounded, coord).await?;
+            let previous = std::mem::replace(coord, replacement);
+            super::retire_lookup_conn(previous).await;
             require_copied_coord_version(coord, api, 10)?;
             coord
                 .roundtrip_deadline(api, 10, |buf| encode(buf), deadline)
