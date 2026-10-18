@@ -2686,7 +2686,7 @@
 //! `plugin.deleteTopology` fails during DeleteGroups.
 //! A piggybacked
 //! `STREAMS_TOPOLOGY_DESCRIPTION_UPDATE_FAILED` still completes without retry,
-//! including when `AcknowledgeErrorMessage` is set (this is not
+//! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `STREAMS_TOPOLOGY_DESCRIPTION_UPDATE_FAILED`, which fails that poll, and not
 //! piggyback `GROUP_DELETION_FAILED`). Official Java
 //! `StreamsGroupTopologyDescriptionManager` writes this when
