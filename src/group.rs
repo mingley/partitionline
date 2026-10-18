@@ -3192,15 +3192,14 @@ impl ConsumerGroup {
         // brokers while SyncGroup runs so offset fetch and the next poll
         // do not pay the handshake after the coordinator answers.
         let mut leaders = Vec::new();
+        let mut seen_leaders = HashSet::new();
         if assigning {
             if let Some(parts) = self.prev_assignment.get(&self.member_id) {
                 for (topic, partition) in parts {
                     let Ok(node) = self.consumer.cluster().leader_id(topic, *partition) else {
                         continue;
                     };
-                    if !leaders.contains(&node) {
-                        leaders.push(node);
-                    }
+                    crate::consumer::Consumer::remember_node(&mut leaders, &mut seen_leaders, node);
                 }
             }
         }
@@ -3672,13 +3671,12 @@ impl ConsumerGroup {
                 fetched?
             } else if overlap_metadata {
                 let mut leaders = Vec::new();
+                let mut seen_leaders = HashSet::new();
                 for (topic, partition) in &added {
                     let Ok(node) = self.consumer.cluster().leader_id(topic, *partition) else {
                         continue;
                     };
-                    if !leaders.contains(&node) {
-                        leaders.push(node);
-                    }
+                    crate::consumer::Consumer::remember_node(&mut leaders, &mut seen_leaders, node);
                 }
                 let mut dials = self.consumer.start_leader_dials(&leaders, deadline).await;
                 let require_stable = self.cfg.isolation_level == IsolationLevel::ReadCommitted;
@@ -3796,13 +3794,12 @@ impl ConsumerGroup {
                 fetched
             } else {
                 let mut leaders = Vec::new();
+                let mut seen_leaders = HashSet::new();
                 for (topic, partition) in &added {
                     let Ok(node) = self.consumer.cluster().leader_id(topic, *partition) else {
                         continue;
                     };
-                    if !leaders.contains(&node) {
-                        leaders.push(node);
-                    }
+                    crate::consumer::Consumer::remember_node(&mut leaders, &mut seen_leaders, node);
                 }
                 let mut dials = self.consumer.start_leader_dials(&leaders, deadline).await;
                 let require_stable = self.cfg.isolation_level == IsolationLevel::ReadCommitted;

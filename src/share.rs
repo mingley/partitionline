@@ -1652,6 +1652,7 @@ pub struct ShareGroup {
     /// Dialed again while metadata reloads. Broker addresses in
     /// `share_addresses` survive topic invalidation.
     share_redial_nodes: Vec<i32>,
+    share_redial_seen: HashSet<i32>,
     acquisitions: AcquisitionMap,
     pending_delivery: Vec<ShareRecord>,
     acquire_mode: ShareAcquireMode,
@@ -2359,6 +2360,7 @@ impl ShareGroup {
             share_api_keys: HashMap::new(),
             leader_patches: Vec::new(),
             share_redial_nodes: Vec::new(),
+            share_redial_seen: HashSet::new(),
             prior_coords: HashMap::new(),
             coord_addr,
             coord_keys,
@@ -3106,6 +3108,7 @@ impl ShareGroup {
     /// per-node lookup, which reports them on the same deadline.
     fn cached_share_nodes(&self) -> Vec<i32> {
         let mut nodes = Vec::new();
+        let mut seen = HashSet::new();
         for (topic, partition) in &self.assigned {
             let Ok(ids) = self.consumer.leader_ids_of(topic) else {
                 continue;
@@ -3117,8 +3120,8 @@ impl ShareGroup {
             else {
                 continue;
             };
-            if node >= 0 && !nodes.contains(&node) {
-                nodes.push(node);
+            if node >= 0 {
+                Consumer::remember_node(&mut nodes, &mut seen, node);
             }
         }
         nodes
@@ -3568,6 +3571,7 @@ impl ShareGroup {
             share_api_keys: HashMap::new(),
             leader_patches: Vec::new(),
             share_redial_nodes: Vec::new(),
+            share_redial_seen: HashSet::new(),
             prior_coords: HashMap::new(),
             coord_addr: String::new(),
             coord_keys: Vec::new(),
@@ -3616,7 +3620,7 @@ impl ShareGroup {
     }
 
     fn note_share_redial(&mut self, node: i32) {
-        if node < 0 || self.share_redial_nodes.contains(&node) {
+        if node < 0 || !self.share_redial_seen.insert(node) {
             return;
         }
         self.share_redial_nodes.push(node);
@@ -3628,11 +3632,11 @@ impl ShareGroup {
         }
         let deadline = Instant::now().checked_add(timeout).ok_or(Error::Timeout)?;
         let mut nodes = self.cached_share_nodes();
+        let mut seen: HashSet<i32> = nodes.iter().copied().collect();
         for node in self.share_redial_nodes.drain(..) {
-            if !nodes.contains(&node) {
-                nodes.push(node);
-            }
+            Consumer::remember_node(&mut nodes, &mut seen, node);
         }
+        self.share_redial_seen.clear();
         // Capture addresses before leaders are dropped. A leader that moves is
         // opened on the next fetch after metadata and CurrentLeader patches.
         let targets = self.share_dial_targets(&nodes).await;
