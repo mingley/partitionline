@@ -1303,6 +1303,11 @@ impl BrokerConn {
         drop(stream.shutdown().await);
         self.release_stream(stream);
         rearm.disarm();
+        // Shutdown only schedules the FIN. Yield so the peer observes it
+        // before the caller continues.
+        for _ in 0..8 {
+            tokio::task::yield_now().await;
+        }
     }
 
     /// Broker session lifetime in milliseconds, if negotiated via SaslAuthenticate v1+ (KIP-368).
@@ -3518,6 +3523,55 @@ mod tests {
             })
             .await;
         assert!(matches!(res, Err(Error::Timeout)));
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn read_timeout_shuts_the_broker_down() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use std::sync::Arc;
+
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let open = Arc::new(AtomicUsize::new(0));
+        let flag = Arc::clone(&open);
+        let peer = tokio::spawn(async move {
+            let Ok((mut socket, _)) = listener.accept().await else {
+                return;
+            };
+            let _started = flag.fetch_add(1, Ordering::SeqCst);
+            let mut buf = [0u8; 8];
+            loop {
+                match socket.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let mut conn = BrokerConn::connect(&addr, "timeout", Duration::from_secs(2))
+            .await
+            .unwrap();
+        while open.load(Ordering::SeqCst) == 0 {
+            tokio::task::yield_now().await;
+        }
+        let result = conn
+            .roundtrip(
+                crate::protocol::api_keys::API_VERSIONS,
+                0,
+                |_buf| Ok(()),
+                Duration::from_millis(200),
+            )
+            .await;
+        assert!(
+            matches!(result, Err(Error::Timeout)),
+            "the read finished instead of timing out"
+        );
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "a read timeout left the broker blocked in a read"
+        );
+        peer.abort();
     }
 
     #[tokio::test(flavor = "current_thread")]
