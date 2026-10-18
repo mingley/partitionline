@@ -2395,7 +2395,7 @@ pub enum ShareAcquireMode {
 /// principal.
 /// Top-level `SNAPSHOT_NOT_FOUND` still fails that poll
 /// and does not request Metadata, including when `ErrorMessage` is
-/// set (Java `handleShareFetchSuccess` only `requestUpdate`s for
+/// set or empty (Java `handleShareFetchSuccess` only `requestUpdate`s for
 /// `UNKNOWN_TOPIC_ID`; this is not top-level
 /// `PRINCIPAL_DESERIALIZATION_FAILURE`). Official Java `KafkaRaftClient`
 /// writes this when the requested snapshot id does not exist.
@@ -5571,7 +5571,7 @@ impl ShareGroup {
     /// writes this when envelope forwarding cannot deserialize the
     /// request principal. Top-level
     /// `SNAPSHOT_NOT_FOUND` still fails that poll without
-    /// Metadata, including when `ErrorMessage` is set (Java
+    /// Metadata, including when `ErrorMessage` is set or empty (Java
     /// `handleShareFetchSuccess` only `requestUpdate`s for
     /// `UNKNOWN_TOPIC_ID`; this is not top-level
     /// `PRINCIPAL_DESERIALIZATION_FAILURE`). Official Java
