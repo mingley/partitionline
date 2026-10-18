@@ -3107,6 +3107,8 @@ impl ConsumerGroup {
         let mut member_subs: Vec<(String, Vec<String>)> = Vec::with_capacity(members.len());
         let mut owned_claims: Vec<StickyOwnedClaim> = Vec::with_capacity(members.len());
         let mut topic_set = self.topics.clone();
+        let mut seen_topics = HashSet::new();
+        remember_existing_topics(&mut seen_topics, &topic_set).await;
         for m in &members {
             let sub =
                 match ConsumerProtocol::deserialize_subscription_cooperative(&m.metadata).await {
@@ -3119,9 +3121,7 @@ impl ConsumerGroup {
                     },
                     Err(_) => ConsumerProtocolSubscription::new(self.topics.clone()),
                 };
-            for t in &sub.topics {
-                remember_unique_topic(&mut topic_set, t);
-            }
+            extend_unique_topics(&mut topic_set, &mut seen_topics, &sub.topics).await;
             member_subs.push((m.member_id.clone(), sub.topics));
             owned_claims.push((m.member_id.clone(), sub.owned_partitions, sub.generation_id));
         }
@@ -5752,11 +5752,44 @@ pub(crate) fn committed_offset<'a>(
     map.get(topic)?.get(&partition)
 }
 
+#[cfg(test)]
 fn remember_unique_topic(topics: &mut Vec<String>, topic: &str) {
     if topics.iter().any(|name| name == topic) {
         return;
     }
     topics.push(topic.to_owned());
+}
+
+async fn remember_existing_topics(seen: &mut HashSet<String>, topics: &[String]) {
+    let mut walked = 0usize;
+    for name in topics {
+        let _ = seen.insert(name.clone());
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+}
+
+async fn extend_unique_topics(
+    topics: &mut Vec<String>,
+    seen: &mut HashSet<String>,
+    incoming: &[String],
+) {
+    let mut walked = 0usize;
+    for name in incoming {
+        if !seen.contains(name.as_str()) {
+            let owned = name.clone();
+            let _ = seen.insert(owned.clone());
+            topics.push(owned);
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
 }
 
 /// One owned topic becomes one name per partition. The last partition keeps it.
@@ -7333,7 +7366,7 @@ mod tests {
     use crate::consumer::{OffsetAndMetadata, TopicPartition};
     use crate::net::BrokerConn;
     use crate::protocol::group::{ConsumerProtocolSubscription, FetchedOffset, JoinGroupRequest};
-    use std::collections::HashMap;
+    use std::collections::{HashMap, HashSet};
     use std::sync::Arc;
     use std::time::Duration;
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
@@ -8178,6 +8211,49 @@ mod tests {
             vec!["orders", "payments-topic-name-is-long"]
         );
         assert_eq!(topics.get(1).map(|topic| topic.as_ptr()), payments_ptr);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn extending_many_joined_topics_does_not_hold_the_caller() {
+        // Scanning the joined topic list is the same scan that held assignment
+        // grouping for 1.2s. Extending 1_000_000 names without a pause held the
+        // caller 1.1s.
+        let incoming: Vec<String> = (0..1_000_000)
+            .map(|index| format!("topic-{index}"))
+            .collect();
+        let mut topics = Vec::new();
+        let mut seen = HashSet::new();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = extend_unique_topics(&mut topics, &mut seen, &incoming) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "extending joined topics held the caller for {elapsed:?}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn joined_topics_keep_the_first_name() {
+        let mut topics = vec!["orders".to_string()];
+        let mut seen = HashSet::new();
+        remember_existing_topics(&mut seen, &topics).await;
+        extend_unique_topics(
+            &mut topics,
+            &mut seen,
+            &[
+                "orders".to_string(),
+                "payments".to_string(),
+                "orders".to_string(),
+            ],
+        )
+        .await;
+        assert_eq!(
+            topics.iter().map(String::as_str).collect::<Vec<_>>(),
+            vec!["orders", "payments"]
+        );
     }
 
     #[test]

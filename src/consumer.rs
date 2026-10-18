@@ -8403,19 +8403,11 @@ impl Consumer {
         let Some(first) = pending.iter().copied().min() else {
             return;
         };
-        let mut missing_names = Vec::new();
-        let mut missing_indexes = Vec::new();
-        for index in pending {
-            let Some((topic, partition, _)) = queries.get(*index) else {
-                continue;
-            };
-            if self.cluster.leader_id(topic.as_ref(), *partition).is_err() {
-                missing_indexes.push(*index);
-                if !missing_names.iter().any(|name| *name == topic.as_ref()) {
-                    missing_names.push(topic.as_ref());
-                }
-            }
-        }
+        let (missing_names, missing_indexes) =
+            collect_missing_leader_names(queries, pending, |topic, partition| {
+                self.cluster.leader_id(topic, partition).is_err()
+            })
+            .await;
         if missing_names.is_empty() {
             return;
         }
@@ -11307,11 +11299,77 @@ pub(crate) fn partition_infos_from(
     Ok(out)
 }
 
+async fn collect_missing_leader_names<'a, T, F>(
+    queries: &'a [(T, i32, i64)],
+    pending: &[usize],
+    mut missing: F,
+) -> (Vec<&'a str>, Vec<usize>)
+where
+    T: AsRef<str>,
+    F: FnMut(&str, i32) -> bool,
+{
+    let mut missing_names = Vec::new();
+    let mut missing_indexes = Vec::new();
+    let mut seen = HashSet::new();
+    let mut walked = 0usize;
+    for index in pending {
+        let Some((topic, partition, _)) = queries.get(*index) else {
+            continue;
+        };
+        if missing(topic.as_ref(), *partition) {
+            missing_indexes.push(*index);
+            if seen.insert(topic.as_ref()) {
+                missing_names.push(topic.as_ref());
+            }
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    (missing_names, missing_indexes)
+}
+
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
 
     use super::*;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn collecting_many_missing_topics_does_not_hold_the_caller() {
+        // Scanning the missing-name list is the same scan that held assignment
+        // grouping for 1.2s. Collecting 1_000_000 names without a pause held the
+        // caller 781ms.
+        let queries: Vec<(String, i32, i64)> = (0..1_000_000)
+            .map(|index| (format!("topic-{index}"), 0, 0))
+            .collect();
+        let pending: Vec<usize> = (0..queries.len()).collect();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = collect_missing_leader_names(&queries, &pending, |_, _| true) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "collecting missing topics held the caller for {elapsed:?}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn missing_topics_keep_the_first_name() {
+        let queries = vec![
+            ("orders".to_string(), 0, 0),
+            ("orders".to_string(), 1, 0),
+            ("payments".to_string(), 0, 0),
+        ];
+        let (names, indexes) =
+            collect_missing_leader_names(&queries, &[0, 1, 2], |topic, _| topic == "orders").await;
+        assert_eq!(names, vec!["orders"]);
+        assert_eq!(indexes, vec![0, 1]);
+    }
     use crate::protocol::api::ApiVersion;
     use crate::protocol::api_keys::FETCH;
 
