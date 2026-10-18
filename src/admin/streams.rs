@@ -357,7 +357,7 @@ impl Admin {
                 Err(error) => last = Error::protocol(format!("streams bootstrap: {error}")),
             }
         }
-        Admin::finish_aborted_handshakes(inflight).await;
+        Admin::finish_aborted_indexed_handshakes(inflight).await;
         finished.sort_by_key(|(index, _)| *index);
         let mut rest = finished.into_iter();
         let Some((_, (conn, versions))) = rest.next() else {
