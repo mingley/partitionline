@@ -75,6 +75,8 @@ use cache::{Cache, Flight, Key, Role, Value};
 pub use cache::{RegistryCacheConfig, RegistryCacheStats};
 
 use std::fmt;
+use std::future::poll_fn;
+use std::pin::Pin;
 use std::sync::Arc;
 use std::sync::Once;
 use std::time::{Duration, Instant};
@@ -1083,7 +1085,39 @@ async fn http_roundtrip<S: AsyncReadExt + AsyncWriteExt + Unpin>(
     max_body: usize,
 ) -> Result<HttpResponse, RegistryError> {
     let left = time_left(deadline).ok_or(RegistryError::Timeout)?;
-    match timeout(left, stream.write_all(request)).await {
+    let mut pos = 0usize;
+    // One ready socket can accept the whole request. Offer one chunk so this
+    // deadline runs before the rest is copied.
+    let write = poll_fn(|cx| {
+        let Some(rest) = request.get(pos..) else {
+            return std::task::Poll::Ready(Ok(()));
+        };
+        if rest.is_empty() {
+            return std::task::Poll::Ready(Ok(()));
+        }
+        let offer = rest.len().min(READ_CHUNK);
+        let Some(chunk) = rest.get(..offer) else {
+            return std::task::Poll::Ready(Ok(()));
+        };
+        match Pin::new(&mut *stream).poll_write(cx, chunk) {
+            std::task::Poll::Ready(Ok(0)) => std::task::Poll::Ready(Err(std::io::Error::new(
+                std::io::ErrorKind::WriteZero,
+                "schema registry write returned 0",
+            ))),
+            std::task::Poll::Ready(Ok(n)) => {
+                pos = pos.saturating_add(n);
+                if pos >= request.len() {
+                    std::task::Poll::Ready(Ok(()))
+                } else {
+                    cx.waker().wake_by_ref();
+                    std::task::Poll::Pending
+                }
+            }
+            std::task::Poll::Ready(Err(error)) => std::task::Poll::Ready(Err(error)),
+            std::task::Poll::Pending => std::task::Poll::Pending,
+        }
+    });
+    match timeout(left, write).await {
         Ok(Ok(())) => {}
         Ok(Err(err)) => return Err(RegistryError::transport(err)),
         Err(_) => return Err(RegistryError::Timeout),
@@ -1870,8 +1904,71 @@ fn registry_error_code(body: &[u8]) -> Option<i64> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::pin::Pin;
+    use std::task::{Context, Poll};
+    use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
     use tokio::net::TcpListener;
     use tokio::sync::Mutex;
+
+    /// Accepts every offered byte and spends time in proportion to that copy.
+    struct GreedyRegistry;
+
+    impl AsyncRead for GreedyRegistry {
+        fn poll_read(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            _buf: &mut ReadBuf<'_>,
+        ) -> Poll<std::io::Result<()>> {
+            Poll::Pending
+        }
+    }
+
+    impl AsyncWrite for GreedyRegistry {
+        fn poll_write(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            buf: &[u8],
+        ) -> Poll<std::io::Result<usize>> {
+            if buf.is_empty() {
+                return Poll::Ready(Ok(0));
+            }
+            let units = u32::try_from(buf.len().div_ceil(1024)).unwrap_or(u32::MAX);
+            let start = std::time::Instant::now();
+            while start.elapsed() < Duration::from_millis(2).saturating_mul(units) {}
+            Poll::Ready(Ok(buf.len()))
+        }
+
+        fn poll_flush(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
+            Poll::Ready(Ok(()))
+        }
+
+        fn poll_shutdown(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
+            Poll::Ready(Ok(()))
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn a_ready_registry_write_stops_for_a_deadline() {
+        let mut socket = GreedyRegistry;
+        let request = vec![1u8; 64 * 1024];
+        let started = Instant::now();
+        let result = http_roundtrip(
+            &mut socket,
+            &request,
+            Instant::now() + Duration::from_millis(40),
+            1024,
+        )
+        .await;
+        let elapsed = started.elapsed();
+        assert!(
+            matches!(result, Err(RegistryError::Timeout)),
+            "a ready registry write finished in {elapsed:?} without the deadline"
+        );
+        assert!(
+            elapsed < Duration::from_millis(80),
+            "a ready registry write held the deadline for {elapsed:?}"
+        );
+    }
 
     const SECRET_PASSWORD: &str = "s3cr3t-pw-9z";
     const SECRET_TOKEN: &str = "tok-abc-xyz-789";
