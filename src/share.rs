@@ -2784,6 +2784,13 @@ pub enum ShareAcquireMode {
 /// `INVALID_UPDATE_VERSION`). Official Java `KafkaController` writes
 /// this when a FeatureZNode update fails after the requested feature
 /// changes were valid. A top-level
+/// ShareAcknowledge `PRINCIPAL_DESERIALIZATION_FAILURE` completes without
+/// retry and does not request Metadata, including when `ErrorMessage`
+/// is set (Java `handleShareAcknowledgeSuccess` has no
+/// `metadata.requestUpdate`; this is not top-level
+/// `FEATURE_UPDATE_FAILED`). Official Java `EnvelopeUtils` writes
+/// this when envelope forwarding cannot deserialize the request
+/// principal. A top-level
 /// ShareAcknowledge `SHARE_SESSION_LIMIT_REACHED` completes without
 /// retry and does not request Metadata, including when `ErrorMessage`
 /// is set or empty (Java `handleShareAcknowledgeSuccess` has no
@@ -6254,6 +6261,13 @@ impl ShareGroup {
     /// this is not top-level `INVALID_UPDATE_VERSION`). Official Java
     /// `KafkaController` writes this when a FeatureZNode update fails
     /// after the requested feature changes were valid.
+    /// A top-level ShareAcknowledge `PRINCIPAL_DESERIALIZATION_FAILURE`
+    /// completes without retry and does not request Metadata,
+    /// including when `ErrorMessage` is set (Java
+    /// `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`;
+    /// this is not top-level `FEATURE_UPDATE_FAILED`). Official Java
+    /// `EnvelopeUtils` writes this when envelope forwarding cannot
+    /// deserialize the request principal.
     /// Top-level `SHARE_SESSION_LIMIT_REACHED`
     /// completes without retry and advances the session epoch (Java
     /// `ShareSessionHandler.handleResponse` `nextEpoch`), including

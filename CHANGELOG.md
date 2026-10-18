@@ -505,6 +505,13 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `INVALID_UPDATE_VERSION`). Official Java `KafkaController` writes
   this when a FeatureZNode update fails after the requested feature
   changes were valid.
+  A top-level ShareAcknowledge `PRINCIPAL_DESERIALIZATION_FAILURE` completes
+  without retry and does not request Metadata, including when
+  `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+  `metadata.requestUpdate`; this is not top-level
+  `FEATURE_UPDATE_FAILED`). Official Java `EnvelopeUtils` writes
+  this when envelope forwarding cannot deserialize the request
+  principal.
   A piggybacked ShareFetch
   `AcknowledgeErrorMessage` that is empty uses
   `ShareFetch acknowledgement {topic}-{partition}`. A piggybacked
