@@ -4,7 +4,7 @@
 
 use std::collections::HashMap;
 use std::fmt;
-use std::future::Future;
+use std::future::{poll_fn, Future};
 use std::pin::Pin;
 use std::sync::{Arc, LazyLock, Weak};
 use std::time::{Duration, Instant};
@@ -662,7 +662,39 @@ async fn token_http_roundtrip<S: AsyncReadExt + AsyncWriteExt + Unpin>(
     deadline: Instant,
 ) -> Result<(u16, Vec<u8>)> {
     let left = time_left(deadline)?;
-    match timeout(left, stream.write_all(req)).await {
+    let mut pos = 0usize;
+    // One ready socket can accept the whole request. Offer one chunk so this
+    // deadline runs before the rest is copied.
+    let write = poll_fn(|cx| {
+        let Some(rest) = req.get(pos..) else {
+            return std::task::Poll::Ready(Ok(()));
+        };
+        if rest.is_empty() {
+            return std::task::Poll::Ready(Ok(()));
+        }
+        let offer = rest.len().min(8 * 1024);
+        let Some(chunk) = rest.get(..offer) else {
+            return std::task::Poll::Ready(Ok(()));
+        };
+        match Pin::new(&mut *stream).poll_write(cx, chunk) {
+            std::task::Poll::Ready(Ok(0)) => std::task::Poll::Ready(Err(std::io::Error::new(
+                std::io::ErrorKind::WriteZero,
+                "oidc token write returned 0",
+            ))),
+            std::task::Poll::Ready(Ok(n)) => {
+                pos = pos.saturating_add(n);
+                if pos >= req.len() {
+                    std::task::Poll::Ready(Ok(()))
+                } else {
+                    cx.waker().wake_by_ref();
+                    std::task::Poll::Pending
+                }
+            }
+            std::task::Poll::Ready(Err(error)) => std::task::Poll::Ready(Err(error)),
+            std::task::Poll::Pending => std::task::Poll::Pending,
+        }
+    });
+    match timeout(left, write).await {
         Ok(Ok(())) => {}
         Ok(Err(e)) => return Err(e.into()),
         Err(_) => return Err(Error::Timeout),
@@ -2309,8 +2341,69 @@ pub type OidcTokenProvider = OidcTokenManager;
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tokio::io::AsyncWriteExt;
+    use std::pin::Pin;
+    use std::task::{Context, Poll};
+    use tokio::io::{AsyncRead, AsyncWrite, AsyncWriteExt, ReadBuf};
     use tokio::net::TcpListener;
+
+    /// Accepts every offered byte and spends time in proportion to that copy.
+    struct GreedyToken;
+
+    impl AsyncRead for GreedyToken {
+        fn poll_read(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            _buf: &mut ReadBuf<'_>,
+        ) -> Poll<std::io::Result<()>> {
+            Poll::Pending
+        }
+    }
+
+    impl AsyncWrite for GreedyToken {
+        fn poll_write(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            buf: &[u8],
+        ) -> Poll<std::io::Result<usize>> {
+            if buf.is_empty() {
+                return Poll::Ready(Ok(0));
+            }
+            let units = u32::try_from(buf.len().div_ceil(1024)).unwrap_or(u32::MAX);
+            let start = std::time::Instant::now();
+            while start.elapsed() < Duration::from_millis(2).saturating_mul(units) {}
+            Poll::Ready(Ok(buf.len()))
+        }
+
+        fn poll_flush(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
+            Poll::Ready(Ok(()))
+        }
+
+        fn poll_shutdown(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
+            Poll::Ready(Ok(()))
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn a_ready_token_write_stops_for_a_deadline() {
+        let mut socket = GreedyToken;
+        let req = vec![1u8; 64 * 1024];
+        let started = Instant::now();
+        let result = token_http_roundtrip(
+            &mut socket,
+            &req,
+            Instant::now() + Duration::from_millis(40),
+        )
+        .await;
+        let elapsed = started.elapsed();
+        assert!(
+            matches!(result, Err(Error::Timeout)),
+            "a ready token write finished in {elapsed:?} without the deadline"
+        );
+        assert!(
+            elapsed < Duration::from_millis(80),
+            "a ready token write held the deadline for {elapsed:?}"
+        );
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn token_response_closes_the_socket() {
