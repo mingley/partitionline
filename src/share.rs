@@ -2362,7 +2362,7 @@ pub enum ShareAcquireMode {
 /// requested twice.
 /// Top-level `UNACCEPTABLE_CREDENTIAL` still fails that poll
 /// and does not request Metadata, including when `ErrorMessage` is
-/// set (Java `handleShareFetchSuccess` only `requestUpdate`s for
+/// set or empty (Java `handleShareFetchSuccess` only `requestUpdate`s for
 /// `UNKNOWN_TOPIC_ID`; this is not top-level
 /// `DUPLICATE_RESOURCE`). Official Java `ScramControlManager` writes
 /// this when a SCRAM upsert has too few iterations.
@@ -5471,7 +5471,7 @@ impl ShareGroup {
     /// DescribeUserScramCredentials writes this when the same user
     /// is requested twice. Top-level
     /// `UNACCEPTABLE_CREDENTIAL` still fails that poll without
-    /// Metadata, including when `ErrorMessage` is set (Java
+    /// Metadata, including when `ErrorMessage` is set or empty (Java
     /// `handleShareFetchSuccess` only `requestUpdate`s for
     /// `UNKNOWN_TOPIC_ID`; this is not top-level
     /// `DUPLICATE_RESOURCE`). Official Java `ScramControlManager`
