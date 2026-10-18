@@ -1797,6 +1797,38 @@ fn gzip_compress_into(src: &[u8], out: &mut Vec<u8>) -> Result<()> {
     Ok(())
 }
 
+/// [`gzip_compress_into`], feeding the encoder 8 KiB at a time.
+///
+/// Slices are written with no flush between them, so the member matches
+/// [`gzip_compress_into`]. The pause between slices lets a caller deadline
+/// run while a multi-megabyte section is still being packed.
+async fn gzip_compress_into_cooperative(src: &[u8], out: &mut Vec<u8>) -> Result<()> {
+    out.clear();
+    let est =
+        estimate_compressed_size_in_bytes(compress_estimate_input(src.len()), Compression::Gzip);
+    out.reserve(buf::usize_from_i32(est).unwrap_or(0));
+    let owned = std::mem::take(out);
+    let mut encoder = flate2::write::GzEncoder::new(owned, flate2::Compression::default());
+    let mut offset = 0usize;
+    while offset < src.len() {
+        let end = offset.saturating_add(8 * 1024).min(src.len());
+        let piece = src
+            .get(offset..end)
+            .ok_or_else(|| Error::protocol("gzip chunk"))?;
+        encoder
+            .write_all(piece)
+            .map_err(|e| Error::protocol(e.to_string()))?;
+        offset = end;
+        if offset < src.len() {
+            tokio::task::yield_now().await;
+        }
+    }
+    *out = encoder
+        .finish()
+        .map_err(|e| Error::protocol(e.to_string()))?;
+    Ok(())
+}
+
 fn read_bounded<R: Read>(reader: &mut R, max_bytes: usize, reserve: usize) -> Result<Vec<u8>> {
     let mut out = Vec::new();
     let hint = reserve.min(max_bytes);
@@ -2086,14 +2118,26 @@ pub async fn encode_record_batch_cooperative(
     buf: &mut BytesMut,
     batch: &RecordBatch,
 ) -> Result<()> {
+    let header = batch_header_from(batch)?;
     let mut scratch = CompressScratch::new();
-    write_uncompressed_batch_cooperative(
-        buf,
-        &batch_header_from(batch)?,
+    if Compression::from_attributes(header.attributes)? == Compression::None {
+        return write_uncompressed_batch_cooperative(
+            buf,
+            &header,
+            batch.records.iter().map(EncodeRecord::from_record),
+            &mut scratch,
+        )
+        .await;
+    }
+    let _framed = pack_compressed_batch_cooperative(
+        &header,
         batch.records.iter().map(EncodeRecord::from_record),
         &mut scratch,
     )
-    .await
+    .await?;
+    write_packed_batch(buf, &header, &scratch)?;
+    scratch.shrink_to_caps();
+    Ok(())
 }
 
 fn batch_header_from(batch: &RecordBatch) -> Result<BatchHeader> {
@@ -2347,12 +2391,7 @@ where
     let compression = Compression::from_attributes(header.attributes)?;
     let result = pack_compressed_batch_inner(header, records, scratch, compression);
     if result.is_err() {
-        scratch.section.clear();
-        scratch.packed.clear();
-        #[cfg(feature = "zstd")]
-        {
-            scratch.zstd_encoder = None;
-        }
+        abandon_packed(scratch);
     }
     result
 }
@@ -2413,26 +2452,167 @@ where
                 return Err(Error::protocol("internal: uncompressed pack"));
             }
         }
-        let framed = scratch
-            .packed
-            .len()
-            .checked_add(buf::usize_from_i32(RecordBatch::RECORD_BATCH_OVERHEAD)?)
-            .ok_or_else(|| Error::protocol("compressed batch size overflow"))?;
-        #[cfg(feature = "zstd")]
-        if compression == Compression::Zstd
-            && scratch.zstd_max_batch_bytes != 0
-            && framed > scratch.zstd_max_batch_bytes
-        {
-            return Err(Error::RecordTooLarge {
-                size: u64::try_from(framed).unwrap_or(u64::MAX),
-                max: u64::try_from(scratch.zstd_max_batch_bytes).unwrap_or(u64::MAX),
-                config: Error::MAX_REQUEST_SIZE_CONFIG,
-            });
-        }
-        Ok(framed)
+        framed_packed_len(scratch, compression)
     })();
     scratch.header_wires = header_wires;
     encoded
+}
+
+pub(crate) fn begin_packed_section(scratch: &mut CompressScratch) {
+    scratch.section.clear();
+    scratch.section.reserve(1024);
+}
+
+pub(crate) fn abandon_packed(scratch: &mut CompressScratch) {
+    scratch.section.clear();
+    scratch.packed.clear();
+    #[cfg(feature = "zstd")]
+    {
+        scratch.zstd_encoder = None;
+    }
+}
+
+pub(crate) fn append_packed_record(
+    scratch: &mut CompressScratch,
+    header: &BatchHeader,
+    index: usize,
+    rec: &EncodeRecord<'_>,
+    compression: Compression,
+) -> Result<()> {
+    let offset_delta = absolute_offset_delta(header.base_offset, index)?;
+    let timestamp_delta = timestamp_delta(header.base_timestamp, rec.timestamp)?;
+    #[cfg(feature = "zstd")]
+    if compression == Compression::Zstd {
+        let body = record_body_size(rec, offset_delta, timestamp_delta)?;
+        let size = buf::usize_from_i32(body)?
+            .checked_add(buf::varint_size(body))
+            .and_then(|n| n.checked_add(scratch.section.len()))
+            .ok_or_else(|| Error::protocol("zstd record section size overflow"))?;
+        if size > DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES {
+            return Err(Error::protocol("zstd record section exceeds 64 MiB"));
+        }
+    }
+    #[cfg(not(feature = "zstd"))]
+    let _ = compression;
+    encode_record(
+        &mut scratch.section,
+        rec,
+        offset_delta,
+        timestamp_delta,
+        &mut scratch.header_wires,
+    )
+}
+
+fn framed_packed_len(scratch: &CompressScratch, compression: Compression) -> Result<usize> {
+    let framed = scratch
+        .packed
+        .len()
+        .checked_add(buf::usize_from_i32(RecordBatch::RECORD_BATCH_OVERHEAD)?)
+        .ok_or_else(|| Error::protocol("compressed batch size overflow"))?;
+    #[cfg(feature = "zstd")]
+    if compression == Compression::Zstd
+        && scratch.zstd_max_batch_bytes != 0
+        && framed > scratch.zstd_max_batch_bytes
+    {
+        return Err(Error::RecordTooLarge {
+            size: u64::try_from(framed).unwrap_or(u64::MAX),
+            max: u64::try_from(scratch.zstd_max_batch_bytes).unwrap_or(u64::MAX),
+            config: Error::MAX_REQUEST_SIZE_CONFIG,
+        });
+    }
+    #[cfg(not(feature = "zstd"))]
+    let _ = compression;
+    Ok(framed)
+}
+
+async fn compress_packed_payload(
+    scratch: &mut CompressScratch,
+    compression: Compression,
+) -> Result<()> {
+    match compression {
+        Compression::Gzip => {
+            gzip_compress_into_cooperative(&scratch.section, &mut scratch.packed).await?
+        }
+        Compression::Snappy => snappy_compress_into(&scratch.section, &mut scratch.packed)?,
+        Compression::Lz4 => lz4_compress_into(&scratch.section, &mut scratch.packed)?,
+        #[cfg(feature = "zstd")]
+        Compression::Zstd => zstd_compress_into(
+            &scratch.section,
+            &mut scratch.packed,
+            &mut scratch.zstd_encoder,
+            scratch.zstd_level,
+        )?,
+        Compression::None => {
+            return Err(Error::protocol("internal: uncompressed pack"));
+        }
+    }
+    Ok(())
+}
+
+pub(crate) async fn finish_packed_section_cooperative(
+    scratch: &mut CompressScratch,
+    header: &BatchHeader,
+    written: usize,
+    compression: Compression,
+) -> Result<usize> {
+    let framed = finish_packed_section(scratch, header, written, compression).await;
+    if framed.is_err() {
+        abandon_packed(scratch);
+    }
+    framed
+}
+
+async fn finish_packed_section(
+    scratch: &mut CompressScratch,
+    header: &BatchHeader,
+    written: usize,
+    compression: Compression,
+) -> Result<usize> {
+    if header.count != buf::i32_from_usize(written)? {
+        return Err(Error::protocol("record count differs from header"));
+    }
+    compress_packed_payload(scratch, compression).await?;
+    framed_packed_len(scratch, compression)
+}
+
+async fn pack_compressed_batch_cooperative<'a, I>(
+    header: &BatchHeader,
+    records: I,
+    scratch: &mut CompressScratch,
+) -> Result<usize>
+where
+    I: IntoIterator<Item = EncodeRecord<'a>>,
+{
+    let compression = Compression::from_attributes(header.attributes)?;
+    begin_packed_section(scratch);
+    let mut records = records.into_iter().enumerate();
+    let mut written = 0usize;
+    let mut walked = 0usize;
+    let mut encode_error = None;
+    loop {
+        let appended = {
+            let Some((index, rec)) = records.next() else {
+                break;
+            };
+            let appended = append_packed_record(scratch, header, index, &rec, compression);
+            written = index.saturating_add(1);
+            appended
+        };
+        if let Err(error) = appended {
+            encode_error = Some(error);
+            break;
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    if let Some(error) = encode_error {
+        abandon_packed(scratch);
+        return Err(error);
+    }
+    finish_packed_section_cooperative(scratch, header, written, compression).await
 }
 
 /// Write a batch whose payload is already in `scratch.packed`.
@@ -4104,6 +4284,81 @@ mod tests {
             elapsed < std::time::Duration::from_millis(80),
             "counting framed batches held the caller for {elapsed:?}"
         );
+    }
+
+    fn gzip_batch(count: u32) -> RecordBatch {
+        let records = (0..count)
+            .map(|index| Record {
+                offset: i64::from(index),
+                timestamp: 1,
+                key: None,
+                value: Some(Bytes::from_static(b"x")),
+                headers: Vec::new(),
+            })
+            .collect();
+        RecordBatch {
+            base_offset: 0,
+            partition_leader_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+            attributes: Compression::Gzip as i16,
+            base_timestamp: 1,
+            max_timestamp: 1,
+            producer_id: RecordBatch::NO_PRODUCER_ID,
+            producer_epoch: RecordBatch::NO_PRODUCER_EPOCH,
+            base_sequence: RecordBatch::NO_SEQUENCE,
+            records,
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn encoding_a_long_gzip_batch_does_not_hold_the_caller() {
+        // 200_000 records: writing the section held the caller 107ms before
+        // the 1.9 MiB gzip, which itself held the caller 271ms.
+        let batch = gzip_batch(200_000);
+        let mut buf = BytesMut::new();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = encode_record_batch_cooperative(&mut buf, &batch) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "encoding a gzip batch held the caller for {elapsed:?}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn compressing_a_long_gzip_section_does_not_hold_the_caller() {
+        let batch = gzip_batch(200_000);
+        let header = batch_header_from(&batch).unwrap();
+        let mut scratch = CompressScratch::new();
+        begin_packed_section(&mut scratch);
+        for (index, rec) in batch.records.iter().enumerate() {
+            let enc = EncodeRecord::from_record(rec);
+            append_packed_record(&mut scratch, &header, index, &enc, Compression::Gzip).unwrap();
+        }
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = gzip_compress_into_cooperative(&scratch.section, &mut scratch.packed) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "gzip of a record section held the caller for {elapsed:?}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn cooperative_gzip_batch_matches_one_shot() {
+        let batch = gzip_batch(4_000);
+        let mut one = BytesMut::new();
+        encode_record_batch(&mut one, &batch).unwrap();
+        let mut two = BytesMut::new();
+        encode_record_batch_cooperative(&mut two, &batch)
+            .await
+            .unwrap();
+        assert_eq!(one, two);
     }
 
     #[tokio::test(flavor = "current_thread")]

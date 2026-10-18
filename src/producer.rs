@@ -30,8 +30,8 @@ use crate::protocol::header::encode_request_header_fields;
 use crate::protocol::idem::{decode_init_producer_id_response, encode_init_producer_id_request};
 use crate::protocol::records::{
     record_size_upper_bound, write_java_optional, write_java_optional_bytes,
-    write_java_record_headers, write_record_batch_scratch, BatchHeader, CompressScratch,
-    Compression, EncodeRecord, Header as RecordHeader, RecordBatch, Records,
+    write_java_record_headers, BatchHeader, CompressScratch, Compression, EncodeRecord,
+    Header as RecordHeader, RecordBatch, Records,
 };
 use crate::protocol::txn::{
     can_handle_abortable_error, classify_add_offsets_error, classify_add_partitions_error,
@@ -9424,16 +9424,7 @@ async fn encode_flexible_partition_async(
         transactional,
     )?;
     reserve_compressed_section(&header, pendings, now, scratch)?;
-    let batch_len = crate::protocol::records::pack_compressed_batch(
-        &header,
-        pendings.iter().map(|pending| EncodeRecord {
-            timestamp: pending.rec.timestamp.unwrap_or(now),
-            key: pending.rec.key.as_deref(),
-            value: pending.rec.value.as_deref(),
-            headers: &pending.rec.headers,
-        }),
-        scratch,
-    )?;
+    let batch_len = pack_compressed_pendings(&header, pendings, now, scratch).await?;
     let compact = crate::protocol::buf::u32_from_usize(batch_len)?
         .checked_add(1)
         .ok_or_else(|| Error::protocol("compact bytes overflow"))?;
@@ -9475,19 +9466,11 @@ async fn encode_classic_partition_async(
         base_sequence,
         transactional,
     )?;
-    let records = || {
-        pendings.iter().map(|pending| EncodeRecord {
-            timestamp: pending.rec.timestamp.unwrap_or(now),
-            key: pending.rec.key.as_deref(),
-            value: pending.rec.value.as_deref(),
-            headers: &pending.rec.headers,
-        })
-    };
     let batch_len = if compression == Compression::None {
         uncompressed_pending_len(&header, pendings, now).await?
     } else {
         reserve_compressed_section(&header, pendings, now, scratch)?;
-        crate::protocol::records::pack_compressed_batch(&header, records(), scratch)?
+        pack_compressed_pendings(&header, pendings, now, scratch).await?
     };
     let wire_len = crate::protocol::buf::i32_from_usize(batch_len)?;
     reserve_produce_tail(buf, 4usize.saturating_add(batch_len));
@@ -9632,17 +9615,61 @@ async fn encode_pendings(
         return write_uncompressed_pendings(buf, header, pendings, now, scratch).await;
     }
     reserve_compressed_section(header, pendings, now, scratch)?;
-    write_record_batch_scratch(
-        buf,
-        header,
-        pendings.iter().map(|p| EncodeRecord {
-            timestamp: p.rec.timestamp.unwrap_or(now),
-            key: p.rec.key.as_deref(),
-            value: p.rec.value.as_deref(),
-            headers: &p.rec.headers,
-        }),
+    let _batch_len = pack_compressed_pendings(header, pendings, now, scratch).await?;
+    crate::protocol::records::write_packed_batch(buf, header, scratch)?;
+    scratch.shrink_to_caps();
+    Ok(())
+}
+
+async fn pack_compressed_pendings(
+    header: &BatchHeader,
+    pendings: &[Pending],
+    now: i64,
+    scratch: &mut CompressScratch,
+) -> Result<usize> {
+    let compression = Compression::from_attributes(header.attributes)?;
+    crate::protocol::records::begin_packed_section(scratch);
+    let mut written = 0usize;
+    let mut walked = 0usize;
+    let mut encode_error = None;
+    for (index, pending) in pendings.iter().enumerate() {
+        let appended = {
+            let rec = EncodeRecord {
+                timestamp: pending.rec.timestamp.unwrap_or(now),
+                key: pending.rec.key.as_deref(),
+                value: pending.rec.value.as_deref(),
+                headers: &pending.rec.headers,
+            };
+            crate::protocol::records::append_packed_record(
+                scratch,
+                header,
+                index,
+                &rec,
+                compression,
+            )
+        };
+        if let Err(error) = appended {
+            encode_error = Some(error);
+            break;
+        }
+        written = index.saturating_add(1);
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    if let Some(error) = encode_error {
+        crate::protocol::records::abandon_packed(scratch);
+        return Err(error);
+    }
+    crate::protocol::records::finish_packed_section_cooperative(
         scratch,
+        header,
+        written,
+        compression,
     )
+    .await
 }
 
 async fn write_uncompressed_pendings(
