@@ -3841,6 +3841,11 @@ impl Producer {
             }
             tokio::task::yield_now().await;
         }
+        // The aborted refresh marks the socket closed when its task is polled.
+        // The idle watch then has to run before that broker sees the close.
+        for _ in 0..8 {
+            tokio::task::yield_now().await;
+        }
     }
 
     async fn shutdown_workers(&self, deadline: Option<Instant>) {
@@ -12440,6 +12445,82 @@ mod rediscover_stop_tests {
             0,
             "an aborted coordinator handshake left the broker blocked in a read"
         );
+        peer.abort();
+    }
+
+    struct MetadataRefreshExit(Arc<super::Shared>);
+
+    impl Drop for MetadataRefreshExit {
+        fn drop(&mut self) {
+            let _left = self
+                .0
+                .live_metadata_refreshes
+                .fetch_sub(1, std::sync::atomic::Ordering::SeqCst);
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn stopping_a_metadata_refresh_lets_the_broker_leave() {
+        use super::{test_shared, Inner, Producer};
+        use crate::net::BrokerConn;
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use tokio::io::AsyncReadExt;
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let open = Arc::new(AtomicUsize::new(0));
+        let flag = Arc::clone(&open);
+        let peer = tokio::spawn(async move {
+            let Ok((mut socket, _)) = listener.accept().await else {
+                return;
+            };
+            let _started = flag.fetch_add(1, Ordering::SeqCst);
+            let mut buf = [0u8; 8];
+            loop {
+                match socket.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let conn = BrokerConn::connect(&addr, "meta-refresh", Duration::from_secs(2))
+            .await
+            .unwrap();
+        while open.load(Ordering::SeqCst) == 0 {
+            tokio::task::yield_now().await;
+        }
+        let shared = test_shared(ProducerConfig::default(), conn);
+        let (ready_tx, ready_rx) = tokio::sync::watch::channel(false);
+        let shared_task = Arc::clone(&shared);
+        let task = tokio::spawn(async move {
+            let _started = shared_task
+                .live_metadata_refreshes
+                .fetch_add(1, Ordering::SeqCst);
+            let _exit = MetadataRefreshExit(Arc::clone(&shared_task));
+            let mut guard = shared_task.meta.lock().await;
+            ready_tx.send(true).unwrap_or(());
+            let _ = guard
+                .roundtrip(0, 0, |_| Ok(()), Duration::from_secs(5))
+                .await;
+        });
+        shared.metadata_refreshes.lock().push(task.abort_handle());
+        while !*ready_rx.borrow() {
+            tokio::task::yield_now().await;
+        }
+        for _ in 0..8 {
+            tokio::task::yield_now().await;
+        }
+        let producer = Producer {
+            inner: Arc::new(Inner { shared }),
+        };
+        producer.finish_metadata_refreshes(None).await;
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "stopping a metadata refresh left the broker blocked in a read"
+        );
+        drop(producer);
         peer.abort();
     }
 }

@@ -941,7 +941,15 @@ fn spawn_idle_watch(
                     }
                 }) => {
                     match seen {
-                        IdleRead::Busy => tokio::time::sleep(Duration::from_millis(20)).await,
+                        IdleRead::Busy => {
+                            // The owner holds the stream. A close during that
+                            // read must not wait out the retry sleep.
+                            tokio::select! {
+                                biased;
+                                _ = arm.notified() => {}
+                                _ = tokio::time::sleep(Duration::from_millis(20)) => {}
+                            }
+                        }
                         IdleRead::Data => {
                             // An idle socket has no request in flight. More
                             // than one max frame is not a response waiting
