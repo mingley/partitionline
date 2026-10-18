@@ -226,15 +226,11 @@ impl Lifecycle {
         if partitions.iter().any(|partition| *partition < 0) {
             return Err(Error::InvalidRequest);
         }
+        if overlaps_existing(&self.members, partitions) {
+            return Err(Error::InvalidRequest);
+        }
         let mut owned = BTreeSet::new();
         for partition in partitions {
-            if self
-                .members
-                .values()
-                .any(|member| member.owned.contains(partition))
-            {
-                return Err(Error::InvalidRequest);
-            }
             owned.insert(*partition);
         }
         self.members.insert(
@@ -454,6 +450,14 @@ fn accept_lifecycle(
         (None, 0, Some((old, new))) => updated_member(old, new, limits),
         _ => Err(Error::InvalidRequest),
     }
+}
+
+fn overlaps_existing(members: &BTreeMap<String, Member>, partitions: &[i32]) -> bool {
+    let mut taken = BTreeSet::new();
+    for member in members.values() {
+        taken.extend(member.owned.iter().copied());
+    }
+    partitions.iter().any(|partition| taken.contains(partition))
 }
 
 fn joined_member(member: &Member) -> Result<(), Error> {
@@ -703,6 +707,38 @@ mod tests {
         let path = std::env::temp_dir().join(format!("pl-life-{name}-{nanos}"));
         let life = Lifecycle::open(&path, limits()).unwrap_or_else(|error| panic!("{error:?}"));
         (life, path)
+    }
+
+    #[test]
+    fn checking_many_owned_partitions_does_not_hold_the_caller() {
+        // 1_000 members and 20_000 new partitions: scanning every member for
+        // each partition held the caller 1.28s.
+        let mut members = BTreeMap::new();
+        for member in 0..1_000 {
+            let mut owned = BTreeSet::new();
+            owned.insert(member);
+            members.insert(
+                format!("m{member}"),
+                Member {
+                    instance_id: None,
+                    owned,
+                    delivered: BTreeSet::new(),
+                    last_heartbeat_ms: 0,
+                    rebalance_deadline_ms: None,
+                },
+            );
+        }
+        let partitions: Vec<i32> = (1_000..21_000).collect();
+        let started = std::time::Instant::now();
+        let overlap = overlaps_existing(&members, &partitions);
+        let elapsed = started.elapsed();
+        assert!(!overlap);
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "checking owned partitions held the caller for {elapsed:?}"
+        );
+        assert!(overlaps_existing(&members, &[0, 20_000]));
+        assert!(!overlaps_existing(&members, &[20_000]));
     }
 
     #[test]
