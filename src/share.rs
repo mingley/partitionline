@@ -2195,6 +2195,13 @@ pub enum ShareAcquireMode {
 /// `TRANSACTIONAL_ID_AUTHORIZATION_FAILED`). Official Java `AclApis`
 /// writes this when an ACL request runs with no Authorizer
 /// configured.
+/// Top-level `OPERATION_NOT_ATTEMPTED` still fails that poll
+/// and does not request Metadata, including when `ErrorMessage` is
+/// set (Java `handleShareFetchSuccess` only `requestUpdate`s for
+/// `UNKNOWN_TOPIC_ID`; this is not top-level
+/// `SECURITY_DISABLED`). Official Java `KafkaApis`
+/// writes this when AddPartitionsToTxn skips authorized partitions
+/// after a sibling topic fails authorization or is unknown.
 /// Top-level
 /// `SHARE_SESSION_LIMIT_REACHED` resets the share session and does
 /// not request Metadata, including when `ErrorMessage` is set or
@@ -4968,6 +4975,14 @@ impl ShareGroup {
     /// `TRANSACTIONAL_ID_AUTHORIZATION_FAILED`). Official Java
     /// `AclApis` writes this when an ACL request runs with no
     /// Authorizer configured. Top-level
+    /// `OPERATION_NOT_ATTEMPTED` still fails that poll without
+    /// Metadata, including when `ErrorMessage` is set (Java
+    /// `handleShareFetchSuccess` only `requestUpdate`s for
+    /// `UNKNOWN_TOPIC_ID`; this is not top-level
+    /// `SECURITY_DISABLED`). Official Java
+    /// `KafkaApis` writes this when AddPartitionsToTxn skips
+    /// authorized partitions after a sibling topic fails authorization
+    /// or is unknown. Top-level
     /// `SHARE_SESSION_LIMIT_REACHED` resets the share session and
     /// does not request Metadata, including when `ErrorMessage` is
     /// set or empty (Java `handleShareFetchSuccess` only

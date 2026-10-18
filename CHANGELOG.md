@@ -1720,6 +1720,12 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `UNKNOWN_TOPIC_ID`; this is not top-level
   `TRANSACTIONAL_ID_AUTHORIZATION_FAILED`). Official Java `AclApis` writes
   this when an ACL request runs with no Authorizer configured.
+  Top-level `OPERATION_NOT_ATTEMPTED` still fails that poll
+  without Metadata, including when `ErrorMessage` is set (Java
+  `handleShareFetchSuccess` only `requestUpdate`s for top-level
+  `UNKNOWN_TOPIC_ID`; this is not top-level
+  `SECURITY_DISABLED`). Official Java `KafkaApis` writes
+  this when AddPartitionsToTxn skips authorized partitions after a sibling topic fails authorization or is unknown.
   A non-empty
   throwable partition or top-level ShareFetch `ErrorMessage` is
   preferred; empty uses `ShareFetch {topic}-{partition}` or
