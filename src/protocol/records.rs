@@ -1917,6 +1917,31 @@ fn snappy_compress_into(src: &[u8], out: &mut Vec<u8>) -> Result<()> {
     Ok(())
 }
 
+/// Inline snappy stays on the caller at or below this length.
+///
+/// 3.8 MiB of record bytes compressed in 43ms. 9.5 MiB took 110ms, so a
+/// larger section moves to the blocking pool. The frame is still one
+/// snappy-java chunk.
+const SNAPPY_INLINE_LIMIT: usize = 4 * 1024 * 1024;
+
+async fn snappy_compress_section(section: &mut BytesMut, out: &mut Vec<u8>) -> Result<()> {
+    if section.len() <= SNAPPY_INLINE_LIMIT {
+        return snappy_compress_into(section, out);
+    }
+    let owned = std::mem::take(section);
+    let mut buf = std::mem::take(out);
+    let joined = tokio::task::spawn_blocking(move || {
+        let result = snappy_compress_into(&owned, &mut buf);
+        (owned, buf, result)
+    })
+    .await
+    .map_err(|_| Error::protocol("snappy encode task"))?;
+    let (owned, buf, result) = joined;
+    *section = owned;
+    *out = buf;
+    result
+}
+
 fn snappy_decompress(src: &[u8], max_bytes: usize) -> Result<Vec<u8>> {
     if src.len() > 20 && src.starts_with(SNAPPY_JAVA_MAGIC) {
         let mut cur = src.get(16..).unwrap_or(&[]);
@@ -2572,7 +2597,9 @@ async fn compress_packed_payload(
         Compression::Gzip => {
             gzip_compress_into_cooperative(&scratch.section, &mut scratch.packed).await?
         }
-        Compression::Snappy => snappy_compress_into(&scratch.section, &mut scratch.packed)?,
+        Compression::Snappy => {
+            snappy_compress_section(&mut scratch.section, &mut scratch.packed).await?
+        }
         Compression::Lz4 => {
             lz4_compress_into_cooperative(&scratch.section, &mut scratch.packed).await?
         }
@@ -4388,6 +4415,56 @@ mod tests {
             elapsed < std::time::Duration::from_millis(80),
             "gzip of a record section held the caller for {elapsed:?}"
         );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn compressing_a_long_snappy_section_does_not_hold_the_caller() {
+        // 1_000_000 records: one snappy of the 9.5 MiB section held the caller 110ms.
+        let batch = gzip_batch(1_000_000);
+        let header = batch_header_from(&batch).unwrap();
+        let mut scratch = CompressScratch::new();
+        begin_packed_section(&mut scratch);
+        for (index, rec) in batch.records.iter().enumerate() {
+            let enc = EncodeRecord::from_record(rec);
+            append_packed_record(&mut scratch, &header, index, &enc, Compression::Snappy).unwrap();
+        }
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = snappy_compress_section(&mut scratch.section, &mut scratch.packed) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "snappy of a record section held the caller for {elapsed:?}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn offloaded_snappy_matches_one_shot() {
+        let src = vec![b'x'; SNAPPY_INLINE_LIMIT.saturating_add(1)];
+        let mut one = Vec::new();
+        snappy_compress_into(&src, &mut one).unwrap();
+        let mut section = BytesMut::from(src.as_slice());
+        let mut two = Vec::new();
+        snappy_compress_section(&mut section, &mut two)
+            .await
+            .unwrap();
+        assert_eq!(one, two);
+        assert_eq!(section, src.as_slice());
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn cooperative_snappy_batch_matches_one_shot() {
+        let mut batch = gzip_batch(8_000);
+        batch.attributes = Compression::Snappy as i16;
+        let mut one = BytesMut::new();
+        encode_record_batch(&mut one, &batch).unwrap();
+        let mut two = BytesMut::new();
+        encode_record_batch_cooperative(&mut two, &batch)
+            .await
+            .unwrap();
+        assert_eq!(one, two);
     }
 
     #[tokio::test(flavor = "current_thread")]
