@@ -2328,7 +2328,7 @@ pub enum ShareAcquireMode {
 /// when no reassignment is in progress.
 /// Top-level `GROUP_SUBSCRIBED_TO_TOPIC` still fails that poll
 /// and does not request Metadata, including when `ErrorMessage` is
-/// set (Java `handleShareFetchSuccess` only `requestUpdate`s for
+/// set or empty (Java `handleShareFetchSuccess` only `requestUpdate`s for
 /// `UNKNOWN_TOPIC_ID`; this is not top-level
 /// `NO_REASSIGNMENT_IN_PROGRESS`). Official Java
 /// `OffsetMetadataManager` OffsetDelete writes this when the
@@ -5371,7 +5371,7 @@ impl ShareGroup {
     /// `ReplicationControlManager.cancelPartitionReassignment`
     /// writes this when no reassignment is in progress. Top-level
     /// `GROUP_SUBSCRIBED_TO_TOPIC` still fails that poll without
-    /// Metadata, including when `ErrorMessage` is set (Java
+    /// Metadata, including when `ErrorMessage` is set or empty (Java
     /// `handleShareFetchSuccess` only `requestUpdate`s for
     /// `UNKNOWN_TOPIC_ID`; this is not top-level
     /// `NO_REASSIGNMENT_IN_PROGRESS`). Official Java
