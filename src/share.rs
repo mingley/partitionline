@@ -1526,6 +1526,15 @@ pub enum ShareAcquireMode {
 /// `AddVoterHandler` writes this when the AddRaftVoter request names
 /// a voter id that is already part of the set of voters.
 /// A piggybacked
+/// `VOTER_NOT_FOUND` still completes without retry,
+/// including when `AcknowledgeErrorMessage` is set (Java
+/// `handleShareFetchSuccess` completes piggyback acks and still
+/// delivers the fetch; this is not partition
+/// `VOTER_NOT_FOUND`, which fails that poll, and not piggyback
+/// `DUPLICATE_VOTER`). Official Java
+/// `RemoveVoterHandler` writes this when RemoveRaftVoter cannot
+/// remove the named voter from the current voter set.
+/// A piggybacked
 /// `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a
 /// sibling partition whose `AcknowledgeErrorCode` is none, including
 /// when `AcknowledgeErrorMessage` is set or empty. A piggybacked
@@ -3829,6 +3838,14 @@ impl ShareGroup {
     /// `INVALID_VOTER_KEY`). Official Java
     /// `AddVoterHandler` writes this when the AddRaftVoter request names
     /// a voter id that is already part of the set of voters.
+    /// A piggybacked `VOTER_NOT_FOUND` still completes
+    /// without retry, including when `AcknowledgeErrorMessage` is set
+    /// (Java `handleShareFetchSuccess` completes piggyback acks and still
+    /// delivers the fetch; this is not partition
+    /// `VOTER_NOT_FOUND`, which fails that poll, and not piggyback
+    /// `DUPLICATE_VOTER`). Official Java
+    /// `RemoveVoterHandler` writes this when RemoveRaftVoter cannot
+    /// remove the named voter from the current voter set.
     /// A piggybacked `TOPIC_AUTHORIZATION_FAILED` on one partition
     /// does not fail a sibling whose `AcknowledgeErrorCode` is none,
     /// including when `AcknowledgeErrorMessage` is set or empty.
