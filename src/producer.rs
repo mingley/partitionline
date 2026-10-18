@@ -5102,6 +5102,37 @@ fn remember_produce_keys(shared: &Shared, addr: &str, keys: &[ApiVersion]) {
     let _stored = known.insert(addr.to_string(), keys.to_vec());
 }
 
+async fn read_producer_find(
+    mut hop: BrokerConn,
+    version: i16,
+    key: &str,
+    key_type: i8,
+    timeout: Duration,
+) -> Result<(BrokerConn, i16, i32, String, i32)> {
+    let body = match hop
+        .roundtrip(
+            FIND_COORDINATOR,
+            version,
+            |buf| encode_find_coordinator_request_typed(buf, version, key, key_type),
+            timeout,
+        )
+        .await
+    {
+        Ok(body) => body,
+        Err(error) => {
+            retire_owned_conn(hop).await;
+            return Err(error);
+        }
+    };
+    match decode_find_coordinator_response(&mut body.clone(), version) {
+        Ok((err, node, host, port)) => Ok((hop, err, node, host, port)),
+        Err(error) => {
+            retire_owned_conn(hop).await;
+            Err(error)
+        }
+    }
+}
+
 async fn discover_group_coordinator(
     shared: &Shared,
     group_id: &str,
@@ -5131,16 +5162,16 @@ async fn discover_group_coordinator(
         return Err(Error::protocol("find coordinator failed"));
     };
     let bounded = bounded_producer_config(&shared.cfg, deadline)?;
-    let (mut hop, versions) = open_producer_peer(addr, &bounded, &shared.api_keys).await?;
-    let body = hop
-        .roundtrip(
-            FIND_COORDINATOR,
-            version,
-            |buf| encode_find_coordinator_request_typed(buf, version, group_id, COORDINATOR_GROUP),
-            timeout_remaining(deadline)?,
-        )
-        .await?;
-    let (err, _node, host, port) = decode_find_coordinator_response(&mut body.clone(), version)?;
+    let (hop, versions) = open_producer_peer(addr, &bounded, &shared.api_keys).await?;
+    let timeout = match timeout_remaining(deadline) {
+        Ok(timeout) => timeout,
+        Err(error) => {
+            retire_owned_conn(hop).await;
+            return Err(error);
+        }
+    };
+    let (hop, err, _node, host, port) =
+        read_producer_find(hop, version, group_id, COORDINATOR_GROUP, timeout).await?;
     if err != 0 {
         let error = Err(Error::broker(err, "FindCoordinator"));
         retire_owned_conn(hop).await;
@@ -9644,6 +9675,70 @@ mod tests {
         );
         first_peer.abort();
         second_peer.abort();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn a_bad_producer_lookup_lets_the_broker_leave() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let open = Arc::new(AtomicUsize::new(0));
+        let flag = Arc::clone(&open);
+        let peer = tokio::spawn(async move {
+            let Ok((mut socket, _)) = listener.accept().await else {
+                return;
+            };
+            let _started = flag.fetch_add(1, Ordering::SeqCst);
+            let mut size_buf = [0u8; 4];
+            if socket.read_exact(&mut size_buf).await.is_ok() {
+                let size = i32::from_be_bytes(size_buf).max(0) as usize;
+                let mut request = vec![0u8; size];
+                if socket.read_exact(&mut request).await.is_ok() {
+                    if let Some(bytes) = request.get(4..8) {
+                        let correlation = i32::from_be_bytes([
+                            bytes.first().copied().unwrap_or(0),
+                            bytes.get(1).copied().unwrap_or(0),
+                            bytes.get(2).copied().unwrap_or(0),
+                            bytes.get(3).copied().unwrap_or(0),
+                        ]);
+                        let mut response = Vec::with_capacity(8);
+                        response.extend_from_slice(&4i32.to_be_bytes());
+                        response.extend_from_slice(&correlation.to_be_bytes());
+                        let _wrote = socket.write_all(&response).await;
+                    }
+                }
+            }
+            let mut buf = [0u8; 8];
+            loop {
+                match socket.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let conn = BrokerConn::connect(&addr, "bad-produce-lookup", Duration::from_secs(2))
+            .await
+            .unwrap();
+        while open.load(Ordering::SeqCst) == 0 {
+            tokio::task::yield_now().await;
+        }
+        let _found = read_producer_find(
+            conn,
+            1,
+            "group",
+            crate::protocol::group::COORDINATOR_GROUP,
+            Duration::from_secs(2),
+        )
+        .await;
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "a bad producer lookup left the broker blocked in a read"
+        );
+        peer.abort();
     }
 
     #[tokio::test(flavor = "current_thread")]
