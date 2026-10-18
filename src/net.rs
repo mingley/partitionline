@@ -755,6 +755,62 @@ where
 enum ConnIo {
     Tcp(TcpStream),
     Tls(Box<TlsStream<TcpStream>>),
+    /// Test double that returns a fixed body in small ready chunks.
+    #[cfg(test)]
+    Script(ScriptIo),
+}
+
+/// One ready chunk, then a pause, so a read loop that never yields can be timed.
+#[cfg(test)]
+struct ScriptIo {
+    body: Vec<u8>,
+    pos: usize,
+    chunk: usize,
+    pause: Duration,
+}
+
+#[cfg(test)]
+impl AsyncRead for ScriptIo {
+    fn poll_read(
+        mut self: Pin<&mut Self>,
+        _cx: &mut Context<'_>,
+        buf: &mut ReadBuf<'_>,
+    ) -> Poll<io::Result<()>> {
+        if self.pos >= self.body.len() || buf.remaining() == 0 {
+            return Poll::Pending;
+        }
+        let n = self
+            .chunk
+            .min(self.body.len() - self.pos)
+            .min(buf.remaining());
+        let end = self.pos + n;
+        let Some(chunk) = self.body.get(self.pos..end) else {
+            return Poll::Pending;
+        };
+        buf.put_slice(chunk);
+        self.pos = end;
+        std::thread::sleep(self.pause);
+        Poll::Ready(Ok(()))
+    }
+}
+
+#[cfg(test)]
+impl AsyncWrite for ScriptIo {
+    fn poll_write(
+        self: Pin<&mut Self>,
+        _cx: &mut Context<'_>,
+        buf: &[u8],
+    ) -> Poll<io::Result<usize>> {
+        Poll::Ready(Ok(buf.len()))
+    }
+
+    fn poll_flush(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<io::Result<()>> {
+        Poll::Ready(Ok(()))
+    }
+
+    fn poll_shutdown(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<io::Result<()>> {
+        Poll::Ready(Ok(()))
+    }
 }
 
 impl AsyncRead for ConnIo {
@@ -766,6 +822,8 @@ impl AsyncRead for ConnIo {
         match self.get_mut() {
             ConnIo::Tcp(s) => Pin::new(s).poll_read(cx, buf),
             ConnIo::Tls(s) => Pin::new(s.as_mut()).poll_read(cx, buf),
+            #[cfg(test)]
+            ConnIo::Script(s) => Pin::new(s).poll_read(cx, buf),
         }
     }
 }
@@ -779,6 +837,8 @@ impl AsyncWrite for ConnIo {
         match self.get_mut() {
             ConnIo::Tcp(s) => Pin::new(s).poll_write(cx, buf),
             ConnIo::Tls(s) => Pin::new(s.as_mut()).poll_write(cx, buf),
+            #[cfg(test)]
+            ConnIo::Script(s) => Pin::new(s).poll_write(cx, buf),
         }
     }
 
@@ -786,6 +846,8 @@ impl AsyncWrite for ConnIo {
         match self.get_mut() {
             ConnIo::Tcp(s) => Pin::new(s).poll_flush(cx),
             ConnIo::Tls(s) => Pin::new(s.as_mut()).poll_flush(cx),
+            #[cfg(test)]
+            ConnIo::Script(s) => Pin::new(s).poll_flush(cx),
         }
     }
 
@@ -793,6 +855,8 @@ impl AsyncWrite for ConnIo {
         match self.get_mut() {
             ConnIo::Tcp(s) => Pin::new(s).poll_shutdown(cx),
             ConnIo::Tls(s) => Pin::new(s.as_mut()).poll_shutdown(cx),
+            #[cfg(test)]
+            ConnIo::Script(s) => Pin::new(s).poll_shutdown(cx),
         }
     }
 }
@@ -1167,6 +1231,59 @@ impl BrokerConn {
         })
     }
 
+    /// A connection whose reads return `body` in ready `chunk`s.
+    ///
+    /// The idle watch is not started. Each chunk pauses, so a read loop that
+    /// stays inside one poll can be told apart from one that yields.
+    #[cfg(test)]
+    fn script_conn(body: Vec<u8>, chunk: usize, pause: Duration) -> Self {
+        let stream = Arc::new(tokio::sync::Mutex::new(ConnIo::Script(ScriptIo {
+            body,
+            pos: 0,
+            chunk,
+            pause,
+        })));
+        let prefetch = Arc::new(parking_lot::Mutex::new(BytesMut::new()));
+        let closed = Arc::new(AtomicBool::new(false));
+        let idle_arm = Arc::new(tokio::sync::Notify::new());
+        let parked = tokio::spawn(std::future::pending::<()>());
+        let idle_watch = parked.abort_handle();
+        parked.abort();
+        Self {
+            stream,
+            prefetch,
+            idle_watch,
+            idle_arm,
+            read_buf: BytesMut::with_capacity(8 * 1024),
+            write_buf: BytesMut::with_capacity(16 * 1024),
+            next_correlation: 1,
+            sasl_correlation: 0,
+            client_id: "script".to_string(),
+            addr: "script".to_string(),
+            last_io: Instant::now(),
+            closed,
+            stats: None,
+            produce_version: -1,
+            fetch_version: -1,
+            offset_commit_version: 0,
+            offset_fetch_version: 0,
+            heartbeat_version: -1,
+            sync_group_version: -1,
+            join_group_version: 0,
+            leave_group_version: -1,
+            consumer_group_heartbeat_version: -1,
+            share_group_heartbeat_version: -1,
+            sasl_handshake_version: -1,
+            sasl_authenticate_version: -1,
+            find_coordinator_version: -1,
+            session_lifetime_ms: None,
+            authenticated_at: None,
+            sasl_session_expires_at: None,
+            reauth_at: None,
+            in_flight: 0,
+        }
+    }
+
     /// Kafka `client.id` on this connection.
     #[must_use]
     pub fn client_id(&self) -> &str {
@@ -1536,7 +1653,15 @@ impl BrokerConn {
                         }
                         return Poll::Ready(Ok(()));
                     }
-                    Poll::Ready(Ok(_)) => {}
+                    Poll::Ready(Ok(_)) => {
+                        // A peer that already has the frame queued stays Ready.
+                        // Yield so a deadline beside this read can stop it
+                        // before the rest of the frame is copied.
+                        if !inbound_satisfied(&self.read_buf) {
+                            cx.waker().wake_by_ref();
+                            return Poll::Pending;
+                        }
+                    }
                 }
             }
         })
@@ -2743,6 +2868,26 @@ mod tests {
     use std::time::Duration;
     use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt, ReadBuf};
     use tokio::net::TcpListener;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn a_ready_frame_stops_for_a_deadline() {
+        let body_len = 32 * 1024;
+        let mut body = Vec::with_capacity(4 + body_len);
+        body.extend_from_slice(&(i32::try_from(body_len).unwrap()).to_be_bytes());
+        body.resize(4 + body_len, 1);
+        let mut conn = BrokerConn::script_conn(body, 1024, Duration::from_millis(4));
+        let started = std::time::Instant::now();
+        let result = tokio::time::timeout(Duration::from_millis(40), conn.inbound_ready()).await;
+        let elapsed = started.elapsed();
+        assert!(
+            result.is_err(),
+            "a ready frame finished in {elapsed:?} without the deadline"
+        );
+        assert!(
+            elapsed < Duration::from_millis(90),
+            "a ready frame held the deadline for {elapsed:?}"
+        );
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn connect_any_finishes_a_losing_connect() {
