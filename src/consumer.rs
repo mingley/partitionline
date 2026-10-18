@@ -5333,7 +5333,7 @@ impl Consumer {
                         .iter()
                         .map(|(topic, partition)| self.last_fetched_epoch(topic, *partition)),
                 );
-                let topics = offset_for_leader_epoch_topics(&self.cluster, fetched, &parts);
+                let topics = offset_for_leader_epoch_topics(&self.cluster, fetched, &parts).await;
                 let timeout = remaining_offset_timeout(deadline, Instant::now());
                 let mut encoded = bytes::BytesMut::new();
                 encode_borrowed_offset_for_leader_epoch_topics_cooperative(
@@ -5426,7 +5426,7 @@ impl Consumer {
                 .iter()
                 .map(|(topic, partition)| self.last_fetched_epoch(topic, *partition))
                 .collect();
-            let topics = offset_for_leader_epoch_topics(&self.cluster, &fetched, &parts);
+            let topics = offset_for_leader_epoch_topics(&self.cluster, &fetched, &parts).await;
             let timeout = remaining_offset_timeout(deadline, Instant::now());
             let mut payload = bytes::BytesMut::new();
             encode_borrowed_offset_for_leader_epoch_topics_cooperative(
@@ -11012,7 +11012,7 @@ fn truncated_fetch_offset(position: i64, end_offset: i64) -> Option<i64> {
     }
 }
 
-fn offset_for_leader_epoch_topics<'a>(
+async fn offset_for_leader_epoch_topics<'a>(
     cluster: &Cluster,
     last_fetched: &[i32],
     parts: &[(&'a str, i32)],
@@ -11020,6 +11020,7 @@ fn offset_for_leader_epoch_topics<'a>(
     let mut epochs = crate::cluster::EpochList::new();
     let mut groups: Vec<(&str, Vec<OffsetForLeaderPartition>)> = Vec::new();
     let mut slots: HashMap<&str, usize> = HashMap::new();
+    let mut walked = 0usize;
     for (index, (topic, partition)) in parts.iter().enumerate() {
         let current = epochs.epoch(cluster, topic, *partition);
         // KIP-320: current_leader_epoch fences the leader. The epoch to resolve
@@ -11034,12 +11035,21 @@ fn offset_for_leader_epoch_topics<'a>(
         if let Some(slot) = slots.get(*topic).copied() {
             if let Some((_, stored)) = groups.get_mut(slot) {
                 stored.push(part);
-                continue;
+            } else {
+                let slot = groups.len();
+                groups.push((*topic, vec![part]));
+                let _ = slots.insert(*topic, slot);
             }
+        } else {
+            let slot = groups.len();
+            groups.push((*topic, vec![part]));
+            let _ = slots.insert(*topic, slot);
         }
-        let slot = groups.len();
-        groups.push((*topic, vec![part]));
-        let _ = slots.insert(*topic, slot);
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
     }
     for (_, partitions) in &mut groups {
         partitions.sort_by_key(|partition| partition.partition);
@@ -11404,6 +11414,24 @@ mod tests {
     use std::collections::HashMap;
 
     use super::*;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn grouping_many_epoch_requests_does_not_hold_the_caller() {
+        // 2_000_000 partitions: grouping the request held the caller 401ms.
+        let parts: Vec<(&str, i32)> = (0..2_000_000).map(|index| ("orders", index)).collect();
+        let fetched = vec![1i32; parts.len()];
+        let cluster = Cluster::default();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = offset_for_leader_epoch_topics(&cluster, &fetched, &parts) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "grouping leader epochs held the caller for {elapsed:?}"
+        );
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn applying_many_epoch_offsets_does_not_hold_the_caller() {
@@ -13324,8 +13352,8 @@ mod tests {
         );
     }
 
-    #[test]
-    fn offset_for_leader_epoch_resolves_the_fetched_epoch() {
+    #[tokio::test(flavor = "current_thread")]
+    async fn offset_for_leader_epoch_resolves_the_fetched_epoch() {
         let mut cluster = Cluster::default();
         let _ = cluster
             .leader_epochs
@@ -13334,7 +13362,8 @@ mod tests {
             &cluster,
             &[2, crate::RecordBatch::NO_PARTITION_LEADER_EPOCH],
             &[("t", 0), ("t", 1)],
-        );
+        )
+        .await;
         assert_eq!(topics.len(), 1);
         assert!(std::ptr::eq(topics[0].0, "t"));
         assert_eq!(topics[0].1[0].partition, 0);
@@ -13347,7 +13376,8 @@ mod tests {
             .leader_epochs
             .insert(std::sync::Arc::from("u"), vec![8]);
         let mixed =
-            offset_for_leader_epoch_topics(&cluster, &[1, 3, 5], &[("t", 1), ("u", 0), ("t", 0)]);
+            offset_for_leader_epoch_topics(&cluster, &[1, 3, 5], &[("t", 1), ("u", 0), ("t", 0)])
+                .await;
         assert_eq!(mixed.len(), 2);
         assert_eq!(mixed[0].0, "t");
         assert_eq!(mixed[0].1[0].partition, 0);
