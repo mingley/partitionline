@@ -2076,19 +2076,38 @@ impl Default for BatchHeader {
 pub fn encode_record_batch(buf: &mut BytesMut, batch: &RecordBatch) -> Result<()> {
     write_record_batch(
         buf,
-        &BatchHeader {
-            base_offset: batch.base_offset,
-            partition_leader_epoch: batch.partition_leader_epoch,
-            attributes: batch.attributes,
-            base_timestamp: batch.base_timestamp,
-            max_timestamp: batch.max_timestamp,
-            producer_id: batch.producer_id,
-            producer_epoch: batch.producer_epoch,
-            base_sequence: batch.base_sequence,
-            count: buf::i32_from_usize(batch.records.len())?,
-        },
+        &batch_header_from(batch)?,
         batch.records.iter().map(EncodeRecord::from_record),
     )
+}
+
+/// [`encode_record_batch`], yielding while a long record list is encoded.
+pub async fn encode_record_batch_cooperative(
+    buf: &mut BytesMut,
+    batch: &RecordBatch,
+) -> Result<()> {
+    let mut scratch = CompressScratch::new();
+    write_uncompressed_batch_cooperative(
+        buf,
+        &batch_header_from(batch)?,
+        batch.records.iter().map(EncodeRecord::from_record),
+        &mut scratch,
+    )
+    .await
+}
+
+fn batch_header_from(batch: &RecordBatch) -> Result<BatchHeader> {
+    Ok(BatchHeader {
+        base_offset: batch.base_offset,
+        partition_leader_epoch: batch.partition_leader_epoch,
+        attributes: batch.attributes,
+        base_timestamp: batch.base_timestamp,
+        max_timestamp: batch.max_timestamp,
+        producer_id: batch.producer_id,
+        producer_epoch: batch.producer_epoch,
+        base_sequence: batch.base_sequence,
+        count: buf::i32_from_usize(batch.records.len())?,
+    })
 }
 
 /// KL09-33: bounded reusable scratch for compressed batch encoding.
@@ -2106,7 +2125,7 @@ pub struct CompressScratch {
     packed: Vec<u8>,
     /// Header widths for the record being encoded. Cleared per record and kept
     /// across batches.
-    header_wires: Vec<HeaderWire>,
+    pub(crate) header_wires: Vec<HeaderWire>,
     section_cap: usize,
     packed_cap: usize,
     #[cfg(feature = "zstd")]
@@ -2258,6 +2277,61 @@ where
     encoded
 }
 
+/// [`write_record_batch_scratch`] for an uncompressed batch, yielding between records.
+pub async fn write_uncompressed_batch_cooperative<'a, I>(
+    buf: &mut BytesMut,
+    header: &BatchHeader,
+    records: I,
+    scratch: &mut CompressScratch,
+) -> Result<()>
+where
+    I: Iterator<Item = EncodeRecord<'a>>,
+{
+    if Compression::from_attributes(header.attributes)? != Compression::None {
+        return Err(Error::protocol("internal: compressed cooperative encode"));
+    }
+    let original = buf.len();
+    let mut header_wires = std::mem::take(&mut scratch.header_wires);
+    let (batch_start, batch_len_pos, crc_pos, crc_start) = start_record_batch(buf, header);
+    let mut written = 0usize;
+    let mut walked = 0usize;
+    let mut encode_error = None;
+    for (index, rec) in records.enumerate() {
+        if let Err(error) = encode_record(
+            buf,
+            &rec,
+            absolute_offset_delta(header.base_offset, index)?,
+            timestamp_delta(header.base_timestamp, rec.timestamp)?,
+            &mut header_wires,
+        ) {
+            encode_error = Some(error);
+            break;
+        }
+        written = index.saturating_add(1);
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    scratch.header_wires = header_wires;
+    if let Some(error) = encode_error {
+        buf.truncate(original);
+        return Err(error);
+    }
+    if header.count != buf::i32_from_usize(written)? {
+        buf.truncate(original);
+        return Err(Error::protocol("record count differs from header"));
+    }
+    match finish_record_batch(buf, batch_start, batch_len_pos, crc_pos, crc_start) {
+        Ok(()) => Ok(()),
+        Err(error) => {
+            buf.truncate(original);
+            Err(error)
+        }
+    }
+}
+
 /// Compress `records` into the scratch payload and return the framed batch length.
 ///
 /// The length is [`RecordBatch::RECORD_BATCH_OVERHEAD`] plus the packed
@@ -2389,6 +2463,38 @@ where
 {
     let mut size = buf::usize_from_i32(RecordBatch::RECORD_BATCH_OVERHEAD)?;
     for (index, rec) in records.into_iter().enumerate() {
+        size = size
+            .checked_add(encoded_record_wire(header, index, &rec)?)
+            .ok_or_else(|| Error::protocol("batch size overflow"))?;
+    }
+    Ok(size)
+}
+
+pub(crate) fn encoded_record_wire(
+    header: &BatchHeader,
+    index: usize,
+    rec: &EncodeRecord<'_>,
+) -> Result<usize> {
+    let offset_delta = absolute_offset_delta(header.base_offset, index)?;
+    let timestamp_delta = timestamp_delta(header.base_timestamp, rec.timestamp)?;
+    let body = record_body_size(rec, offset_delta, timestamp_delta)?;
+    let wire = body
+        .checked_add(buf::size_of_varint(body))
+        .ok_or_else(|| Error::protocol("record size overflow"))?;
+    buf::usize_from_i32(wire)
+}
+
+/// [`uncompressed_batch_len`], yielding while a long record list is measured.
+pub async fn uncompressed_batch_len_cooperative<'a, I>(
+    header: &BatchHeader,
+    records: I,
+) -> Result<usize>
+where
+    I: IntoIterator<Item = EncodeRecord<'a>>,
+{
+    let mut size = buf::usize_from_i32(RecordBatch::RECORD_BATCH_OVERHEAD)?;
+    let mut walked = 0usize;
+    for (index, rec) in records.into_iter().enumerate() {
         let offset_delta = absolute_offset_delta(header.base_offset, index)?;
         let timestamp_delta = timestamp_delta(header.base_timestamp, rec.timestamp)?;
         let body = record_body_size(&rec, offset_delta, timestamp_delta)?;
@@ -2398,6 +2504,11 @@ where
         size = size
             .checked_add(buf::usize_from_i32(wire)?)
             .ok_or_else(|| Error::protocol("batch size overflow"))?;
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
     }
     Ok(size)
 }
@@ -2414,7 +2525,10 @@ where
     Ok(total.saturating_sub(overhead))
 }
 
-fn start_record_batch(buf: &mut BytesMut, header: &BatchHeader) -> (usize, usize, usize, usize) {
+pub(crate) fn start_record_batch(
+    buf: &mut BytesMut,
+    header: &BatchHeader,
+) -> (usize, usize, usize, usize) {
     let batch_start = buf.len();
     buf.put_i64(header.base_offset);
     let batch_len_pos = buf.len();
@@ -2440,7 +2554,7 @@ fn start_record_batch(buf: &mut BytesMut, header: &BatchHeader) -> (usize, usize
     (batch_start, batch_len_pos, crc_pos, crc_start)
 }
 
-fn finish_record_batch(
+pub(crate) fn finish_record_batch(
     buf: &mut BytesMut,
     batch_start: usize,
     batch_len_pos: usize,
@@ -2566,7 +2680,7 @@ fn put_nullable(buf: &mut BytesMut, bytes: Option<&[u8]>, prefix: &NullablePrefi
     }
 }
 
-struct HeaderWire {
+pub(crate) struct HeaderWire {
     key_bits: u32,
     key_width: usize,
     value: NullablePrefix,
@@ -2682,7 +2796,7 @@ fn record_batch_size_in_bytes(records: &[Record], base_offset: Option<i64>) -> R
     buf::i32_from_usize(size)
 }
 
-fn encode_record(
+pub(crate) fn encode_record(
     buf: &mut BytesMut,
     rec: &EncodeRecord<'_>,
     offset_delta: i32,
@@ -3812,7 +3926,7 @@ fn try_plain_short_key(
     })
 }
 
-fn absolute_offset_delta(base: i64, index: usize) -> Result<i32> {
+pub(crate) fn absolute_offset_delta(base: i64, index: usize) -> Result<i32> {
     let delta = buf::i32_from_usize(index)?;
     if base.checked_add(i64::from(delta)).is_none() {
         return Err(Error::protocol("record offset overflow"));
@@ -3820,7 +3934,7 @@ fn absolute_offset_delta(base: i64, index: usize) -> Result<i32> {
     Ok(delta)
 }
 
-fn timestamp_delta(base: i64, timestamp: i64) -> Result<i64> {
+pub(crate) fn timestamp_delta(base: i64, timestamp: i64) -> Result<i64> {
     timestamp
         .checked_sub(base)
         .ok_or_else(|| Error::protocol("record timestamp overflow"))
@@ -3989,6 +4103,41 @@ mod tests {
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "counting framed batches held the caller for {elapsed:?}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn encoding_a_long_batch_does_not_hold_the_caller() {
+        let records: Vec<Record> = (0..400_000)
+            .map(|index| Record {
+                offset: i64::from(index),
+                timestamp: 1,
+                key: None,
+                value: Some(Bytes::from_static(b"x")),
+                headers: Vec::new(),
+            })
+            .collect();
+        let batch = RecordBatch {
+            base_offset: 0,
+            partition_leader_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+            attributes: 0,
+            base_timestamp: 1,
+            max_timestamp: 1,
+            producer_id: RecordBatch::NO_PRODUCER_ID,
+            producer_epoch: RecordBatch::NO_PRODUCER_EPOCH,
+            base_sequence: RecordBatch::NO_SEQUENCE,
+            records,
+        };
+        let mut buf = BytesMut::new();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = encode_record_batch_cooperative(&mut buf, &batch) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "encoding a record batch held the caller for {elapsed:?}"
         );
     }
 

@@ -7452,7 +7452,7 @@ impl Worker {
             self.note_fail(e.clone());
             return Err(e);
         }
-        if let Err(e) = encode_produce_body(
+        if let Err(e) = encode_produce_body_async(
             &mut self.write_buf,
             version,
             acks,
@@ -7466,7 +7466,9 @@ impl Worker {
             transactional_id,
             &mut self.compress_scratch,
             &mut self.group_scratch,
-        ) {
+        )
+        .await
+        {
             rollback_sequences(&groups, producer_id, &self.shared.seqs);
             self.fail_kept_groups(groups, clone_err(&e));
             self.note_fail(e.clone());
@@ -9198,11 +9200,52 @@ fn index_produce_groups(
     }
 }
 
+#[cfg(test)]
 #[expect(
     clippy::too_many_arguments,
     reason = "produce body needs pid, epoch, seq, and batch knobs together"
 )]
 fn encode_produce_body(
+    buf: &mut BytesMut,
+    version: i16,
+    acks: i16,
+    timeout_ms: i32,
+    groups: &[(Arc<str>, i32, Vec<Pending>)],
+    topic_ids: &[(Arc<str>, [u8; 16])],
+    compression: Compression,
+    now: i64,
+    producer_id: i64,
+    producer_epoch: i16,
+    transactional_id: Option<&str>,
+    scratch: &mut CompressScratch,
+    groups_scratch: &mut ProduceGroupScratch,
+) -> Result<()> {
+    tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .map_err(|_| Error::protocol("produce encode runtime"))?
+        .block_on(encode_produce_body_async(
+            buf,
+            version,
+            acks,
+            timeout_ms,
+            groups,
+            topic_ids,
+            compression,
+            now,
+            producer_id,
+            producer_epoch,
+            transactional_id,
+            scratch,
+            groups_scratch,
+        ))
+}
+
+#[expect(
+    clippy::too_many_arguments,
+    reason = "produce body needs pid, epoch, seq, and batch knobs together"
+)]
+async fn encode_produce_body_async(
     buf: &mut BytesMut,
     version: i16,
     acks: i16,
@@ -9283,7 +9326,7 @@ fn encode_produce_body(
             );
             if flexible {
                 let mark = buf.len();
-                if let Err(error) = encode_flexible_partition(
+                if let Err(error) = encode_flexible_partition_async(
                     buf,
                     pendings,
                     compression,
@@ -9293,14 +9336,16 @@ fn encode_produce_body(
                     base_sequence,
                     transactional,
                     scratch,
-                ) {
+                )
+                .await
+                {
                     buf.truncate(mark);
                     return Err(error);
                 }
                 crate::protocol::buf::put_empty_tagged_fields(buf);
             } else {
                 let mark = buf.len();
-                if let Err(error) = encode_classic_partition(
+                if let Err(error) = encode_classic_partition_async(
                     buf,
                     pendings,
                     compression,
@@ -9310,7 +9355,9 @@ fn encode_produce_body(
                     base_sequence,
                     transactional,
                     scratch,
-                ) {
+                )
+                .await
+                {
                     buf.truncate(mark);
                     return Err(error);
                 }
@@ -9330,7 +9377,7 @@ fn encode_produce_body(
     clippy::too_many_arguments,
     reason = "flexible partition encode shares the produce batch knobs"
 )]
-fn encode_flexible_partition(
+async fn encode_flexible_partition_async(
     buf: &mut BytesMut,
     pendings: &[Pending],
     compression: Compression,
@@ -9351,15 +9398,7 @@ fn encode_flexible_partition(
             base_sequence,
             transactional,
         )?;
-        let batch_len = crate::protocol::records::uncompressed_batch_len(
-            &header,
-            pendings.iter().map(|pending| EncodeRecord {
-                timestamp: pending.rec.timestamp.unwrap_or(now),
-                key: pending.rec.key.as_deref(),
-                value: pending.rec.value.as_deref(),
-                headers: &pending.rec.headers,
-            }),
-        )?;
+        let batch_len = uncompressed_pending_len(&header, pendings, now).await?;
         let compact = crate::protocol::buf::u32_from_usize(batch_len)?
             .checked_add(1)
             .ok_or_else(|| Error::protocol("compact bytes overflow"))?;
@@ -9369,7 +9408,7 @@ fn encode_flexible_partition(
         );
         crate::protocol::buf::put_unsigned_varint(buf, compact);
         let start = buf.len();
-        encode_pendings(buf, pendings, &header, now, scratch)?;
+        encode_pendings(buf, pendings, &header, now, scratch).await?;
         if buf.len().saturating_sub(start) != batch_len {
             return Err(Error::protocol("uncompressed batch length mismatch"));
         }
@@ -9416,7 +9455,7 @@ fn encode_flexible_partition(
     clippy::too_many_arguments,
     reason = "classic partition encode shares the produce batch knobs"
 )]
-fn encode_classic_partition(
+async fn encode_classic_partition_async(
     buf: &mut BytesMut,
     pendings: &[Pending],
     compression: Compression,
@@ -9445,7 +9484,7 @@ fn encode_classic_partition(
         })
     };
     let batch_len = if compression == Compression::None {
-        crate::protocol::records::uncompressed_batch_len(&header, records())?
+        uncompressed_pending_len(&header, pendings, now).await?
     } else {
         reserve_compressed_section(&header, pendings, now, scratch)?;
         crate::protocol::records::pack_compressed_batch(&header, records(), scratch)?
@@ -9455,7 +9494,7 @@ fn encode_classic_partition(
     buf.put_i32(wire_len);
     let start = buf.len();
     if compression == Compression::None {
-        encode_pendings(buf, pendings, &header, now, scratch)?;
+        encode_pendings(buf, pendings, &header, now, scratch).await?;
     } else {
         crate::protocol::records::write_packed_batch(buf, &header, scratch)?;
         scratch.shrink_to_caps();
@@ -9552,13 +9591,46 @@ fn reserve_compressed_section(
     Ok(())
 }
 
-fn encode_pendings(
+async fn uncompressed_pending_len(
+    header: &BatchHeader,
+    pendings: &[Pending],
+    now: i64,
+) -> Result<usize> {
+    let mut size = crate::protocol::buf::usize_from_i32(RecordBatch::RECORD_BATCH_OVERHEAD)?;
+    let mut walked = 0usize;
+    for (index, pending) in pendings.iter().enumerate() {
+        let rec = EncodeRecord {
+            timestamp: pending.rec.timestamp.unwrap_or(now),
+            key: pending.rec.key.as_deref(),
+            value: pending.rec.value.as_deref(),
+            headers: &pending.rec.headers,
+        };
+        size = size
+            .checked_add(crate::protocol::records::encoded_record_wire(
+                header, index, &rec,
+            )?)
+            .ok_or_else(|| Error::protocol("batch size overflow"))?;
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    Ok(size)
+}
+
+async fn encode_pendings(
     buf: &mut BytesMut,
     pendings: &[Pending],
     header: &BatchHeader,
     now: i64,
     scratch: &mut CompressScratch,
 ) -> Result<()> {
+    if crate::protocol::records::Compression::from_attributes(header.attributes)?
+        == crate::protocol::records::Compression::None
+    {
+        return write_uncompressed_pendings(buf, header, pendings, now, scratch).await;
+    }
     reserve_compressed_section(header, pendings, now, scratch)?;
     write_record_batch_scratch(
         buf,
@@ -9571,6 +9643,66 @@ fn encode_pendings(
         }),
         scratch,
     )
+}
+
+async fn write_uncompressed_pendings(
+    buf: &mut BytesMut,
+    header: &BatchHeader,
+    pendings: &[Pending],
+    now: i64,
+    scratch: &mut CompressScratch,
+) -> Result<()> {
+    let original = buf.len();
+    let (batch_start, batch_len_pos, crc_pos, crc_start) =
+        crate::protocol::records::start_record_batch(buf, header);
+    let mut header_wires = std::mem::take(&mut scratch.header_wires);
+    let mut written = 0usize;
+    let mut walked = 0usize;
+    let mut encode_error = None;
+    for (index, pending) in pendings.iter().enumerate() {
+        let rec = EncodeRecord {
+            timestamp: pending.rec.timestamp.unwrap_or(now),
+            key: pending.rec.key.as_deref(),
+            value: pending.rec.value.as_deref(),
+            headers: &pending.rec.headers,
+        };
+        if let Err(error) = crate::protocol::records::encode_record(
+            buf,
+            &rec,
+            crate::protocol::records::absolute_offset_delta(header.base_offset, index)?,
+            crate::protocol::records::timestamp_delta(header.base_timestamp, rec.timestamp)?,
+            &mut header_wires,
+        ) {
+            encode_error = Some(error);
+            break;
+        }
+        written = index.saturating_add(1);
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    scratch.header_wires = header_wires;
+    if let Some(error) = encode_error {
+        buf.truncate(original);
+        return Err(error);
+    }
+    if header.count != crate::protocol::buf::i32_from_usize(written)? {
+        buf.truncate(original);
+        return Err(Error::protocol("record count differs from header"));
+    }
+    if let Err(error) = crate::protocol::records::finish_record_batch(
+        buf,
+        batch_start,
+        batch_len_pos,
+        crc_pos,
+        crc_start,
+    ) {
+        buf.truncate(original);
+        return Err(error);
+    }
+    Ok(())
 }
 
 fn complete_acks0(
