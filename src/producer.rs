@@ -5452,9 +5452,7 @@ fn metadata_topic<'a>(
 }
 
 /// First topic slot for each name. A later copy of the same name is ignored.
-fn index_metadata_topics(
-    topics: &[crate::protocol::api::TopicMetadata],
-) -> HashMap<&str, usize> {
+fn index_metadata_topics(topics: &[crate::protocol::api::TopicMetadata]) -> HashMap<&str, usize> {
     let mut slots = HashMap::with_capacity(topics.len());
     for (index, topic) in topics.iter().enumerate() {
         let Some(name) = topic.name.as_deref() else {
