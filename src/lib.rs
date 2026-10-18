@@ -3443,7 +3443,13 @@
 //! `UNKNOWN_TOPIC_ID`; this is not top-level
 //! `FEATURE_UPDATE_FAILED`). Official Java `EnvelopeUtils` writes
 //! this when envelope forwarding cannot deserialize the request
-//! principal. Partition
+//! principal. Top-level
+//! `SNAPSHOT_NOT_FOUND` still fails that poll without
+//! Metadata, including when `ErrorMessage` is set (Java
+//! `handleShareFetchSuccess` only `requestUpdate`s for
+//! `UNKNOWN_TOPIC_ID`; this is not top-level
+//! `PRINCIPAL_DESERIALIZATION_FAILURE`). Official Java `KafkaRaftClient`
+//! writes this when the requested snapshot id does not exist. Partition
 //! `INCONSISTENT_TOPIC_ID` / `UNKNOWN_TOPIC_OR_PARTITION` /
 //! `UNKNOWN_TOPIC_ID` / `REPLICA_NOT_AVAILABLE` /
 //! `OFFSET_NOT_AVAILABLE` / `KAFKA_STORAGE_ERROR` skip without throwing,

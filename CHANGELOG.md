@@ -2086,6 +2086,12 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `FEATURE_UPDATE_FAILED`). Official Java `EnvelopeUtils` writes
   this when envelope forwarding cannot deserialize the request
   principal.
+  Top-level `SNAPSHOT_NOT_FOUND` still fails that poll
+  without Metadata, including when `ErrorMessage` is set (Java
+  `handleShareFetchSuccess` only `requestUpdate`s for top-level
+  `UNKNOWN_TOPIC_ID`; this is not top-level
+  `PRINCIPAL_DESERIALIZATION_FAILURE`). Official Java `KafkaRaftClient`
+  writes this when the requested snapshot id does not exist.
   A non-empty
   throwable partition or top-level ShareFetch `ErrorMessage` is
   preferred; empty uses `ShareFetch {topic}-{partition}` or

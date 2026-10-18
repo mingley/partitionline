@@ -2393,6 +2393,12 @@ pub enum ShareAcquireMode {
 /// `FEATURE_UPDATE_FAILED`). Official Java `EnvelopeUtils` writes
 /// this when envelope forwarding cannot deserialize the request
 /// principal.
+/// Top-level `SNAPSHOT_NOT_FOUND` still fails that poll
+/// and does not request Metadata, including when `ErrorMessage` is
+/// set (Java `handleShareFetchSuccess` only `requestUpdate`s for
+/// `UNKNOWN_TOPIC_ID`; this is not top-level
+/// `PRINCIPAL_DESERIALIZATION_FAILURE`). Official Java `KafkaRaftClient`
+/// writes this when the requested snapshot id does not exist.
 /// Top-level
 /// `SHARE_SESSION_LIMIT_REACHED` resets the share session and does
 /// not request Metadata, including when `ErrorMessage` is set or
@@ -5564,6 +5570,13 @@ impl ShareGroup {
     /// `FEATURE_UPDATE_FAILED`). Official Java `EnvelopeUtils`
     /// writes this when envelope forwarding cannot deserialize the
     /// request principal. Top-level
+    /// `SNAPSHOT_NOT_FOUND` still fails that poll without
+    /// Metadata, including when `ErrorMessage` is set (Java
+    /// `handleShareFetchSuccess` only `requestUpdate`s for
+    /// `UNKNOWN_TOPIC_ID`; this is not top-level
+    /// `PRINCIPAL_DESERIALIZATION_FAILURE`). Official Java
+    /// `KafkaRaftClient` writes this when the requested snapshot id
+    /// does not exist. Top-level
     /// `SHARE_SESSION_LIMIT_REACHED` resets the share session and
     /// does not request Metadata, including when `ErrorMessage` is
     /// set or empty (Java `handleShareFetchSuccess` only
