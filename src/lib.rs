@@ -3418,7 +3418,7 @@
 //! `DUPLICATE_RESOURCE`). Official Java `ScramControlManager` writes
 //! this when a SCRAM upsert has too few iterations. Top-level
 //! `INCONSISTENT_VOTER_SET` still fails that poll without
-//! Metadata, including when `ErrorMessage` is set (Java
+//! Metadata, including when `ErrorMessage` is set or empty (Java
 //! `handleShareFetchSuccess` only `requestUpdate`s for
 //! `UNKNOWN_TOPIC_ID`; this is not top-level
 //! `UNACCEPTABLE_CREDENTIAL`). Official Java `KafkaRaftClient` writes
