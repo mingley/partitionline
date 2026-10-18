@@ -4023,7 +4023,10 @@ impl Consumer {
     }
 
     async fn reconnect_bootstrap(&mut self, deadline: Instant) -> Result<()> {
-        self.conns.clear();
+        let nodes: Vec<i32> = self.conns.keys().copied().collect();
+        for node in nodes {
+            self.drop_node(node).await;
+        }
         let addr = self.conn.addr().to_string();
         let (conn, resp) = self.open_leader_socket(&addr, deadline).await?;
         self.metadata_version = resp
@@ -4035,6 +4038,7 @@ impl Consumer {
             .into_iter()
             .map(|range| (range.api_key, range))
             .collect();
+        Self::retire_consumer_socket(&mut self.conn).await;
         self.conn = conn;
         self.list_offsets_ranges.clear();
         self.leader_epoch_ranges.clear();
@@ -4319,6 +4323,15 @@ impl Consumer {
         }
     }
 
+    /// Shut a consumer socket down before another connection replaces it.
+    ///
+    /// Assignment drops the previous connection. The idle watch is aborted with
+    /// that drop, so the broker stays in its read until the watch is scheduled.
+    async fn retire_consumer_socket(conn: &mut BrokerConn) {
+        conn.close();
+        conn.release_if_closed().await;
+    }
+
     async fn connect_node(&mut self, node: i32, deadline: Instant) -> Result<()> {
         self.connect_node_inner(node, true, deadline).await
     }
@@ -4446,6 +4459,7 @@ impl Consumer {
                         .into_iter()
                         .map(|api| (api.api_key, api))
                         .collect();
+                    Self::retire_consumer_socket(&mut self.conn).await;
                     self.conn = conn;
                 }
                 return Ok(());
@@ -5656,6 +5670,7 @@ impl Consumer {
                 .into_iter()
                 .map(|api| (api.api_key, api))
                 .collect();
+            Self::retire_consumer_socket(&mut self.conn).await;
             self.conn = conn;
             // The new socket does not own the previous connection's fetch session.
             self.reset_fetch_sessions_using_bootstrap();
@@ -11231,6 +11246,46 @@ mod tests {
     use super::*;
     use crate::protocol::api::ApiVersion;
     use crate::protocol::api_keys::FETCH;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn replacing_a_bootstrap_socket_lets_the_broker_leave() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use std::sync::Arc;
+        use tokio::io::AsyncReadExt;
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let open = Arc::new(AtomicUsize::new(0));
+        let flag = Arc::clone(&open);
+        let peer = tokio::spawn(async move {
+            let Ok((mut socket, _)) = listener.accept().await else {
+                return;
+            };
+            let _started = flag.fetch_add(1, Ordering::SeqCst);
+            let mut buf = [0u8; 8];
+            loop {
+                match socket.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let mut conn =
+            crate::net::BrokerConn::connect(&addr, "replace-bootstrap", Duration::from_secs(2))
+                .await
+                .unwrap();
+        while open.load(Ordering::SeqCst) == 0 {
+            tokio::task::yield_now().await;
+        }
+        Consumer::retire_consumer_socket(&mut conn).await;
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "replacing a bootstrap socket left the broker blocked in a read"
+        );
+        peer.abort();
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn an_idle_leader_socket_is_shut_down_before_the_dial_returns() {
