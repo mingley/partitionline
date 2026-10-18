@@ -2760,7 +2760,7 @@ pub enum ShareAcquireMode {
 /// non-voter. A top-level
 /// ShareAcknowledge `INVALID_UPDATE_VERSION` completes without
 /// retry and does not request Metadata, including when `ErrorMessage`
-/// is set (Java `handleShareAcknowledgeSuccess` has no
+/// is set or empty (Java `handleShareAcknowledgeSuccess` has no
 /// `metadata.requestUpdate`; this is not top-level
 /// `INCONSISTENT_VOTER_SET`). Official Java `FeatureControlManager`
 /// writes this when a feature update version is invalid. A top-level
@@ -6208,7 +6208,7 @@ impl ShareGroup {
     /// at an observer or from a non-voter.
     /// A top-level ShareAcknowledge `INVALID_UPDATE_VERSION`
     /// completes without retry and does not request Metadata,
-    /// including when `ErrorMessage` is set (Java
+    /// including when `ErrorMessage` is set or empty (Java
     /// `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`;
     /// this is not top-level `INCONSISTENT_VOTER_SET`). Official Java
     /// `FeatureControlManager` writes this when a feature update
