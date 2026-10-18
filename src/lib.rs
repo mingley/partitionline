@@ -3212,7 +3212,13 @@
 //! `handleShareFetchSuccess` only `requestUpdate`s for
 //! `UNKNOWN_TOPIC_ID`; this is not top-level
 //! `UNSUPPORTED_FOR_MESSAGE_FORMAT`). Official Java `ReplicationControlManager` writes
-//! this when CreateTopics fails a configured `CreateTopicPolicy`. Partition
+//! this when CreateTopics fails a configured `CreateTopicPolicy`. Top-level
+//! `OUT_OF_ORDER_SEQUENCE_NUMBER` still fails that poll without
+//! Metadata, including when `ErrorMessage` is set (Java
+//! `handleShareFetchSuccess` only `requestUpdate`s for
+//! `UNKNOWN_TOPIC_ID`; this is not top-level
+//! `POLICY_VIOLATION`). Official Java `ProducerAppendInfo` writes
+//! this when an idempotent produce batch is not the next expected sequence for that producerId. Partition
 //! `INCONSISTENT_TOPIC_ID` / `UNKNOWN_TOPIC_OR_PARTITION` /
 //! `UNKNOWN_TOPIC_ID` / `REPLICA_NOT_AVAILABLE` /
 //! `OFFSET_NOT_AVAILABLE` / `KAFKA_STORAGE_ERROR` skip without throwing,
