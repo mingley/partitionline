@@ -789,7 +789,11 @@ impl AsyncRead for ScriptIo {
         };
         buf.put_slice(chunk);
         self.pos = end;
-        std::thread::sleep(self.pause);
+        // A large ready read spends time in proportion to the bytes copied.
+        // One pause covers one kibibyte, so a single poll that fills a whole
+        // frame outruns a short deadline.
+        let units = u32::try_from(n.div_ceil(1024)).unwrap_or(u32::MAX);
+        std::thread::sleep(self.pause.saturating_mul(units));
         Poll::Ready(Ok(()))
     }
 }
@@ -1739,7 +1743,15 @@ impl BrokerConn {
                 rearm.disarm();
                 return Err(Error::Closed);
             }
-            let n = match deadline.run_io(stream.read_buf(&mut self.read_buf)).await {
+            // A known frame is reserved in full. Each read still stops after
+            // one chunk so this deadline is polled before the rest is copied.
+            let n = match deadline
+                .run_io(async {
+                    let mut limited = (&mut self.read_buf).limit(STALLED_WRITE_READ_CHUNK);
+                    stream.read_buf(&mut limited).await
+                })
+                .await
+            {
                 Ok(n) => n,
                 Err(e) => {
                     self.release_stream(stream);
@@ -2886,6 +2898,28 @@ mod tests {
         assert!(
             elapsed < Duration::from_millis(90),
             "a ready frame held the deadline for {elapsed:?}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn a_ready_response_stops_for_a_deadline() {
+        let body_len = 64 * 1024;
+        let mut body = Vec::with_capacity(4 + body_len);
+        body.extend_from_slice(&i32::try_from(body_len).unwrap().to_be_bytes());
+        body.resize(4 + body_len, 1);
+        let mut conn = BrokerConn::script_conn(body, usize::MAX, Duration::from_millis(2));
+        let started = std::time::Instant::now();
+        let result = conn
+            .read_frame_deadline_internal(Deadline::from_timeout(Duration::from_millis(40)), false)
+            .await;
+        let elapsed = started.elapsed();
+        assert!(
+            matches!(result, Err(Error::Timeout)),
+            "a ready response finished in {elapsed:?} without the deadline"
+        );
+        assert!(
+            elapsed < Duration::from_millis(80),
+            "a ready response held the deadline for {elapsed:?}"
         );
     }
 
