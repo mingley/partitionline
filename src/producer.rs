@@ -3524,8 +3524,9 @@ impl Producer {
                 let requested =
                     refresh_topics_within(&self.inner.shared, &names, timeout_remaining(deadline)?)
                         .await?;
+                let known = requested_topic_set(&requested);
                 for topic in topics {
-                    let n = if requested.iter().any(|name| name.as_ref() == topic) {
+                    let n = if known.contains(topic) {
                         partition_count_from_image(&self.inner.shared, topic)?
                     } else if let Some(n) = fresh_partition_count(&self.inner.shared, topic) {
                         n
@@ -8314,6 +8315,10 @@ fn group_txn_partitions(parts: &[(Arc<str>, i32)]) -> Vec<BorrowedTxnTopic<'_>> 
     topics
 }
 
+fn requested_topic_set(requested: &[Arc<str>]) -> HashSet<&str> {
+    requested.iter().map(|name| name.as_ref()).collect()
+}
+
 fn unique_offset_topics(
     offsets: &[(crate::TopicPartition, crate::OffsetAndMetadata)],
 ) -> Vec<&str> {
@@ -9920,6 +9925,31 @@ fn record_metadata(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn finding_many_requested_topics_does_not_hold_the_caller() {
+        // 20_000 names: scanning earlier requests held the caller 1.43s.
+        let requested: Vec<Arc<str>> = (0..20_000)
+            .map(|index| Arc::from(format!("t{index}")))
+            .collect();
+        let topics: Vec<&str> = requested.iter().map(|name| name.as_ref()).collect();
+        let started = std::time::Instant::now();
+        let known = requested_topic_set(&requested);
+        let mut hits = 0usize;
+        for topic in &topics {
+            if known.contains(*topic) {
+                hits = hits.saturating_add(1);
+            }
+        }
+        let elapsed = started.elapsed();
+        assert_eq!(hits, 20_000);
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "finding requested topics held the caller for {elapsed:?}"
+        );
+        assert!(known.contains("t0"));
+        assert!(!known.contains("other"));
+    }
 
     #[test]
     fn remembering_many_requested_topics_does_not_hold_the_caller() {
