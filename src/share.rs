@@ -2472,7 +2472,7 @@ pub enum ShareAcquireMode {
 /// server. A top-level
 /// ShareAcknowledge `DELEGATION_TOKEN_OWNER_MISMATCH` completes without
 /// retry and does not request Metadata, including when `ErrorMessage`
-/// is set (Java `handleShareAcknowledgeSuccess` has no
+/// is set or empty (Java `handleShareAcknowledgeSuccess` has no
 /// `metadata.requestUpdate`; this is not top-level
 /// `DELEGATION_TOKEN_NOT_FOUND`). Official Java `DelegationTokenControlManager`
 /// writes this when the requester is not a valid owner or renewer of
@@ -5628,7 +5628,7 @@ impl ShareGroup {
     /// requested delegation token is not found on the server.
     /// A top-level ShareAcknowledge `DELEGATION_TOKEN_OWNER_MISMATCH`
     /// completes without retry and does not request Metadata,
-    /// including when `ErrorMessage` is set (Java
+    /// including when `ErrorMessage` is set or empty (Java
     /// `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`;
     /// this is not top-level `DELEGATION_TOKEN_NOT_FOUND`). Official
     /// Java `DelegationTokenControlManager` writes this when the
