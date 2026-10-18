@@ -491,13 +491,16 @@ impl StreamsClient {
         deadline: Deadline,
     ) -> Result<(BrokerConn, LearnedStreams)> {
         let (mut bootstrap, versions, siblings) = self.open_any(deadline).await?;
-        let version = versions
+        let Some(version) = versions
             .api_version(FIND_COORDINATOR)
             .and_then(|api| pick_version(api.min_version, api.max_version, 1, 6))
-            .ok_or_else(|| {
-                Error::Unsupported("broker does not support FindCoordinator v1-6".into())
-            })?;
-        let body = bootstrap
+        else {
+            retire_streams_conn(bootstrap).await;
+            return Err(Error::Unsupported(
+                "broker does not support FindCoordinator v1-6".into(),
+            ));
+        };
+        let body = match bootstrap
             .roundtrip_deadline(
                 FIND_COORDINATOR,
                 version,
@@ -511,8 +514,21 @@ impl StreamsClient {
                 },
                 deadline,
             )
-            .await?;
-        let address = coordinator_address(&body, version, &request.group_id)?;
+            .await
+        {
+            Ok(body) => body,
+            Err(error) => {
+                retire_streams_conn(bootstrap).await;
+                return Err(error);
+            }
+        };
+        let address = match coordinator_address(&body, version, &request.group_id) {
+            Ok(address) => address,
+            Err(error) => {
+                retire_streams_conn(bootstrap).await;
+                return Err(error);
+            }
+        };
         let bootstrap_addr = bootstrap.addr().to_string();
         let bootstrap_keys = versions.api_keys.clone();
         if address == bootstrap.addr() {
@@ -577,7 +593,7 @@ impl StreamsClient {
             deadline,
         )
         .await?;
-        let body = hop
+        let body = match hop
             .roundtrip_deadline(
                 FIND_COORDINATOR,
                 known.find_version,
@@ -591,8 +607,21 @@ impl StreamsClient {
                 },
                 deadline,
             )
-            .await?;
-        let address = coordinator_address(&body, known.find_version, &request.group_id)?;
+            .await
+        {
+            Ok(body) => body,
+            Err(error) => {
+                retire_streams_conn(hop).await;
+                return Err(error);
+            }
+        };
+        let address = match coordinator_address(&body, known.find_version, &request.group_id) {
+            Ok(address) => address,
+            Err(error) => {
+                retire_streams_conn(hop).await;
+                return Err(error);
+            }
+        };
         if address == known.coord_addr {
             if address == hop.addr() {
                 return Ok((hop, known.clone()));
@@ -684,6 +713,111 @@ mod tests {
     use std::sync::Arc;
     use std::time::{Duration, Instant};
     use tokio::io::AsyncReadExt;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn a_streams_rediscovery_lets_the_broker_leave() {
+        use super::{LearnedStreams, StreamsClient, StreamsConfig};
+        use crate::net::Deadline;
+        use crate::protocol::api::ApiVersion;
+        use crate::protocol::api_keys::FIND_COORDINATOR;
+        use crate::protocol::streams::StreamsGroupHeartbeatRequest;
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let open = Arc::new(AtomicUsize::new(0));
+        let accepted = Arc::new(AtomicUsize::new(0));
+        let flag = Arc::clone(&open);
+        let accepted_flag = Arc::clone(&accepted);
+        let peer = tokio::spawn(async move {
+            let Ok((mut socket, _)) = listener.accept().await else {
+                return;
+            };
+            let _accepted = accepted_flag.fetch_add(1, Ordering::SeqCst);
+            let _started = flag.fetch_add(1, Ordering::SeqCst);
+            let mut size_buf = [0u8; 4];
+            if socket.read_exact(&mut size_buf).await.is_ok() {
+                let size = i32::from_be_bytes(size_buf).max(0) as usize;
+                let mut request = vec![0u8; size];
+                if socket.read_exact(&mut request).await.is_ok() {
+                    if let Some(bytes) = request.get(4..8) {
+                        let correlation = i32::from_be_bytes([
+                            bytes.first().copied().unwrap_or(0),
+                            bytes.get(1).copied().unwrap_or(0),
+                            bytes.get(2).copied().unwrap_or(0),
+                            bytes.get(3).copied().unwrap_or(0),
+                        ]);
+                        let mut response = Vec::with_capacity(8);
+                        response.extend_from_slice(&4i32.to_be_bytes());
+                        response.extend_from_slice(&correlation.to_be_bytes());
+                        let _wrote = socket.write_all(&response).await;
+                    }
+                }
+            }
+            let mut buf = [0u8; 8];
+            loop {
+                match socket.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let mut cfg = StreamsConfig::bootstrap([addr.clone()]);
+        cfg.allow_unstable = true;
+        let client = StreamsClient::new(cfg).unwrap();
+        let keys = vec![ApiVersion {
+            api_key: FIND_COORDINATOR,
+            min_version: 1,
+            max_version: 1,
+        }];
+        let known = LearnedStreams {
+            bootstrap_addr: addr,
+            bootstrap_keys: keys.clone(),
+            find_version: 1,
+            coord_addr: "127.0.0.1:1".to_string(),
+            coord_keys: keys,
+            prior: std::collections::HashMap::new(),
+        };
+        let request = StreamsGroupHeartbeatRequest {
+            group_id: "group".to_string(),
+            member_id: String::new(),
+            member_epoch: 0,
+            endpoint_information_epoch: 0,
+            instance_id: None,
+            rack_id: None,
+            rebalance_timeout_ms: -1,
+            topology: None,
+            active_tasks: None,
+            standby_tasks: None,
+            warmup_tasks: None,
+            process_id: None,
+            user_endpoint: None,
+            client_tags: None,
+            task_offsets: None,
+            task_end_offsets: None,
+            shutdown_application: false,
+        };
+        let found = client
+            .rediscover(
+                &request,
+                Deadline::from_timeout(Duration::from_secs(2)),
+                &known,
+            )
+            .await;
+        let failed = found.is_err();
+        assert_eq!(
+            accepted.load(Ordering::SeqCst),
+            1,
+            "the streams rediscovery never dialed, failed={failed}"
+        );
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "a streams rediscovery left the broker blocked in a read, failed={failed}"
+        );
+        peer.abort();
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn replacing_a_streams_socket_lets_the_broker_leave() {
