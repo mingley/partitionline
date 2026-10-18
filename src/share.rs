@@ -2123,6 +2123,12 @@ pub enum ShareAcquireMode {
 /// retry and does not request Metadata, including when `ErrorMessage`
 /// is set or empty (Java `handleShareAcknowledgeSuccess` has no
 /// `metadata.requestUpdate`). A top-level
+/// ShareAcknowledge `CLUSTER_AUTHORIZATION_FAILED` completes without
+/// retry and does not request Metadata, including when `ErrorMessage`
+/// is set (Java `handleShareAcknowledgeSuccess` has no
+/// `metadata.requestUpdate`; this is not top-level
+/// `GROUP_AUTHORIZATION_FAILED`). Official Java `AclEntry` writes this
+/// for cluster-resource authorization failures. A top-level
 /// ShareAcknowledge `SHARE_SESSION_LIMIT_REACHED` completes without
 /// retry and does not request Metadata, including when `ErrorMessage`
 /// is set or empty (Java `handleShareAcknowledgeSuccess` has no
@@ -4901,6 +4907,13 @@ impl ShareGroup {
     /// completes without retry and does not request Metadata,
     /// including when `ErrorMessage` is set or empty (Java
     /// `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`).
+    /// A top-level ShareAcknowledge `CLUSTER_AUTHORIZATION_FAILED`
+    /// completes without retry and does not request Metadata,
+    /// including when `ErrorMessage` is set (Java
+    /// `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`;
+    /// this is not top-level `GROUP_AUTHORIZATION_FAILED`). Official
+    /// Java `AclEntry` writes this for cluster-resource authorization
+    /// failures.
     /// Top-level `SHARE_SESSION_LIMIT_REACHED`
     /// completes without retry and advances the session epoch (Java
     /// `ShareSessionHandler.handleResponse` `nextEpoch`), including

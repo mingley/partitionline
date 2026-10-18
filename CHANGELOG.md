@@ -201,6 +201,12 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   without retry and does not request Metadata, including when
   `ErrorMessage` is set or empty (Java `handleShareAcknowledgeSuccess` has no
   `metadata.requestUpdate`).
+  A top-level ShareAcknowledge `CLUSTER_AUTHORIZATION_FAILED` completes
+  without retry and does not request Metadata, including when
+  `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+  `metadata.requestUpdate`; this is not top-level
+  `GROUP_AUTHORIZATION_FAILED`). Official Java `AclEntry` writes this
+  for cluster-resource authorization failures.
   A piggybacked ShareFetch
   `AcknowledgeErrorMessage` that is empty uses
   `ShareFetch acknowledgement {topic}-{partition}`. A piggybacked
