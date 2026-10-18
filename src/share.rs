@@ -2650,6 +2650,13 @@ pub enum ShareAcquireMode {
 /// `GROUP_MAX_SIZE_REACHED`). Official Java `GroupMetadataManager`
 /// writes this when a static member's `group.instance.id` is already
 /// owned by a different member id. A top-level
+/// ShareAcknowledge `NO_REASSIGNMENT_IN_PROGRESS` completes without
+/// retry and does not request Metadata, including when `ErrorMessage`
+/// is set (Java `handleShareAcknowledgeSuccess` has no
+/// `metadata.requestUpdate`; this is not top-level
+/// `FENCED_INSTANCE_ID`). Official Java
+/// `ReplicationControlManager.cancelPartitionReassignment` writes this
+/// when no reassignment is in progress. A top-level
 /// ShareAcknowledge `SHARE_SESSION_LIMIT_REACHED` completes without
 /// retry and does not request Metadata, including when `ErrorMessage`
 /// is set or empty (Java `handleShareAcknowledgeSuccess` has no
@@ -5982,6 +5989,13 @@ impl ShareGroup {
     /// Java `GroupMetadataManager` writes this when a static
     /// member's `group.instance.id` is already owned by a different
     /// member id.
+    /// A top-level ShareAcknowledge `NO_REASSIGNMENT_IN_PROGRESS`
+    /// completes without retry and does not request Metadata,
+    /// including when `ErrorMessage` is set (Java
+    /// `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`;
+    /// this is not top-level `FENCED_INSTANCE_ID`). Official
+    /// Java `ReplicationControlManager.cancelPartitionReassignment`
+    /// writes this when no reassignment is in progress.
     /// Top-level `SHARE_SESSION_LIMIT_REACHED`
     /// completes without retry and advances the session epoch (Java
     /// `ShareSessionHandler.handleResponse` `nextEpoch`), including
