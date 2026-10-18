@@ -1968,6 +1968,12 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `NO_REASSIGNMENT_IN_PROGRESS`). Official Java `OffsetMetadataManager`
   OffsetDelete writes this when the consumer group is actively
   subscribed to the topic.
+  Top-level `INVALID_RECORD` still fails that poll
+  without Metadata, including when `ErrorMessage` is set (Java
+  `handleShareFetchSuccess` only `requestUpdate`s for top-level
+  `UNKNOWN_TOPIC_ID`; this is not top-level
+  `GROUP_SUBSCRIBED_TO_TOPIC`). Official Java `LogValidator` writes
+  this when a produce record fails validation.
   A non-empty
   throwable partition or top-level ShareFetch `ErrorMessage` is
   preferred; empty uses `ShareFetch {topic}-{partition}` or

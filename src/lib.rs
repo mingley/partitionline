@@ -3384,7 +3384,13 @@
 //! `UNKNOWN_TOPIC_ID`; this is not top-level
 //! `NO_REASSIGNMENT_IN_PROGRESS`). Official Java `OffsetMetadataManager`
 //! OffsetDelete writes this when the consumer group is actively
-//! subscribed to the topic. Partition
+//! subscribed to the topic. Top-level
+//! `INVALID_RECORD` still fails that poll without
+//! Metadata, including when `ErrorMessage` is set (Java
+//! `handleShareFetchSuccess` only `requestUpdate`s for
+//! `UNKNOWN_TOPIC_ID`; this is not top-level
+//! `GROUP_SUBSCRIBED_TO_TOPIC`). Official Java `LogValidator` writes
+//! this when a produce record fails validation. Partition
 //! `INCONSISTENT_TOPIC_ID` / `UNKNOWN_TOPIC_OR_PARTITION` /
 //! `UNKNOWN_TOPIC_ID` / `REPLICA_NOT_AVAILABLE` /
 //! `OFFSET_NOT_AVAILABLE` / `KAFKA_STORAGE_ERROR` skip without throwing,
