@@ -3917,13 +3917,20 @@ impl ShareGroup {
             let requested = by_id
                 .get(&topic.topic_id)
                 .ok_or_else(|| Error::protocol("ShareFetch returned an unrequested topic id"))?;
+            let allowed = share_partition_set(requested).await;
             let topic_name = self.fetched_topic_name(topic.topic_id)?;
             let name = topic_name.as_str();
+            let mut walked = 0usize;
             for part in &mut topic.partitions {
-                if !requested.contains(&part.partition) {
+                if !allowed.contains(&part.partition) {
                     return Err(Error::protocol(
                         "ShareFetch returned an unrequested partition",
                     ));
+                }
+                walked = walked.saturating_add(1);
+                if walked == 8 * 1024 {
+                    walked = 0;
+                    tokio::task::yield_now().await;
                 }
                 if part.error_code != 0 {
                     let leader_moved = share_leader_moved(part.error_code);
@@ -5846,6 +5853,20 @@ struct ShareLeaderPatch {
 }
 
 /// Broker errors that can name the partition's new leader.
+async fn share_partition_set(requested: &[i32]) -> HashSet<i32> {
+    let mut allowed = HashSet::with_capacity(requested.len());
+    let mut walked = 0usize;
+    for partition in requested {
+        let _ = allowed.insert(*partition);
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    allowed
+}
+
 fn share_leader_moved(code: i16) -> bool {
     share_ack_ownership_lost(code) || code == error::LEADER_NOT_AVAILABLE
 }
@@ -6480,6 +6501,31 @@ mod tests {
     use std::sync::Arc;
 
     use super::*;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn indexing_many_share_partitions_does_not_hold_the_caller() {
+        // 20_000 partitions: scanning the request list held the caller 714ms.
+        // Indexing 1_000_000 partitions still has to pause.
+        let requested: Vec<i32> = (0..1_000_000).collect();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = share_partition_set(&requested) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "indexing share partitions held the caller for {elapsed:?}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn indexed_share_partitions_match_the_request() {
+        let requested = vec![2, 0, 2, 1];
+        let allowed = share_partition_set(&requested).await;
+        assert_eq!(allowed.len(), 3);
+        assert!(allowed.contains(&0) && allowed.contains(&1) && allowed.contains(&2));
+    }
 
     #[test]
     fn an_unchanged_share_identity_keeps_its_allocation() {
