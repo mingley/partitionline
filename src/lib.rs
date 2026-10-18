@@ -3652,6 +3652,12 @@
 //! `metadata.requestUpdate`; this is not top-level
 //! `STALE_BROKER_EPOCH`). Official Java `GroupMetadataManager` writes
 //! this when a JoinGroup dynamic member has an unknown member id.
+//! Top-level ShareAcknowledge `GROUP_MAX_SIZE_REACHED` completes
+//! without retry and does not request Metadata, including when
+//! `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+//! `metadata.requestUpdate`; this is not top-level
+//! `MEMBER_ID_REQUIRED`). Official Java `GroupMetadataManager` writes
+//! this when a JoinGroup would exceed the classic group max size.
 //! Top-level ShareAcknowledge
 //! `SHARE_SESSION_LIMIT_REACHED` completes without retry and advances
 //! the session epoch (Java `ShareSessionHandler.handleResponse`
