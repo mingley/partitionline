@@ -3166,7 +3166,7 @@
 //! this when an ApiVersions request version is unsupported during SASL
 //! authentication. Top-level
 //! `TOPIC_ALREADY_EXISTS` still fails that poll without
-//! Metadata, including when `ErrorMessage` is set (Java
+//! Metadata, including when `ErrorMessage` is set or empty (Java
 //! `handleShareFetchSuccess` only `requestUpdate`s for
 //! `UNKNOWN_TOPIC_ID`; this is not top-level
 //! `UNSUPPORTED_VERSION`). Official Java `ReplicationControlManager` writes
