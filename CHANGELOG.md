@@ -233,6 +233,12 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `ILLEGAL_SASL_STATE`). Official Java `SaslServerAuthenticator` writes
   this when an ApiVersions request version is unsupported during SASL
   authentication.
+  A top-level ShareAcknowledge `TOPIC_ALREADY_EXISTS` completes
+  without retry and does not request Metadata, including when
+  `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+  `metadata.requestUpdate`; this is not top-level
+  `UNSUPPORTED_VERSION`). Official Java `ReplicationControlManager` writes
+  this when CreateTopics names a topic that already exists.
   A piggybacked ShareFetch
   `AcknowledgeErrorMessage` that is empty uses
   `ShareFetch acknowledgement {topic}-{partition}`. A piggybacked

@@ -3266,6 +3266,12 @@
 //! `ILLEGAL_SASL_STATE`). Official Java `SaslServerAuthenticator` writes
 //! this when an ApiVersions request version is unsupported during SASL
 //! authentication.
+//! Top-level ShareAcknowledge `TOPIC_ALREADY_EXISTS` completes
+//! without retry and does not request Metadata, including when
+//! `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+//! `metadata.requestUpdate`; this is not top-level
+//! `UNSUPPORTED_VERSION`). Official Java `ReplicationControlManager` writes
+//! this when CreateTopics names a topic that already exists.
 //! Top-level ShareAcknowledge
 //! `SHARE_SESSION_LIMIT_REACHED` completes without retry and advances
 //! the session epoch (Java `ShareSessionHandler.handleResponse`
