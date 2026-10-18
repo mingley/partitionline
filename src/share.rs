@@ -2757,6 +2757,7 @@ impl ShareGroup {
         }
         let metadata = self.consumer.topic_name_ids();
         let mut names: Vec<Arc<str>> = self.topic_ids.keys().cloned().collect();
+        let mut recreated = Vec::new();
         let known: HashSet<&str> = names.iter().map(|name| name.as_ref()).collect();
         let mut added = HashSet::new();
         let mut extra = Vec::new();
@@ -2774,11 +2775,11 @@ impl ShareGroup {
             };
             if stored.is_some_and(|stored| share_topic_recreated(stored, next)) {
                 let _ = self.acquisitions.remove(topic.as_ref());
-                self.pending_delivery
-                    .retain(|record| record.topic.as_str() != topic.as_ref());
+                recreated.push(Arc::clone(&topic));
             }
             let _previous = self.topic_ids.insert(topic, id);
         }
+        drop_share_records_for_topics(&mut self.pending_delivery, &recreated);
     }
 
     fn apply_pending_assignment(&mut self) {
@@ -6368,6 +6369,14 @@ fn share_heartbeat_epoch(code: i16, response_epoch: i32, current: i32) -> i32 {
     }
 }
 
+fn drop_share_records_for_topics(records: &mut Vec<ShareRecord>, topics: &[Arc<str>]) {
+    if records.is_empty() || topics.is_empty() {
+        return;
+    }
+    let dropped: HashSet<&str> = topics.iter().map(|topic| topic.as_ref()).collect();
+    records.retain(|record| !dropped.contains(record.topic.as_str()));
+}
+
 fn share_record_bytes(rec: &ShareRecord) -> u64 {
     let k = rec.key.as_ref().map(Bytes::len).unwrap_or(0);
     let v = rec.value.as_ref().map(Bytes::len).unwrap_or(0);
@@ -8821,6 +8830,50 @@ mod tests {
             delivery_count: 1,
             leader_epoch: None,
         }
+    }
+
+    #[test]
+    fn dropping_many_recreated_share_records_does_not_hold_the_caller() {
+        // 8_192 topics: scanning the buffer for each topic held the caller 1.20s.
+        let topics: Vec<Arc<str>> = (0..8_192)
+            .map(|index| Arc::from(format!("t{index}")))
+            .collect();
+        let mut records: Vec<ShareRecord> = topics
+            .iter()
+            .map(|topic| ShareRecord {
+                topic: crate::consumer::TopicName::from(topic.as_ref()),
+                partition: 0,
+                offset: 1,
+                timestamp: 0,
+                timestamp_type: TimestampType::CreateTime,
+                key: None,
+                value: None,
+                headers: Vec::new(),
+                delivery_count: 1,
+                leader_epoch: None,
+            })
+            .collect();
+        records.push(ShareRecord {
+            topic: crate::consumer::TopicName::from("kept"),
+            partition: 0,
+            offset: 2,
+            timestamp: 0,
+            timestamp_type: TimestampType::CreateTime,
+            key: None,
+            value: None,
+            headers: Vec::new(),
+            delivery_count: 1,
+            leader_epoch: None,
+        });
+        let started = std::time::Instant::now();
+        drop_share_records_for_topics(&mut records, &topics);
+        let elapsed = started.elapsed();
+        assert_eq!(records.len(), 1);
+        assert_eq!(records.first().map(|record| record.offset), Some(2));
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "dropping recreated share records held the caller for {elapsed:?}"
+        );
     }
 
     fn rec(partition: i32, offset: i64) -> ShareRecord {
