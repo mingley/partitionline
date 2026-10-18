@@ -343,7 +343,7 @@ impl OffsetClient {
         let deadline = self.deadline(options)?;
         let version = if options.topic_ids { 10 } else { 9 };
         validate_offset_commit_request_data(request, version, options.limits)?;
-        validate_commit(request)?;
+        validate_commit(request).await?;
         deadline.check_expired()?;
         if request.topics.is_empty() {
             return Ok(OffsetCommitResponseData::default());
@@ -790,7 +790,7 @@ impl OffsetClient {
                 return Err(error);
             }
         };
-        if let Err(error) = validate_commit_response(request, &response) {
+        if let Err(error) = validate_commit_response(request, &response).await {
             retire_offset_conn(conn).await;
             return Err(error);
         }
@@ -1262,16 +1262,27 @@ fn response_limit(limits: OffsetLimits) -> Result<usize> {
         .ok_or_else(|| Error::protocol("offset response limit overflow"))
 }
 
-fn validate_commit(request: &OffsetCommitRequestData) -> Result<()> {
+async fn validate_commit(request: &OffsetCommitRequestData) -> Result<()> {
     let mut identities = HashSet::new();
+    let mut walked = 0usize;
     for topic in &request.topics {
         if !identities.insert(&topic.identity) {
             return Err(Error::protocol("duplicate offset commit topic"));
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
         }
         let mut partitions = HashSet::new();
         for partition in &topic.partitions {
             if !partitions.insert(partition.partition_index) {
                 return Err(Error::protocol("duplicate offset commit partition"));
+            }
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
             }
         }
     }
@@ -1305,29 +1316,29 @@ fn validate_fetch(request: &OffsetFetchRequestData) -> Result<()> {
     Ok(())
 }
 
-fn validate_commit_response(
+async fn validate_commit_response(
     request: &OffsetCommitRequestData,
     response: &OffsetCommitResponseData,
 ) -> Result<()> {
-    let wanted = request
-        .topics
-        .iter()
-        .flat_map(|topic| {
-            topic
-                .partitions
-                .iter()
-                .map(move |partition| (&topic.identity, partition.partition_index))
-        })
-        .collect::<HashSet<_>>();
+    let mut requested = HashSet::new();
+    let mut wanted = HashSet::new();
+    let mut walked = 0usize;
+    for topic in &request.topics {
+        let _ = requested.insert(&topic.identity);
+        for partition in &topic.partitions {
+            let _ = wanted.insert((&topic.identity, partition.partition_index));
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+    }
     let mut seen = HashSet::new();
     let mut topics = HashSet::new();
+    walked = 0;
     for topic in &response.topics {
-        if !topics.insert(&topic.identity)
-            || !request
-                .topics
-                .iter()
-                .any(|requested| requested.identity == topic.identity)
-        {
+        if !topics.insert(&topic.identity) || !requested.contains(&topic.identity) {
             return Err(Error::protocol("unexpected or duplicate committed topic"));
         }
         for partition in &topic.partitions {
@@ -1336,6 +1347,11 @@ fn validate_commit_response(
                 return Err(Error::protocol(
                     "unexpected or duplicate committed partition",
                 ));
+            }
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
             }
         }
     }
@@ -1429,6 +1445,93 @@ async fn validate_fetch_response(
 mod tests {
     use super::{collect_bounded_commits, collect_bounded_partitions};
     use crate::consumer::{OffsetAndMetadata, TopicPartition};
+    use crate::protocol::group::{
+        OffsetCommitPartitionData, OffsetCommitPartitionResponseData, OffsetCommitRequestData,
+        OffsetCommitResponseData, OffsetCommitTopicData, OffsetCommitTopicResponseData,
+        OffsetTopicIdentity,
+    };
+
+    fn commit_pair(count: i32) -> (OffsetCommitRequestData, OffsetCommitResponseData) {
+        let partitions: Vec<OffsetCommitPartitionData> = (0..count)
+            .map(|index| OffsetCommitPartitionData {
+                partition_index: index,
+                committed_offset: 0,
+                committed_leader_epoch: -1,
+                committed_metadata: None,
+            })
+            .collect();
+        let outcomes: Vec<OffsetCommitPartitionResponseData> = (0..count)
+            .map(|index| OffsetCommitPartitionResponseData {
+                partition_index: index,
+                error_code: 0,
+            })
+            .collect();
+        let request = OffsetCommitRequestData {
+            group_id: "g".into(),
+            generation_id_or_member_epoch: -1,
+            member_id: String::new(),
+            group_instance_id: None,
+            topics: vec![OffsetCommitTopicData {
+                identity: OffsetTopicIdentity::Name("orders".into()),
+                partitions,
+            }],
+        };
+        let response = OffsetCommitResponseData {
+            throttle_time_ms: 0,
+            topics: vec![OffsetCommitTopicResponseData {
+                identity: OffsetTopicIdentity::Name("orders".into()),
+                partitions: outcomes,
+            }],
+        };
+        (request, response)
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn validating_many_commits_does_not_hold_the_caller() {
+        // Matching each response topic against the request list is the same scan
+        // that held assignment grouping for 1.2s. Checking 1_000_000 partitions
+        // without a pause held the caller 2.4s.
+        let (request, response) = commit_pair(1_000_000);
+        let started = std::time::Instant::now();
+        tokio::select! {
+            result = super::validate_commit_response(&request, &response) => {
+                result.unwrap_or_else(|error| panic!("{error}"));
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "validating offset commits held the caller for {elapsed:?}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn validating_a_commit_keeps_the_requested_partitions() {
+        let (request, response) = commit_pair(2);
+        super::validate_commit(&request)
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        super::validate_commit_response(&request, &response)
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        let mut extra = response;
+        extra.topics.first_mut().expect("topic").partitions.push(
+            OffsetCommitPartitionResponseData {
+                partition_index: 9,
+                error_code: 0,
+            },
+        );
+        let error = super::validate_commit_response(&request, &extra)
+            .await
+            .expect_err("extra partition");
+        assert!(
+            error
+                .to_string()
+                .contains("unexpected or duplicate committed partition"),
+            "{error}"
+        );
+    }
 
     fn offset_fetch_pair(
         count: i32,
