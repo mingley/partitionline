@@ -4547,6 +4547,7 @@ fn take_produce_topic_bytes(buf: &mut Bytes, flexible: bool) -> Result<Bytes> {
 ///
 /// `acks` is cleared first. A caller that passes the previous response's
 /// list keeps that allocation when the next response fits.
+#[cfg(test)]
 pub(crate) fn decode_produce_acks_into(
     buf: &mut Bytes,
     version: i16,
@@ -4565,45 +4566,17 @@ pub(crate) fn decode_produce_acks_into(
         };
         let part_count = buf::get_array_len(buf, flexible)?.unwrap_or(0);
         reserve_additional(acks, part_count)?;
-        for index in 0..part_count {
-            let partition = buf::get_i32(buf)?;
-            let error_code = buf::get_i16(buf)?;
-            let base_offset = buf::get_i64(buf)?;
-            let log_append_time_ms = if version >= 2 {
-                buf::get_i64(buf)?
-            } else {
-                RecordBatch::NO_TIMESTAMP
-            };
-            if version >= 5 {
-                let _log_start_offset = buf::get_i64(buf)?;
-            }
-            if version >= 8 {
-                let _record_errors = decode_produce_record_errors(buf, flexible)?;
-                let _error_message = buf::get_string(buf, flexible)?;
-            }
-            let (current_leader_id, current_leader_epoch) = if flexible {
-                decode_produce_partition_tags(buf, version)?
-            } else {
-                (
-                    MetadataResponse::NO_LEADER_ID,
-                    RecordBatch::NO_PARTITION_LEADER_EPOCH,
-                )
-            };
-            let name = if index.saturating_add(1) == part_count {
-                std::mem::take(&mut topic)
-            } else {
-                topic.clone()
-            };
-            acks.push(ProduceAck {
-                topic: name,
+        {
+            let mut pull = ProduceAckPull {
+                buf,
+                version,
+                flexible,
+                topic: &mut topic,
                 topic_id,
-                partition,
-                error_code,
-                base_offset,
-                log_append_time_ms,
-                current_leader_id,
-                current_leader_epoch,
-            });
+                part_count,
+                acks,
+            };
+            pull_produce_acks(&mut pull, 0, part_count)?;
         }
         if flexible {
             buf::skip_tagged_fields(buf)?;
@@ -4616,6 +4589,110 @@ pub(crate) fn decode_produce_acks_into(
         Vec::new()
     };
     Ok((endpoints, throttle_time_ms))
+}
+
+/// [`decode_produce_acks_into`], yielding while a long partition list is decoded.
+pub(crate) async fn decode_produce_acks_into_cooperative(
+    buf: &mut Bytes,
+    version: i16,
+    acks: &mut Vec<ProduceAck>,
+) -> Result<(Vec<NodeEndpoint>, i32)> {
+    acks.clear();
+    let flexible = produce_flexible(version)?;
+    let topic_count = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+    for _ in 0..topic_count {
+        let mut topic_id = [0; 16];
+        let mut topic = if version <= 12 {
+            take_produce_topic_bytes(buf, flexible)?
+        } else {
+            topic_id = buf::get_uuid(buf)?;
+            Bytes::new()
+        };
+        let part_count = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+        reserve_additional(acks, part_count)?;
+        let mut next = 0usize;
+        while next < part_count {
+            let end = next.saturating_add(8 * 1024).min(part_count);
+            let mut pull = ProduceAckPull {
+                buf,
+                version,
+                flexible,
+                topic: &mut topic,
+                topic_id,
+                part_count,
+                acks,
+            };
+            pull_produce_acks(&mut pull, next, end)?;
+            next = end;
+            if next < part_count {
+                tokio::task::yield_now().await;
+            }
+        }
+        if flexible {
+            buf::skip_tagged_fields(buf)?;
+        }
+    }
+    let throttle_time_ms = if version >= 1 { buf::get_i32(buf)? } else { 0 };
+    let endpoints = if flexible {
+        decode_top_level_node_endpoints(buf, version >= 10)?
+    } else {
+        Vec::new()
+    };
+    Ok((endpoints, throttle_time_ms))
+}
+
+struct ProduceAckPull<'a> {
+    buf: &'a mut Bytes,
+    version: i16,
+    flexible: bool,
+    topic: &'a mut Bytes,
+    topic_id: [u8; 16],
+    part_count: usize,
+    acks: &'a mut Vec<ProduceAck>,
+}
+
+fn pull_produce_acks(pull: &mut ProduceAckPull<'_>, start: usize, end: usize) -> Result<()> {
+    for index in start..end {
+        let partition = buf::get_i32(pull.buf)?;
+        let error_code = buf::get_i16(pull.buf)?;
+        let base_offset = buf::get_i64(pull.buf)?;
+        let log_append_time_ms = if pull.version >= 2 {
+            buf::get_i64(pull.buf)?
+        } else {
+            RecordBatch::NO_TIMESTAMP
+        };
+        if pull.version >= 5 {
+            let _log_start_offset = buf::get_i64(pull.buf)?;
+        }
+        if pull.version >= 8 {
+            let _record_errors = decode_produce_record_errors(pull.buf, pull.flexible)?;
+            let _error_message = buf::get_string(pull.buf, pull.flexible)?;
+        }
+        let (current_leader_id, current_leader_epoch) = if pull.flexible {
+            decode_produce_partition_tags(pull.buf, pull.version)?
+        } else {
+            (
+                MetadataResponse::NO_LEADER_ID,
+                RecordBatch::NO_PARTITION_LEADER_EPOCH,
+            )
+        };
+        let name = if index.saturating_add(1) == pull.part_count {
+            std::mem::take(pull.topic)
+        } else {
+            pull.topic.clone()
+        };
+        pull.acks.push(ProduceAck {
+            topic: name,
+            topic_id: pull.topic_id,
+            partition,
+            error_code,
+            base_offset,
+            log_append_time_ms,
+            current_leader_id,
+            current_leader_epoch,
+        });
+    }
+    Ok(())
 }
 
 #[cfg(test)]
@@ -4659,6 +4736,37 @@ mod tests {
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "decoding metadata partitions held the caller for {elapsed:?}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn decoding_many_produce_acks_does_not_hold_the_caller() {
+        let partitions = 500_000i32;
+        let mut body = BytesMut::new();
+        body.put_i32(1);
+        body.put_i16(1);
+        body.extend_from_slice(b"t");
+        body.put_i32(partitions);
+        let partition = [
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ];
+        for index in 0..partitions {
+            let mut one = partition;
+            one[0..4].copy_from_slice(&index.to_be_bytes());
+            body.extend_from_slice(&one);
+        }
+        body.put_i32(0);
+        let mut cursor = body.freeze();
+        let mut acks = Vec::new();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = decode_produce_acks_into_cooperative(&mut cursor, 3, &mut acks) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "decoding produce acks held the caller for {elapsed:?}"
         );
     }
 

@@ -14,9 +14,9 @@ use crate::partitioner::{
     partition_for_key, to_positive, Partitioner, PartitionerBox, StickyState, StickyTag,
 };
 use crate::protocol::api::{
-    decode_metadata_response_into_cooperative, decode_produce_acks_into, encode_metadata_request,
-    encode_metadata_request_names, ApiVersion, ApiVersionsResponse, MetadataResponse, ProduceAck,
-    ProduceRequest,
+    decode_metadata_response_into_cooperative, decode_produce_acks_into_cooperative,
+    encode_metadata_request, encode_metadata_request_names, ApiVersion, ApiVersionsResponse,
+    MetadataResponse, ProduceAck, ProduceRequest,
 };
 use crate::protocol::api_keys::{
     pick_version, ADD_OFFSETS_TO_TXN, ADD_PARTITIONS_TO_TXN, END_TXN, FIND_COORDINATOR,
@@ -7618,8 +7618,9 @@ impl Worker {
         let requested = &mut self.ack_requested;
         let seen = &mut self.ack_seen;
         let mut acks = std::mem::take(&mut self.spare_acks);
-        let decoded = decode_produce_acks_into(&mut body, version, &mut acks).and_then(
-            |(endpoints, throttle)| {
+        let decoded = decode_produce_acks_into_cooperative(&mut body, version, &mut acks)
+            .await
+            .and_then(|(endpoints, throttle)| {
                 if version >= 13 {
                     let inf = guard.inf.as_ref().ok_or_else(|| {
                         Error::protocol("missing Produce request identity snapshot")
@@ -7662,8 +7663,7 @@ impl Worker {
                     }
                 }
                 Ok((endpoints, throttle))
-            },
-        );
+            });
         let (endpoints, throttle_ms) = match decoded {
             Ok(r) => r,
             Err(e) => {
