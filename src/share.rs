@@ -2652,7 +2652,7 @@ pub enum ShareAcquireMode {
 /// owned by a different member id. A top-level
 /// ShareAcknowledge `NO_REASSIGNMENT_IN_PROGRESS` completes without
 /// retry and does not request Metadata, including when `ErrorMessage`
-/// is set (Java `handleShareAcknowledgeSuccess` has no
+/// is set or empty (Java `handleShareAcknowledgeSuccess` has no
 /// `metadata.requestUpdate`; this is not top-level
 /// `FENCED_INSTANCE_ID`). Official Java
 /// `ReplicationControlManager.cancelPartitionReassignment` writes this
@@ -5991,7 +5991,7 @@ impl ShareGroup {
     /// member id.
     /// A top-level ShareAcknowledge `NO_REASSIGNMENT_IN_PROGRESS`
     /// completes without retry and does not request Metadata,
-    /// including when `ErrorMessage` is set (Java
+    /// including when `ErrorMessage` is set or empty (Java
     /// `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`;
     /// this is not top-level `FENCED_INSTANCE_ID`). Official
     /// Java `ReplicationControlManager.cancelPartitionReassignment`
