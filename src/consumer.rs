@@ -7113,8 +7113,11 @@ impl Consumer {
                 }
             }
         } else {
+            let mut queued: HashSet<i32> = queue.iter().copied().collect();
+            let mut connected_seen: HashSet<i32> = connected.iter().copied().collect();
             while let Some(node) = queue.pop() {
-                if connected.contains(&node) {
+                let _ = queued.remove(&node);
+                if connected_seen.contains(&node) {
                     continue;
                 }
                 let rest = deadline.saturating_duration_since(Instant::now());
@@ -7161,13 +7164,15 @@ impl Consumer {
                 };
                 if connected_ok {
                     connected.push(node);
+                    let _ = connected_seen.insert(node);
                     continue;
                 }
-                for leader in by_leader.keys().copied() {
-                    if !connected.contains(&leader) && !queue.contains(&leader) {
-                        queue.push(leader);
-                    }
-                }
+                enqueue_missing_leaders(
+                    &mut queue,
+                    &mut queued,
+                    &connected_seen,
+                    by_leader.keys().copied(),
+                );
             }
             self.park_leaders(queue);
         }
@@ -10509,6 +10514,20 @@ fn retained_topics_keep_their_table_when_a_paused_partition_stays() {
 }
 
 /// Reserve a fetch buffer from the previous poll's record count.
+fn enqueue_missing_leaders(
+    queue: &mut Vec<i32>,
+    queued: &mut HashSet<i32>,
+    connected: &HashSet<i32>,
+    leaders: impl IntoIterator<Item = i32>,
+) {
+    for leader in leaders {
+        if connected.contains(&leader) || !queued.insert(leader) {
+            continue;
+        }
+        queue.push(leader);
+    }
+}
+
 fn take_spare<T>(spare: &mut Vec<T>, hint: usize) -> Vec<T> {
     let mut out = std::mem::take(spare);
     out.clear();
@@ -11738,6 +11757,34 @@ mod tests {
     use std::collections::{HashMap, HashSet};
 
     use super::*;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn enqueueing_many_leaders_does_not_hold_the_caller() {
+        // 8_192 leaders: scanning the queue held the caller 125ms.
+        // 20_000 leaders held it 782ms.
+        let leaders: Vec<i32> = (0..20_000).collect();
+        let mut queue = Vec::new();
+        let mut queued = HashSet::new();
+        let connected = HashSet::from([7]);
+        let started = std::time::Instant::now();
+        tokio::select! {
+            () = async {
+                enqueue_missing_leaders(&mut queue, &mut queued, &connected, leaders.iter().copied());
+                enqueue_missing_leaders(&mut queue, &mut queued, &connected, leaders.iter().copied());
+            } => {
+                assert_eq!(queue.len(), 19_999);
+                assert_eq!(queue.first().copied(), Some(0));
+                assert!(!queue.contains(&7));
+                assert_eq!(queue.last().copied(), Some(19_999));
+            }
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "enqueueing leaders held the caller for {elapsed:?}"
+        );
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn remembering_many_nodes_does_not_hold_the_caller() {
