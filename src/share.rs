@@ -2250,6 +2250,13 @@ pub enum ShareAcquireMode {
 /// `DELEGATION_TOKEN_REQUEST_NOT_ALLOWED`). Official Java `KafkaApis`
 /// writes this when the requester is not the owner and lacks
 /// `CREATE_TOKENS` on the owner user.
+/// Top-level `DELEGATION_TOKEN_EXPIRED` still fails that poll
+/// and does not request Metadata, including when `ErrorMessage` is
+/// set (Java `handleShareFetchSuccess` only `requestUpdate`s for
+/// `UNKNOWN_TOPIC_ID`; this is not top-level
+/// `DELEGATION_TOKEN_AUTHORIZATION_FAILED`). Official Java
+/// `DelegationTokenControlManager` writes this when a requested
+/// delegation token is already expired.
 /// Top-level
 /// `SHARE_SESSION_LIMIT_REACHED` resets the share session and does
 /// not request Metadata, including when `ErrorMessage` is set or
@@ -5135,6 +5142,13 @@ impl ShareGroup {
     /// `DELEGATION_TOKEN_REQUEST_NOT_ALLOWED`). Official Java `KafkaApis`
     /// writes this when the requester is not the owner and lacks
     /// `CREATE_TOKENS` on the owner user. Top-level
+    /// `DELEGATION_TOKEN_EXPIRED` still fails that poll without
+    /// Metadata, including when `ErrorMessage` is set (Java
+    /// `handleShareFetchSuccess` only `requestUpdate`s for
+    /// `UNKNOWN_TOPIC_ID`; this is not top-level
+    /// `DELEGATION_TOKEN_AUTHORIZATION_FAILED`). Official Java
+    /// `DelegationTokenControlManager` writes this when a requested
+    /// delegation token is already expired. Top-level
     /// `SHARE_SESSION_LIMIT_REACHED` resets the share session and
     /// does not request Metadata, including when `ErrorMessage` is
     /// set or empty (Java `handleShareFetchSuccess` only

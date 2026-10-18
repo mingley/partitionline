@@ -1816,6 +1816,12 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `UNKNOWN_TOPIC_ID`; this is not top-level
   `DELEGATION_TOKEN_REQUEST_NOT_ALLOWED`). Official Java `KafkaApis` writes
   this when the requester is not the owner and lacks `CREATE_TOKENS` on the owner user.
+  Top-level `DELEGATION_TOKEN_EXPIRED` still fails that poll
+  without Metadata, including when `ErrorMessage` is set (Java
+  `handleShareFetchSuccess` only `requestUpdate`s for top-level
+  `UNKNOWN_TOPIC_ID`; this is not top-level
+  `DELEGATION_TOKEN_AUTHORIZATION_FAILED`). Official Java `DelegationTokenControlManager` writes
+  this when a requested delegation token is already expired.
   A non-empty
   throwable partition or top-level ShareFetch `ErrorMessage` is
   preferred; empty uses `ShareFetch {topic}-{partition}` or
