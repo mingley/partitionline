@@ -848,6 +848,15 @@ async fn retire_share_socket(mut peer: ShareNodeConnection) {
     peer.conn.release_if_closed().await;
 }
 
+/// Drop a share leader after its final acknowledgement.
+///
+/// The task that sent the acknowledgement owns the socket. Dropping that
+/// task aborts the idle watch, so the broker stays in its read until the
+/// watch is scheduled.
+async fn finish_share_peer(peer: ShareNodeConnection) {
+    retire_share_socket(peer).await;
+}
+
 /// Drop every share leader socket.
 ///
 /// Clearing the map drops each connection. The idle watch is aborted with
@@ -3658,7 +3667,7 @@ impl ShareGroup {
         *self.hb_deadline.lock() = None;
         self.hb_interval_ms.store(0, Ordering::SeqCst);
         self.finish_inflight_share_fetches(deadline).await;
-        let (set, prepare_error) = self.spawn_final_share_acks(deadline);
+        let (set, prepare_error) = self.spawn_final_share_acks(deadline).await;
         let close = Self::finish_final_share_acks(set, prepare_error);
         let leave = self.leave_coordinator(deadline);
         let (close, leave) = tokio::join!(close, leave);
@@ -3733,7 +3742,7 @@ impl ShareGroup {
             // Final acknowledgements use the leader sockets. Metadata for the
             // new names uses the member socket, so both fit in one budget.
             self.finish_inflight_share_fetches(deadline).await;
-            let (set, prepare_error) = self.spawn_final_share_acks(deadline);
+            let (set, prepare_error) = self.spawn_final_share_acks(deadline).await;
             let close = Self::finish_final_share_acks(set, prepare_error);
             let refresh = Self::refresh_topic_names_within(&mut self.consumer, &topics, deadline);
             let (close, refresh) = tokio::join!(close, refresh);
@@ -4999,7 +5008,7 @@ impl ShareGroup {
     ///
     /// The sockets are taken first so the coordinator leave can run while
     /// those acknowledgements are in flight.
-    fn spawn_final_share_acks(
+    async fn spawn_final_share_acks(
         &mut self,
         deadline: Instant,
     ) -> (tokio::task::JoinSet<(Result<Bytes>, i16)>, Option<Error>) {
@@ -5017,6 +5026,7 @@ impl ShareGroup {
         let mut prepare_error = None;
         let timeout = deadline.saturating_duration_since(Instant::now());
         if timeout.is_zero() {
+            discard_share_sockets(&mut conns).await;
             return (set, Some(Error::Timeout));
         }
         for node in open {
@@ -5028,6 +5038,7 @@ impl ShareGroup {
                 Ok(version) => version,
                 Err(error) => {
                     prepare_error = Some(error);
+                    finish_share_peer(peer).await;
                     continue;
                 }
             };
@@ -5042,6 +5053,7 @@ impl ShareGroup {
                 &[],
             ) {
                 prepare_error = Some(error);
+                finish_share_peer(peer).await;
                 continue;
             }
             let payload = body.freeze();
@@ -5059,9 +5071,11 @@ impl ShareGroup {
                         timeout,
                     )
                     .await;
+                finish_share_peer(peer).await;
                 (sent, version)
             });
         }
+        discard_share_sockets(&mut conns).await;
         (set, prepare_error)
     }
 
@@ -5233,6 +5247,7 @@ impl ShareGroup {
                 if let Some(slot) = decided.get_mut(index) {
                     *slot = Some(error);
                 }
+                finish_share_peer(peer).await;
                 continue;
             }
             let payload = body.freeze();
@@ -5251,6 +5266,7 @@ impl ShareGroup {
                         timeout,
                     )
                     .await;
+                finish_share_peer(peer).await;
                 (index, sent, version)
             });
         }
@@ -5309,7 +5325,7 @@ impl ShareGroup {
         }
         *self.hb_deadline.lock() = None;
         self.finish_inflight_share_fetches(deadline).await;
-        let (set, prepare_error) = self.spawn_final_share_acks(deadline);
+        let (set, prepare_error) = self.spawn_final_share_acks(deadline).await;
         let close = Self::finish_final_share_acks(set, prepare_error);
         let out = self.leave_coordinator(deadline);
         let (close, out) = tokio::join!(close, out);
@@ -7721,6 +7737,49 @@ mod dial_tests {
             open.load(Ordering::SeqCst),
             0,
             "leaving a share group left the leader blocked in a read"
+        );
+        peer.abort();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn finishing_a_share_acknowledgement_lets_the_broker_leave() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use tokio::io::AsyncReadExt;
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let open = Arc::new(AtomicUsize::new(0));
+        let flag = Arc::clone(&open);
+        let peer = tokio::spawn(async move {
+            let Ok((mut socket, _)) = listener.accept().await else {
+                return;
+            };
+            let _started = flag.fetch_add(1, Ordering::SeqCst);
+            let mut buf = [0u8; 8];
+            loop {
+                match socket.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let conn = BrokerConn::connect(&addr, "share-ack-done", Duration::from_secs(2))
+            .await
+            .unwrap();
+        while open.load(Ordering::SeqCst) == 0 {
+            tokio::task::yield_now().await;
+        }
+        finish_share_peer(ShareNodeConnection {
+            conn,
+            fetch_version: 0,
+            acknowledge_version: 0,
+        })
+        .await;
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "finishing a share acknowledgement left the broker blocked in a read"
         );
         peer.abort();
     }
