@@ -3284,7 +3284,13 @@
 //! `handleShareFetchSuccess` only `requestUpdate`s for
 //! `UNKNOWN_TOPIC_ID`; this is not top-level
 //! `SASL_AUTHENTICATION_FAILED`). Official Java `DelegationTokenControlManager` writes
-//! this when a delegation token request runs with token auth disabled. Partition
+//! this when a delegation token request runs with token auth disabled. Top-level
+//! `DELEGATION_TOKEN_NOT_FOUND` still fails that poll without
+//! Metadata, including when `ErrorMessage` is set (Java
+//! `handleShareFetchSuccess` only `requestUpdate`s for
+//! `UNKNOWN_TOPIC_ID`; this is not top-level
+//! `DELEGATION_TOKEN_AUTH_DISABLED`). Official Java `DelegationTokenControlManager` writes
+//! this when a requested delegation token is not found on the server. Partition
 //! `INCONSISTENT_TOPIC_ID` / `UNKNOWN_TOPIC_OR_PARTITION` /
 //! `UNKNOWN_TOPIC_ID` / `REPLICA_NOT_AVAILABLE` /
 //! `OFFSET_NOT_AVAILABLE` / `KAFKA_STORAGE_ERROR` skip without throwing,

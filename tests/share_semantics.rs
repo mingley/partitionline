@@ -62565,6 +62565,44 @@ async fn share_fetch_top_level_delegation_token_auth_disabled_empty_message_fail
 }
 
 #[tokio::test]
+async fn share_fetch_top_level_delegation_token_not_found_message_fails_without_metadata() {
+    let mock = common::Mock::start().await;
+    v2(&mock);
+    produce(&mock, &[(0, b"keep")]).await;
+    let mut group = ShareGroup::join(config(&mock), "fetch-dtnf-top-msg", "t")
+        .await
+        .unwrap();
+    let version = mock.last_share_fetch_version().unwrap_or(2);
+    let mut injected = BytesMut::new();
+    encode_share_fetch_error_with_message(
+        &mut injected,
+        version,
+        error::DELEGATION_TOKEN_NOT_FOUND,
+        Some("delegation token not found"),
+    )
+    .unwrap();
+    mock.inject_share_fetch_response_once(&injected);
+    match group.poll().await.unwrap_err() {
+        Error::Broker { code, message } => {
+            assert_eq!(code, error::DELEGATION_TOKEN_NOT_FOUND);
+            assert_eq!(message, "delegation token not found");
+        }
+        other => panic!("{other:?}"),
+    }
+    let after_err = mock.metadata_calls();
+    let got = group.poll().await.unwrap();
+    assert_eq!(got.len(), 1);
+    assert_eq!(got[0].value.as_deref(), Some(&b"keep"[..]));
+    assert_eq!(
+        mock.metadata_calls(),
+        after_err,
+        "Java handleShareFetchSuccess does not requestUpdate for top-level DELEGATION_TOKEN_NOT_FOUND"
+    );
+    group.accept(&got).await.unwrap();
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn share_fetch_top_level_unknown_topic_id_message_still_refreshes_topic_id() {
     let mock = common::Mock::start().await;
     v2(&mock);
