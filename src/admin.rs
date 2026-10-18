@@ -9914,16 +9914,43 @@ impl Admin {
         }
     }
 
+    async fn retire_admin_conn(mut conn: AdminOffsetConn) {
+        conn.inner.close();
+        conn.inner.release_if_closed().await;
+    }
+
     /// Cancel leader dials and RPCs that did not finish and wait until they stop.
     ///
-    /// Abort only schedules cancellation. On a current-thread runtime a read
-    /// stays inside the broker until this caller yields.
-    async fn stop_leader_exchange<D: 'static, R: 'static>(
-        dialing: tokio::task::JoinSet<D>,
-        rpcing: tokio::task::JoinSet<R>,
+    /// Abort only schedules cancellation. A dial or RPC that already finished
+    /// still owns its socket, so that socket is shut down before this returns.
+    async fn stop_leader_exchange(
+        mut dialing: tokio::task::JoinSet<(i32, Result<AdminOffsetConn>)>,
+        mut rpcing: tokio::task::JoinSet<(i32, i16, AdminOffsetConn, Result<Bytes>)>,
     ) {
-        Self::finish_aborted_handshakes(dialing).await;
-        Self::finish_aborted_handshakes(rpcing).await;
+        dialing.abort_all();
+        rpcing.abort_all();
+        let mut extra = 0u32;
+        while !dialing.is_empty() || !rpcing.is_empty() {
+            tokio::select! {
+                biased;
+                joined = dialing.join_next(), if !dialing.is_empty() => {
+                    if let Some(Ok((_, Ok(conn)))) = joined {
+                        Self::retire_admin_conn(conn).await;
+                    }
+                }
+                joined = rpcing.join_next(), if !rpcing.is_empty() => {
+                    if let Some(Ok((_, _, conn, _))) = joined {
+                        Self::retire_admin_conn(conn).await;
+                    }
+                }
+                () = tokio::task::yield_now() => {
+                    extra = extra.saturating_add(1);
+                    if extra >= 8 {
+                        break;
+                    }
+                }
+            }
+        }
     }
 
     /// Dial one stalled leader and return once that handshake has stopped.
@@ -16297,6 +16324,58 @@ mod tests {
         drop(opened);
         first_peer.abort();
         second_peer.abort();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn stopping_a_finished_admin_rpc_lets_the_broker_leave() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use tokio::io::AsyncReadExt;
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let open = Arc::new(AtomicUsize::new(0));
+        let flag = Arc::clone(&open);
+        let peer = tokio::spawn(async move {
+            let Ok((mut socket, _)) = listener.accept().await else {
+                return;
+            };
+            let _started = flag.fetch_add(1, Ordering::SeqCst);
+            let mut buf = [0u8; 8];
+            loop {
+                match socket.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let conn = BrokerConn::connect(&addr, "admin-rpc", Duration::from_secs(2))
+            .await
+            .unwrap();
+        while open.load(Ordering::SeqCst) == 0 {
+            tokio::task::yield_now().await;
+        }
+        let held = offsets::AdminOffsetConn::test_holding(conn);
+        let mut rpcing = tokio::task::JoinSet::new();
+        let _ = rpcing.spawn(async move {
+            (
+                1i32,
+                0i16,
+                held,
+                Ok::<bytes::Bytes, crate::Error>(bytes::Bytes::new()),
+            )
+        });
+        for _ in 0..8 {
+            tokio::task::yield_now().await;
+        }
+        let dialing = tokio::task::JoinSet::<(i32, Result<offsets::AdminOffsetConn>)>::new();
+        Admin::stop_leader_exchange(dialing, rpcing).await;
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "stopping a finished admin rpc left the broker blocked in a read"
+        );
+        peer.abort();
     }
 
     #[tokio::test(flavor = "current_thread")]
