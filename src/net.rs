@@ -884,7 +884,7 @@ impl AsyncWrite for ConnIo {
 enum IdleRead {
     Eof,
     Busy,
-    Data,
+    Data(usize),
 }
 
 /// Notice a broker that stops writing while the owner is not reading.
@@ -901,6 +901,9 @@ fn spawn_idle_watch(
 ) -> tokio::task::AbortHandle {
     tokio::spawn(async move {
         let mut buf = [0u8; 1024];
+        // Yield often enough that a ready flood cannot hold the runtime, and
+        // rarely enough that a full unsolicited frame still reaches its cap.
+        let mut since_yield = 0usize;
         loop {
             if closed.load(Ordering::SeqCst) {
                 if let Ok(mut io) = stream.try_lock() {
@@ -933,9 +936,9 @@ fn spawn_idle_watch(
                                 Poll::Ready(IdleRead::Eof)
                             } else if let Some(chunk) = buf.get(..filled) {
                                 prefetch.lock().extend_from_slice(chunk);
-                                Poll::Ready(IdleRead::Data)
+                                Poll::Ready(IdleRead::Data(filled))
                             } else {
-                                Poll::Ready(IdleRead::Data)
+                                Poll::Ready(IdleRead::Data(0))
                             }
                         }
                     }
@@ -950,7 +953,7 @@ fn spawn_idle_watch(
                                 _ = tokio::time::sleep(Duration::from_millis(20)) => {}
                             }
                         }
-                        IdleRead::Data => {
+                        IdleRead::Data(n) => {
                             // An idle socket has no request in flight. More
                             // than one max frame is not a response waiting
                             // for the owner. Shut the socket down instead of
@@ -968,6 +971,13 @@ fn spawn_idle_watch(
                                 }
                                 arm.notify_one();
                                 return;
+                            }
+                            // A ready flood never leaves this read, so a caller
+                            // beside the watch cannot run until the cap is reached.
+                            since_yield = since_yield.saturating_add(n);
+                            if since_yield >= 8 * 1024 {
+                                since_yield = 0;
+                                tokio::task::yield_now().await;
                             }
                         }
                         IdleRead::Eof => {
@@ -2907,6 +2917,34 @@ mod tests {
     use std::time::Duration;
     use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt, ReadBuf};
     use tokio::net::TcpListener;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn a_ready_idle_flood_does_not_hold_the_caller() {
+        let body = vec![5u8; 64 * 1024];
+        let stream = Arc::new(tokio::sync::Mutex::new(ConnIo::Script(ScriptIo {
+            body,
+            pos: 0,
+            chunk: usize::MAX,
+            pause: Duration::from_millis(2),
+        })));
+        let prefetch = Arc::new(parking_lot::Mutex::new(BytesMut::new()));
+        let closed = Arc::new(AtomicBool::new(false));
+        let arm = Arc::new(tokio::sync::Notify::new());
+        let watch = spawn_idle_watch(
+            Arc::clone(&stream),
+            Arc::clone(&prefetch),
+            Arc::clone(&closed),
+            Arc::clone(&arm),
+        );
+        let started = std::time::Instant::now();
+        tokio::time::sleep(Duration::from_millis(30)).await;
+        let elapsed = started.elapsed();
+        watch.abort();
+        assert!(
+            elapsed < Duration::from_millis(80),
+            "a ready idle flood held the caller for {elapsed:?}"
+        );
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn a_ready_frame_stops_for_a_deadline() {
