@@ -2650,7 +2650,7 @@
 //! a voter id that is already part of the set of voters.
 //! A piggybacked
 //! `VOTER_NOT_FOUND` still completes without retry,
-//! including when `AcknowledgeErrorMessage` is set (this is not
+//! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `VOTER_NOT_FOUND`, which fails that poll, and not
 //! piggyback `DUPLICATE_VOTER`). Official Java
 //! `RemoveVoterHandler` writes this when RemoveRaftVoter cannot
