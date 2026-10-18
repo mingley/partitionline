@@ -2153,6 +2153,13 @@ pub enum ShareAcquireMode {
 /// `OUT_OF_ORDER_SEQUENCE_NUMBER`). Official Java `ProducerAppendInfo` writes
 /// this when an idempotent produce batch uses a producer epoch older
 /// than the current epoch for that producerId.
+/// Top-level `INVALID_TXN_STATE` still fails that poll
+/// and does not request Metadata, including when `ErrorMessage` is
+/// set (Java `handleShareFetchSuccess` only `requestUpdate`s for
+/// `UNKNOWN_TOPIC_ID`; this is not top-level
+/// `INVALID_PRODUCER_EPOCH`). Official Java `UnifiedLog` writes
+/// this when a transactional produce batch is not part of an
+/// ongoing transaction.
 /// Top-level
 /// `SHARE_SESSION_LIMIT_REACHED` resets the share session and does
 /// not request Metadata, including when `ErrorMessage` is set or
@@ -4840,6 +4847,13 @@ impl ShareGroup {
     /// `OUT_OF_ORDER_SEQUENCE_NUMBER`). Official Java `ProducerAppendInfo`
     /// writes this when an idempotent produce batch uses a producer
     /// epoch older than the current epoch for that producerId. Top-level
+    /// `INVALID_TXN_STATE` still fails that poll without
+    /// Metadata, including when `ErrorMessage` is set (Java
+    /// `handleShareFetchSuccess` only `requestUpdate`s for
+    /// `UNKNOWN_TOPIC_ID`; this is not top-level
+    /// `INVALID_PRODUCER_EPOCH`). Official Java `UnifiedLog`
+    /// writes this when a transactional produce batch is not part of
+    /// an ongoing transaction. Top-level
     /// `SHARE_SESSION_LIMIT_REACHED` resets the share session and
     /// does not request Metadata, including when `ErrorMessage` is
     /// set or empty (Java `handleShareFetchSuccess` only
