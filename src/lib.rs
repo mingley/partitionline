@@ -3228,7 +3228,7 @@
 //! this when a record timestamp is outside the acceptable range.
 //! Top-level ShareAcknowledge `UNSUPPORTED_SASL_MECHANISM` completes
 //! without retry and does not request Metadata, including when
-//! `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+//! `ErrorMessage` is set or empty (Java `handleShareAcknowledgeSuccess` has no
 //! `metadata.requestUpdate`; this is not top-level
 //! `INVALID_TIMESTAMP`). Official Java `SaslServerAuthenticator` writes
 //! this when the client SASL mechanism is not enabled on the broker.
