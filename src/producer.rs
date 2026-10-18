@@ -7553,7 +7553,7 @@ impl Worker {
         }
 
         if acks == 0 {
-            complete_acks0(&self.shared, groups, &mut self.ack_tracker);
+            complete_acks0(&self.shared, groups, &mut self.ack_tracker).await;
             return Ok(());
         }
         self.in_flight.push_back(InFlight {
@@ -7876,7 +7876,8 @@ impl Worker {
                         let mut pendings = pendings;
                         let n = u64::try_from(pendings.len()).unwrap_or(u64::MAX);
                         self.shared.retire_sticky(&pendings, false);
-                        self.shared.release_buffer(pendings_bytes(&pendings));
+                        self.shared
+                            .release_buffer(sum_pending_bytes(&pendings).await);
                         let tracker = self
                             .shared
                             .topic_tracker_cached(&mut self.ack_tracker, &topic);
@@ -7888,36 +7889,39 @@ impl Worker {
                             .first()
                             .map(|p| ack_latency_ns(ack, p.queued_at))
                             .unwrap_or(0);
-                        let mut lat_n = 0u64;
-                        let mut lat_sum = 0u64;
-                        let mut lat_min = u64::MAX;
-                        let mut lat_max = 0u64;
+                        let (lat_n, lat_sum, lat_min, lat_max) =
+                            fold_queued_latency(&pendings, ack).await;
                         let mut stamped = None;
-                        for (i, p) in pendings.drain(..).enumerate() {
-                            let ns = ack_latency_ns(ack, p.queued_at);
-                            lat_n += 1;
-                            lat_sum = lat_sum.saturating_add(ns);
-                            lat_min = lat_min.min(ns);
-                            lat_max = lat_max.max(ns);
-                            // KL09-16: build ack metadata only when a
-                            // caller oneshot or an interceptor consumes it.
-                            if p.tx.is_none() && self.shared.interceptors.is_empty() {
-                                continue;
-                            }
-                            let batch_index = i32::try_from(i).unwrap_or(i32::MAX);
-                            let now = *stamped.get_or_insert_with(now_ms);
-                            let md = record_metadata(
-                                &topic,
-                                part,
-                                r.base_offset,
-                                batch_index,
-                                &p.rec,
-                                r.log_append_time_ms,
-                                now,
-                            );
-                            self.shared.interceptors.on_ack(&md);
-                            if let Some(tx) = p.tx {
-                                drop(tx.send(Ok(md)));
+                        let chunks = detach_pending_chunks(&mut pendings).await;
+                        let mut index = 0usize;
+                        let mut walked = 0usize;
+                        for chunk in chunks {
+                            for p in chunk {
+                                // KL09-16: build ack metadata only when a
+                                // caller oneshot or an interceptor consumes it.
+                                if p.tx.is_some() || !self.shared.interceptors.is_empty() {
+                                    let batch_index = i32::try_from(index).unwrap_or(i32::MAX);
+                                    let now = *stamped.get_or_insert_with(now_ms);
+                                    let md = record_metadata(
+                                        &topic,
+                                        part,
+                                        r.base_offset,
+                                        batch_index,
+                                        &p.rec,
+                                        r.log_append_time_ms,
+                                        now,
+                                    );
+                                    self.shared.interceptors.on_ack(&md);
+                                    if let Some(tx) = p.tx {
+                                        drop(tx.send(Ok(md)));
+                                    }
+                                }
+                                index = index.saturating_add(1);
+                                walked = walked.saturating_add(1);
+                                if walked == 8 * 1024 {
+                                    walked = 0;
+                                    tokio::task::yield_now().await;
+                                }
                             }
                         }
                         self.shared.note_ack_latency_on(
@@ -10048,14 +10052,14 @@ async fn write_uncompressed_pendings(
     Ok(())
 }
 
-fn complete_acks0(
+async fn complete_acks0(
     shared: &Shared,
     groups: impl IntoIterator<Item = (Arc<str>, i32, Vec<Pending>)>,
     ack_tracker: &mut Option<(Arc<str>, Arc<crate::metrics::ProduceTopicTracker>)>,
 ) {
-    for (topic, part, pendings) in groups {
+    for (topic, part, mut pendings) in groups {
         shared.retire_sticky(&pendings, false);
-        shared.release_buffer(pendings_bytes(&pendings));
+        shared.release_buffer(sum_pending_bytes(&pendings).await);
         let n = u64::try_from(pendings.len()).unwrap_or(u64::MAX);
         let tracker = shared.topic_tracker_cached(ack_tracker, &topic);
         shared.note_acked_on(&tracker, n);
@@ -10066,35 +10070,30 @@ fn complete_acks0(
             .first()
             .map(|p| ack_latency_ns(ack, p.queued_at))
             .unwrap_or(0);
-        let mut lat_n = 0u64;
-        let mut lat_sum = 0u64;
-        let mut lat_min = u64::MAX;
-        let mut lat_max = 0u64;
+        let (lat_n, lat_sum, lat_min, lat_max) = fold_queued_latency(&pendings, ack).await;
         let mut stamped = None;
-        for p in pendings {
-            let ns = ack_latency_ns(ack, p.queued_at);
-            lat_n += 1;
-            lat_sum = lat_sum.saturating_add(ns);
-            lat_min = lat_min.min(ns);
-            lat_max = lat_max.max(ns);
-            // KL09-16: build ack metadata only when a caller oneshot
-            // or an interceptor consumes it.
-            if p.tx.is_none() && shared.interceptors.is_empty() {
-                continue;
-            }
-            let now = *stamped.get_or_insert_with(now_ms);
-            let md = record_metadata(
-                &topic,
-                part,
-                RecordMetadata::INVALID_OFFSET,
-                0,
-                &p.rec,
-                RecordBatch::NO_TIMESTAMP,
-                now,
-            );
-            shared.interceptors.on_ack(&md);
-            if let Some(tx) = p.tx {
-                drop(tx.send(Ok(md)));
+        let chunks = detach_pending_chunks(&mut pendings).await;
+        for chunk in chunks {
+            for p in chunk {
+                // KL09-16: build ack metadata only when a caller oneshot
+                // or an interceptor consumes it.
+                if p.tx.is_none() && shared.interceptors.is_empty() {
+                    continue;
+                }
+                let now = *stamped.get_or_insert_with(now_ms);
+                let md = record_metadata(
+                    &topic,
+                    part,
+                    RecordMetadata::INVALID_OFFSET,
+                    0,
+                    &p.rec,
+                    RecordBatch::NO_TIMESTAMP,
+                    now,
+                );
+                shared.interceptors.on_ack(&md);
+                if let Some(tx) = p.tx {
+                    drop(tx.send(Ok(md)));
+                }
             }
         }
         shared.note_ack_latency_on(
@@ -10108,6 +10107,30 @@ fn complete_acks0(
             },
         );
     }
+}
+
+/// Fold per-record ack latency without touching atomics.
+///
+/// A long batch pauses between slices.
+async fn fold_queued_latency(pendings: &[Pending], ack: Instant) -> (u64, u64, u64, u64) {
+    let mut lat_n = 0u64;
+    let mut lat_sum = 0u64;
+    let mut lat_min = u64::MAX;
+    let mut lat_max = 0u64;
+    let mut walked = 0usize;
+    for pending in pendings {
+        let ns = ack_latency_ns(ack, pending.queued_at);
+        lat_n += 1;
+        lat_sum = lat_sum.saturating_add(ns);
+        lat_min = lat_min.min(ns);
+        lat_max = lat_max.max(ns);
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    (lat_n, lat_sum, lat_min, lat_max)
 }
 
 fn fail_groups(
@@ -11246,6 +11269,32 @@ mod tests {
         assert!(
             watch.is_finished(),
             "dropping the last handle left the worker running"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn folding_many_ack_latencies_does_not_hold_the_caller() {
+        // 4_000_000 records: folding ack latency held the caller 228ms.
+        let topic: Arc<str> = Arc::from("orders");
+        let queued_at = Instant::now();
+        let mut batch = Vec::with_capacity(4_000_000);
+        for _ in 0..4_000_000 {
+            let mut pending = queued("orders", Some(0));
+            pending.rec.topic = Arc::clone(&topic);
+            pending.queued_at = queued_at;
+            batch.push(pending);
+        }
+        let started = std::time::Instant::now();
+        tokio::select! {
+            (n, _, _, _) = fold_queued_latency(&batch, queued_at) => {
+                assert_eq!(n, 4_000_000);
+            }
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "folding ack latency held the caller for {elapsed:?}"
         );
     }
 
