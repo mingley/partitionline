@@ -411,8 +411,15 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   without retry and does not request Metadata, including when
   `ErrorMessage` is set or empty (Java `handleShareAcknowledgeSuccess` has no
   `metadata.requestUpdate`; this is not top-level
-  `TOPIC_DELETION_DISABLED`). Official Java `ProduceRequest` writes
+  `TOPIC_DELETION_DISABLED`).   Official Java `ProduceRequest` writes
   this when a Produce version below 7 uses ZSTD compression.
+  A top-level ShareAcknowledge `STALE_BROKER_EPOCH` completes
+  without retry and does not request Metadata, including when
+  `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+  `metadata.requestUpdate`; this is not top-level
+  `UNSUPPORTED_COMPRESSION_TYPE`). Official Java
+  `QuorumController.processBrokerHeartbeat` writes this when the
+  broker epoch has changed.
   A piggybacked ShareFetch
   `AcknowledgeErrorMessage` that is empty uses
   `ShareFetch acknowledgement {topic}-{partition}`. A piggybacked
