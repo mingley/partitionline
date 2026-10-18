@@ -5790,18 +5790,23 @@ impl Consumer {
             set.abort_all();
             let mut extra = 0u32;
             while !set.is_empty() {
-                if extra >= 8 {
-                    break;
-                }
-                extra = extra.saturating_add(1);
                 tokio::select! {
                     biased;
                     joined = set.join_next() => {
-                        if joined.is_none() {
+                        let Some(joined) = joined else {
+                            break;
+                        };
+                        if let Ok((_, mut conn, _)) = joined {
+                            conn.close();
+                            conn.release_if_closed().await;
+                        }
+                    }
+                    () = tokio::task::yield_now() => {
+                        extra = extra.saturating_add(1);
+                        if extra >= 8 {
                             break;
                         }
                     }
-                    () = tokio::task::yield_now() => {}
                 }
             }
         }
@@ -13878,6 +13883,89 @@ mod tests {
             open.load(Ordering::SeqCst),
             0,
             "abandoning a finished fetch left the broker blocked in a read"
+        );
+        peer.abort();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn a_wakeup_drops_a_finished_fetch_and_lets_the_broker_leave() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use std::sync::Arc;
+        use tokio::io::AsyncReadExt;
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let open = Arc::new(AtomicUsize::new(0));
+        let flag = Arc::clone(&open);
+        let peer = tokio::spawn(async move {
+            let mut first = true;
+            loop {
+                let Ok((mut socket, _)) = listener.accept().await else {
+                    return;
+                };
+                if first {
+                    first = false;
+                    let flag = Arc::clone(&flag);
+                    let _started = flag.fetch_add(1, Ordering::SeqCst);
+                    let _reader = tokio::spawn(async move {
+                        let mut buf = [0u8; 8];
+                        loop {
+                            match socket.read(&mut buf).await {
+                                Ok(0) | Err(_) => break,
+                                Ok(_) => continue,
+                            }
+                        }
+                        let _left = flag.fetch_sub(1, Ordering::SeqCst);
+                    });
+                } else {
+                    let _held = tokio::spawn(async move {
+                        let mut buf = [0u8; 8];
+                        loop {
+                            match socket.read(&mut buf).await {
+                                Ok(0) | Err(_) => break,
+                                Ok(_) => continue,
+                            }
+                        }
+                    });
+                }
+            }
+        });
+        let leader = BrokerConn::connect(&addr, "wakeup-fetch", Duration::from_secs(2))
+            .await
+            .unwrap();
+        while open.load(Ordering::SeqCst) == 0 {
+            tokio::task::yield_now().await;
+        }
+        let holding = BrokerConn::connect(&addr, "wakeup-holder", Duration::from_secs(2))
+            .await
+            .unwrap();
+        let mut set = tokio::task::JoinSet::new();
+        let _ = set.spawn(async move {
+            (
+                FetchReply {
+                    node: 1,
+                    version: 4,
+                    received_at: Instant::now(),
+                    body: Ok(bytes::Bytes::new()),
+                },
+                leader,
+                SessionFetchRequest {
+                    metadata: crate::protocol::fetch::FetchMetadata::INITIAL,
+                    topics: Vec::new(),
+                    forgotten: Vec::new(),
+                },
+            )
+        });
+        for _ in 0..8 {
+            tokio::task::yield_now().await;
+        }
+        let mut consumer = Consumer::test_holding(ConsumerConfig::default(), holding);
+        consumer.inflight_fetches = Some(set);
+        consumer.finish_cancelled_fetches().await;
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "a wakeup left a finished fetch broker blocked in a read"
         );
         peer.abort();
     }
