@@ -3936,9 +3936,7 @@ impl Consumer {
         }
         let old_ids = std::mem::take(&mut self.assigned_topic_ids);
         let mut old_assigned = PartitionMap::new();
-        for (topic, partition, offset) in &self.assigned {
-            let _previous = old_assigned.insert_shared(topic, *partition, *offset);
-        }
+        Self::extend_assigned_rows(&mut old_assigned, &self.assigned, |offset| offset).await;
         let previous_assigned = std::mem::take(&mut self.assigned);
         self.cursor_index = None;
         self.cursor_slots = None;
@@ -9755,10 +9753,14 @@ impl Consumer {
         let _state = self.aborted.remove(topic, partition);
     }
 
-    async fn extend_assigned_marks(map: &mut PartitionMap<()>, assigned: &[(Arc<str>, i32, i64)]) {
+    async fn extend_assigned_rows<V: Copy>(
+        map: &mut PartitionMap<V>,
+        assigned: &[(Arc<str>, i32, i64)],
+        value_of: fn(i64) -> V,
+    ) {
         let mut walked = 0usize;
-        for (topic, partition, _) in assigned {
-            let _previous = map.insert_shared(topic, *partition, ());
+        for (topic, partition, offset) in assigned {
+            let _previous = map.insert_shared(topic, *partition, value_of(*offset));
             walked = walked.saturating_add(1);
             if walked == 8 * 1024 {
                 walked = 0;
@@ -9769,7 +9771,7 @@ impl Consumer {
 
     async fn retain_pending_assigned(&mut self) {
         let mut assigned = PartitionMap::new();
-        Self::extend_assigned_marks(&mut assigned, &self.assigned).await;
+        Self::extend_assigned_rows(&mut assigned, &self.assigned, |_| ()).await;
         self.buffered_bytes = self
             .buffered_bytes
             .saturating_sub(self.pending.retain_assigned(&assigned));
@@ -11626,10 +11628,10 @@ mod tests {
         let assigned: Vec<(Arc<str>, i32, i64)> = (0..2_000_000)
             .map(|partition| (Arc::clone(&topic), partition, 0))
             .collect();
-        let mut marks = PartitionMap::new();
+        let mut marks: PartitionMap<i64> = PartitionMap::new();
         let started = std::time::Instant::now();
         tokio::select! {
-            () = Consumer::extend_assigned_marks(&mut marks, &assigned) => {}
+            () = Consumer::extend_assigned_rows(&mut marks, &assigned, |offset| offset) => {}
             () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
         }
         let elapsed = started.elapsed();
