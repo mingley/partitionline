@@ -132,6 +132,15 @@ fn retryable(err: &Error) -> bool {
         || err.broker_code().is_some_and(error::coordinator_retriable)
 }
 
+/// Shut an offset coordinator down before the next group is dialed.
+///
+/// Dropping the connection aborts its idle watch, so the broker stays in its
+/// read until that watch is scheduled.
+async fn retire_offset_conn(mut conn: BrokerConn) {
+    conn.close();
+    conn.release_if_closed().await;
+}
+
 impl OffsetClient {
     pub(crate) fn set_stats(&mut self, stats: std::sync::Arc<crate::metrics::AdminTracker>) {
         self.stats = Some(stats);
@@ -724,7 +733,7 @@ impl OffsetClient {
         if order.iter().any(|(address, _)| address == &bootstrap_addr) {
             let _prev = ready.insert(bootstrap_addr, Ok((bootstrap, bootstrap_version)));
         } else {
-            drop(bootstrap);
+            retire_offset_conn(bootstrap).await;
         }
         let mut in_use = 0usize;
         let cfg = self.cfg.clone();
@@ -896,7 +905,7 @@ impl OffsetClient {
                         Some(group);
                 }
                 deadline.check_expired()?;
-                drop(conn);
+                retire_offset_conn(conn).await;
                 in_use = 0;
                 while next_dial < order.len() && dialing.len() + ready.len() + in_use < 2 {
                     if order
@@ -1253,6 +1262,48 @@ fn validate_fetch_response(
 mod tests {
     use super::{collect_bounded_commits, collect_bounded_partitions};
     use crate::consumer::{OffsetAndMetadata, TopicPartition};
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn finishing_an_offset_fetch_lets_the_broker_leave() {
+        use super::retire_offset_conn;
+        use crate::net::BrokerConn;
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use std::sync::Arc;
+        use std::time::Duration;
+        use tokio::io::AsyncReadExt;
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let open = Arc::new(AtomicUsize::new(0));
+        let flag = Arc::clone(&open);
+        let peer = tokio::spawn(async move {
+            let Ok((mut socket, _)) = listener.accept().await else {
+                return;
+            };
+            let _started = flag.fetch_add(1, Ordering::SeqCst);
+            let mut buf = [0u8; 8];
+            loop {
+                match socket.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let conn = BrokerConn::connect(&addr, "offset-done", Duration::from_secs(2))
+            .await
+            .unwrap();
+        while open.load(Ordering::SeqCst) == 0 {
+            tokio::task::yield_now().await;
+        }
+        retire_offset_conn(conn).await;
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "finishing an offset fetch left the broker blocked in a read"
+        );
+        peer.abort();
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn offset_handshake_timeout_closes_the_socket() {
