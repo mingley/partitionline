@@ -690,7 +690,16 @@ where
                 "write pos past end",
             )));
         };
-        match Pin::new(&mut *stream).poll_write(cx, remaining) {
+        // One ready socket can accept the whole request. Offer one chunk so
+        // the write deadline runs before the rest is copied.
+        let offer = remaining.len().min(STALLED_WRITE_READ_CHUNK);
+        let Some(chunk) = remaining.get(..offer) else {
+            return Poll::Ready(Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "write pos past end",
+            )));
+        };
+        match Pin::new(&mut *stream).poll_write(cx, chunk) {
             Poll::Ready(Ok(0)) => Poll::Ready(Err(io::Error::new(
                 io::ErrorKind::WriteZero,
                 "broker write returned 0",
@@ -805,6 +814,10 @@ impl AsyncWrite for ScriptIo {
         _cx: &mut Context<'_>,
         buf: &[u8],
     ) -> Poll<io::Result<usize>> {
+        if !buf.is_empty() {
+            let units = u32::try_from(buf.len().div_ceil(1024)).unwrap_or(u32::MAX);
+            std::thread::sleep(self.pause.saturating_mul(units));
+        }
         Poll::Ready(Ok(buf.len()))
     }
 
@@ -2920,6 +2933,25 @@ mod tests {
         assert!(
             elapsed < Duration::from_millis(80),
             "a ready response held the deadline for {elapsed:?}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn a_ready_write_stops_for_a_deadline() {
+        let mut conn = BrokerConn::script_conn(Vec::new(), usize::MAX, Duration::from_millis(2));
+        let payload = vec![1u8; 64 * 1024];
+        let started = std::time::Instant::now();
+        let result = conn
+            .write_all_deadline(&payload, Deadline::from_timeout(Duration::from_millis(40)))
+            .await;
+        let elapsed = started.elapsed();
+        assert!(
+            matches!(result, Err(Error::Timeout)),
+            "a ready write finished in {elapsed:?} without the deadline"
+        );
+        assert!(
+            elapsed < Duration::from_millis(80),
+            "a ready write held the deadline for {elapsed:?}"
         );
     }
 
