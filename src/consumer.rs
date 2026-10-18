@@ -4924,9 +4924,11 @@ impl Consumer {
         deadline: Instant,
     ) -> Result<()> {
         let mut dials = Vec::new();
+        let mut dial_ids = HashSet::new();
+        let mut connected_seen: HashSet<i32> = connected.iter().copied().collect();
         let mut preferred_dials = HashSet::new();
         while let Some(node) = queue.pop() {
-            if connected.contains(&node) || dials.iter().any(|(id, _)| *id == node) {
+            if parallel_fetch_target_seen(&connected_seen, &dial_ids, node) {
                 continue;
             }
             if Instant::now() >= deadline {
@@ -4950,6 +4952,7 @@ impl Consumer {
             }
             if self.conns.contains_key(&node) {
                 connected.push(node);
+                let _ = connected_seen.insert(node);
                 continue;
             }
             let Some(addr) = self.cluster.brokers.get(&node).cloned() else {
@@ -4962,6 +4965,7 @@ impl Consumer {
             if preferred_only {
                 let _ = preferred_dials.insert(node);
             }
+            let _ = dial_ids.insert(node);
             dials.push((node, addr));
         }
         self.park_leaders(queue);
@@ -4988,6 +4992,7 @@ impl Consumer {
         let node_api_keys = self.node_api_keys.clone();
         let learned_broker_keys = self.learned_broker_keys.clone();
         let mut waiting: VecDeque<(i32, String)> = dials.into();
+        let mut waiting_ids: HashSet<i32> = waiting.iter().map(|(id, _)| *id).collect();
         let mut inflight = tokio::task::JoinSet::new();
         let mut inflight_ids = HashSet::new();
         let mut stop_scheduling = false;
@@ -5063,6 +5068,7 @@ impl Consumer {
             let Some((node, addr)) = waiting.pop_front() else {
                 break;
             };
+            let _ = waiting_ids.remove(&node);
             let _ = inflight_ids.insert(node);
             spawn(&mut inflight, node, addr);
         }
@@ -5109,6 +5115,7 @@ impl Consumer {
                     let _ = self.reconnect_fails.remove(&node);
                     self.remember_opened_conn(node, conn, &versions);
                     connected.push(node);
+                    let _ = connected_seen.insert(node);
                 }
                 Err(error) if preferred_dials.contains(&node) => {
                     self.note_reconnect_failure(node);
@@ -5120,14 +5127,14 @@ impl Consumer {
                     ) {
                         let leaders: Vec<i32> = by_leader.keys().copied().collect();
                         for leader in leaders {
-                            if connected.contains(&leader)
-                                || inflight_ids.contains(&leader)
-                                || waiting.iter().any(|(id, _)| *id == leader)
+                            if parallel_fetch_target_seen(&connected_seen, &inflight_ids, leader)
+                                || waiting_ids.contains(&leader)
                             {
                                 continue;
                             }
                             if self.conns.contains_key(&leader) {
                                 connected.push(leader);
+                                let _ = connected_seen.insert(leader);
                                 continue;
                             }
                             let Some(addr) = self.cluster.brokers.get(&leader).cloned() else {
@@ -5143,6 +5150,7 @@ impl Consumer {
                                 session.reset();
                             }
                             waiting.push_back((leader, addr));
+                            let _ = waiting_ids.insert(leader);
                         }
                     } else if matches!(error, Error::Timeout) {
                         stop_scheduling = true;
@@ -5169,6 +5177,7 @@ impl Consumer {
                 let Some((node, addr)) = waiting.pop_front() else {
                     break;
                 };
+                let _ = waiting_ids.remove(&node);
                 let _ = inflight_ids.insert(node);
                 spawn(&mut inflight, node, addr);
             }
@@ -5178,7 +5187,10 @@ impl Consumer {
                 break;
             }
             match self.connect_node_inner(node, false, deadline).await {
-                Ok(()) => connected.push(node),
+                Ok(()) => {
+                    connected.push(node);
+                    let _ = connected_seen.insert(node);
+                }
                 Err(Error::Timeout) => break,
                 Err(error) if error.is_retriable() => {}
                 Err(error) => return Err(error),
@@ -10514,6 +10526,10 @@ fn retained_topics_keep_their_table_when_a_paused_partition_stays() {
 }
 
 /// Reserve a fetch buffer from the previous poll's record count.
+fn parallel_fetch_target_seen(connected: &HashSet<i32>, tracked: &HashSet<i32>, node: i32) -> bool {
+    connected.contains(&node) || tracked.contains(&node)
+}
+
 fn enqueue_missing_leaders(
     queue: &mut Vec<i32>,
     queued: &mut HashSet<i32>,
@@ -11757,6 +11773,44 @@ mod tests {
     use std::collections::{HashMap, HashSet};
 
     use super::*;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn scheduling_many_parallel_dials_does_not_hold_the_caller() {
+        // 8_192 leaders: scanning dials held the caller 125ms. 20_000 held it 782ms.
+        let queue: Vec<i32> = (0..20_000).collect();
+        let connected = HashSet::from([7]);
+        let mut dial_ids = HashSet::new();
+        let mut dials = Vec::new();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            () = async {
+                for &node in queue.iter().rev() {
+                    if parallel_fetch_target_seen(&connected, &dial_ids, node) {
+                        continue;
+                    }
+                    let _ = dial_ids.insert(node);
+                    dials.push(node);
+                }
+                for &node in queue.iter().rev() {
+                    if parallel_fetch_target_seen(&connected, &dial_ids, node) {
+                        continue;
+                    }
+                    dials.push(node);
+                }
+            } => {
+                assert_eq!(dials.len(), 19_999);
+                assert_eq!(dials.first().copied(), Some(19_999));
+                assert!(!dials.contains(&7));
+                assert_eq!(dials.last().copied(), Some(0));
+            }
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "scheduling parallel dials held the caller for {elapsed:?}"
+        );
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn enqueueing_many_leaders_does_not_hold_the_caller() {
