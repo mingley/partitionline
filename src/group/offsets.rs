@@ -732,10 +732,12 @@ pub(super) async fn coord_offsets_v10(
         let known = super::KnownCoord::capture(coord)
             .with_bootstrap_keys(bootstrap_keys)
             .with_address_keys(address_keys);
-        *coord = Box::pin(super::rediscover_known_coord(
+        let replacement = Box::pin(super::rediscover_known_coord(
             &bounded, group_id, key_type, &known, prior,
         ))
         .await?;
+        let previous = std::mem::replace(coord, replacement);
+        super::retire_lookup_conn(previous).await;
         let picked = if api == crate::protocol::api_keys::OFFSET_FETCH {
             coord.offset_fetch_version
         } else {
