@@ -1805,7 +1805,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `DELEGATION_TOKEN_OWNER_MISMATCH`). Official Java `KafkaApis` writes
   this when a delegation token request arrives on PLAINTEXT, one-way SSL, or a token-authenticated channel.
   Top-level `DELEGATION_TOKEN_AUTHORIZATION_FAILED` still fails that poll
-  without Metadata, including when `ErrorMessage` is set (Java
+  without Metadata, including when `ErrorMessage` is set or empty (Java
   `handleShareFetchSuccess` only `requestUpdate`s for top-level
   `UNKNOWN_TOPIC_ID`; this is not top-level
   `DELEGATION_TOKEN_REQUEST_NOT_ALLOWED`). Official Java `KafkaApis` writes
