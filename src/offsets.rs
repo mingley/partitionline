@@ -1132,9 +1132,9 @@ pub(crate) fn collect_bounded_commits(
     let limits = OffsetLimits::default();
     let mut out = Vec::new();
     let mut strings = 0;
-    // Topic names stay on the commits. The slot list only remembers which
-    // commit owns each name.
-    let mut seen: Vec<(usize, HashSet<i32>)> = Vec::new();
+    // Topic names stay on the commits. The set only remembers which
+    // partitions were already accepted for each name.
+    let mut seen: HashMap<String, HashSet<i32>> = HashMap::new();
     for (tp, md) in offsets {
         if out.len() >= limits.array_elements {
             return Err(Error::protocol("too many committed partitions"));
@@ -1147,11 +1147,11 @@ pub(crate) fn collect_bounded_commits(
             ));
         }
         crate::protocol::group::Topic::validate(&tp.topic)?;
-        out.push((tp, md));
-        let index = out.len().saturating_sub(1);
-        if !claim_commit_topic(&mut seen, &out, index) {
+        if !claim_topic(&mut seen, tp.topic.as_str(), tp.partition) {
             return Err(Error::protocol("duplicate committed partition"));
         }
+        out.push((tp, md));
+        let index = out.len().saturating_sub(1);
         let Some((tp, md)) = out.get(index) else {
             return Err(Error::protocol("duplicate committed partition"));
         };
@@ -1172,7 +1172,7 @@ pub(crate) fn collect_bounded_partitions(
     let limits = OffsetLimits::default();
     let mut out = Vec::new();
     let mut strings = 0;
-    let mut seen: Vec<(usize, HashSet<i32>)> = Vec::new();
+    let mut seen: HashMap<String, HashSet<i32>> = HashMap::new();
     for partition in partitions {
         if out.len() >= limits.array_elements {
             return Err(Error::protocol("too many offset partitions"));
@@ -1184,11 +1184,11 @@ pub(crate) fn collect_bounded_partitions(
             ));
         }
         crate::protocol::group::Topic::validate(&partition.topic)?;
-        out.push(partition);
-        let index = out.len().saturating_sub(1);
-        if !claim_listed_topic(&mut seen, &out, index) {
+        if !claim_topic(&mut seen, partition.topic.as_str(), partition.partition) {
             return Err(Error::protocol("duplicate offset partition"));
         }
+        out.push(partition);
+        let index = out.len().saturating_sub(1);
         let Some(partition) = out.get(index) else {
             return Err(Error::protocol("duplicate offset partition"));
         };
@@ -1204,51 +1204,14 @@ pub(crate) fn collect_bounded_partitions(
     Ok(out)
 }
 
-/// Reject a repeated partition. `index` names the commit that already stores the topic.
-fn claim_commit_topic(
-    seen: &mut Vec<(usize, HashSet<i32>)>,
-    commits: &[(crate::TopicPartition, crate::OffsetAndMetadata)],
-    index: usize,
-) -> bool {
-    let Some(partition) = commits.get(index).map(|(tp, _)| tp.partition) else {
-        return false;
-    };
-    claim_named(seen, index, partition, |slot| {
-        commits.get(slot).map(|(tp, _)| tp.topic.as_str())
-    })
-}
-
-/// Reject a repeated partition. `index` names the partition that already stores the topic.
-fn claim_listed_topic(
-    seen: &mut Vec<(usize, HashSet<i32>)>,
-    partitions: &[crate::TopicPartition],
-    index: usize,
-) -> bool {
-    let Some(partition) = partitions.get(index).map(|tp| tp.partition) else {
-        return false;
-    };
-    claim_named(seen, index, partition, |slot| {
-        partitions.get(slot).map(|tp| tp.topic.as_str())
-    })
-}
-
-fn claim_named<'a>(
-    seen: &mut Vec<(usize, HashSet<i32>)>,
-    index: usize,
-    partition: i32,
-    name_at: impl Fn(usize) -> Option<&'a str>,
-) -> bool {
-    let found = seen
-        .iter()
-        .position(|(slot, _)| name_at(*slot) == name_at(index) && name_at(index).is_some());
-    if let Some(found) = found {
-        if let Some((_, parts)) = seen.get_mut(found) {
-            return parts.insert(partition);
-        }
+/// Reject a repeated `(topic, partition)`. The first copy of a topic name is kept.
+fn claim_topic(seen: &mut HashMap<String, HashSet<i32>>, topic: &str, partition: i32) -> bool {
+    if let Some(parts) = seen.get_mut(topic) {
+        return parts.insert(partition);
     }
     let mut parts = HashSet::new();
     let _ = parts.insert(partition);
-    seen.push((index, parts));
+    let _ = seen.insert(topic.to_owned(), parts);
     true
 }
 
@@ -1509,6 +1472,28 @@ mod tests {
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "validating offset commits held the caller for {elapsed:?}"
+        );
+    }
+
+    #[test]
+    fn collecting_many_distinct_commits_does_not_hold_the_caller() {
+        // 8,192 topics, one partition each: matching each name against earlier
+        // commits held the caller 606ms.
+        let commits: Vec<(TopicPartition, OffsetAndMetadata)> = (0..8_192)
+            .map(|index| {
+                (
+                    TopicPartition::new(format!("topic-{index}"), 0),
+                    OffsetAndMetadata::from_wire(1, -1, String::new()),
+                )
+            })
+            .collect();
+        let started = std::time::Instant::now();
+        let collected = collect_bounded_commits(commits).unwrap_or_else(|error| panic!("{error}"));
+        let elapsed = started.elapsed();
+        assert_eq!(collected.len(), 8_192);
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "collecting committed partitions held the caller for {elapsed:?}"
         );
     }
 
