@@ -472,9 +472,18 @@ impl<'a> IntoIterator for &'a ShareRecords {
 const SHARE_FETCH_RUNTIME_MAX_VERSION: i16 = 2;
 const SHARE_ACKNOWLEDGE_RUNTIME_MAX_VERSION: i16 = 2;
 
+#[derive(Default)]
+struct PartitionIndex {
+    /// Insertion order. Overlapping ranges stay in this order.
+    order: Vec<usize>,
+    /// `first` offset to run index while ranges on this partition do not overlap.
+    by_first: BTreeMap<i64, usize>,
+    overlapped: bool,
+}
+
 struct TopicRuns {
     runs: Vec<AcquisitionRun>,
-    by_partition: HashMap<i32, Vec<usize>>,
+    by_partition: HashMap<i32, PartitionIndex>,
 }
 
 impl TopicRuns {
@@ -494,12 +503,35 @@ impl TopicRuns {
     }
 
     fn reindex(&mut self) {
+        let snapshot: Vec<(i32, i64, i64)> = self
+            .runs
+            .iter()
+            .map(|run| (run.partition, run.first, run.last))
+            .collect();
         self.by_partition.clear();
-        for (index, run) in self.runs.iter().enumerate() {
-            self.by_partition
-                .entry(run.partition)
-                .or_default()
-                .push(index);
+        for (index, &(partition, first, _)) in snapshot.iter().enumerate() {
+            let part = self.by_partition.entry(partition).or_default();
+            part.order.push(index);
+            if part.overlapped {
+                continue;
+            }
+            let pred = part
+                .by_first
+                .range(..=first)
+                .next_back()
+                .map(|(_, &pred)| pred);
+            let overlaps = part.by_first.contains_key(&first)
+                || pred.is_some_and(|pred| {
+                    snapshot
+                        .get(pred)
+                        .is_some_and(|&(_, _, prev_last)| prev_last >= first)
+                });
+            if overlaps {
+                part.overlapped = true;
+                part.by_first.clear();
+                continue;
+            }
+            let _ = part.by_first.insert(first, index);
         }
     }
 
@@ -545,16 +577,34 @@ fn remember_acquisition(
     let Some(topic_runs) = map.get_mut(topic.as_str()) else {
         return;
     };
+    if topic_runs
+        .by_partition
+        .get(&partition)
+        .is_some_and(|part| part.overlapped)
+    {
+        remember_overlapped(topic_runs, partition, offset, acquisition);
+    } else {
+        remember_indexed(topic_runs, partition, offset, acquisition);
+    }
+}
+
+fn remember_overlapped(
+    topic_runs: &mut TopicRuns,
+    partition: i32,
+    offset: i64,
+    acquisition: Acquisition,
+) {
     let slots = topic_runs
         .by_partition
         .get(&partition)
-        .map(Vec::len)
+        .map(|part| part.order.len())
         .unwrap_or(0);
     for slot in 0..slots {
-        let Some(&index) = topic_runs
+        let Some(index) = topic_runs
             .by_partition
             .get(&partition)
-            .and_then(|indexes| indexes.get(slot))
+            .and_then(|part| part.order.get(slot))
+            .copied()
         else {
             break;
         };
@@ -571,10 +621,11 @@ fn remember_acquisition(
         }
     }
     for slot in 0..slots {
-        let Some(&index) = topic_runs
+        let Some(index) = topic_runs
             .by_partition
             .get(&partition)
-            .and_then(|indexes| indexes.get(slot))
+            .and_then(|part| part.order.get(slot))
+            .copied()
         else {
             break;
         };
@@ -591,10 +642,11 @@ fn remember_acquisition(
         }
     }
     for slot in 0..slots {
-        let Some(&index) = topic_runs
+        let Some(index) = topic_runs
             .by_partition
             .get(&partition)
-            .and_then(|indexes| indexes.get(slot))
+            .and_then(|part| part.order.get(slot))
+            .copied()
         else {
             break;
         };
@@ -611,10 +663,11 @@ fn remember_acquisition(
     }
     let mut cover = None;
     for slot in 0..slots {
-        let Some(&index) = topic_runs
+        let Some(index) = topic_runs
             .by_partition
             .get(&partition)
-            .and_then(|indexes| indexes.get(slot))
+            .and_then(|part| part.order.get(slot))
+            .copied()
         else {
             break;
         };
@@ -641,7 +694,130 @@ fn remember_acquisition(
         .by_partition
         .entry(partition)
         .or_default()
+        .order
         .push(index);
+}
+
+fn remember_indexed(
+    topic_runs: &mut TopicRuns,
+    partition: i32,
+    offset: i64,
+    acquisition: Acquisition,
+) {
+    let extend = topic_runs.by_partition.get(&partition).and_then(|part| {
+        part.by_first
+            .range(..offset)
+            .next_back()
+            .map(|(&first, &index)| (first, index))
+    });
+    if let Some((first, index)) = extend {
+        let can_extend = topic_runs.runs.get(index).is_some_and(|run| {
+            run.partition == partition
+                && run.last < i64::MAX
+                && run.last.saturating_add(1) == offset
+                && same_acquisition(&run.acquisition, &acquisition)
+        });
+        if can_extend {
+            if let Some(run) = topic_runs.runs.get_mut(index) {
+                run.last = offset;
+            }
+            let succ = topic_runs.by_partition.get(&partition).and_then(|part| {
+                part.by_first
+                    .range((first.saturating_add(1))..)
+                    .next()
+                    .map(|(&start, _)| start)
+            });
+            if succ.is_some_and(|start| start <= offset) {
+                if let Some(part) = topic_runs.by_partition.get_mut(&partition) {
+                    part.overlapped = true;
+                    part.by_first.clear();
+                }
+            }
+            return;
+        }
+    }
+    let prepend = if offset < i64::MAX {
+        topic_runs
+            .by_partition
+            .get(&partition)
+            .and_then(|part| part.by_first.get(&offset.saturating_add(1)).copied())
+    } else {
+        None
+    };
+    if let Some(index) = prepend {
+        let can_prepend = topic_runs.runs.get(index).is_some_and(|run| {
+            run.partition == partition
+                && run.first > i64::MIN
+                && run.first.saturating_sub(1) == offset
+                && same_acquisition(&run.acquisition, &acquisition)
+        });
+        if can_prepend {
+            let pred_overlaps = topic_runs
+                .by_partition
+                .get(&partition)
+                .and_then(|part| {
+                    part.by_first
+                        .range(..offset)
+                        .next_back()
+                        .map(|(_, &pred)| pred)
+                })
+                .is_some_and(|pred| {
+                    topic_runs
+                        .runs
+                        .get(pred)
+                        .is_some_and(|run| run.last >= offset)
+                });
+            let old_first = topic_runs.runs.get(index).map(|run| run.first);
+            if let Some(run) = topic_runs.runs.get_mut(index) {
+                run.first = offset;
+            }
+            if let Some(part) = topic_runs.by_partition.get_mut(&partition) {
+                if let Some(old_first) = old_first {
+                    let _ = part.by_first.remove(&old_first);
+                }
+                let _ = part.by_first.insert(offset, index);
+                if pred_overlaps {
+                    part.overlapped = true;
+                    part.by_first.clear();
+                }
+            }
+            return;
+        }
+    }
+    let cover = topic_runs.by_partition.get(&partition).and_then(|part| {
+        part.by_first
+            .range(..=offset)
+            .next_back()
+            .map(|(_, &index)| index)
+    });
+    if let Some(index) = cover {
+        let contained = topic_runs.runs.get(index).is_some_and(|run| {
+            run.partition == partition && run.first <= offset && offset <= run.last
+        });
+        if contained {
+            let same = topic_runs
+                .runs
+                .get(index)
+                .is_some_and(|run| same_acquisition(&run.acquisition, &acquisition));
+            if !same {
+                replace_acquired_offset(topic_runs, index, offset, acquisition);
+            }
+            return;
+        }
+    }
+    let index = topic_runs.runs.len();
+    topic_runs.runs.push(AcquisitionRun {
+        partition,
+        first: offset,
+        last: offset,
+        acquisition,
+    });
+    let part = topic_runs.by_partition.entry(partition).or_default();
+    part.order.push(index);
+    if part.by_first.insert(offset, index).is_some() {
+        part.overlapped = true;
+        part.by_first.clear();
+    }
 }
 
 fn replace_acquired_offset(
@@ -684,14 +860,19 @@ fn replace_acquired_offset(
 }
 
 fn acquisition_run(topic_runs: &TopicRuns, partition: i32, offset: i64) -> Option<&AcquisitionRun> {
-    let indexes = topic_runs.by_partition.get(&partition)?;
-    for &index in indexes {
-        let run = topic_runs.runs.get(index)?;
-        if run.partition == partition && run.first <= offset && offset <= run.last {
-            return Some(run);
+    let part = topic_runs.by_partition.get(&partition)?;
+    if part.overlapped {
+        for &index in &part.order {
+            let run = topic_runs.runs.get(index)?;
+            if run.partition == partition && run.first <= offset && offset <= run.last {
+                return Some(run);
+            }
         }
+        return None;
     }
-    None
+    let (&_first, &index) = part.by_first.range(..=offset).next_back()?;
+    let run = topic_runs.runs.get(index)?;
+    (run.partition == partition && run.first <= offset && offset <= run.last).then_some(run)
 }
 
 fn acquisition_at<'a>(
@@ -896,6 +1077,7 @@ fn count_covered_acquisitions(
         return 0;
     };
     indexes
+        .order
         .iter()
         .filter_map(|&index| topic_runs.runs.get(index))
         .map(|run| covered_len(run, sent))
@@ -6958,7 +7140,7 @@ mod tests {
                 expires_at: None,
             },
         });
-        let _ = runs.by_partition.insert(0, vec![0]);
+        runs.reindex();
         let mut map = AcquisitionMap::new();
         let _ = map.insert(topic.clone(), runs);
         let mut recs = Vec::with_capacity(2_000_000);
@@ -7116,6 +7298,39 @@ mod tests {
     }
 
     #[tokio::test(flavor = "current_thread")]
+    async fn remembering_gapped_acquisitions_does_not_hold_the_caller() {
+        // 20_000 gapped offsets on one partition held the caller 116s.
+        let topic = crate::consumer::TopicName::from("orders");
+        let stored = Acquisition {
+            node: 1,
+            delivery_count: 1,
+            expires_at: None,
+        };
+        let mut map = AcquisitionMap::new();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = async {
+                for offset in 0..2_000 {
+                    remember_acquisition(&mut map, &topic, 0, offset * 2, stored);
+                }
+            } => {
+                assert_eq!(map.get("orders").map(TopicRuns::len), Some(2_000));
+                assert_eq!(
+                    acquisition_at(&map, &topic, 0, 0).map(|found| found.delivery_count),
+                    Some(1)
+                );
+                assert!(acquisition_at(&map, &topic, 0, 1).is_none());
+            }
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "remembering gapped acquisitions held the caller for {elapsed:?}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
     async fn remembering_many_acquisitions_does_not_hold_the_caller() {
         // 20_000 partitions: scanning earlier runs held the caller 2.5s.
         // Recording 1_000_000 partitions without a pause held the caller 1.3s.
@@ -7136,6 +7351,29 @@ mod tests {
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "remembering share acquisitions held the caller for {elapsed:?}"
+        );
+    }
+
+    #[test]
+    fn an_overlapping_extend_keeps_the_earlier_acquisition() {
+        let topic = crate::consumer::TopicName::from("orders");
+        let mut map = AcquisitionMap::new();
+        let earlier = Acquisition {
+            node: 1,
+            delivery_count: 2,
+            expires_at: None,
+        };
+        let later = Acquisition {
+            node: 1,
+            delivery_count: 1,
+            expires_at: None,
+        };
+        remember_acquisition(&mut map, &topic, 0, 1, earlier);
+        remember_acquisition(&mut map, &topic, 0, 0, later);
+        remember_acquisition(&mut map, &topic, 0, 1, later);
+        assert_eq!(
+            acquisition_at(&map, &topic, 0, 1).map(|found| found.delivery_count),
+            Some(2)
         );
     }
 
