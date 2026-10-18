@@ -1515,6 +1515,13 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `UNSUPPORTED_SASL_MECHANISM`). Official Java `SaslServerAuthenticator`
   writes this when a request other than `SASL_AUTHENTICATE` arrives
   during SASL authentication.
+  Top-level `UNSUPPORTED_VERSION` still fails that poll
+  without Metadata, including when `ErrorMessage` is set (Java
+  `handleShareFetchSuccess` only `requestUpdate`s for top-level
+  `UNKNOWN_TOPIC_ID`; this is not top-level
+  `ILLEGAL_SASL_STATE`). Official Java `SaslServerAuthenticator` writes
+  this when an ApiVersions request version is unsupported during SASL
+  authentication.
   A non-empty
   throwable partition or top-level ShareFetch `ErrorMessage` is
   preferred; empty uses `ShareFetch {topic}-{partition}` or
