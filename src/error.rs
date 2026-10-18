@@ -538,6 +538,10 @@ pub const GROUP_DELETION_FAILED: i16 = 134;
 /// Kafka 4.0.0 `Errors` (4.0.0 ends at [`REBOOTSTRAP_REQUIRED`]); later
 /// Kafka names 135 for a topology description plugin set failure.
 pub const STREAMS_TOPOLOGY_DESCRIPTION_UPDATE_FAILED: i16 = 135;
+/// Kafka `CONTROLLER_ID_NOT_REGISTERED` (136). Not in Kafka 4.0.0
+/// `Errors` (4.0.0 ends at [`REBOOTSTRAP_REQUIRED`]); later Kafka names
+/// 136 for an unregistered controller id.
+pub const CONTROLLER_ID_NOT_REGISTERED: i16 = 136;
 
 /// Coordinator is loading, missing, or not this node. Rediscover and retry.
 pub fn coordinator_retriable(code: i16) -> bool {
@@ -559,8 +563,9 @@ pub fn consumer_group_describe_classic_fallback(code: i16) -> bool {
 /// The table is Kafka 4.0.0 `Errors` (`-1` through `129`) plus
 /// [`STREAMS_INVALID_TOPOLOGY`] (130),
 /// [`SHARE_SESSION_LIMIT_REACHED`] (133),
-/// [`GROUP_DELETION_FAILED`] (134), and
-/// [`STREAMS_TOPOLOGY_DESCRIPTION_UPDATE_FAILED`] (135).
+/// [`GROUP_DELETION_FAILED`] (134),
+/// [`STREAMS_TOPOLOGY_DESCRIPTION_UPDATE_FAILED`] (135), and
+/// [`CONTROLLER_ID_NOT_REGISTERED`] (136).
 #[must_use]
 pub fn error_name(code: i16) -> Option<&'static str> {
     Some(match code {
@@ -699,6 +704,7 @@ pub fn error_name(code: i16) -> Option<&'static str> {
         SHARE_SESSION_LIMIT_REACHED => "SHARE_SESSION_LIMIT_REACHED",
         GROUP_DELETION_FAILED => "GROUP_DELETION_FAILED",
         STREAMS_TOPOLOGY_DESCRIPTION_UPDATE_FAILED => "STREAMS_TOPOLOGY_DESCRIPTION_UPDATE_FAILED",
+        CONTROLLER_ID_NOT_REGISTERED => "CONTROLLER_ID_NOT_REGISTERED",
         _ => return None,
     })
 }
@@ -708,9 +714,10 @@ pub fn error_name(code: i16) -> Option<&'static str> {
 /// Names match Kafka 4.0.0 `Errors`. Unknown codes are
 /// `UNKNOWN_SERVER_ERROR`. [`STREAMS_INVALID_TOPOLOGY`] (130),
 /// [`SHARE_SESSION_LIMIT_REACHED`] (133),
-/// [`GROUP_DELETION_FAILED`] (134), and
-/// [`STREAMS_TOPOLOGY_DESCRIPTION_UPDATE_FAILED`] (135) are named for
-/// later Kafka; 4.0.0 `forCode` for those codes is `UNKNOWN_SERVER_ERROR`.
+/// [`GROUP_DELETION_FAILED`] (134),
+/// [`STREAMS_TOPOLOGY_DESCRIPTION_UPDATE_FAILED`] (135), and
+/// [`CONTROLLER_ID_NOT_REGISTERED`] (136) are named for later Kafka;
+/// 4.0.0 `forCode` for those codes is `UNKNOWN_SERVER_ERROR`.
 #[must_use]
 pub fn for_code(code: i16) -> &'static str {
     error_name(code).unwrap_or("UNKNOWN_SERVER_ERROR")
@@ -859,7 +866,12 @@ mod tests {
             for_code(STREAMS_TOPOLOGY_DESCRIPTION_UPDATE_FAILED),
             "STREAMS_TOPOLOGY_DESCRIPTION_UPDATE_FAILED"
         );
-        assert_eq!(for_code(136), "UNKNOWN_SERVER_ERROR");
+        assert_eq!(CONTROLLER_ID_NOT_REGISTERED, 136);
+        assert_eq!(
+            for_code(CONTROLLER_ID_NOT_REGISTERED),
+            "CONTROLLER_ID_NOT_REGISTERED"
+        );
+        assert_eq!(for_code(137), "UNKNOWN_SERVER_ERROR");
         let mut names = std::collections::HashSet::new();
         for code in -1_i16..=129 {
             let name = error_name(code).unwrap_or("");

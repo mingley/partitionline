@@ -944,6 +944,14 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   and not piggyback `GROUP_DELETION_FAILED`). Official
   Java `StreamsGroupTopologyDescriptionManager` writes this when
   `plugin.setTopology` fails during StreamsGroupTopologyDescriptionUpdate. A
+  piggybacked `CONTROLLER_ID_NOT_REGISTERED` still
+  completes without retry, including when `AcknowledgeErrorMessage` is
+  set (Java `handleShareFetchSuccess` completes piggyback acks and still
+  delivers the fetch; this is not partition `CONTROLLER_ID_NOT_REGISTERED`,
+  which fails that poll, and not piggyback
+  `STREAMS_TOPOLOGY_DESCRIPTION_UPDATE_FAILED`). Official
+  Java `ClusterControlManager` writes this when unregistering a
+  controller id that is not currently registered. A
   piggybacked `TOPIC_AUTHORIZATION_FAILED` on
   one partition does not fail a sibling whose `AcknowledgeErrorCode`
   is none, including when `AcknowledgeErrorMessage` is set or empty. A
