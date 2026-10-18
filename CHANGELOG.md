@@ -498,6 +498,13 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `metadata.requestUpdate`; this is not top-level
   `INCONSISTENT_VOTER_SET`). Official Java `FeatureControlManager`
   writes this when a feature update version is invalid.
+  A top-level ShareAcknowledge `FEATURE_UPDATE_FAILED` completes
+  without retry and does not request Metadata, including when
+  `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+  `metadata.requestUpdate`; this is not top-level
+  `INVALID_UPDATE_VERSION`). Official Java `KafkaController` writes
+  this when a FeatureZNode update fails after the requested feature
+  changes were valid.
   A piggybacked ShareFetch
   `AcknowledgeErrorMessage` that is empty uses
   `ShareFetch acknowledgement {topic}-{partition}`. A piggybacked

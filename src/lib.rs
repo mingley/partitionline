@@ -3796,6 +3796,13 @@
 //! `metadata.requestUpdate`; this is not top-level
 //! `INCONSISTENT_VOTER_SET`). Official Java `FeatureControlManager`
 //! writes this when a feature update version is invalid.
+//! Top-level ShareAcknowledge `FEATURE_UPDATE_FAILED` completes
+//! without retry and does not request Metadata, including when
+//! `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+//! `metadata.requestUpdate`; this is not top-level
+//! `INVALID_UPDATE_VERSION`). Official Java `KafkaController` writes
+//! this when a FeatureZNode update fails after the requested feature
+//! changes were valid.
 //! Top-level ShareAcknowledge
 //! `SHARE_SESSION_LIMIT_REACHED` completes without retry and advances
 //! the session epoch (Java `ShareSessionHandler.handleResponse`
