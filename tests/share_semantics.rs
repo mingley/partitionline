@@ -8487,6 +8487,77 @@ async fn share_acknowledge_top_level_unsupported_sasl_mechanism_empty_message_do
 }
 
 #[tokio::test]
+async fn share_acknowledge_top_level_illegal_sasl_state_message_does_not_refresh_metadata() {
+    let mock = common::Mock::start().await;
+    v2(&mock);
+    produce(&mock, &[(0, b"held")]).await;
+    let mut group = ShareGroup::join(config(&mock), "ack-iss-top-msg", "t")
+        .await
+        .unwrap();
+    let recs = group.poll().await.unwrap();
+    assert_eq!(recs.len(), 1);
+    let after_poll = mock.metadata_calls();
+    let seen = Arc::new(Mutex::new(Vec::new()));
+    let seen_cb = seen.clone();
+    group.set_acknowledgement_commit_callback(move |_, exception| {
+        seen_cb.lock().push(
+            exception
+                .as_ref()
+                .map(|error| (error.code(), error.message().to_owned())),
+        );
+    });
+    group.accept(&recs).await.unwrap();
+    let version = mock.last_share_fetch_version().unwrap_or(2);
+    let mut injected = BytesMut::new();
+    encode_share_acknowledge_topics_response_with_error_message(
+        &mut injected,
+        version,
+        error::ILLEGAL_SASL_STATE,
+        &[],
+        Some("illegal sasl state"),
+    )
+    .unwrap();
+    mock.inject_share_ack_response_once(&injected);
+    let results = group.commit_sync().await.unwrap();
+    assert_eq!(results.len(), 1);
+    let err = results[0]
+        .1
+        .as_ref()
+        .expect("Java Errors.exception(errorMessage) completes the map");
+    assert_eq!(err.code(), Some(error::ILLEGAL_SASL_STATE));
+    assert_eq!(err.message(), "illegal sasl state");
+    assert_eq!(
+        mock.share_ack_calls(),
+        1,
+        "top-level ILLEGAL_SASL_STATE must not retry ShareAcknowledge"
+    );
+    assert_eq!(
+        mock.last_share_ack_epoch(),
+        Some(1),
+        "Java ShareAcknowledge handleResponse nextEpoch for ILLEGAL_SASL_STATE"
+    );
+    assert_eq!(
+        *seen.lock(),
+        vec![Some((
+            Some(error::ILLEGAL_SASL_STATE),
+            "illegal sasl state".into()
+        ))]
+    );
+    let _ = group.poll().await.unwrap();
+    assert_eq!(
+        mock.last_share_fetch_epoch(),
+        Some(2),
+        "top-level ILLEGAL_SASL_STATE must not reset the share session"
+    );
+    assert_eq!(
+        mock.metadata_calls(),
+        after_poll,
+        "Java handleShareAcknowledgeSuccess does not requestUpdate for top-level ILLEGAL_SASL_STATE"
+    );
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn share_acknowledge_session_limit_message_does_not_reset_session() {
     let mock = common::Mock::start().await;
     v2(&mock);

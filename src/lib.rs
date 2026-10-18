@@ -3238,6 +3238,13 @@
 //! `metadata.requestUpdate`; this is not top-level
 //! `INVALID_TIMESTAMP`). Official Java `SaslServerAuthenticator` writes
 //! this when the client SASL mechanism is not enabled on the broker.
+//! Top-level ShareAcknowledge `ILLEGAL_SASL_STATE` completes
+//! without retry and does not request Metadata, including when
+//! `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+//! `metadata.requestUpdate`; this is not top-level
+//! `UNSUPPORTED_SASL_MECHANISM`). Official Java `SaslServerAuthenticator`
+//! writes this when a request other than `SASL_AUTHENTICATE` arrives
+//! during SASL authentication.
 //! Top-level ShareAcknowledge
 //! `SHARE_SESSION_LIMIT_REACHED` completes without retry and advances
 //! the session epoch (Java `ShareSessionHandler.handleResponse`
