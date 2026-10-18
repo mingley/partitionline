@@ -2580,6 +2580,13 @@ pub enum ShareAcquireMode {
 /// `GROUP_ID_NOT_FOUND`). Official Java `ControllerApis`
 /// writes this when DeleteTopics runs with `delete.topic.enable`
 /// false. A top-level
+/// ShareAcknowledge `UNSUPPORTED_COMPRESSION_TYPE` completes without
+/// retry and does not request Metadata, including when `ErrorMessage`
+/// is set (Java `handleShareAcknowledgeSuccess` has no
+/// `metadata.requestUpdate`; this is not top-level
+/// `TOPIC_DELETION_DISABLED`). Official Java `ProduceRequest`
+/// writes this when a Produce version below 7 uses ZSTD
+/// compression. A top-level
 /// ShareAcknowledge `SHARE_SESSION_LIMIT_REACHED` completes without
 /// retry and does not request Metadata, including when `ErrorMessage`
 /// is set or empty (Java `handleShareAcknowledgeSuccess` has no
@@ -5841,6 +5848,13 @@ impl ShareGroup {
     /// this is not top-level `GROUP_ID_NOT_FOUND`). Official
     /// Java `ControllerApis` writes this when DeleteTopics
     /// runs with `delete.topic.enable` false.
+    /// A top-level ShareAcknowledge `UNSUPPORTED_COMPRESSION_TYPE`
+    /// completes without retry and does not request Metadata,
+    /// including when `ErrorMessage` is set (Java
+    /// `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`;
+    /// this is not top-level `TOPIC_DELETION_DISABLED`). Official
+    /// Java `ProduceRequest` writes this when a Produce
+    /// version below 7 uses ZSTD compression.
     /// Top-level `SHARE_SESSION_LIMIT_REACHED`
     /// completes without retry and advances the session epoch (Java
     /// `ShareSessionHandler.handleResponse` `nextEpoch`), including

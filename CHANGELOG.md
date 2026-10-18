@@ -405,8 +405,14 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   without retry and does not request Metadata, including when
   `ErrorMessage` is set or empty (Java `handleShareAcknowledgeSuccess` has no
   `metadata.requestUpdate`; this is not top-level
-  `GROUP_ID_NOT_FOUND`). Official Java `ControllerApis` writes
+  `GROUP_ID_NOT_FOUND`).   Official Java `ControllerApis` writes
   this when DeleteTopics runs with `delete.topic.enable` false.
+  A top-level ShareAcknowledge `UNSUPPORTED_COMPRESSION_TYPE` completes
+  without retry and does not request Metadata, including when
+  `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+  `metadata.requestUpdate`; this is not top-level
+  `TOPIC_DELETION_DISABLED`). Official Java `ProduceRequest` writes
+  this when a Produce version below 7 uses ZSTD compression.
   A piggybacked ShareFetch
   `AcknowledgeErrorMessage` that is empty uses
   `ShareFetch acknowledgement {topic}-{partition}`. A piggybacked
