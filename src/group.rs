@@ -6316,7 +6316,9 @@ pub(crate) async fn coord_roundtrip_with_bootstrap(
         Ok(body) => body,
         Err(e) if e.is_retriable() => {
             let bounded = bounded_coord_config(cfg, deadline)?;
-            *coord = reopen_known_coord(&bounded, coord).await?;
+            let replacement = reopen_known_coord(&bounded, coord).await?;
+            let previous = std::mem::replace(coord, replacement);
+            retire_lookup_conn(previous).await;
             let version = negotiated_coord_version(coord, api_key)?;
             let body = coord
                 .roundtrip_deadline(api_key, version, |buf| encode_body(version, buf), deadline)
@@ -8319,6 +8321,181 @@ mod rediscover_stop_tests {
             open.load(Ordering::SeqCst),
             0,
             "a retriable coordinator error left the previous broker blocked in a read"
+        );
+        drop(conn);
+        peer.abort();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn a_failed_coordinator_encode_lets_the_broker_leave() {
+        use super::coord_roundtrip_with_bootstrap;
+        use crate::net::BrokerConn;
+        use crate::protocol::api_keys::HEARTBEAT;
+        use std::io::ErrorKind;
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use tokio::io::AsyncReadExt;
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let open = Arc::new(AtomicUsize::new(0));
+        let flag = Arc::clone(&open);
+        let peer = tokio::spawn(async move {
+            let mut first = true;
+            loop {
+                let Ok((mut socket, _)) = listener.accept().await else {
+                    return;
+                };
+                if first {
+                    first = false;
+                    let flag = Arc::clone(&flag);
+                    let _started = flag.fetch_add(1, Ordering::SeqCst);
+                    let _reader = tokio::spawn(async move {
+                        let mut buf = [0u8; 8];
+                        loop {
+                            match socket.read(&mut buf).await {
+                                Ok(0) | Err(_) => break,
+                                Ok(_) => continue,
+                            }
+                        }
+                        let _left = flag.fetch_sub(1, Ordering::SeqCst);
+                    });
+                } else {
+                    let _reader = tokio::spawn(async move {
+                        let mut buf = [0u8; 8];
+                        loop {
+                            match socket.read(&mut buf).await {
+                                Ok(0) | Err(_) => break,
+                                Ok(_) => continue,
+                            }
+                        }
+                    });
+                }
+            }
+        });
+        let mut conn = BrokerConn::connect(&addr, "encode-coord", Duration::from_secs(2))
+            .await
+            .unwrap();
+        conn.heartbeat_version = 0;
+        while open.load(Ordering::SeqCst) == 0 {
+            tokio::task::yield_now().await;
+        }
+        let mut cfg = ConsumerConfig::bootstrap([addr]);
+        cfg.connections_max_idle = Duration::ZERO;
+        cfg.request_timeout = Duration::from_secs(2);
+        cfg.connect_timeout = Duration::from_secs(2);
+        cfg.max_wait_ms = 10;
+        let mut prior = HashMap::new();
+        let _sent = coord_roundtrip_with_bootstrap(
+            &mut conn,
+            &cfg,
+            "group",
+            COORDINATOR_GROUP,
+            HEARTBEAT,
+            |_version, _buf| {
+                Err(crate::Error::Io(std::io::Error::new(
+                    ErrorKind::ConnectionReset,
+                    "coordinator encode failed",
+                )))
+            },
+            &[],
+            &HashMap::new(),
+            &mut prior,
+            Duration::from_secs(2),
+        )
+        .await;
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "a failed coordinator encode left the previous broker blocked in a read"
+        );
+        drop(conn);
+        peer.abort();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn a_failed_offset_encode_lets_the_broker_leave() {
+        use super::offsets::coord_offsets_legacy;
+        use crate::net::BrokerConn;
+        use crate::protocol::api_keys::OFFSET_FETCH;
+        use std::io::ErrorKind;
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use tokio::io::AsyncReadExt;
+
+        async fn count_first(listener: tokio::net::TcpListener, open: Arc<AtomicUsize>) {
+            let mut first = true;
+            loop {
+                let Ok((mut socket, _)) = listener.accept().await else {
+                    return;
+                };
+                if first {
+                    first = false;
+                    let flag = Arc::clone(&open);
+                    let _started = flag.fetch_add(1, Ordering::SeqCst);
+                    let _reader = tokio::spawn(async move {
+                        let mut buf = [0u8; 8];
+                        loop {
+                            match socket.read(&mut buf).await {
+                                Ok(0) | Err(_) => break,
+                                Ok(_) => continue,
+                            }
+                        }
+                        let _left = flag.fetch_sub(1, Ordering::SeqCst);
+                    });
+                } else {
+                    let _reader = tokio::spawn(async move {
+                        let mut buf = [0u8; 8];
+                        loop {
+                            match socket.read(&mut buf).await {
+                                Ok(0) | Err(_) => break,
+                                Ok(_) => continue,
+                            }
+                        }
+                    });
+                }
+            }
+        }
+
+        let fail = || {
+            Err(crate::Error::Io(std::io::Error::new(
+                ErrorKind::ConnectionReset,
+                "offset encode failed",
+            )))
+        };
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let open = Arc::new(AtomicUsize::new(0));
+        let peer = tokio::spawn(count_first(listener, Arc::clone(&open)));
+        let mut conn = BrokerConn::connect(&addr, "encode-offset", Duration::from_secs(2))
+            .await
+            .unwrap();
+        conn.offset_fetch_version = 2;
+        while open.load(Ordering::SeqCst) == 0 {
+            tokio::task::yield_now().await;
+        }
+        let mut cfg = ConsumerConfig::bootstrap([addr]);
+        cfg.connections_max_idle = Duration::ZERO;
+        cfg.request_timeout = Duration::from_secs(2);
+        cfg.connect_timeout = Duration::from_secs(2);
+        cfg.max_wait_ms = 10;
+        let mut prior = HashMap::new();
+        let _fetched = coord_offsets_legacy(
+            &mut conn,
+            &cfg,
+            "group",
+            COORDINATOR_GROUP,
+            OFFSET_FETCH,
+            2,
+            |_buf| fail(),
+            &[],
+            &HashMap::new(),
+            &mut prior,
+            Duration::from_secs(2),
+        )
+        .await;
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "a failed offset encode left the previous broker blocked in a read"
         );
         drop(conn);
         peer.abort();
