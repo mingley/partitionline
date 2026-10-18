@@ -6783,20 +6783,14 @@ impl Worker {
         let Some(policy) = &shared.sticky else {
             return;
         };
-        let mut retained = Vec::with_capacity(self.pending.len());
-        let mut displaced = Vec::new();
-        {
-            let policy = policy.lock();
-            for p in std::mem::take(&mut self.pending) {
-                if p.sticky
-                    .is_some_and(|tag| !policy.cancelled(tag) && !policy.owned_by(tag, &self.id))
-                {
-                    displaced.push(p);
-                } else {
-                    retained.push(p);
-                }
-            }
-        }
+        let pending = std::mem::take(&mut self.pending);
+        let (retained, displaced) = partition_pending(pending, |record| {
+            record.sticky.is_some_and(|tag| {
+                let policy = policy.lock();
+                !policy.cancelled(tag) && !policy.owned_by(tag, &self.id)
+            })
+        })
+        .await;
         self.pending = retained;
         self.recompute_pending_estimate().await;
         if !displaced.is_empty() {
@@ -6813,7 +6807,7 @@ impl Worker {
             if self.pending.is_empty() {
                 return Vec::new();
             }
-            let mut sealed: Option<(bool, Vec<Pending>)> = None;
+            let mut sealed: Option<(bool, u128, Vec<Pending>)> = None;
             {
                 let cluster = shared.cluster.lock();
                 let Some(policy) = &shared.sticky else {
@@ -6848,20 +6842,16 @@ impl Worker {
                         self.forget_deadline(pending.deadline);
                         return vec![pending];
                     }
-                    let mut batch = Vec::with_capacity(count);
-                    let mut retained = Vec::with_capacity(self.pending.len().saturating_sub(count));
-                    for p in std::mem::take(&mut self.pending) {
-                        if p.sticky.is_some_and(|member| member.id == tag.id) {
-                            batch.push(p);
-                        } else {
-                            retained.push(p);
-                        }
-                    }
-                    self.pending = retained;
-                    sealed = Some((cancelled, batch));
+                    let pending = std::mem::take(&mut self.pending);
+                    sealed = Some((cancelled, tag.id, pending));
                 }
             }
-            if let Some((cancelled, mut batch)) = sealed {
+            if let Some((cancelled, tag_id, pending)) = sealed {
+                let (retained, mut batch) = partition_pending(pending, |record| {
+                    record.sticky.is_some_and(|member| member.id == tag_id)
+                })
+                .await;
+                self.pending = retained;
                 self.recompute_pending_estimate().await;
                 if cancelled {
                     self.fail_kept_batch(batch, Error::Timeout);
@@ -6906,26 +6896,49 @@ impl Worker {
             return;
         }
         let now = Instant::now();
-        let Some(first) = self
-            .pending
-            .iter()
-            .position(|pending| self.record_expired(pending, now))
-        else {
+        let Some(first) = self.first_expired_pending(now).await else {
             return;
         };
         // One pass from the first expired record. Survivors stay in order.
         let mut expired = Vec::new();
+        let mut walked = 0usize;
         for pending in self.pending.split_off(first) {
             if self.record_expired(&pending, now) {
                 expired.push(pending);
             } else {
                 self.pending.push(pending);
             }
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
         }
         if !expired.is_empty() {
             self.recompute_pending_estimate().await;
             self.fail_kept_batch(expired, Error::Timeout);
         }
+    }
+
+    async fn first_expired_pending(&self, now: Instant) -> Option<usize> {
+        let mut index = 0usize;
+        let mut walked = 0usize;
+        while index < self.pending.len() {
+            if self
+                .pending
+                .get(index)
+                .is_some_and(|pending| self.record_expired(pending, now))
+            {
+                return Some(index);
+            }
+            index = index.saturating_add(1);
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+        None
     }
 
     fn earliest_pending_deadline(&self) -> Option<Instant> {
@@ -8905,6 +8918,47 @@ async fn fold_pending_estimates(
         }
     }
     (total, earliest)
+}
+
+/// Split `pending` into `(kept, taken)`, preserving order in each side.
+///
+/// `take` selects the second list. A long queue pauses between slices so the
+/// split can still reach a deadline. The predicate runs without a yield inside
+/// one slice, so a lock it takes must be dropped before it returns.
+async fn partition_pending<F>(pending: Vec<Pending>, mut take: F) -> (Vec<Pending>, Vec<Pending>)
+where
+    F: FnMut(&Pending) -> bool,
+{
+    let mut kept = Vec::new();
+    let mut taken = Vec::new();
+    let mut rest = pending.into_iter();
+    loop {
+        let mut chunk = Vec::with_capacity(8 * 1024);
+        for _ in 0..(8 * 1024) {
+            let Some(record) = rest.next() else {
+                break;
+            };
+            chunk.push(record);
+        }
+        if chunk.is_empty() {
+            break;
+        }
+        for record in chunk {
+            if take(&record) {
+                if taken.len() == taken.capacity() {
+                    taken.reserve(8 * 1024);
+                }
+                taken.push(record);
+            } else if kept.len() == kept.capacity() {
+                kept.reserve(8 * 1024);
+                kept.push(record);
+            } else {
+                kept.push(record);
+            }
+        }
+        tokio::task::yield_now().await;
+    }
+    (kept, taken)
 }
 
 fn estimate(p: &Pending) -> usize {
@@ -11012,6 +11066,49 @@ mod tests {
         assert!(
             watch.is_finished(),
             "dropping the last handle left the worker running"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn splitting_many_queued_records_does_not_hold_the_caller() {
+        let mut small = vec![
+            queued("orders", Some(0)),
+            queued("orders", Some(1)),
+            queued("payments", Some(0)),
+        ];
+        small[1].seq = Some(4);
+        let (kept, taken) = partition_pending(small, |record| record.seq.is_some()).await;
+        assert_eq!(kept.len(), 2);
+        assert_eq!(taken.len(), 1);
+        assert_eq!(taken.first().and_then(|record| record.seq), Some(4));
+        assert_eq!(
+            kept.first().map(|record| record.rec.topic.as_ref()),
+            Some("orders")
+        );
+        assert_eq!(
+            kept.get(1).map(|record| record.rec.topic.as_ref()),
+            Some("payments")
+        );
+
+        // 4_000_000 records: moving the queue held the caller 1.32s.
+        let topic: Arc<str> = Arc::from("orders");
+        let mut batch = Vec::with_capacity(4_000_000);
+        for _ in 0..4_000_000 {
+            let mut pending = queued("orders", Some(0));
+            pending.rec.topic = Arc::clone(&topic);
+            batch.push(pending);
+        }
+        let started = std::time::Instant::now();
+        let worker = tokio::spawn(async move {
+            let (kept, _) = partition_pending(batch, |_| false).await;
+            kept.len()
+        });
+        tokio::time::sleep(std::time::Duration::from_millis(30)).await;
+        worker.abort();
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "splitting queued records held the caller for {elapsed:?}"
         );
     }
 
