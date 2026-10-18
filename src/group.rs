@@ -4990,6 +4990,7 @@ fn refill_shared_offset_topics(
     epoch_of: impl Fn(&str, i32) -> i32,
 ) {
     let mut used = 0usize;
+    let mut slots: HashMap<&str, usize> = HashMap::new();
     for (topic, partition, offset) in items {
         let part = OffsetPartition {
             partition: *partition,
@@ -4997,11 +4998,7 @@ fn refill_shared_offset_topics(
             leader_epoch: epoch_of(topic.as_ref(), *partition),
             metadata: String::new(),
         };
-        let existing = topics
-            .iter()
-            .take(used)
-            .position(|slot| slot.topic == topic.as_ref());
-        if let Some(index) = existing {
+        if let Some(&index) = slots.get(topic.as_ref()) {
             if let Some(slot) = topics.get_mut(index) {
                 slot.partitions.push(part);
             }
@@ -5020,6 +5017,7 @@ fn refill_shared_offset_topics(
                 partitions: vec![part],
             });
         }
+        let _ = slots.insert(topic.as_ref(), used);
         used = used.saturating_add(1);
     }
     topics.truncate(used);
@@ -5031,6 +5029,7 @@ async fn refill_shared_offset_topics_cooperative(
     epoch_of: impl Fn(&str, i32) -> i32,
 ) {
     let mut used = 0usize;
+    let mut slots: HashMap<&str, usize> = HashMap::new();
     let mut walked = 0usize;
     for (topic, partition, offset) in items {
         let part = OffsetPartition {
@@ -5039,27 +5038,25 @@ async fn refill_shared_offset_topics_cooperative(
             leader_epoch: epoch_of(topic.as_ref(), *partition),
             metadata: String::new(),
         };
-        let existing = topics
-            .iter()
-            .take(used)
-            .position(|slot| slot.topic == topic.as_ref());
-        if let Some(index) = existing {
+        if let Some(&index) = slots.get(topic.as_ref()) {
             if let Some(slot) = topics.get_mut(index) {
                 slot.partitions.push(part);
             }
-        } else if let Some(slot) = topics.get_mut(used) {
-            if slot.topic != topic.as_ref() {
-                slot.topic.clear();
-                slot.topic.push_str(topic.as_ref());
-            }
-            slot.partitions.clear();
-            slot.partitions.push(part);
-            used = used.saturating_add(1);
         } else {
-            topics.push(OffsetTopic {
-                topic: topic.as_ref().to_owned(),
-                partitions: vec![part],
-            });
+            if let Some(slot) = topics.get_mut(used) {
+                if slot.topic != topic.as_ref() {
+                    slot.topic.clear();
+                    slot.topic.push_str(topic.as_ref());
+                }
+                slot.partitions.clear();
+                slot.partitions.push(part);
+            } else {
+                topics.push(OffsetTopic {
+                    topic: topic.as_ref().to_owned(),
+                    partitions: vec![part],
+                });
+            }
+            let _ = slots.insert(topic.as_ref(), used);
             used = used.saturating_add(1);
         }
         walked = walked.saturating_add(1);
@@ -5172,18 +5169,15 @@ pub(crate) async fn group_borrowed_offset_topics_cooperative(
     groups
 }
 
-fn place_offset_partition(
+fn place_offset_partition<'a>(
     topics: &mut Vec<OffsetTopic>,
     seen: &mut Vec<HashSet<i32>>,
+    slots: &mut HashMap<&'a str, usize>,
     used: &mut usize,
-    topic: &str,
+    topic: &'a str,
     part: OffsetPartition,
 ) {
-    let existing = topics
-        .iter()
-        .take(*used)
-        .position(|slot| slot.topic == topic);
-    if let Some(index) = existing {
+    if let Some(&index) = slots.get(topic) {
         let Some(known) = seen.get_mut(index) else {
             return;
         };
@@ -5218,6 +5212,7 @@ fn place_offset_partition(
         let _ = known.insert(partition);
         seen.push(known);
     }
+    let _ = slots.insert(topic, *used);
     *used = used.saturating_add(1);
 }
 
@@ -5228,10 +5223,12 @@ fn refill_offset_topics(
 ) {
     let mut used = 0usize;
     let mut seen = Vec::new();
+    let mut slots = HashMap::new();
     for (tp, md) in items {
         place_offset_partition(
             topics,
             &mut seen,
+            &mut slots,
             &mut used,
             tp.topic.as_str(),
             OffsetPartition {
@@ -5251,11 +5248,13 @@ async fn refill_offset_topics_cooperative(
 ) {
     let mut used = 0usize;
     let mut seen = Vec::new();
+    let mut slots = HashMap::new();
     let mut walked = 0usize;
     for (tp, md) in items {
         place_offset_partition(
             topics,
             &mut seen,
+            &mut slots,
             &mut used,
             tp.topic.as_str(),
             OffsetPartition {
@@ -5345,18 +5344,15 @@ pub(crate) async fn group_borrowed_offset_fetch_topics_cooperative(
     groups
 }
 
-fn place_fetched_partition(
+fn place_fetched_partition<'a>(
     topics: &mut Vec<OffsetFetchTopic>,
     seen: &mut Vec<HashSet<i32>>,
+    slots: &mut HashMap<&'a str, usize>,
     used: &mut usize,
-    topic: &str,
+    topic: &'a str,
     part: i32,
 ) {
-    let existing = topics
-        .iter()
-        .take(*used)
-        .position(|slot| slot.topic == topic);
-    if let Some(index) = existing {
+    if let Some(&index) = slots.get(topic) {
         let Some(slot) = topics.get_mut(index) else {
             return;
         };
@@ -5390,6 +5386,7 @@ fn place_fetched_partition(
         let _ = known.insert(part);
         seen.push(known);
     }
+    let _ = slots.insert(topic, *used);
     *used = used.saturating_add(1);
 }
 
@@ -5400,8 +5397,9 @@ fn refill_offset_fetch_topics<'a>(
 ) {
     let mut used = 0usize;
     let mut seen = Vec::new();
+    let mut slots = HashMap::new();
     for (topic, part) in wanted {
-        place_fetched_partition(topics, &mut seen, &mut used, topic, part);
+        place_fetched_partition(topics, &mut seen, &mut slots, &mut used, topic, part);
     }
     topics.truncate(used);
 }
@@ -5412,9 +5410,10 @@ async fn refill_offset_fetch_topics_cooperative(
 ) {
     let mut used = 0usize;
     let mut seen = Vec::new();
+    let mut slots = HashMap::new();
     let mut walked = 0usize;
     for (topic, part) in wanted {
-        place_fetched_partition(topics, &mut seen, &mut used, topic, *part);
+        place_fetched_partition(topics, &mut seen, &mut slots, &mut used, topic, *part);
         walked = walked.saturating_add(1);
         if walked == 8 * 1024 {
             walked = 0;
@@ -5430,11 +5429,13 @@ async fn refill_topic_partitions_cooperative(
 ) {
     let mut used = 0usize;
     let mut seen = Vec::new();
+    let mut slots = HashMap::new();
     let mut walked = 0usize;
     for tp in wanted {
         place_fetched_partition(
             topics,
             &mut seen,
+            &mut slots,
             &mut used,
             tp.topic.as_str(),
             tp.partition,
@@ -7562,6 +7563,31 @@ mod tests {
         assert_eq!(one[0].partitions[0].offset, two[0].partitions[0].offset);
         assert_eq!(one[0].partitions[0].leader_epoch, 7);
         assert_eq!(one[1].topic, two[1].topic);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn refilling_many_offset_topics_does_not_hold_the_caller() {
+        // 8_192 topics: scanning earlier names held the caller 407ms.
+        let items: Vec<(TopicPartition, OffsetAndMetadata)> = (0..8_192)
+            .map(|index| {
+                (
+                    TopicPartition::new(format!("t{index}"), 0),
+                    OffsetAndMetadata::new(1),
+                )
+            })
+            .collect();
+        let mut topics = Vec::new();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = refill_offset_topics_cooperative(&mut topics, &items) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert_eq!(topics.len(), 8_192);
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "refilling offset topics held the caller for {elapsed:?}"
+        );
     }
 
     #[tokio::test(flavor = "current_thread")]
