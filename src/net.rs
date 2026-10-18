@@ -414,8 +414,25 @@ fn scan_frame_prefix(buf: &[u8], start: usize, budget: usize) -> PrefixScan {
     PrefixScan::Rest(offset)
 }
 
-fn frame_prefix_rejected(buf: &[u8]) -> bool {
-    matches!(scan_frame_prefix(buf, 0, usize::MAX), PrefixScan::Rejected)
+/// Whether `buf` contains a rejected length, yielding between slices.
+///
+/// A long run of empty frames is legal. Walking all of it before the first
+/// await keeps the caller from running until the walk finishes.
+async fn prefix_rejected(buf: &[u8]) -> bool {
+    let mut scanned = 0usize;
+    loop {
+        if scanned > buf.len() {
+            scanned = 0;
+        }
+        match scan_frame_prefix(buf, scanned, 64 * 1024) {
+            PrefixScan::Rejected => return true,
+            PrefixScan::Rest(_) => return false,
+            PrefixScan::Partial(at) => {
+                scanned = at;
+                tokio::task::yield_now().await;
+            }
+        }
+    }
 }
 
 /// True when `buf` holds one full frame, or a length the framed reader will reject.
@@ -1549,8 +1566,26 @@ impl BrokerConn {
                 Ok(()) => {}
             }
         }
-        let rejected = frame_prefix_rejected(self.read_buf.as_ref())
-            || frame_prefix_rejected(&self.prefetch.lock());
+        let rejected = prefix_rejected(self.read_buf.as_ref()).await || {
+            let mut scanned = 0usize;
+            loop {
+                let scan = {
+                    let buffered = self.prefetch.lock();
+                    if scanned > buffered.len() {
+                        scanned = 0;
+                    }
+                    scan_frame_prefix(&buffered, scanned, 64 * 1024)
+                };
+                match scan {
+                    PrefixScan::Rejected => break true,
+                    PrefixScan::Rest(_) => break false,
+                    PrefixScan::Partial(at) => {
+                        scanned = at;
+                        tokio::task::yield_now().await;
+                    }
+                }
+            }
+        };
         if rejected {
             if !self.is_closed() {
                 self.close();
@@ -1735,7 +1770,7 @@ impl BrokerConn {
     }
 
     async fn shutdown_if_prefix_rejected(&mut self) -> Result<()> {
-        if !frame_prefix_rejected(self.read_buf.as_ref()) {
+        if !prefix_rejected(self.read_buf.as_ref()).await {
             return Ok(());
         }
         if !self.is_closed() {
@@ -3188,6 +3223,22 @@ mod tests {
         fn poll_shutdown(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
             Poll::Ready(Ok(()))
         }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn a_run_of_empty_frames_does_not_hold_inbound_ready() {
+        let mut conn = BrokerConn::script_conn(Vec::new(), 1, Duration::ZERO);
+        conn.read_buf.resize(16 * 1024 * 1024, 0);
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = conn.inbound_ready() => {}
+            _ = tokio::time::sleep(Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < Duration::from_millis(80),
+            "scanning empty frames held the read for {elapsed:?}"
+        );
     }
 
     #[tokio::test(flavor = "current_thread")]
