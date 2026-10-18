@@ -2290,6 +2290,13 @@ pub enum ShareAcquireMode {
 /// `UNSUPPORTED_FOR_MESSAGE_FORMAT`). Official Java `ReplicationControlManager`
 /// writes this when CreateTopics fails a configured `CreateTopicPolicy`.
 /// A top-level
+/// ShareAcknowledge `OUT_OF_ORDER_SEQUENCE_NUMBER` completes without
+/// retry and does not request Metadata, including when `ErrorMessage`
+/// is set (Java `handleShareAcknowledgeSuccess` has no
+/// `metadata.requestUpdate`; this is not top-level
+/// `POLICY_VIOLATION`). Official Java `ProducerAppendInfo`
+/// writes this when an idempotent produce batch is not the next expected
+/// sequence for that producerId. A top-level
 /// ShareAcknowledge `SHARE_SESSION_LIMIT_REACHED` completes without
 /// retry and does not request Metadata, including when `ErrorMessage`
 /// is set or empty (Java `handleShareAcknowledgeSuccess` has no
@@ -5249,6 +5256,13 @@ impl ShareGroup {
     /// this is not top-level `UNSUPPORTED_FOR_MESSAGE_FORMAT`). Official
     /// Java `ReplicationControlManager` writes this when CreateTopics
     /// fails a configured `CreateTopicPolicy`.
+    /// A top-level ShareAcknowledge `OUT_OF_ORDER_SEQUENCE_NUMBER`
+    /// completes without retry and does not request Metadata,
+    /// including when `ErrorMessage` is set (Java
+    /// `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`;
+    /// this is not top-level `POLICY_VIOLATION`). Official
+    /// Java `ProducerAppendInfo` writes this when an idempotent
+    /// produce batch is not the next expected sequence for that producerId.
     /// Top-level `SHARE_SESSION_LIMIT_REACHED`
     /// completes without retry and advances the session epoch (Java
     /// `ShareSessionHandler.handleResponse` `nextEpoch`), including

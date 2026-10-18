@@ -281,6 +281,12 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `metadata.requestUpdate`; this is not top-level
   `UNSUPPORTED_FOR_MESSAGE_FORMAT`). Official Java `ReplicationControlManager` writes
   this when CreateTopics fails a configured `CreateTopicPolicy`.
+  A top-level ShareAcknowledge `OUT_OF_ORDER_SEQUENCE_NUMBER` completes
+  without retry and does not request Metadata, including when
+  `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+  `metadata.requestUpdate`; this is not top-level
+  `POLICY_VIOLATION`). Official Java `ProducerAppendInfo` writes
+  this when an idempotent produce batch is not the next expected sequence for that producerId.
   A piggybacked ShareFetch
   `AcknowledgeErrorMessage` that is empty uses
   `ShareFetch acknowledgement {topic}-{partition}`. A piggybacked
