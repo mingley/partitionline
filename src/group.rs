@@ -2869,7 +2869,7 @@ impl ConsumerGroup {
         let mut flight = if leaders.is_empty() {
             None
         } else {
-            Some(self.consumer.start_leader_dials(&leaders, deadline))
+            Some(self.consumer.start_leader_dials(&leaders, deadline).await)
         };
         let sync_fut = coord_roundtrip_with_bootstrap(
             &mut self.coord,
@@ -3319,7 +3319,7 @@ impl ConsumerGroup {
                         leaders.push(node);
                     }
                 }
-                let mut dials = self.consumer.start_leader_dials(&leaders, deadline);
+                let mut dials = self.consumer.start_leader_dials(&leaders, deadline).await;
                 let require_stable = self.cfg.isolation_level == IsolationLevel::ReadCommitted;
                 let member_epoch = if self.kip848 { self.generation_id } else { -1 };
                 let member_id = if self.kip848 {
@@ -3427,7 +3427,7 @@ impl ConsumerGroup {
                         leaders.push(node);
                     }
                 }
-                let mut dials = self.consumer.start_leader_dials(&leaders, deadline);
+                let mut dials = self.consumer.start_leader_dials(&leaders, deadline).await;
                 let require_stable = self.cfg.isolation_level == IsolationLevel::ReadCommitted;
                 let member_epoch = if self.kip848 { self.generation_id } else { -1 };
                 let member_id = if self.kip848 {

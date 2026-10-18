@@ -4393,7 +4393,7 @@ impl Consumer {
                 .get(&node)
                 .is_some_and(|c| c.idle_expired(self.cfg.connections_max_idle))
             {
-                let _ = self.conns.remove(&node);
+                self.drop_node(node).await;
                 let _ = self.list_offsets_ranges.remove(&node);
                 let _ = self.leader_epoch_ranges.remove(&node);
                 if let Some(session) = self.fetch_sessions.get_mut(&node) {
@@ -4712,7 +4712,7 @@ impl Consumer {
                 .get(&node)
                 .is_some_and(|conn| conn.idle_expired(self.cfg.connections_max_idle))
             {
-                let _ = self.conns.remove(&node);
+                self.drop_node(node).await;
                 let _ = self.list_offsets_ranges.remove(&node);
                 let _ = self.leader_epoch_ranges.remove(&node);
                 if let Some(session) = self.fetch_sessions.get_mut(&node) {
@@ -4968,7 +4968,7 @@ impl Consumer {
             .get(&node)
             .is_some_and(|conn| conn.idle_expired(self.cfg.connections_max_idle))
         {
-            let _ = self.conns.remove(&node);
+            self.drop_node(node).await;
             let _ = self.list_offsets_ranges.remove(&node);
             let _ = self.leader_epoch_ranges.remove(&node);
             if let Some(session) = self.fetch_sessions.get_mut(&node) {
@@ -8169,7 +8169,7 @@ impl Consumer {
                     // moved leader is dialed on the next attempt.
                     let previous = node;
                     self.drop_broker_conn(previous).await;
-                    let dials = self.leader_dials_for(&[previous]);
+                    let dials = self.leader_dials_for(&[previous]).await;
                     self.cluster.invalidate_topic(topic);
                     if Instant::now() >= deadline {
                         return Err(Error::Timeout);
@@ -8468,7 +8468,7 @@ impl Consumer {
         nodes: &[i32],
         deadline: Instant,
     ) -> Result<()> {
-        let dials = self.leader_dials_for(nodes);
+        let dials = self.leader_dials_for(nodes).await;
         if dials.is_empty() {
             return self
                 .refresh_metadata_timeout_ref(
@@ -8509,7 +8509,7 @@ impl Consumer {
         nodes
     }
 
-    fn leader_dials_for(&mut self, nodes: &[i32]) -> Vec<(i32, String)> {
+    async fn leader_dials_for(&mut self, nodes: &[i32]) -> Vec<(i32, String)> {
         let mut dials = Vec::new();
         for &node in nodes {
             if self.woken() {
@@ -8520,7 +8520,7 @@ impl Consumer {
                 .get(&node)
                 .is_some_and(|conn| conn.idle_expired(self.cfg.connections_max_idle))
             {
-                let _ = self.conns.remove(&node);
+                self.drop_node(node).await;
                 let _ = self.list_offsets_ranges.remove(&node);
                 let _ = self.leader_epoch_ranges.remove(&node);
                 if let Some(session) = self.fetch_sessions.get_mut(&node) {
@@ -8565,12 +8565,12 @@ impl Consumer {
     /// [`LeaderDialFlight::finish`] stops a dial that is still running and
     /// waits until that task leaves the runtime. Dropping the flight only
     /// schedules the abort.
-    pub(crate) fn start_leader_dials(
+    pub(crate) async fn start_leader_dials(
         &mut self,
         nodes: &[i32],
         deadline: Instant,
     ) -> LeaderDialFlight {
-        let dials = self.leader_dials_for(nodes);
+        let dials = self.leader_dials_for(nodes).await;
         let cfg = self.leader_dial_config();
         let wakeup = Arc::clone(&self.wakeup);
         let wakeup_rx = self.wakeup_tx.subscribe();
@@ -8766,7 +8766,7 @@ impl Consumer {
     /// The bootstrap socket stays on its own connection. A dial that fails is
     /// left for [`Self::connect_node`], which reports that error and retries.
     pub(crate) async fn warm_leader_conns(&mut self, nodes: &[i32], deadline: Instant) {
-        let dials = self.leader_dials_for(nodes);
+        let dials = self.leader_dials_for(nodes).await;
         let opened = Self::open_leader_dials(
             self.leader_dial_config(),
             dials,
@@ -11226,6 +11226,85 @@ mod tests {
     use super::*;
     use crate::protocol::api::ApiVersion;
     use crate::protocol::api_keys::FETCH;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn an_idle_leader_socket_is_shut_down_before_the_dial_returns() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use std::sync::Arc;
+        use tokio::io::AsyncReadExt;
+
+        let leader_listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let leader_addr = leader_listener.local_addr().unwrap().to_string();
+        let other = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let other_addr = other.local_addr().unwrap().to_string();
+        let open = Arc::new(AtomicUsize::new(0));
+        let flag = Arc::clone(&open);
+        let leader_peer = tokio::spawn(async move {
+            let Ok((mut socket, _)) = leader_listener.accept().await else {
+                return;
+            };
+            let _started = flag.fetch_add(1, Ordering::SeqCst);
+            let mut buf = [0u8; 8];
+            loop {
+                match socket.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let other_peer = tokio::spawn(async move {
+            let Ok((mut socket, _)) = other.accept().await else {
+                return;
+            };
+            let mut buf = [0u8; 8];
+            loop {
+                match socket.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+        });
+        let leader =
+            crate::net::BrokerConn::connect(&leader_addr, "idle-leader", Duration::from_secs(2))
+                .await
+                .unwrap();
+        while open.load(Ordering::SeqCst) == 0 {
+            tokio::task::yield_now().await;
+        }
+        let bootstrap =
+            crate::net::BrokerConn::connect(&other_addr, "idle-bootstrap", Duration::from_secs(2))
+                .await
+                .unwrap();
+        let mut consumer = Consumer::test_holding(
+            ConsumerConfig::default().connections_max_idle(Duration::from_nanos(1)),
+            bootstrap,
+        );
+        let _stored = consumer.conns.insert(1, leader);
+        let mut connected = Vec::new();
+        let mut by_leader = HashMap::new();
+        let result = consumer
+            .connect_parallel_fetch_nodes(
+                vec![1],
+                &mut connected,
+                &mut by_leader,
+                Instant::now() + Duration::from_secs(2),
+            )
+            .await;
+        assert!(result.is_err(), "an unknown idle leader was dialed");
+        assert!(
+            !consumer.conns.contains_key(&1),
+            "the idle leader socket was kept"
+        );
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "an idle leader socket left the broker blocked in a read"
+        );
+        drop(consumer);
+        leader_peer.abort();
+        other_peer.abort();
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn dropping_a_leader_socket_lets_the_broker_leave() {
