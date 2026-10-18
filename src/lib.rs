@@ -3732,6 +3732,12 @@
 //! `INVALID_RECORD`). Official Java
 //! `TransactionMetadata.prepareIncrementProducerEpoch` writes this
 //! when the expected producer epoch does not match.
+//! Top-level ShareAcknowledge `RESOURCE_NOT_FOUND` completes
+//! without retry and does not request Metadata, including when
+//! `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+//! `metadata.requestUpdate`; this is not top-level
+//! `PRODUCER_FENCED`). Official Java `ScramImage`
+//! DescribeUserScramCredentials writes this when the user does not exist.
 //! Top-level ShareAcknowledge
 //! `SHARE_SESSION_LIMIT_REACHED` completes without retry and advances
 //! the session epoch (Java `ShareSessionHandler.handleResponse`

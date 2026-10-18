@@ -466,6 +466,12 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `INVALID_RECORD`). Official Java
   `TransactionMetadata.prepareIncrementProducerEpoch` writes this
   when the expected producer epoch does not match.
+  A top-level ShareAcknowledge `RESOURCE_NOT_FOUND` completes
+  without retry and does not request Metadata, including when
+  `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+  `metadata.requestUpdate`; this is not top-level
+  `PRODUCER_FENCED`). Official Java `ScramImage`
+  DescribeUserScramCredentials writes this when the user does not exist.
   A piggybacked ShareFetch
   `AcknowledgeErrorMessage` that is empty uses
   `ShareFetch acknowledgement {topic}-{partition}`. A piggybacked
