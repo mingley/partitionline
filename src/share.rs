@@ -1517,6 +1517,15 @@ pub enum ShareAcquireMode {
 /// `KafkaRaftClient` writes this when a VOTE or BEGIN_QUORUM_EPOCH
 /// request carries a voter key that does not match the local key.
 /// A piggybacked
+/// `DUPLICATE_VOTER` still completes without retry,
+/// including when `AcknowledgeErrorMessage` is set (Java
+/// `handleShareFetchSuccess` completes piggyback acks and still
+/// delivers the fetch; this is not partition
+/// `DUPLICATE_VOTER`, which fails that poll, and not piggyback
+/// `INVALID_VOTER_KEY`). Official Java
+/// `AddVoterHandler` writes this when the AddRaftVoter request names
+/// a voter id that is already part of the set of voters.
+/// A piggybacked
 /// `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a
 /// sibling partition whose `AcknowledgeErrorCode` is none, including
 /// when `AcknowledgeErrorMessage` is set or empty. A piggybacked
@@ -3809,6 +3818,14 @@ impl ShareGroup {
     /// `INVALID_SHARE_SESSION_EPOCH`). Official Java
     /// `KafkaRaftClient` writes this when a VOTE or BEGIN_QUORUM_EPOCH
     /// request carries a voter key that does not match the local key.
+    /// A piggybacked `DUPLICATE_VOTER` still completes
+    /// without retry, including when `AcknowledgeErrorMessage` is set
+    /// (Java `handleShareFetchSuccess` completes piggyback acks and still
+    /// delivers the fetch; this is not partition
+    /// `DUPLICATE_VOTER`, which fails that poll, and not piggyback
+    /// `INVALID_VOTER_KEY`). Official Java
+    /// `AddVoterHandler` writes this when the AddRaftVoter request names
+    /// a voter id that is already part of the set of voters.
     /// A piggybacked `TOPIC_AUTHORIZATION_FAILED` on one partition
     /// does not fail a sibling whose `AcknowledgeErrorCode` is none,
     /// including when `AcknowledgeErrorMessage` is set or empty.
