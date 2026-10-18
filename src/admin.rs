@@ -107,7 +107,8 @@ use crate::protocol::group::{
 use crate::protocol::idem::{decode_init_producer_id_response, encode_init_producer_id_request};
 use crate::protocol::offsets::{
     decode_list_offsets_topics_response_cooperative, encode_list_offsets_named_topics,
-    ListOffsetsPartitionRequest, ListOffsetsResponsePartition,
+    encode_list_offsets_named_topics_cooperative, ListOffsetsPartitionRequest,
+    ListOffsetsResponsePartition,
 };
 use crate::protocol::sasl;
 use crate::protocol::txn::{
@@ -10199,7 +10200,13 @@ impl Admin {
         out: &mut [Option<crate::OffsetAndTimestamp>],
         still: &mut Vec<usize>,
     ) -> Result<()> {
-        let mut finished = self.exchange_leaders(nodes, deadline, |admin, node, conn, timeout| {
+        let mut grouped = HashMap::new();
+        for &node in nodes {
+            let idxs = by_node.get(&node).map(Vec::as_slice).unwrap_or(&[]);
+            let topics = list_offset_topic_requests(queries, idxs, &self.cluster).await;
+            let _ = grouped.insert(node, topics);
+        }
+        let mut finished = self.exchange_leaders(nodes, deadline, |_admin, node, conn, timeout| {
             let idxs = by_node.get(&node).map(Vec::as_slice).unwrap_or(&[]);
             let mut minimum = 1;
             for &index in idxs {
@@ -10215,13 +10222,13 @@ impl Admin {
                     "broker does not support requested ListOffsets selector/isolation (requires v{minimum}+)"
                 ))
             })?;
-            let topics = list_offset_topic_requests(queries, idxs, &admin.cluster);
+            let topics = grouped.get(&node).map(Vec::as_slice).unwrap_or(&[]);
             let mut payload = BytesMut::new();
             encode_list_offsets_named_topics(
                 &mut payload,
                 version,
                 isolation,
-                &topics,
+                topics,
                 crate::consumer::duration_millis_i32(timeout),
             )?;
             Ok(LeaderFrame {
@@ -10268,7 +10275,7 @@ impl Admin {
         idxs: &[usize],
         deadline: Instant,
     ) -> Result<(Vec<(usize, crate::OffsetAndTimestamp)>, Vec<usize>)> {
-        let topics = list_offset_topic_requests(queries, idxs, &self.cluster);
+        let topics = list_offset_topic_requests(queries, idxs, &self.cluster).await;
         let mut minimum = 1;
         for &index in idxs {
             let (_, timestamp) = queries
@@ -10290,6 +10297,15 @@ impl Admin {
         if timeout.is_zero() {
             return Err(Error::Timeout);
         }
+        let mut encoded = BytesMut::new();
+        encode_list_offsets_named_topics_cooperative(
+            &mut encoded,
+            version,
+            isolation,
+            &topics,
+            crate::consumer::duration_millis_i32(timeout),
+        )
+        .await?;
         let body = self
             .roundtrip_known_node(
                 node,
@@ -10297,13 +10313,8 @@ impl Admin {
                 LIST_OFFSETS,
                 version,
                 |buf| {
-                    encode_list_offsets_named_topics(
-                        buf,
-                        version,
-                        isolation,
-                        &topics,
-                        crate::consumer::duration_millis_i32(timeout),
-                    )
+                    buf.extend_from_slice(&encoded);
+                    Ok(())
                 },
                 timeout,
             )
@@ -15771,7 +15782,7 @@ fn topic_description_from_dtp(
     }
 }
 
-fn list_offset_topic_requests<'a>(
+async fn list_offset_topic_requests<'a>(
     queries: &'a [(crate::TopicPartition, i64)],
     idxs: &[usize],
     cluster: &Cluster,
@@ -15779,6 +15790,7 @@ fn list_offset_topic_requests<'a>(
     let mut groups: Vec<(&str, Vec<ListOffsetsPartitionRequest>)> = Vec::new();
     let mut slots: HashMap<&str, usize> = HashMap::new();
     let mut epochs = crate::cluster::EpochList::new();
+    let mut walked = 0usize;
     for &i in idxs {
         let Some((tp, ts)) = queries.get(i) else {
             continue;
@@ -15792,12 +15804,21 @@ fn list_offset_topic_requests<'a>(
         if let Some(&slot) = slots.get(topic) {
             if let Some((_, parts)) = groups.get_mut(slot) {
                 parts.push(part);
-                continue;
+            } else {
+                let slot = groups.len();
+                let _ = slots.insert(topic, slot);
+                groups.push((topic, vec![part]));
             }
+        } else {
+            let slot = groups.len();
+            let _ = slots.insert(topic, slot);
+            groups.push((topic, vec![part]));
         }
-        let slot = groups.len();
-        let _ = slots.insert(topic, slot);
-        groups.push((topic, vec![part]));
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
     }
     groups
 }
@@ -19299,8 +19320,28 @@ mod tests {
         assert_eq!(topics[0].1[2].partition, 1);
     }
 
-    #[test]
-    fn list_offset_topic_requests_keeps_duplicate_partitions() {
+    #[tokio::test(flavor = "current_thread")]
+    async fn grouping_many_admin_list_offsets_does_not_hold_the_caller() {
+        // 2_000_000 partitions: grouping the request held the caller 378ms.
+        let queries: Vec<(crate::TopicPartition, i64)> = (0..2_000_000)
+            .map(|index| (crate::TopicPartition::new("orders", index), -1))
+            .collect();
+        let indexes: Vec<usize> = (0..queries.len()).collect();
+        let cluster = Cluster::default();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = list_offset_topic_requests(&queries, &indexes, &cluster) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "grouping admin list offsets held the caller for {elapsed:?}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn list_offset_topic_requests_keeps_duplicate_partitions() {
         let cluster = Cluster::default();
         let queries = [
             (
@@ -19310,7 +19351,7 @@ mod tests {
             (crate::TopicPartition::new("t", 0), crate::LATEST_TIMESTAMP),
             (crate::TopicPartition::new("t", 1), crate::LATEST_TIMESTAMP),
         ];
-        let topics = list_offset_topic_requests(&queries, &[0, 1, 2], &cluster);
+        let topics = list_offset_topic_requests(&queries, &[0, 1, 2], &cluster).await;
         assert_eq!(topics.len(), 1);
         assert_eq!(topics[0].0, "t");
         assert_eq!(topics[0].1.len(), 3);
