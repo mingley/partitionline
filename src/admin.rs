@@ -15074,18 +15074,10 @@ impl Admin {
         pending: &[usize],
         deadline: Instant,
     ) -> Result<HashMap<i32, Vec<usize>>> {
-        let mut need: Vec<&str> = Vec::new();
-        for &i in pending {
-            let Some(id) = ids.get(i) else {
-                continue;
-            };
-            let id = id.as_ref();
-            if !self.group_coords.contains_key(id) && !need.contains(&id) {
-                need.push(id);
-            }
-        }
+        let need = first_seen_missing_ids(ids, pending, &self.group_coords);
         if !need.is_empty() {
             let mut known_nodes = Vec::new();
+            let mut seen_nodes = HashSet::new();
             for &i in pending {
                 let Some(id) = ids.get(i) else {
                     continue;
@@ -15093,12 +15085,12 @@ impl Admin {
                 let Some(&node) = self.group_coords.get(id.as_ref()) else {
                     continue;
                 };
-                if !known_nodes.contains(&node) {
+                if seen_nodes.insert(node) {
                     known_nodes.push(node);
                 }
             }
             for node in self.group_coord_redial.drain(..) {
-                if !known_nodes.contains(&node) {
+                if seen_nodes.insert(node) {
                     known_nodes.push(node);
                 }
             }
@@ -15157,18 +15149,10 @@ impl Admin {
         pending: &[usize],
         deadline: Instant,
     ) -> Result<HashMap<i32, Vec<usize>>> {
-        let mut need: Vec<&str> = Vec::new();
-        for &i in pending {
-            let Some(id) = ids.get(i) else {
-                continue;
-            };
-            let id = id.as_ref();
-            if !self.txn_coords.contains_key(id) && !need.contains(&id) {
-                need.push(id);
-            }
-        }
+        let need = first_seen_missing_ids(ids, pending, &self.txn_coords);
         if !need.is_empty() {
             let mut known_nodes = Vec::new();
+            let mut seen_nodes = HashSet::new();
             for &i in pending {
                 let Some(id) = ids.get(i) else {
                     continue;
@@ -15176,12 +15160,12 @@ impl Admin {
                 let Some(&node) = self.txn_coords.get(id.as_ref()) else {
                     continue;
                 };
-                if !known_nodes.contains(&node) {
+                if seen_nodes.insert(node) {
                     known_nodes.push(node);
                 }
             }
             for node in self.txn_coord_redial.drain(..) {
-                if !known_nodes.contains(&node) {
+                if seen_nodes.insert(node) {
                     known_nodes.push(node);
                 }
             }
@@ -15913,6 +15897,26 @@ async fn unique_in_order<'a>(keys: &[&'a str]) -> Vec<&'a str> {
         }
     }
     uniq
+}
+
+fn first_seen_missing_ids<'a, T: AsRef<str>>(
+    ids: &'a [T],
+    pending: &[usize],
+    known: &HashMap<String, i32>,
+) -> Vec<&'a str> {
+    let mut need = Vec::new();
+    let mut seen = HashSet::new();
+    for &index in pending {
+        let Some(id) = ids.get(index) else {
+            continue;
+        };
+        let id = id.as_ref();
+        if known.contains_key(id) || !seen.insert(id) {
+            continue;
+        }
+        need.push(id);
+    }
+    need
 }
 
 fn first_seen_i32(values: impl IntoIterator<Item = i32>) -> Vec<i32> {
@@ -19231,6 +19235,31 @@ mod tests {
         assert_eq!(one.len(), 1);
         assert_eq!(one[0].0, two[0].0);
         assert_eq!(one[0].1, two[0].1);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn collecting_many_group_ids_does_not_hold_the_caller() {
+        // 20_000 group ids: scanning the list held the caller 1.04s.
+        let ids: Vec<String> = (0..20_000).map(|id| format!("group-{id}")).collect();
+        let pending: Vec<usize> = (0..ids.len()).collect();
+        let mut known = HashMap::new();
+        let _ = known.insert("group-1".to_owned(), 4);
+        let started = std::time::Instant::now();
+        tokio::select! {
+            () = async {
+                let need = first_seen_missing_ids(&ids, &pending, &known);
+                assert_eq!(need.len(), 19_999);
+                assert_eq!(need.first().copied(), Some("group-0"));
+                assert!(!need.contains(&"group-1"));
+                assert_eq!(need.last().copied(), Some("group-19999"));
+            } => {}
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "collecting group ids held the caller for {elapsed:?}"
+        );
     }
 
     #[tokio::test(flavor = "current_thread")]
