@@ -907,6 +907,13 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   which fails that poll, and not piggyback `DUPLICATE_VOTER`). Official
   Java `RemoveVoterHandler` writes this when RemoveRaftVoter cannot
   remove the named voter from the current voter set. A
+  piggybacked `INVALID_REGULAR_EXPRESSION` still
+  completes without retry, including when `AcknowledgeErrorMessage` is
+  set (Java `handleShareFetchSuccess` completes piggyback acks and still
+  delivers the fetch; this is not partition `INVALID_REGULAR_EXPRESSION`,
+  which fails that poll, and not piggyback `VOTER_NOT_FOUND`). Official
+  Java `GroupMetadataManager` writes this when a consumer-group member
+  first subscribes a topic regex that is not a valid regular expression. A
   piggybacked `TOPIC_AUTHORIZATION_FAILED` on
   one partition does not fail a sibling whose `AcknowledgeErrorCode`
   is none, including when `AcknowledgeErrorMessage` is set or empty. A
