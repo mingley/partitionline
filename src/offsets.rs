@@ -541,7 +541,14 @@ impl OffsetClient {
         for spare in &finished {
             self.remember_versions(spare.0.addr(), &spare.1.api_keys);
         }
-        finished.into_iter().next().ok_or(last)
+        let mut rest = finished.into_iter();
+        let Some(kept) = rest.next() else {
+            return Err(last);
+        };
+        for (conn, _, _) in rest {
+            retire_offset_conn(conn).await;
+        }
+        Ok(kept)
     }
 
     async fn coordinator(
@@ -1348,6 +1355,81 @@ mod tests {
             "finishing an offset fetch left the broker blocked in a read"
         );
         peer.abort();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn an_offset_bootstrap_race_lets_the_other_broker_leave() {
+        use super::OffsetClient;
+        use crate::net::Deadline;
+        use crate::protocol::api::ApiVersion;
+        use crate::protocol::api_keys::OFFSET_FETCH;
+        use crate::AdminConfig;
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use std::sync::Arc;
+        use std::time::Duration;
+
+        let first = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let second = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let first_addr = first.local_addr().unwrap().to_string();
+        let second_addr = second.local_addr().unwrap().to_string();
+        let open = Arc::new(AtomicUsize::new(0));
+        let accepted = Arc::new(AtomicUsize::new(0));
+        let spawn_peer = |listener: tokio::net::TcpListener,
+                          open: Arc<AtomicUsize>,
+                          accepted: Arc<AtomicUsize>| {
+            tokio::spawn(async move {
+                use tokio::io::AsyncReadExt;
+                let Ok((mut socket, _)) = listener.accept().await else {
+                    return;
+                };
+                let _accepted = accepted.fetch_add(1, Ordering::SeqCst);
+                let _started = open.fetch_add(1, Ordering::SeqCst);
+                let mut buf = [0u8; 8];
+                loop {
+                    match socket.read(&mut buf).await {
+                        Ok(0) | Err(_) => break,
+                        Ok(_) => continue,
+                    }
+                }
+                let _left = open.fetch_sub(1, Ordering::SeqCst);
+            })
+        };
+        let first_peer = spawn_peer(first, Arc::clone(&open), Arc::clone(&accepted));
+        let second_peer = spawn_peer(second, Arc::clone(&open), Arc::clone(&accepted));
+        let mut client = OffsetClient::new(AdminConfig::bootstrap([
+            first_addr.clone(),
+            second_addr.clone(),
+        ]))
+        .unwrap();
+        let keys = vec![ApiVersion {
+            api_key: OFFSET_FETCH,
+            min_version: 8,
+            max_version: 8,
+        }];
+        let _stored = client.known_versions.insert(first_addr, keys.clone());
+        let _stored = client.known_versions.insert(second_addr, keys);
+        let opened = client
+            .bootstrap(
+                OFFSET_FETCH,
+                false,
+                false,
+                Deadline::from_timeout(Duration::from_secs(2)),
+            )
+            .await;
+        assert!(opened.is_ok(), "the offset bootstrap race did not finish");
+        assert_eq!(
+            accepted.load(Ordering::SeqCst),
+            2,
+            "a bootstrap was not dialed"
+        );
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            1,
+            "an offset bootstrap race left the unused broker blocked in a read"
+        );
+        drop(opened);
+        first_peer.abort();
+        second_peer.abort();
     }
 
     #[tokio::test(flavor = "current_thread")]
