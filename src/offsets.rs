@@ -768,17 +768,31 @@ impl OffsetClient {
         let (mut bootstrap, versions, _) = self
             .bootstrap(OFFSET_FETCH, options.topic_ids, member, deadline)
             .await?;
-        let routes = Self::route_groups(
+        let routes = match Self::route_groups(
             &mut bootstrap,
             &versions,
             &request.groups,
             deadline,
             control_bytes,
         )
-        .await?;
+        .await
+        {
+            Ok(routes) => routes,
+            Err(error) => {
+                retire_offset_conn(bootstrap).await;
+                return Err(error);
+            }
+        };
         let order: Vec<(String, Vec<usize>)> = routes.into_iter().collect();
         let bootstrap_addr = bootstrap.addr().to_string();
-        let bootstrap_version = Self::version(&versions, OFFSET_FETCH, options.topic_ids, member)?;
+        let bootstrap_version =
+            match Self::version(&versions, OFFSET_FETCH, options.topic_ids, member) {
+                Ok(version) => version,
+                Err(error) => {
+                    retire_offset_conn(bootstrap).await;
+                    return Err(error);
+                }
+            };
         let mut next_dial = 0usize;
         let mut dialing = tokio::task::JoinSet::<OffsetDial>::new();
         let mut ready: HashMap<String, Result<(BrokerConn, i16)>> = HashMap::new();
@@ -1353,6 +1367,98 @@ mod tests {
             open.load(Ordering::SeqCst),
             0,
             "finishing an offset fetch left the broker blocked in a read"
+        );
+        peer.abort();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn a_bad_offset_lookup_lets_the_broker_leave() {
+        use super::OffsetClient;
+        use crate::net::Deadline;
+        use crate::protocol::api::ApiVersion;
+        use crate::protocol::api_keys::{FIND_COORDINATOR, OFFSET_FETCH};
+        use crate::protocol::group::{OffsetFetchGroupData, OffsetFetchRequestData};
+        use crate::AdminConfig;
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use std::sync::Arc;
+        use std::time::Duration;
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let open = Arc::new(AtomicUsize::new(0));
+        let flag = Arc::clone(&open);
+        let peer = tokio::spawn(async move {
+            let Ok((mut socket, _)) = listener.accept().await else {
+                return;
+            };
+            let _started = flag.fetch_add(1, Ordering::SeqCst);
+            let mut size_buf = [0u8; 4];
+            if socket.read_exact(&mut size_buf).await.is_ok() {
+                let size = i32::from_be_bytes(size_buf).max(0) as usize;
+                let mut request = vec![0u8; size];
+                if socket.read_exact(&mut request).await.is_ok() {
+                    if let Some(bytes) = request.get(4..8) {
+                        let correlation = i32::from_be_bytes([
+                            bytes.first().copied().unwrap_or(0),
+                            bytes.get(1).copied().unwrap_or(0),
+                            bytes.get(2).copied().unwrap_or(0),
+                            bytes.get(3).copied().unwrap_or(0),
+                        ]);
+                        let mut response = Vec::with_capacity(8);
+                        response.extend_from_slice(&4i32.to_be_bytes());
+                        response.extend_from_slice(&correlation.to_be_bytes());
+                        let _wrote = socket.write_all(&response).await;
+                    }
+                }
+            }
+            let mut buf = [0u8; 8];
+            loop {
+                match socket.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let mut client = OffsetClient::new(AdminConfig::bootstrap([addr.clone()])).unwrap();
+        let _stored = client.known_versions.insert(
+            addr,
+            vec![
+                ApiVersion {
+                    api_key: FIND_COORDINATOR,
+                    min_version: 1,
+                    max_version: 1,
+                },
+                ApiVersion {
+                    api_key: OFFSET_FETCH,
+                    min_version: 8,
+                    max_version: 8,
+                },
+            ],
+        );
+        let request = OffsetFetchRequestData {
+            groups: vec![OffsetFetchGroupData {
+                group_id: "group".to_string(),
+                ..OffsetFetchGroupData::default()
+            }],
+            require_stable: false,
+        };
+        let mut control = 0usize;
+        let mut response_bytes = 0usize;
+        let _fetched = client
+            .fetch_once(
+                &request,
+                &super::OffsetOptions::default(),
+                Deadline::from_timeout(Duration::from_secs(2)),
+                &mut control,
+                &mut response_bytes,
+            )
+            .await;
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "a bad offset lookup left the broker blocked in a read"
         );
         peer.abort();
     }
