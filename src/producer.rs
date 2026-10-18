@@ -1171,18 +1171,24 @@ impl<T> std::future::Future for AbortOnDrop<T> {
 ///
 /// Abort only schedules cancellation. On a current-thread runtime the task
 /// stays alive until this caller yields. Broker waits stop at `deadline`.
-/// A few extra turns let a task already at an await notice the abort.
+/// A few extra turns let a task already at an await notice the abort, and
+/// let the idle watch drop the broker socket after that task finishes.
 async fn wait_until_finished(handle: &tokio::task::JoinHandle<()>, deadline: Option<Instant>) {
     let mut turns = 0u32;
     while !handle.is_finished() {
         let deadline_open = deadline.is_none_or(|deadline| Instant::now() < deadline);
         if !deadline_open && turns >= 8 {
-            return;
+            break;
         }
         if turns >= 64 {
-            return;
+            break;
         }
         turns = turns.saturating_add(1);
+        tokio::task::yield_now().await;
+    }
+    // The abort drops the broker socket when the task is polled. The idle
+    // watch then has to run before that broker sees the close.
+    for _ in 0..8 {
         tokio::task::yield_now().await;
     }
 }
@@ -12279,6 +12285,54 @@ mod rediscover_stop_tests {
             open.load(Ordering::SeqCst),
             0,
             "stopping a finished worker left the broker blocked in a read"
+        );
+        peer.abort();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn waiting_for_a_stopped_worker_lets_the_broker_leave() {
+        use super::wait_until_finished;
+        use crate::net::BrokerConn;
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use tokio::io::AsyncReadExt;
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let open = Arc::new(AtomicUsize::new(0));
+        let flag = Arc::clone(&open);
+        let peer = tokio::spawn(async move {
+            let Ok((mut socket, _)) = listener.accept().await else {
+                return;
+            };
+            let _started = flag.fetch_add(1, Ordering::SeqCst);
+            let mut buf = [0u8; 8];
+            loop {
+                match socket.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let conn = BrokerConn::connect(&addr, "wait-worker", Duration::from_secs(2))
+            .await
+            .unwrap();
+        while open.load(Ordering::SeqCst) == 0 {
+            tokio::task::yield_now().await;
+        }
+        let task = tokio::spawn(async move {
+            let _hold = conn;
+            std::future::pending::<()>().await;
+        });
+        for _ in 0..8 {
+            tokio::task::yield_now().await;
+        }
+        task.abort();
+        wait_until_finished(&task, None).await;
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "waiting for a stopped worker left the broker blocked in a read"
         );
         peer.abort();
     }
