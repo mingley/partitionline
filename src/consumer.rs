@@ -2054,15 +2054,26 @@ impl PendingRecords {
     }
 
     fn drop_for(&mut self, topic: &str, partition: i32) -> usize {
-        let removed = self.partitions.remove(topic, partition);
+        self.drop_many(&[(topic, partition)])
+    }
+
+    fn drop_many(&mut self, parts: &[(&str, i32)]) -> usize {
+        if parts.is_empty() {
+            return 0;
+        }
+        let drop_set: HashSet<(&str, i32)> = parts.iter().copied().collect();
+        let mut removed_bytes = 0usize;
+        for &(topic, partition) in &drop_set {
+            if let Some(queue) = self.partitions.remove(topic, partition) {
+                removed_bytes = queue
+                    .iter()
+                    .map(record_bytes)
+                    .fold(removed_bytes, usize::saturating_add);
+            }
+        }
         self.order
-            .retain(|run| run.topic != topic || run.partition != partition);
-        removed.map_or(0, |queue| {
-            queue
-                .iter()
-                .map(record_bytes)
-                .fold(0, usize::saturating_add)
-        })
+            .retain(|run| !drop_set.contains(&(run.topic.as_str(), run.partition)));
+        removed_bytes
     }
 
     fn retain_assigned(&mut self, assigned: &PartitionMap<()>) -> usize {
@@ -3525,8 +3536,12 @@ impl Consumer {
         self.retain_assigned_topics(|name| name != topic.as_str());
         let _removed = self.assigned_topic_ids.remove(topic.as_str());
         let name = assigned_topic_name(&self.name_to_id, &topic);
+        let drop_parts: Vec<(&str, i32)> = parts
+            .iter()
+            .map(|partition| (topic.as_str(), *partition))
+            .collect();
+        self.drop_pending_many(&drop_parts);
         for p in parts {
-            self.drop_pending_for(&topic, p);
             self.push_assigned(Arc::clone(&name), p, offset);
         }
         self.cursor_index = None;
@@ -4054,20 +4069,21 @@ impl Consumer {
             crate::RecordBatch::NO_PARTITION_LEADER_EPOCH,
         );
         let mut walked = 0usize;
+        let mut drop_parts = Vec::new();
         for (topic, part, offset) in starts {
             let metadata_id = self.name_to_id.get(topic.as_str()).copied();
-            if let Some(&old_offset) = old_assigned.get(topic, *part) {
-                if old_offset != *offset
+            let drop_pending = if let Some(&old_offset) = old_assigned.get(topic, *part) {
+                old_offset != *offset
                     || old_ids
                         .get(topic.as_str())
                         .and_then(|parts| parts.get(part))
                         .copied()
                         != metadata_id
-                {
-                    self.drop_pending_for(topic, *part);
-                }
             } else {
-                self.drop_pending_for(topic, *part);
+                true
+            };
+            if drop_pending {
+                drop_parts.push((topic.as_str(), *part));
             }
             walked = walked.saturating_add(1);
             if walked == 8 * 1024 {
@@ -4075,6 +4091,7 @@ impl Consumer {
                 tokio::task::yield_now().await;
             }
         }
+        self.drop_pending_many(&drop_parts);
         self.retain_pending_assigned().await;
         self.capture_assigned_topic_ids().await;
         Ok(())
@@ -9846,6 +9863,16 @@ impl Consumer {
         let _state = self.aborted.remove(topic, partition);
     }
 
+    fn drop_pending_many(&mut self, parts: &[(&str, i32)]) {
+        self.buffered_bytes = self
+            .buffered_bytes
+            .saturating_sub(self.pending.drop_many(parts));
+        for &(topic, partition) in parts {
+            self.drop_retained_for(topic, partition);
+            let _state = self.aborted.remove(topic, partition);
+        }
+    }
+
     async fn extend_assigned_rows<V: Copy>(
         map: &mut PartitionMap<V>,
         assigned: &[(Arc<str>, i32, i64)],
@@ -14235,6 +14262,37 @@ mod tests {
         assert_eq!(reset_position(0), Some(0));
         assert_eq!(reset_position(4), Some(4));
         assert_eq!(reset_position(-1), None);
+    }
+
+    #[test]
+    fn dropping_many_pending_runs_does_not_hold_the_caller() {
+        // 8_192 partitions: scanning the arrival order for each one held the caller 2.22s.
+        let mut pending = PendingRecords::new();
+        for partition in 0..8_192 {
+            pending.order.push_back(PendingRun {
+                topic: TopicName::from("orders"),
+                partition,
+                count: 1,
+            });
+        }
+        pending.order.push_back(PendingRun {
+            topic: TopicName::from("payments"),
+            partition: 0,
+            count: 1,
+        });
+        let parts: Vec<(&str, i32)> = (0..8_192).map(|partition| ("orders", partition)).collect();
+        let started = std::time::Instant::now();
+        let _removed = pending.drop_many(&parts);
+        let elapsed = started.elapsed();
+        assert_eq!(pending.order.len(), 1);
+        assert_eq!(
+            pending.order.front().map(|run| run.topic.as_str()),
+            Some("payments")
+        );
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "dropping pending runs held the caller for {elapsed:?}"
+        );
     }
 
     #[test]
