@@ -2353,6 +2353,13 @@ pub enum ShareAcquireMode {
 /// `PRODUCER_FENCED`). Official Java `ScramImage`
 /// DescribeUserScramCredentials writes this when the user does not
 /// exist.
+/// Top-level `DUPLICATE_RESOURCE` still fails that poll
+/// and does not request Metadata, including when `ErrorMessage` is
+/// set (Java `handleShareFetchSuccess` only `requestUpdate`s for
+/// `UNKNOWN_TOPIC_ID`; this is not top-level
+/// `RESOURCE_NOT_FOUND`). Official Java `ScramImage`
+/// DescribeUserScramCredentials writes this when the same user is
+/// requested twice.
 /// Top-level
 /// `SHARE_SESSION_LIMIT_REACHED` resets the share session and does
 /// not request Metadata, including when `ErrorMessage` is set or
@@ -5444,6 +5451,13 @@ impl ShareGroup {
     /// `PRODUCER_FENCED`). Official Java `ScramImage`
     /// DescribeUserScramCredentials writes this when the user does
     /// not exist. Top-level
+    /// `DUPLICATE_RESOURCE` still fails that poll without
+    /// Metadata, including when `ErrorMessage` is set (Java
+    /// `handleShareFetchSuccess` only `requestUpdate`s for
+    /// `UNKNOWN_TOPIC_ID`; this is not top-level
+    /// `RESOURCE_NOT_FOUND`). Official Java `ScramImage`
+    /// DescribeUserScramCredentials writes this when the same user
+    /// is requested twice. Top-level
     /// `SHARE_SESSION_LIMIT_REACHED` resets the share session and
     /// does not request Metadata, including when `ErrorMessage` is
     /// set or empty (Java `handleShareFetchSuccess` only

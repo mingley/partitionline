@@ -3403,7 +3403,14 @@
 //! `handleShareFetchSuccess` only `requestUpdate`s for
 //! `UNKNOWN_TOPIC_ID`; this is not top-level
 //! `PRODUCER_FENCED`). Official Java `ScramImage`
-//! DescribeUserScramCredentials writes this when the user does not exist. Partition
+//! DescribeUserScramCredentials writes this when the user does not exist. Top-level
+//! `DUPLICATE_RESOURCE` still fails that poll without
+//! Metadata, including when `ErrorMessage` is set (Java
+//! `handleShareFetchSuccess` only `requestUpdate`s for
+//! `UNKNOWN_TOPIC_ID`; this is not top-level
+//! `RESOURCE_NOT_FOUND`). Official Java `ScramImage`
+//! DescribeUserScramCredentials writes this when the same user is
+//! requested twice. Partition
 //! `INCONSISTENT_TOPIC_ID` / `UNKNOWN_TOPIC_OR_PARTITION` /
 //! `UNKNOWN_TOPIC_ID` / `REPLICA_NOT_AVAILABLE` /
 //! `OFFSET_NOT_AVAILABLE` / `KAFKA_STORAGE_ERROR` skip without throwing,

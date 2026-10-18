@@ -2007,6 +2007,13 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `UNKNOWN_TOPIC_ID`; this is not top-level
   `PRODUCER_FENCED`). Official Java `ScramImage`
   DescribeUserScramCredentials writes this when the user does not exist.
+  Top-level `DUPLICATE_RESOURCE` still fails that poll
+  without Metadata, including when `ErrorMessage` is set (Java
+  `handleShareFetchSuccess` only `requestUpdate`s for top-level
+  `UNKNOWN_TOPIC_ID`; this is not top-level
+  `RESOURCE_NOT_FOUND`). Official Java `ScramImage`
+  DescribeUserScramCredentials writes this when the same user is
+  requested twice.
   A non-empty
   throwable partition or top-level ShareFetch `ErrorMessage` is
   preferred; empty uses `ShareFetch {topic}-{partition}` or
