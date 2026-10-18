@@ -718,6 +718,55 @@ pub fn assign_cooperative_sticky_subscribed(
     cooperative_filter(assign_sticky_subscribed(member_subs, topics, prev), prev)
 }
 
+/// [`assign_cooperative_sticky_subscribed`], yielding while partitions are assigned.
+pub async fn assign_cooperative_sticky_subscribed_cooperative(
+    member_subs: &[(String, Vec<String>)],
+    topics: &[(String, Vec<i32>)],
+    prev: &HashMap<String, Vec<(String, i32)>>,
+) -> HashMap<String, Vec<(String, i32)>> {
+    let computed = assign_sticky_subscribed_cooperative(member_subs, topics, prev).await;
+    cooperative_filter_cooperative(computed, prev).await
+}
+
+async fn cooperative_filter_cooperative<T: Eq + std::hash::Hash>(
+    computed: HashMap<String, Vec<T>>,
+    prev: &HashMap<String, Vec<T>>,
+) -> HashMap<String, Vec<T>> {
+    let mut owner: HashMap<&T, &str> = HashMap::new();
+    let mut walked = 0usize;
+    for (member, partitions) in prev {
+        for partition in partitions {
+            if let std::collections::hash_map::Entry::Vacant(slot) = owner.entry(partition) {
+                let _ = slot.insert(member.as_str());
+            }
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+    }
+    let mut out: HashMap<String, Vec<T>> = HashMap::new();
+    for (member, owned) in computed {
+        let mut kept = Vec::with_capacity(owned.len());
+        for partition in owned {
+            let revoked = owner
+                .get(&partition)
+                .is_some_and(|current| *current != member.as_str());
+            if !revoked {
+                kept.push(partition);
+            }
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+        let _ = out.insert(member, kept);
+    }
+    out
+}
+
 fn members_by_topic(member_subs: &[(String, Vec<String>)]) -> HashMap<&str, Vec<&str>> {
     let mut out: HashMap<&str, Vec<&str>> = HashMap::new();
     for (id, subs) in member_subs {
@@ -3104,7 +3153,12 @@ impl ConsumerGroup {
         let assignments = if assigning {
             let map = match self.protocol.as_str() {
                 "cooperative-sticky" => {
-                    assign_cooperative_sticky_subscribed(&member_subs, &by_topic, &owned_prev)
+                    assign_cooperative_sticky_subscribed_cooperative(
+                        &member_subs,
+                        &by_topic,
+                        &owned_prev,
+                    )
+                    .await
                 }
                 "sticky" => {
                     assign_sticky_subscribed_cooperative(&member_subs, &by_topic, &owned_prev).await
@@ -6778,6 +6832,24 @@ mod tests {
     use std::time::Duration;
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
     use tokio::net::TcpListener;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn assigning_many_cooperative_sticky_partitions_does_not_hold_the_caller() {
+        let parts: Vec<i32> = (0..1_000_000).collect();
+        let subs = vec![("member".to_string(), vec!["orders".to_string()])];
+        let topics = vec![("orders".to_string(), parts)];
+        let prev = HashMap::new();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = assign_cooperative_sticky_subscribed_cooperative(&subs, &topics, &prev) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "assigning cooperative-sticky partitions held the caller for {elapsed:?}"
+        );
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn assigning_many_range_partitions_does_not_hold_the_caller() {
