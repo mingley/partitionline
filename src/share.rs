@@ -2141,7 +2141,7 @@ pub enum ShareAcquireMode {
 /// this when CreateTopics fails a configured `CreateTopicPolicy`.
 /// Top-level `OUT_OF_ORDER_SEQUENCE_NUMBER` still fails that poll
 /// and does not request Metadata, including when `ErrorMessage` is
-/// set (Java `handleShareFetchSuccess` only `requestUpdate`s for
+/// set or empty (Java `handleShareFetchSuccess` only `requestUpdate`s for
 /// `UNKNOWN_TOPIC_ID`; this is not top-level
 /// `POLICY_VIOLATION`). Official Java `ProducerAppendInfo` writes
 /// this when an idempotent produce batch is not the next expected
@@ -4806,7 +4806,7 @@ impl ShareGroup {
     /// writes this when CreateTopics fails a configured
     /// `CreateTopicPolicy`. Top-level
     /// `OUT_OF_ORDER_SEQUENCE_NUMBER` still fails that poll without
-    /// Metadata, including when `ErrorMessage` is set (Java
+    /// Metadata, including when `ErrorMessage` is set or empty (Java
     /// `handleShareFetchSuccess` only `requestUpdate`s for
     /// `UNKNOWN_TOPIC_ID`; this is not top-level
     /// `POLICY_VIOLATION`). Official Java `ProducerAppendInfo`

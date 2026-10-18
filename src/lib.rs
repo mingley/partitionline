@@ -3214,7 +3214,7 @@
 //! `UNSUPPORTED_FOR_MESSAGE_FORMAT`). Official Java `ReplicationControlManager` writes
 //! this when CreateTopics fails a configured `CreateTopicPolicy`. Top-level
 //! `OUT_OF_ORDER_SEQUENCE_NUMBER` still fails that poll without
-//! Metadata, including when `ErrorMessage` is set (Java
+//! Metadata, including when `ErrorMessage` is set or empty (Java
 //! `handleShareFetchSuccess` only `requestUpdate`s for
 //! `UNKNOWN_TOPIC_ID`; this is not top-level
 //! `POLICY_VIOLATION`). Official Java `ProducerAppendInfo` writes
