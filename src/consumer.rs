@@ -2816,6 +2816,15 @@ impl WakeupHandle {
     }
 }
 
+/// Shut a dedicated fetch socket down after its session close.
+///
+/// The socket is not reused. Dropping it aborts the idle watch, so the broker
+/// stays in its read until that watch is scheduled.
+async fn retire_fetch_conn(mut conn: BrokerConn) {
+    conn.close();
+    conn.release_if_closed().await;
+}
+
 /// Send Fetch epoch `-1` on `conn` and leave the socket with that response read.
 async fn send_fetch_session_close(
     conn: &mut crate::net::BrokerConn,
@@ -5939,7 +5948,7 @@ impl Consumer {
             let cfg = self.cfg.clone();
             let wakeup_tx = self.wakeup_tx.clone();
             let _ = set.spawn(async move {
-                send_fetch_session_close(
+                let closed = send_fetch_session_close(
                     &mut conn,
                     &session,
                     throttle_until,
@@ -5947,7 +5956,9 @@ impl Consumer {
                     &cfg,
                     deadline,
                 )
-                .await
+                .await;
+                retire_fetch_conn(conn).await;
+                closed
             });
         }
         let bootstrap_close = async {
@@ -6022,7 +6033,7 @@ impl Consumer {
         let Some(mut conn) = self.conns.remove(&node) else {
             return Ok(());
         };
-        send_fetch_session_close(
+        let closed = send_fetch_session_close(
             &mut conn,
             &session,
             throttle_until,
@@ -6030,9 +6041,11 @@ impl Consumer {
             &self.cfg,
             deadline,
         )
-        .await
-        // The dedicated socket is dropped with its close response. An
-        // interrupted roundtrip must not be reused with an unread frame.
+        .await;
+        // The dedicated socket is not reused. An interrupted roundtrip must
+        // not be put back with an unread frame.
+        retire_fetch_conn(conn).await;
+        closed
     }
 
     pub(crate) fn close_interceptors(&self) {
@@ -11257,6 +11270,45 @@ mod tests {
     use super::*;
     use crate::protocol::api::ApiVersion;
     use crate::protocol::api_keys::FETCH;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn retiring_a_fetch_session_lets_the_broker_leave() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use std::sync::Arc;
+        use tokio::io::AsyncReadExt;
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let open = Arc::new(AtomicUsize::new(0));
+        let flag = Arc::clone(&open);
+        let peer = tokio::spawn(async move {
+            let Ok((mut socket, _)) = listener.accept().await else {
+                return;
+            };
+            let _started = flag.fetch_add(1, Ordering::SeqCst);
+            let mut buf = [0u8; 8];
+            loop {
+                match socket.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let conn = crate::net::BrokerConn::connect(&addr, "fetch-retire", Duration::from_secs(2))
+            .await
+            .unwrap();
+        while open.load(Ordering::SeqCst) == 0 {
+            tokio::task::yield_now().await;
+        }
+        retire_fetch_conn(conn).await;
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "retiring a fetch session left the broker blocked in a read"
+        );
+        peer.abort();
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn a_wakeup_lets_the_leader_leave() {
