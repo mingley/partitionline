@@ -6627,11 +6627,11 @@ impl Drop for Worker {
         }
         if !self.shared.closed.load(Ordering::SeqCst) {
             while let Some(inf) = self.in_flight.pop_front() {
-                self.requeue(inf.groups);
+                self.requeue_sync(inf.groups);
             }
             if !self.pending.is_empty() {
                 let pendings = std::mem::take(&mut self.pending);
-                self.requeue_pendings(pendings);
+                self.requeue_pendings_sync(pendings);
             }
         } else {
             while let Some(inflight) = self.in_flight.pop_front() {
@@ -6794,7 +6794,7 @@ impl Worker {
         self.pending = retained;
         self.recompute_pending_estimate().await;
         if !displaced.is_empty() {
-            self.requeue_pendings(displaced);
+            self.requeue_pendings(displaced).await;
         }
     }
 
@@ -7258,9 +7258,9 @@ impl Worker {
         if self.conn.is_closed() {
             remove_node_nudge_live(&self.shared, self.node_id);
             let pending = self.take_all_pending();
-            self.requeue_pendings(pending);
+            self.requeue_pendings(pending).await;
             while let Some(remaining) = self.in_flight.pop_front() {
-                self.requeue(remaining.groups);
+                self.requeue(remaining.groups).await;
             }
             return Ok(());
         }
@@ -7286,7 +7286,7 @@ impl Worker {
                     let pending = self.take_all_pending();
                     if e.is_retriable() {
                         let _ = self.shared.nodes.lock().remove(&self.node_id);
-                        self.requeue_pendings(pending);
+                        self.requeue_pendings(pending).await;
                         return Ok(());
                     }
                     self.fail_kept_batch(pending, clone_err(&e)).await;
@@ -7517,7 +7517,7 @@ impl Worker {
         }
         if fault == Some(PreSendFault::WriteRetriable) {
             let _ = self.shared.nodes.lock().remove(&self.node_id);
-            self.requeue(groups);
+            self.requeue(groups).await;
             return Ok(());
         }
         let now_inst = Instant::now();
@@ -7538,12 +7538,12 @@ impl Worker {
         {
             if e.is_retriable() {
                 remove_node_nudge_live(&self.shared, self.node_id);
-                self.requeue(groups);
+                self.requeue(groups).await;
                 while let Some(remaining) = self.in_flight.pop_front() {
-                    self.requeue(remaining.groups);
+                    self.requeue(remaining.groups).await;
                 }
                 let pending = self.take_all_pending();
-                self.requeue_pendings(pending);
+                self.requeue_pendings(pending).await;
                 return Ok(());
             }
             rollback_sequences(&groups, producer_id, &self.shared.seqs);
@@ -7609,12 +7609,12 @@ impl Worker {
                 if let Some(inf) = guard.inf.take() {
                     if e.is_retriable() {
                         remove_node_nudge_live(&self.shared, self.node_id);
-                        self.requeue(inf.groups);
+                        self.requeue(inf.groups).await;
                         while let Some(remaining) = self.in_flight.pop_front() {
-                            self.requeue(remaining.groups);
+                            self.requeue(remaining.groups).await;
                         }
                         let pending = self.take_all_pending();
-                        self.requeue_pendings(pending);
+                        self.requeue_pendings(pending).await;
                         return Ok(());
                     }
                     self.fail_kept_groups(inf.groups, clone_err(&e)).await;
@@ -7801,7 +7801,7 @@ impl Worker {
                                 // so a nudge here would be a duplicate RPC
                                 // per faulted batch.
                             }
-                            self.requeue_pendings(pendings);
+                            self.requeue_pendings(pendings).await;
                         } else if r.error_code == error::UNKNOWN_PRODUCER_ID
                             && self.shared.cfg.transactional_id.is_none()
                             && self.shared.producer_id.load(Ordering::SeqCst) >= 0
@@ -7819,7 +7819,7 @@ impl Worker {
                                         for p in &mut pendings {
                                             p.skip_meta_refresh = true;
                                         }
-                                        self.requeue_pendings(pendings);
+                                        self.requeue_pendings(pendings).await;
                                     }
                                     Err(renew_err) => {
                                         self.fail_kept_batch(pendings, clone_err(&renew_err)).await;
@@ -7834,7 +7834,7 @@ impl Worker {
                                 for p in &mut pendings {
                                     p.skip_meta_refresh = true;
                                 }
-                                self.requeue_pendings(pendings);
+                                self.requeue_pendings(pendings).await;
                             }
                         } else if self.shared.cfg.transactional_id.is_some() {
                             // Java `maybeTransitionToErrorState` (KL03-10):
@@ -7944,13 +7944,24 @@ impl Worker {
         }
     }
 
-    fn requeue(&mut self, groups: ProduceGroups) {
+    fn requeue_sync(&mut self, groups: ProduceGroups) {
         let OpenedProduceGroups { one, mut shell } = groups.into_one_many();
         if let Some((_, _, pendings)) = one {
-            self.requeue_pendings(pendings);
+            self.requeue_pendings_sync(pendings);
         }
         for (_, _, pendings) in shell.drain(..) {
-            self.requeue_pendings(pendings);
+            self.requeue_pendings_sync(pendings);
+        }
+        self.stash_group_shell(shell);
+    }
+
+    async fn requeue(&mut self, groups: ProduceGroups) {
+        let OpenedProduceGroups { one, mut shell } = groups.into_one_many();
+        if let Some((_, _, pendings)) = one {
+            self.requeue_pendings(pendings).await;
+        }
+        for (_, _, pendings) in shell.drain(..) {
+            self.requeue_pendings(pendings).await;
         }
         self.stash_group_shell(shell);
     }
@@ -8156,7 +8167,7 @@ impl Worker {
         self.stash_group_shell(best_shell);
     }
 
-    fn requeue_pendings(&mut self, mut pendings: Vec<Pending>) {
+    fn requeue_pendings_sync(&mut self, mut pendings: Vec<Pending>) {
         if let Some(policy) = &self.shared.sticky {
             let mut policy = policy.lock();
             for p in &pendings {
@@ -8214,6 +8225,73 @@ impl Worker {
                     let _ = self.shared.retries_out.fetch_sub(1, Ordering::SeqCst);
                     fail_pendings(&self.shared, vec![p], Error::Closed);
                     self.note_fail(Error::Closed);
+                }
+            }
+        }
+        self.park_batch(pendings);
+    }
+
+    async fn requeue_pendings(&mut self, mut pendings: Vec<Pending>) {
+        if let Some(policy) = &self.shared.sticky {
+            let mut policy = policy.lock();
+            for p in &pendings {
+                if let Some(tag) = p.sticky {
+                    policy.seal(tag);
+                }
+            }
+        }
+        let now = Instant::now();
+        let (group_of, groups) = retry_topic_groups_cooperative(&pendings).await;
+        let mut firsts = vec![usize::MAX; groups.len()];
+        for (i, &gi) in group_of.iter().enumerate() {
+            if let Some(first) = firsts.get_mut(gi) {
+                *first = (*first).min(i);
+            }
+        }
+        let chunks = detach_pending_chunks(&mut pendings).await;
+        let mut index = 0usize;
+        let mut walked = 0usize;
+        for chunk in chunks {
+            for mut pending in chunk {
+                let group_index = group_of.get(index).copied().unwrap_or(index);
+                pending.retry = pending.retry.saturating_add(1);
+                if now >= pending.deadline {
+                    fail_pendings(&self.shared, vec![pending], Error::Timeout);
+                    index = index.saturating_add(1);
+                    continue;
+                }
+                let (max_retry, first) = match (groups.get(group_index), firsts.get(group_index)) {
+                    (Some((_, max_retry)), Some(first)) => (*max_retry, *first),
+                    _ => (pending.retry, index),
+                };
+                if index != first {
+                    pending.skip_meta_refresh = true;
+                }
+                let delay = crate::config::retry_backoff_delay(
+                    self.shared.cfg.retry_backoff,
+                    self.shared.cfg.retry_backoff_max,
+                    max_retry.saturating_sub(1),
+                );
+                pending.retry_after = now + delay;
+                let _ = self.shared.retries_out.fetch_add(1, Ordering::SeqCst);
+                match self.shared.retry_tx.try_send(pending) {
+                    Ok(()) => {}
+                    Err(mpsc::error::TrySendError::Full(pending)) => {
+                        let _ = self.shared.retries_out.fetch_sub(1, Ordering::SeqCst);
+                        fail_pendings(&self.shared, vec![pending], Error::QueueFull);
+                        self.note_fail(Error::QueueFull);
+                    }
+                    Err(mpsc::error::TrySendError::Closed(pending)) => {
+                        let _ = self.shared.retries_out.fetch_sub(1, Ordering::SeqCst);
+                        fail_pendings(&self.shared, vec![pending], Error::Closed);
+                        self.note_fail(Error::Closed);
+                    }
+                }
+                index = index.saturating_add(1);
+                walked = walked.saturating_add(1);
+                if walked == 8 * 1024 {
+                    walked = 0;
+                    tokio::task::yield_now().await;
                 }
             }
         }
@@ -8278,6 +8356,35 @@ fn forget_txn_part(map: &mut TxnPartSet, topic: &Arc<str>, partition: i32) {
     if empty {
         let _ = map.remove(topic.as_ref());
     }
+}
+
+async fn retry_topic_groups_cooperative(
+    pendings: &[Pending],
+) -> (Vec<usize>, Vec<(Arc<str>, u32)>) {
+    let mut group_of = Vec::with_capacity(pendings.len());
+    let mut groups: Vec<(Arc<str>, u32)> = Vec::new();
+    let mut slots: HashMap<&str, usize> = HashMap::new();
+    let mut walked = 0usize;
+    for pending in pendings {
+        let incremented = pending.retry.saturating_add(1);
+        if let Some(&group) = slots.get(pending.rec.topic.as_ref()) {
+            if let Some(slot) = groups.get_mut(group) {
+                slot.1 = slot.1.max(incremented);
+            }
+            group_of.push(group);
+        } else {
+            let group = groups.len();
+            let _ = slots.insert(pending.rec.topic.as_ref(), group);
+            group_of.push(group);
+            groups.push((Arc::clone(&pending.rec.topic), incremented));
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    (group_of, groups)
 }
 
 fn retry_topic_groups(pendings: &[Pending]) -> (Vec<usize>, Vec<(Arc<str>, u32)>) {
@@ -11139,6 +11246,31 @@ mod tests {
         assert!(
             watch.is_finished(),
             "dropping the last handle left the worker running"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn grouping_many_retries_does_not_hold_the_caller() {
+        // 4_000_000 records: grouping a retry held the caller 750ms.
+        let topic: Arc<str> = Arc::from("orders");
+        let mut batch = Vec::with_capacity(4_000_000);
+        for _ in 0..4_000_000 {
+            let mut pending = queued("orders", Some(0));
+            pending.rec.topic = Arc::clone(&topic);
+            batch.push(pending);
+        }
+        let started = std::time::Instant::now();
+        tokio::select! {
+            (group_of, groups) = retry_topic_groups_cooperative(&batch) => {
+                assert_eq!(groups.len(), 1);
+                assert_eq!(group_of.len(), 4_000_000);
+            }
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "grouping retries held the caller for {elapsed:?}"
         );
     }
 
