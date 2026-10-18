@@ -843,6 +843,11 @@ struct ShareNodeConnection {
     acknowledge_version: i16,
 }
 
+async fn retire_share_socket(mut peer: ShareNodeConnection) {
+    peer.conn.close();
+    peer.conn.release_if_closed().await;
+}
+
 /// Read share leader sockets until one closes. Closed sockets are dropped.
 ///
 /// The sockets stay in `conns`. Cancelling this wait, which is how a retry
@@ -2347,7 +2352,7 @@ impl ShareGroup {
             return Err(reject_java_share_not_subscribed());
         }
         self.maybe_refresh_matching().await?;
-        self.prune_expired_acquisitions();
+        self.prune_expired_acquisitions().await;
         let latest_epoch = self.hb_epoch.load(Ordering::SeqCst);
         if latest_epoch > 0 {
             self.member_epoch = latest_epoch;
@@ -2488,7 +2493,7 @@ impl ShareGroup {
         }
     }
 
-    fn prune_expired_acquisitions(&mut self) {
+    async fn prune_expired_acquisitions(&mut self) {
         let poisoned: Vec<_> = self
             .share_conns
             .iter()
@@ -2496,7 +2501,7 @@ impl ShareGroup {
             .map(|(node, _)| *node)
             .collect();
         for node in poisoned {
-            self.reset_node_session(node);
+            self.reset_node_session(node).await;
         }
         let now = Instant::now();
         self.acquisitions.retain(|_, parts| {
@@ -2540,7 +2545,7 @@ impl ShareGroup {
         nodes
     }
 
-    fn share_dial_targets(&mut self, nodes: &[i32]) -> Vec<(i32, String)> {
+    async fn share_dial_targets(&mut self, nodes: &[i32]) -> Vec<(i32, String)> {
         let mut dials = Vec::new();
         for &node in nodes {
             if self
@@ -2548,13 +2553,15 @@ impl ShareGroup {
                 .get(&node)
                 .is_some_and(|peer| peer.conn.is_closed())
             {
-                self.reset_node_session(node);
+                self.reset_node_session(node).await;
             } else if self
                 .share_conns
                 .get(&node)
                 .is_some_and(|peer| peer.conn.idle_expired(self.cfg.connections_max_idle))
             {
-                let _ = self.share_conns.remove(&node);
+                if let Some(peer) = self.share_conns.remove(&node) {
+                    retire_share_socket(peer).await;
+                }
             }
             if self.share_conns.contains_key(&node) {
                 continue;
@@ -2757,7 +2764,7 @@ impl ShareGroup {
     }
 
     async fn warm_share_leaders(&mut self, nodes: &[i32], deadline: Instant) {
-        let dials = self.share_dial_targets(nodes);
+        let dials = self.share_dial_targets(nodes).await;
         let wakeup = self.consumer.wakeup_flag();
         let wakeup_rx = self.consumer.subscribe_wakeup();
         let opened =
@@ -2780,7 +2787,7 @@ impl ShareGroup {
                 .get(&node)
                 .is_some_and(|peer| peer.conn.is_closed())
             {
-                self.reset_node_session(node);
+                self.reset_node_session(node).await;
             } else if self
                 .share_conns
                 .get(&node)
@@ -2788,7 +2795,9 @@ impl ShareGroup {
             {
                 // A clean idle reconnect preserves broker-side member/session state.
                 // Cancelled or failed roundtrips instead invalidate ambiguous locks.
-                let _ = self.share_conns.remove(&node);
+                if let Some(peer) = self.share_conns.remove(&node) {
+                    retire_share_socket(peer).await;
+                }
             }
             if let std::collections::hash_map::Entry::Vacant(entry) = self.share_conns.entry(node) {
                 let addr = self
@@ -2930,9 +2939,93 @@ impl ShareGroup {
         let _ = self.share_epochs.insert(node, next);
     }
 
-    fn reset_node_session(&mut self, node: i32) {
+    /// A share group that already holds `leader`, for tests of socket closes.
+    #[cfg(test)]
+    fn test_holding(consumer: Consumer, coord: BrokerConn, leader: BrokerConn) -> Self {
+        let (hb_stop, _) = watch::channel(false);
+        let mut share_conns = HashMap::new();
+        let _stored = share_conns.insert(
+            1,
+            ShareNodeConnection {
+                conn: leader,
+                fetch_version: 0,
+                acknowledge_version: 0,
+            },
+        );
+        Self {
+            consumer,
+            coord,
+            cfg: ConsumerConfig::default(),
+            group_id: "g".to_string(),
+            member_id: "m".to_string(),
+            member_epoch: 0,
+            topics: Vec::new(),
+            topic_match: None,
+            last_match_refresh: Instant::now(),
+            assigned: Vec::new(),
+            leader_topic: None,
+            leader_ids: Vec::new(),
+            metadata_names: Vec::new(),
+            stale_metadata_names: Vec::new(),
+            leader_plan: HashMap::new(),
+            leader_nodes: Vec::new(),
+            spare_fetch_topics: Vec::new(),
+            spare_fetch_ids: Vec::new(),
+            ack_offsets: Vec::new(),
+            ack_topic: None,
+            spare_ack_types: Vec::new(),
+            ack_partitions: Vec::new(),
+            spare_ack_batches: Vec::new(),
+            ack_pairs: Vec::new(),
+            fetch_cursors: Vec::new(),
+            spare_incoming: Vec::new(),
+            spare_prepared: Vec::new(),
+            spare_ready: Vec::new(),
+            spare_fetched: Vec::new(),
+            topic_ids: HashMap::new(),
+            share_epochs: HashMap::new(),
+            share_conns,
+            share_addresses: HashMap::new(),
+            share_api_keys: HashMap::new(),
+            leader_patches: Vec::new(),
+            share_redial_nodes: Vec::new(),
+            prior_coords: HashMap::new(),
+            coord_addr: String::new(),
+            coord_keys: Vec::new(),
+            acquisitions: HashMap::new(),
+            pending_delivery: Vec::new(),
+            acquire_mode: ShareAcquireMode::BatchOptimized,
+            acquisition_lock_timeout_ms: None,
+            hb_err: Arc::new(AtomicI16::new(0)),
+            hb_epoch: Arc::new(AtomicI32::new(0)),
+            hb_member_id: Arc::new(Mutex::new(String::new())),
+            hb_topics: Arc::new(Mutex::new(Vec::new())),
+            hb_assignment: Arc::new(Mutex::new(None)),
+            hb_interval_ms: Arc::new(AtomicI32::new(0)),
+            hb_deadline: Arc::new(Mutex::new(None)),
+            hb_wake: Arc::new(Notify::new()),
+            hb_stop,
+            hb_task: None,
+            fetch_rounds: 0,
+            records_fetched: 0,
+            bytes_fetched: 0,
+            fetch_errors: 0,
+            records_acknowledged: 0,
+            fetch_latency: crate::metrics::LatencyTracker::new(),
+            topic_metrics: HashMap::new(),
+            fetch_group_id: Arc::<str>::from("g"),
+            fetch_member_id: Arc::<str>::from("m"),
+            inflight_share_fetches: None,
+            inflight_share_nodes: HashMap::new(),
+            inflight_share_tasks: Vec::new(),
+        }
+    }
+
+    async fn reset_node_session(&mut self, node: i32) {
         let _ = self.share_epochs.remove(&node);
-        let _ = self.share_conns.remove(&node);
+        if let Some(peer) = self.share_conns.remove(&node) {
+            retire_share_socket(peer).await;
+        }
         self.acquisitions.retain(|_, parts| {
             parts.retain(|run| run.acquisition.node != node);
             !parts.is_empty()
@@ -2963,7 +3056,7 @@ impl ShareGroup {
         }
         // Capture addresses before leaders are dropped. A leader that moves is
         // opened on the next fetch after metadata and CurrentLeader patches.
-        let targets = self.share_dial_targets(&nodes);
+        let targets = self.share_dial_targets(&nodes).await;
         for t in &self.topics {
             self.consumer.invalidate_topic(t);
         }
@@ -3057,7 +3150,7 @@ impl ShareGroup {
             // Cached leaders can be dialed while metadata reloads. A leader
             // that moves is opened afterward by the normal warm path.
             let cached = self.cached_share_nodes();
-            let targets = self.share_dial_targets(&cached);
+            let targets = self.share_dial_targets(&cached).await;
             if targets.is_empty() {
                 let refreshed = self
                     .consumer
@@ -3126,7 +3219,7 @@ impl ShareGroup {
         for node in nodes {
             // The fetch task owns the socket. Aborting it drops that socket,
             // so the session cannot be acknowledged on it.
-            self.reset_node_session(node);
+            self.reset_node_session(node).await;
         }
         finish_aborted_join_set(set, Instant::now()).await;
     }
@@ -3459,7 +3552,7 @@ impl ShareGroup {
                     if share_leader_retriable(&error) {
                         self.note_share_redial(node);
                     }
-                    self.reset_node_session(node);
+                    self.reset_node_session(node).await;
                     self.park_share_ids(by_id);
                     if matches!(error, Error::Timeout) && !self.pending_delivery.is_empty() {
                         return Ok(self.drain_pending_delivery());
@@ -3477,7 +3570,7 @@ impl ShareGroup {
                 ) {
                     Ok(reply) => reply,
                     Err(error) => {
-                        self.reset_node_session(node);
+                        self.reset_node_session(node).await;
                         return Err(error);
                     }
                 };
@@ -3485,19 +3578,21 @@ impl ShareGroup {
             if !body.is_empty() {
                 park_fetched_topics(&mut self.spare_fetched, fetched);
                 park_fetched_topics(&mut self.spare_fetched, retained);
-                self.reset_node_session(node);
+                self.reset_node_session(node).await;
                 return Err(Error::protocol("trailing ShareFetch response bytes"));
             }
-            let applied = self.apply_decoded_share_fetch(DecodedShareFetch {
-                node,
-                version,
-                by_id: &by_id,
-                fetched: &mut fetched,
-                lock_timeout,
-                error_code,
-                decoded_bytes,
-                remaining: &mut remaining_bytes,
-            });
+            let applied = self
+                .apply_decoded_share_fetch(DecodedShareFetch {
+                    node,
+                    version,
+                    by_id: &by_id,
+                    fetched: &mut fetched,
+                    lock_timeout,
+                    error_code,
+                    decoded_bytes,
+                    remaining: &mut remaining_bytes,
+                })
+                .await;
             park_fetched_topics(&mut self.spare_fetched, fetched);
             park_fetched_topics(&mut self.spare_fetched, retained);
             applied?;
@@ -3653,7 +3748,7 @@ impl ShareGroup {
                 .any(|topic| !self.consumer.topic_metadata_fresh(topic));
             let coord_idle = self.coord.idle_expired(self.cfg.connections_max_idle);
             let targets = if (metadata_stale || coord_idle) && !open.is_empty() {
-                self.share_dial_targets(&open)
+                self.share_dial_targets(&open).await
             } else {
                 Vec::new()
             };
@@ -3744,7 +3839,7 @@ impl ShareGroup {
         self.apply_topics_within(topics, deadline).await
     }
 
-    fn apply_decoded_share_fetch(&mut self, fetch: DecodedShareFetch<'_>) -> Result<()> {
+    async fn apply_decoded_share_fetch(&mut self, fetch: DecodedShareFetch<'_>) -> Result<()> {
         let DecodedShareFetch {
             node,
             version,
@@ -3761,7 +3856,7 @@ impl ShareGroup {
                 if share_leader_retriable(&error) {
                     self.note_share_redial(node);
                 }
-                self.reset_node_session(node);
+                self.reset_node_session(node).await;
             } else {
                 self.advance_node_epoch(node);
             }
@@ -3780,7 +3875,7 @@ impl ShareGroup {
                 .any(|t| t.partitions.iter().any(|p| !p.acquired.is_empty()))
                 && lock_timeout <= 0
             {
-                self.reset_node_session(node);
+                self.reset_node_session(node).await;
                 return Err(Error::protocol(
                     "non-positive ShareFetch acquisition lock timeout",
                 ));
@@ -3839,7 +3934,7 @@ impl ShareGroup {
                         if share_leader_retriable(&error) {
                             self.note_share_redial(node);
                         }
-                        self.reset_node_session(node);
+                        self.reset_node_session(node).await;
                     }
                     return Err(error);
                 }
@@ -3947,7 +4042,7 @@ impl ShareGroup {
         *remaining = match remaining.checked_sub(retained_bytes.max(decoded_bytes)) {
             Some(left) => left,
             None => {
-                self.reset_node_session(node);
+                self.reset_node_session(node).await;
                 park_record_buf(&mut self.spare_incoming, incoming);
                 return Err(Error::protocol(
                     "ShareFetch retained-record budget exceeded",
@@ -4005,7 +4100,7 @@ impl ShareGroup {
             return Err(reject_java_acknowledge_before_poll());
         }
         self.refresh_share_topic_ids();
-        self.prune_expired_acquisitions();
+        self.prune_expired_acquisitions().await;
         for record in recs {
             let acquired = acquisition_at(
                 &self.acquisitions,
@@ -4116,7 +4211,7 @@ impl ShareGroup {
             return Err(Error::Timeout);
         }
         let Some(mut peer) = self.share_conns.remove(&node) else {
-            self.reset_node_session(node);
+            self.reset_node_session(node).await;
             return Err(Error::protocol("missing share connection"));
         };
         let mut encode_failed = false;
@@ -4155,7 +4250,7 @@ impl ShareGroup {
         let mut body = match sent {
             Ok(body) => body,
             Err(error) => {
-                self.reset_node_session(node);
+                self.reset_node_session(node).await;
                 return Err(error);
             }
         };
@@ -4163,19 +4258,19 @@ impl ShareGroup {
             match decode_share_acknowledge_topics_response_with_lock_timeout(&mut body, version) {
                 Ok(reply) => reply,
                 Err(error) => {
-                    self.reset_node_session(node);
+                    self.reset_node_session(node).await;
                     return Err(error);
                 }
             };
         self.consumer.apply_node_endpoints(&endpoints);
         if !body.is_empty() {
-            self.reset_node_session(node);
+            self.reset_node_session(node).await;
             return Err(Error::protocol("trailing ShareAcknowledge response bytes"));
         }
         if code != 0 {
             let error = Error::broker(code, "ShareAcknowledge");
             if share_session_reset(&error) {
-                self.reset_node_session(node);
+                self.reset_node_session(node).await;
             } else {
                 self.advance_node_epoch(node);
             }
@@ -4289,7 +4384,7 @@ impl ShareGroup {
             if part.error_code == error::SHARE_SESSION_NOT_FOUND
                 || part.error_code == error::INVALID_SHARE_SESSION_EPOCH
             {
-                self.reset_node_session(node);
+                self.reset_node_session(node).await;
             }
             Err(error)
         }
@@ -4399,7 +4494,7 @@ impl ShareGroup {
                 return Err(Error::Timeout);
             }
             let Some(mut peer) = self.share_conns.remove(&node) else {
-                self.reset_node_session(node);
+                self.reset_node_session(node).await;
                 return Err(Error::protocol("missing share connection"));
             };
             let mut encode_failed = false;
@@ -4432,7 +4527,8 @@ impl ShareGroup {
                 &mut first_error,
                 sent,
                 encode_failed,
-            )?;
+            )
+            .await?;
         }
         first_error.map_or(Ok(()), Err)
     }
@@ -4558,7 +4654,7 @@ impl ShareGroup {
                     .await;
             }
             let Some(peer) = self.share_conns.remove(&node) else {
-                self.reset_node_session(node);
+                self.reset_node_session(node).await;
                 return self
                     .finish_share_ack_flights(
                         &mut flights,
@@ -4650,16 +4746,19 @@ impl ShareGroup {
             let Some(sent) = slot.sent else {
                 continue;
             };
-            if let Err(error) = self.apply_share_ack_reply(
-                slot.node,
-                slot.version,
-                ack,
-                slot.topics,
-                partitions,
-                &mut first_error,
-                sent,
-                false,
-            ) {
+            if let Err(error) = self
+                .apply_share_ack_reply(
+                    slot.node,
+                    slot.version,
+                    ack,
+                    slot.topics,
+                    partitions,
+                    &mut first_error,
+                    sent,
+                    false,
+                )
+                .await
+            {
                 if hard.is_none() {
                     hard = Some(error);
                 }
@@ -4685,7 +4784,7 @@ impl ShareGroup {
         clippy::too_many_arguments,
         reason = "ShareAcknowledge apply keeps the leader, versions, batches, and reply together"
     )]
-    fn apply_share_ack_reply(
+    async fn apply_share_ack_reply(
         &mut self,
         node: i32,
         version: i16,
@@ -4705,7 +4804,7 @@ impl ShareGroup {
         let mut body = match sent {
             Ok(body) => body,
             Err(error) => {
-                self.reset_node_session(node);
+                self.reset_node_session(node).await;
                 return Err(error);
             }
         };
@@ -4713,19 +4812,19 @@ impl ShareGroup {
             match decode_share_acknowledge_topics_response_with_lock_timeout(&mut body, version) {
                 Ok(reply) => reply,
                 Err(error) => {
-                    self.reset_node_session(node);
+                    self.reset_node_session(node).await;
                     return Err(error);
                 }
             };
         self.consumer.apply_node_endpoints(&endpoints);
         if !body.is_empty() {
-            self.reset_node_session(node);
+            self.reset_node_session(node).await;
             return Err(Error::protocol("trailing ShareAcknowledge response bytes"));
         }
         if code != 0 {
             let error = Error::broker(code, "ShareAcknowledge");
             if share_session_reset(&error) {
-                self.reset_node_session(node);
+                self.reset_node_session(node).await;
             } else {
                 self.advance_node_epoch(node);
             }
@@ -4837,7 +4936,7 @@ impl ShareGroup {
                     if part.error_code == error::SHARE_SESSION_NOT_FOUND
                         || part.error_code == error::INVALID_SHARE_SESSION_EPOCH
                     {
-                        self.reset_node_session(node);
+                        self.reset_node_session(node).await;
                     }
                 }
             }
@@ -7519,6 +7618,76 @@ mod dial_tests {
     use super::*;
     use crate::protocol::api::ApiVersion;
     use crate::protocol::api_keys::FETCH;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn resetting_a_share_session_lets_the_broker_leave() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use tokio::io::AsyncReadExt;
+
+        let leader_listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let leader_addr = leader_listener.local_addr().unwrap().to_string();
+        let other = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let other_addr = other.local_addr().unwrap().to_string();
+        let open = Arc::new(AtomicUsize::new(0));
+        let flag = Arc::clone(&open);
+        let leader_peer = tokio::spawn(async move {
+            let Ok((mut socket, _)) = leader_listener.accept().await else {
+                return;
+            };
+            let _started = flag.fetch_add(1, Ordering::SeqCst);
+            let mut buf = [0u8; 8];
+            loop {
+                match socket.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let other_peer = tokio::spawn(async move {
+            loop {
+                let Ok((mut socket, _)) = other.accept().await else {
+                    return;
+                };
+                let _task = tokio::spawn(async move {
+                    let mut buf = [0u8; 8];
+                    loop {
+                        match socket.read(&mut buf).await {
+                            Ok(0) | Err(_) => break,
+                            Ok(_) => continue,
+                        }
+                    }
+                });
+            }
+        });
+        let leader = BrokerConn::connect(&leader_addr, "share-leader", Duration::from_secs(2))
+            .await
+            .unwrap();
+        while open.load(Ordering::SeqCst) == 0 {
+            tokio::task::yield_now().await;
+        }
+        let consumer_conn =
+            BrokerConn::connect(&other_addr, "share-consumer", Duration::from_secs(2))
+                .await
+                .unwrap();
+        let coord = BrokerConn::connect(&other_addr, "share-coord", Duration::from_secs(2))
+            .await
+            .unwrap();
+        let mut group = ShareGroup::test_holding(
+            Consumer::test_holding(ConsumerConfig::default(), consumer_conn),
+            coord,
+            leader,
+        );
+        group.reset_node_session(1).await;
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "resetting a share session left the broker blocked in a read"
+        );
+        drop(group);
+        leader_peer.abort();
+        other_peer.abort();
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn ending_a_share_retry_watch_keeps_the_leader_socket() {

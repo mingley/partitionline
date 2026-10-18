@@ -3231,7 +3231,7 @@ impl Consumer {
 
     /// A consumer that already holds `conn`, for tests of socket waits.
     #[cfg(test)]
-    fn test_holding(cfg: ConsumerConfig, conn: BrokerConn) -> Self {
+    pub(crate) fn test_holding(cfg: ConsumerConfig, conn: BrokerConn) -> Self {
         let rack_id = cfg.rack.as_deref().map(Arc::<str>::from);
         Self {
             cfg,
