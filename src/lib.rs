@@ -3268,7 +3268,7 @@
 //! `SECURITY_DISABLED`). Official Java `KafkaApis` writes
 //! this when AddPartitionsToTxn skips authorized partitions after a sibling topic fails authorization or is unknown. Top-level
 //! `LOG_DIR_NOT_FOUND` still fails that poll without
-//! Metadata, including when `ErrorMessage` is set (Java
+//! Metadata, including when `ErrorMessage` is set or empty (Java
 //! `handleShareFetchSuccess` only `requestUpdate`s for
 //! `UNKNOWN_TOPIC_ID`; this is not top-level
 //! `OPERATION_NOT_ATTEMPTED`). Official Java `LogManager` writes
