@@ -7381,7 +7381,7 @@ impl Worker {
         let producer_id = self.shared.producer_id.load(Ordering::SeqCst);
         let producer_epoch = self.shared.producer_epoch.load(Ordering::SeqCst);
         let epoch_gen = self.shared.epoch_gen.load(Ordering::SeqCst);
-        assign_sequences(&mut groups, producer_id, &self.shared.seqs, epoch_gen);
+        assign_sequences(&mut groups, producer_id, &self.shared.seqs, epoch_gen).await;
 
         let fault = {
             let mut g = self.shared.pre_send_fault.lock();
@@ -8913,18 +8913,28 @@ fn refresh_sequence_epoch(pendings: &mut [Pending], epoch_gen: u64) {
     }
 }
 
-fn stamp_sequences(pendings: &mut [Pending], base: i32) {
+async fn stamp_sequences(pendings: &mut [Pending], base: i32) {
     let count = pendings.len();
-    for (index, pending) in pendings.iter_mut().enumerate() {
-        if pending.seq.is_none() {
-            pending.seq = Some(base.saturating_add(i32::try_from(index).unwrap_or(0)));
-            pending.batch_base_seq = Some(base);
-            pending.batch_len = count;
+    let mut index = 0usize;
+    let mut walked = 0usize;
+    while index < pendings.len() {
+        if let Some(pending) = pendings.get_mut(index) {
+            if pending.seq.is_none() {
+                pending.seq = Some(base.saturating_add(i32::try_from(index).unwrap_or(0)));
+                pending.batch_base_seq = Some(base);
+                pending.batch_len = count;
+            }
+        }
+        index = index.saturating_add(1);
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
         }
     }
 }
 
-fn assign_sequences(
+async fn assign_sequences(
     groups: &mut [(Arc<str>, i32, Vec<Pending>)],
     producer_id: i64,
     seqs: &parking_lot::Mutex<SequenceMap>,
@@ -8933,7 +8943,6 @@ fn assign_sequences(
     if producer_id <= RecordBatch::NO_PRODUCER_ID {
         return;
     }
-    let mut map = seqs.lock();
     let one_topic = groups
         .first()
         .is_some_and(|(topic, _, _)| groups.iter().all(|(name, _, _)| Arc::ptr_eq(name, topic)));
@@ -8941,19 +8950,25 @@ fn assign_sequences(
         let Some(topic) = groups.first().map(|(topic, _, _)| Arc::clone(topic)) else {
             return;
         };
-        if !map.contains_key(topic.as_ref()) {
-            let _ = map.insert(Arc::clone(&topic), HashMap::new());
+        {
+            let mut map = seqs.lock();
+            if !map.contains_key(topic.as_ref()) {
+                let _ = map.insert(Arc::clone(&topic), HashMap::new());
+            }
         }
-        let Some(parts) = map.get_mut(topic.as_ref()) else {
-            return;
-        };
         for (_, partition, pendings) in groups.iter_mut() {
             refresh_sequence_epoch(pendings, epoch_gen);
             if pendings.iter().all(|pending| pending.seq.is_some()) {
                 continue;
             }
-            let base = sequence_in(parts, *partition, pendings.len());
-            stamp_sequences(pendings, base);
+            let base = {
+                let mut map = seqs.lock();
+                let Some(parts) = map.get_mut(topic.as_ref()) else {
+                    return;
+                };
+                sequence_in(parts, *partition, pendings.len())
+            };
+            stamp_sequences(pendings, base).await;
         }
         return;
     }
@@ -8962,8 +8977,11 @@ fn assign_sequences(
         if pendings.iter().all(|pending| pending.seq.is_some()) {
             continue;
         }
-        let base = sequence_of(&mut map, topic, *partition, pendings.len());
-        stamp_sequences(pendings, base);
+        let base = {
+            let mut map = seqs.lock();
+            sequence_of(&mut map, topic, *partition, pendings.len())
+        };
+        stamp_sequences(pendings, base).await;
     }
 }
 
@@ -10942,6 +10960,45 @@ mod tests {
         assert!(
             watch.is_finished(),
             "dropping the last handle left the worker running"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn stamping_many_produce_sequences_does_not_hold_the_caller() {
+        let mut small = vec![
+            queued("orders", Some(0)),
+            queued("orders", Some(0)),
+            queued("orders", Some(1)),
+        ];
+        stamp_sequences(&mut small, 7).await;
+        assert_eq!(small.first().and_then(|pending| pending.seq), Some(7));
+        assert_eq!(small.get(1).and_then(|pending| pending.seq), Some(8));
+        assert_eq!(small.get(2).and_then(|pending| pending.seq), Some(9));
+        assert_eq!(
+            small.first().and_then(|pending| pending.batch_base_seq),
+            Some(7)
+        );
+        assert_eq!(small.first().map(|pending| pending.batch_len), Some(3));
+        stamp_sequences(&mut small, 100).await;
+        assert_eq!(small.first().and_then(|pending| pending.seq), Some(7));
+
+        // 4_000_000 records: assigning produce sequences held the caller 202ms.
+        let topic: Arc<str> = Arc::from("orders");
+        let mut batch = Vec::with_capacity(4_000_000);
+        for _ in 0..4_000_000 {
+            let mut pending = queued("orders", Some(0));
+            pending.rec.topic = Arc::clone(&topic);
+            batch.push(pending);
+        }
+        let started = std::time::Instant::now();
+        tokio::select! {
+            () = stamp_sequences(&mut batch, 7) => {}
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "stamping produce sequences held the caller for {elapsed:?}"
         );
     }
 
