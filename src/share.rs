@@ -2298,6 +2298,13 @@ pub enum ShareAcquireMode {
 /// `UNSUPPORTED_COMPRESSION_TYPE`). Official Java
 /// `QuorumController.processBrokerHeartbeat` writes this when the
 /// broker epoch has changed.
+/// Top-level `MEMBER_ID_REQUIRED` still fails that poll
+/// and does not request Metadata, including when `ErrorMessage` is
+/// set or empty (Java `handleShareFetchSuccess` only `requestUpdate`s for
+/// `UNKNOWN_TOPIC_ID`; this is not top-level
+/// `STALE_BROKER_EPOCH`). Official Java `GroupMetadataManager`
+/// writes this when a JoinGroup dynamic member has an unknown member
+/// id.
 /// Top-level
 /// `SHARE_SESSION_LIMIT_REACHED` resets the share session and does
 /// not request Metadata, including when `ErrorMessage` is set or
@@ -5279,6 +5286,13 @@ impl ShareGroup {
     /// `UNSUPPORTED_COMPRESSION_TYPE`). Official Java
     /// `QuorumController.processBrokerHeartbeat` writes this when the
     /// broker epoch has changed. Top-level
+    /// `MEMBER_ID_REQUIRED` still fails that poll without
+    /// Metadata, including when `ErrorMessage` is set or empty (Java
+    /// `handleShareFetchSuccess` only `requestUpdate`s for
+    /// `UNKNOWN_TOPIC_ID`; this is not top-level
+    /// `STALE_BROKER_EPOCH`). Official Java `GroupMetadataManager`
+    /// writes this when a JoinGroup dynamic member has an unknown
+    /// member id. Top-level
     /// `SHARE_SESSION_LIMIT_REACHED` resets the share session and
     /// does not request Metadata, including when `ErrorMessage` is
     /// set or empty (Java `handleShareFetchSuccess` only

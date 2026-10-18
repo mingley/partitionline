@@ -3351,7 +3351,13 @@
 //! `UNKNOWN_TOPIC_ID`; this is not top-level
 //! `UNSUPPORTED_COMPRESSION_TYPE`). Official Java
 //! `QuorumController.processBrokerHeartbeat` writes this when the
-//! broker epoch has changed. Partition
+//! broker epoch has changed. Top-level
+//! `MEMBER_ID_REQUIRED` still fails that poll without
+//! Metadata, including when `ErrorMessage` is set or empty (Java
+//! `handleShareFetchSuccess` only `requestUpdate`s for
+//! `UNKNOWN_TOPIC_ID`; this is not top-level
+//! `STALE_BROKER_EPOCH`). Official Java `GroupMetadataManager` writes
+//! this when a JoinGroup dynamic member has an unknown member id. Partition
 //! `INCONSISTENT_TOPIC_ID` / `UNKNOWN_TOPIC_OR_PARTITION` /
 //! `UNKNOWN_TOPIC_ID` / `REPLICA_NOT_AVAILABLE` /
 //! `OFFSET_NOT_AVAILABLE` / `KAFKA_STORAGE_ERROR` skip without throwing,
