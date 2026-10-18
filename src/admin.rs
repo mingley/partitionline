@@ -3745,7 +3745,7 @@ impl Admin {
                 if reconnect {
                     let addr = self.conn.addr().to_owned();
                     let opened = self.open_node_conn_until(&addr, deadline).await?;
-                    self.adopt_bootstrap(opened)?;
+                    self.adopt_bootstrap(opened).await?;
                     reconnect = false;
                 }
                 self.ensure_bootstrap(deadline).await?;
@@ -3889,7 +3889,7 @@ impl Admin {
                 if reconnect {
                     let addr = self.conn.addr().to_owned();
                     let opened = self.open_node_conn_until(&addr, deadline).await?;
-                    self.adopt_bootstrap(opened)?;
+                    self.adopt_bootstrap(opened).await?;
                     reconnect = false;
                 }
                 self.ensure_bootstrap(deadline).await?;
@@ -3989,7 +3989,7 @@ impl Admin {
                 if reconnect {
                     let addr = self.conn.addr().to_owned();
                     let opened = self.open_node_conn_until(&addr, deadline).await?;
-                    self.adopt_bootstrap(opened)?;
+                    self.adopt_bootstrap(opened).await?;
                     reconnect = false;
                 }
                 self.ensure_bootstrap(deadline).await?;
@@ -4775,7 +4775,7 @@ impl Admin {
     }
 
     /// Install a replacement bootstrap socket and the ApiVersions it learned.
-    fn adopt_bootstrap(&mut self, opened: AdminOffsetConn) -> Result<()> {
+    async fn adopt_bootstrap(&mut self, opened: AdminOffsetConn) -> Result<()> {
         self.metadata_version = opened
             .metadata
             .ok_or_else(|| Error::Unsupported("broker does not support Metadata".into()))?;
@@ -4784,8 +4784,18 @@ impl Admin {
         for api in opened.apis {
             let _prev = self.versions.insert(api.api_key, api);
         }
+        Self::retire_admin_socket(&mut self.conn).await;
         self.conn = opened.inner;
         Ok(())
+    }
+
+    /// Shut the admin bootstrap socket down before another connection replaces it.
+    ///
+    /// Assignment drops the previous connection. The idle watch is aborted with
+    /// that drop, so the broker stays in its read until the watch is scheduled.
+    async fn retire_admin_socket(conn: &mut BrokerConn) {
+        conn.close();
+        conn.release_if_closed().await;
     }
 
     /// Admin RPC counters and round-trip latency since connect.
@@ -6378,7 +6388,7 @@ impl Admin {
                     if self.conn.is_closed() {
                         let addr = self.conn.addr().to_owned();
                         let opened = self.open_node_conn_until(&addr, deadline).await?;
-                    self.adopt_bootstrap(opened)?;
+                    self.adopt_bootstrap(opened).await?;
                     }
                     self.refresh_broker_directory(deadline).await?;
                 }
@@ -8843,7 +8853,7 @@ impl Admin {
         } else {
             self.open_known_peer_until(&addr, deadline).await?
         };
-        self.adopt_bootstrap(replacement)
+        self.adopt_bootstrap(replacement).await
     }
 
     /// Reconnect the bootstrap socket if it has been idle, then round-trip.
@@ -16111,6 +16121,45 @@ mod tests {
         drop(admin);
         leader_peer.abort();
         other_peer.abort();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn replacing_an_admin_socket_lets_the_broker_leave() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use tokio::io::AsyncReadExt;
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let open = Arc::new(AtomicUsize::new(0));
+        let flag = Arc::clone(&open);
+        let peer = tokio::spawn(async move {
+            let Ok((mut socket, _)) = listener.accept().await else {
+                return;
+            };
+            let _started = flag.fetch_add(1, Ordering::SeqCst);
+            let mut buf = [0u8; 8];
+            loop {
+                match socket.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let mut conn =
+            crate::net::BrokerConn::connect(&addr, "admin-replace", Duration::from_secs(2))
+                .await
+                .unwrap();
+        while open.load(Ordering::SeqCst) == 0 {
+            tokio::task::yield_now().await;
+        }
+        Admin::retire_admin_socket(&mut conn).await;
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "replacing an admin socket left the broker blocked in a read"
+        );
+        peer.abort();
     }
 
     #[tokio::test(flavor = "current_thread")]
