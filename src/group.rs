@@ -5703,16 +5703,37 @@ async fn find_coordinator_on(
     known: Option<&KnownCoord>,
     prior: &HashMap<String, KnownCoord>,
 ) -> Result<(BrokerConn, crate::protocol::api::ApiVersionsResponse)> {
-    let body = hop
+    let rest = match deadline.remaining() {
+        Ok(rest) => rest,
+        Err(error) => {
+            retire_lookup_conn(hop).await;
+            return Err(error);
+        }
+    };
+    let body = match hop
         .roundtrip(
             FIND_COORDINATOR,
             version,
             |buf| encode_find_coordinator_request_typed(buf, version, group_id, key_type),
-            deadline.remaining()?,
+            rest,
         )
-        .await?;
-    let (err, _node, host, port) = decode_find_coordinator_response(&mut body.clone(), version)
-        .map_err(|e| group_decode_context(e, "FindCoordinator", version, body.len()))?;
+        .await
+    {
+        Ok(body) => body,
+        Err(error) => {
+            retire_lookup_conn(hop).await;
+            return Err(error);
+        }
+    };
+    let (err, _node, host, port) =
+        match decode_find_coordinator_response(&mut body.clone(), version) {
+            Ok(decoded) => decoded,
+            Err(error) => {
+                let error = group_decode_context(error, "FindCoordinator", version, body.len());
+                retire_lookup_conn(hop).await;
+                return Err(error);
+            }
+        };
     if err != 0 {
         let error = Err(Error::broker(err, "FindCoordinator"));
         retire_lookup_conn(hop).await;
@@ -6557,6 +6578,85 @@ mod tests {
         );
         first_peer.abort();
         second_peer.abort();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn a_bad_coordinator_reply_lets_the_broker_leave() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let open = Arc::new(AtomicUsize::new(0));
+        let flag = Arc::clone(&open);
+        let peer = tokio::spawn(async move {
+            use tokio::io::AsyncWriteExt;
+            let Ok((mut socket, _)) = listener.accept().await else {
+                return;
+            };
+            let _started = flag.fetch_add(1, Ordering::SeqCst);
+            let mut size_buf = [0u8; 4];
+            if socket.read_exact(&mut size_buf).await.is_ok() {
+                let size = i32::from_be_bytes(size_buf).max(0) as usize;
+                let mut request = vec![0u8; size];
+                if socket.read_exact(&mut request).await.is_ok() {
+                    if let Some(bytes) = request.get(4..8) {
+                        let correlation = i32::from_be_bytes([
+                            bytes.first().copied().unwrap_or(0),
+                            bytes.get(1).copied().unwrap_or(0),
+                            bytes.get(2).copied().unwrap_or(0),
+                            bytes.get(3).copied().unwrap_or(0),
+                        ]);
+                        let mut response = Vec::with_capacity(8);
+                        response.extend_from_slice(&4i32.to_be_bytes());
+                        response.extend_from_slice(&correlation.to_be_bytes());
+                        let _wrote = socket.write_all(&response).await;
+                    }
+                }
+            }
+            let mut buf = [0u8; 8];
+            loop {
+                match socket.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let conn = BrokerConn::connect(&addr, "bad-coord", Duration::from_secs(2))
+            .await
+            .unwrap();
+        while open.load(Ordering::SeqCst) == 0 {
+            tokio::task::yield_now().await;
+        }
+        let cfg = crate::consumer::ConsumerConfig::bootstrap([addr]);
+        let versions = crate::protocol::api::ApiVersionsResponse {
+            error_code: 0,
+            api_keys: Vec::new(),
+            throttle_time_ms: 0,
+            supported_features: Vec::new(),
+            finalized_features_epoch: None,
+            finalized_features: Vec::new(),
+            zk_migration_ready: false,
+        };
+        let _found = find_coordinator_on(
+            &cfg,
+            conn,
+            1,
+            versions,
+            "group",
+            COORDINATOR_GROUP,
+            crate::net::Deadline::from_timeout(Duration::from_secs(2)),
+            None,
+            None,
+            &HashMap::new(),
+        )
+        .await;
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "a bad coordinator reply left the broker blocked in a read"
+        );
+        peer.abort();
     }
 
     #[tokio::test(flavor = "current_thread")]
