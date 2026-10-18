@@ -1828,6 +1828,12 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `UNKNOWN_TOPIC_ID`; this is not top-level
   `DELEGATION_TOKEN_AUTHORIZATION_FAILED`). Official Java `DelegationTokenControlManager` writes
   this when a requested delegation token is already expired.
+  Top-level `INVALID_PRINCIPAL_TYPE` still fails that poll
+  without Metadata, including when `ErrorMessage` is set (Java
+  `handleShareFetchSuccess` only `requestUpdate`s for top-level
+  `UNKNOWN_TOPIC_ID`; this is not top-level
+  `DELEGATION_TOKEN_EXPIRED`). Official Java `KafkaApis` writes
+  this when a CreateDelegationToken renewer is not the `USER` principal type.
   A non-empty
   throwable partition or top-level ShareFetch `ErrorMessage` is
   preferred; empty uses `ShareFetch {topic}-{partition}` or
