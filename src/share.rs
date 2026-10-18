@@ -2259,7 +2259,7 @@ pub enum ShareAcquireMode {
 /// delegation token is already expired.
 /// Top-level `INVALID_PRINCIPAL_TYPE` still fails that poll
 /// and does not request Metadata, including when `ErrorMessage` is
-/// set (Java `handleShareFetchSuccess` only `requestUpdate`s for
+/// set or empty (Java `handleShareFetchSuccess` only `requestUpdate`s for
 /// `UNKNOWN_TOPIC_ID`; this is not top-level
 /// `DELEGATION_TOKEN_EXPIRED`). Official Java `KafkaApis`
 /// writes this when a CreateDelegationToken renewer is not the
@@ -5164,7 +5164,7 @@ impl ShareGroup {
     /// `DelegationTokenControlManager` writes this when a requested
     /// delegation token is already expired. Top-level
     /// `INVALID_PRINCIPAL_TYPE` still fails that poll without
-    /// Metadata, including when `ErrorMessage` is set (Java
+    /// Metadata, including when `ErrorMessage` is set or empty (Java
     /// `handleShareFetchSuccess` only `requestUpdate`s for
     /// `UNKNOWN_TOPIC_ID`; this is not top-level
     /// `DELEGATION_TOKEN_EXPIRED`). Official Java `KafkaApis`

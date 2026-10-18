@@ -3316,7 +3316,7 @@
 //! `DELEGATION_TOKEN_AUTHORIZATION_FAILED`). Official Java `DelegationTokenControlManager` writes
 //! this when a requested delegation token is already expired. Top-level
 //! `INVALID_PRINCIPAL_TYPE` still fails that poll without
-//! Metadata, including when `ErrorMessage` is set (Java
+//! Metadata, including when `ErrorMessage` is set or empty (Java
 //! `handleShareFetchSuccess` only `requestUpdate`s for
 //! `UNKNOWN_TOPIC_ID`; this is not top-level
 //! `DELEGATION_TOKEN_EXPIRED`). Official Java `KafkaApis` writes
