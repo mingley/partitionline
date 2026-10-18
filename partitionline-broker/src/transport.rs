@@ -1076,7 +1076,10 @@ async fn read_frame_buffered<S: AsyncRead + Unpin>(
             frame_mut(&mut ahead.bytes)
                 .try_reserve(budget)
                 .map_err(|_| Exit::Io)?;
-            let mut limited = frame_mut(&mut ahead.bytes).limit(budget);
+            // The rest of the frame stays reserved. One read still stops
+            // after a chunk so the deadline runs before that body is copied.
+            let step = budget.min(8 * 1024);
+            let mut limited = frame_mut(&mut ahead.bytes).limit(step);
             let n = socket.read_buf(&mut limited).await.map_err(read_error)?;
             if n == 0 {
                 return Err(read_error(io::Error::new(
@@ -2748,7 +2751,7 @@ mod handler_deadline_tests {
 
 #[cfg(test)]
 mod frame_read_deadline_tests {
-    use super::{new_frame, read_frame, Config, Exit, ReadAhead};
+    use super::{frame_mut, new_frame, read_frame, Config, Exit, ReadAhead};
     use std::pin::Pin;
     use std::task::{Context, Poll};
     use std::time::Duration;
@@ -2895,6 +2898,43 @@ mod frame_read_deadline_tests {
         assert!(
             deadline && elapsed < Duration::from_millis(80),
             "a greedy frame body held the read past its deadline: {elapsed:?} deadline {deadline}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn read_deadline_stops_a_greedy_buffered_body() {
+        let config = Config::new(
+            1,
+            1,
+            2 * 1024 * 1024,
+            1024,
+            Duration::from_secs(5),
+            Duration::from_secs(5),
+            Duration::from_secs(5),
+        )
+        .unwrap_or_else(|error| panic!("{error}"));
+        let body_len = 64 * 1024;
+        let mut ahead = ReadAhead::new();
+        frame_mut(&mut ahead.bytes)
+            .extend_from_slice(&i32::try_from(body_len).unwrap_or(i32::MAX).to_be_bytes());
+        let mut socket = GreedyFrame {
+            announced: true,
+            left: body_len,
+        };
+        let started = Instant::now();
+        let result = read_frame(
+            &mut socket,
+            config,
+            Instant::now() + Duration::from_millis(40),
+            &mut ahead,
+            new_frame(),
+        )
+        .await;
+        let elapsed = started.elapsed();
+        let deadline = matches!(result, Err(Exit::ReadDeadline));
+        assert!(
+            deadline && elapsed < Duration::from_millis(80),
+            "a buffered greedy body held the read past its deadline: {elapsed:?} deadline {deadline}"
         );
     }
 
