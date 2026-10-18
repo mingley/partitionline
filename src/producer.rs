@@ -2298,7 +2298,7 @@ impl Producer {
         let mut pending: VecDeque<(usize, ProduceRecord)> = recs.into_iter().enumerate().collect();
         let mut slots = Vec::new();
         slots.resize_with(pending.len(), || None);
-        let mut failed: Vec<(Arc<str>, Error)> = Vec::new();
+        let mut failed: HashMap<Arc<str>, Error> = HashMap::new();
         while let Some((index, rec)) = pending.pop_front() {
             if let Some(error) = prepared_topic_error(&failed, &rec.topic) {
                 return Err(error);
@@ -2387,7 +2387,7 @@ impl Producer {
                             continue;
                         }
                         if let Some(error) = unfresh_topic_error(&self.inner.shared, topic) {
-                            failed.push((Arc::clone(topic), error));
+                            let _ = failed.insert(Arc::clone(topic), error);
                         }
                     }
                     if let Some(error) = prepared_topic_error(&failed, &rec.topic) {
@@ -5449,11 +5449,8 @@ fn topic_needs_metadata(shared: &Shared, topic: &Arc<str>) -> bool {
         && cluster.topic_fresh(topic.as_ref(), shared.cfg.metadata_max_age))
 }
 
-fn prepared_topic_error(failed: &[(Arc<str>, Error)], topic: &Arc<str>) -> Option<Error> {
-    failed
-        .iter()
-        .find(|(name, _)| name.as_ref() == topic.as_ref())
-        .map(|(_, error)| clone_err(error))
+fn prepared_topic_error(failed: &HashMap<Arc<str>, Error>, topic: &Arc<str>) -> Option<Error> {
+    failed.get(topic.as_ref()).map(clone_err)
 }
 
 /// Broker error for a topic that a shared metadata response did not make fresh.
@@ -10459,6 +10456,33 @@ mod tests {
             .build()
             .unwrap_or_else(|error| panic!("{error}"));
         runtime.block_on(group_pending(batch, scratch))
+    }
+
+    #[test]
+    fn finding_many_failed_topics_does_not_hold_the_caller() {
+        // 20_000 names: scanning earlier failures held the caller 1.37s.
+        let names: Vec<Arc<str>> = (0..20_000)
+            .map(|index| Arc::from(format!("t{index}")))
+            .collect();
+        let mut failed = HashMap::new();
+        let started = std::time::Instant::now();
+        for name in &names {
+            if prepared_topic_error(&failed, name).is_some() {
+                continue;
+            }
+            let _ = failed.insert(Arc::clone(name), Error::UnknownTopic(name.to_string()));
+        }
+        let elapsed = started.elapsed();
+        assert_eq!(failed.len(), 20_000);
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "finding failed topics held the caller for {elapsed:?}"
+        );
+        assert!(matches!(
+            prepared_topic_error(&failed, &names[0]),
+            Some(Error::UnknownTopic(name)) if name == "t0"
+        ));
+        assert!(prepared_topic_error(&failed, &Arc::from("other")).is_none());
     }
 
     #[test]
