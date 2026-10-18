@@ -6720,9 +6720,9 @@ impl Worker {
             || self.pending_estimate >= self.shared.cfg.produce_batch_bytes()
     }
 
-    fn forget_deadline(&mut self, deadline: Instant) {
-        if self.earliest_deadline == Some(deadline) {
-            self.earliest_deadline = self.pending.iter().map(|pending| pending.deadline).min();
+    async fn refresh_earliest_deadline(&mut self, removed: Instant) {
+        if self.earliest_deadline == Some(removed) {
+            self.earliest_deadline = earliest_queued_deadline(&self.pending).await;
         }
     }
 
@@ -6805,6 +6805,7 @@ impl Worker {
                 return Vec::new();
             }
             let mut sealed: Option<(bool, u128, Vec<Pending>)> = None;
+            let mut singleton: Option<Pending> = None;
             let counted = {
                 let cluster = shared.cluster.lock();
                 let Some(policy) = &shared.sticky else {
@@ -6828,8 +6829,7 @@ impl Worker {
                         };
                         self.pending_estimate =
                             self.pending_estimate.saturating_sub(estimate(&pending));
-                        self.forget_deadline(pending.deadline);
-                        return vec![pending];
+                        singleton = Some(pending);
                     }
                     None
                 } else {
@@ -6841,6 +6841,11 @@ impl Worker {
                     ))
                 }
             };
+            if let Some(pending) = singleton {
+                let deadline = pending.deadline;
+                self.refresh_earliest_deadline(deadline).await;
+                return vec![pending];
+            }
             if let Some((tag, members, cancelled, owned)) = counted {
                 let count = count_sticky_id(&self.pending, tag.id).await;
                 if cancelled || (owned && count >= members) {
@@ -8918,6 +8923,26 @@ impl Iterator for ProduceGroupsIntoIter {
         }
         self.many.next()
     }
+}
+
+/// Earliest delivery deadline still queued.
+///
+/// A long queue pauses between slices.
+async fn earliest_queued_deadline(pending: &[Pending]) -> Option<Instant> {
+    let mut earliest = None;
+    let mut walked = 0usize;
+    for record in pending {
+        earliest = Some(match earliest {
+            Some(current) if current <= record.deadline => current,
+            _ => record.deadline,
+        });
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    earliest
 }
 
 /// How many leading records share `base`.
@@ -11342,6 +11367,32 @@ mod tests {
         assert!(
             watch.is_finished(),
             "dropping the last handle left the worker running"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn finding_the_earliest_deadline_does_not_hold_the_caller() {
+        // 4_000_000 records: finding the earliest deadline held the caller 152ms.
+        let topic: Arc<str> = Arc::from("orders");
+        let now = Instant::now();
+        let mut batch = Vec::with_capacity(4_000_000);
+        for _ in 0..4_000_000 {
+            let mut pending = queued("orders", Some(0));
+            pending.rec.topic = Arc::clone(&topic);
+            pending.deadline = now;
+            batch.push(pending);
+        }
+        let started = std::time::Instant::now();
+        tokio::select! {
+            earliest = earliest_queued_deadline(&batch) => {
+                assert!(earliest.is_some());
+            }
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "finding the earliest deadline held the caller for {elapsed:?}"
         );
     }
 
