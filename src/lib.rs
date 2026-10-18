@@ -3268,7 +3268,7 @@
 //! authentication.
 //! Top-level ShareAcknowledge `TOPIC_ALREADY_EXISTS` completes
 //! without retry and does not request Metadata, including when
-//! `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+//! `ErrorMessage` is set or empty (Java `handleShareAcknowledgeSuccess` has no
 //! `metadata.requestUpdate`; this is not top-level
 //! `UNSUPPORTED_VERSION`). Official Java `ReplicationControlManager` writes
 //! this when CreateTopics names a topic that already exists.
