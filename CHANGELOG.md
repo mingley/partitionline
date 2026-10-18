@@ -954,7 +954,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   controller id that is not currently registered. A
   piggybacked `SHARE_SESSION_LIMIT_REACHED` still
   completes without retry, including when `AcknowledgeErrorMessage` is
-  set (Java `handleShareFetchSuccess` completes piggyback acks and still
+  set or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
   delivers the fetch; this is not partition `SHARE_SESSION_LIMIT_REACHED`,
   which fails that poll, and not piggyback
   `CONTROLLER_ID_NOT_REGISTERED`). Official
