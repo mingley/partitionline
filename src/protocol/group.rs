@@ -5831,26 +5831,34 @@ fn decode_fetched_offset_topics<B: Buf>(
         let topic = buf::get_string(buf, flexible)?.unwrap_or_default();
         let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
         let mut partitions = Vec::with_capacity(pn);
-        for _ in 0..pn {
-            let partition = buf::get_i32(buf)?;
-            let offset = buf::get_i64(buf)?;
-            let leader_epoch = if version >= 5 {
-                buf::get_i32(buf)?
-            } else {
-                RecordBatch::NO_PARTITION_LEADER_EPOCH
-            };
-            let metadata = buf::get_string(buf, flexible)?.unwrap_or_default();
-            let error_code = buf::get_i16(buf)?;
-            if flexible {
-                buf::skip_tagged_fields(buf)?;
+        pull_fetched_offsets(buf, version, flexible, &mut partitions, pn)?;
+        if flexible {
+            buf::skip_tagged_fields(buf)?;
+        }
+        topics.push(FetchedOffsetTopic { topic, partitions });
+    }
+    Ok(topics)
+}
+
+async fn decode_fetched_offset_topics_cooperative<B: Buf>(
+    buf: &mut B,
+    version: i16,
+    flexible: bool,
+) -> Result<Vec<FetchedOffsetTopic>> {
+    let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+    let mut topics = Vec::with_capacity(n);
+    for _ in 0..n {
+        let topic = buf::get_string(buf, flexible)?.unwrap_or_default();
+        let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+        let mut partitions = Vec::with_capacity(pn);
+        let mut next = 0usize;
+        while next < pn {
+            let end = next.saturating_add(8 * 1024).min(pn);
+            pull_fetched_offsets(buf, version, flexible, &mut partitions, end - next)?;
+            next = end;
+            if next < pn {
+                tokio::task::yield_now().await;
             }
-            partitions.push(FetchedOffset {
-                partition,
-                offset,
-                leader_epoch,
-                metadata,
-                error_code,
-            });
         }
         if flexible {
             buf::skip_tagged_fields(buf)?;
@@ -5858,6 +5866,90 @@ fn decode_fetched_offset_topics<B: Buf>(
         topics.push(FetchedOffsetTopic { topic, partitions });
     }
     Ok(topics)
+}
+
+fn pull_fetched_offsets<B: Buf>(
+    buf: &mut B,
+    version: i16,
+    flexible: bool,
+    partitions: &mut Vec<FetchedOffset>,
+    count: usize,
+) -> Result<()> {
+    for _ in 0..count {
+        let partition = buf::get_i32(buf)?;
+        let offset = buf::get_i64(buf)?;
+        let leader_epoch = if version >= 5 {
+            buf::get_i32(buf)?
+        } else {
+            RecordBatch::NO_PARTITION_LEADER_EPOCH
+        };
+        let metadata = buf::get_string(buf, flexible)?.unwrap_or_default();
+        let error_code = buf::get_i16(buf)?;
+        if flexible {
+            buf::skip_tagged_fields(buf)?;
+        }
+        partitions.push(FetchedOffset {
+            partition,
+            offset,
+            leader_epoch,
+            metadata,
+            error_code,
+        });
+    }
+    Ok(())
+}
+
+/// [`decode_offset_fetch_response`], yielding while a long partition list is decoded.
+pub(crate) async fn decode_offset_fetch_response_cooperative<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<Vec<FetchedOffsetTopic>> {
+    let (groups, ..) = decode_offset_fetch_groups_response_cooperative(buf, version).await?;
+    let first = groups.into_iter().next().unwrap_or(OffsetFetchGroupResult {
+        group_id: String::new(),
+        topics: Vec::new(),
+        error_code: 0,
+    });
+    if first.error_code != 0 {
+        return Err(crate::error::Error::broker(first.error_code, "OffsetFetch"));
+    }
+    Ok(first.topics)
+}
+
+async fn decode_offset_fetch_groups_response_cooperative<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<(Vec<OffsetFetchGroupResult>, i32)> {
+    let flexible = offset_fetch_flexible(version)?;
+    let throttle_time_ms = if version >= 3 { buf::get_i32(buf)? } else { 0 };
+    let groups = if version <= 7 {
+        let topics = decode_fetched_offset_topics_cooperative(buf, version, flexible).await?;
+        let error_code = if version >= 2 { buf::get_i16(buf)? } else { 0 };
+        vec![OffsetFetchGroupResult {
+            group_id: String::new(),
+            topics,
+            error_code,
+        }]
+    } else {
+        let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+        let mut groups = Vec::with_capacity(n);
+        for _ in 0..n {
+            let group_id = buf::get_compact_string(buf)?.unwrap_or_default();
+            let topics = decode_fetched_offset_topics_cooperative(buf, version, true).await?;
+            let error_code = buf::get_i16(buf)?;
+            buf::skip_tagged_fields(buf)?;
+            groups.push(OffsetFetchGroupResult {
+                group_id,
+                topics,
+                error_code,
+            });
+        }
+        groups
+    };
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
+    }
+    Ok((groups, throttle_time_ms))
 }
 
 /// Encode OffsetFetch v1–v9.
@@ -7237,6 +7329,33 @@ pub fn decode_assignment(bytes: &[u8]) -> Result<Vec<(String, Vec<i32>)>> {
 mod tests {
     use super::*;
     use std::collections::HashMap;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn decoding_many_fetched_offsets_does_not_hold_the_caller() {
+        let partitions = 500_000i32;
+        let mut body = BytesMut::new();
+        body.put_i32(1);
+        body.put_i16(1);
+        body.extend_from_slice(b"t");
+        body.put_i32(partitions);
+        let partition = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+        for index in 0..partitions {
+            let mut one = partition;
+            one[0..4].copy_from_slice(&index.to_be_bytes());
+            body.extend_from_slice(&one);
+        }
+        let mut cursor: &[u8] = &body;
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = decode_offset_fetch_response_cooperative(&mut cursor, 1) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "decoding fetched offsets held the caller for {elapsed:?}"
+        );
+    }
 
     #[test]
     fn coordinator_type_matches_java() {

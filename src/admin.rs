@@ -98,7 +98,7 @@ use crate::protocol::group::{
     decode_find_coordinator_response, decode_find_coordinator_response_coordinators,
     decode_leave_group_response_version, decode_offset_commit_response,
     decode_offset_delete_response, decode_offset_fetch_groups_response,
-    decode_offset_fetch_response, encode_find_coordinator_request_keys,
+    decode_offset_fetch_response_cooperative, encode_find_coordinator_request_keys,
     encode_find_coordinator_request_typed, encode_leave_group_request_members,
     encode_offset_commit_named, encode_offset_delete_named_topics,
     encode_offset_fetch_groups_named, encode_offset_fetch_named, BorrowedOffsetFetchRequestGroup,
@@ -11633,7 +11633,7 @@ impl Admin {
                 }
                 Err(e) => return Err(e),
             };
-            match decode_offset_fetch_response(&mut body.clone(), version) {
+            match decode_offset_fetch_response_cooperative(&mut body.clone(), version).await {
                 Ok(t) => return Ok(t),
                 Err(e) if e.broker_code().is_some_and(error::coordinator_retriable) => {
                     self.group_coord = None;

@@ -29,8 +29,8 @@ use crate::protocol::cgheartbeat::{
 use crate::protocol::group::{
     decode_assignment, decode_find_coordinator_response, decode_heartbeat_response,
     decode_join_group_response, decode_leave_group_response_version, decode_offset_commit_response,
-    decode_offset_fetch_response, decode_sync_group_response,
-    encode_find_coordinator_request_typed, encode_heartbeat_request,
+    decode_offset_fetch_response, decode_offset_fetch_response_cooperative,
+    decode_sync_group_response, encode_find_coordinator_request_typed, encode_heartbeat_request,
     encode_join_group_protocols_request, encode_leave_group_request_members,
     encode_offset_commit_request, encode_offset_fetch_request, encode_sync_group_request,
     encode_tp_assignment, BorrowedOffsetPartition, BorrowedOffsetTopic, ConsumerProtocol,
@@ -1418,7 +1418,8 @@ impl ConsumerGroup {
             timeout,
         )
         .await?;
-        decode_offset_fetch_response(&mut body.clone(), version)
+        decode_offset_fetch_response_cooperative(&mut body.clone(), version)
+            .await
             .map_err(|e| group_decode_context(e, "OffsetFetch", version, body.len()))
     }
 
@@ -3385,19 +3386,22 @@ impl ConsumerGroup {
                             return Err(error);
                         }
                     };
-                    let fetched = match decode_offset_fetch_response(&mut body.clone(), version) {
-                        Ok(fetched) => fetched,
-                        Err(error) => {
-                            self.classic_fetch_topics = topics;
-                            self.keep_leader_flight(dials, deadline).await;
-                            return Err(group_decode_context(
-                                error,
-                                "OffsetFetch",
-                                version,
-                                body.len(),
-                            ));
-                        }
-                    };
+                    let fetched =
+                        match decode_offset_fetch_response_cooperative(&mut body.clone(), version)
+                            .await
+                        {
+                            Ok(fetched) => fetched,
+                            Err(error) => {
+                                self.classic_fetch_topics = topics;
+                                self.keep_leader_flight(dials, deadline).await;
+                                return Err(group_decode_context(
+                                    error,
+                                    "OffsetFetch",
+                                    version,
+                                    body.len(),
+                                ));
+                            }
+                        };
                     if let Some(Err(error)) = metadata_refresh {
                         self.classic_fetch_topics = topics;
                         self.keep_leader_flight(dials, deadline).await;
@@ -3480,19 +3484,22 @@ impl ConsumerGroup {
                             return Err(error);
                         }
                     };
-                    let fetched = match decode_offset_fetch_response(&mut body.clone(), version) {
-                        Ok(fetched) => fetched,
-                        Err(error) => {
-                            self.classic_fetch_topics = topics;
-                            self.keep_leader_flight(dials, deadline).await;
-                            return Err(group_decode_context(
-                                error,
-                                "OffsetFetch",
-                                version,
-                                body.len(),
-                            ));
-                        }
-                    };
+                    let fetched =
+                        match decode_offset_fetch_response_cooperative(&mut body.clone(), version)
+                            .await
+                        {
+                            Ok(fetched) => fetched,
+                            Err(error) => {
+                                self.classic_fetch_topics = topics;
+                                self.keep_leader_flight(dials, deadline).await;
+                                return Err(group_decode_context(
+                                    error,
+                                    "OffsetFetch",
+                                    version,
+                                    body.len(),
+                                ));
+                            }
+                        };
                     let needs_reset = added.iter().any(|(topic, partition)| {
                         fetched_committed(&fetched, topic, *partition)
                             .map(|part| part.offset)
@@ -6398,7 +6405,12 @@ async fn finish_coord_roundtrip(
     prior: &mut HashMap<String, KnownCoord>,
     deadline: crate::net::Deadline,
 ) -> Result<(i16, Bytes)> {
-    if coordinator_error(api_key, version, &body).is_some_and(error::coordinator_retriable) {
+    let coordinator = if api_key == OFFSET_FETCH {
+        offset_fetch_error(version, &body).await
+    } else {
+        coordinator_error(api_key, version, &body)
+    };
+    if coordinator.is_some_and(error::coordinator_retriable) {
         let bounded = bounded_coord_config(cfg, deadline)?;
         let known = KnownCoord::capture(coord)
             .with_bootstrap_keys(bootstrap_keys)
@@ -6448,6 +6460,18 @@ pub(crate) fn negotiated_coord_version(coord: &BrokerConn, api_key: i16) -> Resu
 /// OffsetCommit / OffsetFetch put coordinator errors on each partition (and
 /// OffsetFetch also at the tail). Bytes 4–5 are the topic-array length, so a
 /// throttle-then-i16 peek misses 14/15/16 and treats a recoverable code as fatal.
+async fn offset_fetch_error(version: i16, body: &[u8]) -> Option<i16> {
+    match decode_offset_fetch_response_cooperative(&mut { body }, version).await {
+        Err(Error::Broker { code, .. }) => Some(code),
+        Ok(topics) => topics
+            .iter()
+            .flat_map(|topic| topic.partitions.iter())
+            .map(|partition| partition.error_code)
+            .find(|code| *code != 0),
+        Err(_) => None,
+    }
+}
+
 fn coordinator_error(api_key: i16, api_version: i16, body: &[u8]) -> Option<i16> {
     match api_key {
         OFFSET_COMMIT => match decode_offset_commit_response(&mut { body }, api_version) {

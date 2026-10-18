@@ -809,9 +809,12 @@ pub(super) async fn coord_offsets_legacy(
             }
             Err(err) => return Err(err),
         };
-        if super::coordinator_error(api, version, &body)
-            .is_some_and(crate::error::coordinator_retriable)
-        {
+        let coordinator = if api == crate::protocol::api_keys::OFFSET_FETCH {
+            super::offset_fetch_error(version, &body).await
+        } else {
+            super::coordinator_error(api, version, &body)
+        };
+        if coordinator.is_some_and(crate::error::coordinator_retriable) {
             let bounded = bounded_consumer_config(cfg, deadline)?;
             let known = super::KnownCoord::capture(coord)
                 .with_bootstrap_keys(bootstrap_keys)
