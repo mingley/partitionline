@@ -995,7 +995,7 @@ impl OffsetClient {
                     charge_bytes(response_bytes, body.len(), response_limit(options.limits)?)?;
                     let response =
                         decode_offset_fetch_response_data(&body, version, options.limits)?;
-                    validate_fetch_response(&batched, &response)?;
+                    validate_fetch_response(&batched, &response).await?;
                     if let Some(code) = response
                         .groups
                         .iter()
@@ -1345,7 +1345,7 @@ fn validate_commit_response(
     Ok(())
 }
 
-fn validate_fetch_response(
+async fn validate_fetch_response(
     request: &OffsetFetchRequestData,
     response: &OffsetFetchResponseData,
 ) -> Result<()> {
@@ -1380,16 +1380,30 @@ fn validate_fetch_response(
                         .ok_or_else(|| Error::protocol("unexpected fetched topic identity"))?,
                 ),
             };
+            let mut expected_indexes = HashSet::new();
+            if let Some(expected) = expected {
+                let mut walked = 0usize;
+                for index in &expected.partition_indexes {
+                    let _ = expected_indexes.insert(*index);
+                    walked = walked.saturating_add(1);
+                    if walked == 8 * 1024 {
+                        walked = 0;
+                        tokio::task::yield_now().await;
+                    }
+                }
+            }
             let mut partitions = HashSet::new();
+            let mut walked = 0usize;
             for partition in &topic.partitions {
-                if !partitions.insert(partition.partition_index)
-                    || expected.is_some_and(|expected| {
-                        !expected
-                            .partition_indexes
-                            .contains(&partition.partition_index)
-                    })
-                {
+                let unexpected =
+                    expected.is_some() && !expected_indexes.contains(&partition.partition_index);
+                if !partitions.insert(partition.partition_index) || unexpected {
                     return Err(Error::protocol("unexpected or duplicate fetched partition"));
+                }
+                walked = walked.saturating_add(1);
+                if walked == 8 * 1024 {
+                    walked = 0;
+                    tokio::task::yield_now().await;
                 }
             }
             if expected.is_some_and(|expected| partitions.len() != expected.partition_indexes.len())
@@ -1415,6 +1429,78 @@ fn validate_fetch_response(
 mod tests {
     use super::{collect_bounded_commits, collect_bounded_partitions};
     use crate::consumer::{OffsetAndMetadata, TopicPartition};
+
+    fn offset_fetch_pair(
+        count: i32,
+    ) -> (
+        crate::protocol::group::OffsetFetchRequestData,
+        crate::protocol::group::OffsetFetchResponseData,
+    ) {
+        use crate::protocol::group::{
+            OffsetFetchGroupData, OffsetFetchGroupResponseData, OffsetFetchPartitionData,
+            OffsetFetchRequestData, OffsetFetchResponseData, OffsetFetchTopicData,
+            OffsetFetchTopicResponseData, OffsetTopicIdentity,
+        };
+        let indexes: Vec<i32> = (0..count).collect();
+        let request = OffsetFetchRequestData {
+            groups: vec![OffsetFetchGroupData {
+                group_id: "g".into(),
+                member_id: None,
+                member_epoch: -1,
+                topics: Some(vec![OffsetFetchTopicData {
+                    identity: OffsetTopicIdentity::Name("orders".into()),
+                    partition_indexes: indexes.clone(),
+                }]),
+            }],
+            require_stable: false,
+        };
+        let response = OffsetFetchResponseData {
+            throttle_time_ms: 0,
+            groups: vec![OffsetFetchGroupResponseData {
+                group_id: "g".into(),
+                topics: vec![OffsetFetchTopicResponseData {
+                    identity: OffsetTopicIdentity::Name("orders".into()),
+                    partitions: indexes
+                        .into_iter()
+                        .map(|index| OffsetFetchPartitionData {
+                            partition_index: index,
+                            committed_offset: 1,
+                            committed_leader_epoch: -1,
+                            metadata: None,
+                            error_code: 0,
+                        })
+                        .collect(),
+                }],
+                error_code: 0,
+            }],
+        };
+        (request, response)
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn validating_many_fetched_offsets_does_not_hold_the_caller() {
+        // 20_000 partitions: scanning the request list for each one held the
+        // caller 758ms. A longer indexed walk still has to pause.
+        use super::validate_fetch_response;
+        let (request, response) = offset_fetch_pair(500_000);
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = validate_fetch_response(&request, &response) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "validating fetched offsets held the caller for {elapsed:?}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn validating_a_small_offset_fetch_accepts_the_request() {
+        use super::validate_fetch_response;
+        let (request, response) = offset_fetch_pair(3);
+        validate_fetch_response(&request, &response).await.unwrap();
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn finishing_an_offset_fetch_lets_the_broker_leave() {
