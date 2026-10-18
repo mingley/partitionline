@@ -4312,8 +4312,11 @@ impl Consumer {
         self.cluster.invalidate_topic(topic);
     }
 
-    pub(crate) fn drop_node(&mut self, node: i32) {
-        let _ = self.conns.remove(&node);
+    pub(crate) async fn drop_node(&mut self, node: i32) {
+        if let Some(mut conn) = self.conns.remove(&node) {
+            conn.close();
+            conn.release_if_closed().await;
+        }
     }
 
     async fn connect_node(&mut self, node: i32, deadline: Instant) -> Result<()> {
@@ -11223,6 +11226,68 @@ mod tests {
     use super::*;
     use crate::protocol::api::ApiVersion;
     use crate::protocol::api_keys::FETCH;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn dropping_a_leader_socket_lets_the_broker_leave() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use std::sync::Arc;
+        use tokio::io::AsyncReadExt;
+
+        let leader_listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let leader_addr = leader_listener.local_addr().unwrap().to_string();
+        let other = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let other_addr = other.local_addr().unwrap().to_string();
+        let open = Arc::new(AtomicUsize::new(0));
+        let flag = Arc::clone(&open);
+        let leader_peer = tokio::spawn(async move {
+            let Ok((mut socket, _)) = leader_listener.accept().await else {
+                return;
+            };
+            let _started = flag.fetch_add(1, Ordering::SeqCst);
+            let mut buf = [0u8; 8];
+            loop {
+                match socket.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let other_peer = tokio::spawn(async move {
+            let Ok((mut socket, _)) = other.accept().await else {
+                return;
+            };
+            let mut buf = [0u8; 8];
+            loop {
+                match socket.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+        });
+        let leader =
+            crate::net::BrokerConn::connect(&leader_addr, "leader-drop", Duration::from_secs(2))
+                .await
+                .unwrap();
+        while open.load(Ordering::SeqCst) == 0 {
+            tokio::task::yield_now().await;
+        }
+        let bootstrap =
+            crate::net::BrokerConn::connect(&other_addr, "bootstrap-drop", Duration::from_secs(2))
+                .await
+                .unwrap();
+        let mut consumer = Consumer::test_holding(ConsumerConfig::default(), bootstrap);
+        let _stored = consumer.conns.insert(1, leader);
+        consumer.drop_node(1).await;
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "dropping a leader socket left the broker blocked in a read"
+        );
+        drop(consumer);
+        leader_peer.abort();
+        other_peer.abort();
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn dropping_the_bootstrap_socket_lets_the_broker_leave() {

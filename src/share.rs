@@ -3033,7 +3033,7 @@ impl ShareGroup {
         self.pending_delivery.retain(|r| {
             acquisition_at(&self.acquisitions, &r.topic, r.partition, r.offset).is_some()
         });
-        self.consumer.drop_node(node);
+        self.consumer.drop_node(node).await;
     }
 
     fn note_share_redial(&mut self, node: i32) {
