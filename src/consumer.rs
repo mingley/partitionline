@@ -7963,13 +7963,8 @@ impl Consumer {
                             let epoch = (meta.partition_leader_epoch >= 0)
                                 .then_some(meta.partition_leader_epoch);
                             if let Some(tail) = out.get_mut(mark..) {
-                                for record in tail {
-                                    record.timestamp_type = timestamp_type;
-                                    if timestamp_type == TimestampType::LogAppendTime {
-                                        record.timestamp = meta.max_timestamp;
-                                    }
-                                    record.leader_epoch = epoch;
-                                }
+                                stamp_fetched_tail(tail, timestamp_type, epoch, meta.max_timestamp)
+                                    .await;
                             }
                             *out_bytes = mark_bytes.saturating_add(added);
                             if added_records > 0 {
@@ -8086,6 +8081,7 @@ impl Consumer {
                             None
                         }
                     });
+                    let mut walked = 0usize;
                     for rec in batch.records {
                         let offset = rec.offset;
                         if isolation == crate::IsolationLevel::ReadCommitted
@@ -8142,6 +8138,11 @@ impl Consumer {
                             leader_epoch: (batch.partition_leader_epoch >= 0)
                                 .then_some(batch.partition_leader_epoch),
                         });
+                        walked = walked.saturating_add(1);
+                        if walked == 8 * 1024 {
+                            walked = 0;
+                            tokio::task::yield_now().await;
+                        }
                     }
                     if batch_records > 0 {
                         topic_records = topic_records.saturating_add(batch_records);
@@ -10457,6 +10458,32 @@ fn reserve_fetch_records(
     }
 }
 
+/// Fill timestamp type and leader epoch on records already copied from one batch.
+///
+/// A short-key visit copies the records in bounded slices. Stamping the whole
+/// tail afterwards pauses so that copy does not hold the caller for the rest
+/// of the batch.
+async fn stamp_fetched_tail(
+    tail: &mut [FetchedRecord],
+    timestamp_type: TimestampType,
+    epoch: Option<i32>,
+    max_timestamp: i64,
+) {
+    let mut walked = 0usize;
+    for record in tail {
+        record.timestamp_type = timestamp_type;
+        if timestamp_type == TimestampType::LogAppendTime {
+            record.timestamp = max_timestamp;
+        }
+        record.leader_epoch = epoch;
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+}
+
 /// Topic stored on an assignment.
 ///
 /// Metadata that already holds the name is shared. A name the cache has not
@@ -11626,6 +11653,89 @@ mod tests {
     use std::collections::HashMap;
 
     use super::*;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn stamping_many_fetched_records_does_not_hold_the_caller() {
+        // 6_000_000 records: stamping the fetched tail held the caller 188ms.
+        let topic = TopicName::from("orders");
+        let mut records = Vec::with_capacity(6_000_000);
+        for offset in 0..6_000_000 {
+            records.push(FetchedRecord {
+                topic: topic.clone(),
+                partition: 0,
+                offset,
+                timestamp: 1,
+                timestamp_type: TimestampType::CreateTime,
+                key: None,
+                value: None,
+                headers: Vec::new(),
+                leader_epoch: None,
+            });
+        }
+        let started = std::time::Instant::now();
+        tokio::select! {
+            () = stamp_fetched_tail(
+                &mut records,
+                TimestampType::LogAppendTime,
+                Some(4),
+                9,
+            ) => {}
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "stamping fetched records held the caller for {elapsed:?}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn copying_many_fetched_records_does_not_hold_the_caller() {
+        // 2_000_000 decoded records: copying them into the fetch buffer held the caller 342ms.
+        let topic = TopicName::from("orders");
+        let value = Bytes::from_static(b"x");
+        let mut records = Vec::with_capacity(2_000_000);
+        for offset in 0..2_000_000 {
+            records.push(crate::protocol::records::Record {
+                offset,
+                timestamp: 1,
+                key: None,
+                value: Some(value.clone()),
+                headers: Vec::new(),
+            });
+        }
+        let started = std::time::Instant::now();
+        let worker = tokio::spawn(async move {
+            let mut out = Vec::with_capacity(records.len());
+            let mut walked = 0usize;
+            for rec in records {
+                out.push(FetchedRecord {
+                    topic: topic.clone(),
+                    partition: 0,
+                    offset: rec.offset,
+                    timestamp: rec.timestamp,
+                    timestamp_type: TimestampType::CreateTime,
+                    key: rec.key.map(RecordBytes::from),
+                    value: rec.value,
+                    headers: rec.headers,
+                    leader_epoch: Some(4),
+                });
+                walked = walked.saturating_add(1);
+                if walked == 8 * 1024 {
+                    walked = 0;
+                    tokio::task::yield_now().await;
+                }
+            }
+            out.len()
+        });
+        tokio::time::sleep(std::time::Duration::from_millis(30)).await;
+        worker.abort();
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "copying fetched records held the caller for {elapsed:?}"
+        );
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn checking_many_previous_offsets_does_not_hold_the_caller() {
