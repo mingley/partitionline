@@ -2304,17 +2304,14 @@ impl Producer {
                 return Err(error);
             }
             if topic_needs_metadata(&self.inner.shared, &rec.topic) {
-                let mut topics = vec![Arc::clone(&rec.topic)];
+                let mut topics = Vec::new();
+                let mut seen_topics = HashSet::new();
+                remember_unready_topic(&mut topics, &mut seen_topics, &rec.topic);
                 let mut ready = Vec::new();
                 let mut rest = VecDeque::new();
                 while let Some(later) = pending.pop_front() {
                     if topic_needs_metadata(&self.inner.shared, &later.1.topic) {
-                        if topics
-                            .iter()
-                            .all(|topic| topic.as_ref() != later.1.topic.as_ref())
-                        {
-                            topics.push(Arc::clone(&later.1.topic));
-                        }
+                        remember_unready_topic(&mut topics, &mut seen_topics, &later.1.topic);
                         rest.push_back(later);
                     } else {
                         ready.push(later);
@@ -5427,6 +5424,20 @@ async fn decode_shared_metadata(
     let mut stored = shared.metadata_image.lock();
     *stored = image;
     Ok(())
+}
+
+/// Record `topic` once, in the order it first appears.
+fn remember_unready_topic(
+    topics: &mut Vec<Arc<str>>,
+    seen: &mut HashSet<Arc<str>>,
+    topic: &Arc<str>,
+) {
+    if seen.contains(topic) {
+        return;
+    }
+    let owned = Arc::clone(topic);
+    let _ = seen.insert(Arc::clone(&owned));
+    topics.push(owned);
 }
 
 fn topic_needs_metadata(shared: &Shared, topic: &Arc<str>) -> bool {
@@ -10448,6 +10459,34 @@ mod tests {
             .build()
             .unwrap_or_else(|error| panic!("{error}"));
         runtime.block_on(group_pending(batch, scratch))
+    }
+
+    #[test]
+    fn remembering_many_unready_topics_does_not_hold_the_caller() {
+        // 20_000 names: scanning earlier topics held the caller 1.52s.
+        let names: Vec<Arc<str>> = (0..20_000)
+            .map(|index| Arc::from(format!("t{index}")))
+            .collect();
+        let first = Arc::clone(&names[0]);
+        let started = std::time::Instant::now();
+        let mut topics = Vec::new();
+        let mut seen = HashSet::new();
+        for name in &names {
+            remember_unready_topic(&mut topics, &mut seen, name);
+        }
+        let elapsed = started.elapsed();
+        assert_eq!(topics.len(), 20_000);
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "remembering unready topics held the caller for {elapsed:?}"
+        );
+        let Some(stored) = topics.first() else {
+            panic!("missing topic");
+        };
+        assert!(Arc::ptr_eq(stored, &first));
+        remember_unready_topic(&mut topics, &mut seen, &first);
+        assert_eq!(topics.len(), 20_000);
+        assert_eq!(topics.get(1).map(Arc::as_ref), Some("t1"));
     }
 
     #[test]
