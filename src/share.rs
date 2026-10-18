@@ -1545,7 +1545,7 @@ pub enum ShareAcquireMode {
 /// first subscribes a topic regex that is not a valid regular expression.
 /// A piggybacked
 /// `REBOOTSTRAP_REQUIRED` still completes without retry,
-/// including when `AcknowledgeErrorMessage` is set (this is not
+/// including when `AcknowledgeErrorMessage` is set or empty (this is not
 /// partition `REBOOTSTRAP_REQUIRED`, which fails that poll, and not
 /// piggyback `INVALID_REGULAR_EXPRESSION`). Official Java
 /// `KafkaApis` writes this when an ApiVersions request carries a
@@ -3878,7 +3878,7 @@ impl ShareGroup {
     /// first subscribes a topic regex that is not a valid regular expression.
     /// A piggybacked `REBOOTSTRAP_REQUIRED` still completes
     /// without retry, including when `AcknowledgeErrorMessage` is set
-    /// (Java `handleShareFetchSuccess` completes piggyback acks and still
+    /// or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
     /// delivers the fetch; this is not partition
     /// `REBOOTSTRAP_REQUIRED`, which fails that poll, and not piggyback
     /// `INVALID_REGULAR_EXPRESSION`). Official Java
