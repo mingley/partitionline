@@ -3836,6 +3836,12 @@
 //! `metadata.requestUpdate`; this is not top-level
 //! `PRINCIPAL_DESERIALIZATION_FAILURE`). Official Java `KafkaRaftClient`
 //! writes this when the requested snapshot id does not exist.
+//! Top-level ShareAcknowledge `POSITION_OUT_OF_RANGE` completes
+//! without retry and does not request Metadata, including when
+//! `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+//! `metadata.requestUpdate`; this is not top-level
+//! `SNAPSHOT_NOT_FOUND`). Official Java `KafkaRaftClient`
+//! writes this when the requested snapshot offset is out of range.
 //! Top-level ShareAcknowledge
 //! `SHARE_SESSION_LIMIT_REACHED` completes without retry and advances
 //! the session epoch (Java `ShareSessionHandler.handleResponse`
