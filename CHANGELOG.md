@@ -2033,6 +2033,13 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `UNKNOWN_TOPIC_ID`; this is not top-level
   `DUPLICATE_RESOURCE`). Official Java `ScramControlManager` writes
   this when a SCRAM upsert has too few iterations.
+  Top-level `INCONSISTENT_VOTER_SET` still fails that poll
+  without Metadata, including when `ErrorMessage` is set (Java
+  `handleShareFetchSuccess` only `requestUpdate`s for top-level
+  `UNKNOWN_TOPIC_ID`; this is not top-level
+  `UNACCEPTABLE_CREDENTIAL`). Official Java `KafkaRaftClient` writes
+  this when a voter-only request arrives at an observer or from a
+  non-voter.
   A non-empty
   throwable partition or top-level ShareFetch `ErrorMessage` is
   preferred; empty uses `ShareFetch {topic}-{partition}` or
