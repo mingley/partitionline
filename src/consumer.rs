@@ -3999,7 +3999,7 @@ impl Consumer {
                 self.drop_pending_for(topic, *part);
             }
         }
-        self.retain_pending_assigned();
+        self.retain_pending_assigned().await;
         self.capture_assigned_topic_ids().await;
         Ok(())
     }
@@ -9755,11 +9755,21 @@ impl Consumer {
         let _state = self.aborted.remove(topic, partition);
     }
 
-    fn retain_pending_assigned(&mut self) {
-        let mut assigned = PartitionMap::new();
-        for (topic, partition, _) in &self.assigned {
-            let _previous = assigned.insert_shared(topic, *partition, ());
+    async fn extend_assigned_marks(map: &mut PartitionMap<()>, assigned: &[(Arc<str>, i32, i64)]) {
+        let mut walked = 0usize;
+        for (topic, partition, _) in assigned {
+            let _previous = map.insert_shared(topic, *partition, ());
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
         }
+    }
+
+    async fn retain_pending_assigned(&mut self) {
+        let mut assigned = PartitionMap::new();
+        Self::extend_assigned_marks(&mut assigned, &self.assigned).await;
         self.buffered_bytes = self
             .buffered_bytes
             .saturating_sub(self.pending.retain_assigned(&assigned));
@@ -11608,6 +11618,26 @@ mod tests {
     use std::collections::HashMap;
 
     use super::*;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn remembering_many_assigned_partitions_does_not_hold_the_caller() {
+        // 2_000_000 partitions: remembering the assignment held the caller 1.27s.
+        let topic: Arc<str> = Arc::from("orders");
+        let assigned: Vec<(Arc<str>, i32, i64)> = (0..2_000_000)
+            .map(|partition| (Arc::clone(&topic), partition, 0))
+            .collect();
+        let mut marks = PartitionMap::new();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            () = Consumer::extend_assigned_marks(&mut marks, &assigned) => {}
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "remembering assigned partitions held the caller for {elapsed:?}"
+        );
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn indexing_many_live_partitions_does_not_hold_the_caller() {
