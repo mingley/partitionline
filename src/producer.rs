@@ -3997,7 +3997,7 @@ async fn reopen_meta_if_idle(
         return Ok(());
     }
     let addr = conn.addr().to_string();
-    *conn = open_idle_replacement(
+    let replacement = open_idle_replacement(
         &addr,
         &shared.cfg,
         &shared.api_keys,
@@ -4005,6 +4005,8 @@ async fn reopen_meta_if_idle(
         deadline,
     )
     .await?;
+    let mut previous = std::mem::replace(conn, replacement);
+    retire_produce_conn(&mut previous).await;
     Ok(())
 }
 
@@ -9738,6 +9740,127 @@ mod tests {
             0,
             "a bad producer lookup left the broker blocked in a read"
         );
+        peer.abort();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn replacing_an_idle_metadata_socket_lets_the_broker_leave() {
+        use crate::protocol::api::{encode_api_versions_response, ApiVersion, ApiVersionsResponse};
+        use crate::protocol::api_keys::METADATA;
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let open = Arc::new(AtomicUsize::new(0));
+        let flag = Arc::clone(&open);
+        let peer = tokio::spawn(async move {
+            let mut first = true;
+            loop {
+                let Ok((mut socket, _)) = listener.accept().await else {
+                    return;
+                };
+                if first {
+                    first = false;
+                    let flag = Arc::clone(&flag);
+                    let _started = flag.fetch_add(1, Ordering::SeqCst);
+                    let _reader = tokio::spawn(async move {
+                        let mut size_buf = [0u8; 4];
+                        if socket.read_exact(&mut size_buf).await.is_ok() {
+                            let size = i32::from_be_bytes(size_buf).max(0) as usize;
+                            let mut request = vec![0u8; size];
+                            if socket.read_exact(&mut request).await.is_ok() {
+                                if let Some(bytes) = request.get(4..8) {
+                                    let correlation = i32::from_be_bytes([
+                                        bytes.first().copied().unwrap_or(0),
+                                        bytes.get(1).copied().unwrap_or(0),
+                                        bytes.get(2).copied().unwrap_or(0),
+                                        bytes.get(3).copied().unwrap_or(0),
+                                    ]);
+                                    let mut body = bytes::BytesMut::new();
+                                    let encoded = encode_api_versions_response(
+                                        &mut body,
+                                        4,
+                                        &ApiVersionsResponse {
+                                            error_code: 0,
+                                            api_keys: vec![ApiVersion {
+                                                api_key: METADATA,
+                                                min_version: 0,
+                                                max_version: 0,
+                                            }],
+                                            throttle_time_ms: 0,
+                                            supported_features: Vec::new(),
+                                            finalized_features_epoch: None,
+                                            finalized_features: Vec::new(),
+                                            zk_migration_ready: false,
+                                        },
+                                    );
+                                    if encoded.is_ok() {
+                                        let mut response = Vec::new();
+                                        let len = i32::try_from(4 + body.len()).unwrap_or(0);
+                                        response.extend_from_slice(&len.to_be_bytes());
+                                        response.extend_from_slice(&correlation.to_be_bytes());
+                                        response.extend_from_slice(&body);
+                                        let _wrote = socket.write_all(&response).await;
+                                    }
+                                }
+                            }
+                        }
+                        let mut buf = [0u8; 8];
+                        loop {
+                            match socket.read(&mut buf).await {
+                                Ok(0) | Err(_) => break,
+                                Ok(_) => continue,
+                            }
+                        }
+                        let _left = flag.fetch_sub(1, Ordering::SeqCst);
+                    });
+                } else {
+                    let _reader = tokio::spawn(async move {
+                        let mut size_buf = [0u8; 4];
+                        if socket.read_exact(&mut size_buf).await.is_ok() {
+                            let size = i32::from_be_bytes(size_buf).max(0) as usize;
+                            let mut request = vec![0u8; size];
+                            if socket.read_exact(&mut request).await.is_ok() {
+                                if let Some(bytes) = request.get(4..8) {
+                                    let correlation = i32::from_be_bytes([
+                                        bytes.first().copied().unwrap_or(0),
+                                        bytes.get(1).copied().unwrap_or(0),
+                                        bytes.get(2).copied().unwrap_or(0),
+                                        bytes.get(3).copied().unwrap_or(0),
+                                    ]);
+                                    let mut response = Vec::new();
+                                    response.extend_from_slice(&4i32.to_be_bytes());
+                                    response.extend_from_slice(&correlation.to_be_bytes());
+                                    let _wrote = socket.write_all(&response).await;
+                                }
+                            }
+                        }
+                        let mut buf = [0u8; 8];
+                        loop {
+                            match socket.read(&mut buf).await {
+                                Ok(0) | Err(_) => break,
+                                Ok(_) => continue,
+                            }
+                        }
+                    });
+                }
+            }
+        });
+        let cfg = ProducerConfig::bootstrap([addr])
+            .connections_max_idle(Duration::from_nanos(1))
+            .request_timeout(Duration::from_secs(2));
+        let producer = Producer::new(cfg).await.unwrap();
+        tokio::time::sleep(Duration::from_millis(2)).await;
+        let _parts = producer
+            .partitions_for_timeout("topic", Duration::from_secs(2))
+            .await;
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "replacing an idle metadata socket left the previous broker blocked in a read"
+        );
+        drop(producer.close().await);
         peer.abort();
     }
 
