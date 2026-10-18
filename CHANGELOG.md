@@ -929,6 +929,13 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   Java `GroupCoordinatorService` writes this when a Streams group
   heartbeat supplies a topology whose changelog topic has a defined
   partition count. A
+  piggybacked `GROUP_DELETION_FAILED` still
+  completes without retry, including when `AcknowledgeErrorMessage` is
+  set (Java `handleShareFetchSuccess` completes piggyback acks and still
+  delivers the fetch; this is not partition `GROUP_DELETION_FAILED`,
+  which fails that poll, and not piggyback `STREAMS_INVALID_TOPOLOGY`). Official
+  Java `StreamsGroupTopologyDescriptionManager` writes this when
+  `plugin.deleteTopology` fails during DeleteGroups. A
   piggybacked `TOPIC_AUTHORIZATION_FAILED` on
   one partition does not fail a sibling whose `AcknowledgeErrorCode`
   is none, including when `AcknowledgeErrorMessage` is set or empty. A
