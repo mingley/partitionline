@@ -3518,7 +3518,7 @@ impl Producer {
         // group coordinator also performs AddOffsetsToTxn. Skip that
         // RPC when the broker advertised v5 (Java `isTransactionV2Enabled`).
         let load_topics = async {
-            let topics = unique_offset_topics(&offsets);
+            let topics = unique_offset_topics(&offsets).await;
             if topics.len() > 1 {
                 let names: Vec<Arc<str>> = topics.iter().copied().map(Arc::<str>::from).collect();
                 let requested =
@@ -7986,7 +7986,7 @@ impl Worker {
         if added.is_empty() {
             return Ok(());
         }
-        let topics = group_txn_partitions(&added);
+        let topics = group_txn_partitions(&added).await;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         loop {
@@ -8292,22 +8292,34 @@ fn retry_topic_groups(pendings: &[Pending]) -> (Vec<usize>, Vec<(Arc<str>, u32)>
     (group_of, groups)
 }
 
-fn group_txn_partitions(parts: &[(Arc<str>, i32)]) -> Vec<BorrowedTxnTopic<'_>> {
+async fn group_txn_partitions(parts: &[(Arc<str>, i32)]) -> Vec<BorrowedTxnTopic<'_>> {
     let mut topics: Vec<BorrowedTxnTopic<'_>> = Vec::new();
     let mut slots: HashMap<&str, usize> = HashMap::new();
+    let mut walked = 0usize;
     for (topic, part) in parts {
-        if let Some(&slot) = slots.get(topic.as_ref()) {
+        let placed = if let Some(&slot) = slots.get(topic.as_ref()) {
             if let Some(group) = topics.get_mut(slot) {
                 group.partitions.push(*part);
-                continue;
+                true
+            } else {
+                false
             }
+        } else {
+            false
+        };
+        if !placed {
+            let slot = topics.len();
+            let _ = slots.insert(topic.as_ref(), slot);
+            topics.push(BorrowedTxnTopic {
+                topic: topic.as_ref(),
+                partitions: vec![*part],
+            });
         }
-        let slot = topics.len();
-        let _ = slots.insert(topic.as_ref(), slot);
-        topics.push(BorrowedTxnTopic {
-            topic: topic.as_ref(),
-            partitions: vec![*part],
-        });
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
     }
     topics
 }
@@ -8316,14 +8328,20 @@ fn requested_topic_set(requested: &[Arc<str>]) -> HashSet<&str> {
     requested.iter().map(|name| name.as_ref()).collect()
 }
 
-fn unique_offset_topics(
+async fn unique_offset_topics(
     offsets: &[(crate::TopicPartition, crate::OffsetAndMetadata)],
 ) -> Vec<&str> {
     let mut seen: HashSet<&str> = HashSet::new();
     let mut topics = Vec::new();
+    let mut walked = 0usize;
     for (tp, _) in offsets {
         if seen.insert(tp.topic.as_str()) {
             topics.push(tp.topic.as_str());
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
         }
     }
     topics
@@ -11106,7 +11124,7 @@ mod tests {
                 crate::OffsetAndMetadata::from_wire(9, 7, "b".into()),
             ),
         ];
-        let names = unique_offset_topics(&offsets);
+        let names = unique_offset_topics(&offsets).await;
         assert_eq!(names.first().copied(), Some("orders"));
         assert_eq!(names.get(1).copied(), Some("payments"));
         assert_eq!(names.len(), 2);
@@ -11186,8 +11204,57 @@ mod tests {
         );
     }
 
-    #[test]
-    fn transactional_partitions_share_one_topic_entry() {
+    #[tokio::test(flavor = "current_thread")]
+    async fn grouping_many_txn_partitions_does_not_hold_the_caller() {
+        // 2_000_000 partitions: grouping held the caller 345ms.
+        let topic: Arc<str> = Arc::from("orders");
+        let parts: Vec<(Arc<str>, i32)> = (0..2_000_000)
+            .map(|index| (Arc::clone(&topic), index))
+            .collect();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            grouped = group_txn_partitions(&parts) => {
+                assert_eq!(
+                    grouped.first().map(|topic| topic.partitions.len()),
+                    Some(2_000_000)
+                );
+            }
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "grouping txn partitions held the caller for {elapsed:?}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn listing_many_offset_topics_does_not_hold_the_caller() {
+        // 2_000_000 offsets: listing topic names held the caller 330ms.
+        let offsets: Vec<_> = (0..2_000_000)
+            .map(|index| {
+                (
+                    crate::TopicPartition::new("orders", index),
+                    crate::OffsetAndMetadata::new(0),
+                )
+            })
+            .collect();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            topics = unique_offset_topics(&offsets) => {
+                assert_eq!(topics.len(), 1);
+            }
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "listing offset topics held the caller for {elapsed:?}"
+        );
+    }
+
+    #[tokio::test]
+    async fn transactional_partitions_share_one_topic_entry() {
         let mut set = TxnPartSet::new();
         let orders = Arc::<str>::from("orders");
         let orders_again = Arc::<str>::from("orders");
@@ -11213,7 +11280,7 @@ mod tests {
             (Arc::clone(&payments), 0),
             (Arc::clone(&orders), 0),
         ];
-        let grouped = group_txn_partitions(&parts);
+        let grouped = group_txn_partitions(&parts).await;
         assert_eq!(grouped.first().map(|topic| topic.topic), Some("orders"));
         assert_eq!(
             grouped.first().map(|topic| topic.partitions.as_slice()),
