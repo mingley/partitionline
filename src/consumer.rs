@@ -1871,6 +1871,12 @@ struct HeldFetch {
 
 /// A contiguous arrival run. Separate runs of the same partition can straddle
 /// other partitions, so queue grouping alone cannot preserve delivery order.
+struct FetchOffsetReset<'a> {
+    completed: &'a mut PartitionMap<()>,
+    need_offsets: &'a mut Vec<(Arc<str>, i32, i64)>,
+    dropped: &'a mut Vec<i32>,
+}
+
 struct PendingRun {
     topic: TopicName,
     partition: i32,
@@ -7629,8 +7635,7 @@ impl Consumer {
         partition: i32,
         log_start: i64,
         high_watermark: i64,
-        completed: &mut PartitionMap<()>,
-        need_offsets: &mut Vec<(Arc<str>, i32, i64)>,
+        reset: &mut FetchOffsetReset<'_>,
     ) -> Result<()> {
         if log_boundary_conflict(log_start, high_watermark) {
             return Err(Error::protocol(format!(
@@ -7650,10 +7655,14 @@ impl Consumer {
                         partition,
                         crate::RecordBatch::NO_PARTITION_LEADER_EPOCH,
                     );
-                    self.drop_pending_for(name, partition);
-                    let _ = completed.insert_shared(name, partition, ());
+                    reset.dropped.push(partition);
+                    let _ = reset.completed.insert_shared(name, partition, ());
                 } else {
-                    need_offsets.push((Arc::clone(name), partition, crate::EARLIEST_TIMESTAMP));
+                    reset.need_offsets.push((
+                        Arc::clone(name),
+                        partition,
+                        crate::EARLIEST_TIMESTAMP,
+                    ));
                 }
                 Ok(())
             }
@@ -7665,10 +7674,12 @@ impl Consumer {
                         partition,
                         crate::RecordBatch::NO_PARTITION_LEADER_EPOCH,
                     );
-                    self.drop_pending_for(name, partition);
-                    let _ = completed.insert_shared(name, partition, ());
+                    reset.dropped.push(partition);
+                    let _ = reset.completed.insert_shared(name, partition, ());
                 } else {
-                    need_offsets.push((Arc::clone(name), partition, crate::LATEST_TIMESTAMP));
+                    reset
+                        .need_offsets
+                        .push((Arc::clone(name), partition, crate::LATEST_TIMESTAMP));
                 }
                 Ok(())
             }
@@ -7811,6 +7822,7 @@ impl Consumer {
             let mut topic_leaders: Option<Vec<i32>> = None;
             let mut topic_leaders_live = true;
             let mut part_batches_iter = topic_batches.into_iter();
+            let mut dropped_pending = Vec::new();
             for part in &topic.partitions {
                 let Some(part_batches) = part_batches_iter.next() else {
                     break;
@@ -7859,14 +7871,20 @@ impl Consumer {
                         retry = retry.merge(FetchRetry::Redirect);
                         continue;
                     }
-                    self.reset_fetched_offset(
+                    if let Err(error) = self.reset_fetched_offset(
                         &name,
                         part.partition,
                         part.log_start_offset,
                         part.high_watermark,
-                        completed,
-                        need_offsets,
-                    )?;
+                        &mut FetchOffsetReset {
+                            completed,
+                            need_offsets,
+                            dropped: &mut dropped_pending,
+                        },
+                    ) {
+                        self.drop_pending_partitions(name.as_ref(), &mut dropped_pending);
+                        return Err(error);
+                    }
                     continue;
                 }
                 if part.error_code == error::FENCED_LEADER_EPOCH
@@ -7900,12 +7918,13 @@ impl Consumer {
                         }
                         continue;
                     }
+                    self.drop_pending_partitions(name.as_ref(), &mut dropped_pending);
                     return Err(e);
                 }
                 if part.is_diverging_epoch() && part.diverging_end_offset >= 0 {
                     self.advance_indexed(&name, part.partition, part.diverging_end_offset);
                     self.set_last_fetched_epoch(&name, part.partition, part.diverging_epoch);
-                    self.drop_pending_for(&name, part.partition);
+                    dropped_pending.push(part.partition);
                     retry = retry.merge(FetchRetry::Redirect);
                     continue;
                 }
@@ -7925,14 +7944,20 @@ impl Consumer {
                         retry = retry.merge(FetchRetry::Redirect);
                         continue;
                     }
-                    self.reset_fetched_offset(
+                    if let Err(error) = self.reset_fetched_offset(
                         &name,
                         part.partition,
                         part.log_start_offset,
                         part.high_watermark,
-                        completed,
-                        need_offsets,
-                    )?;
+                        &mut FetchOffsetReset {
+                            completed,
+                            need_offsets,
+                            dropped: &mut dropped_pending,
+                        },
+                    ) {
+                        self.drop_pending_partitions(name.as_ref(), &mut dropped_pending);
+                        return Err(error);
+                    }
                     continue;
                 }
                 let isolation = self.cfg.isolation_level;
@@ -8000,7 +8025,7 @@ impl Consumer {
                         // Highest `offset + 1` among records that are delivered.
                         let mut included_next: Option<i64> = None;
                         let mut cursor_overflow = false;
-                        let visited = encoded
+                        let visited = match encoded
                             .try_visit_short_keys_cooperative(|rec| {
                                 last_record_off = Some(rec.offset);
                                 if rec.offset < req_offset
@@ -8033,8 +8058,16 @@ impl Consumer {
                                     leader_epoch: None,
                                 });
                             })
-                            .await?;
+                            .await
+                        {
+                            Ok(visited) => visited,
+                            Err(error) => {
+                                self.drop_pending_partitions(name.as_ref(), &mut dropped_pending);
+                                return Err(error);
+                            }
+                        };
                         if cursor_overflow {
+                            self.drop_pending_partitions(name.as_ref(), &mut dropped_pending);
                             return Err(Error::protocol("fetch cursor overflow"));
                         }
                         if let Some(meta) = visited {
@@ -8066,7 +8099,16 @@ impl Consumer {
                                 topic_bytes = topic_bytes
                                     .saturating_add(u64::try_from(added).unwrap_or(u64::MAX));
                             }
-                            let batch_next = fetch_end_after(header_end, last_record_off)?;
+                            let batch_next = match fetch_end_after(header_end, last_record_off) {
+                                Ok(batch_next) => batch_next,
+                                Err(error) => {
+                                    self.drop_pending_partitions(
+                                        name.as_ref(),
+                                        &mut dropped_pending,
+                                    );
+                                    return Err(error);
+                                }
+                            };
                             if let Some(advanced) = included_next {
                                 let advanced = cap_fetch_cursor(advanced, part.high_watermark);
                                 next = Some(next.map_or(advanced, |c| c.max(advanced)));
@@ -8084,7 +8126,13 @@ impl Consumer {
                         out.truncate(mark);
                         *out_bytes = mark_bytes;
                     }
-                    let batch = encoded.decode_shared_cooperative().await?;
+                    let batch = match encoded.decode_shared_cooperative().await {
+                        Ok(batch) => batch,
+                        Err(error) => {
+                            self.drop_pending_partitions(name.as_ref(), &mut dropped_pending);
+                            return Err(error);
+                        }
+                    };
                     if budget > 0 && !is_first_batch && !is_control {
                         let batch_bytes = batch_records_bytes(&batch.records);
                         let current_total = self.buffered_bytes.saturating_add(*out_bytes);
@@ -8108,10 +8156,16 @@ impl Consumer {
                     }
 
                     let batch_last = batch.last_offset();
-                    let batch_next = fetch_end_after(
+                    let batch_next = match fetch_end_after(
                         header_end,
                         batch.records.last().map(|record| record.offset),
-                    )?;
+                    ) {
+                        Ok(batch_next) => batch_next,
+                        Err(error) => {
+                            self.drop_pending_partitions(name.as_ref(), &mut dropped_pending);
+                            return Err(error);
+                        }
+                    };
 
                     if let Some(state) = aborted.as_deref_mut() {
                         state.advance(batch_last);
@@ -8189,11 +8243,11 @@ impl Consumer {
                             break;
                         }
                         if offset >= req_offset {
-                            let advanced = cap_fetch_cursor(
-                                exclusive_fetch_offset(offset)
-                                    .ok_or_else(|| Error::protocol("fetch cursor overflow"))?,
-                                part.high_watermark,
-                            );
+                            let Some(exclusive) = exclusive_fetch_offset(offset) else {
+                                self.drop_pending_partitions(name.as_ref(), &mut dropped_pending);
+                                return Err(Error::protocol("fetch cursor overflow"));
+                            };
+                            let advanced = cap_fetch_cursor(exclusive, part.high_watermark);
                             next = Some(next.map_or(advanced, |c| c.max(advanced)));
                             last_epoch = batch.partition_leader_epoch;
                         } else {
@@ -8265,6 +8319,7 @@ impl Consumer {
                     break;
                 }
             }
+            self.drop_pending_partitions(name.as_ref(), &mut dropped_pending);
             self.add_fetch_totals(&name, topic_records, topic_bytes);
             if let Some(parts) = topic_seen {
                 if !parts.is_empty() {
@@ -9864,6 +9919,17 @@ impl Consumer {
             .saturating_sub(self.pending.drop_for(topic, partition));
         self.drop_retained_for(topic, partition);
         let _state = self.aborted.remove(topic, partition);
+    }
+
+    fn drop_pending_partitions(&mut self, topic: &str, parts: &mut Vec<i32>) {
+        if parts.is_empty() {
+            return;
+        }
+        let pairs: Vec<(&str, i32)> = parts
+            .drain(..)
+            .map(|partition| (topic, partition))
+            .collect();
+        self.drop_pending_many(&pairs);
     }
 
     fn drop_pending_many(&mut self, parts: &[(&str, i32)]) {
