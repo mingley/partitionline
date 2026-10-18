@@ -4321,7 +4321,8 @@ impl ShareGroup {
             &mut self.spare_ack_types,
             &mut partitions,
             &mut self.spare_ack_batches,
-        );
+        )
+        .await;
         let deadline = Instant::now() + self.cfg.request_timeout;
         let mut attempt = 0u32;
         let result = loop {
@@ -6657,7 +6658,7 @@ fn acknowledgement_batches(recs: &[ShareRecord], ack: i8) -> Vec<AckPartition> {
     let mut types = Vec::new();
     let mut partitions = Vec::new();
     let mut batches = Vec::new();
-    acknowledgement_batches_with(
+    block_on_ack(acknowledgement_batches_with(
         recs,
         ack,
         &mut offsets,
@@ -6666,8 +6667,17 @@ fn acknowledgement_batches(recs: &[ShareRecord], ack: i8) -> Vec<AckPartition> {
         &mut types,
         &mut partitions,
         &mut batches,
-    );
+    ));
     partitions
+}
+
+#[cfg(test)]
+fn block_on_ack<T>(future: impl std::future::Future<Output = T>) -> T {
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap_or_else(|error| panic!("{error}"));
+    runtime.block_on(future)
 }
 
 fn reused_one_ack_type(spare: &mut Vec<Vec<i8>>, kind: i8) -> Vec<i8> {
@@ -6702,7 +6712,7 @@ fn share_topic_arc(topic: &crate::consumer::TopicName, cached: &mut Option<Arc<s
     clippy::too_many_arguments,
     reason = "acknowledgement grouping refills the caller's offset, pair, type, partition, and batch lists"
 )]
-fn acknowledgement_batches_with(
+async fn acknowledgement_batches_with(
     recs: &[ShareRecord],
     ack: i8,
     offsets: &mut Vec<i64>,
@@ -6713,57 +6723,61 @@ fn acknowledgement_batches_with(
     spare_batches: &mut Vec<Vec<AcknowledgementBatch>>,
 ) {
     out.clear();
-    if let Some(first) = recs.first() {
-        if recs
-            .iter()
-            .skip(1)
-            .all(|rec| rec.topic == first.topic && rec.partition == first.partition)
-        {
+    let Some(first) = recs.first() else {
+        return;
+    };
+    if ack_records_share_partition(recs).await {
+        offsets.clear();
+        copy_ack_offsets(offsets, recs.iter().map(|rec| rec.offset)).await;
+        let batches = collapse_ack_offsets(offsets, ack, ack_types, spare_batches);
+        if batches.is_empty() {
+            park_unused_ack_batches(spare_batches, batches);
+            return;
+        }
+        out.push((
+            share_topic_arc(&first.topic, topic_name),
+            first.partition,
+            batches,
+        ));
+        return;
+    }
+    if ack_records_share_topic(recs).await {
+        pairs.clear();
+        copy_ack_offsets(pairs, recs.iter().map(|rec| (rec.partition, rec.offset))).await;
+        pairs.sort_unstable();
+        let name = share_topic_arc(&first.topic, topic_name);
+        let mut start = 0usize;
+        let mut walked = 0usize;
+        while start < pairs.len() {
+            let Some(partition) = pairs.get(start).map(|(partition, _)| *partition) else {
+                break;
+            };
+            let mut end = start;
+            while pairs.get(end).is_some_and(|(next, _)| *next == partition) {
+                end = end.saturating_add(1);
+                walked = walked.saturating_add(1);
+                if walked == 8 * 1024 {
+                    walked = 0;
+                    tokio::task::yield_now().await;
+                }
+            }
             offsets.clear();
-            offsets.extend(recs.iter().map(|rec| rec.offset));
+            if let Some(group) = pairs.get(start..end) {
+                offsets.extend(group.iter().map(|(_, offset)| *offset));
+            }
             let batches = collapse_ack_offsets(offsets, ack, ack_types, spare_batches);
             if batches.is_empty() {
                 park_unused_ack_batches(spare_batches, batches);
-                return;
+            } else {
+                out.push((Arc::clone(&name), partition, batches));
             }
-            out.push((
-                share_topic_arc(&first.topic, topic_name),
-                first.partition,
-                batches,
-            ));
-            return;
+            start = end;
         }
-        if recs.iter().skip(1).all(|rec| rec.topic == first.topic) {
-            pairs.clear();
-            pairs.extend(recs.iter().map(|rec| (rec.partition, rec.offset)));
-            pairs.sort_unstable();
-            let name = share_topic_arc(&first.topic, topic_name);
-            let mut start = 0usize;
-            while start < pairs.len() {
-                let Some(partition) = pairs.get(start).map(|(partition, _)| *partition) else {
-                    break;
-                };
-                let mut end = start;
-                while pairs.get(end).is_some_and(|(next, _)| *next == partition) {
-                    end = end.saturating_add(1);
-                }
-                offsets.clear();
-                if let Some(group) = pairs.get(start..end) {
-                    offsets.extend(group.iter().map(|(_, offset)| *offset));
-                }
-                let batches = collapse_ack_offsets(offsets, ack, ack_types, spare_batches);
-                if batches.is_empty() {
-                    park_unused_ack_batches(spare_batches, batches);
-                } else {
-                    out.push((Arc::clone(&name), partition, batches));
-                }
-                start = end;
-            }
-            return;
-        }
+        return;
     }
     let mut by_part: BTreeMap<crate::consumer::TopicName, BTreeMap<i32, Vec<i64>>> =
         BTreeMap::new();
+    let mut walked = 0usize;
     for rec in recs {
         if let Some(parts) = by_part.get_mut(&rec.topic) {
             parts.entry(rec.partition).or_default().push(rec.offset);
@@ -6771,6 +6785,11 @@ fn acknowledgement_batches_with(
             let mut parts = BTreeMap::new();
             let _ = parts.insert(rec.partition, vec![rec.offset]);
             let _ = by_part.insert(rec.topic.clone(), parts);
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
         }
     }
     for (topic, parts) in by_part {
@@ -6783,6 +6802,60 @@ fn acknowledgement_batches_with(
                 out.push((Arc::clone(&name), partition, batches));
             }
         }
+    }
+}
+
+/// True when every record names the first record's topic and partition.
+async fn ack_records_share_partition(recs: &[ShareRecord]) -> bool {
+    let Some(first) = recs.first() else {
+        return true;
+    };
+    let mut walked = 0usize;
+    for rec in recs.iter().skip(1) {
+        if rec.topic != first.topic || rec.partition != first.partition {
+            return false;
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    true
+}
+
+/// True when every record names the first record's topic.
+async fn ack_records_share_topic(recs: &[ShareRecord]) -> bool {
+    let Some(first) = recs.first() else {
+        return true;
+    };
+    let mut walked = 0usize;
+    for rec in recs.iter().skip(1) {
+        if rec.topic != first.topic {
+            return false;
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    true
+}
+
+/// Copy one acknowledgement field per record, pausing between slices.
+async fn copy_ack_offsets<T>(out: &mut Vec<T>, values: impl Iterator<Item = T>) {
+    let mut walked = 0usize;
+    for value in values {
+        out.push(value);
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    if walked != 0 {
+        tokio::task::yield_now().await;
     }
 }
 
@@ -6842,6 +6915,58 @@ mod tests {
     use std::sync::Arc;
 
     use super::*;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn grouping_many_share_acks_does_not_hold_the_caller() {
+        // 2_000_000 records: grouping one partition held the caller 183ms.
+        let topic = crate::consumer::TopicName::from("orders");
+        let mut recs = Vec::with_capacity(2_000_000);
+        for offset in 0..2_000_000 {
+            recs.push(ShareRecord {
+                topic: topic.clone(),
+                partition: 0,
+                offset,
+                timestamp: 1,
+                timestamp_type: TimestampType::CreateTime,
+                key: None,
+                value: None,
+                headers: Vec::new(),
+                delivery_count: 1,
+                leader_epoch: None,
+            });
+        }
+        let started = std::time::Instant::now();
+        tokio::select! {
+            batches = async {
+                let mut offsets = Vec::new();
+                let mut pairs = Vec::new();
+                let mut topic_name = None;
+                let mut ack_types = Vec::new();
+                let mut out = Vec::new();
+                let mut spare = Vec::new();
+                acknowledgement_batches_with(
+                    &recs,
+                    ACK_ACCEPT,
+                    &mut offsets,
+                    &mut pairs,
+                    &mut topic_name,
+                    &mut ack_types,
+                    &mut out,
+                    &mut spare,
+                )
+                .await;
+                out.into_iter().map(|(_, _, batches)| batches.len()).sum::<usize>()
+            } => {
+                assert_eq!(batches, 1);
+            }
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "grouping share acknowledgements held the caller for {elapsed:?}"
+        );
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn remembering_many_acquisitions_does_not_hold_the_caller() {
@@ -7880,7 +8005,7 @@ mod tests {
         let mut ack_types = Vec::new();
         let mut spare_batches = Vec::new();
         let mut first = Vec::new();
-        super::acknowledgement_batches_with(
+        block_on_ack(super::acknowledgement_batches_with(
             &recs,
             ACK_ACCEPT,
             &mut offsets,
@@ -7889,7 +8014,7 @@ mod tests {
             &mut ack_types,
             &mut first,
             &mut spare_batches,
-        );
+        ));
         let ptr = offsets.as_ptr();
         let list = first.as_ptr();
         let kept = first
@@ -7911,7 +8036,7 @@ mod tests {
         }
         spare_batches.push(kept_batches);
         first.clear();
-        super::acknowledgement_batches_with(
+        block_on_ack(super::acknowledgement_batches_with(
             &recs,
             ACK_ACCEPT,
             &mut offsets,
@@ -7920,7 +8045,7 @@ mod tests {
             &mut ack_types,
             &mut first,
             &mut spare_batches,
-        );
+        ));
         assert_eq!(first.as_ptr(), list);
         assert_eq!(first.first().map(|part| part.2.as_ptr()), Some(batch_ptr));
         let again = &first;
@@ -7956,7 +8081,7 @@ mod tests {
         let mut ack_types = Vec::new();
         let mut spare_batches = Vec::new();
         let mut first = Vec::new();
-        super::acknowledgement_batches_with(
+        block_on_ack(super::acknowledgement_batches_with(
             &recs,
             ACK_ACCEPT,
             &mut offsets,
@@ -7965,10 +8090,10 @@ mod tests {
             &mut ack_types,
             &mut first,
             &mut spare_batches,
-        );
+        ));
         let ptr = pairs.as_ptr();
         let mut again = Vec::new();
-        super::acknowledgement_batches_with(
+        block_on_ack(super::acknowledgement_batches_with(
             &recs,
             ACK_ACCEPT,
             &mut offsets,
@@ -7977,7 +8102,7 @@ mod tests {
             &mut ack_types,
             &mut again,
             &mut spare_batches,
-        );
+        ));
         assert_eq!(pairs.as_ptr(), ptr);
         assert_eq!(first.len(), 2);
         assert_eq!(
