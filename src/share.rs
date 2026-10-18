@@ -2542,7 +2542,7 @@ pub enum ShareAcquireMode {
 /// `USER` principal type. A top-level
 /// ShareAcknowledge `NON_EMPTY_GROUP` completes without
 /// retry and does not request Metadata, including when `ErrorMessage`
-/// is set (Java `handleShareAcknowledgeSuccess` has no
+/// is set or empty (Java `handleShareAcknowledgeSuccess` has no
 /// `metadata.requestUpdate`; this is not top-level
 /// `INVALID_PRINCIPAL_TYPE`). Official Java `ShareGroup`
 /// writes this when a delete request targets a share group that is
@@ -5769,7 +5769,7 @@ impl ShareGroup {
     /// renewer is not the `USER` principal type.
     /// A top-level ShareAcknowledge `NON_EMPTY_GROUP`
     /// completes without retry and does not request Metadata,
-    /// including when `ErrorMessage` is set (Java
+    /// including when `ErrorMessage` is set or empty (Java
     /// `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`;
     /// this is not top-level `INVALID_PRINCIPAL_TYPE`). Official
     /// Java `ShareGroup` writes this when a delete request

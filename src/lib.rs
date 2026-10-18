@@ -3580,7 +3580,7 @@
 //! this when a CreateDelegationToken renewer is not the `USER` principal type.
 //! Top-level ShareAcknowledge `NON_EMPTY_GROUP` completes
 //! without retry and does not request Metadata, including when
-//! `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+//! `ErrorMessage` is set or empty (Java `handleShareAcknowledgeSuccess` has no
 //! `metadata.requestUpdate`; this is not top-level
 //! `INVALID_PRINCIPAL_TYPE`). Official Java `ShareGroup` writes
 //! this when a delete request targets a share group that is not empty.
