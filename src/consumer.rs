@@ -11826,6 +11826,14 @@ where
     F: FnMut(&str, i32, i32, i64),
 {
     let mut seen: HashMap<&str, HashSet<i32>> = HashMap::new();
+    let mut requested_at: HashMap<(&str, i32), &str> = HashMap::with_capacity(requested.len());
+    for &(name, partition) in requested {
+        if let std::collections::hash_map::Entry::Vacant(slot) =
+            requested_at.entry((name, partition))
+        {
+            let _ = slot.insert(name);
+        }
+    }
     let mut retry = Vec::new();
     let mut walked = 0usize;
     for topic in topics {
@@ -11852,10 +11860,10 @@ where
                     || partition.error_code == error::UNKNOWN_LEADER_EPOCH;
                 if error.is_retriable() || fence {
                     cluster.invalidate_topic(&topic.topic);
-                    if let Some(name) = requested.iter().find_map(|(name, part)| {
-                        (*name == topic.topic.as_str() && *part == partition.partition)
-                            .then_some(*name)
-                    }) {
+                    if let Some(name) = requested_at
+                        .get(&(topic.topic.as_str(), partition.partition))
+                        .copied()
+                    {
                         retry.push((name, partition.partition));
                     }
                 } else {
@@ -14341,6 +14349,49 @@ mod tests {
         assert_eq!(reset_position(0), Some(0));
         assert_eq!(reset_position(4), Some(4));
         assert_eq!(reset_position(-1), None);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn matching_many_epoch_errors_does_not_hold_the_caller() {
+        // 8_192 fenced partitions: scanning the request for each one held the caller 287ms.
+        use crate::protocol::epoch::{EpochEndOffset, OffsetForLeaderTopicResult};
+        let partitions: Vec<EpochEndOffset> = (0..8_192)
+            .map(|partition| {
+                EpochEndOffset::new(crate::error::FENCED_LEADER_EPOCH, partition, 1, -1)
+            })
+            .collect();
+        let topics = vec![OffsetForLeaderTopicResult::new("orders", partitions)];
+        let requested: Vec<(&str, i32)> =
+            (0..8_192).map(|partition| ("orders", partition)).collect();
+        let mut cluster = crate::cluster::Cluster::default();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = walk_epoch_topics(&mut cluster, &requested, &topics, |_, _, _, _| {}) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "matching epoch errors held the caller for {elapsed:?}"
+        );
+        let early = String::from("orders");
+        let late = String::from("orders");
+        let requested = [(early.as_str(), 0), (late.as_str(), 0)];
+        let topics = vec![OffsetForLeaderTopicResult::new(
+            "orders",
+            vec![
+                EpochEndOffset::new(crate::error::FENCED_LEADER_EPOCH, 0, 1, -1),
+                EpochEndOffset::new(crate::error::FENCED_LEADER_EPOCH, 1, 1, -1),
+            ],
+        )];
+        let retry = walk_epoch_topics(&mut cluster, &requested, &topics, |_, _, _, _| {})
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(retry, vec![(early.as_str(), 0)]);
+        assert!(std::ptr::eq(
+            retry.first().map(|(name, _)| *name).unwrap_or(""),
+            early.as_str()
+        ));
     }
 
     #[test]
