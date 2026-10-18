@@ -3572,7 +3572,7 @@ impl ConsumerGroup {
             // Membership uses the names `revoked` already owns. A
             // `(String, i32)` set would copy each name again on insert and
             // once more for every position that asks.
-            let revoked_parts = index_revoked(&revoked);
+            let revoked_parts = index_revoked(&revoked).await;
             let to_commit: Vec<(TopicPartition, OffsetAndMetadata)> = self
                 .consumer
                 .positions()
@@ -5446,16 +5446,27 @@ pub(crate) async fn group_offset_fetch_topics_cooperative(
     topics
 }
 
-fn index_revoked(revoked: &[(String, i32)]) -> HashMap<&str, HashSet<i32>> {
+async fn index_revoked(revoked: &[(String, i32)]) -> HashMap<&str, HashSet<i32>> {
     let mut parts: HashMap<&str, HashSet<i32>> = HashMap::new();
-    for (topic, partition) in revoked {
+    let mut index = 0usize;
+    let mut walked = 0usize;
+    while index < revoked.len() {
+        let Some((topic, partition)) = revoked.get(index) else {
+            break;
+        };
         if let Some(slot) = parts.get_mut(topic.as_str()) {
             let _ = slot.insert(*partition);
-            continue;
+        } else {
+            let mut slot = HashSet::new();
+            let _ = slot.insert(*partition);
+            let _ = parts.insert(topic.as_str(), slot);
         }
-        let mut slot = HashSet::new();
-        let _ = slot.insert(*partition);
-        let _ = parts.insert(topic.as_str(), slot);
+        index = index.saturating_add(1);
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
     }
     parts
 }
@@ -8256,15 +8267,35 @@ mod tests {
         );
     }
 
-    #[test]
-    fn revoked_partitions_match_by_borrowed_topic_name() {
+    #[tokio::test(flavor = "current_thread")]
+    async fn indexing_many_revoked_partitions_does_not_hold_the_caller() {
+        // 2_000_000 partitions: indexing the revoked set held the caller 1.30s.
+        let revoked: Vec<(String, i32)> = (0..2_000_000)
+            .map(|index| ("orders".to_owned(), index))
+            .collect();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            index = index_revoked(&revoked) => {
+                assert_eq!(index.get("orders").map(HashSet::len), Some(2_000_000));
+            }
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "indexing revoked partitions held the caller for {elapsed:?}"
+        );
+    }
+
+    #[tokio::test]
+    async fn revoked_partitions_match_by_borrowed_topic_name() {
         let revoked = vec![
             ("orders".to_owned(), 0),
             ("orders".to_owned(), 2),
             ("payments".to_owned(), 1),
             ("orders".to_owned(), 0),
         ];
-        let index = index_revoked(&revoked);
+        let index = index_revoked(&revoked).await;
         assert!(revoked_contains(&index, "orders", 0));
         assert!(revoked_contains(&index, "orders", 2));
         assert!(revoked_contains(&index, "payments", 1));
