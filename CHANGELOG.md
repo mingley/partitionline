@@ -1721,7 +1721,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `TRANSACTIONAL_ID_AUTHORIZATION_FAILED`). Official Java `AclApis` writes
   this when an ACL request runs with no Authorizer configured.
   Top-level `OPERATION_NOT_ATTEMPTED` still fails that poll
-  without Metadata, including when `ErrorMessage` is set (Java
+  without Metadata, including when `ErrorMessage` is set or empty (Java
   `handleShareFetchSuccess` only `requestUpdate`s for top-level
   `UNKNOWN_TOPIC_ID`; this is not top-level
   `SECURITY_DISABLED`). Official Java `KafkaApis` writes

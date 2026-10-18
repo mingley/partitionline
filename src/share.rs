@@ -2197,7 +2197,7 @@ pub enum ShareAcquireMode {
 /// configured.
 /// Top-level `OPERATION_NOT_ATTEMPTED` still fails that poll
 /// and does not request Metadata, including when `ErrorMessage` is
-/// set (Java `handleShareFetchSuccess` only `requestUpdate`s for
+/// set or empty (Java `handleShareFetchSuccess` only `requestUpdate`s for
 /// `UNKNOWN_TOPIC_ID`; this is not top-level
 /// `SECURITY_DISABLED`). Official Java `KafkaApis`
 /// writes this when AddPartitionsToTxn skips authorized partitions
@@ -4976,7 +4976,7 @@ impl ShareGroup {
     /// `AclApis` writes this when an ACL request runs with no
     /// Authorizer configured. Top-level
     /// `OPERATION_NOT_ATTEMPTED` still fails that poll without
-    /// Metadata, including when `ErrorMessage` is set (Java
+    /// Metadata, including when `ErrorMessage` is set or empty (Java
     /// `handleShareFetchSuccess` only `requestUpdate`s for
     /// `UNKNOWN_TOPIC_ID`; this is not top-level
     /// `SECURITY_DISABLED`). Official Java
