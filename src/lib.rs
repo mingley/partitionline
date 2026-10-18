@@ -3760,7 +3760,7 @@
 //! requested twice.
 //! Top-level ShareAcknowledge `UNACCEPTABLE_CREDENTIAL` completes
 //! without retry and does not request Metadata, including when
-//! `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+//! `ErrorMessage` is set or empty (Java `handleShareAcknowledgeSuccess` has no
 //! `metadata.requestUpdate`; this is not top-level
 //! `DUPLICATE_RESOURCE`). Official Java `ScramControlManager` writes
 //! this when a SCRAM upsert has too few iterations.
