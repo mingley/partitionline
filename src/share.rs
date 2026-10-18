@@ -2097,6 +2097,12 @@ pub enum ShareAcquireMode {
 /// `UNKNOWN_TOPIC_ID`; this is not top-level
 /// `UNSUPPORTED_VERSION`). Official Java `ReplicationControlManager` writes
 /// this when CreateTopics names a topic that already exists.
+/// Top-level `INVALID_PARTITIONS` still fails that poll
+/// and does not request Metadata, including when `ErrorMessage` is
+/// set (Java `handleShareFetchSuccess` only `requestUpdate`s for
+/// `UNKNOWN_TOPIC_ID`; this is not top-level
+/// `TOPIC_ALREADY_EXISTS`). Official Java `ReplicationControlManager` writes
+/// this when CreateTopics sets `numPartitions` to an invalid non-positive value.
 /// Top-level
 /// `SHARE_SESSION_LIMIT_REACHED` resets the share session and does
 /// not request Metadata, including when `ErrorMessage` is set or
@@ -4658,6 +4664,13 @@ impl ShareGroup {
     /// `UNKNOWN_TOPIC_ID`; this is not top-level
     /// `UNSUPPORTED_VERSION`). Official Java `ReplicationControlManager`
     /// writes this when CreateTopics names a topic that already exists. Top-level
+    /// `INVALID_PARTITIONS` still fails that poll without
+    /// Metadata, including when `ErrorMessage` is set (Java
+    /// `handleShareFetchSuccess` only `requestUpdate`s for
+    /// `UNKNOWN_TOPIC_ID`; this is not top-level
+    /// `TOPIC_ALREADY_EXISTS`). Official Java `ReplicationControlManager`
+    /// writes this when CreateTopics sets `numPartitions` to an invalid
+    /// non-positive value. Top-level
     /// `SHARE_SESSION_LIMIT_REACHED` resets the share session and
     /// does not request Metadata, including when `ErrorMessage` is
     /// set or empty (Java `handleShareFetchSuccess` only
