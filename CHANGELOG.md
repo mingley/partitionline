@@ -1744,6 +1744,12 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `UNKNOWN_TOPIC_ID`; this is not top-level
   `OPERATION_NOT_ATTEMPTED`). Official Java `LogManager` writes
   this when a requested log directory is not in the broker config.
+  Top-level `SASL_AUTHENTICATION_FAILED` still fails that poll
+  without Metadata, including when `ErrorMessage` is set (Java
+  `handleShareFetchSuccess` only `requestUpdate`s for top-level
+  `UNKNOWN_TOPIC_ID`; this is not top-level
+  `LOG_DIR_NOT_FOUND`). Official Java `SaslServerAuthenticator` writes
+  this when SaslAuthenticate evaluateResponse fails.
   A non-empty
   throwable partition or top-level ShareFetch `ErrorMessage` is
   preferred; empty uses `ShareFetch {topic}-{partition}` or
