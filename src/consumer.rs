@@ -6861,8 +6861,10 @@ impl Consumer {
                 // One ListOffsets per leader. A timeout keeps resets that
                 // already landed and leaves the rest for the next poll.
                 let listed = self.list_offset_queries(&need_offsets, deadline).await;
+                let mut dropped = Vec::with_capacity(need_offsets.len());
                 for ((topic, partition, _), found) in need_offsets.iter().zip(&listed.values) {
                     let Some(offset) = reset_position(found.0) else {
+                        self.drop_pending_many(&dropped);
                         self.park_fetch_records(out);
                         return Err(Error::protocol(format!(
                             "ListOffsets returned no reset offset for {topic}-{partition}"
@@ -6874,9 +6876,10 @@ impl Consumer {
                         *partition,
                         crate::RecordBatch::NO_PARTITION_LEADER_EPOCH,
                     );
-                    self.drop_pending_for(topic, *partition);
+                    dropped.push((topic.as_ref(), *partition));
                     let _ = completed.insert_shared(topic, *partition, ());
                 }
+                self.drop_pending_many(&dropped);
                 if let Some(error) = listed.error {
                     // Records already fetched stay delivered. Partitions
                     // still out of range are placed on the next poll.
