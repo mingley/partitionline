@@ -804,29 +804,36 @@ fn check_assignment_version(version: i16) -> Result<i16> {
 /// `ConsumerProtocol.serializeAssignment`; not sorted).
 fn group_assigned_partitions(parts: &[(String, i32)]) -> Vec<(&str, Vec<i32>)> {
     let mut by_topic: Vec<(&str, Vec<i32>)> = Vec::new();
+    let mut index: HashMap<&str, usize> = HashMap::new();
     for (topic, part) in parts {
-        match by_topic
-            .iter_mut()
-            .find(|(name, _)| *name == topic.as_str())
-        {
-            Some((_, partitions)) => partitions.push(*part),
-            None => by_topic.push((topic.as_str(), vec![*part])),
-        }
+        place_assigned_partition(&mut by_topic, &mut index, topic.as_str(), *part);
     }
     by_topic
 }
 
+fn place_assigned_partition<'a>(
+    by_topic: &mut Vec<(&'a str, Vec<i32>)>,
+    index: &mut HashMap<&'a str, usize>,
+    topic: &'a str,
+    part: i32,
+) {
+    if let Some(&slot) = index.get(topic) {
+        if let Some((_, partitions)) = by_topic.get_mut(slot) {
+            partitions.push(part);
+        }
+        return;
+    }
+    let slot = by_topic.len();
+    let _previous = index.insert(topic, slot);
+    by_topic.push((topic, vec![part]));
+}
+
 async fn group_assigned_partitions_cooperative(parts: &[(String, i32)]) -> Vec<(&str, Vec<i32>)> {
     let mut by_topic: Vec<(&str, Vec<i32>)> = Vec::new();
+    let mut index: HashMap<&str, usize> = HashMap::new();
     let mut walked = 0usize;
     for (topic, part) in parts {
-        match by_topic
-            .iter_mut()
-            .find(|(name, _)| *name == topic.as_str())
-        {
-            Some((_, partitions)) => partitions.push(*part),
-            None => by_topic.push((topic.as_str(), vec![*part])),
-        }
+        place_assigned_partition(&mut by_topic, &mut index, topic.as_str(), *part);
         walked = walked.saturating_add(1);
         if walked == 8 * 1024 {
             walked = 0;
@@ -838,15 +845,42 @@ async fn group_assigned_partitions_cooperative(parts: &[(String, i32)]) -> Vec<(
 
 /// Group owned pairs. The first name of a topic is moved. Later copies are dropped.
 fn group_owned_assignment(parts: Vec<(String, i32)>) -> Vec<(String, Vec<i32>)> {
-    let mut by_topic: Vec<(String, Vec<i32>)> = Vec::new();
-    for (topic, part) in parts {
-        if let Some((_, partitions)) = by_topic.iter_mut().find(|(name, _)| name == &topic) {
-            partitions.push(part);
+    let slots = owned_topic_slots(&parts);
+    place_owned_assignment(parts, &slots)
+}
+
+fn owned_topic_slots(parts: &[(String, i32)]) -> Vec<usize> {
+    let mut index: HashMap<&str, usize> = HashMap::new();
+    let mut slots = Vec::with_capacity(parts.len());
+    for (topic, _) in parts {
+        if let Some(&slot) = index.get(topic.as_str()) {
+            slots.push(slot);
             continue;
         }
-        by_topic.push((topic, vec![part]));
+        let slot = index.len();
+        let _previous = index.insert(topic.as_str(), slot);
+        slots.push(slot);
     }
-    by_topic
+    slots
+}
+
+fn place_owned_assignment(parts: Vec<(String, i32)>, slots: &[usize]) -> Vec<(String, Vec<i32>)> {
+    let topic_count = slots
+        .iter()
+        .copied()
+        .max()
+        .map(|slot| slot.saturating_add(1))
+        .unwrap_or(0);
+    let mut by_topic: Vec<Option<(String, Vec<i32>)>> = Vec::with_capacity(topic_count);
+    by_topic.resize_with(topic_count, || None);
+    for ((topic, part), slot) in parts.into_iter().zip(slots) {
+        match by_topic.get_mut(*slot) {
+            Some(Some((_, partitions))) => partitions.push(part),
+            Some(empty) => *empty = Some((topic, vec![part])),
+            None => {}
+        }
+    }
+    by_topic.into_iter().flatten().collect()
 }
 
 /// Group owned partitions by topic after sorting by topic then partition
@@ -7555,13 +7589,16 @@ fn pull_named_partitions(
 }
 
 async fn group_owned_assignment_cooperative(parts: Vec<(String, i32)>) -> Vec<(String, Vec<i32>)> {
-    let mut by_topic: Vec<(String, Vec<i32>)> = Vec::new();
+    let mut index: HashMap<&str, usize> = HashMap::new();
+    let mut slots = Vec::with_capacity(parts.len());
     let mut walked = 0usize;
-    for (topic, part) in parts {
-        if let Some((_, partitions)) = by_topic.iter_mut().find(|(name, _)| name == &topic) {
-            partitions.push(part);
+    for (topic, _) in &parts {
+        if let Some(&slot) = index.get(topic.as_str()) {
+            slots.push(slot);
         } else {
-            by_topic.push((topic, vec![part]));
+            let slot = index.len();
+            let _previous = index.insert(topic.as_str(), slot);
+            slots.push(slot);
         }
         walked = walked.saturating_add(1);
         if walked == 8 * 1024 {
@@ -7569,7 +7606,28 @@ async fn group_owned_assignment_cooperative(parts: Vec<(String, i32)>) -> Vec<(S
             tokio::task::yield_now().await;
         }
     }
-    by_topic
+    let topic_count = slots
+        .iter()
+        .copied()
+        .max()
+        .map(|slot| slot.saturating_add(1))
+        .unwrap_or(0);
+    let mut by_topic: Vec<Option<(String, Vec<i32>)>> = Vec::with_capacity(topic_count);
+    by_topic.resize_with(topic_count, || None);
+    walked = 0;
+    for ((topic, part), slot) in parts.into_iter().zip(slots) {
+        match by_topic.get_mut(slot) {
+            Some(Some((_, partitions))) => partitions.push(part),
+            Some(empty) => *empty = Some((topic, vec![part])),
+            None => {}
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    by_topic.into_iter().flatten().collect()
 }
 
 #[cfg(test)]
@@ -11429,6 +11487,72 @@ mod tests {
             v0.to_string()
                 .contains("features supported only in 4 or later"),
             "v0 refuses batched coordinator keys, got {v0}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn grouping_many_unique_topics_does_not_hold_the_caller() {
+        // 20_000 distinct topics: scanning earlier names held the caller 1.2s.
+        // Indexing 1_000_000 names without a pause held the caller 1.0s.
+        let parts: Vec<(String, i32)> = (0..1_000_000)
+            .map(|index| (format!("topic-{index}"), 0))
+            .collect();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = group_assigned_partitions_cooperative(&parts) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "grouping assigned topics held the caller for {elapsed:?}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn grouping_many_owned_topics_does_not_hold_the_caller() {
+        // Same 20_000-name scan as assignment grouping, which held the caller 1.2s.
+        // Placing 1_000_000 owned names without a pause held the caller 1.2s.
+        let parts: Vec<(String, i32)> = (0..1_000_000)
+            .map(|index| (format!("topic-{index}"), 0))
+            .collect();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = group_owned_assignment_cooperative(parts) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "grouping owned topics held the caller for {elapsed:?}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn grouped_topics_keep_the_first_seen_name() {
+        let parts = vec![
+            ("b".to_string(), 1),
+            ("a".to_string(), 2),
+            ("b".to_string(), 3),
+        ];
+        let sync = group_assigned_partitions(&parts);
+        let cooperative = group_assigned_partitions_cooperative(&parts).await;
+        assert_eq!(sync, cooperative);
+        assert_eq!(
+            sync.iter()
+                .map(|(topic, partitions)| (*topic, partitions.clone()))
+                .collect::<Vec<_>>(),
+            vec![("b", vec![1, 3]), ("a", vec![2])]
+        );
+        let owned = group_owned_assignment(parts.clone());
+        let owned_cooperative = group_owned_assignment_cooperative(parts).await;
+        assert_eq!(owned, owned_cooperative);
+        assert_eq!(
+            owned
+                .iter()
+                .map(|(topic, partitions)| (topic.as_str(), partitions.clone()))
+                .collect::<Vec<_>>(),
+            vec![("b", vec![1, 3]), ("a", vec![2])]
         );
     }
 

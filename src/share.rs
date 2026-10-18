@@ -4682,7 +4682,7 @@ impl ShareGroup {
                     "ShareAcknowledge requires a poll on the current leader",
                 ));
             }
-            let topics = self.share_ack_topics(node_tps)?;
+            let topics = self.share_ack_topics(node_tps).await?;
             let timeout = deadline.saturating_duration_since(Instant::now());
             if timeout.is_zero() {
                 return Err(Error::Timeout);
@@ -4727,8 +4727,9 @@ impl ShareGroup {
         first_error.map_or(Ok(()), Err)
     }
 
-    fn share_ack_topics(&self, node_tps: Vec<AckPartition>) -> Result<Vec<ShareAckTopic>> {
-        let mut topics: Vec<ShareAckTopic> = Vec::new();
+    async fn share_ack_topics(&self, node_tps: Vec<AckPartition>) -> Result<Vec<ShareAckTopic>> {
+        let mut resolved = Vec::with_capacity(node_tps.len());
+        let mut walked = 0usize;
         for (topic, part, batches) in node_tps {
             let topic_id = self
                 .topic_ids
@@ -4736,15 +4737,14 @@ impl ShareGroup {
                 .copied()
                 .filter(|id| *id != [0; 16])
                 .ok_or_else(|| Error::protocol(format!("missing share topic id for {topic}")))?;
-            match topics.iter_mut().find(|t| t.topic_id == topic_id) {
-                Some(slot) => slot.partitions.push((part, batches)),
-                None => topics.push(ShareAckTopic {
-                    topic_id,
-                    partitions: vec![(part, batches)],
-                }),
+            resolved.push((topic_id, part, batches));
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
             }
         }
-        Ok(topics)
+        Ok(group_share_ack_topics(resolved).await)
     }
 
     /// Acknowledge every leader within one remaining budget.
@@ -4821,7 +4821,7 @@ impl ShareGroup {
                     )
                     .await;
             }
-            let topics = match self.share_ack_topics(node_tps) {
+            let topics = match self.share_ack_topics(node_tps).await {
                 Ok(topics) => topics,
                 Err(error) => {
                     return self
@@ -6049,6 +6049,34 @@ struct ShareLeaderPatch {
     leader_epoch: i32,
 }
 
+async fn group_share_ack_topics(
+    resolved: Vec<([u8; 16], i32, Vec<AcknowledgementBatch>)>,
+) -> Vec<ShareAckTopic> {
+    let mut topics: Vec<ShareAckTopic> = Vec::new();
+    let mut index: HashMap<[u8; 16], usize> = HashMap::new();
+    let mut walked = 0usize;
+    for (topic_id, part, batches) in resolved {
+        if let Some(&slot) = index.get(&topic_id) {
+            if let Some(topic) = topics.get_mut(slot) {
+                topic.partitions.push((part, batches));
+            }
+        } else {
+            let slot = topics.len();
+            let _previous = index.insert(topic_id, slot);
+            topics.push(ShareAckTopic {
+                topic_id,
+                partitions: vec![(part, batches)],
+            });
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    topics
+}
+
 async fn share_ack_expected(topics: &[ShareAckTopic]) -> HashSet<([u8; 16], i32)> {
     let mut expected =
         HashSet::with_capacity(topics.iter().map(|topic| topic.partitions.len()).sum());
@@ -6899,6 +6927,50 @@ mod tests {
             elapsed < std::time::Duration::from_millis(80),
             "noting share offsets held the caller for {elapsed:?}"
         );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn grouping_many_share_ack_topics_does_not_hold_the_caller() {
+        // 20_000 distinct topic ids: scanning earlier topics held the caller 698ms.
+        // Indexing 1_000_000 topic ids without a pause held the caller 1.1s.
+        let resolved: Vec<([u8; 16], i32, Vec<AcknowledgementBatch>)> = (0..1_000_000u32)
+            .map(|index| {
+                let mut topic_id = [0; 16];
+                topic_id[..4].copy_from_slice(&index.to_le_bytes());
+                (topic_id, 0, Vec::new())
+            })
+            .collect();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = group_share_ack_topics(resolved) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "grouping share acknowledgement topics held the caller for {elapsed:?}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn grouped_share_ack_topics_keep_the_first_id() {
+        let resolved = vec![
+            ([2; 16], 0, Vec::new()),
+            ([1; 16], 4, Vec::new()),
+            ([2; 16], 1, Vec::new()),
+        ];
+        let topics = group_share_ack_topics(resolved).await;
+        assert_eq!(topics.len(), 2);
+        assert_eq!(topics.first().map(|topic| topic.topic_id), Some([2; 16]));
+        assert_eq!(
+            topics.first().map(|topic| topic
+                .partitions
+                .iter()
+                .map(|(part, _)| *part)
+                .collect::<Vec<_>>()),
+            Some(vec![0, 1])
+        );
+        assert_eq!(topics.get(1).map(|topic| topic.topic_id), Some([1; 16]));
     }
 
     #[tokio::test(flavor = "current_thread")]
