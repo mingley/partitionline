@@ -2680,7 +2680,7 @@ pub enum ShareAcquireMode {
 /// consumer group is actively subscribed to the topic. A top-level
 /// ShareAcknowledge `INVALID_RECORD` completes without
 /// retry and does not request Metadata, including when `ErrorMessage`
-/// is set (Java `handleShareAcknowledgeSuccess` has no
+/// is set or empty (Java `handleShareAcknowledgeSuccess` has no
 /// `metadata.requestUpdate`; this is not top-level
 /// `GROUP_SUBSCRIBED_TO_TOPIC`). Official Java `LogValidator`
 /// writes this when a produce record fails validation. A top-level
@@ -6046,7 +6046,7 @@ impl ShareGroup {
     /// the consumer group is actively subscribed to the topic.
     /// A top-level ShareAcknowledge `INVALID_RECORD`
     /// completes without retry and does not request Metadata,
-    /// including when `ErrorMessage` is set (Java
+    /// including when `ErrorMessage` is set or empty (Java
     /// `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`;
     /// this is not top-level `GROUP_SUBSCRIBED_TO_TOPIC`). Official
     /// Java `LogValidator` writes this when a produce record fails

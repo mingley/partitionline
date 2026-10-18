@@ -455,7 +455,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   subscribed to the topic.
   A top-level ShareAcknowledge `INVALID_RECORD` completes
   without retry and does not request Metadata, including when
-  `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+  `ErrorMessage` is set or empty (Java `handleShareAcknowledgeSuccess` has no
   `metadata.requestUpdate`; this is not top-level
   `GROUP_SUBSCRIBED_TO_TOPIC`). Official Java `LogValidator` writes
   this when a produce record fails validation.
