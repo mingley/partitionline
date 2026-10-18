@@ -522,6 +522,10 @@ pub const VOTER_NOT_FOUND: i16 = 127;
 pub const INVALID_REGULAR_EXPRESSION: i16 = 128;
 /// Kafka `REBOOTSTRAP_REQUIRED` (129).
 pub const REBOOTSTRAP_REQUIRED: i16 = 129;
+/// Kafka `STREAMS_INVALID_TOPOLOGY` (130). Not in Kafka 4.0.0 `Errors`
+/// (4.0.0 ends at [`REBOOTSTRAP_REQUIRED`]); later Kafka names 130 for
+/// an invalid Streams group topology.
+pub const STREAMS_INVALID_TOPOLOGY: i16 = 130;
 /// Kafka `SHARE_SESSION_LIMIT_REACHED` (133). Not in Kafka 4.0.0 `Errors`
 /// (4.0.0 ends at [`REBOOTSTRAP_REQUIRED`]); later Kafka names 133 for the
 /// share session cap.
@@ -545,6 +549,7 @@ pub fn consumer_group_describe_classic_fallback(code: i16) -> bool {
 /// Kafka `Errors` enum name for `code`, when this crate names it.
 ///
 /// The table is Kafka 4.0.0 `Errors` (`-1` through `129`) plus
+/// [`STREAMS_INVALID_TOPOLOGY`] (130) and
 /// [`SHARE_SESSION_LIMIT_REACHED`] (133).
 #[must_use]
 pub fn error_name(code: i16) -> Option<&'static str> {
@@ -680,6 +685,7 @@ pub fn error_name(code: i16) -> Option<&'static str> {
         VOTER_NOT_FOUND => "VOTER_NOT_FOUND",
         INVALID_REGULAR_EXPRESSION => "INVALID_REGULAR_EXPRESSION",
         REBOOTSTRAP_REQUIRED => "REBOOTSTRAP_REQUIRED",
+        STREAMS_INVALID_TOPOLOGY => "STREAMS_INVALID_TOPOLOGY",
         SHARE_SESSION_LIMIT_REACHED => "SHARE_SESSION_LIMIT_REACHED",
         _ => return None,
     })
@@ -688,8 +694,9 @@ pub fn error_name(code: i16) -> Option<&'static str> {
 /// Java `Errors.forCode` then the enum name.
 ///
 /// Names match Kafka 4.0.0 `Errors`. Unknown codes are
-/// `UNKNOWN_SERVER_ERROR`. [`SHARE_SESSION_LIMIT_REACHED`] (133) is named
-/// for later Kafka; 4.0.0 `forCode` for 133 is `UNKNOWN_SERVER_ERROR`.
+/// `UNKNOWN_SERVER_ERROR`. [`STREAMS_INVALID_TOPOLOGY`] (130) and
+/// [`SHARE_SESSION_LIMIT_REACHED`] (133) are named for later Kafka;
+/// 4.0.0 `forCode` for those codes is `UNKNOWN_SERVER_ERROR`.
 #[must_use]
 pub fn for_code(code: i16) -> &'static str {
     error_name(code).unwrap_or("UNKNOWN_SERVER_ERROR")
@@ -819,8 +826,11 @@ mod tests {
         assert_eq!(for_code(PRODUCER_FENCED), "PRODUCER_FENCED");
         assert_eq!(REBOOTSTRAP_REQUIRED, 129);
         assert_eq!(for_code(REBOOTSTRAP_REQUIRED), "REBOOTSTRAP_REQUIRED");
-        assert_eq!(error_name(130), None);
-        assert_eq!(for_code(130), "UNKNOWN_SERVER_ERROR");
+        assert_eq!(STREAMS_INVALID_TOPOLOGY, 130);
+        assert_eq!(
+            for_code(STREAMS_INVALID_TOPOLOGY),
+            "STREAMS_INVALID_TOPOLOGY"
+        );
         assert_eq!(for_code(131), "UNKNOWN_SERVER_ERROR");
         assert_eq!(for_code(132), "UNKNOWN_SERVER_ERROR");
         assert_eq!(SHARE_SESSION_LIMIT_REACHED, 133);

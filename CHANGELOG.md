@@ -921,6 +921,14 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   which fails that poll, and not piggyback `INVALID_REGULAR_EXPRESSION`). Official
   Java `KafkaApis` writes this when an ApiVersions request carries a
   cluster id or node id that does not match the local broker. A
+  piggybacked `STREAMS_INVALID_TOPOLOGY` still
+  completes without retry, including when `AcknowledgeErrorMessage` is
+  set (Java `handleShareFetchSuccess` completes piggyback acks and still
+  delivers the fetch; this is not partition `STREAMS_INVALID_TOPOLOGY`,
+  which fails that poll, and not piggyback `REBOOTSTRAP_REQUIRED`). Official
+  Java `GroupCoordinatorService` writes this when a Streams group
+  heartbeat supplies a topology whose changelog topic has a defined
+  partition count. A
   piggybacked `TOPIC_AUTHORIZATION_FAILED` on
   one partition does not fail a sibling whose `AcknowledgeErrorCode`
   is none, including when `AcknowledgeErrorMessage` is set or empty. A
