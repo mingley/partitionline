@@ -2376,7 +2376,7 @@ pub enum ShareAcquireMode {
 /// epoch older than the current epoch for that producerId. A top-level
 /// ShareAcknowledge `TRANSACTIONAL_ID_AUTHORIZATION_FAILED` completes without
 /// retry and does not request Metadata, including when `ErrorMessage`
-/// is set (Java `handleShareAcknowledgeSuccess` has no
+/// is set or empty (Java `handleShareAcknowledgeSuccess` has no
 /// `metadata.requestUpdate`; this is not top-level
 /// `TRANSACTION_COORDINATOR_FENCED`). Official Java `KafkaApis`
 /// writes this when a transactional produce request is missing WRITE
@@ -5432,7 +5432,7 @@ impl ShareGroup {
     /// for that producerId.
     /// A top-level ShareAcknowledge `TRANSACTIONAL_ID_AUTHORIZATION_FAILED`
     /// completes without retry and does not request Metadata,
-    /// including when `ErrorMessage` is set (Java
+    /// including when `ErrorMessage` is set or empty (Java
     /// `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`;
     /// this is not top-level `TRANSACTION_COORDINATOR_FENCED`). Official
     /// Java `KafkaApis` writes this when a transactional produce

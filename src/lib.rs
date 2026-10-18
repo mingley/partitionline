@@ -3436,7 +3436,7 @@
 //! this when an end-transaction marker uses a coordinator epoch older than the current epoch for that producerId.
 //! Top-level ShareAcknowledge `TRANSACTIONAL_ID_AUTHORIZATION_FAILED` completes
 //! without retry and does not request Metadata, including when
-//! `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+//! `ErrorMessage` is set or empty (Java `handleShareAcknowledgeSuccess` has no
 //! `metadata.requestUpdate`; this is not top-level
 //! `TRANSACTION_COORDINATOR_FENCED`). Official Java `KafkaApis` writes
 //! this when a transactional produce request is missing WRITE on that transactional id.
