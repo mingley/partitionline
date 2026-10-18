@@ -3200,7 +3200,13 @@
 //! `handleShareFetchSuccess` only `requestUpdate`s for
 //! `UNKNOWN_TOPIC_ID`; this is not top-level
 //! `INVALID_CONFIG`). Official Java `ReplicationControlManager` writes
-//! this when CreateTopics supplies a manual partition assignment without setting `replicationFactor` to -1. Partition
+//! this when CreateTopics supplies a manual partition assignment without setting `replicationFactor` to -1. Top-level
+//! `UNSUPPORTED_FOR_MESSAGE_FORMAT` still fails that poll without
+//! Metadata, including when `ErrorMessage` is set (Java
+//! `handleShareFetchSuccess` only `requestUpdate`s for
+//! `UNKNOWN_TOPIC_ID`; this is not top-level
+//! `INVALID_REQUEST`). Official Java `LogValidator` writes
+//! this when a transactional or idempotent record batch uses a magic version before v2. Partition
 //! `INCONSISTENT_TOPIC_ID` / `UNKNOWN_TOPIC_OR_PARTITION` /
 //! `UNKNOWN_TOPIC_ID` / `REPLICA_NOT_AVAILABLE` /
 //! `OFFSET_NOT_AVAILABLE` / `KAFKA_STORAGE_ERROR` skip without throwing,
