@@ -2671,7 +2671,7 @@
 //! cluster id or node id that does not match the local broker.
 //! A piggybacked
 //! `STREAMS_INVALID_TOPOLOGY` still completes without retry,
-//! including when `AcknowledgeErrorMessage` is set (this is not
+//! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `STREAMS_INVALID_TOPOLOGY`, which fails that poll, and not
 //! piggyback `REBOOTSTRAP_REQUIRED`). Official Java
 //! `GroupCoordinatorService` writes this when a Streams group

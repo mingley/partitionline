@@ -923,7 +923,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   cluster id or node id that does not match the local broker. A
   piggybacked `STREAMS_INVALID_TOPOLOGY` still
   completes without retry, including when `AcknowledgeErrorMessage` is
-  set (Java `handleShareFetchSuccess` completes piggyback acks and still
+  set or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
   delivers the fetch; this is not partition `STREAMS_INVALID_TOPOLOGY`,
   which fails that poll, and not piggyback `REBOOTSTRAP_REQUIRED`). Official
   Java `GroupCoordinatorService` writes this when a Streams group
