@@ -3144,7 +3144,13 @@
 //! `handleShareFetchSuccess` only `requestUpdate`s for
 //! `UNKNOWN_TOPIC_ID`; this is not top-level
 //! `CLUSTER_AUTHORIZATION_FAILED`). Official Java `LogValidator` writes
-//! this when a record timestamp is outside the acceptable range. Partition
+//! this when a record timestamp is outside the acceptable range. Top-level
+//! `UNSUPPORTED_SASL_MECHANISM` still fails that poll without
+//! Metadata, including when `ErrorMessage` is set (Java
+//! `handleShareFetchSuccess` only `requestUpdate`s for
+//! `UNKNOWN_TOPIC_ID`; this is not top-level
+//! `INVALID_TIMESTAMP`). Official Java `SaslServerAuthenticator` writes
+//! this when the client SASL mechanism is not enabled on the broker. Partition
 //! `INCONSISTENT_TOPIC_ID` / `UNKNOWN_TOPIC_OR_PARTITION` /
 //! `UNKNOWN_TOPIC_ID` / `REPLICA_NOT_AVAILABLE` /
 //! `OFFSET_NOT_AVAILABLE` / `KAFKA_STORAGE_ERROR` skip without throwing,
