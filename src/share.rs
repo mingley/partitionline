@@ -2732,6 +2732,12 @@ pub enum ShareAcquireMode {
 /// `RESOURCE_NOT_FOUND`). Official Java `ScramImage`
 /// DescribeUserScramCredentials writes this when the same user is
 /// requested twice. A top-level
+/// ShareAcknowledge `UNACCEPTABLE_CREDENTIAL` completes without
+/// retry and does not request Metadata, including when `ErrorMessage`
+/// is set (Java `handleShareAcknowledgeSuccess` has no
+/// `metadata.requestUpdate`; this is not top-level
+/// `DUPLICATE_RESOURCE`). Official Java `ScramControlManager` writes
+/// this when a SCRAM upsert has too few iterations. A top-level
 /// ShareAcknowledge `SHARE_SESSION_LIMIT_REACHED` completes without
 /// retry and does not request Metadata, including when `ErrorMessage`
 /// is set or empty (Java `handleShareAcknowledgeSuccess` has no
@@ -6147,6 +6153,13 @@ impl ShareGroup {
     /// this is not top-level `RESOURCE_NOT_FOUND`). Official Java
     /// `ScramImage` DescribeUserScramCredentials writes this when
     /// the same user is requested twice.
+    /// A top-level ShareAcknowledge `UNACCEPTABLE_CREDENTIAL`
+    /// completes without retry and does not request Metadata,
+    /// including when `ErrorMessage` is set (Java
+    /// `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`;
+    /// this is not top-level `DUPLICATE_RESOURCE`). Official Java
+    /// `ScramControlManager` writes this when a SCRAM upsert has too
+    /// few iterations.
     /// Top-level `SHARE_SESSION_LIMIT_REACHED`
     /// completes without retry and advances the session epoch (Java
     /// `ShareSessionHandler.handleResponse` `nextEpoch`), including

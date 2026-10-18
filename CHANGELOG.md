@@ -479,6 +479,12 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `RESOURCE_NOT_FOUND`). Official Java `ScramImage`
   DescribeUserScramCredentials writes this when the same user is
   requested twice.
+  A top-level ShareAcknowledge `UNACCEPTABLE_CREDENTIAL` completes
+  without retry and does not request Metadata, including when
+  `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+  `metadata.requestUpdate`; this is not top-level
+  `DUPLICATE_RESOURCE`). Official Java `ScramControlManager` writes
+  this when a SCRAM upsert has too few iterations.
   A piggybacked ShareFetch
   `AcknowledgeErrorMessage` that is empty uses
   `ShareFetch acknowledgement {topic}-{partition}`. A piggybacked
