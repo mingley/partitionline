@@ -3431,7 +3431,7 @@
 //! `INCONSISTENT_VOTER_SET`). Official Java `FeatureControlManager`
 //! writes this when a feature update version is invalid. Top-level
 //! `FEATURE_UPDATE_FAILED` still fails that poll without
-//! Metadata, including when `ErrorMessage` is set (Java
+//! Metadata, including when `ErrorMessage` is set or empty (Java
 //! `handleShareFetchSuccess` only `requestUpdate`s for
 //! `UNKNOWN_TOPIC_ID`; this is not top-level
 //! `INVALID_UPDATE_VERSION`). Official Java `KafkaController` writes
