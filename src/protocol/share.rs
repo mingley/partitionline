@@ -2255,14 +2255,9 @@ pub(crate) fn decode_share_fetch_response_reusing<B: Buf>(
             };
             let mut used_batches = 0usize;
             if !rec_bytes.is_empty() {
-                if let Ok(count) = records::count_framed_batches(&rec_bytes) {
-                    if count > records.capacity() {
-                        let extra = count - records.capacity();
-                        records
-                            .try_reserve_exact(extra)
-                            .map_err(|_| Error::protocol("ShareFetch response reserve"))?;
-                    }
-                }
+                // Do not count every framed batch before decoding. A long run
+                // of batches holds the caller for the whole count, and the
+                // decode loop already rejects a batch it cannot read.
                 let mut rec_buf = rec_bytes;
                 while rec_buf.has_remaining() {
                     let count_bytes = rec_buf
@@ -3648,6 +3643,52 @@ mod tests {
                 cur.len()
             );
         }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn a_long_share_batch_run_does_not_hold_the_caller() {
+        let rec = Record {
+            offset: 0,
+            timestamp: 1,
+            key: None,
+            value: Some(Bytes::from_static(b"s")),
+            headers: vec![],
+        };
+        let topics = vec![ShareFetchedTopic {
+            topic_id: [9u8; 16],
+            partitions: vec![ShareFetchedPartition {
+                partition: 7,
+                error_code: 0,
+                error_message: None,
+                acknowledge_error_code: 0,
+                acknowledge_error_message: None,
+                current_leader_id: 3,
+                current_leader_epoch: 4,
+                records: vec![RecordBatch::from_records(vec![rec])],
+                acquired: vec![],
+            }],
+        }];
+        let mut encoded = BytesMut::new();
+        encode_share_fetch_response(&mut encoded, 1, &topics).unwrap();
+        let at = encoded.iter().position(|byte| *byte == 0x46).unwrap();
+        let records_len = 69usize;
+        let prefix = encoded[..at].to_vec();
+        let suffix = encoded[at + 1 + records_len..].to_vec();
+        let mut body = BytesMut::from(prefix.as_slice());
+        let flooded = 48 * 1024 * 1024;
+        buf::put_unsigned_varint(&mut body, u32::try_from(flooded + 1).unwrap());
+        body.resize(body.len() + flooded, 0);
+        body.extend_from_slice(&suffix);
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = async { let _ = decode_share_fetch_response(&mut body, 1); } => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "counting share batches held the caller for {elapsed:?}"
+        );
     }
 
     #[test]
