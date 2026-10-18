@@ -336,9 +336,32 @@ fn stalled_write_read_from(
 /// A stalled write is also the socket's reader. One max frame is enough for
 /// the response that was already on the wire. More than that, or a length
 /// this connection will not accept, is a peer that is not reading.
-fn stalled_write_read_rejected(read_buf: &BytesMut) -> bool {
+enum StalledScan {
+    Reject,
+    /// More complete frames are buffered. Yield before walking the rest.
+    Yield,
+    Continue,
+}
+
+fn advance_stalled_scan(read_buf: &[u8], scanned: &mut usize) -> StalledScan {
     let cap = usize::try_from(MAX_FRAME).unwrap_or(usize::MAX);
-    read_buf.len() > cap || frame_prefix_rejected(read_buf.as_ref())
+    if read_buf.len() > cap {
+        return StalledScan::Reject;
+    }
+    if *scanned > read_buf.len() {
+        *scanned = 0;
+    }
+    match scan_frame_prefix(read_buf, *scanned, 64 * 1024) {
+        PrefixScan::Rejected => StalledScan::Reject,
+        PrefixScan::Rest(at) => {
+            *scanned = at;
+            StalledScan::Continue
+        }
+        PrefixScan::Partial(at) => {
+            *scanned = at;
+            StalledScan::Yield
+        }
+    }
 }
 
 /// True when `buf` contains a length this connection will not accept.
@@ -698,11 +721,20 @@ where
     poll_fn(|cx| {
         // A length already buffered is not waiting on another read. The
         // peer is not reading, so the write must not sit until its deadline.
-        if stalled_write_read_rejected(read_buf) {
-            return Poll::Ready(Err(io::Error::new(
-                io::ErrorKind::InvalidData,
-                "stalled write buffered more than one max frame",
-            )));
+        // A long run of empty frames is walked in slices so that deadline
+        // can run before the rest of the buffer is scanned.
+        match advance_stalled_scan(read_buf, &mut scanned) {
+            StalledScan::Reject => {
+                return Poll::Ready(Err(io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    "stalled write buffered more than one max frame",
+                )));
+            }
+            StalledScan::Yield => {
+                cx.waker().wake_by_ref();
+                return Poll::Pending;
+            }
+            StalledScan::Continue => {}
         }
         let Some(remaining) = bytes.get(pos..) else {
             return Poll::Ready(Err(io::Error::new(
@@ -764,11 +796,18 @@ where
                         // deadline never gets another turn. Stop after one
                         // max frame instead of buffering the peer without a
                         // limit.
-                        if stalled_write_read_rejected(read_buf) {
-                            return Poll::Ready(Err(io::Error::new(
-                                io::ErrorKind::InvalidData,
-                                "stalled write buffered more than one max frame",
-                            )));
+                        match advance_stalled_scan(read_buf, &mut scanned) {
+                            StalledScan::Reject => {
+                                return Poll::Ready(Err(io::Error::new(
+                                    io::ErrorKind::InvalidData,
+                                    "stalled write buffered more than one max frame",
+                                )));
+                            }
+                            StalledScan::Yield => {
+                                cx.waker().wake_by_ref();
+                                return Poll::Pending;
+                            }
+                            StalledScan::Continue => {}
                         }
                         // The bytes stay buffered. Yield so the write deadline
                         // can stop a peer that keeps the read ready.
@@ -3118,6 +3157,53 @@ mod tests {
         assert!(
             elapsed < Duration::from_millis(80),
             "a ready response held the deadline for {elapsed:?}"
+        );
+    }
+
+    struct PendingIo;
+
+    impl AsyncRead for PendingIo {
+        fn poll_read(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            _buf: &mut ReadBuf<'_>,
+        ) -> Poll<std::io::Result<()>> {
+            Poll::Pending
+        }
+    }
+
+    impl AsyncWrite for PendingIo {
+        fn poll_write(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            _buf: &[u8],
+        ) -> Poll<std::io::Result<usize>> {
+            Poll::Pending
+        }
+
+        fn poll_flush(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
+            Poll::Ready(Ok(()))
+        }
+
+        fn poll_shutdown(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
+            Poll::Ready(Ok(()))
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn a_run_of_empty_frames_does_not_hold_the_write() {
+        let mut buffered = BytesMut::new();
+        buffered.resize(16 * 1024 * 1024, 0);
+        let mut socket = PendingIo;
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = write_all_pump(&mut socket, &mut buffered, &[1u8; 64]) => {}
+            _ = tokio::time::sleep(Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < Duration::from_millis(80),
+            "scanning empty frames held the write for {elapsed:?}"
         );
     }
 
