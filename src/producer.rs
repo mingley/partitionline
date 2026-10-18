@@ -1635,6 +1635,58 @@ impl Producer {
         tokio::task::yield_now().await;
     }
 
+    async fn finish_aborted_bootstrap_handshakes(
+        mut set: tokio::task::JoinSet<Result<(BrokerConn, ApiVersionsResponse)>>,
+    ) {
+        set.abort_all();
+        let mut extra = 0u32;
+        while !set.is_empty() {
+            tokio::select! {
+                biased;
+                joined = set.join_next() => {
+                    let Some(joined) = joined else {
+                        break;
+                    };
+                    if let Ok(Ok((mut conn, _))) = joined {
+                        retire_produce_conn(&mut conn).await;
+                    }
+                }
+                () = tokio::task::yield_now() => {
+                    extra = extra.saturating_add(1);
+                    if extra >= 8 {
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    async fn finish_aborted_coord_handshakes(
+        mut set: tokio::task::JoinSet<(usize, Result<ProducerHandshake>)>,
+    ) {
+        set.abort_all();
+        let mut extra = 0u32;
+        while !set.is_empty() {
+            tokio::select! {
+                biased;
+                joined = set.join_next() => {
+                    let Some(joined) = joined else {
+                        break;
+                    };
+                    if let Ok((_, Ok((mut conn, _)))) = joined {
+                        retire_produce_conn(&mut conn).await;
+                    }
+                }
+                () = tokio::task::yield_now() => {
+                    extra = extra.saturating_add(1);
+                    if extra >= 8 {
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
     /// TCP, ApiVersions, and SASL on one bootstrap, bounded by `deadline`.
     async fn open_one_bootstrap(
         cfg: &ProducerConfig,
@@ -1783,7 +1835,7 @@ impl Producer {
                 Err(error) => last = Error::protocol(format!("bootstrap handshake: {error}")),
             }
         }
-        Self::finish_aborted_handshakes(inflight).await;
+        Self::finish_aborted_bootstrap_handshakes(inflight).await;
         let mut rest = finished.into_iter();
         let Some((conn, resp)) = rest.next() else {
             return Err(last);
@@ -4299,7 +4351,7 @@ async fn discover_typed_coord_raced(
     while !inflight.is_empty() {
         if Instant::now() >= deadline {
             retire_ready_handshakes(&mut ready).await;
-            Producer::finish_aborted_handshakes(inflight).await;
+            Producer::finish_aborted_coord_handshakes(inflight).await;
             return Err(Error::Timeout);
         }
         let rest = timeout_remaining(deadline).unwrap_or(Duration::ZERO);
@@ -4307,7 +4359,7 @@ async fn discover_typed_coord_raced(
             joined = inflight.join_next() => joined,
             () = tokio::time::sleep(rest) => {
                 retire_ready_handshakes(&mut ready).await;
-                Producer::finish_aborted_handshakes(inflight).await;
+                Producer::finish_aborted_coord_handshakes(inflight).await;
                 return Err(Error::Timeout);
             }
         };
@@ -4362,12 +4414,12 @@ async fn discover_typed_coord_raced(
                     {
                         ProducerCoordAsk::Found(found) => {
                             retire_ready_handshakes(&mut ready).await;
-                            Producer::finish_aborted_handshakes(inflight).await;
+                            Producer::finish_aborted_coord_handshakes(inflight).await;
                             return Ok(*found);
                         }
                         ProducerCoordAsk::Fatal(error) => {
                             retire_ready_handshakes(&mut ready).await;
-                            Producer::finish_aborted_handshakes(inflight).await;
+                            Producer::finish_aborted_coord_handshakes(inflight).await;
                             return Err(error);
                         }
                         ProducerCoordAsk::Retry(error) => last = error,
@@ -4382,12 +4434,12 @@ async fn discover_typed_coord_raced(
                     {
                         ProducerCoordAsk::Found(found) => {
                             retire_ready_handshakes(&mut ready).await;
-                            Producer::finish_aborted_handshakes(inflight).await;
+                            Producer::finish_aborted_coord_handshakes(inflight).await;
                             return Ok(*found);
                         }
                         ProducerCoordAsk::Fatal(error) => {
                             retire_ready_handshakes(&mut ready).await;
-                            Producer::finish_aborted_handshakes(inflight).await;
+                            Producer::finish_aborted_coord_handshakes(inflight).await;
                             return Err(error);
                         }
                         ProducerCoordAsk::Retry(error) => {
@@ -4400,7 +4452,7 @@ async fn discover_typed_coord_raced(
         }
     }
     retire_ready_handshakes(&mut ready).await;
-    Producer::finish_aborted_handshakes(inflight).await;
+    Producer::finish_aborted_coord_handshakes(inflight).await;
     if Instant::now() >= deadline {
         return Err(Error::Timeout);
     }
@@ -12110,6 +12162,61 @@ mod rediscover_stop_tests {
             open.load(Ordering::SeqCst),
             0,
             "an unusable produce replacement left the broker blocked in a read"
+        );
+        peer.abort();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn stopping_a_finished_produce_handshake_lets_the_broker_leave() {
+        use super::Producer;
+        use crate::net::BrokerConn;
+        use crate::protocol::api::ApiVersionsResponse;
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use tokio::io::AsyncReadExt;
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let open = Arc::new(AtomicUsize::new(0));
+        let flag = Arc::clone(&open);
+        let peer = tokio::spawn(async move {
+            let Ok((mut socket, _)) = listener.accept().await else {
+                return;
+            };
+            let _started = flag.fetch_add(1, Ordering::SeqCst);
+            let mut buf = [0u8; 8];
+            loop {
+                match socket.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let conn = BrokerConn::connect(&addr, "produce-handshake", Duration::from_secs(2))
+            .await
+            .unwrap();
+        while open.load(Ordering::SeqCst) == 0 {
+            tokio::task::yield_now().await;
+        }
+        let versions = ApiVersionsResponse {
+            error_code: 0,
+            api_keys: Vec::new(),
+            throttle_time_ms: 0,
+            supported_features: Vec::new(),
+            finalized_features_epoch: None,
+            finalized_features: Vec::new(),
+            zk_migration_ready: false,
+        };
+        let mut set = tokio::task::JoinSet::new();
+        let _ = set.spawn(async move { (0usize, Ok((conn, versions))) });
+        for _ in 0..8 {
+            tokio::task::yield_now().await;
+        }
+        Producer::finish_aborted_coord_handshakes(set).await;
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "stopping a finished produce handshake left the broker blocked in a read"
         );
         peer.abort();
     }
