@@ -6874,16 +6874,13 @@ impl Consumer {
                 fenced.sort();
                 fenced.dedup();
                 let recovery = self.recover_leader_epochs(&fenced, deadline).await;
+                let mut cuts = Vec::with_capacity(fenced.len());
                 for (topic, partition) in &fenced {
                     if let Ok(cursor) = self.fetch_cursor(topic.as_ref(), *partition) {
-                        out_bytes = out_bytes.saturating_sub(drop_records_at_or_after(
-                            &mut out,
-                            topic.as_ref(),
-                            *partition,
-                            cursor,
-                        ));
+                        cuts.push((topic.as_ref(), *partition, cursor));
                     }
                 }
+                out_bytes = out_bytes.saturating_sub(drop_records_at_cursors(&mut out, &cuts));
                 match recovery {
                     Ok(()) => retry = retry.merge(FetchRetry::Backoff),
                     // Keep records that are still below the recovered cursor.
@@ -11272,17 +11269,30 @@ pub(crate) fn reset_position(offset: i64) -> Option<i64> {
     (offset >= 0).then_some(offset)
 }
 
-fn drop_records_at_or_after(
-    records: &mut Vec<FetchedRecord>,
-    topic: &str,
-    partition: i32,
-    cursor: i64,
-) -> usize {
+/// Drop fetched records at or after each partition cursor in one pass.
+///
+/// A repeated partition keeps the earlier cursor. Records for partitions
+/// that are not listed stay.
+fn drop_records_at_cursors(records: &mut Vec<FetchedRecord>, cuts: &[(&str, i32, i64)]) -> usize {
+    if cuts.is_empty() || records.is_empty() {
+        return 0;
+    }
+    let mut cursors: HashMap<(&str, i32), i64> = HashMap::with_capacity(cuts.len());
+    for &(topic, partition, cursor) in cuts {
+        if let Some(existing) = cursors.get_mut(&(topic, partition)) {
+            if cursor < *existing {
+                *existing = cursor;
+            }
+        } else {
+            let _ = cursors.insert((topic, partition), cursor);
+        }
+    }
     let mut removed = 0usize;
     records.retain(|record| {
-        let keep = record.topic.as_str() != topic
-            || record.partition != partition
-            || record.offset < cursor;
+        let keep = match cursors.get(&(record.topic.as_str(), record.partition)) {
+            Some(cursor) => record.offset < *cursor,
+            None => true,
+        };
         if !keep {
             removed = removed.saturating_add(record_bytes(record));
         }
@@ -14228,6 +14238,35 @@ mod tests {
     }
 
     #[test]
+    fn dropping_many_fenced_records_does_not_hold_the_caller() {
+        // 8_192 partitions: scanning the buffer for each one held the caller 1.19s.
+        let mut records: Vec<FetchedRecord> = (0..8_192)
+            .map(|partition| fetched_at("orders", partition, 10))
+            .collect();
+        records.push(fetched_at("payments", 0, 3));
+        let cuts: Vec<(&str, i32, i64)> = (0..8_192)
+            .map(|partition| ("orders", partition, 0))
+            .collect();
+        let started = std::time::Instant::now();
+        let _removed = drop_records_at_cursors(&mut records, &cuts);
+        let elapsed = started.elapsed();
+        assert_eq!(records.len(), 1);
+        assert_eq!(
+            records.first().map(|record| record.topic.as_str()),
+            Some("payments")
+        );
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "dropping fenced records held the caller for {elapsed:?}"
+        );
+        let mut repeated = vec![fetched_at("orders", 0, 4), fetched_at("orders", 0, 9)];
+        let _removed =
+            drop_records_at_cursors(&mut repeated, &[("orders", 0, 8), ("orders", 0, 5)]);
+        assert_eq!(repeated.len(), 1);
+        assert_eq!(repeated.first().map(|record| record.offset), Some(4));
+    }
+
+    #[test]
     fn truncation_drops_records_at_the_new_cursor() {
         let mut records = vec![
             fetched_at("t", 0, 1),
@@ -14235,7 +14274,7 @@ mod tests {
             fetched_at("u", 0, 4),
         ];
         let dropped = records.get(1).map(record_bytes);
-        let removed = drop_records_at_or_after(&mut records, "t", 0, 4);
+        let removed = drop_records_at_cursors(&mut records, &[("t", 0, 4)]);
         assert_eq!(Some(removed), dropped);
         let kept: Vec<_> = records
             .iter()
