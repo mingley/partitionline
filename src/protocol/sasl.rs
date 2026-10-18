@@ -675,6 +675,12 @@ pub fn spoken_reauthenticate_version(conn: &BrokerConn) -> Result<i16> {
     }
 }
 
+/// Mark `conn` closed and shut the socket down before the caller returns.
+async fn close_rejected(conn: &mut BrokerConn) {
+    conn.close();
+    conn.release_if_closed().await;
+}
+
 /// Mid-connection PLAIN reauth: SaslAuthenticate only (KIP-368; no SaslHandshake).
 pub async fn reauthenticate_plain(
     conn: &mut BrokerConn,
@@ -695,7 +701,7 @@ pub async fn reauthenticate_plain(
     let (code, msg, _, session_lifetime_ms) =
         decode_sasl_authenticate_response(&mut body.clone(), auth_version)?;
     if code != 0 {
-        conn.close();
+        close_rejected(conn).await;
         return Err(sasl_authenticate_error(
             if code == 0 {
                 error::SASL_AUTHENTICATION_FAILED
@@ -731,7 +737,7 @@ pub async fn reauthenticate_scram(
         .await?;
     let (code, msg, bytes, _) = decode_sasl_authenticate_response(&mut body.clone(), auth_version)?;
     if code != 0 {
-        conn.close();
+        close_rejected(conn).await;
         return Err(sasl_authenticate_error(code, alg.name(), msg));
     }
     let server_first =
@@ -748,7 +754,7 @@ pub async fn reauthenticate_scram(
     let (code, msg, bytes, session_lifetime_ms) =
         decode_sasl_authenticate_response(&mut body.clone(), auth_version)?;
     if code != 0 {
-        conn.close();
+        close_rejected(conn).await;
         return Err(sasl_authenticate_error(code, alg.name(), msg));
     }
     let server_final =
@@ -804,7 +810,7 @@ pub async fn reauthenticate_oauthbearer_token(
     let (code, msg, bytes, session_lifetime_ms) =
         decode_sasl_authenticate_response(&mut body.clone(), auth_version)?;
     if code != 0 {
-        conn.close();
+        close_rejected(conn).await;
         return Err(sasl_authenticate_error(code, "OAUTHBEARER", msg));
     }
     if !bytes.is_empty() {
@@ -817,7 +823,7 @@ pub async fn reauthenticate_oauthbearer_token(
             )
             .await,
         );
-        conn.close();
+        close_rejected(conn).await;
         return Err(Error::protocol("oauthbearer: authentication failed"));
     }
     conn.record_sasl_session_lifetime(session_lifetime_ms);
@@ -1433,5 +1439,85 @@ mod tests {
             &v0_zero[..],
             "v0 encode omits SessionLifetimeMs even when the body has a non-zero value"
         );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn failed_reauth_lets_the_broker_leave() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use std::sync::Arc;
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        use tokio::net::TcpListener;
+
+        use crate::protocol::header::encode_response_header;
+
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let open = Arc::new(AtomicUsize::new(0));
+        let flag = Arc::clone(&open);
+        let peer = tokio::spawn(async move {
+            let Ok((mut socket, _)) = listener.accept().await else {
+                return;
+            };
+            let _started = flag.fetch_add(1, Ordering::SeqCst);
+            let mut prefix = [0u8; 4];
+            if socket.read_exact(&mut prefix).await.is_err() {
+                let _left = flag.fetch_sub(1, Ordering::SeqCst);
+                return;
+            }
+            let size = usize::try_from(i32::from_be_bytes(prefix)).unwrap_or(0);
+            let mut request = vec![0u8; size];
+            if socket.read_exact(&mut request).await.is_err() {
+                let _left = flag.fetch_sub(1, Ordering::SeqCst);
+                return;
+            }
+            let correlation = i32::from_be_bytes(
+                request
+                    .get(4..8)
+                    .and_then(|bytes| bytes.try_into().ok())
+                    .unwrap_or([0; 4]),
+            );
+            let mut payload = BytesMut::new();
+            encode_response_header(
+                &mut payload,
+                crate::protocol::api_keys::SASL_AUTHENTICATE,
+                1,
+                correlation,
+            )
+            .unwrap();
+            encode_sasl_authenticate_response(&mut payload, 1, 58, None, &[], 0).unwrap();
+            let mut frame = Vec::with_capacity(4 + payload.len());
+            frame.extend_from_slice(&i32::try_from(payload.len()).unwrap_or(0).to_be_bytes());
+            frame.extend_from_slice(&payload);
+            if socket.write_all(&frame).await.is_err() {
+                let _left = flag.fetch_sub(1, Ordering::SeqCst);
+                return;
+            }
+            let mut buf = [0u8; 8];
+            loop {
+                match socket.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let mut conn =
+            crate::net::BrokerConn::connect(&addr, "reauth", std::time::Duration::from_secs(2))
+                .await
+                .unwrap();
+        while open.load(Ordering::SeqCst) == 0 {
+            tokio::task::yield_now().await;
+        }
+        conn.set_sasl_authenticate_version(1);
+        let result =
+            reauthenticate_plain(&mut conn, "user", "pass", std::time::Duration::from_secs(2))
+                .await;
+        assert!(result.is_err(), "a rejected reauth was accepted");
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "a rejected reauth left the broker blocked in a read"
+        );
+        peer.abort();
     }
 }
