@@ -14,8 +14,8 @@ use crate::cluster::Cluster;
 use crate::error::{self, Error, Result};
 use crate::net::BrokerConn;
 use crate::protocol::api::{
-    decode_metadata_response_into, encode_metadata_request_ref, metadata_v0_names_ref, ApiVersion,
-    ApiVersionsResponse, MetadataResponse, PartitionMetadata,
+    decode_metadata_response_into_cooperative, encode_metadata_request_ref, metadata_v0_names_ref,
+    ApiVersion, ApiVersionsResponse, MetadataResponse, PartitionMetadata,
 };
 use crate::protocol::api_keys::{
     pick_version, FETCH, GET_TELEMETRY_SUBSCRIPTIONS, LIST_OFFSETS, METADATA,
@@ -4155,7 +4155,7 @@ impl Consumer {
             )?;
         }
         let mut md = self.metadata.take().unwrap_or_else(MetadataResponse::blank);
-        decode_metadata_response_into(&mut body, version, &mut md)?;
+        decode_metadata_response_into_cooperative(&mut body, version, &mut md).await?;
         md.check()?;
         if full_listing {
             self.full_metadata_at = Some(Instant::now());

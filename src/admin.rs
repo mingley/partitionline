@@ -74,9 +74,10 @@ use crate::protocol::admin::{
     RESOURCE_CLIENT_METRICS, RESOURCE_GROUP, RESOURCE_TOPIC,
 };
 use crate::protocol::api::{
-    decode_api_versions_response, decode_metadata_response, decode_metadata_response_into,
-    encode_api_versions_request, encode_metadata_request_named, encode_metadata_request_topics,
-    ApiVersion, ApiVersionsResponse, MetadataRequestTopic, MetadataResponse,
+    decode_api_versions_response, decode_metadata_response,
+    decode_metadata_response_into_cooperative, encode_api_versions_request,
+    encode_metadata_request_named, encode_metadata_request_topics, ApiVersion, ApiVersionsResponse,
+    MetadataRequestTopic, MetadataResponse,
 };
 use crate::protocol::api_keys::{
     pick_version, ALLOCATE_PRODUCER_IDS, ALTER_CLIENT_QUOTAS, ALTER_CONFIGS,
@@ -8767,7 +8768,8 @@ impl Admin {
                 startup_remaining(deadline)?,
             )
             .await?;
-        decode_metadata_response_into(&mut body, version, &mut self.metadata_image)?;
+        decode_metadata_response_into_cooperative(&mut body, version, &mut self.metadata_image)
+            .await?;
         self.metadata_image.check()?;
         self.cluster.apply(&self.metadata_image, version);
         Ok(())

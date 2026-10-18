@@ -14,7 +14,7 @@ use crate::partitioner::{
     partition_for_key, to_positive, Partitioner, PartitionerBox, StickyState, StickyTag,
 };
 use crate::protocol::api::{
-    decode_metadata_response_into, decode_produce_acks_into, encode_metadata_request,
+    decode_metadata_response_into_cooperative, decode_produce_acks_into, encode_metadata_request,
     encode_metadata_request_names, ApiVersion, ApiVersionsResponse, MetadataResponse, ProduceAck,
     ProduceRequest,
 };
@@ -3990,7 +3990,7 @@ impl Producer {
             .await?;
         drop(conn);
         let mut body = body;
-        decode_shared_metadata(&self.inner.shared, &mut body, version)?;
+        decode_shared_metadata(&self.inner.shared, &mut body, version).await?;
         let infos = {
             let image = self.inner.shared.metadata_image.lock();
             crate::consumer::partition_infos_from(&image, Some(topic.as_str()))?
@@ -5415,11 +5415,17 @@ async fn group_coord_roundtrip(
         .await
 }
 
-fn decode_shared_metadata(shared: &Shared, body: &mut bytes::Bytes, version: i16) -> Result<()> {
-    let mut image = shared.metadata_image.lock();
-    decode_metadata_response_into(body, version, &mut image)?;
+async fn decode_shared_metadata(
+    shared: &Shared,
+    body: &mut bytes::Bytes,
+    version: i16,
+) -> Result<()> {
+    let mut image = MetadataResponse::blank();
+    decode_metadata_response_into_cooperative(body, version, &mut image).await?;
     image.check()?;
+    let mut stored = shared.metadata_image.lock();
     shared.cluster.lock().apply(&image, version);
+    *stored = image;
     Ok(())
 }
 
@@ -5646,7 +5652,7 @@ async fn refresh_topics_within(
         .await?;
     drop(conn);
     let mut body = body;
-    decode_shared_metadata(shared, &mut body, version)?;
+    decode_shared_metadata(shared, &mut body, version).await?;
     let mut succeeded = Vec::new();
     {
         let image = shared.metadata_image.lock();
@@ -5710,7 +5716,7 @@ async fn partitions_for_timeout(
         .await?;
     drop(conn);
     let mut body = body;
-    decode_shared_metadata(shared, &mut body, version)?;
+    decode_shared_metadata(shared, &mut body, version).await?;
     let n = partition_count_from_image(shared, topic.as_ref())?;
     drop_fast_topic(shared, topic);
     Ok(n)

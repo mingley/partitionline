@@ -2556,19 +2556,189 @@ pub(crate) fn decode_metadata_response_into<B: Buf>(
     Ok(())
 }
 
+/// [`decode_metadata_response_into`], yielding while a long partition list is decoded.
+pub(crate) async fn decode_metadata_response_into_cooperative<B: Buf>(
+    buf: &mut B,
+    version: i16,
+    out: &mut MetadataResponse,
+) -> Result<()> {
+    if version == 0 {
+        let body = metadata_legacy::take_body(buf)?;
+        *out = metadata_legacy::decode_response(&body)?;
+        return Ok(());
+    }
+    let flexible = version >= 9;
+    let throttle_time_ms = if version >= 3 { buf::get_i32(buf)? } else { 0 };
+    let broker_count = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+    if out.brokers.len() > broker_count {
+        out.brokers.truncate(broker_count);
+    }
+    let new_brokers = broker_count.saturating_sub(out.brokers.len());
+    reserve_additional(&mut out.brokers, new_brokers)?;
+    for index in 0..broker_count {
+        let node_id = buf::get_i32(buf)?;
+        if out.brokers.get(index).is_some() {
+            let broker = out
+                .brokers
+                .get_mut(index)
+                .ok_or_else(|| Error::protocol("metadata broker slot"))?;
+            broker.node_id = node_id;
+            if !buf::read_nullable_string_into(buf, flexible, &mut broker.host)? {
+                return Err(Error::protocol("null broker host"));
+            }
+            broker.port = buf::get_i32(buf)?;
+            if version >= 1 {
+                read_optional_string_into(buf, flexible, &mut broker.rack)?;
+            } else {
+                broker.rack = None;
+            }
+        } else {
+            let host = buf::get_string(buf, flexible)?
+                .ok_or_else(|| Error::protocol("null broker host"))?;
+            let port = buf::get_i32(buf)?;
+            let rack = if version >= 1 {
+                buf::get_string(buf, flexible)?
+            } else {
+                None
+            };
+            out.brokers.push(Broker {
+                node_id,
+                host,
+                port,
+                rack,
+            });
+        }
+        if flexible {
+            buf::skip_tagged_fields(buf)?;
+        }
+    }
+    if version >= 2 {
+        read_optional_string_into(buf, flexible, &mut out.cluster_id)?;
+    } else {
+        out.cluster_id = None;
+    }
+    out.controller_id = if version >= 1 {
+        buf::get_i32(buf)?
+    } else {
+        MetadataResponse::NO_CONTROLLER_ID
+    };
+    let topic_count = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+    if out.topics.len() > topic_count {
+        out.topics.truncate(topic_count);
+    }
+    let new_topics = topic_count.saturating_sub(out.topics.len());
+    reserve_additional(&mut out.topics, new_topics)?;
+    for index in 0..topic_count {
+        let error_code = buf::get_i16(buf)?;
+        if out.topics.get(index).is_some() {
+            let topic = out
+                .topics
+                .get_mut(index)
+                .ok_or_else(|| Error::protocol("metadata topic slot"))?;
+            topic.error_code = error_code;
+            read_optional_string_into(buf, flexible, &mut topic.name)?;
+            topic.topic_id = if version >= 10 {
+                buf::get_uuid(buf)?
+            } else {
+                [0u8; 16]
+            };
+            topic.is_internal = if version >= 1 {
+                buf::get_bool(buf)?
+            } else {
+                false
+            };
+            read_metadata_partitions_cooperative(buf, version, flexible, &mut topic.partitions)
+                .await?;
+            topic.topic_authorized_operations = if version >= 8 {
+                buf::get_i32(buf)?
+            } else {
+                MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED
+            };
+        } else {
+            let name = buf::get_string(buf, flexible)?;
+            let topic_id = if version >= 10 {
+                buf::get_uuid(buf)?
+            } else {
+                [0u8; 16]
+            };
+            let is_internal = if version >= 1 {
+                buf::get_bool(buf)?
+            } else {
+                false
+            };
+            let mut partitions = Vec::new();
+            read_metadata_partitions_cooperative(buf, version, flexible, &mut partitions).await?;
+            let topic_authorized_operations = if version >= 8 {
+                buf::get_i32(buf)?
+            } else {
+                MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED
+            };
+            out.topics.push(TopicMetadata {
+                error_code,
+                name,
+                topic_id,
+                is_internal,
+                partitions,
+                topic_authorized_operations,
+            });
+        }
+        if flexible {
+            buf::skip_tagged_fields(buf)?;
+        }
+    }
+    out.cluster_authorized_operations = if (8..=10).contains(&version) {
+        buf::get_i32(buf)?
+    } else {
+        MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED
+    };
+    out.error_code = if version >= 13 { buf::get_i16(buf)? } else { 0 };
+    out.throttle_time_ms = throttle_time_ms;
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
+    }
+    Ok(())
+}
+
 fn read_metadata_partitions<B: Buf>(
     buf: &mut B,
     version: i16,
     flexible: bool,
     partitions: &mut Vec<PartitionMetadata>,
 ) -> Result<()> {
+    let part_count = begin_metadata_partitions(buf, flexible, partitions)?;
+    if part_count > 0 {
+        let filled = pull_metadata_partitions(buf, version, flexible, partitions, 0, part_count)?;
+        if filled != part_count {
+            return Err(Error::protocol("metadata partition count"));
+        }
+    }
+    Ok(())
+}
+
+fn begin_metadata_partitions<B: Buf>(
+    buf: &mut B,
+    flexible: bool,
+    partitions: &mut Vec<PartitionMetadata>,
+) -> Result<usize> {
     let part_count = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     if partitions.len() > part_count {
         partitions.truncate(part_count);
     }
     let new_partitions = part_count.saturating_sub(partitions.len());
     reserve_additional(partitions, new_partitions)?;
-    for index in 0..part_count {
+    Ok(part_count)
+}
+
+fn pull_metadata_partitions<B: Buf>(
+    buf: &mut B,
+    version: i16,
+    flexible: bool,
+    partitions: &mut Vec<PartitionMetadata>,
+    next: usize,
+    end: usize,
+) -> Result<usize> {
+    let mut index = next;
+    while index < end {
         if partitions.get(index).is_some() {
             let part = partitions
                 .get_mut(index)
@@ -2586,6 +2756,25 @@ fn read_metadata_partitions<B: Buf>(
             };
             fill_metadata_partition(buf, version, flexible, &mut part)?;
             partitions.push(part);
+        }
+        index = index.saturating_add(1);
+    }
+    Ok(index)
+}
+
+async fn read_metadata_partitions_cooperative<B: Buf>(
+    buf: &mut B,
+    version: i16,
+    flexible: bool,
+    partitions: &mut Vec<PartitionMetadata>,
+) -> Result<()> {
+    let part_count = begin_metadata_partitions(buf, flexible, partitions)?;
+    let mut next = 0usize;
+    while next < part_count {
+        let end = next.saturating_add(8 * 1024).min(part_count);
+        next = pull_metadata_partitions(buf, version, flexible, partitions, next, end)?;
+        if next < part_count {
+            tokio::task::yield_now().await;
         }
     }
     Ok(())
@@ -4435,6 +4624,43 @@ mod tests {
     use crate::protocol::records::{Compression, Record};
     use bytes::Bytes;
     use std::collections::{HashMap, HashSet};
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn decoding_many_metadata_partitions_does_not_hold_the_caller() {
+        let partitions = 400_000i32;
+        let mut body = BytesMut::new();
+        body.put_i32(1);
+        body.put_i32(1);
+        body.put_i16(9);
+        body.extend_from_slice(b"localhost");
+        body.put_i32(9092);
+        body.put_i16(-1);
+        body.put_i32(1);
+        body.put_i32(1);
+        body.put_i16(0);
+        body.put_i16(1);
+        body.extend_from_slice(b"t");
+        body.put_u8(0);
+        body.put_i32(partitions);
+        let partition = [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0];
+        for index in 0..partitions {
+            let mut one = partition;
+            one[2..6].copy_from_slice(&index.to_be_bytes());
+            body.extend_from_slice(&one);
+        }
+        let mut cursor: &[u8] = &body;
+        let mut image = MetadataResponse::blank();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = decode_metadata_response_into_cooperative(&mut cursor, 1, &mut image) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "decoding metadata partitions held the caller for {elapsed:?}"
+        );
+    }
 
     #[test]
     fn produce_acks_keep_topic_bytes_and_match_decoded_partitions() {
