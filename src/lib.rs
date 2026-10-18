@@ -2657,7 +2657,7 @@
 //! remove the named voter from the current voter set.
 //! A piggybacked
 //! `INVALID_REGULAR_EXPRESSION` still completes without retry,
-//! including when `AcknowledgeErrorMessage` is set (this is not
+//! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `INVALID_REGULAR_EXPRESSION`, which fails that poll, and not
 //! piggyback `VOTER_NOT_FOUND`). Official Java
 //! `GroupMetadataManager` writes this when a consumer-group member
