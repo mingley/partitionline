@@ -727,7 +727,10 @@ where
                 } else {
                     read_buf.reserve(budget);
                 }
-                let mut limited = (&mut *read_buf).limit(budget);
+                // A known frame stays reserved. One read still stops after a
+                // chunk so the write deadline runs before the rest is copied.
+                let step = budget.min(STALLED_WRITE_READ_CHUNK);
+                let mut limited = (&mut *read_buf).limit(step);
                 // `read_buf` only advances `read_buf` after a ready read, so
                 // dropping this future on Pending does not lose bytes.
                 let mut read = std::pin::pin!(stream.read_buf(&mut limited));
@@ -3223,6 +3226,73 @@ mod tests {
         assert!(
             deadline && elapsed < Duration::from_millis(80),
             "a ready partial write held the deadline: {elapsed:?} deadline {deadline}"
+        );
+    }
+
+    /// Writes stay pending. Reads fill every spare byte of the next frame.
+    struct GreedyStall {
+        body: Vec<u8>,
+        pos: usize,
+    }
+
+    impl AsyncRead for GreedyStall {
+        fn poll_read(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            buf: &mut ReadBuf<'_>,
+        ) -> Poll<io::Result<()>> {
+            let this = self.get_mut();
+            if this.pos >= this.body.len() || buf.remaining() == 0 {
+                return Poll::Pending;
+            }
+            let n = (this.body.len() - this.pos).min(buf.remaining());
+            let end = this.pos + n;
+            let Some(chunk) = this.body.get(this.pos..end) else {
+                return Poll::Pending;
+            };
+            buf.put_slice(chunk);
+            this.pos = end;
+            let units = u32::try_from(n.div_ceil(1024)).unwrap_or(u32::MAX);
+            std::thread::sleep(Duration::from_millis(2).saturating_mul(units));
+            Poll::Ready(Ok(()))
+        }
+    }
+
+    impl AsyncWrite for GreedyStall {
+        fn poll_write(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            _buf: &[u8],
+        ) -> Poll<io::Result<usize>> {
+            Poll::Pending
+        }
+
+        fn poll_flush(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<io::Result<()>> {
+            Poll::Ready(Ok(()))
+        }
+
+        fn poll_shutdown(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<io::Result<()>> {
+            Poll::Ready(Ok(()))
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn write_deadline_stops_a_greedy_stalled_read() {
+        let body_len = 64 * 1024;
+        let mut body = Vec::with_capacity(4 + body_len);
+        body.extend_from_slice(&i32::try_from(body_len).unwrap().to_be_bytes());
+        body.resize(4 + body_len, 2);
+        let mut socket = GreedyStall { body, pos: 0 };
+        let mut read_buf = BytesMut::new();
+        let started = std::time::Instant::now();
+        let result = Deadline::from_timeout(Duration::from_millis(40))
+            .run_io(write_all_pump(&mut socket, &mut read_buf, b"request-bytes"))
+            .await;
+        let elapsed = started.elapsed();
+        let deadline = matches!(result, Err(Error::Timeout));
+        assert!(
+            deadline && elapsed < Duration::from_millis(80),
+            "a greedy stalled read held the write deadline: {elapsed:?} deadline {deadline}"
         );
     }
 
