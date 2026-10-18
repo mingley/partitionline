@@ -2264,6 +2264,13 @@ pub enum ShareAcquireMode {
 /// `DELEGATION_TOKEN_EXPIRED`). Official Java `KafkaApis`
 /// writes this when a CreateDelegationToken renewer is not the
 /// `USER` principal type.
+/// Top-level `NON_EMPTY_GROUP` still fails that poll
+/// and does not request Metadata, including when `ErrorMessage` is
+/// set (Java `handleShareFetchSuccess` only `requestUpdate`s for
+/// `UNKNOWN_TOPIC_ID`; this is not top-level
+/// `INVALID_PRINCIPAL_TYPE`). Official Java `ShareGroup`
+/// writes this when a delete request targets a share group that is
+/// not empty.
 /// Top-level
 /// `SHARE_SESSION_LIMIT_REACHED` resets the share session and does
 /// not request Metadata, including when `ErrorMessage` is set or
@@ -5177,6 +5184,13 @@ impl ShareGroup {
     /// `DELEGATION_TOKEN_EXPIRED`). Official Java `KafkaApis`
     /// writes this when a CreateDelegationToken renewer is not the
     /// `USER` principal type. Top-level
+    /// `NON_EMPTY_GROUP` still fails that poll without
+    /// Metadata, including when `ErrorMessage` is set (Java
+    /// `handleShareFetchSuccess` only `requestUpdate`s for
+    /// `UNKNOWN_TOPIC_ID`; this is not top-level
+    /// `INVALID_PRINCIPAL_TYPE`). Official Java `ShareGroup`
+    /// writes this when a delete request targets a share group that
+    /// is not empty. Top-level
     /// `SHARE_SESSION_LIMIT_REACHED` resets the share session and
     /// does not request Metadata, including when `ErrorMessage` is
     /// set or empty (Java `handleShareFetchSuccess` only

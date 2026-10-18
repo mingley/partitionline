@@ -3320,7 +3320,13 @@
 //! `handleShareFetchSuccess` only `requestUpdate`s for
 //! `UNKNOWN_TOPIC_ID`; this is not top-level
 //! `DELEGATION_TOKEN_EXPIRED`). Official Java `KafkaApis` writes
-//! this when a CreateDelegationToken renewer is not the `USER` principal type. Partition
+//! this when a CreateDelegationToken renewer is not the `USER` principal type. Top-level
+//! `NON_EMPTY_GROUP` still fails that poll without
+//! Metadata, including when `ErrorMessage` is set (Java
+//! `handleShareFetchSuccess` only `requestUpdate`s for
+//! `UNKNOWN_TOPIC_ID`; this is not top-level
+//! `INVALID_PRINCIPAL_TYPE`). Official Java `ShareGroup` writes
+//! this when a delete request targets a share group that is not empty. Partition
 //! `INCONSISTENT_TOPIC_ID` / `UNKNOWN_TOPIC_OR_PARTITION` /
 //! `UNKNOWN_TOPIC_ID` / `REPLICA_NOT_AVAILABLE` /
 //! `OFFSET_NOT_AVAILABLE` / `KAFKA_STORAGE_ERROR` skip without throwing,
