@@ -3734,7 +3734,7 @@
 //! when the expected producer epoch does not match.
 //! Top-level ShareAcknowledge `RESOURCE_NOT_FOUND` completes
 //! without retry and does not request Metadata, including when
-//! `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+//! `ErrorMessage` is set or empty (Java `handleShareAcknowledgeSuccess` has no
 //! `metadata.requestUpdate`; this is not top-level
 //! `PRODUCER_FENCED`). Official Java `ScramImage`
 //! DescribeUserScramCredentials writes this when the user does not exist.
