@@ -1790,8 +1790,11 @@ async fn read_exact_spare<S: AsyncRead + Unpin>(
     payload
         .try_reserve_exact(length)
         .map_err(|_| Error::Allocation)?;
-    let mut limited = (&mut *payload).limit(length);
-    while limited.get_ref().len() < length {
+    while payload.len() < length {
+        // One ready read can fill every spare byte. Stop after one chunk so
+        // the frame deadline runs before the rest of the body is copied.
+        let step = length.saturating_sub(payload.len()).min(8 * 1024);
+        let mut limited = (&mut *payload).limit(step);
         let n = socket.read_buf(&mut limited).await?;
         if n == 0 {
             return Err(io::Error::new(io::ErrorKind::UnexpectedEof, "frame body closed").into());
@@ -2861,6 +2864,69 @@ mod frame_deadline_tests {
         assert!(
             deadline && elapsed < Duration::from_millis(80),
             "a ready peer frame held the read past its deadline: {elapsed:?} deadline {deadline}"
+        );
+    }
+
+    /// A legal-length body that fills whatever spare capacity the read offered.
+    struct GreedyFrame {
+        announced: bool,
+        left: usize,
+    }
+
+    impl AsyncRead for GreedyFrame {
+        fn poll_read(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            buf: &mut ReadBuf<'_>,
+        ) -> Poll<std::io::Result<()>> {
+            let this = self.get_mut();
+            let dst = buf.initialize_unfilled();
+            if dst.is_empty() {
+                return Poll::Ready(Ok(()));
+            }
+            if !this.announced {
+                this.announced = true;
+                let len = u32::try_from(this.left).unwrap_or(u32::MAX).to_be_bytes();
+                let n = len.len().min(dst.len());
+                dst[..n].copy_from_slice(&len[..n]);
+                buf.advance(n);
+                return Poll::Ready(Ok(()));
+            }
+            if this.left == 0 {
+                return Poll::Pending;
+            }
+            let n = dst.len().min(this.left);
+            dst[..n].fill(4);
+            buf.advance(n);
+            this.left -= n;
+            let units = u32::try_from(n.div_ceil(1024)).unwrap_or(u32::MAX);
+            let start = std::time::Instant::now();
+            while start.elapsed() < Duration::from_millis(2).saturating_mul(units) {}
+            Poll::Ready(Ok(()))
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn read_deadline_stops_a_greedy_peer_frame() {
+        let mut socket = GreedyFrame {
+            announced: false,
+            left: 64 * 1024,
+        };
+        let mut wire = WireBuf::new();
+        let started = Instant::now();
+        let result = read_frame(
+            &mut socket,
+            2 * 1024 * 1024,
+            1024,
+            Instant::now() + Duration::from_millis(40),
+            &mut wire,
+        )
+        .await;
+        let elapsed = started.elapsed();
+        let deadline = matches!(result, Err(Error::Deadline));
+        assert!(
+            deadline && elapsed < Duration::from_millis(80),
+            "a greedy peer frame held the read past its deadline: {elapsed:?} deadline {deadline}"
         );
     }
 
