@@ -2786,7 +2786,7 @@ pub enum ShareAcquireMode {
 /// changes were valid. A top-level
 /// ShareAcknowledge `PRINCIPAL_DESERIALIZATION_FAILURE` completes without
 /// retry and does not request Metadata, including when `ErrorMessage`
-/// is set (Java `handleShareAcknowledgeSuccess` has no
+/// is set or empty (Java `handleShareAcknowledgeSuccess` has no
 /// `metadata.requestUpdate`; this is not top-level
 /// `FEATURE_UPDATE_FAILED`). Official Java `EnvelopeUtils` writes
 /// this when envelope forwarding cannot deserialize the request
@@ -6263,7 +6263,7 @@ impl ShareGroup {
     /// after the requested feature changes were valid.
     /// A top-level ShareAcknowledge `PRINCIPAL_DESERIALIZATION_FAILURE`
     /// completes without retry and does not request Metadata,
-    /// including when `ErrorMessage` is set (Java
+    /// including when `ErrorMessage` is set or empty (Java
     /// `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`;
     /// this is not top-level `FEATURE_UPDATE_FAILED`). Official Java
     /// `EnvelopeUtils` writes this when envelope forwarding cannot
