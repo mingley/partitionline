@@ -9821,12 +9821,13 @@ impl Admin {
     /// Leaders already cached for these topic partitions.
     fn known_leader_nodes<'a>(&self, parts: impl IntoIterator<Item = (&'a str, i32)>) -> Vec<i32> {
         let mut known_nodes = Vec::new();
+        let mut seen = HashSet::new();
         let mut known = LeaderList::new();
         for (topic, partition) in parts {
             let Ok(node) = known.node(&self.cluster, topic, partition) else {
                 continue;
             };
-            if !known_nodes.contains(&node) {
+            if seen.insert(node) {
                 known_nodes.push(node);
             }
         }
@@ -14311,12 +14312,7 @@ impl Admin {
         brokers: impl IntoIterator<Item = i32>,
         timeout: Duration,
     ) -> Result<Vec<(i32, DescribeLogDirsResponse)>> {
-        let mut ids = Vec::new();
-        for id in brokers {
-            if !ids.contains(&id) {
-                ids.push(id);
-            }
-        }
+        let ids = first_seen_i32(brokers);
         if ids.is_empty() {
             return Ok(Vec::new());
         }
@@ -15919,25 +15915,25 @@ async fn unique_in_order<'a>(keys: &[&'a str]) -> Vec<&'a str> {
     uniq
 }
 
-fn replica_broker_ids(replicas: &[TopicPartitionReplica]) -> Vec<i32> {
+fn first_seen_i32(values: impl IntoIterator<Item = i32>) -> Vec<i32> {
     let mut ids = Vec::new();
-    for r in replicas {
-        if !ids.contains(&r.broker_id) {
-            ids.push(r.broker_id);
+    let mut seen = HashSet::new();
+    for id in values {
+        if seen.insert(id) {
+            ids.push(id);
         }
     }
     ids
 }
 
+fn replica_broker_ids(replicas: &[TopicPartitionReplica]) -> Vec<i32> {
+    first_seen_i32(replicas.iter().map(|replica| replica.broker_id))
+}
+
 async fn group_alter_replica_log_dirs(
     assignment: &[(TopicPartitionReplica, String)],
 ) -> Vec<(i32, Vec<BorrowedAlterReplicaLogDir<'_>>)> {
-    let mut ids = Vec::new();
-    for (replica, _) in assignment {
-        if !ids.contains(&replica.broker_id) {
-            ids.push(replica.broker_id);
-        }
-    }
+    let ids = first_seen_i32(assignment.iter().map(|(replica, _)| replica.broker_id));
     let mut grouped = Vec::with_capacity(ids.len());
     for broker_id in ids {
         grouped.push((
@@ -15952,12 +15948,7 @@ async fn group_alter_replica_log_dirs(
 fn group_alter_replica_log_dirs_sync(
     assignment: &[(TopicPartitionReplica, String)],
 ) -> Vec<(i32, Vec<BorrowedAlterReplicaLogDir<'_>>)> {
-    let mut ids = Vec::new();
-    for (replica, _) in assignment {
-        if !ids.contains(&replica.broker_id) {
-            ids.push(replica.broker_id);
-        }
-    }
+    let ids = first_seen_i32(assignment.iter().map(|(replica, _)| replica.broker_id));
     ids.into_iter()
         .map(|broker_id| {
             (
@@ -19240,6 +19231,29 @@ mod tests {
         assert_eq!(one.len(), 1);
         assert_eq!(one[0].0, two[0].0);
         assert_eq!(one[0].1, two[0].1);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn collecting_many_replica_brokers_does_not_hold_the_caller() {
+        // 20_000 distinct brokers: scanning the list held the caller 705ms.
+        let replicas: Vec<_> = (0..20_000)
+            .map(|id| TopicPartitionReplica::new("orders", id, id))
+            .collect();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            () = async {
+                let ids = replica_broker_ids(&replicas);
+                assert_eq!(ids.len(), 20_000);
+                assert_eq!(ids.first().copied(), Some(0));
+                assert_eq!(ids.last().copied(), Some(19_999));
+            } => {}
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "collecting replica brokers held the caller for {elapsed:?}"
+        );
     }
 
     #[test]
