@@ -5452,7 +5452,7 @@ impl ShareGroup {
                     _ = hb_wake.notified() => Wake::Again,
                     _ = tokio::time::sleep(sleep_duration) => Wake::Beat,
                     _ = crate::group::coordinator_lost(&mut conn) => {
-                        conn = None;
+                        retire_share_conn(&mut conn).await;
                         next_hb_deadline = Instant::now();
                         Wake::Beat
                     }
@@ -5503,7 +5503,7 @@ impl ShareGroup {
                 let epoch = hb_epoch.load(Ordering::SeqCst);
                 let Ok(version) = spoken_share_group_heartbeat(c.share_group_heartbeat_version)
                 else {
-                    conn = None;
+                    retire_share_conn(&mut conn).await;
                     hb_err.store(error::UNSUPPORTED_VERSION, Ordering::SeqCst);
                     let retry_delay = cfg.retry_backoff.max(Duration::from_millis(50));
                     next_hb_deadline = Instant::now() + retry_delay;
@@ -5553,7 +5553,7 @@ impl ShareGroup {
                                             .with_address_keys(&address_keys),
                                     );
                                 }
-                                conn = None;
+                                retire_share_conn(&mut conn).await;
                                 let retry_delay = cfg.retry_backoff.max(Duration::from_millis(50));
                                 next_hb_deadline = Instant::now() + retry_delay;
                                 if !update_share_heartbeat_deadline(
@@ -5643,7 +5643,7 @@ impl ShareGroup {
                                         .with_address_keys(&address_keys),
                                 );
                             }
-                            conn = None;
+                            retire_share_conn(&mut conn).await;
                             let retry_delay = cfg.retry_backoff.max(Duration::from_millis(50));
                             next_hb_deadline = Instant::now() + retry_delay;
                             if !update_share_heartbeat_deadline(
@@ -5663,7 +5663,7 @@ impl ShareGroup {
                                     .with_address_keys(&address_keys),
                             );
                         }
-                        conn = None;
+                        retire_share_conn(&mut conn).await;
                         let retry_delay = cfg.retry_backoff.max(Duration::from_millis(50));
                         next_hb_deadline = Instant::now() + retry_delay;
                         if !update_share_heartbeat_deadline(&hb_deadline, &stop, next_hb_deadline) {
@@ -5673,6 +5673,13 @@ impl ShareGroup {
                 }
             }
         }))
+    }
+}
+
+async fn retire_share_conn(conn: &mut Option<BrokerConn>) {
+    if let Some(mut current) = conn.take() {
+        current.close();
+        current.release_if_closed().await;
     }
 }
 
@@ -7618,6 +7625,45 @@ mod dial_tests {
     use super::*;
     use crate::protocol::api::ApiVersion;
     use crate::protocol::api_keys::FETCH;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn retiring_a_share_coordinator_lets_the_broker_leave() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use tokio::io::AsyncReadExt;
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let open = Arc::new(AtomicUsize::new(0));
+        let flag = Arc::clone(&open);
+        let peer = tokio::spawn(async move {
+            let Ok((mut socket, _)) = listener.accept().await else {
+                return;
+            };
+            let _started = flag.fetch_add(1, Ordering::SeqCst);
+            let mut buf = [0u8; 8];
+            loop {
+                match socket.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let conn = BrokerConn::connect(&addr, "share-coord-retire", Duration::from_secs(2))
+            .await
+            .unwrap();
+        while open.load(Ordering::SeqCst) == 0 {
+            tokio::task::yield_now().await;
+        }
+        let mut held = Some(conn);
+        retire_share_conn(&mut held).await;
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "retiring a share coordinator left the broker blocked in a read"
+        );
+        peer.abort();
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn resetting_a_share_session_lets_the_broker_leave() {
