@@ -1031,8 +1031,10 @@ pub(crate) fn partitions_from<T>(
     if cursor == records.len() {
         return vec![TopicPartition::new(topic.clone(), partition)];
     }
-    let mut seen: Vec<(&TopicName, i32)> = Vec::new();
-    seen.push((topic, partition));
+    let mut seen_order: Vec<(&TopicName, i32)> = Vec::new();
+    let mut seen: HashSet<(&TopicName, i32)> = HashSet::new();
+    let _ = seen.insert((topic, partition));
+    seen_order.push((topic, partition));
     let mut index = cursor;
     while index < records.len() {
         let Some(first) = records.get(index) else {
@@ -1047,15 +1049,13 @@ pub(crate) fn partitions_from<T>(
             }
             cursor = cursor.saturating_add(1);
         }
-        if !seen
-            .iter()
-            .any(|slot| slot.1 == partition && slot.0 == topic)
-        {
-            seen.push((topic, partition));
+        if seen.insert((topic, partition)) {
+            seen_order.push((topic, partition));
         }
         index = cursor;
     }
-    seen.into_iter()
+    seen_order
+        .into_iter()
         .map(|(topic, partition)| TopicPartition::new(topic.clone(), partition))
         .collect()
 }
@@ -1101,7 +1101,9 @@ pub(crate) fn next_offsets_from<T>(
         return Vec::new();
     };
     let mut last: Vec<(&TopicName, i32, i64, Option<i32>)> = Vec::new();
+    let mut slots: HashMap<(&TopicName, i32), usize> = HashMap::new();
     last.push((topic, partition, offset_of(tail), epoch_of(tail)));
+    let _ = slots.insert((topic, partition), 0);
     let mut index = cursor;
     while index < records.len() {
         let Some(first) = records.get(index) else {
@@ -1123,13 +1125,14 @@ pub(crate) fn next_offsets_from<T>(
         };
         let offset = offset_of(tail);
         let epoch = epoch_of(tail);
-        if let Some(slot) = last
-            .iter_mut()
-            .find(|slot| slot.1 == partition && slot.0 == topic)
-        {
-            slot.2 = offset;
-            slot.3 = epoch;
+        if let Some(&slot) = slots.get(&(topic, partition)) {
+            if let Some(existing) = last.get_mut(slot) {
+                existing.2 = offset;
+                existing.3 = epoch;
+            }
         } else {
+            let slot = last.len();
+            let _ = slots.insert((topic, partition), slot);
             last.push((topic, partition, offset, epoch));
         }
         index = cursor;
@@ -11242,6 +11245,7 @@ pub(crate) fn partition_infos_from(
     // copies its topic into PartitionInfo.
     let mut order: Vec<&str> = Vec::new();
     let mut parts: Vec<Vec<&PartitionMetadata>> = Vec::new();
+    let mut seen_indexes: Vec<HashSet<i32>> = Vec::new();
     let mut slots: HashMap<&str, usize> = HashMap::new();
     let mut topic_error: HashMap<&str, i16> = HashMap::new();
     let mut first_error: Option<(&str, i16)> = None;
@@ -11267,23 +11271,24 @@ pub(crate) fn partition_infos_from(
             let slot = parts.len();
             let _ = slots.insert(name, slot);
             order.push(name);
-            parts.push(Vec::new());
+            parts.push(Vec::with_capacity(tmd.partitions.len()));
+            seen_indexes.push(HashSet::with_capacity(tmd.partitions.len()));
             slot
-        };
-        let Some(stored) = parts.get_mut(slot) else {
-            continue;
         };
         for partition in &tmd.partitions {
             if partition.partition_index < 0 {
                 continue;
             }
-            if stored
-                .iter()
-                .any(|existing| existing.partition_index == partition.partition_index)
-            {
+            let fresh = match seen_indexes.get_mut(slot) {
+                Some(seen) => seen.insert(partition.partition_index),
+                None => false,
+            };
+            if !fresh {
                 continue;
             }
-            stored.push(partition);
+            if let Some(stored) = parts.get_mut(slot) {
+                stored.push(partition);
+            }
         }
     }
     if let Some(wanted) = only {
@@ -12986,6 +12991,125 @@ mod tests {
                 .get("orders", 0)
                 .map(|queue| queue.front().map(|record| record.offset)),
             Some(Some(2))
+        );
+    }
+
+    #[test]
+    fn listing_many_partition_infos_does_not_hold_the_caller() {
+        // 20_000 partitions: scanning earlier indexes held the caller 539ms.
+        use crate::protocol::api::{PartitionMetadata, TopicMetadata};
+
+        let partitions: Vec<_> = (0..20_000)
+            .map(|index| PartitionMetadata {
+                error_code: 0,
+                partition_index: index,
+                leader_id: 1,
+                leader_epoch: 1,
+                replica_nodes: Vec::new(),
+                isr_nodes: Vec::new(),
+                offline_replicas: Vec::new(),
+            })
+            .collect();
+        let md = MetadataResponse {
+            throttle_time_ms: 0,
+            brokers: Vec::new(),
+            cluster_id: None,
+            controller_id: 1,
+            topics: vec![TopicMetadata {
+                error_code: 0,
+                name: Some("orders".into()),
+                topic_id: [0; 16],
+                is_internal: false,
+                partitions,
+                topic_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+            }],
+            cluster_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+            error_code: 0,
+        };
+        let started = std::time::Instant::now();
+        let listed = partition_infos_from(&md, None).unwrap_or_else(|error| panic!("{error}"));
+        let elapsed = started.elapsed();
+        assert_eq!(listed.len(), 20_000);
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "listing partition infos held the caller for {elapsed:?}"
+        );
+    }
+
+    #[test]
+    fn recording_many_next_offsets_does_not_hold_the_caller() {
+        // 20_000 partitions: scanning earlier runs held the caller 541ms.
+        let topic = TopicName::from("orders");
+        let records: Vec<(TopicName, i32, i64)> = (0..20_000)
+            .map(|index| (topic.clone(), index, i64::from(index)))
+            .collect();
+        let started = std::time::Instant::now();
+        let listed = next_offsets_from(
+            &records,
+            |record| &record.0,
+            |record| record.1,
+            |record| record.2,
+            |_| None,
+        );
+        let elapsed = started.elapsed();
+        assert_eq!(listed.len(), 20_000);
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "recording next offsets held the caller for {elapsed:?}"
+        );
+    }
+
+    #[test]
+    fn a_later_run_keeps_the_newest_offset() {
+        let orders = TopicName::from("orders");
+        let payments = TopicName::from("payments");
+        let records = [
+            (orders.clone(), 0, 1i64),
+            (payments.clone(), 1, 4),
+            (orders, 0, 9),
+        ];
+        let listed = next_offsets_from(
+            &records,
+            |record| &record.0,
+            |record| record.1,
+            |record| record.2,
+            |_| Some(7),
+        );
+        assert_eq!(listed.len(), 2);
+        let (first_tp, first_offset) = listed.first().expect("orders");
+        assert_eq!(first_tp.topic(), "orders");
+        assert_eq!(first_tp.partition(), 0);
+        assert_eq!(first_offset.offset(), 10);
+        assert_eq!(first_offset.leader_epoch(), Some(7));
+        let (second_tp, second_offset) = listed.get(1).expect("payments");
+        assert_eq!(second_tp.topic(), "payments");
+        assert_eq!(second_tp.partition(), 1);
+        assert_eq!(second_offset.offset(), 5);
+    }
+
+    #[test]
+    fn a_repeated_partition_is_listed_once() {
+        let topic = TopicName::from("orders");
+        let records = [(topic.clone(), 1), (topic.clone(), 0), (topic, 1)];
+        let listed = partitions_from(&records, |record| &record.0, |record| record.1);
+        assert_eq!(listed.len(), 2);
+        assert_eq!(listed.first().map(TopicPartition::partition), Some(1));
+        assert_eq!(listed.get(1).map(TopicPartition::partition), Some(0));
+    }
+
+    #[test]
+    fn listing_many_distinct_partitions_does_not_hold_the_caller() {
+        // 20_000 partitions: scanning earlier runs held the caller 580ms.
+        let topic = TopicName::from("orders");
+        let records: Vec<(TopicName, i32)> =
+            (0..20_000).map(|index| (topic.clone(), index)).collect();
+        let started = std::time::Instant::now();
+        let listed = partitions_from(&records, |record| &record.0, |record| record.1);
+        let elapsed = started.elapsed();
+        assert_eq!(listed.len(), 20_000);
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "listing distinct partitions held the caller for {elapsed:?}"
         );
     }
 
