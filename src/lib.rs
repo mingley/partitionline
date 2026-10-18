@@ -3292,7 +3292,7 @@
 //! this when CreateTopics sets `numPartitions` to an invalid non-positive value.
 //! Top-level ShareAcknowledge `INVALID_REPLICATION_FACTOR` completes
 //! without retry and does not request Metadata, including when
-//! `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+//! `ErrorMessage` is set or empty (Java `handleShareAcknowledgeSuccess` has no
 //! `metadata.requestUpdate`; this is not top-level
 //! `INVALID_PARTITIONS`). Official Java `ReplicationControlManager` writes
 //! this when CreateTopics sets `replicationFactor` to an invalid non-positive value.
