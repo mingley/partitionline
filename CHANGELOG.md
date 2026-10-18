@@ -1697,7 +1697,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `INVALID_TRANSACTION_TIMEOUT`). Official Java `ProducerAppendInfo` writes
   this when an end-transaction marker uses a coordinator epoch older than the current epoch for that producerId.
   Top-level `TRANSACTIONAL_ID_AUTHORIZATION_FAILED` still fails that poll
-  without Metadata, including when `ErrorMessage` is set (Java
+  without Metadata, including when `ErrorMessage` is set or empty (Java
   `handleShareFetchSuccess` only `requestUpdate`s for top-level
   `UNKNOWN_TOPIC_ID`; this is not top-level
   `TRANSACTION_COORDINATOR_FENCED`). Official Java `KafkaApis` writes
