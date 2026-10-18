@@ -2271,6 +2271,12 @@ pub enum ShareAcquireMode {
 /// `INVALID_PRINCIPAL_TYPE`). Official Java `ShareGroup`
 /// writes this when a delete request targets a share group that is
 /// not empty.
+/// Top-level `GROUP_ID_NOT_FOUND` still fails that poll
+/// and does not request Metadata, including when `ErrorMessage` is
+/// set (Java `handleShareFetchSuccess` only `requestUpdate`s for
+/// `UNKNOWN_TOPIC_ID`; this is not top-level
+/// `NON_EMPTY_GROUP`). Official Java `GroupMetadataManager`
+/// writes this when a requested group id is not found.
 /// Top-level
 /// `SHARE_SESSION_LIMIT_REACHED` resets the share session and does
 /// not request Metadata, including when `ErrorMessage` is set or
@@ -5197,6 +5203,12 @@ impl ShareGroup {
     /// `INVALID_PRINCIPAL_TYPE`). Official Java `ShareGroup`
     /// writes this when a delete request targets a share group that
     /// is not empty. Top-level
+    /// `GROUP_ID_NOT_FOUND` still fails that poll without
+    /// Metadata, including when `ErrorMessage` is set (Java
+    /// `handleShareFetchSuccess` only `requestUpdate`s for
+    /// `UNKNOWN_TOPIC_ID`; this is not top-level
+    /// `NON_EMPTY_GROUP`). Official Java `GroupMetadataManager`
+    /// writes this when a requested group id is not found. Top-level
     /// `SHARE_SESSION_LIMIT_REACHED` resets the share session and
     /// does not request Metadata, including when `ErrorMessage` is
     /// set or empty (Java `handleShareFetchSuccess` only
