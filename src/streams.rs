@@ -196,6 +196,15 @@ pub struct StreamsClient {
     learned: Option<LearnedStreams>,
 }
 
+/// Shut a streams socket down before another connection replaces it.
+///
+/// Dropping the connection aborts its idle watch, so the broker stays in its
+/// read until that watch is scheduled.
+async fn retire_streams_conn(mut conn: BrokerConn) {
+    conn.close();
+    conn.release_if_closed().await;
+}
+
 impl StreamsClient {
     /// Validate local settings. Connections are opened by [`Self::heartbeat`].
     pub fn new(mut cfg: StreamsConfig) -> Result<Self> {
@@ -253,11 +262,19 @@ impl StreamsClient {
         )?;
         deadline.check_expired()?;
         let cached_group = self.cached.as_ref().map(|(group, _)| group.clone());
-        let cached = self.cached.take().and_then(|(group, conn)| {
-            (group == request.group_id
-                && !conn.idle_expired(self.cfg.connection.connections_max_idle))
-            .then_some(conn)
-        });
+        let cached = match self.cached.take() {
+            Some((group, conn))
+                if group == request.group_id
+                    && !conn.idle_expired(self.cfg.connection.connections_max_idle) =>
+            {
+                Some(conn)
+            }
+            Some((_, conn)) => {
+                retire_streams_conn(conn).await;
+                None
+            }
+            None => None,
+        };
         if cached_group.as_deref() != Some(request.group_id.as_str()) {
             self.learned = None;
         }
@@ -463,6 +480,7 @@ impl StreamsClient {
             if !spare_versions.api_keys.is_empty() {
                 learned.push((spare.addr().to_string(), spare_versions.api_keys));
             }
+            retire_streams_conn(spare).await;
         }
         Ok((conn, versions, learned))
     }
@@ -515,7 +533,9 @@ impl StreamsClient {
             .find(|(addr, keys)| addr == &address && !keys.is_empty())
             .map(|(_, keys)| keys.clone())
         {
-            let conn = open_known_streams(&self.cfg.connection, &address, &keys, deadline).await?;
+            let opened = open_known_streams(&self.cfg.connection, &address, &keys, deadline).await;
+            retire_streams_conn(bootstrap).await;
+            let conn = opened?;
             return Ok((
                 conn,
                 LearnedStreams {
@@ -528,7 +548,9 @@ impl StreamsClient {
                 },
             ));
         }
-        let (conn, coord_versions) = self.open(&address, deadline).await?;
+        let opened = self.open(&address, deadline).await;
+        retire_streams_conn(bootstrap).await;
+        let (conn, coord_versions) = opened?;
         Ok((
             conn,
             LearnedStreams {
@@ -575,9 +597,11 @@ impl StreamsClient {
             if address == hop.addr() {
                 return Ok((hop, known.clone()));
             }
-            let conn =
+            let opened =
                 open_known_streams(&self.cfg.connection, &address, &known.coord_keys, deadline)
-                    .await?;
+                    .await;
+            retire_streams_conn(hop).await;
+            let conn = opened?;
             return Ok((conn, known.clone()));
         }
         if address == hop.addr() {
@@ -589,20 +613,26 @@ impl StreamsClient {
             .filter(|keys| !keys.is_empty())
             .cloned()
         {
-            let conn = open_known_streams(&self.cfg.connection, &address, &keys, deadline).await?;
+            let opened = open_known_streams(&self.cfg.connection, &address, &keys, deadline).await;
+            retire_streams_conn(hop).await;
+            let conn = opened?;
             return Ok((conn, known.moved_to(&address, keys)));
         }
         if address == known.bootstrap_addr && !known.bootstrap_keys.is_empty() {
-            let conn = open_known_streams(
+            let opened = open_known_streams(
                 &self.cfg.connection,
                 &address,
                 &known.bootstrap_keys,
                 deadline,
             )
-            .await?;
+            .await;
+            retire_streams_conn(hop).await;
+            let conn = opened?;
             return Ok((conn, known.moved_to(&address, known.bootstrap_keys.clone())));
         }
-        let (conn, coord_versions) = self.open(&address, deadline).await?;
+        let opened = self.open(&address, deadline).await;
+        retire_streams_conn(hop).await;
+        let (conn, coord_versions) = opened?;
         Ok((conn, known.moved_to(&address, coord_versions.api_keys)))
     }
 
@@ -654,6 +684,44 @@ mod tests {
     use std::sync::Arc;
     use std::time::{Duration, Instant};
     use tokio::io::AsyncReadExt;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn replacing_a_streams_socket_lets_the_broker_leave() {
+        use super::retire_streams_conn;
+        use crate::net::BrokerConn;
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let open = Arc::new(AtomicUsize::new(0));
+        let flag = Arc::clone(&open);
+        let peer = tokio::spawn(async move {
+            let Ok((mut socket, _)) = listener.accept().await else {
+                return;
+            };
+            let _started = flag.fetch_add(1, Ordering::SeqCst);
+            let mut buf = [0u8; 8];
+            loop {
+                match socket.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let conn = BrokerConn::connect(&addr, "streams-replace", Duration::from_secs(2))
+            .await
+            .unwrap();
+        while open.load(Ordering::SeqCst) == 0 {
+            tokio::task::yield_now().await;
+        }
+        retire_streams_conn(conn).await;
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "replacing a streams socket left the broker blocked in a read"
+        );
+        peer.abort();
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn remembered_sasl_timeout_closes_the_socket() {
