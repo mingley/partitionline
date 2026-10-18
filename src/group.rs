@@ -1635,7 +1635,7 @@ impl ConsumerGroup {
     /// Partitions with no committed offset return offset `-1`.
     /// Waits up to [`ConsumerConfig::request_timeout`].
     pub async fn committed(&mut self) -> Result<Vec<(TopicPartition, OffsetAndMetadata)>> {
-        let assigned = self.assignment();
+        let assigned = self.consumer.assignment_cooperative().await;
         self.committed_for(assigned).await
     }
 
@@ -1644,7 +1644,7 @@ impl ConsumerGroup {
         &mut self,
         timeout: Duration,
     ) -> Result<Vec<(TopicPartition, OffsetAndMetadata)>> {
-        let assigned = self.assignment();
+        let assigned = self.consumer.assignment_cooperative().await;
         self.committed_for_timeout(assigned, timeout).await
     }
 
@@ -2512,16 +2512,20 @@ impl ConsumerGroup {
             if self.cfg.interceptors.is_empty() {
                 self.commit_shared_positions(&to_commit, timeout).await?;
             } else {
-                let owned: Vec<(TopicPartition, OffsetAndMetadata)> = to_commit
-                    .iter()
-                    .map(|(topic, partition, offset)| {
-                        let epoch = self.consumer.position_epoch(topic, *partition);
-                        (
-                            TopicPartition::new(topic.as_ref(), *partition),
-                            OffsetAndMetadata::from_wire(*offset, epoch, String::new()),
-                        )
-                    })
-                    .collect();
+                let mut owned = Vec::with_capacity(to_commit.len());
+                let mut walked = 0usize;
+                for (topic, partition, offset) in &to_commit {
+                    let epoch = self.consumer.position_epoch(topic, *partition);
+                    owned.push((
+                        TopicPartition::new(topic.as_ref(), *partition),
+                        OffsetAndMetadata::from_wire(*offset, epoch, String::new()),
+                    ));
+                    walked = walked.saturating_add(1);
+                    if walked == 8 * 1024 {
+                        walked = 0;
+                        tokio::task::yield_now().await;
+                    }
+                }
                 self.commit_with_metadata_timeout(owned, timeout).await?;
             }
             self.last_auto_commit = Instant::now();
@@ -2573,7 +2577,7 @@ impl ConsumerGroup {
         // KL-02: do not auto-commit on unsubscribe — poll-interval auto-commit
         // and explicit commit* are the only OffsetCommit paths for positions.
         *self.hb_deadline.lock() = None;
-        let revoked = self.assignment();
+        let revoked = self.consumer.assignment_cooperative().await;
         if self.kip848 {
             self.adopt_kip848_member_id();
         }
@@ -2696,7 +2700,7 @@ impl ConsumerGroup {
                     }
                 }
             }
-            let revoked = self.assignment();
+            let revoked = self.consumer.assignment_cooperative().await;
             self.consumer.clear_assignment();
             if !revoked.is_empty() {
                 self.cfg.rebalance.call(&revoked, &[]);
@@ -2962,8 +2966,8 @@ impl ConsumerGroup {
         Err(Error::protocol("cooperative-sticky did not settle"))
     }
 
-    fn join_protocol_entries(&self) -> Result<Vec<(String, Vec<u8>)>> {
-        let owned: Vec<(String, i32)> = self.assignment().into_iter().map(Into::into).collect();
+    async fn join_protocol_entries(&self) -> Result<Vec<(String, Vec<u8>)>> {
+        let owned = self.consumer.assignment_pairs_cooperative().await;
         let names = if self.assignors.is_empty() {
             vec![self.protocol.clone()]
         } else {
@@ -2983,7 +2987,7 @@ impl ConsumerGroup {
     }
 
     async fn rejoin_once(&mut self, deadline: Instant) -> Result<Vec<(String, i32)>> {
-        let entries = self.join_protocol_entries()?;
+        let entries = self.join_protocol_entries().await?;
         let protocols: Vec<JoinGroupProtocol<'_>> = entries
             .iter()
             .map(|(n, m)| JoinGroupProtocol::new(n, m))
@@ -3935,11 +3939,17 @@ impl ConsumerGroup {
                 return Err(Error::Timeout);
             }
             let mut partitions = Vec::with_capacity(reset_slots.len());
+            let mut walked_names = 0usize;
             for index in &reset_slots {
                 let Some((topic, part)) = wanted.get(*index) else {
                     return Err(Error::protocol("ListOffsets returned no reset offset"));
                 };
                 partitions.push(TopicPartition::new(topic.as_str(), *part));
+                walked_names = walked_names.saturating_add(1);
+                if walked_names == 8 * 1024 {
+                    walked_names = 0;
+                    tokio::task::yield_now().await;
+                }
             }
             let listed = match reset {
                 AutoOffsetReset::Earliest => {

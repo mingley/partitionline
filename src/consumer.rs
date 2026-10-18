@@ -3472,6 +3472,34 @@ impl Consumer {
             .collect()
     }
 
+    pub(crate) async fn assignment_cooperative(&self) -> Vec<TopicPartition> {
+        let mut out = Vec::with_capacity(self.assigned.len());
+        let mut walked = 0usize;
+        for (topic, partition, _) in &self.assigned {
+            out.push(TopicPartition::new(topic.as_ref(), *partition));
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+        out
+    }
+
+    pub(crate) async fn assignment_pairs_cooperative(&self) -> Vec<(String, i32)> {
+        let mut out = Vec::with_capacity(self.assigned.len());
+        let mut walked = 0usize;
+        for (topic, partition, _) in &self.assigned {
+            out.push((topic.as_ref().to_owned(), *partition));
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+        out
+    }
+
     /// Same as [`Self::assignment`].
     #[must_use]
     pub fn assigned_partitions(&self) -> Vec<TopicPartition> {
