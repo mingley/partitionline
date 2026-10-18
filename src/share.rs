@@ -1518,7 +1518,7 @@ pub enum ShareAcquireMode {
 /// request carries a voter key that does not match the local key.
 /// A piggybacked
 /// `DUPLICATE_VOTER` still completes without retry,
-/// including when `AcknowledgeErrorMessage` is set (Java
+/// including when `AcknowledgeErrorMessage` is set or empty (Java
 /// `handleShareFetchSuccess` completes piggyback acks and still
 /// delivers the fetch; this is not partition
 /// `DUPLICATE_VOTER`, which fails that poll, and not piggyback
@@ -3820,7 +3820,7 @@ impl ShareGroup {
     /// request carries a voter key that does not match the local key.
     /// A piggybacked `DUPLICATE_VOTER` still completes
     /// without retry, including when `AcknowledgeErrorMessage` is set
-    /// (Java `handleShareFetchSuccess` completes piggyback acks and still
+    /// or empty (Java `handleShareFetchSuccess` completes piggyback acks and still
     /// delivers the fetch; this is not partition
     /// `DUPLICATE_VOTER`, which fails that poll, and not piggyback
     /// `INVALID_VOTER_KEY`). Official Java

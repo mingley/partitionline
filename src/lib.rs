@@ -2643,7 +2643,7 @@
 //! request carries a voter key that does not match the local key.
 //! A piggybacked
 //! `DUPLICATE_VOTER` still completes without retry,
-//! including when `AcknowledgeErrorMessage` is set (this is not
+//! including when `AcknowledgeErrorMessage` is set or empty (this is not
 //! partition `DUPLICATE_VOTER`, which fails that poll, and not
 //! piggyback `INVALID_VOTER_KEY`). Official Java
 //! `AddVoterHandler` writes this when the AddRaftVoter request names
