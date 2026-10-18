@@ -1465,7 +1465,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `handleShareFetchSuccess` only `requestUpdate`s for top-level
   `UNKNOWN_TOPIC_ID`).
   Top-level `CLUSTER_AUTHORIZATION_FAILED` still fails that poll
-  without Metadata, including when `ErrorMessage` is set (Java
+  without Metadata, including when `ErrorMessage` is set or empty (Java
   `handleShareFetchSuccess` only `requestUpdate`s for top-level
   `UNKNOWN_TOPIC_ID`; this is not top-level
   `GROUP_AUTHORIZATION_FAILED`). Official Java `AclEntry` writes this
