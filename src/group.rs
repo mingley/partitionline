@@ -317,6 +317,94 @@ pub fn assign_range_subscribed(
     out
 }
 
+/// [`assign_range_subscribed`], yielding while a long partition list is assigned.
+pub async fn assign_range_subscribed_cooperative(
+    member_subs: &[(String, Vec<String>)],
+    topics: &[(String, Vec<i32>)],
+) -> HashMap<String, Vec<(String, i32)>> {
+    let mut out: HashMap<String, Vec<(String, i32)>> = HashMap::new();
+    for (member, _) in member_subs {
+        let _ = out.insert(member.clone(), Vec::new());
+    }
+    let members_by_topic = members_by_topic(member_subs);
+    for (topic, parts) in topics {
+        let members = members_by_topic
+            .get(topic.as_str())
+            .map(Vec::as_slice)
+            .unwrap_or(&[]);
+        let assigned = assign_range_names_cooperative(members, parts).await;
+        for (member, ps) in assigned {
+            if let Some(slot) = out.get_mut(&member) {
+                let mut walked = 0usize;
+                for partition in ps {
+                    slot.push((topic.clone(), partition));
+                    walked = walked.saturating_add(1);
+                    if walked == 8 * 1024 {
+                        walked = 0;
+                        tokio::task::yield_now().await;
+                    }
+                }
+            }
+        }
+    }
+    out
+}
+
+async fn assign_range_names_cooperative(
+    members: &[&str],
+    partitions: &[i32],
+) -> HashMap<String, Vec<i32>> {
+    let mut order = members.to_vec();
+    order.sort_unstable();
+    order.dedup();
+    let mut sorted = Vec::new();
+    let mut walked = 0usize;
+    for partition in partitions
+        .iter()
+        .copied()
+        .filter(|partition| *partition >= 0)
+    {
+        sorted.push(partition);
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    sorted.sort_unstable();
+    sorted.dedup();
+    let mut out: HashMap<String, Vec<i32>> = HashMap::new();
+    for member in &order {
+        let _ = out.insert((*member).to_owned(), Vec::new());
+    }
+    let n = order.len();
+    if n == 0 {
+        return out;
+    }
+    let np = sorted.len();
+    let base = np / n;
+    let extra = np % n;
+    let mut idx = 0usize;
+    walked = 0;
+    for (i, member) in order.iter().enumerate() {
+        let take = base + usize::from(i < extra);
+        for _ in 0..take {
+            if let Some(partition) = sorted.get(idx) {
+                if let Some(slot) = out.get_mut(*member) {
+                    slot.push(*partition);
+                }
+            }
+            idx = idx.saturating_add(1);
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+    }
+    out
+}
+
 /// `(member_id, owned topic-partitions, generation_id)` for
 /// [`resolve_sticky_owned_partitions`].
 type StickyOwnedClaim = (String, Vec<(String, i32)>, i32);
@@ -3021,7 +3109,7 @@ impl ConsumerGroup {
                 "sticky" => {
                     assign_sticky_subscribed_cooperative(&member_subs, &by_topic, &owned_prev).await
                 }
-                _ => assign_range_subscribed(&member_subs, &by_topic),
+                _ => assign_range_subscribed_cooperative(&member_subs, &by_topic).await,
             };
             self.prev_assignment = map.clone();
             map.into_iter()
@@ -6690,6 +6778,23 @@ mod tests {
     use std::time::Duration;
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
     use tokio::net::TcpListener;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn assigning_many_range_partitions_does_not_hold_the_caller() {
+        let parts: Vec<i32> = (0..1_000_000).collect();
+        let subs = vec![("member".to_string(), vec!["orders".to_string()])];
+        let topics = vec![("orders".to_string(), parts)];
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = assign_range_subscribed_cooperative(&subs, &topics) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "assigning range partitions held the caller for {elapsed:?}"
+        );
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn assigning_many_sticky_partitions_does_not_hold_the_caller() {
