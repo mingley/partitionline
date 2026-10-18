@@ -4185,19 +4185,27 @@ async fn leave_coordinator(
     }
     let bound = crate::net::Deadline::from_std(deadline);
     let (mut hop, version, _) = open_coord_with_keys(cfg, addr, bootstrap_keys).await.ok()?;
-    let coord_addr = coordinator_address_of(&mut hop, version, group_id, COORDINATOR_GROUP, bound)
-        .await
-        .ok()?;
+    let Some(coord_addr) =
+        coordinator_address_of(&mut hop, version, group_id, COORDINATOR_GROUP, bound)
+            .await
+            .ok()
+    else {
+        retire_lookup_conn(hop).await;
+        return None;
+    };
     if coord_addr == hop.addr() {
         return Some(hop);
     }
-    if let Some(known) = prior.get(&coord_addr) {
-        return connect_known_coord(cfg, known).await.ok();
-    }
-    open_coord_with_find_version(cfg, &coord_addr)
-        .await
-        .ok()
-        .map(|(conn, _, _)| conn)
+    let opened = if let Some(known) = prior.get(&coord_addr) {
+        connect_known_coord(cfg, known).await.ok()
+    } else {
+        open_coord_with_find_version(cfg, &coord_addr)
+            .await
+            .ok()
+            .map(|(conn, _, _)| conn)
+    };
+    retire_lookup_conn(hop).await;
+    opened
 }
 
 #[expect(
@@ -5225,6 +5233,15 @@ async fn retire_group_conn(conn: &mut Option<BrokerConn>) {
     }
 }
 
+/// Shut a lookup socket down before another connection replaces it.
+///
+/// Dropping the connection aborts its idle watch, so the broker stays in its
+/// read until that watch is scheduled.
+async fn retire_lookup_conn(mut conn: BrokerConn) {
+    conn.close();
+    conn.release_if_closed().await;
+}
+
 /// Reconnect an idle coordinator while its address is checked again.
 ///
 /// The first connection still uses a normal lookup. An idle socket keeps its
@@ -5682,26 +5699,33 @@ async fn find_coordinator_on(
     let (err, _node, host, port) = decode_find_coordinator_response(&mut body.clone(), version)
         .map_err(|e| group_decode_context(e, "FindCoordinator", version, body.len()))?;
     if err != 0 {
-        return Err(Error::broker(err, "FindCoordinator"));
+        let error = Err(Error::broker(err, "FindCoordinator"));
+        retire_lookup_conn(hop).await;
+        return error;
     }
     let Some(coord_addr) = crate::cluster::dial_address(&host, port) else {
-        return Err(Error::protocol("invalid coordinator address"));
+        let error = Err(Error::protocol("invalid coordinator address"));
+        retire_lookup_conn(hop).await;
+        return error;
     };
     if coord_addr == hop.addr() {
         return Ok((hop, versions));
     }
     if let Some(ready) = ready {
         if let Some((conn, _, versions)) = take_ready_handshake(ready, &coord_addr) {
+            retire_lookup_conn(hop).await;
             return Ok((conn, versions));
         }
     }
     let bounded = bounded_coord_config(cfg, deadline)?;
-    let (conn, _, versions) = open_remembered_dial(
+    let opened = open_remembered_dial(
         &bounded,
         &coord_addr,
         remembered_dial(&coord_addr, cfg, known, prior),
     )
-    .await?;
+    .await;
+    retire_lookup_conn(hop).await;
+    let (conn, _, versions) = opened?;
     Ok((conn, versions))
 }
 
@@ -5954,7 +5978,9 @@ async fn locate_known_coordinator(
         let bounded = bounded_coord_config(cfg, deadline)?;
         let (mut hop, version, _) =
             open_coord_with_keys(&bounded, bootstrap, &known.bootstrap_keys).await?;
-        return coordinator_address_of(&mut hop, version, group_id, key_type, deadline).await;
+        let address = coordinator_address_of(&mut hop, version, group_id, key_type, deadline).await;
+        retire_lookup_conn(hop).await;
+        return address;
     }
     let deadline = crate::net::Deadline::from_std(deadline);
     let bounded = bounded_coord_config(cfg, deadline)?;
@@ -5971,10 +5997,14 @@ async fn locate_known_coordinator(
     let (err, _node, host, port) = decode_find_coordinator_response(&mut body.clone(), version)
         .map_err(|e| group_decode_context(e, "FindCoordinator", version, body.len()))?;
     if err != 0 {
-        return Err(Error::broker(err, "FindCoordinator"));
+        let error = Err(Error::broker(err, "FindCoordinator"));
+        retire_lookup_conn(hop).await;
+        return error;
     }
-    crate::cluster::dial_address(&host, port)
-        .ok_or_else(|| Error::protocol("invalid coordinator address"))
+    let address = crate::cluster::dial_address(&host, port)
+        .ok_or_else(|| Error::protocol("invalid coordinator address"));
+    retire_lookup_conn(hop).await;
+    address
 }
 
 async fn rediscover_coord(
@@ -6003,7 +6033,11 @@ async fn rediscover_coord(
                 if addr == previous {
                     return Ok(opened?.0);
                 }
-                return Ok(open_coord_with_find_version(&bounded, &addr).await?.0);
+                let next = open_coord_with_find_version(&bounded, &addr).await;
+                if let Ok((conn, _, _)) = opened {
+                    retire_lookup_conn(conn).await;
+                }
+                return Ok(next?.0);
             }
         };
         if addr == previous {
@@ -6030,7 +6064,9 @@ async fn locate_coordinator_address(
         return Err(Error::protocol("find coordinator failed"));
     };
     let (mut hop, version, _) = open_coord_with_find_version(&bounded, addr).await?;
-    coordinator_address_of(&mut hop, version, group_id, key_type, deadline).await
+    let address = coordinator_address_of(&mut hop, version, group_id, key_type, deadline).await;
+    retire_lookup_conn(hop).await;
+    address
 }
 
 async fn coordinator_address_of(
@@ -6390,6 +6426,43 @@ mod tests {
     use std::time::Duration;
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
     use tokio::net::TcpListener;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn replacing_a_lookup_socket_lets_the_broker_leave() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let open = Arc::new(AtomicUsize::new(0));
+        let flag = Arc::clone(&open);
+        let peer = tokio::spawn(async move {
+            let Ok((mut socket, _)) = listener.accept().await else {
+                return;
+            };
+            let _started = flag.fetch_add(1, Ordering::SeqCst);
+            let mut buf = [0u8; 8];
+            loop {
+                match socket.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let conn = BrokerConn::connect(&addr, "lookup-replace", Duration::from_secs(2))
+            .await
+            .unwrap();
+        while open.load(Ordering::SeqCst) == 0 {
+            tokio::task::yield_now().await;
+        }
+        retire_lookup_conn(conn).await;
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "replacing a lookup socket left the broker blocked in a read"
+        );
+        peer.abort();
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn retiring_a_coordinator_lets_the_broker_leave() {
