@@ -3654,7 +3654,7 @@
 //! this when a JoinGroup dynamic member has an unknown member id.
 //! Top-level ShareAcknowledge `GROUP_MAX_SIZE_REACHED` completes
 //! without retry and does not request Metadata, including when
-//! `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+//! `ErrorMessage` is set or empty (Java `handleShareAcknowledgeSuccess` has no
 //! `metadata.requestUpdate`; this is not top-level
 //! `MEMBER_ID_REQUIRED`). Official Java `GroupMetadataManager` writes
 //! this when a JoinGroup would exceed the classic group max size.

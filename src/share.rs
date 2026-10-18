@@ -2624,7 +2624,7 @@ pub enum ShareAcquireMode {
 /// member id. A top-level
 /// ShareAcknowledge `GROUP_MAX_SIZE_REACHED` completes without
 /// retry and does not request Metadata, including when `ErrorMessage`
-/// is set (Java `handleShareAcknowledgeSuccess` has no
+/// is set or empty (Java `handleShareAcknowledgeSuccess` has no
 /// `metadata.requestUpdate`; this is not top-level
 /// `MEMBER_ID_REQUIRED`). Official Java `GroupMetadataManager`
 /// writes this when a JoinGroup would exceed the classic group max
@@ -5934,7 +5934,7 @@ impl ShareGroup {
     /// dynamic member has an unknown member id.
     /// A top-level ShareAcknowledge `GROUP_MAX_SIZE_REACHED`
     /// completes without retry and does not request Metadata,
-    /// including when `ErrorMessage` is set (Java
+    /// including when `ErrorMessage` is set or empty (Java
     /// `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`;
     /// this is not top-level `MEMBER_ID_REQUIRED`). Official
     /// Java `GroupMetadataManager` writes this when a JoinGroup
