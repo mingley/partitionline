@@ -2720,7 +2720,7 @@ pub enum ShareAcquireMode {
 /// exist. A top-level
 /// ShareAcknowledge `DUPLICATE_RESOURCE` completes without
 /// retry and does not request Metadata, including when `ErrorMessage`
-/// is set (Java `handleShareAcknowledgeSuccess` has no
+/// is set or empty (Java `handleShareAcknowledgeSuccess` has no
 /// `metadata.requestUpdate`; this is not top-level
 /// `RESOURCE_NOT_FOUND`). Official Java `ScramImage`
 /// DescribeUserScramCredentials writes this when the same user is
@@ -6128,7 +6128,7 @@ impl ShareGroup {
     /// the user does not exist.
     /// A top-level ShareAcknowledge `DUPLICATE_RESOURCE`
     /// completes without retry and does not request Metadata,
-    /// including when `ErrorMessage` is set (Java
+    /// including when `ErrorMessage` is set or empty (Java
     /// `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`;
     /// this is not top-level `RESOURCE_NOT_FOUND`). Official Java
     /// `ScramImage` DescribeUserScramCredentials writes this when
