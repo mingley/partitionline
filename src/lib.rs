@@ -3374,6 +3374,12 @@
 //! `metadata.requestUpdate`; this is not top-level
 //! `POLICY_VIOLATION`). Official Java `ProducerAppendInfo` writes
 //! this when an idempotent produce batch is not the next expected sequence for that producerId.
+//! Top-level ShareAcknowledge `INVALID_PRODUCER_EPOCH` completes
+//! without retry and does not request Metadata, including when
+//! `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+//! `metadata.requestUpdate`; this is not top-level
+//! `OUT_OF_ORDER_SEQUENCE_NUMBER`). Official Java `ProducerAppendInfo` writes
+//! this when an idempotent produce batch uses a producer epoch older than the current epoch for that producerId.
 //! Top-level ShareAcknowledge
 //! `SHARE_SESSION_LIMIT_REACHED` completes without retry and advances
 //! the session epoch (Java `ShareSessionHandler.handleResponse`
