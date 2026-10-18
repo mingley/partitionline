@@ -967,60 +967,65 @@ fn covered_len(run: &AcquisitionRun, sent: &[AcknowledgementBatch]) -> usize {
         .fold(0usize, usize::saturating_add)
 }
 
-fn expand_partial_runs(
-    runs: &mut Vec<AcquisitionRun>,
-    partition: i32,
+fn merged_ack_cuts(first: i64, last: i64, sent: &[AcknowledgementBatch]) -> Vec<(i64, i64)> {
+    let mut cuts = Vec::new();
+    for batch in sent {
+        let start = batch.first_offset.max(first);
+        let end = batch.last_offset.min(last);
+        if start <= end {
+            cuts.push((start, end));
+        }
+    }
+    cuts.sort_unstable();
+    let mut merged: Vec<(i64, i64)> = Vec::new();
+    for (start, end) in cuts {
+        if let Some((_, prev_end)) = merged.last_mut() {
+            if start <= prev_end.saturating_add(1) {
+                if end > *prev_end {
+                    *prev_end = end;
+                }
+                continue;
+            }
+        }
+        merged.push((start, end));
+    }
+    merged
+}
+
+/// Covered and uncovered pieces of one run, in offset order.
+fn partial_ack_spans(
+    first: i64,
+    last: i64,
     sent: &[AcknowledgementBatch],
-) {
-    let mut extra = 0usize;
-    for run in runs.iter() {
-        if run.partition != partition {
-            continue;
+) -> Vec<(i64, i64, bool)> {
+    let mut spans = Vec::new();
+    let mut cursor = first;
+    for (start, end) in merged_ack_cuts(first, last, sent) {
+        if cursor < start {
+            spans.push((cursor, start.saturating_sub(1), false));
         }
-        let covered = covered_len(run, sent);
-        let whole = span_len(run.first, run.last);
-        if covered > 0 && covered < whole {
-            extra = extra.saturating_add(whole.saturating_sub(1));
+        spans.push((start, end, true));
+        if end == i64::MAX {
+            return spans;
         }
+        let next = end.saturating_add(1);
+        if next <= end {
+            return spans;
+        }
+        cursor = next;
     }
-    if extra == 0 {
-        return;
+    if cursor <= last {
+        spans.push((cursor, last, false));
     }
-    let Some(dummy) = runs.first().copied() else {
-        return;
-    };
-    let old = runs.len();
-    runs.resize(old.saturating_add(extra), dummy);
-    let mut write = runs.len();
-    for read in (0..old).rev() {
-        let Some(run) = runs.get(read).copied() else {
-            continue;
-        };
-        let whole = span_len(run.first, run.last);
-        let covered = covered_len(&run, sent);
-        if run.partition != partition || covered == 0 || covered >= whole {
-            write = write.saturating_sub(1);
-            if let Some(slot) = runs.get_mut(write) {
-                *slot = run;
-            }
-            continue;
-        }
-        let mut offset = run.last;
-        loop {
-            write = write.saturating_sub(1);
-            if let Some(slot) = runs.get_mut(write) {
-                *slot = AcquisitionRun {
-                    partition: run.partition,
-                    first: offset,
-                    last: offset,
-                    acquisition: run.acquisition,
-                };
-            }
-            if offset == run.first || offset == i64::MIN {
-                break;
-            }
-            offset = offset.saturating_sub(1);
-        }
+    spans
+}
+
+fn replace_acquisition_runs(runs: &mut Vec<AcquisitionRun>, kept: Vec<AcquisitionRun>) {
+    if kept.len() <= runs.capacity() {
+        runs.clear();
+        runs.extend(kept);
+    } else {
+        *runs = kept;
     }
 }
 
@@ -1029,10 +1034,30 @@ fn drop_covered_runs(
     partition: i32,
     sent: &[AcknowledgementBatch],
 ) {
-    expand_partial_runs(runs, partition, sent);
-    runs.retain(|run| {
-        run.partition != partition || covered_len(run, sent) < span_len(run.first, run.last)
-    });
+    let mut kept = Vec::new();
+    for run in runs.iter().copied() {
+        if run.partition != partition {
+            kept.push(run);
+            continue;
+        }
+        let whole = span_len(run.first, run.last);
+        let covered = covered_len(&run, sent);
+        if covered == 0 {
+            kept.push(run);
+        } else if covered < whole {
+            for (first, last, is_covered) in partial_ack_spans(run.first, run.last, sent) {
+                if !is_covered {
+                    kept.push(AcquisitionRun {
+                        partition,
+                        first,
+                        last,
+                        acquisition: run.acquisition,
+                    });
+                }
+            }
+        }
+    }
+    replace_acquisition_runs(runs, kept);
 }
 
 fn drop_covered_acquisitions(
@@ -1050,12 +1075,33 @@ fn renew_covered_runs(
     sent: &[AcknowledgementBatch],
     expiry: Option<Instant>,
 ) {
-    expand_partial_runs(runs, partition, sent);
-    for run in runs.iter_mut() {
-        if run.partition == partition && covered_len(run, sent) >= span_len(run.first, run.last) {
-            run.acquisition.expires_at = expiry;
+    let mut kept = Vec::new();
+    for run in runs.iter().copied() {
+        if run.partition != partition {
+            kept.push(run);
+            continue;
+        }
+        let whole = span_len(run.first, run.last);
+        let covered = covered_len(&run, sent);
+        if covered == 0 {
+            kept.push(run);
+        } else if covered >= whole {
+            let mut renewed = run;
+            renewed.acquisition.expires_at = expiry;
+            kept.push(renewed);
+        } else {
+            for (first, last, is_covered) in partial_ack_spans(run.first, run.last, sent) {
+                let mut piece = run;
+                piece.first = first;
+                piece.last = last;
+                if is_covered {
+                    piece.acquisition.expires_at = expiry;
+                }
+                kept.push(piece);
+            }
         }
     }
+    replace_acquisition_runs(runs, kept);
 }
 
 fn renew_covered_acquisitions(
@@ -5308,7 +5354,9 @@ impl ShareGroup {
                         name.as_ref(),
                         part.partition,
                         sent,
-                    ) {
+                    )
+                    .await
+                    {
                         cleared = true;
                     }
                 } else {
@@ -6622,8 +6670,39 @@ async fn index_ack_partition_slots(
     slots
 }
 
+#[derive(Clone, Copy)]
+struct AckBatchKey<'a> {
+    first: i64,
+    last: i64,
+    types: &'a [i8],
+}
+
+impl PartialEq for AckBatchKey<'_> {
+    fn eq(&self, other: &Self) -> bool {
+        self.first == other.first && self.last == other.last && self.types == other.types
+    }
+}
+
+impl Eq for AckBatchKey<'_> {}
+
+impl std::hash::Hash for AckBatchKey<'_> {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.first.hash(state);
+        self.last.hash(state);
+        self.types.hash(state);
+    }
+}
+
+fn ack_batch_key(batch: &AcknowledgementBatch) -> AckBatchKey<'_> {
+    AckBatchKey {
+        first: batch.first_offset,
+        last: batch.last_offset,
+        types: batch.types.as_slice(),
+    }
+}
+
 /// Remove batches that were acknowledged, leaving emptied rows for one later compact.
-fn clear_indexed_ack_batches(
+async fn clear_indexed_ack_batches(
     partitions: &mut [AckPartition],
     slots: &HashMap<Arc<str>, HashMap<i32, Vec<usize>>>,
     topic: &str,
@@ -6633,13 +6712,41 @@ fn clear_indexed_ack_batches(
     let Some(indexes) = slots.get(topic).and_then(|parts| parts.get(&partition)) else {
         return false;
     };
+    let mut sent_set = HashSet::with_capacity(sent.len());
+    let mut walked = 0usize;
+    for batch in sent {
+        let _ = sent_set.insert(ack_batch_key(batch));
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
     let mut cleared = false;
     for index in indexes {
         let Some((_, _, batches)) = partitions.get_mut(*index) else {
             continue;
         };
         let before = batches.len();
-        batches.retain(|batch| !sent.contains(batch));
+        let mut write = 0usize;
+        let mut seen = 0usize;
+        for read in 0..batches.len() {
+            let keep = batches
+                .get(read)
+                .is_some_and(|batch| !sent_set.contains(&ack_batch_key(batch)));
+            if keep {
+                if write != read {
+                    batches.swap(write, read);
+                }
+                write = write.saturating_add(1);
+            }
+            seen = seen.saturating_add(1);
+            if seen == 8 * 1024 {
+                seen = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+        batches.truncate(write);
         if before > 0 && batches.is_empty() {
             cleared = true;
         }
@@ -7573,8 +7680,9 @@ mod tests {
         drop_sent_ack_batches(&mut one, "orders", 1, &[batch(5)]);
         let mut indexed = pending;
         let slots = index_ack_partition_slots(&indexed).await;
-        let mut cleared = clear_indexed_ack_batches(&mut indexed, &slots, "orders", 0, &[batch(1)]);
-        cleared |= clear_indexed_ack_batches(&mut indexed, &slots, "orders", 1, &[batch(5)]);
+        let mut cleared =
+            clear_indexed_ack_batches(&mut indexed, &slots, "orders", 0, &[batch(1)]).await;
+        cleared |= clear_indexed_ack_batches(&mut indexed, &slots, "orders", 1, &[batch(5)]).await;
         drop_empty_ack_partitions(&mut indexed, cleared).await;
         assert_eq!(indexed, one);
     }
@@ -7864,6 +7972,75 @@ mod tests {
         assert_eq!(fresh_topics.capacity(), topic_capacity);
     }
 
+    #[tokio::test(flavor = "current_thread")]
+    async fn splitting_a_large_acquisition_does_not_hold_the_caller() {
+        // One offset inside 2_000_000: splitting the run held the caller 166ms.
+        let acquisition = Acquisition {
+            node: 1,
+            delivery_count: 1,
+            expires_at: None,
+        };
+        let mut runs = vec![AcquisitionRun {
+            partition: 0,
+            first: 0,
+            last: 1_999_999,
+            acquisition,
+        }];
+        let started = std::time::Instant::now();
+        tokio::select! {
+            () = async {
+                drop_covered_runs(
+                    &mut runs,
+                    0,
+                    &[AcknowledgementBatch {
+                        first_offset: 10,
+                        last_offset: 10,
+                        types: vec![ACK_ACCEPT],
+                    }],
+                );
+            } => {
+                assert_eq!(runs.len(), 2);
+                assert_eq!(runs.first().map(|run| (run.first, run.last)), Some((0, 9)));
+                assert_eq!(
+                    runs.get(1).map(|run| (run.first, run.last)),
+                    Some((11, 1_999_999))
+                );
+            }
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "splitting an acquisition held the caller for {elapsed:?}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn clearing_many_ack_batches_does_not_hold_the_caller() {
+        // 12_000 batches: matching acknowledged batches held the caller 231ms.
+        let batch = |offset: i64| AcknowledgementBatch {
+            first_offset: offset,
+            last_offset: offset,
+            types: vec![ACK_ACCEPT],
+        };
+        let batches: Vec<_> = (0..12_000).map(batch).collect();
+        let mut partitions = vec![(Arc::<str>::from("orders"), 0, batches.clone())];
+        let slots = index_ack_partition_slots(&partitions).await;
+        let started = std::time::Instant::now();
+        tokio::select! {
+            cleared = clear_indexed_ack_batches(&mut partitions, &slots, "orders", 0, &batches) => {
+                assert!(cleared);
+                assert!(partitions.first().is_some_and(|part| part.2.is_empty()));
+            }
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "clearing acknowledgement batches held the caller for {elapsed:?}"
+        );
+    }
+
     #[test]
     fn a_partial_ack_keeps_the_acquisition_buffer() {
         let acquisition = Acquisition {
@@ -7892,6 +8069,33 @@ mod tests {
         assert_eq!(runs.len(), 2);
         assert_eq!(runs.first().map(|run| (run.first, run.last)), Some((1, 1)));
         assert_eq!(runs.get(1).map(|run| (run.first, run.last)), Some((4, 4)));
+        let expiry = Some(std::time::Instant::now());
+        let renewed = expiry.map(|at| at + std::time::Duration::from_secs(5));
+        let mut live = vec![AcquisitionRun {
+            partition: 0,
+            first: 1,
+            last: 4,
+            acquisition: Acquisition {
+                expires_at: expiry,
+                ..acquisition
+            },
+        }];
+        renew_covered_runs(
+            &mut live,
+            0,
+            &[AcknowledgementBatch {
+                first_offset: 2,
+                last_offset: 3,
+                types: vec![ACK_ACCEPT],
+            }],
+            renewed,
+        );
+        assert_eq!(
+            live.iter()
+                .map(|run| (run.first, run.last, run.acquisition.expires_at))
+                .collect::<Vec<_>>(),
+            vec![(1, 1, expiry), (2, 3, renewed), (4, 4, expiry)]
+        );
     }
 
     #[test]
