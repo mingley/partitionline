@@ -1619,14 +1619,13 @@ fn refill_stale_names(dest: &mut Vec<String>, names: &[String], fresh: impl Fn(&
 }
 
 fn fill_unique_names<'a>(names: &mut Vec<String>, topics: impl Iterator<Item = &'a str>) {
+    let mut seen: HashSet<String> = HashSet::new();
     let mut used = 0usize;
     for topic in topics {
-        let seen = names
-            .get(..used)
-            .is_some_and(|prefix| prefix.iter().any(|name| name == topic));
-        if seen {
+        if seen.contains(topic) {
             continue;
         }
+        let _ = seen.insert(topic.to_string());
         if let Some(slot) = names.get_mut(used) {
             if slot != topic {
                 slot.clear();
@@ -7192,6 +7191,25 @@ mod tests {
             cached.as_ref().map(Arc::as_ptr),
             Some(Arc::as_ptr(&payments))
         );
+    }
+
+    #[test]
+    fn filling_many_unique_names_does_not_hold_the_caller() {
+        // 20_000 names: scanning earlier names held the caller 1.18s.
+        let topics: Vec<String> = (0..20_000).map(|index| format!("t{index}")).collect();
+        let mut names = Vec::new();
+        let started = std::time::Instant::now();
+        super::fill_unique_names(&mut names, topics.iter().map(String::as_str));
+        let elapsed = started.elapsed();
+        assert_eq!(names.len(), 20_000);
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "filling unique names held the caller for {elapsed:?}"
+        );
+        let ptr = names.first().map(|name| name.as_ptr());
+        super::fill_unique_names(&mut names, topics.iter().map(String::as_str));
+        assert_eq!(names.first().map(|name| name.as_ptr()), ptr);
+        assert_eq!(names.get(1).map(String::as_str), Some("t1"));
     }
 
     #[test]
