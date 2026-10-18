@@ -2088,7 +2088,9 @@ impl ConsumerGroup {
             self.check_kip848_membership().await?;
             self.apply_pending_assignment().await?;
         }
-        let offsets = crate::offsets::collect_bounded_commits(self.assigned_commit_offsets())?;
+        let offsets = crate::offsets::collect_bounded_commits(
+            self.consumer.delivered_commit_offsets_cooperative().await,
+        )?;
         self.commit_prepared_offsets(&offsets, timeout.saturating_sub(started.elapsed()))
             .await?;
         self.snapshot_delivered_positions();
@@ -2677,7 +2679,7 @@ impl ConsumerGroup {
         let rejoining = !self.member_id.is_empty();
         if rejoining {
             if self.cfg.enable_auto_commit {
-                let to_commit = self.assigned_commit_offsets();
+                let to_commit = self.consumer.delivered_commit_offsets_cooperative().await;
                 if !to_commit.is_empty() {
                     let timeout = deadline.saturating_duration_since(Instant::now());
                     if timeout.is_zero() {
@@ -3575,7 +3577,8 @@ impl ConsumerGroup {
             let revoked_parts = index_revoked(&revoked).await;
             let to_commit: Vec<(TopicPartition, OffsetAndMetadata)> = self
                 .consumer
-                .positions()
+                .positions_cooperative()
+                .await
                 .into_iter()
                 .filter(|(tp, offset)| {
                     position_is_committable(*offset)

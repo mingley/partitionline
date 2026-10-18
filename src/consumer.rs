@@ -3537,6 +3537,56 @@ impl Consumer {
         out
     }
 
+    pub(crate) async fn delivered_commit_offsets_cooperative(
+        &self,
+    ) -> Vec<(TopicPartition, OffsetAndMetadata)> {
+        let mut cached_topic = std::ptr::null::<u8>();
+        let mut cached_name: Option<&str> = None;
+        let mut epochs: &[i32] = &[];
+        let mut pending_parts: Option<&HashMap<i32, VecDeque<FetchedRecord>>> = None;
+        let mut out = Vec::new();
+        let mut walked = 0usize;
+        for (slot, (topic, partition, offset)) in self.assigned.iter().enumerate() {
+            let built = {
+                if !reuse_topic_cache(&mut cached_topic, &mut cached_name, topic) {
+                    epochs = self.cluster.leader_epochs_of(topic.as_ref());
+                    pending_parts = self.pending.partitions.topic_partitions(topic.as_ref());
+                }
+                let front = pending_parts
+                    .and_then(|parts| parts.get(partition))
+                    .and_then(|records| records.front());
+                let delivered = front.map(|record| record.offset).unwrap_or(*offset);
+                defined_position(delivered).map(|position| {
+                    let epoch = crate::group::commit_position_epoch(
+                        front.and_then(|record| record.leader_epoch),
+                        self.fetched_epochs
+                            .get(slot)
+                            .copied()
+                            .unwrap_or(crate::RecordBatch::NO_PARTITION_LEADER_EPOCH),
+                        cached_epoch(epochs, *partition),
+                    );
+                    (
+                        TopicPartition::new(topic.as_ref(), *partition),
+                        OffsetAndMetadata::from_wire(position, epoch, String::new()),
+                    )
+                })
+            };
+            if let Some(item) = built {
+                out.push(item);
+            }
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                epochs = &[];
+                pending_parts = None;
+                cached_topic = std::ptr::null();
+                cached_name = None;
+                tokio::task::yield_now().await;
+            }
+        }
+        out
+    }
+
     /// Assigned partitions with their next consumable offsets (delivered positions).
     ///
     /// When [`ConsumerConfig::max_poll_records`] leaves fetched records buffered,
@@ -3552,6 +3602,38 @@ impl Consumer {
                 defined_position(pos).map(|pos| (TopicPartition::new(t.as_ref(), *p), pos))
             })
             .collect()
+    }
+
+    #[cfg(test)]
+    pub(crate) async fn collect_topic_partitions(parts: &[(Arc<str>, i32)]) -> Vec<TopicPartition> {
+        let mut out = Vec::with_capacity(parts.len());
+        let mut walked = 0usize;
+        for (topic, partition) in parts {
+            out.push(TopicPartition::new(topic.as_ref(), *partition));
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+        out
+    }
+
+    pub(crate) async fn positions_cooperative(&self) -> Vec<(TopicPartition, i64)> {
+        let mut out = Vec::new();
+        let mut walked = 0usize;
+        for (t, p, o) in &self.assigned {
+            let pos = self.delivered_position(t, *p, *o);
+            if let Some(pos) = defined_position(pos) {
+                out.push((TopicPartition::new(t.as_ref(), *p), pos));
+            }
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+        out
     }
 
     /// Broker fetch cursor (next offset to request from the broker) for an assigned partition.
@@ -11469,6 +11551,27 @@ mod tests {
     use std::collections::HashMap;
 
     use super::*;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn copying_many_positions_does_not_hold_the_caller() {
+        // 2_000_000 partitions: copying topic names held the caller 164ms.
+        let topic: Arc<str> = Arc::from("orders");
+        let parts: Vec<(Arc<str>, i32)> = (0..2_000_000)
+            .map(|partition| (Arc::clone(&topic), partition))
+            .collect();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            copied = Consumer::collect_topic_partitions(&parts) => {
+                assert_eq!(copied.len(), 2_000_000);
+            }
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "copying positions held the caller for {elapsed:?}"
+        );
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn indexing_many_assigned_cursors_does_not_hold_the_caller() {
