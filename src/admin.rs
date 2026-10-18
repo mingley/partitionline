@@ -4296,7 +4296,7 @@ impl Admin {
             }
             if !retry.is_empty() {
                 pending = Some(retry);
-                let _ = self.conns.remove(&node);
+                self.discard_node_conn(node).await;
                 self.forget_controller();
                 self.wait_retry(&mut attempt, deadline).await?;
                 continue;
@@ -6394,7 +6394,7 @@ impl Admin {
                 }
                 let node = self.cluster.controller()?;
                 if self.conns.get(&node).is_some_and(|conn| conn.is_closed()) {
-                    let _removed = self.conns.remove(&node);
+                    self.discard_node_conn(node).await;
                 }
                 self.prepare_node_until(node, deadline).await?;
                 let version = self
@@ -7820,7 +7820,7 @@ impl Admin {
             {
                 let known = [node];
                 self.cluster.invalidate_topic(&spec.topic);
-                let _ = self.conns.remove(&node);
+                self.discard_node_conn(node).await;
                 self.wait_retry(&mut attempt, deadline).await?;
                 let topics = [spec.topic.as_str()];
                 self.refresh_topics_while_dialing(&topics, &known, deadline)
@@ -8374,7 +8374,7 @@ impl Admin {
             .await;
             match result {
                 Err(error) if list_transactions_retryable(&error) && attempt < 7 => {
-                    let _ = self.conns.remove(&node);
+                    self.discard_node_conn(node).await;
                     if matches!(&error, Error::Io(_)) && budget.refreshes < 3 {
                         budget.refreshes += 1;
                         let _ = self.list_transactions_broker_ids(deadline).await?;
@@ -8392,7 +8392,7 @@ impl Admin {
             .get(&node)
             .is_some_and(|conn| conn.idle_expired(self.cfg.connections_max_idle))
         {
-            let _ = self.conns.remove(&node);
+            self.discard_node_conn(node).await;
         }
         if self.conns.contains_key(&node) {
             return Ok(());
@@ -8745,7 +8745,7 @@ impl Admin {
         if let Some(node) = self.controller_redial.take() {
             nodes.push(node);
         }
-        let dials = self.take_broker_dials(&nodes);
+        let dials = self.take_broker_dials(&nodes).await;
         if dials.is_empty() {
             return self.refresh_directory_metadata(deadline).await;
         }
@@ -8975,15 +8975,23 @@ impl Admin {
         }
     }
 
+    /// Drop a dedicated broker socket that a retry will not reuse.
+    ///
+    /// Removing it from the map drops the connection. The idle watch is aborted
+    /// with that drop, so the broker stays in its read until the watch is scheduled.
+    async fn discard_node_conn(&mut self, node: i32) {
+        if let Some(mut conn) = self.conns.remove(&node) {
+            conn.inner.close();
+            conn.inner.release_if_closed().await;
+        }
+    }
+
     async fn drop_node_conn(&mut self, node: i32) {
         if self.targets_bootstrap(node) {
             self.conn.close();
             self.conn.release_if_closed().await;
         }
-        if let Some(mut conn) = self.conns.remove(&node) {
-            conn.inner.close();
-            conn.inner.release_if_closed().await;
-        }
+        self.discard_node_conn(node).await;
     }
 
     /// Open the dedicated socket, or the bootstrap socket when `node` is that broker.
@@ -9026,7 +9034,7 @@ impl Admin {
                 .get(&node)
                 .is_some_and(|c| c.idle_expired(self.cfg.connections_max_idle))
             {
-                let _ = self.conns.remove(&node);
+                self.discard_node_conn(node).await;
             }
             if self.conns.contains_key(&node) {
                 return Ok(());
@@ -9351,19 +9359,20 @@ impl Admin {
                 for node in &nodes {
                     let idxs = by_node.get(node).cloned().unwrap_or_default();
                     let Some((spoken, body)) = finished.remove(node) else {
-                        let _ = self.conns.remove(node);
+                        self.discard_node_conn(*node).await;
                         still.extend(idxs);
                         continue;
                     };
                     match body {
                         Err(error) if error.is_retriable() => {
-                            let _ = self.conns.remove(node);
+                            self.discard_node_conn(*node).await;
                             still.extend(idxs);
                         }
                         Err(error) => return Err(error),
                         Ok(body) => {
                             let (done, retry) = self
-                                .apply_delete_records_body(*node, spoken, &records, &idxs, body)?;
+                                .apply_delete_records_body(*node, spoken, &records, &idxs, body)
+                                .await?;
                             for (i, low, err) in done {
                                 if let Some(slot) = out.get_mut(i) {
                                     *slot = Some((low, err));
@@ -9457,13 +9466,10 @@ impl Admin {
             )
             .await?;
         self.apply_delete_records_body(node, version, records, idxs, body)
+            .await
     }
 
-    #[expect(
-        clippy::type_complexity,
-        reason = "indexed low watermarks plus the partitions that must be retried"
-    )]
-    fn apply_delete_records_body(
+    async fn apply_delete_records_body(
         &mut self,
         node: i32,
         version: i16,
@@ -9504,7 +9510,7 @@ impl Admin {
             }
             let e = Error::broker(err, format!("{}-{}", tp.topic, tp.partition));
             if e.is_retriable() {
-                let _ = self.conns.remove(&node);
+                self.discard_node_conn(node).await;
                 retry.push(i);
             } else {
                 done.push((i, low, err));
@@ -9770,7 +9776,7 @@ impl Admin {
         known_nodes: &[i32],
         deadline: Instant,
     ) -> Result<()> {
-        let dials = self.take_broker_dials(known_nodes);
+        let dials = self.take_broker_dials(known_nodes).await;
         if dials.is_empty() {
             return self.refresh_metadata_ref(Some(need), deadline).await;
         }
@@ -9786,7 +9792,7 @@ impl Admin {
     /// Dial every leader together, then run one prepared RPC on each socket.
     /// A slow handshake does not hold the other leaders. Missing entries
     /// did not finish before `deadline`.
-    fn take_broker_dials(&mut self, nodes: &[i32]) -> Vec<(i32, String, Vec<ApiVersion>)> {
+    async fn take_broker_dials(&mut self, nodes: &[i32]) -> Vec<(i32, String, Vec<ApiVersion>)> {
         let mut dials = Vec::new();
         for &node in nodes {
             if self
@@ -9794,7 +9800,7 @@ impl Admin {
                 .get(&node)
                 .is_some_and(|conn| conn.idle_expired(self.cfg.connections_max_idle))
             {
-                let _ = self.conns.remove(&node);
+                self.discard_node_conn(node).await;
             }
             if self.conns.contains_key(&node) {
                 continue;
@@ -9954,7 +9960,7 @@ impl Admin {
                 .get(&node)
                 .is_some_and(|conn| conn.idle_expired(self.cfg.connections_max_idle))
             {
-                let _ = self.conns.remove(&node);
+                self.discard_node_conn(node).await;
             }
             if self.conns.contains_key(&node) {
                 waiting_rpc.push_back(node);
@@ -10160,13 +10166,14 @@ impl Admin {
             };
             match body {
                 Err(error) if error.is_retriable() => {
-                    let _ = self.conns.remove(&node);
+                    self.discard_node_conn(node).await;
                     still.extend(idxs);
                 }
                 Err(error) => return Err(error),
                 Ok(body) => {
-                    let (done, retry) =
-                        self.apply_list_offsets_body(node, version, queries, &idxs, body)?;
+                    let (done, retry) = self
+                        .apply_list_offsets_body(node, version, queries, &idxs, body)
+                        .await?;
                     for (i, offset) in done {
                         if let Some(slot) = out.get_mut(i) {
                             *slot = Some(offset);
@@ -10228,13 +10235,10 @@ impl Admin {
             )
             .await?;
         self.apply_list_offsets_body(node, version, queries, idxs, body)
+            .await
     }
 
-    #[expect(
-        clippy::type_complexity,
-        reason = "indexed offsets plus the partitions that must be retried"
-    )]
-    fn apply_list_offsets_body(
+    async fn apply_list_offsets_body(
         &mut self,
         node: i32,
         version: i16,
@@ -10283,7 +10287,7 @@ impl Admin {
                 error::FENCED_LEADER_EPOCH | error::UNKNOWN_LEADER_EPOCH
             ) || e.is_retriable()
             {
-                let _ = self.conns.remove(&node);
+                self.discard_node_conn(node).await;
                 retry.push(i);
             } else {
                 return Err(e);
@@ -10494,13 +10498,13 @@ impl Admin {
                 for node in &nodes {
                     let idxs = by_node.get(node).cloned().unwrap_or_default();
                     let Some((_version, body)) = finished.remove(node) else {
-                        let _ = self.conns.remove(node);
+                        self.discard_node_conn(*node).await;
                         still.extend(idxs);
                         continue;
                     };
                     match body {
                         Err(error) if error.is_retriable() => {
-                            let _ = self.conns.remove(node);
+                            self.discard_node_conn(*node).await;
                             still.extend(idxs);
                         }
                         Err(error) => return Err(error),
@@ -11246,7 +11250,7 @@ impl Admin {
                         for node in &nodes {
                             let idxs = by_node.get(node).cloned().unwrap_or_default();
                             let Some((version, body)) = finished.remove(node) else {
-                                let _ = self.conns.remove(node);
+                                self.discard_node_conn(*node).await;
                                 self.group_coord = None;
                                 next_remaining.extend(idxs);
                                 retry = true;
@@ -11254,7 +11258,7 @@ impl Admin {
                             };
                             match body {
                                 Err(error) if error.is_retriable() => {
-                                    let _ = self.conns.remove(node);
+                                    self.discard_node_conn(*node).await;
                                     self.group_coord = None;
                                     next_remaining.extend(idxs);
                                     retry = true;
@@ -11265,7 +11269,7 @@ impl Admin {
                                         version, &jobs, &idxs, body, &mut out,
                                     )? {
                                         self.group_coord = None;
-                                        let _ = self.conns.remove(node);
+                                        self.discard_node_conn(*node).await;
                                         next_remaining.extend(idxs);
                                         retry = true;
                                     }
@@ -13959,7 +13963,7 @@ impl Admin {
                 };
                 let resp = match body {
                     Err(error) if error.is_retriable() && !matches!(error, Error::Timeout) => {
-                        let _ = self.conns.remove(&broker_id);
+                        self.discard_node_conn(broker_id).await;
                         self.alter_replica_log_dirs_on(broker_id, &dirs, timeout)
                             .await?
                     }
@@ -14105,7 +14109,7 @@ impl Admin {
                 };
                 let resp = match body {
                     Err(error) if error.is_retriable() && !matches!(error, Error::Timeout) => {
-                        let _ = self.conns.remove(&broker_id);
+                        self.discard_node_conn(broker_id).await;
                         let topics = describable_topics_for_broker(&replicas, broker_id);
                         self.describe_log_dirs_with(Some(broker_id), timeout, |output, version| {
                             encode_describe_log_dirs_named(output, version, Some(topics.as_slice()))
@@ -14213,7 +14217,7 @@ impl Admin {
             };
             match body {
                 Err(error) if error.is_retriable() && !matches!(error, Error::Timeout) => {
-                    let _ = self.conns.remove(&broker_id);
+                    self.discard_node_conn(broker_id).await;
                     let resp = self.describe_log_dirs_on(broker_id, None, timeout).await?;
                     out.push((broker_id, resp));
                 }
@@ -14968,7 +14972,7 @@ impl Admin {
                     known_nodes.push(node);
                 }
             }
-            let dials = self.take_broker_dials(&known_nodes);
+            let dials = self.take_broker_dials(&known_nodes).await;
             let found = if dials.is_empty() {
                 self.discover_group_coords(&need, deadline).await?
             } else {
@@ -15051,7 +15055,7 @@ impl Admin {
                     known_nodes.push(node);
                 }
             }
-            let dials = self.take_broker_dials(&known_nodes);
+            let dials = self.take_broker_dials(&known_nodes).await;
             let found = if dials.is_empty() {
                 self.discover_txn_coords(&need, deadline).await?
             } else {
@@ -16117,6 +16121,69 @@ mod tests {
             open.load(Ordering::SeqCst),
             0,
             "dropping a group coordinator left the broker blocked in a read"
+        );
+        drop(admin);
+        leader_peer.abort();
+        other_peer.abort();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn retrying_an_admin_node_lets_the_broker_leave() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use tokio::io::AsyncReadExt;
+
+        let leader_listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let leader_addr = leader_listener.local_addr().unwrap().to_string();
+        let other = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let other_addr = other.local_addr().unwrap().to_string();
+        let open = Arc::new(AtomicUsize::new(0));
+        let flag = Arc::clone(&open);
+        let leader_peer = tokio::spawn(async move {
+            let Ok((mut socket, _)) = leader_listener.accept().await else {
+                return;
+            };
+            let _started = flag.fetch_add(1, Ordering::SeqCst);
+            let mut buf = [0u8; 8];
+            loop {
+                match socket.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let other_peer = tokio::spawn(async move {
+            let Ok((mut socket, _)) = other.accept().await else {
+                return;
+            };
+            let mut buf = [0u8; 8];
+            loop {
+                match socket.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+        });
+        let leader =
+            crate::net::BrokerConn::connect(&leader_addr, "admin-retry", Duration::from_secs(2))
+                .await
+                .unwrap();
+        while open.load(Ordering::SeqCst) == 0 {
+            tokio::task::yield_now().await;
+        }
+        let bootstrap =
+            crate::net::BrokerConn::connect(&other_addr, "admin-boot", Duration::from_secs(2))
+                .await
+                .unwrap();
+        let mut admin = Admin::test_holding(bootstrap);
+        let _stored = admin
+            .conns
+            .insert(2, offsets::AdminOffsetConn::test_holding(leader));
+        admin.discard_node_conn(2).await;
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "retrying an admin node left the broker blocked in a read"
         );
         drop(admin);
         leader_peer.abort();
