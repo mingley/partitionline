@@ -2252,7 +2252,7 @@ pub enum ShareAcquireMode {
 /// `CREATE_TOKENS` on the owner user.
 /// Top-level `DELEGATION_TOKEN_EXPIRED` still fails that poll
 /// and does not request Metadata, including when `ErrorMessage` is
-/// set (Java `handleShareFetchSuccess` only `requestUpdate`s for
+/// set or empty (Java `handleShareFetchSuccess` only `requestUpdate`s for
 /// `UNKNOWN_TOPIC_ID`; this is not top-level
 /// `DELEGATION_TOKEN_AUTHORIZATION_FAILED`). Official Java
 /// `DelegationTokenControlManager` writes this when a requested
@@ -5143,7 +5143,7 @@ impl ShareGroup {
     /// writes this when the requester is not the owner and lacks
     /// `CREATE_TOKENS` on the owner user. Top-level
     /// `DELEGATION_TOKEN_EXPIRED` still fails that poll without
-    /// Metadata, including when `ErrorMessage` is set (Java
+    /// Metadata, including when `ErrorMessage` is set or empty (Java
     /// `handleShareFetchSuccess` only `requestUpdate`s for
     /// `UNKNOWN_TOPIC_ID`; this is not top-level
     /// `DELEGATION_TOKEN_AUTHORIZATION_FAILED`). Official Java
