@@ -3302,7 +3302,13 @@
 //! `handleShareFetchSuccess` only `requestUpdate`s for
 //! `UNKNOWN_TOPIC_ID`; this is not top-level
 //! `DELEGATION_TOKEN_OWNER_MISMATCH`). Official Java `KafkaApis` writes
-//! this when a delegation token request arrives on PLAINTEXT, one-way SSL, or a token-authenticated channel. Partition
+//! this when a delegation token request arrives on PLAINTEXT, one-way SSL, or a token-authenticated channel. Top-level
+//! `DELEGATION_TOKEN_AUTHORIZATION_FAILED` still fails that poll without
+//! Metadata, including when `ErrorMessage` is set (Java
+//! `handleShareFetchSuccess` only `requestUpdate`s for
+//! `UNKNOWN_TOPIC_ID`; this is not top-level
+//! `DELEGATION_TOKEN_REQUEST_NOT_ALLOWED`). Official Java `KafkaApis` writes
+//! this when the requester is not the owner and lacks `CREATE_TOKENS` on the owner user. Partition
 //! `INCONSISTENT_TOPIC_ID` / `UNKNOWN_TOPIC_OR_PARTITION` /
 //! `UNKNOWN_TOPIC_ID` / `REPLICA_NOT_AVAILABLE` /
 //! `OFFSET_NOT_AVAILABLE` / `KAFKA_STORAGE_ERROR` skip without throwing,
