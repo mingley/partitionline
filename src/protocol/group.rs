@@ -548,11 +548,64 @@ impl ConsumerProtocol {
             for _ in 0..tn {
                 let mut topic = buf::get_classic_nullable_string(&mut bytes)?.unwrap_or_default();
                 let pn = buf::get_array_len(&mut bytes, false)?.unwrap_or(0);
-                for index in 0..pn {
-                    owned.push((
-                        named_partition(&mut topic, index, pn),
-                        buf::get_i32(&mut bytes)?,
-                    ));
+                pull_named_partitions(&mut bytes, &mut topic, pn, 0, pn, &mut owned)?;
+            }
+        }
+        if ver >= 2 && !bytes.is_empty() {
+            generation_id = buf::get_i32(&mut bytes)?;
+        }
+        if ver >= 3 && !bytes.is_empty() {
+            let rack = buf::get_classic_nullable_string(&mut bytes)?;
+            rack_id = rack.filter(|s| !s.is_empty());
+        }
+        Ok(ConsumerProtocolSubscription {
+            topics,
+            owned_partitions: owned,
+            generation_id,
+            rack_id,
+        })
+    }
+
+    /// [`Self::deserialize_subscription`], yielding while owned partitions are decoded.
+    pub async fn deserialize_subscription_cooperative(
+        bytes: &[u8],
+    ) -> Result<ConsumerProtocolSubscription> {
+        if bytes.is_empty() {
+            return Ok(ConsumerProtocolSubscription::default());
+        }
+        let mut bytes = bytes;
+        let raw = buf::get_i16(&mut bytes)?;
+        let ver = check_consumer_protocol_version(raw)?;
+        let n = buf::get_array_len(&mut bytes, false)?.unwrap_or(0);
+        let mut topics = Vec::with_capacity(n);
+        for _ in 0..n {
+            topics.push(buf::get_classic_nullable_string(&mut bytes)?.unwrap_or_default());
+        }
+        let mut owned = Vec::new();
+        let mut generation_id = ConsumerProtocolSubscription::DEFAULT_GENERATION;
+        let mut rack_id = None;
+        if bytes.is_empty() {
+            return Ok(ConsumerProtocolSubscription {
+                topics,
+                owned_partitions: owned,
+                generation_id,
+                rack_id,
+            });
+        }
+        let _user = buf::get_classic_bytes(&mut bytes)?;
+        if ver >= 1 && !bytes.is_empty() {
+            let tn = buf::get_array_len(&mut bytes, false)?.unwrap_or(0);
+            for _ in 0..tn {
+                let mut topic = buf::get_classic_nullable_string(&mut bytes)?.unwrap_or_default();
+                let pn = buf::get_array_len(&mut bytes, false)?.unwrap_or(0);
+                let mut next = 0usize;
+                while next < pn {
+                    let end = next.saturating_add(8 * 1024).min(pn);
+                    pull_named_partitions(&mut bytes, &mut topic, pn, next, end, &mut owned)?;
+                    next = end;
+                    if next < pn {
+                        tokio::task::yield_now().await;
+                    }
                 }
             }
         }
@@ -7390,6 +7443,34 @@ async fn group_owned_assignment_cooperative(parts: Vec<(String, i32)>) -> Vec<(S
 mod tests {
     use super::*;
     use std::collections::HashMap;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn decoding_a_large_subscription_does_not_hold_the_caller() {
+        let partitions = 1_000_000i32;
+        let mut body = BytesMut::new();
+        body.put_i16(1);
+        body.put_i32(1);
+        body.put_i16(1);
+        body.extend_from_slice(b"t");
+        body.put_i32(-1);
+        body.put_i32(1);
+        body.put_i16(6);
+        body.extend_from_slice(b"orders");
+        body.put_i32(partitions);
+        for index in 0..partitions {
+            body.put_i32(index);
+        }
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = ConsumerProtocol::deserialize_subscription_cooperative(&body) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "decoding a subscription held the caller for {elapsed:?}"
+        );
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn decoding_a_large_assignment_does_not_hold_the_caller() {

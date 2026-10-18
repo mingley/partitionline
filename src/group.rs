@@ -2781,16 +2781,17 @@ impl ConsumerGroup {
         let mut owned_claims: Vec<StickyOwnedClaim> = Vec::with_capacity(members.len());
         let mut topic_set = self.topics.clone();
         for m in &members {
-            let sub = match ConsumerProtocol::deserialize_subscription(&m.metadata) {
-                Ok(s) if !s.topics.is_empty() => s,
-                Ok(s) => ConsumerProtocolSubscription {
-                    topics: self.topics.clone(),
-                    owned_partitions: s.owned_partitions,
-                    generation_id: s.generation_id,
-                    rack_id: s.rack_id,
-                },
-                Err(_) => ConsumerProtocolSubscription::new(self.topics.clone()),
-            };
+            let sub =
+                match ConsumerProtocol::deserialize_subscription_cooperative(&m.metadata).await {
+                    Ok(s) if !s.topics.is_empty() => s,
+                    Ok(s) => ConsumerProtocolSubscription {
+                        topics: self.topics.clone(),
+                        owned_partitions: s.owned_partitions,
+                        generation_id: s.generation_id,
+                        rack_id: s.rack_id,
+                    },
+                    Err(_) => ConsumerProtocolSubscription::new(self.topics.clone()),
+                };
             for t in &sub.topics {
                 remember_unique_topic(&mut topic_set, t);
             }
