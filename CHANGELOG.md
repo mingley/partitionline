@@ -1660,6 +1660,12 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `UNKNOWN_TOPIC_ID`; this is not top-level
   `INVALID_PRODUCER_EPOCH`). Official Java `UnifiedLog` writes
   this when a transactional produce batch is not part of an ongoing transaction.
+  Top-level `INVALID_PRODUCER_ID_MAPPING` still fails that poll
+  without Metadata, including when `ErrorMessage` is set (Java
+  `handleShareFetchSuccess` only `requestUpdate`s for top-level
+  `UNKNOWN_TOPIC_ID`; this is not top-level
+  `INVALID_TXN_STATE`). Official Java `TransactionCoordinator` writes
+  this when a transactional request uses a producerId that is not currently assigned to that transactional id.
   A non-empty
   throwable partition or top-level ShareFetch `ErrorMessage` is
   preferred; empty uses `ShareFetch {topic}-{partition}` or
