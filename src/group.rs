@@ -4094,6 +4094,11 @@ async fn finish_heartbeat_task(task: Arc<tokio::task::JoinHandle<()>>, deadline:
         turns = turns.saturating_add(1);
         tokio::task::yield_now().await;
     }
+    // The abort drops the coordinator when the task is polled. The idle watch
+    // then has to run before the broker sees that close.
+    for _ in 0..8 {
+        tokio::task::yield_now().await;
+    }
 }
 
 pub(crate) fn copy_member_id(dest: &mut String, source: &str) {
@@ -9028,6 +9033,53 @@ mod rediscover_stop_tests {
             open.load(Ordering::SeqCst),
             0,
             "stopping a finished group handshake left the broker blocked in a read"
+        );
+        peer.abort();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn stopping_a_group_heartbeat_lets_the_broker_leave() {
+        use super::finish_heartbeat_task;
+        use crate::net::BrokerConn;
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use tokio::io::AsyncReadExt;
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let open = Arc::new(AtomicUsize::new(0));
+        let flag = Arc::clone(&open);
+        let peer = tokio::spawn(async move {
+            let Ok((mut socket, _)) = listener.accept().await else {
+                return;
+            };
+            let _started = flag.fetch_add(1, Ordering::SeqCst);
+            let mut buf = [0u8; 8];
+            loop {
+                match socket.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let conn = BrokerConn::connect(&addr, "group-heartbeat", Duration::from_secs(2))
+            .await
+            .unwrap();
+        while open.load(Ordering::SeqCst) == 0 {
+            tokio::task::yield_now().await;
+        }
+        let task = Arc::new(tokio::spawn(async move {
+            let _hold = conn;
+            std::future::pending::<()>().await;
+        }));
+        for _ in 0..8 {
+            tokio::task::yield_now().await;
+        }
+        finish_heartbeat_task(task, std::time::Instant::now()).await;
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "stopping a group heartbeat left the broker blocked in a read"
         );
         peer.abort();
     }

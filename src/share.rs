@@ -5725,6 +5725,11 @@ async fn finish_share_heartbeat(task: Arc<tokio::task::JoinHandle<()>>, deadline
         turns = turns.saturating_add(1);
         tokio::task::yield_now().await;
     }
+    // The abort drops the coordinator when the task is polled. The idle watch
+    // then has to run before the broker sees that close.
+    for _ in 0..8 {
+        tokio::task::yield_now().await;
+    }
 }
 
 fn reuse_share_subscription(req: &mut ShareGroupHeartbeatRequest, topics: &[String]) {
@@ -7642,6 +7647,53 @@ mod tests {
             assert_eq!(node, 2);
             assert_eq!(address, "[2001:db8::9]:9092");
         }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn stopping_a_share_heartbeat_lets_the_broker_leave() {
+        use crate::net::BrokerConn;
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use std::time::{Duration, Instant};
+        use tokio::io::AsyncReadExt;
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let open = Arc::new(AtomicUsize::new(0));
+        let flag = Arc::clone(&open);
+        let peer = tokio::spawn(async move {
+            let Ok((mut socket, _)) = listener.accept().await else {
+                return;
+            };
+            let _started = flag.fetch_add(1, Ordering::SeqCst);
+            let mut buf = [0u8; 8];
+            loop {
+                match socket.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let conn = BrokerConn::connect(&addr, "share-heartbeat", Duration::from_secs(2))
+            .await
+            .unwrap();
+        while open.load(Ordering::SeqCst) == 0 {
+            tokio::task::yield_now().await;
+        }
+        let task = Arc::new(tokio::spawn(async move {
+            let _hold = conn;
+            std::future::pending::<()>().await;
+        }));
+        for _ in 0..8 {
+            tokio::task::yield_now().await;
+        }
+        finish_share_heartbeat(task, Instant::now()).await;
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "stopping a share heartbeat left the broker blocked in a read"
+        );
+        peer.abort();
     }
 }
 
