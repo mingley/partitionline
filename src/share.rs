@@ -2390,7 +2390,7 @@ pub enum ShareAcquireMode {
 /// on that transactional id. A top-level
 /// ShareAcknowledge `SECURITY_DISABLED` completes without
 /// retry and does not request Metadata, including when `ErrorMessage`
-/// is set (Java `handleShareAcknowledgeSuccess` has no
+/// is set or empty (Java `handleShareAcknowledgeSuccess` has no
 /// `metadata.requestUpdate`; this is not top-level
 /// `TRANSACTIONAL_ID_AUTHORIZATION_FAILED`). Official Java `AclApis`
 /// writes this when an ACL request runs with no Authorizer
@@ -5460,7 +5460,7 @@ impl ShareGroup {
     /// request is missing WRITE on that transactional id.
     /// A top-level ShareAcknowledge `SECURITY_DISABLED`
     /// completes without retry and does not request Metadata,
-    /// including when `ErrorMessage` is set (Java
+    /// including when `ErrorMessage` is set or empty (Java
     /// `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`;
     /// this is not top-level `TRANSACTIONAL_ID_AUTHORIZATION_FAILED`). Official
     /// Java `AclApis` writes this when an ACL request runs with no
