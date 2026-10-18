@@ -382,15 +382,20 @@ impl StreamsClient {
     ///
     /// Abort only schedules cancellation. On a current-thread runtime a read
     /// stays inside the broker until this caller yields.
-    async fn finish_aborted_handshakes<T: 'static>(mut set: tokio::task::JoinSet<T>) {
+    async fn finish_aborted_handshakes(
+        mut set: tokio::task::JoinSet<(usize, Result<(BrokerConn, ApiVersionsResponse)>)>,
+    ) {
         set.abort_all();
         let mut extra = 0u32;
         while !set.is_empty() {
             tokio::select! {
                 biased;
                 joined = set.join_next() => {
-                    if joined.is_none() {
+                    let Some(joined) = joined else {
                         break;
+                    };
+                    if let Ok((_, Ok((conn, _)))) = joined {
+                        retire_streams_conn(conn).await;
                     }
                 }
                 () = tokio::task::yield_now() => {
@@ -401,9 +406,6 @@ impl StreamsClient {
                 }
             }
         }
-        // The aborted task drops its socket when it is polled. One more turn
-        // lets the peer observe that close before this race returns.
-        tokio::task::yield_now().await;
     }
 
     async fn open_any(
@@ -946,6 +948,62 @@ mod tests {
             open.load(Ordering::SeqCst),
             0,
             "Streams heartbeat handshake left the socket blocked in a broker read"
+        );
+        peer.abort();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn stopping_a_finished_streams_handshake_lets_the_broker_leave() {
+        use super::StreamsClient;
+        use crate::net::BrokerConn;
+        use crate::protocol::api::ApiVersionsResponse;
+        use tokio::io::AsyncReadExt;
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let open = Arc::new(AtomicUsize::new(0));
+        let flag = Arc::clone(&open);
+        let peer = tokio::spawn(async move {
+            let Ok((mut socket, _)) = listener.accept().await else {
+                return;
+            };
+            let _started = flag.fetch_add(1, Ordering::SeqCst);
+            let mut buf = [0u8; 8];
+            loop {
+                match socket.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let conn = BrokerConn::connect(&addr, "streams-handshake", Duration::from_secs(2))
+            .await
+            .unwrap();
+        while open.load(Ordering::SeqCst) == 0 {
+            tokio::task::yield_now().await;
+        }
+        let versions = ApiVersionsResponse {
+            error_code: 0,
+            api_keys: Vec::new(),
+            throttle_time_ms: 0,
+            supported_features: Vec::new(),
+            finalized_features_epoch: None,
+            finalized_features: Vec::new(),
+            zk_migration_ready: false,
+        };
+        let mut set =
+            tokio::task::JoinSet::<(usize, crate::Result<(BrokerConn, ApiVersionsResponse)>)>::new(
+            );
+        let _ = set.spawn(async move { (0usize, Ok((conn, versions))) });
+        for _ in 0..8 {
+            tokio::task::yield_now().await;
+        }
+        StreamsClient::finish_aborted_handshakes(set).await;
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "stopping a finished streams handshake left the broker blocked in a read"
         );
         peer.abort();
     }
