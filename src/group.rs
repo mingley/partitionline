@@ -7994,4 +7994,157 @@ mod rediscover_stop_tests {
         drop(conn);
         peer.abort();
     }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn replacing_an_idle_offset_coordinator_lets_the_broker_leave() {
+        use super::offsets::coord_offsets_v10;
+        use crate::net::BrokerConn;
+        use crate::protocol::api_keys::OFFSET_FETCH;
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use tokio::io::AsyncReadExt;
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let open = Arc::new(AtomicUsize::new(0));
+        let flag = Arc::clone(&open);
+        let peer = tokio::spawn(async move {
+            let mut first = true;
+            loop {
+                let Ok((mut socket, _)) = listener.accept().await else {
+                    return;
+                };
+                if first {
+                    first = false;
+                    let flag = Arc::clone(&flag);
+                    let _started = flag.fetch_add(1, Ordering::SeqCst);
+                    let _reader = tokio::spawn(async move {
+                        let mut buf = [0u8; 8];
+                        loop {
+                            match socket.read(&mut buf).await {
+                                Ok(0) | Err(_) => break,
+                                Ok(_) => continue,
+                            }
+                        }
+                        let _left = flag.fetch_sub(1, Ordering::SeqCst);
+                    });
+                } else {
+                    let _reader = tokio::spawn(async move {
+                        let mut buf = [0u8; 8];
+                        loop {
+                            match socket.read(&mut buf).await {
+                                Ok(0) | Err(_) => break,
+                                Ok(_) => continue,
+                            }
+                        }
+                    });
+                }
+            }
+        });
+        let mut conn = BrokerConn::connect(&addr, "idle-offset", Duration::from_secs(2))
+            .await
+            .unwrap();
+        while open.load(Ordering::SeqCst) == 0 {
+            tokio::task::yield_now().await;
+        }
+        tokio::time::sleep(Duration::from_millis(2)).await;
+        let cfg = ConsumerConfig::default().connections_max_idle(Duration::from_nanos(1));
+        let mut prior = HashMap::new();
+        let _fetched = coord_offsets_v10(
+            &mut conn,
+            &cfg,
+            "group",
+            COORDINATOR_GROUP,
+            OFFSET_FETCH,
+            |_buf| Ok(()),
+            &[],
+            &HashMap::new(),
+            &mut prior,
+            Duration::from_secs(2),
+        )
+        .await;
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "replacing an idle offset coordinator left the previous broker blocked in a read"
+        );
+        drop(conn);
+        peer.abort();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn replacing_an_idle_legacy_offset_coordinator_lets_the_broker_leave() {
+        use super::offsets::coord_offsets_legacy;
+        use crate::net::BrokerConn;
+        use crate::protocol::api_keys::OFFSET_FETCH;
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use tokio::io::AsyncReadExt;
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let open = Arc::new(AtomicUsize::new(0));
+        let flag = Arc::clone(&open);
+        let peer = tokio::spawn(async move {
+            let mut first = true;
+            loop {
+                let Ok((mut socket, _)) = listener.accept().await else {
+                    return;
+                };
+                if first {
+                    first = false;
+                    let flag = Arc::clone(&flag);
+                    let _started = flag.fetch_add(1, Ordering::SeqCst);
+                    let _reader = tokio::spawn(async move {
+                        let mut buf = [0u8; 8];
+                        loop {
+                            match socket.read(&mut buf).await {
+                                Ok(0) | Err(_) => break,
+                                Ok(_) => continue,
+                            }
+                        }
+                        let _left = flag.fetch_sub(1, Ordering::SeqCst);
+                    });
+                } else {
+                    let _reader = tokio::spawn(async move {
+                        let mut buf = [0u8; 8];
+                        loop {
+                            match socket.read(&mut buf).await {
+                                Ok(0) | Err(_) => break,
+                                Ok(_) => continue,
+                            }
+                        }
+                    });
+                }
+            }
+        });
+        let mut conn = BrokerConn::connect(&addr, "idle-legacy-offset", Duration::from_secs(2))
+            .await
+            .unwrap();
+        while open.load(Ordering::SeqCst) == 0 {
+            tokio::task::yield_now().await;
+        }
+        tokio::time::sleep(Duration::from_millis(2)).await;
+        let cfg = ConsumerConfig::default().connections_max_idle(Duration::from_nanos(1));
+        let mut prior = HashMap::new();
+        let _fetched = coord_offsets_legacy(
+            &mut conn,
+            &cfg,
+            "group",
+            COORDINATOR_GROUP,
+            OFFSET_FETCH,
+            8,
+            |_buf| Ok(()),
+            &[],
+            &HashMap::new(),
+            &mut prior,
+            Duration::from_secs(2),
+        )
+        .await;
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "replacing an idle legacy offset coordinator left the previous broker blocked in a read"
+        );
+        drop(conn);
+        peer.abort();
+    }
 }

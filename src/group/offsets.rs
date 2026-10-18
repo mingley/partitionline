@@ -707,7 +707,9 @@ pub(super) async fn coord_offsets_v10(
     let deadline = Deadline::from_std(target);
     if coord.idle_expired(cfg.connections_max_idle) {
         let bounded = bounded_consumer_config(cfg, deadline)?;
-        *coord = super::reopen_known_coord(&bounded, coord).await?;
+        let replacement = super::reopen_known_coord(&bounded, coord).await?;
+        let previous = std::mem::replace(coord, replacement);
+        super::retire_lookup_conn(previous).await;
         require_copied_coord_version(coord, api, 10)?;
     }
     let body = match coord
@@ -781,7 +783,9 @@ pub(super) async fn coord_offsets_legacy(
     {
         if coord.idle_expired(cfg.connections_max_idle) {
             let bounded = bounded_consumer_config(cfg, deadline)?;
-            *coord = super::reopen_known_coord(&bounded, coord).await?;
+            let replacement = super::reopen_known_coord(&bounded, coord).await?;
+            let previous = std::mem::replace(coord, replacement);
+            super::retire_lookup_conn(previous).await;
             require_copied_coord_version(coord, api, version)?;
         }
         let body = match coord
