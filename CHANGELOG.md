@@ -1335,7 +1335,10 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `AcknowledgeErrorMessage` is set or empty. A piggybacked
   `STREAMS_TOPOLOGY_DESCRIPTION_UPDATE_FAILED` on one partition does not fail a sibling whose
   `AcknowledgeErrorCode` is none, including when
-  `AcknowledgeErrorMessage` is set or empty. A piggybacked `FENCED_LEADER_EPOCH` /
+  `AcknowledgeErrorMessage` is set or empty. A piggybacked
+  `CONTROLLER_ID_NOT_REGISTERED` on one partition does not fail a sibling whose
+  `AcknowledgeErrorCode` is none, including when
+  `AcknowledgeErrorMessage` is set. A piggybacked `FENCED_LEADER_EPOCH` /
   `NOT_LEADER_OR_FOLLOWER` / `UNKNOWN_TOPIC_OR_PARTITION` /
   `UNKNOWN_TOPIC_ID` / `INCONSISTENT_TOPIC_ID` on one
   partition does
