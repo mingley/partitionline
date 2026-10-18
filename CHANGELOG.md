@@ -459,6 +459,13 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `metadata.requestUpdate`; this is not top-level
   `GROUP_SUBSCRIBED_TO_TOPIC`). Official Java `LogValidator` writes
   this when a produce record fails validation.
+  A top-level ShareAcknowledge `PRODUCER_FENCED` completes
+  without retry and does not request Metadata, including when
+  `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+  `metadata.requestUpdate`; this is not top-level
+  `INVALID_RECORD`). Official Java
+  `TransactionMetadata.prepareIncrementProducerEpoch` writes this
+  when the expected producer epoch does not match.
   A piggybacked ShareFetch
   `AcknowledgeErrorMessage` that is empty uses
   `ShareFetch acknowledgement {topic}-{partition}`. A piggybacked

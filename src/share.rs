@@ -2690,6 +2690,13 @@ pub enum ShareAcquireMode {
 /// `metadata.requestUpdate`; this is not top-level
 /// `GROUP_SUBSCRIBED_TO_TOPIC`). Official Java `LogValidator`
 /// writes this when a produce record fails validation. A top-level
+/// ShareAcknowledge `PRODUCER_FENCED` completes without
+/// retry and does not request Metadata, including when `ErrorMessage`
+/// is set (Java `handleShareAcknowledgeSuccess` has no
+/// `metadata.requestUpdate`; this is not top-level
+/// `INVALID_RECORD`). Official Java
+/// `TransactionMetadata.prepareIncrementProducerEpoch` writes this
+/// when the expected producer epoch does not match. A top-level
 /// ShareAcknowledge `SHARE_SESSION_LIMIT_REACHED` completes without
 /// retry and does not request Metadata, including when `ErrorMessage`
 /// is set or empty (Java `handleShareAcknowledgeSuccess` has no
@@ -6063,6 +6070,13 @@ impl ShareGroup {
     /// this is not top-level `GROUP_SUBSCRIBED_TO_TOPIC`). Official
     /// Java `LogValidator` writes this when a produce record fails
     /// validation.
+    /// A top-level ShareAcknowledge `PRODUCER_FENCED`
+    /// completes without retry and does not request Metadata,
+    /// including when `ErrorMessage` is set (Java
+    /// `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`;
+    /// this is not top-level `INVALID_RECORD`). Official Java
+    /// `TransactionMetadata.prepareIncrementProducerEpoch` writes
+    /// this when the expected producer epoch does not match.
     /// Top-level `SHARE_SESSION_LIMIT_REACHED`
     /// completes without retry and advances the session epoch (Java
     /// `ShareSessionHandler.handleResponse` `nextEpoch`), including
