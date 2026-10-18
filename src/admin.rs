@@ -14001,7 +14001,8 @@ impl Admin {
                 let resp = self
                     .alter_replica_log_dirs_on(broker_id, &dirs, remaining)
                     .await?;
-                record_alter_replica_errors(&mut errors, &assignment, broker_id, &resp);
+                record_alter_replica_errors_cooperative(&mut errors, &assignment, broker_id, &resp)
+                    .await;
             }
         } else {
             let version = self.alter_replica_log_dirs_version.ok_or_else(|| {
@@ -14043,7 +14044,8 @@ impl Admin {
                     Err(error) => return Err(error),
                     Ok(body) => decode_alter_replica_log_dirs_response(&mut body.clone(), spoken)?,
                 };
-                record_alter_replica_errors(&mut errors, &assignment, broker_id, &resp);
+                record_alter_replica_errors_cooperative(&mut errors, &assignment, broker_id, &resp)
+                    .await;
             }
         }
         let mut out = Vec::with_capacity(assignment.len());
@@ -14148,7 +14150,7 @@ impl Admin {
                         encode_describe_log_dirs_named(output, version, Some(topics.as_slice()))
                     })
                     .await?;
-                remember_replica_dirs(&mut infos, &replicas, broker_id, &resp)?;
+                remember_replica_dirs_cooperative(&mut infos, &replicas, broker_id, &resp).await?;
             }
         } else {
             let deadline = Instant::now()
@@ -14203,7 +14205,7 @@ impl Admin {
                         response
                     }
                 };
-                remember_replica_dirs(&mut infos, &replicas, broker_id, &resp)?;
+                remember_replica_dirs_cooperative(&mut infos, &replicas, broker_id, &resp).await?;
             }
         }
         let mut out = Vec::with_capacity(replicas.len());
@@ -15947,37 +15949,79 @@ async fn alter_replica_dirs_for_broker_cooperative<'a>(
     directories
 }
 
-fn record_alter_replica_errors(
-    errors: &mut HashMap<TopicPartitionReplica, i16>,
-    assignment: &[(TopicPartitionReplica, String)],
-    broker_id: i32,
-    resp: &AlterReplicaLogDirsResponse,
-) {
-    for (replica, _) in assignment
-        .iter()
-        .filter(|(replica, _)| replica.broker_id == broker_id)
-    {
-        let code = alter_replica_partition_error(&resp.results, replica.topic(), replica.partition);
-        let _ = errors.insert(replica.clone(), code);
+#[cfg(test)]
+fn index_alter_replica_errors(
+    results: &[AlterReplicaLogDirsResponseTopic],
+) -> HashMap<(&str, i32), i16> {
+    let mut index = HashMap::new();
+    for result in results {
+        for part in &result.partitions {
+            if let std::collections::hash_map::Entry::Vacant(slot) =
+                index.entry((result.topic_name.as_str(), part.partition_index))
+            {
+                let _ = slot.insert(part.error_code);
+            }
+        }
     }
+    index
 }
 
+async fn index_alter_replica_errors_cooperative(
+    results: &[AlterReplicaLogDirsResponseTopic],
+) -> HashMap<(&str, i32), i16> {
+    let mut index = HashMap::new();
+    let mut walked = 0usize;
+    for result in results {
+        for part in &result.partitions {
+            if let std::collections::hash_map::Entry::Vacant(slot) =
+                index.entry((result.topic_name.as_str(), part.partition_index))
+            {
+                let _ = slot.insert(part.error_code);
+            }
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+    }
+    index
+}
+
+#[cfg(test)]
 fn alter_replica_partition_error(
     results: &[AlterReplicaLogDirsResponseTopic],
     topic: &str,
     partition: i32,
 ) -> i16 {
-    for result in results {
-        if result.topic_name != topic {
-            continue;
+    index_alter_replica_errors(results)
+        .get(&(topic, partition))
+        .copied()
+        .unwrap_or(0)
+}
+
+async fn record_alter_replica_errors_cooperative(
+    errors: &mut HashMap<TopicPartitionReplica, i16>,
+    assignment: &[(TopicPartitionReplica, String)],
+    broker_id: i32,
+    resp: &AlterReplicaLogDirsResponse,
+) {
+    let index = index_alter_replica_errors_cooperative(&resp.results).await;
+    let mut walked = 0usize;
+    for (replica, _) in assignment {
+        if replica.broker_id == broker_id {
+            let code = index
+                .get(&(replica.topic(), replica.partition))
+                .copied()
+                .unwrap_or(0);
+            let _ = errors.insert(replica.clone(), code);
         }
-        for part in &result.partitions {
-            if part.partition_index == partition {
-                return part.error_code;
-            }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
         }
     }
-    0
 }
 
 fn place_describable_topic<'a>(
@@ -16057,7 +16101,80 @@ async fn describable_topics_for_broker_cooperative(
     groups
 }
 
-fn remember_replica_dirs(
+fn note_log_dir(
+    info: &mut ReplicaLogDirInfo,
+    dir: &DescribeLogDirsResult,
+    part: &DescribeLogDirsPartition,
+) {
+    if part.is_future_key {
+        info.future_log_dir = Some(dir.log_dir.clone());
+        info.future_offset_lag = part.offset_lag;
+    } else {
+        info.current_log_dir = Some(dir.log_dir.clone());
+        info.current_offset_lag = part.offset_lag;
+    }
+}
+
+#[cfg(test)]
+fn index_log_dirs(results: &[DescribeLogDirsResult]) -> HashMap<(&str, i32), ReplicaLogDirInfo> {
+    let mut index = HashMap::new();
+    for dir in results {
+        if dir.error_code != 0 {
+            continue;
+        }
+        for topic in &dir.topics {
+            for part in &topic.partitions {
+                let info = index
+                    .entry((topic.name.as_str(), part.partition_index))
+                    .or_insert_with(ReplicaLogDirInfo::unknown);
+                note_log_dir(info, dir, part);
+            }
+        }
+    }
+    index
+}
+
+async fn index_log_dirs_cooperative(
+    results: &[DescribeLogDirsResult],
+) -> HashMap<(&str, i32), ReplicaLogDirInfo> {
+    let mut index = HashMap::new();
+    let mut walked = 0usize;
+    for dir in results {
+        if dir.error_code != 0 {
+            continue;
+        }
+        for topic in &dir.topics {
+            for part in &topic.partitions {
+                let info = index
+                    .entry((topic.name.as_str(), part.partition_index))
+                    .or_insert_with(ReplicaLogDirInfo::unknown);
+                note_log_dir(info, dir, part);
+                walked = walked.saturating_add(1);
+                if walked == 8 * 1024 {
+                    walked = 0;
+                    tokio::task::yield_now().await;
+                }
+            }
+        }
+    }
+    index
+}
+
+fn store_replica_dir(
+    infos: &mut HashMap<String, HashMap<(i32, i32), ReplicaLogDirInfo>>,
+    replica: &TopicPartitionReplica,
+    info: ReplicaLogDirInfo,
+) {
+    if let Some(parts) = infos.get_mut(replica.topic.as_str()) {
+        let _ = parts.insert((replica.partition, replica.broker_id), info);
+        return;
+    }
+    let mut parts = HashMap::new();
+    let _ = parts.insert((replica.partition, replica.broker_id), info);
+    let _ = infos.insert(replica.topic.clone(), parts);
+}
+
+async fn remember_replica_dirs_cooperative(
     infos: &mut HashMap<String, HashMap<(i32, i32), ReplicaLogDirInfo>>,
     replicas: &[TopicPartitionReplica],
     broker_id: i32,
@@ -16066,50 +16183,34 @@ fn remember_replica_dirs(
     if resp.error_code != 0 {
         return Err(Error::broker(resp.error_code, "DescribeLogDirs"));
     }
-    for replica in replicas
-        .iter()
-        .filter(|replica| replica.broker_id == broker_id)
-    {
-        let info = replica_log_dir_info_from(replica, &resp.results);
-        if let Some(parts) = infos.get_mut(replica.topic.as_str()) {
-            let _ = parts.insert((replica.partition, replica.broker_id), info);
-            continue;
+    let index = index_log_dirs_cooperative(&resp.results).await;
+    let mut walked = 0usize;
+    for replica in replicas {
+        if replica.broker_id == broker_id {
+            let info = index
+                .get(&(replica.topic.as_str(), replica.partition))
+                .cloned()
+                .unwrap_or_else(ReplicaLogDirInfo::unknown);
+            store_replica_dir(infos, replica, info);
         }
-        let mut parts = HashMap::new();
-        let _ = parts.insert((replica.partition, replica.broker_id), info);
-        let _ = infos.insert(replica.topic.clone(), parts);
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
     }
     Ok(())
 }
 
+#[cfg(test)]
 fn replica_log_dir_info_from(
     replica: &TopicPartitionReplica,
     results: &[DescribeLogDirsResult],
 ) -> ReplicaLogDirInfo {
-    let mut info = ReplicaLogDirInfo::unknown();
-    for dir in results {
-        if dir.error_code != 0 {
-            continue;
-        }
-        for topic in &dir.topics {
-            if topic.name != replica.topic {
-                continue;
-            }
-            for part in &topic.partitions {
-                if part.partition_index != replica.partition {
-                    continue;
-                }
-                if part.is_future_key {
-                    info.future_log_dir = Some(dir.log_dir.clone());
-                    info.future_offset_lag = part.offset_lag;
-                } else {
-                    info.current_log_dir = Some(dir.log_dir.clone());
-                    info.current_offset_lag = part.offset_lag;
-                }
-            }
-        }
-    }
-    info
+    index_log_dirs(results)
+        .get(&(replica.topic.as_str(), replica.partition))
+        .cloned()
+        .unwrap_or_else(ReplicaLogDirInfo::unknown)
 }
 
 /// Topic names for one election, stored once. Partitions remember the name's index.
@@ -18755,6 +18856,74 @@ mod tests {
         assert_eq!(named[1].error_code, error::UNKNOWN_TOPIC_OR_PARTITION);
         assert_eq!(named[2].name, "missing");
         assert_eq!(named[2].error_code, error::UNKNOWN_TOPIC_OR_PARTITION);
+    }
+
+    fn many_replicas(count: i32) -> Vec<TopicPartitionReplica> {
+        (0..count)
+            .map(|index| TopicPartitionReplica::new("orders", index, 2))
+            .collect()
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn remembering_many_replica_dirs_does_not_hold_the_caller() {
+        // 20_000 replicas: scanning the directory list for each one held the
+        // caller 1.39s. A longer indexed walk still has to pause.
+        let replicas = many_replicas(500_000);
+        let described = DescribeLogDirsResponse::new(
+            0,
+            vec![DescribeLogDirsResult::new(
+                0,
+                "/data",
+                vec![DescribeLogDirsTopic::new(
+                    "orders",
+                    (0..500_000)
+                        .map(|index| DescribeLogDirsPartition::new(index, 10, 1, false))
+                        .collect(),
+                )],
+                1,
+                1,
+            )],
+        );
+        let mut infos = HashMap::new();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = remember_replica_dirs_cooperative(&mut infos, &replicas, 2, &described) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "remembering replica directories held the caller for {elapsed:?}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn recording_many_replica_dir_errors_does_not_hold_the_caller() {
+        // 20_000 replicas: scanning the error list for each one held the caller 580ms.
+        let replicas = many_replicas(500_000);
+        let altered =
+            AlterReplicaLogDirsResponse::new(vec![AlterReplicaLogDirsResponseTopic::new(
+                "orders",
+                (0..500_000)
+                    .map(|index| AlterReplicaLogDirsResponsePartition::new(index, 0))
+                    .collect(),
+            )]);
+        let assignment: Vec<(TopicPartitionReplica, String)> = replicas
+            .iter()
+            .cloned()
+            .map(|replica| (replica, "/data".to_owned()))
+            .collect();
+        let mut errors = HashMap::new();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = record_alter_replica_errors_cooperative(&mut errors, &assignment, 2, &altered) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "recording replica directory errors held the caller for {elapsed:?}"
+        );
     }
 
     #[tokio::test(flavor = "current_thread")]
