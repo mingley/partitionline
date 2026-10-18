@@ -1792,6 +1792,12 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `UNKNOWN_TOPIC_ID`; this is not top-level
   `DELEGATION_TOKEN_NOT_FOUND`). Official Java `DelegationTokenControlManager` writes
   this when the requester is not a valid owner or renewer of the token.
+  Top-level `DELEGATION_TOKEN_REQUEST_NOT_ALLOWED` still fails that poll
+  without Metadata, including when `ErrorMessage` is set (Java
+  `handleShareFetchSuccess` only `requestUpdate`s for top-level
+  `UNKNOWN_TOPIC_ID`; this is not top-level
+  `DELEGATION_TOKEN_OWNER_MISMATCH`). Official Java `KafkaApis` writes
+  this when a delegation token request arrives on PLAINTEXT, one-way SSL, or a token-authenticated channel.
   A non-empty
   throwable partition or top-level ShareFetch `ErrorMessage` is
   preferred; empty uses `ShareFetch {topic}-{partition}` or
