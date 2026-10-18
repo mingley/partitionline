@@ -4861,11 +4861,9 @@ impl ShareGroup {
             }
             return Err(error);
         }
-        let expected: HashSet<_> = topics
-            .iter()
-            .flat_map(|t| t.partitions.iter().map(move |(p, _)| (t.topic_id, *p)))
-            .collect();
+        let expected = share_ack_expected(&topics).await;
         let mut seen = HashSet::new();
+        let mut walked = 0usize;
         for topic in &responses {
             for part in &topic.partitions {
                 if !expected.contains(&(topic.topic_id, part.partition))
@@ -4875,9 +4873,16 @@ impl ShareGroup {
                         "unrequested or duplicate ShareAcknowledge partition response",
                     ));
                 }
+                walked = walked.saturating_add(1);
+                if walked == 8 * 1024 {
+                    walked = 0;
+                    tokio::task::yield_now().await;
+                }
             }
         }
-        if seen != expected {
+        // Every accepted response partition was inserted only when it was
+        // requested, so the sets match exactly when their lengths match.
+        if seen.len() != expected.len() {
             return Err(Error::protocol(
                 "ShareAcknowledge omitted a requested partition outcome",
             ));
@@ -5852,7 +5857,23 @@ struct ShareLeaderPatch {
     leader_epoch: i32,
 }
 
-/// Broker errors that can name the partition's new leader.
+async fn share_ack_expected(topics: &[ShareAckTopic]) -> HashSet<([u8; 16], i32)> {
+    let mut expected =
+        HashSet::with_capacity(topics.iter().map(|topic| topic.partitions.len()).sum());
+    let mut walked = 0usize;
+    for topic in topics {
+        for (partition, _) in &topic.partitions {
+            let _ = expected.insert((topic.topic_id, *partition));
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+    }
+    expected
+}
+
 async fn share_partition_set(requested: &[i32]) -> HashSet<i32> {
     let mut allowed = HashSet::with_capacity(requested.len());
     let mut walked = 0usize;
@@ -5867,6 +5888,7 @@ async fn share_partition_set(requested: &[i32]) -> HashSet<i32> {
     allowed
 }
 
+/// Broker errors that can name the partition's new leader.
 fn share_leader_moved(code: i16) -> bool {
     share_ack_ownership_lost(code) || code == error::LEADER_NOT_AVAILABLE
 }
@@ -6501,6 +6523,36 @@ mod tests {
     use std::sync::Arc;
 
     use super::*;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn indexing_many_share_acks_does_not_hold_the_caller() {
+        // 1_000_000 partitions: building the expected set held the caller 430ms.
+        let topics = vec![ShareAckTopic {
+            topic_id: [7; 16],
+            partitions: (0..1_000_000).map(|index| (index, Vec::new())).collect(),
+        }];
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = share_ack_expected(&topics) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "indexing share acknowledgements held the caller for {elapsed:?}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn indexed_share_acks_keep_the_first_partition() {
+        let topics = vec![ShareAckTopic {
+            topic_id: [1; 16],
+            partitions: vec![(0, Vec::new()), (0, Vec::new()), (1, Vec::new())],
+        }];
+        let expected = share_ack_expected(&topics).await;
+        assert_eq!(expected.len(), 2);
+        assert!(expected.contains(&([1; 16], 0)) && expected.contains(&([1; 16], 1)));
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn indexing_many_share_partitions_does_not_hold_the_caller() {
