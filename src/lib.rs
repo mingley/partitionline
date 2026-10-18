@@ -3770,6 +3770,13 @@
 //! `metadata.requestUpdate`; this is not top-level
 //! `DUPLICATE_RESOURCE`). Official Java `ScramControlManager` writes
 //! this when a SCRAM upsert has too few iterations.
+//! Top-level ShareAcknowledge `INCONSISTENT_VOTER_SET` completes
+//! without retry and does not request Metadata, including when
+//! `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+//! `metadata.requestUpdate`; this is not top-level
+//! `UNACCEPTABLE_CREDENTIAL`). Official Java `KafkaRaftClient` writes
+//! this when a voter-only request arrives at an observer or from a
+//! non-voter.
 //! Top-level ShareAcknowledge
 //! `SHARE_SESSION_LIMIT_REACHED` completes without retry and advances
 //! the session epoch (Java `ShareSessionHandler.handleResponse`
