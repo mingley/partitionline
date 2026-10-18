@@ -4192,7 +4192,7 @@ impl Admin {
             let body = match body {
                 Ok(body) => body,
                 Err(err) if err.is_retriable() || matches!(err, Error::Closed) => {
-                    self.drop_node_conn(node);
+                    self.drop_node_conn(node).await;
                     self.forget_controller();
                     self.wait_retry(&mut attempt, deadline).await?;
                     continue;
@@ -4203,7 +4203,7 @@ impl Admin {
                 crate::protocol::admin::decode_elect_leaders_response(&mut body.clone(), version)?;
             throttle_time_ms = throttle_time_ms.max(response.throttle_time_ms);
             if response.error_code == error::NOT_CONTROLLER {
-                self.drop_node_conn(node);
+                self.drop_node_conn(node).await;
                 self.forget_controller();
                 self.wait_retry(&mut attempt, deadline).await?;
                 continue;
@@ -4981,7 +4981,7 @@ impl Admin {
             let body = match body {
                 Ok(b) => b,
                 Err(e) if e.is_retriable() => {
-                    self.drop_node_conn(node);
+                    self.drop_node_conn(node).await;
                     self.forget_controller();
                     self.wait_retry(&mut attempt, deadline).await?;
                     continue;
@@ -4995,7 +4995,7 @@ impl Admin {
             {
                 // NOT_CONTROLLER (41): Metadata, then the new controller.
                 self.forget_controller();
-                self.drop_node_conn(node);
+                self.drop_node_conn(node).await;
                 self.wait_retry(&mut attempt, deadline).await?;
                 self.refresh_broker_directory(deadline).await?;
                 continue;
@@ -5342,7 +5342,7 @@ impl Admin {
             let body = match body {
                 Ok(b) => b,
                 Err(e) if e.is_retriable() => {
-                    self.drop_node_conn(node);
+                    self.drop_node_conn(node).await;
                     self.forget_controller();
                     self.wait_retry(&mut attempt, deadline).await?;
                     continue;
@@ -5356,7 +5356,7 @@ impl Admin {
             {
                 // NOT_CONTROLLER (41): Metadata, then the new controller.
                 self.forget_controller();
-                self.drop_node_conn(node);
+                self.drop_node_conn(node).await;
                 self.wait_retry(&mut attempt, deadline).await?;
                 self.refresh_broker_directory(deadline).await?;
                 continue;
@@ -5958,7 +5958,7 @@ impl Admin {
             let body = match body {
                 Ok(b) => b,
                 Err(e) if e.is_retriable() => {
-                    self.drop_node_conn(node);
+                    self.drop_node_conn(node).await;
                     self.forget_controller();
                     self.wait_retry(&mut attempt, deadline).await?;
                     continue;
@@ -5972,7 +5972,7 @@ impl Admin {
             {
                 // NOT_CONTROLLER (41): Metadata, then the new controller.
                 self.forget_controller();
-                self.drop_node_conn(node);
+                self.drop_node_conn(node).await;
                 self.wait_retry(&mut attempt, deadline).await?;
                 self.refresh_broker_directory(deadline).await?;
                 continue;
@@ -6136,7 +6136,7 @@ impl Admin {
             let body = match body {
                 Ok(b) => b,
                 Err(e) if e.is_retriable() => {
-                    self.drop_node_conn(node);
+                    self.drop_node_conn(node).await;
                     self.forget_controller();
                     self.wait_retry(&mut attempt, deadline).await?;
                     continue;
@@ -6150,7 +6150,7 @@ impl Admin {
                 .any(|r| r.error_code == error::NOT_CONTROLLER)
             {
                 self.forget_controller();
-                self.drop_node_conn(node);
+                self.drop_node_conn(node).await;
                 self.wait_retry(&mut attempt, deadline).await?;
                 self.refresh_broker_directory(deadline).await?;
                 continue;
@@ -6213,7 +6213,7 @@ impl Admin {
             let body = match body {
                 Ok(b) => b,
                 Err(e) if e.is_retriable() => {
-                    self.drop_node_conn(node);
+                    self.drop_node_conn(node).await;
                     self.forget_controller();
                     self.wait_retry(&mut attempt, deadline).await?;
                     continue;
@@ -6227,7 +6227,7 @@ impl Admin {
             {
                 // NOT_CONTROLLER (41): Metadata, then the new controller.
                 self.forget_controller();
-                self.drop_node_conn(node);
+                self.drop_node_conn(node).await;
                 self.wait_retry(&mut attempt, deadline).await?;
                 self.refresh_broker_directory(deadline).await?;
                 continue;
@@ -6431,7 +6431,7 @@ impl Admin {
                         || error.broker_code() == Some(error::NOT_CONTROLLER) =>
                 {
                     if let Ok(node) = self.cluster.controller() {
-                        self.drop_node_conn(node);
+                        self.drop_node_conn(node).await;
                     }
                     self.forget_controller();
                     if attempt >= 8 {
@@ -6554,7 +6554,7 @@ impl Admin {
             let body = match body {
                 Ok(b) => b,
                 Err(e) if e.is_retriable() => {
-                    self.drop_node_conn(node);
+                    self.drop_node_conn(node).await;
                     self.forget_controller();
                     self.wait_retry(&mut attempt, deadline).await?;
                     continue;
@@ -6565,7 +6565,7 @@ impl Admin {
             if resp.error_code == error::NOT_CONTROLLER {
                 // NOT_CONTROLLER (41): Metadata, then the new controller.
                 self.forget_controller();
-                self.drop_node_conn(node);
+                self.drop_node_conn(node).await;
                 self.wait_retry(&mut attempt, deadline).await?;
                 self.refresh_broker_directory(deadline).await?;
                 continue;
@@ -6724,7 +6724,7 @@ impl Admin {
             let body = match body {
                 Ok(b) => b,
                 Err(e) if e.is_retriable() => {
-                    self.drop_node_conn(node);
+                    self.drop_node_conn(node).await;
                     self.forget_controller();
                     self.wait_retry(&mut attempt, deadline).await?;
                     continue;
@@ -6735,7 +6735,7 @@ impl Admin {
             if resp.error_code == error::NOT_CONTROLLER {
                 // NOT_CONTROLLER (41): Metadata, then the new controller.
                 self.forget_controller();
-                self.drop_node_conn(node);
+                self.drop_node_conn(node).await;
                 self.wait_retry(&mut attempt, deadline).await?;
                 self.refresh_broker_directory(deadline).await?;
                 continue;
@@ -6927,7 +6927,7 @@ impl Admin {
             let body = match body {
                 Ok(b) => b,
                 Err(e) if e.is_retriable() => {
-                    self.drop_node_conn(node);
+                    self.drop_node_conn(node).await;
                     self.forget_controller();
                     self.wait_retry(&mut attempt, deadline).await?;
                     continue;
@@ -6941,7 +6941,7 @@ impl Admin {
             {
                 // NOT_CONTROLLER (41): Metadata, then the new controller.
                 self.forget_controller();
-                self.drop_node_conn(node);
+                self.drop_node_conn(node).await;
                 self.wait_retry(&mut attempt, deadline).await?;
                 self.refresh_broker_directory(deadline).await?;
                 continue;
@@ -7014,7 +7014,7 @@ impl Admin {
             let body = match body {
                 Ok(b) => b,
                 Err(e) if e.is_retriable() => {
-                    self.drop_node_conn(node);
+                    self.drop_node_conn(node).await;
                     self.forget_controller();
                     self.wait_retry(&mut attempt, deadline).await?;
                     continue;
@@ -7025,7 +7025,7 @@ impl Admin {
             if resp.error_code == error::NOT_CONTROLLER {
                 // NOT_CONTROLLER (41): Metadata, then the new controller.
                 self.forget_controller();
-                self.drop_node_conn(node);
+                self.drop_node_conn(node).await;
                 self.wait_retry(&mut attempt, deadline).await?;
                 self.refresh_broker_directory(deadline).await?;
                 continue;
@@ -7112,7 +7112,7 @@ impl Admin {
             let body = match body {
                 Ok(b) => b,
                 Err(e) if e.is_retriable() => {
-                    self.drop_node_conn(node);
+                    self.drop_node_conn(node).await;
                     self.forget_controller();
                     self.wait_retry(&mut attempt, deadline).await?;
                     continue;
@@ -7123,7 +7123,7 @@ impl Admin {
             if resp.error_code == error::NOT_CONTROLLER {
                 // NOT_CONTROLLER (41): Metadata, then the new controller.
                 self.forget_controller();
-                self.drop_node_conn(node);
+                self.drop_node_conn(node).await;
                 self.wait_retry(&mut attempt, deadline).await?;
                 self.refresh_broker_directory(deadline).await?;
                 continue;
@@ -7289,7 +7289,7 @@ impl Admin {
             let body = match body {
                 Ok(b) => b,
                 Err(e) if e.is_retriable() => {
-                    self.drop_node_conn(node);
+                    self.drop_node_conn(node).await;
                     self.forget_controller();
                     self.wait_retry(&mut attempt, deadline).await?;
                     continue;
@@ -7303,7 +7303,7 @@ impl Admin {
             {
                 // NOT_CONTROLLER (41): Metadata, then the new controller.
                 self.forget_controller();
-                self.drop_node_conn(node);
+                self.drop_node_conn(node).await;
                 self.wait_retry(&mut attempt, deadline).await?;
                 self.refresh_broker_directory(deadline).await?;
                 continue;
@@ -7365,7 +7365,7 @@ impl Admin {
             let body = match body {
                 Ok(b) => b,
                 Err(e) if e.is_retriable() => {
-                    self.drop_node_conn(node);
+                    self.drop_node_conn(node).await;
                     self.forget_controller();
                     self.wait_retry(&mut attempt, deadline).await?;
                     continue;
@@ -7376,7 +7376,7 @@ impl Admin {
             if resp.error_code == error::NOT_CONTROLLER {
                 // NOT_CONTROLLER (41): Metadata, then the new controller.
                 self.forget_controller();
-                self.drop_node_conn(node);
+                self.drop_node_conn(node).await;
                 self.wait_retry(&mut attempt, deadline).await?;
                 self.refresh_broker_directory(deadline).await?;
                 continue;
@@ -7663,7 +7663,7 @@ impl Admin {
             let body = match body {
                 Ok(b) => b,
                 Err(e) if e.is_retriable() => {
-                    self.drop_node_conn(node);
+                    self.drop_node_conn(node).await;
                     self.txn_coord = None;
                     self.wait_retry(&mut attempt, deadline).await?;
                     continue;
@@ -7677,7 +7677,7 @@ impl Admin {
             }
             if error::coordinator_retriable(err) {
                 self.txn_coord = None;
-                self.drop_node_conn(node);
+                self.drop_node_conn(node).await;
                 self.wait_retry(&mut attempt, deadline).await?;
                 continue;
             }
@@ -7756,7 +7756,7 @@ impl Admin {
             let body = match body {
                 Ok(b) => b,
                 Err(e) if e.is_retriable() => {
-                    self.drop_node_conn(node);
+                    self.drop_node_conn(node).await;
                     self.wait_retry(&mut attempt, deadline).await?;
                     continue;
                 }
@@ -8899,11 +8899,81 @@ impl Admin {
         conn.roundtrip(api_key, version, encode, timeout).await
     }
 
-    fn drop_node_conn(&mut self, node: i32) {
+    /// An admin that already holds `conn`, for tests of socket closes.
+    #[cfg(test)]
+    fn test_holding(conn: BrokerConn) -> Self {
+        Self {
+            cfg: AdminConfig::default(),
+            conn,
+            versions: HashMap::new(),
+            create_version: 0,
+            delete_version: 0,
+            describe_version: None,
+            partitions_version: None,
+            alter_version: None,
+            legacy_alter_version: None,
+            delete_records_version: None,
+            describe_producers_version: None,
+            describe_cluster_version: None,
+            create_acls_version: None,
+            describe_acls_version: None,
+            delete_acls_version: None,
+            metadata_version: 0,
+            metadata_image: MetadataResponse::blank(),
+            find_coord_version: None,
+            offset_delete_version: None,
+            list_reassign_version: None,
+            update_features_version: None,
+            alter_user_scram_version: None,
+            describe_user_scram_version: None,
+            unregister_broker_version: None,
+            describe_client_quotas_version: None,
+            alter_client_quotas_version: None,
+            allocate_producer_ids_version: None,
+            describe_transactions_version: None,
+            consumer_group_describe_version: None,
+            describe_groups_version: None,
+            list_groups_version: None,
+            delete_groups_version: None,
+            share_group_describe_version: None,
+            describe_share_group_offsets_version: None,
+            alter_share_group_offsets_version: None,
+            delete_share_group_offsets_version: None,
+            describe_topic_partitions_version: None,
+            list_config_resources_version: None,
+            get_telemetry_subscriptions_version: None,
+            cached_client_instance_id: None,
+            push_telemetry_version: None,
+            assign_replicas_to_dirs_version: None,
+            alter_replica_log_dirs_version: None,
+            create_delegation_token_version: None,
+            renew_delegation_token_version: None,
+            expire_delegation_token_version: None,
+            describe_delegation_token_version: None,
+            cluster: Cluster::default(),
+            conns: HashMap::new(),
+            peer_versions: HashMap::new(),
+            controller_redial: None,
+            reconnect_fails: HashMap::new(),
+            group_coord: None,
+            group_coords: HashMap::new(),
+            group_coord_redial: Vec::new(),
+            txn_coord: None,
+            txn_coords: HashMap::new(),
+            txn_coord_redial: Vec::new(),
+            stats: Arc::new(crate::metrics::AdminTracker::default()),
+        }
+    }
+
+    async fn drop_node_conn(&mut self, node: i32) {
         if self.targets_bootstrap(node) {
             self.conn.close();
+            self.conn.release_if_closed().await;
         }
-        let _removed = self.conns.remove(&node);
+        if let Some(mut conn) = self.conns.remove(&node) {
+            conn.inner.close();
+            conn.inner.release_if_closed().await;
+        }
     }
 
     /// Open the dedicated socket, or the bootstrap socket when `node` is that broker.
@@ -9311,7 +9381,7 @@ impl Admin {
                             still.extend(retry);
                         }
                         Err(e) if e.is_retriable() => {
-                            self.drop_node_conn(node);
+                            self.drop_node_conn(node).await;
                             still.extend(idxs);
                         }
                         Err(e) => return Err(e),
@@ -9623,7 +9693,7 @@ impl Admin {
                             still.extend(retry);
                         }
                         Err(e) if e.is_retriable() => {
-                            self.drop_node_conn(node);
+                            self.drop_node_conn(node).await;
                             still.extend(idxs);
                         }
                         Err(e) => return Err(e),
@@ -10463,7 +10533,7 @@ impl Admin {
                             still.extend(retry);
                         }
                         Err(e) if e.is_retriable() => {
-                            self.drop_node_conn(node);
+                            self.drop_node_conn(node).await;
                             still.extend(idxs);
                         }
                         Err(e) => return Err(e),
@@ -10813,7 +10883,7 @@ impl Admin {
             let body = match body {
                 Ok(b) => b,
                 Err(e) if e.is_retriable() => {
-                    self.drop_node_conn(node);
+                    self.drop_node_conn(node).await;
                     self.group_coord = None;
                     self.wait_retry(&mut attempt, deadline).await?;
                     continue;
@@ -10824,7 +10894,7 @@ impl Admin {
             if error::coordinator_retriable(top) {
                 // 14/15/16: FindCoordinator, then the new group coordinator.
                 self.group_coord = None;
-                self.drop_node_conn(node);
+                self.drop_node_conn(node).await;
                 self.wait_retry(&mut attempt, deadline).await?;
                 continue;
             }
@@ -11223,7 +11293,7 @@ impl Admin {
                             let body = match body {
                                 Ok(b) => b,
                                 Err(e) if e.is_retriable() => {
-                                    self.drop_node_conn(node);
+                                    self.drop_node_conn(node).await;
                                     self.group_coord = None;
                                     next_remaining.extend(idxs);
                                     retry = true;
@@ -11241,7 +11311,7 @@ impl Admin {
                                         .is_some_and(error::coordinator_retriable) =>
                                 {
                                     self.group_coord = None;
-                                    self.drop_node_conn(node);
+                                    self.drop_node_conn(node).await;
                                     next_remaining.extend(idxs);
                                     retry = true;
                                     continue;
@@ -11253,7 +11323,7 @@ impl Admin {
                                 .any(|r| error::coordinator_retriable(r.error_code))
                             {
                                 self.group_coord = None;
-                                self.drop_node_conn(node);
+                                self.drop_node_conn(node).await;
                                 next_remaining.extend(idxs);
                                 retry = true;
                                 continue;
@@ -11464,7 +11534,7 @@ impl Admin {
             let body = match body {
                 Ok(b) => b,
                 Err(e) if e.is_retriable() => {
-                    self.drop_node_conn(node);
+                    self.drop_node_conn(node).await;
                     self.group_coord = None;
                     self.wait_retry(&mut attempt, deadline).await?;
                     continue;
@@ -11475,7 +11545,7 @@ impl Admin {
                 Ok(t) => return Ok(t),
                 Err(e) if e.broker_code().is_some_and(error::coordinator_retriable) => {
                     self.group_coord = None;
-                    self.drop_node_conn(node);
+                    self.drop_node_conn(node).await;
                     self.wait_retry(&mut attempt, deadline).await?;
                 }
                 Err(e) => return Err(e),
@@ -11586,7 +11656,7 @@ impl Admin {
             let body = match body {
                 Ok(b) => b,
                 Err(e) if e.is_retriable() => {
-                    self.drop_node_conn(node);
+                    self.drop_node_conn(node).await;
                     self.group_coord = None;
                     self.wait_retry(&mut attempt, deadline).await?;
                     continue;
@@ -11596,7 +11666,7 @@ impl Admin {
             let err = decode_offset_commit_response(&mut body.clone(), version)?;
             if error::coordinator_retriable(err) {
                 self.group_coord = None;
-                self.drop_node_conn(node);
+                self.drop_node_conn(node).await;
                 self.wait_retry(&mut attempt, deadline).await?;
                 continue;
             }
@@ -12654,7 +12724,7 @@ impl Admin {
             let body = match body {
                 Ok(b) => b,
                 Err(e) if e.is_retriable() => {
-                    self.drop_node_conn(node);
+                    self.drop_node_conn(node).await;
                     self.group_coord = None;
                     self.wait_retry(&mut attempt, deadline).await?;
                     continue;
@@ -12665,7 +12735,7 @@ impl Admin {
                 decode_leave_group_response_version(&mut body.clone(), version)?;
             if error::coordinator_retriable(err) {
                 self.group_coord = None;
-                self.drop_node_conn(node);
+                self.drop_node_conn(node).await;
                 self.wait_retry(&mut attempt, deadline).await?;
                 continue;
             }
@@ -13163,7 +13233,7 @@ impl Admin {
             let body = match body {
                 Ok(b) => b,
                 Err(e) if e.is_retriable() => {
-                    self.drop_node_conn(node);
+                    self.drop_node_conn(node).await;
                     self.group_coord = None;
                     self.wait_retry(&mut attempt, deadline).await?;
                     continue;
@@ -13174,7 +13244,7 @@ impl Admin {
             if error::coordinator_retriable(result.error_code) {
                 // 14/15/16: FindCoordinator, then the new group coordinator.
                 self.group_coord = None;
-                self.drop_node_conn(node);
+                self.drop_node_conn(node).await;
                 self.wait_retry(&mut attempt, deadline).await?;
                 continue;
             }
@@ -13255,7 +13325,7 @@ impl Admin {
             let body = match body {
                 Ok(b) => b,
                 Err(e) if e.is_retriable() => {
-                    self.drop_node_conn(node);
+                    self.drop_node_conn(node).await;
                     self.group_coord = None;
                     self.wait_retry(&mut attempt, deadline).await?;
                     continue;
@@ -13266,7 +13336,7 @@ impl Admin {
             if error::coordinator_retriable(result.error_code) {
                 // 14/15/16: FindCoordinator, then the new group coordinator.
                 self.group_coord = None;
-                self.drop_node_conn(node);
+                self.drop_node_conn(node).await;
                 self.wait_retry(&mut attempt, deadline).await?;
                 continue;
             }
@@ -13699,7 +13769,7 @@ impl Admin {
             let body = match body {
                 Ok(b) => b,
                 Err(e) if e.is_retriable() => {
-                    self.drop_node_conn(node);
+                    self.drop_node_conn(node).await;
                     self.forget_controller();
                     self.wait_retry(&mut attempt, deadline).await?;
                     continue;
@@ -13710,7 +13780,7 @@ impl Admin {
             if resp.error_code == error::NOT_CONTROLLER {
                 // NOT_CONTROLLER (41): Metadata, then the new controller.
                 self.forget_controller();
-                self.drop_node_conn(node);
+                self.drop_node_conn(node).await;
                 self.wait_retry(&mut attempt, deadline).await?;
                 self.refresh_broker_directory(deadline).await?;
                 continue;
@@ -14241,7 +14311,7 @@ impl Admin {
             match result {
                 Err(error) if node.is_some() && error.is_retriable() => {
                     if let Some(node) = node {
-                        self.drop_node_conn(node);
+                        self.drop_node_conn(node).await;
                     }
                     self.wait_retry(&mut attempt, deadline).await?;
                 }
@@ -14276,7 +14346,7 @@ impl Admin {
             let body = match body {
                 Ok(b) => b,
                 Err(e) if e.is_retriable() => {
-                    self.drop_node_conn(node);
+                    self.drop_node_conn(node).await;
                     self.wait_retry(&mut attempt, deadline).await?;
                     continue;
                 }
@@ -15885,6 +15955,49 @@ mod tests {
         CreatedTopicConfig, ListConfigResourcesResponse, TopicConfig,
     };
     use bytes::BytesMut;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn dropping_the_bootstrap_socket_lets_the_broker_leave() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use tokio::io::AsyncReadExt;
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let open = Arc::new(AtomicUsize::new(0));
+        let flag = Arc::clone(&open);
+        let peer = tokio::spawn(async move {
+            let Ok((mut socket, _)) = listener.accept().await else {
+                return;
+            };
+            let _started = flag.fetch_add(1, Ordering::SeqCst);
+            let mut buf = [0u8; 8];
+            loop {
+                match socket.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let conn = crate::net::BrokerConn::connect(&addr, "admin-drop", Duration::from_secs(2))
+            .await
+            .unwrap();
+        while open.load(Ordering::SeqCst) == 0 {
+            tokio::task::yield_now().await;
+        }
+        let mut admin = Admin::test_holding(conn);
+        let _inserted = admin
+            .cluster
+            .brokers
+            .insert(1, admin.conn.addr().to_string());
+        admin.drop_node_conn(1).await;
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "dropping the admin socket left the broker blocked in a read"
+        );
+        peer.abort();
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn bootstrap_handshake_timeout_closes_the_socket() {
