@@ -269,6 +269,12 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `metadata.requestUpdate`; this is not top-level
   `INVALID_CONFIG`). Official Java `ReplicationControlManager` writes
   this when CreateTopics supplies a manual partition assignment without setting `replicationFactor` to -1.
+  A top-level ShareAcknowledge `UNSUPPORTED_FOR_MESSAGE_FORMAT` completes
+  without retry and does not request Metadata, including when
+  `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+  `metadata.requestUpdate`; this is not top-level
+  `INVALID_REQUEST`). Official Java `LogValidator` writes
+  this when a transactional or idempotent record batch uses a magic version before v2.
   A piggybacked ShareFetch
   `AcknowledgeErrorMessage` that is empty uses
   `ShareFetch acknowledgement {topic}-{partition}`. A piggybacked

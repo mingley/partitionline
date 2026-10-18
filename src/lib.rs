@@ -3338,6 +3338,12 @@
 //! `metadata.requestUpdate`; this is not top-level
 //! `INVALID_CONFIG`). Official Java `ReplicationControlManager` writes
 //! this when CreateTopics supplies a manual partition assignment without setting `replicationFactor` to -1.
+//! Top-level ShareAcknowledge `UNSUPPORTED_FOR_MESSAGE_FORMAT` completes
+//! without retry and does not request Metadata, including when
+//! `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+//! `metadata.requestUpdate`; this is not top-level
+//! `INVALID_REQUEST`). Official Java `LogValidator` writes
+//! this when a transactional or idempotent record batch uses a magic version before v2.
 //! Top-level ShareAcknowledge
 //! `SHARE_SESSION_LIMIT_REACHED` completes without retry and advances
 //! the session epoch (Java `ShareSessionHandler.handleResponse`
