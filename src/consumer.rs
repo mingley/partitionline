@@ -6750,6 +6750,17 @@ impl Consumer {
         }
     }
 
+    /// Drop leader sockets a wakeup will not use again.
+    ///
+    /// Clearing the map drops each connection. The idle watch is aborted with
+    /// that drop, so the broker stays in its read until the watch is scheduled.
+    async fn discard_leader_sockets(&mut self) {
+        let nodes: Vec<i32> = self.conns.keys().copied().collect();
+        for node in nodes {
+            self.drop_node(node).await;
+        }
+    }
+
     async fn fetch_from_leaders(
         &mut self,
         by_leader: &mut HashMap<i32, HashMap<Arc<str>, Vec<FetchPartition>>>,
@@ -6757,7 +6768,7 @@ impl Consumer {
         max_wait: i32,
     ) -> Result<Vec<FetchReply>> {
         if self.woken() {
-            self.conns.clear();
+            self.discard_leader_sockets().await;
             return Err(Error::Wakeup);
         }
         let mut rx = self.wakeup_tx.subscribe();
@@ -6768,7 +6779,7 @@ impl Consumer {
                 // Cancelling the fetch only schedules aborts for leader reads
                 // that were already sent. Wait until those tasks leave.
                 self.finish_cancelled_fetches().await;
-                self.conns.clear();
+                self.discard_leader_sockets().await;
                 Err(Error::Wakeup)
             }
             result = self.fetch_from_leaders_io(by_leader, deadline, max_wait) => {
@@ -11246,6 +11257,71 @@ mod tests {
     use super::*;
     use crate::protocol::api::ApiVersion;
     use crate::protocol::api_keys::FETCH;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn a_wakeup_lets_the_leader_leave() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use std::sync::Arc;
+        use tokio::io::AsyncReadExt;
+
+        let leader_listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let leader_addr = leader_listener.local_addr().unwrap().to_string();
+        let other = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let other_addr = other.local_addr().unwrap().to_string();
+        let open = Arc::new(AtomicUsize::new(0));
+        let flag = Arc::clone(&open);
+        let leader_peer = tokio::spawn(async move {
+            let Ok((mut socket, _)) = leader_listener.accept().await else {
+                return;
+            };
+            let _started = flag.fetch_add(1, Ordering::SeqCst);
+            let mut buf = [0u8; 8];
+            loop {
+                match socket.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let other_peer = tokio::spawn(async move {
+            let Ok((mut socket, _)) = other.accept().await else {
+                return;
+            };
+            let mut buf = [0u8; 8];
+            loop {
+                match socket.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+        });
+        let leader =
+            crate::net::BrokerConn::connect(&leader_addr, "wakeup-leader", Duration::from_secs(2))
+                .await
+                .unwrap();
+        while open.load(Ordering::SeqCst) == 0 {
+            tokio::task::yield_now().await;
+        }
+        let bootstrap = crate::net::BrokerConn::connect(
+            &other_addr,
+            "wakeup-bootstrap",
+            Duration::from_secs(2),
+        )
+        .await
+        .unwrap();
+        let mut consumer = Consumer::test_holding(ConsumerConfig::default(), bootstrap);
+        let _stored = consumer.conns.insert(1, leader);
+        consumer.discard_leader_sockets().await;
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "a wakeup left the leader blocked in a read"
+        );
+        drop(consumer);
+        leader_peer.abort();
+        other_peer.abort();
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn replacing_a_bootstrap_socket_lets_the_broker_leave() {
