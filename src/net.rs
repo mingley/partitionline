@@ -1644,7 +1644,10 @@ impl BrokerConn {
                     self.read_buf.reserve(budget);
                 }
                 let polled = {
-                    let mut limited = (&mut self.read_buf).limit(budget);
+                    // A known frame stays reserved. One read still stops after a
+                    // chunk so a deadline runs before the rest is copied.
+                    let step = budget.min(STALLED_WRITE_READ_CHUNK);
+                    let mut limited = (&mut self.read_buf).limit(step);
                     let mut read = std::pin::pin!(stream.read_buf(&mut limited));
                     read.as_mut().poll(cx)
                 };
@@ -2911,6 +2914,26 @@ mod tests {
         assert!(
             elapsed < Duration::from_millis(90),
             "a ready frame held the deadline for {elapsed:?}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn a_greedy_ready_frame_stops_for_a_deadline() {
+        let body_len = 64 * 1024;
+        let mut body = Vec::with_capacity(4 + body_len);
+        body.extend_from_slice(&i32::try_from(body_len).unwrap().to_be_bytes());
+        body.resize(4 + body_len, 1);
+        let mut conn = BrokerConn::script_conn(body, usize::MAX, Duration::from_millis(2));
+        let started = std::time::Instant::now();
+        let result = tokio::time::timeout(Duration::from_millis(40), conn.inbound_ready()).await;
+        let elapsed = started.elapsed();
+        assert!(
+            result.is_err(),
+            "a greedy ready frame finished in {elapsed:?} without the deadline"
+        );
+        assert!(
+            elapsed < Duration::from_millis(80),
+            "a greedy ready frame held the deadline for {elapsed:?}"
         );
     }
 
