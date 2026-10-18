@@ -931,37 +931,70 @@ fn acquisition_node_for_range(
     {
         return acquisition_node_along_runs(topic_runs, partition, first, last);
     }
-    let indexes: Vec<usize> = topic_runs
-        .by_partition
-        .get(&partition)?
-        .by_first
-        .range(..=last)
-        .map(|(_, &index)| index)
-        .collect();
+    let mut scan_from = topic_runs.by_partition.get(&partition).and_then(|part| {
+        part.by_first
+            .range(..=first)
+            .next_back()
+            .map(|(&start, _)| start)
+    })?;
     let mut cursor = first;
     let mut node = None;
-    for index in indexes {
-        let run = topic_runs.runs.get(index)?;
-        if run.last < cursor {
-            continue;
+    loop {
+        let chunk = covering_run_indexes(topic_runs, partition, scan_from, last, 8 * 1024);
+        if chunk.is_empty() {
+            break;
         }
-        if run.first > cursor || cursor > run.last {
-            return None;
+        for (start, index) in chunk {
+            let run = topic_runs.runs.get(index)?;
+            scan_from = if start == i64::MAX {
+                start
+            } else {
+                start.saturating_add(1)
+            };
+            if run.last < cursor {
+                continue;
+            }
+            if run.first > cursor || cursor > run.last {
+                return None;
+            }
+            if node.is_some_and(|current| current != run.acquisition.node) {
+                return None;
+            }
+            node = Some(run.acquisition.node);
+            if run.last >= last || run.last == i64::MAX {
+                return node;
+            }
+            let next = run.last.saturating_add(1);
+            if next <= run.last {
+                return node;
+            }
+            cursor = next;
         }
-        if node.is_some_and(|current| current != run.acquisition.node) {
-            return None;
+        if scan_from > last || scan_from == i64::MAX {
+            break;
         }
-        node = Some(run.acquisition.node);
-        if run.last >= last || run.last == i64::MAX {
-            return node;
-        }
-        let next = run.last.saturating_add(1);
-        if next <= run.last {
-            return node;
-        }
-        cursor = next;
     }
     None
+}
+
+fn covering_run_indexes(
+    topic_runs: &TopicRuns,
+    partition: i32,
+    scan_from: i64,
+    last: i64,
+    limit: usize,
+) -> Vec<(i64, usize)> {
+    topic_runs
+        .by_partition
+        .get(&partition)
+        .map(|part| {
+            part.by_first
+                .range(scan_from..=last)
+                .take(limit)
+                .map(|(&start, &index)| (start, index))
+                .collect()
+        })
+        .unwrap_or_default()
 }
 
 fn acquisition_node_along_runs(
@@ -4971,15 +5004,7 @@ impl ShareGroup {
                 .await;
         }
         let nodes = {
-            let grouped = group_acks_by_acquisition_node(
-                |topic, partition, offset| {
-                    acquisition_node(&self.acquisitions, topic, partition, offset)
-                },
-                |topic, partition, first, last| {
-                    acquisition_node_for_range(&self.acquisitions, topic, partition, first, last)
-                },
-                partitions,
-            )?;
+            let grouped = group_acks_from_acquisitions(&self.acquisitions, partitions).await?;
             // A split across brokers replaces the retry list with the batches
             // that are sent. One broker already matches that list, so those
             // batches move into the request without a second copy.
@@ -7039,6 +7064,221 @@ fn group_acks_by_acquisition_node(
     Ok(by_node)
 }
 
+fn stale_share_ack(topic: &str, partition: i32, offset: i64) -> Error {
+    Error::broker(
+        error::INVALID_RECORD_STATE,
+        format!("stale share acknowledgement {topic}-{partition}@{offset}"),
+    )
+}
+
+/// Group acknowledgement batches by the broker that acquired each offset.
+///
+/// Runs are visited in start order. A broker change starts a new batch, and a
+/// gap is still rejected. The scan pauses between slices.
+async fn group_acks_from_acquisitions(
+    map: &AcquisitionMap,
+    partitions: &[AckPartition],
+) -> Result<AckRoute> {
+    let mut by_node: AckRoute = BTreeMap::new();
+    let mut spare_types = Vec::new();
+    for (topic, partition, batches) in partitions {
+        let overlapped = map
+            .get(topic.as_ref())
+            .and_then(|runs| runs.by_partition.get(partition))
+            .is_some_and(|part| part.overlapped);
+        if overlapped {
+            let one = [(Arc::clone(topic), *partition, batches.clone())];
+            let grouped = group_acks_by_acquisition_node(
+                |name, part, offset| acquisition_node(map, name, part, offset),
+                |name, part, first, last| acquisition_node_for_range(map, name, part, first, last),
+                &one,
+            )?;
+            for (node, parts) in grouped {
+                by_node.entry(node).or_default().extend(parts);
+            }
+            continue;
+        }
+        let mut node_batches: BTreeMap<i32, Vec<AcknowledgementBatch>> = BTreeMap::new();
+        for batch in batches {
+            append_ack_batch_from_runs(
+                map,
+                topic,
+                *partition,
+                batch,
+                &mut node_batches,
+                &mut spare_types,
+            )
+            .await?;
+        }
+        for (node, grouped) in node_batches {
+            by_node
+                .entry(node)
+                .or_default()
+                .push((Arc::clone(topic), *partition, grouped));
+        }
+    }
+    Ok(by_node)
+}
+
+async fn append_ack_batch_from_runs(
+    map: &AcquisitionMap,
+    topic: &Arc<str>,
+    partition: i32,
+    batch: &AcknowledgementBatch,
+    node_batches: &mut BTreeMap<i32, Vec<AcknowledgementBatch>>,
+    spare_types: &mut Vec<Vec<i8>>,
+) -> Result<()> {
+    let span = batch
+        .last_offset
+        .checked_sub(batch.first_offset)
+        .and_then(|delta| delta.checked_add(1))
+        .ok_or_else(|| Error::protocol("share acknowledgement range is too large"))?;
+    if !(1..=1_000_000).contains(&span) {
+        return Err(Error::protocol("share acknowledgement range is too large"));
+    }
+    let span = usize::try_from(span)
+        .map_err(|_| Error::protocol("share acknowledgement range is too large"))?;
+    if batch.types.len() != 1 && batch.types.len() != span {
+        return Err(Error::protocol(
+            "share acknowledgement type count does not match the range",
+        ));
+    }
+    let single_type = (batch.types.len() == 1)
+        .then(|| batch.types.first().copied())
+        .flatten();
+    let topic_runs = map
+        .get(topic.as_ref())
+        .ok_or_else(|| stale_share_ack(topic, partition, batch.first_offset))?;
+    let mut scan_from = topic_runs
+        .by_partition
+        .get(&partition)
+        .and_then(|part| {
+            part.by_first
+                .range(..=batch.first_offset)
+                .next_back()
+                .map(|(&start, _)| start)
+        })
+        .ok_or_else(|| stale_share_ack(topic, partition, batch.first_offset))?;
+    let mut cursor = batch.first_offset;
+    let mut open: Option<(i32, i64)> = None;
+    let mut walked = 0usize;
+    loop {
+        let chunk = covering_run_indexes(
+            topic_runs,
+            partition,
+            scan_from,
+            batch.last_offset,
+            8 * 1024,
+        );
+        if chunk.is_empty() {
+            break;
+        }
+        for (start, index) in chunk {
+            let (run_first, run_last, node_id) = {
+                let run = topic_runs
+                    .runs
+                    .get(index)
+                    .ok_or_else(|| stale_share_ack(topic, partition, cursor))?;
+                (run.first, run.last, run.acquisition.node)
+            };
+            scan_from = if start == i64::MAX {
+                start
+            } else {
+                start.saturating_add(1)
+            };
+            if run_last < cursor {
+                continue;
+            }
+            if run_first > cursor || cursor > run_last {
+                return Err(stale_share_ack(topic, partition, cursor));
+            }
+            let end = run_last.min(batch.last_offset);
+            if open.is_some_and(|(node, _)| node != node_id) {
+                if let Some((node, first)) = open.take() {
+                    push_ack_run(
+                        node_batches,
+                        spare_types,
+                        batch,
+                        node,
+                        first,
+                        cursor.saturating_sub(1),
+                        single_type,
+                    )?;
+                }
+            }
+            if open.is_none() {
+                open = Some((node_id, cursor));
+            }
+            if end >= batch.last_offset {
+                if let Some((node, first)) = open.take() {
+                    push_ack_run(
+                        node_batches,
+                        spare_types,
+                        batch,
+                        node,
+                        first,
+                        batch.last_offset,
+                        single_type,
+                    )?;
+                }
+                return Ok(());
+            }
+            let next = end.saturating_add(1);
+            if next <= end {
+                return Err(stale_share_ack(topic, partition, cursor));
+            }
+            cursor = next;
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+        if scan_from > batch.last_offset || scan_from == i64::MAX {
+            break;
+        }
+        tokio::task::yield_now().await;
+    }
+    Err(stale_share_ack(topic, partition, cursor))
+}
+
+fn push_ack_run(
+    node_batches: &mut BTreeMap<i32, Vec<AcknowledgementBatch>>,
+    spare_types: &mut Vec<Vec<i8>>,
+    batch: &AcknowledgementBatch,
+    node: i32,
+    first: i64,
+    last: i64,
+    single_type: Option<i8>,
+) -> Result<()> {
+    let types = if let Some(kind) = single_type {
+        reused_one_ack_type(spare_types, kind)
+    } else {
+        let origin = batch.first_offset;
+        let start = usize::try_from(first.saturating_sub(origin)).map_err(|_| {
+            Error::protocol("share acknowledgement type count does not match the range")
+        })?;
+        let end = usize::try_from(last.saturating_sub(origin))
+            .map_err(|_| {
+                Error::protocol("share acknowledgement type count does not match the range")
+            })?
+            .saturating_add(1);
+        let slice = batch.types.get(start..end).ok_or_else(|| {
+            Error::protocol("share acknowledgement type count does not match the range")
+        })?;
+        finish_ack_run(first, last, slice, spare_types).types
+    };
+    node_batches
+        .entry(node)
+        .or_default()
+        .push(AcknowledgementBatch {
+            first_offset: first,
+            last_offset: last,
+            types,
+        });
+    Ok(())
+}
+
 fn ack_run(
     first: i64,
     last: i64,
@@ -8091,6 +8331,67 @@ mod tests {
         super::refill_share_fetch(&mut fresh_ids, &mut fresh_topics, &many, &ids, 64)
             .unwrap_or_else(|error| panic!("{error}"));
         assert_eq!(fresh_topics.capacity(), topic_capacity);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn grouping_many_ack_nodes_does_not_hold_the_caller() {
+        // 200_000 alternating brokers: grouping acknowledgements held the caller 207ms.
+        let topic = crate::consumer::TopicName::from("orders");
+        let mut map = AcquisitionMap::new();
+        for offset in 0..200_000 {
+            remember_acquisition(
+                &mut map,
+                &topic,
+                0,
+                offset,
+                Acquisition {
+                    node: if offset % 2 == 0 { 4 } else { 9 },
+                    delivery_count: if offset % 2 == 0 { 1 } else { 2 },
+                    expires_at: None,
+                },
+            );
+        }
+        let partitions = vec![(
+            Arc::<str>::from("orders"),
+            0,
+            vec![AcknowledgementBatch {
+                first_offset: 0,
+                last_offset: 199_999,
+                types: vec![ACK_ACCEPT],
+            }],
+        )];
+        let missing = group_acks_from_acquisitions(
+            &map,
+            &[(
+                Arc::<str>::from("orders"),
+                0,
+                vec![AcknowledgementBatch {
+                    first_offset: 0,
+                    last_offset: 200_000,
+                    types: vec![ACK_ACCEPT],
+                }],
+            )],
+        )
+        .await;
+        assert!(missing.is_err());
+        let started = std::time::Instant::now();
+        tokio::select! {
+            grouped = group_acks_from_acquisitions(&map, &partitions) => {
+                let grouped = grouped.expect("grouped");
+                assert_eq!(grouped.get(&4).and_then(|parts| parts.first()).map(|part| part.2.len()), Some(100_000));
+                assert_eq!(grouped.get(&9).and_then(|parts| parts.first()).map(|part| part.2.len()), Some(100_000));
+                assert_eq!(
+                    grouped.get(&4).and_then(|parts| parts.first()).and_then(|part| part.2.first()).map(|batch| batch.first_offset),
+                    Some(0)
+                );
+            }
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "grouping acknowledgements held the caller for {elapsed:?}"
+        );
     }
 
     #[tokio::test(flavor = "current_thread")]
