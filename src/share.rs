@@ -29,7 +29,7 @@ use crate::protocol::records::{
 };
 use crate::protocol::share::{
     decode_share_acknowledge_response, decode_share_acknowledge_topics_response_with_lock_timeout,
-    decode_share_fetch_response_reusing, decode_share_group_heartbeat_response,
+    decode_share_fetch_response_reusing_cooperative, decode_share_group_heartbeat_response,
     encode_one_share_acknowledge, encode_share_acknowledge_request,
     encode_share_acknowledge_topics, encode_share_fetch_request_with_options,
     encode_share_group_heartbeat_request, AcknowledgementBatch, ShareAckTopic, ShareFetchPartition,
@@ -3584,12 +3584,14 @@ impl ShareGroup {
             };
             let scratch = std::mem::take(&mut self.spare_fetched);
             let ((mut fetched, endpoints, _, _, lock_timeout, error_code), decoded_bytes, retained) =
-                match decode_share_fetch_response_reusing(
+                match decode_share_fetch_response_reusing_cooperative(
                     &mut body,
                     version,
                     remaining_bytes,
                     scratch,
-                ) {
+                )
+                .await
+                {
                     Ok(reply) => reply,
                     Err(error) => {
                         self.reset_node_session(node).await;
