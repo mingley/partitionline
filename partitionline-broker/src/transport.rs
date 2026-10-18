@@ -32,7 +32,7 @@ use std::{
     net::SocketAddr,
     pin::Pin,
     sync::Arc,
-    task::Poll,
+    task::{Context, Poll},
     time::Duration,
 };
 use tokio::{
@@ -1096,6 +1096,24 @@ async fn read_frame_buffered<S: AsyncRead + Unpin>(
     .map_err(|_| Exit::ReadDeadline)?
 }
 
+/// Offer at most one chunk. A socket that accepts every byte would otherwise
+/// copy the whole response before the write deadline is polled.
+fn poll_write_chunk<S: AsyncWrite + Unpin>(
+    socket: &mut S,
+    cx: &mut Context<'_>,
+    bufs: &[IoSlice<'_>],
+) -> Poll<io::Result<usize>> {
+    let Some(first) = bufs.first() else {
+        return Poll::Ready(Ok(0));
+    };
+    let take = first.len().min(8 * 1024);
+    if take == 0 {
+        return Poll::Ready(Ok(0));
+    }
+    let head = [IoSlice::new(&first[..take])];
+    Pin::new(&mut *socket).poll_write_vectored(cx, &head)
+}
+
 async fn write_and_prefetch<S: AsyncRead + AsyncWrite + Unpin>(
     socket: &mut S,
     response: &[u8],
@@ -1123,7 +1141,7 @@ async fn write_and_prefetch<S: AsyncRead + AsyncWrite + Unpin>(
                     "invalid frame length",
                 )));
             }
-            match Pin::new(&mut *socket).poll_write_vectored(cx, bufs) {
+            match poll_write_chunk(socket, cx, bufs) {
                 Poll::Ready(Ok(0)) => Poll::Ready(Err(io::Error::new(
                     io::ErrorKind::WriteZero,
                     "response write returned 0",
@@ -1181,7 +1199,7 @@ async fn write_and_prefetch<S: AsyncRead + AsyncWrite + Unpin>(
                     if stop_read
                         || !matches!(classify_ahead(ahead.pending(), max_request), Ahead::Need(_))
                     {
-                        match Pin::new(&mut *socket).poll_write_vectored(cx, bufs) {
+                        match poll_write_chunk(socket, cx, bufs) {
                             Poll::Ready(Ok(0)) => {
                                 return Poll::Ready(Err(io::Error::new(
                                     io::ErrorKind::WriteZero,
@@ -2343,6 +2361,65 @@ mod write_prefetch_tests {
         assert!(
             deadline && elapsed < Duration::from_millis(80),
             "a greedy prefetch held the write past its deadline: {elapsed:?} deadline {deadline}"
+        );
+    }
+
+    /// Accepts every offered byte and spends time in proportion to that copy.
+    struct GreedyAccept;
+
+    impl AsyncRead for GreedyAccept {
+        fn poll_read(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            _buf: &mut ReadBuf<'_>,
+        ) -> Poll<std::io::Result<()>> {
+            Poll::Pending
+        }
+    }
+
+    impl AsyncWrite for GreedyAccept {
+        fn poll_write(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            buf: &[u8],
+        ) -> Poll<std::io::Result<usize>> {
+            if buf.is_empty() {
+                return Poll::Ready(Ok(0));
+            }
+            let units = u32::try_from(buf.len().div_ceil(1024)).unwrap_or(u32::MAX);
+            let start = std::time::Instant::now();
+            while start.elapsed() < Duration::from_millis(2).saturating_mul(units) {}
+            Poll::Ready(Ok(buf.len()))
+        }
+
+        fn poll_flush(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
+            Poll::Ready(Ok(()))
+        }
+
+        fn poll_shutdown(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
+            Poll::Ready(Ok(()))
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn write_deadline_stops_a_greedy_response() {
+        let mut socket = GreedyAccept;
+        let body = vec![7u8; 64 * 1024];
+        let started = Instant::now();
+        let result = write_and_prefetch(
+            &mut socket,
+            &body,
+            Instant::now() + Duration::from_millis(40),
+            &mut ReadAhead::new(),
+            8 * 1024 * 1024,
+            false,
+        )
+        .await;
+        let elapsed = started.elapsed();
+        let deadline = matches!(result, Err(Exit::WriteDeadline));
+        assert!(
+            deadline && elapsed < Duration::from_millis(80),
+            "a greedy response held the write past its deadline: {elapsed:?} deadline {deadline}"
         );
     }
 
