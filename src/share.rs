@@ -2161,7 +2161,7 @@ pub enum ShareAcquireMode {
 /// this when the client SASL mechanism is not enabled on the broker. A top-level
 /// ShareAcknowledge `ILLEGAL_SASL_STATE` completes without
 /// retry and does not request Metadata, including when `ErrorMessage`
-/// is set (Java `handleShareAcknowledgeSuccess` has no
+/// is set or empty (Java `handleShareAcknowledgeSuccess` has no
 /// `metadata.requestUpdate`; this is not top-level
 /// `UNSUPPORTED_SASL_MECHANISM`). Official Java `SaslServerAuthenticator`
 /// writes this when a request other than `SASL_AUTHENTICATE` arrives
@@ -4987,7 +4987,7 @@ impl ShareGroup {
     /// mechanism is not enabled on the broker.
     /// A top-level ShareAcknowledge `ILLEGAL_SASL_STATE`
     /// completes without retry and does not request Metadata,
-    /// including when `ErrorMessage` is set (Java
+    /// including when `ErrorMessage` is set or empty (Java
     /// `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`;
     /// this is not top-level `UNSUPPORTED_SASL_MECHANISM`). Official
     /// Java `SaslServerAuthenticator` writes this when a request other
