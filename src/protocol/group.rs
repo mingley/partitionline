@@ -505,12 +505,7 @@ impl ConsumerProtocol {
         for _ in 0..n {
             let mut topic = buf::get_classic_nullable_string(&mut bytes)?.unwrap_or_default();
             let pn = buf::get_array_len(&mut bytes, false)?.unwrap_or(0);
-            for index in 0..pn {
-                partitions.push((
-                    named_partition(&mut topic, index, pn),
-                    buf::get_i32(&mut bytes)?,
-                ));
-            }
+            pull_named_partitions(&mut bytes, &mut topic, pn, 0, pn, &mut partitions)?;
         }
         if !bytes.is_empty() {
             let _user = buf::get_classic_bytes(&mut bytes)?;
@@ -7325,10 +7320,101 @@ pub fn decode_assignment(bytes: &[u8]) -> Result<Vec<(String, Vec<i32>)>> {
     Ok(group_owned_assignment(assignment.partitions))
 }
 
+/// [`decode_assignment`], yielding while a long partition list is decoded.
+pub async fn decode_assignment_cooperative(bytes: &[u8]) -> Result<Vec<(String, Vec<i32>)>> {
+    let assignment = deserialize_assignment_cooperative(bytes).await?;
+    Ok(group_owned_assignment_cooperative(assignment.partitions).await)
+}
+
+async fn deserialize_assignment_cooperative(bytes: &[u8]) -> Result<ConsumerProtocolAssignment> {
+    if bytes.is_empty() {
+        return Ok(ConsumerProtocolAssignment::default());
+    }
+    let mut bytes = bytes;
+    let raw = buf::get_i16(&mut bytes)?;
+    let _ver = check_assignment_version(raw)?;
+    let n = buf::get_array_len(&mut bytes, false)?.unwrap_or(0);
+    let mut partitions = Vec::new();
+    for _ in 0..n {
+        let mut topic = buf::get_classic_nullable_string(&mut bytes)?.unwrap_or_default();
+        let pn = buf::get_array_len(&mut bytes, false)?.unwrap_or(0);
+        let mut next = 0usize;
+        while next < pn {
+            let end = next.saturating_add(8 * 1024).min(pn);
+            pull_named_partitions(&mut bytes, &mut topic, pn, next, end, &mut partitions)?;
+            next = end;
+            if next < pn {
+                tokio::task::yield_now().await;
+            }
+        }
+    }
+    if !bytes.is_empty() {
+        let _user = buf::get_classic_bytes(&mut bytes)?;
+    }
+    Ok(ConsumerProtocolAssignment { partitions })
+}
+
+fn pull_named_partitions(
+    bytes: &mut &[u8],
+    topic: &mut String,
+    count: usize,
+    start: usize,
+    end: usize,
+    partitions: &mut Vec<(String, i32)>,
+) -> Result<()> {
+    for index in start..end {
+        partitions.push((named_partition(topic, index, count), buf::get_i32(bytes)?));
+    }
+    Ok(())
+}
+
+async fn group_owned_assignment_cooperative(parts: Vec<(String, i32)>) -> Vec<(String, Vec<i32>)> {
+    let mut by_topic: Vec<(String, Vec<i32>)> = Vec::new();
+    let mut walked = 0usize;
+    for (topic, part) in parts {
+        if let Some((_, partitions)) = by_topic.iter_mut().find(|(name, _)| name == &topic) {
+            partitions.push(part);
+        } else {
+            by_topic.push((topic, vec![part]));
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    by_topic
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use std::collections::HashMap;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn decoding_a_large_assignment_does_not_hold_the_caller() {
+        let partitions = 800_000i32;
+        let mut body = BytesMut::new();
+        body.put_i16(0);
+        body.put_i32(1);
+        body.put_i16(6);
+        body.extend_from_slice(b"orders");
+        body.put_i32(partitions);
+        for index in 0..partitions {
+            body.put_i32(index);
+        }
+        body.put_i32(-1);
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = decode_assignment_cooperative(&body) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "decoding an assignment held the caller for {elapsed:?}"
+        );
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn decoding_many_fetched_offsets_does_not_hold_the_caller() {

@@ -27,7 +27,7 @@ use crate::protocol::cgheartbeat::{
     ConsumerGroupHeartbeatRequest, TopicPartitions,
 };
 use crate::protocol::group::{
-    decode_assignment, decode_find_coordinator_response, decode_heartbeat_response,
+    decode_assignment_cooperative, decode_find_coordinator_response, decode_heartbeat_response,
     decode_join_group_response, decode_leave_group_response_version, decode_offset_commit_response,
     decode_offset_fetch_response, decode_offset_fetch_response_cooperative,
     decode_sync_group_response, encode_find_coordinator_request_typed, encode_heartbeat_request,
@@ -2913,9 +2913,11 @@ impl ConsumerGroup {
         if err != 0 {
             return Err(Error::broker(err, "SyncGroup"));
         }
-        let assigned = decode_assignment(&assignment).map_err(|e| {
-            group_decode_context(e, "ConsumerProtocol assignment", version, assignment.len())
-        })?;
+        let assigned = decode_assignment_cooperative(&assignment)
+            .await
+            .map_err(|e| {
+                group_decode_context(e, "ConsumerProtocol assignment", version, assignment.len())
+            })?;
         let wanted = expand_topic_partitions(assigned);
         let revoked = self.assign_committed(&wanted, deadline, false).await?;
         self.hb_generation
