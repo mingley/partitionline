@@ -2201,15 +2201,28 @@ pub(crate) async fn decode_share_fetch_response_reusing_cooperative<B: Buf>(
         let mut rec_buf = pending.bytes;
         let mut used_batches = 0usize;
         loop {
-            let more = consume_share_batches(
-                &mut rec_buf,
-                &mut remaining,
-                &mut records,
-                &mut used_batches,
-                64 * 1024,
-            )?;
-            if !more {
+            if !rec_buf.has_remaining() {
                 break;
+            }
+            if share_batch_wider_than(&rec_buf, 64 * 1024)? {
+                take_one_large_share_batch(
+                    &mut rec_buf,
+                    &mut remaining,
+                    &mut records,
+                    &mut used_batches,
+                )
+                .await?;
+            } else {
+                let more = consume_share_batches(
+                    &mut rec_buf,
+                    &mut remaining,
+                    &mut records,
+                    &mut used_batches,
+                    64 * 1024,
+                )?;
+                if !more {
+                    break;
+                }
             }
             tokio::task::yield_now().await;
         }
@@ -2444,6 +2457,101 @@ fn decode_share_fetch_response_reusing_inner<B: Buf>(
             - remaining_decode_bytes,
         Vec::new(),
     ))
+}
+
+fn share_batch_wider_than(buf: &Bytes, limit: usize) -> Result<bool> {
+    if buf.remaining() < 12 {
+        return Ok(false);
+    }
+    let len_bytes = buf
+        .get(8..12)
+        .ok_or_else(|| Error::protocol("short batch length"))?;
+    let batch_len = i32::from_be_bytes(
+        len_bytes
+            .try_into()
+            .map_err(|_| Error::protocol("short batch length"))?,
+    );
+    if batch_len < 0 {
+        return Err(Error::protocol("negative record batch length"));
+    }
+    let need = 12usize.saturating_add(usize::try_from(batch_len).unwrap_or(usize::MAX));
+    Ok(buf.remaining() >= need && need > limit)
+}
+
+async fn take_one_large_share_batch(
+    rec_buf: &mut Bytes,
+    remaining_decode_bytes: &mut usize,
+    records: &mut Vec<RecordBatch>,
+    used_batches: &mut usize,
+) -> Result<()> {
+    let count_bytes = rec_buf
+        .get(57..61)
+        .ok_or_else(|| Error::protocol("truncated ShareFetch record batch"))?;
+    let count = i32::from_be_bytes(
+        count_bytes
+            .try_into()
+            .map_err(|_| Error::protocol("short record count"))?,
+    );
+    let count = usize::try_from(count).map_err(|_| Error::protocol("negative record count"))?;
+    if count > *remaining_decode_bytes / std::mem::size_of::<records::Record>().max(1) {
+        return Err(Error::protocol("ShareFetch decoded-record budget exceeded"));
+    }
+    let spare_records = if *used_batches < records.len() {
+        records
+            .get_mut(*used_batches)
+            .map(|batch| std::mem::take(&mut batch.records))
+            .unwrap_or_default()
+    } else {
+        Vec::new()
+    };
+    let batch = records::decode_record_batch_reusing_cooperative(
+        rec_buf,
+        *remaining_decode_bytes,
+        spare_records,
+    )
+    .await?;
+    let mut logical_bytes = 61usize;
+    let mut index = 0usize;
+    while index < batch.records.len() {
+        let end = index.saturating_add(8 * 1024).min(batch.records.len());
+        let Some(slice) = batch.records.get(index..end) else {
+            break;
+        };
+        for record in slice {
+            let offset_delta = i32::try_from(record.offset.saturating_sub(batch.base_offset))
+                .map_err(|_| Error::protocol("ShareFetch record offset delta exceeds int32"))?;
+            let encoded = usize::try_from(record.size_in_bytes(
+                offset_delta,
+                record.timestamp.saturating_sub(batch.base_timestamp),
+            )?)
+            .map_err(|_| Error::protocol("negative decoded record size"))?;
+            let header_storage = record
+                .headers
+                .len()
+                .saturating_mul(std::mem::size_of::<records::Header>());
+            logical_bytes = logical_bytes.saturating_add(
+                encoded
+                    .max(std::mem::size_of::<records::Record>())
+                    .saturating_add(header_storage),
+            );
+        }
+        index = end;
+        if index < batch.records.len() {
+            tokio::task::yield_now().await;
+        }
+    }
+    *remaining_decode_bytes = remaining_decode_bytes
+        .checked_sub(logical_bytes)
+        .ok_or_else(|| Error::protocol("ShareFetch decoded-record budget exceeded"))?;
+    if *used_batches < records.len() {
+        if let Some(slot) = records.get_mut(*used_batches) {
+            *slot = batch;
+        }
+    } else {
+        records.push(batch);
+    }
+    *used_batches = used_batches.saturating_add(1);
+    Ok(())
 }
 
 /// Decode framed batches until `budget` input bytes have been consumed.

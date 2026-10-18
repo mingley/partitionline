@@ -2805,13 +2805,15 @@ impl EncodedBatch {
     /// Decode without consuming the framed body. `Bytes` clone bumps a refcount.
     ///
     /// Enforces [`DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES`].
-    pub(crate) fn decode_shared(&self) -> Result<RecordBatch> {
-        decode_checked_batch(
+    /// Decode this batch, yielding while a long record list is decoded.
+    pub(crate) async fn decode_shared_cooperative(&self) -> Result<RecordBatch> {
+        decode_checked_batch_cooperative(
             self.base_offset,
             self.body.clone(),
             DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES,
             Vec::new(),
         )
+        .await
     }
 
     /// Visit uncompressed records whose keys are at most 24 bytes.
@@ -2819,10 +2821,38 @@ impl EncodedBatch {
     /// Returns [`None`] when the batch is not that shape. The callback may
     /// already have run; the caller discards those records and uses
     /// [`Self::decode_shared`].
+    #[cfg(test)]
     pub(crate) fn try_visit_short_keys(
         &self,
         mut on_record: impl FnMut(ShortKeyRecord),
     ) -> Result<Option<ShortKeyBatch>> {
+        let Some(mut visit) = self.start_short_visit()? else {
+            return Ok(None);
+        };
+        match pull_short_visit(&mut visit, usize::MAX, &mut on_record)? {
+            ShortPull::Done => Ok(Some(visit.meta)),
+            ShortPull::Mismatch | ShortPull::More => Ok(None),
+        }
+    }
+
+    /// [`Self::try_visit_short_keys`], yielding so a long batch does not hold the caller.
+    pub(crate) async fn try_visit_short_keys_cooperative(
+        &self,
+        mut on_record: impl FnMut(ShortKeyRecord),
+    ) -> Result<Option<ShortKeyBatch>> {
+        let Some(mut visit) = self.start_short_visit()? else {
+            return Ok(None);
+        };
+        loop {
+            match pull_short_visit(&mut visit, 8 * 1024, &mut on_record)? {
+                ShortPull::More => tokio::task::yield_now().await,
+                ShortPull::Done => return Ok(Some(visit.meta)),
+                ShortPull::Mismatch => return Ok(None),
+            }
+        }
+    }
+
+    fn start_short_visit(&self) -> Result<Option<ShortVisit>> {
         let mut body = self.body.clone();
         if body.remaining() < 49 {
             return Ok(None);
@@ -2870,20 +2900,16 @@ impl EncodedBatch {
         if count_usize > body.remaining() {
             return Ok(None);
         }
-        for _ in 0..count_usize {
-            let Some(record) = try_plain_short_key(&mut body, self.base_offset, base_timestamp)
-            else {
-                return Ok(None);
-            };
-            on_record(record);
-        }
-        if body.has_remaining() {
-            return Ok(None);
-        }
-        Ok(Some(ShortKeyBatch {
-            partition_leader_epoch,
-            attributes,
-            max_timestamp,
+        Ok(Some(ShortVisit {
+            body,
+            base_offset: self.base_offset,
+            base_timestamp,
+            left: count_usize,
+            meta: ShortKeyBatch {
+                partition_leader_epoch,
+                attributes,
+                max_timestamp,
+            },
         }))
     }
 
@@ -3321,6 +3347,16 @@ pub(crate) fn decode_record_batch_reusing<B: Buf>(
     decode_checked_batch(base_offset, body, max_decode_bytes, records)
 }
 
+/// [`decode_record_batch_reusing`], yielding while a long record list is decoded.
+pub(crate) async fn decode_record_batch_reusing_cooperative<B: Buf>(
+    buf: &mut B,
+    max_decode_bytes: usize,
+    records: Vec<Record>,
+) -> Result<RecordBatch> {
+    let (base_offset, body) = take_checked_batch(buf)?;
+    decode_checked_batch_cooperative(base_offset, body, max_decode_bytes, records).await
+}
+
 /// Frame one magic-v2 batch and check its size, magic, CRC32-C and codec
 /// without decompressing it. Returns the base offset and the batch body from
 /// `partitionLeaderEpoch` on.
@@ -3358,10 +3394,55 @@ fn take_checked_batch<B: Buf>(buf: &mut B) -> Result<(i64, Bytes)> {
 /// Decode a body that [`take_checked_batch`] already framed and checked.
 fn decode_checked_batch(
     base_offset: i64,
+    body: Bytes,
+    max_decode_bytes: usize,
+    records: Vec<Record>,
+) -> Result<RecordBatch> {
+    let mut open = open_checked_batch(base_offset, body, max_decode_bytes, records)?;
+    let remaining = open.remaining;
+    if remaining > 0 {
+        pull_checked_records(&mut open, remaining)?;
+    }
+    finish_checked_batch(open)
+}
+
+/// [`decode_checked_batch`], yielding between slices of a long record list.
+pub(crate) async fn decode_checked_batch_cooperative(
+    base_offset: i64,
+    body: Bytes,
+    max_decode_bytes: usize,
+    records: Vec<Record>,
+) -> Result<RecordBatch> {
+    let mut open = open_checked_batch(base_offset, body, max_decode_bytes, records)?;
+    while open.remaining > 0 {
+        pull_checked_records(&mut open, 8 * 1024)?;
+        if open.remaining > 0 {
+            tokio::task::yield_now().await;
+        }
+    }
+    finish_checked_batch(open)
+}
+
+struct OpenBatch {
+    base_offset: i64,
+    partition_leader_epoch: i32,
+    attributes: i16,
+    base_timestamp: i64,
+    max_timestamp: i64,
+    producer_id: i64,
+    producer_epoch: i16,
+    base_sequence: i32,
+    records_cur: Bytes,
+    remaining: usize,
+    records: Vec<Record>,
+}
+
+fn open_checked_batch(
+    base_offset: i64,
     mut body: Bytes,
     max_decode_bytes: usize,
     mut records: Vec<Record>,
-) -> Result<RecordBatch> {
+) -> Result<OpenBatch> {
     let partition_leader_epoch = buf::get_i32(&mut body)?;
     let magic = buf::get_i8(&mut body)?;
     let _crc = buf::get_u32(&mut body)?;
@@ -3379,7 +3460,7 @@ fn decode_checked_batch(
             "Found invalid record count {count} in magic v{magic} batch"
         )));
     }
-    let mut records_cur = match compression {
+    let records_cur = match compression {
         Compression::None => {
             if body.len() > max_decode_bytes {
                 return Err(Error::protocol(
@@ -3411,24 +3492,7 @@ fn decode_checked_batch(
                 .map_err(|_| Error::protocol("record batch reserve"))?;
         }
     }
-    for _ in 0..count_usize {
-        if !records_cur.has_remaining() {
-            return Err(Error::protocol(
-                "Incorrect declared batch size, premature EOF reached",
-            ));
-        }
-        records.push(decode_record_from_bytes(
-            &mut records_cur,
-            base_offset,
-            base_timestamp,
-        )?);
-    }
-    if records_cur.has_remaining() {
-        return Err(Error::protocol(
-            "Incorrect declared batch size, records still remaining in file",
-        ));
-    }
-    Ok(RecordBatch {
+    Ok(OpenBatch {
         base_offset,
         partition_leader_epoch,
         attributes,
@@ -3437,7 +3501,52 @@ fn decode_checked_batch(
         producer_id,
         producer_epoch,
         base_sequence,
+        records_cur,
+        remaining: count_usize,
         records,
+    })
+}
+
+fn pull_checked_records(open: &mut OpenBatch, limit: usize) -> Result<()> {
+    let mut left = limit.max(1).min(open.remaining);
+    while left > 0 {
+        if !open.records_cur.has_remaining() {
+            return Err(Error::protocol(
+                "Incorrect declared batch size, premature EOF reached",
+            ));
+        }
+        open.records.push(decode_record_from_bytes(
+            &mut open.records_cur,
+            open.base_offset,
+            open.base_timestamp,
+        )?);
+        open.remaining = open.remaining.saturating_sub(1);
+        left = left.saturating_sub(1);
+    }
+    Ok(())
+}
+
+fn finish_checked_batch(open: OpenBatch) -> Result<RecordBatch> {
+    if open.remaining > 0 {
+        return Err(Error::protocol(
+            "Incorrect declared batch size, premature EOF reached",
+        ));
+    }
+    if open.records_cur.has_remaining() {
+        return Err(Error::protocol(
+            "Incorrect declared batch size, records still remaining in file",
+        ));
+    }
+    Ok(RecordBatch {
+        base_offset: open.base_offset,
+        partition_leader_epoch: open.partition_leader_epoch,
+        attributes: open.attributes,
+        base_timestamp: open.base_timestamp,
+        max_timestamp: open.max_timestamp,
+        producer_id: open.producer_id,
+        producer_epoch: open.producer_epoch,
+        base_sequence: open.base_sequence,
+        records: open.records,
     })
 }
 
@@ -3579,6 +3688,45 @@ pub(crate) struct ShortKeyBatch {
     pub(crate) partition_leader_epoch: i32,
     pub(crate) attributes: i16,
     pub(crate) max_timestamp: i64,
+}
+
+struct ShortVisit {
+    body: Bytes,
+    base_offset: i64,
+    base_timestamp: i64,
+    left: usize,
+    meta: ShortKeyBatch,
+}
+
+enum ShortPull {
+    More,
+    Done,
+    Mismatch,
+}
+
+fn pull_short_visit(
+    visit: &mut ShortVisit,
+    limit: usize,
+    on_record: &mut impl FnMut(ShortKeyRecord),
+) -> Result<ShortPull> {
+    let mut left = limit.max(1);
+    while visit.left > 0 && left > 0 {
+        let Some(record) =
+            try_plain_short_key(&mut visit.body, visit.base_offset, visit.base_timestamp)
+        else {
+            return Ok(ShortPull::Mismatch);
+        };
+        on_record(record);
+        visit.left = visit.left.saturating_sub(1);
+        left = left.saturating_sub(1);
+    }
+    if visit.left > 0 {
+        return Ok(ShortPull::More);
+    }
+    if visit.body.has_remaining() {
+        return Ok(ShortPull::Mismatch);
+    }
+    Ok(ShortPull::Done)
 }
 
 fn try_plain_short_key(
@@ -3782,6 +3930,50 @@ mod tests {
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "decoding framed batches held the caller for {elapsed:?}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn decoding_one_long_batch_does_not_hold_the_caller() {
+        let record = [0x0cu8, 0x00, 0x00, 0x00, 0x01, 0x01, 0x00];
+        let count = 900_000usize;
+        let records_len = count.saturating_mul(record.len());
+        let mut frame = Vec::with_capacity(61usize.saturating_add(records_len));
+        frame.resize(61, 0);
+        let batch_len = i32::try_from(49usize.saturating_add(records_len)).unwrap();
+        frame[8..12].copy_from_slice(&batch_len.to_be_bytes());
+        frame[16] = 2;
+        frame[57..61].copy_from_slice(&i32::try_from(count).unwrap().to_be_bytes());
+        for _ in 0..count {
+            frame.extend_from_slice(&record);
+        }
+        let crc = crc32c::crc32c(&frame[21..]);
+        frame[17..21].copy_from_slice(&crc.to_be_bytes());
+        let batch = EncodedBatch {
+            base_offset: 0,
+            attributes: 0,
+            body: Bytes::copy_from_slice(&frame[12..]),
+        };
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = batch.try_visit_short_keys_cooperative(|_| {}) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "visiting one batch held the caller for {elapsed:?}"
+        );
+        let mut cursor: &[u8] = &frame;
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = decode_record_batch_reusing_cooperative(&mut cursor, usize::MAX, Vec::new()) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "decoding one batch held the caller for {elapsed:?}"
         );
     }
 

@@ -7775,37 +7775,40 @@ impl Consumer {
                         // Highest `offset + 1` among records that are delivered.
                         let mut included_next: Option<i64> = None;
                         let mut cursor_overflow = false;
-                        let visited = encoded.try_visit_short_keys(|rec| {
-                            last_record_off = Some(rec.offset);
-                            if rec.offset < req_offset
-                                || !record_is_visible(rec.offset, part.high_watermark)
-                                || !record_is_retained(rec.offset, part.log_start_offset)
-                            {
-                                return;
-                            }
-                            let Some(advanced) = exclusive_fetch_offset(rec.offset) else {
-                                cursor_overflow = true;
-                                return;
-                            };
-                            let key_len = rec.key.as_ref().map_or(0, |(_, len)| usize::from(*len));
-                            let val_len = rec.value.as_ref().map_or(0, Bytes::len);
-                            added = added.saturating_add(key_len.saturating_add(val_len));
-                            added_records = added_records.saturating_add(1);
-                            included_next = Some(
-                                included_next.map_or(advanced, |current| current.max(advanced)),
-                            );
-                            out.push(FetchedRecord {
-                                topic: topic_name.clone(),
-                                partition: part.partition,
-                                offset: rec.offset,
-                                timestamp: rec.timestamp,
-                                timestamp_type: TimestampType::CreateTime,
-                                key: rec.key.map(|(bytes, len)| RecordBytes::Short(bytes, len)),
-                                value: rec.value,
-                                headers: Vec::new(),
-                                leader_epoch: None,
-                            });
-                        })?;
+                        let visited = encoded
+                            .try_visit_short_keys_cooperative(|rec| {
+                                last_record_off = Some(rec.offset);
+                                if rec.offset < req_offset
+                                    || !record_is_visible(rec.offset, part.high_watermark)
+                                    || !record_is_retained(rec.offset, part.log_start_offset)
+                                {
+                                    return;
+                                }
+                                let Some(advanced) = exclusive_fetch_offset(rec.offset) else {
+                                    cursor_overflow = true;
+                                    return;
+                                };
+                                let key_len =
+                                    rec.key.as_ref().map_or(0, |(_, len)| usize::from(*len));
+                                let val_len = rec.value.as_ref().map_or(0, Bytes::len);
+                                added = added.saturating_add(key_len.saturating_add(val_len));
+                                added_records = added_records.saturating_add(1);
+                                included_next = Some(
+                                    included_next.map_or(advanced, |current| current.max(advanced)),
+                                );
+                                out.push(FetchedRecord {
+                                    topic: topic_name.clone(),
+                                    partition: part.partition,
+                                    offset: rec.offset,
+                                    timestamp: rec.timestamp,
+                                    timestamp_type: TimestampType::CreateTime,
+                                    key: rec.key.map(|(bytes, len)| RecordBytes::Short(bytes, len)),
+                                    value: rec.value,
+                                    headers: Vec::new(),
+                                    leader_epoch: None,
+                                });
+                            })
+                            .await?;
                         if cursor_overflow {
                             return Err(Error::protocol("fetch cursor overflow"));
                         }
@@ -7861,7 +7864,7 @@ impl Consumer {
                         out.truncate(mark);
                         *out_bytes = mark_bytes;
                     }
-                    let batch = encoded.decode_shared()?;
+                    let batch = encoded.decode_shared_cooperative().await?;
                     if budget > 0 && !is_first_batch && !is_control {
                         let batch_bytes = batch_records_bytes(&batch.records);
                         let current_total = self.buffered_bytes.saturating_add(*out_bytes);
