@@ -1649,7 +1649,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `OUT_OF_ORDER_SEQUENCE_NUMBER`). Official Java `ProducerAppendInfo` writes
   this when an idempotent produce batch uses a producer epoch older than the current epoch for that producerId.
   Top-level `INVALID_TXN_STATE` still fails that poll
-  without Metadata, including when `ErrorMessage` is set (Java
+  without Metadata, including when `ErrorMessage` is set or empty (Java
   `handleShareFetchSuccess` only `requestUpdate`s for top-level
   `UNKNOWN_TOPIC_ID`; this is not top-level
   `INVALID_PRODUCER_EPOCH`). Official Java `UnifiedLog` writes
