@@ -3140,18 +3140,17 @@ impl ConsumerGroup {
         // Any missing or stale name refreshes the whole set: a subset response
         // would replace the image `partition_ids` reads.
         let mut by_topic = Vec::with_capacity(topic_set.len());
-        let mut loaded = true;
-        for topic in &topic_set {
-            if !self.consumer.topic_metadata_fresh(topic) {
-                loaded = false;
-                break;
-            }
-            match self.consumer.partition_ids(topic) {
-                Ok(ids) => by_topic.push((topic.clone(), ids)),
-                Err(_) => {
-                    loaded = false;
-                    break;
+        let mut loaded = topic_set
+            .iter()
+            .all(|topic| self.consumer.topic_metadata_fresh(topic));
+        if loaded {
+            match self.consumer.partition_ids_all(&topic_set) {
+                Ok(lists) => {
+                    for (topic, ids) in topic_set.iter().zip(lists) {
+                        by_topic.push((topic.clone(), ids));
+                    }
                 }
+                Err(_) => loaded = false,
             }
         }
         if !loaded {
@@ -3159,8 +3158,9 @@ impl ConsumerGroup {
                 .refresh_metadata_timeout(Some(&topic_set), timeout)
                 .await?;
             by_topic.clear();
-            for topic in &topic_set {
-                by_topic.push((topic.clone(), self.consumer.partition_ids(topic)?));
+            let lists = self.consumer.partition_ids_all(&topic_set)?;
+            for (topic, ids) in topic_set.iter().zip(lists) {
+                by_topic.push((topic.clone(), ids));
             }
         }
         let assigning = JoinGroupResponse::is_leader(&self.member_id, &leader) && !skip_assignment;

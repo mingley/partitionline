@@ -4151,34 +4151,22 @@ impl Consumer {
             .copied()
     }
 
-    /// Partition indexes from the metadata image already loaded for `topic`.
+    /// Partition indexes from the metadata image already loaded for `names`.
     ///
     /// The caller refreshes that image. This does not send another Metadata
-    /// request.
-    pub(crate) fn partition_ids(&self, topic: &str) -> Result<Vec<i32>> {
-        let Some(md) = self.metadata.as_ref() else {
-            return Err(Error::UnknownTopic(topic.to_string()));
-        };
-        let entries: Vec<(i16, Vec<i32>)> = md
-            .topics
-            .iter()
-            .filter(|tmd| tmd.name.as_deref() == Some(topic))
-            .map(|tmd| {
-                (
-                    tmd.error_code,
-                    tmd.partitions
-                        .iter()
-                        .map(|partition| partition.partition_index)
-                        .collect(),
-                )
-            })
-            .collect();
-        match listed_partition_indexes(entries.iter().map(|(error, ids)| (*error, ids.as_slice())))
-        {
-            ListedPartitions::Indexes(indexes) => Ok(indexes),
-            ListedPartitions::Error(code) => Err(Error::broker(code, topic.to_string())),
-            ListedPartitions::Missing => Err(Error::UnknownTopic(topic.to_string())),
+    /// request. Names are resolved together, in request order.
+    pub(crate) fn partition_ids_all<T: AsRef<str>>(&self, names: &[T]) -> Result<Vec<Vec<i32>>> {
+        if names.is_empty() {
+            return Ok(Vec::new());
         }
+        let Some(md) = self.metadata.as_ref() else {
+            let name = names
+                .first()
+                .map(|topic| topic.as_ref().to_string())
+                .unwrap_or_default();
+            return Err(Error::UnknownTopic(name));
+        };
+        partition_indexes_for_names(&md.topics, names.iter().map(|topic| topic.as_ref()))
     }
 
     /// Set the next fetch offset without a ListOffsets call.
@@ -10989,6 +10977,52 @@ enum ListedPartitions {
     Indexes(Vec<i32>),
 }
 
+fn partition_indexes_for_names<'a>(
+    topics: &[crate::protocol::api::TopicMetadata],
+    names: impl IntoIterator<Item = &'a str>,
+) -> Result<Vec<Vec<i32>>> {
+    let mut copies: HashMap<&str, Vec<usize>> = HashMap::with_capacity(topics.len());
+    for (index, topic) in topics.iter().enumerate() {
+        let Some(name) = topic.name.as_deref() else {
+            continue;
+        };
+        if let Some(slots) = copies.get_mut(name) {
+            slots.push(index);
+        } else {
+            let _ = copies.insert(name, vec![index]);
+        }
+    }
+    let mut out = Vec::new();
+    for name in names {
+        let entries: Vec<(i16, Vec<i32>)> = copies
+            .get(name)
+            .into_iter()
+            .flatten()
+            .filter_map(|index| topics.get(*index))
+            .map(|topic| {
+                (
+                    topic.error_code,
+                    topic
+                        .partitions
+                        .iter()
+                        .map(|partition| partition.partition_index)
+                        .collect(),
+                )
+            })
+            .collect();
+        out.push(
+            match listed_partition_indexes(
+                entries.iter().map(|(error, ids)| (*error, ids.as_slice())),
+            ) {
+                ListedPartitions::Indexes(indexes) => indexes,
+                ListedPartitions::Error(code) => return Err(Error::broker(code, name.to_string())),
+                ListedPartitions::Missing => return Err(Error::UnknownTopic(name.to_string())),
+            },
+        );
+    }
+    Ok(out)
+}
+
 fn listed_partition_indexes<'a>(
     entries: impl IntoIterator<Item = (i16, &'a [i32])>,
 ) -> ListedPartitions {
@@ -13834,6 +13868,48 @@ mod tests {
         assert!(partition_infos_from(&md, Some("missing"))
             .unwrap()
             .is_empty());
+    }
+
+    #[test]
+    fn listing_many_topic_partitions_does_not_hold_the_caller() {
+        // 20_000 names: scanning the image for each name held the caller 4.08s.
+        use crate::protocol::api::{PartitionMetadata, TopicMetadata};
+        let topics: Vec<TopicMetadata> = (0..20_000)
+            .map(|index| TopicMetadata::new(0, format!("t{index}"), false, Vec::new()))
+            .collect();
+        let names: Vec<String> = (0..20_000).map(|index| format!("t{index}")).collect();
+        let started = std::time::Instant::now();
+        let listed = partition_indexes_for_names(&topics, names.iter().map(String::as_str))
+            .unwrap_or_else(|error| panic!("{error}"));
+        let elapsed = started.elapsed();
+        assert_eq!(listed.len(), 20_000);
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "listing topic partitions held the caller for {elapsed:?}"
+        );
+        let copies = [
+            TopicMetadata::error(3, Some("t0"), [0; 16]),
+            TopicMetadata {
+                error_code: 0,
+                name: Some("t0".into()),
+                topic_id: [0; 16],
+                is_internal: false,
+                partitions: vec![PartitionMetadata {
+                    error_code: 0,
+                    partition_index: 4,
+                    leader_id: 1,
+                    leader_epoch: 1,
+                    replica_nodes: vec![1],
+                    isr_nodes: vec![1],
+                    offline_replicas: Vec::new(),
+                }],
+                topic_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+            },
+        ];
+        let recovered =
+            partition_indexes_for_names(&copies, ["t0"]).unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(recovered.first().map(Vec::as_slice), Some([4].as_slice()));
+        assert!(partition_indexes_for_names(&topics, ["missing"]).is_err());
     }
 
     #[test]
