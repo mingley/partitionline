@@ -691,14 +691,26 @@ fn apply_topics(group: &mut Group, topics: &BTreeMap<String, i32>) {
     for member in group.members.values_mut() {
         member.assignment = Arc::new(BTreeMap::new());
     }
+    let member_ids: Vec<String> = group.members.keys().cloned().collect();
+    let mut by_topic: HashMap<&str, Vec<usize>> = HashMap::with_capacity(topics.len());
+    for topic in topics.keys() {
+        let _ = by_topic.insert(topic.as_str(), Vec::new());
+    }
+    for (index, id) in member_ids.iter().enumerate() {
+        let Some(member) = group.members.get(id) else {
+            continue;
+        };
+        for topic in &member.topics {
+            if let Some(subscribers) = by_topic.get_mut(topic.as_str()) {
+                subscribers.push(index);
+            }
+        }
+    }
     for (topic, count) in topics {
-        let subscribers: Vec<String> = group
-            .members
-            .iter()
-            .filter(|(_, member)| member.topics.contains(topic))
-            .map(|(id, _)| id.clone())
-            .collect();
-        assign_topic(group, topic, *count, &subscribers);
+        let Some(subscribers) = by_topic.get(topic.as_str()) else {
+            continue;
+        };
+        assign_topic(group, topic, *count, &member_ids, subscribers);
     }
     for (id, member) in &mut group.members {
         if let Some(prior) = previous
@@ -712,7 +724,13 @@ fn apply_topics(group: &mut Group, topics: &BTreeMap<String, i32>) {
     }
 }
 
-fn assign_topic(group: &mut Group, topic: &str, count: i32, subscribers: &[String]) {
+fn assign_topic(
+    group: &mut Group,
+    topic: &str,
+    count: i32,
+    member_ids: &[String],
+    subscribers: &[usize],
+) {
     if subscribers.is_empty() || count <= 0 {
         return;
     }
@@ -720,13 +738,19 @@ fn assign_topic(group: &mut Group, topic: &str, count: i32, subscribers: &[Strin
     let base = count / subscribers.len();
     let extra = count % subscribers.len();
     let mut next = 0i32;
-    for (index, member_id) in subscribers.iter().enumerate() {
+    for (index, member_index) in subscribers.iter().copied().enumerate() {
         let share = base + usize::from(index < extra);
+        if share == 0 {
+            continue;
+        }
         let mut owned = Vec::new();
         for _ in 0..share {
             owned.push(next);
             next = next.saturating_add(1);
         }
+        let Some(member_id) = member_ids.get(member_index) else {
+            continue;
+        };
         if let Some(member) = group.members.get_mut(member_id) {
             let _ = Arc::make_mut(&mut member.assignment).insert(topic.to_owned(), owned);
         }
@@ -1186,6 +1210,53 @@ mod tests {
     use super::*;
     use std::collections::BTreeSet as Set;
     use std::time::{SystemTime, UNIX_EPOCH};
+
+    #[test]
+    fn applying_many_topics_does_not_hold_the_caller() {
+        // 2_000 members subscribed to 2_000 topics held the caller 9.57s.
+        let mut topics = BTreeMap::new();
+        let mut subscribed = BTreeSet::new();
+        for index in 0..400 {
+            let name = format!("topic-{index}");
+            let _ = topics.insert(name.clone(), 1);
+            let _ = subscribed.insert(name);
+        }
+        let mut members = BTreeMap::new();
+        for index in 0..400 {
+            let _ = members.insert(
+                format!("member-{index}"),
+                Member {
+                    epoch: 1,
+                    last_seen_ms: 0,
+                    acked: true,
+                    instance: None,
+                    version: 0,
+                    topics: subscribed.clone(),
+                    assignment: Arc::new(BTreeMap::new()),
+                },
+            );
+        }
+        let mut group = Group {
+            epoch: 1,
+            version: 0,
+            members,
+        };
+        let started = std::time::Instant::now();
+        apply_topics(&mut group, &topics);
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "applying topics held the caller for {elapsed:?}"
+        );
+        let first = group.members.get("member-0").map(|member| {
+            member
+                .assignment
+                .get("topic-0")
+                .map(Vec::as_slice)
+                .unwrap_or(&[])
+        });
+        assert_eq!(first, Some([0].as_slice()));
+    }
 
     fn limits() -> Limits {
         let journal = journal::Limits::new(8192, 1 << 20, 100, 1 << 20)
