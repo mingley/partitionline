@@ -3824,6 +3824,12 @@
 //! `FEATURE_UPDATE_FAILED`). Official Java `EnvelopeUtils` writes
 //! this when envelope forwarding cannot deserialize the request
 //! principal.
+//! Top-level ShareAcknowledge `SNAPSHOT_NOT_FOUND` completes
+//! without retry and does not request Metadata, including when
+//! `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+//! `metadata.requestUpdate`; this is not top-level
+//! `PRINCIPAL_DESERIALIZATION_FAILURE`). Official Java `KafkaRaftClient`
+//! writes this when the requested snapshot id does not exist.
 //! Top-level ShareAcknowledge
 //! `SHARE_SESSION_LIMIT_REACHED` completes without retry and advances
 //! the session epoch (Java `ShareSessionHandler.handleResponse`
