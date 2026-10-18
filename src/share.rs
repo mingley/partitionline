@@ -923,7 +923,53 @@ fn acquisition_node_for_range(
     if last < first {
         return None;
     }
-    let runs = map.get(topic)?;
+    let topic_runs = map.get(topic)?;
+    if topic_runs
+        .by_partition
+        .get(&partition)
+        .is_some_and(|part| part.overlapped)
+    {
+        return acquisition_node_along_runs(topic_runs, partition, first, last);
+    }
+    let indexes: Vec<usize> = topic_runs
+        .by_partition
+        .get(&partition)?
+        .by_first
+        .range(..=last)
+        .map(|(_, &index)| index)
+        .collect();
+    let mut cursor = first;
+    let mut node = None;
+    for index in indexes {
+        let run = topic_runs.runs.get(index)?;
+        if run.last < cursor {
+            continue;
+        }
+        if run.first > cursor || cursor > run.last {
+            return None;
+        }
+        if node.is_some_and(|current| current != run.acquisition.node) {
+            return None;
+        }
+        node = Some(run.acquisition.node);
+        if run.last >= last || run.last == i64::MAX {
+            return node;
+        }
+        let next = run.last.saturating_add(1);
+        if next <= run.last {
+            return node;
+        }
+        cursor = next;
+    }
+    None
+}
+
+fn acquisition_node_along_runs(
+    runs: &TopicRuns,
+    partition: i32,
+    first: i64,
+    last: i64,
+) -> Option<i32> {
     let mut cursor = first;
     let mut node = None;
     while cursor <= last {
@@ -8045,6 +8091,62 @@ mod tests {
         super::refill_share_fetch(&mut fresh_ids, &mut fresh_topics, &many, &ids, 64)
             .unwrap_or_else(|error| panic!("{error}"));
         assert_eq!(fresh_topics.capacity(), topic_capacity);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn ranging_many_acquisitions_does_not_hold_the_caller() {
+        // 200_000 single-offset runs: finding one broker held the caller 114ms.
+        let topic = crate::consumer::TopicName::from("orders");
+        let mut map = AcquisitionMap::new();
+        for offset in 0..200_000 {
+            remember_acquisition(
+                &mut map,
+                &topic,
+                0,
+                offset,
+                Acquisition {
+                    node: 4,
+                    delivery_count: if offset % 2 == 0 { 1 } else { 2 },
+                    expires_at: None,
+                },
+            );
+        }
+        remember_acquisition(
+            &mut map,
+            &topic,
+            1,
+            0,
+            Acquisition {
+                node: 4,
+                delivery_count: 1,
+                expires_at: None,
+            },
+        );
+        remember_acquisition(
+            &mut map,
+            &topic,
+            1,
+            1,
+            Acquisition {
+                node: 9,
+                delivery_count: 2,
+                expires_at: None,
+            },
+        );
+        let started = std::time::Instant::now();
+        tokio::select! {
+            node = async { acquisition_node_for_range(&map, "orders", 0, 0, 199_999) } => {
+                assert_eq!(node, Some(4));
+                assert_eq!(acquisition_node_for_range(&map, "orders", 1, 0, 1), None);
+                assert_eq!(acquisition_node_for_range(&map, "orders", 0, 0, 200_000), None);
+            }
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "ranging acquisitions held the caller for {elapsed:?}"
+        );
     }
 
     #[tokio::test(flavor = "current_thread")]
