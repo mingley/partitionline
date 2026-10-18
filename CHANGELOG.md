@@ -2074,7 +2074,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   this when a FeatureZNode update fails after the requested feature
   changes were valid.
   Top-level `PRINCIPAL_DESERIALIZATION_FAILURE` still fails that poll
-  without Metadata, including when `ErrorMessage` is set (Java
+  without Metadata, including when `ErrorMessage` is set or empty (Java
   `handleShareFetchSuccess` only `requestUpdate`s for top-level
   `UNKNOWN_TOPIC_ID`; this is not top-level
   `FEATURE_UPDATE_FAILED`). Official Java `EnvelopeUtils` writes
