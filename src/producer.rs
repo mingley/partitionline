@@ -5862,13 +5862,15 @@ async fn spawn_slot_worker(
     if shared.closed.load(Ordering::SeqCst) {
         return Err(Error::Closed);
     }
-    let conn = open_produce_socket(shared, addr).await?;
+    let mut conn = open_produce_socket(shared, addr).await?;
     if conn.produce_version() < 0 {
+        retire_produce_conn(&mut conn).await;
         return Err(Error::Unsupported(format!(
             "broker at {addr} does not support usable Produce v3-13"
         )));
     }
     if shared.closed.load(Ordering::SeqCst) {
+        retire_produce_conn(&mut conn).await;
         return Err(Error::Closed);
     }
     let (data_tx, data_rx) = mpsc::channel(cap);
@@ -11666,6 +11668,217 @@ mod rediscover_stop_tests {
             open.load(Ordering::SeqCst),
             0,
             "startup left the bootstrap dial blocked in a broker read"
+        );
+        peer.abort();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn a_closed_producer_lets_the_produce_socket_leave() {
+        use super::{
+            spawn_slot_worker, Cluster, FastRoutes, Shared, StickyRecordBudget, StickyState,
+        };
+        use crate::net::BrokerConn;
+        use crate::protocol::api::{
+            encode_api_versions_response, ApiVersion, ApiVersionsResponse, MetadataResponse,
+        };
+        use crate::protocol::api_keys::{METADATA, PRODUCE};
+        use crate::protocol::records::RecordBatch;
+        use std::collections::HashSet;
+        use std::sync::atomic::{
+            AtomicBool, AtomicI16, AtomicI64, AtomicU64, AtomicUsize, Ordering,
+        };
+        use std::sync::Mutex as StdMutex;
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        use tokio::sync::{mpsc, Mutex, Notify};
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let open = Arc::new(AtomicUsize::new(0));
+        let accepted = Arc::new(AtomicUsize::new(0));
+        let slot: Arc<StdMutex<Option<Arc<Shared>>>> = Arc::new(StdMutex::new(None));
+        let flag = Arc::clone(&open);
+        let accepted_flag = Arc::clone(&accepted);
+        let peer_slot = Arc::clone(&slot);
+        let peer = tokio::spawn(async move {
+            let mut first = true;
+            loop {
+                let Ok((mut socket, _)) = listener.accept().await else {
+                    return;
+                };
+                let _accepted = accepted_flag.fetch_add(1, Ordering::SeqCst);
+                if first {
+                    first = false;
+                    let _held = tokio::spawn(async move {
+                        let mut buf = [0u8; 8];
+                        loop {
+                            match socket.read(&mut buf).await {
+                                Ok(0) | Err(_) => break,
+                                Ok(_) => continue,
+                            }
+                        }
+                    });
+                    continue;
+                }
+                let flag = Arc::clone(&flag);
+                let peer_slot = Arc::clone(&peer_slot);
+                let _started = flag.fetch_add(1, Ordering::SeqCst);
+                let _reader = tokio::spawn(async move {
+                    let mut size_buf = [0u8; 4];
+                    if socket.read_exact(&mut size_buf).await.is_ok() {
+                        let size = i32::from_be_bytes(size_buf).max(0) as usize;
+                        let mut request = vec![0u8; size];
+                        if socket.read_exact(&mut request).await.is_ok() {
+                            if let Some(bytes) = request.get(4..8) {
+                                let correlation = i32::from_be_bytes([
+                                    bytes.first().copied().unwrap_or(0),
+                                    bytes.get(1).copied().unwrap_or(0),
+                                    bytes.get(2).copied().unwrap_or(0),
+                                    bytes.get(3).copied().unwrap_or(0),
+                                ]);
+                                let mut body = bytes::BytesMut::new();
+                                let encoded = encode_api_versions_response(
+                                    &mut body,
+                                    4,
+                                    &ApiVersionsResponse {
+                                        error_code: 0,
+                                        api_keys: vec![
+                                            ApiVersion {
+                                                api_key: METADATA,
+                                                min_version: 0,
+                                                max_version: 0,
+                                            },
+                                            ApiVersion {
+                                                api_key: PRODUCE,
+                                                min_version: 3,
+                                                max_version: 12,
+                                            },
+                                        ],
+                                        throttle_time_ms: 0,
+                                        supported_features: Vec::new(),
+                                        finalized_features_epoch: None,
+                                        finalized_features: Vec::new(),
+                                        zk_migration_ready: false,
+                                    },
+                                );
+                                if encoded.is_ok() {
+                                    let mut response = Vec::new();
+                                    let len = i32::try_from(4 + body.len()).unwrap_or(0);
+                                    response.extend_from_slice(&len.to_be_bytes());
+                                    response.extend_from_slice(&correlation.to_be_bytes());
+                                    response.extend_from_slice(&body);
+                                    let _wrote = socket.write_all(&response).await;
+                                }
+                            }
+                        }
+                    }
+                    if let Some(shared) =
+                        peer_slot.lock().unwrap_or_else(|e| e.into_inner()).clone()
+                    {
+                        shared.closed.store(true, Ordering::SeqCst);
+                    }
+                    let mut buf = [0u8; 8];
+                    loop {
+                        match socket.read(&mut buf).await {
+                            Ok(0) | Err(_) => break,
+                            Ok(_) => continue,
+                        }
+                    }
+                    let _left = flag.fetch_sub(1, Ordering::SeqCst);
+                });
+            }
+        });
+        let meta = BrokerConn::connect(&addr, "closed-produce", Duration::from_secs(2))
+            .await
+            .unwrap();
+        while accepted.load(Ordering::SeqCst) == 0 {
+            tokio::task::yield_now().await;
+        }
+        let cfg = ProducerConfig::bootstrap([addr.clone()]);
+        let (meta_tx, _meta_rx) = mpsc::channel(1);
+        let (connect_tx, _connect_rx) = mpsc::channel(1);
+        let (retry_tx, _retry_rx) = mpsc::channel(1);
+        let sticky_policy = cfg.partitioner.arc().unkeyed_batching_policy();
+        let shared = Arc::new(Shared {
+            cfg: cfg.clone(),
+            cluster: parking_lot::Mutex::new(Cluster::default()),
+            meta: Mutex::new(meta),
+            txn: Mutex::new(None),
+            metadata_version: 0,
+            api_keys: Vec::new(),
+            produce_keys: parking_lot::Mutex::new(HashMap::new()),
+            metadata_image: parking_lot::Mutex::new(MetadataResponse::blank()),
+            transaction_v2: false,
+            add_partitions_version: 0,
+            add_offsets_version: 0,
+            end_txn_version: 0,
+            txn_offset_version: 0,
+            find_coord_version: None,
+            init_producer_id_version: 0,
+            telemetry_version: None,
+            client_instance_id: parking_lot::Mutex::new(None),
+            partitioner: cfg.partitioner.arc(),
+            sticky: sticky_policy.map(|policy| {
+                parking_lot::Mutex::new(StickyState::new(
+                    policy,
+                    cfg.produce_batch_bytes(),
+                    cfg.batch_records,
+                ))
+            }),
+            sticky_records: sticky_policy
+                .map(|policy| Arc::new(StickyRecordBudget::new(policy.max_pending_records))),
+            producer_id: AtomicI64::new(RecordBatch::NO_PRODUCER_ID),
+            producer_epoch: AtomicI16::new(RecordBatch::NO_PRODUCER_EPOCH),
+            epoch_gen: AtomicU64::new(0),
+            epoch_bump_required: AtomicBool::new(false),
+            txn_fatal: AtomicBool::new(false),
+            txn_abort_required: AtomicBool::new(false),
+            txn_error: parking_lot::Mutex::new(None),
+            seqs: parking_lot::Mutex::new(HashMap::new()),
+            cache_nudge: Notify::new(),
+            buffer_nudge: Notify::new(),
+            meta_tx,
+            connect_tx,
+            retry_tx,
+            meta_task: parking_lot::Mutex::new(None),
+            connect_task: parking_lot::Mutex::new(None),
+            retry_task: parking_lot::Mutex::new(None),
+            last_meta_err: parking_lot::Mutex::new(None),
+            meta_err_set: AtomicBool::new(false),
+            nodes: parking_lot::Mutex::new(HashMap::new()),
+            broker_throttles: parking_lot::Mutex::new(HashMap::new()),
+            throttle_metrics: crate::metrics::ThrottleTracker::default(),
+            reconnect_fails: parking_lot::Mutex::new(HashMap::new()),
+            reconnect_busy: parking_lot::Mutex::new(HashSet::new()),
+            reconnect_tasks: parking_lot::Mutex::new(Vec::new()),
+            live_workers: AtomicUsize::new(0),
+            live_metadata_refreshes: AtomicUsize::new(0),
+            metadata_refreshes: parking_lot::Mutex::new(Vec::new()),
+            retries_out: AtomicUsize::new(0),
+            in_txn: AtomicBool::new(false),
+            txn_partitions: parking_lot::Mutex::new(HashMap::new()),
+            txn_added: parking_lot::Mutex::new(HashMap::new()),
+            fast: parking_lot::RwLock::new(FastRoutes::default()),
+            m_queued: AtomicU64::new(0),
+            m_acked: AtomicU64::new(0),
+            m_errors: AtomicU64::new(0),
+            m_bytes: AtomicU64::new(0),
+            buffered_bytes: AtomicU64::new(0),
+            closed: AtomicBool::new(false),
+            ack_latency: crate::metrics::LatencyTracker::new(),
+            interceptors: cfg.interceptors.clone(),
+            topics: parking_lot::Mutex::new(HashMap::new()),
+            pre_send_fault: parking_lot::Mutex::new(None),
+        });
+        *slot.lock().unwrap_or_else(|e| e.into_inner()) = Some(Arc::clone(&shared));
+        let opened = spawn_slot_worker(&shared, 1, &addr, 8).await;
+        assert!(
+            matches!(opened, Err(crate::Error::Closed)),
+            "the dial should stop because the producer is closed"
+        );
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "a closed producer left the produce socket blocked in a read"
         );
         peer.abort();
     }
