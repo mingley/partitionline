@@ -3518,6 +3518,12 @@
 //! `metadata.requestUpdate`; this is not top-level
 //! `DELEGATION_TOKEN_AUTH_DISABLED`). Official Java `DelegationTokenControlManager` writes
 //! this when a requested delegation token is not found on the server.
+//! Top-level ShareAcknowledge `DELEGATION_TOKEN_OWNER_MISMATCH` completes
+//! without retry and does not request Metadata, including when
+//! `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+//! `metadata.requestUpdate`; this is not top-level
+//! `DELEGATION_TOKEN_NOT_FOUND`). Official Java `DelegationTokenControlManager` writes
+//! this when the requester is not a valid owner or renewer of the token.
 //! Top-level ShareAcknowledge
 //! `SHARE_SESSION_LIMIT_REACHED` completes without retry and advances
 //! the session epoch (Java `ShareSessionHandler.handleResponse`
