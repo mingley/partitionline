@@ -492,6 +492,12 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `UNACCEPTABLE_CREDENTIAL`). Official Java `KafkaRaftClient` writes
   this when a voter-only request arrives at an observer or from a
   non-voter.
+  A top-level ShareAcknowledge `INVALID_UPDATE_VERSION` completes
+  without retry and does not request Metadata, including when
+  `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+  `metadata.requestUpdate`; this is not top-level
+  `INCONSISTENT_VOTER_SET`). Official Java `FeatureControlManager`
+  writes this when a feature update version is invalid.
   A piggybacked ShareFetch
   `AcknowledgeErrorMessage` that is empty uses
   `ShareFetch acknowledgement {topic}-{partition}`. A piggybacked

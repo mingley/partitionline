@@ -3784,6 +3784,12 @@
 //! `UNACCEPTABLE_CREDENTIAL`). Official Java `KafkaRaftClient` writes
 //! this when a voter-only request arrives at an observer or from a
 //! non-voter.
+//! Top-level ShareAcknowledge `INVALID_UPDATE_VERSION` completes
+//! without retry and does not request Metadata, including when
+//! `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+//! `metadata.requestUpdate`; this is not top-level
+//! `INCONSISTENT_VOTER_SET`). Official Java `FeatureControlManager`
+//! writes this when a feature update version is invalid.
 //! Top-level ShareAcknowledge
 //! `SHARE_SESSION_LIMIT_REACHED` completes without retry and advances
 //! the session epoch (Java `ShareSessionHandler.handleResponse`
