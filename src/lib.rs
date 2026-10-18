@@ -3434,6 +3434,12 @@
 //! `metadata.requestUpdate`; this is not top-level
 //! `INVALID_TRANSACTION_TIMEOUT`). Official Java `ProducerAppendInfo` writes
 //! this when an end-transaction marker uses a coordinator epoch older than the current epoch for that producerId.
+//! Top-level ShareAcknowledge `TRANSACTIONAL_ID_AUTHORIZATION_FAILED` completes
+//! without retry and does not request Metadata, including when
+//! `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+//! `metadata.requestUpdate`; this is not top-level
+//! `TRANSACTION_COORDINATOR_FENCED`). Official Java `KafkaApis` writes
+//! this when a transactional produce request is missing WRITE on that transactional id.
 //! Top-level ShareAcknowledge
 //! `SHARE_SESSION_LIMIT_REACHED` completes without retry and advances
 //! the session epoch (Java `ShareSessionHandler.handleResponse`

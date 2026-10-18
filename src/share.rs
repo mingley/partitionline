@@ -2374,6 +2374,13 @@ pub enum ShareAcquireMode {
 /// `INVALID_TRANSACTION_TIMEOUT`). Official Java `ProducerAppendInfo`
 /// writes this when an end-transaction marker uses a coordinator
 /// epoch older than the current epoch for that producerId. A top-level
+/// ShareAcknowledge `TRANSACTIONAL_ID_AUTHORIZATION_FAILED` completes without
+/// retry and does not request Metadata, including when `ErrorMessage`
+/// is set (Java `handleShareAcknowledgeSuccess` has no
+/// `metadata.requestUpdate`; this is not top-level
+/// `TRANSACTION_COORDINATOR_FENCED`). Official Java `KafkaApis`
+/// writes this when a transactional produce request is missing WRITE
+/// on that transactional id. A top-level
 /// ShareAcknowledge `SHARE_SESSION_LIMIT_REACHED` completes without
 /// retry and does not request Metadata, including when `ErrorMessage`
 /// is set or empty (Java `handleShareAcknowledgeSuccess` has no
@@ -5423,6 +5430,13 @@ impl ShareGroup {
     /// Java `ProducerAppendInfo` writes this when an end-transaction
     /// marker uses a coordinator epoch older than the current epoch
     /// for that producerId.
+    /// A top-level ShareAcknowledge `TRANSACTIONAL_ID_AUTHORIZATION_FAILED`
+    /// completes without retry and does not request Metadata,
+    /// including when `ErrorMessage` is set (Java
+    /// `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`;
+    /// this is not top-level `TRANSACTION_COORDINATOR_FENCED`). Official
+    /// Java `KafkaApis` writes this when a transactional produce
+    /// request is missing WRITE on that transactional id.
     /// Top-level `SHARE_SESSION_LIMIT_REACHED`
     /// completes without retry and advances the session epoch (Java
     /// `ShareSessionHandler.handleResponse` `nextEpoch`), including
