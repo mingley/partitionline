@@ -5361,7 +5361,7 @@ impl Consumer {
                 .await
                 {
                     Ok((got, ..)) => {
-                        let more = self.apply_epoch_end_offsets(&parts, &got)?;
+                        let more = self.apply_epoch_end_offsets(&parts, &got).await?;
                         if !more.is_empty() {
                             self.drop_broker_conn(node).await;
                             retry.extend(more);
@@ -5459,7 +5459,7 @@ impl Consumer {
             .await
             {
                 Ok((got, ..)) => {
-                    let more = self.apply_epoch_end_offsets(&parts, &got)?;
+                    let more = self.apply_epoch_end_offsets(&parts, &got).await?;
                     if !more.is_empty() {
                         self.drop_broker_conn(flight.node).await;
                         retry.extend(more);
@@ -5475,58 +5475,31 @@ impl Consumer {
         Ok(())
     }
 
-    fn apply_epoch_end_offsets<'a>(
+    async fn apply_epoch_end_offsets<'a>(
         &mut self,
         requested: &[(&'a str, i32)],
         topics: &[OffsetForLeaderTopicResult],
     ) -> Result<Vec<(&'a str, i32)>> {
-        let mut seen: HashMap<&str, HashSet<i32>> = HashMap::new();
-        let mut retry = Vec::new();
         self.ensure_cursor_index();
-        for t in topics {
-            let answered = seen.entry(t.topic.as_str()).or_default();
-            for p in &t.partitions {
-                let _ = answered.insert(p.partition);
-                if p.error_code == 0 {
-                    self.cluster
-                        .set_leader_epoch(&t.topic, p.partition, p.leader_epoch);
-                    let assigned = self.cursor_at(&t.topic, p.partition);
-                    if let Some(off) = assigned {
-                        if let Some(next) = truncated_fetch_offset(off, p.end_offset) {
-                            self.advance(&t.topic, p.partition, next);
-                            self.set_last_fetched_epoch(&t.topic, p.partition, p.leader_epoch);
-                            self.drop_pending_for(&t.topic, p.partition);
-                        }
+        let mut cluster = std::mem::take(&mut self.cluster);
+        let outcome = walk_epoch_topics(
+            &mut cluster,
+            requested,
+            topics,
+            |topic, partition, epoch, end_offset| {
+                let assigned = self.cursor_at(topic, partition);
+                if let Some(off) = assigned {
+                    if let Some(next) = truncated_fetch_offset(off, end_offset) {
+                        self.advance(topic, partition, next);
+                        self.set_last_fetched_epoch(topic, partition, epoch);
+                        self.drop_pending_for(topic, partition);
                     }
-                    continue;
                 }
-                let e = Error::broker(
-                    p.error_code,
-                    format!("OffsetForLeaderEpoch {}-{}", t.topic, p.partition),
-                );
-                let fence = p.error_code == error::FENCED_LEADER_EPOCH
-                    || p.error_code == error::UNKNOWN_LEADER_EPOCH;
-                if e.is_retriable() || fence {
-                    self.cluster.invalidate_topic(&t.topic);
-                    if let Some(name) = requested.iter().find_map(|(name, part)| {
-                        (*name == t.topic.as_str() && *part == p.partition).then_some(*name)
-                    }) {
-                        retry.push((name, p.partition));
-                    }
-                    continue;
-                }
-                return Err(e);
-            }
-        }
-        for (topic, partition) in requested {
-            let answered = seen
-                .get(*topic)
-                .is_some_and(|parts| parts.contains(partition));
-            if !answered {
-                retry.push((*topic, *partition));
-            }
-        }
-        Ok(retry)
+            },
+        )
+        .await;
+        self.cluster = cluster;
+        outcome
     }
 
     /// Fetch one round from every assigned partition that is not paused.
@@ -11309,6 +11282,76 @@ pub(crate) fn partition_infos_from(
     Ok(out)
 }
 
+async fn walk_epoch_topics<'a, F>(
+    cluster: &mut Cluster,
+    requested: &[(&'a str, i32)],
+    topics: &[OffsetForLeaderTopicResult],
+    mut on_success: F,
+) -> Result<Vec<(&'a str, i32)>>
+where
+    F: FnMut(&str, i32, i32, i64),
+{
+    let mut seen: HashMap<&str, HashSet<i32>> = HashMap::new();
+    let mut retry = Vec::new();
+    let mut walked = 0usize;
+    for topic in topics {
+        let answered = seen.entry(topic.topic.as_str()).or_default();
+        for partition in &topic.partitions {
+            let _ = answered.insert(partition.partition);
+            if partition.error_code == 0 {
+                cluster.set_leader_epoch(&topic.topic, partition.partition, partition.leader_epoch);
+                on_success(
+                    topic.topic.as_str(),
+                    partition.partition,
+                    partition.leader_epoch,
+                    partition.end_offset,
+                );
+            } else {
+                let error = Error::broker(
+                    partition.error_code,
+                    format!(
+                        "OffsetForLeaderEpoch {}-{}",
+                        topic.topic, partition.partition
+                    ),
+                );
+                let fence = partition.error_code == error::FENCED_LEADER_EPOCH
+                    || partition.error_code == error::UNKNOWN_LEADER_EPOCH;
+                if error.is_retriable() || fence {
+                    cluster.invalidate_topic(&topic.topic);
+                    if let Some(name) = requested.iter().find_map(|(name, part)| {
+                        (*name == topic.topic.as_str() && *part == partition.partition)
+                            .then_some(*name)
+                    }) {
+                        retry.push((name, partition.partition));
+                    }
+                } else {
+                    return Err(error);
+                }
+            }
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+    }
+    walked = 0;
+    for (topic, partition) in requested {
+        let answered = seen
+            .get(*topic)
+            .is_some_and(|parts| parts.contains(partition));
+        if !answered {
+            retry.push((*topic, *partition));
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    Ok(retry)
+}
+
 async fn collect_missing_leader_names<'a, T, F>(
     queries: &'a [(T, i32, i64)],
     pending: &[usize],
@@ -11346,6 +11389,47 @@ mod tests {
     use std::collections::HashMap;
 
     use super::*;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn applying_many_epoch_offsets_does_not_hold_the_caller() {
+        use crate::protocol::epoch::{EpochEndOffset, OffsetForLeaderTopicResult};
+        // 1_000_000 partitions: applying the epochs held the caller 625ms.
+        let partitions: Vec<EpochEndOffset> = (0..1_000_000)
+            .map(|index| EpochEndOffset::new(0, index, 1, 0))
+            .collect();
+        let topics = vec![OffsetForLeaderTopicResult::new("orders", partitions)];
+        let mut cluster = Cluster::default();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            result = walk_epoch_topics(&mut cluster, &[], &topics, |_, _, _, _| {}) => {
+                let _applied = result.unwrap_or_else(|error| panic!("{error}"));
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "applying leader epochs held the caller for {elapsed:?}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn applied_epoch_offsets_keep_the_newer_epoch() {
+        use crate::protocol::epoch::{EpochEndOffset, OffsetForLeaderTopicResult};
+        let topics = vec![OffsetForLeaderTopicResult::new(
+            "orders",
+            vec![
+                EpochEndOffset::new(0, 0, 4, 10),
+                EpochEndOffset::new(0, 0, 2, 10),
+            ],
+        )];
+        let mut cluster = Cluster::default();
+        let retry = walk_epoch_topics(&mut cluster, &[("orders", 1)], &topics, |_, _, _, _| {})
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(cluster.leader_epoch("orders", 0), 4);
+        assert_eq!(retry, vec![("orders", 1)]);
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn collecting_many_missing_topics_does_not_hold_the_caller() {
