@@ -231,24 +231,23 @@ impl Admin {
                 .collect::<Result<Vec<_>>>()?;
             let _previous = returned.insert(group.group_id, topics);
         }
-        let result = jobs
-            .iter()
-            .map(|(id, spec)| {
-                let offsets = if spec.partitions.as_ref().is_some_and(Vec::is_empty) {
-                    Vec::new()
-                } else {
-                    super::listed_group_offsets(
-                        spec,
-                        &returned.remove(id).ok_or_else(|| {
-                            Error::protocol("missing named group offset response")
-                        })?,
-                    )?
-                };
-                Ok((id.clone(), offsets))
-            })
-            .collect();
+        let mut result = Vec::with_capacity(jobs.len());
+        for (id, spec) in jobs {
+            let offsets = if spec.partitions.as_ref().is_some_and(Vec::is_empty) {
+                Vec::new()
+            } else {
+                super::listed_group_offsets(
+                    spec,
+                    &returned
+                        .remove(id)
+                        .ok_or_else(|| Error::protocol("missing named group offset response"))?,
+                )
+                .await?
+            };
+            result.push((id.clone(), offsets));
+        }
         deadline.check_expired()?;
-        result
+        Ok(result)
     }
 
     pub(super) async fn commit_named_offsets_v10(

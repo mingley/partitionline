@@ -3250,7 +3250,7 @@ impl ConsumerGroup {
             .map_err(|e| {
                 group_decode_context(e, "ConsumerProtocol assignment", version, assignment.len())
             })?;
-        let wanted = expand_topic_partitions(assigned);
+        let wanted = expand_topic_partitions_cooperative(assigned).await;
         let revoked = self.assign_committed(&wanted, deadline, false).await?;
         self.hb_generation
             .store(self.generation_id, Ordering::SeqCst);
@@ -5319,6 +5319,7 @@ fn remember_unique_topic(topics: &mut Vec<String>, topic: &str) {
 }
 
 /// One owned topic becomes one name per partition. The last partition keeps it.
+#[cfg(test)]
 fn expand_topic_partitions(topics: Vec<(String, Vec<i32>)>) -> Vec<(String, i32)> {
     let mut out = Vec::new();
     for (mut topic, partitions) in topics {
@@ -5335,6 +5336,31 @@ fn expand_topic_partitions(topics: Vec<(String, Vec<i32>)>) -> Vec<(String, i32)
     out
 }
 
+async fn expand_topic_partitions_cooperative(
+    topics: Vec<(String, Vec<i32>)>,
+) -> Vec<(String, i32)> {
+    let mut out = Vec::new();
+    let mut walked = 0usize;
+    for (mut topic, partitions) in topics {
+        let count = partitions.len();
+        for (index, partition) in partitions.into_iter().enumerate() {
+            let name = if index.saturating_add(1) == count {
+                std::mem::take(&mut topic)
+            } else {
+                topic.clone()
+            };
+            out.push((name, partition));
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+    }
+    out
+}
+
+#[cfg(test)]
 pub(crate) fn committed_offset_pairs(
     map: HashMap<String, HashMap<i32, OffsetAndMetadata>>,
 ) -> Vec<(TopicPartition, OffsetAndMetadata)> {
@@ -5348,6 +5374,30 @@ pub(crate) fn committed_offset_pairs(
                 topic.clone()
             };
             out.push((TopicPartition::new(name, partition), md));
+        }
+    }
+    out
+}
+
+pub(crate) async fn committed_offset_pairs_cooperative(
+    map: HashMap<String, HashMap<i32, OffsetAndMetadata>>,
+) -> Vec<(TopicPartition, OffsetAndMetadata)> {
+    let mut out = Vec::new();
+    let mut walked = 0usize;
+    for (mut topic, parts) in map {
+        let count = parts.len();
+        for (index, (partition, md)) in parts.into_iter().enumerate() {
+            let name = if index.saturating_add(1) == count {
+                std::mem::take(&mut topic)
+            } else {
+                topic.clone()
+            };
+            out.push((TopicPartition::new(name, partition), md));
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
         }
     }
     out
@@ -6847,6 +6897,76 @@ mod tests {
     use std::time::Duration;
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
     use tokio::net::TcpListener;
+
+    fn offset_map(count: i32) -> HashMap<String, HashMap<i32, OffsetAndMetadata>> {
+        let mut parts = HashMap::new();
+        for index in 0..count {
+            let _ = parts.insert(index, OffsetAndMetadata::new(i64::from(index)));
+        }
+        let mut map = HashMap::new();
+        let _ = map.insert("orders".to_string(), parts);
+        map
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn expanding_many_assigned_partitions_does_not_hold_the_caller() {
+        // 1_500_000 partitions: cloning the topic name held the caller 115ms.
+        let topics = vec![("orders".to_string(), (0..1_500_000).collect::<Vec<i32>>())];
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = expand_topic_partitions_cooperative(topics) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "expanding assigned partitions held the caller for {elapsed:?}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn pairing_many_committed_offsets_does_not_hold_the_caller() {
+        // 1_500_000 offsets: cloning the topic name held the caller 241ms.
+        let map = offset_map(1_500_000);
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = committed_offset_pairs_cooperative(map) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "pairing committed offsets held the caller for {elapsed:?}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn cooperative_partition_expansion_matches_one_shot() {
+        let topics = vec![
+            ("orders".to_string(), vec![1, 0, 2]),
+            ("payments".to_string(), vec![4]),
+        ];
+        let one = expand_topic_partitions(topics.clone());
+        let two = expand_topic_partitions_cooperative(topics).await;
+        assert_eq!(one, two);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn cooperative_committed_pairs_match_one_shot() {
+        let one = committed_offset_pairs(offset_map(3));
+        let two = committed_offset_pairs_cooperative(offset_map(3)).await;
+        let mut one_keys: Vec<_> = one
+            .iter()
+            .map(|(tp, md)| (tp.topic.clone(), tp.partition, md.offset))
+            .collect();
+        let mut two_keys: Vec<_> = two
+            .iter()
+            .map(|(tp, md)| (tp.topic.clone(), tp.partition, md.offset))
+            .collect();
+        one_keys.sort();
+        two_keys.sort();
+        assert_eq!(one_keys, two_keys);
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn assigning_many_cooperative_sticky_partitions_does_not_hold_the_caller() {

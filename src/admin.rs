@@ -3184,14 +3184,15 @@ fn offset_fetch_topics_for_spec(
     })
 }
 
-fn listed_group_offsets(
+async fn listed_group_offsets(
     spec: &ListConsumerGroupOffsetsSpec,
     fetched: &[crate::protocol::group::FetchedOffsetTopic],
 ) -> Result<Vec<(crate::TopicPartition, crate::OffsetAndMetadata)>> {
     match &spec.partitions {
-        None => Ok(crate::group::committed_offset_pairs(
+        None => Ok(crate::group::committed_offset_pairs_cooperative(
             crate::group::committed_offset_map(fetched)?,
-        )),
+        )
+        .await),
         Some(ps) => {
             crate::group::check_fetched_offsets(fetched)?;
             Ok(ps
@@ -11141,7 +11142,7 @@ impl Admin {
             .fetch_consumer_group_offsets(group_id, None, require_stable, timeout)
             .await?;
         let map = crate::group::committed_offset_map(&fetched)?;
-        Ok(crate::group::committed_offset_pairs(map))
+        Ok(crate::group::committed_offset_pairs_cooperative(map).await)
     }
 
     /// List committed offsets for several groups (Java
@@ -11346,7 +11347,9 @@ impl Admin {
                                 Ok(body) => {
                                     if Self::apply_batched_offset_fetch(
                                         version, &jobs, &idxs, body, &mut out,
-                                    )? {
+                                    )
+                                    .await?
+                                    {
                                         self.group_coord = None;
                                         self.discard_node_conn(*node).await;
                                         next_remaining.extend(idxs);
@@ -11441,7 +11444,7 @@ impl Admin {
                                         job.0
                                     )));
                                 };
-                                let listed = listed_group_offsets(&job.1, &got.topics)?;
+                                let listed = listed_group_offsets(&job.1, &got.topics).await?;
                                 let slot = out
                                     .get_mut(i)
                                     .ok_or_else(|| Error::protocol("missing group result slot"))?;
@@ -11472,7 +11475,7 @@ impl Admin {
                         deadline.remaining()?,
                     )
                     .await?;
-                let listed = listed_group_offsets(&spec, &fetched)?;
+                let listed = listed_group_offsets(&spec, &fetched).await?;
                 let slot = out
                     .get_mut(i)
                     .ok_or_else(|| Error::protocol("missing group result slot"))?;
@@ -11483,7 +11486,7 @@ impl Admin {
     }
 
     /// `Ok(true)` means the whole coordinator batch must be rediscovered.
-    fn apply_batched_offset_fetch(
+    async fn apply_batched_offset_fetch(
         version: i16,
         jobs: &[(String, ListConsumerGroupOffsetsSpec)],
         idxs: &[usize],
@@ -11528,7 +11531,7 @@ impl Admin {
                     job.0
                 )));
             };
-            let listed = listed_group_offsets(&job.1, &got.topics)?;
+            let listed = listed_group_offsets(&job.1, &got.topics).await?;
             let slot = out
                 .get_mut(*i)
                 .ok_or_else(|| Error::protocol("missing group result slot"))?;
