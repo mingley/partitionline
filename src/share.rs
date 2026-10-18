@@ -2638,7 +2638,7 @@ pub enum ShareAcquireMode {
 /// size. A top-level
 /// ShareAcknowledge `FENCED_INSTANCE_ID` completes without
 /// retry and does not request Metadata, including when `ErrorMessage`
-/// is set (Java `handleShareAcknowledgeSuccess` has no
+/// is set or empty (Java `handleShareAcknowledgeSuccess` has no
 /// `metadata.requestUpdate`; this is not top-level
 /// `GROUP_MAX_SIZE_REACHED`). Official Java `GroupMetadataManager`
 /// writes this when a static member's `group.instance.id` is already
@@ -5962,7 +5962,7 @@ impl ShareGroup {
     /// would exceed the classic group max size.
     /// A top-level ShareAcknowledge `FENCED_INSTANCE_ID`
     /// completes without retry and does not request Metadata,
-    /// including when `ErrorMessage` is set (Java
+    /// including when `ErrorMessage` is set or empty (Java
     /// `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`;
     /// this is not top-level `GROUP_MAX_SIZE_REACHED`). Official
     /// Java `GroupMetadataManager` writes this when a static
