@@ -3178,7 +3178,7 @@
 //! `TOPIC_ALREADY_EXISTS`). Official Java `ReplicationControlManager` writes
 //! this when CreateTopics sets `numPartitions` to an invalid non-positive value. Top-level
 //! `INVALID_REPLICATION_FACTOR` still fails that poll without
-//! Metadata, including when `ErrorMessage` is set (Java
+//! Metadata, including when `ErrorMessage` is set or empty (Java
 //! `handleShareFetchSuccess` only `requestUpdate`s for
 //! `UNKNOWN_TOPIC_ID`; this is not top-level
 //! `INVALID_PARTITIONS`). Official Java `ReplicationControlManager` writes
