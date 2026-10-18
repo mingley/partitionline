@@ -2266,7 +2266,7 @@ pub enum ShareAcquireMode {
 /// assignment without setting `replicationFactor` to -1. A top-level
 /// ShareAcknowledge `UNSUPPORTED_FOR_MESSAGE_FORMAT` completes without
 /// retry and does not request Metadata, including when `ErrorMessage`
-/// is set (Java `handleShareAcknowledgeSuccess` has no
+/// is set or empty (Java `handleShareAcknowledgeSuccess` has no
 /// `metadata.requestUpdate`; this is not top-level
 /// `INVALID_REQUEST`). Official Java `LogValidator`
 /// writes this when a transactional or idempotent record batch uses a
@@ -5204,7 +5204,7 @@ impl ShareGroup {
     /// `replicationFactor` to -1.
     /// A top-level ShareAcknowledge `UNSUPPORTED_FOR_MESSAGE_FORMAT`
     /// completes without retry and does not request Metadata,
-    /// including when `ErrorMessage` is set (Java
+    /// including when `ErrorMessage` is set or empty (Java
     /// `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`;
     /// this is not top-level `INVALID_REQUEST`). Official
     /// Java `LogValidator` writes this when a transactional or
