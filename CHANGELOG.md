@@ -1928,7 +1928,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `MEMBER_ID_REQUIRED`). Official Java `GroupMetadataManager` writes
   this when a JoinGroup would exceed the classic group max size.
   Top-level `FENCED_INSTANCE_ID` still fails that poll
-  without Metadata, including when `ErrorMessage` is set (Java
+  without Metadata, including when `ErrorMessage` is set or empty (Java
   `handleShareFetchSuccess` only `requestUpdate`s for top-level
   `UNKNOWN_TOPIC_ID`; this is not top-level
   `GROUP_MAX_SIZE_REACHED`). Official Java `GroupMetadataManager` writes

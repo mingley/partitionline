@@ -3365,7 +3365,7 @@
 //! `MEMBER_ID_REQUIRED`). Official Java `GroupMetadataManager` writes
 //! this when a JoinGroup would exceed the classic group max size. Top-level
 //! `FENCED_INSTANCE_ID` still fails that poll without
-//! Metadata, including when `ErrorMessage` is set (Java
+//! Metadata, including when `ErrorMessage` is set or empty (Java
 //! `handleShareFetchSuccess` only `requestUpdate`s for
 //! `UNKNOWN_TOPIC_ID`; this is not top-level
 //! `GROUP_MAX_SIZE_REACHED`). Official Java `GroupMetadataManager` writes
