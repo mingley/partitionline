@@ -4295,6 +4295,7 @@ async fn discover_typed_coord_raced(
     let mut last = Error::protocol("find coordinator failed");
     while !inflight.is_empty() {
         if Instant::now() >= deadline {
+            retire_ready_handshakes(&mut ready).await;
             Producer::finish_aborted_handshakes(inflight).await;
             return Err(Error::Timeout);
         }
@@ -4302,6 +4303,7 @@ async fn discover_typed_coord_raced(
         let joined = tokio::select! {
             joined = inflight.join_next() => joined,
             () = tokio::time::sleep(rest) => {
+                retire_ready_handshakes(&mut ready).await;
                 Producer::finish_aborted_handshakes(inflight).await;
                 return Err(Error::Timeout);
             }
@@ -4356,10 +4358,12 @@ async fn discover_typed_coord_raced(
                     .await
                     {
                         ProducerCoordAsk::Found(found) => {
+                            retire_ready_handshakes(&mut ready).await;
                             Producer::finish_aborted_handshakes(inflight).await;
                             return Ok(*found);
                         }
                         ProducerCoordAsk::Fatal(error) => {
+                            retire_ready_handshakes(&mut ready).await;
                             Producer::finish_aborted_handshakes(inflight).await;
                             return Err(error);
                         }
@@ -4374,10 +4378,12 @@ async fn discover_typed_coord_raced(
                     .await
                     {
                         ProducerCoordAsk::Found(found) => {
+                            retire_ready_handshakes(&mut ready).await;
                             Producer::finish_aborted_handshakes(inflight).await;
                             return Ok(*found);
                         }
                         ProducerCoordAsk::Fatal(error) => {
+                            retire_ready_handshakes(&mut ready).await;
                             Producer::finish_aborted_handshakes(inflight).await;
                             return Err(error);
                         }
@@ -4390,6 +4396,7 @@ async fn discover_typed_coord_raced(
             }
         }
     }
+    retire_ready_handshakes(&mut ready).await;
     Producer::finish_aborted_handshakes(inflight).await;
     if Instant::now() >= deadline {
         return Err(Error::Timeout);
@@ -5441,6 +5448,14 @@ async fn retire_produce_conn(current: &mut BrokerConn) {
 /// read until that watch is scheduled.
 async fn retire_owned_conn(mut conn: BrokerConn) {
     retire_produce_conn(&mut conn).await;
+}
+
+async fn retire_ready_handshakes(ready: &mut [Option<Result<ProducerHandshake>>]) {
+    for slot in ready {
+        if let Some(Ok((conn, _))) = slot.take() {
+            retire_owned_conn(conn).await;
+        }
+    }
 }
 
 /// Notice a broker that stops writing on the idle metadata socket.
@@ -9536,6 +9551,99 @@ fn record_metadata(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn a_raced_coordinator_lookup_lets_the_other_broker_leave() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use tokio::io::AsyncReadExt;
+
+        let first = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let second = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let first_addr = first.local_addr().unwrap().to_string();
+        let second_addr = second.local_addr().unwrap().to_string();
+        let open = Arc::new(AtomicUsize::new(0));
+        let first_flag = Arc::clone(&open);
+        let second_flag = Arc::clone(&open);
+        let first_peer = tokio::spawn(async move {
+            use tokio::io::AsyncWriteExt;
+            let Ok((mut socket, _)) = first.accept().await else {
+                return;
+            };
+            let _started = first_flag.fetch_add(1, Ordering::SeqCst);
+            let mut size_buf = [0u8; 4];
+            if socket.read_exact(&mut size_buf).await.is_ok() {
+                let size = i32::from_be_bytes(size_buf).max(0) as usize;
+                let mut request = vec![0u8; size];
+                if socket.read_exact(&mut request).await.is_ok() {
+                    if let Some(bytes) = request.get(4..8) {
+                        let correlation = i32::from_be_bytes([
+                            bytes.first().copied().unwrap_or(0),
+                            bytes.get(1).copied().unwrap_or(0),
+                            bytes.get(2).copied().unwrap_or(0),
+                            bytes.get(3).copied().unwrap_or(0),
+                        ]);
+                        let mut response = Vec::with_capacity(8);
+                        response.extend_from_slice(&4i32.to_be_bytes());
+                        response.extend_from_slice(&correlation.to_be_bytes());
+                        let _wrote = socket.write_all(&response).await;
+                    }
+                }
+            }
+            let mut buf = [0u8; 8];
+            loop {
+                match socket.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = first_flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let second_peer = tokio::spawn(async move {
+            let Ok((mut socket, _)) = second.accept().await else {
+                return;
+            };
+            let _started = second_flag.fetch_add(1, Ordering::SeqCst);
+            let mut buf = [0u8; 8];
+            loop {
+                match socket.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = second_flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let cfg = ProducerConfig::bootstrap([first_addr.clone(), second_addr.clone()]);
+        let keys = vec![ApiVersion {
+            api_key: crate::protocol::api_keys::FIND_COORDINATOR,
+            min_version: 1,
+            max_version: 1,
+        }];
+        let mut known_by_addr = HashMap::new();
+        let _stored = known_by_addr.insert(first_addr, keys.clone());
+        let _stored = known_by_addr.insert(second_addr, keys.clone());
+        let known = RediscoverProducer {
+            previous: "",
+            previous_keys: &[],
+            bootstrap_keys: &keys,
+            known_by_addr: &known_by_addr,
+        };
+        let _found = discover_typed_coord_raced(
+            &cfg,
+            "group",
+            crate::protocol::group::COORDINATOR_GROUP,
+            1,
+            Instant::now() + Duration::from_secs(2),
+            Some(&known),
+        )
+        .await;
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "a raced coordinator lookup left a broker blocked in a read"
+        );
+        first_peer.abort();
+        second_peer.abort();
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn a_producer_coordinator_lookup_lets_the_broker_leave() {
