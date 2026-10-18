@@ -2320,7 +2320,7 @@ pub enum ShareAcquireMode {
 /// older than the current epoch for that producerId. A top-level
 /// ShareAcknowledge `INVALID_TXN_STATE` completes without
 /// retry and does not request Metadata, including when `ErrorMessage`
-/// is set (Java `handleShareAcknowledgeSuccess` has no
+/// is set or empty (Java `handleShareAcknowledgeSuccess` has no
 /// `metadata.requestUpdate`; this is not top-level
 /// `INVALID_PRODUCER_EPOCH`). Official Java `UnifiedLog`
 /// writes this when a transactional produce batch is not part of an
@@ -5315,7 +5315,7 @@ impl ShareGroup {
     /// for that producerId.
     /// A top-level ShareAcknowledge `INVALID_TXN_STATE`
     /// completes without retry and does not request Metadata,
-    /// including when `ErrorMessage` is set (Java
+    /// including when `ErrorMessage` is set or empty (Java
     /// `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`;
     /// this is not top-level `INVALID_PRODUCER_EPOCH`). Official
     /// Java `UnifiedLog` writes this when a transactional
