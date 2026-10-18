@@ -29,15 +29,17 @@ use crate::protocol::cgheartbeat::{
 use crate::protocol::group::{
     decode_assignment_cooperative, decode_find_coordinator_response, decode_heartbeat_response,
     decode_join_group_response, decode_leave_group_response_version, decode_offset_commit_response,
-    decode_offset_fetch_response, decode_offset_fetch_response_cooperative,
-    decode_sync_group_response, encode_find_coordinator_request_typed, encode_heartbeat_request,
+    decode_offset_commit_response_cooperative, decode_offset_fetch_response,
+    decode_offset_fetch_response_cooperative, decode_sync_group_response,
+    encode_find_coordinator_request_typed, encode_heartbeat_request,
     encode_join_group_protocols_request, encode_leave_group_request_members,
     encode_offset_commit_request, encode_offset_fetch_request, encode_sync_group_request,
-    encode_tp_assignment, BorrowedOffsetPartition, BorrowedOffsetTopic, ConsumerProtocol,
-    ConsumerProtocolSubscription, FetchedOffset, FetchedOffsetTopic, JoinGroupProtocol,
-    JoinGroupProtocolsRequest, JoinGroupRequest, JoinGroupResponse, LeaveGroupMember,
-    OffsetCommitRequestData, OffsetFetchRequestData, OffsetFetchTopic, OffsetPartition,
-    OffsetTopic, SyncGroupRequest, Topic, COORDINATOR_GROUP, DEFAULT_RETENTION_TIME,
+    encode_tp_assignment_cooperative, BorrowedOffsetPartition, BorrowedOffsetTopic,
+    ConsumerProtocol, ConsumerProtocolSubscription, FetchedOffset, FetchedOffsetTopic,
+    JoinGroupProtocol, JoinGroupProtocolsRequest, JoinGroupRequest, JoinGroupResponse,
+    LeaveGroupMember, OffsetCommitRequestData, OffsetFetchRequestData, OffsetFetchTopic,
+    OffsetPartition, OffsetTopic, SyncGroupRequest, Topic, COORDINATOR_GROUP,
+    DEFAULT_RETENTION_TIME,
 };
 use crate::protocol::sasl;
 
@@ -2252,7 +2254,7 @@ impl ConsumerGroup {
             timeout,
         )
         .await?;
-        let err = decode_offset_commit_response(&mut body.clone(), version)?;
+        let err = decode_offset_commit_response_cooperative(&mut body.clone(), version).await?;
         if err != 0 {
             return Err(Error::broker(err, "OffsetCommit"));
         }
@@ -2450,7 +2452,8 @@ impl ConsumerGroup {
                 return Err(error);
             }
         };
-        let err = match decode_offset_commit_response(&mut body.clone(), version) {
+        let err = match decode_offset_commit_response_cooperative(&mut body.clone(), version).await
+        {
             Ok(err) => err,
             Err(error) => {
                 if let Ok(recs) = fetched {
@@ -3166,9 +3169,11 @@ impl ConsumerGroup {
                 _ => assign_range_subscribed_cooperative(&member_subs, &by_topic).await,
             };
             self.prev_assignment = map.clone();
-            map.into_iter()
-                .map(|(id, tps)| Ok((id, encode_tp_assignment(&tps)?)))
-                .collect::<Result<Vec<_>>>()?
+            let mut assignments = Vec::with_capacity(map.len());
+            for (id, tps) in map {
+                assignments.push((id, encode_tp_assignment_cooperative(&tps).await?));
+            }
+            assignments
         } else {
             Vec::new()
         };
@@ -6736,6 +6741,8 @@ async fn finish_coord_roundtrip(
 ) -> Result<(i16, Bytes)> {
     let coordinator = if api_key == OFFSET_FETCH {
         offset_fetch_error(version, &body).await
+    } else if api_key == OFFSET_COMMIT {
+        offset_commit_error(version, &body).await
     } else {
         coordinator_error(api_key, version, &body)
     };
@@ -6789,6 +6796,14 @@ pub(crate) fn negotiated_coord_version(coord: &BrokerConn, api_key: i16) -> Resu
 /// OffsetCommit / OffsetFetch put coordinator errors on each partition (and
 /// OffsetFetch also at the tail). Bytes 4–5 are the topic-array length, so a
 /// throttle-then-i16 peek misses 14/15/16 and treats a recoverable code as fatal.
+async fn offset_commit_error(version: i16, body: &[u8]) -> Option<i16> {
+    match decode_offset_commit_response_cooperative(&mut { body }, version).await {
+        Ok(0) => None,
+        Ok(code) => Some(code),
+        Err(_) => None,
+    }
+}
+
 async fn offset_fetch_error(version: i16, body: &[u8]) -> Option<i16> {
     match decode_offset_fetch_response_cooperative(&mut { body }, version).await {
         Err(Error::Broker { code, .. }) => Some(code),

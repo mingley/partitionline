@@ -816,6 +816,26 @@ fn group_assigned_partitions(parts: &[(String, i32)]) -> Vec<(&str, Vec<i32>)> {
     by_topic
 }
 
+async fn group_assigned_partitions_cooperative(parts: &[(String, i32)]) -> Vec<(&str, Vec<i32>)> {
+    let mut by_topic: Vec<(&str, Vec<i32>)> = Vec::new();
+    let mut walked = 0usize;
+    for (topic, part) in parts {
+        match by_topic
+            .iter_mut()
+            .find(|(name, _)| *name == topic.as_str())
+        {
+            Some((_, partitions)) => partitions.push(*part),
+            None => by_topic.push((topic.as_str(), vec![*part])),
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    by_topic
+}
+
 /// Group owned pairs. The first name of a topic is moved. Later copies are dropped.
 fn group_owned_assignment(parts: Vec<(String, i32)>) -> Vec<(String, Vec<i32>)> {
     let mut by_topic: Vec<(String, Vec<i32>)> = Vec::new();
@@ -5464,6 +5484,70 @@ pub fn decode_offset_commit_topics_response<B: Buf>(
     Ok((topics, throttle_time_ms))
 }
 
+/// [`decode_offset_commit_topics_response`], yielding while partitions are still being read.
+pub async fn decode_offset_commit_topics_response_cooperative<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<(Vec<OffsetCommitResponseTopic>, i32)> {
+    let flexible = offset_commit_flexible(version)?;
+    let throttle_time_ms = if version >= 3 { buf::get_i32(buf)? } else { 0 };
+    let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+    let mut topics = Vec::with_capacity(n);
+    for _ in 0..n {
+        let topic = buf::get_string(buf, flexible)?.unwrap_or_default();
+        let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+        let mut partitions = Vec::with_capacity(pn);
+        let mut walked = 0usize;
+        for _ in 0..pn {
+            let partition = buf::get_i32(buf)?;
+            let error_code = buf::get_i16(buf)?;
+            if flexible {
+                buf::skip_tagged_fields(buf)?;
+            }
+            partitions.push(OffsetCommitResponsePartition {
+                partition,
+                error_code,
+            });
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+        if flexible {
+            buf::skip_tagged_fields(buf)?;
+        }
+        topics.push(OffsetCommitResponseTopic { topic, partitions });
+    }
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
+    }
+    Ok((topics, throttle_time_ms))
+}
+
+/// [`decode_offset_commit_response`], yielding while partitions are still being read.
+pub async fn decode_offset_commit_response_cooperative<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<i16> {
+    let (topics, ..) = decode_offset_commit_topics_response_cooperative(buf, version).await?;
+    let mut first_err = 0i16;
+    let mut walked = 0usize;
+    for topic in &topics {
+        for partition in &topic.partitions {
+            if first_err == 0 && partition.error_code != 0 {
+                first_err = partition.error_code;
+            }
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+    }
+    Ok(first_err)
+}
+
 /// `true` when OffsetFetch `version` is flexible (v6+).
 ///
 /// v1–v5 are classic. v6–v9 are compact strings/arrays plus tagged
@@ -7335,6 +7419,42 @@ fn write_assignment_topics<T: AsRef<str>>(
     Ok(())
 }
 
+async fn write_assignment_topics_cooperative(
+    buf: &mut BytesMut,
+    version: i16,
+    by_topic: &[(&str, Vec<i32>)],
+) -> Result<()> {
+    let body_start = buf.len();
+    let planned = assignment_topics_len(by_topic)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
+    buf.put_i16(version);
+    buf::put_array_len(buf, false, Some(by_topic.len()))?;
+    for (topic, parts) in by_topic {
+        buf::put_classic_nullable_string(buf, Some(*topic))?;
+        buf::put_array_len(buf, false, Some(parts.len()))?;
+        let mut next = 0usize;
+        while next < parts.len() {
+            let end = next.saturating_add(8 * 1024).min(parts.len());
+            let slice = parts
+                .get(next..end)
+                .ok_or_else(|| Error::protocol("assignment slice"))?;
+            for partition in slice {
+                buf.put_i32(*partition);
+            }
+            next = end;
+            if next < parts.len() {
+                tokio::task::yield_now().await;
+            }
+        }
+    }
+    buf::put_classic_bytes(buf, None)?;
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+    Ok(())
+}
+
 fn assignment_topics_len<T: AsRef<str>>(by_topic: &[(T, Vec<i32>)]) -> Result<usize> {
     let mut total = 2usize;
     total = add_group_len(total, group_array_len(false, by_topic.len())?)?;
@@ -7364,6 +7484,19 @@ pub fn encode_tp_assignment(parts: &[(String, i32)]) -> Result<Vec<u8>> {
         ConsumerProtocol::HIGHEST_SUPPORTED_VERSION,
         &by_topic,
     )?;
+    Ok(Vec::from(buf))
+}
+
+/// [`encode_tp_assignment`], yielding while partitions are still being grouped and written.
+pub async fn encode_tp_assignment_cooperative(parts: &[(String, i32)]) -> Result<Vec<u8>> {
+    let by_topic = group_assigned_partitions_cooperative(parts).await;
+    let mut buf = BytesMut::new();
+    write_assignment_topics_cooperative(
+        &mut buf,
+        ConsumerProtocol::HIGHEST_SUPPORTED_VERSION,
+        &by_topic,
+    )
+    .await?;
     Ok(Vec::from(buf))
 }
 
@@ -11296,6 +11429,85 @@ mod tests {
             v0.to_string()
                 .contains("features supported only in 4 or later"),
             "v0 refuses batched coordinator keys, got {v0}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn encoding_a_large_assignment_does_not_hold_the_caller() {
+        // 2_000_000 partitions: grouping and writing the assignment held the caller 108ms.
+        let parts: Vec<(String, i32)> = (0..2_000_000).map(|index| ("t".into(), index)).collect();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = encode_tp_assignment_cooperative(&parts) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "encoding an assignment held the caller for {elapsed:?}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn decoding_many_offset_commits_does_not_hold_the_caller() {
+        // 2_000_000 partitions: reading the commit response held the caller 110ms.
+        use bytes::BufMut;
+        let mut raw = bytes::BytesMut::new();
+        raw.put_i32(1);
+        raw.put_i16(1);
+        raw.extend_from_slice(b"t");
+        raw.put_i32(2_000_000);
+        for index in 0..2_000_000 {
+            raw.put_i32(index);
+            raw.put_i16(0);
+        }
+        let started = std::time::Instant::now();
+        let mut cursor: &[u8] = &raw;
+        tokio::select! {
+            _ = decode_offset_commit_response_cooperative(&mut cursor, 2) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "decoding an offset commit held the caller for {elapsed:?}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn cooperative_assignment_matches_one_shot() {
+        let parts: Vec<(String, i32)> = (0..10_000).map(|index| ("orders".into(), index)).collect();
+        let one = encode_tp_assignment(&parts).unwrap();
+        let two = encode_tp_assignment_cooperative(&parts).await.unwrap();
+        assert_eq!(one, two);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn cooperative_offset_commit_matches_one_shot() {
+        use bytes::BufMut;
+        let mut raw = bytes::BytesMut::new();
+        raw.put_i32(1);
+        raw.put_i16(1);
+        raw.extend_from_slice(b"t");
+        raw.put_i32(20_000);
+        for index in 0..20_000 {
+            raw.put_i32(index);
+            raw.put_i16(if index == 100 { 42 } else { 0 });
+        }
+        let one = decode_offset_commit_response(&mut &raw[..], 2).unwrap();
+        let two = decode_offset_commit_response_cooperative(&mut &raw[..], 2)
+            .await
+            .unwrap();
+        assert_eq!(one, two);
+        let (topics, throttle) = decode_offset_commit_topics_response_cooperative(&mut &raw[..], 2)
+            .await
+            .unwrap();
+        assert_eq!(throttle, 0);
+        let partitions = &topics.first().unwrap().partitions;
+        assert_eq!(partitions.len(), 20_000);
+        assert_eq!(
+            partitions.get(100).map(|partition| partition.error_code),
+            Some(42)
         );
     }
 

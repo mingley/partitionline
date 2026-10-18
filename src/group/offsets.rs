@@ -75,7 +75,8 @@ impl ConsumerGroup {
                 return Err(error);
             }
         };
-        let err = match decode_offset_commit_response(&mut body.clone(), version) {
+        let err = match decode_offset_commit_response_cooperative(&mut body.clone(), version).await
+        {
             Ok(err) => err,
             Err(error) => {
                 self.note_commit(false);
@@ -811,6 +812,8 @@ pub(super) async fn coord_offsets_legacy(
         };
         let coordinator = if api == crate::protocol::api_keys::OFFSET_FETCH {
             super::offset_fetch_error(version, &body).await
+        } else if api == crate::protocol::api_keys::OFFSET_COMMIT {
+            super::offset_commit_error(version, &body).await
         } else {
             super::coordinator_error(api, version, &body)
         };

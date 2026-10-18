@@ -96,7 +96,7 @@ use crate::protocol::api_keys::{
 };
 use crate::protocol::group::{
     decode_find_coordinator_response, decode_find_coordinator_response_coordinators,
-    decode_leave_group_response_version, decode_offset_commit_response,
+    decode_leave_group_response_version, decode_offset_commit_response_cooperative,
     decode_offset_delete_response, decode_offset_fetch_groups_response,
     decode_offset_fetch_response_cooperative, encode_find_coordinator_request_keys,
     encode_find_coordinator_request_typed, encode_leave_group_request_members,
@@ -11756,7 +11756,7 @@ impl Admin {
                 }
                 Err(e) => return Err(e),
             };
-            let err = decode_offset_commit_response(&mut body.clone(), version)?;
+            let err = decode_offset_commit_response_cooperative(&mut body.clone(), version).await?;
             if error::coordinator_retriable(err) {
                 self.group_coord = None;
                 self.drop_node_conn(node).await;
