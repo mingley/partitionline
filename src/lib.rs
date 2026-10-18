@@ -3458,6 +3458,12 @@
 //! `metadata.requestUpdate`; this is not top-level
 //! `TRANSACTIONAL_ID_AUTHORIZATION_FAILED`). Official Java `AclApis` writes
 //! this when an ACL request runs with no Authorizer configured.
+//! Top-level ShareAcknowledge `OPERATION_NOT_ATTEMPTED` completes
+//! without retry and does not request Metadata, including when
+//! `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+//! `metadata.requestUpdate`; this is not top-level
+//! `SECURITY_DISABLED`). Official Java `KafkaApis` writes
+//! this when AddPartitionsToTxn skips authorized partitions after a sibling topic fails authorization or is unknown.
 //! Top-level ShareAcknowledge
 //! `SHARE_SESSION_LIMIT_REACHED` completes without retry and advances
 //! the session epoch (Java `ShareSessionHandler.handleResponse`
