@@ -4129,18 +4129,12 @@ impl Admin {
         deadline: Instant,
     ) -> Result<ElectLeadersResponse> {
         let mut selection = ElectionSelection::default();
-        let mut order = Vec::new();
-        let mut pending = options.partitions.map(|partitions| {
-            let mut kept = Vec::new();
-            for tp in partitions {
-                let partition = tp.partition;
-                if let Some(index) = selection.adopt(tp.topic, partition) {
-                    order.push((index, partition));
-                    kept.push((index, partition));
-                }
-            }
-            kept
-        });
+        let (mut order, mut pending) = if let Some(partitions) = options.partitions {
+            let (order, kept) = record_election_partitions(&mut selection, partitions).await;
+            (order, Some(kept))
+        } else {
+            (Vec::new(), None)
+        };
         let mut finished: HashMap<String, HashMap<i32, ElectLeadersPartitionResult>> =
             HashMap::new();
         let mut throttle_time_ms = 0;
@@ -16236,22 +16230,47 @@ fn replica_log_dir_info_from(
         .unwrap_or_else(ReplicaLogDirInfo::unknown)
 }
 
+async fn record_election_partitions(
+    selection: &mut ElectionSelection,
+    partitions: Vec<TopicPartition>,
+) -> (Vec<(usize, i32)>, Vec<(usize, i32)>) {
+    let mut order = Vec::new();
+    let mut kept = Vec::new();
+    let mut walked = 0usize;
+    for tp in partitions {
+        let partition = tp.partition;
+        if let Some(index) = selection.adopt(tp.topic, partition) {
+            order.push((index, partition));
+            kept.push((index, partition));
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    (order, kept)
+}
+
 /// Topic names for one election, stored once. Partitions remember the name's index.
 #[derive(Default)]
 struct ElectionSelection {
     names: Vec<String>,
     parts: Vec<HashSet<i32>>,
+    slots: HashMap<String, usize>,
 }
 
 impl ElectionSelection {
     /// Keep `topic` when it is new. A repeated partition returns `None`.
     fn adopt(&mut self, topic: String, partition: i32) -> Option<usize> {
-        let index = if let Some(index) = self.names.iter().position(|name| name == &topic) {
+        let index = if let Some(&index) = self.slots.get(&topic) {
             index
         } else {
+            let index = self.names.len();
+            let _ = self.slots.insert(topic.clone(), index);
             self.names.push(topic);
             self.parts.push(HashSet::new());
-            self.names.len().saturating_sub(1)
+            index
         };
         let parts = self.parts.get_mut(index)?;
         if !parts.insert(partition) {
@@ -16261,12 +16280,14 @@ impl ElectionSelection {
     }
 
     fn name_index(&mut self, topic: &str) -> usize {
-        if let Some(index) = self.names.iter().position(|name| name == topic) {
+        if let Some(&index) = self.slots.get(topic) {
             return index;
         }
+        let index = self.names.len();
+        let _ = self.slots.insert(topic.to_owned(), index);
         self.names.push(topic.to_owned());
         self.parts.push(HashSet::new());
-        self.names.len().saturating_sub(1)
+        index
     }
 
     fn contains(&self, index: usize, partition: i32) -> bool {
@@ -18946,6 +18967,26 @@ mod tests {
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "recording replica directory errors held the caller for {elapsed:?}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn recording_many_election_topics_does_not_hold_the_caller() {
+        // 20_000 distinct topics: scanning the name list held the caller 1.38s.
+        // A longer indexed walk still has to pause.
+        let partitions: Vec<TopicPartition> = (0..200_000)
+            .map(|index| TopicPartition::new(format!("topic-{index}"), 0))
+            .collect();
+        let mut selection = ElectionSelection::default();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = record_election_partitions(&mut selection, partitions) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "recording election topics held the caller for {elapsed:?}"
         );
     }
 
