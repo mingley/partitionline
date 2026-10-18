@@ -2498,6 +2498,13 @@ pub enum ShareAcquireMode {
 /// `DELEGATION_TOKEN_OWNER_MISMATCH`). Official Java `KafkaApis`
 /// writes this when a delegation token request arrives on PLAINTEXT,
 /// one-way SSL, or a token-authenticated channel. A top-level
+/// ShareAcknowledge `DELEGATION_TOKEN_AUTHORIZATION_FAILED` completes without
+/// retry and does not request Metadata, including when `ErrorMessage`
+/// is set (Java `handleShareAcknowledgeSuccess` has no
+/// `metadata.requestUpdate`; this is not top-level
+/// `DELEGATION_TOKEN_REQUEST_NOT_ALLOWED`). Official Java `KafkaApis`
+/// writes this when the requester is not the owner and lacks
+/// `CREATE_TOKENS` on the owner user. A top-level
 /// ShareAcknowledge `SHARE_SESSION_LIMIT_REACHED` completes without
 /// retry and does not request Metadata, including when `ErrorMessage`
 /// is set or empty (Java `handleShareAcknowledgeSuccess` has no
@@ -5676,6 +5683,13 @@ impl ShareGroup {
     /// Java `KafkaApis` writes this when a delegation token request
     /// arrives on PLAINTEXT, one-way SSL, or a token-authenticated
     /// channel.
+    /// A top-level ShareAcknowledge `DELEGATION_TOKEN_AUTHORIZATION_FAILED`
+    /// completes without retry and does not request Metadata,
+    /// including when `ErrorMessage` is set (Java
+    /// `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`;
+    /// this is not top-level `DELEGATION_TOKEN_REQUEST_NOT_ALLOWED`). Official
+    /// Java `KafkaApis` writes this when the requester is not the
+    /// owner and lacks `CREATE_TOKENS` on the owner user.
     /// Top-level `SHARE_SESSION_LIMIT_REACHED`
     /// completes without retry and advances the session epoch (Java
     /// `ShareSessionHandler.handleResponse` `nextEpoch`), including

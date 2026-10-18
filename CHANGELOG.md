@@ -371,6 +371,12 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `metadata.requestUpdate`; this is not top-level
   `DELEGATION_TOKEN_OWNER_MISMATCH`). Official Java `KafkaApis` writes
   this when a delegation token request arrives on PLAINTEXT, one-way SSL, or a token-authenticated channel.
+  A top-level ShareAcknowledge `DELEGATION_TOKEN_AUTHORIZATION_FAILED` completes
+  without retry and does not request Metadata, including when
+  `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+  `metadata.requestUpdate`; this is not top-level
+  `DELEGATION_TOKEN_REQUEST_NOT_ALLOWED`). Official Java `KafkaApis` writes
+  this when the requester is not the owner and lacks `CREATE_TOKENS` on the owner user.
   A piggybacked ShareFetch
   `AcknowledgeErrorMessage` that is empty uses
   `ShareFetch acknowledgement {topic}-{partition}`. A piggybacked
