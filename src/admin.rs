@@ -3174,16 +3174,6 @@ fn borrowed_offset_fetch_groups<'a>(
     Ok(groups)
 }
 
-fn offset_fetch_topics_for_spec(
-    spec: &ListConsumerGroupOffsetsSpec,
-) -> Option<Vec<crate::protocol::group::OffsetFetchTopic>> {
-    spec.partitions.as_ref().map(|ps| {
-        crate::group::group_offset_fetch_topics(
-            ps.iter().map(|tp| (tp.topic.as_str(), tp.partition)),
-        )
-    })
-}
-
 async fn listed_group_offsets(
     spec: &ListConsumerGroupOffsetsSpec,
     fetched: &[crate::protocol::group::FetchedOffsetTopic],
@@ -11558,11 +11548,12 @@ impl Admin {
         {
             let target = started.checked_add(timeout).ok_or(Error::Timeout)?;
             let deadline = crate::net::Deadline::from_std(target);
-            let topics = partitions.map(|parts| {
-                crate::group::group_offset_fetch_topics(
-                    parts.iter().map(|tp| (tp.topic.as_str(), tp.partition)),
-                )
-            });
+            let topics = match partitions {
+                Some(parts) => {
+                    Some(crate::group::group_offset_fetch_topics_cooperative(parts).await)
+                }
+                None => None,
+            };
             return self
                 .fetch_named_offsets_v10(group_id, topics.as_deref(), require_stable, deadline)
                 .await;

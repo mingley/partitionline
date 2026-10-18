@@ -1677,12 +1677,7 @@ impl ConsumerGroup {
             return Ok(Vec::new());
         }
         let mut topics = std::mem::take(&mut self.classic_fetch_topics);
-        refill_offset_fetch_topics(
-            &mut topics,
-            partitions
-                .iter()
-                .map(|tp| (tp.topic.as_str(), tp.partition)),
-        );
+        refill_topic_partitions_cooperative(&mut topics, &partitions).await;
         let fetched = self
             .offset_fetch(&topics, timeout.saturating_sub(started.elapsed()))
             .await;
@@ -3636,12 +3631,7 @@ impl ConsumerGroup {
             Vec::new()
         } else {
             let mut topics = std::mem::take(&mut self.classic_fetch_topics);
-            refill_offset_fetch_topics(
-                &mut topics,
-                added
-                    .iter()
-                    .map(|(topic, partition)| (topic.as_str(), *partition)),
-            );
+            refill_offset_fetch_topics_cooperative(&mut topics, &added).await;
             let timeout = deadline.saturating_duration_since(Instant::now());
             if timeout.is_zero() {
                 self.classic_fetch_topics = topics;
@@ -5061,6 +5051,7 @@ fn refill_offset_topics(
     topics.truncate(used);
 }
 
+#[cfg(test)]
 pub(crate) fn group_offset_fetch_topics<'a>(
     wanted: impl IntoIterator<Item = (&'a str, i32)>,
 ) -> Vec<OffsetFetchTopic> {
@@ -5090,42 +5081,115 @@ pub(crate) fn group_borrowed_offset_fetch_topics<'a>(
     groups
 }
 
+fn place_fetched_partition(
+    topics: &mut Vec<OffsetFetchTopic>,
+    seen: &mut Vec<HashSet<i32>>,
+    used: &mut usize,
+    topic: &str,
+    part: i32,
+) {
+    let existing = topics
+        .iter()
+        .take(*used)
+        .position(|slot| slot.topic == topic);
+    if let Some(index) = existing {
+        let Some(slot) = topics.get_mut(index) else {
+            return;
+        };
+        let Some(known) = seen.get_mut(index) else {
+            return;
+        };
+        if !known.insert(part) {
+            return;
+        }
+        slot.partitions.push(part);
+        return;
+    }
+    if let Some(slot) = topics.get_mut(*used) {
+        if slot.topic != topic {
+            slot.topic.clear();
+            slot.topic.push_str(topic);
+        }
+        slot.partitions.clear();
+        slot.partitions.push(part);
+    } else {
+        topics.push(OffsetFetchTopic {
+            topic: topic.to_owned(),
+            partitions: vec![part],
+        });
+    }
+    if let Some(known) = seen.get_mut(*used) {
+        known.clear();
+        let _ = known.insert(part);
+    } else {
+        let mut known = HashSet::new();
+        let _ = known.insert(part);
+        seen.push(known);
+    }
+    *used = used.saturating_add(1);
+}
+
+#[cfg(test)]
 fn refill_offset_fetch_topics<'a>(
     topics: &mut Vec<OffsetFetchTopic>,
     wanted: impl IntoIterator<Item = (&'a str, i32)>,
 ) {
     let mut used = 0usize;
+    let mut seen = Vec::new();
     for (topic, part) in wanted {
-        let existing = topics
-            .iter()
-            .take(used)
-            .position(|slot| slot.topic == topic);
-        if let Some(index) = existing {
-            let Some(slot) = topics.get_mut(index) else {
-                continue;
-            };
-            if slot.partitions.contains(&part) {
-                continue;
-            }
-            slot.partitions.push(part);
-            continue;
-        }
-        if let Some(slot) = topics.get_mut(used) {
-            if slot.topic != topic {
-                slot.topic.clear();
-                slot.topic.push_str(topic);
-            }
-            slot.partitions.clear();
-            slot.partitions.push(part);
-        } else {
-            topics.push(OffsetFetchTopic {
-                topic: topic.to_owned(),
-                partitions: vec![part],
-            });
-        }
-        used = used.saturating_add(1);
+        place_fetched_partition(topics, &mut seen, &mut used, topic, part);
     }
     topics.truncate(used);
+}
+
+async fn refill_offset_fetch_topics_cooperative(
+    topics: &mut Vec<OffsetFetchTopic>,
+    wanted: &[(String, i32)],
+) {
+    let mut used = 0usize;
+    let mut seen = Vec::new();
+    let mut walked = 0usize;
+    for (topic, part) in wanted {
+        place_fetched_partition(topics, &mut seen, &mut used, topic, *part);
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    topics.truncate(used);
+}
+
+async fn refill_topic_partitions_cooperative(
+    topics: &mut Vec<OffsetFetchTopic>,
+    wanted: &[TopicPartition],
+) {
+    let mut used = 0usize;
+    let mut seen = Vec::new();
+    let mut walked = 0usize;
+    for tp in wanted {
+        place_fetched_partition(
+            topics,
+            &mut seen,
+            &mut used,
+            tp.topic.as_str(),
+            tp.partition,
+        );
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    topics.truncate(used);
+}
+
+pub(crate) async fn group_offset_fetch_topics_cooperative(
+    wanted: &[TopicPartition],
+) -> Vec<OffsetFetchTopic> {
+    let mut topics = Vec::new();
+    refill_topic_partitions_cooperative(&mut topics, wanted).await;
+    topics
 }
 
 fn index_revoked(revoked: &[(String, i32)]) -> HashMap<&str, HashSet<i32>> {
@@ -7021,6 +7085,50 @@ mod tests {
                 })
                 .collect(),
         }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn refilling_many_offset_fetch_partitions_does_not_hold_the_caller() {
+        // 20_000 partitions: scanning the growing list held the caller 691ms.
+        // 1_500_000 hash inserts of the same shape held it for 777ms, so the
+        // long walk also pauses.
+        let wanted: Vec<(String, i32)> = (0..1_500_000)
+            .map(|index| ("orders".into(), index))
+            .collect();
+        let mut topics = Vec::new();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = refill_offset_fetch_topics_cooperative(&mut topics, &wanted) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "refilling offset-fetch partitions held the caller for {elapsed:?}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn cooperative_offset_fetch_refill_matches_one_shot() {
+        let wanted = vec![
+            ("orders".to_string(), 0),
+            ("orders".to_string(), 0),
+            ("orders".to_string(), 1),
+            ("payments".to_string(), 4),
+        ];
+        let mut one = Vec::new();
+        refill_offset_fetch_topics(
+            &mut one,
+            wanted
+                .iter()
+                .map(|(topic, partition)| (topic.as_str(), *partition)),
+        );
+        let mut two = Vec::new();
+        refill_offset_fetch_topics_cooperative(&mut two, &wanted).await;
+        assert_eq!(one.len(), two.len());
+        assert_eq!(one[0].topic, two[0].topic);
+        assert_eq!(one[0].partitions, two[0].partitions);
+        assert_eq!(one[1].partitions, two[1].partitions);
     }
 
     #[tokio::test(flavor = "current_thread")]

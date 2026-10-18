@@ -121,7 +121,12 @@ impl Admin {
             if !ids.insert(id) {
                 return Err(Error::protocol("duplicate named offset group"));
             }
-            let topics = super::offset_fetch_topics_for_spec(spec);
+            let topics = match spec.partitions.as_deref() {
+                Some(parts) => {
+                    Some(crate::group::group_offset_fetch_topics_cooperative(parts).await)
+                }
+                None => None,
+            };
             if let Some(topics) = &topics {
                 for topic in topics {
                     let _inserted = names.insert(topic.topic.clone());
