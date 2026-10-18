@@ -2741,9 +2741,12 @@ pub fn decode_record_batches_with_limit<B: Buf>(
     max_decode_bytes: usize,
 ) -> Result<Vec<RecordBatch>> {
     let mut out = Vec::new();
+    // Reserve only when one bounded slice covers the buffer. A long run of
+    // batches must not be counted in full before the first batch is decoded.
     if buf.chunk().len() == buf.remaining() {
-        if let Ok(count) = count_framed_batches(buf.chunk()) {
-            if count > 1 {
+        if let Ok((count, next)) = count_framed_batches_from(buf.chunk(), 0, 64 * 1024) {
+            let done = next >= buf.chunk().len() || buf.chunk().len().saturating_sub(next) < 12;
+            if done && count > 1 {
                 out.try_reserve_exact(count)
                     .map_err(|_| Error::protocol("record batch reserve"))?;
             }
@@ -3231,6 +3234,7 @@ fn next_framed_batch(buf: &mut Bytes) -> Result<Option<EncodedBatch>> {
 /// How many complete magic-v2 batches `bytes` holds.
 ///
 /// A truncated tail is not counted. A negative batch length is an error.
+#[cfg(test)]
 pub(crate) fn count_framed_batches(bytes: &[u8]) -> Result<usize> {
     count_framed_batches_from(bytes, 0, usize::MAX).map(|(count, _)| count)
 }
@@ -3765,6 +3769,21 @@ fn read_bytes_varint<B: Buf>(buf: &mut B) -> Result<Option<Bytes>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn decoding_a_long_batch_run_does_not_hold_the_caller() {
+        let raw = vec![0u8; 48 * 1024 * 1024];
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = async { let _ = decode_record_batches(&mut &raw[..]); } => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "decoding framed batches held the caller for {elapsed:?}"
+        );
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn counting_framed_batches_does_not_hold_the_caller() {
