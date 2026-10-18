@@ -395,6 +395,12 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `metadata.requestUpdate`; this is not top-level
   `INVALID_PRINCIPAL_TYPE`). Official Java `ShareGroup` writes
   this when a delete request targets a share group that is not empty.
+  A top-level ShareAcknowledge `GROUP_ID_NOT_FOUND` completes
+  without retry and does not request Metadata, including when
+  `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+  `metadata.requestUpdate`; this is not top-level
+  `NON_EMPTY_GROUP`). Official Java `GroupMetadataManager` writes
+  this when a requested group id is not found.
   A piggybacked ShareFetch
   `AcknowledgeErrorMessage` that is empty uses
   `ShareFetch acknowledgement {topic}-{partition}`. A piggybacked
