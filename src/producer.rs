@@ -2382,14 +2382,7 @@ impl Producer {
                             Err(_) => return Err(Error::Closed),
                         }
                     };
-                    for topic in &requested {
-                        if prepared_topic_error(&failed, topic).is_some() {
-                            continue;
-                        }
-                        if let Some(error) = unfresh_topic_error(&self.inner.shared, topic) {
-                            let _ = failed.insert(Arc::clone(topic), error);
-                        }
-                    }
+                    record_unfresh_topics(&self.inner.shared, &requested, &mut failed);
                     if let Some(error) = prepared_topic_error(&failed, &rec.topic) {
                         return Err(error);
                     }
@@ -5449,31 +5442,92 @@ fn topic_needs_metadata(shared: &Shared, topic: &Arc<str>) -> bool {
         && cluster.topic_fresh(topic.as_ref(), shared.cfg.metadata_max_age))
 }
 
-fn prepared_topic_error(failed: &HashMap<Arc<str>, Error>, topic: &Arc<str>) -> Option<Error> {
-    failed.get(topic.as_ref()).map(clone_err)
+fn metadata_topic<'a>(
+    topics: &'a [crate::protocol::api::TopicMetadata],
+    name: &str,
+) -> Option<&'a crate::protocol::api::TopicMetadata> {
+    topics
+        .iter()
+        .find(|item| item.name.as_deref() == Some(name))
 }
 
-/// Broker error for a topic that a shared metadata response did not make fresh.
-fn unfresh_topic_error(shared: &Shared, topic: &Arc<str>) -> Option<Error> {
-    let ready = {
-        let cluster = shared.cluster.lock();
-        cluster.partition_count(topic.as_ref()).is_some()
-            && cluster.topic_fresh(topic.as_ref(), shared.cfg.metadata_max_age)
-    };
-    if ready {
-        return None;
+/// First topic slot for each name. A later copy of the same name is ignored.
+fn index_metadata_topics(
+    topics: &[crate::protocol::api::TopicMetadata],
+) -> HashMap<&str, usize> {
+    let mut slots = HashMap::with_capacity(topics.len());
+    for (index, topic) in topics.iter().enumerate() {
+        let Some(name) = topic.name.as_deref() else {
+            continue;
+        };
+        if slots.contains_key(name) {
+            continue;
+        }
+        let _ = slots.insert(name, index);
     }
-    let image = shared.metadata_image.lock();
-    match image
-        .topics
-        .iter()
-        .find(|item| item.name.as_deref() == Some(topic.as_ref()))
-    {
+    slots
+}
+
+fn metadata_topic_at<'a>(
+    topics: &'a [crate::protocol::api::TopicMetadata],
+    slots: &HashMap<&str, usize>,
+    name: &str,
+) -> Option<&'a crate::protocol::api::TopicMetadata> {
+    slots.get(name).and_then(|index| topics.get(*index))
+}
+
+fn classify_metadata_topic(
+    found: Option<&crate::protocol::api::TopicMetadata>,
+    topic: &str,
+) -> Option<Error> {
+    match found {
         Some(found) if found.error_code != 0 => {
             Some(Error::broker(found.error_code, topic.to_string()))
         }
         Some(found) if !found.partitions.is_empty() => None,
         _ => Some(Error::UnknownTopic(topic.to_string())),
+    }
+}
+
+fn prepared_topic_error(failed: &HashMap<Arc<str>, Error>, topic: &Arc<str>) -> Option<Error> {
+    failed.get(topic.as_ref()).map(clone_err)
+}
+
+/// Broker errors for topics that a shared metadata response did not make fresh.
+///
+/// The image is indexed once. A topic that already has an error keeps it.
+fn record_unfresh_topics(
+    shared: &Shared,
+    requested: &[Arc<str>],
+    failed: &mut HashMap<Arc<str>, Error>,
+) {
+    let mut pending = Vec::new();
+    for topic in requested {
+        if failed.contains_key(topic.as_ref()) {
+            continue;
+        }
+        let ready = {
+            let cluster = shared.cluster.lock();
+            cluster.partition_count(topic.as_ref()).is_some()
+                && cluster.topic_fresh(topic.as_ref(), shared.cfg.metadata_max_age)
+        };
+        if !ready {
+            pending.push(topic);
+        }
+    }
+    if pending.is_empty() {
+        return;
+    }
+    let image = shared.metadata_image.lock();
+    let slots = index_metadata_topics(&image.topics);
+    for topic in pending {
+        let Some(error) = classify_metadata_topic(
+            metadata_topic_at(&image.topics, &slots, topic.as_ref()),
+            topic.as_ref(),
+        ) else {
+            continue;
+        };
+        let _ = failed.insert(Arc::clone(topic), error);
     }
 }
 
@@ -5495,12 +5549,9 @@ async fn refresh_queued_topics(
     let mut last = Ok(());
     {
         let image = shared.metadata_image.lock();
+        let slots = index_metadata_topics(&image.topics);
         for topic in &requested {
-            let Some(found) = image
-                .topics
-                .iter()
-                .find(|item| item.name.as_deref() == Some(topic.as_ref()))
-            else {
+            let Some(found) = metadata_topic_at(&image.topics, &slots, topic.as_ref()) else {
                 last = Err(Error::UnknownTopic(topic.to_string()));
                 continue;
             };
@@ -5674,12 +5725,9 @@ async fn refresh_topics_within(
     let mut succeeded = Vec::new();
     {
         let image = shared.metadata_image.lock();
+        let slots = index_metadata_topics(&image.topics);
         for topic in &requested {
-            let Some(found) = image
-                .topics
-                .iter()
-                .find(|item| item.name.as_deref() == Some(topic.as_ref()))
-            else {
+            let Some(found) = metadata_topic_at(&image.topics, &slots, topic.as_ref()) else {
                 continue;
             };
             if found.error_code != 0 || found.partitions.is_empty() {
@@ -5750,10 +5798,7 @@ fn fresh_partition_count(shared: &Shared, topic: &str) -> Option<i32> {
 
 fn partition_count_from_image(shared: &Shared, topic: &str) -> Result<i32> {
     let image = shared.metadata_image.lock();
-    let found = image
-        .topics
-        .iter()
-        .find(|item| item.name.as_deref() == Some(topic))
+    let found = metadata_topic(&image.topics, topic)
         .ok_or_else(|| Error::UnknownTopic(topic.to_string()))?;
     if found.error_code != 0 {
         return Err(Error::broker(found.error_code, topic.to_string()));
@@ -10456,6 +10501,44 @@ mod tests {
             .build()
             .unwrap_or_else(|error| panic!("{error}"));
         runtime.block_on(group_pending(batch, scratch))
+    }
+
+    #[test]
+    fn matching_many_metadata_topics_does_not_hold_the_caller() {
+        // 20_000 names: scanning the image for each name held the caller 1.70s.
+        let topics: Vec<crate::protocol::api::TopicMetadata> = (0..20_000)
+            .map(|index| {
+                crate::protocol::api::TopicMetadata::new(0, format!("t{index}"), false, Vec::new())
+            })
+            .collect();
+        let names: Vec<String> = (0..20_000).map(|index| format!("t{index}")).collect();
+        let started = std::time::Instant::now();
+        let slots = index_metadata_topics(&topics);
+        let mut hits = 0usize;
+        for name in &names {
+            if metadata_topic_at(&topics, &slots, name).is_some() {
+                hits = hits.saturating_add(1);
+            }
+        }
+        let elapsed = started.elapsed();
+        assert_eq!(hits, 20_000);
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "matching metadata topics held the caller for {elapsed:?}"
+        );
+        let mut duplicated = topics;
+        duplicated.push(crate::protocol::api::TopicMetadata::new(
+            5,
+            "t0",
+            false,
+            Vec::new(),
+        ));
+        let slots = index_metadata_topics(&duplicated);
+        assert_eq!(
+            metadata_topic_at(&duplicated, &slots, "t0").map(|topic| topic.error_code),
+            Some(0)
+        );
+        assert!(metadata_topic_at(&duplicated, &slots, "other").is_none());
     }
 
     #[test]
