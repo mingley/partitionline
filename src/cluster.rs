@@ -169,7 +169,7 @@ impl Cluster {
     /// retained only when [`MetadataResponse::has_reliable_leader_epochs`].
     /// A reliable response does not replace a cached leader with an older
     /// epoch from a current-leader update.
-    pub(crate) fn apply(&mut self, md: &MetadataResponse, version: i16) {
+    pub(crate) async fn apply_image(&mut self, md: &MetadataResponse, version: i16) {
         self.controller_id = (md.controller_id >= 0).then_some(md.controller_id);
         for b in &md.brokers {
             if self
@@ -252,11 +252,17 @@ impl Cluster {
                 let _ = self.topic_ids.remove(name.as_str());
             }
             let mut max_idx = -1i32;
+            let mut walked = 0usize;
             for p in &t.partitions {
                 if (0..MAX_CACHED_PARTITIONS).contains(&p.partition_index)
                     && p.partition_index > max_idx
                 {
                     max_idx = p.partition_index;
+                }
+                walked = walked.saturating_add(1);
+                if walked == 8 * 1024 {
+                    walked = 0;
+                    tokio::task::yield_now().await;
                 }
             }
             if max_idx < 0 {
@@ -309,6 +315,7 @@ impl Cluster {
                     *slot = true;
                 }
             }
+            walked = 0;
             for p in &t.partitions {
                 let Ok(idx) = usize::try_from(p.partition_index) else {
                     continue;
@@ -394,7 +401,13 @@ impl Cluster {
                 if let Some(slot) = decided.get_mut(idx) {
                     *slot = true;
                 }
+                walked = walked.saturating_add(1);
+                if walked == 8 * 1024 {
+                    walked = 0;
+                    tokio::task::yield_now().await;
+                }
             }
+            walked = 0;
             for idx in 0..len {
                 if decided.get(idx).copied().unwrap_or(false) {
                     continue;
@@ -404,6 +417,11 @@ impl Cluster {
                 }
                 if let Some(slot) = epochs.get_mut(idx) {
                     *slot = RecordBatch::NO_PARTITION_LEADER_EPOCH;
+                }
+                walked = walked.saturating_add(1);
+                if walked == 8 * 1024 {
+                    walked = 0;
+                    tokio::task::yield_now().await;
                 }
             }
             if let Some(slot) = self.leaders.get_mut(name.as_str()) {
@@ -429,6 +447,16 @@ impl Cluster {
             }
             self.decided_scratch = decided;
         }
+    }
+
+    /// [`Self::apply_image`] for tests that are not already on a runtime.
+    #[cfg(test)]
+    pub(crate) fn apply(&mut self, md: &MetadataResponse, version: i16) {
+        tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .expect("cluster apply runtime")
+            .block_on(self.apply_image(md, version));
     }
 
     /// True when applying `topic` would leave leaders, epochs, and the topic
@@ -817,6 +845,55 @@ mod tests {
     use super::*;
     use crate::error;
     use crate::protocol::api::{Broker, MetadataResponse};
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn applying_many_partitions_does_not_hold_the_caller() {
+        use crate::protocol::api::{PartitionMetadata, TopicMetadata};
+        // 2_000_000 partitions: applying the image held the caller 128ms.
+        let partitions: Vec<PartitionMetadata> = (0..2_000_000)
+            .map(|index| PartitionMetadata {
+                error_code: 0,
+                partition_index: index,
+                leader_id: 1,
+                leader_epoch: 1,
+                replica_nodes: Vec::new(),
+                isr_nodes: Vec::new(),
+                offline_replicas: Vec::new(),
+            })
+            .collect();
+        let md = MetadataResponse {
+            throttle_time_ms: 0,
+            brokers: vec![Broker {
+                node_id: 1,
+                host: "127.0.0.1".into(),
+                port: 9092,
+                rack: None,
+            }],
+            cluster_id: None,
+            controller_id: 1,
+            topics: vec![TopicMetadata {
+                error_code: 0,
+                name: Some("orders".into()),
+                topic_id: [1; 16],
+                is_internal: false,
+                partitions,
+                topic_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+            }],
+            cluster_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+            error_code: 0,
+        };
+        let mut cluster = Cluster::default();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = cluster.apply_image(&md, 13) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "applying partition leaders held the caller for {elapsed:?}"
+        );
+    }
 
     #[test]
     fn a_cached_topic_is_one_allocation() {

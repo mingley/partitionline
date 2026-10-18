@@ -8327,7 +8327,7 @@ impl Admin {
                 "invalid or duplicate ListTransactions broker ID",
             ));
         }
-        self.cluster.apply(&metadata, version);
+        self.cluster.apply_image(&metadata, version).await;
         Ok(nodes)
     }
 
@@ -8765,7 +8765,9 @@ impl Admin {
         decode_metadata_response_into_cooperative(&mut body, version, &mut self.metadata_image)
             .await?;
         self.metadata_image.check()?;
-        self.cluster.apply(&self.metadata_image, version);
+        self.cluster
+            .apply_image(&self.metadata_image, version)
+            .await;
         Ok(())
     }
 

@@ -4161,7 +4161,7 @@ impl Consumer {
             self.full_metadata_at = Some(Instant::now());
         }
         if self.preferred.is_empty() {
-            self.cluster.apply(&md, version);
+            self.cluster.apply_image(&md, version).await;
         } else {
             let watched: Vec<(TopicName, Vec<(i32, i32)>)> = self
                 .preferred
@@ -4178,7 +4178,7 @@ impl Consumer {
                     (topic, rows)
                 })
                 .collect();
-            self.cluster.apply(&md, version);
+            self.cluster.apply_image(&md, version).await;
             for (topic, rows) in watched {
                 for (partition, previous) in rows {
                     if self.cluster.leader_epoch(&topic, partition) != previous {

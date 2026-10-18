@@ -5423,8 +5423,10 @@ async fn decode_shared_metadata(
     let mut image = MetadataResponse::blank();
     decode_metadata_response_into_cooperative(body, version, &mut image).await?;
     image.check()?;
+    let mut cluster = shared.cluster.lock().clone();
+    cluster.apply_image(&image, version).await;
+    *shared.cluster.lock() = cluster;
     let mut stored = shared.metadata_image.lock();
-    shared.cluster.lock().apply(&image, version);
     *stored = image;
     Ok(())
 }
