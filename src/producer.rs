@@ -8895,22 +8895,53 @@ fn estimate(p: &Pending) -> usize {
         .unwrap_or(usize::MAX)
 }
 
-fn refresh_sequence_epoch(pendings: &mut [Pending], epoch_gen: u64) {
-    // A retained batch whose sequence was assigned under a superseded
-    // epoch (shared epoch bump or identity renewal while it was
-    // pending, in flight, or queued for retry) must drop the stale
-    // assignment and re-take a sequence under the current epoch.
-    // Sending the old base sequence with the new epoch would fail with
-    // OUT_OF_ORDER_SEQUENCE_NUMBER; reusing seq zero twice on one
-    // partition would silently dedup away a record.
-    for pending in pendings {
-        if pending.epoch_gen != epoch_gen {
-            pending.seq = None;
-            pending.batch_base_seq = None;
-            pending.batch_len = 1;
-            pending.epoch_gen = epoch_gen;
+/// Drop sequences assigned under a superseded producer epoch.
+///
+/// A retained batch whose sequence was assigned under a superseded epoch
+/// (shared epoch bump or identity renewal while it was pending, in flight, or
+/// queued for retry) must drop the stale assignment and re-take a sequence
+/// under the current epoch. Sending the old base sequence with the new epoch
+/// would fail with `OUT_OF_ORDER_SEQUENCE_NUMBER`; reusing seq zero twice on
+/// one partition would silently dedup away a record. A long batch pauses
+/// between slices.
+async fn refresh_sequence_epoch(pendings: &mut [Pending], epoch_gen: u64) {
+    let mut index = 0usize;
+    let mut walked = 0usize;
+    while index < pendings.len() {
+        if let Some(pending) = pendings.get_mut(index) {
+            if pending.epoch_gen != epoch_gen {
+                pending.seq = None;
+                pending.batch_base_seq = None;
+                pending.batch_len = 1;
+                pending.epoch_gen = epoch_gen;
+            }
+        }
+        index = index.saturating_add(1);
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
         }
     }
+}
+
+/// True when every record already has a sequence.
+///
+/// A long batch pauses between slices. The first missing sequence returns
+/// immediately.
+async fn sequences_already_assigned(pendings: &[Pending]) -> bool {
+    let mut walked = 0usize;
+    for pending in pendings {
+        if pending.seq.is_none() {
+            return false;
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    true
 }
 
 async fn stamp_sequences(pendings: &mut [Pending], base: i32) {
@@ -8957,8 +8988,8 @@ async fn assign_sequences(
             }
         }
         for (_, partition, pendings) in groups.iter_mut() {
-            refresh_sequence_epoch(pendings, epoch_gen);
-            if pendings.iter().all(|pending| pending.seq.is_some()) {
+            refresh_sequence_epoch(pendings, epoch_gen).await;
+            if sequences_already_assigned(pendings).await {
                 continue;
             }
             let base = {
@@ -8973,8 +9004,8 @@ async fn assign_sequences(
         return;
     }
     for (topic, partition, pendings) in groups.iter_mut() {
-        refresh_sequence_epoch(pendings, epoch_gen);
-        if pendings.iter().all(|pending| pending.seq.is_some()) {
+        refresh_sequence_epoch(pendings, epoch_gen).await;
+        if sequences_already_assigned(pendings).await {
             continue;
         }
         let base = {
@@ -10960,6 +10991,43 @@ mod tests {
         assert!(
             watch.is_finished(),
             "dropping the last handle left the worker running"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn refreshing_many_produce_epochs_does_not_hold_the_caller() {
+        // 4_000_000 records: clearing a superseded epoch held the caller 149ms.
+        // Checking that every sequence was already assigned held the caller 148ms.
+        let topic: Arc<str> = Arc::from("orders");
+        let mut batch = Vec::with_capacity(4_000_000);
+        for _ in 0..4_000_000 {
+            let mut pending = queued("orders", Some(0));
+            pending.rec.topic = Arc::clone(&topic);
+            pending.seq = Some(1);
+            pending.epoch_gen = 0;
+            batch.push(pending);
+        }
+        let started = std::time::Instant::now();
+        tokio::select! {
+            ready = sequences_already_assigned(&batch) => {
+                assert!(ready);
+            }
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let read_elapsed = started.elapsed();
+        assert!(
+            read_elapsed < std::time::Duration::from_millis(80),
+            "checking produce sequences held the caller for {read_elapsed:?}"
+        );
+        let started = std::time::Instant::now();
+        tokio::select! {
+            () = refresh_sequence_epoch(&mut batch, 1) => {}
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let write_elapsed = started.elapsed();
+        assert!(
+            write_elapsed < std::time::Duration::from_millis(80),
+            "refreshing produce epochs held the caller for {write_elapsed:?}"
         );
     }
 
