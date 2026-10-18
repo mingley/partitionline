@@ -3298,7 +3298,7 @@
 //! `DELEGATION_TOKEN_NOT_FOUND`). Official Java `DelegationTokenControlManager` writes
 //! this when the requester is not a valid owner or renewer of the token. Top-level
 //! `DELEGATION_TOKEN_REQUEST_NOT_ALLOWED` still fails that poll without
-//! Metadata, including when `ErrorMessage` is set (Java
+//! Metadata, including when `ErrorMessage` is set or empty (Java
 //! `handleShareFetchSuccess` only `requestUpdate`s for
 //! `UNKNOWN_TOPIC_ID`; this is not top-level
 //! `DELEGATION_TOKEN_OWNER_MISMATCH`). Official Java `KafkaApis` writes
