@@ -5603,6 +5603,19 @@ async fn watch_idle_txn_socket(shared: &Shared) {
     tokio::time::sleep(Duration::from_millis(20)).await;
 }
 
+fn remember_unique_arc(
+    out: &mut Vec<Arc<str>>,
+    seen: &mut HashSet<Arc<str>>,
+    topic: &Arc<str>,
+) -> bool {
+    if seen.contains(topic.as_ref()) {
+        return false;
+    }
+    let _ = seen.insert(Arc::clone(topic));
+    out.push(Arc::clone(topic));
+    true
+}
+
 /// Fetch every stale name in `topics` with one Metadata request.
 ///
 /// The returned names are the topics that were requested. An empty vector
@@ -5614,20 +5627,17 @@ async fn refresh_topics_within(
     timeout: Duration,
 ) -> Result<Vec<Arc<str>>> {
     let mut requested = Vec::new();
+    let mut seen = HashSet::new();
     for topic in topics {
         let fresh = {
             let cluster = shared.cluster.lock();
             cluster.partition_count(topic.as_ref()).is_some()
                 && cluster.topic_fresh(topic.as_ref(), shared.cfg.metadata_max_age)
         };
-        if fresh
-            || requested
-                .iter()
-                .any(|name: &Arc<str>| name.as_ref() == topic.as_ref())
-        {
+        if fresh {
             continue;
         }
-        requested.push(Arc::clone(topic));
+        let _ = remember_unique_arc(&mut requested, &mut seen, topic);
     }
     if requested.is_empty() {
         return Ok(requested);
@@ -6113,17 +6123,12 @@ async fn retry_loop(weak: std::sync::Weak<Shared>, mut rx: mpsc::Receiver<Pendin
             continue;
         }
         let mut topics = Vec::new();
+        let mut seen = HashSet::new();
         for pending in &batch {
             if pending.skip_meta_refresh {
                 continue;
             }
-            if topics
-                .iter()
-                .any(|topic: &Arc<str>| topic.as_ref() == pending.rec.topic.as_ref())
-            {
-                continue;
-            }
-            topics.push(Arc::clone(&pending.rec.topic));
+            let _ = remember_unique_arc(&mut topics, &mut seen, &pending.rec.topic);
         }
         let refreshed = if topics.is_empty() {
             true
@@ -9915,6 +9920,31 @@ fn record_metadata(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn remembering_many_requested_topics_does_not_hold_the_caller() {
+        // 20_000 names: scanning earlier requests held the caller 1.43s.
+        let names: Vec<Arc<str>> = (0..20_000)
+            .map(|index| Arc::from(format!("t{index}")))
+            .collect();
+        let mut out = Vec::new();
+        let mut seen = HashSet::new();
+        let started = std::time::Instant::now();
+        for topic in &names {
+            let _ = remember_unique_arc(&mut out, &mut seen, topic);
+        }
+        let elapsed = started.elapsed();
+        assert_eq!(out.len(), 20_000);
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "remembering requested topics held the caller for {elapsed:?}"
+        );
+        let first = names.first().expect("first topic");
+        assert!(!remember_unique_arc(&mut out, &mut seen, first));
+        assert_eq!(out.len(), 20_000);
+        assert_eq!(out.first().map(Arc::as_ref), Some("t0"));
+        assert_eq!(out.get(1).map(Arc::as_ref), Some("t1"));
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn a_raced_coordinator_lookup_lets_the_other_broker_leave() {
