@@ -3520,32 +3520,39 @@ impl ConsumerGroup {
         let identities = self.consumer.topic_name_ids().clone();
         let all_current = self.consumer.assigned_offsets().to_vec();
         let mut current: HashMap<String, HashMap<i32, i64>> = HashMap::new();
+        let mut walked = 0usize;
         for (topic, partition, offset) in &all_current {
             if self.consumer.assigned_topic_id(topic.as_ref(), *partition)
-                != identities
+                == identities
                     .get(topic.as_ref())
                     .copied()
                     .filter(|id| *id != [0; 16])
             {
-                continue;
+                remember_i64(&mut current, topic.as_ref(), *partition, *offset);
             }
-            remember_i64(&mut current, topic.as_ref(), *partition, *offset);
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
         }
         let mut prev: HashMap<String, HashSet<i32>> = HashMap::new();
-        for (topic, partition, _) in &all_current {
-            remember_partition(&mut prev, topic.as_ref(), *partition);
-        }
+        remember_current_partitions(&mut prev, &all_current).await;
         let mut next: HashMap<String, HashSet<i32>> = HashMap::new();
-        for (topic, partition) in wanted {
-            remember_partition(&mut next, topic, *partition);
-        }
+        remember_wanted_partitions(&mut next, wanted).await;
         let mut revoked = Vec::new();
+        walked = 0;
         for (topic, parts) in &prev {
             for partition in parts {
                 let still_wanted = next.get(topic).is_some_and(|kept| kept.contains(partition));
                 let same_identity = nested_i64(&current, topic, *partition).is_some();
                 if !still_wanted || !same_identity {
                     revoked.push((topic.clone(), *partition));
+                }
+                walked = walked.saturating_add(1);
+                if walked == 8 * 1024 {
+                    walked = 0;
+                    tokio::task::yield_now().await;
                 }
             }
         }
@@ -3586,22 +3593,34 @@ impl ConsumerGroup {
             }
         }
         let mut kept_epochs: HashMap<String, HashMap<i32, i32>> = HashMap::new();
+        walked = 0;
+        for (topic, partition) in wanted {
+            if nested_i64(&current, topic, *partition).is_some() {
+                remember_i32(
+                    &mut kept_epochs,
+                    topic,
+                    *partition,
+                    self.consumer.last_fetched_epoch(topic, *partition),
+                );
+            }
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+        let mut added = Vec::new();
+        walked = 0;
         for (topic, partition) in wanted {
             if nested_i64(&current, topic, *partition).is_none() {
-                continue;
+                added.push((topic.clone(), *partition));
             }
-            remember_i32(
-                &mut kept_epochs,
-                topic,
-                *partition,
-                self.consumer.last_fetched_epoch(topic, *partition),
-            );
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
         }
-        let added: Vec<(String, i32)> = wanted
-            .iter()
-            .filter(|(topic, partition)| nested_i64(&current, topic, *partition).is_none())
-            .cloned()
-            .collect();
         let reset = self.cfg.auto_offset_reset;
         let mut warm_leaders = false;
         let fetched = if added.is_empty() {
@@ -5129,6 +5148,36 @@ fn revoked_contains(index: &HashMap<&str, HashSet<i32>>, topic: &str, partition:
         .is_some_and(|parts| parts.contains(&partition))
 }
 
+async fn remember_current_partitions(
+    map: &mut HashMap<String, HashSet<i32>>,
+    parts: &[(Arc<str>, i32, i64)],
+) {
+    let mut walked = 0usize;
+    for (topic, partition, _) in parts {
+        remember_partition(map, topic.as_ref(), *partition);
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+}
+
+async fn remember_wanted_partitions(
+    map: &mut HashMap<String, HashSet<i32>>,
+    parts: &[(String, i32)],
+) {
+    let mut walked = 0usize;
+    for (topic, partition) in parts {
+        remember_partition(map, topic, *partition);
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+}
+
 fn remember_partition(map: &mut HashMap<String, HashSet<i32>>, topic: &str, partition: i32) {
     if let Some(parts) = map.get_mut(topic) {
         let _ = parts.insert(partition);
@@ -5263,6 +5312,7 @@ pub(crate) fn offset_and_metadata_from(part: &FetchedOffset) -> OffsetAndMetadat
     OffsetAndMetadata::from_wire(part.offset, part.leader_epoch, part.metadata.clone())
 }
 
+#[cfg(test)]
 fn insert_committed(
     parts: &mut HashMap<i32, OffsetAndMetadata>,
     topic: &FetchedOffsetTopic,
@@ -5286,6 +5336,55 @@ fn insert_committed(
     Ok(())
 }
 
+async fn insert_committed_cooperative(
+    parts: &mut HashMap<i32, OffsetAndMetadata>,
+    topic: &FetchedOffsetTopic,
+) -> Result<()> {
+    let mut walked = 0usize;
+    for partition in &topic.partitions {
+        if partition.has_error() {
+            return Err(Error::broker(
+                partition.error_code,
+                format!("OffsetFetch {}-{}", topic.topic, partition.partition),
+            ));
+        }
+        let _ = parts.insert(
+            partition.partition,
+            OffsetAndMetadata::from_wire(
+                partition.offset,
+                partition.leader_epoch,
+                partition.metadata.clone(),
+            ),
+        );
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    Ok(())
+}
+
+pub(crate) async fn committed_offset_map_cooperative(
+    fetched: &[FetchedOffsetTopic],
+) -> Result<HashMap<String, HashMap<i32, OffsetAndMetadata>>> {
+    let mut map: HashMap<String, HashMap<i32, OffsetAndMetadata>> = HashMap::new();
+    for topic in fetched {
+        if map.contains_key(topic.topic.as_str()) {
+            let parts = map
+                .get_mut(topic.topic.as_str())
+                .ok_or_else(|| Error::protocol("missing committed topic"))?;
+            insert_committed_cooperative(parts, topic).await?;
+            continue;
+        }
+        let mut parts = HashMap::new();
+        insert_committed_cooperative(&mut parts, topic).await?;
+        let _ = map.insert(topic.topic.clone(), parts);
+    }
+    Ok(map)
+}
+
+#[cfg(test)]
 pub(crate) fn committed_offset_map(
     fetched: &[FetchedOffsetTopic],
 ) -> Result<HashMap<String, HashMap<i32, OffsetAndMetadata>>> {
@@ -6906,6 +7005,80 @@ mod tests {
         let mut map = HashMap::new();
         let _ = map.insert("orders".to_string(), parts);
         map
+    }
+
+    fn fetched_orders(count: i32) -> crate::protocol::group::FetchedOffsetTopic {
+        use crate::protocol::group::{FetchedOffset, FetchedOffsetTopic};
+        FetchedOffsetTopic {
+            topic: "orders".into(),
+            partitions: (0..count)
+                .map(|index| FetchedOffset {
+                    partition: index,
+                    offset: i64::from(index),
+                    leader_epoch: -1,
+                    metadata: String::new(),
+                    error_code: 0,
+                })
+                .collect(),
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn building_a_large_offset_map_does_not_hold_the_caller() {
+        // 1_500_000 offsets: inserting them held the caller 792ms.
+        let fetched = [fetched_orders(1_500_000)];
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = committed_offset_map_cooperative(&fetched) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "building a committed offset map held the caller for {elapsed:?}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn indexing_many_wanted_partitions_does_not_hold_the_caller() {
+        // 1_500_000 partitions: inserting them held the caller 748ms.
+        let wanted: Vec<(String, i32)> = (0..1_500_000)
+            .map(|index| ("orders".to_string(), index))
+            .collect();
+        let mut next = HashMap::new();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = remember_wanted_partitions(&mut next, &wanted) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "indexing wanted partitions held the caller for {elapsed:?}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn cooperative_offset_map_matches_one_shot() {
+        let fetched = [fetched_orders(3)];
+        let one = committed_offset_map(&fetched).unwrap();
+        let two = committed_offset_map_cooperative(&fetched).await.unwrap();
+        assert_eq!(
+            one.get("orders")
+                .and_then(|parts| parts.get(&1))
+                .map(|md| md.offset),
+            Some(1)
+        );
+        assert_eq!(
+            two.get("orders")
+                .and_then(|parts| parts.get(&2))
+                .map(|md| md.offset),
+            Some(2)
+        );
+        assert_eq!(
+            one.get("orders").map(HashMap::len),
+            two.get("orders").map(HashMap::len)
+        );
     }
 
     #[tokio::test(flavor = "current_thread")]

@@ -3189,10 +3189,10 @@ async fn listed_group_offsets(
     fetched: &[crate::protocol::group::FetchedOffsetTopic],
 ) -> Result<Vec<(crate::TopicPartition, crate::OffsetAndMetadata)>> {
     match &spec.partitions {
-        None => Ok(crate::group::committed_offset_pairs_cooperative(
-            crate::group::committed_offset_map(fetched)?,
-        )
-        .await),
+        None => {
+            let map = crate::group::committed_offset_map_cooperative(fetched).await?;
+            Ok(crate::group::committed_offset_pairs_cooperative(map).await)
+        }
         Some(ps) => {
             crate::group::check_fetched_offsets(fetched)?;
             Ok(ps
@@ -11141,7 +11141,7 @@ impl Admin {
         let fetched = self
             .fetch_consumer_group_offsets(group_id, None, require_stable, timeout)
             .await?;
-        let map = crate::group::committed_offset_map(&fetched)?;
+        let map = crate::group::committed_offset_map_cooperative(&fetched).await?;
         Ok(crate::group::committed_offset_pairs_cooperative(map).await)
     }
 
