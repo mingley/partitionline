@@ -226,6 +226,13 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `UNSUPPORTED_SASL_MECHANISM`). Official Java `SaslServerAuthenticator`
   writes this when a request other than `SASL_AUTHENTICATE` arrives
   during SASL authentication.
+  A top-level ShareAcknowledge `UNSUPPORTED_VERSION` completes
+  without retry and does not request Metadata, including when
+  `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+  `metadata.requestUpdate`; this is not top-level
+  `ILLEGAL_SASL_STATE`). Official Java `SaslServerAuthenticator` writes
+  this when an ApiVersions request version is unsupported during SASL
+  authentication.
   A piggybacked ShareFetch
   `AcknowledgeErrorMessage` that is empty uses
   `ShareFetch acknowledgement {topic}-{partition}`. A piggybacked
