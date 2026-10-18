@@ -301,7 +301,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   this when a transactional produce batch is not part of an ongoing transaction.
   A top-level ShareAcknowledge `INVALID_PRODUCER_ID_MAPPING` completes
   without retry and does not request Metadata, including when
-  `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+  `ErrorMessage` is set or empty (Java `handleShareAcknowledgeSuccess` has no
   `metadata.requestUpdate`; this is not top-level
   `INVALID_TXN_STATE`). Official Java `TransactionCoordinator` writes
   this when a transactional request uses a producerId that is not currently assigned to that transactional id.
