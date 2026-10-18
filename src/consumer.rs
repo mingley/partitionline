@@ -3978,25 +3978,11 @@ impl Consumer {
         }
     }
 
-    fn ensure_cursor_index(&mut self) {
+    async fn ensure_cursor_index(&mut self) {
         if self.cursor_index.is_some() {
             return;
         }
-        let mut built: HashMap<Arc<str>, HashMap<i32, usize>> = HashMap::new();
-        for (slot, (topic, partition, _)) in self.assigned.iter().enumerate() {
-            if let Some(parts) = built.get_mut(topic.as_ref()) {
-                let _ = parts.insert(*partition, slot);
-            } else {
-                let mut parts = HashMap::new();
-                let _ = parts.insert(*partition, slot);
-                let _ = built.insert(Arc::clone(topic), parts);
-            }
-        }
-        let index = built
-            .into_iter()
-            .map(|(topic, parts)| (topic, Arc::new(parts)))
-            .collect();
-        self.cursor_index = Some(index);
+        self.cursor_index = Some(build_cursor_index(&self.assigned).await);
         self.cursor_slots = None;
     }
 
@@ -5327,12 +5313,11 @@ impl Consumer {
                 }
                 self.connect_node(node, deadline).await?;
                 let version = self.offset_for_leader_epoch_version(node)?;
-                fetched.clear();
-                fetched.extend(
-                    parts
-                        .iter()
-                        .map(|(topic, partition)| self.last_fetched_epoch(topic, *partition)),
-                );
+                self.ensure_cursor_index().await;
+                push_fetched_epochs(&mut *fetched, &parts, |topic, partition| {
+                    self.last_fetched_epoch(topic, partition)
+                })
+                .await;
                 let topics = offset_for_leader_epoch_topics(&self.cluster, fetched, &parts).await;
                 let timeout = remaining_offset_timeout(deadline, Instant::now());
                 let mut encoded = bytes::BytesMut::new();
@@ -5422,10 +5407,12 @@ impl Consumer {
             }
             self.connect_node(*node, deadline).await?;
             let version = self.offset_for_leader_epoch_version(*node)?;
-            let fetched: Vec<i32> = parts
-                .iter()
-                .map(|(topic, partition)| self.last_fetched_epoch(topic, *partition))
-                .collect();
+            self.ensure_cursor_index().await;
+            let mut fetched = Vec::with_capacity(parts.len());
+            push_fetched_epochs(&mut fetched, &parts, |topic, partition| {
+                self.last_fetched_epoch(topic, partition)
+            })
+            .await;
             let topics = offset_for_leader_epoch_topics(&self.cluster, &fetched, &parts).await;
             let timeout = remaining_offset_timeout(deadline, Instant::now());
             let mut payload = bytes::BytesMut::new();
@@ -5495,7 +5482,7 @@ impl Consumer {
         requested: &[(&'a str, i32)],
         topics: &[OffsetForLeaderTopicResult],
     ) -> Result<Vec<(&'a str, i32)>> {
-        self.ensure_cursor_index();
+        self.ensure_cursor_index().await;
         let mut cluster = std::mem::take(&mut self.cluster);
         let outcome = walk_epoch_topics(
             &mut cluster,
@@ -7476,7 +7463,7 @@ impl Consumer {
         }
         reserve_fetch_records(out, declared, saw_batch, self.last_fetch_records);
         self.cluster.apply_node_endpoints(&endpoints);
-        self.ensure_cursor_index();
+        self.ensure_cursor_index().await;
         let mut retry = FetchRetry::None;
         // A partition listed twice must not rewind the cursor or deliver twice.
         // One topic with one partition cannot repeat, so that fetch skips the set.
@@ -11307,6 +11294,53 @@ pub(crate) fn partition_infos_from(
     Ok(out)
 }
 
+async fn build_cursor_index(assigned: &[(Arc<str>, i32, i64)]) -> CursorIndex {
+    let mut built: HashMap<Arc<str>, HashMap<i32, usize>> = HashMap::new();
+    let mut walked = 0usize;
+    for (slot, (topic, partition, _)) in assigned.iter().enumerate() {
+        if let Some(parts) = built.get_mut(topic.as_ref()) {
+            let _ = parts.insert(*partition, slot);
+        } else {
+            let mut parts = HashMap::new();
+            let _ = parts.insert(*partition, slot);
+            let _ = built.insert(Arc::clone(topic), parts);
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    let mut index = HashMap::with_capacity(built.len());
+    walked = 0;
+    for (topic, parts) in built {
+        let _ = index.insert(topic, Arc::new(parts));
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    index
+}
+
+async fn push_fetched_epochs(
+    out: &mut Vec<i32>,
+    parts: &[(&str, i32)],
+    mut epoch_of: impl FnMut(&str, i32) -> i32,
+) {
+    out.clear();
+    let mut walked = 0usize;
+    for (topic, partition) in parts {
+        out.push(epoch_of(topic, *partition));
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+}
+
 async fn walk_epoch_topics<'a, F>(
     cluster: &mut Cluster,
     requested: &[(&'a str, i32)],
@@ -11414,6 +11448,55 @@ mod tests {
     use std::collections::HashMap;
 
     use super::*;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn indexing_many_assigned_cursors_does_not_hold_the_caller() {
+        // 2_000_000 partitions: indexing the assignment held the caller 1.3s.
+        let topic: Arc<str> = Arc::from("orders");
+        let assigned: Vec<(Arc<str>, i32, i64)> = (0..2_000_000)
+            .map(|index| (Arc::clone(&topic), index, 0))
+            .collect();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = build_cursor_index(&assigned) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "indexing assigned cursors held the caller for {elapsed:?}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn indexed_cursors_keep_the_partition_slot() {
+        let topic: Arc<str> = Arc::from("orders");
+        let assigned = vec![(Arc::clone(&topic), 2, 0), (topic, 0, 4)];
+        let index = build_cursor_index(&assigned).await;
+        let parts = index.get("orders").expect("topic");
+        assert_eq!(parts.get(&2).copied(), Some(0));
+        assert_eq!(parts.get(&0).copied(), Some(1));
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn copying_many_fetched_epochs_does_not_hold_the_caller() {
+        // 2_000_000 partitions: copying the epochs held the caller 449ms.
+        let slots: HashMap<i32, i32> = (0..2_000_000).map(|index| (index, index)).collect();
+        let parts: Vec<(&str, i32)> = (0..2_000_000).map(|index| ("orders", index)).collect();
+        let mut out = Vec::new();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = push_fetched_epochs(&mut out, &parts, |_, partition| {
+                slots.get(&partition).copied().unwrap_or(-1)
+            }) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "copying fetched epochs held the caller for {elapsed:?}"
+        );
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn grouping_many_epoch_requests_does_not_hold_the_caller() {
