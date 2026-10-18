@@ -1899,14 +1899,15 @@ impl PendingRecords {
         self.order.clear();
     }
 
-    fn prepend(&mut self, records: Vec<FetchedRecord>) {
+    async fn prepend(&mut self, records: Vec<FetchedRecord>) {
         if records.is_empty() {
             return;
         }
-        let runs = self.reserve_record_runs(&records);
+        let runs = self.reserve_record_runs(&records).await;
         self.order.reserve(runs);
         let mut staged: VecDeque<PendingRun> = VecDeque::new();
         staged.reserve(runs);
+        let mut walked = 0usize;
         for rec in records.into_iter().rev() {
             if let Some(run) = staged
                 .front_mut()
@@ -1928,6 +1929,11 @@ impl PendingRecords {
                     self.partitions
                         .insert_owned(topic, rec.partition, VecDeque::from([rec]));
             }
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
         }
         while let Some(run) = staged.pop_back() {
             self.order.push_front(run);
@@ -1936,12 +1942,29 @@ impl PendingRecords {
 
     #[cfg(test)]
     fn extend(&mut self, records: Vec<FetchedRecord>) {
-        let _emptied = self.extend_reusing(records);
+        let _emptied = block_on_pending(self.extend_reusing(records));
+    }
+
+    #[cfg(test)]
+    fn prepend_now(&mut self, records: Vec<FetchedRecord>) {
+        block_on_pending(self.prepend(records));
+    }
+
+    #[cfg(test)]
+    fn drain_now(
+        &mut self,
+        paused: &PartitionMap<()>,
+        cap: usize,
+        buffered_bytes: &mut usize,
+    ) -> Vec<FetchedRecord> {
+        block_on_pending(self.drain(paused, cap, buffered_bytes))
     }
 
     /// Move `records` into the queues and return the emptied buffer.
-    fn extend_reusing(&mut self, mut records: Vec<FetchedRecord>) -> Vec<FetchedRecord> {
-        let runs = self.reserve_record_runs(&records);
+    ///
+    /// A long batch pauses between slices so queueing does not hold the caller.
+    async fn extend_reusing(&mut self, mut records: Vec<FetchedRecord>) -> Vec<FetchedRecord> {
+        let runs = self.reserve_record_runs(&records).await;
         let continued = records.first().is_some_and(|first| {
             self.order
                 .back()
@@ -1953,6 +1976,7 @@ impl PendingRecords {
             runs
         };
         self.order.reserve(added);
+        let mut walked = 0usize;
         for rec in records.drain(..) {
             if let Some(run) = self
                 .order
@@ -1975,6 +1999,11 @@ impl PendingRecords {
                     self.partitions
                         .insert_owned(topic, rec.partition, VecDeque::from([rec]));
             }
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
         }
         records
     }
@@ -1982,31 +2011,42 @@ impl PendingRecords {
     /// Size each partition queue for the next contiguous run before records move.
     ///
     /// Returns the number of runs. The caller sizes the delivery-order list
-    /// from that count.
-    fn reserve_record_runs(&mut self, records: &[FetchedRecord]) -> usize {
+    /// from that count. A long run pauses so the scan can still reach a deadline.
+    async fn reserve_record_runs(&mut self, records: &[FetchedRecord]) -> usize {
         let mut runs = 0usize;
         let mut index = 0usize;
+        let mut walked = 0usize;
         while index < records.len() {
             let Some(first) = records.get(index) else {
                 break;
             };
+            let partition = first.partition;
+            let topic = first.topic.clone();
             let mut end = index.saturating_add(1);
-            while records.get(end).is_some_and(|record| {
-                record.partition == first.partition && record.topic == first.topic
-            }) {
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+            while records
+                .get(end)
+                .is_some_and(|record| record.partition == partition && record.topic == topic)
+            {
                 end = end.saturating_add(1);
+                walked = walked.saturating_add(1);
+                if walked == 8 * 1024 {
+                    walked = 0;
+                    tokio::task::yield_now().await;
+                }
             }
             let count = end.saturating_sub(index);
             runs = runs.saturating_add(1);
-            if let Some(queue) = self.partitions.get_mut(&first.topic, first.partition) {
+            if let Some(queue) = self.partitions.get_mut(&topic, partition) {
                 queue.reserve(count);
             } else {
-                let topic = first.topic.clone();
-                let _previous = self.partitions.insert_owned(
-                    topic,
-                    first.partition,
-                    VecDeque::with_capacity(count),
-                );
+                let _previous =
+                    self.partitions
+                        .insert_owned(topic, partition, VecDeque::with_capacity(count));
             }
             index = end;
         }
@@ -2046,7 +2086,7 @@ impl PendingRecords {
         removed_bytes
     }
 
-    fn drain(
+    async fn drain(
         &mut self,
         paused: &PartitionMap<()>,
         cap: usize,
@@ -2059,24 +2099,44 @@ impl PendingRecords {
             .fold(0usize, |sum, run| sum.saturating_add(run.count));
         let mut out = Vec::with_capacity(available.min(cap));
         let mut index = 0;
+        let mut walked = 0usize;
         while out.len() < cap {
-            let Some(run) = self.order.get_mut(index) else {
+            let Some(run) = self.order.get(index) else {
                 break;
             };
             if paused.contains(&run.topic, run.partition) {
                 index += 1;
                 continue;
             }
-            if let Some(queue) = self.partitions.get_mut(&run.topic, run.partition) {
-                let count = run.count.min(cap - out.len());
-                for _ in 0..count {
-                    if let Some(rec) = queue.pop_front() {
-                        *buffered_bytes = buffered_bytes.saturating_sub(record_bytes(&rec));
-                        out.push(rec);
-                        run.count -= 1;
+            let topic = run.topic.clone();
+            let partition = run.partition;
+            let count = run.count.min(cap - out.len());
+            let mut taken = 0usize;
+            for _ in 0..count {
+                let Some(rec) = self
+                    .partitions
+                    .get_mut(&topic, partition)
+                    .and_then(|queue| queue.pop_front())
+                else {
+                    break;
+                };
+                *buffered_bytes = buffered_bytes.saturating_sub(record_bytes(&rec));
+                out.push(rec);
+                taken = taken.saturating_add(1);
+                walked = walked.saturating_add(1);
+                if walked == 8 * 1024 {
+                    walked = 0;
+                    if let Some(run) = self.order.get_mut(index) {
+                        run.count = run.count.saturating_sub(taken);
                     }
+                    taken = 0;
+                    tokio::task::yield_now().await;
                 }
             }
+            let Some(run) = self.order.get_mut(index) else {
+                break;
+            };
+            run.count = run.count.saturating_sub(taken);
             if run.count == 0 {
                 let _removed = self.order.remove(index);
             } else {
@@ -2085,6 +2145,15 @@ impl PendingRecords {
         }
         out
     }
+}
+
+#[cfg(test)]
+fn block_on_pending<T>(future: impl std::future::Future<Output = T>) -> T {
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap_or_else(|error| panic!("{error}"));
+    runtime.block_on(future)
 }
 
 /// Partition-local cursor over aborted starts. ABORT markers retire active
@@ -6226,12 +6295,12 @@ impl Consumer {
     ///
     /// Used when a zero-interval auto-commit fails after the fetch cursor has
     /// already moved. The next poll returns this batch again.
-    pub(crate) fn restore_fetched(&mut self, records: ConsumerRecords) {
+    pub(crate) async fn restore_fetched(&mut self, records: ConsumerRecords) {
         let records: Vec<FetchedRecord> = records.into_iter().collect();
         for rec in &records {
             self.buffered_bytes = self.buffered_bytes.saturating_add(record_bytes(rec));
         }
-        self.pending.prepend(records);
+        self.pending.prepend(records).await;
     }
 
     pub(crate) fn take_wakeup(&self) -> bool {
@@ -6337,7 +6406,7 @@ impl Consumer {
     }
 
     async fn fetch_assigned(&mut self, max_wait_ms: i32) -> Result<Vec<FetchedRecord>> {
-        if let Some(ready) = self.take_ready() {
+        if let Some(ready) = self.take_ready().await {
             reset_fetch_totals(&mut self.fetch_return_totals);
             return Ok(ready);
         }
@@ -6453,7 +6522,7 @@ impl Consumer {
                     )
                     .await?;
                 if budget_reached {
-                    return Ok(self.finish_fetch(out));
+                    return Ok(self.finish_fetch(out).await);
                 }
             }
             let metadata_stale = assignment_metadata_stale(
@@ -6472,7 +6541,7 @@ impl Consumer {
                 );
                 if Instant::now() >= deadline {
                     self.restore_metadata_topics(topics);
-                    return self.fetched_or_timeout(out, Error::Timeout);
+                    return self.fetched_or_timeout(out, Error::Timeout).await;
                 }
                 let cached = self.cached_fetch_nodes(completed);
                 let nodes = self.fetch_redial_nodes(cached);
@@ -6484,7 +6553,7 @@ impl Consumer {
                 self.restore_metadata_topics(topics);
                 if let Err(error) = refreshed {
                     // A later metadata refresh must not drop records already read.
-                    return self.fetched_or_timeout(out, error);
+                    return self.fetched_or_timeout(out, error).await;
                 }
             }
             let mut by_leader = std::mem::take(&mut self.fetch_plan);
@@ -6563,7 +6632,7 @@ impl Consumer {
                 if Instant::now() >= deadline {
                     self.fetch_plan = by_leader;
                     return if !out.is_empty() {
-                        Ok(self.finish_fetch(out))
+                        Ok(self.finish_fetch(out).await)
                     } else {
                         self.park_fetch_records(out);
                         Err(Error::Timeout)
@@ -6578,7 +6647,7 @@ impl Consumer {
                 if Instant::now() >= deadline {
                     self.fetch_plan = by_leader;
                     return if !out.is_empty() {
-                        Ok(self.finish_fetch(out))
+                        Ok(self.finish_fetch(out).await)
                     } else {
                         self.park_fetch_records(out);
                         Err(Error::Timeout)
@@ -6600,7 +6669,7 @@ impl Consumer {
                 self.restore_metadata_topics(topics);
                 if let Err(error) = refreshed {
                     self.fetch_plan = by_leader;
-                    return self.fetched_or_timeout(out, error);
+                    return self.fetched_or_timeout(out, error).await;
                 }
                 self.fetch_plan = by_leader;
                 continue;
@@ -6621,7 +6690,7 @@ impl Consumer {
             }
             if by_leader.is_empty() {
                 self.fetch_plan = by_leader;
-                return Ok(self.finish_fetch(out));
+                return Ok(self.finish_fetch(out).await);
             }
             if !self.fetch_throttles.is_empty() {
                 let now = Instant::now();
@@ -6643,7 +6712,7 @@ impl Consumer {
                     // any muted peer; no fetch/position advance for that peer.
                     if !out.is_empty() {
                         self.fetch_plan = by_leader;
-                        return Ok(self.finish_fetch(out));
+                        return Ok(self.finish_fetch(out).await);
                     }
                     if now >= deadline {
                         self.fetch_plan = by_leader;
@@ -6652,7 +6721,7 @@ impl Consumer {
                     }
                     if now >= poll_deadline {
                         self.fetch_plan = by_leader;
-                        return Ok(self.finish_fetch(out));
+                        return Ok(self.finish_fetch(out).await);
                     }
                     if let Some((_, until)) = earliest {
                         let wake = until.min(deadline).min(poll_deadline);
@@ -6687,7 +6756,7 @@ impl Consumer {
                 Ok(bodies) => bodies,
                 // Dialing or waiting out the deadline must not roll back records
                 // this poll already took from an earlier leader.
-                Err(error) => return self.fetched_or_timeout(out, error),
+                Err(error) => return self.fetched_or_timeout(out, error).await,
             };
             // ThrottleTimeMs is the first INT32 on every negotiated Fetch
             // version. Observe every completed response's header before the
@@ -6792,7 +6861,7 @@ impl Consumer {
                     // Records already fetched stay delivered. Partitions
                     // still out of range are placed on the next poll.
                     if matches!(error, Error::Timeout) && !out.is_empty() {
-                        return Ok(self.finish_fetch(out));
+                        return Ok(self.finish_fetch(out).await);
                     }
                     self.park_fetch_records(out);
                     return Err(error);
@@ -6817,7 +6886,7 @@ impl Consumer {
                     // Keep records that are still below the recovered cursor.
                     // A timeout must not roll the successful fetches back.
                     Err(Error::Timeout) if !out.is_empty() => {
-                        return Ok(self.finish_fetch(out));
+                        return Ok(self.finish_fetch(out).await);
                     }
                     Err(error) => {
                         self.park_fetch_records(out);
@@ -6826,7 +6895,7 @@ impl Consumer {
                 }
             }
             if budget_reached {
-                return Ok(self.finish_fetch(out));
+                return Ok(self.finish_fetch(out).await);
             }
             let all_done = self
                 .assigned
@@ -6835,7 +6904,7 @@ impl Consumer {
             if !all_done && retry.should_retry() {
                 if Instant::now() >= deadline {
                     return if !out.is_empty() {
-                        Ok(self.finish_fetch(out))
+                        Ok(self.finish_fetch(out).await)
                     } else {
                         self.park_fetch_records(out);
                         Err(Error::Timeout)
@@ -6846,7 +6915,7 @@ impl Consumer {
                     attempt = attempt.saturating_add(1);
                     if Instant::now() >= deadline {
                         return if !out.is_empty() {
-                            Ok(self.finish_fetch(out))
+                            Ok(self.finish_fetch(out).await)
                         } else {
                             self.park_fetch_records(out);
                             Err(Error::Timeout)
@@ -6864,13 +6933,13 @@ impl Consumer {
                             .await;
                         self.restore_metadata_topics(topics);
                         if let Err(error) = refreshed {
-                            return self.fetched_or_timeout(out, error);
+                            return self.fetched_or_timeout(out, error).await;
                         }
                     }
                 }
                 continue;
             }
-            return Ok(self.finish_fetch(out));
+            return Ok(self.finish_fetch(out).await);
         }
     }
 
@@ -6878,13 +6947,13 @@ impl Consumer {
     ///
     /// Any other error still fails the fetch, and the caller rolls the cursors
     /// back. A timeout with nothing in hand is a timeout.
-    fn fetched_or_timeout(
+    async fn fetched_or_timeout(
         &mut self,
         out: Vec<FetchedRecord>,
         error: Error,
     ) -> Result<Vec<FetchedRecord>> {
         if matches!(error, Error::Timeout) && !out.is_empty() {
-            Ok(self.finish_fetch(out))
+            Ok(self.finish_fetch(out).await)
         } else {
             self.park_fetch_records(out);
             Err(error)
@@ -9935,11 +10004,11 @@ impl Consumer {
         }
     }
 
-    fn take_ready(&mut self) -> Option<Vec<FetchedRecord>> {
+    async fn take_ready(&mut self) -> Option<Vec<FetchedRecord>> {
         if self.pending.is_empty() {
             return None;
         }
-        let drained = self.drain_pending();
+        let drained = self.drain_pending().await;
         if drained.is_empty() {
             None
         } else {
@@ -9979,7 +10048,7 @@ impl Consumer {
         park_spare(&mut self.spare_connected, nodes);
     }
 
-    fn finish_fetch(&mut self, recs: Vec<FetchedRecord>) -> Vec<FetchedRecord> {
+    async fn finish_fetch(&mut self, recs: Vec<FetchedRecord>) -> Vec<FetchedRecord> {
         note_fetch_records(&mut self.last_fetch_records, recs.len());
         if self.pending.is_empty() && self.cfg.max_poll_records.is_none() && self.paused.is_empty()
         {
@@ -9988,9 +10057,9 @@ impl Consumer {
         for rec in &recs {
             self.buffered_bytes = self.buffered_bytes.saturating_add(record_bytes(rec));
         }
-        let emptied = self.pending.extend_reusing(recs);
+        let emptied = self.pending.extend_reusing(recs).await;
         self.park_fetch_records(emptied);
-        self.drain_pending()
+        self.drain_pending().await
     }
 
     fn take_fetch_records(&mut self) -> Vec<FetchedRecord> {
@@ -10005,10 +10074,11 @@ impl Consumer {
         }
     }
 
-    fn drain_pending(&mut self) -> Vec<FetchedRecord> {
+    async fn drain_pending(&mut self) -> Vec<FetchedRecord> {
         let cap = self.cfg.max_poll_records.unwrap_or(usize::MAX);
         self.pending
             .drain(&self.paused, cap, &mut self.buffered_bytes)
+            .await
     }
 }
 
@@ -11654,6 +11724,94 @@ mod tests {
 
     use super::*;
 
+    fn many_fetched(count: i64) -> Vec<FetchedRecord> {
+        let topic = TopicName::from("orders");
+        let value = Bytes::from_static(b"x");
+        let mut records = Vec::with_capacity(usize::try_from(count).unwrap_or(0));
+        for offset in 0..count {
+            records.push(FetchedRecord {
+                topic: topic.clone(),
+                partition: 0,
+                offset,
+                timestamp: 1,
+                timestamp_type: TimestampType::CreateTime,
+                key: None,
+                value: Some(value.clone()),
+                headers: Vec::new(),
+                leader_epoch: Some(4),
+            });
+        }
+        records
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn queueing_many_fetched_records_does_not_hold_the_caller() {
+        // 2_000_000 records: queueing a fetch held the caller 1.10s.
+        let records = many_fetched(2_000_000);
+        let started = std::time::Instant::now();
+        let worker = tokio::spawn(async move {
+            let mut pending = PendingRecords::new();
+            let _emptied = pending.extend_reusing(records).await;
+            pending
+                .partitions
+                .get("orders", 0)
+                .map(|queue| queue.len())
+                .unwrap_or(0)
+        });
+        tokio::time::sleep(std::time::Duration::from_millis(30)).await;
+        worker.abort();
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "queueing fetched records held the caller for {elapsed:?}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn draining_many_fetched_records_does_not_hold_the_caller() {
+        // 2_000_000 records: draining the fetch buffer held the caller 257ms.
+        let mut pending = PendingRecords::new();
+        let _emptied = pending.extend_reusing(many_fetched(2_000_000)).await;
+        let started = std::time::Instant::now();
+        let worker = tokio::spawn(async move {
+            let mut bytes = 0usize;
+            pending
+                .drain(&PartitionMap::new(), usize::MAX, &mut bytes)
+                .await
+                .len()
+        });
+        tokio::time::sleep(std::time::Duration::from_millis(30)).await;
+        worker.abort();
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "draining fetched records held the caller for {elapsed:?}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn prepending_many_fetched_records_does_not_hold_the_caller() {
+        // 2_000_000 records: putting a returned batch back held the caller 1.27s.
+        let records = many_fetched(2_000_000);
+        let started = std::time::Instant::now();
+        let worker = tokio::spawn(async move {
+            let mut pending = PendingRecords::new();
+            pending.prepend(records).await;
+            pending
+                .partitions
+                .get("orders", 0)
+                .map(|queue| queue.len())
+                .unwrap_or(0)
+        });
+        tokio::time::sleep(std::time::Duration::from_millis(30)).await;
+        worker.abort();
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "prepending fetched records held the caller for {elapsed:?}"
+        );
+    }
+
     #[tokio::test(flavor = "current_thread")]
     async fn stamping_many_fetched_records_does_not_hold_the_caller() {
         // 6_000_000 records: stamping the fetched tail held the caller 188ms.
@@ -13230,9 +13388,9 @@ mod tests {
     fn pending_prepend_keeps_returned_records_ahead_of_the_buffer() {
         let mut pending = PendingRecords::new();
         pending.extend(vec![fetched_at("t", 0, 1), fetched_at("t", 1, 4)]);
-        pending.prepend(vec![fetched_at("t", 0, 0), fetched_at("t", 1, 3)]);
+        pending.prepend_now(vec![fetched_at("t", 0, 0), fetched_at("t", 1, 3)]);
         let mut bytes = 0usize;
-        let drained = pending.drain(&PartitionMap::new(), 10, &mut bytes);
+        let drained = pending.drain_now(&PartitionMap::new(), 10, &mut bytes);
         assert_eq!(
             drained
                 .iter()
@@ -13248,7 +13406,7 @@ mod tests {
             fetched_at("t", 0, 3),
         ]);
         let mut bytes = 0usize;
-        let limited = pending.drain(&PartitionMap::new(), 2, &mut bytes);
+        let limited = pending.drain_now(&PartitionMap::new(), 2, &mut bytes);
         assert_eq!(limited.len(), 2);
         assert!(limited.capacity() >= 2);
     }
@@ -13263,7 +13421,7 @@ mod tests {
             .map(|queue| queue.capacity())
             .expect("queue");
         let mut bytes = 0usize;
-        let drained = pending.drain(&PartitionMap::new(), 10, &mut bytes);
+        let drained = pending.drain_now(&PartitionMap::new(), 10, &mut bytes);
         assert_eq!(drained.len(), 2);
         assert!(pending.is_empty());
         let kept = pending.partitions.get("orders", 0).expect("queue");
@@ -13275,7 +13433,7 @@ mod tests {
         assert!(again.capacity() >= capacity);
         assert_eq!(again.front().map(|record| record.offset), Some(3));
         let mut bytes = 0usize;
-        let next = pending.drain(&PartitionMap::new(), 10, &mut bytes);
+        let next = pending.drain_now(&PartitionMap::new(), 10, &mut bytes);
         assert_eq!(next.len(), 1);
         assert_eq!(next.first().map(|record| record.offset), Some(3));
         assert!(pending.is_empty());
@@ -13312,7 +13470,7 @@ mod tests {
             Some(4)
         );
         let mut bytes = 0usize;
-        let _drained = pending.drain(&PartitionMap::new(), 10, &mut bytes);
+        let _drained = pending.drain_now(&PartitionMap::new(), 10, &mut bytes);
         pending.extend(vec![
             fetched_at("orders", 0, 5),
             fetched_at("orders", 0, 6),
@@ -13345,11 +13503,11 @@ mod tests {
         records.push(fetched_at("orders", 0, 1));
         records.push(fetched_at("orders", 0, 2));
         let capacity = records.capacity();
-        let emptied = pending.extend_reusing(records);
+        let emptied = block_on_pending(pending.extend_reusing(records));
         assert!(emptied.is_empty());
         assert!(emptied.capacity() >= capacity);
         let mut bytes = 0usize;
-        let drained = pending.drain(&PartitionMap::new(), 1, &mut bytes);
+        let drained = pending.drain_now(&PartitionMap::new(), 1, &mut bytes);
         assert_eq!(drained.len(), 1);
         assert_eq!(drained.first().map(|record| record.offset), Some(1));
         assert_eq!(

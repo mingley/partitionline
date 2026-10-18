@@ -1816,7 +1816,7 @@ impl ConsumerGroup {
             && self.cfg.auto_commit_interval.is_zero()
         {
             if let Err(error) = self.commit().await {
-                self.consumer.restore_fetched(recs);
+                self.consumer.restore_fetched(recs).await;
                 return Err(error);
             }
         }
@@ -2454,7 +2454,7 @@ impl ConsumerGroup {
             Ok(committed) => committed,
             Err(error) => {
                 if let Ok(recs) = fetched {
-                    self.consumer.restore_fetched(recs);
+                    self.consumer.restore_fetched(recs).await;
                 }
                 return Err(error);
             }
@@ -2464,7 +2464,7 @@ impl ConsumerGroup {
             Ok(err) => err,
             Err(error) => {
                 if let Ok(recs) = fetched {
-                    self.consumer.restore_fetched(recs);
+                    self.consumer.restore_fetched(recs).await;
                 }
                 return Err(error);
             }
@@ -2472,7 +2472,7 @@ impl ConsumerGroup {
         self.note_commit(err == 0);
         if err != 0 {
             if let Ok(recs) = fetched {
-                self.consumer.restore_fetched(recs);
+                self.consumer.restore_fetched(recs).await;
             }
             return Err(Error::broker(err, "OffsetCommit"));
         }
