@@ -3386,7 +3386,7 @@
 //! OffsetDelete writes this when the consumer group is actively
 //! subscribed to the topic. Top-level
 //! `INVALID_RECORD` still fails that poll without
-//! Metadata, including when `ErrorMessage` is set (Java
+//! Metadata, including when `ErrorMessage` is set or empty (Java
 //! `handleShareFetchSuccess` only `requestUpdate`s for
 //! `UNKNOWN_TOPIC_ID`; this is not top-level
 //! `GROUP_SUBSCRIBED_TO_TOPIC`). Official Java `LogValidator` writes
