@@ -14725,7 +14725,7 @@ impl Admin {
     ///
     /// A missing or unusable host leaves the broker map unchanged so the
     /// caller can load the directory.
-    fn remember_coordinator(&mut self, node: i32, host: &str, port: i32) -> Result<bool> {
+    async fn remember_coordinator(&mut self, node: i32, host: &str, port: i32) -> Result<bool> {
         let Some(address) = crate::cluster::dial_address(host, port) else {
             return Ok(false);
         };
@@ -14736,7 +14736,10 @@ impl Admin {
             return Err(Error::protocol("coordinator broker limit"));
         }
         if self.cluster.brokers.get(&node) != Some(&address) {
-            let _removed = self.conns.remove(&node);
+            if let Some(mut conn) = self.conns.remove(&node) {
+                conn.inner.close();
+                conn.inner.release_if_closed().await;
+            }
             let _old = self.cluster.brokers.insert(node, address);
         }
         Ok(true)
@@ -14749,7 +14752,7 @@ impl Admin {
         port: i32,
         deadline: Instant,
     ) -> Result<()> {
-        if self.remember_coordinator(node, host, port)? {
+        if self.remember_coordinator(node, host, port).await? {
             return Ok(());
         }
         if !self.cluster.brokers.contains_key(&node) {
@@ -15971,6 +15974,81 @@ mod tests {
         CreatedTopicConfig, ListConfigResourcesResponse, TopicConfig,
     };
     use bytes::BytesMut;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn replacing_a_coordinator_address_lets_the_broker_leave() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use tokio::io::AsyncReadExt;
+
+        let leader_listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let leader_addr = leader_listener.local_addr().unwrap();
+        let other = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let other_addr = other.local_addr().unwrap().to_string();
+        let open = Arc::new(AtomicUsize::new(0));
+        let flag = Arc::clone(&open);
+        let leader_peer = tokio::spawn(async move {
+            let Ok((mut socket, _)) = leader_listener.accept().await else {
+                return;
+            };
+            let _started = flag.fetch_add(1, Ordering::SeqCst);
+            let mut buf = [0u8; 8];
+            loop {
+                match socket.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let other_peer = tokio::spawn(async move {
+            let Ok((mut socket, _)) = other.accept().await else {
+                return;
+            };
+            let mut buf = [0u8; 8];
+            loop {
+                match socket.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+        });
+        let leader = crate::net::BrokerConn::connect(
+            &leader_addr.to_string(),
+            "old-coord",
+            Duration::from_secs(2),
+        )
+        .await
+        .unwrap();
+        while open.load(Ordering::SeqCst) == 0 {
+            tokio::task::yield_now().await;
+        }
+        let bootstrap =
+            crate::net::BrokerConn::connect(&other_addr, "admin-boot", Duration::from_secs(2))
+                .await
+                .unwrap();
+        let mut admin = Admin::test_holding(bootstrap);
+        let _stored = admin
+            .conns
+            .insert(4, super::offsets::AdminOffsetConn::test_holding(leader));
+        let _old = admin.cluster.brokers.insert(4, "127.0.0.1:1".to_string());
+        let remembered = admin
+            .remember_coordinator(4, "127.0.0.1", i32::from(leader_addr.port()))
+            .await
+            .unwrap();
+        assert!(remembered, "the new coordinator address was rejected");
+        assert!(
+            !admin.conns.contains_key(&4),
+            "the old coordinator socket was kept"
+        );
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "replacing a coordinator address left the broker blocked in a read"
+        );
+        drop(admin);
+        leader_peer.abort();
+        other_peer.abort();
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn dropping_a_group_coordinator_lets_the_broker_leave() {
