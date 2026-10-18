@@ -2312,6 +2312,13 @@ pub enum ShareAcquireMode {
 /// `MEMBER_ID_REQUIRED`). Official Java `GroupMetadataManager`
 /// writes this when a JoinGroup would exceed the classic group max
 /// size.
+/// Top-level `FENCED_INSTANCE_ID` still fails that poll
+/// and does not request Metadata, including when `ErrorMessage` is
+/// set (Java `handleShareFetchSuccess` only `requestUpdate`s for
+/// `UNKNOWN_TOPIC_ID`; this is not top-level
+/// `GROUP_MAX_SIZE_REACHED`). Official Java `GroupMetadataManager`
+/// writes this when a static member's `group.instance.id` is already
+/// owned by a different member id.
 /// Top-level
 /// `SHARE_SESSION_LIMIT_REACHED` resets the share session and does
 /// not request Metadata, including when `ErrorMessage` is set or
@@ -5321,6 +5328,13 @@ impl ShareGroup {
     /// `MEMBER_ID_REQUIRED`). Official Java `GroupMetadataManager`
     /// writes this when a JoinGroup would exceed the classic group
     /// max size. Top-level
+    /// `FENCED_INSTANCE_ID` still fails that poll without
+    /// Metadata, including when `ErrorMessage` is set (Java
+    /// `handleShareFetchSuccess` only `requestUpdate`s for
+    /// `UNKNOWN_TOPIC_ID`; this is not top-level
+    /// `GROUP_MAX_SIZE_REACHED`). Official Java `GroupMetadataManager`
+    /// writes this when a static member's `group.instance.id` is
+    /// already owned by a different member id. Top-level
     /// `SHARE_SESSION_LIMIT_REACHED` resets the share session and
     /// does not request Metadata, including when `ErrorMessage` is
     /// set or empty (Java `handleShareFetchSuccess` only
