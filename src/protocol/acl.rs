@@ -1570,25 +1570,35 @@ impl DescribeAclsResponse {
     /// stable).
     #[must_use]
     pub fn acls_resources(acls: &[AclBinding]) -> Vec<DescribeAclsResource> {
-        let mut resources: Vec<DescribeAclsResource> = Vec::new();
+        let mut resources: Vec<DescribeAclsResource> = Vec::with_capacity(acls.len());
+        let mut slots: HashMap<i8, HashMap<i8, HashMap<String, usize>>> = HashMap::new();
         for acl in acls {
             let entry = acl.entry();
-            if let Some(resource) = resources.iter_mut().find(|r| {
-                r.resource_type == acl.resource_type
-                    && r.resource_name == acl.resource_name
-                    && r.pattern_type == acl.pattern_type
-            }) {
-                if !resource.acls.contains(&entry) {
-                    resource.acls.push(entry);
+            if let Some(&slot) = slots
+                .get(&acl.resource_type)
+                .and_then(|by_pattern| by_pattern.get(&acl.pattern_type))
+                .and_then(|by_name| by_name.get(acl.resource_name.as_str()))
+            {
+                if let Some(resource) = resources.get_mut(slot) {
+                    if !resource.acls.contains(&entry) {
+                        resource.acls.push(entry);
+                    }
                 }
-            } else {
-                resources.push(DescribeAclsResource {
-                    resource_type: acl.resource_type,
-                    resource_name: acl.resource_name.clone(),
-                    pattern_type: acl.pattern_type,
-                    acls: vec![entry],
-                });
+                continue;
             }
+            let slot = resources.len();
+            let by_name = slots
+                .entry(acl.resource_type)
+                .or_default()
+                .entry(acl.pattern_type)
+                .or_default();
+            let _previous = by_name.insert(acl.resource_name.clone(), slot);
+            resources.push(DescribeAclsResource {
+                resource_type: acl.resource_type,
+                resource_name: acl.resource_name.clone(),
+                pattern_type: acl.pattern_type,
+                acls: vec![entry],
+            });
         }
         resources
     }
@@ -3872,6 +3882,22 @@ mod tests {
                 cur.len()
             );
         }
+    }
+
+    #[test]
+    fn grouping_many_acl_resources_does_not_hold_the_caller() {
+        // 20_000 resources: finding each pattern held the caller 1.45s.
+        let acls: Vec<_> = (0..20_000)
+            .map(|index| AclBinding::allow_topic(format!("t{index}"), "User:alice"))
+            .collect();
+        let started = std::time::Instant::now();
+        let grouped = DescribeAclsResponse::acls_resources(&acls);
+        let elapsed = started.elapsed();
+        assert_eq!(grouped.len(), 20_000);
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "grouping acl resources held the caller for {elapsed:?}"
+        );
     }
 
     #[test]
