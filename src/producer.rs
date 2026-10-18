@@ -3625,10 +3625,7 @@ impl Producer {
         } else {
             load_topics.await?;
         }
-        let grouped = {
-            let cluster = self.inner.shared.cluster.lock();
-            group_txn_offsets(&offsets, &cluster)
-        };
+        let grouped = group_txn_offsets(&offsets, &self.inner.shared.cluster).await;
         let mut attempt = 0u32;
         loop {
             let body = group_coord_roundtrip(
@@ -8332,35 +8329,49 @@ fn unique_offset_topics(
     topics
 }
 
-fn group_txn_offsets<'a>(
+async fn group_txn_offsets<'a>(
     offsets: &'a [(crate::TopicPartition, crate::OffsetAndMetadata)],
-    cluster: &crate::cluster::Cluster,
+    cluster: &parking_lot::Mutex<crate::cluster::Cluster>,
 ) -> Vec<BorrowedTxnOffsetTopic<'a>> {
     let mut topics: Vec<BorrowedTxnOffsetTopic<'a>> = Vec::new();
     let mut slots: HashMap<&str, usize> = HashMap::new();
     let mut epochs = crate::cluster::EpochList::new();
-    for (tp, md) in offsets {
-        let leader_epoch = md
-            .leader_epoch
-            .unwrap_or_else(|| epochs.epoch(cluster, &tp.topic, tp.partition));
-        let partition = BorrowedTxnOffsetPartition {
-            partition: tp.partition,
-            offset: md.offset,
-            leader_epoch,
-            metadata: md.metadata.as_str(),
-        };
-        if let Some(&slot) = slots.get(tp.topic.as_str()) {
-            if let Some(group) = topics.get_mut(slot) {
-                group.partitions.push(partition);
-                continue;
+    let mut next = 0usize;
+    while next < offsets.len() {
+        let end = next.saturating_add(8 * 1024).min(offsets.len());
+        {
+            let guard = cluster.lock();
+            let Some(chunk) = offsets.get(next..end) else {
+                break;
+            };
+            for (tp, md) in chunk {
+                let leader_epoch = md
+                    .leader_epoch
+                    .unwrap_or_else(|| epochs.epoch(&guard, &tp.topic, tp.partition));
+                let partition = BorrowedTxnOffsetPartition {
+                    partition: tp.partition,
+                    offset: md.offset,
+                    leader_epoch,
+                    metadata: md.metadata.as_str(),
+                };
+                if let Some(&slot) = slots.get(tp.topic.as_str()) {
+                    if let Some(group) = topics.get_mut(slot) {
+                        group.partitions.push(partition);
+                        continue;
+                    }
+                }
+                let slot = topics.len();
+                let _ = slots.insert(tp.topic.as_str(), slot);
+                topics.push(BorrowedTxnOffsetTopic {
+                    topic: tp.topic.as_str(),
+                    partitions: vec![partition],
+                });
             }
         }
-        let slot = topics.len();
-        let _ = slots.insert(tp.topic.as_str(), slot);
-        topics.push(BorrowedTxnOffsetTopic {
-            topic: tp.topic.as_str(),
-            partitions: vec![partition],
-        });
+        next = end;
+        if next < offsets.len() {
+            tokio::task::yield_now().await;
+        }
     }
     topics
 }
@@ -11050,8 +11061,37 @@ mod tests {
         );
     }
 
-    #[test]
-    fn transactional_offsets_group_by_first_seen_topic() {
+    #[tokio::test(flavor = "current_thread")]
+    async fn grouping_many_txn_offsets_does_not_hold_the_caller() {
+        // 2_000_000 offsets: grouping held the caller 405ms.
+        let offsets: Vec<_> = (0..2_000_000)
+            .map(|index| {
+                (
+                    crate::TopicPartition::new("orders", index),
+                    crate::OffsetAndMetadata::new(0),
+                )
+            })
+            .collect();
+        let cluster = parking_lot::Mutex::new(crate::cluster::Cluster::default());
+        let started = std::time::Instant::now();
+        tokio::select! {
+            grouped = group_txn_offsets(&offsets, &cluster) => {
+                assert_eq!(
+                    grouped.first().map(|topic| topic.partitions.len()),
+                    Some(2_000_000)
+                );
+            }
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "grouping txn offsets held the caller for {elapsed:?}"
+        );
+    }
+
+    #[tokio::test]
+    async fn transactional_offsets_group_by_first_seen_topic() {
         let offsets = [
             (
                 crate::TopicPartition::new("orders", 1),
@@ -11070,7 +11110,8 @@ mod tests {
         assert_eq!(names.first().copied(), Some("orders"));
         assert_eq!(names.get(1).copied(), Some("payments"));
         assert_eq!(names.len(), 2);
-        let grouped = group_txn_offsets(&offsets, &crate::cluster::Cluster::default());
+        let cluster = parking_lot::Mutex::new(crate::cluster::Cluster::default());
+        let grouped = group_txn_offsets(&offsets, &cluster).await;
         assert_eq!(grouped.first().map(|topic| topic.topic), Some("orders"));
         assert_eq!(
             grouped.first().map(|topic| {
