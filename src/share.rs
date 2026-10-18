@@ -2362,7 +2362,7 @@ pub enum ShareAcquireMode {
 /// not positive or exceeds `transaction.max.timeout.ms`. A top-level
 /// ShareAcknowledge `TRANSACTION_COORDINATOR_FENCED` completes without
 /// retry and does not request Metadata, including when `ErrorMessage`
-/// is set (Java `handleShareAcknowledgeSuccess` has no
+/// is set or empty (Java `handleShareAcknowledgeSuccess` has no
 /// `metadata.requestUpdate`; this is not top-level
 /// `INVALID_TRANSACTION_TIMEOUT`). Official Java `ProducerAppendInfo`
 /// writes this when an end-transaction marker uses a coordinator
@@ -5402,7 +5402,7 @@ impl ShareGroup {
     /// `transaction.max.timeout.ms`.
     /// A top-level ShareAcknowledge `TRANSACTION_COORDINATOR_FENCED`
     /// completes without retry and does not request Metadata,
-    /// including when `ErrorMessage` is set (Java
+    /// including when `ErrorMessage` is set or empty (Java
     /// `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`;
     /// this is not top-level `INVALID_TRANSACTION_TIMEOUT`). Official
     /// Java `ProducerAppendInfo` writes this when an end-transaction
