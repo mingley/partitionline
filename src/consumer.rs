@@ -23,7 +23,7 @@ use crate::protocol::api_keys::{
 };
 use crate::protocol::epoch::{
     decode_offset_for_leader_epoch_topics_response_cooperative,
-    encode_borrowed_offset_for_leader_epoch_topics, OffsetForLeaderPartition,
+    encode_borrowed_offset_for_leader_epoch_topics_cooperative, OffsetForLeaderPartition,
     OffsetForLeaderTopicResult,
 };
 use crate::protocol::fetch::{
@@ -5335,12 +5335,22 @@ impl Consumer {
                 );
                 let topics = offset_for_leader_epoch_topics(&self.cluster, fetched, &parts);
                 let timeout = remaining_offset_timeout(deadline, Instant::now());
+                let mut encoded = bytes::BytesMut::new();
+                encode_borrowed_offset_for_leader_epoch_topics_cooperative(
+                    &mut encoded,
+                    version,
+                    &topics,
+                )
+                .await?;
                 let body = {
                     let conn = self.broker_conn_mut(node)?;
                     conn.roundtrip(
                         OFFSET_FOR_LEADER_EPOCH,
                         version,
-                        |buf| encode_borrowed_offset_for_leader_epoch_topics(buf, version, &topics),
+                        |buf| {
+                            buf.extend_from_slice(&encoded);
+                            Ok(())
+                        },
                         timeout,
                     )
                     .await
@@ -5419,7 +5429,12 @@ impl Consumer {
             let topics = offset_for_leader_epoch_topics(&self.cluster, &fetched, &parts);
             let timeout = remaining_offset_timeout(deadline, Instant::now());
             let mut payload = bytes::BytesMut::new();
-            encode_borrowed_offset_for_leader_epoch_topics(&mut payload, version, &topics)?;
+            encode_borrowed_offset_for_leader_epoch_topics_cooperative(
+                &mut payload,
+                version,
+                &topics,
+            )
+            .await?;
             let uses_bootstrap = !self.conns.contains_key(node)
                 && self
                     .cluster
