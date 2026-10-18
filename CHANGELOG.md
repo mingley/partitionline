@@ -472,6 +472,13 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `metadata.requestUpdate`; this is not top-level
   `PRODUCER_FENCED`). Official Java `ScramImage`
   DescribeUserScramCredentials writes this when the user does not exist.
+  A top-level ShareAcknowledge `DUPLICATE_RESOURCE` completes
+  without retry and does not request Metadata, including when
+  `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+  `metadata.requestUpdate`; this is not top-level
+  `RESOURCE_NOT_FOUND`). Official Java `ScramImage`
+  DescribeUserScramCredentials writes this when the same user is
+  requested twice.
   A piggybacked ShareFetch
   `AcknowledgeErrorMessage` that is empty uses
   `ShareFetch acknowledgement {topic}-{partition}`. A piggybacked

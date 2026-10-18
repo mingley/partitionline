@@ -2718,6 +2718,13 @@ pub enum ShareAcquireMode {
 /// `PRODUCER_FENCED`). Official Java `ScramImage`
 /// DescribeUserScramCredentials writes this when the user does not
 /// exist. A top-level
+/// ShareAcknowledge `DUPLICATE_RESOURCE` completes without
+/// retry and does not request Metadata, including when `ErrorMessage`
+/// is set (Java `handleShareAcknowledgeSuccess` has no
+/// `metadata.requestUpdate`; this is not top-level
+/// `RESOURCE_NOT_FOUND`). Official Java `ScramImage`
+/// DescribeUserScramCredentials writes this when the same user is
+/// requested twice. A top-level
 /// ShareAcknowledge `SHARE_SESSION_LIMIT_REACHED` completes without
 /// retry and does not request Metadata, including when `ErrorMessage`
 /// is set or empty (Java `handleShareAcknowledgeSuccess` has no
@@ -6119,6 +6126,13 @@ impl ShareGroup {
     /// this is not top-level `PRODUCER_FENCED`). Official Java
     /// `ScramImage` DescribeUserScramCredentials writes this when
     /// the user does not exist.
+    /// A top-level ShareAcknowledge `DUPLICATE_RESOURCE`
+    /// completes without retry and does not request Metadata,
+    /// including when `ErrorMessage` is set (Java
+    /// `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`;
+    /// this is not top-level `RESOURCE_NOT_FOUND`). Official Java
+    /// `ScramImage` DescribeUserScramCredentials writes this when
+    /// the same user is requested twice.
     /// Top-level `SHARE_SESSION_LIMIT_REACHED`
     /// completes without retry and advances the session epoch (Java
     /// `ShareSessionHandler.handleResponse` `nextEpoch`), including
