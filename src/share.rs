@@ -2240,7 +2240,7 @@ pub enum ShareAcquireMode {
 /// assignment. A top-level
 /// ShareAcknowledge `INVALID_CONFIG` completes without
 /// retry and does not request Metadata, including when `ErrorMessage`
-/// is set (Java `handleShareAcknowledgeSuccess` has no
+/// is set or empty (Java `handleShareAcknowledgeSuccess` has no
 /// `metadata.requestUpdate`; this is not top-level
 /// `INVALID_REPLICA_ASSIGNMENT`). Official Java `ReplicationControlManager`
 /// writes this when CreateTopics supplies a null topic config
@@ -5149,7 +5149,7 @@ impl ShareGroup {
     /// supplies an invalid manual replica assignment.
     /// A top-level ShareAcknowledge `INVALID_CONFIG`
     /// completes without retry and does not request Metadata,
-    /// including when `ErrorMessage` is set (Java
+    /// including when `ErrorMessage` is set or empty (Java
     /// `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`;
     /// this is not top-level `INVALID_REPLICA_ASSIGNMENT`). Official
     /// Java `ReplicationControlManager` writes this when CreateTopics
