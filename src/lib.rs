@@ -3248,7 +3248,13 @@
 //! `handleShareFetchSuccess` only `requestUpdate`s for
 //! `UNKNOWN_TOPIC_ID`; this is not top-level
 //! `INVALID_TRANSACTION_TIMEOUT`). Official Java `ProducerAppendInfo` writes
-//! this when an end-transaction marker uses a coordinator epoch older than the current epoch for that producerId. Partition
+//! this when an end-transaction marker uses a coordinator epoch older than the current epoch for that producerId. Top-level
+//! `TRANSACTIONAL_ID_AUTHORIZATION_FAILED` still fails that poll without
+//! Metadata, including when `ErrorMessage` is set (Java
+//! `handleShareFetchSuccess` only `requestUpdate`s for
+//! `UNKNOWN_TOPIC_ID`; this is not top-level
+//! `TRANSACTION_COORDINATOR_FENCED`). Official Java `KafkaApis` writes
+//! this when a transactional produce request is missing WRITE on that transactional id. Partition
 //! `INCONSISTENT_TOPIC_ID` / `UNKNOWN_TOPIC_OR_PARTITION` /
 //! `UNKNOWN_TOPIC_ID` / `REPLICA_NOT_AVAILABLE` /
 //! `OFFSET_NOT_AVAILABLE` / `KAFKA_STORAGE_ERROR` skip without throwing,
