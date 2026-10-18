@@ -6,7 +6,7 @@
 //! (user resource type). Kafka 4.0 `validVersions` is `1-3` (v0 removed).
 //! This crate speaks 0–3. v4+ is not spoken.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fmt;
 
 use bytes::{Buf, BufMut, BytesMut};
@@ -1571,6 +1571,7 @@ impl DescribeAclsResponse {
     #[must_use]
     pub fn acls_resources(acls: &[AclBinding]) -> Vec<DescribeAclsResource> {
         let mut resources: Vec<DescribeAclsResource> = Vec::with_capacity(acls.len());
+        let mut seen: Vec<HashSet<AccessControlEntry>> = Vec::with_capacity(acls.len());
         let mut slots: HashMap<i8, HashMap<i8, HashMap<String, usize>>> = HashMap::new();
         for acl in acls {
             let entry = acl.entry();
@@ -1579,8 +1580,11 @@ impl DescribeAclsResponse {
                 .and_then(|by_pattern| by_pattern.get(&acl.pattern_type))
                 .and_then(|by_name| by_name.get(acl.resource_name.as_str()))
             {
-                if let Some(resource) = resources.get_mut(slot) {
-                    if !resource.acls.contains(&entry) {
+                let fresh = seen
+                    .get_mut(slot)
+                    .is_some_and(|known| known.insert(entry.clone()));
+                if fresh {
+                    if let Some(resource) = resources.get_mut(slot) {
                         resource.acls.push(entry);
                     }
                 }
@@ -1593,6 +1597,7 @@ impl DescribeAclsResponse {
                 .entry(acl.pattern_type)
                 .or_default();
             let _previous = by_name.insert(acl.resource_name.clone(), slot);
+            seen.push(HashSet::from([entry.clone()]));
             resources.push(DescribeAclsResource {
                 resource_type: acl.resource_type,
                 resource_name: acl.resource_name.clone(),
@@ -2821,6 +2826,41 @@ pub fn decode_delete_acls_filter_results<B: Buf>(
 mod tests {
     use super::*;
     use std::collections::HashMap;
+
+    #[test]
+    fn grouping_many_acls_does_not_hold_the_caller() {
+        // 8_000 ACEs on one resource held the caller 247ms.
+        let mut acls: Vec<_> = (0..8_000)
+            .map(|index| AclBinding::allow_topic("orders", format!("User:{index}")))
+            .collect();
+        if let Some(first) = acls.first().cloned() {
+            acls.push(first);
+        }
+        let started = std::time::Instant::now();
+        let resources = DescribeAclsResponse::acls_resources(&acls);
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "grouping acls held the caller for {elapsed:?}"
+        );
+        assert_eq!(resources.len(), 1);
+        let aces = resources.first().map(|resource| resource.acls.len());
+        assert_eq!(aces, Some(8_000));
+        assert_eq!(
+            resources
+                .first()
+                .and_then(|resource| resource.acls.first())
+                .map(|ace| ace.principal.as_str()),
+            Some("User:0")
+        );
+        assert_eq!(
+            resources
+                .first()
+                .and_then(|resource| resource.acls.last())
+                .map(|ace| ace.principal.as_str()),
+            Some("User:7999")
+        );
+    }
 
     #[test]
     fn create_acls_response_throttle_time_ms_matches_java() {
