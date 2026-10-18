@@ -8254,12 +8254,7 @@ impl Worker {
 
     async fn requeue_pendings(&mut self, mut pendings: Vec<Pending>) {
         if let Some(policy) = &self.shared.sticky {
-            let mut policy = policy.lock();
-            for p in &pendings {
-                if let Some(tag) = p.sticky {
-                    policy.seal(tag);
-                }
-            }
+            seal_queued_sticky(policy, &pendings).await;
         }
         let now = Instant::now();
         let (group_of, groups) = retry_topic_groups_cooperative(&pendings).await;
@@ -8922,6 +8917,26 @@ impl Iterator for ProduceGroupsIntoIter {
             return Some(group);
         }
         self.many.next()
+    }
+}
+
+/// Mark sticky cohorts sealed, pausing between slices.
+///
+/// The policy lock covers one slice. A long queue can still reach a deadline.
+async fn seal_queued_sticky(policy: &parking_lot::Mutex<StickyState>, pendings: &[Pending]) {
+    let mut start = 0usize;
+    while start < pendings.len() {
+        let end = start.saturating_add(8 * 1024).min(pendings.len());
+        if let Some(slice) = pendings.get(start..end) {
+            let mut guard = policy.lock();
+            for record in slice {
+                if let Some(tag) = record.sticky {
+                    guard.seal(tag);
+                }
+            }
+        }
+        start = end;
+        tokio::task::yield_now().await;
     }
 }
 
@@ -11367,6 +11382,48 @@ mod tests {
         assert!(
             watch.is_finished(),
             "dropping the last handle left the worker running"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn sealing_many_sticky_records_does_not_hold_the_caller() {
+        // 4_000_000 records: sealing one sticky cohort held the caller 710ms.
+        let topic: Arc<str> = Arc::from("orders");
+        let mut batch = Vec::with_capacity(4_000_000);
+        for index in 0..4_000_000 {
+            let mut pending = queued("orders", Some(0));
+            pending.rec.topic = Arc::clone(&topic);
+            pending.sticky = Some(crate::partitioner::StickyTag {
+                id: 1,
+                index,
+                identity: None,
+            });
+            batch.push(pending);
+        }
+        let mut state = StickyState::new(
+            crate::partitioner::StickyPartitionerConfig::default(),
+            1_000,
+            1_000,
+        );
+        state.install_seal_target(1);
+        let policy = parking_lot::Mutex::new(state);
+        let mut one = queued("orders", Some(0));
+        one.sticky = Some(crate::partitioner::StickyTag {
+            id: 1,
+            index: 0,
+            identity: None,
+        });
+        seal_queued_sticky(&policy, &[one]).await;
+        assert!(policy.lock().cohort_is_sealed(1));
+        let started = std::time::Instant::now();
+        tokio::select! {
+            () = seal_queued_sticky(&policy, &batch) => {}
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "sealing sticky records held the caller for {elapsed:?}"
         );
     }
 

@@ -636,6 +636,31 @@ impl StickyState {
             c.sealed = true;
         }
     }
+
+    /// Whether `id` is installed and marked sealed.
+    #[cfg(test)]
+    pub(crate) fn cohort_is_sealed(&self, id: u128) -> bool {
+        self.cohorts.get(&id).is_some_and(|cohort| cohort.sealed)
+    }
+
+    /// Install one cohort so tests can time [`Self::seal`] on a present id.
+    #[cfg(test)]
+    pub(crate) fn install_seal_target(&mut self, id: u128) {
+        let _ = self.cohorts.insert(
+            id,
+            StickyCohort {
+                topic: std::sync::Arc::from("orders"),
+                lifetime: 1,
+                partition: 0,
+                worker: std::sync::Arc::new(()),
+                bytes: 1,
+                members: 1,
+                admitted: 1,
+                sealed: false,
+                cancelled: false,
+            },
+        );
+    }
     pub(crate) fn release(&mut self, tag: StickyTag, count: usize, cluster: &Cluster) {
         let Some(c) = self.cohorts.get_mut(&tag.id) else {
             return;
