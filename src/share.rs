@@ -2115,6 +2115,12 @@ pub enum ShareAcquireMode {
 /// `UNKNOWN_TOPIC_ID`; this is not top-level
 /// `INVALID_REPLICATION_FACTOR`). Official Java `ReplicationControlManager` writes
 /// this when CreateTopics supplies an invalid manual replica assignment.
+/// Top-level `INVALID_CONFIG` still fails that poll
+/// and does not request Metadata, including when `ErrorMessage` is
+/// set (Java `handleShareFetchSuccess` only `requestUpdate`s for
+/// `UNKNOWN_TOPIC_ID`; this is not top-level
+/// `INVALID_REPLICA_ASSIGNMENT`). Official Java `ReplicationControlManager` writes
+/// this when CreateTopics supplies a null topic config value.
 /// Top-level
 /// `SHARE_SESSION_LIMIT_REACHED` resets the share session and does
 /// not request Metadata, including when `ErrorMessage` is set or
@@ -4718,6 +4724,13 @@ impl ShareGroup {
     /// `INVALID_REPLICATION_FACTOR`). Official Java `ReplicationControlManager`
     /// writes this when CreateTopics supplies an invalid manual replica
     /// assignment. Top-level
+    /// `INVALID_CONFIG` still fails that poll without
+    /// Metadata, including when `ErrorMessage` is set (Java
+    /// `handleShareFetchSuccess` only `requestUpdate`s for
+    /// `UNKNOWN_TOPIC_ID`; this is not top-level
+    /// `INVALID_REPLICA_ASSIGNMENT`). Official Java `ReplicationControlManager`
+    /// writes this when CreateTopics supplies a null topic config
+    /// value. Top-level
     /// `SHARE_SESSION_LIMIT_REACHED` resets the share session and
     /// does not request Metadata, including when `ErrorMessage` is
     /// set or empty (Java `handleShareFetchSuccess` only
