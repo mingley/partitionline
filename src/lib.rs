@@ -3412,7 +3412,7 @@
 //! this when a transactional request uses a producerId that is not currently assigned to that transactional id.
 //! Top-level ShareAcknowledge `INVALID_TRANSACTION_TIMEOUT` completes
 //! without retry and does not request Metadata, including when
-//! `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+//! `ErrorMessage` is set or empty (Java `handleShareAcknowledgeSuccess` has no
 //! `metadata.requestUpdate`; this is not top-level
 //! `INVALID_PRODUCER_ID_MAPPING`). Official Java `TransactionCoordinator` writes
 //! this when InitProducerId uses a transaction timeout that is not positive or exceeds `transaction.max.timeout.ms`.
