@@ -7309,7 +7309,7 @@ impl Worker {
             .min()
             .unwrap_or_else(|| Instant::now() + self.shared.cfg.delivery_timeout);
         let now = now_ms();
-        let (mut groups, shell) = group_pending(batch, &mut self.group_scratch);
+        let (mut groups, shell) = group_pending(batch, &mut self.group_scratch).await;
         self.park_batch(shell);
         if groups.is_empty() {
             return Ok(());
@@ -8421,7 +8421,25 @@ fn take_part_list(scratch: &mut ProduceGroupScratch) -> Vec<Pending> {
     part
 }
 
-fn group_pending(
+async fn pause_walk(walked: &mut usize) {
+    *walked = walked.saturating_add(1);
+    if *walked == 8 * 1024 {
+        *walked = 0;
+        tokio::task::yield_now().await;
+    }
+}
+
+async fn reserve_additional<T>(items: &mut Vec<T>, count: usize) {
+    while items.capacity() < count {
+        let step = count.saturating_sub(items.capacity()).min(8 * 1024);
+        items.reserve_exact(step);
+        if items.capacity() < count {
+            tokio::task::yield_now().await;
+        }
+    }
+}
+
+async fn group_pending(
     mut batch: Vec<Pending>,
     scratch: &mut ProduceGroupScratch,
 ) -> (ProduceGroups, Vec<Pending>) {
@@ -8445,6 +8463,7 @@ fn group_pending(
     // topic does not walk the records again just to learn that.
     let mut one_partition = true;
     let mut one_topic = true;
+    let mut walked = 0usize;
     for pending in batch.iter().skip(1) {
         if pending.rec.partition != Some(part0) {
             one_partition = false;
@@ -8453,6 +8472,7 @@ fn group_pending(
             one_topic = false;
             break;
         }
+        pause_walk(&mut walked).await;
     }
     if one_partition && one_topic {
         return (ProduceGroups::One((topic0, part0, batch)), Vec::new());
@@ -8461,6 +8481,7 @@ fn group_pending(
         let mut groups = take_group_shell(scratch);
         scratch.partition_slots.clear();
         scratch.partition_order.clear();
+        let mut walked = 0usize;
         for pending in &batch {
             let partition = pending
                 .rec
@@ -8472,6 +8493,7 @@ fn group_pending(
                 scratch.partition_order.push(partition);
                 let _inserted = scratch.partition_slots.insert(partition, 1);
             }
+            pause_walk(&mut walked).await;
         }
         reserve_len(&mut groups, scratch.partition_order.len());
         let partitions = scratch.partition_order.len();
@@ -8485,7 +8507,7 @@ fn group_pending(
                 .copied()
                 .unwrap_or(0);
             let mut part = take_part_list(scratch);
-            reserve_len(&mut part, count);
+            reserve_additional(&mut part, count).await;
             groups.push((Arc::clone(&topic0), partition, part));
         }
         scratch.partition_order.clear();
@@ -8493,6 +8515,7 @@ fn group_pending(
         for (index, (_, partition, _)) in groups.iter().enumerate() {
             let _inserted = scratch.partition_slots.insert(*partition, index);
         }
+        let mut walked = 0usize;
         for pending in batch.drain(..) {
             let partition = pending
                 .rec
@@ -8501,13 +8524,14 @@ fn group_pending(
             let slot = scratch.partition_slots.get(&partition).copied();
             if let Some((_, _, records)) = slot.and_then(|slot| groups.get_mut(slot)) {
                 records.push(pending);
-                continue;
+            } else {
+                let slot = groups.len();
+                let _inserted = scratch.partition_slots.insert(partition, slot);
+                let mut part = take_part_list(scratch);
+                part.push(pending);
+                groups.push((Arc::clone(&topic0), partition, part));
             }
-            let slot = groups.len();
-            let _inserted = scratch.partition_slots.insert(partition, slot);
-            let mut part = take_part_list(scratch);
-            part.push(pending);
-            groups.push((Arc::clone(&topic0), partition, part));
+            pause_walk(&mut walked).await;
         }
         return (ProduceGroups::Many(groups), batch);
     }
@@ -8519,7 +8543,9 @@ fn group_pending(
     order.clear();
     {
         let buckets = &mut scratch.buckets;
+        let mut walked = 0usize;
         for pending in &batch {
+            pause_walk(&mut walked).await;
             let partition = pending
                 .rec
                 .partition
@@ -8569,7 +8595,9 @@ fn group_pending(
                 let _inserted = groups.slots.insert(*partition, index);
             }
         }
+        let mut walked = 0usize;
         for pending in batch.drain(..) {
+            pause_walk(&mut walked).await;
             let partition = pending
                 .rec
                 .partition
@@ -9955,6 +9983,17 @@ fn record_metadata(
 mod tests {
     use super::*;
 
+    fn group_pending_now(
+        batch: Vec<Pending>,
+        scratch: &mut ProduceGroupScratch,
+    ) -> (ProduceGroups, Vec<Pending>) {
+        let runtime = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap_or_else(|error| panic!("{error}"));
+        runtime.block_on(group_pending(batch, scratch))
+    }
+
     #[test]
     fn finding_many_requested_topics_does_not_hold_the_caller() {
         // 20_000 names: scanning earlier requests held the caller 1.43s.
@@ -11327,6 +11366,30 @@ mod tests {
         assert_eq!(take_count_in(&same_base, 10, usize::MAX, &mut bases), 2);
     }
 
+    #[tokio::test(flavor = "current_thread")]
+    async fn grouping_many_produce_records_does_not_hold_the_caller() {
+        // 2_000_000 records: grouping held the caller 1.18s.
+        let topic: Arc<str> = Arc::from("orders");
+        let mut batch = Vec::with_capacity(2_000_000);
+        for index in 0..2_000_000 {
+            let mut pending = queued("orders", Some(index % 2));
+            pending.rec.topic = Arc::clone(&topic);
+            batch.push(pending);
+        }
+        let started = std::time::Instant::now();
+        let worker = tokio::spawn(async move {
+            let mut scratch = ProduceGroupScratch::default();
+            group_pending(batch, &mut scratch).await
+        });
+        tokio::time::sleep(std::time::Duration::from_millis(30)).await;
+        worker.abort();
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "grouping produce records held the caller for {elapsed:?}"
+        );
+    }
+
     #[test]
     fn one_topic_produce_groups_share_its_allocation() {
         let mut scratch = ProduceGroupScratch::default();
@@ -11338,7 +11401,7 @@ mod tests {
         let orders = Arc::clone(&batch[0].rec.topic);
         batch[1].rec.topic = Arc::clone(&orders);
         batch[2].rec.topic = Arc::<str>::from("orders");
-        let (groups, shell) = group_pending(batch, &mut scratch);
+        let (groups, shell) = group_pending_now(batch, &mut scratch);
         assert!(shell.is_empty());
         assert!(shell.capacity() >= 3);
         assert_eq!(groups.len(), 2);
@@ -11349,7 +11412,7 @@ mod tests {
             .all(|(topic, _, _)| Arc::ptr_eq(topic, &orders)));
         assert!(scratch.buckets.is_empty());
 
-        let (one, shell) = group_pending(
+        let (one, shell) = group_pending_now(
             vec![queued("orders", Some(0)), queued("orders", Some(0))],
             &mut scratch,
         );
@@ -11403,7 +11466,7 @@ mod tests {
             queued("orders", Some(1)),
             queued("orders", Some(0)),
         ];
-        let (groups, _) = group_pending(batch, &mut scratch);
+        let (groups, _) = group_pending_now(batch, &mut scratch);
         let ProduceGroups::Many(groups) = groups else {
             panic!("expected several partitions");
         };
@@ -11434,7 +11497,7 @@ mod tests {
             records.clear();
             scratch.spare_parts.push(records);
         }
-        let (again, _) = group_pending(
+        let (again, _) = group_pending_now(
             vec![
                 queued("orders", Some(1)),
                 queued("orders", Some(0)),
@@ -11468,7 +11531,7 @@ mod tests {
         let orders = Arc::clone(&batch[0].rec.topic);
         batch[2].rec.topic = Arc::clone(&orders);
         let payments = Arc::clone(&batch[3].rec.topic);
-        let (groups, shell) = group_pending(batch, &mut scratch);
+        let (groups, shell) = group_pending_now(batch, &mut scratch);
         assert!(shell.is_empty());
         assert!(shell.capacity() >= 4);
         assert_eq!(groups.len(), 3);
@@ -11543,7 +11606,7 @@ mod tests {
         assert!(indexed.topics.is_empty());
         assert_eq!(indexed.parts.first().map(Vec::len), Some(0));
 
-        let (again, shell) = group_pending(
+        let (again, shell) = group_pending_now(
             vec![queued("payments", Some(1)), queued("orders", Some(0))],
             &mut scratch,
         );
@@ -11552,7 +11615,7 @@ mod tests {
         assert_eq!(again.len(), 2);
         let mut reused = ProduceGroupScratch::default();
         reused.spare_parts.push(Vec::with_capacity(8));
-        let (split, _) = group_pending(
+        let (split, _) = group_pending_now(
             vec![queued("orders", Some(0)), queued("orders", Some(1))],
             &mut reused,
         );
@@ -11565,7 +11628,7 @@ mod tests {
         shell.push((Arc::<str>::from("old"), 0, Vec::new()));
         shell.clear();
         grouped.spare_groups = shell;
-        let (groups, _) = group_pending(
+        let (groups, _) = group_pending_now(
             vec![queued("orders", Some(0)), queued("orders", Some(1))],
             &mut grouped,
         );
@@ -11577,7 +11640,7 @@ mod tests {
         let mut mixed = ProduceGroupScratch::default();
         mixed.spare_slots.push(HashMap::with_capacity(8));
         mixed.spare_orders.push(Vec::with_capacity(4));
-        let _ = group_pending(
+        let _ = group_pending_now(
             vec![queued("orders", Some(0)), queued("payments", Some(1))],
             &mut mixed,
         );
