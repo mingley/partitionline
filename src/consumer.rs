@@ -4422,12 +4422,16 @@ impl Consumer {
             &self.assigned_topic_ids,
             self.topic_name_ids(),
         );
-        for (topic, partition, _) in changed {
-            self.drop_pending_for(&topic, partition);
-            let _removed = self.preferred.remove(&topic, partition);
+        let drop_parts: Vec<(&str, i32)> = changed
+            .iter()
+            .map(|(topic, partition, _)| (topic.as_str(), *partition))
+            .collect();
+        self.drop_pending_many(&drop_parts);
+        for (topic, partition, _) in &changed {
+            let _removed = self.preferred.remove(topic.as_str(), *partition);
             self.set_last_fetched_epoch(
-                &topic,
-                partition,
+                topic,
+                *partition,
                 crate::RecordBatch::NO_PARTITION_LEADER_EPOCH,
             );
         }
@@ -5725,6 +5729,7 @@ impl Consumer {
     ) -> Result<Vec<(&'a str, i32)>> {
         self.ensure_cursor_index().await;
         let mut cluster = std::mem::take(&mut self.cluster);
+        let mut dropped: Vec<(String, i32)> = Vec::new();
         let outcome = walk_epoch_topics(
             &mut cluster,
             requested,
@@ -5735,13 +5740,18 @@ impl Consumer {
                     if let Some(next) = truncated_fetch_offset(off, end_offset) {
                         self.advance(topic, partition, next);
                         self.set_last_fetched_epoch(topic, partition, epoch);
-                        self.drop_pending_for(topic, partition);
+                        dropped.push((topic.to_owned(), partition));
                     }
                 }
             },
         )
         .await;
         self.cluster = cluster;
+        let drop_parts: Vec<(&str, i32)> = dropped
+            .iter()
+            .map(|(topic, partition)| (topic.as_str(), *partition))
+            .collect();
+        self.drop_pending_many(&drop_parts);
         outcome
     }
 
