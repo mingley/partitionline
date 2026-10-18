@@ -3632,13 +3632,19 @@ impl ProduceResponse {
     pub fn to_data(
         partitions: &[ProducePartitionResponse],
     ) -> Vec<(String, Vec<ProducePartitionResponse>)> {
-        let mut topics = Vec::<(String, Vec<ProducePartitionResponse>)>::new();
+        let mut topics: Vec<(String, Vec<ProducePartitionResponse>)> =
+            Vec::with_capacity(partitions.len());
+        let mut slots: HashMap<String, usize> = HashMap::with_capacity(partitions.len());
         for partition in partitions {
-            if let Some((_, parts)) = topics.iter_mut().find(|(name, _)| name == &partition.topic) {
-                parts.push(partition.clone());
-            } else {
-                topics.push((partition.topic.clone(), vec![partition.clone()]));
+            if let Some(&slot) = slots.get(partition.topic.as_str()) {
+                if let Some((_, parts)) = topics.get_mut(slot) {
+                    parts.push(partition.clone());
+                }
+                continue;
             }
+            let slot = topics.len();
+            let _previous = slots.insert(partition.topic.clone(), slot);
+            topics.push((partition.topic.clone(), vec![partition.clone()]));
         }
         topics
     }
@@ -5329,6 +5335,24 @@ mod tests {
                 .map(|part| (part.topic.as_str(), part.partition))
                 .collect::<Vec<_>>()),
             Some(vec![("orders", 1), ("orders", 0), ("payments", 0)])
+        );
+    }
+
+    #[test]
+    fn grouping_many_produce_responses_does_not_hold_the_caller() {
+        // 20_000 unique topics: finding each name held the caller 1.39s.
+        let parts: Vec<_> = (0..20_000)
+            .map(|index| {
+                ProducePartitionResponse::partition_response(format!("t{index}"), index, 0)
+            })
+            .collect();
+        let started = std::time::Instant::now();
+        let grouped = ProduceResponse::to_data(&parts);
+        let elapsed = started.elapsed();
+        assert_eq!(grouped.len(), 20_000);
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "grouping produce responses held the caller for {elapsed:?}"
         );
     }
 
