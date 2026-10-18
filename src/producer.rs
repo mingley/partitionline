@@ -7303,7 +7303,8 @@ impl Worker {
                 self.shared.cfg.batch_records,
                 self.shared.cfg.produce_batch_bytes(),
                 &mut self.group_scratch.batch_bases,
-            );
+            )
+            .await;
             self.drain_pending(n).await
         };
         if let Some(p) = batch.iter().find(|p| p.rec.partition.is_none()) {
@@ -8911,10 +8912,19 @@ impl Iterator for ProduceGroupsIntoIter {
 #[cfg(test)]
 fn take_count(pending: &[Pending], rec_limit: usize, byte_limit: usize) -> usize {
     let mut bases = HashMap::new();
-    take_count_in(pending, rec_limit, byte_limit, &mut bases)
+    block_on_take(take_count_in(pending, rec_limit, byte_limit, &mut bases))
 }
 
-fn take_count_in(
+#[cfg(test)]
+fn block_on_take<T>(future: impl std::future::Future<Output = T>) -> T {
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap_or_else(|error| panic!("{error}"));
+    runtime.block_on(future)
+}
+
+async fn take_count_in(
     pending: &[Pending],
     rec_limit: usize,
     byte_limit: usize,
@@ -8928,6 +8938,7 @@ fn take_count_in(
         let mut n = 0usize;
         let mut bytes = 0usize;
         let mut one_group = true;
+        let mut walked = 0usize;
         for p in pending.iter().take(rec_limit) {
             if p.rec.partition.unwrap_or(0) != part || p.rec.topic.as_ref() != topic {
                 one_group = false;
@@ -8942,6 +8953,11 @@ fn take_count_in(
             }
             bytes = bytes.saturating_add(add);
             n += 1;
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
             if bytes >= byte_limit {
                 break;
             }
@@ -8952,6 +8968,7 @@ fn take_count_in(
     }
     let mut n = 0;
     let mut bytes = 0usize;
+    let mut walked = 0usize;
     for parts in bases.values_mut() {
         parts.clear();
     }
@@ -8989,6 +9006,11 @@ fn take_count_in(
         }
         bytes = bytes.saturating_add(add);
         n += 1;
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
         if bytes >= byte_limit {
             break;
         }
@@ -11273,6 +11295,32 @@ mod tests {
     }
 
     #[tokio::test(flavor = "current_thread")]
+    async fn sizing_many_produce_records_does_not_hold_the_caller() {
+        // 4_000_000 records: choosing a produce batch held the caller 385ms.
+        let topic: Arc<str> = Arc::from("orders");
+        let mut batch = Vec::with_capacity(4_000_000);
+        for _ in 0..4_000_000 {
+            let mut pending = queued("orders", Some(0));
+            pending.rec.topic = Arc::clone(&topic);
+            pending.batch_base_seq = Some(1);
+            batch.push(pending);
+        }
+        let mut bases = HashMap::new();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            n = take_count_in(&batch, usize::MAX, usize::MAX, &mut bases) => {
+                assert_eq!(n, 4_000_000);
+            }
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "choosing a produce batch held the caller for {elapsed:?}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
     async fn folding_many_ack_latencies_does_not_hold_the_caller() {
         // 4_000_000 records: folding ack latency held the caller 228ms.
         let topic: Arc<str> = Arc::from("orders");
@@ -11948,13 +11996,22 @@ mod tests {
             queued("t", Some(1)),
             queued("u", Some(0)),
         ];
-        assert_eq!(take_count_in(&mixed_topics, 10, usize::MAX, &mut bases), 3);
+        assert_eq!(
+            block_on_take(take_count_in(&mixed_topics, 10, usize::MAX, &mut bases)),
+            3
+        );
         assert_eq!(bases.len(), 2);
-        assert_eq!(take_count_in(&mixed_topics, 10, usize::MAX, &mut bases), 3);
+        assert_eq!(
+            block_on_take(take_count_in(&mixed_topics, 10, usize::MAX, &mut bases)),
+            3
+        );
         let mut same_base = vec![queued("t", Some(0)), queued("t", Some(0))];
         same_base[0].batch_base_seq = Some(4);
         same_base[1].batch_base_seq = Some(4);
-        assert_eq!(take_count_in(&same_base, 10, usize::MAX, &mut bases), 2);
+        assert_eq!(
+            block_on_take(take_count_in(&same_base, 10, usize::MAX, &mut bases)),
+            2
+        );
     }
 
     #[tokio::test(flavor = "current_thread")]
