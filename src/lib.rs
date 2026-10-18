@@ -3075,7 +3075,7 @@
 //! `AcknowledgeErrorMessage` is set or empty. A piggybacked
 //! `STREAMS_TOPOLOGY_DESCRIPTION_UPDATE_FAILED` on one partition does not fail a
 //! sibling whose `AcknowledgeErrorCode` is none, including when
-//! `AcknowledgeErrorMessage` is set. A top-level ShareFetch
+//! `AcknowledgeErrorMessage` is set or empty. A top-level ShareFetch
 //! error completes in-flight piggybacked acknowledgements (Java)
 //! `ShareSessionHandler.handleResponse` false), preferring a non-empty
 //! `ErrorMessage`. Top-level `SHARE_SESSION_LIMIT_REACHED` /
