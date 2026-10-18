@@ -4887,12 +4887,22 @@ impl ShareGroup {
                 "ShareAcknowledge omitted a requested partition outcome",
             ));
         }
+        let sent_batches = index_sent_ack_batches(&topics).await;
+        let slots = index_ack_partition_slots(partitions).await;
+        let mut cleared = false;
         self.advance_node_epoch(node);
         if version >= 2 && lock_timeout > 0 {
             self.acquisition_lock_timeout_ms = Some(lock_timeout);
         }
+        let mut applied = 0usize;
         for topic in responses {
-            let name = self.name_for_topic_id(topic.topic_id)?;
+            let name = match self.name_for_topic_id(topic.topic_id) {
+                Ok(name) => name,
+                Err(error) => {
+                    drop_empty_ack_partitions(partitions, cleared).await;
+                    return Err(error);
+                }
+            };
             for part in topic.partitions {
                 if part.error_code != 0 && !name.is_empty() && share_leader_moved(part.error_code) {
                     let patched = self.consumer.apply_share_leader(
@@ -4912,7 +4922,10 @@ impl ShareGroup {
                         remember_share_leader_patch(&mut self.leader_patches, patch);
                     }
                 }
-                let sent = sent_ack_batches_by_id(&topics, topic.topic_id, part.partition);
+                let sent = sent_batches
+                    .get(&(topic.topic_id, part.partition))
+                    .copied()
+                    .unwrap_or(&[]);
                 if part.error_code == 0 {
                     let count = self
                         .acquisitions
@@ -4921,6 +4934,7 @@ impl ShareGroup {
                         .unwrap_or(0);
                     if ack == ACK_RENEW {
                         if lock_timeout <= 0 {
+                            drop_empty_ack_partitions(partitions, cleared).await;
                             return Err(Error::protocol(
                                 "non-positive Renew acquisition lock timeout",
                             ));
@@ -4945,7 +4959,15 @@ impl ShareGroup {
                             .records_acknowledged
                             .saturating_add(u64::try_from(count).unwrap_or(u64::MAX));
                     }
-                    drop_sent_ack_batches(partitions, &name, part.partition, sent);
+                    if clear_indexed_ack_batches(
+                        partitions,
+                        &slots,
+                        name.as_ref(),
+                        part.partition,
+                        sent,
+                    ) {
+                        cleared = true;
+                    }
                 } else {
                     if part.error_code == error::INVALID_RECORD_STATE
                         || share_ack_ownership_lost(part.error_code)
@@ -4975,8 +4997,15 @@ impl ShareGroup {
                         self.reset_node_session(node).await;
                     }
                 }
+                applied = applied.saturating_add(1);
+                if applied == 8 * 1024 {
+                    applied = 0;
+                    tokio::task::yield_now().await;
+                }
             }
         }
+        drop(sent_batches);
+        drop_empty_ack_partitions(partitions, cleared).await;
         self.reclaim_ack_types(topics);
         Ok(())
     }
@@ -6119,6 +6148,7 @@ fn reject_java_acknowledge_before_poll() -> Error {
 /// One topic name is shared by every partition acknowledged for that topic.
 type AckPartition = (Arc<str>, i32, Vec<AcknowledgementBatch>);
 
+#[cfg(test)]
 fn sent_ack_batches_by_id(
     topics: &[ShareAckTopic],
     topic_id: [u8; 16],
@@ -6132,6 +6162,7 @@ fn sent_ack_batches_by_id(
         .unwrap_or(&[])
 }
 
+#[cfg(test)]
 fn drop_sent_ack_batches(
     partitions: &mut Vec<AckPartition>,
     topic: &str,
@@ -6145,6 +6176,103 @@ fn drop_sent_ack_batches(
         batches.retain(|batch| !sent.contains(batch));
         !batches.is_empty()
     });
+}
+
+/// First batch list for each `(topic id, partition)` in a ShareAcknowledge request.
+///
+/// A repeated partition keeps the earlier list. Inserting every partition pauses
+/// so the caller can still reach a deadline.
+async fn index_sent_ack_batches(
+    topics: &[ShareAckTopic],
+) -> HashMap<([u8; 16], i32), &[AcknowledgementBatch]> {
+    let mut index = HashMap::with_capacity(topics.iter().map(|topic| topic.partitions.len()).sum());
+    let mut walked = 0usize;
+    for topic in topics {
+        for (partition, batches) in &topic.partitions {
+            let _ = index
+                .entry((topic.topic_id, *partition))
+                .or_insert(batches.as_slice());
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+    }
+    index
+}
+
+/// Positions of every pending acknowledgement for one topic and partition.
+///
+/// The same partition can appear more than once when its offsets came from
+/// different ranges. Recording those positions pauses between slices.
+async fn index_ack_partition_slots(
+    partitions: &[AckPartition],
+) -> HashMap<Arc<str>, HashMap<i32, Vec<usize>>> {
+    let mut slots: HashMap<Arc<str>, HashMap<i32, Vec<usize>>> = HashMap::new();
+    let mut walked = 0usize;
+    for (index, (name, partition, _)) in partitions.iter().enumerate() {
+        if let Some(parts) = slots.get_mut(name.as_ref()) {
+            parts.entry(*partition).or_default().push(index);
+        } else {
+            let mut parts = HashMap::new();
+            let _previous = parts.insert(*partition, vec![index]);
+            let _previous = slots.insert(Arc::clone(name), parts);
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    slots
+}
+
+/// Remove batches that were acknowledged, leaving emptied rows for one later compact.
+fn clear_indexed_ack_batches(
+    partitions: &mut [AckPartition],
+    slots: &HashMap<Arc<str>, HashMap<i32, Vec<usize>>>,
+    topic: &str,
+    partition: i32,
+    sent: &[AcknowledgementBatch],
+) -> bool {
+    let Some(indexes) = slots.get(topic).and_then(|parts| parts.get(&partition)) else {
+        return false;
+    };
+    let mut cleared = false;
+    for index in indexes {
+        let Some((_, _, batches)) = partitions.get_mut(*index) else {
+            continue;
+        };
+        let before = batches.len();
+        batches.retain(|batch| !sent.contains(batch));
+        if before > 0 && batches.is_empty() {
+            cleared = true;
+        }
+    }
+    cleared
+}
+
+async fn drop_empty_ack_partitions(partitions: &mut Vec<AckPartition>, cleared: bool) {
+    if cleared {
+        compact_cleared_ack_partitions(partitions).await;
+    }
+}
+
+async fn compact_cleared_ack_partitions(partitions: &mut Vec<AckPartition>) {
+    let mut kept = Vec::with_capacity(partitions.len());
+    let mut walked = 0usize;
+    for part in partitions.drain(..) {
+        if !part.2.is_empty() {
+            kept.push(part);
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    *partitions = kept;
 }
 
 /// Route each acknowledgement to the broker that acquired those offsets.
@@ -6523,6 +6651,103 @@ mod tests {
     use std::sync::Arc;
 
     use super::*;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn indexing_sent_ack_batches_does_not_hold_the_caller() {
+        // 20_000 reverse lookups walked the request for 434ms.
+        // Indexing 1_000_000 partitions without a pause held the caller 500ms.
+        let topics = vec![ShareAckTopic {
+            topic_id: [7; 16],
+            partitions: (0..1_000_000).map(|index| (index, Vec::new())).collect(),
+        }];
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = index_sent_ack_batches(&topics) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "indexing acknowledged batches held the caller for {elapsed:?}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn indexed_sent_ack_batches_keep_the_first_list() {
+        let first = AcknowledgementBatch {
+            first_offset: 4,
+            last_offset: 4,
+            types: vec![ACK_ACCEPT],
+        };
+        let later = AcknowledgementBatch {
+            first_offset: 9,
+            last_offset: 9,
+            types: vec![ACK_REJECT],
+        };
+        let topics = vec![ShareAckTopic {
+            topic_id: [1; 16],
+            partitions: vec![(0, vec![first.clone()]), (0, vec![later]), (1, Vec::new())],
+        }];
+        let indexed = index_sent_ack_batches(&topics).await;
+        assert_eq!(indexed.len(), 2);
+        assert_eq!(
+            indexed.get(&([1; 16], 0)).copied(),
+            Some(sent_ack_batches_by_id(&topics, [1; 16], 0))
+        );
+        assert_eq!(
+            indexed
+                .get(&([1; 16], 0))
+                .and_then(|batches| batches.first())
+                .map(|batch| batch.first_offset),
+            Some(4)
+        );
+        assert!(indexed
+            .get(&([1; 16], 1))
+            .is_some_and(|batches| batches.is_empty()));
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn indexing_ack_partition_slots_does_not_hold_the_caller() {
+        // 20_000 one-at-a-time drops walked the pending list for 4.3s.
+        // Indexing 1_000_000 pending rows without a pause held the caller 941ms.
+        let pending: Vec<AckPartition> = (0..1_000_000)
+            .map(|index| (Arc::<str>::from("orders"), index, Vec::new()))
+            .collect();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = index_ack_partition_slots(&pending) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "indexing pending acknowledgements held the caller for {elapsed:?}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn indexed_ack_drops_match_one_at_a_time() {
+        let batch = |offset| AcknowledgementBatch {
+            first_offset: offset,
+            last_offset: offset,
+            types: vec![ACK_ACCEPT],
+        };
+        let pending = vec![
+            (Arc::<str>::from("orders"), 0, vec![batch(1)]),
+            (Arc::<str>::from("orders"), 0, vec![batch(3)]),
+            (Arc::<str>::from("orders"), 1, vec![batch(5), batch(6)]),
+            (Arc::<str>::from("payments"), 1, vec![batch(7)]),
+        ];
+        let mut one = pending.clone();
+        drop_sent_ack_batches(&mut one, "orders", 0, &[batch(1)]);
+        drop_sent_ack_batches(&mut one, "orders", 1, &[batch(5)]);
+        let mut indexed = pending;
+        let slots = index_ack_partition_slots(&indexed).await;
+        let mut cleared = clear_indexed_ack_batches(&mut indexed, &slots, "orders", 0, &[batch(1)]);
+        cleared |= clear_indexed_ack_batches(&mut indexed, &slots, "orders", 1, &[batch(5)]);
+        drop_empty_ack_partitions(&mut indexed, cleared).await;
+        assert_eq!(indexed, one);
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn indexing_many_share_acks_does_not_hold_the_caller() {
