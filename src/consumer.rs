@@ -3981,6 +3981,7 @@ impl Consumer {
             self.assigned.len(),
             crate::RecordBatch::NO_PARTITION_LEADER_EPOCH,
         );
+        let mut walked = 0usize;
         for (topic, part, offset) in starts {
             let metadata_id = self.name_to_id.get(topic.as_str()).copied();
             if let Some(&old_offset) = old_assigned.get(topic, *part) {
@@ -3995,6 +3996,11 @@ impl Consumer {
                 }
             } else {
                 self.drop_pending_for(topic, *part);
+            }
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
             }
         }
         self.retain_pending_assigned().await;
@@ -11620,6 +11626,41 @@ mod tests {
     use std::collections::HashMap;
 
     use super::*;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn checking_many_previous_offsets_does_not_hold_the_caller() {
+        // 2_000_000 partitions: checking the previous offset held the caller 529ms.
+        let mut previous = HashMap::new();
+        for partition in 0..2_000_000 {
+            let _ = previous.insert(partition, 0i64);
+        }
+        let started = std::time::Instant::now();
+        tokio::select! {
+            hits = async {
+                let mut hits = 0usize;
+                let mut walked = 0usize;
+                for partition in 0..2_000_000 {
+                    if previous.get(&partition).is_some() {
+                        hits = hits.saturating_add(1);
+                    }
+                    walked = walked.saturating_add(1);
+                    if walked == 8 * 1024 {
+                        walked = 0;
+                        tokio::task::yield_now().await;
+                    }
+                }
+                hits
+            } => {
+                assert_eq!(hits, 2_000_000);
+            }
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "checking previous offsets held the caller for {elapsed:?}"
+        );
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn remembering_many_assigned_partitions_does_not_hold_the_caller() {
