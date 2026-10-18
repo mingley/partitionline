@@ -106,7 +106,7 @@ use crate::protocol::group::{
 };
 use crate::protocol::idem::{decode_init_producer_id_response, encode_init_producer_id_request};
 use crate::protocol::offsets::{
-    decode_list_offsets_topics_response, encode_list_offsets_named_topics,
+    decode_list_offsets_topics_response_cooperative, encode_list_offsets_named_topics,
     ListOffsetsPartitionRequest, ListOffsetsResponsePartition,
 };
 use crate::protocol::sasl;
@@ -10325,7 +10325,8 @@ impl Admin {
         body: Bytes,
     ) -> Result<(Vec<(usize, crate::OffsetAndTimestamp)>, Vec<usize>)> {
         let mut cursor = body.as_ref();
-        let (resp, ..) = decode_list_offsets_topics_response(&mut cursor, version)?;
+        let (resp, ..) =
+            decode_list_offsets_topics_response_cooperative(&mut cursor, version).await?;
         if !cursor.is_empty() {
             return Err(Error::protocol("trailing ListOffsets response bytes"));
         }

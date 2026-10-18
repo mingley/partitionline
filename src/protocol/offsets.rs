@@ -1200,26 +1200,39 @@ pub fn decode_list_offsets_topics_response<B: Buf>(
         let name = buf::get_string(buf, flexible)?.unwrap_or_default();
         let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
         let mut partitions = Vec::with_capacity(pn);
-        for _ in 0..pn {
-            let partition_index = buf::get_i32(buf)?;
-            let error_code = buf::get_i16(buf)?;
-            let timestamp = buf::get_i64(buf)?;
-            let offset = buf::get_i64(buf)?;
-            let leader_epoch = if version >= 4 {
-                buf::get_i32(buf)?
-            } else {
-                ListOffsetsPartition::UNKNOWN_EPOCH
-            };
-            if flexible {
-                buf::skip_tagged_fields(buf)?;
+        pull_list_offsets(buf, version, flexible, &mut partitions, pn)?;
+        if flexible {
+            buf::skip_tagged_fields(buf)?;
+        }
+        topics.push(ListOffsetsTopicResponse { name, partitions });
+    }
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
+    }
+    Ok((topics, throttle_time_ms))
+}
+
+/// [`decode_list_offsets_topics_response`], yielding while a long partition list is decoded.
+pub(crate) async fn decode_list_offsets_topics_response_cooperative<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<(Vec<ListOffsetsTopicResponse>, i32)> {
+    let flexible = list_offsets_flexible(version)?;
+    let throttle_time_ms = if version >= 2 { buf::get_i32(buf)? } else { 0 };
+    let tn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+    let mut topics = Vec::with_capacity(tn);
+    for _ in 0..tn {
+        let name = buf::get_string(buf, flexible)?.unwrap_or_default();
+        let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+        let mut partitions = Vec::with_capacity(pn);
+        let mut next = 0usize;
+        while next < pn {
+            let end = next.saturating_add(8 * 1024).min(pn);
+            pull_list_offsets(buf, version, flexible, &mut partitions, end - next)?;
+            next = end;
+            if next < pn {
+                tokio::task::yield_now().await;
             }
-            partitions.push(ListOffsetsResponsePartition {
-                partition_index,
-                error_code,
-                timestamp,
-                offset,
-                leader_epoch,
-            });
         }
         if flexible {
             buf::skip_tagged_fields(buf)?;
@@ -1232,10 +1245,70 @@ pub fn decode_list_offsets_topics_response<B: Buf>(
     Ok((topics, throttle_time_ms))
 }
 
+fn pull_list_offsets<B: Buf>(
+    buf: &mut B,
+    version: i16,
+    flexible: bool,
+    partitions: &mut Vec<ListOffsetsResponsePartition>,
+    count: usize,
+) -> Result<()> {
+    for _ in 0..count {
+        let partition_index = buf::get_i32(buf)?;
+        let error_code = buf::get_i16(buf)?;
+        let timestamp = buf::get_i64(buf)?;
+        let offset = buf::get_i64(buf)?;
+        let leader_epoch = if version >= 4 {
+            buf::get_i32(buf)?
+        } else {
+            ListOffsetsPartition::UNKNOWN_EPOCH
+        };
+        if flexible {
+            buf::skip_tagged_fields(buf)?;
+        }
+        partitions.push(ListOffsetsResponsePartition {
+            partition_index,
+            error_code,
+            timestamp,
+            offset,
+            leader_epoch,
+        });
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use std::collections::HashMap;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn decoding_many_list_offsets_does_not_hold_the_caller() {
+        let partitions = 750_000i32;
+        let mut body = bytes::BytesMut::new();
+        body.put_i32(1);
+        body.put_i16(1);
+        body.extend_from_slice(b"t");
+        body.put_i32(partitions);
+        let partition = [
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ];
+        for index in 0..partitions {
+            let mut one = partition;
+            one[0..4].copy_from_slice(&index.to_be_bytes());
+            body.extend_from_slice(&one);
+        }
+        let mut cursor: &[u8] = &body;
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = decode_list_offsets_topics_response_cooperative(&mut cursor, 1) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "decoding list offsets held the caller for {elapsed:?}"
+        );
+    }
 
     #[test]
     fn offset_spec_matches_list_offsets_timestamp_constants() {

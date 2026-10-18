@@ -32,7 +32,7 @@ use crate::protocol::fetch::{
 };
 use crate::protocol::group::Topic;
 use crate::protocol::offsets::{
-    decode_list_offsets_topics_response, encode_list_offsets_named_topics,
+    decode_list_offsets_topics_response_cooperative, encode_list_offsets_named_topics,
     encode_list_offsets_request, minimum_version_for_timestamp, ListOffsetsPartitionRequest,
 };
 use crate::protocol::records::{
@@ -8203,9 +8203,10 @@ impl Consumer {
                 }
                 Err(e) => return Err(e),
             };
-            let decoded = (|| {
+            let decoded = async {
                 let mut cursor = body.as_ref();
-                let (topics, _) = decode_list_offsets_topics_response(&mut cursor, version)?;
+                let (topics, _) =
+                    decode_list_offsets_topics_response_cooperative(&mut cursor, version).await?;
                 if !cursor.is_empty() {
                     return Err(Error::protocol("trailing ListOffsets response bytes"));
                 }
@@ -8224,7 +8225,8 @@ impl Consumer {
                     return Err(Error::broker(result.error_code, "ListOffsets"));
                 }
                 Ok(result)
-            })();
+            }
+            .await;
             match decoded {
                 Ok(got) => return Ok((got.offset, got.timestamp, got.leader_epoch)),
                 Err(e)
@@ -8506,7 +8508,9 @@ impl Consumer {
             }
             Err(error) => return Err(error),
         };
-        let read = self.read_list_offset_body(queries, indexes, version, body, slots)?;
+        let read = self
+            .read_list_offset_body(queries, indexes, version, body, slots)
+            .await?;
         if read.drop_conn {
             self.drop_broker_conn(node).await;
         }
@@ -8979,13 +8983,16 @@ impl Consumer {
                     }
                 }
                 Ok(body) => {
-                    match self.read_list_offset_body(
-                        queries,
-                        &flight.indexes,
-                        flight.version,
-                        body,
-                        slots,
-                    ) {
+                    match self
+                        .read_list_offset_body(
+                            queries,
+                            &flight.indexes,
+                            flight.version,
+                            body,
+                            slots,
+                        )
+                        .await
+                    {
                         Ok(read) => {
                             if read.drop_conn {
                                 self.drop_broker_conn(flight.node).await;
@@ -9125,7 +9132,7 @@ impl Consumer {
         flights
     }
 
-    fn read_list_offset_body<T: AsRef<str>>(
+    async fn read_list_offset_body<T: AsRef<str>>(
         &mut self,
         queries: &[(T, i32, i64)],
         indexes: &[usize],
@@ -9134,7 +9141,8 @@ impl Consumer {
         slots: &mut [OffsetSlot],
     ) -> Result<ListOffsetRead> {
         let mut cursor = body.as_ref();
-        let (response, _) = decode_list_offsets_topics_response(&mut cursor, version)?;
+        let (response, _) =
+            decode_list_offsets_topics_response_cooperative(&mut cursor, version).await?;
         if !cursor.is_empty() {
             return Err(Error::protocol("trailing ListOffsets response bytes"));
         }
