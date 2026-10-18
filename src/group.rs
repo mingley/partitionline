@@ -1684,15 +1684,23 @@ impl ConsumerGroup {
         self.classic_fetch_topics = topics;
         let fetched = fetched?;
         check_fetched_offsets(&fetched)?;
-        Ok(partitions
-            .into_iter()
-            .map(|tp| {
-                let md = fetched_committed(&fetched, &tp.topic, tp.partition)
-                    .map(offset_and_metadata_from)
-                    .unwrap_or_else(|| OffsetAndMetadata::new(-1));
-                (tp, md)
-            })
-            .collect())
+        let index = index_fetched_offsets_cooperative(&fetched).await;
+        let mut listed = Vec::with_capacity(partitions.len());
+        let mut walked = 0usize;
+        for tp in partitions {
+            let md = index
+                .get(&(tp.topic.as_str(), tp.partition))
+                .copied()
+                .map(offset_and_metadata_from)
+                .unwrap_or_else(|| OffsetAndMetadata::new(-1));
+            listed.push((tp, md));
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+        Ok(listed)
     }
 
     async fn offset_fetch(
@@ -3752,12 +3760,25 @@ impl ConsumerGroup {
                         self.keep_leader_flight(dials, deadline).await;
                         return Err(error);
                     }
-                    let needs_reset = added.iter().any(|(topic, partition)| {
-                        fetched_committed(&fetched, topic, *partition)
+                    let committed = index_fetched_offsets_cooperative(&fetched).await;
+                    let mut needs_reset = false;
+                    let mut walked = 0usize;
+                    for (topic, partition) in &added {
+                        let offset = committed
+                            .get(&(topic.as_str(), *partition))
+                            .copied()
                             .map(|part| part.offset)
-                            .unwrap_or(OffsetAndMetadata::INVALID_OFFSET)
-                            < 0
-                    });
+                            .unwrap_or(OffsetAndMetadata::INVALID_OFFSET);
+                        if offset < 0 {
+                            needs_reset = true;
+                            break;
+                        }
+                        walked = walked.saturating_add(1);
+                        if walked == 8 * 1024 {
+                            walked = 0;
+                            tokio::task::yield_now().await;
+                        }
+                    }
                     if needs_reset && !warm_leaders {
                         (&mut dials).await;
                     }
@@ -3845,12 +3866,25 @@ impl ConsumerGroup {
                                 ));
                             }
                         };
-                    let needs_reset = added.iter().any(|(topic, partition)| {
-                        fetched_committed(&fetched, topic, *partition)
+                    let committed = index_fetched_offsets_cooperative(&fetched).await;
+                    let mut needs_reset = false;
+                    let mut walked = 0usize;
+                    for (topic, partition) in &added {
+                        let offset = committed
+                            .get(&(topic.as_str(), *partition))
+                            .copied()
                             .map(|part| part.offset)
-                            .unwrap_or(OffsetAndMetadata::INVALID_OFFSET)
-                            < 0
-                    });
+                            .unwrap_or(OffsetAndMetadata::INVALID_OFFSET);
+                        if offset < 0 {
+                            needs_reset = true;
+                            break;
+                        }
+                        walked = walked.saturating_add(1);
+                        if walked == 8 * 1024 {
+                            walked = 0;
+                            tokio::task::yield_now().await;
+                        }
+                    }
                     if needs_reset && !warm_leaders {
                         (&mut dials).await;
                     }
@@ -3862,27 +3896,35 @@ impl ConsumerGroup {
             }
         };
         check_fetched_offsets(&fetched)?;
+        let committed = index_fetched_offsets_cooperative(&fetched).await;
         let mut starts: Vec<Option<(String, i32, i64)>> = Vec::with_capacity(wanted.len());
         let mut reset_slots = Vec::new();
+        let mut walked_commits = 0usize;
         for (topic, part) in wanted {
             if let Some(offset) = nested_i64(&current, topic, *part) {
                 starts.push(Some((topic.clone(), *part, offset)));
-                continue;
+            } else {
+                let offset = committed
+                    .get(&(topic.as_str(), *part))
+                    .copied()
+                    .map(|part| part.offset)
+                    .unwrap_or(OffsetAndMetadata::INVALID_OFFSET);
+                if offset >= 0 {
+                    starts.push(Some((topic.clone(), *part, offset)));
+                } else if matches!(reset, AutoOffsetReset::None) {
+                    return Err(Error::protocol(format!(
+                        "no committed offset for {topic}-{part}"
+                    )));
+                } else {
+                    reset_slots.push(starts.len());
+                    starts.push(None);
+                }
             }
-            let committed = fetched_committed(&fetched, topic, *part)
-                .map(|part| part.offset)
-                .unwrap_or(OffsetAndMetadata::INVALID_OFFSET);
-            if committed >= 0 {
-                starts.push(Some((topic.clone(), *part, committed)));
-                continue;
+            walked_commits = walked_commits.saturating_add(1);
+            if walked_commits == 8 * 1024 {
+                walked_commits = 0;
+                tokio::task::yield_now().await;
             }
-            if matches!(reset, AutoOffsetReset::None) {
-                return Err(Error::protocol(format!(
-                    "no committed offset for {topic}-{part}"
-                )));
-            }
-            reset_slots.push(starts.len());
-            starts.push(None);
         }
         if !reset_slots.is_empty() {
             let timeout = deadline.saturating_duration_since(Instant::now());
@@ -3944,23 +3986,34 @@ impl ConsumerGroup {
                 "topic identity changed while assigning committed offsets",
             ));
         }
+        let mut walked_epochs = 0usize;
         for (topic, part) in wanted {
             if let Some(epoch) = nested_i32(&kept_epochs, topic, *part) {
                 self.consumer.set_last_fetched_epoch(topic, *part, epoch);
-            } else if let Some(found) = fetched_committed(&fetched, topic, *part) {
+            } else if let Some(found) = committed.get(&(topic.as_str(), *part)).copied() {
                 self.consumer
                     .set_last_fetched_epoch(topic, *part, found.leader_epoch);
             }
+            walked_epochs = walked_epochs.saturating_add(1);
+            if walked_epochs == 8 * 1024 {
+                walked_epochs = 0;
+                tokio::task::yield_now().await;
+            }
         }
-        let added_tps: Vec<(String, i32)> = next
-            .iter()
-            .flat_map(|(topic, parts)| {
-                parts
-                    .iter()
-                    .filter(|partition| nested_i64(&current, topic, **partition).is_none())
-                    .map(|partition| (topic.clone(), *partition))
-            })
-            .collect();
+        let mut added_tps = Vec::new();
+        let mut walked_added = 0usize;
+        for (topic, parts) in &next {
+            for partition in parts {
+                if nested_i64(&current, topic, *partition).is_none() {
+                    added_tps.push((topic.clone(), *partition));
+                }
+                walked_added = walked_added.saturating_add(1);
+                if walked_added == 8 * 1024 {
+                    walked_added = 0;
+                    tokio::task::yield_now().await;
+                }
+            }
+        }
         if !revoked.is_empty() || !added_tps.is_empty() {
             self.cfg.rebalance.call(
                 &TopicPartition::list_from(&revoked),
@@ -5552,6 +5605,30 @@ pub(crate) fn check_fetched_offsets(fetched: &[FetchedOffsetTopic]) -> Result<()
 ///
 /// A later copy of the same topic replaces an earlier partition, matching the
 /// map used by [`committed_offset_map`].
+pub(crate) async fn index_fetched_offsets_cooperative(
+    fetched: &[FetchedOffsetTopic],
+) -> HashMap<(&str, i32), &FetchedOffset> {
+    let mut index = HashMap::new();
+    let mut walked = 0usize;
+    for topic in fetched {
+        // A later topic with the same name replaces earlier hits. Within one
+        // topic, the first partition wins, matching `fetched_committed`.
+        let mut seen_here = HashSet::new();
+        for partition in &topic.partitions {
+            if seen_here.insert(partition.partition) {
+                let _ = index.insert((topic.topic.as_str(), partition.partition), partition);
+            }
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+    }
+    index
+}
+
+#[cfg(test)]
 pub(crate) fn fetched_committed<'a>(
     fetched: &'a [FetchedOffsetTopic],
     topic: &str,
@@ -7297,6 +7374,65 @@ mod tests {
                 )
             })
             .collect()
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn indexing_many_fetched_offsets_does_not_hold_the_caller() {
+        // 20_000 repeated scans held the caller 497ms. Indexing 500_000
+        // offsets still has to pause.
+        use crate::protocol::group::{FetchedOffset, FetchedOffsetTopic};
+        let fetched = [FetchedOffsetTopic {
+            topic: "orders".into(),
+            partitions: (0..500_000)
+                .map(|index| FetchedOffset {
+                    partition: index,
+                    offset: i64::from(index),
+                    leader_epoch: -1,
+                    metadata: String::new(),
+                    error_code: 0,
+                })
+                .collect(),
+        }];
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = index_fetched_offsets_cooperative(&fetched) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "indexing fetched offsets held the caller for {elapsed:?}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn indexed_fetched_offsets_match_one_shot() {
+        use crate::protocol::group::{FetchedOffset, FetchedOffsetTopic};
+        let fetched = [FetchedOffsetTopic {
+            topic: "orders".into(),
+            partitions: vec![
+                FetchedOffset {
+                    partition: 0,
+                    offset: 4,
+                    leader_epoch: 1,
+                    metadata: String::new(),
+                    error_code: 0,
+                },
+                FetchedOffset {
+                    partition: 0,
+                    offset: 9,
+                    leader_epoch: 2,
+                    metadata: String::new(),
+                    error_code: 0,
+                },
+            ],
+        }];
+        let index = index_fetched_offsets_cooperative(&fetched).await;
+        assert_eq!(
+            index.get(&("orders", 0)).copied().map(|part| part.offset),
+            fetched_committed(&fetched, "orders", 0).map(|part| part.offset)
+        );
+        assert!(index.get(&("orders", 3)).is_none());
     }
 
     #[tokio::test(flavor = "current_thread")]

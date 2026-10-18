@@ -3186,15 +3186,23 @@ async fn listed_group_offsets(
         }
         Some(ps) => {
             crate::group::check_fetched_offsets(fetched)?;
-            Ok(ps
-                .iter()
-                .map(|tp| {
-                    let md = crate::group::fetched_committed(fetched, &tp.topic, tp.partition)
-                        .map(crate::group::offset_and_metadata_from)
-                        .unwrap_or_else(|| crate::OffsetAndMetadata::new(-1));
-                    (tp.clone(), md)
-                })
-                .collect())
+            let index = crate::group::index_fetched_offsets_cooperative(fetched).await;
+            let mut listed = Vec::with_capacity(ps.len());
+            let mut walked = 0usize;
+            for tp in ps {
+                let md = index
+                    .get(&(tp.topic.as_str(), tp.partition))
+                    .copied()
+                    .map(crate::group::offset_and_metadata_from)
+                    .unwrap_or_else(|| crate::OffsetAndMetadata::new(-1));
+                listed.push((tp.clone(), md));
+                walked = walked.saturating_add(1);
+                if walked == 8 * 1024 {
+                    walked = 0;
+                    tokio::task::yield_now().await;
+                }
+            }
+            Ok(listed)
         }
     }
 }
@@ -11078,15 +11086,23 @@ impl Admin {
             )
             .await?;
         crate::group::check_fetched_offsets(&fetched)?;
-        Ok(partitions
-            .into_iter()
-            .map(|tp| {
-                let md = crate::group::fetched_committed(&fetched, &tp.topic, tp.partition)
-                    .map(crate::group::offset_and_metadata_from)
-                    .unwrap_or_else(|| crate::OffsetAndMetadata::new(-1));
-                (tp, md)
-            })
-            .collect())
+        let index = crate::group::index_fetched_offsets_cooperative(&fetched).await;
+        let mut listed = Vec::with_capacity(partitions.len());
+        let mut walked = 0usize;
+        for tp in partitions {
+            let md = index
+                .get(&(tp.topic.as_str(), tp.partition))
+                .copied()
+                .map(crate::group::offset_and_metadata_from)
+                .unwrap_or_else(|| crate::OffsetAndMetadata::new(-1));
+            listed.push((tp, md));
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+        Ok(listed)
     }
 
     /// List every committed offset for `group_id` (Java
