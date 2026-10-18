@@ -13987,7 +13987,7 @@ impl Admin {
             return Ok(Vec::new());
         }
         let mut errors: HashMap<TopicPartitionReplica, i16> = HashMap::new();
-        let grouped = group_alter_replica_log_dirs(&assignment);
+        let grouped = group_alter_replica_log_dirs(&assignment).await;
         if grouped.len() <= 1 {
             for (broker_id, dirs) in grouped {
                 let deadline = Instant::now()
@@ -15793,7 +15793,27 @@ fn replica_broker_ids(replicas: &[TopicPartitionReplica]) -> Vec<i32> {
     ids
 }
 
-fn group_alter_replica_log_dirs(
+async fn group_alter_replica_log_dirs(
+    assignment: &[(TopicPartitionReplica, String)],
+) -> Vec<(i32, Vec<BorrowedAlterReplicaLogDir<'_>>)> {
+    let mut ids = Vec::new();
+    for (replica, _) in assignment {
+        if !ids.contains(&replica.broker_id) {
+            ids.push(replica.broker_id);
+        }
+    }
+    let mut grouped = Vec::with_capacity(ids.len());
+    for broker_id in ids {
+        grouped.push((
+            broker_id,
+            alter_replica_dirs_for_broker_cooperative(assignment, broker_id).await,
+        ));
+    }
+    grouped
+}
+
+#[cfg(test)]
+fn group_alter_replica_log_dirs_sync(
     assignment: &[(TopicPartitionReplica, String)],
 ) -> Vec<(i32, Vec<BorrowedAlterReplicaLogDir<'_>>)> {
     let mut ids = Vec::new();
@@ -15812,52 +15832,113 @@ fn group_alter_replica_log_dirs(
         .collect()
 }
 
+fn place_replica_dir<'a>(
+    directories: &mut Vec<BorrowedAlterReplicaLogDir<'a>>,
+    path_slots: &mut HashMap<&'a str, usize>,
+    topic_slots: &mut HashMap<(&'a str, &'a str), usize>,
+    seen: &mut HashMap<(&'a str, &'a str), HashSet<i32>>,
+    replica: &'a TopicPartitionReplica,
+    path_name: &'a str,
+) {
+    let topic_name = replica.topic.as_str();
+    let key = (path_name, topic_name);
+    if topic_slots.contains_key(&key) {
+        let fresh = seen
+            .get_mut(&key)
+            .is_some_and(|known| known.insert(replica.partition));
+        if !fresh {
+            return;
+        }
+        let Some(&dir_index) = path_slots.get(path_name) else {
+            return;
+        };
+        let Some(directory) = directories.get_mut(dir_index) else {
+            return;
+        };
+        let Some(&topic_index) = topic_slots.get(&key) else {
+            return;
+        };
+        let Some(topic) = directory.topics.get_mut(topic_index) else {
+            return;
+        };
+        topic.partitions.push(replica.partition);
+        return;
+    }
+    let dir_index = if let Some(&slot) = path_slots.get(path_name) {
+        slot
+    } else {
+        let slot = directories.len();
+        let _ = path_slots.insert(path_name, slot);
+        directories.push(BorrowedAlterReplicaLogDir {
+            path: path_name,
+            topics: Vec::new(),
+        });
+        slot
+    };
+    let Some(directory) = directories.get_mut(dir_index) else {
+        return;
+    };
+    let topic_index = directory.topics.len();
+    directory.topics.push(BorrowedAlterReplicaLogDirTopic {
+        name: topic_name,
+        partitions: vec![replica.partition],
+    });
+    let _ = topic_slots.insert(key, topic_index);
+    let mut known = HashSet::new();
+    let _ = known.insert(replica.partition);
+    let _ = seen.insert(key, known);
+}
+
+#[cfg(test)]
 fn alter_replica_dirs_for_broker<'a>(
     assignment: &'a [(TopicPartitionReplica, String)],
     broker_id: i32,
 ) -> Vec<BorrowedAlterReplicaLogDir<'a>> {
-    let mut directories: Vec<BorrowedAlterReplicaLogDir<'a>> = Vec::new();
-    let mut path_slots: HashMap<&str, usize> = HashMap::new();
-    let mut topic_slots: HashMap<(&str, &str), usize> = HashMap::new();
+    let mut directories = Vec::new();
+    let mut path_slots = HashMap::new();
+    let mut topic_slots = HashMap::new();
+    let mut seen = HashMap::new();
     for (replica, path) in assignment {
         if replica.broker_id != broker_id {
             continue;
         }
-        let path_name = path.as_str();
-        let topic_name = replica.topic.as_str();
-        if let Some(&topic_index) = topic_slots.get(&(path_name, topic_name)) {
-            let Some(&dir_index) = path_slots.get(path_name) else {
-                continue;
-            };
-            if let Some(directory) = directories.get_mut(dir_index) {
-                if let Some(topic) = directory.topics.get_mut(topic_index) {
-                    if !topic.partitions.contains(&replica.partition) {
-                        topic.partitions.push(replica.partition);
-                    }
-                }
-            }
-            continue;
+        place_replica_dir(
+            &mut directories,
+            &mut path_slots,
+            &mut topic_slots,
+            &mut seen,
+            replica,
+            path.as_str(),
+        );
+    }
+    directories
+}
+
+async fn alter_replica_dirs_for_broker_cooperative<'a>(
+    assignment: &'a [(TopicPartitionReplica, String)],
+    broker_id: i32,
+) -> Vec<BorrowedAlterReplicaLogDir<'a>> {
+    let mut directories = Vec::new();
+    let mut path_slots = HashMap::new();
+    let mut topic_slots = HashMap::new();
+    let mut seen = HashMap::new();
+    let mut walked = 0usize;
+    for (replica, path) in assignment {
+        if replica.broker_id == broker_id {
+            place_replica_dir(
+                &mut directories,
+                &mut path_slots,
+                &mut topic_slots,
+                &mut seen,
+                replica,
+                path.as_str(),
+            );
         }
-        let dir_index = if let Some(&slot) = path_slots.get(path_name) {
-            slot
-        } else {
-            let slot = directories.len();
-            let _ = path_slots.insert(path_name, slot);
-            directories.push(BorrowedAlterReplicaLogDir {
-                path: path_name,
-                topics: Vec::new(),
-            });
-            slot
-        };
-        let Some(directory) = directories.get_mut(dir_index) else {
-            continue;
-        };
-        let topic_index = directory.topics.len();
-        directory.topics.push(BorrowedAlterReplicaLogDirTopic {
-            name: topic_name,
-            partitions: vec![replica.partition],
-        });
-        let _ = topic_slots.insert((path_name, topic_name), topic_index);
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
     }
     directories
 }
@@ -16975,6 +17056,49 @@ mod tests {
         assert!(unique_names(std::iter::empty()).is_empty());
     }
 
+    #[tokio::test(flavor = "current_thread")]
+    async fn grouping_many_replica_dirs_does_not_hold_the_caller() {
+        // 20_000 partitions: scanning the growing list held the caller 765ms.
+        // A longer walk still has to pause after membership is a set.
+        let assignment: Vec<(TopicPartitionReplica, String)> = (0..500_000)
+            .map(|index| {
+                (
+                    TopicPartitionReplica::new("orders", index, 2),
+                    "/data".to_owned(),
+                )
+            })
+            .collect();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = alter_replica_dirs_for_broker_cooperative(&assignment, 2) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "grouping replica directories held the caller for {elapsed:?}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn cooperative_replica_dirs_match_one_shot() {
+        let assignment = [
+            (TopicPartitionReplica::new("orders", 1, 2), "/a".to_owned()),
+            (TopicPartitionReplica::new("orders", 1, 2), "/a".to_owned()),
+            (TopicPartitionReplica::new("orders", 0, 2), "/a".to_owned()),
+            (
+                TopicPartitionReplica::new("payments", 4, 2),
+                "/b".to_owned(),
+            ),
+        ];
+        let one = alter_replica_dirs_for_broker(&assignment, 2);
+        let two = alter_replica_dirs_for_broker_cooperative(&assignment, 2).await;
+        assert_eq!(one.len(), two.len());
+        assert_eq!(one[0].path, two[0].path);
+        assert_eq!(one[0].topics[0].partitions, two[0].topics[0].partitions);
+        assert_eq!(one[1].topics[0].name, two[1].topics[0].name);
+    }
+
     #[test]
     fn alter_replica_dirs_keep_first_seen_topics() {
         let assignment = [
@@ -17218,7 +17342,7 @@ mod tests {
             (TopicPartitionReplica::new("u", 1, 2), "/d1".to_owned()),
             (TopicPartitionReplica::new("t", 0, 1), "/d2".to_owned()),
         ];
-        let grouped = group_alter_replica_log_dirs(&assignment);
+        let grouped = group_alter_replica_log_dirs_sync(&assignment);
         assert_eq!(grouped.len(), 2);
         assert_eq!(grouped[0].0, 2);
         assert_eq!(grouped[0].1[0].path, "/d1");
