@@ -6738,7 +6738,7 @@ async fn acknowledgement_batches_with(
     if ack_records_share_partition(recs).await {
         offsets.clear();
         copy_ack_offsets(offsets, recs.iter().map(|rec| rec.offset)).await;
-        let batches = collapse_ack_offsets(offsets, ack, ack_types, spare_batches);
+        let batches = collapse_ack_offsets(offsets, ack, ack_types, spare_batches).await;
         if batches.is_empty() {
             park_unused_ack_batches(spare_batches, batches);
             return;
@@ -6774,7 +6774,7 @@ async fn acknowledgement_batches_with(
             if let Some(group) = pairs.get(start..end) {
                 offsets.extend(group.iter().map(|(_, offset)| *offset));
             }
-            let batches = collapse_ack_offsets(offsets, ack, ack_types, spare_batches);
+            let batches = collapse_ack_offsets(offsets, ack, ack_types, spare_batches).await;
             if batches.is_empty() {
                 park_unused_ack_batches(spare_batches, batches);
             } else {
@@ -6804,7 +6804,7 @@ async fn acknowledgement_batches_with(
     for (topic, parts) in by_part {
         let name = share_topic_arc(&topic, topic_name);
         for (partition, mut offs) in parts {
-            let batches = collapse_ack_offsets(&mut offs, ack, ack_types, spare_batches);
+            let batches = collapse_ack_offsets(&mut offs, ack, ack_types, spare_batches).await;
             if batches.is_empty() {
                 park_unused_ack_batches(spare_batches, batches);
             } else {
@@ -6884,7 +6884,7 @@ fn take_ack_batches(spare: &mut Vec<Vec<AcknowledgementBatch>>) -> Vec<Acknowled
     batches
 }
 
-fn collapse_ack_offsets(
+async fn collapse_ack_offsets(
     offsets: &mut Vec<i64>,
     ack: i8,
     ack_types: &mut Vec<Vec<i8>>,
@@ -6894,6 +6894,7 @@ fn collapse_ack_offsets(
     offsets.dedup();
     let mut batches = take_ack_batches(spare_batches);
     let mut range: Option<(i64, i64)> = None;
+    let mut walked = 0usize;
     for off in offsets.iter().copied() {
         range = match range {
             None => Some((off, off)),
@@ -6907,6 +6908,11 @@ fn collapse_ack_offsets(
                 Some((off, off))
             }
         };
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
     }
     if let Some((start, end)) = range {
         batches.push(AcknowledgementBatch {
@@ -6969,6 +6975,26 @@ mod tests {
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "checking share acknowledgements held the caller for {elapsed:?}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn collapsing_many_ack_offsets_does_not_hold_the_caller() {
+        // 2_000_000 gapped offsets: collapsing acknowledgements held the caller 284ms.
+        let mut offsets: Vec<i64> = (0..2_000_000).map(|offset| offset * 2).collect();
+        let mut types = Vec::new();
+        let mut spare = Vec::new();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            batches = collapse_ack_offsets(&mut offsets, ACK_ACCEPT, &mut types, &mut spare) => {
+                assert_eq!(batches.len(), 2_000_000);
+            }
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "collapsing acknowledgements held the caller for {elapsed:?}"
         );
     }
 
