@@ -2699,6 +2699,13 @@
 //! `ClusterControlManager` writes this when unregistering a
 //! controller id that is not currently registered.
 //! A piggybacked
+//! `SHARE_SESSION_LIMIT_REACHED` still completes without retry,
+//! including when `AcknowledgeErrorMessage` is set (this is not
+//! partition `SHARE_SESSION_LIMIT_REACHED`, which fails that poll, and not
+//! piggyback `CONTROLLER_ID_NOT_REGISTERED`). Official Java
+//! `SharePartitionManager` writes this when a share session cannot
+//! be created.
+//! A piggybacked
 //! `TOPIC_AUTHORIZATION_FAILED` on one partition does not fail a
 //! sibling whose `AcknowledgeErrorCode` is none, including when
 //! `AcknowledgeErrorMessage` is set or empty. A piggybacked
