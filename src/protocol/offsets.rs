@@ -850,6 +850,59 @@ fn encode_list_offsets_topic_views<T: ListOffsetsTopicView>(
     Ok(())
 }
 
+/// [`encode_list_offsets_named_topics`], pausing while partitions remain.
+pub(crate) async fn encode_list_offsets_named_topics_cooperative(
+    buf: &mut BytesMut,
+    version: i16,
+    isolation_level: i8,
+    topics: &[(&str, Vec<ListOffsetsPartitionRequest>)],
+    timeout_ms: i32,
+) -> Result<()> {
+    let flexible = list_offsets_flexible(version)?;
+    let body_start = buf.len();
+    let planned = list_offsets_request_len(version, flexible, topics)?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
+    buf.put_i32(CONSUMER_REPLICA_ID);
+    if version >= 2 {
+        buf.put_i8(isolation_level);
+    }
+    buf::put_array_len(buf, flexible, Some(topics.len()))?;
+    let mut walked = 0usize;
+    for (topic, partitions) in topics {
+        buf::put_string(buf, flexible, Some(*topic))?;
+        buf::put_array_len(buf, flexible, Some(partitions.len()))?;
+        for partition in partitions {
+            buf.put_i32(partition.partition);
+            if version >= 4 {
+                buf.put_i32(partition.current_leader_epoch);
+            }
+            buf.put_i64(partition.timestamp);
+            if flexible {
+                buf::put_empty_tagged_fields(buf);
+            }
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+    }
+    if version >= 10 {
+        buf.put_i32(timeout_ms);
+    }
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+    Ok(())
+}
+
 /// Decode a single-topic, single-partition ListOffsets request.
 ///
 /// Returns `(isolation_level, topic, partition, current_leader_epoch, timestamp)`.
@@ -1280,6 +1333,47 @@ fn pull_list_offsets<B: Buf>(
 mod tests {
     use super::*;
     use std::collections::HashMap;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn encoding_many_list_offsets_does_not_hold_the_caller() {
+        // 2_000_000 partitions: writing the request held the caller 207ms.
+        let partitions: Vec<ListOffsetsPartitionRequest> = (0..2_000_000)
+            .map(|index| ListOffsetsPartitionRequest::new(index, -1, -1))
+            .collect();
+        let topics = vec![("orders", partitions)];
+        let mut buf = bytes::BytesMut::new();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            result = encode_list_offsets_named_topics_cooperative(&mut buf, 4, 0, &topics, 0) => {
+                result.unwrap_or_else(|error| panic!("{error}"));
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "encoding list offsets held the caller for {elapsed:?}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn cooperative_list_offsets_request_matches_one_shot() {
+        let topics = vec![(
+            "orders",
+            vec![
+                ListOffsetsPartitionRequest::new(1, 4, -1),
+                ListOffsetsPartitionRequest::new(0, 4, -2),
+            ],
+        )];
+        let mut one = bytes::BytesMut::new();
+        let mut two = bytes::BytesMut::new();
+        encode_list_offsets_named_topics(&mut one, 4, 0, &topics, 0)
+            .unwrap_or_else(|error| panic!("{error}"));
+        encode_list_offsets_named_topics_cooperative(&mut two, 4, 0, &topics, 0)
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(one, two);
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn decoding_many_list_offsets_does_not_hold_the_caller() {

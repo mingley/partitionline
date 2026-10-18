@@ -33,7 +33,7 @@ use crate::protocol::fetch::{
 };
 use crate::protocol::group::Topic;
 use crate::protocol::offsets::{
-    decode_list_offsets_topics_response_cooperative, encode_list_offsets_named_topics,
+    decode_list_offsets_topics_response_cooperative, encode_list_offsets_named_topics_cooperative,
     encode_list_offsets_request, minimum_version_for_timestamp, ListOffsetsPartitionRequest,
 };
 use crate::protocol::records::{
@@ -8458,20 +8458,24 @@ impl Consumer {
         if timeout.is_zero() {
             return Err(Error::Timeout);
         }
-        let topics = list_offset_topic_groups(queries, indexes, &self.cluster);
+        let topics = list_offset_topic_groups(queries, indexes, &self.cluster).await;
+        let mut encoded = bytes::BytesMut::new();
+        encode_list_offsets_named_topics_cooperative(
+            &mut encoded,
+            version,
+            isolation,
+            &topics,
+            duration_millis_i32(timeout),
+        )
+        .await?;
         let body = {
             let conn = self.broker_conn_mut(node)?;
             conn.roundtrip(
                 LIST_OFFSETS,
                 version,
                 |buf| {
-                    encode_list_offsets_named_topics(
-                        buf,
-                        version,
-                        isolation,
-                        &topics,
-                        duration_millis_i32(timeout),
-                    )
+                    buf.extend_from_slice(&encoded);
+                    Ok(())
                 },
                 timeout,
             )
@@ -8905,15 +8909,17 @@ impl Consumer {
                 }
                 continue;
             }
-            let topics = list_offset_topic_groups(queries, &indexes, &self.cluster);
+            let topics = list_offset_topic_groups(queries, &indexes, &self.cluster).await;
             let mut payload = bytes::BytesMut::new();
-            if let Err(error) = encode_list_offsets_named_topics(
+            if let Err(error) = encode_list_offsets_named_topics_cooperative(
                 &mut payload,
                 version,
                 isolation,
                 &topics,
                 duration_millis_i32(timeout),
-            ) {
+            )
+            .await
+            {
                 for index in &indexes {
                     if let Some(slot) = slots.get_mut(*index) {
                         if slot.is_none() {
@@ -10870,13 +10876,14 @@ fn listed_prefix(slots: &[OffsetSlot], stop: Option<Error>) -> ListedOffsets {
     }
 }
 
-fn list_offset_topic_groups<'a, T: AsRef<str>>(
+async fn list_offset_topic_groups<'a, T: AsRef<str>>(
     queries: &'a [(T, i32, i64)],
     indexes: &[usize],
     cluster: &Cluster,
 ) -> Vec<(&'a str, Vec<ListOffsetsPartitionRequest>)> {
     let mut groups: Vec<(&str, Vec<ListOffsetsPartitionRequest>)> = Vec::new();
     let mut slots: HashMap<&str, usize> = HashMap::new();
+    let mut walked = 0usize;
     for index in indexes {
         let Some((topic, partition, timestamp)) = queries.get(*index) else {
             continue;
@@ -10890,12 +10897,21 @@ fn list_offset_topic_groups<'a, T: AsRef<str>>(
         if let Some(&slot) = slots.get(topic) {
             if let Some((_, parts)) = groups.get_mut(slot) {
                 parts.push(part);
-                continue;
+            } else {
+                let slot = groups.len();
+                let _ = slots.insert(topic, slot);
+                groups.push((topic, vec![part]));
             }
+        } else {
+            let slot = groups.len();
+            let _ = slots.insert(topic, slot);
+            groups.push((topic, vec![part]));
         }
-        let slot = groups.len();
-        let _ = slots.insert(topic, slot);
-        groups.push((topic, vec![part]));
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
     }
     groups
 }
@@ -13917,6 +13933,38 @@ mod tests {
             remaining_offset_timeout(deadline, start + Duration::from_millis(150)),
             Duration::ZERO
         );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn grouping_many_list_offsets_does_not_hold_the_caller() {
+        // 2_000_000 partitions: grouping the request held the caller 396ms.
+        let queries: Vec<(&str, i32, i64)> =
+            (0..2_000_000).map(|index| ("orders", index, 0)).collect();
+        let indexes: Vec<usize> = (0..queries.len()).collect();
+        let cluster = Cluster::default();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = list_offset_topic_groups(&queries, &indexes, &cluster) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "grouping list offsets held the caller for {elapsed:?}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn grouped_list_offsets_keep_topic_order() {
+        let queries = [("orders", 1, -1i64), ("payments", 0, -2), ("orders", 0, -1)];
+        let cluster = Cluster::default();
+        let groups = list_offset_topic_groups(&queries, &[0, 1, 2], &cluster).await;
+        assert_eq!(groups.len(), 2);
+        assert_eq!(groups[0].0, "orders");
+        assert_eq!(groups[0].1[0].partition, 1);
+        assert_eq!(groups[0].1[1].partition, 0);
+        assert_eq!(groups[1].0, "payments");
+        assert_eq!(groups[1].1[0].timestamp, -2);
     }
 
     #[test]
