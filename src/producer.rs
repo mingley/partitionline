@@ -1630,9 +1630,11 @@ impl Producer {
                 }
             }
         }
-        // The aborted task drops its socket when it is polled. One more turn
-        // lets the peer observe that close before this race returns.
-        tokio::task::yield_now().await;
+        // The aborted task drops its socket when it is polled. The idle watch
+        // then has to run before the broker sees the close.
+        for _ in 0..8 {
+            tokio::task::yield_now().await;
+        }
     }
 
     async fn finish_aborted_bootstrap_handshakes(
@@ -12217,6 +12219,66 @@ mod rediscover_stop_tests {
             open.load(Ordering::SeqCst),
             0,
             "stopping a finished produce handshake left the broker blocked in a read"
+        );
+        peer.abort();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn stopping_a_finished_worker_lets_the_broker_leave() {
+        use super::{Ctrl, Pending, Producer, WorkerHandle};
+        use crate::net::BrokerConn;
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use tokio::io::AsyncReadExt;
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let open = Arc::new(AtomicUsize::new(0));
+        let flag = Arc::clone(&open);
+        let peer = tokio::spawn(async move {
+            let Ok((mut socket, _)) = listener.accept().await else {
+                return;
+            };
+            let _started = flag.fetch_add(1, Ordering::SeqCst);
+            let mut buf = [0u8; 8];
+            loop {
+                match socket.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => continue,
+                }
+            }
+            let _left = flag.fetch_sub(1, Ordering::SeqCst);
+        });
+        let conn = BrokerConn::connect(&addr, "worker-hold", Duration::from_secs(2))
+            .await
+            .unwrap();
+        while open.load(Ordering::SeqCst) == 0 {
+            tokio::task::yield_now().await;
+        }
+        let worker = tokio::spawn(async move {
+            let _hold = conn;
+            std::future::pending::<()>().await;
+        });
+        for _ in 0..8 {
+            tokio::task::yield_now().await;
+        }
+        let (data, _data_rx) = tokio::sync::mpsc::channel::<Pending>(1);
+        let (ctrl, _ctrl_rx) = tokio::sync::mpsc::channel::<Ctrl>(1);
+        let handle = WorkerHandle {
+            id: Arc::new(()),
+            data,
+            ctrl,
+            task: Arc::new(worker),
+        };
+        let mut set = tokio::task::JoinSet::new();
+        let _ = set.spawn(async move { handle });
+        for _ in 0..8 {
+            tokio::task::yield_now().await;
+        }
+        Producer::finish_aborted_handshakes(set).await;
+        assert_eq!(
+            open.load(Ordering::SeqCst),
+            0,
+            "stopping a finished worker left the broker blocked in a read"
         );
         peer.abort();
     }
