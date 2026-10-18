@@ -179,32 +179,35 @@ fn assign_sticky_from<'a>(
 
 /// Move partitions until every member has `floor(n/m)` or `ceil(n/m)`.
 fn rebalance_counts<T: Clone>(out: &mut HashMap<String, Vec<T>>) {
-    loop {
-        let max_id = out
+    let mut load: BTreeSet<(usize, String)> = out
+        .iter()
+        .map(|(member, parts)| (parts.len(), member.clone()))
+        .collect();
+    while let Some((max_n, max_id)) = load
+        .iter()
+        .next_back()
+        .map(|(count, member)| (*count, member.clone()))
+    {
+        let Some((min_n, min_id)) = load
             .iter()
-            .max_by_key(|(m, v)| (v.len(), (*m).as_str()))
-            .map(|(m, _)| m.clone());
-        let min_id = out
-            .iter()
-            .min_by_key(|(m, v)| (v.len(), (*m).as_str()))
-            .map(|(m, _)| m.clone());
-        let (Some(max_id), Some(min_id)) = (max_id, min_id) else {
+            .next()
+            .map(|(count, member)| (*count, member.clone()))
+        else {
             break;
         };
-        if max_id == min_id {
+        if max_id == min_id || max_n <= min_n.saturating_add(1) {
             break;
         }
-        let max_n = out.get(&max_id).map(Vec::len).unwrap_or(0);
-        let min_n = out.get(&min_id).map(Vec::len).unwrap_or(0);
-        if max_n <= min_n.saturating_add(1) {
-            break;
-        }
-        let Some(tp) = out.get_mut(&max_id).and_then(Vec::pop) else {
+        let Some(moved) = out.get_mut(&max_id).and_then(Vec::pop) else {
             break;
         };
         if let Some(slot) = out.get_mut(&min_id) {
-            slot.push(tp);
+            slot.push(moved);
         }
+        let _ = load.remove(&(max_n, max_id.clone()));
+        let _ = load.remove(&(min_n, min_id.clone()));
+        let _ = load.insert((max_n.saturating_sub(1), max_id));
+        let _ = load.insert((min_n.saturating_add(1), min_id));
     }
 }
 
@@ -7875,6 +7878,26 @@ mod tests {
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "assigning range partitions held the caller for {elapsed:?}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn rebalancing_many_sticky_members_does_not_hold_the_caller() {
+        // 2_048 members and 8_192 partitions already owned by one member:
+        // scanning every member for each move held the caller 1.66s.
+        let members: Vec<String> = (0..2_048).map(|index| format!("m{index:04}")).collect();
+        let member_refs: Vec<&str> = members.iter().map(String::as_str).collect();
+        let partitions: Vec<i32> = (0..8_192).collect();
+        let prev = [("m0000", partitions.as_slice())];
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = assign_sticky_from_cooperative(&member_refs, &partitions, prev) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "rebalancing sticky members held the caller for {elapsed:?}"
         );
     }
 
