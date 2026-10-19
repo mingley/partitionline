@@ -7932,6 +7932,98 @@ mod tests {
     }
 
     #[tokio::test(flavor = "current_thread")]
+    async fn decoding_many_share_fetches_does_not_hold_the_caller() {
+        let topics: Vec<crate::protocol::share::ShareFetchedTopic> = (0..200_000)
+            .map(|index: usize| {
+                let mut topic_id = [0u8; 16];
+                topic_id[..8].copy_from_slice(&index.to_le_bytes());
+                crate::protocol::share::ShareFetchedTopic {
+                    topic_id,
+                    partitions: vec![
+                        crate::protocol::share::ShareFetchedPartition::partition_response(
+                            index as i32,
+                            0,
+                        ),
+                    ],
+                }
+            })
+            .collect();
+        let mut body = bytes::BytesMut::new();
+        crate::protocol::share::encode_share_fetch_response(&mut body, 1, &topics)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let started = std::time::Instant::now();
+        tokio::select! {
+            decoded = decode_share_fetch_response_reusing_cooperative(
+                &mut body,
+                1,
+                crate::protocol::records::DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES,
+                Vec::new(),
+            ) => {
+                let (decoded, ..) = decoded.unwrap_or_else(|error| panic!("{error}"));
+                assert_eq!(decoded.0.len(), 200_000);
+                assert_eq!(
+                    decoded.0.first().and_then(|item| item.partitions.first()).map(|item| item.partition),
+                    Some(0)
+                );
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "decoding share fetches held the caller for {elapsed:?}"
+        );
+        let sample = [crate::protocol::share::ShareFetchedTopic {
+            topic_id: [0x11; 16],
+            partitions: vec![crate::protocol::share::ShareFetchedPartition {
+                partition: 9,
+                error_code: 6,
+                error_message: Some("busy".to_string()),
+                acknowledge_error_code: 1,
+                acknowledge_error_message: Some("again".to_string()),
+                current_leader_id: 3,
+                current_leader_epoch: 4,
+                records: Vec::new(),
+                acquired: vec![crate::protocol::share::AcquiredRange {
+                    first_offset: 1,
+                    last_offset: 2,
+                    delivery_count: 3,
+                }],
+            }],
+        }];
+        let mut encoded = bytes::BytesMut::new();
+        crate::protocol::share::encode_share_fetch_response(&mut encoded, 1, &sample)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let mut once = encoded.clone();
+        let mut paced = encoded;
+        let sync = crate::protocol::share::decode_share_fetch_response(&mut once, 1)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let (coop, ..) = decode_share_fetch_response_reusing_cooperative(
+            &mut paced,
+            1,
+            crate::protocol::records::DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES,
+            Vec::new(),
+        )
+        .await
+        .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(sync, coop);
+        assert_eq!(
+            coop.0
+                .first()
+                .and_then(|item| item.partitions.first())
+                .and_then(|item| item.error_message.as_deref()),
+            Some("busy")
+        );
+        assert_eq!(
+            coop.0
+                .first()
+                .and_then(|item| item.partitions.first())
+                .map(|item| item.current_leader_id),
+            Some(3)
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
     async fn checking_many_share_acks_does_not_hold_the_caller() {
         // 2_000_000 records: checking stored acquisitions held the caller 694ms.
         let topic = crate::consumer::TopicName::from("orders");
