@@ -2894,7 +2894,7 @@ pub enum ShareAcquireMode {
 /// specifies an ISR containing an ineligible replica. A top-level
 /// ShareAcknowledge `NEW_LEADER_ELECTED` completes without
 /// retry and does not request Metadata, including when `ErrorMessage`
-/// is set (Java `handleShareAcknowledgeSuccess` has no
+/// is set or empty (Java `handleShareAcknowledgeSuccess` has no
 /// `metadata.requestUpdate`; this is not top-level
 /// `INELIGIBLE_REPLICA`). Official Java
 /// `ReplicationControlManager` writes this when AlterPartition
@@ -6483,7 +6483,7 @@ impl ShareGroup {
     /// AlterPartition specifies an ISR containing an ineligible replica.
     /// A top-level ShareAcknowledge `NEW_LEADER_ELECTED`
     /// completes without retry and does not request Metadata,
-    /// including when `ErrorMessage` is set (Java
+    /// including when `ErrorMessage` is set or empty (Java
     /// `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`;
     /// this is not top-level `INELIGIBLE_REPLICA`).
     /// Official Java `ReplicationControlManager` writes this when
