@@ -3476,6 +3476,13 @@
 //! `UNKNOWN_TOPIC_ID`; this is not top-level
 //! `BROKER_ID_NOT_REGISTERED`). Official Java `ClusterControlManager`
 //! writes this when a broker registration cluster id does not match.
+//! Top-level
+//! `TRANSACTIONAL_ID_NOT_FOUND` still fails that poll without
+//! Metadata, including when `ErrorMessage` is set (Java
+//! `handleShareFetchSuccess` only `requestUpdate`s for
+//! `UNKNOWN_TOPIC_ID`; this is not top-level
+//! `INCONSISTENT_CLUSTER_ID`). Official Java `TransactionCoordinator`
+//! writes this when the transactional id has no transaction state.
 //! Partition
 //! `INCONSISTENT_TOPIC_ID` / `UNKNOWN_TOPIC_OR_PARTITION` /
 //! `UNKNOWN_TOPIC_ID` / `REPLICA_NOT_AVAILABLE` /
