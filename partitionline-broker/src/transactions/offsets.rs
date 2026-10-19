@@ -14,6 +14,7 @@
 
 use crate::catalog;
 use crate::journal::{self, Journal};
+use std::collections::{BTreeMap, HashMap};
 use std::path::Path;
 
 const RECORD_MAGIC: &[u8; 8] = b"PLTXNO01";
@@ -161,6 +162,24 @@ pub struct TxnOffsets {
     encoded: Vec<u8>,
     stored: usize,
     poisoned: bool,
+    /// Highest epoch stored for each producer.
+    max_epoch: HashMap<i64, i16>,
+    /// Commit bit when that producer epoch's last row is a marker.
+    trailing: HashMap<(i64, i16), bool>,
+    /// Generations that still count for each group, and how many offsets hold them.
+    generations: HashMap<String, BTreeMap<i32, usize>>,
+    /// Offsets written since the last marker for that producer epoch.
+    open_offsets: HashMap<(i64, i16), Vec<(String, i32)>>,
+}
+
+fn stable_end(rows: &[Row], markers: &[Option<bool>]) -> usize {
+    for (index, row) in rows.iter().enumerate() {
+        let staged = matches!(row, Row::Data { .. } | Row::Offset { .. });
+        if staged && markers.get(index).copied().flatten().is_none() {
+            return index;
+        }
+    }
+    rows.len()
 }
 
 impl TxnOffsets {
@@ -174,6 +193,10 @@ impl TxnOffsets {
             encoded: Vec::new(),
             stored: 0,
             poisoned: false,
+            max_epoch: HashMap::new(),
+            trailing: HashMap::new(),
+            generations: HashMap::new(),
+            open_offsets: HashMap::new(),
         };
         let mut cursor = log.journal.base_offset();
         loop {
@@ -189,6 +212,7 @@ impl TxnOffsets {
                 }
                 let row = decode(&entry.payload)?;
                 log.accept_recovered(&row)?;
+                log.note(&row);
                 log.rows.push(row);
                 log.stored = log.stored.saturating_add(1);
                 cursor = entry
@@ -273,17 +297,16 @@ impl TxnOffsets {
 
     /// Application ids whose transaction has committed and is stable.
     pub fn visible_data(&self) -> Vec<u64> {
-        let stable = self.last_stable();
+        let markers = self.closing_markers();
+        let stable = stable_end(&self.rows, &markers);
         self.rows
             .iter()
             .enumerate()
             .take(stable)
             .filter_map(|(index, row)| match row {
-                Row::Data {
-                    producer_id,
-                    epoch,
-                    id,
-                } if self.closing_marker(*producer_id, *epoch, index) == Some(true) => Some(*id),
+                Row::Data { id, .. } if markers.get(index).copied().flatten() == Some(true) => {
+                    Some(*id)
+                }
                 _ => None,
             })
             .collect()
@@ -291,143 +314,158 @@ impl TxnOffsets {
 
     /// Group offsets whose transaction has committed and is stable.
     pub fn visible_offsets(&self) -> Vec<VisibleOffset> {
-        let stable = self.last_stable();
+        let markers = self.closing_markers();
+        let stable = stable_end(&self.rows, &markers);
         self.rows
             .iter()
             .enumerate()
             .take(stable)
             .filter_map(|(index, row)| match row {
                 Row::Offset {
-                    producer_id,
-                    epoch,
                     group,
                     member,
                     generation,
                     topic,
                     partition,
                     offset,
-                } if self.closing_marker(*producer_id, *epoch, index) == Some(true) => {
-                    Some(VisibleOffset {
-                        group: group.clone(),
-                        member: member.clone(),
-                        topic: topic.clone(),
-                        partition: *partition,
-                        offset: *offset,
-                        generation: *generation,
-                    })
-                }
+                    ..
+                } if markers.get(index).copied().flatten() == Some(true) => Some(VisibleOffset {
+                    group: group.clone(),
+                    member: member.clone(),
+                    topic: topic.clone(),
+                    partition: *partition,
+                    offset: *offset,
+                    generation: *generation,
+                }),
                 _ => None,
             })
             .collect()
     }
 
-    fn last_stable(&self) -> usize {
-        for (index, row) in self.rows.iter().enumerate() {
-            let key = match row {
+    /// First later marker for every row. One backward pass.
+    fn closing_markers(&self) -> Vec<Option<bool>> {
+        let mut next: HashMap<(i64, i16), bool> = HashMap::new();
+        let mut out = vec![None; self.rows.len()];
+        for (index, row) in self.rows.iter().enumerate().rev() {
+            match row {
+                Row::Marker {
+                    producer_id,
+                    epoch,
+                    commit,
+                } => {
+                    let _ = next.insert((*producer_id, *epoch), *commit);
+                }
                 Row::Data {
                     producer_id, epoch, ..
                 }
                 | Row::Offset {
                     producer_id, epoch, ..
-                } => Some((*producer_id, *epoch)),
-                Row::Marker { .. } => None,
-            };
-            if let Some((producer_id, epoch)) = key {
-                if self.closing_marker(producer_id, epoch, index).is_none() {
-                    return index;
+                } => {
+                    if let Some(slot) = out.get_mut(index) {
+                        *slot = next.get(&(*producer_id, *epoch)).copied();
+                    }
                 }
             }
         }
-        self.rows.len()
-    }
-
-    fn closing_marker(&self, producer_id: i64, epoch: i16, index: usize) -> Option<bool> {
-        for row in self.rows.iter().skip(index.saturating_add(1)) {
-            if let Row::Marker {
-                producer_id: id,
-                epoch: stored,
-                commit,
-            } = row
-            {
-                if *id == producer_id && *stored == epoch {
-                    return Some(*commit);
-                }
-            }
-        }
-        None
+        out
     }
 
     fn trailing_marker(&self, producer_id: i64, epoch: i16) -> Option<bool> {
-        let mut marker = None;
-        for row in &self.rows {
-            match row {
-                Row::Data {
-                    producer_id: id,
-                    epoch: stored,
-                    ..
-                }
-                | Row::Offset {
-                    producer_id: id,
-                    epoch: stored,
-                    ..
-                } if *id == producer_id && *stored == epoch => marker = None,
-                Row::Marker {
-                    producer_id: id,
-                    epoch: stored,
-                    commit,
-                } if *id == producer_id && *stored == epoch => marker = Some(*commit),
-                _ => {}
-            }
-        }
-        marker
+        self.trailing.get(&(producer_id, epoch)).copied()
     }
 
     fn generation_for(&self, group: &str) -> Option<i32> {
-        self.rows
-            .iter()
-            .enumerate()
-            .filter_map(|(index, row)| match row {
-                Row::Offset {
-                    producer_id,
-                    epoch,
-                    group: stored,
-                    generation,
-                    ..
-                } if stored == group
-                    && self.closing_marker(*producer_id, *epoch, index) != Some(false) =>
-                {
-                    Some(*generation)
-                }
-                _ => None,
-            })
-            .max()
+        self.generations
+            .get(group)
+            .and_then(|counts| counts.keys().next_back().copied())
     }
 
     fn check_epoch(&self, producer_id: i64, epoch: i16) -> Result<(), Error> {
         if producer_id <= 0 || epoch < 0 {
             return Err(Error::InvalidRequest);
         }
-        let newer = self.rows.iter().any(|row| match row {
-            Row::Data {
-                producer_id: id,
-                epoch: stored,
-                ..
-            }
-            | Row::Offset {
-                producer_id: id,
-                epoch: stored,
-                ..
-            }
-            | Row::Marker {
-                producer_id: id,
-                epoch: stored,
-                ..
-            } => *id == producer_id && *stored > epoch,
-        });
-        if newer {
+        if self
+            .max_epoch
+            .get(&producer_id)
+            .is_some_and(|stored| *stored > epoch)
+        {
             Err(Error::ProducerFenced)
         } else {
             Ok(())
+        }
+    }
+
+    fn note(&mut self, row: &Row) {
+        let (producer_id, epoch) = match row {
+            Row::Data {
+                producer_id, epoch, ..
+            }
+            | Row::Offset {
+                producer_id, epoch, ..
+            }
+            | Row::Marker {
+                producer_id, epoch, ..
+            } => (*producer_id, *epoch),
+        };
+        if self
+            .max_epoch
+            .get(&producer_id)
+            .is_none_or(|stored| epoch > *stored)
+        {
+            let _ = self.max_epoch.insert(producer_id, epoch);
+        }
+        match row {
+            Row::Data { .. } => {
+                let _ = self.trailing.remove(&(producer_id, epoch));
+            }
+            Row::Offset {
+                group, generation, ..
+            } => {
+                let _ = self.trailing.remove(&(producer_id, epoch));
+                let counts = self.generations.entry(group.clone()).or_default();
+                let count = counts.entry(*generation).or_insert(0);
+                *count = count.saturating_add(1);
+                self.open_offsets
+                    .entry((producer_id, epoch))
+                    .or_default()
+                    .push((group.clone(), *generation));
+            }
+            Row::Marker { commit, .. } => {
+                let _ = self.trailing.insert((producer_id, epoch), *commit);
+                let Some(open) = self.open_offsets.remove(&(producer_id, epoch)) else {
+                    return;
+                };
+                if *commit {
+                    return;
+                }
+                for (group, generation) in open {
+                    let Some(counts) = self.generations.get_mut(&group) else {
+                        continue;
+                    };
+                    let Some(count) = counts.get_mut(&generation) else {
+                        continue;
+                    };
+                    *count = count.saturating_sub(1);
+                    if *count == 0 {
+                        let _ = counts.remove(&generation);
+                    }
+                    if counts.is_empty() {
+                        let _ = self.generations.remove(&group);
+                    }
+                }
+            }
+        }
+    }
+
+    #[cfg(test)]
+    fn reindex(&mut self) {
+        self.max_epoch.clear();
+        self.trailing.clear();
+        self.generations.clear();
+        self.open_offsets.clear();
+        let rows = self.rows.clone();
+        for row in &rows {
+            self.note(row);
         }
     }
 
@@ -475,6 +513,7 @@ impl TxnOffsets {
             return Err(Error::InvalidLimits);
         }
         self.append_encoded(|bytes| write(bytes, &row))?;
+        self.note(&row);
         self.rows.push(row);
         Ok(())
     }
@@ -755,6 +794,52 @@ mod tests {
         let path = std::env::temp_dir().join(format!("pl-txno-{name}-{nanos}"));
         let log = TxnOffsets::open(&path, limits()).unwrap_or_else(|error| panic!("{error:?}"));
         (log, path)
+    }
+
+    #[test]
+    fn reading_many_txn_generations_does_not_hold_the_caller() {
+        // 8_000 offsets: finding the newest generation held the caller 139ms.
+        let (mut log, _) = open("generations");
+        log.rows = (0..8_000)
+            .map(|index| Row::Offset {
+                producer_id: 4,
+                epoch: 1,
+                group: "orders".to_owned(),
+                member: "m-1".to_owned(),
+                generation: index,
+                topic: "orders".to_owned(),
+                partition: index,
+                offset: i64::from(index),
+            })
+            .collect();
+        log.reindex();
+        let started = std::time::Instant::now();
+        let generation = log.generation_for("orders");
+        let elapsed = started.elapsed();
+        assert_eq!(generation, Some(7_999));
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "reading transaction generations held the caller for {elapsed:?}"
+        );
+        log.rows.push(Row::Marker {
+            producer_id: 4,
+            epoch: 1,
+            commit: false,
+        });
+        log.reindex();
+        assert_eq!(log.generation_for("orders"), None);
+        log.rows.push(Row::Offset {
+            producer_id: 4,
+            epoch: 1,
+            group: "orders".to_owned(),
+            member: "m-1".to_owned(),
+            generation: 3,
+            topic: "orders".to_owned(),
+            partition: 0,
+            offset: 3,
+        });
+        log.reindex();
+        assert_eq!(log.generation_for("orders"), Some(3));
     }
 
     #[test]
