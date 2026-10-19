@@ -575,7 +575,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   writes this when a share-group heartbeat member epoch is ahead of or behind the coordinator's stored epoch.
   A top-level ShareAcknowledge `UNRELEASED_INSTANCE_ID` completes
   without retry and does not request Metadata, including when
-  `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+  `ErrorMessage` is set or empty (Java `handleShareAcknowledgeSuccess` has no
   `metadata.requestUpdate`; this is not top-level
   `FENCED_MEMBER_EPOCH`). Official Java `GroupMetadataManager`
   writes this when a static member joins while the instance id is still owned.
