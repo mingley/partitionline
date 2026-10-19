@@ -4071,6 +4071,12 @@
 //! `metadata.requestUpdate`; this is not top-level
 //! `TELEMETRY_TOO_LARGE`). Official Java `ClusterControlManager`
 //! writes this when a BrokerRegistration request specifies no directories.
+//! Top-level ShareAcknowledge `TRANSACTION_ABORTABLE` completes
+//! without retry and does not request Metadata, including when
+//! `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+//! `metadata.requestUpdate`; this is not top-level
+//! `INVALID_REGISTRATION`). Official Java `TransactionCoordinator`
+//! writes this when AddPartitionsToTxn verify finds a partition that is not already in the transaction.
 //! Top-level ShareAcknowledge
 //! `SHARE_SESSION_LIMIT_REACHED` completes without retry and advances
 //! the session epoch (Java `ShareSessionHandler.handleResponse`
