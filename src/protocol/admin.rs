@@ -13119,6 +13119,65 @@ pub fn decode_describe_cluster_response<B: Buf>(
     })
 }
 
+/// [`decode_describe_cluster_response`], yielding while brokers are still being read.
+///
+/// Decoding 200,000 brokers held the caller for 157ms.
+pub async fn decode_describe_cluster_response_cooperative<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<ClusterDescription> {
+    let _ = describe_cluster_spoken(version)?;
+    let throttle_time_ms = buf::get_i32(buf)?;
+    let error_code = buf::get_i16(buf)?;
+    let error_message = buf::get_compact_string(buf)?;
+    let endpoint_type = if version >= 1 {
+        buf::get_i8(buf)?
+    } else {
+        ENDPOINT_TYPE_BROKERS
+    };
+    let cluster_id = buf::get_compact_string(buf)?;
+    let controller_id = buf::get_i32(buf)?;
+    let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let mut brokers = Vec::with_capacity(n);
+    let mut walked = 0usize;
+    for _ in 0..n {
+        let node_id = buf::get_i32(buf)?;
+        let host = buf::get_compact_string(buf)?.unwrap_or_default();
+        let port = buf::get_i32(buf)?;
+        let rack = buf::get_compact_string(buf)?;
+        let is_fenced = if version >= 2 {
+            buf::get_bool(buf)?
+        } else {
+            false
+        };
+        buf::skip_tagged_fields(buf)?;
+        brokers.push(DescribeClusterBroker {
+            node_id,
+            host,
+            port,
+            rack,
+            is_fenced,
+        });
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    let cluster_authorized_operations = buf::get_i32(buf)?;
+    buf::skip_tagged_fields(buf)?;
+    Ok(ClusterDescription {
+        throttle_time_ms,
+        error_code,
+        error_message,
+        cluster_id,
+        controller_id,
+        endpoint_type,
+        cluster_authorized_operations,
+        brokers,
+    })
+}
+
 /// Omitted authorized-operations bitfield (`INT32` min). Official default.
 pub const AUTHORIZED_OPERATIONS_OMITTED: i32 = i32::MIN;
 

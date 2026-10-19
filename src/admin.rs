@@ -39,7 +39,7 @@ use crate::protocol::admin::{
     decode_delete_groups_response_cooperative, decode_delete_records_topics_response_cooperative,
     decode_delete_share_group_offsets_response_cooperative,
     decode_delete_topics_response_cooperative, decode_describe_client_quotas_response_cooperative,
-    decode_describe_cluster_response, decode_describe_configs_response_cooperative,
+    decode_describe_cluster_response_cooperative, decode_describe_configs_response_cooperative,
     decode_describe_delegation_token_response_cooperative,
     decode_describe_groups_response_cooperative, decode_describe_log_dirs_response_cooperative,
     decode_describe_producers_response_cooperative,
@@ -11011,7 +11011,7 @@ impl Admin {
                 timeout,
             )
             .await?;
-        decode_describe_cluster_response(&mut body.clone(), version)
+        decode_describe_cluster_response_cooperative(&mut body.clone(), version).await
     }
 
     /// Delete ACL bindings (`DeleteAcls`) matching `resource_type`.
@@ -19998,6 +19998,83 @@ mod tests {
                 .first()
                 .and_then(|item| item.error_message.as_deref()),
             Some("busy")
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn decoding_many_cluster_brokers_does_not_hold_the_caller() {
+        let brokers: Vec<DescribeClusterBroker> = (0..200_000)
+            .map(|index| {
+                DescribeClusterBroker::new(
+                    index,
+                    format!("host-{index}"),
+                    9092,
+                    Some(format!("rack-{index}")),
+                    false,
+                )
+            })
+            .collect();
+        let desc = ClusterDescription::new(
+            0,
+            None,
+            Some("cluster".to_string()),
+            1,
+            1,
+            i32::MIN,
+            brokers,
+        );
+        let mut body = bytes::BytesMut::new();
+        crate::protocol::admin::encode_describe_cluster_response(&mut body, 2, &desc)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let started = std::time::Instant::now();
+        tokio::select! {
+            decoded = decode_describe_cluster_response_cooperative(&mut body, 2) => {
+                let decoded = decoded.unwrap_or_else(|error| panic!("{error}"));
+                assert_eq!(decoded.throttle_time_ms, 0);
+                assert_eq!(decoded.brokers.len(), 200_000);
+                assert_eq!(decoded.brokers.first().map(|item| item.host.as_str()), Some("host-0"));
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "decoding cluster brokers held the caller for {elapsed:?}"
+        );
+        let sample = ClusterDescription::new(
+            7,
+            Some("busy".to_string()),
+            Some("cluster".to_string()),
+            2,
+            1,
+            4,
+            vec![DescribeClusterBroker::new(
+                9,
+                "broker-a",
+                9092,
+                Some("rack-a".to_string()),
+                true,
+            )],
+        );
+        let mut encoded = bytes::BytesMut::new();
+        crate::protocol::admin::encode_describe_cluster_response(&mut encoded, 2, &sample)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let mut once = encoded.clone();
+        let mut paced = encoded;
+        let sync = crate::protocol::admin::decode_describe_cluster_response(&mut once, 2)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let coop = decode_describe_cluster_response_cooperative(&mut paced, 2)
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(sync, coop);
+        assert_eq!(coop.error_message.as_deref(), Some("busy"));
+        assert_eq!(
+            coop.brokers.first().map(|item| item.host.as_str()),
+            Some("broker-a")
+        );
+        assert_eq!(
+            coop.brokers.first().and_then(|item| item.rack.as_deref()),
+            Some("rack-a")
         );
     }
 
