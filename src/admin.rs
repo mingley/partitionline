@@ -47,7 +47,7 @@ use crate::protocol::admin::{
     decode_describe_user_scram_credentials_response, decode_expire_delegation_token_response,
     decode_get_telemetry_subscriptions_response, decode_incremental_alter_configs_resource_results,
     decode_list_config_resources_response, decode_list_groups_response_cooperative,
-    decode_list_partition_reassignments_response, decode_list_transactions_response,
+    decode_list_partition_reassignments_response_cooperative, decode_list_transactions_response,
     decode_push_telemetry_response, decode_renew_delegation_token_response,
     decode_share_group_describe_response_cooperative, decode_unregister_broker_response,
     decode_update_features_response, encode_allocate_producer_ids_request,
@@ -6727,7 +6727,8 @@ impl Admin {
                 }
                 Err(e) => return Err(e),
             };
-            let resp = decode_list_partition_reassignments_response(&mut body.clone())?;
+            let resp =
+                decode_list_partition_reassignments_response_cooperative(&mut body.clone()).await?;
             if resp.error_code == error::NOT_CONTROLLER {
                 // NOT_CONTROLLER (41): Metadata, then the new controller.
                 self.forget_controller();
@@ -19485,6 +19486,78 @@ mod tests {
                 .first()
                 .and_then(|item| item.error_message.as_deref()),
             Some("busy")
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn decoding_many_listed_reassignments_does_not_hold_the_caller() {
+        let partitions: Vec<crate::protocol::admin::OngoingPartitionReassignment> = (0..1_000_000)
+            .map(crate::protocol::admin::OngoingPartitionReassignment::new)
+            .collect();
+        let resp = crate::protocol::admin::ListPartitionReassignmentsResponse::new(
+            0,
+            None,
+            vec![crate::protocol::admin::OngoingTopicReassignment::new(
+                "orders", partitions,
+            )],
+        );
+        let mut body = bytes::BytesMut::new();
+        crate::protocol::admin::encode_list_partition_reassignments_response(&mut body, &resp)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let started = std::time::Instant::now();
+        tokio::select! {
+            decoded = decode_list_partition_reassignments_response_cooperative(&mut body) => {
+                let decoded = decoded.unwrap_or_else(|error| panic!("{error}"));
+                assert_eq!(decoded.throttle_time_ms, 0);
+                assert_eq!(
+                    decoded.topics.first().map(|item| item.partitions.len()),
+                    Some(1_000_000)
+                );
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "decoding listed reassignments held the caller for {elapsed:?}"
+        );
+        let mut partition = crate::protocol::admin::OngoingPartitionReassignment::new(4);
+        partition.replicas = vec![1, 2];
+        partition.adding_replicas = vec![3];
+        partition.removing_replicas = vec![1];
+        let resp = crate::protocol::admin::ListPartitionReassignmentsResponse::new(
+            7,
+            Some("busy".to_string()),
+            vec![crate::protocol::admin::OngoingTopicReassignment::new(
+                "orders",
+                vec![partition],
+            )],
+        );
+        let mut encoded = bytes::BytesMut::new();
+        crate::protocol::admin::encode_list_partition_reassignments_response(&mut encoded, &resp)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let mut once = encoded.clone();
+        let mut paced = encoded;
+        let sync = crate::protocol::admin::decode_list_partition_reassignments_response(&mut once)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let coop = decode_list_partition_reassignments_response_cooperative(&mut paced)
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(sync, coop);
+        assert_eq!(coop.error_message.as_deref(), Some("busy"));
+        assert_eq!(
+            coop.topics
+                .first()
+                .and_then(|item| item.partitions.first())
+                .map(|item| item.replicas.as_slice()),
+            Some([1, 2].as_slice())
+        );
+        assert_eq!(
+            coop.topics
+                .first()
+                .and_then(|item| item.partitions.first())
+                .map(|item| item.adding_replicas.as_slice()),
+            Some([3].as_slice())
         );
     }
 
