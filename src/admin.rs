@@ -15645,19 +15645,7 @@ impl Admin {
             };
             self.group_coords.extend(found);
         }
-        let mut by_node: HashMap<i32, Vec<usize>> = HashMap::new();
-        for &i in pending {
-            let id = ids
-                .get(i)
-                .map(AsRef::as_ref)
-                .ok_or_else(|| Error::protocol("missing group id"))?;
-            let node = *self
-                .group_coords
-                .get(id)
-                .ok_or_else(|| Error::protocol(format!("missing coordinator for {id}")))?;
-            by_node.entry(node).or_default().push(i);
-        }
-        Ok(by_node)
+        group_ids_by_coordinator(ids, pending, &self.group_coords, "missing group id").await
     }
 
     async fn invalidate_group_coord_idxs<T: AsRef<str>>(
@@ -15720,19 +15708,7 @@ impl Admin {
             };
             self.txn_coords.extend(found);
         }
-        let mut by_node: HashMap<i32, Vec<usize>> = HashMap::new();
-        for &i in pending {
-            let id = ids
-                .get(i)
-                .map(AsRef::as_ref)
-                .ok_or_else(|| Error::protocol("missing transactional id"))?;
-            let node = *self
-                .txn_coords
-                .get(id)
-                .ok_or_else(|| Error::protocol(format!("missing coordinator for {id}")))?;
-            by_node.entry(node).or_default().push(i);
-        }
-        Ok(by_node)
+        group_ids_by_coordinator(ids, pending, &self.txn_coords, "missing transactional id").await
     }
 
     async fn invalidate_txn_coord_idxs<T: AsRef<str>>(
@@ -16680,6 +16656,38 @@ fn first_seen_missing_ids<'a, T: AsRef<str>>(
     need
 }
 
+fn coordinator_group_chunk() -> usize {
+    8 * 1024
+}
+
+/// Grouping 2,000,000 coordinators held the caller for 1.11s.
+/// An id is still filed under its coordinator.
+async fn group_ids_by_coordinator<T: AsRef<str>>(
+    ids: &[T],
+    pending: &[usize],
+    coords: &HashMap<String, i32>,
+    missing_id: &'static str,
+) -> Result<HashMap<i32, Vec<usize>>> {
+    let mut by_node: HashMap<i32, Vec<usize>> = HashMap::new();
+    let mut walked = 0usize;
+    for &index in pending {
+        walked = walked.saturating_add(1);
+        let id = ids
+            .get(index)
+            .map(AsRef::as_ref)
+            .ok_or_else(|| Error::protocol(missing_id))?;
+        let node = *coords
+            .get(id)
+            .ok_or_else(|| Error::protocol(format!("missing coordinator for {id}")))?;
+        by_node.entry(node).or_default().push(index);
+        if walked == coordinator_group_chunk() {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    Ok(by_node)
+}
+
 fn missing_id_chunk() -> usize {
     8 * 1024
 }
@@ -17330,6 +17338,42 @@ mod tests {
             first_seen_missing_ids_cooperative(&sample, &sample_pending, &sample_known).await,
             first_seen_missing_ids(&sample, &sample_pending, &sample_known)
         );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn grouping_many_coordinators_does_not_hold_the_caller() {
+        let ids: Vec<String> = (0..2_000_000)
+            .map(|index| format!("group-{index}"))
+            .collect();
+        let pending: Vec<usize> = (0..ids.len()).collect();
+        let mut known = HashMap::<String, i32>::new();
+        for (index, id) in ids.iter().enumerate() {
+            let _stored = known.insert(id.clone(), i32::try_from(index % 8).unwrap_or(0));
+        }
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = group_ids_by_coordinator(&ids, &pending, &known, "missing group id") => {}
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        assert!(
+            started.elapsed() < std::time::Duration::from_millis(80),
+            "grouping coordinators held the caller for {:?}",
+            started.elapsed()
+        );
+        let sample = [
+            "orders".to_string(),
+            "payments".to_string(),
+            "orders".to_string(),
+        ];
+        let mut sample_known = HashMap::new();
+        let _orders = sample_known.insert("orders".to_string(), 4);
+        let _payments = sample_known.insert("payments".to_string(), 5);
+        let grouped =
+            group_ids_by_coordinator(&sample, &[0, 1, 2], &sample_known, "missing group id")
+                .await
+                .unwrap();
+        assert_eq!(grouped.get(&4).map(Vec::as_slice), Some(&[0, 2][..]));
+        assert_eq!(grouped.get(&5).map(Vec::as_slice), Some(&[1][..]));
     }
 
     #[tokio::test(flavor = "current_thread")]
