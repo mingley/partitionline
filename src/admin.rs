@@ -9599,11 +9599,13 @@ impl Admin {
                 }
             }
             if !need.is_empty() {
-                let known_nodes = self.known_leader_nodes(pending.iter().filter_map(|&i| {
-                    records
-                        .get(i)
-                        .map(|(tp, _)| (tp.topic.as_str(), tp.partition))
-                }));
+                let known_nodes = self
+                    .known_leader_nodes(pending.iter().filter_map(|&i| {
+                        records
+                            .get(i)
+                            .map(|(tp, _)| (tp.topic.as_str(), tp.partition))
+                    }))
+                    .await;
                 self.refresh_topics_while_dialing(&need, &known_nodes, deadline)
                     .await?;
             }
@@ -9713,11 +9715,13 @@ impl Admin {
                 break;
             }
             self.wait_retry(&mut attempt, deadline).await?;
-            let known_nodes = self.known_leader_nodes(pending.iter().filter_map(|&i| {
-                records
-                    .get(i)
-                    .map(|(tp, _)| (tp.topic.as_str(), tp.partition))
-            }));
+            let known_nodes = self
+                .known_leader_nodes(pending.iter().filter_map(|&i| {
+                    records
+                        .get(i)
+                        .map(|(tp, _)| (tp.topic.as_str(), tp.partition))
+                }))
+                .await;
             for &i in &pending {
                 if let Some((tp, _)) = records.get(i) {
                     self.cluster.invalidate_topic(&tp.topic);
@@ -9968,11 +9972,13 @@ impl Admin {
                 }
             }
             if !need.is_empty() {
-                let known_nodes = self.known_leader_nodes(pending.iter().filter_map(|&i| {
-                    queries
-                        .get(i)
-                        .map(|(tp, _)| (tp.topic.as_str(), tp.partition))
-                }));
+                let known_nodes = self
+                    .known_leader_nodes(pending.iter().filter_map(|&i| {
+                        queries
+                            .get(i)
+                            .map(|(tp, _)| (tp.topic.as_str(), tp.partition))
+                    }))
+                    .await;
                 self.refresh_topics_while_dialing(&need, &known_nodes, deadline)
                     .await?;
                 if Instant::now() >= deadline {
@@ -10031,11 +10037,13 @@ impl Admin {
                 break;
             }
             self.wait_retry(&mut attempt, deadline).await?;
-            let known_nodes = self.known_leader_nodes(pending.iter().filter_map(|&i| {
-                queries
-                    .get(i)
-                    .map(|(tp, _)| (tp.topic.as_str(), tp.partition))
-            }));
+            let known_nodes = self
+                .known_leader_nodes(pending.iter().filter_map(|&i| {
+                    queries
+                        .get(i)
+                        .map(|(tp, _)| (tp.topic.as_str(), tp.partition))
+                }))
+                .await;
             for &i in &pending {
                 if let Some((tp, _)) = queries.get(i) {
                     self.cluster.invalidate_topic(&tp.topic);
@@ -10061,17 +10069,32 @@ impl Admin {
             .collect()
     }
 
+    fn known_leader_chunk() -> usize {
+        8 * 1024
+    }
+
     /// Leaders already cached for these topic partitions.
-    fn known_leader_nodes<'a>(&self, parts: impl IntoIterator<Item = (&'a str, i32)>) -> Vec<i32> {
+    ///
+    /// Finding leaders for 4,000,000 partitions held the caller for 246ms.
+    /// A cached leader is still returned once.
+    async fn known_leader_nodes<'a>(
+        &self,
+        parts: impl IntoIterator<Item = (&'a str, i32)>,
+    ) -> Vec<i32> {
         let mut known_nodes = Vec::new();
         let mut seen = HashSet::new();
         let mut known = LeaderList::new();
+        let mut walked = 0usize;
         for (topic, partition) in parts {
-            let Ok(node) = known.node(&self.cluster, topic, partition) else {
-                continue;
-            };
-            if seen.insert(node) {
-                known_nodes.push(node);
+            walked = walked.saturating_add(1);
+            if let Ok(node) = known.node(&self.cluster, topic, partition) {
+                if seen.insert(node) {
+                    known_nodes.push(node);
+                }
+            }
+            if walked == Self::known_leader_chunk() {
+                walked = 0;
+                tokio::task::yield_now().await;
             }
         }
         known_nodes
@@ -10822,11 +10845,13 @@ impl Admin {
                     }
                 }
                 if !need.is_empty() {
-                    let known_nodes = self.known_leader_nodes(pending.iter().filter_map(|&i| {
-                        partitions
-                            .get(i)
-                            .map(|tp| (tp.topic.as_str(), tp.partition))
-                    }));
+                    let known_nodes = self
+                        .known_leader_nodes(pending.iter().filter_map(|&i| {
+                            partitions
+                                .get(i)
+                                .map(|tp| (tp.topic.as_str(), tp.partition))
+                        }))
+                        .await;
                     self.refresh_topics_while_dialing(&need, &known_nodes, deadline)
                         .await?;
                 }
@@ -10935,11 +10960,13 @@ impl Admin {
             if pin_broker {
                 continue;
             }
-            let known_nodes = self.known_leader_nodes(pending.iter().filter_map(|&i| {
-                partitions
-                    .get(i)
-                    .map(|tp| (tp.topic.as_str(), tp.partition))
-            }));
+            let known_nodes = self
+                .known_leader_nodes(pending.iter().filter_map(|&i| {
+                    partitions
+                        .get(i)
+                        .map(|tp| (tp.topic.as_str(), tp.partition))
+                }))
+                .await;
             for &i in &pending {
                 if let Some(tp) = partitions.get(i) {
                     self.cluster.invalidate_topic(&tp.topic);
@@ -17194,6 +17221,45 @@ mod tests {
         CreatedTopicConfig, ListConfigResourcesResponse, TopicConfig,
     };
     use bytes::BytesMut;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn finding_many_known_leaders_does_not_hold_the_caller() {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let address = listener.local_addr().unwrap().to_string();
+        let accept = tokio::spawn(async move {
+            let _held = listener.accept().await;
+            std::future::pending::<()>().await;
+        });
+        let conn =
+            crate::net::BrokerConn::connect(&address, "leaders", std::time::Duration::from_secs(2))
+                .await
+                .unwrap();
+        let mut admin = Admin::test_holding(conn);
+        let parts: Vec<i32> = (0..4_000_000).collect();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = admin.known_leader_nodes(parts.iter().map(|part| ("orders", *part))) => {}
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        assert!(
+            started.elapsed() < std::time::Duration::from_millis(80),
+            "finding known leaders held the caller for {:?}",
+            started.elapsed()
+        );
+        let _broker = admin
+            .cluster
+            .brokers
+            .insert(4, "127.0.0.1:9092".to_string());
+        let _leaders = admin
+            .cluster
+            .leaders
+            .insert(std::sync::Arc::from("orders"), vec![4]);
+        let found = admin
+            .known_leader_nodes([("orders", 0), ("missing", 1)])
+            .await;
+        assert_eq!(found, vec![4]);
+        accept.abort();
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn collecting_many_unique_topic_names_does_not_hold_the_caller() {
