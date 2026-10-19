@@ -2414,7 +2414,7 @@ pub enum ShareAcquireMode {
 /// broker id.
 /// Top-level `BROKER_ID_NOT_REGISTERED` still fails that poll
 /// and does not request Metadata, including when `ErrorMessage` is
-/// set (Java `handleShareFetchSuccess` only `requestUpdate`s for
+/// set or empty (Java `handleShareFetchSuccess` only `requestUpdate`s for
 /// `UNKNOWN_TOPIC_ID`; this is not top-level
 /// `DUPLICATE_BROKER_REGISTRATION`). Official Java
 /// `ReplicationControlManager` writes this when the requested broker
@@ -5632,7 +5632,7 @@ impl ShareGroup {
     /// `ClusterControlManager` writes this when another broker is
     /// already registered with that broker id. Top-level
     /// `BROKER_ID_NOT_REGISTERED` still fails that poll without
-    /// Metadata, including when `ErrorMessage` is set (Java
+    /// Metadata, including when `ErrorMessage` is set or empty (Java
     /// `handleShareFetchSuccess` only `requestUpdate`s for
     /// `UNKNOWN_TOPIC_ID`; this is not top-level
     /// `DUPLICATE_BROKER_REGISTRATION`). Official Java

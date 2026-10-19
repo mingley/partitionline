@@ -2123,7 +2123,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `POSITION_OUT_OF_RANGE`). Official Java `ClusterControlManager`
   writes this when another broker is already registered with that broker id.
   Top-level `BROKER_ID_NOT_REGISTERED` still fails that poll
-  without Metadata, including when `ErrorMessage` is set (Java
+  without Metadata, including when `ErrorMessage` is set or empty (Java
   `handleShareFetchSuccess` only `requestUpdate`s for top-level
   `UNKNOWN_TOPIC_ID`; this is not top-level
   `DUPLICATE_BROKER_REGISTRATION`). Official Java `ReplicationControlManager`
