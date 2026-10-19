@@ -85,6 +85,7 @@ These walks include:
 - sorting share acknowledgements that share a topic
 - checking whether share topic ids still match metadata, and rewriting them when one is stale
 - refilling stale share topic names before a metadata refresh
+- summing stored share acquisition metadata before a poll
 - copying a changed consumer or share heartbeat subscription or assignment
 - opening one result slot, and its index, for each item in an admin batch
 - copying transactional ids before fencing producers

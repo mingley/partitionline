@@ -4375,14 +4375,7 @@ impl ShareGroup {
         self.leader_nodes.clear();
         self.leader_nodes.extend(self.leader_plan.keys().copied());
         self.leader_nodes.sort_unstable();
-        let metadata_bytes = self
-            .acquisitions
-            .iter()
-            .fold(0usize, |sum, (topic, parts)| {
-                sum.saturating_add(
-                    acquisition_storage_bytes(topic.as_str()).saturating_mul(parts.len()),
-                )
-            });
+        let metadata_bytes = share_acquisition_metadata_bytes(&self.acquisitions).await;
         let mut remaining_bytes = self
             .decoded_byte_limit()
             .checked_sub(metadata_bytes)
@@ -6927,6 +6920,25 @@ fn share_record_bytes(rec: &ShareRecord) -> u64 {
 
 // Logical key/value storage plus a conservative hash-entry allowance. Record
 // buffers and outstanding acquisition metadata share the configured allowance.
+/// Bytes of stored acquisition metadata.
+///
+/// The walk pauses every 8,192 topics. Without that pause, summing
+/// 4,000,000 acquisition topics held the caller for 227 milliseconds.
+async fn share_acquisition_metadata_bytes(acquisitions: &AcquisitionMap) -> usize {
+    let mut sum = 0usize;
+    let mut walked = 0usize;
+    for (topic, parts) in acquisitions {
+        sum = sum
+            .saturating_add(acquisition_storage_bytes(topic.as_str()).saturating_mul(parts.len()));
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    sum
+}
+
 fn acquisition_storage_bytes(topic: &str) -> usize {
     std::mem::size_of::<crate::consumer::TopicName>()
         .saturating_add(std::mem::size_of::<i32>())
@@ -9929,6 +9941,54 @@ mod tests {
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "finding share leader addresses held the caller for {elapsed:?}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn summing_many_acquisition_bytes_does_not_hold_the_caller() {
+        let mut acquisitions = AcquisitionMap::new();
+        for index in 0..4_000_000 {
+            let _stored = acquisitions.insert(
+                crate::consumer::TopicName::from(format!("topic-{index}")),
+                TopicRuns::new(),
+            );
+        }
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = share_acquisition_metadata_bytes(&acquisitions) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "summing acquisition bytes held the caller for {elapsed:?}"
+        );
+        let mut one = TopicRuns::new();
+        one.runs.push(AcquisitionRun {
+            partition: 0,
+            first: 1,
+            last: 1,
+            acquisition: Acquisition {
+                node: 1,
+                delivery_count: 1,
+                expires_at: None,
+            },
+        });
+        one.runs.push(AcquisitionRun {
+            partition: 0,
+            first: 2,
+            last: 2,
+            acquisition: Acquisition {
+                node: 1,
+                delivery_count: 1,
+                expires_at: None,
+            },
+        });
+        let mut held = AcquisitionMap::new();
+        let _stored = held.insert(crate::consumer::TopicName::from("orders"), one);
+        assert_eq!(
+            share_acquisition_metadata_bytes(&held).await,
+            acquisition_storage_bytes("orders").saturating_mul(2)
         );
     }
 
