@@ -9727,7 +9727,7 @@ fn reserve_len<T>(items: &mut Vec<T>, count: usize) {
     }
 }
 
-fn index_produce_groups(
+async fn index_produce_groups(
     groups: &[(Arc<str>, i32, Vec<Pending>)],
     scratch: &mut ProduceGroupScratch,
 ) {
@@ -9762,22 +9762,28 @@ fn index_produce_groups(
     }
     scratch.topic_slots.clear();
     reserve_len(&mut scratch.topics, groups.len());
+    let mut walked = 0usize;
     for (index, (topic, _, _)) in groups.iter().enumerate() {
         if let Some(&slot) = scratch.topic_slots.get(topic.as_ref()) {
             if let Some(parts) = scratch.parts.get_mut(slot) {
                 parts.push(index);
             }
-            continue;
+        } else {
+            let slot = scratch.topics.len();
+            scratch.topics.push(index);
+            if scratch.parts.len() == slot {
+                scratch.parts.push(Vec::new());
+            }
+            if let Some(parts) = scratch.parts.get_mut(slot) {
+                parts.push(index);
+            }
+            let _ = scratch.topic_slots.insert(Arc::clone(topic), slot);
         }
-        let slot = scratch.topics.len();
-        scratch.topics.push(index);
-        if scratch.parts.len() == slot {
-            scratch.parts.push(Vec::new());
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
         }
-        if let Some(parts) = scratch.parts.get_mut(slot) {
-            parts.push(index);
-        }
-        let _ = scratch.topic_slots.insert(Arc::clone(topic), slot);
     }
 }
 
@@ -9857,7 +9863,7 @@ async fn encode_produce_body_async(
     }
     buf.put_i16(acks);
     buf.put_i32(timeout_ms);
-    index_produce_groups(groups, groups_scratch);
+    index_produce_groups(groups, groups_scratch).await;
     crate::protocol::buf::put_array_len(buf, flexible, Some(groups_scratch.topics.len()))?;
     if version >= 13 && topic_ids.len() > 1 {
         fill_topic_ids(topic_ids, &mut groups_scratch.topic_ids);
@@ -10612,6 +10618,17 @@ mod tests {
             .build()
             .unwrap_or_else(|error| panic!("{error}"));
         runtime.block_on(group_pending(batch, scratch))
+    }
+
+    fn index_produce_groups_now(
+        groups: &[(Arc<str>, i32, Vec<Pending>)],
+        scratch: &mut ProduceGroupScratch,
+    ) {
+        let runtime = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap_or_else(|error| panic!("{error}"));
+        runtime.block_on(index_produce_groups(groups, scratch));
     }
 
     #[test]
@@ -12475,6 +12492,35 @@ mod tests {
     }
 
     #[tokio::test(flavor = "current_thread")]
+    async fn indexing_many_produce_groups_does_not_hold_the_caller() {
+        // 500_000 topics: recording each name held the caller 482ms.
+        let groups: Vec<(Arc<str>, i32, Vec<Pending>)> = (0..500_000)
+            .map(|index| (Arc::<str>::from(format!("topic-{index}")), 0, Vec::new()))
+            .collect();
+        let mut scratch = ProduceGroupScratch::default();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = index_produce_groups(&groups, &mut scratch) => {
+                assert_eq!(scratch.topics.len(), 500_000);
+                assert_eq!(scratch.topics.first().copied(), Some(0));
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "indexing produce topics held the caller for {elapsed:?}"
+        );
+        let orders: Arc<str> = Arc::from("orders");
+        let alias: Arc<str> = Arc::from("orders");
+        let aliased = vec![(Arc::clone(&orders), 0, Vec::new()), (alias, 3, Vec::new())];
+        let mut scratch = ProduceGroupScratch::default();
+        index_produce_groups(&aliased, &mut scratch).await;
+        assert_eq!(scratch.topics, vec![0]);
+        assert_eq!(scratch.parts.first().map(Vec::as_slice), Some(&[0, 1][..]));
+    }
+
+    #[tokio::test(flavor = "current_thread")]
     async fn checking_many_solicited_acks_does_not_hold_the_caller() {
         // 2_000_000 acknowledgements: checking each one held the caller 2.65s.
         let topic: Arc<str> = Arc::from("orders");
@@ -12901,7 +12947,7 @@ mod tests {
         assert!(scratch.buckets.is_empty());
 
         let mut indexed = ProduceGroupScratch::default();
-        index_produce_groups(&groups, &mut indexed);
+        index_produce_groups_now(&groups, &mut indexed);
         assert_eq!(indexed.topics, vec![0, 2]);
         assert!(indexed.topics.capacity() >= groups.len());
         assert_eq!(indexed.parts.first().map(Vec::as_slice), Some(&[0, 1][..]));
@@ -12909,7 +12955,7 @@ mod tests {
         let topic_capacity = indexed.topics.capacity();
         let part_capacity = indexed.parts.first().map(Vec::capacity).unwrap_or(0);
         assert!(part_capacity >= groups.len());
-        index_produce_groups(&groups, &mut indexed);
+        index_produce_groups_now(&groups, &mut indexed);
         assert_eq!(indexed.topics.capacity(), topic_capacity);
         assert_eq!(
             indexed.parts.first().map(Vec::capacity),
@@ -12921,7 +12967,7 @@ mod tests {
             (Arc::clone(&orders), 0, Vec::new()),
             (Arc::clone(&orders), 2, Vec::new()),
         ];
-        index_produce_groups(&shared, &mut indexed);
+        index_produce_groups_now(&shared, &mut indexed);
         assert_eq!(indexed.topics, vec![0]);
         assert_eq!(
             indexed.parts.first().map(Vec::as_slice),
@@ -12929,7 +12975,7 @@ mod tests {
         );
         let shared_capacity = indexed.parts.first().map(Vec::capacity).unwrap_or(0);
         assert!(shared_capacity >= shared.len());
-        index_produce_groups(&shared, &mut indexed);
+        index_produce_groups_now(&shared, &mut indexed);
         assert_eq!(
             indexed.parts.first().map(Vec::capacity),
             Some(shared_capacity)
@@ -12937,11 +12983,11 @@ mod tests {
 
         let alias = Arc::<str>::from("orders");
         let aliased = vec![(Arc::clone(&orders), 0, Vec::new()), (alias, 3, Vec::new())];
-        index_produce_groups(&aliased, &mut indexed);
+        index_produce_groups_now(&aliased, &mut indexed);
         assert_eq!(indexed.topics, vec![0]);
         assert_eq!(indexed.parts.first().map(Vec::as_slice), Some(&[0, 1][..]));
 
-        index_produce_groups(&[], &mut indexed);
+        index_produce_groups_now(&[], &mut indexed);
         assert!(indexed.topics.is_empty());
         assert_eq!(indexed.parts.first().map(Vec::len), Some(0));
 
