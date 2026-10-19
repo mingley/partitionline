@@ -3055,7 +3055,7 @@ pub enum ShareAcquireMode {
 /// A top-level
 /// ShareAcknowledge `INVALID_REGISTRATION` completes without
 /// retry and does not request Metadata, including when `ErrorMessage`
-/// is set (Java `handleShareAcknowledgeSuccess` has no
+/// is set or empty (Java `handleShareAcknowledgeSuccess` has no
 /// `metadata.requestUpdate`; this is not top-level
 /// `TELEMETRY_TOO_LARGE`). Official Java
 /// `ClusterControlManager` writes this when a BrokerRegistration
@@ -6816,7 +6816,7 @@ impl ShareGroup {
     /// PushTelemetry payload exceeds `clientTelemetryMaxBytes`.
     /// A top-level ShareAcknowledge `INVALID_REGISTRATION`
     /// completes without retry and does not request Metadata,
-    /// including when `ErrorMessage` is set (Java
+    /// including when `ErrorMessage` is set or empty (Java
     /// `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`;
     /// this is not top-level `TELEMETRY_TOO_LARGE`).
     /// Official Java `ClusterControlManager` writes this when a
