@@ -661,7 +661,7 @@ pub async fn assign_sticky_subscribed_cooperative(
         let _ = out.insert(m.clone(), Vec::new());
     }
     let members_by_topic = members_by_topic_cooperative(member_subs).await;
-    let previous = previous_partitions_by_topic(prev);
+    let previous = previous_partitions_by_topic_cooperative(prev).await;
     for (topic, parts) in topics {
         let members = members_by_topic
             .get(topic.as_str())
@@ -889,6 +889,38 @@ fn previous_partitions_by_topic(
                 let mut owners = HashMap::new();
                 let _ = owners.insert(member.as_str(), vec![*partition]);
                 let _ = out.insert(topic.as_str(), owners);
+            }
+        }
+    }
+    out
+}
+
+fn previous_index_chunk() -> usize {
+    8 * 1024
+}
+
+/// [`previous_partitions_by_topic`], yielding while owned partitions are indexed.
+///
+/// Indexing 2,000,000 previous partitions held the caller for 4.49s. Every
+/// partition is still stored under the member that owned it.
+async fn previous_partitions_by_topic_cooperative(
+    prev: &HashMap<String, Vec<(String, i32)>>,
+) -> HashMap<&str, HashMap<&str, Vec<i32>>> {
+    let mut out: HashMap<&str, HashMap<&str, Vec<i32>>> = HashMap::new();
+    for (member, owned) in prev {
+        let mut walked = 0usize;
+        for (topic, partition) in owned {
+            if let Some(owners) = out.get_mut(topic.as_str()) {
+                owners.entry(member.as_str()).or_default().push(*partition);
+            } else {
+                let mut owners = HashMap::new();
+                let _ = owners.insert(member.as_str(), vec![*partition]);
+                let _ = out.insert(topic.as_str(), owners);
+            }
+            walked = walked.saturating_add(1);
+            if walked == previous_index_chunk() {
+                walked = 0;
+                tokio::task::yield_now().await;
             }
         }
     }
@@ -9867,6 +9899,39 @@ mod tests {
         assert_eq!(
             members_by_topic_cooperative(&sample).await,
             members_by_topic(&sample)
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn indexing_many_previous_partitions_does_not_hold_the_caller() {
+        let owned: Vec<(String, i32)> = (0..2_000_000)
+            .map(|index| (format!("topic-{index}"), index))
+            .collect();
+        let mut prev = HashMap::new();
+        let _ = prev.insert("member-1".to_string(), owned);
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = previous_partitions_by_topic_cooperative(&prev) => {}
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        assert!(
+            started.elapsed() < std::time::Duration::from_millis(80),
+            "indexing previous partitions held the caller for {:?}",
+            started.elapsed()
+        );
+        let mut sample = HashMap::new();
+        let _ = sample.insert(
+            "m1".to_string(),
+            vec![
+                ("orders".to_string(), 0),
+                ("orders".to_string(), 1),
+                ("payments".to_string(), 4),
+            ],
+        );
+        let _ = sample.insert("m2".to_string(), vec![("orders".to_string(), 2)]);
+        assert_eq!(
+            previous_partitions_by_topic_cooperative(&sample).await,
+            previous_partitions_by_topic(&sample)
         );
     }
 
