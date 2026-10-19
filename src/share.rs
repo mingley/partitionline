@@ -3165,6 +3165,14 @@ pub enum ShareAcquireMode {
 /// `GroupMetadataManager` writes this when a consumer-group member
 /// first subscribes a topic regex that is not a valid regular expression.
 /// A top-level
+/// ShareAcknowledge `REBOOTSTRAP_REQUIRED` completes without
+/// retry and does not request Metadata, including when `ErrorMessage`
+/// is set (Java `handleShareAcknowledgeSuccess` has no
+/// `metadata.requestUpdate`; this is not top-level
+/// `INVALID_REGULAR_EXPRESSION`). Official Java
+/// `KafkaApis` writes this when an ApiVersions request carries a
+/// cluster id or node id that does not match the local broker.
+/// A top-level
 /// ShareAcknowledge `SHARE_SESSION_LIMIT_REACHED` completes without
 /// retry and does not request Metadata, including when `ErrorMessage`
 /// is set or empty (Java `handleShareAcknowledgeSuccess` has no
@@ -7042,6 +7050,14 @@ impl ShareGroup {
     /// Official Java `GroupMetadataManager` writes this when a
     /// consumer-group member first subscribes a topic regex that is
     /// not a valid regular expression.
+    /// A top-level ShareAcknowledge `REBOOTSTRAP_REQUIRED`
+    /// completes without retry and does not request Metadata,
+    /// including when `ErrorMessage` is set (Java
+    /// `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`;
+    /// this is not top-level `INVALID_REGULAR_EXPRESSION`).
+    /// Official Java `KafkaApis` writes this when an ApiVersions
+    /// request carries a cluster id or node id that does not match
+    /// the local broker.
     /// Top-level `SHARE_SESSION_LIMIT_REACHED`
     /// completes without retry and advances the session epoch (Java
     /// `ShareSessionHandler.handleResponse` `nextEpoch`), including

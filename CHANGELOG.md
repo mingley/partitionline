@@ -663,6 +663,12 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `metadata.requestUpdate`; this is not top-level
   `VOTER_NOT_FOUND`). Official Java `GroupMetadataManager`
   writes this when a consumer-group member first subscribes a topic regex that is not a valid regular expression.
+  A top-level ShareAcknowledge `REBOOTSTRAP_REQUIRED` completes
+  without retry and does not request Metadata, including when
+  `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+  `metadata.requestUpdate`; this is not top-level
+  `INVALID_REGULAR_EXPRESSION`). Official Java `KafkaApis`
+  writes this when an ApiVersions request carries a cluster id or node id that does not match the local broker.
   A piggybacked ShareFetch
   `AcknowledgeErrorMessage` that is empty uses
   `ShareFetch acknowledgement {topic}-{partition}`. A piggybacked
