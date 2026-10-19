@@ -7807,8 +7807,8 @@ impl Admin {
             .ok_or_else(|| Error::Unsupported("broker does not support InitProducerId".into()))?;
         let txn_timeout_ms = crate::consumer::duration_millis_i32(timeout);
         let refs: Vec<&str> = ids.iter().map(String::as_str).collect();
-        let mut pending: Vec<usize> = (0..ids.len()).collect();
-        let mut out: Vec<Option<(i64, i16)>> = vec![None; ids.len()];
+        let mut out: Vec<Option<(i64, i16)>> = open_result_slots(ids.len()).await;
+        let mut pending = pending_indexes(ids.len()).await;
         let mut attempt = 0u32;
         while !pending.is_empty() {
             if Instant::now() >= deadline {
@@ -8227,8 +8227,8 @@ impl Admin {
         })?;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
-        let mut out: Vec<Option<TransactionState>> = vec![None; ids.len()];
-        let mut pending: Vec<usize> = (0..ids.len()).collect();
+        let mut out: Vec<Option<TransactionState>> = open_result_slots(ids.len()).await;
+        let mut pending = pending_indexes(ids.len()).await;
         loop {
             let by_node = self.txn_coord_nodes(ids, &pending, deadline).await?;
             let mut nodes: Vec<i32> = by_node.keys().copied().collect();
@@ -9653,8 +9653,8 @@ impl Admin {
         })?;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
-        let mut out: Vec<Option<(i64, i16)>> = vec![None; records.len()];
-        let mut pending: Vec<usize> = (0..records.len()).collect();
+        let mut out: Vec<Option<(i64, i16)>> = open_result_slots(records.len()).await;
+        let mut pending = pending_indexes(records.len()).await;
         loop {
             if pending.is_empty() {
                 break;
@@ -10010,8 +10010,9 @@ impl Admin {
             .ok_or_else(|| Error::protocol("ListOffsets deadline overflow"))?;
         let mut attempt = 0u32;
         let isolation = isolation.as_i8();
-        let mut out: Vec<Option<crate::OffsetAndTimestamp>> = vec![None; queries.len()];
-        let mut pending: Vec<usize> = (0..queries.len()).collect();
+        let mut out: Vec<Option<crate::OffsetAndTimestamp>> =
+            open_result_slots(queries.len()).await;
+        let mut pending = pending_indexes(queries.len()).await;
         loop {
             if Instant::now() >= deadline {
                 return Err(Error::Timeout);
@@ -10877,8 +10878,9 @@ impl Admin {
         })?;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
-        let mut out: Vec<Option<DescribeProducersPartition>> = vec![None; partitions.len()];
-        let mut pending: Vec<usize> = (0..partitions.len()).collect();
+        let mut out: Vec<Option<DescribeProducersPartition>> =
+            open_result_slots(partitions.len()).await;
+        let mut pending = pending_indexes(partitions.len()).await;
         let pin_broker = broker_id.is_some();
         loop {
             if pending.is_empty() {
@@ -12271,8 +12273,8 @@ impl Admin {
         })?;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
-        let mut out: Vec<Option<DescribedConsumerGroup>> = vec![None; ids.len()];
-        let mut pending: Vec<usize> = (0..ids.len()).collect();
+        let mut out: Vec<Option<DescribedConsumerGroup>> = open_result_slots(ids.len()).await;
+        let mut pending = pending_indexes(ids.len()).await;
         loop {
             let by_node = self.group_coord_nodes(ids, &pending, deadline).await?;
             let mut nodes: Vec<i32> = by_node.keys().copied().collect();
@@ -12431,8 +12433,8 @@ impl Admin {
         })?;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
-        let mut out: Vec<Option<DescribedGroup>> = vec![None; ids.len()];
-        let mut pending: Vec<usize> = (0..ids.len()).collect();
+        let mut out: Vec<Option<DescribedGroup>> = open_result_slots(ids.len()).await;
+        let mut pending = pending_indexes(ids.len()).await;
         loop {
             let by_node = self.group_coord_nodes(ids, &pending, deadline).await?;
             let mut nodes: Vec<i32> = by_node.keys().copied().collect();
@@ -12604,7 +12606,8 @@ impl Admin {
             return Ok(Vec::new());
         }
         let deadline = Instant::now() + timeout;
-        let mut out: Vec<Option<ConsumerGroupDescription>> = vec![None; group_ids.len()];
+        let mut out: Vec<Option<ConsumerGroupDescription>> =
+            open_result_slots(group_ids.len()).await;
         let mut classic_pending: Vec<usize> = Vec::new();
         if self.consumer_group_describe_version.is_some() {
             match self
@@ -12893,8 +12896,8 @@ impl Admin {
         })?;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
-        let mut out: Vec<Option<DeletableGroupResult>> = vec![None; ids.len()];
-        let mut pending: Vec<usize> = (0..ids.len()).collect();
+        let mut out: Vec<Option<DeletableGroupResult>> = open_result_slots(ids.len()).await;
+        let mut pending = pending_indexes(ids.len()).await;
         loop {
             let by_node = self.group_coord_nodes(ids, &pending, deadline).await?;
             let mut nodes: Vec<i32> = by_node.keys().copied().collect();
@@ -13382,8 +13385,8 @@ impl Admin {
         })?;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
-        let mut out: Vec<Option<DescribedShareGroup>> = vec![None; ids.len()];
-        let mut pending: Vec<usize> = (0..ids.len()).collect();
+        let mut out: Vec<Option<DescribedShareGroup>> = open_result_slots(ids.len()).await;
+        let mut pending = pending_indexes(ids.len()).await;
         loop {
             let by_node = self.group_coord_nodes(ids, &pending, deadline).await?;
             let mut nodes: Vec<i32> = by_node.keys().copied().collect();
@@ -13610,8 +13613,9 @@ impl Admin {
             .checked_add(timeout)
             .ok_or_else(|| Error::protocol("DescribeShareGroupOffsets deadline overflow"))?;
         let mut attempt = 0u32;
-        let mut out: Vec<Option<DescribedShareGroupOffsetsWithLag>> = vec![None; groups.len()];
-        let mut pending: Vec<usize> = (0..groups.len()).collect();
+        let mut out: Vec<Option<DescribedShareGroupOffsetsWithLag>> =
+            open_result_slots(groups.len()).await;
+        let mut pending = pending_indexes(groups.len()).await;
         loop {
             if Instant::now() >= deadline {
                 return Err(Error::Timeout);
@@ -16677,6 +16681,50 @@ fn first_seen_missing_ids<'a, T: AsRef<str>>(
     need
 }
 
+fn result_slot_chunk() -> usize {
+    8 * 1024
+}
+
+/// Open one empty result slot per item.
+///
+/// The walk pauses every 8,192 slots. Without that pause, opening 2,000,000
+/// group results and their indexes held the caller for 229 milliseconds.
+///
+/// Every slot starts empty.
+async fn open_result_slots<T>(count: usize) -> Vec<Option<T>> {
+    let mut out = Vec::with_capacity(count);
+    let chunk = result_slot_chunk();
+    while out.len() < count {
+        let extra = count.saturating_sub(out.len()).min(chunk);
+        out.extend(std::iter::repeat_with(|| None).take(extra));
+        if out.len() < count {
+            tokio::task::yield_now().await;
+        }
+    }
+    out
+}
+
+/// Number each input once, in order.
+///
+/// The walk pauses every 8,192 indexes. Without that pause, numbering
+/// 2,000,000 inputs was part of the 229 millisecond group-result hold.
+///
+/// Index 0 stays first.
+async fn pending_indexes(count: usize) -> Vec<usize> {
+    let mut pending = Vec::with_capacity(count);
+    let mut next = 0usize;
+    let chunk = result_slot_chunk();
+    while next < count {
+        let end = next.saturating_add(chunk).min(count);
+        pending.extend(next..end);
+        next = end;
+        if next < count {
+            tokio::task::yield_now().await;
+        }
+    }
+    pending
+}
+
 fn topic_record_chunk() -> usize {
     8 * 1024
 }
@@ -17392,6 +17440,29 @@ mod tests {
         let need =
             topics_missing_leaders(&known, [("orders", 0), ("orders", 1), ("payments", 0)]).await;
         assert_eq!(need, vec!["orders"]);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn opening_many_group_result_slots_does_not_hold_the_caller() {
+        use crate::protocol::admin::DescribedConsumerGroup;
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = async {
+                let out: Vec<Option<DescribedConsumerGroup>> = open_result_slots(2_000_000).await;
+                let pending = pending_indexes(out.len()).await;
+                let _stored = (out, pending);
+            } => {}
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        assert!(
+            started.elapsed() < std::time::Duration::from_millis(80),
+            "opening group result slots held the caller for {:?}",
+            started.elapsed()
+        );
+        let sample: Vec<Option<DescribedConsumerGroup>> = open_result_slots(3).await;
+        assert_eq!(sample.len(), 3);
+        assert!(sample.iter().all(Option::is_none));
+        assert_eq!(pending_indexes(3).await, vec![0, 1, 2]);
     }
 
     #[tokio::test(flavor = "current_thread")]

@@ -71,6 +71,7 @@ These walks include:
 - listing and grouping group and transaction coordinators
 - dropping cached topic metadata before a refresh
 - placing assigned fetches and collecting topic names for metadata
+- opening one result slot, and its index, for each item in an admin batch
 
 ## Outcomes and shutdown
 
