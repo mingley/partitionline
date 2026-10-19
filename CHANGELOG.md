@@ -562,7 +562,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   writes this when AlterPartition completes a reassignment and the leader changes.
   A top-level ShareAcknowledge `OFFSET_MOVED_TO_TIERED_STORAGE` completes
   without retry and does not request Metadata, including when
-  `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+  `ErrorMessage` is set or empty (Java `handleShareAcknowledgeSuccess` has no
   `metadata.requestUpdate`; this is not top-level
   `NEW_LEADER_ELECTED`). Official Java `ReplicaManager`
   writes this when a follower fetch offset is below `localLogStartOffset`
