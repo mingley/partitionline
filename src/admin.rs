@@ -28,7 +28,7 @@ use crate::protocol::acl::{
     encode_delete_acls_request, encode_describe_acls_request,
 };
 use crate::protocol::admin::{
-    decode_allocate_producer_ids_response, decode_alter_client_quotas_response,
+    decode_allocate_producer_ids_response, decode_alter_client_quotas_response_cooperative,
     decode_alter_configs_resource_results_cooperative,
     decode_alter_partition_reassignments_response_data,
     decode_alter_replica_log_dirs_response_cooperative,
@@ -7470,7 +7470,8 @@ impl Admin {
                 }
                 Err(e) => return Err(e),
             };
-            let (results, ..) = decode_alter_client_quotas_response(&mut body.clone(), version)?;
+            let (results, ..) =
+                decode_alter_client_quotas_response_cooperative(&mut body.clone(), version).await?;
             if results
                 .iter()
                 .any(|r| r.error_code == error::NOT_CONTROLLER)
@@ -19997,6 +19998,73 @@ mod tests {
                 .first()
                 .and_then(|item| item.error_message.as_deref()),
             Some("busy")
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn decoding_many_altered_quotas_does_not_hold_the_caller() {
+        let results: Vec<ClientQuotaAlterationResult> = (0..200_000)
+            .map(|index| ClientQuotaAlterationResult {
+                error_code: 0,
+                error_message: None,
+                entity: vec![ClientQuotaEntity {
+                    entity_type: "client-id".to_string(),
+                    name: Some(format!("client-{index}")),
+                }],
+            })
+            .collect();
+        let mut body = bytes::BytesMut::new();
+        crate::protocol::admin::encode_alter_client_quotas_response(&mut body, 1, &results)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let started = std::time::Instant::now();
+        tokio::select! {
+            decoded = decode_alter_client_quotas_response_cooperative(&mut body, 1) => {
+                let (decoded, throttle) = decoded.unwrap_or_else(|error| panic!("{error}"));
+                assert_eq!(throttle, 0);
+                assert_eq!(decoded.len(), 200_000);
+                assert_eq!(
+                    decoded.first().and_then(|item| item.entity.first()).and_then(|item| item.name.as_deref()),
+                    Some("client-0")
+                );
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "decoding altered quotas held the caller for {elapsed:?}"
+        );
+        let sample = vec![ClientQuotaAlterationResult {
+            error_code: 41,
+            error_message: Some("busy".to_string()),
+            entity: vec![ClientQuotaEntity {
+                entity_type: "user".to_string(),
+                name: Some("alice".to_string()),
+            }],
+        }];
+        let mut encoded = bytes::BytesMut::new();
+        crate::protocol::admin::encode_alter_client_quotas_response(&mut encoded, 1, &sample)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let mut once = encoded.clone();
+        let mut paced = encoded;
+        let sync = crate::protocol::admin::decode_alter_client_quotas_response(&mut once, 1)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let coop = decode_alter_client_quotas_response_cooperative(&mut paced, 1)
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(sync, coop);
+        assert_eq!(
+            coop.0
+                .first()
+                .and_then(|item| item.error_message.as_deref()),
+            Some("busy")
+        );
+        assert_eq!(
+            coop.0
+                .first()
+                .and_then(|item| item.entity.first())
+                .and_then(|item| item.name.as_deref()),
+            Some("alice")
         );
     }
 
