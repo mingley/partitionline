@@ -141,6 +141,15 @@ impl<'a> SeenTopics<'a> {
     }
 }
 
+/// One Metadata topic on the caller. Applying 2,000,000 topics held the caller for 4748ms.
+async fn pause_topic_apply(walked: &mut usize) {
+    *walked = walked.saturating_add(1);
+    if *walked == 8 * 1024 {
+        *walked = 0;
+        tokio::task::yield_now().await;
+    }
+}
+
 /// Snapshot of brokers and partition leaders from Metadata.
 #[derive(Debug, Clone, Default)]
 pub(crate) struct Cluster {
@@ -170,6 +179,7 @@ impl Cluster {
     /// A reliable response does not replace a cached leader with an older
     /// epoch from a current-leader update.
     /// Applying 2,000,000 brokers held the caller for 2789ms. A broker host is still stored.
+    /// Applying 2,000,000 topics held the caller for 4748ms. A topic name is still stored.
     pub(crate) async fn apply_image(&mut self, md: &MetadataResponse, version: i16) {
         self.controller_id = (md.controller_id >= 0).then_some(md.controller_id);
         let mut walked = 0usize;
@@ -201,8 +211,10 @@ impl Cluster {
         // cannot repeat, so that response skips the set.
         let lone_topic = md.topics.len() <= 1;
         let mut seen_topics = SeenTopics::new(md.topics.len());
+        let mut topics_walked = 0usize;
         for t in &md.topics {
             let Some(name) = t.name.as_ref() else {
+                pause_topic_apply(&mut topics_walked).await;
                 continue;
             };
             if t.error_code != 0 {
@@ -216,6 +228,7 @@ impl Cluster {
                 {
                     self.invalidate_topic(name);
                 }
+                pause_topic_apply(&mut topics_walked).await;
                 continue;
             }
             // A refresh that names the same leaders, epochs, and topic id
@@ -234,6 +247,7 @@ impl Cluster {
                 if !lone_topic {
                     seen_topics.insert(name);
                 }
+                pause_topic_apply(&mut topics_walked).await;
                 continue;
             }
             // A new topic id is a deleted-and-recreated topic. Its epochs
@@ -286,11 +300,15 @@ impl Cluster {
                     let _removed = self.leader_epochs.remove(name.as_str());
                     let _removed = self.topic_fetched_at.remove(name.as_str());
                 }
+                pause_topic_apply(&mut topics_walked).await;
                 continue;
             }
             let new_len = match usize::try_from(max_idx.saturating_add(1)) {
                 Ok(n) => n,
-                Err(_) => continue,
+                Err(_) => {
+                    pause_topic_apply(&mut topics_walked).await;
+                    continue;
+                }
             };
             let mut leaders = if let Some(existing) = self.leaders.get_mut(name.as_str()) {
                 std::mem::take(existing)
@@ -458,6 +476,7 @@ impl Cluster {
                 seen_topics.insert(name);
             }
             self.decided_scratch = decided;
+            pause_topic_apply(&mut topics_walked).await;
         }
     }
 
@@ -893,6 +912,79 @@ mod tests {
             paced.brokers.get(&5).map(String::as_str),
             Some("10.0.0.8:9093")
         );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn applying_many_topics_does_not_hold_the_caller() {
+        use crate::protocol::api::TopicMetadata;
+        let topics: Vec<TopicMetadata> = (0..2_000_000)
+            .map(|index| {
+                let mut topic_id = [0u8; 16];
+                topic_id[..4].copy_from_slice(&u32::try_from(index).unwrap_or(0).to_le_bytes());
+                TopicMetadata {
+                    error_code: 0,
+                    name: Some(format!("topic-{index}")),
+                    topic_id,
+                    is_internal: false,
+                    partitions: Vec::new(),
+                    topic_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+                }
+            })
+            .collect();
+        let mut md = MetadataResponse::blank();
+        md.topics = topics;
+        let mut cluster = Cluster::default();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            () = cluster.apply_image(&md, 12) => {}
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        assert!(
+            started.elapsed() < std::time::Duration::from_millis(80),
+            "applying metadata topics held the caller for {:?}",
+            started.elapsed()
+        );
+        use crate::protocol::api::PartitionMetadata;
+        let mut topic_id = [0u8; 16];
+        topic_id[0] = 9;
+        let mut sample = MetadataResponse::blank();
+        sample.topics = vec![
+            TopicMetadata {
+                error_code: 0,
+                name: Some("orders".into()),
+                topic_id: [0; 16],
+                is_internal: false,
+                partitions: vec![PartitionMetadata {
+                    error_code: 0,
+                    partition_index: 0,
+                    leader_id: 4,
+                    leader_epoch: 1,
+                    replica_nodes: Vec::new(),
+                    isr_nodes: Vec::new(),
+                    offline_replicas: Vec::new(),
+                }],
+                topic_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+            },
+            TopicMetadata {
+                error_code: 0,
+                name: Some("empty".into()),
+                topic_id,
+                is_internal: false,
+                partitions: Vec::new(),
+                topic_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+            },
+        ];
+        let mut paced = Cluster::default();
+        paced.apply_image(&sample, 12).await;
+        assert_eq!(
+            paced
+                .leaders
+                .get("orders")
+                .and_then(|slots| slots.first().copied()),
+            Some(4)
+        );
+        assert!(paced.leaders.get("empty").is_none());
+        assert_eq!(paced.topic_ids.get("empty").copied(), Some(topic_id));
     }
 
     #[tokio::test(flavor = "current_thread")]
