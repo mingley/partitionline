@@ -30,7 +30,7 @@ use crate::protocol::acl::{
 use crate::protocol::admin::{
     decode_allocate_producer_ids_response, decode_alter_client_quotas_response,
     decode_alter_configs_resource_results, decode_alter_partition_reassignments_response_data,
-    decode_alter_replica_log_dirs_response, decode_alter_share_group_offsets_response,
+    decode_alter_replica_log_dirs_response, decode_alter_share_group_offsets_response_cooperative,
     decode_alter_user_scram_credentials_response, decode_assign_replicas_to_dirs_response,
     decode_consumer_group_describe_response_cooperative, decode_create_delegation_token_response,
     decode_create_partitions_response, decode_create_topics_response_cooperative,
@@ -13524,7 +13524,8 @@ impl Admin {
                 }
                 Err(e) => return Err(e),
             };
-            let result = decode_alter_share_group_offsets_response(&mut body.clone())?;
+            let result =
+                decode_alter_share_group_offsets_response_cooperative(&mut body.clone()).await?;
             if error::coordinator_retriable(result.error_code) {
                 // 14/15/16: FindCoordinator, then the new group coordinator.
                 self.group_coord = None;
@@ -19259,6 +19260,75 @@ mod tests {
             coop.tokens.first().map(|item| item.hmac.as_slice()),
             Some([9, 8].as_slice())
         );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn decoding_many_altered_share_offsets_does_not_hold_the_caller() {
+        let partitions: Vec<AlteredShareGroupOffsetsPartition> = (0..1_000_000)
+            .map(|index| AlteredShareGroupOffsetsPartition {
+                partition_index: index,
+                error_code: 0,
+                error_message: None,
+            })
+            .collect();
+        let mut resp = AlteredShareGroupOffsets::new(0);
+        resp.topics = vec![AlteredShareGroupOffsetsTopic {
+            topic_name: "orders".to_string(),
+            topic_id: [1; 16],
+            partitions,
+        }];
+        let mut body = bytes::BytesMut::new();
+        crate::protocol::admin::encode_alter_share_group_offsets_response(&mut body, &resp)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let started = std::time::Instant::now();
+        tokio::select! {
+            decoded = decode_alter_share_group_offsets_response_cooperative(&mut body) => {
+                let decoded = decoded.unwrap_or_else(|error| panic!("{error}"));
+                assert_eq!(decoded.throttle_time_ms, 0);
+                assert_eq!(
+                    decoded.topics.first().map(|item| item.partitions.len()),
+                    Some(1_000_000)
+                );
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "decoding altered share offsets held the caller for {elapsed:?}"
+        );
+        let mut resp = AlteredShareGroupOffsets::new(7);
+        resp.throttle_time_ms = 4;
+        resp.error_message = Some("group".to_string());
+        resp.topics = vec![AlteredShareGroupOffsetsTopic {
+            topic_name: "orders".to_string(),
+            topic_id: [3; 16],
+            partitions: vec![AlteredShareGroupOffsetsPartition {
+                partition_index: 2,
+                error_code: 5,
+                error_message: Some("busy".to_string()),
+            }],
+        }];
+        let mut encoded = bytes::BytesMut::new();
+        crate::protocol::admin::encode_alter_share_group_offsets_response(&mut encoded, &resp)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let mut once = encoded.clone();
+        let mut paced = encoded;
+        let sync = crate::protocol::admin::decode_alter_share_group_offsets_response(&mut once)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let coop = decode_alter_share_group_offsets_response_cooperative(&mut paced)
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(sync, coop);
+        assert_eq!(coop.error_message.as_deref(), Some("group"));
+        assert_eq!(
+            coop.topics
+                .first()
+                .and_then(|item| item.partitions.first())
+                .and_then(|item| item.error_message.as_deref()),
+            Some("busy")
+        );
+        assert_eq!(coop.topics.first().map(|item| item.topic_id), Some([3; 16]));
     }
 
     #[tokio::test(flavor = "current_thread")]
