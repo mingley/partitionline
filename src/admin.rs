@@ -42,7 +42,7 @@ use crate::protocol::admin::{
     decode_describe_topic_partitions_response, decode_describe_transactions_response,
     decode_describe_user_scram_credentials_response, decode_expire_delegation_token_response,
     decode_get_telemetry_subscriptions_response, decode_incremental_alter_configs_resource_results,
-    decode_list_config_resources_response, decode_list_groups_response,
+    decode_list_config_resources_response, decode_list_groups_response_cooperative,
     decode_list_partition_reassignments_response, decode_list_transactions_response,
     decode_push_telemetry_response, decode_renew_delegation_token_response,
     decode_share_group_describe_response, decode_unregister_broker_response,
@@ -12424,7 +12424,8 @@ impl Admin {
                 timeout,
             )
             .await?;
-        let (resp, ..) = decode_list_groups_response(&mut body.clone(), version)?;
+        let (resp, ..) =
+            decode_list_groups_response_cooperative(&mut body.clone(), version).await?;
         if resp.error_code != 0 {
             return Err(Error::broker(resp.error_code, "ListGroups"));
         }
@@ -17956,6 +17957,67 @@ mod tests {
         assert_eq!(sync.1, coop.1);
         assert_eq!(coop.0.len(), 2);
         assert_eq!(coop.0[1].error_message, None);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn decoding_many_listed_groups_does_not_hold_the_caller() {
+        let groups: Vec<ListedGroup> = (0..200_000)
+            .map(|index| ListedGroup {
+                group_id: format!("group-{index}"),
+                protocol_type: "consumer".to_string(),
+                group_state: "Stable".to_string(),
+                group_type: "Classic".to_string(),
+            })
+            .collect();
+        let resp = crate::protocol::admin::ListGroupsResponse {
+            error_code: 0,
+            groups,
+        };
+        let mut body = bytes::BytesMut::new();
+        crate::protocol::admin::encode_list_groups_response(&mut body, 5, &resp)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let started = std::time::Instant::now();
+        tokio::select! {
+            decoded = decode_list_groups_response_cooperative(&mut body, 5) => {
+                let (decoded, throttle) = decoded.unwrap_or_else(|error| panic!("{error}"));
+                assert_eq!(throttle, 0);
+                assert_eq!(decoded.groups.len(), 200_000);
+                assert_eq!(decoded.groups.first().map(|item| item.group_id.as_str()), Some("group-0"));
+                assert_eq!(decoded.groups.first().map(|item| item.group_state.as_str()), Some("Stable"));
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "decoding listed groups held the caller for {elapsed:?}"
+        );
+        let small = crate::protocol::admin::ListGroupsResponse {
+            error_code: 7,
+            groups: vec![ListedGroup {
+                group_id: "orders".to_string(),
+                protocol_type: "consumer".to_string(),
+                group_state: "Stable".to_string(),
+                group_type: "Classic".to_string(),
+            }],
+        };
+        let mut encoded = bytes::BytesMut::new();
+        crate::protocol::admin::encode_list_groups_response(&mut encoded, 5, &small)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let mut once = encoded.clone();
+        let mut paced = encoded;
+        let sync = crate::protocol::admin::decode_list_groups_response(&mut once, 5)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let coop = decode_list_groups_response_cooperative(&mut paced, 5)
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(sync.0, coop.0);
+        assert_eq!(sync.1, coop.1);
+        assert_eq!(coop.0.error_code, 7);
+        assert_eq!(
+            coop.0.groups.first().map(|item| item.group_type.as_str()),
+            Some("Classic")
+        );
     }
 
     #[tokio::test(flavor = "current_thread")]

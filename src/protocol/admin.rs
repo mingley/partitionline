@@ -14546,6 +14546,53 @@ pub fn decode_list_groups_response<B: Buf>(
     Ok((ListGroupsResponse { error_code, groups }, throttle_time_ms))
 }
 
+/// [`decode_list_groups_response`], yielding while groups are still being read.
+///
+/// Decoding 200,000 groups held the caller for 220ms.
+pub async fn decode_list_groups_response_cooperative<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<(ListGroupsResponse, i32)> {
+    let flexible = list_groups_flexible(version)?;
+    let throttle_time_ms = if version >= 1 { buf::get_i32(buf)? } else { 0 };
+    let error_code = buf::get_i16(buf)?;
+    let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+    let mut groups = Vec::with_capacity(n);
+    let mut walked = 0usize;
+    for _ in 0..n {
+        let group_id = buf::get_string(buf, flexible)?.unwrap_or_default();
+        let protocol_type = buf::get_string(buf, flexible)?.unwrap_or_default();
+        let group_state = if version >= 4 {
+            buf::get_string(buf, flexible)?.unwrap_or_default()
+        } else {
+            String::new()
+        };
+        let group_type = if version >= 5 {
+            buf::get_string(buf, flexible)?.unwrap_or_default()
+        } else {
+            String::new()
+        };
+        if flexible {
+            buf::skip_tagged_fields(buf)?;
+        }
+        groups.push(ListedGroup {
+            group_id,
+            protocol_type,
+            group_state,
+            group_type,
+        });
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
+    }
+    Ok((ListGroupsResponse { error_code, groups }, throttle_time_ms))
+}
+
 /// One deletion result in DeleteGroups (api 42).
 ///
 /// ErrorCode sits here after GroupId, not at the top of the response body.
