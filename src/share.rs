@@ -3135,6 +3135,14 @@ pub enum ShareAcquireMode {
 /// `AddVoterHandler` writes this when the AddRaftVoter request
 /// names a voter id that is already part of the set of voters.
 /// A top-level
+/// ShareAcknowledge `VOTER_NOT_FOUND` completes without
+/// retry and does not request Metadata, including when `ErrorMessage`
+/// is set (Java `handleShareAcknowledgeSuccess` has no
+/// `metadata.requestUpdate`; this is not top-level
+/// `DUPLICATE_VOTER`). Official Java
+/// `RemoveVoterHandler` writes this when RemoveRaftVoter cannot
+/// remove the named voter from the current voter set.
+/// A top-level
 /// ShareAcknowledge `SHARE_SESSION_LIMIT_REACHED` completes without
 /// retry and does not request Metadata, including when `ErrorMessage`
 /// is set or empty (Java `handleShareAcknowledgeSuccess` has no
@@ -6979,6 +6987,14 @@ impl ShareGroup {
     /// Official Java `AddVoterHandler` writes this when the
     /// AddRaftVoter request names a voter id that is already part of
     /// the set of voters.
+    /// A top-level ShareAcknowledge `VOTER_NOT_FOUND`
+    /// completes without retry and does not request Metadata,
+    /// including when `ErrorMessage` is set (Java
+    /// `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`;
+    /// this is not top-level `DUPLICATE_VOTER`).
+    /// Official Java `RemoveVoterHandler` writes this when
+    /// RemoveRaftVoter cannot remove the named voter from the current
+    /// voter set.
     /// Top-level `SHARE_SESSION_LIMIT_REACHED`
     /// completes without retry and advances the session epoch (Java
     /// `ShareSessionHandler.handleResponse` `nextEpoch`), including
