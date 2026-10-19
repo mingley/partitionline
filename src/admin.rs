@@ -9591,32 +9591,42 @@ impl Admin {
     ) -> Result<(Vec<(usize, i64, i16)>, Vec<usize>)> {
         let (resp, ..) = decode_delete_records_topics_response(&mut body.clone(), version)?;
         let mut by_key = index_deleted_records(resp).await;
-        let mut done = Vec::new();
-        let mut retry = Vec::new();
+        let mut order = Vec::with_capacity(idxs.len());
+        let mut walked = 0usize;
         for &i in idxs {
             let (tp, _) = records
                 .get(i)
                 .ok_or_else(|| Error::protocol("missing DeleteRecords query"))?;
-            let (low, err) = by_key
-                .get_mut(tp.topic.as_str())
-                .and_then(|parts| parts.get_mut(&tp.partition))
-                .and_then(VecDeque::pop_front)
-                .ok_or_else(|| {
-                    Error::protocol(format!(
-                        "DeleteRecords missing {}-{}",
-                        tp.topic, tp.partition
-                    ))
-                })?;
+            order.push((i, tp.topic.as_str(), tp.partition));
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+        let popped = pop_deleted_records(&mut by_key, &order).await;
+        let mut done = Vec::new();
+        let mut retry = Vec::new();
+        let mut walked = 0usize;
+        for ((i, topic, partition), part) in order.into_iter().zip(popped) {
+            let (low, err) = part.ok_or_else(|| {
+                Error::protocol(format!("DeleteRecords missing {topic}-{partition}"))
+            })?;
             if err == 0 {
                 done.push((i, low, err));
-                continue;
-            }
-            let e = Error::broker(err, format!("{}-{}", tp.topic, tp.partition));
-            if e.is_retriable() {
-                self.discard_node_conn(node).await;
-                retry.push(i);
             } else {
-                done.push((i, low, err));
+                let e = Error::broker(err, format!("{topic}-{partition}"));
+                if e.is_retriable() {
+                    self.discard_node_conn(node).await;
+                    retry.push(i);
+                } else {
+                    done.push((i, low, err));
+                }
+            }
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
             }
         }
         Ok((done, retry))
@@ -15725,10 +15735,34 @@ pub(crate) async fn index_listed_offsets(
     by_key
 }
 
+type DeletedRecordIndex = HashMap<String, HashMap<i32, VecDeque<(i64, i16)>>>;
+
+async fn pop_deleted_records(
+    indexed: &mut DeletedRecordIndex,
+    order: &[(usize, &str, i32)],
+) -> Vec<Option<(i64, i16)>> {
+    let mut out = Vec::with_capacity(order.len());
+    let mut walked = 0usize;
+    for (_, topic, partition) in order {
+        out.push(
+            indexed
+                .get_mut(*topic)
+                .and_then(|parts| parts.get_mut(partition))
+                .and_then(VecDeque::pop_front),
+        );
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    out
+}
+
 async fn index_deleted_records(
     topics: Vec<crate::protocol::admin::DeletedRecordsTopic>,
-) -> HashMap<String, HashMap<i32, VecDeque<(i64, i16)>>> {
-    let mut by_key: HashMap<String, HashMap<i32, VecDeque<(i64, i16)>>> = HashMap::new();
+) -> DeletedRecordIndex {
+    let mut by_key: DeletedRecordIndex = HashMap::new();
     let mut walked = 0usize;
     for topic in topics {
         let parts = by_key.entry(topic.topic).or_default();
@@ -20109,6 +20143,60 @@ mod tests {
             Some((9, 3))
         );
         assert!(popped[2].is_none());
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn matching_many_deleted_records_does_not_hold_the_caller() {
+        // 2_000_000 partitions: taking each deleted-record result held the caller 1.06s.
+        let partitions: Vec<crate::protocol::admin::DeletedRecordsPartition> = (0..2_000_000)
+            .map(|index| crate::protocol::admin::DeletedRecordsPartition {
+                partition: index,
+                low_watermark: 1,
+                error_code: 0,
+            })
+            .collect();
+        let topics = vec![crate::protocol::admin::DeletedRecordsTopic {
+            topic: "orders".to_string(),
+            partitions,
+        }];
+        let mut indexed = index_deleted_records(topics).await;
+        let order: Vec<(usize, &str, i32)> = (0..2_000_000i32)
+            .map(|index| (index as usize, "orders", index))
+            .collect();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            popped = pop_deleted_records(&mut indexed, &order) => {
+                assert_eq!(popped.len(), 2_000_000);
+                assert_eq!(popped.first().copied().flatten(), Some((1, 0)));
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "matching deleted records held the caller for {elapsed:?}"
+        );
+        let repeated = vec![crate::protocol::admin::DeletedRecordsTopic {
+            topic: "orders".to_string(),
+            partitions: vec![
+                crate::protocol::admin::DeletedRecordsPartition {
+                    partition: 0,
+                    low_watermark: 10,
+                    error_code: 0,
+                },
+                crate::protocol::admin::DeletedRecordsPartition {
+                    partition: 0,
+                    low_watermark: 20,
+                    error_code: 3,
+                },
+            ],
+        }];
+        let mut indexed = index_deleted_records(repeated).await;
+        let order = [(0usize, "orders", 0), (1, "orders", 0), (2, "missing", 1)];
+        let popped = pop_deleted_records(&mut indexed, &order).await;
+        assert_eq!(popped[0], Some((10, 0)));
+        assert_eq!(popped[1], Some((20, 3)));
+        assert_eq!(popped[2], None);
     }
 
     #[tokio::test(flavor = "current_thread")]
