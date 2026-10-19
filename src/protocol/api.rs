@@ -1146,6 +1146,82 @@ pub(crate) fn decode_top_level_node_endpoints<B: Buf>(
     Ok(endpoints)
 }
 
+/// [`decode_top_level_node_endpoints`], yielding while broker hosts are read.
+///
+/// Decoding 2,000,000 endpoints held the caller for 700ms. A broker host is still read.
+pub(crate) async fn decode_top_level_node_endpoints_cooperative<B: Buf>(
+    buf: &mut B,
+    include: bool,
+) -> Result<Vec<NodeEndpoint>> {
+    let count = buf::usize_from_u32(buf::get_unsigned_varint(buf)?)?;
+    if count > buf.remaining() {
+        return Err(Error::protocol(
+            "tagged field count exceeds remaining bytes",
+        ));
+    }
+    let mut endpoints = Vec::new();
+    let mut previous: Option<u32> = None;
+    for _ in 0..count {
+        let tag = buf::get_unsigned_varint(buf)?;
+        if previous.is_some_and(|seen| tag <= seen) {
+            return Err(Error::protocol(
+                "tagged fields must be in ascending tag order",
+            ));
+        }
+        previous = Some(tag);
+        let size = buf::usize_from_u32(buf::get_unsigned_varint(buf)?)?;
+        buf::need(buf, size)?;
+        if include && tag == 0 {
+            endpoints = decode_node_endpoints_limited(buf, size).await?;
+        } else {
+            buf.advance(size);
+        }
+    }
+    Ok(endpoints)
+}
+
+/// Compact NodeEndpoints that occupy exactly `size` bytes of `buf`.
+async fn decode_node_endpoints_limited<B: Buf>(
+    buf: &mut B,
+    size: usize,
+) -> Result<Vec<NodeEndpoint>> {
+    let floor = buf
+        .remaining()
+        .checked_sub(size)
+        .ok_or_else(|| Error::protocol("short NodeEndpoints"))?;
+    let count = buf::get_array_len(buf, true)?.unwrap_or(0);
+    if buf.remaining() < floor {
+        return Err(Error::protocol("NodeEndpoints leftover"));
+    }
+    let mut out = Vec::with_capacity(count);
+    let mut walked = 0usize;
+    for _ in 0..count {
+        let node_id = buf::get_i32(buf)?;
+        let host = buf::get_string(buf, true)?.unwrap_or_default();
+        let port = buf::get_i32(buf)?;
+        let rack = buf::get_string(buf, true)?;
+        buf::skip_tagged_fields(buf)?;
+        if buf.remaining() < floor {
+            return Err(Error::protocol("NodeEndpoints leftover"));
+        }
+        out.push(NodeEndpoint {
+            node_id,
+            host,
+            port,
+            rack,
+        });
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    if buf.remaining() != floor {
+        return Err(Error::protocol("NodeEndpoints leftover"));
+    }
+    Ok(out)
+}
+
 /// One partition in a Metadata response.
 ///
 /// [`Self::new`] is Java `MetadataResponse.PartitionMetadata` (Java
@@ -4887,7 +4963,7 @@ pub(crate) async fn decode_produce_acks_into_cooperative(
     }
     let throttle_time_ms = if version >= 1 { buf::get_i32(buf)? } else { 0 };
     let endpoints = if flexible {
-        decode_top_level_node_endpoints(buf, version >= 10)?
+        decode_top_level_node_endpoints_cooperative(buf, version >= 10).await?
     } else {
         Vec::new()
     };

@@ -3256,7 +3256,8 @@ pub(crate) fn decode_fetch_response_raw<B: Buf>(
 /// [`decode_fetch_response_raw`], yielding while topics and partitions are decoded.
 ///
 /// Decoding 200,000 topics held the caller for 254ms. A single topic still
-/// yields every 8,192 partitions.
+/// yields every 8,192 partitions. Decoding 2,000,000 endpoints held the caller
+/// for 700ms. A broker host is still read.
 pub(crate) async fn decode_fetch_response_raw_cooperative<B: Buf>(
     buf: &mut B,
     version: i16,
@@ -3281,7 +3282,7 @@ pub(crate) async fn decode_fetch_response_raw_cooperative<B: Buf>(
     let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     if n == 0 {
         let endpoints = if flexible {
-            super::api::decode_top_level_node_endpoints(buf, version >= 16)?
+            super::api::decode_top_level_node_endpoints_cooperative(buf, version >= 16).await?
         } else {
             Vec::new()
         };
@@ -3372,7 +3373,7 @@ pub(crate) async fn decode_fetch_response_raw_cooperative<B: Buf>(
         }
     }
     let endpoints = if flexible {
-        super::api::decode_top_level_node_endpoints(buf, version >= 16)?
+        super::api::decode_top_level_node_endpoints_cooperative(buf, version >= 16).await?
     } else {
         Vec::new()
     };
@@ -3602,6 +3603,54 @@ mod tests {
     use crate::protocol::records::Record;
     use bytes::{Buf, BufMut, Bytes};
     use std::collections::{HashMap, HashSet};
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn decoding_many_fetch_endpoints_does_not_hold_the_caller() {
+        use crate::protocol::api::{encode_top_level_node_endpoints, NodeEndpoint};
+        let endpoints: Vec<NodeEndpoint> = (0..2_000_000i32)
+            .map(|index| NodeEndpoint::new(index, "h", 9092, None))
+            .collect();
+        let mut body = BytesMut::new();
+        body.put_i32(0);
+        body.put_i16(0);
+        body.put_i32(7);
+        buf::put_array_len(&mut body, true, Some(0)).unwrap();
+        encode_top_level_node_endpoints(&mut body, true, &endpoints).unwrap();
+        let mut cursor = body.freeze();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = decode_fetch_response_raw_cooperative(&mut cursor, 16, Vec::new()) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        assert!(
+            started.elapsed() < std::time::Duration::from_millis(80),
+            "decoding fetch endpoints held the caller for {:?}",
+            started.elapsed()
+        );
+        let one = [NodeEndpoint::new(2, "broker-2", 9092, None)];
+        let mut sample = BytesMut::new();
+        sample.put_i32(3);
+        sample.put_i16(0);
+        sample.put_i32(9);
+        buf::put_array_len(&mut sample, true, Some(0)).unwrap();
+        encode_top_level_node_endpoints(&mut sample, true, &one).unwrap();
+        let mut sync_cur = sample.clone().freeze();
+        let mut coop_cur = sample.freeze();
+        let sync = decode_fetch_response_raw(&mut sync_cur, 16, Vec::new()).unwrap();
+        let coop = decode_fetch_response_raw_cooperative(&mut coop_cur, 16, Vec::new())
+            .await
+            .unwrap();
+        assert_eq!(sync.3, coop.3);
+        assert_eq!(
+            coop.3.first().map(|endpoint| endpoint.host.as_str()),
+            Some("broker-2")
+        );
+        assert_eq!(coop.3.first().map(|endpoint| endpoint.port), Some(9092));
+        assert_eq!(coop.5, 9);
+        assert_eq!(coop.6, 3);
+        assert!(!sync_cur.has_remaining());
+        assert!(!coop_cur.has_remaining());
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn decoding_many_fetch_partitions_does_not_hold_the_caller() {
