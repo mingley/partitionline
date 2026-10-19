@@ -4576,6 +4576,10 @@ impl Consumer {
         self.cluster.invalidate_topic(topic);
     }
 
+    pub(crate) async fn invalidate_topics_cooperative(&mut self, topics: &[String]) {
+        self.cluster.invalidate_topics_cooperative(topics).await;
+    }
+
     pub(crate) async fn drop_node(&mut self, node: i32) {
         if let Some(mut conn) = self.conns.remove(&node) {
             conn.close();
@@ -6743,9 +6747,7 @@ impl Consumer {
                 .await;
                 let cached = self.cached_fetch_nodes(completed).await;
                 let nodes = self.fetch_redial_nodes(cached);
-                for topic in &topics {
-                    self.cluster.invalidate_topic(topic);
-                }
+                self.cluster.invalidate_topics_cooperative(&topics).await;
                 let refreshed = self
                     .refresh_metadata_while_dialing(&topics, &nodes, deadline)
                     .await;

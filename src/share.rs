@@ -3788,9 +3788,9 @@ impl ShareGroup {
         // Capture addresses before leaders are dropped. A leader that moves is
         // opened on the next fetch after metadata and CurrentLeader patches.
         let targets = self.share_dial_targets(&nodes).await;
-        for t in &self.topics {
-            self.consumer.invalidate_topic(t);
-        }
+        self.consumer
+            .invalidate_topics_cooperative(&self.topics)
+            .await;
         if targets.is_empty() {
             return self
                 .consumer
