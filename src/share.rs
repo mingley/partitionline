@@ -3025,7 +3025,7 @@ pub enum ShareAcquireMode {
 /// A top-level
 /// ShareAcknowledge `UNKNOWN_SUBSCRIPTION_ID` completes without
 /// retry and does not request Metadata, including when `ErrorMessage`
-/// is set (Java `handleShareAcknowledgeSuccess` has no
+/// is set or empty (Java `handleShareAcknowledgeSuccess` has no
 /// `metadata.requestUpdate`; this is not top-level
 /// `UNKNOWN_CONTROLLER_ID`). Official Java
 /// `ClientMetricsManager` writes this when a PushTelemetry subscription
@@ -6754,7 +6754,7 @@ impl ShareGroup {
     /// controller ID is not known.
     /// A top-level ShareAcknowledge `UNKNOWN_SUBSCRIPTION_ID`
     /// completes without retry and does not request Metadata,
-    /// including when `ErrorMessage` is set (Java
+    /// including when `ErrorMessage` is set or empty (Java)
     /// `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`;
     /// this is not top-level `UNKNOWN_CONTROLLER_ID`).
     /// Official Java `ClientMetricsManager` writes this when a
