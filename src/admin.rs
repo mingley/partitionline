@@ -37,7 +37,8 @@ use crate::protocol::admin::{
     decode_delete_groups_response_cooperative, decode_delete_records_topics_response,
     decode_delete_share_group_offsets_response, decode_delete_topics_response_cooperative,
     decode_describe_client_quotas_response, decode_describe_cluster_response,
-    decode_describe_configs_response_cooperative, decode_describe_delegation_token_response,
+    decode_describe_configs_response_cooperative,
+    decode_describe_delegation_token_response_cooperative,
     decode_describe_groups_response_cooperative, decode_describe_log_dirs_response_cooperative,
     decode_describe_producers_response_cooperative,
     decode_describe_share_group_offsets_response_versioned_cooperative,
@@ -14985,7 +14986,7 @@ impl Admin {
                 timeout,
             )
             .await?;
-        decode_describe_delegation_token_response(&mut body.clone(), version)
+        decode_describe_delegation_token_response_cooperative(&mut body.clone(), version).await
     }
 
     /// Describe visible delegation tokens (Java
@@ -19177,6 +19178,87 @@ mod tests {
             Some("10.0.0.1")
         );
         assert_eq!(coop.0.get(1).map(|item| item.error_code), Some(7));
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn decoding_many_delegation_tokens_does_not_hold_the_caller() {
+        let tokens: Vec<DescribedDelegationToken> = (0..200_000)
+            .map(|index| DescribedDelegationToken {
+                principal_type: "User".to_string(),
+                principal_name: format!("user-{index}"),
+                token_requester_principal_type: "User".to_string(),
+                token_requester_principal_name: "admin".to_string(),
+                issue_timestamp: 1,
+                expiry_timestamp: 2,
+                max_timestamp: 3,
+                token_id: format!("token-{index}"),
+                hmac: vec![1, 2, 3, 4],
+                renewers: Vec::new(),
+            })
+            .collect();
+        let resp = DescribeDelegationTokenResponse::new(0, tokens);
+        let mut body = bytes::BytesMut::new();
+        crate::protocol::admin::encode_describe_delegation_token_response(&mut body, 3, &resp)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let started = std::time::Instant::now();
+        tokio::select! {
+            decoded = decode_describe_delegation_token_response_cooperative(&mut body, 3) => {
+                let decoded = decoded.unwrap_or_else(|error| panic!("{error}"));
+                assert_eq!(decoded.error_code, 0);
+                assert_eq!(decoded.tokens.len(), 200_000);
+                assert_eq!(
+                    decoded.tokens.first().map(|item| item.token_id.as_str()),
+                    Some("token-0")
+                );
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "decoding delegation tokens held the caller for {elapsed:?}"
+        );
+        let token = DescribedDelegationToken {
+            principal_type: "User".to_string(),
+            principal_name: "alice".to_string(),
+            token_requester_principal_type: "User".to_string(),
+            token_requester_principal_name: "admin".to_string(),
+            issue_timestamp: 1,
+            expiry_timestamp: 2,
+            max_timestamp: 3,
+            token_id: "token-a".to_string(),
+            hmac: vec![9, 8],
+            renewers: vec![DescribedDelegationTokenRenewer {
+                principal_type: "User".to_string(),
+                principal_name: "bob".to_string(),
+            }],
+        };
+        let mut resp = DescribeDelegationTokenResponse::new(7, vec![token]);
+        resp.throttle_time_ms = 4;
+        let mut encoded = bytes::BytesMut::new();
+        crate::protocol::admin::encode_describe_delegation_token_response(&mut encoded, 3, &resp)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let mut once = encoded.clone();
+        let mut paced = encoded;
+        let sync = crate::protocol::admin::decode_describe_delegation_token_response(&mut once, 3)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let coop = decode_describe_delegation_token_response_cooperative(&mut paced, 3)
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(sync, coop);
+        assert_eq!(coop.error_code, 7);
+        assert_eq!(coop.throttle_time_ms, 4);
+        assert_eq!(
+            coop.tokens
+                .first()
+                .and_then(|item| item.renewers.first())
+                .map(|item| item.principal_name.as_str()),
+            Some("bob")
+        );
+        assert_eq!(
+            coop.tokens.first().map(|item| item.hmac.as_slice()),
+            Some([9, 8].as_slice())
+        );
     }
 
     #[tokio::test(flavor = "current_thread")]
