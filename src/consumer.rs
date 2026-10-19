@@ -1223,8 +1223,25 @@ impl TopicPartition {
         self.partition
     }
 
-    pub(crate) fn list_from(pairs: &[(String, i32)]) -> Vec<Self> {
-        pairs.iter().map(Self::from).collect()
+    /// Copy topic names into topic partitions for a rebalance callback.
+    ///
+    /// The walk pauses every 8,192 partitions. Without that pause, copying
+    /// 2,000,000 rebalance partitions held the caller for 152 milliseconds.
+    ///
+    /// Each name is copied. A repeated partition is copied again. Order stays
+    /// the same.
+    pub(crate) async fn list_from_cooperative(pairs: &[(String, i32)]) -> Vec<Self> {
+        let mut out = Vec::with_capacity(pairs.len());
+        let mut walked = 0usize;
+        for pair in pairs {
+            out.push(Self::from(pair));
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+        out
     }
 }
 
@@ -12595,6 +12612,37 @@ mod tests {
     use std::collections::{HashMap, HashSet};
 
     use super::*;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn copying_many_rebalance_partitions_does_not_hold_the_caller() {
+        let pairs: Vec<(String, i32)> = (0..2_000_000)
+            .map(|partition| ("orders".to_string(), partition))
+            .collect();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = TopicPartition::list_from_cooperative(&pairs) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "copying rebalance partitions held the caller for {elapsed:?}"
+        );
+        let sample = vec![
+            ("orders".to_string(), 1),
+            ("payments".to_string(), 2),
+            ("orders".to_string(), 1),
+        ];
+        let copied = TopicPartition::list_from_cooperative(&sample).await;
+        assert_eq!(
+            copied,
+            vec![
+                TopicPartition::new("orders", 1),
+                TopicPartition::new("payments", 2),
+                TopicPartition::new("orders", 1),
+            ]
+        );
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn cloning_many_topic_partitions_does_not_hold_the_caller() {

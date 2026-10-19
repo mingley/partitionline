@@ -4518,10 +4518,9 @@ impl ConsumerGroup {
             }
         }
         if !revoked.is_empty() || !added_tps.is_empty() {
-            self.cfg.rebalance.call(
-                &TopicPartition::list_from(&revoked),
-                &TopicPartition::list_from(&added_tps),
-            );
+            let revoked_parts = TopicPartition::list_from_cooperative(&revoked).await;
+            let added_parts = TopicPartition::list_from_cooperative(&added_tps).await;
+            self.cfg.rebalance.call(&revoked_parts, &added_parts);
         }
         Ok(revoked)
     }

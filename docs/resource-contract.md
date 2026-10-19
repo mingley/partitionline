@@ -94,6 +94,7 @@ These walks include:
 - comparing assigned topic ids with that snapshot
 - collecting commits for revoked partitions
 - writing list-offset resets into an assignment, and dropping slots that are still waiting
+- copying revoked and assigned partitions before a rebalance callback
 - copying a changed consumer or share heartbeat subscription or assignment
 - opening one result slot, and its index, for each item in an admin batch
 - copying transactional ids before fencing producers
