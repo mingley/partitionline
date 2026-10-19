@@ -13,7 +13,7 @@
 //! StreamsGroupHeartbeat or StreamsGroupDescribe RPC.
 
 use crate::journal::{self, Journal};
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, HashSet};
 use std::path::Path;
 use std::sync::Arc;
 
@@ -996,9 +996,10 @@ fn take_str(input: &mut &[u8]) -> Result<String, Error> {
 fn take_ids(input: &mut &[u8]) -> Result<Vec<i32>, Error> {
     let count = take_u32(input)?;
     let mut ids = Vec::new();
+    let mut seen = HashSet::new();
     for _ in 0..count {
         let id = take_i32(input)?;
-        if id < 0 || ids.contains(&id) {
+        if id < 0 || !seen.insert(id) {
             return Err(Error::InvalidRequest);
         }
         ids.push(id);
@@ -1062,6 +1063,31 @@ mod tests {
             topology_epoch: Some(3),
             task_count: Some(4),
         }
+    }
+
+    #[test]
+    fn reading_many_stream_task_ids_does_not_hold_the_caller() {
+        // 20_000 task ids: scanning the list for each one held the caller 718ms.
+        let count = 20_000u32;
+        let mut bytes = Vec::with_capacity(4 + usize::try_from(count).unwrap_or(0) * 4);
+        bytes.extend_from_slice(&count.to_be_bytes());
+        for id in 0..count {
+            bytes.extend_from_slice(&i32::try_from(id).unwrap_or(0).to_be_bytes());
+        }
+        let mut input = bytes.as_slice();
+        let started = std::time::Instant::now();
+        let ids = take_ids(&mut input).unwrap_or_else(|_| panic!("task ids"));
+        let elapsed = started.elapsed();
+        assert_eq!(ids.len(), usize::try_from(count).unwrap_or(0));
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "reading stream task ids held the caller for {elapsed:?}"
+        );
+        let mut duplicate = Vec::new();
+        duplicate.extend_from_slice(&2u32.to_be_bytes());
+        duplicate.extend_from_slice(&1i32.to_be_bytes());
+        duplicate.extend_from_slice(&1i32.to_be_bytes());
+        assert!(take_ids(&mut duplicate.as_slice()).is_err());
     }
 
     #[test]
