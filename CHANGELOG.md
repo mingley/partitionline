@@ -2158,6 +2158,12 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `UNKNOWN_TOPIC_ID`; this is not top-level
   `INCONSISTENT_CLUSTER_ID`). Official Java `TransactionCoordinator`
   writes this when the transactional id has no transaction state.
+  Top-level `INELIGIBLE_REPLICA` still fails that poll
+  without Metadata, including when `ErrorMessage` is set (Java
+  `handleShareFetchSuccess` only `requestUpdate`s for top-level
+  `UNKNOWN_TOPIC_ID`; this is not top-level
+  `TRANSACTIONAL_ID_NOT_FOUND`). Official Java `ReplicationControlManager`
+  writes this when AlterPartition specifies an ISR containing an ineligible replica.
   A non-empty
   throwable partition or top-level ShareFetch `ErrorMessage` is
   preferred; empty uses `ShareFetch {topic}-{partition}` or

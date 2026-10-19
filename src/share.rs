@@ -2433,6 +2433,13 @@ pub enum ShareAcquireMode {
 /// `INCONSISTENT_CLUSTER_ID`). Official Java
 /// `TransactionCoordinator` writes this when the transactional id has
 /// no transaction state.
+/// Top-level `INELIGIBLE_REPLICA` still fails that poll
+/// and does not request Metadata, including when `ErrorMessage` is
+/// set (Java `handleShareFetchSuccess` only `requestUpdate`s for
+/// `UNKNOWN_TOPIC_ID`; this is not top-level
+/// `TRANSACTIONAL_ID_NOT_FOUND`). Official Java
+/// `ReplicationControlManager` writes this when AlterPartition
+/// specifies an ISR containing an ineligible replica.
 /// Top-level
 /// `SHARE_SESSION_LIMIT_REACHED` resets the share session and does
 /// not request Metadata, including when `ErrorMessage` is set or
@@ -5687,6 +5694,13 @@ impl ShareGroup {
     /// `INCONSISTENT_CLUSTER_ID`). Official Java
     /// `TransactionCoordinator` writes this when the transactional id
     /// has no transaction state. Top-level
+    /// `INELIGIBLE_REPLICA` still fails that poll without
+    /// Metadata, including when `ErrorMessage` is set (Java
+    /// `handleShareFetchSuccess` only `requestUpdate`s for
+    /// `UNKNOWN_TOPIC_ID`; this is not top-level
+    /// `TRANSACTIONAL_ID_NOT_FOUND`). Official Java
+    /// `ReplicationControlManager` writes this when AlterPartition
+    /// specifies an ISR containing an ineligible replica. Top-level
     /// `SHARE_SESSION_LIMIT_REACHED` resets the share session and
     /// does not request Metadata, including when `ErrorMessage` is
     /// set or empty (Java `handleShareFetchSuccess` only
