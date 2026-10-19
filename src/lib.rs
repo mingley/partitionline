@@ -3451,7 +3451,7 @@
 //! `PRINCIPAL_DESERIALIZATION_FAILURE`). Official Java `KafkaRaftClient`
 //! writes this when the requested snapshot id does not exist. Top-level
 //! `POSITION_OUT_OF_RANGE` still fails that poll without
-//! Metadata, including when `ErrorMessage` is set (Java
+//! Metadata, including when `ErrorMessage` is set or empty (Java
 //! `handleShareFetchSuccess` only `requestUpdate`s for
 //! `UNKNOWN_TOPIC_ID`; this is not top-level
 //! `SNAPSHOT_NOT_FOUND`). Official Java `KafkaRaftClient`
