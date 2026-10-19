@@ -3605,7 +3605,7 @@
 //! writes this when a VOTE or BEGIN_QUORUM_EPOCH request carries a voter key that does not match the local key.
 //! Top-level
 //! `DUPLICATE_VOTER` still fails that poll without
-//! Metadata, including when `ErrorMessage` is set (Java
+//! Metadata, including when `ErrorMessage` is set or empty (Java
 //! `handleShareFetchSuccess` only `requestUpdate`s for
 //! `UNKNOWN_TOPIC_ID`; this is not top-level
 //! `INVALID_VOTER_KEY`). Official Java `AddVoterHandler`

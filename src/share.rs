@@ -2553,7 +2553,7 @@ pub enum ShareAcquireMode {
 /// request carries a voter key that does not match the local key.
 /// Top-level `DUPLICATE_VOTER` still fails that poll
 /// and does not request Metadata, including when `ErrorMessage` is
-/// set (Java `handleShareFetchSuccess` only `requestUpdate`s for
+/// set or empty (Java `handleShareFetchSuccess` only `requestUpdate`s for
 /// `UNKNOWN_TOPIC_ID`; this is not top-level
 /// `INVALID_VOTER_KEY`). Official Java
 /// `AddVoterHandler` writes this when the AddRaftVoter request
@@ -6076,7 +6076,7 @@ impl ShareGroup {
     /// match the local key.
     /// Top-level
     /// `DUPLICATE_VOTER` still fails that poll without
-    /// Metadata, including when `ErrorMessage` is set (Java
+    /// Metadata, including when `ErrorMessage` is set or empty (Java
     /// `handleShareFetchSuccess` only `requestUpdate`s for
     /// `UNKNOWN_TOPIC_ID`; this is not top-level
     /// `INVALID_VOTER_KEY`). Official Java
