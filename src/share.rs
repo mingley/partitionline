@@ -4324,7 +4324,7 @@ impl ShareGroup {
                         return Err(error);
                     }
                 };
-            self.consumer.apply_node_endpoints(&endpoints);
+            self.consumer.apply_node_endpoints(&endpoints).await;
             if !body.is_empty() {
                 park_fetched_topics(&mut self.spare_fetched, fetched);
                 park_fetched_topics(&mut self.spare_fetched, retained);
@@ -5005,7 +5005,7 @@ impl ShareGroup {
                     return Err(error);
                 }
             };
-        self.consumer.apply_node_endpoints(&endpoints);
+        self.consumer.apply_node_endpoints(&endpoints).await;
         if !body.is_empty() {
             self.reset_node_session(node).await;
             return Err(Error::protocol("trailing ShareAcknowledge response bytes"));
@@ -5571,7 +5571,7 @@ impl ShareGroup {
                     return Err(error);
                 }
             };
-        self.consumer.apply_node_endpoints(&endpoints);
+        self.consumer.apply_node_endpoints(&endpoints).await;
         if !body.is_empty() {
             self.reset_node_session(node).await;
             return Err(Error::protocol("trailing ShareAcknowledge response bytes"));

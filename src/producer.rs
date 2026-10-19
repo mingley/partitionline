@@ -7870,7 +7870,17 @@ impl Worker {
             return Ok(());
         };
         if !endpoints.is_empty() {
-            self.shared.cluster.lock().apply_node_endpoints(&endpoints);
+            let mut start = 0usize;
+            while start < endpoints.len() {
+                let end = start.saturating_add(8 * 1024).min(endpoints.len());
+                if let Some(slice) = endpoints.get(start..end) {
+                    self.shared.cluster.lock().apply_node_endpoints(slice);
+                }
+                start = end;
+                if start < endpoints.len() {
+                    tokio::task::yield_now().await;
+                }
+            }
         }
         let mut slots = std::mem::take(&mut self.ack_slots);
         slots.clear();

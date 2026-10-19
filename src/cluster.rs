@@ -649,17 +649,41 @@ impl Cluster {
         if endpoints.is_empty() {
             return;
         }
-        for e in endpoints {
-            if self
-                .brokers
-                .get(&e.node_id)
-                .is_some_and(|current| stored_address_matches(current, &e.host, e.port))
-            {
-                continue;
+        for endpoint in endpoints {
+            self.apply_one_endpoint(endpoint);
+        }
+    }
+
+    /// [`Self::apply_node_endpoints`], yielding while hosts are stored.
+    ///
+    /// Applying 2,000,000 endpoints held the caller for 2155ms. A broker host is still stored.
+    pub(crate) async fn apply_node_endpoints_cooperative(&mut self, endpoints: &[NodeEndpoint]) {
+        if endpoints.is_empty() {
+            return;
+        }
+        let mut walked = 0usize;
+        for endpoint in endpoints {
+            self.apply_one_endpoint(endpoint);
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
             }
-            if let Some(address) = usable_broker_address(e.node_id, &e.host, e.port) {
-                let _prev = self.brokers.insert(e.node_id, address);
-            }
+        }
+    }
+
+    fn apply_one_endpoint(&mut self, endpoint: &NodeEndpoint) {
+        if self
+            .brokers
+            .get(&endpoint.node_id)
+            .is_some_and(|current| stored_address_matches(current, &endpoint.host, endpoint.port))
+        {
+            return;
+        }
+        if let Some(address) =
+            usable_broker_address(endpoint.node_id, &endpoint.host, endpoint.port)
+        {
+            let _prev = self.brokers.insert(endpoint.node_id, address);
         }
     }
 
@@ -876,6 +900,40 @@ mod tests {
     use super::*;
     use crate::error;
     use crate::protocol::api::{Broker, MetadataResponse};
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn applying_many_endpoints_does_not_hold_the_caller() {
+        use crate::protocol::api::NodeEndpoint;
+        let endpoints: Vec<NodeEndpoint> = (0..2_000_000i32)
+            .map(|index| NodeEndpoint::new(index, "h", 9092, None))
+            .collect();
+        let mut cluster = Cluster::default();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            () = cluster.apply_node_endpoints_cooperative(&endpoints) => {}
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        assert!(
+            started.elapsed() < std::time::Duration::from_millis(80),
+            "applying node endpoints held the caller for {:?}",
+            started.elapsed()
+        );
+        let sample = [
+            NodeEndpoint::new(4, "127.0.0.1", 9092, None),
+            NodeEndpoint::new(5, "10.0.0.8", 9093, None),
+            NodeEndpoint::new(4, "127.0.0.1", 9092, None),
+        ];
+        let mut paced = Cluster::default();
+        paced.apply_node_endpoints_cooperative(&sample).await;
+        assert_eq!(
+            paced.brokers.get(&4).map(String::as_str),
+            Some("127.0.0.1:9092")
+        );
+        assert_eq!(
+            paced.brokers.get(&5).map(String::as_str),
+            Some("10.0.0.8:9093")
+        );
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn applying_many_brokers_does_not_hold_the_caller() {

@@ -4548,11 +4548,13 @@ impl Consumer {
     }
 
     /// Store Produce/Fetch/Share NodeEndpoints before a CurrentLeader patch.
-    pub(crate) fn apply_node_endpoints(
+    pub(crate) async fn apply_node_endpoints(
         &mut self,
         endpoints: &[crate::protocol::api::NodeEndpoint],
     ) {
-        self.cluster.apply_node_endpoints(endpoints);
+        self.cluster
+            .apply_node_endpoints_cooperative(endpoints)
+            .await;
     }
 
     /// Patch one partition leader from a share response. A negative id and an
@@ -7769,7 +7771,9 @@ impl Consumer {
             declared = declared.saturating_add(batch.reserve_hint());
         }
         reserve_fetch_records(out, declared, saw_batch, self.last_fetch_records);
-        self.cluster.apply_node_endpoints(&endpoints);
+        self.cluster
+            .apply_node_endpoints_cooperative(&endpoints)
+            .await;
         self.ensure_cursor_index().await;
         let mut retry = FetchRetry::None;
         // A partition listed twice must not rewind the cursor or deliver twice.
