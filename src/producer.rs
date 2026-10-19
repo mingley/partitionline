@@ -8241,10 +8241,7 @@ impl Worker {
             let remaining = match timeout_remaining(deadline) {
                 Ok(remaining) => remaining,
                 Err(error) => {
-                    let mut set = self.shared.txn_partitions.lock();
-                    for (topic, part) in &added {
-                        forget_txn_part(&mut set, topic, *part);
-                    }
+                    forget_added_txn_parts(&self.shared.txn_partitions, &added).await;
                     return Err(error);
                 }
             };
@@ -8278,10 +8275,7 @@ impl Worker {
             {
                 Ok(b) => b,
                 Err(e) => {
-                    let mut set = self.shared.txn_partitions.lock();
-                    for (topic, part) in &added {
-                        forget_txn_part(&mut set, topic, *part);
-                    }
+                    forget_added_txn_parts(&self.shared.txn_partitions, &added).await;
                     return Err(e);
                 }
             };
@@ -8291,10 +8285,7 @@ impl Worker {
                 {
                     Ok(e) => e,
                     Err(e) => {
-                        let mut set = self.shared.txn_partitions.lock();
-                        for (topic, part) in &added {
-                            forget_txn_part(&mut set, topic, *part);
-                        }
+                        forget_added_txn_parts(&self.shared.txn_partitions, &added).await;
                         return Err(e);
                     }
                 };
@@ -8314,11 +8305,7 @@ impl Worker {
                     continue;
                 }
             }
-            let mut set = self.shared.txn_partitions.lock();
-            for (topic, part) in &added {
-                forget_txn_part(&mut set, topic, *part);
-            }
-            drop(set);
+            forget_added_txn_parts(&self.shared.txn_partitions, &added).await;
             let e = Error::broker(err, "AddPartitionsToTxn");
             self.shared.apply_txn_disposition(
                 classify_add_partitions_error(err, can_handle),
@@ -8662,6 +8649,27 @@ fn push_unsent_txn_partitions(
 fn txn_part_present(map: &TxnPartSet, topic: &Arc<str>, partition: i32) -> bool {
     map.get(topic.as_ref())
         .is_some_and(|parts| parts.contains(&partition))
+}
+
+/// Drop partitions that AddPartitionsToTxn did not accept.
+///
+/// Forgetting 2,000,000 transaction partitions held the caller for 945ms.
+/// A partition is still removed.
+async fn forget_added_txn_parts(set: &parking_lot::Mutex<TxnPartSet>, added: &[(Arc<str>, i32)]) {
+    let mut start = 0usize;
+    while start < added.len() {
+        let end = start.saturating_add(8 * 1024).min(added.len());
+        if let Some(slice) = added.get(start..end) {
+            let mut guard = set.lock();
+            for (topic, part) in slice {
+                forget_txn_part(&mut guard, topic, *part);
+            }
+        }
+        start = end;
+        if start < added.len() {
+            tokio::task::yield_now().await;
+        }
+    }
 }
 
 fn forget_txn_part(map: &mut TxnPartSet, topic: &Arc<str>, partition: i32) {
@@ -12853,6 +12861,43 @@ mod tests {
                 .map(Vec::len),
             Ok(1)
         );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn forgetting_many_txn_partitions_does_not_hold_the_caller() {
+        let topic: Arc<str> = Arc::from("orders");
+        let added: Vec<(Arc<str>, i32)> = (0..2_000_000)
+            .map(|index| (Arc::clone(&topic), index))
+            .collect();
+        let mut set: TxnPartSet = HashMap::new();
+        let mut parts = HashSet::new();
+        for index in 0..2_000_000 {
+            let _ = parts.insert(index);
+        }
+        let _ = set.insert(Arc::clone(&topic), parts);
+        let stored = parking_lot::Mutex::new(set);
+        let started = std::time::Instant::now();
+        tokio::select! {
+            () = forget_added_txn_parts(&stored, &added) => {}
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        assert!(
+            started.elapsed() < std::time::Duration::from_millis(80),
+            "forgetting transaction partitions held the caller for {:?}",
+            started.elapsed()
+        );
+        let orders: Arc<str> = Arc::from("orders");
+        let payments: Arc<str> = Arc::from("payments");
+        let mut sample: TxnPartSet = HashMap::new();
+        remember_txn_part(&mut sample, &orders, 0);
+        remember_txn_part(&mut sample, &orders, 1);
+        remember_txn_part(&mut sample, &payments, 4);
+        let sample_set = parking_lot::Mutex::new(sample);
+        forget_added_txn_parts(&sample_set, &[(Arc::clone(&orders), 0)]).await;
+        let guard = sample_set.lock();
+        assert!(!txn_part_present(&guard, &orders, 0));
+        assert!(txn_part_present(&guard, &orders, 1));
+        assert!(txn_part_present(&guard, &payments, 4));
     }
 
     #[tokio::test(flavor = "current_thread")]
