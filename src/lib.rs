@@ -3874,6 +3874,12 @@
 //! `metadata.requestUpdate`; this is not top-level
 //! `DUPLICATE_BROKER_REGISTRATION`). Official Java `ReplicationControlManager`
 //! writes this when the requested broker id is not currently registered.
+//! Top-level ShareAcknowledge `INCONSISTENT_CLUSTER_ID` completes
+//! without retry and does not request Metadata, including when
+//! `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+//! `metadata.requestUpdate`; this is not top-level
+//! `BROKER_ID_NOT_REGISTERED`). Official Java `ClusterControlManager`
+//! writes this when a broker registration cluster id does not match.
 //! Top-level ShareAcknowledge
 //! `SHARE_SESSION_LIMIT_REACHED` completes without retry and advances
 //! the session epoch (Java `ShareSessionHandler.handleResponse`
