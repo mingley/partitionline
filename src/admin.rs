@@ -6674,7 +6674,7 @@ impl Admin {
             if resp.error_code != 0 {
                 return Err(Error::broker(resp.error_code, "ListPartitionReassignments"));
             }
-            return Ok(flatten_list_reassignments(&resp.topics));
+            return Ok(flatten_list_reassignments(&resp.topics).await);
         }
     }
 
@@ -15695,10 +15695,11 @@ async fn group_list_reassignments(partitions: &[crate::TopicPartition]) -> Vec<(
     groups
 }
 
-fn flatten_list_reassignments(
+async fn flatten_list_reassignments(
     topics: &[crate::protocol::admin::OngoingTopicReassignment],
 ) -> Vec<OngoingReassignment> {
     let mut out = Vec::new();
+    let mut walked = 0usize;
     for t in topics {
         for p in &t.partitions {
             out.push(OngoingReassignment {
@@ -15708,6 +15709,11 @@ fn flatten_list_reassignments(
                 adding_replicas: p.adding_replicas.clone(),
                 removing_replicas: p.removing_replicas.clone(),
             });
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
         }
     }
     out
@@ -19563,6 +19569,53 @@ mod tests {
             elapsed < std::time::Duration::from_millis(80),
             "collecting broker ids held the caller for {elapsed:?}"
         );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn flattening_many_list_reassignments_does_not_hold_the_caller() {
+        use crate::protocol::admin::{OngoingPartitionReassignment, OngoingTopicReassignment};
+        // 2_000_000 partitions: copying each topic name held the caller 231ms.
+        let partitions: Vec<OngoingPartitionReassignment> = (0..2_000_000)
+            .map(OngoingPartitionReassignment::new)
+            .collect();
+        let topics = [OngoingTopicReassignment::new("orders", partitions)];
+        let started = std::time::Instant::now();
+        tokio::select! {
+            flat = flatten_list_reassignments(&topics) => {
+                assert_eq!(flat.len(), 2_000_000);
+                assert_eq!(flat.first().map(|row| row.topic.as_str()), Some("orders"));
+                assert_eq!(flat.first().map(|row| row.partition), Some(0));
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "flattening list reassignments held the caller for {elapsed:?}"
+        );
+        let mut repeated = OngoingPartitionReassignment::new(1);
+        repeated.replicas = vec![2, 3];
+        repeated.adding_replicas = vec![3];
+        repeated.removing_replicas = vec![4];
+        let small = [
+            OngoingTopicReassignment::new(
+                "orders",
+                vec![OngoingPartitionReassignment::new(0), repeated.clone()],
+            ),
+            OngoingTopicReassignment::new("payments", vec![OngoingPartitionReassignment::new(7)]),
+        ];
+        let flat = flatten_list_reassignments(&small).await;
+        assert_eq!(flat.len(), 3);
+        assert_eq!(flat[0].topic, "orders");
+        assert_eq!(flat[0].partition, 0);
+        assert!(flat[0].replicas.is_empty());
+        assert_eq!(flat[1].topic, "orders");
+        assert_eq!(flat[1].replicas, vec![2, 3]);
+        assert_eq!(flat[1].adding_replicas, vec![3]);
+        assert_eq!(flat[1].removing_replicas, vec![4]);
+        assert_eq!(flat[2].topic, "payments");
+        assert_eq!(flat[2].partition, 7);
+        assert_eq!(small[0].partitions[1].replicas, vec![2, 3]);
     }
 
     #[tokio::test(flavor = "current_thread")]
