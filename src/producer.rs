@@ -40,7 +40,7 @@ use crate::protocol::txn::{
     classify_end_txn_error, classify_produce_error, classify_txn_offset_commit_error,
     client_epoch_bump_capable, decode_add_offsets_to_txn_response,
     decode_add_partitions_to_txn_response_cooperative, decode_end_txn_response,
-    decode_txn_offset_commit_response, encode_add_offsets_to_txn_request,
+    decode_txn_offset_commit_response_cooperative, encode_add_offsets_to_txn_request,
     encode_add_partitions_to_txn_borrowed, encode_end_txn_request,
     encode_txn_offset_commit_borrowed, BorrowedTxnOffsetPartition, BorrowedTxnOffsetTopic,
     BorrowedTxnTopic, EndTxnRequest, TransactionResult, TxnErrorDisposition, TxnOffsetCommitMember,
@@ -3633,10 +3633,15 @@ impl Producer {
                     )
                 },
                 timeout_remaining(deadline)?,
-                |body| decode_txn_offset_commit_response(&mut { body }, version),
+                |body| {
+                    Box::pin(async move {
+                        decode_txn_offset_commit_response_cooperative(&mut { body }, version).await
+                    })
+                },
             )
             .await?;
-            let err = decode_txn_offset_commit_response(&mut body.clone(), version)?;
+            let err =
+                decode_txn_offset_commit_response_cooperative(&mut body.clone(), version).await?;
             if err == 0 {
                 break;
             }
@@ -5365,7 +5370,7 @@ async fn group_coord_roundtrip(
     api_version: i16,
     encode_body: impl Fn(&mut BytesMut) -> Result<()>,
     request_timeout: Duration,
-    error_of: impl Fn(&[u8]) -> Result<i16>,
+    error_of: impl for<'a> Fn(&'a [u8]) -> Pin<Box<dyn Future<Output = Result<i16>> + Send + 'a>>,
 ) -> Result<Bytes> {
     let deadline = Instant::now() + request_timeout;
     let find_coord_version = required_find_coordinator(shared.find_coord_version)?;
@@ -5380,7 +5385,7 @@ async fn group_coord_roundtrip(
             timeout_remaining(deadline)?,
         )
         .await?;
-    if !error::coordinator_retriable(error_of(&body)?) {
+    if !error::coordinator_retriable(error_of(&body).await?) {
         return Ok(body);
     }
     let previous = coord.conn.addr().to_string();
@@ -10679,6 +10684,66 @@ mod tests {
         let sync = crate::protocol::txn::decode_add_partitions_to_txn_topics_response(&mut once, 3)
             .unwrap_or_else(|error| panic!("{error}"));
         let coop = crate::protocol::txn::decode_add_partitions_to_txn_topics_response_cooperative(
+            &mut paced, 3,
+        )
+        .await
+        .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(sync, coop);
+        assert_eq!(
+            coop.0.first().map(|item| item.topic.as_str()),
+            Some("orders")
+        );
+        assert_eq!(
+            coop.0
+                .first()
+                .and_then(|item| item.partitions.first())
+                .map(|item| item.error_code),
+            Some(6)
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn decoding_many_txn_offsets_does_not_hold_the_caller() {
+        let topics: Vec<crate::protocol::txn::TxnOffsetCommitResponseTopic> = (0..200_000)
+            .map(|index| crate::protocol::txn::TxnOffsetCommitResponseTopic {
+                topic: format!("topic-{index}"),
+                partitions: vec![crate::protocol::txn::TxnOffsetCommitResponsePartition {
+                    partition: index as i32,
+                    error_code: 0,
+                }],
+            })
+            .collect();
+        let mut body = bytes::BytesMut::new();
+        crate::protocol::txn::encode_txn_offset_commit_topics_response(&mut body, 3, &topics)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let started = std::time::Instant::now();
+        tokio::select! {
+            decoded = decode_txn_offset_commit_response_cooperative(&mut body, 3) => {
+                let decoded = decoded.unwrap_or_else(|error| panic!("{error}"));
+                assert_eq!(decoded, 0);
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "decoding txn offsets held the caller for {elapsed:?}"
+        );
+        let sample = [crate::protocol::txn::TxnOffsetCommitResponseTopic {
+            topic: "orders".to_string(),
+            partitions: vec![crate::protocol::txn::TxnOffsetCommitResponsePartition {
+                partition: 4,
+                error_code: 6,
+            }],
+        }];
+        let mut encoded = bytes::BytesMut::new();
+        crate::protocol::txn::encode_txn_offset_commit_topics_response(&mut encoded, 3, &sample)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let mut once = encoded.clone();
+        let mut paced = encoded;
+        let sync = crate::protocol::txn::decode_txn_offset_commit_topics_response(&mut once, 3)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let coop = crate::protocol::txn::decode_txn_offset_commit_topics_response_cooperative(
             &mut paced, 3,
         )
         .await
