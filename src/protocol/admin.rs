@@ -17492,6 +17492,106 @@ fn describe_share_offsets_request_len<G: ShareOffsetsRequestGroup>(groups: &[G])
     add_describe_len(total, buf::unsigned_varint_size(0))
 }
 
+/// Encode DescribeShareGroupOffsets, yielding while groups are still being written.
+///
+/// Encoding 2,000,000 groups held the caller for 491ms. A group id is still written.
+pub(crate) async fn encode_describe_share_group_offsets_request_refs_cooperative(
+    buf: &mut BytesMut,
+    version: i16,
+    groups: &[&DescribeShareGroupOffsetsGroup],
+) -> Result<()> {
+    share_offsets_version(version)?;
+    encode_describe_share_group_offsets_request_views_cooperative(buf, groups).await
+}
+
+async fn encode_describe_share_group_offsets_request_views_cooperative<
+    G: ShareOffsetsRequestGroup + Sync,
+>(
+    buf: &mut BytesMut,
+    groups: &[G],
+) -> crate::error::Result<()> {
+    let body_start = buf.len();
+    let planned = describe_share_offsets_request_len_cooperative(groups).await?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
+    buf::put_array_len(buf, true, Some(groups.len()))?;
+    let mut walked = 0usize;
+    for group in groups {
+        buf::put_compact_string(buf, Some(group.share_offsets_group_id()))?;
+        let topics = group.share_offsets_topics();
+        buf::put_array_len(buf, true, topics.map(<[_]>::len))?;
+        if let Some(topics) = topics {
+            for topic in topics {
+                buf::put_compact_string(buf, Some(topic.share_offsets_topic_name()))?;
+                let partitions = topic.share_offsets_partitions();
+                buf::put_array_len(buf, true, Some(partitions.len()))?;
+                for partition in partitions {
+                    buf.put_i32(*partition);
+                }
+                buf::put_empty_tagged_fields(buf);
+                walked = walked.saturating_add(1);
+                if walked == 8 * 1024 {
+                    walked = 0;
+                    tokio::task::yield_now().await;
+                }
+            }
+        }
+        buf::put_empty_tagged_fields(buf);
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    buf::put_empty_tagged_fields(buf);
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+    Ok(())
+}
+
+async fn describe_share_offsets_request_len_cooperative<G: ShareOffsetsRequestGroup + Sync>(
+    groups: &[G],
+) -> Result<usize> {
+    let mut total = describe_array_len(true, groups.len())?;
+    let mut walked = 0usize;
+    for group in groups {
+        total = add_describe_len(
+            total,
+            describe_string_len(true, Some(group.share_offsets_group_id()))?,
+        )?;
+        match group.share_offsets_topics() {
+            None => total = add_describe_len(total, buf::unsigned_varint_size(0))?,
+            Some(topics) => {
+                total = add_describe_len(total, describe_array_len(true, topics.len())?)?;
+                for topic in topics {
+                    total = add_describe_len(
+                        total,
+                        describe_string_len(true, Some(topic.share_offsets_topic_name()))?,
+                    )?;
+                    total = add_describe_len(
+                        total,
+                        reassignment_replica_len(Some(topic.share_offsets_partitions()))?,
+                    )?;
+                    total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+                    walked = walked.saturating_add(1);
+                    if walked == 8 * 1024 {
+                        walked = 0;
+                        tokio::task::yield_now().await;
+                    }
+                }
+            }
+        }
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    add_describe_len(total, buf::unsigned_varint_size(0))
+}
+
 /// Decode a DescribeShareGroupOffsets request.
 pub fn decode_describe_share_group_offsets_request<B: Buf>(
     buf: &mut B,
@@ -17750,6 +17850,7 @@ pub fn encode_describe_share_group_offsets_request_versioned(
 }
 
 /// Encode DescribeShareGroupOffsets v0–v1 from groups the caller already owns.
+#[cfg(test)]
 pub(crate) fn encode_describe_share_group_offsets_request_refs(
     buf: &mut BytesMut,
     version: i16,
@@ -26986,6 +27087,41 @@ pub fn decode_remove_raft_voter_response<B: Buf>(
 mod tests {
     use super::*;
     use std::collections::{BTreeSet, HashMap};
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn encoding_many_share_offset_groups_does_not_hold_the_caller() {
+        let groups: Vec<DescribeShareGroupOffsetsGroup> = (0..2_000_000)
+            .map(|index| DescribeShareGroupOffsetsGroup::all(format!("group-{index}")))
+            .collect();
+        let refs: Vec<&DescribeShareGroupOffsetsGroup> = groups.iter().collect();
+        let mut body = bytes::BytesMut::new();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            encoded = encode_describe_share_group_offsets_request_refs_cooperative(
+                &mut body,
+                1,
+                &refs,
+            ) => {
+                encoded.unwrap_or_else(|error| panic!("{error}"));
+            }
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "encoding share offset groups held the caller for {elapsed:?}"
+        );
+        let sample = [DescribeShareGroupOffsetsGroup::all("orders")];
+        let sample_refs = [&sample[0]];
+        let mut once = bytes::BytesMut::new();
+        let mut paced = bytes::BytesMut::new();
+        encode_describe_share_group_offsets_request_refs(&mut once, 1, &sample_refs)
+            .unwrap_or_else(|error| panic!("{error}"));
+        encode_describe_share_group_offsets_request_refs_cooperative(&mut paced, 1, &sample_refs)
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(once, paced);
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn encoding_many_share_group_describes_does_not_hold_the_caller() {
