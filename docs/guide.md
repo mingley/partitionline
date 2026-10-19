@@ -347,6 +347,12 @@ group.leave().await?;
 # }
 ```
 
+Assigning committed offsets walks the assignment in slices of 8,192.
+List-offset resets are written into those slots the same way, and empty
+slots are dropped between slices. The timeout can fire between slices, and
+finished slices are kept. See the
+[resource contract](resource-contract.md#caller-deadlines).
+
 Also: sticky / cooperative-sticky, KIP-848 (`join_consumer` /
 `join_consumer_topics`), share groups (`ShareGroup::join` / `poll` /
 `accept` / `release` / `reject`). Examples: `group`, `cooperative`,

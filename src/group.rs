@@ -4473,23 +4473,9 @@ impl ConsumerGroup {
             if listed.len() != reset_slots.len() {
                 return Err(Error::protocol("ListOffsets returned no reset offset"));
             }
-            for (slot, (tp, offset)) in reset_slots.iter().copied().zip(listed) {
-                let start = crate::consumer::reset_position(offset).ok_or_else(|| {
-                    Error::protocol(format!(
-                        "ListOffsets returned no reset offset for {}-{}",
-                        tp.topic, tp.partition
-                    ))
-                })?;
-                let Some(entry) = starts.get_mut(slot) else {
-                    return Err(Error::protocol(format!(
-                        "ListOffsets returned no reset offset for {}-{}",
-                        tp.topic, tp.partition
-                    )));
-                };
-                *entry = Some((tp.topic, tp.partition, start));
-            }
+            apply_reset_offsets(&mut starts, &reset_slots, listed).await?;
         }
-        let starts: Vec<(String, i32, i64)> = starts.into_iter().flatten().collect();
+        let starts = flatten_reset_starts(starts).await;
         self.consumer.assign_all(&starts).await?;
         if assignment_topic_ids_changed(
             wanted,
@@ -5857,8 +5843,67 @@ fn collect_commit_offsets(
         .collect()
 }
 
+/// Write each ListOffsets reset into its assignment slot.
+///
+/// The walk pauses every 8,192 offsets. Without that pause, applying
+/// 4,000,000 reset offsets held the caller for 342 milliseconds.
+///
+/// A negative broker offset is still an error. Each reset stays in the slot
+/// it was reserved for.
+async fn apply_reset_offsets(
+    starts: &mut [Option<(String, i32, i64)>],
+    reset_slots: &[usize],
+    listed: Vec<(TopicPartition, i64)>,
+) -> Result<()> {
+    let mut walked = 0usize;
+    for (slot, (tp, offset)) in reset_slots.iter().copied().zip(listed) {
+        let start = crate::consumer::reset_position(offset).ok_or_else(|| {
+            Error::protocol(format!(
+                "ListOffsets returned no reset offset for {}-{}",
+                tp.topic, tp.partition
+            ))
+        })?;
+        let Some(entry) = starts.get_mut(slot) else {
+            return Err(Error::protocol(format!(
+                "ListOffsets returned no reset offset for {}-{}",
+                tp.topic, tp.partition
+            )));
+        };
+        *entry = Some((tp.topic, tp.partition, start));
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    Ok(())
+}
+
+/// Drop assignment slots that are still waiting for a reset.
+///
+/// The walk pauses every 8,192 slots. Without that pause, flattening
+/// 4,000,000 reset slots held the caller for 263 milliseconds.
+///
+/// Finished resets stay in order. A slot that is still empty is dropped.
+async fn flatten_reset_starts(starts: Vec<Option<(String, i32, i64)>>) -> Vec<(String, i32, i64)> {
+    let mut out = Vec::with_capacity(starts.len());
+    let mut walked = 0usize;
+    for start in starts {
+        if let Some(start) = start {
+            out.push(start);
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    out
+}
+
 /// A negative position is the reset marker after a topic is recreated.
 /// It is not an offset that can be committed.
+///
 /// Commits for positions that `include` still wants.
 ///
 /// The walk pauses every 8,192 positions. Without that pause, collecting
@@ -10368,6 +10413,57 @@ mod tests {
         let topics = collect_topics(["orders", "payments", "orders"]).unwrap();
         assert_eq!(topics, vec!["orders".to_string(), "payments".to_string()]);
         assert!(collect_topics(Vec::<String>::new()).is_err());
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn applying_many_reset_offsets_does_not_hold_the_caller() {
+        let listed: Vec<(TopicPartition, i64)> = (0..4_000_000)
+            .map(|partition| (TopicPartition::new("orders", partition), 4))
+            .collect();
+        let reset_slots: Vec<usize> = (0..4_000_000).collect();
+        let starts: Vec<Option<(String, i32, i64)>> = vec![None; 4_000_000];
+        let started = std::time::Instant::now();
+        let worker = tokio::spawn(async move {
+            let mut starts = starts;
+            let _applied = apply_reset_offsets(&mut starts, &reset_slots, listed).await;
+        });
+        tokio::time::sleep(std::time::Duration::from_millis(30)).await;
+        worker.abort();
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "applying reset offsets held the caller for {elapsed:?}"
+        );
+        let mut sample = vec![None, None];
+        apply_reset_offsets(
+            &mut sample,
+            &[1],
+            vec![(TopicPartition::new("orders", 3), 9)],
+        )
+        .await
+        .expect("reset");
+        let flat = flatten_reset_starts(sample).await;
+        assert_eq!(flat, vec![("orders".to_string(), 3, 9)]);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn flattening_many_reset_starts_does_not_hold_the_caller() {
+        let starts: Vec<Option<(String, i32, i64)>> = (0..4_000_000)
+            .map(|partition| Some(("orders".to_string(), partition, 4)))
+            .collect();
+        let started = std::time::Instant::now();
+        let worker = tokio::spawn(async move {
+            let _flat = flatten_reset_starts(starts).await;
+        });
+        tokio::time::sleep(std::time::Duration::from_millis(30)).await;
+        worker.abort();
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "flattening reset starts held the caller for {elapsed:?}"
+        );
+        let flat = flatten_reset_starts(vec![None, Some(("orders".to_string(), 3, 9))]).await;
+        assert_eq!(flat, vec![("orders".to_string(), 3, 9)]);
     }
 
     #[tokio::test(flavor = "current_thread")]
