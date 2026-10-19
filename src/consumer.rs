@@ -6556,6 +6556,81 @@ impl Consumer {
         result
     }
 
+    fn place_fetch_chunk() -> usize {
+        8 * 1024
+    }
+
+    /// Placing 2,000,000 assigned fetches held the caller for 776ms.
+    /// A partition is still planned, and the first missing leader still stops the walk.
+    async fn place_assigned_fetches(
+        &self,
+        by_leader: &mut HashMap<i32, HashMap<Arc<str>, Vec<FetchPartition>>>,
+        completed: &PartitionMap<()>,
+    ) -> bool {
+        let cluster = &self.cluster;
+        let mut cached_topic = std::ptr::null::<u8>();
+        let mut cached_name: Option<&str> = None;
+        let mut leaders: &[i32] = &[];
+        let mut epochs: &[i32] = &[];
+        let mut paused_parts: Option<&HashMap<i32, ()>> = None;
+        let mut completed_parts: Option<&HashMap<i32, ()>> = None;
+        let mut retained_parts: Option<&HashMap<i32, HeldFetch>> = None;
+        let mut walked = 0usize;
+        for (slot, (topic, part, offset)) in self.assigned.iter().enumerate() {
+            walked = walked.saturating_add(1);
+            if !reuse_topic_cache(&mut cached_topic, &mut cached_name, topic) {
+                leaders = cluster.leader_ids(topic.as_ref());
+                epochs = cluster.leader_epochs_of(topic.as_ref());
+                paused_parts = self.paused.topic_partitions(topic.as_ref());
+                completed_parts = completed.topic_partitions(topic.as_ref());
+                retained_parts = self.retained.topic_partitions(topic.as_ref());
+            }
+            let skipped = paused_parts.is_some_and(|parts| parts.contains_key(part))
+                || completed_parts.is_some_and(|parts| parts.contains_key(part))
+                || retained_parts.is_some_and(|parts| parts.contains_key(part));
+            if !skipped {
+                let preferred = if self.cfg.rack.is_some() {
+                    self.preferred.get(topic, *part).copied()
+                } else {
+                    None
+                };
+                let leader = cached_leader(leaders, *part);
+                let preferred_known =
+                    preferred.is_some_and(|node| cluster.brokers.contains_key(&node));
+                let node = fetch_target(preferred, preferred_known, leader);
+                match node {
+                    Some(node) => {
+                        let planned = FetchPartition {
+                            partition: *part,
+                            current_leader_epoch: cached_epoch(epochs, *part),
+                            fetch_offset: *offset,
+                            last_fetched_epoch: self
+                                .fetched_epochs
+                                .get(slot)
+                                .copied()
+                                .unwrap_or(crate::RecordBatch::NO_PARTITION_LEADER_EPOCH),
+                            log_start_offset: INVALID_LOG_START_OFFSET,
+                            partition_max_bytes: self.cfg.max_partition_fetch_bytes,
+                            replica_directory_id: [0; 16],
+                        };
+                        let topics = by_leader.entry(node).or_default();
+                        if let Some(parts) = topics.get_mut(topic.as_ref()) {
+                            parts.push(planned);
+                        } else {
+                            let _ = topics.insert(Arc::clone(topic), vec![planned]);
+                        }
+                    }
+                    None => return true,
+                }
+            }
+            if walked == Self::place_fetch_chunk() {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+        false
+    }
+
     async fn fetch_assigned_loop(
         &mut self,
         completed: &mut PartitionMap<()>,
@@ -6630,68 +6705,7 @@ impl Consumer {
                     parts.clear();
                 }
             }
-            let mut missing_leader = false;
-            let cluster = &self.cluster;
-            let mut cached_topic = std::ptr::null::<u8>();
-            let mut cached_name: Option<&str> = None;
-            let mut leaders: &[i32] = &[];
-            let mut epochs: &[i32] = &[];
-            let mut paused_parts: Option<&HashMap<i32, ()>> = None;
-            let mut completed_parts: Option<&HashMap<i32, ()>> = None;
-            let mut retained_parts: Option<&HashMap<i32, HeldFetch>> = None;
-            for (slot, (topic, part, offset)) in self.assigned.iter().enumerate() {
-                if !reuse_topic_cache(&mut cached_topic, &mut cached_name, topic) {
-                    leaders = cluster.leader_ids(topic.as_ref());
-                    epochs = cluster.leader_epochs_of(topic.as_ref());
-                    paused_parts = self.paused.topic_partitions(topic.as_ref());
-                    completed_parts = completed.topic_partitions(topic.as_ref());
-                    retained_parts = self.retained.topic_partitions(topic.as_ref());
-                }
-                if paused_parts.is_some_and(|parts| parts.contains_key(part)) {
-                    continue;
-                }
-                if completed_parts.is_some_and(|parts| parts.contains_key(part))
-                    || retained_parts.is_some_and(|parts| parts.contains_key(part))
-                {
-                    continue;
-                }
-                let preferred = if self.cfg.rack.is_some() {
-                    self.preferred.get(topic, *part).copied()
-                } else {
-                    None
-                };
-                let leader = cached_leader(leaders, *part);
-                let preferred_known =
-                    preferred.is_some_and(|node| cluster.brokers.contains_key(&node));
-                let node = fetch_target(preferred, preferred_known, leader);
-                match node {
-                    Some(node) => {
-                        let planned = FetchPartition {
-                            partition: *part,
-                            current_leader_epoch: cached_epoch(epochs, *part),
-                            fetch_offset: *offset,
-                            last_fetched_epoch: self
-                                .fetched_epochs
-                                .get(slot)
-                                .copied()
-                                .unwrap_or(crate::RecordBatch::NO_PARTITION_LEADER_EPOCH),
-                            log_start_offset: INVALID_LOG_START_OFFSET,
-                            partition_max_bytes: self.cfg.max_partition_fetch_bytes,
-                            replica_directory_id: [0; 16],
-                        };
-                        let topics = by_leader.entry(node).or_default();
-                        if let Some(parts) = topics.get_mut(topic.as_ref()) {
-                            parts.push(planned);
-                        } else {
-                            let _ = topics.insert(Arc::clone(topic), vec![planned]);
-                        }
-                    }
-                    None => {
-                        missing_leader = true;
-                        break;
-                    }
-                }
-            }
+            let missing_leader = self.place_assigned_fetches(&mut by_leader, completed).await;
             by_leader.retain(|_, topics| {
                 topics.retain(|_, parts| !parts.is_empty());
                 !topics.is_empty()
@@ -15308,6 +15322,63 @@ mod tests {
         fill_reused_topics_cooperative(&mut got, ["orders"]).await;
         assert_eq!(got, vec!["orders".to_string()]);
         assert!(got.capacity() >= capacity);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn placing_many_assigned_fetches_does_not_hold_the_caller() {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let address = listener.local_addr().unwrap().to_string();
+        let accept = tokio::spawn(async move {
+            let _held = listener.accept().await;
+            std::future::pending::<()>().await;
+        });
+        let conn =
+            crate::net::BrokerConn::connect(&address, "plan", std::time::Duration::from_secs(2))
+                .await
+                .unwrap();
+        let mut consumer = Consumer::test_holding(ConsumerConfig::default(), conn);
+        let topic: Arc<str> = Arc::from("orders");
+        consumer.assigned = (0..2_000_000)
+            .map(|partition| (Arc::clone(&topic), partition, 0))
+            .collect();
+        let _stored = consumer
+            .cluster
+            .leaders
+            .insert(Arc::clone(&topic), vec![1; 2_000_000]);
+        let mut planned = HashMap::new();
+        let completed = PartitionMap::new();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = consumer.place_assigned_fetches(&mut planned, &completed) => {}
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        assert!(
+            started.elapsed() < std::time::Duration::from_millis(80),
+            "placing assigned fetches held the caller for {:?}",
+            started.elapsed()
+        );
+        let sample_topic: Arc<str> = Arc::from("payments");
+        consumer.assigned = vec![
+            (Arc::clone(&sample_topic), 0, 4),
+            (Arc::clone(&sample_topic), 1, 9),
+        ];
+        let _sample_leaders = consumer
+            .cluster
+            .leaders
+            .insert(Arc::clone(&sample_topic), vec![4]);
+        let mut sample = HashMap::new();
+        let missing = consumer
+            .place_assigned_fetches(&mut sample, &completed)
+            .await;
+        assert!(missing);
+        assert_eq!(
+            sample
+                .get(&4)
+                .and_then(|topics| topics.get(sample_topic.as_ref()))
+                .map(Vec::len),
+            Some(1)
+        );
+        accept.abort();
     }
 
     #[test]
