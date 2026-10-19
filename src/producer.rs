@@ -7861,30 +7861,20 @@ impl Worker {
             slots.resize_with(inf.groups.len(), || None);
             let ack_ids =
                 (version >= 13 && inf.topic_ids.len() > 1).then_some(&self.ack_index.by_uuid);
-            for (ack_at, ack) in responses.iter().enumerate() {
-                let topic = if version >= 13 {
-                    name_for_topic_id(inf.topic_ids.as_slice(), ack_ids, ack.topic_id)
-                } else {
-                    std::str::from_utf8(&ack.topic).ok()
-                };
-                let Some(topic) = topic else {
-                    if version < 13 {
-                        let e = Error::protocol("produce response topic is not utf-8");
-                        self.ack_slots = slots;
-                        self.spare_acks = responses;
-                        self.fail_kept_groups(inf.groups, clone_err(&e)).await;
-                        return Err(e);
-                    }
-                    continue;
-                };
-                let Some(slot) = self.ack_index.get(topic, ack.partition) else {
-                    continue;
-                };
-                if let Some(entry) = slots.get_mut(slot) {
-                    if entry.is_none() {
-                        *entry = Some(ack_at);
-                    }
-                }
+            if let Err(error) = place_produce_ack_slots(
+                &self.ack_index,
+                &responses,
+                &mut slots,
+                version,
+                inf.topic_ids.as_slice(),
+                ack_ids,
+            )
+            .await
+            {
+                self.ack_slots = slots;
+                self.spare_acks = responses;
+                self.fail_kept_groups(inf.groups, clone_err(&error)).await;
+                return Err(error);
             }
         }
         let mut first_err: Option<Error> = None;
@@ -9541,6 +9531,42 @@ fn fill_ids_by_uuid(ids: &[(Arc<str>, [u8; 16])], index: &mut HashMap<[u8; 16], 
 ///
 /// A name-based response with a non-UTF-8 topic is an error. A later copy of
 /// the same partition is ignored, matching the indexed acknowledgement path.
+async fn place_produce_ack_slots(
+    index: &AckIndex,
+    acks: &[crate::protocol::api::ProduceAck],
+    slots: &mut [Option<usize>],
+    version: i16,
+    topic_ids: &[(Arc<str>, [u8; 16])],
+    by_uuid: Option<&HashMap<[u8; 16], Arc<str>>>,
+) -> Result<()> {
+    let mut walked = 0usize;
+    for (ack_at, ack) in acks.iter().enumerate() {
+        let topic = if version >= 13 {
+            name_for_topic_id(topic_ids, by_uuid, ack.topic_id)
+        } else {
+            Some(
+                std::str::from_utf8(&ack.topic)
+                    .map_err(|_| Error::protocol("produce response topic is not utf-8"))?,
+            )
+        };
+        if let Some(topic) = topic {
+            if let Some(slot) = index.get(topic, ack.partition) {
+                if let Some(entry) = slots.get_mut(slot) {
+                    if entry.is_none() {
+                        *entry = Some(ack_at);
+                    }
+                }
+            }
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    Ok(())
+}
+
 fn first_matching_ack(
     version: i16,
     acks: &[ProduceAck],
@@ -12419,6 +12445,91 @@ mod tests {
         assert_eq!(
             block_on_take(take_count_in(&same_base, 10, usize::MAX, &mut bases)),
             2
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn matching_many_produce_acks_does_not_hold_the_caller() {
+        let topic: Arc<str> = Arc::from("orders");
+        let groups: Vec<(Arc<str>, i32, Vec<Pending>)> = (0..2_000_000)
+            .map(|index| (Arc::clone(&topic), index, Vec::new()))
+            .collect();
+        let mut index = AckIndex::default();
+        index.fill(&groups).await;
+        let name = bytes::Bytes::from_static(b"orders");
+        let acks: Vec<crate::protocol::api::ProduceAck> = (0..2_000_000)
+            .map(|partition| crate::protocol::api::ProduceAck {
+                topic: name.clone(),
+                topic_id: [0; 16],
+                partition,
+                error_code: 0,
+                base_offset: 0,
+                log_append_time_ms: 0,
+                current_leader_id: -1,
+                current_leader_epoch: -1,
+            })
+            .collect();
+        let mut slots = vec![None; acks.len()];
+        let started = std::time::Instant::now();
+        tokio::select! {
+            placed = place_produce_ack_slots(&index, &acks, &mut slots, 9, &[], None) => {
+                placed.unwrap_or_else(|error| panic!("{error}"));
+                assert_eq!(slots.first().copied().flatten(), Some(0));
+                assert_eq!(slots.last().copied().flatten(), Some(1_999_999));
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "matching produce acks held the caller for {elapsed:?}"
+        );
+        let mut small = AckIndex::default();
+        small
+            .fill(&[
+                (Arc::clone(&topic), 4, Vec::new()),
+                (Arc::clone(&topic), 4, Vec::new()),
+            ])
+            .await;
+        let first = crate::protocol::api::ProduceAck {
+            topic: name.clone(),
+            topic_id: [0; 16],
+            partition: 4,
+            error_code: 0,
+            base_offset: 8,
+            log_append_time_ms: 0,
+            current_leader_id: -1,
+            current_leader_epoch: -1,
+        };
+        let second = crate::protocol::api::ProduceAck {
+            topic: name.clone(),
+            topic_id: [0; 16],
+            partition: 4,
+            error_code: 0,
+            base_offset: 9,
+            log_append_time_ms: 0,
+            current_leader_id: -1,
+            current_leader_epoch: -1,
+        };
+        let mut slots = vec![None];
+        place_produce_ack_slots(&small, &[first, second], &mut slots, 9, &[], None)
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(slots[0], Some(0));
+        let bad = crate::protocol::api::ProduceAck {
+            topic: bytes::Bytes::from_static(b"\xff"),
+            topic_id: [0; 16],
+            partition: 0,
+            error_code: 0,
+            base_offset: 0,
+            log_append_time_ms: 0,
+            current_leader_id: -1,
+            current_leader_epoch: -1,
+        };
+        assert!(
+            place_produce_ack_slots(&index, &[bad], &mut slots, 9, &[], None)
+                .await
+                .is_err()
         );
     }
 
