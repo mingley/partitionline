@@ -585,7 +585,9 @@ impl ConsumerProtocol {
         })
     }
 
-    /// [`Self::deserialize_subscription`], yielding while owned partitions are decoded.
+    /// [`Self::deserialize_subscription`], yielding while topic names and owned partitions are decoded.
+    ///
+    /// Decoding 2,000,000 topics held the caller for 370ms. A topic name is still read.
     pub async fn deserialize_subscription_cooperative(
         bytes: &[u8],
     ) -> Result<ConsumerProtocolSubscription> {
@@ -597,8 +599,14 @@ impl ConsumerProtocol {
         let ver = check_consumer_protocol_version(raw)?;
         let n = buf::get_array_len(&mut bytes, false)?.unwrap_or(0);
         let mut topics = Vec::with_capacity(n);
+        let mut walked = 0usize;
         for _ in 0..n {
             topics.push(buf::get_classic_nullable_string(&mut bytes)?.unwrap_or_default());
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
         }
         let mut owned = Vec::new();
         let mut generation_id = ConsumerProtocolSubscription::DEFAULT_GENERATION;
@@ -625,6 +633,11 @@ impl ConsumerProtocol {
                     if next < pn {
                         tokio::task::yield_now().await;
                     }
+                }
+                walked = walked.saturating_add(1);
+                if walked == 8 * 1024 {
+                    walked = 0;
+                    tokio::task::yield_now().await;
                 }
             }
         }
@@ -8894,7 +8907,9 @@ pub fn decode_assignment(bytes: &[u8]) -> Result<Vec<(String, Vec<i32>)>> {
     Ok(group_owned_assignment(assignment.partitions))
 }
 
-/// [`decode_assignment`], yielding while a long partition list is decoded.
+/// [`decode_assignment`], yielding while topics and long partition lists are decoded.
+///
+/// Decoding 2,000,000 topics held the caller for 619ms. A topic name and a partition are still read.
 pub async fn decode_assignment_cooperative(bytes: &[u8]) -> Result<Vec<(String, Vec<i32>)>> {
     let assignment = deserialize_assignment_cooperative(bytes).await?;
     Ok(group_owned_assignment_cooperative(assignment.partitions).await)
@@ -8909,6 +8924,7 @@ async fn deserialize_assignment_cooperative(bytes: &[u8]) -> Result<ConsumerProt
     let _ver = check_assignment_version(raw)?;
     let n = buf::get_array_len(&mut bytes, false)?.unwrap_or(0);
     let mut partitions = Vec::new();
+    let mut walked = 0usize;
     for _ in 0..n {
         let mut topic = buf::get_classic_nullable_string(&mut bytes)?.unwrap_or_default();
         let pn = buf::get_array_len(&mut bytes, false)?.unwrap_or(0);
@@ -8920,6 +8936,11 @@ async fn deserialize_assignment_cooperative(bytes: &[u8]) -> Result<ConsumerProt
             if next < pn {
                 tokio::task::yield_now().await;
             }
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
         }
     }
     if !bytes.is_empty() {
@@ -9026,6 +9047,74 @@ mod tests {
         let once = ConsumerProtocol::serialize_subscription(&sample)
             .unwrap_or_else(|error| panic!("{error}"));
         let paced = ConsumerProtocol::serialize_subscription_cooperative(&sample)
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(once, paced);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn decoding_many_subscriptions_does_not_hold_the_caller() {
+        let topics: Vec<String> = (0..2_000_000)
+            .map(|index| format!("topic-{index}"))
+            .collect();
+        let subscription = ConsumerProtocolSubscription {
+            topics,
+            owned_partitions: Vec::new(),
+            generation_id: -1,
+            rack_id: None,
+        };
+        let body = ConsumerProtocol::serialize_subscription(&subscription)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let started = std::time::Instant::now();
+        tokio::select! {
+            decoded = ConsumerProtocol::deserialize_subscription_cooperative(&body) => {
+                let _decoded = decoded.unwrap_or_else(|error| panic!("{error}"));
+            }
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        assert!(
+            started.elapsed() < std::time::Duration::from_millis(80),
+            "decoding subscriptions held the caller for {:?}",
+            started.elapsed()
+        );
+        let sample = ConsumerProtocolSubscription {
+            topics: vec!["zeta".to_string(), "alpha".to_string()],
+            owned_partitions: vec![("zeta".to_string(), 1), ("alpha".to_string(), 0)],
+            generation_id: 4,
+            rack_id: Some("rack".to_string()),
+        };
+        let encoded = ConsumerProtocol::serialize_subscription(&sample)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let once = ConsumerProtocol::deserialize_subscription(&encoded)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let paced = ConsumerProtocol::deserialize_subscription_cooperative(&encoded)
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(once, paced);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn decoding_many_assignments_does_not_hold_the_caller() {
+        let assignment: Vec<(String, Vec<i32>)> = (0..2_000_000)
+            .map(|index| (format!("topic-{index}"), vec![0]))
+            .collect();
+        let body = encode_owned_assignment(&assignment).unwrap_or_else(|error| panic!("{error}"));
+        let started = std::time::Instant::now();
+        tokio::select! {
+            decoded = decode_assignment_cooperative(&body) => {
+                let _decoded = decoded.unwrap_or_else(|error| panic!("{error}"));
+            }
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        assert!(
+            started.elapsed() < std::time::Duration::from_millis(80),
+            "decoding assignments held the caller for {:?}",
+            started.elapsed()
+        );
+        let sample = vec![("b".to_string(), vec![1, 0]), ("a".to_string(), vec![2])];
+        let encoded = encode_owned_assignment(&sample).unwrap_or_else(|error| panic!("{error}"));
+        let once = decode_assignment(&encoded).unwrap_or_else(|error| panic!("{error}"));
+        let paced = decode_assignment_cooperative(&encoded)
             .await
             .unwrap_or_else(|error| panic!("{error}"));
         assert_eq!(once, paced);
