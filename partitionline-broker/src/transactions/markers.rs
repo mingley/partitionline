@@ -14,6 +14,7 @@
 //! Fetch response and it does not write Kafka control batches.
 
 use crate::journal::{self, Journal};
+use std::collections::HashMap;
 use std::path::Path;
 
 const RECORD_MAGIC: &[u8; 8] = b"PLTXNM01";
@@ -102,6 +103,15 @@ pub struct MarkerLog {
     poisoned: bool,
 }
 
+fn stable_offset(entries: &[Entry], markers: &[Option<bool>]) -> i64 {
+    for (index, entry) in entries.iter().enumerate() {
+        if matches!(entry, Entry::Data { .. }) && markers.get(index).copied().flatten().is_none() {
+            return index as i64;
+        }
+    }
+    entries.len() as i64
+}
+
 impl MarkerLog {
     /// Open or recover a marker log.
     pub fn open(path: impl AsRef<Path>, limits: Limits) -> Result<Self, Error> {
@@ -144,17 +154,8 @@ impl MarkerLog {
 
     /// First offset that is not yet stable.
     pub fn last_stable_offset(&self) -> i64 {
-        for (index, entry) in self.entries.iter().enumerate() {
-            if let Entry::Data {
-                producer_id, epoch, ..
-            } = entry
-            {
-                if self.closing_marker(*producer_id, *epoch, index).is_none() {
-                    return index as i64;
-                }
-            }
-        }
-        self.log_end_offset()
+        let markers = self.closing_markers();
+        stable_offset(&self.entries, &markers)
     }
 
     /// Application ids visible to a `read_committed` consumer from `from`.
@@ -162,26 +163,47 @@ impl MarkerLog {
     /// Offsets at or after the last stable offset are omitted. Aborted
     /// transactions are omitted. Control markers are not application data.
     pub fn read_committed(&self, from: i64) -> Vec<u64> {
-        let stable = self.last_stable_offset();
+        let markers = self.closing_markers();
+        let stable = stable_offset(&self.entries, &markers);
         let mut ids = Vec::new();
         for (index, entry) in self.entries.iter().enumerate() {
             let offset = index as i64;
             if offset < from || offset >= stable {
                 continue;
             }
-            if let Entry::Data {
-                producer_id,
-                epoch,
-                id,
-                ..
-            } = entry
-            {
-                if self.closing_marker(*producer_id, *epoch, index) == Some(true) {
+            if let Entry::Data { id, .. } = entry {
+                if markers.get(index).copied().flatten() == Some(true) {
                     ids.push(*id);
                 }
             }
         }
         ids
+    }
+
+    /// First later marker for every entry. One backward pass.
+    fn closing_markers(&self) -> Vec<Option<bool>> {
+        let mut next: HashMap<(i64, i16), bool> = HashMap::new();
+        let mut out = vec![None; self.entries.len()];
+        for (index, entry) in self.entries.iter().enumerate().rev() {
+            match entry {
+                Entry::Marker {
+                    producer_id,
+                    epoch,
+                    commit,
+                    ..
+                } => {
+                    let _ = next.insert((*producer_id, *epoch), *commit);
+                }
+                Entry::Data {
+                    producer_id, epoch, ..
+                } => {
+                    if let Some(slot) = out.get_mut(index) {
+                        *slot = next.get(&(*producer_id, *epoch)).copied();
+                    }
+                }
+            }
+        }
+        out
     }
 
     /// Append one transactional data record.
@@ -240,26 +262,6 @@ impl MarkerLog {
         self.append_encoded(|bytes| write(bytes, &entry))?;
         self.entries.push(entry);
         Ok(offset)
-    }
-
-    /// Commit flag of the marker that closes the data record at `data_index`.
-    ///
-    /// `None` means that record is still in an open transaction.
-    fn closing_marker(&self, producer_id: i64, epoch: i16, data_index: usize) -> Option<bool> {
-        for entry in self.entries.iter().skip(data_index.saturating_add(1)) {
-            if let Entry::Marker {
-                producer_id: id,
-                epoch: stored,
-                commit,
-                ..
-            } = entry
-            {
-                if *id == producer_id && *stored == epoch {
-                    return Some(*commit);
-                }
-            }
-        }
-        None
     }
 
     /// Marker that already decided this epoch and has no data after it.
@@ -477,6 +479,51 @@ mod tests {
         let path = std::env::temp_dir().join(format!("pl-marker-{name}-{nanos}"));
         let log = MarkerLog::open(&path, limits()).unwrap_or_else(|error| panic!("{error:?}"));
         (log, path)
+    }
+
+    #[test]
+    fn reading_many_committed_markers_does_not_hold_the_caller() {
+        // 8_000 committed records: finding each marker held the caller 268ms.
+        let (mut log, _) = open("committed");
+        let mut entries = Vec::with_capacity(8_001);
+        for index in 0..8_000 {
+            entries.push(Entry::Data {
+                offset: i64::try_from(index).unwrap_or(0),
+                producer_id: 7,
+                epoch: 1,
+                id: u64::try_from(index).unwrap_or(0),
+            });
+        }
+        entries.push(Entry::Marker {
+            offset: 8_000,
+            producer_id: 7,
+            epoch: 1,
+            commit: true,
+        });
+        log.entries = entries;
+        let started = std::time::Instant::now();
+        let visible = log.read_committed(0);
+        let elapsed = started.elapsed();
+        assert_eq!(visible.len(), 8_000);
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "reading committed markers held the caller for {elapsed:?}"
+        );
+        log.entries.push(Entry::Data {
+            offset: 8_001,
+            producer_id: 7,
+            epoch: 2,
+            id: 80_000,
+        });
+        log.entries.push(Entry::Marker {
+            offset: 8_002,
+            producer_id: 7,
+            epoch: 2,
+            commit: false,
+        });
+        let visible = log.read_committed(0);
+        assert_eq!(visible.len(), 8_000);
+        assert!(!visible.contains(&80_000));
     }
 
     #[test]
