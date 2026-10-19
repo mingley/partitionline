@@ -2110,6 +2110,12 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `UNKNOWN_TOPIC_ID`; this is not top-level
   `SNAPSHOT_NOT_FOUND`). Official Java `KafkaRaftClient`
   writes this when the requested snapshot offset is out of range.
+  Top-level `DUPLICATE_BROKER_REGISTRATION` still fails that poll
+  without Metadata, including when `ErrorMessage` is set (Java
+  `handleShareFetchSuccess` only `requestUpdate`s for top-level
+  `UNKNOWN_TOPIC_ID`; this is not top-level
+  `POSITION_OUT_OF_RANGE`). Official Java `ClusterControlManager`
+  writes this when another broker is already registered with that broker id.
   A non-empty
   throwable partition or top-level ShareFetch `ErrorMessage` is
   preferred; empty uses `ShareFetch {topic}-{partition}` or

@@ -2405,6 +2405,13 @@ pub enum ShareAcquireMode {
 /// `UNKNOWN_TOPIC_ID`; this is not top-level
 /// `SNAPSHOT_NOT_FOUND`). Official Java `KafkaRaftClient`
 /// writes this when the requested snapshot offset is out of range.
+/// Top-level `DUPLICATE_BROKER_REGISTRATION` still fails that poll
+/// and does not request Metadata, including when `ErrorMessage` is
+/// set (Java `handleShareFetchSuccess` only `requestUpdate`s for
+/// `UNKNOWN_TOPIC_ID`; this is not top-level
+/// `POSITION_OUT_OF_RANGE`). Official Java `ClusterControlManager`
+/// writes this when another broker is already registered with that
+/// broker id.
 /// Top-level
 /// `SHARE_SESSION_LIMIT_REACHED` resets the share session and does
 /// not request Metadata, including when `ErrorMessage` is set or
@@ -5603,6 +5610,13 @@ impl ShareGroup {
     /// `SNAPSHOT_NOT_FOUND`). Official Java
     /// `KafkaRaftClient` writes this when the requested snapshot
     /// offset is out of range. Top-level
+    /// `DUPLICATE_BROKER_REGISTRATION` still fails that poll without
+    /// Metadata, including when `ErrorMessage` is set (Java
+    /// `handleShareFetchSuccess` only `requestUpdate`s for
+    /// `UNKNOWN_TOPIC_ID`; this is not top-level
+    /// `POSITION_OUT_OF_RANGE`). Official Java
+    /// `ClusterControlManager` writes this when another broker is
+    /// already registered with that broker id. Top-level
     /// `SHARE_SESSION_LIMIT_REACHED` resets the share session and
     /// does not request Metadata, including when `ErrorMessage` is
     /// set or empty (Java `handleShareFetchSuccess` only
