@@ -9501,11 +9501,17 @@ where
 
 /// First topic id for each name. A later copy of the same name is ignored,
 /// including when the first id is all zeros.
-fn fill_topic_ids(ids: &[(Arc<str>, [u8; 16])], index: &mut HashMap<Arc<str>, [u8; 16]>) {
+async fn fill_topic_ids(ids: &[(Arc<str>, [u8; 16])], index: &mut HashMap<Arc<str>, [u8; 16]>) {
     index.clear();
+    let mut walked = 0usize;
     for (name, id) in ids {
         if !index.contains_key(name.as_ref()) {
             let _ = index.insert(Arc::clone(name), *id);
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
         }
     }
 }
@@ -9866,7 +9872,7 @@ async fn encode_produce_body_async(
     index_produce_groups(groups, groups_scratch).await;
     crate::protocol::buf::put_array_len(buf, flexible, Some(groups_scratch.topics.len()))?;
     if version >= 13 && topic_ids.len() > 1 {
-        fill_topic_ids(topic_ids, &mut groups_scratch.topic_ids);
+        fill_topic_ids(topic_ids, &mut groups_scratch.topic_ids).await;
     }
     let topic_count = groups_scratch.topics.len();
     for topic_slot in 0..topic_count {
@@ -12498,6 +12504,39 @@ mod tests {
     }
 
     #[tokio::test(flavor = "current_thread")]
+    async fn remembering_many_produce_topic_ids_does_not_hold_the_caller() {
+        // 500_000 topics: recording each id held the caller 419ms.
+        let ids: Vec<(Arc<str>, [u8; 16])> = (0..500_000u32)
+            .map(|index| {
+                let mut id = [0u8; 16];
+                id[..4].copy_from_slice(&index.to_be_bytes());
+                (Arc::<str>::from(format!("topic-{index}")), id)
+            })
+            .collect();
+        let mut index = HashMap::new();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = fill_topic_ids(&ids, &mut index) => {
+                assert_eq!(index.len(), 500_000);
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "remembering produce topic ids held the caller for {elapsed:?}"
+        );
+        let orders: Arc<str> = Arc::from("orders");
+        let repeated = vec![
+            (Arc::clone(&orders), [0; 16]),
+            (Arc::clone(&orders), [1; 16]),
+        ];
+        let mut index = HashMap::new();
+        fill_topic_ids(&repeated, &mut index).await;
+        assert_eq!(index.get(orders.as_ref()).copied(), Some([0; 16]));
+    }
+
+    #[tokio::test(flavor = "current_thread")]
     async fn encoding_many_produce_partitions_does_not_hold_the_caller() {
         // 200_000 partitions: encoding each one-record batch held the caller 394ms.
         let topic: Arc<str> = Arc::from("orders");
@@ -13157,8 +13196,8 @@ mod tests {
         assert_eq!(many.len(), 2);
     }
 
-    #[test]
-    fn produce_topic_ids_keep_the_first_copy() {
+    #[tokio::test(flavor = "current_thread")]
+    async fn produce_topic_ids_keep_the_first_copy() {
         let orders = Arc::<str>::from("orders");
         let payments = Arc::<str>::from("payments");
         let ids = vec![
@@ -13168,10 +13207,10 @@ mod tests {
             (Arc::<str>::from("zero"), [0; 16]),
         ];
         let mut by_name = HashMap::new();
-        fill_topic_ids(&ids, &mut by_name);
+        fill_topic_ids(&ids, &mut by_name).await;
         let name_capacity = by_name.capacity();
         assert!(name_capacity > 0);
-        fill_topic_ids(&ids, &mut by_name);
+        fill_topic_ids(&ids, &mut by_name).await;
         assert!(by_name.capacity() >= name_capacity);
         assert_eq!(
             topic_id_for(&ids, Some(&by_name), &orders).copied(),
