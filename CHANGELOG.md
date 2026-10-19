@@ -2347,7 +2347,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `INVALID_RECORD_STATE`). Official Java `ShareCoordinatorShard`
   writes this when a WriteShareGroupState request state epoch is smaller than the last recorded epoch.
   Top-level `INVALID_VOTER_KEY` still fails that poll
-  without Metadata, including when `ErrorMessage` is set (Java
+  without Metadata, including when `ErrorMessage` is set or empty (Java
   `handleShareFetchSuccess` only `requestUpdate`s for top-level
   `UNKNOWN_TOPIC_ID`; this is not top-level
   `FENCED_STATE_EPOCH`). Official Java `KafkaRaftClient`
