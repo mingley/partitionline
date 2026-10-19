@@ -15641,19 +15641,8 @@ impl Admin {
     ) -> Result<HashMap<i32, Vec<usize>>> {
         let need = first_seen_missing_ids_cooperative(ids, pending, &self.group_coords).await;
         if !need.is_empty() {
-            let mut known_nodes = Vec::new();
-            let mut seen_nodes = HashSet::new();
-            for &i in pending {
-                let Some(id) = ids.get(i) else {
-                    continue;
-                };
-                let Some(&node) = self.group_coords.get(id.as_ref()) else {
-                    continue;
-                };
-                if seen_nodes.insert(node) {
-                    known_nodes.push(node);
-                }
-            }
+            let (mut known_nodes, mut seen_nodes) =
+                cached_coordinator_nodes(ids, pending, &self.group_coords).await;
             for node in self.group_coord_redial.drain(..) {
                 if seen_nodes.insert(node) {
                     known_nodes.push(node);
@@ -15704,19 +15693,8 @@ impl Admin {
     ) -> Result<HashMap<i32, Vec<usize>>> {
         let need = first_seen_missing_ids_cooperative(ids, pending, &self.txn_coords).await;
         if !need.is_empty() {
-            let mut known_nodes = Vec::new();
-            let mut seen_nodes = HashSet::new();
-            for &i in pending {
-                let Some(id) = ids.get(i) else {
-                    continue;
-                };
-                let Some(&node) = self.txn_coords.get(id.as_ref()) else {
-                    continue;
-                };
-                if seen_nodes.insert(node) {
-                    known_nodes.push(node);
-                }
-            }
+            let (mut known_nodes, mut seen_nodes) =
+                cached_coordinator_nodes(ids, pending, &self.txn_coords).await;
             for node in self.txn_coord_redial.drain(..) {
                 if seen_nodes.insert(node) {
                     known_nodes.push(node);
@@ -16807,6 +16785,42 @@ where
     out
 }
 
+fn known_coord_chunk() -> usize {
+    8 * 1024
+}
+
+/// Collect coordinators that are already cached.
+///
+/// The walk pauses every 8,192 ids. Without that pause, collecting
+/// 2,000,000 cached coordinators held the caller for 1.04 seconds.
+///
+/// A coordinator is kept once, the first time it is seen. An id without a
+/// coordinator is skipped.
+async fn cached_coordinator_nodes<T: AsRef<str>>(
+    ids: &[T],
+    pending: &[usize],
+    coords: &HashMap<String, i32>,
+) -> (Vec<i32>, HashSet<i32>) {
+    let mut known_nodes = Vec::new();
+    let mut seen = HashSet::new();
+    let mut walked = 0usize;
+    for &index in pending {
+        walked = walked.saturating_add(1);
+        if let Some(id) = ids.get(index) {
+            if let Some(&node) = coords.get(id.as_ref()) {
+                if seen.insert(node) {
+                    known_nodes.push(node);
+                }
+            }
+        }
+        if walked == known_coord_chunk() {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    (known_nodes, seen)
+}
+
 fn coordinator_group_chunk() -> usize {
     8 * 1024
 }
@@ -17566,6 +17580,38 @@ mod tests {
             first_seen_missing_ids_cooperative(&sample, &sample_pending, &sample_known).await,
             first_seen_missing_ids(&sample, &sample_pending, &sample_known)
         );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn collecting_many_known_coordinators_does_not_hold_the_caller() {
+        let ids: Vec<String> = (0..2_000_000)
+            .map(|index| format!("group-{index}"))
+            .collect();
+        let pending: Vec<usize> = (0..ids.len()).collect();
+        let mut known = HashMap::<String, i32>::new();
+        for (index, id) in ids.iter().enumerate() {
+            let _stored = known.insert(id.clone(), i32::try_from(index % 8).unwrap_or(0));
+        }
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = cached_coordinator_nodes(&ids, &pending, &known) => {}
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        assert!(
+            started.elapsed() < std::time::Duration::from_millis(80),
+            "collecting known coordinators held the caller for {:?}",
+            started.elapsed()
+        );
+        let sample = [
+            "orders".to_string(),
+            "payments".to_string(),
+            "missing".to_string(),
+        ];
+        let mut sample_known = HashMap::new();
+        let _orders = sample_known.insert("orders".to_string(), 4);
+        let _payments = sample_known.insert("payments".to_string(), 5);
+        let (nodes, _) = cached_coordinator_nodes(&sample, &[0, 1, 2, 0], &sample_known).await;
+        assert_eq!(nodes, vec![4, 5]);
     }
 
     #[tokio::test(flavor = "current_thread")]

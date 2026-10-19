@@ -68,7 +68,7 @@ These walks include:
 
 - copying topic partitions for delete-records, list-offsets, and describe-producers
 - finding, listing, and grouping leaders during an admin retry
-- listing and grouping group and transaction coordinators
+- listing missing coordinators, collecting ones already cached, and grouping ids under them
 - dropping cached topic metadata before a refresh
 - placing assigned fetches, collecting topic names, and checking whether assigned topics are fresh
 - opening one result slot, and its index, for each item in an admin batch
