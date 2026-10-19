@@ -63,11 +63,12 @@ use crate::protocol::admin::{
     encode_consumer_group_describe_ids_cooperative, encode_create_delegation_token_request,
     encode_create_partitions_named, encode_create_topics_named,
     encode_delete_groups_ids_cooperative, encode_delete_records_named_topics_cooperative,
-    encode_delete_records_owned_topics_cooperative, encode_delete_share_group_offsets_request,
-    encode_describe_client_quotas_request, encode_describe_cluster_request,
-    encode_describe_configs_named, encode_describe_delegation_token_request,
-    encode_describe_groups_ids_cooperative, encode_describe_log_dirs_named,
-    encode_describe_log_dirs_request, encode_describe_producers_named_topics,
+    encode_delete_records_owned_topics_cooperative,
+    encode_delete_share_group_offsets_request_cooperative, encode_describe_client_quotas_request,
+    encode_describe_cluster_request, encode_describe_configs_named,
+    encode_describe_delegation_token_request, encode_describe_groups_ids_cooperative,
+    encode_describe_log_dirs_named, encode_describe_log_dirs_request,
+    encode_describe_producers_named_topics,
     encode_describe_share_group_offsets_request_refs_cooperative,
     encode_describe_topic_partitions_names, encode_describe_transactions_ids_cooperative,
     encode_describe_user_scram_credentials_ids, encode_expire_delegation_token_hmac,
@@ -13650,13 +13651,19 @@ impl Admin {
                 .as_ref()
                 .map(|(_, n)| *n)
                 .ok_or_else(|| Error::protocol("missing group coordinator"))?;
+            let mut encoded = BytesMut::new();
+            encode_delete_share_group_offsets_request_cooperative(&mut encoded, group_id, topics)
+                .await?;
             let body = {
                 self.roundtrip_known_node(
                     node,
                     deadline,
                     DELETE_SHARE_GROUP_OFFSETS,
                     version,
-                    |buf| encode_delete_share_group_offsets_request(buf, group_id, topics),
+                    |buf| {
+                        buf.extend_from_slice(&encoded);
+                        Ok(())
+                    },
                     deadline.saturating_duration_since(Instant::now()),
                 )
                 .await
