@@ -69,18 +69,18 @@ use crate::protocol::admin::{
     encode_describe_configs_named_cooperative, encode_describe_delegation_token_request,
     encode_describe_groups_ids_cooperative, encode_describe_log_dirs_named,
     encode_describe_log_dirs_named_cooperative, encode_describe_log_dirs_request,
-    encode_describe_producers_named_topics,
+    encode_describe_producers_named_topics_cooperative,
     encode_describe_share_group_offsets_request_refs_cooperative,
     encode_describe_topic_partitions_names_cooperative,
     encode_describe_transactions_ids_cooperative,
     encode_describe_user_scram_credentials_ids_cooperative, encode_expire_delegation_token_hmac,
     encode_expire_delegation_token_request, encode_get_telemetry_subscriptions_request,
     encode_incremental_alter_configs_named_cooperative, encode_list_config_resources_request,
-    encode_list_groups_filters, encode_list_partition_reassignments_named,
+    encode_list_groups_filters_cooperative, encode_list_partition_reassignments_named_cooperative,
     encode_list_transactions_states, encode_push_telemetry_metrics,
     encode_renew_delegation_token_hmac, encode_renew_delegation_token_request,
     encode_share_group_describe_ids_cooperative, encode_unregister_broker_request,
-    encode_update_features_named, AlterConfigsResource, BorrowedAlterConfig,
+    encode_update_features_named_cooperative, AlterConfigsResource, BorrowedAlterConfig,
     BorrowedAlterConfigsResource, BorrowedAlterReplicaLogDir, BorrowedAlterReplicaLogDirTopic,
     BorrowedAlterableResource, BorrowedCreatableTopic, BorrowedCreatePartitionsTopic,
     BorrowedDeleteTopic, BorrowedDescribeConfigsResource, BorrowedFeatureUpdate,
@@ -117,7 +117,7 @@ use crate::protocol::group::{
     decode_offset_delete_response_cooperative, decode_offset_fetch_groups_response_cooperative,
     decode_offset_fetch_response_cooperative, encode_find_coordinator_request_keys_cooperative,
     encode_find_coordinator_request_typed, encode_leave_group_request_members_cooperative,
-    encode_offset_commit_named_cooperative, encode_offset_delete_named_topics,
+    encode_offset_commit_named_cooperative, encode_offset_delete_named_topics_cooperative,
     encode_offset_fetch_groups_named, encode_offset_fetch_groups_named_cooperative,
     encode_offset_fetch_named_cooperative, BorrowedOffsetFetchRequestGroup, LeaveGroupMember,
     COORDINATOR_GROUP, COORDINATOR_TRANSACTION, DEFAULT_RETENTION_TIME,
@@ -4281,6 +4281,15 @@ impl Admin {
             }
             let election_type = options.election_type.wire();
             let timeout_ms = crate::consumer::duration_millis_i32(remaining);
+            let mut payload = BytesMut::new();
+            crate::protocol::admin::encode_elect_leaders_named_cooperative(
+                &mut payload,
+                version,
+                election_type,
+                topics.as_deref(),
+                timeout_ms,
+            )
+            .await?;
             let body = self
                 .roundtrip_known_node(
                     node,
@@ -4288,13 +4297,8 @@ impl Admin {
                     crate::protocol::api_keys::ELECT_LEADERS,
                     version,
                     |buf| {
-                        crate::protocol::admin::encode_elect_leaders_named(
-                            buf,
-                            version,
-                            election_type,
-                            topics.as_deref(),
-                            timeout_ms,
-                        )
+                        buf.extend_from_slice(&payload);
+                        Ok(())
                     },
                     remaining,
                 )
@@ -6730,6 +6734,13 @@ impl Admin {
         let version = self.list_reassign_version.ok_or_else(|| {
             Error::Unsupported("broker does not support ListPartitionReassignments".into())
         })?;
+        let mut payload = BytesMut::new();
+        encode_list_partition_reassignments_named_cooperative(
+            &mut payload,
+            timeout_ms,
+            topics.as_deref(),
+        )
+        .await?;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         loop {
@@ -6744,11 +6755,8 @@ impl Admin {
                     LIST_PARTITION_REASSIGNMENTS,
                     version,
                     |buf| {
-                        encode_list_partition_reassignments_named(
-                            buf,
-                            timeout_ms,
-                            topics.as_deref(),
-                        )
+                        buf.extend_from_slice(&payload);
+                        Ok(())
                     },
                     deadline.saturating_duration_since(Instant::now()),
                 )
@@ -6906,6 +6914,15 @@ impl Admin {
                     .unwrap_or(i32::MAX)
                     .max(1),
             );
+            let mut payload = BytesMut::new();
+            encode_update_features_named_cooperative(
+                &mut payload,
+                version,
+                wire_timeout_ms,
+                &keys,
+                validate_only,
+            )
+            .await?;
             let body = {
                 self.roundtrip_known_node(
                     node,
@@ -6913,13 +6930,8 @@ impl Admin {
                     UPDATE_FEATURES,
                     version,
                     |buf| {
-                        encode_update_features_named(
-                            buf,
-                            version,
-                            wire_timeout_ms,
-                            &keys,
-                            validate_only,
-                        )
+                        buf.extend_from_slice(&payload);
+                        Ok(())
                     },
                     remaining,
                 )
@@ -10807,18 +10819,15 @@ impl Admin {
                 for &node in &nodes {
                     let idxs = by_node.get(&node).map(Vec::as_slice).unwrap_or(&[]);
                     let topics = describe_producers_topics(&partitions, idxs).await;
-                    let _ = grouped.insert(node, topics);
+                    let mut payload = BytesMut::new();
+                    encode_describe_producers_named_topics_cooperative(&mut payload, &topics)
+                        .await?;
+                    let _ = grouped.insert(node, payload.freeze());
                 }
                 let mut finished = self
                     .exchange_leaders(&nodes, deadline, |_admin, node, _conn, _timeout| {
-                        let topics = grouped.get(&node).map(Vec::as_slice).unwrap_or(&[]);
-                        let mut payload = BytesMut::new();
-                        encode_describe_producers_named_topics(&mut payload, topics)?;
-                        Ok(LeaderFrame::ready(
-                            DESCRIBE_PRODUCERS,
-                            version,
-                            payload.freeze(),
-                        ))
+                        let payload = grouped.get(&node).cloned().unwrap_or_default();
+                        Ok(LeaderFrame::ready(DESCRIBE_PRODUCERS, version, payload))
                     })
                     .await;
                 for node in &nodes {
@@ -10926,6 +10935,8 @@ impl Admin {
         pin_broker: bool,
     ) -> Result<DescribeProducersNodeOutcome> {
         let topics = describe_producers_topics(partitions, idxs).await;
+        let mut payload = BytesMut::new();
+        encode_describe_producers_named_topics_cooperative(&mut payload, &topics).await?;
         let timeout = deadline.saturating_duration_since(Instant::now());
         if timeout.is_zero() {
             return Err(Error::Timeout);
@@ -10936,7 +10947,10 @@ impl Admin {
                 deadline,
                 DESCRIBE_PRODUCERS,
                 version,
-                |buf| encode_describe_producers_named_topics(buf, &topics),
+                |buf| {
+                    buf.extend_from_slice(&payload);
+                    Ok(())
+                },
                 timeout,
             )
             .await?;
@@ -11205,6 +11219,8 @@ impl Admin {
         let version = self
             .offset_delete_version
             .ok_or_else(|| Error::Unsupported("broker does not support OffsetDelete".into()))?;
+        let mut payload = BytesMut::new();
+        encode_offset_delete_named_topics_cooperative(&mut payload, group_id, &topics).await?;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         loop {
@@ -11224,7 +11240,10 @@ impl Admin {
                     deadline,
                     OFFSET_DELETE,
                     version,
-                    |buf| encode_offset_delete_named_topics(buf, group_id, &topics),
+                    |buf| {
+                        buf.extend_from_slice(&payload);
+                        Ok(())
+                    },
                     deadline.saturating_duration_since(Instant::now()),
                 )
                 .await
@@ -12561,7 +12580,7 @@ impl Admin {
             .await
     }
 
-    async fn list_groups_filters<S: AsRef<str>, T: AsRef<str>>(
+    async fn list_groups_filters<S: AsRef<str> + Sync, T: AsRef<str> + Sync>(
         &mut self,
         states: &[S],
         types: &[T],
@@ -12570,11 +12589,16 @@ impl Admin {
         let version = self
             .list_groups_version
             .ok_or_else(|| Error::Unsupported("broker does not support ListGroups v0-5".into()))?;
+        let mut payload = BytesMut::new();
+        encode_list_groups_filters_cooperative(&mut payload, version, states, types).await?;
         let body = self
             .roundtrip_bootstrap(
                 LIST_GROUPS,
                 version,
-                |buf| encode_list_groups_filters(buf, version, states, types),
+                |buf| {
+                    buf.extend_from_slice(&payload);
+                    Ok(())
+                },
                 timeout,
             )
             .await?;
