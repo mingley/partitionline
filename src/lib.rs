@@ -3507,7 +3507,7 @@
 //! but at or above `logStartOffset`.
 //! Top-level
 //! `FENCED_MEMBER_EPOCH` still fails that poll without
-//! Metadata, including when `ErrorMessage` is set (Java
+//! Metadata, including when `ErrorMessage` is set or empty (Java
 //! `handleShareFetchSuccess` only `requestUpdate`s for
 //! `UNKNOWN_TOPIC_ID`; this is not top-level
 //! `OFFSET_MOVED_TO_TIERED_STORAGE`). Official Java `GroupMetadataManager`
