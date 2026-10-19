@@ -1294,6 +1294,7 @@ pub fn encode_create_topics_request(
 }
 
 /// Encode CreateTopics topics whose names, assignments, and configs are borrowed.
+#[cfg(test)]
 pub(crate) fn encode_create_topics_named(
     buf: &mut BytesMut,
     version: i16,
@@ -1403,6 +1404,170 @@ fn create_topics_request_len<T: CreatableTopicView>(
         }
         if flexible {
             total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    total = add_describe_len(total, 4)?;
+    if version >= 1 {
+        total = add_describe_len(total, 1)?;
+    }
+    if flexible {
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
+}
+
+/// Encode CreateTopics, yielding while topics are still being written.
+///
+/// Encoding 2,000,000 topics held the caller for 1622ms. A topic name and a config value are still written.
+pub(crate) async fn encode_create_topics_named_cooperative(
+    buf: &mut BytesMut,
+    version: i16,
+    topics: &[BorrowedCreatableTopic<'_>],
+    timeout_ms: i32,
+    validate_only: bool,
+) -> crate::error::Result<()> {
+    encode_creatable_topic_views_cooperative(buf, version, topics, timeout_ms, validate_only).await
+}
+
+async fn encode_creatable_topic_views_cooperative<T: CreatableTopicView + Sync>(
+    buf: &mut BytesMut,
+    version: i16,
+    topics: &[T],
+    timeout_ms: i32,
+    validate_only: bool,
+) -> crate::error::Result<()>
+where
+    T::Assignment: Sync,
+    T::Config: Sync,
+{
+    let flexible = create_topics_flexible(version)?;
+    create_topics_build_check(version, topics, validate_only)?;
+    let body_start = buf.len();
+    let planned = create_topics_request_len_cooperative(version, flexible, topics).await?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
+    buf::put_array_len(buf, flexible, Some(topics.len()))?;
+    let mut walked = 0usize;
+    for topic in topics {
+        buf::put_string(buf, flexible, Some(topic.creatable_name()))?;
+        buf.put_i32(topic.creatable_num_partitions());
+        buf.put_i16(topic.creatable_replication_factor());
+        let assignments = topic.creatable_assignments();
+        buf::put_array_len(buf, flexible, Some(assignments.len()))?;
+        for assignment in assignments {
+            buf.put_i32(assignment.replica_partition());
+            put_i32_array(buf, flexible, assignment.replica_brokers())?;
+            if flexible {
+                buf::put_empty_tagged_fields(buf);
+            }
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+        let configs = topic.creatable_configs();
+        buf::put_array_len(buf, flexible, Some(configs.len()))?;
+        for config in configs {
+            buf::put_string(buf, flexible, Some(config.topic_config_name()))?;
+            buf::put_string(buf, flexible, config.topic_config_value())?;
+            if flexible {
+                buf::put_empty_tagged_fields(buf);
+            }
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    buf.put_i32(timeout_ms);
+    if version >= 1 {
+        buf.put_u8(u8::from(validate_only));
+    }
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+    Ok(())
+}
+
+async fn create_topics_request_len_cooperative<T: CreatableTopicView + Sync>(
+    version: i16,
+    flexible: bool,
+    topics: &[T],
+) -> Result<usize>
+where
+    T::Assignment: Sync,
+    T::Config: Sync,
+{
+    let mut total = describe_array_len(flexible, topics.len())?;
+    let mut walked = 0usize;
+    for topic in topics {
+        total = add_describe_len(
+            total,
+            describe_string_len(flexible, Some(topic.creatable_name()))?,
+        )?;
+        total = add_describe_len(total, 6)?;
+        let assignments = topic.creatable_assignments();
+        total = add_describe_len(total, describe_array_len(flexible, assignments.len())?)?;
+        for assignment in assignments {
+            total = add_describe_len(total, 4)?;
+            let brokers = assignment.replica_brokers();
+            total = add_describe_len(total, describe_array_len(flexible, brokers.len())?)?;
+            total = add_describe_len(
+                total,
+                brokers
+                    .len()
+                    .checked_mul(4)
+                    .ok_or_else(|| Error::protocol("create topics request size overflow"))?,
+            )?;
+            if flexible {
+                total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+            }
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+        let configs = topic.creatable_configs();
+        total = add_describe_len(total, describe_array_len(flexible, configs.len())?)?;
+        for config in configs {
+            total = add_describe_len(
+                total,
+                describe_string_len(flexible, Some(config.topic_config_name()))?,
+            )?;
+            total = add_describe_len(
+                total,
+                describe_string_len(flexible, config.topic_config_value())?,
+            )?;
+            if flexible {
+                total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+            }
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+        if flexible {
+            total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
         }
     }
     total = add_describe_len(total, 4)?;
@@ -28029,6 +28194,57 @@ mod tests {
         encode_alter_share_group_offsets_request(&mut once, "g", &sample)
             .unwrap_or_else(|error| panic!("{error}"));
         encode_alter_share_group_offsets_request_cooperative(&mut paced, "g", &sample)
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(once, paced);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn encoding_many_created_topics_does_not_hold_the_caller() {
+        let owned: Vec<String> = (0..2_000_000)
+            .map(|index| format!("topic-{index}"))
+            .collect();
+        let topics: Vec<BorrowedCreatableTopic<'_>> = owned
+            .iter()
+            .map(|name| BorrowedCreatableTopic {
+                name: name.as_str(),
+                num_partitions: 1,
+                replication_factor: 1,
+                assignments: Vec::new(),
+                configs: vec![BorrowedTopicConfig {
+                    name: "retention.ms",
+                    value: Some("1000"),
+                }],
+            })
+            .collect();
+        let mut body = bytes::BytesMut::new();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            encoded = encode_create_topics_named_cooperative(&mut body, 7, &topics, 1_000, false) => {
+                encoded.unwrap_or_else(|error| panic!("{error}"));
+            }
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "encoding created topics held the caller for {elapsed:?}"
+        );
+        let sample = [BorrowedCreatableTopic {
+            name: "orders",
+            num_partitions: 1,
+            replication_factor: 1,
+            assignments: Vec::new(),
+            configs: vec![BorrowedTopicConfig {
+                name: "retention.ms",
+                value: Some("1000"),
+            }],
+        }];
+        let mut once = bytes::BytesMut::new();
+        let mut paced = bytes::BytesMut::new();
+        encode_create_topics_named(&mut once, 7, &sample, 1_000, false)
+            .unwrap_or_else(|error| panic!("{error}"));
+        encode_create_topics_named_cooperative(&mut paced, 7, &sample, 1_000, false)
             .await
             .unwrap_or_else(|error| panic!("{error}"));
         assert_eq!(once, paced);

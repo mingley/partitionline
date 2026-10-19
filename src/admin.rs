@@ -61,7 +61,7 @@ use crate::protocol::admin::{
     encode_alter_replica_log_dirs_request, encode_alter_share_group_offsets_request_cooperative,
     encode_alter_user_scram_credentials_named_cooperative, encode_assign_replicas_to_dirs_request,
     encode_consumer_group_describe_ids_cooperative, encode_create_delegation_token_request,
-    encode_create_partitions_named, encode_create_topics_named,
+    encode_create_partitions_named, encode_create_topics_named_cooperative,
     encode_delete_groups_ids_cooperative, encode_delete_records_named_topics_cooperative,
     encode_delete_records_owned_topics_cooperative,
     encode_delete_share_group_offsets_request_cooperative, encode_describe_client_quotas_request,
@@ -5122,6 +5122,15 @@ impl Admin {
         let mut attempt = 0u32;
         loop {
             let encoded = creatable_from_new(pending.iter().filter_map(|&index| topics.get(index)));
+            let mut payload = BytesMut::new();
+            encode_create_topics_named_cooperative(
+                &mut payload,
+                version,
+                &encoded,
+                timeout_ms,
+                validate_only,
+            )
+            .await?;
             if self.cluster.controller().is_err() {
                 self.refresh_broker_directory(deadline).await?;
             }
@@ -5133,13 +5142,8 @@ impl Admin {
                     CREATE_TOPICS,
                     version,
                     |buf| {
-                        encode_create_topics_named(
-                            buf,
-                            version,
-                            &encoded,
-                            timeout_ms,
-                            validate_only,
-                        )
+                        buf.extend_from_slice(&payload);
+                        Ok(())
                     },
                     deadline.saturating_duration_since(Instant::now()),
                 )
