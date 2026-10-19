@@ -89,8 +89,8 @@ use crate::protocol::api::{
     decode_api_versions_response, decode_metadata_response,
     decode_metadata_response_into_cooperative, encode_api_versions_request,
     encode_metadata_request_named_cooperative, encode_metadata_request_ref_cooperative,
-    encode_metadata_request_topics, ApiVersion, ApiVersionsResponse, MetadataRequestTopic,
-    MetadataResponse,
+    encode_metadata_request_topics, encode_metadata_request_topics_cooperative, ApiVersion,
+    ApiVersionsResponse, MetadataRequestTopic, MetadataResponse,
 };
 use crate::protocol::api_keys::{
     pick_version, ALLOCATE_PRODUCER_IDS, ALTER_CLIENT_QUOTAS, ALTER_CONFIGS,
@@ -8847,64 +8847,25 @@ impl Admin {
         include_topic_authorized_operations: bool,
         deadline: Instant,
     ) -> Result<()> {
-        self.exchange_metadata(
+        self.ensure_bootstrap(deadline).await?;
+        let version = self.metadata_version;
+        let mut encoded = BytesMut::new();
+        encode_metadata_request_topics_cooperative(
+            &mut encoded,
+            version,
+            topics,
+            version < 4 && topics.is_none(),
+            include_topic_authorized_operations,
+        )
+        .await?;
+        self.exchange_prepared_metadata(
             topics.is_some(),
             include_topic_authorized_operations,
             deadline,
-            |buf, version| {
-                encode_metadata_request_topics(
-                    buf,
-                    version,
-                    topics,
-                    version < 4 && topics.is_none(),
-                    include_topic_authorized_operations,
-                )
-            },
+            version,
+            &encoded,
         )
         .await
-    }
-
-    async fn exchange_metadata(
-        &mut self,
-        topic_selection: bool,
-        include_topic_authorized_operations: bool,
-        deadline: Instant,
-        encode_body: impl FnOnce(&mut BytesMut, i16) -> Result<()>,
-    ) -> Result<()> {
-        let version = self.metadata_version;
-        if version == 0 && topic_selection {
-            return Err(Error::Unsupported(
-                "Metadata v0 cannot represent this Admin topic selection or disable topic creation"
-                    .into(),
-            ));
-        }
-        if version == 0 && include_topic_authorized_operations {
-            return Err(Error::Unsupported(
-                "Metadata v0 has no authorization fields".into(),
-            ));
-        }
-        self.ensure_bootstrap(deadline).await?;
-        let version = self.metadata_version;
-        if version == 0 && (topic_selection || include_topic_authorized_operations) {
-            return Err(Error::Unsupported(
-                "Metadata v0 cannot represent this Admin request".into(),
-            ));
-        }
-        let mut body = self
-            .roundtrip_bootstrap(
-                METADATA,
-                version,
-                |buf| encode_body(buf, version),
-                startup_remaining(deadline)?,
-            )
-            .await?;
-        decode_metadata_response_into_cooperative(&mut body, version, &mut self.metadata_image)
-            .await?;
-        self.metadata_image.check()?;
-        self.cluster
-            .apply_image(&self.metadata_image, version)
-            .await;
-        Ok(())
     }
 
     /// Brokers and the controller, without downloading the topic list.

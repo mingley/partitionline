@@ -2378,6 +2378,127 @@ pub fn encode_metadata_request_topics_with_include_cluster_authorized_operations
     Ok(())
 }
 
+/// [`encode_metadata_request_topics_with_include_cluster_authorized_operations`], yielding while topic rows are still being written.
+///
+/// Encoding 2,000,000 topic rows held the caller for 431ms.
+pub async fn encode_metadata_request_topics_with_include_cluster_authorized_operations_cooperative(
+    buf: &mut BytesMut,
+    version: i16,
+    topics: Option<&[MetadataRequestTopic]>,
+    allow_auto: bool,
+    include_topic_authorized_operations: bool,
+    include_cluster_authorized_operations: bool,
+) -> crate::error::Result<()> {
+    if version == 0 {
+        return metadata_legacy::encode_topics(
+            buf,
+            topics,
+            allow_auto,
+            include_topic_authorized_operations,
+            include_cluster_authorized_operations,
+        );
+    }
+    if version < 1 {
+        return Err(Error::Unsupported(
+            "MetadataRequest versions older than 1 are not supported.".into(),
+        ));
+    }
+    if !allow_auto && version < 4 {
+        return Err(Error::Unsupported(
+            "MetadataRequest versions older than 4 don't support the allowAutoTopicCreation field"
+                .into(),
+        ));
+    }
+    let mut walked = 0usize;
+    if let Some(topics) = topics {
+        for topic in topics {
+            if topic.name.is_none() && version < 12 {
+                return Err(Error::Unsupported(format!(
+                    "MetadataRequest version {version} does not support null topic names."
+                )));
+            }
+            if topic.topic_id != [0; 16] && version < 12 {
+                return Err(Error::Unsupported(format!(
+                    "MetadataRequest version {version} does not support non-zero topic IDs."
+                )));
+            }
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+    }
+    let flexible = version >= 9;
+    let body_start = buf.len();
+    let rows = match topics {
+        None => metadata_array_len(flexible, None)?,
+        Some(topics) => {
+            let mut names = 0usize;
+            for topic in topics {
+                names =
+                    add_metadata_len(names, metadata_string_len(flexible, topic.name.as_deref())?)?;
+                walked = walked.saturating_add(1);
+                if walked == 8 * 1024 {
+                    walked = 0;
+                    tokio::task::yield_now().await;
+                }
+            }
+            metadata_topic_rows_len(version, flexible, topics.len(), names)?
+        }
+    };
+    let planned = add_metadata_len(rows, metadata_request_tail_len(version))?;
+    reserve_metadata_body(buf, planned);
+    match topics {
+        None => buf::put_array_len(buf, flexible, None)?,
+        Some(topics) => {
+            buf::put_array_len(buf, flexible, Some(topics.len()))?;
+            for topic in topics {
+                if version >= 10 {
+                    buf.extend_from_slice(&topic.topic_id);
+                }
+                buf::put_string(buf, flexible, topic.name.as_deref())?;
+                if flexible {
+                    buf::put_empty_tagged_fields(buf);
+                }
+                walked = walked.saturating_add(1);
+                if walked == 8 * 1024 {
+                    walked = 0;
+                    tokio::task::yield_now().await;
+                }
+            }
+        }
+    }
+    write_metadata_request_tail(
+        buf,
+        version,
+        allow_auto,
+        include_topic_authorized_operations,
+        include_cluster_authorized_operations,
+    )?;
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+    Ok(())
+}
+
+/// [`encode_metadata_request_topics`], yielding while topic rows are still being written.
+pub async fn encode_metadata_request_topics_cooperative(
+    buf: &mut BytesMut,
+    version: i16,
+    topics: Option<&[MetadataRequestTopic]>,
+    allow_auto: bool,
+    include_topic_authorized_operations: bool,
+) -> crate::error::Result<()> {
+    encode_metadata_request_topics_with_include_cluster_authorized_operations_cooperative(
+        buf,
+        version,
+        topics,
+        allow_auto,
+        include_topic_authorized_operations,
+        false,
+    )
+    .await
+}
+
 /// Decode Metadata request: topic names (`None` is all topics),
 /// `allow.auto.create.topics`, `IncludeTopicAuthorizedOperations`, and
 /// `IncludeClusterAuthorizedOperations` (last; `false` outside v8–v10).
@@ -4835,6 +4956,41 @@ mod tests {
         encode_metadata_request(&mut once, 12, Some(&sample), false)
             .unwrap_or_else(|error| panic!("{error}"));
         encode_metadata_request_ref_cooperative(&mut paced, 12, Some(&sample), false)
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(once, paced);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn encoding_many_metadata_topic_rows_does_not_hold_the_caller() {
+        let topics: Vec<MetadataRequestTopic> = (0..2_000_000)
+            .map(|index| MetadataRequestTopic::by_name(format!("topic-{index}")))
+            .collect();
+        let mut body = BytesMut::new();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            encoded = encode_metadata_request_topics_cooperative(
+                &mut body,
+                12,
+                Some(&topics),
+                false,
+                false,
+            ) => {
+                encoded.unwrap_or_else(|error| panic!("{error}"));
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "encoding metadata topic rows held the caller for {elapsed:?}"
+        );
+        let sample = [MetadataRequestTopic::by_name("orders")];
+        let mut once = BytesMut::new();
+        let mut paced = BytesMut::new();
+        encode_metadata_request_topics(&mut once, 12, Some(&sample), false, true)
+            .unwrap_or_else(|error| panic!("{error}"));
+        encode_metadata_request_topics_cooperative(&mut paced, 12, Some(&sample), false, true)
             .await
             .unwrap_or_else(|error| panic!("{error}"));
         assert_eq!(once, paced);
