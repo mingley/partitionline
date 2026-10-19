@@ -31,7 +31,7 @@ use crate::protocol::admin::{
     decode_alter_configs_resource_results, decode_alter_partition_reassignments_response_data,
     decode_alter_replica_log_dirs_response, decode_alter_share_group_offsets_response,
     decode_alter_user_scram_credentials_response, decode_assign_replicas_to_dirs_response,
-    decode_consumer_group_describe_response, decode_create_delegation_token_response,
+    decode_consumer_group_describe_response_cooperative, decode_create_delegation_token_response,
     decode_create_partitions_response, decode_create_topics_response,
     decode_delete_groups_response, decode_delete_records_topics_response,
     decode_delete_share_group_offsets_response, decode_delete_topics_response,
@@ -15472,7 +15472,8 @@ impl Admin {
         idxs: &[usize],
         body: Bytes,
     ) -> Result<Vec<(usize, DescribedConsumerGroup)>> {
-        let (results, ..) = decode_consumer_group_describe_response(&mut body.clone(), version)?;
+        let (results, ..) =
+            decode_consumer_group_describe_response_cooperative(&mut body.clone(), version).await?;
         let mut by_id = group_named(results, |group| group.group_id.as_str()).await;
         let mut out = Vec::new();
         for &i in idxs {
@@ -18083,6 +18084,83 @@ mod tests {
                 .and_then(|item| item.members.first())
                 .and_then(|item| item.group_instance_id.as_deref()),
             Some("static")
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn decoding_many_consumer_group_members_does_not_hold_the_caller() {
+        let members: Vec<ConsumerGroupMember> = (0..200_000)
+            .map(|index| {
+                ConsumerGroupMember::new(format!("member-{index}"), 1, "client", "127.0.0.1")
+            })
+            .collect();
+        let mut group = DescribedConsumerGroup::new("orders", 0);
+        group.members = members;
+        let groups = [group];
+        let mut body = bytes::BytesMut::new();
+        crate::protocol::admin::encode_consumer_group_describe_response(&mut body, 1, &groups)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let started = std::time::Instant::now();
+        tokio::select! {
+            decoded = decode_consumer_group_describe_response_cooperative(&mut body, 1) => {
+                let (decoded, throttle) = decoded.unwrap_or_else(|error| panic!("{error}"));
+                assert_eq!(throttle, 0);
+                assert_eq!(decoded.first().map(|item| item.members.len()), Some(200_000));
+                assert_eq!(
+                    decoded.first().and_then(|item| item.members.first()).map(|item| item.member_id.as_str()),
+                    Some("member-0")
+                );
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "decoding consumer group members held the caller for {elapsed:?}"
+        );
+        let mut member = ConsumerGroupMember::new("m", 4, "client", "127.0.0.1");
+        member.instance_id = Some("static".to_string());
+        member.member_type = 1;
+        member.assignment = ConsumerGroupAssignment::new(vec![
+            crate::protocol::admin::ConsumerGroupTopicPartitions::new([1; 16], "orders", vec![7]),
+        ]);
+        let mut group = DescribedConsumerGroup::new("orders", 7);
+        group.error_message = Some("busy".to_string());
+        group.members = vec![member];
+        let groups = [group];
+        let mut encoded = bytes::BytesMut::new();
+        crate::protocol::admin::encode_consumer_group_describe_response(&mut encoded, 1, &groups)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let mut once = encoded.clone();
+        let mut paced = encoded;
+        let sync = crate::protocol::admin::decode_consumer_group_describe_response(&mut once, 1)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let coop = decode_consumer_group_describe_response_cooperative(&mut paced, 1)
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(sync.0, coop.0);
+        assert_eq!(sync.1, coop.1);
+        assert_eq!(
+            coop.0
+                .first()
+                .and_then(|item| item.error_message.as_deref()),
+            Some("busy")
+        );
+        assert_eq!(
+            coop.0
+                .first()
+                .and_then(|item| item.members.first())
+                .and_then(|item| item.instance_id.as_deref()),
+            Some("static")
+        );
+        assert_eq!(
+            coop.0
+                .first()
+                .and_then(|item| item.members.first())
+                .and_then(|item| item.assignment.topic_partitions.first())
+                .and_then(|item| item.partitions.first())
+                .copied(),
+            Some(7)
         );
     }
 
