@@ -33,9 +33,10 @@ use crate::protocol::share::{
     decode_share_group_heartbeat_response_cooperative, encode_one_share_acknowledge_cooperative,
     encode_share_acknowledge_request, encode_share_acknowledge_topics_cooperative,
     encode_share_fetch_request_with_options, encode_share_group_heartbeat_request,
-    AcknowledgementBatch, ShareAckTopic, ShareFetchPartition, ShareFetchRequestOptions,
-    ShareFetchTopic, ShareFetchedTopic, ShareGroupHeartbeatRequest, ShareTopicPartitions,
-    ACK_ACCEPT, ACK_REJECT, ACK_RELEASE, ACK_RENEW,
+    encode_share_group_heartbeat_request_cooperative, AcknowledgementBatch, ShareAckTopic,
+    ShareFetchPartition, ShareFetchRequestOptions, ShareFetchTopic, ShareFetchedTopic,
+    ShareGroupHeartbeatRequest, ShareTopicPartitions, ACK_ACCEPT, ACK_REJECT, ACK_RELEASE,
+    ACK_RENEW,
 };
 use crate::Uuid;
 
@@ -2703,6 +2704,13 @@ impl ShareGroup {
                 let cfg = &self.cfg;
                 let group_id = self.group_id.as_str();
                 let prior = &mut self.prior_coords;
+                let prepared =
+                    crate::group::negotiated_coord_version(coord, SHARE_GROUP_HEARTBEAT).ok();
+                let mut encoded = bytes::BytesMut::new();
+                if let Some(version) = prepared {
+                    encode_share_group_heartbeat_request_cooperative(&mut encoded, version, &req)
+                        .await?;
+                }
                 let refresh = Self::refresh_topic_names_within(consumer, topics, deadline);
                 let rpc = coord_roundtrip_with_bootstrap(
                     coord,
@@ -2710,7 +2718,14 @@ impl ShareGroup {
                     group_id,
                     COORDINATOR_GROUP,
                     SHARE_GROUP_HEARTBEAT,
-                    |version, buf| encode_share_group_heartbeat_request(buf, version, &req),
+                    |version, buf| {
+                        if prepared == Some(version) {
+                            buf.extend_from_slice(&encoded);
+                            Ok(())
+                        } else {
+                            encode_share_group_heartbeat_request(buf, version, &req)
+                        }
+                    },
                     &bootstrap_keys,
                     &address_keys,
                     prior,
@@ -2722,13 +2737,27 @@ impl ShareGroup {
             } else {
                 let bootstrap_keys = self.consumer.copy_api_keys();
                 let address_keys = self.consumer.copy_learned_broker_keys();
+                let prepared =
+                    crate::group::negotiated_coord_version(&self.coord, SHARE_GROUP_HEARTBEAT).ok();
+                let mut encoded = bytes::BytesMut::new();
+                if let Some(version) = prepared {
+                    encode_share_group_heartbeat_request_cooperative(&mut encoded, version, &req)
+                        .await?;
+                }
                 let (version, body) = coord_roundtrip_with_bootstrap(
                     &mut self.coord,
                     &self.cfg,
                     &self.group_id,
                     COORDINATOR_GROUP,
                     SHARE_GROUP_HEARTBEAT,
-                    |version, buf| encode_share_group_heartbeat_request(buf, version, &req),
+                    |version, buf| {
+                        if prepared == Some(version) {
+                            buf.extend_from_slice(&encoded);
+                            Ok(())
+                        } else {
+                            encode_share_group_heartbeat_request(buf, version, &req)
+                        }
+                    },
                     &bootstrap_keys,
                     &address_keys,
                     &mut self.prior_coords,
@@ -2938,6 +2967,13 @@ impl ShareGroup {
                 let cfg = &self.cfg;
                 let group_id = self.group_id.as_str();
                 let prior = &mut self.prior_coords;
+                let prepared =
+                    crate::group::negotiated_coord_version(coord, SHARE_GROUP_HEARTBEAT).ok();
+                let mut encoded = bytes::BytesMut::new();
+                if let Some(version) = prepared {
+                    encode_share_group_heartbeat_request_cooperative(&mut encoded, version, &req)
+                        .await?;
+                }
                 let refresh = Self::refresh_topic_names_within(consumer, topics, deadline);
                 let rpc = coord_roundtrip_with_bootstrap(
                     coord,
@@ -2945,7 +2981,14 @@ impl ShareGroup {
                     group_id,
                     COORDINATOR_GROUP,
                     SHARE_GROUP_HEARTBEAT,
-                    |version, buf| encode_share_group_heartbeat_request(buf, version, &req),
+                    |version, buf| {
+                        if prepared == Some(version) {
+                            buf.extend_from_slice(&encoded);
+                            Ok(())
+                        } else {
+                            encode_share_group_heartbeat_request(buf, version, &req)
+                        }
+                    },
                     &bootstrap_keys,
                     &address_keys,
                     prior,
@@ -2957,13 +3000,27 @@ impl ShareGroup {
             } else {
                 let bootstrap_keys = self.consumer.copy_api_keys();
                 let address_keys = self.consumer.copy_learned_broker_keys();
+                let prepared =
+                    crate::group::negotiated_coord_version(&self.coord, SHARE_GROUP_HEARTBEAT).ok();
+                let mut encoded = bytes::BytesMut::new();
+                if let Some(version) = prepared {
+                    encode_share_group_heartbeat_request_cooperative(&mut encoded, version, &req)
+                        .await?;
+                }
                 let (version, body) = coord_roundtrip_with_bootstrap(
                     &mut self.coord,
                     &self.cfg,
                     &self.group_id,
                     COORDINATOR_GROUP,
                     SHARE_GROUP_HEARTBEAT,
-                    |version, buf| encode_share_group_heartbeat_request(buf, version, &req),
+                    |version, buf| {
+                        if prepared == Some(version) {
+                            buf.extend_from_slice(&encoded);
+                            Ok(())
+                        } else {
+                            encode_share_group_heartbeat_request(buf, version, &req)
+                        }
+                    },
                     &bootstrap_keys,
                     &address_keys,
                     &mut self.prior_coords,
@@ -6059,13 +6116,26 @@ impl ShareGroup {
         };
         let bootstrap_keys = self.consumer.copy_api_keys();
         let address_keys = self.consumer.copy_learned_broker_keys();
+        let prepared =
+            crate::group::negotiated_coord_version(&self.coord, SHARE_GROUP_HEARTBEAT).ok();
+        let mut encoded = bytes::BytesMut::new();
+        if let Some(version) = prepared {
+            encode_share_group_heartbeat_request_cooperative(&mut encoded, version, &req).await?;
+        }
         let (version, body) = coord_roundtrip_with_bootstrap(
             &mut self.coord,
             &self.cfg,
             &self.group_id,
             COORDINATOR_GROUP,
             SHARE_GROUP_HEARTBEAT,
-            |version, buf| encode_share_group_heartbeat_request(buf, version, &req),
+            |version, buf| {
+                if prepared == Some(version) {
+                    buf.extend_from_slice(&encoded);
+                    Ok(())
+                } else {
+                    encode_share_group_heartbeat_request(buf, version, &req)
+                }
+            },
             &bootstrap_keys,
             &address_keys,
             &mut self.prior_coords,
@@ -6260,11 +6330,30 @@ impl ShareGroup {
                 } else {
                     heartbeat.subscribed_topic_names = None;
                 }
+                let mut encoded = bytes::BytesMut::new();
+                if encode_share_group_heartbeat_request_cooperative(
+                    &mut encoded,
+                    version,
+                    &heartbeat,
+                )
+                .await
+                .is_err()
+                {
+                    let retry_delay = cfg.retry_backoff.max(Duration::from_millis(50));
+                    next_hb_deadline = Instant::now() + retry_delay;
+                    if !update_share_heartbeat_deadline(&hb_deadline, &stop, next_hb_deadline) {
+                        break;
+                    }
+                    continue;
+                }
                 let res = c
                     .roundtrip(
                         SHARE_GROUP_HEARTBEAT,
                         version,
-                        |buf| encode_share_group_heartbeat_request(buf, version, &heartbeat),
+                        |buf| {
+                            buf.extend_from_slice(&encoded);
+                            Ok(())
+                        },
                         timeout,
                     )
                     .await;
