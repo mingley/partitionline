@@ -36,7 +36,7 @@ use crate::protocol::admin::{
     decode_delete_groups_response, decode_delete_records_topics_response,
     decode_delete_share_group_offsets_response, decode_delete_topics_response,
     decode_describe_client_quotas_response, decode_describe_cluster_response,
-    decode_describe_configs_response, decode_describe_delegation_token_response,
+    decode_describe_configs_response_cooperative, decode_describe_delegation_token_response,
     decode_describe_groups_response_cooperative, decode_describe_log_dirs_response,
     decode_describe_producers_response, decode_describe_share_group_offsets_response_versioned,
     decode_describe_topic_partitions_response_cooperative,
@@ -5975,7 +5975,8 @@ impl Admin {
                 timeout,
             )
             .await?;
-        let (results, ..) = decode_describe_configs_response(&mut body.clone(), version)?;
+        let (results, ..) =
+            decode_describe_configs_response_cooperative(&mut body.clone(), version).await?;
         Ok(results)
     }
 
@@ -18376,6 +18377,81 @@ mod tests {
                 .as_ref()
                 .map(|cursor| cursor.partition_index),
             Some(5)
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn decoding_many_config_entries_does_not_hold_the_caller() {
+        let entries: Vec<ConfigEntry> = (0..200_000)
+            .map(|index| ConfigEntry::new(format!("key-{index}"), Some("1".to_string())))
+            .collect();
+        let mut result = DescribeConfigsResult::error(CONFIG_RESOURCE_TOPIC, "orders", 0);
+        result.entries = entries;
+        let results = [result];
+        let mut body = bytes::BytesMut::new();
+        crate::protocol::admin::encode_describe_configs_response(&mut body, 4, &results)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let started = std::time::Instant::now();
+        tokio::select! {
+            decoded = decode_describe_configs_response_cooperative(&mut body, 4) => {
+                let (decoded, throttle) = decoded.unwrap_or_else(|error| panic!("{error}"));
+                assert_eq!(throttle, 0);
+                assert_eq!(decoded.first().map(|item| item.entries.len()), Some(200_000));
+                assert_eq!(
+                    decoded.first().and_then(|item| item.entries.first()).map(|item| item.name.as_str()),
+                    Some("key-0")
+                );
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "decoding config entries held the caller for {elapsed:?}"
+        );
+        let mut entry = ConfigEntry::new("retention.ms", Some("1000".to_string()));
+        entry.documentation = Some("keep".to_string());
+        entry.synonyms = vec![ConfigSynonym {
+            name: "log.retention.ms".to_string(),
+            value: Some("1000".to_string()),
+            source: 5,
+        }];
+        let mut result = DescribeConfigsResult::error(CONFIG_RESOURCE_TOPIC, "orders", 7);
+        result.error_message = Some("busy".to_string());
+        result.entries = vec![entry];
+        let results = [result];
+        let mut encoded = bytes::BytesMut::new();
+        crate::protocol::admin::encode_describe_configs_response(&mut encoded, 4, &results)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let mut once = encoded.clone();
+        let mut paced = encoded;
+        let sync = crate::protocol::admin::decode_describe_configs_response(&mut once, 4)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let coop = decode_describe_configs_response_cooperative(&mut paced, 4)
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(sync.0, coop.0);
+        assert_eq!(sync.1, coop.1);
+        assert_eq!(
+            coop.0
+                .first()
+                .and_then(|item| item.error_message.as_deref()),
+            Some("busy")
+        );
+        assert_eq!(
+            coop.0
+                .first()
+                .and_then(|item| item.entries.first())
+                .and_then(|item| item.documentation.as_deref()),
+            Some("keep")
+        );
+        assert_eq!(
+            coop.0
+                .first()
+                .and_then(|item| item.entries.first())
+                .and_then(|item| item.synonyms.first())
+                .map(|item| item.name.as_str()),
+            Some("log.retention.ms")
         );
     }
 
