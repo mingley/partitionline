@@ -98,7 +98,7 @@ use crate::protocol::api_keys::{
     UNREGISTER_BROKER, UPDATE_FEATURES, WRITE_TXN_MARKERS,
 };
 use crate::protocol::group::{
-    decode_find_coordinator_response, decode_find_coordinator_response_coordinators,
+    decode_find_coordinator_response, decode_find_coordinator_response_coordinators_cooperative,
     decode_leave_group_response_version, decode_offset_commit_response_cooperative,
     decode_offset_delete_response_cooperative, decode_offset_fetch_groups_response,
     decode_offset_fetch_response_cooperative, encode_find_coordinator_request_keys,
@@ -15154,8 +15154,11 @@ impl Admin {
                 }
                 Err(e) => return Err(e),
             };
-            let (coords, ..) =
-                decode_find_coordinator_response_coordinators(&mut body.clone(), version)?;
+            let (coords, ..) = decode_find_coordinator_response_coordinators_cooperative(
+                &mut body.clone(),
+                version,
+            )
+            .await?;
             let mut by_key = index_coordinators(coords).await;
             let slots = take_coordinator_slots(&mut by_key, &uniq).await?;
             let mut retry = false;
@@ -17880,6 +17883,79 @@ mod tests {
             selection.names.first().map(|name| name.as_ptr()),
             Some(orders_ptr)
         );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn decoding_many_coordinators_does_not_hold_the_caller() {
+        // 200_000 coordinators: reading each one held the caller 159ms.
+        let coords: Vec<crate::protocol::group::CoordinatorResult> = (0..200_000)
+            .map(|index| crate::protocol::group::CoordinatorResult {
+                key: format!("group-{index}"),
+                node_id: 1,
+                host: "127.0.0.1".to_string(),
+                port: 9092,
+                error_code: 0,
+                error_message: None,
+            })
+            .collect();
+        let mut body = bytes::BytesMut::new();
+        crate::protocol::group::encode_find_coordinator_response_coordinators(
+            &mut body, 4, &coords,
+        )
+        .unwrap_or_else(|error| panic!("{error}"));
+        let started = std::time::Instant::now();
+        tokio::select! {
+            decoded = decode_find_coordinator_response_coordinators_cooperative(&mut body, 4) => {
+                let (decoded, throttle) = decoded.unwrap_or_else(|error| panic!("{error}"));
+                assert_eq!(throttle, 0);
+                assert_eq!(decoded.len(), 200_000);
+                assert_eq!(decoded.first().map(|item| item.key.as_str()), Some("group-0"));
+                assert_eq!(decoded.first().map(|item| item.host.as_str()), Some("127.0.0.1"));
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "decoding coordinators held the caller for {elapsed:?}"
+        );
+        let small = [
+            crate::protocol::group::CoordinatorResult {
+                key: "orders".to_string(),
+                node_id: 4,
+                host: "b".to_string(),
+                port: 2,
+                error_code: 7,
+                error_message: Some("busy".to_string()),
+            },
+            crate::protocol::group::CoordinatorResult {
+                key: "orders".to_string(),
+                node_id: 4,
+                host: "b".to_string(),
+                port: 2,
+                error_code: 0,
+                error_message: None,
+            },
+        ];
+        let mut encoded = bytes::BytesMut::new();
+        crate::protocol::group::encode_find_coordinator_response_coordinators(
+            &mut encoded,
+            4,
+            &small,
+        )
+        .unwrap_or_else(|error| panic!("{error}"));
+        let mut once = encoded.clone();
+        let mut paced = encoded;
+        let sync =
+            crate::protocol::group::decode_find_coordinator_response_coordinators(&mut once, 4)
+                .unwrap_or_else(|error| panic!("{error}"));
+        let coop = decode_find_coordinator_response_coordinators_cooperative(&mut paced, 4)
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(sync.0, coop.0);
+        assert_eq!(sync.1, coop.1);
+        assert_eq!(coop.0.len(), 2);
+        assert_eq!(coop.0[1].error_message, None);
     }
 
     #[tokio::test(flavor = "current_thread")]
