@@ -524,6 +524,12 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `metadata.requestUpdate`; this is not top-level
   `SNAPSHOT_NOT_FOUND`). Official Java `KafkaRaftClient`
   writes this when the requested snapshot offset is out of range.
+  A top-level ShareAcknowledge `DUPLICATE_BROKER_REGISTRATION` completes
+  without retry and does not request Metadata, including when
+  `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+  `metadata.requestUpdate`; this is not top-level
+  `POSITION_OUT_OF_RANGE`). Official Java `ClusterControlManager`
+  writes this when another broker is already registered with that broker id.
   A piggybacked ShareFetch
   `AcknowledgeErrorMessage` that is empty uses
   `ShareFetch acknowledgement {topic}-{partition}`. A piggybacked

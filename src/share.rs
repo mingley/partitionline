@@ -2822,6 +2822,13 @@ pub enum ShareAcquireMode {
 /// `metadata.requestUpdate`; this is not top-level
 /// `SNAPSHOT_NOT_FOUND`). Official Java `KafkaRaftClient`
 /// writes this when the requested snapshot offset is out of range. A top-level
+/// ShareAcknowledge `DUPLICATE_BROKER_REGISTRATION` completes without
+/// retry and does not request Metadata, including when `ErrorMessage`
+/// is set (Java `handleShareAcknowledgeSuccess` has no
+/// `metadata.requestUpdate`; this is not top-level
+/// `POSITION_OUT_OF_RANGE`). Official Java `ClusterControlManager`
+/// writes this when another broker is already registered with that
+/// broker id. A top-level
 /// ShareAcknowledge `SHARE_SESSION_LIMIT_REACHED` completes without
 /// retry and does not request Metadata, including when `ErrorMessage`
 /// is set or empty (Java `handleShareAcknowledgeSuccess` has no
@@ -6334,6 +6341,13 @@ impl ShareGroup {
     /// this is not top-level `SNAPSHOT_NOT_FOUND`).
     /// Official Java `KafkaRaftClient` writes this when the requested
     /// snapshot offset is out of range.
+    /// A top-level ShareAcknowledge `DUPLICATE_BROKER_REGISTRATION`
+    /// completes without retry and does not request Metadata,
+    /// including when `ErrorMessage` is set (Java
+    /// `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`;
+    /// this is not top-level `POSITION_OUT_OF_RANGE`).
+    /// Official Java `ClusterControlManager` writes this when another
+    /// broker is already registered with that broker id.
     /// Top-level `SHARE_SESSION_LIMIT_REACHED`
     /// completes without retry and advances the session epoch (Java
     /// `ShareSessionHandler.handleResponse` `nextEpoch`), including
