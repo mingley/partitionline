@@ -33,7 +33,7 @@ use crate::protocol::admin::{
     decode_alter_replica_log_dirs_response, decode_alter_share_group_offsets_response,
     decode_alter_user_scram_credentials_response, decode_assign_replicas_to_dirs_response,
     decode_consumer_group_describe_response_cooperative, decode_create_delegation_token_response,
-    decode_create_partitions_response, decode_create_topics_response,
+    decode_create_partitions_response, decode_create_topics_response_cooperative,
     decode_delete_groups_response_cooperative, decode_delete_records_topics_response,
     decode_delete_share_group_offsets_response, decode_delete_topics_response,
     decode_describe_client_quotas_response, decode_describe_cluster_response,
@@ -5143,7 +5143,8 @@ impl Admin {
                 }
                 Err(e) => return Err(e),
             };
-            let (results, ..) = decode_create_topics_response(&mut body.clone(), version)?;
+            let (results, ..) =
+                decode_create_topics_response_cooperative(&mut body.clone(), version).await?;
             if results
                 .iter()
                 .any(|r| r.error_code == error::NOT_CONTROLLER)
@@ -18973,6 +18974,76 @@ mod tests {
                 .and_then(|item| item.partitions.first())
                 .and_then(|item| item.error_message.as_deref()),
             Some("busy")
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn decoding_many_created_topics_does_not_hold_the_caller() {
+        let results: Vec<TopicResult> = (0..1_000_000)
+            .map(|index| {
+                let mut topic = TopicResult::new(format!("topic-{index}"), 0, None);
+                topic.topic_id = [1; 16];
+                topic.num_partitions = 3;
+                topic.replication_factor = 2;
+                topic
+            })
+            .collect();
+        let mut body = bytes::BytesMut::new();
+        crate::protocol::admin::encode_create_topics_response(&mut body, 7, &results)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let started = std::time::Instant::now();
+        tokio::select! {
+            decoded = decode_create_topics_response_cooperative(&mut body, 7) => {
+                let (decoded, throttle) = decoded.unwrap_or_else(|error| panic!("{error}"));
+                assert_eq!(throttle, 0);
+                assert_eq!(decoded.len(), 1_000_000);
+                assert_eq!(decoded.first().map(|item| item.name.as_str()), Some("topic-0"));
+                assert_eq!(decoded.first().map(|item| item.num_partitions), Some(3));
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "decoding created topics held the caller for {elapsed:?}"
+        );
+        let mut topic = TopicResult::new("orders", 7, Some("busy".to_string()));
+        topic.topic_id = [9; 16];
+        topic.num_partitions = 4;
+        topic.replication_factor = 3;
+        topic.configs = vec![CreatedTopicConfig {
+            name: "retention.ms".to_string(),
+            value: Some("1000".to_string()),
+            read_only: false,
+            config_source: 1,
+            is_sensitive: false,
+        }];
+        let results = [topic];
+        let mut encoded = bytes::BytesMut::new();
+        crate::protocol::admin::encode_create_topics_response(&mut encoded, 7, &results)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let mut once = encoded.clone();
+        let mut paced = encoded;
+        let sync = crate::protocol::admin::decode_create_topics_response(&mut once, 7)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let coop = decode_create_topics_response_cooperative(&mut paced, 7)
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(sync.0, coop.0);
+        assert_eq!(sync.1, coop.1);
+        assert_eq!(
+            coop.0
+                .first()
+                .and_then(|item| item.error_message.as_deref()),
+            Some("busy")
+        );
+        assert_eq!(coop.0.first().map(|item| item.topic_id), Some([9; 16]));
+        assert_eq!(
+            coop.0
+                .first()
+                .and_then(|item| item.configs.first())
+                .map(|item| item.name.as_str()),
+            Some("retention.ms")
         );
     }
 
