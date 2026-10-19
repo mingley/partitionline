@@ -12271,6 +12271,50 @@ pub(crate) fn encode_describe_transactions_ids<T: AsRef<str>>(
     Ok(())
 }
 
+/// Encode DescribeTransactions, yielding while transactional ids are still being written.
+///
+/// Encoding 2,000,000 ids held the caller for 276ms. A transactional id is still written.
+pub(crate) async fn encode_describe_transactions_ids_cooperative<T: AsRef<str> + Sync>(
+    buf: &mut BytesMut,
+    transactional_ids: &[T],
+) -> crate::error::Result<()> {
+    let body_start = buf.len();
+    let planned = describe_transactions_request_len_cooperative(transactional_ids).await?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
+    buf::put_array_len(buf, true, Some(transactional_ids.len()))?;
+    let mut walked = 0usize;
+    for id in transactional_ids {
+        buf::put_compact_string(buf, Some(id.as_ref()))?;
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    buf::put_empty_tagged_fields(buf);
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+    Ok(())
+}
+
+async fn describe_transactions_request_len_cooperative<T: AsRef<str> + Sync>(
+    transactional_ids: &[T],
+) -> Result<usize> {
+    let mut total = describe_array_len(true, transactional_ids.len())?;
+    let mut walked = 0usize;
+    for id in transactional_ids {
+        total = add_describe_len(total, describe_string_len(true, Some(id.as_ref()))?)?;
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    add_describe_len(total, buf::unsigned_varint_size(0))
+}
+
 fn describe_transactions_request_len<T: AsRef<str>>(transactional_ids: &[T]) -> Result<usize> {
     let mut total = describe_array_len(true, transactional_ids.len())?;
     for id in transactional_ids {
@@ -26778,6 +26822,33 @@ pub fn decode_remove_raft_voter_response<B: Buf>(
 mod tests {
     use super::*;
     use std::collections::{BTreeSet, HashMap};
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn encoding_many_described_transactions_does_not_hold_the_caller() {
+        let ids: Vec<String> = (0..2_000_000).map(|index| format!("txn-{index}")).collect();
+        let mut body = bytes::BytesMut::new();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            encoded = encode_describe_transactions_ids_cooperative(&mut body, &ids) => {
+                encoded.unwrap_or_else(|error| panic!("{error}"));
+            }
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "encoding described transactions held the caller for {elapsed:?}"
+        );
+        let sample = ["orders".to_string()];
+        let mut once = bytes::BytesMut::new();
+        let mut paced = bytes::BytesMut::new();
+        encode_describe_transactions_ids(&mut once, &sample)
+            .unwrap_or_else(|error| panic!("{error}"));
+        encode_describe_transactions_ids_cooperative(&mut paced, &sample)
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(once, paced);
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn encoding_many_deleted_groups_does_not_hold_the_caller() {

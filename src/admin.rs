@@ -68,7 +68,7 @@ use crate::protocol::admin::{
     encode_describe_configs_named, encode_describe_delegation_token_request,
     encode_describe_groups_ids, encode_describe_log_dirs_named, encode_describe_log_dirs_request,
     encode_describe_producers_named_topics, encode_describe_share_group_offsets_request_refs,
-    encode_describe_topic_partitions_names, encode_describe_transactions_ids,
+    encode_describe_topic_partitions_names, encode_describe_transactions_ids_cooperative,
     encode_describe_user_scram_credentials_ids, encode_expire_delegation_token_hmac,
     encode_expire_delegation_token_request, encode_get_telemetry_subscriptions_request,
     encode_incremental_alter_configs_named, encode_list_config_resources_request,
@@ -8055,17 +8055,20 @@ impl Admin {
             nodes.sort_unstable();
             let mut still = Vec::new();
             if nodes.len() > 1 {
+                let mut prepared = HashMap::new();
+                for node in &nodes {
+                    let idxs = by_node.get(node).map(Vec::as_slice).unwrap_or(&[]);
+                    let subset = borrowed_ids(ids, idxs);
+                    let mut payload = BytesMut::new();
+                    encode_describe_transactions_ids_cooperative(&mut payload, &subset).await?;
+                    let _previous = prepared.insert(*node, payload.freeze());
+                }
                 let mut finished = self
                     .exchange_leaders(&nodes, deadline, |_admin, node, _conn, _timeout| {
-                        let idxs = by_node.get(&node).map(Vec::as_slice).unwrap_or(&[]);
-                        let subset = borrowed_ids(ids, idxs);
-                        let mut payload = BytesMut::new();
-                        encode_describe_transactions_ids(&mut payload, &subset)?;
-                        Ok(LeaderFrame::ready(
-                            DESCRIBE_TRANSACTIONS,
-                            version,
-                            payload.freeze(),
-                        ))
+                        let payload = prepared.get(&node).cloned().ok_or_else(|| {
+                            Error::protocol("missing describe transactions request")
+                        })?;
+                        Ok(LeaderFrame::ready(DESCRIBE_TRANSACTIONS, version, payload))
                     })
                     .await;
                 for node in &nodes {
@@ -15680,13 +15683,18 @@ impl Admin {
     ) -> Result<Vec<(usize, TransactionState)>> {
         let subset = borrowed_ids(ids, idxs);
         let timeout = startup_remaining(deadline)?;
+        let mut encoded = BytesMut::new();
+        encode_describe_transactions_ids_cooperative(&mut encoded, &subset).await?;
         let body = self
             .roundtrip_known_node(
                 node,
                 deadline,
                 DESCRIBE_TRANSACTIONS,
                 version,
-                |buf| encode_describe_transactions_ids(buf, &subset),
+                |buf| {
+                    buf.extend_from_slice(&encoded);
+                    Ok(())
+                },
                 timeout,
             )
             .await?;
