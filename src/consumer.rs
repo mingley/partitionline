@@ -5512,7 +5512,7 @@ impl Consumer {
         for (topic, partition) in coords {
             let _ = self.preferred.remove(topic, *partition);
         }
-        fill_reused_topics(names, coords.iter().map(|(topic, _)| topic.as_ref()));
+        fill_reused_topics_cooperative(names, coords.iter().map(|(topic, _)| topic.as_ref())).await;
         names.sort();
         self.refresh_metadata_timeout(
             Some(names),
@@ -5570,7 +5570,8 @@ impl Consumer {
                 if Instant::now() >= deadline {
                     return Err(Error::Timeout);
                 }
-                fill_reused_topics(names, remaining.iter().map(|(topic, _)| *topic));
+                fill_reused_topics_cooperative(names, remaining.iter().map(|(topic, _)| *topic))
+                    .await;
                 names.sort();
                 self.refresh_metadata_timeout(
                     Some(names),
@@ -5653,7 +5654,7 @@ impl Consumer {
             if Instant::now() >= deadline {
                 return Err(Error::Timeout);
             }
-            fill_reused_topics(names, remaining.iter().map(|(topic, _)| *topic));
+            fill_reused_topics_cooperative(names, remaining.iter().map(|(topic, _)| *topic)).await;
             names.sort();
             self.refresh_metadata_timeout(
                 Some(names),
@@ -6599,12 +6600,13 @@ impl Consumer {
             );
             if metadata_stale {
                 let mut topics = std::mem::take(&mut self.metadata_topics);
-                fill_reused_topics(
+                fill_reused_topics_cooperative(
                     &mut topics,
                     self.assigned.iter().filter_map(|(topic, partition, _)| {
                         (!completed.contains(topic, *partition)).then_some(topic.as_ref())
                     }),
-                );
+                )
+                .await;
                 if Instant::now() >= deadline {
                     self.restore_metadata_topics(topics);
                     return self.fetched_or_timeout(out, Error::Timeout).await;
@@ -6720,10 +6722,11 @@ impl Consumer {
                     };
                 }
                 let mut topics = std::mem::take(&mut self.metadata_topics);
-                fill_reused_topics(
+                fill_reused_topics_cooperative(
                     &mut topics,
                     self.assigned.iter().map(|(topic, _, _)| topic.as_ref()),
-                );
+                )
+                .await;
                 let cached = self.cached_fetch_nodes(completed).await;
                 let nodes = self.fetch_redial_nodes(cached);
                 for topic in &topics {
@@ -6989,10 +6992,11 @@ impl Consumer {
                     }
                     if retry == FetchRetry::Backoff {
                         let mut topics = std::mem::take(&mut self.metadata_topics);
-                        fill_reused_topics(
+                        fill_reused_topics_cooperative(
                             &mut topics,
                             self.assigned.iter().map(|(topic, _, _)| topic.as_ref()),
-                        );
+                        )
+                        .await;
                         let nodes = self.fetch_redial_nodes(Vec::new());
                         let refreshed = self
                             .refresh_metadata_while_dialing(&topics, &nodes, deadline)
@@ -11044,6 +11048,7 @@ fn keep_buf<T>(slot: &mut Vec<T>, values: Vec<T>) {
     }
 }
 
+#[cfg(test)]
 fn fill_reused_topics<'a>(topics: &mut Vec<String>, names: impl IntoIterator<Item = &'a str>) {
     let mut used = 0usize;
     let mut seen = ShortSet::new();
@@ -11060,6 +11065,40 @@ fn fill_reused_topics<'a>(topics: &mut Vec<String>, names: impl IntoIterator<Ite
             topics.push(topic.to_owned());
         }
         used = used.saturating_add(1);
+    }
+    topics.truncate(used);
+}
+
+fn reused_topic_chunk() -> usize {
+    8 * 1024
+}
+
+/// Filling 2,000,000 topic names held the caller for 2.10s. The first copy of
+/// a name is still stored, and a slot that already holds that name is kept.
+async fn fill_reused_topics_cooperative<'a>(
+    topics: &mut Vec<String>,
+    names: impl IntoIterator<Item = &'a str>,
+) {
+    let mut used = 0usize;
+    let mut seen = ShortSet::new();
+    let mut walked = 0usize;
+    for topic in names {
+        walked = walked.saturating_add(1);
+        if seen.insert(topic) {
+            if let Some(slot) = topics.get_mut(used) {
+                if slot != topic {
+                    slot.clear();
+                    slot.push_str(topic);
+                }
+            } else {
+                topics.push(topic.to_owned());
+            }
+            used = used.saturating_add(1);
+        }
+        if walked == reused_topic_chunk() {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
     }
     topics.truncate(used);
 }
@@ -15242,6 +15281,33 @@ mod tests {
         reused.sort();
         assert_eq!(reused, vec!["orders".to_owned()]);
         assert!(reused.capacity() >= capacity);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn filling_many_reused_topics_does_not_hold_the_caller() {
+        let names: Vec<String> = (0..2_000_000)
+            .map(|index| format!("topic-{index}"))
+            .collect();
+        let mut topics = Vec::new();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            () = fill_reused_topics_cooperative(&mut topics, names.iter().map(String::as_str)) => {}
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        assert!(
+            started.elapsed() < std::time::Duration::from_millis(80),
+            "filling reused topics held the caller for {:?}",
+            started.elapsed()
+        );
+        let mut got = vec!["kept".to_string()];
+        fill_reused_topics_cooperative(&mut got, ["payments", "orders", "orders"]).await;
+        let mut expect = vec!["kept".to_string()];
+        fill_reused_topics(&mut expect, ["payments", "orders", "orders"]);
+        assert_eq!(got, expect);
+        let capacity = got.capacity();
+        fill_reused_topics_cooperative(&mut got, ["orders"]).await;
+        assert_eq!(got, vec!["orders".to_string()]);
+        assert!(got.capacity() >= capacity);
     }
 
     #[test]
