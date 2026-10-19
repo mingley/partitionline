@@ -2598,13 +2598,21 @@ impl BrokerFetchSession {
         self.awaiting_response = false;
     }
 
-    fn validate_partitions(&self, topics: &[FetchedTopic], version: i16, full: bool) -> Result<()> {
-        // Membership is the session map. The response set only catches duplicates.
+    /// Membership is the session map. The response set only catches duplicates.
+    ///
+    /// Reading each of 200,000 topics held the caller for 195ms. A partition is still checked.
+    async fn validate_partitions(
+        &self,
+        topics: &[FetchedTopic],
+        version: i16,
+        full: bool,
+    ) -> Result<()> {
         // A full response is complete when those unique members cover every
         // stored partition, so the stored set does not need its own copy.
-        let unique = session_response_is_unique(topics, version, &self.id_names);
+        let unique = session_response_is_unique(topics, version, &self.id_names).await;
         let mut seen = HashSet::new();
         let mut count = 0usize;
+        let mut walked = 0usize;
         for topic in topics {
             let name = if version >= 13 {
                 self.id_names
@@ -2627,12 +2635,23 @@ impl BrokerFetchSession {
                 if unique {
                     count = count.saturating_add(1);
                 }
+                walked = walked.saturating_add(1);
+                if walked == 8 * 1024 {
+                    walked = 0;
+                    tokio::task::yield_now().await;
+                }
             }
         }
         if full {
             let mut expected = 0usize;
+            let mut stored_walked = 0usize;
             for parts in self.partitions.values() {
                 expected = expected.saturating_add(parts.len());
+                stored_walked = stored_walked.saturating_add(1);
+                if stored_walked == 8 * 1024 {
+                    stored_walked = 0;
+                    tokio::task::yield_now().await;
+                }
             }
             let response = if unique { count } else { seen.len() };
             if response != expected {
@@ -7631,8 +7650,9 @@ impl Consumer {
                     // declined session. The quota scheduler owns the next wait.
                     if full && throttle > 0 && topics.is_empty() {
                         session.metadata = FetchMetadata::INITIAL;
-                    } else if let Err(error) =
-                        session.validate_partitions(&topics, reply.version, full)
+                    } else if let Err(error) = session
+                        .validate_partitions(&topics, reply.version, full)
+                        .await
                     {
                         if full {
                             session.metadata = FetchMetadata::INITIAL;
@@ -11410,7 +11430,11 @@ fn drop_records_at_cursors(records: &mut Vec<FetchedRecord>, cuts: &[(&str, i32,
     removed
 }
 
-fn session_response_is_unique(topics: &[FetchedTopic], version: i16, ids: &SessionIdNames) -> bool {
+async fn session_response_is_unique(
+    topics: &[FetchedTopic],
+    version: i16,
+    ids: &SessionIdNames,
+) -> bool {
     if topics.len() <= 1 {
         return topics
             .first()
@@ -11433,12 +11457,18 @@ fn session_response_is_unique(topics: &[FetchedTopic], version: i16, ids: &Sessi
         return true;
     }
     let mut names = HashSet::new();
+    let mut walked = 0usize;
     for topic in topics {
         let Some(name) = session_topic_name(topic, version, ids) else {
             return false;
         };
         if !names.insert(name) || !partitions_strictly_increase(&topic.partitions) {
             return false;
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
         }
     }
     true
@@ -11984,6 +12014,48 @@ mod tests {
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "preparing fetch partitions held the caller for {elapsed:?}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn validating_many_fetch_topics_does_not_hold_the_caller() {
+        let count = 200_000;
+        let mut session = BrokerFetchSession::default();
+        let mut topics = Vec::with_capacity(count);
+        for index in 0..count {
+            let name = format!("topic-{index}");
+            let topic: Arc<str> = Arc::from(name.as_str());
+            let mut parts = SessionParts::new();
+            let _stored = parts.insert(
+                0,
+                SessionPartition {
+                    id: [0; 16],
+                    data: crate::protocol::fetch::FetchPartition::partition_data(
+                        0, 0, -1, 1_048_576, None, None,
+                    ),
+                    stamp: 0,
+                },
+            );
+            let _previous = session.partitions.insert(topic, parts);
+            topics.push(crate::protocol::fetch::FetchedTopic {
+                topic: name,
+                topic_id: [0; 16],
+                partitions: vec![
+                    crate::protocol::fetch::FetchedPartition::partition_response(0, 0),
+                ],
+            });
+        }
+        let started = std::time::Instant::now();
+        tokio::select! {
+            validated = session.validate_partitions(&topics, 12, true) => {
+                validated.unwrap_or_else(|error| panic!("{error}"));
+            }
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "validating fetch topics held the caller for {elapsed:?}"
         );
     }
 
@@ -14569,8 +14641,8 @@ mod tests {
         assert_eq!(kept, vec![("t", 1), ("u", 4)]);
     }
 
-    #[test]
-    fn an_increasing_partition_list_cannot_repeat() {
+    #[tokio::test(flavor = "current_thread")]
+    async fn an_increasing_partition_list_cannot_repeat() {
         use crate::protocol::fetch::FetchedPartition;
         let parts = [
             FetchedPartition::partition_response(0, 0),
@@ -14603,21 +14675,9 @@ mod tests {
             partitions: vec![FetchedPartition::partition_response(0, 0)],
         };
         let ids = HashMap::new();
-        assert!(session_response_is_unique(
-            std::slice::from_ref(&orders),
-            11,
-            &ids
-        ));
-        assert!(session_response_is_unique(
-            &[orders.clone(), payments.clone()],
-            11,
-            &ids
-        ));
-        assert!(!session_response_is_unique(
-            &[orders.clone(), orders],
-            11,
-            &ids
-        ));
+        assert!(session_response_is_unique(std::slice::from_ref(&orders), 11, &ids).await);
+        assert!(session_response_is_unique(&[orders.clone(), payments.clone()], 11, &ids).await);
+        assert!(!session_response_is_unique(&[orders.clone(), orders], 11, &ids).await);
         let backwards = FetchedTopic {
             topic: "payments".to_owned(),
             topic_id: [0; 16],
@@ -14626,11 +14686,7 @@ mod tests {
                 FetchedPartition::partition_response(0, 0),
             ],
         };
-        assert!(!session_response_is_unique(
-            &[payments, backwards],
-            11,
-            &ids
-        ));
+        assert!(!session_response_is_unique(&[payments, backwards], 11, &ids).await);
     }
 
     #[test]
