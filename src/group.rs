@@ -4734,7 +4734,8 @@ impl ConsumerGroup {
                 heartbeat.member_epoch = epoch;
                 heartbeat.rebalance_timeout_ms = rebalance_timeout_ms;
                 if joining {
-                    reuse_topic_names(&mut heartbeat.subscribed_topic_names, &hb_topics.lock());
+                    reuse_topic_names_locked(&mut heartbeat.subscribed_topic_names, &hb_topics)
+                        .await;
                     if heartbeat
                         .topic_partitions
                         .as_ref()
@@ -5053,6 +5054,7 @@ pub(crate) fn copy_member_id(dest: &mut String, source: &str) {
     }
 }
 
+#[cfg(test)]
 fn reuse_topic_names(dest: &mut Option<Vec<String>>, topics: &[String]) {
     let same = dest
         .as_ref()
@@ -5060,6 +5062,69 @@ fn reuse_topic_names(dest: &mut Option<Vec<String>>, topics: &[String]) {
     if !same {
         *dest = Some(topics.to_vec());
     }
+}
+
+fn reused_name_chunk() -> usize {
+    8 * 1024
+}
+
+/// Copy subscribed topic names into the heartbeat when they changed.
+///
+/// The copy pauses every 8,192 names. Without that pause, copying 4,000,000
+/// names held the caller for 404 milliseconds.
+///
+/// An unchanged list keeps its buffer. Each changed name is still copied.
+async fn reuse_topic_names_locked(
+    dest: &mut Option<Vec<String>>,
+    topics: &parking_lot::Mutex<Vec<String>>,
+) {
+    let snapshot = {
+        let mut guard = topics.lock();
+        std::mem::take(&mut *guard)
+    };
+    let unchanged = match dest.as_ref() {
+        Some(names) => names_match(names, &snapshot).await,
+        None => false,
+    };
+    if !unchanged {
+        *dest = Some(copy_reused_names(&snapshot).await);
+    }
+    let mut guard = topics.lock();
+    if guard.is_empty() {
+        *guard = snapshot;
+    }
+}
+
+async fn names_match(left: &[String], right: &[String]) -> bool {
+    if left.len() != right.len() {
+        return false;
+    }
+    let mut index = 0usize;
+    while index < left.len() {
+        let end = index.saturating_add(reused_name_chunk()).min(left.len());
+        if left.get(index..end) != right.get(index..end) {
+            return false;
+        }
+        index = end;
+        if index < left.len() {
+            tokio::task::yield_now().await;
+        }
+    }
+    true
+}
+
+async fn copy_reused_names(topics: &[String]) -> Vec<String> {
+    let mut out = Vec::new();
+    let mut walked = 0usize;
+    for name in topics {
+        out.push(name.clone());
+        walked = walked.saturating_add(1);
+        if walked == reused_name_chunk() {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    out
 }
 
 fn reuse_topic_partitions(
@@ -10249,6 +10314,34 @@ mod tests {
             assign_range_names_cooperative(&members, &partitions).await,
             assign_range_names(&members, &partitions)
         );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn reusing_many_topic_names_does_not_hold_the_caller() {
+        let topics: Vec<String> = (0..4_000_000)
+            .map(|index| format!("topic-{index}"))
+            .collect();
+        let stored = parking_lot::Mutex::new(topics);
+        let mut names = None;
+        let started = std::time::Instant::now();
+        let task = tokio::spawn(async move {
+            reuse_topic_names_locked(&mut names, &stored).await;
+        });
+        tokio::time::sleep(std::time::Duration::from_millis(30)).await;
+        let elapsed = started.elapsed();
+        task.abort();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "reusing topic names held the caller for {elapsed:?}"
+        );
+        let sample = parking_lot::Mutex::new(vec!["orders".to_string()]);
+        let mut kept = Some(vec!["orders".to_string()]);
+        let ptr = kept.as_ref().map(Vec::as_ptr);
+        reuse_topic_names_locked(&mut kept, &sample).await;
+        assert_eq!(kept.as_ref().map(Vec::as_ptr), ptr);
+        *sample.lock() = vec!["payments".to_string()];
+        reuse_topic_names_locked(&mut kept, &sample).await;
+        assert_eq!(kept.as_deref(), Some(["payments".to_string()].as_slice()));
     }
 
     #[tokio::test(flavor = "current_thread")]

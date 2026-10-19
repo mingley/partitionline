@@ -70,7 +70,7 @@ These walks include:
 - finding, listing, and grouping leaders during an admin retry
 - listing missing coordinators, collecting ones already cached, and grouping ids under them
 - dropping cached topic metadata before a refresh
-- placing assigned fetches, collecting topic names, and checking whether assigned topics are fresh
+- placing assigned fetches, collecting topic names, checking whether assigned topics are fresh, and copying a changed heartbeat subscription
 - opening one result slot, and its index, for each item in an admin batch
 - copying transactional ids before fencing producers
 
