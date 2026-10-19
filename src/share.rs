@@ -2880,7 +2880,7 @@ pub enum ShareAcquireMode {
 /// no transaction state. A top-level
 /// ShareAcknowledge `INELIGIBLE_REPLICA` completes without
 /// retry and does not request Metadata, including when `ErrorMessage`
-/// is set (Java `handleShareAcknowledgeSuccess` has no
+/// is set or empty (Java `handleShareAcknowledgeSuccess` has no
 /// `metadata.requestUpdate`; this is not top-level
 /// `TRANSACTIONAL_ID_NOT_FOUND`). Official Java
 /// `ReplicationControlManager` writes this when AlterPartition
@@ -6455,7 +6455,7 @@ impl ShareGroup {
     /// transactional id has no transaction state.
     /// A top-level ShareAcknowledge `INELIGIBLE_REPLICA`
     /// completes without retry and does not request Metadata,
-    /// including when `ErrorMessage` is set (Java
+    /// including when `ErrorMessage` is set or empty (Java
     /// `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`;
     /// this is not top-level `TRANSACTIONAL_ID_NOT_FOUND`).
     /// Official Java `ReplicationControlManager` writes this when
