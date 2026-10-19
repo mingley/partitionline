@@ -8724,6 +8724,38 @@ fn take_part_list(scratch: &mut ProduceGroupScratch) -> Vec<Pending> {
     part
 }
 
+/// Size each topic's partition lists after a mixed batch has been counted.
+///
+/// Reserving 2,000,000 topics held the caller for 3405ms. A partition list is still reserved.
+async fn reserve_grouped_topic_counts(
+    order: &[Arc<str>],
+    buckets: &mut ProduceBuckets,
+    counts: &mut Vec<usize>,
+) {
+    let mut walked = 0usize;
+    for topic in order {
+        let Some(groups) = buckets.get_mut(topic.as_ref()) else {
+            continue;
+        };
+        counts.clear();
+        reserve_len(counts, groups.order.len());
+        for (partition, _) in &groups.order {
+            counts.push(groups.slots.get(partition).copied().unwrap_or(0));
+        }
+        for ((_, records), count) in groups.order.iter_mut().zip(counts.iter().copied()) {
+            reserve_len(records, count);
+        }
+        for (index, (partition, _)) in groups.order.iter().enumerate() {
+            let _inserted = groups.slots.insert(*partition, index);
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+}
+
 async fn pause_walk(walked: &mut usize) {
     *walked = walked.saturating_add(1);
     if *walked == 8 * 1024 {
@@ -8882,22 +8914,7 @@ async fn group_pending(
                 },
             );
         }
-        for topic in &order {
-            let Some(groups) = buckets.get_mut(topic.as_ref()) else {
-                continue;
-            };
-            counts.clear();
-            reserve_len(&mut counts, groups.order.len());
-            for (partition, _) in &groups.order {
-                counts.push(groups.slots.get(partition).copied().unwrap_or(0));
-            }
-            for ((_, records), count) in groups.order.iter_mut().zip(counts.iter().copied()) {
-                reserve_len(records, count);
-            }
-            for (index, (partition, _)) in groups.order.iter().enumerate() {
-                let _inserted = groups.slots.insert(*partition, index);
-            }
-        }
+        reserve_grouped_topic_counts(&order, buckets, &mut counts).await;
         let mut walked = 0usize;
         for pending in batch.drain(..) {
             pause_walk(&mut walked).await;
@@ -13104,6 +13121,66 @@ mod tests {
         index.fill(&repeated).await;
         assert_eq!(index.get("orders", 4), Some(0));
         assert_eq!(index.get("orders", 0), None);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn reserving_many_produce_topics_does_not_hold_the_caller() {
+        let mut buckets: ProduceBuckets = HashMap::new();
+        let mut order = Vec::with_capacity(2_000_000);
+        for index in 0..2_000_000 {
+            let topic: Arc<str> = Arc::from(format!("topic-{index}"));
+            order.push(Arc::clone(&topic));
+            let mut slots = HashMap::new();
+            let _ = slots.insert(0, 1usize);
+            let _ = buckets.insert(
+                topic,
+                PendingParts {
+                    order: vec![(0, Vec::new())],
+                    slots,
+                },
+            );
+        }
+        let mut counts = Vec::new();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            () = reserve_grouped_topic_counts(&order, &mut buckets, &mut counts) => {}
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        assert!(
+            started.elapsed() < std::time::Duration::from_millis(80),
+            "reserving produce topics held the caller for {:?}",
+            started.elapsed()
+        );
+        let topic: Arc<str> = Arc::from("orders");
+        let mut slots = HashMap::new();
+        let _ = slots.insert(1, 2usize);
+        let _ = slots.insert(0, 1usize);
+        let mut sample: ProduceBuckets = HashMap::new();
+        let _ = sample.insert(
+            Arc::clone(&topic),
+            PendingParts {
+                order: vec![(1, Vec::new()), (0, Vec::new())],
+                slots,
+            },
+        );
+        let mut sample_counts = Vec::new();
+        reserve_grouped_topic_counts(
+            std::slice::from_ref(&topic),
+            &mut sample,
+            &mut sample_counts,
+        )
+        .await;
+        let groups = sample.get(topic.as_ref()).expect("orders");
+        assert_eq!(groups.slots.get(&1).copied(), Some(0));
+        assert_eq!(groups.slots.get(&0).copied(), Some(1));
+        assert!(groups
+            .order
+            .first()
+            .is_some_and(|(_, records)| records.capacity() >= 2));
+        assert!(groups
+            .order
+            .get(1)
+            .is_some_and(|(_, records)| records.capacity() >= 1));
     }
 
     #[tokio::test(flavor = "current_thread")]
