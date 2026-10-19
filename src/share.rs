@@ -3581,7 +3581,8 @@ impl ShareGroup {
     async fn share_dial_targets(&mut self, nodes: &[i32]) -> Vec<(i32, String)> {
         let leaders = share_node_addresses(nodes, &self.assigned, |topic, part| {
             self.consumer.leader_of(topic, part).ok()
-        });
+        })
+        .await;
         let mut dials = Vec::new();
         for &node in nodes {
             if self
@@ -4450,7 +4451,8 @@ impl ShareGroup {
         let node_count = self.leader_nodes.len();
         let leaders = share_node_addresses(&self.leader_nodes, &self.assigned, |topic, part| {
             self.consumer.leader_of(topic, part).ok()
-        });
+        })
+        .await;
         let mut prepared = self.take_prepared();
         for index in 0..node_count {
             let Some(node) = self.leader_nodes.get(index).copied() else {
@@ -5618,7 +5620,8 @@ impl ShareGroup {
         let ids: Vec<i32> = nodes.iter().map(|(node, _)| *node).collect();
         let leaders = share_node_addresses(&ids, &self.assigned, |topic, part| {
             self.consumer.leader_of(topic, part).ok()
-        });
+        })
+        .await;
         self.warm_share_leaders(&ids, deadline).await;
         let mut flights = tokio::task::JoinSet::new();
         let mut ready = Vec::new();
@@ -6215,7 +6218,8 @@ impl ShareGroup {
     ) -> Result<()> {
         let leaders = share_node_addresses(open, &self.assigned, |topic, part| {
             self.consumer.leader_of(topic, part).ok()
-        });
+        })
+        .await;
         let mut last = Ok(());
         for node in open {
             let node = *node;
@@ -6290,7 +6294,8 @@ impl ShareGroup {
     ) -> Result<()> {
         let leaders = share_node_addresses(open, &self.assigned, |topic, part| {
             self.consumer.leader_of(topic, part).ok()
-        });
+        })
+        .await;
         let mut decided = vec![None; open.len()];
         let mut set = tokio::task::JoinSet::new();
         let mut rpc_timeout = None;
@@ -6923,21 +6928,38 @@ fn share_heartbeat_epoch(code: i16, response_epoch: i32, current: i32) -> i32 {
     }
 }
 
-fn share_node_addresses(
+/// Dial addresses for the leaders named in `nodes`.
+///
+/// The walk pauses every 8,192 partitions. Without that pause, resolving
+/// addresses for 2,000,000 partitions held the caller for 656 milliseconds.
+///
+/// Once every requested leader has an address, the scan stops. A partition
+/// with no leader is skipped.
+async fn share_node_addresses(
     nodes: &[i32],
     assigned: &[(Arc<str>, i32)],
     mut leader_of: impl FnMut(&str, i32) -> Option<(i32, String)>,
 ) -> HashMap<i32, String> {
     let wanted: HashSet<i32> = nodes.iter().copied().collect();
     let mut addresses = HashMap::new();
+    if wanted.is_empty() {
+        return addresses;
+    }
+    let mut walked = 0usize;
     for (topic, part) in assigned {
-        let Some((node, addr)) = leader_of(topic.as_ref(), *part) else {
-            continue;
-        };
-        if !wanted.contains(&node) || addresses.contains_key(&node) {
-            continue;
+        if addresses.len() == wanted.len() {
+            break;
         }
-        let _ = addresses.insert(node, addr);
+        if let Some((node, addr)) = leader_of(topic.as_ref(), *part) {
+            if wanted.contains(&node) && !addresses.contains_key(&node) {
+                let _stored = addresses.insert(node, addr);
+            }
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
     }
     addresses
 }
@@ -9985,8 +10007,8 @@ mod tests {
         assert_eq!(names.first().map(|name| name.as_ptr()), kept);
     }
 
-    #[test]
-    fn finding_many_share_leader_addresses_does_not_hold_the_caller() {
+    #[tokio::test(flavor = "current_thread")]
+    async fn finding_many_share_leader_addresses_does_not_hold_the_caller() {
         // 512 nodes and 8,192 partitions: scanning the assignment for each node
         // held the caller 195ms.
         let assigned: Vec<(Arc<str>, i32)> = (0..8_192)
@@ -9996,7 +10018,8 @@ mod tests {
         let started = std::time::Instant::now();
         let found = share_node_addresses(&nodes, &assigned, |_topic, partition| {
             Some((511, format!("10.0.0.1:{}", 9000 + partition)))
-        });
+        })
+        .await;
         let elapsed = started.elapsed();
         assert_eq!(found.get(&511).map(String::as_str), Some("10.0.0.1:9000"));
         assert!(found.get(&0).is_none());
@@ -10004,6 +10027,34 @@ mod tests {
             elapsed < std::time::Duration::from_millis(80),
             "finding share leader addresses held the caller for {elapsed:?}"
         );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn resolving_many_share_leader_addresses_does_not_hold_the_caller() {
+        let topic: Arc<str> = Arc::from("orders");
+        let assigned: Vec<(Arc<str>, i32)> = (0..2_000_000)
+            .map(|partition| (Arc::clone(&topic), partition))
+            .collect();
+        let started = std::time::Instant::now();
+        let calls = std::sync::atomic::AtomicUsize::new(0);
+        tokio::select! {
+            addresses = share_node_addresses(&[1], &assigned, |_topic, _partition| {
+                let _calls = calls.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                Some((1, "127.0.0.1:9092".to_string()))
+            }) => {
+                assert_eq!(
+                    addresses.get(&1).map(String::as_str),
+                    Some("127.0.0.1:9092")
+                );
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "resolving share leader addresses held the caller for {elapsed:?}"
+        );
+        assert_eq!(calls.load(std::sync::atomic::Ordering::Relaxed), 1);
     }
 
     #[tokio::test(flavor = "current_thread")]
