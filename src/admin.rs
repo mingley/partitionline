@@ -3467,11 +3467,21 @@ fn group_named<T>(
     grouped
 }
 
-fn first_name_index<'a>(names: impl IntoIterator<Item = &'a str>) -> HashMap<&'a str, usize> {
+async fn first_name_index<'a, I>(names: I) -> HashMap<&'a str, usize>
+where
+    I: IntoIterator<Item = &'a str>,
+    I::IntoIter: Send,
+{
     let mut slots = HashMap::new();
+    let mut walked = 0usize;
     for (index, name) in names.into_iter().enumerate() {
         if let std::collections::hash_map::Entry::Vacant(slot) = slots.entry(name) {
             let _ = slot.insert(index);
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
         }
     }
     slots
@@ -5034,7 +5044,7 @@ impl Admin {
         retry_on_quota_violation: bool,
     ) -> Result<Vec<TopicResult>> {
         let mut pending: Vec<usize> = (0..topics.len()).collect();
-        let original = first_name_index(topics.iter().map(|topic| topic.name.as_str()));
+        let original = first_name_index(topics.iter().map(|topic| topic.name.as_str())).await;
         let mut finished: Vec<Option<TopicResult>> = Vec::new();
         finished.resize_with(topics.len(), || None);
         let version = self.create_version;
@@ -5090,7 +5100,8 @@ impl Admin {
                 pending
                     .iter()
                     .filter_map(|&index| topics.get(index).map(|topic| topic.name.as_str())),
-            );
+            )
+            .await;
             let mut next_pending = Vec::new();
             for r in results {
                 if retry_on_quota_violation && r.error_code == error::THROTTLING_QUOTA_EXCEEDED {
@@ -6008,7 +6019,7 @@ impl Admin {
         retry_on_quota_violation: bool,
     ) -> Result<Vec<TopicResult>> {
         let mut pending: Vec<usize> = (0..topics.len()).collect();
-        let original = first_name_index(topics.iter().map(|topic| topic.name.as_str()));
+        let original = first_name_index(topics.iter().map(|topic| topic.name.as_str())).await;
         let mut finished: Vec<Option<TopicResult>> = Vec::new();
         finished.resize_with(topics.len(), || None);
         let version = self.partitions_version.ok_or_else(|| {
@@ -6067,7 +6078,8 @@ impl Admin {
                 pending
                     .iter()
                     .filter_map(|&index| topics.get(index).map(|topic| topic.name.as_str())),
-            );
+            )
+            .await;
             let mut next_pending = Vec::new();
             for r in results {
                 if retry_on_quota_violation && r.error_code == error::THROTTLING_QUOTA_EXCEEDED {
@@ -17553,9 +17565,28 @@ mod tests {
         );
     }
 
-    #[test]
-    fn the_first_pending_topic_is_the_one_a_result_finds() {
-        let slots = first_name_index(["orders", "payments", "orders"]);
+    #[tokio::test(flavor = "current_thread")]
+    async fn indexing_many_topic_names_does_not_hold_the_caller() {
+        // 500_000 names: recording the first copy of each held the caller 350ms.
+        let names: Vec<String> = (0..500_000).map(|index| format!("topic-{index}")).collect();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            slots = first_name_index(names.iter().map(String::as_str)) => {
+                assert_eq!(slots.len(), 500_000);
+                assert_eq!(slots.get("topic-0").copied(), Some(0));
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "indexing topic names held the caller for {elapsed:?}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn the_first_pending_topic_is_the_one_a_result_finds() {
+        let slots = first_name_index(["orders", "payments", "orders"]).await;
         assert_eq!(slots.get("orders").copied(), Some(0));
         assert_eq!(slots.get("payments").copied(), Some(1));
         assert_eq!(slots.get("other"), None);
