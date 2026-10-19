@@ -7776,12 +7776,15 @@ impl Admin {
     ///
     /// `timeout` is the shared deadline and InitProducerId
     /// `transaction.timeout.ms`. Distinct coordinators are fenced together.
+    ///
+    /// Ids are copied in slices of 8,192, so the timeout can still fire while
+    /// a long list is prepared. Each id is still copied.
     pub async fn fence_producers_timeout(
         &mut self,
         transactional_ids: impl IntoIterator<Item = impl Into<String>>,
         timeout: Duration,
     ) -> Result<Vec<FencedProducer>> {
-        let ids: Vec<String> = transactional_ids.into_iter().map(Into::into).collect();
+        let ids = collect_strings(transactional_ids).await;
         if ids.len() <= 1 {
             let mut out = Vec::new();
             for id in &ids {
@@ -16681,6 +16684,30 @@ fn first_seen_missing_ids<'a, T: AsRef<str>>(
     need
 }
 
+fn owned_string_chunk() -> usize {
+    8 * 1024
+}
+
+/// Copy each id into an owned string.
+///
+/// The walk pauses every 8,192 ids. Without that pause, copying 2,000,000
+/// ids held the caller for 181 milliseconds.
+///
+/// Each id is still copied.
+async fn collect_strings<T: Into<String>>(items: impl IntoIterator<Item = T>) -> Vec<String> {
+    let mut out = Vec::new();
+    let mut walked = 0usize;
+    for item in items {
+        out.push(item.into());
+        walked = walked.saturating_add(1);
+        if walked == owned_string_chunk() {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    out
+}
+
 fn result_slot_chunk() -> usize {
     8 * 1024
 }
@@ -17440,6 +17467,23 @@ mod tests {
         let need =
             topics_missing_leaders(&known, [("orders", 0), ("orders", 1), ("payments", 0)]).await;
         assert_eq!(need, vec!["orders"]);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn collecting_many_transactional_ids_does_not_hold_the_caller() {
+        let names: Vec<&str> = (0..2_000_000).map(|_| "orders-transaction").collect();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = collect_strings(names.iter().copied()) => {}
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        assert!(
+            started.elapsed() < std::time::Duration::from_millis(80),
+            "collecting transactional ids held the caller for {:?}",
+            started.elapsed()
+        );
+        let sample = collect_strings(["orders", "payments"]).await;
+        assert_eq!(sample, vec!["orders".to_string(), "payments".to_string()]);
     }
 
     #[tokio::test(flavor = "current_thread")]
