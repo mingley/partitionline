@@ -2335,7 +2335,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `TRANSACTION_ABORTABLE`). Official Java `SharePartition`
   writes this when an acknowledgement batch is not in the acquired state.
   Top-level `FENCED_STATE_EPOCH` still fails that poll
-  without Metadata, including when `ErrorMessage` is set (Java
+  without Metadata, including when `ErrorMessage` is set or empty (Java
   `handleShareFetchSuccess` only `requestUpdate`s for top-level
   `UNKNOWN_TOPIC_ID`; this is not top-level
   `INVALID_RECORD_STATE`). Official Java `ShareCoordinatorShard`
