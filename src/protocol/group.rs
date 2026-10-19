@@ -8787,13 +8787,14 @@ async fn write_assignment_topics_cooperative(
     by_topic: &[(&str, Vec<i32>)],
 ) -> Result<()> {
     let body_start = buf.len();
-    let planned = assignment_topics_len(by_topic)?;
+    let planned = assignment_topics_len_cooperative(by_topic).await?;
     let needed = body_start.saturating_add(planned);
     if buf.capacity() < needed {
         buf.reserve(needed - buf.capacity());
     }
     buf.put_i16(version);
     buf::put_array_len(buf, false, Some(by_topic.len()))?;
+    let mut walked = 0usize;
     for (topic, parts) in by_topic {
         buf::put_classic_nullable_string(buf, Some(*topic))?;
         buf::put_array_len(buf, false, Some(parts.len()))?;
@@ -8811,10 +8812,35 @@ async fn write_assignment_topics_cooperative(
                 tokio::task::yield_now().await;
             }
         }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
     }
     buf::put_classic_bytes(buf, None)?;
     debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+/// Encode an assignment, yielding while topics are still being measured.
+///
+/// Encoding 2,000,000 topics held the caller for 476ms. A topic name and a partition are still written.
+async fn assignment_topics_len_cooperative(by_topic: &[(&str, Vec<i32>)]) -> Result<usize> {
+    let mut total = 2usize;
+    total = add_group_len(total, group_array_len(false, by_topic.len())?)?;
+    let mut walked = 0usize;
+    for (topic, parts) in by_topic {
+        total = add_group_len(total, group_string_len(false, Some(*topic))?)?;
+        total = add_group_len(total, group_array_len(false, parts.len())?)?;
+        total = add_group_len(total, partition_indexes_len(parts.len())?)?;
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    add_group_len(total, 4)
 }
 
 fn assignment_topics_len<T: AsRef<str>>(by_topic: &[(T, Vec<i32>)]) -> Result<usize> {
@@ -13229,6 +13255,49 @@ mod tests {
                 .collect::<Vec<_>>(),
             vec![("b", vec![1, 3]), ("a", vec![2])]
         );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn encoding_many_assignment_topics_does_not_hold_the_caller() {
+        let owned: Vec<String> = (0..2_000_000)
+            .map(|index| format!("topic-{index}"))
+            .collect();
+        let by_topic: Vec<(&str, Vec<i32>)> =
+            owned.iter().map(|name| (name.as_str(), vec![0])).collect();
+        let mut body = bytes::BytesMut::new();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            encoded = write_assignment_topics_cooperative(
+                &mut body,
+                ConsumerProtocol::HIGHEST_SUPPORTED_VERSION,
+                &by_topic,
+            ) => {
+                encoded.unwrap_or_else(|error| panic!("{error}"));
+            }
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        assert!(
+            started.elapsed() < std::time::Duration::from_millis(80),
+            "encoding assignment topics held the caller for {:?}",
+            started.elapsed()
+        );
+        let sample = [("orders", vec![1, 0])];
+        let mut once = bytes::BytesMut::new();
+        let mut paced = bytes::BytesMut::new();
+        write_assignment_topics(
+            &mut once,
+            ConsumerProtocol::HIGHEST_SUPPORTED_VERSION,
+            &sample,
+        )
+        .unwrap_or_else(|error| panic!("{error}"));
+        write_assignment_topics_cooperative(
+            &mut paced,
+            ConsumerProtocol::HIGHEST_SUPPORTED_VERSION,
+            &sample,
+        )
+        .await
+        .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(once, paced);
     }
 
     #[tokio::test(flavor = "current_thread")]
