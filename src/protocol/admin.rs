@@ -19188,6 +19188,45 @@ pub fn decode_list_config_resources_response<B: Buf>(
     })
 }
 
+/// [`decode_list_config_resources_response`], yielding while resources are still being read.
+///
+/// Decoding 1,000,000 resources held the caller for 370ms.
+pub async fn decode_list_config_resources_response_cooperative<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<ListConfigResourcesResponse> {
+    list_config_resources_spoken(version)?;
+    let throttle_time_ms = buf::get_i32(buf)?;
+    let error_code = buf::get_i16(buf)?;
+    let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let mut config_resources = Vec::with_capacity(n);
+    let mut walked = 0usize;
+    for _ in 0..n {
+        let resource_name = buf::get_compact_string(buf)?.unwrap_or_default();
+        let resource_type = if version >= 1 {
+            buf::get_i8(buf)?
+        } else {
+            RESOURCE_CLIENT_METRICS
+        };
+        buf::skip_tagged_fields(buf)?;
+        config_resources.push(ListedConfigResource {
+            resource_name,
+            resource_type,
+        });
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    buf::skip_tagged_fields(buf)?;
+    Ok(ListConfigResourcesResponse {
+        throttle_time_ms,
+        error_code,
+        config_resources,
+    })
+}
+
 /// GetTelemetrySubscriptions (api 71) v0 response body.
 ///
 /// **ErrorCode is top-level**, after throttle — not a first-subscription

@@ -46,7 +46,7 @@ use crate::protocol::admin::{
     decode_describe_transactions_response_cooperative,
     decode_describe_user_scram_credentials_response, decode_expire_delegation_token_response,
     decode_get_telemetry_subscriptions_response, decode_incremental_alter_configs_resource_results,
-    decode_list_config_resources_response, decode_list_groups_response_cooperative,
+    decode_list_config_resources_response_cooperative, decode_list_groups_response_cooperative,
     decode_list_partition_reassignments_response_cooperative, decode_list_transactions_response,
     decode_push_telemetry_response, decode_renew_delegation_token_response,
     decode_share_group_describe_response_cooperative, decode_unregister_broker_response,
@@ -13830,7 +13830,8 @@ impl Admin {
                 timeout,
             )
             .await?;
-        let resp = decode_list_config_resources_response(&mut body.clone(), version)?;
+        let resp =
+            decode_list_config_resources_response_cooperative(&mut body.clone(), version).await?;
         if resp.error_code != 0 {
             return Err(Error::broker(resp.error_code, "ListConfigResources"));
         }
@@ -19558,6 +19559,53 @@ mod tests {
                 .and_then(|item| item.partitions.first())
                 .map(|item| item.adding_replicas.as_slice()),
             Some([3].as_slice())
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn decoding_many_config_resources_does_not_hold_the_caller() {
+        let resources: Vec<ListedConfigResource> = (0..1_000_000)
+            .map(|index| ListedConfigResource::new(format!("resource-{index}"), 2))
+            .collect();
+        let resp = crate::protocol::admin::ListConfigResourcesResponse::new(0, resources);
+        let mut body = bytes::BytesMut::new();
+        crate::protocol::admin::encode_list_config_resources_response(&mut body, 1, &resp)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let started = std::time::Instant::now();
+        tokio::select! {
+            decoded = decode_list_config_resources_response_cooperative(&mut body, 1) => {
+                let decoded = decoded.unwrap_or_else(|error| panic!("{error}"));
+                assert_eq!(decoded.throttle_time_ms, 0);
+                assert_eq!(decoded.config_resources.len(), 1_000_000);
+                assert_eq!(
+                    decoded.config_resources.first().map(|item| item.resource_name.as_str()),
+                    Some("resource-0")
+                );
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "decoding config resources held the caller for {elapsed:?}"
+        );
+        let resp =
+            ListConfigResourcesResponse::new(7, vec![ListedConfigResource::new("orders", 2)]);
+        let mut encoded = bytes::BytesMut::new();
+        encode_list_config_resources_response(&mut encoded, 1, &resp)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let mut once = encoded.clone();
+        let mut paced = encoded;
+        let sync = decode_list_config_resources_response(&mut once, 1)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let coop = decode_list_config_resources_response_cooperative(&mut paced, 1)
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(sync, coop);
+        assert_eq!(coop.error_code, 7);
+        assert_eq!(
+            coop.config_resources.first().map(|item| item.resource_type),
+            Some(2)
         );
     }
 
