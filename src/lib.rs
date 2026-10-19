@@ -3535,7 +3535,7 @@
 //! writes this when a consumer-protocol OffsetCommit or OffsetFetch member epoch does not match the coordinator's stored epoch.
 //! Top-level
 //! `MISMATCHED_ENDPOINT_TYPE` still fails that poll without
-//! Metadata, including when `ErrorMessage` is set (Java
+//! Metadata, including when `ErrorMessage` is set or empty (Java
 //! `handleShareFetchSuccess` only `requestUpdate`s for
 //! `UNKNOWN_TOPIC_ID`; this is not top-level
 //! `STALE_MEMBER_EPOCH`). Official Java `AuthHelper`
