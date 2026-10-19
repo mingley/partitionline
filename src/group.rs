@@ -3872,9 +3872,7 @@ impl ConsumerGroup {
         let assignment = resp.assignment.unwrap_or_default();
         let names = self.consumer.topic_id_names();
         if (self.coord.offset_commit_version == 10 || self.coord.offset_fetch_version == 10)
-            && assignment
-                .iter()
-                .any(|topic| !names.contains_key(&topic.topic_id))
+            && assignment_has_unknown_topic_id(&assignment, names).await
         {
             return Err(Error::protocol(
                 "group assignment contains an unknown topic UUID",
@@ -3947,12 +3945,8 @@ impl ConsumerGroup {
             assignment.clone()
         };
         let deadline = Instant::now() + self.cfg.request_timeout;
-        let missing_topic = {
-            let names = self.consumer.topic_id_names();
-            assignment
-                .iter()
-                .any(|topic| !names.contains_key(&topic.topic_id))
-        };
+        let missing_topic =
+            assignment_has_unknown_topic_id(&assignment, self.consumer.topic_id_names()).await;
         let consumer = &self.consumer;
         let stale = !crate::consumer::topics_metadata_fresh(
             self.topics.iter().map(String::as_str),
@@ -3973,9 +3967,7 @@ impl ConsumerGroup {
         }
         let names = self.consumer.topic_id_names();
         if (self.coord.offset_commit_version == 10 || self.coord.offset_fetch_version == 10)
-            && assignment
-                .iter()
-                .any(|topic| !names.contains_key(&topic.topic_id))
+            && assignment_has_unknown_topic_id(&assignment, names).await
         {
             return Err(Error::protocol(
                 "group assignment contains an unknown topic UUID",
@@ -5532,6 +5524,30 @@ fn new_kip848_member_id() -> Result<String> {
         &base64::engine::general_purpose::URL_SAFE_NO_PAD,
         raw,
     ))
+}
+
+/// True when a KIP-848 assignment names a topic id metadata has not indexed.
+///
+/// The walk pauses every 8,192 topics. Without that pause, scanning
+/// 2,000,000 assignment topic ids held the caller for 697 milliseconds.
+///
+/// The first unknown id stops the walk.
+async fn assignment_has_unknown_topic_id<V>(
+    assignment: &[TopicPartitions],
+    names: &HashMap<[u8; 16], V>,
+) -> bool {
+    let mut walked = 0usize;
+    for topic in assignment {
+        if !names.contains_key(&topic.topic_id) {
+            return true;
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    false
 }
 
 /// Topic partitions named by a KIP-848 assignment.
@@ -10279,6 +10295,53 @@ mod tests {
         let topics = collect_topics(["orders", "payments", "orders"]).unwrap();
         assert_eq!(topics, vec!["orders".to_string(), "payments".to_string()]);
         assert!(collect_topics(Vec::<String>::new()).is_err());
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn scanning_many_assignment_topic_ids_does_not_hold_the_caller() {
+        let mut names = HashMap::new();
+        let assignment: Vec<TopicPartitions> = (0..2_000_000)
+            .map(|index| {
+                let mut topic_id = [0u8; 16];
+                topic_id[..8].copy_from_slice(&(index as u64).to_le_bytes());
+                let _stored = names.insert(topic_id, ());
+                TopicPartitions {
+                    topic_id,
+                    partitions: Vec::new(),
+                }
+            })
+            .collect();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = assignment_has_unknown_topic_id(&assignment, &names) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "scanning assignment topic ids held the caller for {elapsed:?}"
+        );
+        let known = HashMap::from([([1u8; 16], ())]);
+        assert!(
+            !assignment_has_unknown_topic_id(
+                &[TopicPartitions {
+                    topic_id: [1u8; 16],
+                    partitions: vec![0],
+                }],
+                &known,
+            )
+            .await
+        );
+        assert!(
+            assignment_has_unknown_topic_id(
+                &[TopicPartitions {
+                    topic_id: [2u8; 16],
+                    partitions: vec![0],
+                }],
+                &known,
+            )
+            .await
+        );
     }
 
     #[tokio::test(flavor = "current_thread")]

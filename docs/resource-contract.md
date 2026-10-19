@@ -89,6 +89,7 @@ These walks include:
 - clearing and pruning the share leader plan
 - resolving share leader addresses before a dial
 - opening a KIP-848 group assignment into topic partitions
+- checking a group assignment for an unknown topic id
 - copying a changed consumer or share heartbeat subscription or assignment
 - opening one result slot, and its index, for each item in an admin batch
 - copying transactional ids before fencing producers
