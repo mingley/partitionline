@@ -3450,6 +3450,27 @@ fn borrowed_ids<'a, T: AsRef<str>>(ids: &'a [T], idxs: &[usize]) -> Vec<&'a str>
 
 type CoordinatorSlot = (i16, i32, String, i32);
 
+async fn take_coordinator_slots(
+    by_key: &mut HashMap<String, CoordinatorSlot>,
+    keys: &[&str],
+) -> Result<Vec<CoordinatorSlot>> {
+    let mut out = Vec::with_capacity(keys.len());
+    let mut walked = 0usize;
+    for key in keys {
+        out.push(
+            by_key
+                .remove(*key)
+                .ok_or_else(|| Error::protocol(format!("FindCoordinator missing {key}")))?,
+        );
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    Ok(out)
+}
+
 async fn index_coordinators(
     coords: Vec<crate::protocol::group::CoordinatorResult>,
 ) -> HashMap<String, CoordinatorSlot> {
@@ -15136,23 +15157,25 @@ impl Admin {
             let (coords, ..) =
                 decode_find_coordinator_response_coordinators(&mut body.clone(), version)?;
             let mut by_key = index_coordinators(coords).await;
+            let slots = take_coordinator_slots(&mut by_key, &uniq).await?;
             let mut retry = false;
             let mut out = HashMap::new();
-            for k in &uniq {
-                let (err, node, host, port) = by_key
-                    .remove(*k)
-                    .ok_or_else(|| Error::protocol(format!("FindCoordinator missing {k}")))?;
+            let mut walked = 0usize;
+            for (k, (err, node, host, port)) in uniq.iter().zip(slots) {
                 if err == 0 {
                     self.ensure_coordinator_node(node, &host, port, deadline)
                         .await?;
                     let _prev = out.insert((*k).to_owned(), node);
-                    continue;
-                }
-                if error::coordinator_retriable(err) {
+                } else if error::coordinator_retriable(err) {
                     retry = true;
-                    continue;
+                } else {
+                    return Err(Error::broker(err, (*k).to_owned()));
                 }
-                return Err(Error::broker(err, (*k).to_owned()));
+                walked = walked.saturating_add(1);
+                if walked == 8 * 1024 {
+                    walked = 0;
+                    tokio::task::yield_now().await;
+                }
             }
             if retry {
                 self.wait_retry(&mut attempt, deadline).await?;
@@ -17857,6 +17880,54 @@ mod tests {
             selection.names.first().map(|name| name.as_ptr()),
             Some(orders_ptr)
         );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn matching_many_coordinators_does_not_hold_the_caller() {
+        // 500_000 keys: taking each coordinator held the caller 234ms.
+        let coords: Vec<crate::protocol::group::CoordinatorResult> = (0..500_000)
+            .map(|index| crate::protocol::group::CoordinatorResult {
+                key: format!("group-{index}"),
+                node_id: 1,
+                host: "127.0.0.1".to_string(),
+                port: 9092,
+                error_code: 0,
+                error_message: None,
+            })
+            .collect();
+        let mut indexed = index_coordinators(coords).await;
+        let keys: Vec<String> = (0..500_000).map(|index| format!("group-{index}")).collect();
+        let key_refs: Vec<&str> = keys.iter().map(String::as_str).collect();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            taken = take_coordinator_slots(&mut indexed, &key_refs) => {
+                let taken = taken.unwrap_or_else(|error| panic!("{error}"));
+                assert_eq!(taken.len(), 500_000);
+                assert_eq!(taken.first().map(|slot| slot.1), Some(1));
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "matching coordinators held the caller for {elapsed:?}"
+        );
+        let mut indexed = index_coordinators(vec![crate::protocol::group::CoordinatorResult {
+            key: "orders".to_string(),
+            node_id: 4,
+            host: "b".to_string(),
+            port: 2,
+            error_code: 0,
+            error_message: None,
+        }])
+        .await;
+        let taken = take_coordinator_slots(&mut indexed, &["orders", "missing"])
+            .await
+            .unwrap_err();
+        assert!(taken
+            .to_string()
+            .contains("FindCoordinator missing missing"));
+        assert!(!indexed.contains_key("orders"));
     }
 
     #[tokio::test(flavor = "current_thread")]
