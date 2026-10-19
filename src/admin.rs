@@ -119,8 +119,8 @@ use crate::protocol::offsets::{
 };
 use crate::protocol::sasl;
 use crate::protocol::txn::{
-    decode_write_txn_markers_response, encode_write_txn_markers_named, BorrowedTxnMarker,
-    BorrowedTxnMarkerTopic, TransactionResult,
+    decode_write_txn_markers_response_cooperative, encode_write_txn_markers_named,
+    BorrowedTxnMarker, BorrowedTxnMarkerTopic, TransactionResult,
 };
 use crate::TopicPartition;
 
@@ -7932,7 +7932,7 @@ impl Admin {
                 Err(e) => return Err(e),
             };
             let mut cursor = body.clone();
-            let resp = decode_write_txn_markers_response(&mut cursor, version)?;
+            let resp = decode_write_txn_markers_response_cooperative(&mut cursor, version).await?;
             if !cursor.is_empty() {
                 return Err(Error::protocol("WriteTxnMarkers trailing response bytes"));
             }
@@ -19733,6 +19733,74 @@ mod tests {
         assert_eq!(
             coop.results
                 .first()
+                .and_then(|item| item.partitions.first())
+                .map(|item| item.error_code),
+            Some(7)
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn decoding_many_txn_markers_does_not_hold_the_caller() {
+        let partitions: Vec<crate::protocol::txn::WritableTxnMarkerPartitionResult> = (0
+            ..1_000_000)
+            .map(
+                |index| crate::protocol::txn::WritableTxnMarkerPartitionResult {
+                    partition_index: index,
+                    error_code: 0,
+                },
+            )
+            .collect();
+        let markers = [crate::protocol::txn::WritableTxnMarkerResult {
+            producer_id: 9,
+            topics: vec![crate::protocol::txn::WritableTxnMarkerTopicResult {
+                name: "orders".to_string(),
+                partitions,
+            }],
+        }];
+        let mut body = bytes::BytesMut::new();
+        crate::protocol::txn::encode_write_txn_markers_response(&mut body, 1, &markers)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let started = std::time::Instant::now();
+        tokio::select! {
+            decoded = decode_write_txn_markers_response_cooperative(&mut body, 1) => {
+                let decoded = decoded.unwrap_or_else(|error| panic!("{error}"));
+                assert_eq!(
+                    decoded.first().and_then(|item| item.topics.first()).map(|item| item.partitions.len()),
+                    Some(1_000_000)
+                );
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "decoding transaction markers held the caller for {elapsed:?}"
+        );
+        let markers = [crate::protocol::txn::WritableTxnMarkerResult {
+            producer_id: 11,
+            topics: vec![crate::protocol::txn::WritableTxnMarkerTopicResult {
+                name: "orders".to_string(),
+                partitions: vec![crate::protocol::txn::WritableTxnMarkerPartitionResult {
+                    partition_index: 4,
+                    error_code: 7,
+                }],
+            }],
+        }];
+        let mut encoded = bytes::BytesMut::new();
+        crate::protocol::txn::encode_write_txn_markers_response(&mut encoded, 1, &markers)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let mut once = encoded.clone();
+        let mut paced = encoded;
+        let sync = crate::protocol::txn::decode_write_txn_markers_response(&mut once, 1)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let coop = decode_write_txn_markers_response_cooperative(&mut paced, 1)
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(sync, coop);
+        assert_eq!(coop.first().map(|item| item.producer_id), Some(11));
+        assert_eq!(
+            coop.first()
+                .and_then(|item| item.topics.first())
                 .and_then(|item| item.partitions.first())
                 .map(|item| item.error_code),
             Some(7)
