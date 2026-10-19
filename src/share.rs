@@ -2852,7 +2852,7 @@ pub enum ShareAcquireMode {
 /// id is not currently registered. A top-level
 /// ShareAcknowledge `INCONSISTENT_CLUSTER_ID` completes without
 /// retry and does not request Metadata, including when `ErrorMessage`
-/// is set (Java `handleShareAcknowledgeSuccess` has no
+/// is set or empty (Java `handleShareAcknowledgeSuccess` has no
 /// `metadata.requestUpdate`; this is not top-level
 /// `BROKER_ID_NOT_REGISTERED`). Official Java
 /// `ClusterControlManager` writes this when a broker registration
@@ -6399,7 +6399,7 @@ impl ShareGroup {
     /// requested broker id is not currently registered.
     /// A top-level ShareAcknowledge `INCONSISTENT_CLUSTER_ID`
     /// completes without retry and does not request Metadata,
-    /// including when `ErrorMessage` is set (Java
+    /// including when `ErrorMessage` is set or empty (Java
     /// `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`;
     /// this is not top-level `BROKER_ID_NOT_REGISTERED`).
     /// Official Java `ClusterControlManager` writes this when a broker

@@ -538,7 +538,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   writes this when the requested broker id is not currently registered.
   A top-level ShareAcknowledge `INCONSISTENT_CLUSTER_ID` completes
   without retry and does not request Metadata, including when
-  `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+  `ErrorMessage` is set or empty (Java `handleShareAcknowledgeSuccess` has no
   `metadata.requestUpdate`; this is not top-level
   `BROKER_ID_NOT_REGISTERED`). Official Java `ClusterControlManager`
   writes this when a broker registration cluster id does not match.
