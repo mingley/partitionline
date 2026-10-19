@@ -3967,6 +3967,12 @@
 //! `metadata.requestUpdate`; this is not top-level
 //! `FENCED_MEMBER_EPOCH`). Official Java `GroupMetadataManager`
 //! writes this when a static member joins while the instance id is still owned.
+//! Top-level ShareAcknowledge `UNSUPPORTED_ASSIGNOR` completes
+//! without retry and does not request Metadata, including when
+//! `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+//! `metadata.requestUpdate`; this is not top-level
+//! `UNRELEASED_INSTANCE_ID`). Official Java `GroupCoordinatorService`
+//! writes this when ConsumerGroupHeartbeat names a ServerAssignor the coordinator does not support.
 //! Top-level ShareAcknowledge
 //! `SHARE_SESSION_LIMIT_REACHED` completes without retry and advances
 //! the session epoch (Java `ShareSessionHandler.handleResponse`
