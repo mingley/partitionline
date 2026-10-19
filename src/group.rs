@@ -2680,7 +2680,7 @@ impl ConsumerGroup {
         let heartbeat = self.hb_task.take();
         if self.member_id.is_empty() {
             self.topics.clear();
-            self.publish_hb_topics();
+            self.publish_hb_topics().await;
             self.topic_match = None;
             self.consumer.clear_assignment();
             if let Some(heartbeat) = heartbeat {
@@ -2727,7 +2727,7 @@ impl ConsumerGroup {
         }
         self.consumer.clear_assignment();
         self.topics.clear();
-        self.publish_hb_topics();
+        self.publish_hb_topics().await;
         self.topic_match = None;
         self.member_id.clear();
         self.generation_id = 0;
@@ -2823,7 +2823,7 @@ impl ConsumerGroup {
             self.prev_assignment.clear();
         }
         self.topics = topics;
-        self.publish_hb_topics();
+        self.publish_hb_topics().await;
         self.left_max_poll.store(false, Ordering::SeqCst);
         if rejoining {
             if self.kip848 {
@@ -2847,7 +2847,7 @@ impl ConsumerGroup {
 
     async fn matching_topic_names_within(&mut self, deadline: Instant) -> Result<Vec<String>> {
         let Some(pred) = self.topic_match.clone() else {
-            return Ok(self.topics.clone());
+            return Ok(clone_names(&self.topics).await);
         };
         let timeout = deadline.saturating_duration_since(Instant::now());
         if timeout.is_zero() {
@@ -3106,7 +3106,7 @@ impl ConsumerGroup {
         };
         let metadata =
             ConsumerProtocol::serialize_subscription_cooperative(&ConsumerProtocolSubscription {
-                topics: self.topics.clone(),
+                topics: clone_names(&self.topics).await,
                 owned_partitions: owned,
                 generation_id: self.generation_id,
                 rack_id: self.cfg.rack.clone(),
@@ -3246,7 +3246,7 @@ impl ConsumerGroup {
 
         let mut member_subs: Vec<(String, Vec<String>)> = Vec::with_capacity(members.len());
         let mut owned_claims: Vec<StickyOwnedClaim> = Vec::with_capacity(members.len());
-        let mut topic_set = self.topics.clone();
+        let mut topic_set = clone_names(&self.topics).await;
         let mut seen_topics = HashSet::new();
         remember_existing_topics(&mut seen_topics, &topic_set).await;
         for m in &members {
@@ -3254,12 +3254,12 @@ impl ConsumerGroup {
                 match ConsumerProtocol::deserialize_subscription_cooperative(&m.metadata).await {
                     Ok(s) if !s.topics.is_empty() => s,
                     Ok(s) => ConsumerProtocolSubscription {
-                        topics: self.topics.clone(),
+                        topics: clone_names(&self.topics).await,
                         owned_partitions: s.owned_partitions,
                         generation_id: s.generation_id,
                         rack_id: s.rack_id,
                     },
-                    Err(_) => ConsumerProtocolSubscription::new(self.topics.clone()),
+                    Err(_) => ConsumerProtocolSubscription::new(clone_names(&self.topics).await),
                 };
             extend_unique_topics(&mut topic_set, &mut seen_topics, &sub.topics).await;
             member_subs.push((m.member_id.clone(), sub.topics));
@@ -3439,7 +3439,7 @@ impl ConsumerGroup {
             } else {
                 duration_millis_i32(self.cfg.max_poll_interval)
             },
-            subscribed_topic_names: Some(self.topics.clone()),
+            subscribed_topic_names: Some(clone_names(&self.topics).await),
             subscribed_topic_regex: None,
             server_assignor: None,
             // Broker rejects null TopicPartitions on join ("must be empty when
@@ -3578,8 +3578,8 @@ impl ConsumerGroup {
         Ok(())
     }
 
-    fn publish_hb_topics(&self) {
-        *self.hb_topics.lock() = self.topics.clone();
+    async fn publish_hb_topics(&self) {
+        *self.hb_topics.lock() = clone_names(&self.topics).await;
     }
 
     fn reject_unsupported_heartbeat(&self) -> Result<()> {
@@ -5172,6 +5172,23 @@ pub(crate) fn collect_topics(
         return Err(Error::protocol("no topics"));
     }
     Ok(out)
+}
+
+/// Copy subscribed topic names.
+///
+/// Cloning 2,000,000 subscribed topics held the caller for 150ms. A topic name is still copied.
+pub(crate) async fn clone_names(names: &[String]) -> Vec<String> {
+    let mut out = Vec::with_capacity(names.len());
+    let mut walked = 0usize;
+    for name in names {
+        out.push(name.clone());
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    out
 }
 
 fn matching_topic_chunk() -> usize {
@@ -9784,6 +9801,29 @@ mod tests {
         let topics = collect_topics(["orders", "payments", "orders"]).unwrap();
         assert_eq!(topics, vec!["orders".to_string(), "payments".to_string()]);
         assert!(collect_topics(Vec::<String>::new()).is_err());
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn cloning_many_subscribed_topics_does_not_hold_the_caller() {
+        let topics: Vec<String> = (0..2_000_000)
+            .map(|index| format!("topic-{index}"))
+            .collect();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = clone_names(&topics) => {}
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        assert!(
+            started.elapsed() < std::time::Duration::from_millis(80),
+            "cloning subscribed topics held the caller for {:?}",
+            started.elapsed()
+        );
+        let sample = [
+            "orders".to_string(),
+            "payments".to_string(),
+            "orders".to_string(),
+        ];
+        assert_eq!(clone_names(&sample).await, sample);
     }
 
     #[tokio::test(flavor = "current_thread")]

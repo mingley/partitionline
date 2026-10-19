@@ -4558,7 +4558,7 @@ impl ShareGroup {
 
     async fn matching_topic_names_within(&mut self, deadline: Instant) -> Result<Vec<String>> {
         let Some(pred) = self.topic_match.clone() else {
-            return Ok(self.topics.clone());
+            return Ok(crate::group::clone_names(&self.topics).await);
         };
         let timeout = deadline.saturating_duration_since(Instant::now());
         if timeout.is_zero() {
