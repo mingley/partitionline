@@ -79,6 +79,7 @@ These walks include:
 - checking whether assigned fetches are paused or already finished
 - dropping fetched records that fall at or after a recovered cursor
 - covering and merging share acknowledgements against stored acquisitions
+- rebuilding share acquisition indexes
 - copying a changed consumer or share heartbeat subscription or assignment
 - opening one result slot, and its index, for each item in an admin batch
 - copying transactional ids before fencing producers

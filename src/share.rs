@@ -502,42 +502,80 @@ impl TopicRuns {
         self.runs.is_empty()
     }
 
-    fn reindex(&mut self) {
-        let snapshot: Vec<(i32, i64, i64)> = self
-            .runs
-            .iter()
-            .map(|run| (run.partition, run.first, run.last))
-            .collect();
-        self.by_partition.clear();
-        for (index, &(partition, first, _)) in snapshot.iter().enumerate() {
-            let part = self.by_partition.entry(partition).or_default();
-            part.order.push(index);
-            if part.overlapped {
-                continue;
+    /// Rebuild partition indexes from the stored runs.
+    ///
+    /// The walk pauses every 8,192 runs. Without that pause, indexing
+    /// 2,000,000 acquisitions held the caller for 4.38 seconds.
+    ///
+    /// A run that overlaps an earlier one on the same partition drops the
+    /// offset map and stays in insertion order. The previous index stays until
+    /// the new one is finished.
+    async fn reindex(&mut self) {
+        let mut snapshot = Vec::with_capacity(self.runs.len());
+        let mut walked = 0usize;
+        for run in &self.runs {
+            snapshot.push((run.partition, run.first, run.last));
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
             }
-            let pred = part
-                .by_first
-                .range(..=first)
-                .next_back()
-                .map(|(_, &pred)| pred);
-            let overlaps = part.by_first.contains_key(&first)
-                || pred.is_some_and(|pred| {
-                    snapshot
-                        .get(pred)
-                        .is_some_and(|&(_, _, prev_last)| prev_last >= first)
-                });
-            if overlaps {
-                part.overlapped = true;
-                part.by_first.clear();
-                continue;
-            }
-            let _ = part.by_first.insert(first, index);
         }
+        let mut built: HashMap<i32, PartitionIndex> = HashMap::new();
+        walked = 0;
+        for (index, &(partition, first, _)) in snapshot.iter().enumerate() {
+            {
+                let part = built.entry(partition).or_default();
+                part.order.push(index);
+                if !part.overlapped {
+                    let pred = part
+                        .by_first
+                        .range(..=first)
+                        .next_back()
+                        .map(|(_, &pred)| pred);
+                    let overlaps = part.by_first.contains_key(&first)
+                        || pred.is_some_and(|pred| {
+                            snapshot
+                                .get(pred)
+                                .is_some_and(|&(_, _, prev_last)| prev_last >= first)
+                        });
+                    if overlaps {
+                        part.overlapped = true;
+                        part.by_first.clear();
+                    } else {
+                        let _ = part.by_first.insert(first, index);
+                    }
+                }
+            }
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+        self.by_partition = built;
     }
 
-    fn retain_runs(&mut self, keep: impl FnMut(&AcquisitionRun) -> bool) {
+    async fn retain_runs(&mut self, keep: impl FnMut(&AcquisitionRun) -> bool) {
         self.runs.retain(keep);
-        self.reindex();
+        self.reindex().await;
+    }
+}
+
+async fn retain_topic_runs(
+    map: &mut AcquisitionMap,
+    mut keep: impl FnMut(&crate::consumer::TopicName, &AcquisitionRun) -> bool,
+) {
+    let pending = std::mem::take(map);
+    let mut kept = Vec::new();
+    for (topic, mut parts) in pending {
+        parts.retain_runs(|run| keep(&topic, run)).await;
+        if !parts.is_empty() {
+            kept.push((topic, parts));
+        }
+    }
+    for (topic, parts) in kept {
+        let _stored = map.insert(topic, parts);
     }
 }
 
@@ -564,7 +602,7 @@ fn same_acquisition(left: &Acquisition, right: &Acquisition) -> bool {
         && left.expires_at == right.expires_at
 }
 
-fn remember_acquisition(
+async fn remember_acquisition(
     map: &mut AcquisitionMap,
     topic: &crate::consumer::TopicName,
     partition: i32,
@@ -582,13 +620,13 @@ fn remember_acquisition(
         .get(&partition)
         .is_some_and(|part| part.overlapped)
     {
-        remember_overlapped(topic_runs, partition, offset, acquisition);
+        remember_overlapped(topic_runs, partition, offset, acquisition).await;
     } else {
-        remember_indexed(topic_runs, partition, offset, acquisition);
+        remember_indexed(topic_runs, partition, offset, acquisition).await;
     }
 }
 
-fn remember_overlapped(
+async fn remember_overlapped(
     topic_runs: &mut TopicRuns,
     partition: i32,
     offset: i64,
@@ -680,7 +718,7 @@ fn remember_overlapped(
         }
     }
     if let Some(position) = cover {
-        replace_acquired_offset(topic_runs, position, offset, acquisition);
+        replace_acquired_offset(topic_runs, position, offset, acquisition).await;
         return;
     }
     let index = topic_runs.runs.len();
@@ -698,7 +736,7 @@ fn remember_overlapped(
         .push(index);
 }
 
-fn remember_indexed(
+async fn remember_indexed(
     topic_runs: &mut TopicRuns,
     partition: i32,
     offset: i64,
@@ -800,7 +838,7 @@ fn remember_indexed(
                 .get(index)
                 .is_some_and(|run| same_acquisition(&run.acquisition, &acquisition));
             if !same {
-                replace_acquired_offset(topic_runs, index, offset, acquisition);
+                replace_acquired_offset(topic_runs, index, offset, acquisition).await;
             }
             return;
         }
@@ -820,7 +858,7 @@ fn remember_indexed(
     }
 }
 
-fn replace_acquired_offset(
+async fn replace_acquired_offset(
     topic_runs: &mut TopicRuns,
     position: usize,
     offset: i64,
@@ -856,7 +894,7 @@ fn replace_acquired_offset(
             acquisition: old,
         });
     }
-    topic_runs.reindex();
+    topic_runs.reindex().await;
 }
 
 fn acquisition_run(topic_runs: &TopicRuns, partition: i32, offset: i64) -> Option<&AcquisitionRun> {
@@ -1376,7 +1414,7 @@ async fn drop_covered_acquisitions(
     sent: &[AcknowledgementBatch],
 ) {
     drop_covered_runs(&mut topic_runs.runs, partition, sent).await;
-    topic_runs.reindex();
+    topic_runs.reindex().await;
 }
 
 async fn renew_covered_runs(
@@ -1423,7 +1461,7 @@ async fn renew_covered_acquisitions(
     expiry: Option<Instant>,
 ) {
     renew_covered_runs(&mut topic_runs.runs, partition, sent, expiry).await;
-    topic_runs.reindex();
+    topic_runs.reindex().await;
 }
 
 async fn count_covered_acquisitions(
@@ -1536,7 +1574,7 @@ async fn remember_share_offsets(
 ) {
     let mut walked = 0usize;
     for &(partition, offset) in offsets {
-        remember_acquisition(map, topic, partition, offset, acquisition);
+        remember_acquisition(map, topic, partition, offset, acquisition).await;
         walked = walked.saturating_add(1);
         if walked == 8 * 1024 {
             walked = 0;
@@ -2962,7 +3000,8 @@ impl ShareGroup {
                 self.hb_err.store(0, Ordering::SeqCst);
                 return Err(error);
             }
-            self.apply_share_assignment(resp.assignment.as_deref());
+            self.apply_share_assignment(resp.assignment.as_deref())
+                .await;
             self.hb_epoch.store(self.member_epoch, Ordering::SeqCst);
             self.hb_err.store(0, Ordering::SeqCst);
             if !self.assigned.is_empty() {
@@ -3008,7 +3047,7 @@ impl ShareGroup {
             .await
     }
 
-    fn apply_share_assignment(&mut self, assignment: Option<&[ShareTopicPartitions]>) {
+    async fn apply_share_assignment(&mut self, assignment: Option<&[ShareTopicPartitions]>) {
         let Some(assigned) = assignment else {
             return;
         };
@@ -3030,10 +3069,10 @@ impl ShareGroup {
             .iter()
             .map(|(topic, partition)| (topic.as_ref(), *partition))
             .collect();
-        self.acquisitions.retain(|topic, parts| {
-            parts.retain_runs(|run| still_assigned.contains(&(topic.as_str(), run.partition)));
-            !parts.is_empty()
-        });
+        retain_topic_runs(&mut self.acquisitions, |topic, run| {
+            still_assigned.contains(&(topic.as_str(), run.partition))
+        })
+        .await;
         self.pending_delivery.retain(|r| {
             acquisition_at(&self.acquisitions, &r.topic, r.partition, r.offset).is_some()
         });
@@ -3078,15 +3117,16 @@ impl ShareGroup {
         drop_share_records_for_topics(&mut self.pending_delivery, &recreated);
     }
 
-    fn apply_pending_assignment(&mut self) {
+    async fn apply_pending_assignment(&mut self) {
         let pending = self.hb_assignment.lock().take();
         if let Some(assignment) = pending {
-            self.apply_share_assignment(Some(assignment.as_slice()));
+            self.apply_share_assignment(Some(assignment.as_slice()))
+                .await;
         }
     }
 
     async fn ensure_assignment(&mut self, deadline: Instant) -> Result<()> {
-        self.apply_pending_assignment();
+        self.apply_pending_assignment().await;
         if !self.assigned.is_empty() {
             return Ok(());
         }
@@ -3106,7 +3146,7 @@ impl ShareGroup {
             if hb != 0 {
                 return Err(Error::broker(hb, "ShareGroupHeartbeat"));
             }
-            self.apply_pending_assignment();
+            self.apply_pending_assignment().await;
             if !self.assigned.is_empty() {
                 return Ok(());
             }
@@ -3226,7 +3266,8 @@ impl ShareGroup {
             if let Some(Err(error)) = metadata_refresh {
                 return Err(error);
             }
-            self.apply_share_assignment(resp.assignment.as_deref());
+            self.apply_share_assignment(resp.assignment.as_deref())
+                .await;
             if !self.assigned.is_empty() {
                 return Ok(());
             }
@@ -3417,10 +3458,10 @@ impl ShareGroup {
             self.reset_node_session(node).await;
         }
         let now = Instant::now();
-        self.acquisitions.retain(|_, parts| {
-            parts.retain_runs(|run| run.acquisition.expires_at.is_none_or(|expiry| expiry > now));
-            !parts.is_empty()
-        });
+        retain_topic_runs(&mut self.acquisitions, |_, run| {
+            run.acquisition.expires_at.is_none_or(|expiry| expiry > now)
+        })
+        .await;
         self.pending_delivery.retain(|r| {
             acquisition_at(&self.acquisitions, &r.topic, r.partition, r.offset)
                 .is_some_and(|a| a.delivery_count == r.delivery_count)
@@ -3926,10 +3967,10 @@ impl ShareGroup {
         if let Some(peer) = self.share_conns.remove(&node) {
             retire_share_socket(peer).await;
         }
-        self.acquisitions.retain(|_, parts| {
-            parts.retain_runs(|run| run.acquisition.node != node);
-            !parts.is_empty()
-        });
+        retain_topic_runs(&mut self.acquisitions, |_, run| {
+            run.acquisition.node != node
+        })
+        .await;
         self.pending_delivery.retain(|r| {
             acquisition_at(&self.acquisitions, &r.topic, r.partition, r.offset).is_some()
         });
@@ -4984,7 +5025,8 @@ impl ShareGroup {
                     delivery_count: record.delivery_count,
                     expires_at: expiry,
                 },
-            );
+            )
+            .await;
             self.pending_delivery.push(record);
             remembered = remembered.saturating_add(1);
             if remembered == 8 * 1024 {
@@ -8376,7 +8418,7 @@ mod tests {
                 expires_at: None,
             },
         });
-        runs.reindex();
+        runs.reindex().await;
         let mut map = AcquisitionMap::new();
         let _ = map.insert(topic.clone(), runs);
         let mut recs = Vec::with_capacity(2_000_000);
@@ -8428,7 +8470,8 @@ mod tests {
                 delivery_count: 1,
                 expires_at: None,
             },
-        );
+        )
+        .await;
         let expected_records = few
             .iter()
             .map(share_record_storage_bytes)
@@ -8547,7 +8590,7 @@ mod tests {
         tokio::select! {
             _ = async {
                 for offset in 0..2_000 {
-                    remember_acquisition(&mut map, &topic, 0, offset * 2, stored);
+                    remember_acquisition(&mut map, &topic, 0, offset * 2, stored).await;
                 }
             } => {
                 assert_eq!(map.get("orders").map(TopicRuns::len), Some(2_000));
@@ -8590,8 +8633,8 @@ mod tests {
         );
     }
 
-    #[test]
-    fn an_overlapping_extend_keeps_the_earlier_acquisition() {
+    #[tokio::test]
+    async fn an_overlapping_extend_keeps_the_earlier_acquisition() {
         let topic = crate::consumer::TopicName::from("orders");
         let mut map = AcquisitionMap::new();
         let earlier = Acquisition {
@@ -8604,17 +8647,17 @@ mod tests {
             delivery_count: 1,
             expires_at: None,
         };
-        remember_acquisition(&mut map, &topic, 0, 1, earlier);
-        remember_acquisition(&mut map, &topic, 0, 0, later);
-        remember_acquisition(&mut map, &topic, 0, 1, later);
+        remember_acquisition(&mut map, &topic, 0, 1, earlier).await;
+        remember_acquisition(&mut map, &topic, 0, 0, later).await;
+        remember_acquisition(&mut map, &topic, 0, 1, later).await;
         assert_eq!(
             acquisition_at(&map, &topic, 0, 1).map(|found| found.delivery_count),
             Some(2)
         );
     }
 
-    #[test]
-    fn remembered_acquisitions_merge_and_split() {
+    #[tokio::test]
+    async fn remembered_acquisitions_merge_and_split() {
         let topic = crate::consumer::TopicName::from("orders");
         let mut map = AcquisitionMap::new();
         let same = Acquisition {
@@ -8622,9 +8665,9 @@ mod tests {
             delivery_count: 1,
             expires_at: None,
         };
-        remember_acquisition(&mut map, &topic, 0, 1, same);
-        remember_acquisition(&mut map, &topic, 0, 3, same);
-        remember_acquisition(&mut map, &topic, 0, 2, same);
+        remember_acquisition(&mut map, &topic, 0, 1, same).await;
+        remember_acquisition(&mut map, &topic, 0, 3, same).await;
+        remember_acquisition(&mut map, &topic, 0, 2, same).await;
         let runs = map.get("orders").expect("runs");
         assert_eq!(
             runs.runs
@@ -8638,13 +8681,13 @@ mod tests {
             delivery_count: 2,
             expires_at: None,
         };
-        remember_acquisition(&mut map, &topic, 1, 8, later);
-        remember_acquisition(&mut map, &topic, 1, 8, later);
+        remember_acquisition(&mut map, &topic, 1, 8, later).await;
+        remember_acquisition(&mut map, &topic, 1, 8, later).await;
         assert_eq!(
             acquisition_at(&map, &topic, 1, 8).map(|found| found.delivery_count),
             Some(2)
         );
-        remember_acquisition(&mut map, &topic, 1, 8, same);
+        remember_acquisition(&mut map, &topic, 1, 8, same).await;
         assert_eq!(
             acquisition_at(&map, &topic, 1, 8).map(|found| found.delivery_count),
             Some(1)
@@ -9117,7 +9160,8 @@ mod tests {
                     delivery_count: if offset % 2 == 0 { 1 } else { 2 },
                     expires_at: None,
                 },
-            );
+            )
+            .await;
         }
         let partitions = vec![(
             Arc::<str>::from("orders"),
@@ -9178,7 +9222,8 @@ mod tests {
                     delivery_count: if offset % 2 == 0 { 1 } else { 2 },
                     expires_at: None,
                 },
-            );
+            )
+            .await;
         }
         remember_acquisition(
             &mut map,
@@ -9190,7 +9235,8 @@ mod tests {
                 delivery_count: 1,
                 expires_at: None,
             },
-        );
+        )
+        .await;
         remember_acquisition(
             &mut map,
             &topic,
@@ -9201,7 +9247,8 @@ mod tests {
                 delivery_count: 2,
                 expires_at: None,
             },
-        );
+        )
+        .await;
         let started = std::time::Instant::now();
         tokio::select! {
             node = async { acquisition_node_for_range(&map, "orders", 0, 0, 199_999) } => {
@@ -9447,8 +9494,8 @@ mod tests {
         );
     }
 
-    #[test]
-    fn a_share_topic_keeps_one_acquisition_entry() {
+    #[tokio::test]
+    async fn a_share_topic_keeps_one_acquisition_entry() {
         let mut map = AcquisitionMap::new();
         let topic = crate::consumer::TopicName::from("orders");
         let again = crate::consumer::TopicName::from("orders");
@@ -9457,7 +9504,7 @@ mod tests {
             delivery_count: 1,
             expires_at: None,
         };
-        remember_acquisition(&mut map, &topic, 0, 1, stored);
+        remember_acquisition(&mut map, &topic, 0, 1, stored).await;
         remember_acquisition(
             &mut map,
             &again,
@@ -9468,7 +9515,8 @@ mod tests {
                 delivery_count: 1,
                 expires_at: None,
             },
-        );
+        )
+        .await;
         assert_eq!(map.len(), 1);
         assert_eq!(map.get("orders").map(|runs| runs.len()), Some(1));
         assert_eq!(acquisition_count(&map), 2);
@@ -10425,6 +10473,58 @@ mod tests {
         ])
         .await;
         assert_eq!(merged, vec![(0, 4)]);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn reindexing_many_acquisitions_does_not_hold_the_caller() {
+        let acquisition = Acquisition {
+            node: 1,
+            delivery_count: 1,
+            expires_at: None,
+        };
+        let mut runs = TopicRuns::new();
+        runs.runs = (0..2_000_000)
+            .map(|offset| AcquisitionRun {
+                partition: 0,
+                first: offset,
+                last: offset,
+                acquisition,
+            })
+            .collect();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = runs.reindex() => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "reindexing acquisitions held the caller for {elapsed:?}"
+        );
+        let mut small = TopicRuns::new();
+        small.runs = vec![
+            AcquisitionRun {
+                partition: 0,
+                first: 1,
+                last: 2,
+                acquisition,
+            },
+            AcquisitionRun {
+                partition: 0,
+                first: 4,
+                last: 5,
+                acquisition,
+            },
+        ];
+        small.reindex().await;
+        assert_eq!(
+            small.by_partition.get(&0).map(|part| part.order.as_slice()),
+            Some([0, 1].as_slice())
+        );
+        assert!(small
+            .by_partition
+            .get(&0)
+            .is_some_and(|part| !part.overlapped));
     }
 
     #[test]
