@@ -2233,7 +2233,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `UNRELEASED_INSTANCE_ID`). Official Java `GroupCoordinatorService`
   writes this when ConsumerGroupHeartbeat names a ServerAssignor the coordinator does not support.
   Top-level `STALE_MEMBER_EPOCH` still fails that poll
-  without Metadata, including when `ErrorMessage` is set (Java
+  without Metadata, including when `ErrorMessage` is set or empty (Java
   `handleShareFetchSuccess` only `requestUpdate`s for top-level
   `UNKNOWN_TOPIC_ID`; this is not top-level
   `UNSUPPORTED_ASSIGNOR`). Official Java `ConsumerGroup`
