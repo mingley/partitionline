@@ -48,7 +48,8 @@ use crate::protocol::admin::{
     decode_describe_topic_partitions_response_cooperative,
     decode_describe_transactions_response_cooperative,
     decode_describe_user_scram_credentials_response_cooperative,
-    decode_expire_delegation_token_response, decode_get_telemetry_subscriptions_response,
+    decode_expire_delegation_token_response,
+    decode_get_telemetry_subscriptions_response_cooperative,
     decode_incremental_alter_configs_resource_results_cooperative,
     decode_list_config_resources_response_cooperative, decode_list_groups_response_cooperative,
     decode_list_partition_reassignments_response_cooperative, decode_list_transactions_response,
@@ -3154,7 +3155,7 @@ pub(crate) async fn fetch_client_instance_id(
             timeout,
         )
         .await?;
-    let resp = decode_get_telemetry_subscriptions_response(&mut body.clone())?;
+    let resp = decode_get_telemetry_subscriptions_response_cooperative(&mut body.clone()).await?;
     if resp.error_code != 0 {
         return Err(Error::broker(resp.error_code, "GetTelemetrySubscriptions"));
     }
@@ -13936,7 +13937,8 @@ impl Admin {
                 timeout,
             )
             .await?;
-        let resp = decode_get_telemetry_subscriptions_response(&mut body.clone())?;
+        let resp =
+            decode_get_telemetry_subscriptions_response_cooperative(&mut body.clone()).await?;
         if resp.error_code != 0 {
             return Err(Error::broker(resp.error_code, "GetTelemetrySubscriptions"));
         }
@@ -20332,6 +20334,69 @@ mod tests {
                 .and_then(|item| item.credential_infos.first())
                 .map(|item| item.iterations),
             Some(8192)
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn decoding_many_telemetry_metrics_does_not_hold_the_caller() {
+        let requested_metrics: Vec<String> = (0..800_000)
+            .map(|index| format!("metric-{index}"))
+            .collect();
+        let resp = crate::protocol::admin::GetTelemetrySubscriptionsResponse {
+            throttle_time_ms: 0,
+            error_code: 0,
+            client_instance_id: [0x11; 16],
+            subscription_id: 1,
+            accepted_compression_types: vec![1],
+            push_interval_ms: 1000,
+            telemetry_max_bytes: 100,
+            delta_temporality: true,
+            requested_metrics,
+        };
+        let mut body = bytes::BytesMut::new();
+        crate::protocol::admin::encode_get_telemetry_subscriptions_response(&mut body, &resp)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let started = std::time::Instant::now();
+        tokio::select! {
+            decoded = decode_get_telemetry_subscriptions_response_cooperative(&mut body) => {
+                let decoded = decoded.unwrap_or_else(|error| panic!("{error}"));
+                assert_eq!(decoded.throttle_time_ms, 0);
+                assert_eq!(decoded.requested_metrics.len(), 800_000);
+                assert_eq!(decoded.requested_metrics.first().map(String::as_str), Some("metric-0"));
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "decoding telemetry metrics held the caller for {elapsed:?}"
+        );
+        let sample = crate::protocol::admin::GetTelemetrySubscriptionsResponse {
+            throttle_time_ms: 4,
+            error_code: 35,
+            client_instance_id: [0x22; 16],
+            subscription_id: 9,
+            accepted_compression_types: vec![2],
+            push_interval_ms: 500,
+            telemetry_max_bytes: 64,
+            delta_temporality: false,
+            requested_metrics: vec!["org.apache.kafka.producer".to_string()],
+        };
+        let mut encoded = bytes::BytesMut::new();
+        crate::protocol::admin::encode_get_telemetry_subscriptions_response(&mut encoded, &sample)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let mut once = encoded.clone();
+        let mut paced = encoded;
+        let sync = crate::protocol::admin::decode_get_telemetry_subscriptions_response(&mut once)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let coop = decode_get_telemetry_subscriptions_response_cooperative(&mut paced)
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(sync, coop);
+        assert_eq!(coop.error_code, 35);
+        assert_eq!(
+            coop.requested_metrics.first().map(String::as_str),
+            Some("org.apache.kafka.producer")
         );
     }
 
