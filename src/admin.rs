@@ -11026,7 +11026,7 @@ impl Admin {
                 (tp.topic, tp.partition)
             })
             .collect();
-        let topics = offset_delete_named_topics(&partitions);
+        let topics = offset_delete_named_topics(&partitions).await;
         let version = self
             .offset_delete_version
             .ok_or_else(|| Error::Unsupported("broker does not support OffsetDelete".into()))?;
@@ -15707,20 +15707,26 @@ fn flatten_reassignment_results(
     out
 }
 
-fn offset_delete_named_topics(partitions: &[(String, i32)]) -> Vec<(&str, Vec<i32>)> {
+async fn offset_delete_named_topics(partitions: &[(String, i32)]) -> Vec<(&str, Vec<i32>)> {
     let mut groups: Vec<(&str, Vec<i32>)> = Vec::new();
     let mut slots: HashMap<&str, usize> = HashMap::new();
+    let mut walked = 0usize;
     for (topic, part) in partitions {
         let name = topic.as_str();
         if let Some(&slot) = slots.get(name) {
             if let Some((_, parts)) = groups.get_mut(slot) {
                 parts.push(*part);
-                continue;
             }
+        } else {
+            let slot = groups.len();
+            let _ = slots.insert(name, slot);
+            groups.push((name, vec![*part]));
         }
-        let slot = groups.len();
-        let _ = slots.insert(name, slot);
-        groups.push((name, vec![*part]));
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
     }
     groups
 }
@@ -19444,14 +19450,34 @@ mod tests {
         assert_eq!(topics[0].1, vec![0, 0, 1]);
     }
 
-    #[test]
-    fn offset_delete_named_topics_keeps_duplicate_partitions() {
+    #[tokio::test(flavor = "current_thread")]
+    async fn grouping_many_offset_deletes_does_not_hold_the_caller() {
+        // 2_000_000 partitions: grouping them held the caller 332ms.
+        let partitions: Vec<(String, i32)> = (0..2_000_000)
+            .map(|index| ("orders".to_string(), index))
+            .collect();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            topics = offset_delete_named_topics(&partitions) => {
+                assert_eq!(topics.first().map(|(_, parts)| parts.len()), Some(2_000_000));
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "grouping offset deletes held the caller for {elapsed:?}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn offset_delete_named_topics_keeps_duplicate_partitions() {
         let partitions = [
             ("orders".to_string(), 0),
             ("orders".to_string(), 0),
             ("orders".to_string(), 1),
         ];
-        let topics = offset_delete_named_topics(&partitions);
+        let topics = offset_delete_named_topics(&partitions).await;
         assert_eq!(topics.len(), 1);
         assert_eq!(topics[0].0, "orders");
         assert_eq!(topics[0].1, vec![0, 0, 1]);
