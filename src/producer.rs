@@ -5554,18 +5554,19 @@ async fn record_unfresh_topics(
     failed: &mut HashMap<Arc<str>, Error>,
 ) {
     let mut pending = Vec::new();
+    let mut walked = 0usize;
     for topic in requested {
-        if failed.contains_key(topic.as_ref()) {
-            continue;
+        if !failed.contains_key(topic.as_ref()) {
+            let ready = {
+                let cluster = shared.cluster.lock();
+                cluster.partition_count(topic.as_ref()).is_some()
+                    && cluster.topic_fresh(topic.as_ref(), shared.cfg.metadata_max_age)
+            };
+            if !ready {
+                pending.push(topic);
+            }
         }
-        let ready = {
-            let cluster = shared.cluster.lock();
-            cluster.partition_count(topic.as_ref()).is_some()
-                && cluster.topic_fresh(topic.as_ref(), shared.cfg.metadata_max_age)
-        };
-        if !ready {
-            pending.push(topic);
-        }
+        pause_stale_topic(&mut walked).await;
     }
     if pending.is_empty() {
         return;
@@ -5702,6 +5703,39 @@ async fn watch_idle_txn_socket(shared: &Shared) {
     tokio::time::sleep(Duration::from_millis(20)).await;
 }
 
+/// Stale names in first-seen order.
+///
+/// Collecting 2,000,000 stale topics held the caller for 2350ms. A topic name is still stored.
+async fn collect_stale_metadata_topics(
+    cluster: &parking_lot::Mutex<Cluster>,
+    topics: &[Arc<str>],
+    max_age: Duration,
+) -> Vec<Arc<str>> {
+    let mut requested = Vec::new();
+    let mut seen = HashSet::new();
+    let mut walked = 0usize;
+    for topic in topics {
+        let fresh = {
+            let stored = cluster.lock();
+            stored.partition_count(topic.as_ref()).is_some()
+                && stored.topic_fresh(topic.as_ref(), max_age)
+        };
+        if !fresh {
+            let _ = remember_unique_arc(&mut requested, &mut seen, topic);
+        }
+        pause_stale_topic(&mut walked).await;
+    }
+    requested
+}
+
+async fn pause_stale_topic(walked: &mut usize) {
+    *walked = walked.saturating_add(1);
+    if *walked == 8 * 1024 {
+        *walked = 0;
+        tokio::task::yield_now().await;
+    }
+}
+
 fn remember_unique_arc(
     out: &mut Vec<Arc<str>>,
     seen: &mut HashSet<Arc<str>>,
@@ -5725,19 +5759,8 @@ async fn refresh_topics_within(
     topics: &[Arc<str>],
     timeout: Duration,
 ) -> Result<Vec<Arc<str>>> {
-    let mut requested = Vec::new();
-    let mut seen = HashSet::new();
-    for topic in topics {
-        let fresh = {
-            let cluster = shared.cluster.lock();
-            cluster.partition_count(topic.as_ref()).is_some()
-                && cluster.topic_fresh(topic.as_ref(), shared.cfg.metadata_max_age)
-        };
-        if fresh {
-            continue;
-        }
-        let _ = remember_unique_arc(&mut requested, &mut seen, topic);
-    }
+    let requested =
+        collect_stale_metadata_topics(&shared.cluster, topics, shared.cfg.metadata_max_age).await;
     if requested.is_empty() {
         return Ok(requested);
     }
@@ -10858,6 +10881,52 @@ mod tests {
             .build()
             .unwrap_or_else(|error| panic!("{error}"));
         runtime.block_on(index_produce_groups(groups, scratch));
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn collecting_many_stale_topics_does_not_hold_the_caller() {
+        let topics: Vec<Arc<str>> = (0..2_000_000)
+            .map(|index| Arc::from(format!("topic-{index}")))
+            .collect();
+        let cluster = parking_lot::Mutex::new(Cluster::default());
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = collect_stale_metadata_topics(&cluster, &topics, Duration::from_secs(30)) => {}
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        assert!(
+            started.elapsed() < std::time::Duration::from_millis(80),
+            "collecting stale topics held the caller for {:?}",
+            started.elapsed()
+        );
+        let orders: Arc<str> = Arc::from("orders");
+        let payments: Arc<str> = Arc::from("payments");
+        let sample = [
+            Arc::clone(&orders),
+            Arc::clone(&orders),
+            Arc::clone(&payments),
+        ];
+        let mut fresh = Cluster::default();
+        let mut image = MetadataResponse::blank();
+        image.topics = vec![crate::protocol::api::TopicMetadata::new(
+            0,
+            "orders",
+            false,
+            vec![crate::protocol::api::PartitionMetadata {
+                error_code: 0,
+                partition_index: 0,
+                leader_id: 1,
+                leader_epoch: 1,
+                replica_nodes: Vec::new(),
+                isr_nodes: Vec::new(),
+                offline_replicas: Vec::new(),
+            }],
+        )];
+        fresh.apply_image(&image, 1).await;
+        let stored = parking_lot::Mutex::new(fresh);
+        let stale = collect_stale_metadata_topics(&stored, &sample, Duration::from_secs(30)).await;
+        assert_eq!(stale.len(), 1);
+        assert_eq!(stale.first().map(Arc::as_ref), Some("payments"));
     }
 
     #[tokio::test(flavor = "current_thread")]
