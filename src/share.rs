@@ -2511,7 +2511,7 @@ pub enum ShareAcquireMode {
 /// id does not match the instance's stored subscription id.
 /// Top-level `TELEMETRY_TOO_LARGE` still fails that poll
 /// and does not request Metadata, including when `ErrorMessage` is
-/// set (Java `handleShareFetchSuccess` only `requestUpdate`s for
+/// set or empty (Java `handleShareFetchSuccess` only `requestUpdate`s for
 /// `UNKNOWN_TOPIC_ID`; this is not top-level
 /// `UNKNOWN_SUBSCRIPTION_ID`). Official Java
 /// `ClientMetricsManager` writes this when a PushTelemetry payload
@@ -5943,7 +5943,7 @@ impl ShareGroup {
     /// subscription id.
     /// Top-level
     /// `TELEMETRY_TOO_LARGE` still fails that poll without
-    /// Metadata, including when `ErrorMessage` is set (Java
+    /// Metadata, including when `ErrorMessage` is set or empty (Java
     /// `handleShareFetchSuccess` only `requestUpdate`s for
     /// `UNKNOWN_TOPIC_ID`; this is not top-level
     /// `UNKNOWN_SUBSCRIPTION_ID`). Official Java
