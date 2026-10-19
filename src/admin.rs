@@ -3241,6 +3241,40 @@ where
     topics
 }
 
+fn pending_leader_chunk() -> usize {
+    8 * 1024
+}
+
+/// Grouping 4,000,000 pending partitions held the caller for 1.77s.
+/// The first time a leader is seen, it stays first.
+async fn group_pending_by_leader<'a>(
+    cluster: &Cluster,
+    parts: impl IntoIterator<Item = (usize, &'a str, i32)>,
+) -> Result<(Vec<i32>, HashMap<i32, Vec<usize>>)> {
+    let mut by_node: HashMap<i32, Vec<usize>> = HashMap::new();
+    let mut nodes = Vec::new();
+    let mut leaders = LeaderList::new();
+    let mut walked = 0usize;
+    for (index, topic, partition) in parts {
+        walked = walked.saturating_add(1);
+        let node = leaders.node(cluster, topic, partition)?;
+        match by_node.entry(node) {
+            std::collections::hash_map::Entry::Vacant(slot) => {
+                nodes.push(node);
+                let _stored = slot.insert(vec![index]);
+            }
+            std::collections::hash_map::Entry::Occupied(mut slot) => {
+                slot.get_mut().push(index);
+            }
+        }
+        if walked == pending_leader_chunk() {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    Ok((nodes, by_node))
+}
+
 fn missing_leader_chunk() -> usize {
     8 * 1024
 }
@@ -9630,23 +9664,18 @@ impl Admin {
                 self.refresh_topics_while_dialing(&need, &known_nodes, deadline)
                     .await?;
             }
-            let mut by_node: HashMap<i32, Vec<usize>> = HashMap::new();
-            let mut nodes: Vec<i32> = Vec::new();
-            let mut leaders = LeaderList::new();
-            for &i in &pending {
-                let (tp, _) = records
-                    .get(i)
-                    .ok_or_else(|| Error::protocol("missing DeleteRecords query"))?;
-                let node = leaders.node(&self.cluster, &tp.topic, tp.partition)?;
-                match by_node.entry(node) {
-                    std::collections::hash_map::Entry::Vacant(slot) => {
-                        nodes.push(node);
-                        let _ = slot.insert(vec![i]);
-                    }
-                    std::collections::hash_map::Entry::Occupied(mut slot) => {
-                        slot.get_mut().push(i);
-                    }
-                }
+            let mut present = 0usize;
+            let (nodes, mut by_node) = group_pending_by_leader(
+                &self.cluster,
+                pending.iter().filter_map(|&i| {
+                    let (tp, _) = records.get(i)?;
+                    present = present.saturating_add(1);
+                    Some((i, tp.topic.as_str(), tp.partition))
+                }),
+            )
+            .await?;
+            if present != pending.len() {
+                return Err(Error::protocol("missing DeleteRecords query"));
             }
             let mut still = Vec::new();
             if nodes.len() > 1 {
@@ -9998,23 +10027,18 @@ impl Admin {
                     return Err(Error::Timeout);
                 }
             }
-            let mut by_node: HashMap<i32, Vec<usize>> = HashMap::new();
-            let mut nodes: Vec<i32> = Vec::new();
-            let mut leaders = LeaderList::new();
-            for &i in &pending {
-                let (tp, _) = queries
-                    .get(i)
-                    .ok_or_else(|| Error::protocol("missing ListOffsets query"))?;
-                let node = leaders.node(&self.cluster, &tp.topic, tp.partition)?;
-                match by_node.entry(node) {
-                    std::collections::hash_map::Entry::Vacant(slot) => {
-                        nodes.push(node);
-                        let _ = slot.insert(vec![i]);
-                    }
-                    std::collections::hash_map::Entry::Occupied(mut slot) => {
-                        slot.get_mut().push(i);
-                    }
-                }
+            let mut present = 0usize;
+            let (nodes, mut by_node) = group_pending_by_leader(
+                &self.cluster,
+                pending.iter().filter_map(|&i| {
+                    let (tp, _) = queries.get(i)?;
+                    present = present.saturating_add(1);
+                    Some((i, tp.topic.as_str(), tp.partition))
+                }),
+            )
+            .await?;
+            if present != pending.len() {
+                return Err(Error::protocol("missing ListOffsets query"));
             }
             let mut still = Vec::new();
             if nodes.len() > 1 {
@@ -10867,21 +10891,18 @@ impl Admin {
                 let _prev = by_node.insert(id, pending.clone());
                 nodes.push(id);
             } else {
-                let mut leaders = LeaderList::new();
-                for &i in &pending {
-                    let tp = partitions
-                        .get(i)
-                        .ok_or_else(|| Error::protocol("missing DescribeProducers query"))?;
-                    let node = leaders.node(&self.cluster, &tp.topic, tp.partition)?;
-                    match by_node.entry(node) {
-                        std::collections::hash_map::Entry::Vacant(slot) => {
-                            nodes.push(node);
-                            let _ = slot.insert(vec![i]);
-                        }
-                        std::collections::hash_map::Entry::Occupied(mut slot) => {
-                            slot.get_mut().push(i);
-                        }
-                    }
+                let mut present = 0usize;
+                (nodes, by_node) = group_pending_by_leader(
+                    &self.cluster,
+                    pending.iter().filter_map(|&i| {
+                        let tp = partitions.get(i)?;
+                        present = present.saturating_add(1);
+                        Some((i, tp.topic.as_str(), tp.partition))
+                    }),
+                )
+                .await?;
+                if present != pending.len() {
+                    return Err(Error::protocol("missing DescribeProducers query"));
                 }
             }
             let mut still = Vec::new();
@@ -17247,6 +17268,53 @@ mod tests {
         let need =
             topics_missing_leaders(&known, [("orders", 0), ("orders", 1), ("payments", 0)]).await;
         assert_eq!(need, vec!["orders"]);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn grouping_many_pending_leaders_does_not_hold_the_caller() {
+        let mut cluster = Cluster::default();
+        let _broker = cluster.brokers.insert(4, "127.0.0.1:9092".to_string());
+        let _leaders = cluster
+            .leaders
+            .insert(std::sync::Arc::from("orders"), vec![4; 4_000_000]);
+        let parts: Vec<i32> = (0..4_000_000).collect();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = group_pending_by_leader(
+                &cluster,
+                parts.iter().copied().enumerate().map(|(index, partition)| {
+                    (index, "orders", partition)
+                }),
+            ) => {}
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        assert!(
+            started.elapsed() < std::time::Duration::from_millis(80),
+            "grouping pending leaders held the caller for {:?}",
+            started.elapsed()
+        );
+        let mut sample = Cluster::default();
+        let _sample_broker = sample.brokers.insert(4, "127.0.0.1:9092".to_string());
+        let _other_broker = sample.brokers.insert(5, "127.0.0.1:9093".to_string());
+        let _orders = sample
+            .leaders
+            .insert(std::sync::Arc::from("orders"), vec![4, 4]);
+        let _payments = sample
+            .leaders
+            .insert(std::sync::Arc::from("payments"), vec![5]);
+        let (nodes, by_node) = group_pending_by_leader(
+            &sample,
+            [
+                (0usize, "orders", 0i32),
+                (1, "payments", 0),
+                (2, "orders", 1),
+            ],
+        )
+        .await
+        .unwrap();
+        assert_eq!(nodes, vec![4, 5]);
+        assert_eq!(by_node.get(&4).map(Vec::as_slice), Some(&[0, 2][..]));
+        assert_eq!(by_node.get(&5).map(Vec::as_slice), Some(&[1][..]));
     }
 
     #[tokio::test(flavor = "current_thread")]
