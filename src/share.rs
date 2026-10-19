@@ -3122,7 +3122,7 @@ pub enum ShareAcquireMode {
 /// A top-level
 /// ShareAcknowledge `DUPLICATE_VOTER` completes without
 /// retry and does not request Metadata, including when `ErrorMessage`
-/// is set (Java `handleShareAcknowledgeSuccess` has no
+/// is set or empty (Java `handleShareAcknowledgeSuccess` has no
 /// `metadata.requestUpdate`; this is not top-level
 /// `INVALID_VOTER_KEY`). Official Java
 /// `AddVoterHandler` writes this when the AddRaftVoter request
@@ -6957,7 +6957,7 @@ impl ShareGroup {
     /// match the local key.
     /// A top-level ShareAcknowledge `DUPLICATE_VOTER`
     /// completes without retry and does not request Metadata,
-    /// including when `ErrorMessage` is set (Java
+    /// including when `ErrorMessage` is set or empty (Java
     /// `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`;
     /// this is not top-level `INVALID_VOTER_KEY`).
     /// Official Java `AddVoterHandler` writes this when the
