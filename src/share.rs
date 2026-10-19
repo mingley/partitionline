@@ -2454,6 +2454,13 @@ pub enum ShareAcquireMode {
 /// `NEW_LEADER_ELECTED`). Official Java
 /// `ReplicaManager` writes this when a follower fetch offset is below
 /// `localLogStartOffset` but at or above `logStartOffset`.
+/// Top-level `FENCED_MEMBER_EPOCH` still fails that poll
+/// and does not request Metadata, including when `ErrorMessage` is
+/// set (Java `handleShareFetchSuccess` only `requestUpdate`s for
+/// `UNKNOWN_TOPIC_ID`; this is not top-level
+/// `OFFSET_MOVED_TO_TIERED_STORAGE`). Official Java
+/// `GroupMetadataManager` writes this when a share-group heartbeat
+/// member epoch is ahead of or behind the coordinator's stored epoch.
 /// Top-level
 /// `SHARE_SESSION_LIMIT_REACHED` resets the share session and does
 /// not request Metadata, including when `ErrorMessage` is set or
@@ -5752,6 +5759,14 @@ impl ShareGroup {
     /// `ReplicaManager` writes this when a follower fetch offset is
     /// below `localLogStartOffset` but at or above `logStartOffset`.
     /// Top-level
+    /// `FENCED_MEMBER_EPOCH` still fails that poll without
+    /// Metadata, including when `ErrorMessage` is set (Java
+    /// `handleShareFetchSuccess` only `requestUpdate`s for
+    /// `UNKNOWN_TOPIC_ID`; this is not top-level
+    /// `OFFSET_MOVED_TO_TIERED_STORAGE`). Official Java
+    /// `GroupMetadataManager` writes this when a share-group heartbeat
+    /// member epoch is ahead of or behind the coordinator's stored
+    /// epoch. Top-level
     /// `SHARE_SESSION_LIMIT_REACHED` resets the share session and
     /// does not request Metadata, including when `ErrorMessage` is
     /// set or empty (Java `handleShareFetchSuccess` only
