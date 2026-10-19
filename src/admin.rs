@@ -29,7 +29,8 @@ use crate::protocol::acl::{
 };
 use crate::protocol::admin::{
     decode_allocate_producer_ids_response, decode_alter_client_quotas_response,
-    decode_alter_configs_resource_results, decode_alter_partition_reassignments_response_data,
+    decode_alter_configs_resource_results_cooperative,
+    decode_alter_partition_reassignments_response_data,
     decode_alter_replica_log_dirs_response_cooperative,
     decode_alter_share_group_offsets_response_cooperative,
     decode_alter_user_scram_credentials_response, decode_assign_replicas_to_dirs_response,
@@ -8816,7 +8817,8 @@ impl Admin {
                 timeout,
             )
             .await?;
-        let (results, ..) = decode_alter_configs_resource_results(&mut body.clone(), version)?;
+        let (results, ..) =
+            decode_alter_configs_resource_results_cooperative(&mut body.clone(), version).await?;
         Ok(results)
     }
 
@@ -19942,6 +19944,60 @@ mod tests {
             Some("busy")
         );
         assert_eq!(coop.0.first().map(|item| item.resource_type), Some(2));
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn decoding_many_replaced_configs_does_not_hold_the_caller() {
+        let results: Vec<AlterConfigsResourceResult> = (0..1_000_000)
+            .map(|index| AlterConfigsResourceResult {
+                error_code: 0,
+                error_message: None,
+                resource_type: 2,
+                name: format!("topic-{index}"),
+            })
+            .collect();
+        let mut body = bytes::BytesMut::new();
+        crate::protocol::admin::encode_alter_configs_resource_results(&mut body, 2, &results)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let started = std::time::Instant::now();
+        tokio::select! {
+            decoded = decode_alter_configs_resource_results_cooperative(&mut body, 2) => {
+                let (decoded, throttle) = decoded.unwrap_or_else(|error| panic!("{error}"));
+                assert_eq!(throttle, 0);
+                assert_eq!(decoded.len(), 1_000_000);
+                assert_eq!(decoded.first().map(|item| item.name.as_str()), Some("topic-0"));
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "decoding replaced configs held the caller for {elapsed:?}"
+        );
+        let results = [AlterConfigsResourceResult {
+            error_code: 7,
+            error_message: Some("busy".to_string()),
+            resource_type: 2,
+            name: "orders".to_string(),
+        }];
+        let mut encoded = bytes::BytesMut::new();
+        crate::protocol::admin::encode_alter_configs_resource_results(&mut encoded, 2, &results)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let mut once = encoded.clone();
+        let mut paced = encoded;
+        let sync = crate::protocol::admin::decode_alter_configs_resource_results(&mut once, 2)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let coop = decode_alter_configs_resource_results_cooperative(&mut paced, 2)
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(sync.0, coop.0);
+        assert_eq!(sync.1, coop.1);
+        assert_eq!(
+            coop.0
+                .first()
+                .and_then(|item| item.error_message.as_deref()),
+            Some("busy")
+        );
     }
 
     #[tokio::test(flavor = "current_thread")]
