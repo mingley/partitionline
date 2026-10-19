@@ -5074,7 +5074,7 @@ fn reused_name_chunk() -> usize {
 /// names held the caller for 404 milliseconds.
 ///
 /// An unchanged list keeps its buffer. Each changed name is still copied.
-async fn reuse_topic_names_locked(
+pub(crate) async fn reuse_topic_names_locked(
     dest: &mut Option<Vec<String>>,
     topics: &parking_lot::Mutex<Vec<String>>,
 ) {
@@ -5082,16 +5082,20 @@ async fn reuse_topic_names_locked(
         let mut guard = topics.lock();
         std::mem::take(&mut *guard)
     };
-    let unchanged = match dest.as_ref() {
-        Some(names) => names_match(names, &snapshot).await,
-        None => false,
-    };
-    if !unchanged {
-        *dest = Some(copy_reused_names(&snapshot).await);
-    }
+    reuse_topic_names_from(dest, &snapshot).await;
     let mut guard = topics.lock();
     if guard.is_empty() {
         *guard = snapshot;
+    }
+}
+
+pub(crate) async fn reuse_topic_names_from(dest: &mut Option<Vec<String>>, topics: &[String]) {
+    let unchanged = match dest.as_ref() {
+        Some(names) => names_match(names, topics).await,
+        None => false,
+    };
+    if !unchanged {
+        *dest = Some(copy_reused_names(topics).await);
     }
 }
 

@@ -2415,7 +2415,7 @@ impl ShareGroup {
             ShareGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH,
         ));
         let hb_member_id = Arc::new(Mutex::new(member_id.clone()));
-        let hb_topics = Arc::new(Mutex::new(topics.clone()));
+        let hb_topics = Arc::new(Mutex::new(crate::group::clone_names(&topics).await));
         let hb_assignment = Arc::new(Mutex::new(None));
         let hb_interval_ms = Arc::new(AtomicI32::new(0));
         let hb_deadline = Arc::new(Mutex::new(None));
@@ -2494,7 +2494,7 @@ impl ShareGroup {
         if g.topic_match.is_some() {
             g.topics = g.matching_topic_names_within(discovery_deadline).await?;
             g.last_match_refresh = Instant::now();
-            g.publish_hb_topics();
+            g.publish_hb_topics().await;
         }
 
         g.heartbeat_join_within(discovery_deadline).await?;
@@ -2641,8 +2641,9 @@ impl ShareGroup {
         }
     }
 
-    fn publish_hb_topics(&self) {
-        *self.hb_topics.lock() = self.topics.clone();
+    async fn publish_hb_topics(&self) {
+        let topics = crate::group::clone_names(&self.topics).await;
+        *self.hb_topics.lock() = topics;
     }
 
     /// Interrupt [`Self::poll`]. See [`crate::Consumer::wakeup`].
@@ -2674,7 +2675,7 @@ impl ShareGroup {
             rack_id: self.cfg.rack.clone(),
             // Re-send subscription until assignment arrives so the
             // coordinator can resolve topic ids (KIP-932).
-            subscribed_topic_names: Some(self.topics.clone()),
+            subscribed_topic_names: Some(crate::group::clone_names(&self.topics).await),
         };
         loop {
             let timeout = deadline.saturating_duration_since(Instant::now());
@@ -2687,7 +2688,8 @@ impl ShareGroup {
             } else {
                 self.member_epoch
             };
-            reuse_share_subscription(&mut req, &self.topics);
+            crate::group::reuse_topic_names_from(&mut req.subscribed_topic_names, &self.topics)
+                .await;
             // The heartbeat carries topic names. A stale image loads on the
             // member socket while the coordinator answers.
             let stale = self
@@ -2929,7 +2931,7 @@ impl ShareGroup {
             member_id: self.member_id.clone(),
             member_epoch: self.member_epoch,
             rack_id: self.cfg.rack.clone(),
-            subscribed_topic_names: Some(self.topics.clone()),
+            subscribed_topic_names: Some(crate::group::clone_names(&self.topics).await),
         };
         while self.assigned.is_empty() {
             let timeout = deadline.saturating_duration_since(Instant::now());
@@ -2950,7 +2952,8 @@ impl ShareGroup {
             }
             crate::group::copy_member_id(&mut req.member_id, &self.member_id);
             req.member_epoch = self.member_epoch;
-            reuse_share_subscription(&mut req, &self.topics);
+            crate::group::reuse_topic_names_from(&mut req.subscribed_topic_names, &self.topics)
+                .await;
             // The heartbeat carries topic names. A stale image loads on the
             // member socket while the coordinator answers.
             let stale = self
@@ -4374,7 +4377,7 @@ impl ShareGroup {
         if self.member_id.is_empty() {
             self.topic_match = None;
             self.topics.clear();
-            self.publish_hb_topics();
+            self.publish_hb_topics().await;
             self.assigned.clear();
             self.topic_ids.clear();
             self.share_epochs.clear();
@@ -4399,7 +4402,7 @@ impl ShareGroup {
         let (close, leave) = tokio::join!(close, leave);
         self.assigned.clear();
         self.topics.clear();
-        self.publish_hb_topics();
+        self.publish_hb_topics().await;
         self.topic_ids.clear();
         self.share_epochs.clear();
         self.member_id.clear();
@@ -4476,7 +4479,7 @@ impl ShareGroup {
             self.assigned.clear();
             self.topic_ids.clear();
             self.topics = topics;
-            self.publish_hb_topics();
+            self.publish_hb_topics().await;
             refresh?;
             self.heartbeat_join_within(deadline).await?;
             return Ok(());
@@ -4531,7 +4534,7 @@ impl ShareGroup {
                 self.topic_ids.clear();
                 self.share_epochs.clear();
                 self.topics = topics;
-                self.publish_hb_topics();
+                self.publish_hb_topics().await;
                 refreshed?;
                 self.heartbeat_join_within(deadline).await?;
                 return Ok(());
@@ -4542,7 +4545,7 @@ impl ShareGroup {
             self.share_epochs.clear();
         }
         self.topics = topics;
-        self.publish_hb_topics();
+        self.publish_hb_topics().await;
         if rejoining {
             self.heartbeat_join_within(deadline).await?;
             return Ok(());
@@ -6352,7 +6355,7 @@ impl ShareGroup {
                 crate::group::copy_member_id(&mut heartbeat.member_id, &member_id);
                 heartbeat.member_epoch = epoch;
                 if epoch == ShareGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH {
-                    reuse_share_subscription(&mut heartbeat, &hb_topics.lock());
+                    reuse_share_subscription_locked(&mut heartbeat, &hb_topics).await;
                 } else {
                     heartbeat.subscribed_topic_names = None;
                 }
@@ -6552,6 +6555,7 @@ async fn finish_share_heartbeat(task: Arc<tokio::task::JoinHandle<()>>, deadline
     }
 }
 
+#[cfg(test)]
 fn reuse_share_subscription(req: &mut ShareGroupHeartbeatRequest, topics: &[String]) {
     let same = req
         .subscribed_topic_names
@@ -6560,6 +6564,19 @@ fn reuse_share_subscription(req: &mut ShareGroupHeartbeatRequest, topics: &[Stri
     if !same {
         req.subscribed_topic_names = Some(topics.to_vec());
     }
+}
+
+/// Copy the share subscription when it changed.
+///
+/// The copy pauses every 8,192 names. Without that pause, copying 4,000,000
+/// names held the caller for 390 milliseconds.
+///
+/// An unchanged list keeps its buffer. Each changed name is still copied.
+async fn reuse_share_subscription_locked(
+    req: &mut ShareGroupHeartbeatRequest,
+    topics: &parking_lot::Mutex<Vec<String>>,
+) {
+    crate::group::reuse_topic_names_locked(&mut req.subscribed_topic_names, topics).await;
 }
 
 /// Copy `id` into the local member and the heartbeat task's copy.
@@ -7888,6 +7905,43 @@ mod tests {
     use std::sync::Arc;
 
     use super::*;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn reusing_many_share_topics_does_not_hold_the_caller() {
+        let topics: Vec<String> = (0..4_000_000)
+            .map(|index| format!("topic-{index}"))
+            .collect();
+        let mut req = crate::protocol::share::ShareGroupHeartbeatRequest {
+            group_id: "group".to_string(),
+            member_id: "member".to_string(),
+            member_epoch: 0,
+            rack_id: None,
+            subscribed_topic_names: None,
+        };
+        let stored = parking_lot::Mutex::new(topics);
+        let started = std::time::Instant::now();
+        let task = tokio::spawn(async move {
+            reuse_share_subscription_locked(&mut req, &stored).await;
+        });
+        tokio::time::sleep(std::time::Duration::from_millis(30)).await;
+        let elapsed = started.elapsed();
+        task.abort();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "reusing share topics held the caller for {elapsed:?}"
+        );
+        let sample = parking_lot::Mutex::new(vec!["orders".to_string()]);
+        let mut kept = crate::protocol::share::ShareGroupHeartbeatRequest {
+            group_id: "group".to_string(),
+            member_id: "member".to_string(),
+            member_epoch: 0,
+            rack_id: None,
+            subscribed_topic_names: Some(vec!["orders".to_string()]),
+        };
+        let ptr = kept.subscribed_topic_names.as_ref().map(Vec::as_ptr);
+        reuse_share_subscription_locked(&mut kept, &sample).await;
+        assert_eq!(kept.subscribed_topic_names.as_ref().map(Vec::as_ptr), ptr);
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn decoding_many_share_heartbeat_assignments_does_not_hold_the_caller() {
