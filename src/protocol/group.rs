@@ -5949,6 +5949,81 @@ fn encode_offset_fetch_topics<T: OffsetFetchTopicView>(
     }
 }
 
+async fn encode_offset_fetch_topics_cooperative<T: OffsetFetchTopicView + Sync>(
+    buf: &mut BytesMut,
+    flexible: bool,
+    topics: Option<&[T]>,
+) -> crate::error::Result<()> {
+    match topics {
+        None => buf::put_array_len(buf, flexible, None),
+        Some(topics) => {
+            buf::put_array_len(buf, flexible, Some(topics.len()))?;
+            let mut walked = 0usize;
+            for topic in topics {
+                buf::put_string(buf, flexible, Some(topic.offset_fetch_name()))?;
+                let partitions = topic.offset_fetch_partitions();
+                buf::put_array_len(buf, flexible, Some(partitions.len()))?;
+                for partition in partitions {
+                    buf.put_i32(*partition);
+                    walked = walked.saturating_add(1);
+                    if walked == 8 * 1024 {
+                        walked = 0;
+                        tokio::task::yield_now().await;
+                    }
+                }
+                if flexible {
+                    buf::put_empty_tagged_fields(buf);
+                }
+                walked = walked.saturating_add(1);
+                if walked == 8 * 1024 {
+                    walked = 0;
+                    tokio::task::yield_now().await;
+                }
+            }
+            Ok(())
+        }
+    }
+}
+
+async fn offset_fetch_topics_len_cooperative<T: OffsetFetchTopicView + Sync>(
+    flexible: bool,
+    topics: Option<&[T]>,
+) -> Result<usize> {
+    let Some(topics) = topics else {
+        return Ok(if flexible {
+            buf::unsigned_varint_size(0)
+        } else {
+            4
+        });
+    };
+    let mut total = group_array_len(flexible, topics.len())?;
+    let mut walked = 0usize;
+    for topic in topics {
+        total = add_group_len(
+            total,
+            group_string_len(flexible, Some(topic.offset_fetch_name()))?,
+        )?;
+        let partitions = topic.offset_fetch_partitions();
+        total = add_group_len(total, group_array_len(flexible, partitions.len())?)?;
+        total = add_group_len(
+            total,
+            partitions
+                .len()
+                .checked_mul(4)
+                .ok_or_else(|| Error::protocol("offset fetch request size overflow"))?,
+        )?;
+        if flexible {
+            total = add_group_len(total, buf::unsigned_varint_size(0))?;
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    Ok(total)
+}
+
 fn decode_offset_fetch_topics<B: Buf>(
     buf: &mut B,
     flexible: bool,
@@ -6490,6 +6565,7 @@ pub fn encode_offset_fetch_request(
 /// Encode OffsetFetch topics whose names are borrowed from the caller.
 ///
 /// `topics = None` fetches every committed partition (v2+).
+#[cfg(test)]
 pub(crate) fn encode_offset_fetch_named(
     buf: &mut BytesMut,
     version: i16,
@@ -6508,6 +6584,105 @@ pub(crate) fn encode_offset_fetch_named(
         require_stable,
         topics,
     )
+}
+
+/// Encode one OffsetFetch group, yielding while topics are still being written.
+///
+/// Encoding 2,000,000 topics held the caller for 644ms. A topic name and a partition are still written.
+pub(crate) async fn encode_offset_fetch_named_cooperative(
+    buf: &mut BytesMut,
+    version: i16,
+    group_id: &str,
+    member_id: Option<&str>,
+    member_epoch: i32,
+    require_stable: bool,
+    topics: Option<&[(&str, Vec<i32>)]>,
+) -> crate::error::Result<()> {
+    encode_offset_fetch_topic_views_cooperative(
+        buf,
+        version,
+        group_id,
+        member_id,
+        member_epoch,
+        require_stable,
+        topics,
+    )
+    .await
+}
+
+async fn encode_offset_fetch_topic_views_cooperative<T: OffsetFetchTopicView + Sync>(
+    buf: &mut BytesMut,
+    version: i16,
+    group_id: &str,
+    member_id: Option<&str>,
+    member_epoch: i32,
+    require_stable: bool,
+    topics: Option<&[T]>,
+) -> crate::error::Result<()> {
+    let flexible = offset_fetch_flexible(version)?;
+    if version < 2 && topics.is_none() {
+        return Err(Error::Unsupported(format!(
+            "The broker only supports OffsetFetchRequest v{version}, but we need v2 or newer to request all topic partitions."
+        )));
+    }
+    let body_start = buf.len();
+    let planned =
+        offset_fetch_request_len_cooperative(version, flexible, group_id, member_id, topics)
+            .await?;
+    reserve_group_body(buf, planned);
+    if version <= 7 {
+        buf::put_string(buf, flexible, Some(group_id))?;
+        encode_offset_fetch_topics_cooperative(buf, flexible, topics).await?;
+        if version >= 7 {
+            buf.put_u8(u8::from(require_stable));
+        }
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+        debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+        return Ok(());
+    }
+    encode_offset_fetch_group_item_cooperative(
+        buf,
+        version,
+        true,
+        group_id,
+        member_id,
+        member_epoch,
+        topics,
+    )
+    .await?;
+    buf.put_u8(u8::from(require_stable));
+    buf::put_empty_tagged_fields(buf);
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+    Ok(())
+}
+
+async fn offset_fetch_request_len_cooperative<T: OffsetFetchTopicView + Sync>(
+    version: i16,
+    flexible: bool,
+    group_id: &str,
+    member_id: Option<&str>,
+    topics: Option<&[T]>,
+) -> Result<usize> {
+    if version <= 7 {
+        let mut total = group_string_len(flexible, Some(group_id))?;
+        total = add_group_len(
+            total,
+            offset_fetch_topics_len_cooperative(flexible, topics).await?,
+        )?;
+        if version >= 7 {
+            total = add_group_len(total, 1)?;
+        }
+        if flexible {
+            total = add_group_len(total, buf::unsigned_varint_size(0))?;
+        }
+        return Ok(total);
+    }
+    let mut total =
+        offset_fetch_group_item_len_cooperative(version, true, group_id, member_id, topics).await?;
+    total = add_group_len(total, 1)?;
+    add_group_len(total, buf::unsigned_varint_size(0))
 }
 
 trait OffsetFetchTopicView {
@@ -6600,6 +6775,52 @@ fn encode_offset_fetch_group_item<T: OffsetFetchTopicView>(
     encode_offset_fetch_topics(buf, true, topics)?;
     buf::put_empty_tagged_fields(buf);
     Ok(())
+}
+
+async fn encode_offset_fetch_group_item_cooperative<T: OffsetFetchTopicView + Sync>(
+    buf: &mut BytesMut,
+    version: i16,
+    write_array_len: bool,
+    group_id: &str,
+    member_id: Option<&str>,
+    member_epoch: i32,
+    topics: Option<&[T]>,
+) -> crate::error::Result<()> {
+    if write_array_len {
+        buf::put_array_len(buf, true, Some(1))?;
+    }
+    buf::put_compact_string(buf, Some(group_id))?;
+    if version >= 9 {
+        buf::put_compact_string(buf, member_id)?;
+        buf.put_i32(member_epoch);
+    }
+    encode_offset_fetch_topics_cooperative(buf, true, topics).await?;
+    buf::put_empty_tagged_fields(buf);
+    Ok(())
+}
+
+async fn offset_fetch_group_item_len_cooperative<T: OffsetFetchTopicView + Sync>(
+    version: i16,
+    write_array_len: bool,
+    group_id: &str,
+    member_id: Option<&str>,
+    topics: Option<&[T]>,
+) -> Result<usize> {
+    let mut total = if write_array_len {
+        group_array_len(true, 1)?
+    } else {
+        0
+    };
+    total = add_group_len(total, group_string_len(true, Some(group_id))?)?;
+    if version >= 9 {
+        total = add_group_len(total, group_string_len(true, member_id)?)?;
+        total = add_group_len(total, 4)?;
+    }
+    total = add_group_len(
+        total,
+        offset_fetch_topics_len_cooperative(true, topics).await?,
+    )?;
+    add_group_len(total, buf::unsigned_varint_size(0))
 }
 
 /// Encode OffsetFetch v8–v9 with a Groups array of N (KIP-709).
@@ -6756,7 +6977,10 @@ async fn encode_offset_fetch_request_group_views_cooperative<
     version: i16,
     groups: &[G],
     require_stable: bool,
-) -> crate::error::Result<()> {
+) -> crate::error::Result<()>
+where
+    G::Topic: Sync,
+{
     let _flexible = offset_fetch_flexible(version)?;
     if version < 8 {
         if groups.len() > 1 {
@@ -6774,7 +6998,7 @@ async fn encode_offset_fetch_request_group_views_cooperative<
     buf::put_array_len(buf, true, Some(groups.len()))?;
     let mut walked = 0usize;
     for group in groups {
-        encode_offset_fetch_group_item(
+        encode_offset_fetch_group_item_cooperative(
             buf,
             version,
             false,
@@ -6782,7 +7006,8 @@ async fn encode_offset_fetch_request_group_views_cooperative<
             group.offset_fetch_member_id(),
             group.offset_fetch_member_epoch(),
             group.offset_fetch_group_topics(),
-        )?;
+        )
+        .await?;
         walked = walked.saturating_add(1);
         if walked == 8 * 1024 {
             walked = 0;
@@ -6798,19 +7023,23 @@ async fn encode_offset_fetch_request_group_views_cooperative<
 async fn offset_fetch_groups_request_len_cooperative<G: OffsetFetchRequestGroupView + Sync>(
     version: i16,
     groups: &[G],
-) -> Result<usize> {
+) -> Result<usize>
+where
+    G::Topic: Sync,
+{
     let mut total = group_array_len(true, groups.len())?;
     let mut walked = 0usize;
     for group in groups {
         total = add_group_len(
             total,
-            offset_fetch_group_item_len(
+            offset_fetch_group_item_len_cooperative(
                 version,
                 false,
                 group.offset_fetch_group_id(),
                 group.offset_fetch_member_id(),
                 group.offset_fetch_group_topics(),
-            )?,
+            )
+            .await?,
         )?;
         walked = walked.saturating_add(1);
         if walked == 8 * 1024 {
@@ -8104,6 +8333,45 @@ async fn group_owned_assignment_cooperative(parts: Vec<(String, i32)>) -> Vec<(S
 mod tests {
     use super::*;
     use std::collections::HashMap;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn encoding_many_offset_fetch_topics_does_not_hold_the_caller() {
+        let owned: Vec<String> = (0..2_000_000)
+            .map(|index| format!("topic-{index}"))
+            .collect();
+        let topics: Vec<(&str, Vec<i32>)> =
+            owned.iter().map(|name| (name.as_str(), vec![0])).collect();
+        let mut body = bytes::BytesMut::new();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            encoded = encode_offset_fetch_named_cooperative(
+                &mut body,
+                8,
+                "g",
+                None,
+                -1,
+                false,
+                Some(&topics),
+            ) => {
+                encoded.unwrap_or_else(|error| panic!("{error}"));
+            }
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "encoding offset fetch topics held the caller for {elapsed:?}"
+        );
+        let sample = [("orders", vec![0])];
+        let mut once = bytes::BytesMut::new();
+        let mut paced = bytes::BytesMut::new();
+        encode_offset_fetch_named(&mut once, 8, "g", None, -1, true, Some(&sample))
+            .unwrap_or_else(|error| panic!("{error}"));
+        encode_offset_fetch_named_cooperative(&mut paced, 8, "g", None, -1, true, Some(&sample))
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(once, paced);
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn encoding_many_offset_fetch_groups_does_not_hold_the_caller() {

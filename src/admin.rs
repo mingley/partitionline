@@ -118,7 +118,7 @@ use crate::protocol::group::{
     encode_find_coordinator_request_typed, encode_leave_group_request_members_cooperative,
     encode_offset_commit_named, encode_offset_delete_named_topics,
     encode_offset_fetch_groups_named, encode_offset_fetch_groups_named_cooperative,
-    encode_offset_fetch_named, BorrowedOffsetFetchRequestGroup, LeaveGroupMember,
+    encode_offset_fetch_named_cooperative, BorrowedOffsetFetchRequestGroup, LeaveGroupMember,
     COORDINATOR_GROUP, COORDINATOR_TRANSACTION, DEFAULT_RETENTION_TIME,
 };
 use crate::protocol::idem::{decode_init_producer_id_response, encode_init_producer_id_request};
@@ -11884,6 +11884,17 @@ impl Admin {
             if timeout.is_zero() {
                 return Err(Error::Timeout);
             }
+            let mut encoded = BytesMut::new();
+            encode_offset_fetch_named_cooperative(
+                &mut encoded,
+                version,
+                group_id,
+                None,
+                -1,
+                require_stable,
+                topics.as_deref(),
+            )
+            .await?;
             let body = {
                 self.roundtrip_known_node(
                     node,
@@ -11891,15 +11902,8 @@ impl Admin {
                     OFFSET_FETCH,
                     version,
                     |buf| {
-                        encode_offset_fetch_named(
-                            buf,
-                            version,
-                            group_id,
-                            None,
-                            -1,
-                            require_stable,
-                            topics.as_deref(),
-                        )
+                        buf.extend_from_slice(&encoded);
+                        Ok(())
                     },
                     timeout,
                 )
