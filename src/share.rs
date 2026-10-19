@@ -2491,7 +2491,7 @@ pub enum ShareAcquireMode {
 /// that does not match the endpoint that received the request.
 /// Top-level `UNSUPPORTED_ENDPOINT_TYPE` still fails that poll
 /// and does not request Metadata, including when `ErrorMessage` is
-/// set (Java `handleShareFetchSuccess` only `requestUpdate`s for
+/// set or empty (Java `handleShareFetchSuccess` only `requestUpdate`s for
 /// `UNKNOWN_TOPIC_ID`; this is not top-level
 /// `MISMATCHED_ENDPOINT_TYPE`). Official Java
 /// `AuthHelper` writes this when DescribeCluster names an unknown
@@ -5875,7 +5875,7 @@ impl ShareGroup {
     /// type that does not match the endpoint that received the request.
     /// Top-level
     /// `UNSUPPORTED_ENDPOINT_TYPE` still fails that poll without
-    /// Metadata, including when `ErrorMessage` is set (Java
+    /// Metadata, including when `ErrorMessage` is set or empty (Java
     /// `handleShareFetchSuccess` only `requestUpdate`s for
     /// `UNKNOWN_TOPIC_ID`; this is not top-level
     /// `MISMATCHED_ENDPOINT_TYPE`). Official Java

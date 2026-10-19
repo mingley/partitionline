@@ -2257,7 +2257,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `STALE_MEMBER_EPOCH`). Official Java `AuthHelper`
   writes this when DescribeCluster names an endpoint type that does not match the endpoint that received the request.
   Top-level `UNSUPPORTED_ENDPOINT_TYPE` still fails that poll
-  without Metadata, including when `ErrorMessage` is set (Java
+  without Metadata, including when `ErrorMessage` is set or empty (Java
   `handleShareFetchSuccess` only `requestUpdate`s for top-level
   `UNKNOWN_TOPIC_ID`; this is not top-level
   `MISMATCHED_ENDPOINT_TYPE`). Official Java `AuthHelper`
