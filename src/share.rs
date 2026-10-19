@@ -2560,7 +2560,7 @@ pub enum ShareAcquireMode {
 /// names a voter id that is already part of the set of voters.
 /// Top-level `VOTER_NOT_FOUND` still fails that poll
 /// and does not request Metadata, including when `ErrorMessage` is
-/// set (Java `handleShareFetchSuccess` only `requestUpdate`s for
+/// set or empty (Java `handleShareFetchSuccess` only `requestUpdate`s for
 /// `UNKNOWN_TOPIC_ID`; this is not top-level
 /// `DUPLICATE_VOTER`). Official Java
 /// `RemoveVoterHandler` writes this when RemoveRaftVoter cannot
@@ -6100,7 +6100,7 @@ impl ShareGroup {
     /// voters.
     /// Top-level
     /// `VOTER_NOT_FOUND` still fails that poll without
-    /// Metadata, including when `ErrorMessage` is set (Java
+    /// Metadata, including when `ErrorMessage` is set or empty (Java
     /// `handleShareFetchSuccess` only `requestUpdate`s for
     /// `UNKNOWN_TOPIC_ID`; this is not top-level
     /// `DUPLICATE_VOTER`). Official Java
