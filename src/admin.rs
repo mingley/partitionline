@@ -30,7 +30,8 @@ use crate::protocol::acl::{
 use crate::protocol::admin::{
     decode_allocate_producer_ids_response, decode_alter_client_quotas_response,
     decode_alter_configs_resource_results, decode_alter_partition_reassignments_response_data,
-    decode_alter_replica_log_dirs_response, decode_alter_share_group_offsets_response_cooperative,
+    decode_alter_replica_log_dirs_response_cooperative,
+    decode_alter_share_group_offsets_response_cooperative,
     decode_alter_user_scram_credentials_response, decode_assign_replicas_to_dirs_response,
     decode_consumer_group_describe_response_cooperative, decode_create_delegation_token_response,
     decode_create_partitions_response_cooperative, decode_create_topics_response_cooperative,
@@ -14141,7 +14142,7 @@ impl Admin {
                 timeout,
             )
             .await?;
-        decode_alter_replica_log_dirs_response(&mut body.clone(), version)
+        decode_alter_replica_log_dirs_response_cooperative(&mut body.clone(), version).await
     }
 
     /// Java `Admin.alterReplicaLogDirs(Map)`.
@@ -14244,7 +14245,13 @@ impl Admin {
                             .await?
                     }
                     Err(error) => return Err(error),
-                    Ok(body) => decode_alter_replica_log_dirs_response(&mut body.clone(), spoken)?,
+                    Ok(body) => {
+                        decode_alter_replica_log_dirs_response_cooperative(
+                            &mut body.clone(),
+                            spoken,
+                        )
+                        .await?
+                    }
                 };
                 record_alter_replica_errors_cooperative(&mut errors, &assignment, broker_id, &resp)
                     .await;
@@ -14647,7 +14654,8 @@ impl Admin {
                 }
                 Err(e) => return Err(e),
             };
-            return decode_alter_replica_log_dirs_response(&mut body.clone(), version);
+            return decode_alter_replica_log_dirs_response_cooperative(&mut body.clone(), version)
+                .await;
         }
     }
 
@@ -19676,6 +19684,58 @@ mod tests {
                 .and_then(|item| item.values.first())
                 .map(|item| item.value),
             Some(2.5)
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn decoding_many_altered_log_dirs_does_not_hold_the_caller() {
+        let partitions: Vec<AlterReplicaLogDirsResponsePartition> = (0..1_000_000)
+            .map(|index| AlterReplicaLogDirsResponsePartition::new(index, 0))
+            .collect();
+        let resp = AlterReplicaLogDirsResponse::new(vec![AlterReplicaLogDirsResponseTopic::new(
+            "orders", partitions,
+        )]);
+        let mut body = bytes::BytesMut::new();
+        crate::protocol::admin::encode_alter_replica_log_dirs_response(&mut body, 2, &resp)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let started = std::time::Instant::now();
+        tokio::select! {
+            decoded = decode_alter_replica_log_dirs_response_cooperative(&mut body, 2) => {
+                let decoded = decoded.unwrap_or_else(|error| panic!("{error}"));
+                assert_eq!(decoded.throttle_time_ms, 0);
+                assert_eq!(
+                    decoded.results.first().map(|item| item.partitions.len()),
+                    Some(1_000_000)
+                );
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "decoding altered log directories held the caller for {elapsed:?}"
+        );
+        let resp = AlterReplicaLogDirsResponse::new(vec![AlterReplicaLogDirsResponseTopic::new(
+            "orders",
+            vec![AlterReplicaLogDirsResponsePartition::new(4, 7)],
+        )]);
+        let mut encoded = bytes::BytesMut::new();
+        crate::protocol::admin::encode_alter_replica_log_dirs_response(&mut encoded, 2, &resp)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let mut once = encoded.clone();
+        let mut paced = encoded;
+        let sync = crate::protocol::admin::decode_alter_replica_log_dirs_response(&mut once, 2)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let coop = decode_alter_replica_log_dirs_response_cooperative(&mut paced, 2)
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(sync, coop);
+        assert_eq!(
+            coop.results
+                .first()
+                .and_then(|item| item.partitions.first())
+                .map(|item| item.error_code),
+            Some(7)
         );
     }
 
