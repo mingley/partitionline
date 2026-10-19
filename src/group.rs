@@ -2778,19 +2778,17 @@ impl ConsumerGroup {
             self.maybe_auto_commit_interval().await?;
             return self.fetch_for_poll(wait).await;
         }
-        let Some(mut to_commit) = self.last_delivered_positions.clone() else {
+        let Some(positions) = self.last_delivered_positions.as_deref() else {
             return self.fetch_for_poll(wait).await;
         };
-        to_commit.retain(|(topic, partition, offset)| {
-            position_is_committable(*offset)
-                && self.consumer.is_assigned(topic, *partition)
-                && self
-                    .last_delivered_topic_ids
-                    .get(topic.as_ref())
-                    .and_then(|parts| parts.get(partition))
-                    .copied()
-                    == self.consumer.assigned_topic_id(topic, *partition)
-        });
+        let mut to_commit = clone_delivered_positions(positions).await;
+        retain_interval_commits(
+            &mut to_commit,
+            &self.last_delivered_topic_ids,
+            |topic, partition| self.consumer.is_assigned(topic, partition),
+            |topic, partition| self.consumer.assigned_topic_id(topic, partition),
+        )
+        .await;
         if to_commit.is_empty() {
             return self.fetch_for_poll(wait).await;
         }
@@ -2910,19 +2908,17 @@ impl ConsumerGroup {
         if self.last_auto_commit.elapsed() < self.cfg.auto_commit_interval {
             return Ok(());
         }
-        let Some(mut to_commit) = self.last_delivered_positions.clone() else {
+        let Some(positions) = self.last_delivered_positions.as_deref() else {
             return Ok(());
         };
-        to_commit.retain(|(topic, partition, offset)| {
-            position_is_committable(*offset)
-                && self.consumer.is_assigned(topic, *partition)
-                && self
-                    .last_delivered_topic_ids
-                    .get(topic.as_ref())
-                    .and_then(|parts| parts.get(partition))
-                    .copied()
-                    == self.consumer.assigned_topic_id(topic, *partition)
-        });
+        let mut to_commit = clone_delivered_positions(positions).await;
+        retain_interval_commits(
+            &mut to_commit,
+            &self.last_delivered_topic_ids,
+            |topic, partition| self.consumer.is_assigned(topic, partition),
+            |topic, partition| self.consumer.assigned_topic_id(topic, partition),
+        )
+        .await;
         if !to_commit.is_empty() {
             let timeout = self.cfg.request_timeout;
             if self.cfg.interceptors.is_empty() {
@@ -5935,6 +5931,62 @@ async fn revoked_commits(
 
 fn position_is_committable(offset: i64) -> bool {
     offset >= 0
+}
+
+/// Copy delivered positions before an interval commit.
+///
+/// The walk pauses every 8,192 positions. Without that pause, copying
+/// 5,000,000 delivered positions held the caller for 256 milliseconds.
+///
+/// Each topic name stays on its existing allocation. Order stays the same.
+async fn clone_delivered_positions(
+    positions: &[(Arc<str>, i32, i64)],
+) -> Vec<(Arc<str>, i32, i64)> {
+    let mut out = Vec::with_capacity(positions.len());
+    let mut walked = 0usize;
+    for (topic, partition, offset) in positions {
+        out.push((Arc::clone(topic), *partition, *offset));
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    out
+}
+
+/// Keep positions that are still assigned and still name the same topic id.
+///
+/// The walk pauses every 8,192 positions. Without that pause, keeping
+/// 2,000,000 interval commits held the caller for 2,074 milliseconds.
+///
+/// A negative offset is dropped. A position that is no longer assigned, or
+/// whose topic id changed, is dropped. Positions that stay keep their order.
+async fn retain_interval_commits(
+    positions: &mut Vec<(Arc<str>, i32, i64)>,
+    ids: &DeliveredTopicIds,
+    mut assigned: impl FnMut(&str, i32) -> bool,
+    mut topic_id: impl FnMut(&str, i32) -> Option<[u8; 16]>,
+) {
+    let pending = std::mem::take(positions);
+    let mut walked = 0usize;
+    for (topic, partition, offset) in pending {
+        let stored = ids
+            .get(topic.as_ref())
+            .and_then(|parts| parts.get(&partition))
+            .copied();
+        if position_is_committable(offset)
+            && assigned(topic.as_ref(), partition)
+            && stored == topic_id(topic.as_ref(), partition)
+        {
+            positions.push((topic, partition, offset));
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
 }
 
 #[cfg(test)]
@@ -10488,6 +10540,86 @@ mod tests {
         assert!(committed_starts(&wanted, &fetched, AutoOffsetReset::None).is_err());
         assert!(committed_starts(&wanted, &fetched, AutoOffsetReset::Earliest).is_err());
         assert!(committed_starts(&wanted, &fetched, AutoOffsetReset::Latest).is_err());
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn cloning_many_delivered_positions_does_not_hold_the_caller() {
+        let topic: Arc<str> = Arc::from("orders");
+        let positions: Vec<(Arc<str>, i32, i64)> = (0..5_000_000)
+            .map(|partition| (Arc::clone(&topic), partition, 4))
+            .collect();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = clone_delivered_positions(&positions) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "cloning delivered positions held the caller for {elapsed:?}"
+        );
+        let copied = clone_delivered_positions(&[(Arc::clone(&topic), 3, 9)]).await;
+        assert_eq!(copied, vec![(topic, 3, 9)]);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn retaining_many_interval_commits_does_not_hold_the_caller() {
+        let topic: Arc<str> = Arc::from("orders");
+        let positions: Vec<(Arc<str>, i32, i64)> = (0..2_000_000)
+            .map(|partition| (Arc::clone(&topic), partition, 4))
+            .collect();
+        let mut stored_parts = HashMap::new();
+        let mut assigned_parts = HashMap::new();
+        for partition in 0..2_000_000 {
+            let _ = stored_parts.insert(partition, [1u8; 16]);
+            let _ = assigned_parts.insert(partition, partition as usize);
+        }
+        let mut ids = HashMap::new();
+        let _ = ids.insert(Arc::clone(&topic), stored_parts);
+        let mut to_commit = positions;
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = retain_interval_commits(
+                &mut to_commit,
+                &ids,
+                |_name, partition| assigned_parts.contains_key(&partition),
+                |name, partition| ids.get(name).and_then(|parts| parts.get(&partition)).copied(),
+            ) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "retaining interval commits held the caller for {elapsed:?}"
+        );
+        let topic: Arc<str> = Arc::from("orders");
+        let other: Arc<str> = Arc::from("payments");
+        let mut sample = vec![
+            (Arc::clone(&topic), 1, 4),
+            (Arc::clone(&topic), 2, -1),
+            (Arc::clone(&other), 3, 8),
+            (Arc::clone(&topic), 1, 9),
+        ];
+        let mut sample_ids = HashMap::new();
+        let mut sample_parts = HashMap::new();
+        let _ = sample_parts.insert(1, [7u8; 16]);
+        let _ = sample_ids.insert(Arc::clone(&topic), sample_parts);
+        retain_interval_commits(
+            &mut sample,
+            &sample_ids,
+            |name, partition| name == "orders" && partition == 1,
+            |name, partition| {
+                sample_ids
+                    .get(name)
+                    .and_then(|parts| parts.get(&partition))
+                    .copied()
+            },
+        )
+        .await;
+        assert_eq!(
+            sample,
+            vec![(Arc::clone(&topic), 1, 4), (Arc::clone(&topic), 1, 9),]
+        );
     }
 
     #[tokio::test(flavor = "current_thread")]

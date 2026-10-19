@@ -96,6 +96,7 @@ These walks include:
 - writing list-offset resets into an assignment, and dropping slots that are still waiting
 - copying revoked and assigned partitions before a rebalance callback
 - refreshing delivered topic ids after a poll or commit
+- copying delivered positions before an interval commit, and keeping the ones that are still assigned
 - copying a changed consumer or share heartbeat subscription or assignment
 - opening one result slot, and its index, for each item in an admin batch
 - copying transactional ids before fencing producers

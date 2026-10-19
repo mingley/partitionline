@@ -352,7 +352,9 @@ List-offset resets are written into those slots the same way, and empty
 slots are dropped between slices. The revoked and assigned lists passed to
 a rebalance callback are copied the same way. After a poll or commit, the
 topic ids stored for those delivered positions are refreshed in the same
-slices. The timeout can fire between slices, and finished slices are kept.
+slices. An interval commit copies those positions, then keeps the ones that
+are still assigned, in the same slices. The timeout can fire between slices,
+and finished slices are kept.
 See the
 [resource contract](resource-contract.md#caller-deadlines).
 
