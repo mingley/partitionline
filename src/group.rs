@@ -4745,7 +4745,7 @@ impl ConsumerGroup {
                     }
                 } else {
                     heartbeat.subscribed_topic_names = None;
-                    reuse_topic_partitions(&mut heartbeat.topic_partitions, &hb_ack.lock());
+                    reuse_topic_partitions_locked(&mut heartbeat.topic_partitions, &hb_ack).await;
                 }
                 let mut encoded = bytes::BytesMut::new();
                 if encode_consumer_group_heartbeat_request_cooperative(
@@ -5127,6 +5127,7 @@ async fn copy_reused_names(topics: &[String]) -> Vec<String> {
     out
 }
 
+#[cfg(test)]
 fn reuse_topic_partitions(
     dest: &mut Option<Vec<TopicPartitions>>,
     next: &Option<Vec<TopicPartitions>>,
@@ -5134,6 +5135,78 @@ fn reuse_topic_partitions(
     if dest.as_ref() != next.as_ref() {
         *dest = next.clone();
     }
+}
+
+fn reused_partition_chunk() -> usize {
+    8 * 1024
+}
+
+/// Copy the heartbeat assignment when it changed.
+///
+/// The copy pauses every 8,192 topics. Without that pause, copying
+/// 2,000,000 topics held the caller for 276 milliseconds.
+///
+/// An unchanged assignment keeps its buffer. Each changed topic is still
+/// copied.
+async fn reuse_topic_partitions_locked(
+    dest: &mut Option<Vec<TopicPartitions>>,
+    next: &parking_lot::Mutex<Option<Vec<TopicPartitions>>>,
+) {
+    let snapshot = {
+        let mut guard = next.lock();
+        std::mem::take(&mut *guard)
+    };
+    let unchanged = match (dest.as_ref(), snapshot.as_ref()) {
+        (Some(current), Some(next)) => topic_partitions_match(current, next).await,
+        (None, None) => true,
+        _ => false,
+    };
+    if !unchanged {
+        *dest = copy_topic_partitions(&snapshot).await;
+    }
+    let mut guard = next.lock();
+    if guard.is_none() {
+        *guard = snapshot;
+    }
+}
+
+async fn topic_partitions_match(left: &[TopicPartitions], right: &[TopicPartitions]) -> bool {
+    if left.len() != right.len() {
+        return false;
+    }
+    let mut index = 0usize;
+    while index < left.len() {
+        let end = index
+            .saturating_add(reused_partition_chunk())
+            .min(left.len());
+        if left.get(index..end) != right.get(index..end) {
+            return false;
+        }
+        index = end;
+        if index < left.len() {
+            tokio::task::yield_now().await;
+        }
+    }
+    true
+}
+
+async fn copy_topic_partitions(
+    next: &Option<Vec<TopicPartitions>>,
+) -> Option<Vec<TopicPartitions>> {
+    let Some(next) = next else {
+        return None;
+    };
+    let mut out = Vec::new();
+    let mut walked = 0usize;
+    for item in next {
+        out.push(item.clone());
+        walked = walked.saturating_add(1);
+        if walked == reused_partition_chunk() {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    Some(out)
 }
 
 #[cfg(test)]
@@ -10314,6 +10387,47 @@ mod tests {
             assign_range_names_cooperative(&members, &partitions).await,
             assign_range_names(&members, &partitions)
         );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn reusing_many_topic_partitions_does_not_hold_the_caller() {
+        let owned: Vec<TopicPartitions> = (0..2_000_000)
+            .map(|index| {
+                let mut topic_id = [0u8; 16];
+                topic_id[..8].copy_from_slice(&(index as u64).to_le_bytes());
+                TopicPartitions {
+                    topic_id,
+                    partitions: vec![index],
+                }
+            })
+            .collect();
+        let stored = parking_lot::Mutex::new(Some(owned));
+        let mut dest = None;
+        let started = std::time::Instant::now();
+        let task = tokio::spawn(async move {
+            reuse_topic_partitions_locked(&mut dest, &stored).await;
+        });
+        tokio::time::sleep(std::time::Duration::from_millis(30)).await;
+        let elapsed = started.elapsed();
+        task.abort();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "reusing topic partitions held the caller for {elapsed:?}"
+        );
+        let sample = parking_lot::Mutex::new(Some(vec![TopicPartitions {
+            topic_id: [1; 16],
+            partitions: vec![0, 1],
+        }]));
+        let mut kept = Some(vec![TopicPartitions {
+            topic_id: [1; 16],
+            partitions: vec![0, 1],
+        }]);
+        let ptr = kept.as_ref().map(Vec::as_ptr);
+        reuse_topic_partitions_locked(&mut kept, &sample).await;
+        assert_eq!(kept.as_ref().map(Vec::as_ptr), ptr);
+        *sample.lock() = None;
+        reuse_topic_partitions_locked(&mut kept, &sample).await;
+        assert!(kept.is_none());
     }
 
     #[tokio::test(flavor = "current_thread")]
