@@ -23,7 +23,7 @@ use crate::protocol::api_keys::{
     OFFSET_COMMIT, OFFSET_FETCH, SHARE_GROUP_HEARTBEAT, SYNC_GROUP,
 };
 use crate::protocol::cgheartbeat::{
-    decode_consumer_group_heartbeat_response, encode_consumer_group_heartbeat_request,
+    decode_consumer_group_heartbeat_response_cooperative, encode_consumer_group_heartbeat_request,
     ConsumerGroupHeartbeatRequest, TopicPartitions,
 };
 use crate::protocol::group::{
@@ -2958,7 +2958,9 @@ impl ConsumerGroup {
                 timeout,
             )
             .await?;
-            let resp = decode_consumer_group_heartbeat_response(&mut body.clone(), version)?;
+            let resp =
+                decode_consumer_group_heartbeat_response_cooperative(&mut body.clone(), version)
+                    .await?;
             if resp.error_code != 0 {
                 return Err(Error::broker(
                     resp.error_code,
@@ -3413,7 +3415,8 @@ impl ConsumerGroup {
             )
             .await?
         };
-        let resp = decode_consumer_group_heartbeat_response(&mut body.clone(), version)?;
+        let resp = decode_consumer_group_heartbeat_response_cooperative(&mut body.clone(), version)
+            .await?;
         if resp.error_code != 0 {
             return Err(Error::broker(resp.error_code, "ConsumerGroupHeartbeat"));
         }
@@ -4301,8 +4304,11 @@ impl ConsumerGroup {
                     .await;
                 match res {
                     Ok(body) => {
-                        if let Ok(resp) =
-                            decode_consumer_group_heartbeat_response(&mut body.clone(), version)
+                        if let Ok(resp) = decode_consumer_group_heartbeat_response_cooperative(
+                            &mut body.clone(),
+                            version,
+                        )
+                        .await
                         {
                             if error::coordinator_retriable(resp.error_code) {
                                 if let Some(current) = conn.as_ref() {
@@ -7524,6 +7530,86 @@ mod tests {
         assert_eq!(
             coop.6.first().map(|item| item.metadata.as_slice()),
             Some(&b"sub"[..])
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn decoding_many_heartbeat_assignments_does_not_hold_the_caller() {
+        let assignment: Vec<crate::protocol::cgheartbeat::TopicPartitions> = (0..1_000_000)
+            .map(|index: usize| {
+                let mut topic_id = [0u8; 16];
+                topic_id[..8].copy_from_slice(&index.to_le_bytes());
+                crate::protocol::cgheartbeat::TopicPartitions {
+                    topic_id,
+                    partitions: vec![index as i32],
+                }
+            })
+            .collect();
+        let resp = crate::protocol::cgheartbeat::ConsumerGroupHeartbeatResponse {
+            throttle_time_ms: 0,
+            error_code: 0,
+            error_message: None,
+            member_id: Some("member-0".to_string()),
+            member_epoch: 1,
+            heartbeat_interval_ms: 1000,
+            assignment: Some(assignment),
+        };
+        let mut body = bytes::BytesMut::new();
+        crate::protocol::cgheartbeat::encode_consumer_group_heartbeat_response(&mut body, 1, &resp)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let started = std::time::Instant::now();
+        tokio::select! {
+            decoded = decode_consumer_group_heartbeat_response_cooperative(&mut body, 1) => {
+                let decoded = decoded.unwrap_or_else(|error| panic!("{error}"));
+                assert_eq!(decoded.throttle_time_ms, 0);
+                assert_eq!(decoded.assignment.as_ref().map(Vec::len), Some(1_000_000));
+                assert_eq!(
+                    decoded.assignment.as_ref().and_then(|items| items.first()).and_then(|item| item.partitions.first()).copied(),
+                    Some(0)
+                );
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "decoding heartbeat assignments held the caller for {elapsed:?}"
+        );
+        let sample = crate::protocol::cgheartbeat::ConsumerGroupHeartbeatResponse {
+            throttle_time_ms: 4,
+            error_code: 7,
+            error_message: Some("busy".to_string()),
+            member_id: Some("member-a".to_string()),
+            member_epoch: 2,
+            heartbeat_interval_ms: 500,
+            assignment: Some(vec![crate::protocol::cgheartbeat::TopicPartitions {
+                topic_id: [0x11; 16],
+                partitions: vec![9],
+            }]),
+        };
+        let mut encoded = bytes::BytesMut::new();
+        crate::protocol::cgheartbeat::encode_consumer_group_heartbeat_response(
+            &mut encoded,
+            1,
+            &sample,
+        )
+        .unwrap_or_else(|error| panic!("{error}"));
+        let mut once = encoded.clone();
+        let mut paced = encoded;
+        let sync =
+            crate::protocol::cgheartbeat::decode_consumer_group_heartbeat_response(&mut once, 1)
+                .unwrap_or_else(|error| panic!("{error}"));
+        let coop = decode_consumer_group_heartbeat_response_cooperative(&mut paced, 1)
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(sync, coop);
+        assert_eq!(coop.error_message.as_deref(), Some("busy"));
+        assert_eq!(
+            coop.assignment
+                .as_ref()
+                .and_then(|items| items.first())
+                .map(|item| item.topic_id),
+            Some([0x11; 16])
         );
     }
 
