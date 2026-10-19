@@ -2382,6 +2382,12 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `UNKNOWN_TOPIC_ID`; this is not top-level
   `DUPLICATE_VOTER`). Official Java `RemoveVoterHandler`
   writes this when RemoveRaftVoter cannot remove the named voter from the current voter set.
+  Top-level `INVALID_REGULAR_EXPRESSION` still fails that poll
+  without Metadata, including when `ErrorMessage` is set (Java
+  `handleShareFetchSuccess` only `requestUpdate`s for top-level
+  `UNKNOWN_TOPIC_ID`; this is not top-level
+  `VOTER_NOT_FOUND`). Official Java `GroupMetadataManager`
+  writes this when a consumer-group member first subscribes a topic regex that is not a valid regular expression.
   A non-empty
   throwable partition or top-level ShareFetch `ErrorMessage` is
   preferred; empty uses `ShareFetch {topic}-{partition}` or
