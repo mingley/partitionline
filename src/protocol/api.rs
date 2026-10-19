@@ -4821,7 +4821,9 @@ pub(crate) fn decode_produce_acks_into(
     Ok((endpoints, throttle_time_ms))
 }
 
-/// [`decode_produce_acks_into`], yielding while a long partition list is decoded.
+/// [`decode_produce_acks_into`], yielding while topics and long partition lists are decoded.
+///
+/// Decoding 2,000,000 topics held the caller for 1045ms. A topic name and a base offset are still read.
 pub(crate) async fn decode_produce_acks_into_cooperative(
     buf: &mut Bytes,
     version: i16,
@@ -4830,6 +4832,7 @@ pub(crate) async fn decode_produce_acks_into_cooperative(
     acks.clear();
     let flexible = produce_flexible(version)?;
     let topic_count = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+    let mut walked = 0usize;
     for _ in 0..topic_count {
         let mut topic_id = [0; 16];
         let mut topic = if version <= 12 {
@@ -4860,6 +4863,11 @@ pub(crate) async fn decode_produce_acks_into_cooperative(
         }
         if flexible {
             buf::skip_tagged_fields(buf)?;
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
         }
     }
     let throttle_time_ms = if version >= 1 { buf::get_i32(buf)? } else { 0 };
@@ -5031,6 +5039,62 @@ mod tests {
             elapsed < std::time::Duration::from_millis(80),
             "decoding metadata partitions held the caller for {elapsed:?}"
         );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn decoding_many_produce_ack_topics_does_not_hold_the_caller() {
+        let topics = 2_000_000i32;
+        let mut body = BytesMut::new();
+        body.put_i32(topics);
+        let partition = [
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ];
+        for index in 0..topics {
+            let name = format!("topic-{index}");
+            body.put_i16(i16::try_from(name.len()).unwrap_or(0));
+            body.extend_from_slice(name.as_bytes());
+            body.put_i32(1);
+            body.extend_from_slice(&partition);
+        }
+        body.put_i32(0);
+        let mut cursor = body.freeze();
+        let mut acks = Vec::new();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            decoded = decode_produce_acks_into_cooperative(&mut cursor, 3, &mut acks) => {
+                let _decoded = decoded.unwrap_or_else(|error| panic!("{error}"));
+            }
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        assert!(
+            started.elapsed() < std::time::Duration::from_millis(80),
+            "decoding produce ack topics held the caller for {:?}",
+            started.elapsed()
+        );
+        let mut sample = BytesMut::new();
+        sample.put_i32(1);
+        sample.put_i16(6);
+        sample.extend_from_slice(b"orders");
+        sample.put_i32(1);
+        sample.extend_from_slice(&partition);
+        sample.put_i32(0);
+        let frozen = sample.freeze();
+        let mut sync_cursor = frozen.clone();
+        let mut paced_cursor = frozen;
+        let mut sync_acks = Vec::new();
+        let mut paced_acks = Vec::new();
+        let _sync = decode_produce_acks_into(&mut sync_cursor, 3, &mut sync_acks)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let _paced = decode_produce_acks_into_cooperative(&mut paced_cursor, 3, &mut paced_acks)
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(sync_acks.len(), paced_acks.len());
+        for (left, right) in sync_acks.iter().zip(paced_acks.iter()) {
+            assert_eq!(left.topic, right.topic);
+            assert_eq!(left.partition, right.partition);
+            assert_eq!(left.base_offset, right.base_offset);
+            assert_eq!(left.error_code, right.error_code);
+        }
     }
 
     #[tokio::test(flavor = "current_thread")]
