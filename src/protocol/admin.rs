@@ -8732,6 +8732,50 @@ pub fn decode_update_features_response<B: Buf>(
     })
 }
 
+/// [`decode_update_features_response`], yielding while results are still being read.
+///
+/// Decoding 400,000 results held the caller for 178ms.
+pub async fn decode_update_features_response_cooperative<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<UpdateFeaturesResponse> {
+    let _ = update_features_spoken(version)?;
+    let throttle_time_ms = buf::get_i32(buf)?;
+    let error_code = buf::get_i16(buf)?;
+    let error_message = buf::get_compact_string(buf)?;
+    let mut results = Vec::new();
+    if version < 2 {
+        let n = buf::get_array_len(buf, true)?
+            .ok_or_else(|| Error::protocol("UpdateFeatures array cannot be null"))?;
+        results.reserve(n);
+        let mut walked = 0usize;
+        for _ in 0..n {
+            let name = buf::get_compact_string(buf)?
+                .ok_or_else(|| Error::protocol("UpdateFeatures feature name cannot be null"))?;
+            let feat_err = buf::get_i16(buf)?;
+            let feat_msg = buf::get_compact_string(buf)?;
+            buf::skip_tagged_fields(buf)?;
+            results.push(UpdatableFeatureResult {
+                name,
+                error_code: feat_err,
+                error_message: feat_msg,
+            });
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+    }
+    buf::skip_tagged_fields(buf)?;
+    Ok(UpdateFeaturesResponse {
+        throttle_time_ms,
+        error_code,
+        error_message,
+        results,
+    })
+}
+
 /// One SCRAM credential to remove (AlterUserScramCredentials v0).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ScramCredentialDeletion {

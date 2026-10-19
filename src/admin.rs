@@ -53,7 +53,7 @@ use crate::protocol::admin::{
     decode_list_partition_reassignments_response_cooperative, decode_list_transactions_response,
     decode_push_telemetry_response, decode_renew_delegation_token_response,
     decode_share_group_describe_response_cooperative, decode_unregister_broker_response,
-    decode_update_features_response, encode_allocate_producer_ids_request,
+    decode_update_features_response_cooperative, encode_allocate_producer_ids_request,
     encode_alter_client_quotas_request, encode_alter_configs_named,
     encode_alter_partition_reassignments_named, encode_alter_replica_log_dirs_named,
     encode_alter_replica_log_dirs_request, encode_alter_share_group_offsets_request,
@@ -6904,7 +6904,8 @@ impl Admin {
                 }
                 Err(e) => return Err(e),
             };
-            let resp = decode_update_features_response(&mut body.clone(), version)?;
+            let resp =
+                decode_update_features_response_cooperative(&mut body.clone(), version).await?;
             if resp.error_code == error::NOT_CONTROLLER {
                 // NOT_CONTROLLER (41): Metadata, then the new controller.
                 self.forget_controller();
@@ -20132,6 +20133,69 @@ mod tests {
                 .first()
                 .and_then(|item| item.group_instance_id.as_deref()),
             Some("instance-a")
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn decoding_many_feature_results_does_not_hold_the_caller() {
+        let results: Vec<crate::protocol::admin::UpdatableFeatureResult> = (0..400_000)
+            .map(|index| crate::protocol::admin::UpdatableFeatureResult {
+                name: format!("feature-{index}"),
+                error_code: 0,
+                error_message: None,
+            })
+            .collect();
+        let resp = crate::protocol::admin::UpdateFeaturesResponse {
+            throttle_time_ms: 0,
+            error_code: 0,
+            error_message: None,
+            results,
+        };
+        let mut body = bytes::BytesMut::new();
+        crate::protocol::admin::encode_update_features_response(&mut body, 1, &resp)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let started = std::time::Instant::now();
+        tokio::select! {
+            decoded = decode_update_features_response_cooperative(&mut body, 1) => {
+                let decoded = decoded.unwrap_or_else(|error| panic!("{error}"));
+                assert_eq!(decoded.throttle_time_ms, 0);
+                assert_eq!(decoded.results.len(), 400_000);
+                assert_eq!(decoded.results.first().map(|item| item.name.as_str()), Some("feature-0"));
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "decoding feature results held the caller for {elapsed:?}"
+        );
+        let sample = crate::protocol::admin::UpdateFeaturesResponse {
+            throttle_time_ms: 4,
+            error_code: 7,
+            error_message: Some("busy".to_string()),
+            results: vec![crate::protocol::admin::UpdatableFeatureResult {
+                name: "metadata.version".to_string(),
+                error_code: 41,
+                error_message: Some("not controller".to_string()),
+            }],
+        };
+        let mut encoded = bytes::BytesMut::new();
+        crate::protocol::admin::encode_update_features_response(&mut encoded, 1, &sample)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let mut once = encoded.clone();
+        let mut paced = encoded;
+        let sync = crate::protocol::admin::decode_update_features_response(&mut once, 1)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let coop = decode_update_features_response_cooperative(&mut paced, 1)
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(sync, coop);
+        assert_eq!(coop.error_message.as_deref(), Some("busy"));
+        assert_eq!(
+            coop.results
+                .first()
+                .and_then(|item| item.error_message.as_deref()),
+            Some("not controller")
         );
     }
 
