@@ -8209,12 +8209,7 @@ impl Worker {
         if !self.shared.in_txn.load(Ordering::SeqCst) {
             return Err(Error::protocol("produce outside a transaction"));
         }
-        {
-            let mut set = self.shared.txn_partitions.lock();
-            for (topic, part, _) in groups {
-                remember_txn_part(&mut set, topic, *part);
-            }
-        }
+        remember_grouped_txn_parts(&self.shared.txn_partitions, groups).await;
         // Produce v12 is transaction V2 (KIP-890 Part 2): Produce also
         // performs AddPartitionsToTxn. Skip that RPC only for this leader.
         // Do not record the skip in the shared set: a later v3–v11 leader
@@ -8556,6 +8551,30 @@ fn remember_txn_part(map: &mut TxnPartSet, topic: &Arc<str>, partition: i32) {
 ///
 /// Remembering 2,000,000 transaction partitions held the caller for 1278ms.
 /// A partition is still stored.
+/// Record every produced partition before AddPartitionsToTxn.
+///
+/// Remembering 2,000,000 grouped partitions held the caller for 1252ms.
+/// A partition is still stored.
+async fn remember_grouped_txn_parts(
+    set: &parking_lot::Mutex<TxnPartSet>,
+    groups: &[(Arc<str>, i32, Vec<Pending>)],
+) {
+    let mut start = 0usize;
+    while start < groups.len() {
+        let end = start.saturating_add(8 * 1024).min(groups.len());
+        if let Some(slice) = groups.get(start..end) {
+            let mut guard = set.lock();
+            for (topic, part, _) in slice {
+                remember_txn_part(&mut guard, topic, *part);
+            }
+        }
+        start = end;
+        if start < groups.len() {
+            tokio::task::yield_now().await;
+        }
+    }
+}
+
 async fn remember_added_txn_parts(
     sent: &parking_lot::Mutex<TxnPartSet>,
     added: &[(Arc<str>, i32)],
@@ -12861,6 +12880,38 @@ mod tests {
                 .map(Vec::len),
             Ok(1)
         );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn remembering_many_grouped_txn_partitions_does_not_hold_the_caller() {
+        let topic: Arc<str> = Arc::from("orders");
+        let groups: Vec<(Arc<str>, i32, Vec<Pending>)> = (0..2_000_000)
+            .map(|index| (Arc::clone(&topic), index, Vec::new()))
+            .collect();
+        let set = parking_lot::Mutex::new(TxnPartSet::new());
+        let started = std::time::Instant::now();
+        tokio::select! {
+            () = remember_grouped_txn_parts(&set, &groups) => {}
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        assert!(
+            started.elapsed() < std::time::Duration::from_millis(80),
+            "remembering grouped transaction partitions held the caller for {:?}",
+            started.elapsed()
+        );
+        let orders: Arc<str> = Arc::from("orders");
+        let payments: Arc<str> = Arc::from("payments");
+        let sample = [
+            (Arc::clone(&orders), 0, Vec::new()),
+            (Arc::clone(&orders), 0, Vec::new()),
+            (Arc::clone(&payments), 4, Vec::new()),
+        ];
+        let stored = parking_lot::Mutex::new(TxnPartSet::new());
+        remember_grouped_txn_parts(&stored, &sample).await;
+        let guard = stored.lock();
+        assert!(txn_part_present(&guard, &orders, 0));
+        assert!(txn_part_present(&guard, &payments, 4));
+        assert_eq!(guard.get(orders.as_ref()).map(HashSet::len), Some(1));
     }
 
     #[tokio::test(flavor = "current_thread")]
