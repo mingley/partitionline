@@ -9590,16 +9590,7 @@ impl Admin {
         body: Bytes,
     ) -> Result<(Vec<(usize, i64, i16)>, Vec<usize>)> {
         let (resp, ..) = decode_delete_records_topics_response(&mut body.clone(), version)?;
-        let mut by_key: HashMap<String, HashMap<i32, VecDeque<(i64, i16)>>> = HashMap::new();
-        for t in resp {
-            let parts = by_key.entry(t.topic).or_default();
-            for p in t.partitions {
-                parts
-                    .entry(p.partition)
-                    .or_default()
-                    .push_back((p.low_watermark, p.error_code));
-            }
-        }
+        let mut by_key = index_deleted_records(resp).await;
         let mut done = Vec::new();
         let mut retry = Vec::new();
         for &i in idxs {
@@ -15686,6 +15677,28 @@ async fn group_list_reassignments(partitions: &[crate::TopicPartition]) -> Vec<(
     groups
 }
 
+async fn index_deleted_records(
+    topics: Vec<crate::protocol::admin::DeletedRecordsTopic>,
+) -> HashMap<String, HashMap<i32, VecDeque<(i64, i16)>>> {
+    let mut by_key: HashMap<String, HashMap<i32, VecDeque<(i64, i16)>>> = HashMap::new();
+    let mut walked = 0usize;
+    for topic in topics {
+        let parts = by_key.entry(topic.topic).or_default();
+        for partition in topic.partitions {
+            parts
+                .entry(partition.partition)
+                .or_default()
+                .push_back((partition.low_watermark, partition.error_code));
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+    }
+    by_key
+}
+
 async fn index_described_producers(
     topics: Vec<DescribeProducersTopic>,
 ) -> HashMap<String, HashMap<i32, DescribeProducersPartition>> {
@@ -19933,6 +19946,59 @@ mod tests {
         assert_eq!(topics.len(), 1);
         assert_eq!(topics[0].0, "t");
         assert_eq!(topics[0].1, vec![0, 0, 1]);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn indexing_many_deleted_records_does_not_hold_the_caller() {
+        // 2_000_000 partitions: recording each low watermark held the caller 1.58s.
+        let partitions: Vec<crate::protocol::admin::DeletedRecordsPartition> = (0..2_000_000)
+            .map(|index| crate::protocol::admin::DeletedRecordsPartition {
+                partition: index,
+                low_watermark: 1,
+                error_code: 0,
+            })
+            .collect();
+        let topics = vec![crate::protocol::admin::DeletedRecordsTopic {
+            topic: "orders".to_string(),
+            partitions,
+        }];
+        let started = std::time::Instant::now();
+        tokio::select! {
+            indexed = index_deleted_records(topics) => {
+                assert_eq!(indexed.get("orders").map(std::collections::HashMap::len), Some(2_000_000));
+                assert_eq!(
+                    indexed.get("orders").and_then(|parts| parts.get(&0)).and_then(VecDeque::front).copied(),
+                    Some((1, 0))
+                );
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "indexing deleted records held the caller for {elapsed:?}"
+        );
+        let repeated = vec![crate::protocol::admin::DeletedRecordsTopic {
+            topic: "orders".to_string(),
+            partitions: vec![
+                crate::protocol::admin::DeletedRecordsPartition {
+                    partition: 0,
+                    low_watermark: 10,
+                    error_code: 0,
+                },
+                crate::protocol::admin::DeletedRecordsPartition {
+                    partition: 0,
+                    low_watermark: 20,
+                    error_code: 3,
+                },
+            ],
+        }];
+        let indexed = index_deleted_records(repeated).await;
+        let queued = indexed
+            .get("orders")
+            .and_then(|parts| parts.get(&0))
+            .map(|queue| queue.iter().copied().collect::<Vec<_>>());
+        assert_eq!(queued, Some(vec![(10, 0), (20, 3)]));
     }
 
     #[tokio::test(flavor = "current_thread")]
