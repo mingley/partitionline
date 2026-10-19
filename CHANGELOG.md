@@ -615,6 +615,12 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `metadata.requestUpdate`; this is not top-level
   `UNKNOWN_CONTROLLER_ID`). Official Java `ClientMetricsManager`
   writes this when a PushTelemetry subscription id does not match the instance's stored subscription id.
+  A top-level ShareAcknowledge `TELEMETRY_TOO_LARGE` completes
+  without retry and does not request Metadata, including when
+  `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+  `metadata.requestUpdate`; this is not top-level
+  `UNKNOWN_SUBSCRIPTION_ID`). Official Java `ClientMetricsManager`
+  writes this when a PushTelemetry payload exceeds `clientTelemetryMaxBytes`.
   A piggybacked ShareFetch
   `AcknowledgeErrorMessage` that is empty uses
   `ShareFetch acknowledgement {topic}-{partition}`. A piggybacked
