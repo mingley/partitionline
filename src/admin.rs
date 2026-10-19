@@ -13642,11 +13642,10 @@ impl Admin {
                     timeout,
                 )
                 .await?;
-            let page = resp
-                .topics
-                .iter()
-                .map(|topic| topic_description_from_dtp(topic, include_authorized_operations))
-                .collect();
+            let mut page = Vec::with_capacity(resp.topics.len());
+            for topic in &resp.topics {
+                page.push(topic_description_from_dtp(topic, include_authorized_operations).await);
+            }
             extend_described_topics(&mut out, &mut described, page).await;
             match resp.next_cursor {
                 Some(next) if cursor.as_ref() != Some(&next) => cursor = Some(next),
@@ -15853,27 +15852,32 @@ async fn topic_description_from(t: &crate::protocol::api::TopicMetadata) -> Topi
     }
 }
 
-fn topic_description_from_dtp(
+async fn topic_description_from_dtp(
     t: &DescribedTopicPartitions,
     include_authorized_operations: bool,
 ) -> TopicDescription {
     let name = t.name.clone().unwrap_or_default();
-    let partitions = if t.error_code == 0 {
-        t.partitions
-            .iter()
-            .map(|p| crate::PartitionInfo {
+    let mut partitions = Vec::new();
+    if t.error_code == 0 {
+        partitions.reserve(t.partitions.len());
+        let mut walked = 0usize;
+        for partition in &t.partitions {
+            partitions.push(crate::PartitionInfo {
                 topic: name.clone(),
-                partition: p.partition_index,
-                leader: p.leader_id,
-                leader_epoch: p.leader_epoch,
-                replicas: p.replica_nodes.clone(),
-                isr: p.isr_nodes.clone(),
-                offline_replicas: p.offline_replicas.clone(),
-            })
-            .collect()
-    } else {
-        Vec::new()
-    };
+                partition: partition.partition_index,
+                leader: partition.leader_id,
+                leader_epoch: partition.leader_epoch,
+                replicas: partition.replica_nodes.clone(),
+                isr: partition.isr_nodes.clone(),
+                offline_replicas: partition.offline_replicas.clone(),
+            });
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+    }
     TopicDescription {
         name,
         topic_id: t.topic_id,
@@ -16580,6 +16584,66 @@ mod tests {
         CreatedTopicConfig, ListConfigResourcesResponse, TopicConfig,
     };
     use bytes::BytesMut;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn describing_one_huge_partition_page_does_not_hold_the_caller() {
+        use crate::protocol::admin::{DescribedTopicPartition, DescribedTopicPartitions};
+        // 2_000_000 partitions: copying the topic name onto each held the caller 259ms.
+        let partitions: Vec<DescribedTopicPartition> = (0..2_000_000)
+            .map(|index| {
+                let mut partition = DescribedTopicPartition::new(0);
+                partition.partition_index = index;
+                partition.leader_id = 1;
+                partition
+            })
+            .collect();
+        let mut topic = DescribedTopicPartitions::new("orders", 0);
+        topic.topic_authorized_operations = 7;
+        topic.partitions = partitions;
+        let started = std::time::Instant::now();
+        tokio::select! {
+            described = topic_description_from_dtp(&topic, true) => {
+                assert_eq!(described.partitions.len(), 2_000_000);
+                assert_eq!(described.partitions.first().map(|info| info.topic.as_str()), Some("orders"));
+                assert_eq!(described.partitions.first().map(|info| info.partition), Some(0));
+                assert_eq!(described.partitions.first().map(|info| info.leader), Some(1));
+                assert_eq!(described.authorized_operations, 7);
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "describing a partition page held the caller for {elapsed:?}"
+        );
+        let mut replica = DescribedTopicPartition::new(0);
+        replica.partition_index = 4;
+        replica.leader_id = 2;
+        replica.leader_epoch = 9;
+        replica.replica_nodes = vec![2, 3];
+        replica.isr_nodes = vec![2];
+        replica.offline_replicas = vec![3];
+        let mut stored = DescribedTopicPartitions::new("orders", 0);
+        stored.topic_authorized_operations = 7;
+        stored.partitions = vec![replica];
+        let described = topic_description_from_dtp(&stored, false).await;
+        assert_eq!(described.partitions.len(), 1);
+        assert_eq!(described.partitions[0].topic, "orders");
+        assert_eq!(described.partitions[0].replicas, vec![2, 3]);
+        assert_eq!(described.partitions[0].isr, vec![2]);
+        assert_eq!(described.partitions[0].offline_replicas, vec![3]);
+        assert_eq!(described.partitions[0].leader_epoch, 9);
+        assert_eq!(
+            described.authorized_operations,
+            AUTHORIZED_OPERATIONS_OMITTED
+        );
+        assert_eq!(stored.partitions[0].replica_nodes, vec![2, 3]);
+        let mut errored = DescribedTopicPartitions::new("orders", 5);
+        errored.partitions = stored.partitions;
+        let hidden = topic_description_from_dtp(&errored, true).await;
+        assert!(hidden.partitions.is_empty());
+        assert_eq!(hidden.error_code, 5);
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn describing_one_huge_topic_does_not_hold_the_caller() {
