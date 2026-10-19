@@ -35,7 +35,7 @@ use crate::protocol::admin::{
     decode_consumer_group_describe_response_cooperative, decode_create_delegation_token_response,
     decode_create_partitions_response, decode_create_topics_response_cooperative,
     decode_delete_groups_response_cooperative, decode_delete_records_topics_response,
-    decode_delete_share_group_offsets_response, decode_delete_topics_response,
+    decode_delete_share_group_offsets_response, decode_delete_topics_response_cooperative,
     decode_describe_client_quotas_response, decode_describe_cluster_response,
     decode_describe_configs_response_cooperative, decode_describe_delegation_token_response,
     decode_describe_groups_response_cooperative, decode_describe_log_dirs_response_cooperative,
@@ -5506,7 +5506,8 @@ impl Admin {
                 }
                 Err(e) => return Err(e),
             };
-            let (results, ..) = decode_delete_topics_response(&mut body.clone(), version)?;
+            let (results, ..) =
+                decode_delete_topics_response_cooperative(&mut body.clone(), version).await?;
             if results
                 .iter()
                 .any(|r| r.error_code == error::NOT_CONTROLLER)
@@ -19045,6 +19046,59 @@ mod tests {
                 .map(|item| item.name.as_str()),
             Some("retention.ms")
         );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn decoding_many_deleted_topics_does_not_hold_the_caller() {
+        let results: Vec<TopicResult> = (0..1_000_000)
+            .map(|index| {
+                let mut topic = TopicResult::new(format!("topic-{index}"), 0, None);
+                topic.topic_id = [2; 16];
+                topic
+            })
+            .collect();
+        let mut body = bytes::BytesMut::new();
+        crate::protocol::admin::encode_delete_topics_response(&mut body, 6, &results)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let started = std::time::Instant::now();
+        tokio::select! {
+            decoded = decode_delete_topics_response_cooperative(&mut body, 6) => {
+                let (decoded, throttle) = decoded.unwrap_or_else(|error| panic!("{error}"));
+                assert_eq!(throttle, 0);
+                assert_eq!(decoded.len(), 1_000_000);
+                assert_eq!(decoded.first().map(|item| item.name.as_str()), Some("topic-0"));
+                assert_eq!(decoded.first().map(|item| item.topic_id), Some([2; 16]));
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "decoding deleted topics held the caller for {elapsed:?}"
+        );
+        let mut topic = TopicResult::new("orders", 7, Some("busy".to_string()));
+        topic.topic_id = [4; 16];
+        let results = [topic];
+        let mut encoded = bytes::BytesMut::new();
+        crate::protocol::admin::encode_delete_topics_response(&mut encoded, 6, &results)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let mut once = encoded.clone();
+        let mut paced = encoded;
+        let sync = crate::protocol::admin::decode_delete_topics_response(&mut once, 6)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let coop = decode_delete_topics_response_cooperative(&mut paced, 6)
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(sync.0, coop.0);
+        assert_eq!(sync.1, coop.1);
+        assert_eq!(
+            coop.0
+                .first()
+                .and_then(|item| item.error_message.as_deref()),
+            Some("busy")
+        );
+        assert_eq!(coop.0.first().map(|item| item.topic_id), Some([4; 16]));
+        assert_eq!(coop.0.first().map(|item| item.num_partitions), Some(-1));
     }
 
     #[tokio::test(flavor = "current_thread")]
