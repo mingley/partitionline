@@ -2268,6 +2268,12 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `UNKNOWN_TOPIC_ID`; this is not top-level
   `MISMATCHED_ENDPOINT_TYPE`). Official Java `AuthHelper`
   writes this when DescribeCluster names an unknown endpoint type.
+  Top-level `UNKNOWN_CONTROLLER_ID` still fails that poll
+  without Metadata, including when `ErrorMessage` is set (Java
+  `handleShareFetchSuccess` only `requestUpdate`s for top-level
+  `UNKNOWN_TOPIC_ID`; this is not top-level
+  `UNSUPPORTED_ENDPOINT_TYPE`). Official Java `Errors`
+  writes this KIP-919 code when a controller ID is not known.
   A non-empty
   throwable partition or top-level ShareFetch `ErrorMessage` is
   preferred; empty uses `ShareFetch {topic}-{partition}` or

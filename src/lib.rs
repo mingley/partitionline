@@ -3547,6 +3547,13 @@
 //! `UNKNOWN_TOPIC_ID`; this is not top-level
 //! `MISMATCHED_ENDPOINT_TYPE`). Official Java `AuthHelper`
 //! writes this when DescribeCluster names an unknown endpoint type.
+//! Top-level
+//! `UNKNOWN_CONTROLLER_ID` still fails that poll without
+//! Metadata, including when `ErrorMessage` is set (Java
+//! `handleShareFetchSuccess` only `requestUpdate`s for
+//! `UNKNOWN_TOPIC_ID`; this is not top-level
+//! `UNSUPPORTED_ENDPOINT_TYPE`). Official Java `Errors`
+//! writes this KIP-919 code when a controller ID is not known.
 //! Partition
 //! `INCONSISTENT_TOPIC_ID` / `UNKNOWN_TOPIC_OR_PARTITION` /
 //! `UNKNOWN_TOPIC_ID` / `REPLICA_NOT_AVAILABLE` /
