@@ -8781,6 +8781,48 @@ fn take_group_shell(scratch: &mut ProduceGroupScratch) -> Vec<(Arc<str>, i32, Ve
     groups
 }
 
+/// Open one list per partition, then index those lists.
+///
+/// Shelling 2,000,000 partitions held the caller for 2098ms. A partition list is still reserved.
+async fn shell_one_topic_groups(
+    topic: &Arc<str>,
+    scratch: &mut ProduceGroupScratch,
+    mut groups: Vec<(Arc<str>, i32, Vec<Pending>)>,
+) -> Vec<(Arc<str>, i32, Vec<Pending>)> {
+    reserve_len(&mut groups, scratch.partition_order.len());
+    let partitions = scratch.partition_order.len();
+    let mut walked = 0usize;
+    for index in 0..partitions {
+        let Some(partition) = scratch.partition_order.get(index).copied() else {
+            continue;
+        };
+        let count = scratch
+            .partition_slots
+            .get(&partition)
+            .copied()
+            .unwrap_or(0);
+        let mut part = take_part_list(scratch);
+        reserve_additional(&mut part, count).await;
+        groups.push((Arc::clone(topic), partition, part));
+        pause_shell_partition(&mut walked).await;
+    }
+    scratch.partition_order.clear();
+    scratch.partition_slots.clear();
+    for (index, (_, partition, _)) in groups.iter().enumerate() {
+        let _inserted = scratch.partition_slots.insert(*partition, index);
+        pause_shell_partition(&mut walked).await;
+    }
+    groups
+}
+
+async fn pause_shell_partition(walked: &mut usize) {
+    *walked = walked.saturating_add(1);
+    if *walked == 8 * 1024 {
+        *walked = 0;
+        tokio::task::yield_now().await;
+    }
+}
+
 fn take_part_list(scratch: &mut ProduceGroupScratch) -> Vec<Pending> {
     let mut part = scratch.spare_parts.pop().unwrap_or_default();
     part.clear();
@@ -8893,26 +8935,7 @@ async fn group_pending(
             }
             pause_walk(&mut walked).await;
         }
-        reserve_len(&mut groups, scratch.partition_order.len());
-        let partitions = scratch.partition_order.len();
-        for index in 0..partitions {
-            let Some(partition) = scratch.partition_order.get(index).copied() else {
-                continue;
-            };
-            let count = scratch
-                .partition_slots
-                .get(&partition)
-                .copied()
-                .unwrap_or(0);
-            let mut part = take_part_list(scratch);
-            reserve_additional(&mut part, count).await;
-            groups.push((Arc::clone(&topic0), partition, part));
-        }
-        scratch.partition_order.clear();
-        scratch.partition_slots.clear();
-        for (index, (_, partition, _)) in groups.iter().enumerate() {
-            let _inserted = scratch.partition_slots.insert(*partition, index);
-        }
+        groups = shell_one_topic_groups(&topic0, scratch, groups).await;
         let mut walked = 0usize;
         for pending in batch.drain(..) {
             let partition = pending
@@ -13374,6 +13397,45 @@ mod tests {
             .order
             .get(1)
             .is_some_and(|(_, records)| records.capacity() >= 1));
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn shelling_many_produce_partitions_does_not_hold_the_caller() {
+        let mut scratch = ProduceGroupScratch::default();
+        for index in 0..2_000_000 {
+            scratch.partition_order.push(index);
+            let _ = scratch.partition_slots.insert(index, 1usize);
+        }
+        let topic: Arc<str> = Arc::from("orders");
+        let groups = take_group_shell(&mut scratch);
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = shell_one_topic_groups(&topic, &mut scratch, groups) => {}
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        assert!(
+            started.elapsed() < std::time::Duration::from_millis(80),
+            "shelling produce partitions held the caller for {:?}",
+            started.elapsed()
+        );
+        let mut sample = ProduceGroupScratch::default();
+        sample.partition_order = vec![3, 1];
+        let _ = sample.partition_slots.insert(3, 2usize);
+        let _ = sample.partition_slots.insert(1, 1usize);
+        let opened = shell_one_topic_groups(&topic, &mut sample, Vec::new()).await;
+        assert_eq!(opened.first().map(|(_, partition, _)| *partition), Some(3));
+        assert_eq!(opened.get(1).map(|(_, partition, _)| *partition), Some(1));
+        assert!(opened
+            .first()
+            .is_some_and(|(_, _, records)| records.capacity() >= 2));
+        assert!(opened
+            .get(1)
+            .is_some_and(|(_, _, records)| records.capacity() >= 1));
+        assert_eq!(sample.partition_slots.get(&3).copied(), Some(0));
+        assert_eq!(sample.partition_slots.get(&1).copied(), Some(1));
+        assert!(opened
+            .first()
+            .is_some_and(|(name, _, _)| Arc::ptr_eq(name, &topic)));
     }
 
     #[tokio::test(flavor = "current_thread")]
