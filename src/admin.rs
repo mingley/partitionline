@@ -115,7 +115,7 @@ use crate::protocol::group::{
     decode_leave_group_response_version_cooperative, decode_offset_commit_response_cooperative,
     decode_offset_delete_response_cooperative, decode_offset_fetch_groups_response_cooperative,
     decode_offset_fetch_response_cooperative, encode_find_coordinator_request_keys_cooperative,
-    encode_find_coordinator_request_typed, encode_leave_group_request_members,
+    encode_find_coordinator_request_typed, encode_leave_group_request_members_cooperative,
     encode_offset_commit_named, encode_offset_delete_named_topics,
     encode_offset_fetch_groups_named, encode_offset_fetch_named, BorrowedOffsetFetchRequestGroup,
     LeaveGroupMember, COORDINATOR_GROUP, COORDINATOR_TRANSACTION, DEFAULT_RETENTION_TIME,
@@ -13051,6 +13051,9 @@ impl Admin {
             .collect();
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
+        let mut encoded = BytesMut::new();
+        encode_leave_group_request_members_cooperative(&mut encoded, version, group_id, &members)
+            .await?;
         loop {
             let stale = self.group_coord.as_ref().is_none_or(|(g, _)| g != group_id);
             if stale {
@@ -13068,7 +13071,10 @@ impl Admin {
                     deadline,
                     LEAVE_GROUP,
                     version,
-                    |buf| encode_leave_group_request_members(buf, version, group_id, &members),
+                    |buf| {
+                        buf.extend_from_slice(&encoded);
+                        Ok(())
+                    },
                     deadline.saturating_duration_since(Instant::now()),
                 )
                 .await

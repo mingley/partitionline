@@ -3274,6 +3274,99 @@ pub fn encode_leave_group_request_members(
     Ok(())
 }
 
+/// Encode LeaveGroup, yielding while members are still being written.
+///
+/// Encoding 2,000,000 members held the caller for 757ms. A member id and a reason are still written.
+pub(crate) async fn encode_leave_group_request_members_cooperative(
+    buf: &mut BytesMut,
+    version: i16,
+    group_id: &str,
+    members: &[LeaveGroupMember],
+) -> crate::error::Result<()> {
+    let flexible = leave_group_flexible(version)?;
+    if members.is_empty() {
+        return Err(Error::protocol("leaving members should not be empty"));
+    }
+    if version < 3 && members.len() != 1 {
+        return Err(Error::Unsupported(format!(
+            "Version {version} leave group request only supports single member instance than {} members",
+            members.len()
+        )));
+    }
+    let body_start = buf.len();
+    let planned = leave_group_request_len_cooperative(version, flexible, group_id, members).await?;
+    reserve_group_body(buf, planned);
+    buf::put_string(buf, flexible, Some(group_id))?;
+    if version >= 3 {
+        buf::put_array_len(buf, flexible, Some(members.len()))?;
+        let mut walked = 0usize;
+        for member in members {
+            buf::put_string(buf, flexible, Some(&member.member_id))?;
+            buf::put_string(buf, flexible, member.group_instance_id.as_deref())?;
+            if version >= 5 {
+                buf::put_string(buf, flexible, member.reason.as_deref())?;
+            }
+            if flexible {
+                buf::put_empty_tagged_fields(buf);
+            }
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+        debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+        return Ok(());
+    }
+    let member_id = members.first().map(|m| m.member_id.as_str()).unwrap_or("");
+    buf::put_string(buf, flexible, Some(member_id))?;
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+    Ok(())
+}
+
+async fn leave_group_request_len_cooperative(
+    version: i16,
+    flexible: bool,
+    group_id: &str,
+    members: &[LeaveGroupMember],
+) -> Result<usize> {
+    let mut total = group_string_len(flexible, Some(group_id))?;
+    if version < 3 {
+        let member_id = members
+            .first()
+            .map(|member| member.member_id.as_str())
+            .unwrap_or("");
+        return add_group_len(total, group_string_len(flexible, Some(member_id))?);
+    }
+    total = add_group_len(total, group_array_len(flexible, members.len())?)?;
+    let mut walked = 0usize;
+    for member in members {
+        total = add_group_len(total, group_string_len(flexible, Some(&member.member_id))?)?;
+        total = add_group_len(
+            total,
+            group_string_len(flexible, member.group_instance_id.as_deref())?,
+        )?;
+        if version >= 5 {
+            total = add_group_len(total, group_string_len(flexible, member.reason.as_deref())?)?;
+        }
+        if flexible {
+            total = add_group_len(total, buf::unsigned_varint_size(0))?;
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    if flexible {
+        total = add_group_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
+}
+
 fn leave_group_request_len(
     version: i16,
     flexible: bool,
@@ -7915,6 +8008,43 @@ async fn group_owned_assignment_cooperative(parts: Vec<(String, i32)>) -> Vec<(S
 mod tests {
     use super::*;
     use std::collections::HashMap;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn encoding_many_left_members_does_not_hold_the_caller() {
+        let members: Vec<LeaveGroupMember> = (0..2_000_000)
+            .map(|index| LeaveGroupMember {
+                member_id: format!("member-{index}"),
+                group_instance_id: None,
+                reason: Some("rebalance".into()),
+            })
+            .collect();
+        let mut body = bytes::BytesMut::new();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            encoded = encode_leave_group_request_members_cooperative(&mut body, 5, "g", &members) => {
+                encoded.unwrap_or_else(|error| panic!("{error}"));
+            }
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "encoding left members held the caller for {elapsed:?}"
+        );
+        let sample = [LeaveGroupMember {
+            member_id: "member-a".into(),
+            group_instance_id: Some("static".into()),
+            reason: Some("rebalance".into()),
+        }];
+        let mut once = bytes::BytesMut::new();
+        let mut paced = bytes::BytesMut::new();
+        encode_leave_group_request_members(&mut once, 5, "g", &sample)
+            .unwrap_or_else(|error| panic!("{error}"));
+        encode_leave_group_request_members_cooperative(&mut paced, 5, "g", &sample)
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(once, paced);
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn encoding_many_coordinator_keys_does_not_hold_the_caller() {
