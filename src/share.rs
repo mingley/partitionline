@@ -3357,6 +3357,7 @@ impl ShareGroup {
         node: i32,
         api: i16,
         deadline: Instant,
+        leaders: Option<&HashMap<i32, String>>,
     ) -> Result<i16> {
         // A failed handshake drops its socket in this call. Yield so the
         // broker observes that close before the error returns.
@@ -3379,16 +3380,20 @@ impl ShareGroup {
                 }
             }
             if let std::collections::hash_map::Entry::Vacant(entry) = self.share_conns.entry(node) {
-                let addr = self
-                    .assigned
-                    .iter()
-                    .find_map(|(topic, part)| {
+                let scanned = if leaders.is_none() {
+                    self.assigned.iter().find_map(|(topic, part)| {
                         self.consumer
                             .leader_of(topic, *part)
                             .ok()
                             .filter(|(id, _)| *id == node)
                             .map(|(_, addr)| addr)
                     })
+                } else {
+                    None
+                };
+                let addr = leaders
+                    .and_then(|leaders| leaders.get(&node).cloned())
+                    .or(scanned)
                     .or_else(|| self.share_addresses.get(&node).cloned())
                     .ok_or_else(|| Error::protocol(format!("unknown share broker {node}")))?;
                 let rest = deadline.saturating_duration_since(Instant::now());
@@ -3995,6 +4000,9 @@ impl ShareGroup {
             self.leader_nodes = nodes;
         }
         let node_count = self.leader_nodes.len();
+        let leaders = share_node_addresses(&self.leader_nodes, &self.assigned, |topic, part| {
+            self.consumer.leader_of(topic, part).ok()
+        });
         let mut prepared = self.take_prepared();
         for index in 0..node_count {
             let Some(node) = self.leader_nodes.get(index).copied() else {
@@ -4008,7 +4016,7 @@ impl ShareGroup {
                 break;
             }
             let version = match self
-                .node_share_version_until(node, SHARE_FETCH, deadline)
+                .node_share_version_until(node, SHARE_FETCH, deadline, Some(&leaders))
                 .await
             {
                 Ok(version) => version,
@@ -4755,7 +4763,7 @@ impl ShareGroup {
         let topic_name = Arc::clone(topic_name);
         let partition = *partition;
         let version = self
-            .node_share_version_until(node, SHARE_ACKNOWLEDGE, deadline)
+            .node_share_version_until(node, SHARE_ACKNOWLEDGE, deadline, None)
             .await?;
         if ack == ACK_RENEW && version < 2 {
             return Err(Error::Unsupported(format!(
@@ -5032,7 +5040,7 @@ impl ShareGroup {
                 return Err(Error::Timeout);
             }
             let version = self
-                .node_share_version_until(node, SHARE_ACKNOWLEDGE, deadline)
+                .node_share_version_until(node, SHARE_ACKNOWLEDGE, deadline, None)
                 .await?;
             if ack == ACK_RENEW && version < 2 {
                 return Err(Error::Unsupported(format!(
@@ -5131,6 +5139,9 @@ impl ShareGroup {
         deadline: Instant,
     ) -> Result<()> {
         let ids: Vec<i32> = nodes.iter().map(|(node, _)| *node).collect();
+        let leaders = share_node_addresses(&ids, &self.assigned, |topic, part| {
+            self.consumer.leader_of(topic, part).ok()
+        });
         self.warm_share_leaders(&ids, deadline).await;
         let mut flights = tokio::task::JoinSet::new();
         let mut ready = Vec::new();
@@ -5148,7 +5159,7 @@ impl ShareGroup {
                     .await;
             }
             let version = match self
-                .node_share_version_until(node, SHARE_ACKNOWLEDGE, deadline)
+                .node_share_version_until(node, SHARE_ACKNOWLEDGE, deadline, Some(&leaders))
                 .await
             {
                 Ok(version) => version,
@@ -5711,6 +5722,9 @@ impl ShareGroup {
         open: &[i32],
         deadline: Instant,
     ) -> Result<()> {
+        let leaders = share_node_addresses(open, &self.assigned, |topic, part| {
+            self.consumer.leader_of(topic, part).ok()
+        });
         let mut last = Ok(());
         for node in open {
             let node = *node;
@@ -5719,7 +5733,7 @@ impl ShareGroup {
                 break;
             }
             let version = match self
-                .node_share_version_until(node, SHARE_ACKNOWLEDGE, deadline)
+                .node_share_version_until(node, SHARE_ACKNOWLEDGE, deadline, Some(&leaders))
                 .await
             {
                 Ok(version) => version,
@@ -5783,6 +5797,9 @@ impl ShareGroup {
         open: &[i32],
         deadline: Instant,
     ) -> Result<()> {
+        let leaders = share_node_addresses(open, &self.assigned, |topic, part| {
+            self.consumer.leader_of(topic, part).ok()
+        });
         let mut decided = vec![None; open.len()];
         let mut set = tokio::task::JoinSet::new();
         let mut rpc_timeout = None;
@@ -5793,7 +5810,7 @@ impl ShareGroup {
                 break;
             }
             let version = match self
-                .node_share_version_until(node, SHARE_ACKNOWLEDGE, deadline)
+                .node_share_version_until(node, SHARE_ACKNOWLEDGE, deadline, Some(&leaders))
                 .await
             {
                 Ok(version) => version,
