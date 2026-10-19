@@ -7763,52 +7763,52 @@ impl Worker {
         let requested = &mut self.ack_requested;
         let seen = &mut self.ack_seen;
         let mut acks = std::mem::take(&mut self.spare_acks);
-        let decoded = decode_produce_acks_into_cooperative(&mut body, version, &mut acks)
-            .await
-            .and_then(|(endpoints, throttle)| {
-                if version >= 13 {
-                    let inf = guard.inf.as_ref().ok_or_else(|| {
-                        Error::protocol("missing Produce request identity snapshot")
-                    })?;
-                    let absent = || {
-                        Error::protocol("Produce v13 response UUID is absent from sent snapshot")
-                    };
-                    let unsolicited = || {
-                        Error::protocol("Produce v13 unsolicited or duplicate partition response")
-                    };
-                    if let Some((name, sent)) =
-                        inf.topic_ids.first().filter(|_| inf.topic_ids.len() == 1)
-                    {
-                        if let [(topic, partition, _)] = inf.groups.as_slice() {
-                            if Arc::ptr_eq(topic, name) || topic.as_ref() == name.as_ref() {
-                                sole_partition_acks(*partition, sent, &acks)?;
-                            } else if !acks.is_empty() {
-                                return Err(unsolicited());
-                            }
-                        } else {
-                            fill_ack_topics(&inf.groups, Some(name), requested);
-                            clear_ack_parts(seen);
-                            for ack in &acks {
-                                if *sent == [0; 16]
-                                    || ack.topic_id == [0; 16]
-                                    || ack.topic_id != *sent
-                                {
-                                    return Err(absent());
-                                }
-                                let known = requested
-                                    .get(name.as_ref())
-                                    .is_some_and(|parts| parts.contains(&ack.partition));
-                                if !known || !ack_partition_is_new(seen, name, ack.partition) {
-                                    return Err(unsolicited());
-                                }
-                            }
+        let decoded = async {
+            let (endpoints, throttle) =
+                decode_produce_acks_into_cooperative(&mut body, version, &mut acks).await?;
+            if version >= 13 {
+                let inf = guard
+                    .inf
+                    .as_ref()
+                    .ok_or_else(|| Error::protocol("missing Produce request identity snapshot"))?;
+                if let Some((name, sent)) =
+                    inf.topic_ids.first().filter(|_| inf.topic_ids.len() == 1)
+                {
+                    if let [(topic, partition, _)] = inf.groups.as_slice() {
+                        if Arc::ptr_eq(topic, name) || topic.as_ref() == name.as_ref() {
+                            sole_partition_acks(*partition, sent, &acks)?;
+                        } else if !acks.is_empty() {
+                            Err(Error::protocol(
+                                "Produce v13 unsolicited or duplicate partition response",
+                            ))?;
                         }
                     } else {
-                        solicited_v13_acks(&inf.groups, &acks, by_uuid, requested, seen)?;
+                        fill_ack_topics(&inf.groups, Some(name), requested).await;
+                        clear_ack_parts(seen);
+                        for ack in &acks {
+                            if *sent == [0; 16] || ack.topic_id == [0; 16] || ack.topic_id != *sent
+                            {
+                                Err(Error::protocol(
+                                    "Produce v13 response UUID is absent from sent snapshot",
+                                ))?;
+                            }
+                            let known = requested
+                                .get(name.as_ref())
+                                .is_some_and(|parts| parts.contains(&ack.partition));
+                            if !known || !ack_partition_is_new(seen, name, ack.partition) {
+                                Err(Error::protocol(
+                                    "Produce v13 unsolicited or duplicate partition response",
+                                ))?;
+                            }
+                        }
                     }
+                } else {
+                    solicited_v13_acks(&inf.groups, &acks, by_uuid, requested, seen).await?;
                 }
-                Ok((endpoints, throttle))
-            });
+            }
+            Ok((endpoints, throttle))
+        }
+        .await;
         let (endpoints, throttle_ms) = match decoded {
             Ok(r) => r,
             Err(e) => {
@@ -9632,25 +9632,30 @@ fn clear_ack_parts(parts: &mut HashMap<Arc<str>, HashSet<i32>>) {
     }
 }
 
-fn fill_ack_topics(
+async fn fill_ack_topics(
     groups: &[(Arc<str>, i32, Vec<Pending>)],
     name: Option<&Arc<str>>,
     requested: &mut HashMap<Arc<str>, HashSet<i32>>,
 ) {
     clear_ack_parts(requested);
+    let mut walked = 0usize;
     for (topic, partition, _) in groups {
-        if let Some(name) = name {
-            if !Arc::ptr_eq(topic, name) && topic.as_ref() != name.as_ref() {
-                continue;
+        let skip =
+            name.is_some_and(|name| !Arc::ptr_eq(topic, name) && topic.as_ref() != name.as_ref());
+        if !skip {
+            if let Some(parts) = requested.get_mut(topic.as_ref()) {
+                let _ = parts.insert(*partition);
+            } else {
+                let mut parts = HashSet::new();
+                let _ = parts.insert(*partition);
+                let _ = requested.insert(Arc::clone(topic), parts);
             }
         }
-        if let Some(parts) = requested.get_mut(topic.as_ref()) {
-            let _ = parts.insert(*partition);
-            continue;
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
         }
-        let mut parts = HashSet::new();
-        let _ = parts.insert(*partition);
-        let _ = requested.insert(Arc::clone(topic), parts);
     }
 }
 
@@ -9668,14 +9673,14 @@ fn ack_partition_is_new(
     true
 }
 
-fn solicited_v13_acks(
+async fn solicited_v13_acks(
     groups: &[(Arc<str>, i32, Vec<Pending>)],
     acks: &[ProduceAck],
     by_id: &HashMap<[u8; 16], Arc<str>>,
     requested: &mut HashMap<Arc<str>, HashSet<i32>>,
     seen: &mut HashMap<Arc<str>, HashSet<i32>>,
 ) -> Result<()> {
-    fill_ack_topics(groups, None, requested);
+    fill_ack_topics(groups, None, requested).await;
     clear_ack_parts(seen);
     for ack in acks {
         let Some(name) = by_id.get(&ack.topic_id) else {
@@ -12449,6 +12454,38 @@ mod tests {
     }
 
     #[tokio::test(flavor = "current_thread")]
+    async fn remembering_many_requested_acks_does_not_hold_the_caller() {
+        // 2_000_000 partitions: recording each requested acknowledgement held the caller 1.29s.
+        let topic: Arc<str> = Arc::from("orders");
+        let groups: Vec<(Arc<str>, i32, Vec<Pending>)> = (0..2_000_000)
+            .map(|index| (Arc::clone(&topic), index, Vec::new()))
+            .collect();
+        let mut requested = HashMap::new();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = fill_ack_topics(&groups, None, &mut requested) => {
+                assert_eq!(requested.get(topic.as_ref()).map(HashSet::len), Some(2_000_000));
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "remembering requested acks held the caller for {elapsed:?}"
+        );
+        let repeated = vec![
+            (Arc::clone(&topic), 4, Vec::new()),
+            (Arc::clone(&topic), 4, Vec::new()),
+        ];
+        let mut requested = HashMap::new();
+        fill_ack_topics(&repeated, None, &mut requested).await;
+        assert_eq!(requested.get(topic.as_ref()).map(HashSet::len), Some(1));
+        assert!(requested
+            .get(topic.as_ref())
+            .is_some_and(|parts| parts.contains(&4)));
+    }
+
+    #[tokio::test(flavor = "current_thread")]
     async fn matching_many_produce_acks_does_not_hold_the_caller() {
         let topic: Arc<str> = Arc::from("orders");
         let groups: Vec<(Arc<str>, i32, Vec<Pending>)> = (0..2_000_000)
@@ -12851,8 +12888,8 @@ mod tests {
         assert_eq!((again[1].0.as_ref(), again[1].1), ("orders", 0));
     }
 
-    #[test]
-    fn one_produce_topic_id_stays_inline() {
+    #[tokio::test(flavor = "current_thread")]
+    async fn one_produce_topic_id_stays_inline() {
         let orders = Arc::<str>::from("orders");
         let one = ProduceTopicIds::One((Arc::clone(&orders), [1; 16]));
         assert!(matches!(one, ProduceTopicIds::One(_)));
@@ -12941,8 +12978,8 @@ mod tests {
         );
     }
 
-    #[test]
-    fn produce_ack_partition_sets_are_reused() {
+    #[tokio::test(flavor = "current_thread")]
+    async fn produce_ack_partition_sets_are_reused() {
         let orders = Arc::<str>::from("orders");
         let payments = Arc::<str>::from("payments");
         let sent = [4u8; 16];
@@ -12966,7 +13003,7 @@ mod tests {
             (Arc::clone(&payments), 0, Vec::new()),
         ];
         let mut requested = HashMap::new();
-        fill_ack_topics(&groups, None, &mut requested);
+        fill_ack_topics(&groups, None, &mut requested).await;
         let orders_capacity = requested
             .get(orders.as_ref())
             .map(HashSet::capacity)
@@ -12976,7 +13013,7 @@ mod tests {
             (Arc::clone(&orders), 0, Vec::new()),
             (Arc::clone(&orders), 1, Vec::new()),
         ];
-        fill_ack_topics(&only_orders, Some(&orders), &mut requested);
+        fill_ack_topics(&only_orders, Some(&orders), &mut requested).await;
         let parts = requested.get(orders.as_ref()).unwrap();
         assert!(parts.capacity() >= orders_capacity);
         assert!(parts.contains(&0) && parts.contains(&1));
