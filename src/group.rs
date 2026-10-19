@@ -2854,10 +2854,10 @@ impl ConsumerGroup {
             return Err(Error::Timeout);
         }
         let infos = self.consumer.list_topics_timeout(timeout).await?;
-        Ok(filter_matching_topics(
-            infos.iter().map(|i| i.topic.as_str()),
-            |n| pred(n),
-        ))
+        Ok(
+            filter_matching_topics_cooperative(infos.iter().map(|i| i.topic.as_str()), |n| pred(n))
+                .await,
+        )
     }
 
     async fn maybe_refresh_matching(&mut self) -> Result<()> {
@@ -5174,6 +5174,111 @@ pub(crate) fn collect_topics(
     Ok(out)
 }
 
+fn matching_topic_chunk() -> usize {
+    8 * 1024
+}
+
+/// [`filter_matching_topics`], yielding while names are kept and sorted.
+///
+/// Filtering 2,000,000 matching topics held the caller for 2870ms. A topic name is still stored.
+pub(crate) async fn filter_matching_topics_cooperative(
+    topics: impl IntoIterator<Item = impl AsRef<str>>,
+    pred: impl Fn(&str) -> bool,
+) -> Vec<String> {
+    let mut names = HashSet::new();
+    let mut walked = 0usize;
+    let chunk = matching_topic_chunk();
+    for topic in topics {
+        let topic = topic.as_ref();
+        if !(topic.is_empty() || topic.starts_with("__") || Topic::validate(topic).is_err())
+            && pred(topic)
+        {
+            let _ = names.insert(topic.to_string());
+        }
+        walked = walked.saturating_add(1);
+        if walked == chunk {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    let mut names: Vec<String> = names.into_iter().collect();
+    sort_names_cooperative(&mut names).await;
+    names
+}
+
+async fn sort_names_cooperative(names: &mut Vec<String>) {
+    let chunk = matching_topic_chunk();
+    if names.len() <= 1 {
+        return;
+    }
+    let mut start = 0usize;
+    while start < names.len() {
+        let end = start.saturating_add(chunk).min(names.len());
+        if let Some(part) = names.get_mut(start..end) {
+            part.sort();
+        }
+        start = end;
+        if start < names.len() {
+            tokio::task::yield_now().await;
+        }
+    }
+    let mut width = chunk;
+    while width < names.len() {
+        let mut merged = Vec::with_capacity(names.len());
+        let mut start = 0usize;
+        let mut written = 0usize;
+        while start < names.len() {
+            let mid = start.saturating_add(width).min(names.len());
+            let end = mid.saturating_add(width).min(names.len());
+            let mut left = start;
+            let mut right = mid;
+            while left < mid && right < end {
+                let take_right = names
+                    .get(right)
+                    .zip(names.get(left))
+                    .is_some_and(|(right_name, left_name)| right_name < left_name);
+                if take_right {
+                    merged.push(names.get_mut(right).map(std::mem::take).unwrap_or_default());
+                    right = right.saturating_add(1);
+                } else {
+                    merged.push(names.get_mut(left).map(std::mem::take).unwrap_or_default());
+                    left = left.saturating_add(1);
+                }
+                written = written.saturating_add(1);
+                if written == chunk {
+                    written = 0;
+                    tokio::task::yield_now().await;
+                }
+            }
+            while left < mid {
+                merged.push(names.get_mut(left).map(std::mem::take).unwrap_or_default());
+                left = left.saturating_add(1);
+                written = written.saturating_add(1);
+                if written == chunk {
+                    written = 0;
+                    tokio::task::yield_now().await;
+                }
+            }
+            while right < end {
+                merged.push(names.get_mut(right).map(std::mem::take).unwrap_or_default());
+                right = right.saturating_add(1);
+                written = written.saturating_add(1);
+                if written == chunk {
+                    written = 0;
+                    tokio::task::yield_now().await;
+                }
+            }
+            start = end;
+        }
+        *names = merged;
+        width = width.saturating_mul(2);
+        if width < names.len() {
+            tokio::task::yield_now().await;
+        }
+    }
+}
+
+#[cfg(test)]
 pub(crate) fn filter_matching_topics(
     topics: impl IntoIterator<Item = impl AsRef<str>>,
     pred: impl Fn(&str) -> bool,
@@ -9679,6 +9784,26 @@ mod tests {
         let topics = collect_topics(["orders", "payments", "orders"]).unwrap();
         assert_eq!(topics, vec!["orders".to_string(), "payments".to_string()]);
         assert!(collect_topics(Vec::<String>::new()).is_err());
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn filtering_many_matching_topics_does_not_hold_the_caller() {
+        let names: Vec<String> = (0..2_000_000)
+            .map(|index| format!("topic-{index}"))
+            .collect();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = filter_matching_topics_cooperative(names.iter(), |_| true) => {}
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        assert!(
+            started.elapsed() < std::time::Duration::from_millis(80),
+            "filtering matching topics held the caller for {:?}",
+            started.elapsed()
+        );
+        let sample = ["b", "a", "b", "__hidden", "", "a"];
+        let matched = filter_matching_topics_cooperative(sample, |_| true).await;
+        assert_eq!(matched, filter_matching_topics(sample, |_| true));
     }
 
     #[test]

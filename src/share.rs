@@ -15,9 +15,7 @@ use tokio::sync::{watch, Notify};
 
 use crate::consumer::{Consumer, ConsumerConfig};
 use crate::error::{self, Error, Result};
-use crate::group::{
-    collect_topics, coord_roundtrip_with_bootstrap, filter_matching_topics, TopicMatch,
-};
+use crate::group::{collect_topics, coord_roundtrip_with_bootstrap, TopicMatch};
 use crate::net::BrokerConn;
 use crate::protocol::api_keys::{
     pick_version, SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_HEARTBEAT,
@@ -4567,10 +4565,11 @@ impl ShareGroup {
             return Err(Error::Timeout);
         }
         let infos = self.consumer.list_topics_timeout(timeout).await?;
-        Ok(filter_matching_topics(
+        Ok(crate::group::filter_matching_topics_cooperative(
             infos.iter().map(|i| i.topic.as_str()),
             |n| pred(n),
-        ))
+        )
+        .await)
     }
 
     async fn maybe_refresh_matching(&mut self) -> Result<()> {
