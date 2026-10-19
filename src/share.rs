@@ -3105,6 +3105,14 @@ pub enum ShareAcquireMode {
 /// `ShareCoordinatorShard` writes this when a WriteShareGroupState
 /// request state epoch is smaller than the last recorded epoch.
 /// A top-level
+/// ShareAcknowledge `INVALID_VOTER_KEY` completes without
+/// retry and does not request Metadata, including when `ErrorMessage`
+/// is set (Java `handleShareAcknowledgeSuccess` has no
+/// `metadata.requestUpdate`; this is not top-level
+/// `FENCED_STATE_EPOCH`). Official Java
+/// `KafkaRaftClient` writes this when a VOTE or BEGIN_QUORUM_EPOCH
+/// request carries a voter key that does not match the local key.
+/// A top-level
 /// ShareAcknowledge `SHARE_SESSION_LIMIT_REACHED` completes without
 /// retry and does not request Metadata, including when `ErrorMessage`
 /// is set or empty (Java `handleShareAcknowledgeSuccess` has no
@@ -6915,6 +6923,14 @@ impl ShareGroup {
     /// Official Java `ShareCoordinatorShard` writes this when a
     /// WriteShareGroupState request state epoch is smaller than the
     /// last recorded epoch.
+    /// A top-level ShareAcknowledge `INVALID_VOTER_KEY`
+    /// completes without retry and does not request Metadata,
+    /// including when `ErrorMessage` is set (Java
+    /// `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`;
+    /// this is not top-level `FENCED_STATE_EPOCH`).
+    /// Official Java `KafkaRaftClient` writes this when a VOTE or
+    /// BEGIN_QUORUM_EPOCH request carries a voter key that does not
+    /// match the local key.
     /// Top-level `SHARE_SESSION_LIMIT_REACHED`
     /// completes without retry and advances the session epoch (Java
     /// `ShareSessionHandler.handleResponse` `nextEpoch`), including
