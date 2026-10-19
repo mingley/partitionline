@@ -6521,7 +6521,7 @@ impl Admin {
                 if response.error_code != 0 {
                     return Err(Error::broker(response.error_code, "AlterPartitionReassignments"));
                 }
-                Ok(flatten_reassignment_results(&response.results))
+                Ok(flatten_reassignment_results(&response.results).await)
             }.await;
             match result {
                 Err(error)
@@ -15719,10 +15719,11 @@ async fn flatten_list_reassignments(
     out
 }
 
-fn flatten_reassignment_results(
+async fn flatten_reassignment_results(
     results: &[crate::protocol::admin::ReassignmentTopicResult],
 ) -> Vec<ReassignmentResult> {
     let mut out = Vec::new();
+    let mut walked = 0usize;
     for t in results {
         for p in &t.partitions {
             out.push(ReassignmentResult {
@@ -15731,6 +15732,11 @@ fn flatten_reassignment_results(
                 error_code: p.error_code,
                 error_message: p.error_message.clone(),
             });
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
         }
     }
     out
@@ -19616,6 +19622,57 @@ mod tests {
         assert_eq!(flat[2].topic, "payments");
         assert_eq!(flat[2].partition, 7);
         assert_eq!(small[0].partitions[1].replicas, vec![2, 3]);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn flattening_many_reassignment_results_does_not_hold_the_caller() {
+        use crate::protocol::admin::{ReassignmentPartitionResult, ReassignmentTopicResult};
+        // 2_000_000 partitions: copying each topic name held the caller 152ms.
+        let partitions: Vec<ReassignmentPartitionResult> = (0..2_000_000)
+            .map(|index| ReassignmentPartitionResult::error(index, 0))
+            .collect();
+        let topics = [ReassignmentTopicResult::new("orders", partitions)];
+        let started = std::time::Instant::now();
+        tokio::select! {
+            flat = flatten_reassignment_results(&topics) => {
+                assert_eq!(flat.len(), 2_000_000);
+                assert_eq!(flat.first().map(|row| row.topic.as_str()), Some("orders"));
+                assert_eq!(flat.first().map(|row| row.partition), Some(0));
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "flattening reassignment results held the caller for {elapsed:?}"
+        );
+        let mut noted = ReassignmentPartitionResult::error(1, 3);
+        noted.error_message = Some("busy".to_string());
+        let small = [
+            ReassignmentTopicResult::new(
+                "orders",
+                vec![ReassignmentPartitionResult::error(0, 0), noted],
+            ),
+            ReassignmentTopicResult::new(
+                "payments",
+                vec![ReassignmentPartitionResult::error(7, 0)],
+            ),
+        ];
+        let flat = flatten_reassignment_results(&small).await;
+        assert_eq!(flat.len(), 3);
+        assert_eq!(flat[0].topic, "orders");
+        assert_eq!(flat[0].partition, 0);
+        assert_eq!(flat[0].error_code, 0);
+        assert_eq!(flat[0].error_message, None);
+        assert_eq!(flat[1].topic, "orders");
+        assert_eq!(flat[1].error_code, 3);
+        assert_eq!(flat[1].error_message.as_deref(), Some("busy"));
+        assert_eq!(flat[2].topic, "payments");
+        assert_eq!(flat[2].partition, 7);
+        assert_eq!(
+            small[0].partitions[1].error_message.as_deref(),
+            Some("busy")
+        );
     }
 
     #[tokio::test(flavor = "current_thread")]
