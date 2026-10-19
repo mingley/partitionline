@@ -60,7 +60,7 @@ use crate::protocol::admin::{
     encode_alter_partition_reassignments_named, encode_alter_replica_log_dirs_named,
     encode_alter_replica_log_dirs_request, encode_alter_share_group_offsets_request,
     encode_alter_user_scram_credentials_named, encode_assign_replicas_to_dirs_request,
-    encode_consumer_group_describe_ids, encode_create_delegation_token_request,
+    encode_consumer_group_describe_ids_cooperative, encode_create_delegation_token_request,
     encode_create_partitions_named, encode_create_topics_named,
     encode_delete_groups_ids_cooperative, encode_delete_records_named_topics_cooperative,
     encode_delete_records_owned_topics_cooperative, encode_delete_share_group_offsets_request,
@@ -12041,21 +12041,29 @@ impl Admin {
             nodes.sort_unstable();
             let mut still = Vec::new();
             if nodes.len() > 1 {
+                let mut prepared = HashMap::new();
+                for node in &nodes {
+                    let idxs = by_node.get(node).map(Vec::as_slice).unwrap_or(&[]);
+                    let subset = borrowed_ids(ids, idxs);
+                    let mut payload = BytesMut::new();
+                    encode_consumer_group_describe_ids_cooperative(
+                        &mut payload,
+                        version,
+                        &subset,
+                        include_authorized_operations,
+                    )
+                    .await?;
+                    let _previous = prepared.insert(*node, payload.freeze());
+                }
                 let mut finished = self
                     .exchange_leaders(&nodes, deadline, |_admin, node, _conn, _timeout| {
-                        let idxs = by_node.get(&node).map(Vec::as_slice).unwrap_or(&[]);
-                        let subset = borrowed_ids(ids, idxs);
-                        let mut payload = BytesMut::new();
-                        encode_consumer_group_describe_ids(
-                            &mut payload,
-                            version,
-                            &subset,
-                            include_authorized_operations,
-                        )?;
+                        let payload = prepared.get(&node).cloned().ok_or_else(|| {
+                            Error::protocol("missing consumer group describe request")
+                        })?;
                         Ok(LeaderFrame::ready(
                             CONSUMER_GROUP_DESCRIBE,
                             version,
-                            payload.freeze(),
+                            payload,
                         ))
                     })
                     .await;
@@ -15529,6 +15537,14 @@ impl Admin {
     ) -> Result<Vec<(usize, DescribedConsumerGroup)>> {
         let subset = borrowed_ids(ids, idxs);
         let timeout = startup_remaining(deadline)?;
+        let mut encoded = BytesMut::new();
+        encode_consumer_group_describe_ids_cooperative(
+            &mut encoded,
+            version,
+            &subset,
+            include_authorized_operations,
+        )
+        .await?;
         let body = self
             .roundtrip_known_node(
                 node,
@@ -15536,12 +15552,8 @@ impl Admin {
                 CONSUMER_GROUP_DESCRIBE,
                 version,
                 |buf| {
-                    encode_consumer_group_describe_ids(
-                        buf,
-                        version,
-                        &subset,
-                        include_authorized_operations,
-                    )
+                    buf.extend_from_slice(&encoded);
+                    Ok(())
                 },
                 timeout,
             )
