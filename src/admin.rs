@@ -10413,37 +10413,50 @@ impl Admin {
             return Err(Error::protocol("trailing ListOffsets response bytes"));
         }
         let mut by_key = index_listed_offsets(resp).await;
-        let mut done = Vec::new();
-        let mut retry = Vec::new();
+        let mut order = Vec::with_capacity(idxs.len());
+        let mut walked = 0usize;
         for &i in idxs {
             let (tp, _) = queries
                 .get(i)
                 .ok_or_else(|| Error::protocol("missing ListOffsets query"))?;
-            let part = by_key
-                .get_mut(tp.topic.as_str())
-                .and_then(|parts| parts.get_mut(&tp.partition))
-                .and_then(VecDeque::pop_front)
-                .ok_or_else(|| {
-                    Error::protocol(format!("ListOffsets missing {}-{}", tp.topic, tp.partition))
-                })?;
+            order.push((i, tp.topic.as_str(), tp.partition));
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+        let popped = pop_listed_offsets(&mut by_key, &order).await;
+        let mut done = Vec::new();
+        let mut retry = Vec::new();
+        let mut walked = 0usize;
+        for ((i, topic, partition), part) in order.into_iter().zip(popped) {
+            let part = part.ok_or_else(|| {
+                Error::protocol(format!("ListOffsets missing {topic}-{partition}"))
+            })?;
             if part.error_code == 0 {
                 done.push((
                     i,
                     crate::OffsetAndTimestamp::new(part.offset, part.timestamp)
                         .with_leader_epoch(part.leader_epoch),
                 ));
-                continue;
-            }
-            let e = Error::broker(part.error_code, format!("{}-{}", tp.topic, tp.partition));
-            if matches!(
-                part.error_code,
-                error::FENCED_LEADER_EPOCH | error::UNKNOWN_LEADER_EPOCH
-            ) || e.is_retriable()
-            {
-                self.discard_node_conn(node).await;
-                retry.push(i);
             } else {
-                return Err(e);
+                let e = Error::broker(part.error_code, format!("{topic}-{partition}"));
+                if matches!(
+                    part.error_code,
+                    error::FENCED_LEADER_EPOCH | error::UNKNOWN_LEADER_EPOCH
+                ) || e.is_retriable()
+                {
+                    self.discard_node_conn(node).await;
+                    retry.push(i);
+                } else {
+                    return Err(e);
+                }
+            }
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
             }
         }
         Ok((done, retry))
@@ -15669,6 +15682,28 @@ async fn group_list_reassignments(partitions: &[crate::TopicPartition]) -> Vec<(
     groups
 }
 
+pub(crate) async fn pop_listed_offsets(
+    indexed: &mut HashMap<String, HashMap<i32, VecDeque<ListOffsetsResponsePartition>>>,
+    order: &[(usize, &str, i32)],
+) -> Vec<Option<ListOffsetsResponsePartition>> {
+    let mut out = Vec::with_capacity(order.len());
+    let mut walked = 0usize;
+    for (_, topic, partition) in order {
+        out.push(
+            indexed
+                .get_mut(*topic)
+                .and_then(|parts| parts.get_mut(partition))
+                .and_then(VecDeque::pop_front),
+        );
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    out
+}
+
 pub(crate) async fn index_listed_offsets(
     topics: Vec<crate::protocol::offsets::ListOffsetsTopicResponse>,
 ) -> HashMap<String, HashMap<i32, VecDeque<ListOffsetsResponsePartition>>> {
@@ -20016,6 +20051,64 @@ mod tests {
                     .collect::<Vec<_>>()
             });
         assert_eq!(queued, Some(vec![(4, 0), (9, 3)]));
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn matching_many_listed_offsets_does_not_hold_the_caller() {
+        // 2_000_000 partitions: taking each listed offset held the caller 1.09s.
+        let partitions: Vec<ListOffsetsResponsePartition> = (0..2_000_000)
+            .map(|index| ListOffsetsResponsePartition::error(index, 0))
+            .collect();
+        let topics = vec![crate::protocol::offsets::ListOffsetsTopicResponse::new(
+            "orders", partitions,
+        )];
+        let mut indexed = index_listed_offsets(topics).await;
+        let order: Vec<(usize, &str, i32)> = (0..2_000_000i32)
+            .map(|index| (index as usize, "orders", index))
+            .collect();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            popped = pop_listed_offsets(&mut indexed, &order) => {
+                assert_eq!(popped.len(), 2_000_000);
+                assert_eq!(popped.first().and_then(|part| part.as_ref()).map(|part| part.partition_index), Some(0));
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "matching listed offsets held the caller for {elapsed:?}"
+        );
+        let repeated = vec![crate::protocol::offsets::ListOffsetsTopicResponse::new(
+            "orders",
+            vec![
+                ListOffsetsResponsePartition {
+                    partition_index: 0,
+                    error_code: 0,
+                    timestamp: 10,
+                    offset: 4,
+                    leader_epoch: 1,
+                },
+                ListOffsetsResponsePartition {
+                    partition_index: 0,
+                    error_code: 3,
+                    timestamp: 20,
+                    offset: 9,
+                    leader_epoch: 2,
+                },
+            ],
+        )];
+        let mut indexed = index_listed_offsets(repeated).await;
+        let order = [(0usize, "orders", 0), (1, "orders", 0), (2, "missing", 1)];
+        let popped = pop_listed_offsets(&mut indexed, &order).await;
+        assert_eq!(popped[0].as_ref().map(|part| part.offset), Some(4));
+        assert_eq!(
+            popped[1]
+                .as_ref()
+                .map(|part| (part.offset, part.error_code)),
+            Some((9, 3))
+        );
+        assert!(popped[2].is_none());
     }
 
     #[tokio::test(flavor = "current_thread")]

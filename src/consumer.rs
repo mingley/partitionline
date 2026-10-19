@@ -9434,55 +9434,52 @@ impl Consumer {
             fenced_indexes: Vec::new(),
             drop_conn: false,
         };
+        let mut walked = 0usize;
         for index in indexes {
-            let Some((topic, partition, _)) = queries.get(*index) else {
-                continue;
-            };
-            let topic_name = topic.as_ref();
-            let Some(part) = by_topic
-                .get_mut(topic_name)
-                .and_then(|parts| parts.get_mut(partition))
-                .and_then(VecDeque::pop_front)
-            else {
-                if let Some(slot) = slots.get_mut(*index) {
+            if let Some((topic, partition, _)) = queries.get(*index) {
+                let topic_name = topic.as_ref();
+                let part = by_topic
+                    .get_mut(topic_name)
+                    .and_then(|parts| parts.get_mut(partition))
+                    .and_then(VecDeque::pop_front);
+                if let Some(part) = part {
+                    if by_topic
+                        .get(topic_name)
+                        .and_then(|parts| parts.get(partition))
+                        .is_some_and(|left| !left.is_empty())
+                    {
+                        if let Some(slot) = slots.get_mut(*index) {
+                            *slot = Some(Err(Error::protocol("duplicate ListOffsets result")));
+                        }
+                    } else if part.error_code == 0 {
+                        if let Some(slot) = slots.get_mut(*index) {
+                            *slot = Some(Ok((part.offset, part.timestamp, part.leader_epoch)));
+                        }
+                    } else {
+                        let error = Error::broker(part.error_code, "ListOffsets");
+                        if matches!(
+                            part.error_code,
+                            error::FENCED_LEADER_EPOCH | error::UNKNOWN_LEADER_EPOCH
+                        ) {
+                            read.fenced.push((Arc::<str>::from(topic_name), *partition));
+                            read.fenced_indexes.push(*index);
+                        } else if error.is_retriable() {
+                            self.cluster.invalidate_topic(topic_name);
+                            read.drop_conn = true;
+                        } else if let Some(slot) = slots.get_mut(*index) {
+                            *slot = Some(Err(error));
+                        }
+                    }
+                } else if let Some(slot) = slots.get_mut(*index) {
                     *slot = Some(Err(Error::protocol(
                         "ListOffsets missing requested partition",
                     )));
                 }
-                continue;
-            };
-            if by_topic
-                .get(topic_name)
-                .and_then(|parts| parts.get(partition))
-                .is_some_and(|left| !left.is_empty())
-            {
-                if let Some(slot) = slots.get_mut(*index) {
-                    *slot = Some(Err(Error::protocol("duplicate ListOffsets result")));
-                }
-                continue;
             }
-            if part.error_code == 0 {
-                if let Some(slot) = slots.get_mut(*index) {
-                    *slot = Some(Ok((part.offset, part.timestamp, part.leader_epoch)));
-                }
-                continue;
-            }
-            let error = Error::broker(part.error_code, "ListOffsets");
-            if matches!(
-                part.error_code,
-                error::FENCED_LEADER_EPOCH | error::UNKNOWN_LEADER_EPOCH
-            ) {
-                read.fenced.push((Arc::<str>::from(topic_name), *partition));
-                read.fenced_indexes.push(*index);
-                continue;
-            }
-            if error.is_retriable() {
-                self.cluster.invalidate_topic(topic_name);
-                read.drop_conn = true;
-                continue;
-            }
-            if let Some(slot) = slots.get_mut(*index) {
-                *slot = Some(Err(error));
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
             }
         }
         Ok(read)
