@@ -2217,7 +2217,7 @@ impl Producer {
                 if rest.is_zero() {
                     return Err(Error::Timeout);
                 }
-                self.reconnect_cached_leaders(std::iter::once(&*rec));
+                self.reconnect_cached_leaders(std::iter::once(&*rec)).await;
                 let timeout = self.inner.shared.cfg.request_timeout.min(rest);
                 let _ = partitions_for_timeout(&self.inner.shared, &rec.topic, timeout).await?;
             }
@@ -2331,11 +2331,13 @@ impl Producer {
                         std::iter::once(&rec)
                             .chain(ready.iter().map(|(_, rec)| rec))
                             .chain(pending.iter().map(|(_, rec)| rec)),
-                    );
+                    )
+                    .await;
                     let requested = if ready.is_empty() {
                         refresh_topics_within(&self.inner.shared, &topics, timeout).await?
                     } else {
-                        self.nudge_known_leaders(ready.iter().map(|(_, rec)| rec));
+                        self.nudge_known_leaders(ready.iter().map(|(_, rec)| rec))
+                            .await;
                         let shared = Arc::clone(&self.inner.shared);
                         let refresh_topics = topics.clone();
                         let task = tokio::spawn(async move {
@@ -2394,7 +2396,8 @@ impl Producer {
             // for its own worker, so a later leader is already dialing.
             self.nudge_known_leaders(
                 std::iter::once(&rec).chain(pending.iter().map(|(_, rec)| rec)),
-            );
+            )
+            .await;
             let rx = self.enqueue_one(rec).await?;
             if let Some(slot) = slots.get_mut(index) {
                 *slot = Some(rx);
@@ -2411,32 +2414,24 @@ impl Producer {
     }
 
     /// Redial idle leader sockets while a metadata refresh is still running.
-    fn reconnect_cached_leaders<'a>(&self, recs: impl Iterator<Item = &'a ProduceRecord>) {
+    async fn reconnect_cached_leaders<'a>(&self, recs: impl Iterator<Item = &'a ProduceRecord>) {
         if self.inner.shared.sticky.is_some() {
             return;
         }
         let shared = &self.inner.shared;
         let n_conn = shared.cfg.connections.max(1);
         let mut slots = HashSet::new();
-        {
-            let cluster = shared.cluster.lock();
-            for rec in recs {
-                let Some(np) = cluster.partition_count(rec.topic.as_ref()) else {
-                    continue;
-                };
-                if np <= 0 {
-                    continue;
-                }
-                let partition = match rec.partition {
-                    Some(partition) => partition,
-                    None => pick_part(rec, np, shared.partitioner.as_ref()),
-                };
-                let Ok(node) = cluster.leader_id(rec.topic.as_ref(), partition) else {
-                    continue;
-                };
-                let slot = usize::try_from(partition).unwrap_or(0) % n_conn;
-                let _ = slots.insert((node, slot));
+        let mut chunk = Vec::new();
+        for rec in recs {
+            chunk.push(rec);
+            if chunk.len() == leader_scan_chunk() {
+                remember_reconnect_slots(shared, &chunk, n_conn, &mut slots);
+                chunk.clear();
+                tokio::task::yield_now().await;
             }
+        }
+        if !chunk.is_empty() {
+            remember_reconnect_slots(shared, &chunk, n_conn, &mut slots);
         }
         let nodes = shared.nodes.lock();
         for (node, slot) in slots {
@@ -2452,7 +2447,7 @@ impl Producer {
     }
 
     /// Nudge a connection for every record whose leader is already known.
-    fn nudge_known_leaders<'a>(&self, recs: impl Iterator<Item = &'a ProduceRecord>) {
+    async fn nudge_known_leaders<'a>(&self, recs: impl Iterator<Item = &'a ProduceRecord>) {
         if self.inner.shared.sticky.is_some() {
             return;
         }
@@ -2460,28 +2455,17 @@ impl Producer {
         let n_conn = shared.cfg.connections.max(1);
         let max_age = shared.cfg.metadata_max_age;
         let mut slots = HashSet::new();
-        {
-            let cluster = shared.cluster.lock();
-            for rec in recs {
-                if !cluster.topic_fresh(rec.topic.as_ref(), max_age) {
-                    continue;
-                }
-                let Some(np) = cluster.partition_count(rec.topic.as_ref()) else {
-                    continue;
-                };
-                if np <= 0 {
-                    continue;
-                }
-                let partition = match rec.partition {
-                    Some(partition) => partition,
-                    None => pick_part(rec, np, shared.partitioner.as_ref()),
-                };
-                let Ok(node) = cluster.leader_id(rec.topic.as_ref(), partition) else {
-                    continue;
-                };
-                let slot = usize::try_from(partition).unwrap_or(0) % n_conn;
-                let _ = slots.insert((node, slot));
+        let mut chunk = Vec::new();
+        for rec in recs {
+            chunk.push(rec);
+            if chunk.len() == leader_scan_chunk() {
+                remember_known_leader_slots(shared, &chunk, n_conn, max_age, &mut slots);
+                chunk.clear();
+                tokio::task::yield_now().await;
             }
+        }
+        if !chunk.is_empty() {
+            remember_known_leader_slots(shared, &chunk, n_conn, max_age, &mut slots);
         }
         for (node, slot) in slots {
             try_nudge_slot(&shared.connect_tx, node, slot);
@@ -6304,7 +6288,7 @@ async fn retry_loop(weak: std::sync::Weak<Shared>, mut rx: mpsc::Receiver<Pendin
             }
             // The sockets start while each record still waits for retry_after.
             // Nothing is sent until that per-record deadline.
-            nudge_retry_leaders(&shared, &batch);
+            nudge_retry_leaders(&shared, &batch).await;
         }
         for pending in batch {
             retry_one(&shared, pending).await;
@@ -6328,27 +6312,109 @@ impl Drop for RetryGuard<'_> {
 }
 
 /// Open a leader socket for every retried partition whose leader is known.
-fn nudge_retry_leaders(shared: &Shared, batch: &[Pending]) {
+async fn nudge_retry_leaders(shared: &Shared, batch: &[Pending]) {
     if shared.sticky.is_some() {
         return;
     }
     let n_conn = shared.cfg.connections.max(1);
-    let mut slots = HashSet::new();
-    {
-        let cluster = shared.cluster.lock();
-        for pending in batch {
-            let Some(part) = pending.rec.partition else {
-                continue;
-            };
-            let Ok(node) = cluster.leader_id(pending.rec.topic.as_ref(), part) else {
-                continue;
-            };
-            let slot = usize::try_from(part).unwrap_or(0) % n_conn;
-            let _ = slots.insert((node, slot));
-        }
-    }
+    let slots = collect_retry_leader_slots(&shared.cluster, batch, n_conn).await;
     for (node, slot) in slots {
         try_nudge_slot(&shared.connect_tx, node, slot);
+    }
+}
+
+fn leader_scan_chunk() -> usize {
+    8 * 1024
+}
+
+/// Looking up 2,000,000 missing leaders held the caller for 231ms.
+/// A missing topic is still skipped.
+async fn collect_retry_leader_slots(
+    cluster: &parking_lot::Mutex<Cluster>,
+    batch: &[Pending],
+    n_conn: usize,
+) -> HashSet<(i32, usize)> {
+    let mut slots = HashSet::new();
+    let mut start = 0usize;
+    let n_conn = n_conn.max(1);
+    while start < batch.len() {
+        let end = start.saturating_add(leader_scan_chunk()).min(batch.len());
+        if let Some(slice) = batch.get(start..end) {
+            let stored = cluster.lock();
+            for pending in slice {
+                let Some(part) = pending.rec.partition else {
+                    continue;
+                };
+                let Ok(node) = stored.leader_id(pending.rec.topic.as_ref(), part) else {
+                    continue;
+                };
+                let slot = usize::try_from(part).unwrap_or(0) % n_conn;
+                let _ = slots.insert((node, slot));
+            }
+        }
+        start = end;
+        if start < batch.len() {
+            tokio::task::yield_now().await;
+        }
+    }
+    slots
+}
+
+fn remember_reconnect_slots(
+    shared: &Shared,
+    chunk: &[&ProduceRecord],
+    n_conn: usize,
+    slots: &mut HashSet<(i32, usize)>,
+) {
+    let cluster = shared.cluster.lock();
+    let n_conn = n_conn.max(1);
+    for rec in chunk {
+        let Some(np) = cluster.partition_count(rec.topic.as_ref()) else {
+            continue;
+        };
+        if np <= 0 {
+            continue;
+        }
+        let partition = match rec.partition {
+            Some(partition) => partition,
+            None => pick_part(rec, np, shared.partitioner.as_ref()),
+        };
+        let Ok(node) = cluster.leader_id(rec.topic.as_ref(), partition) else {
+            continue;
+        };
+        let slot = usize::try_from(partition).unwrap_or(0) % n_conn;
+        let _ = slots.insert((node, slot));
+    }
+}
+
+fn remember_known_leader_slots(
+    shared: &Shared,
+    chunk: &[&ProduceRecord],
+    n_conn: usize,
+    max_age: Duration,
+    slots: &mut HashSet<(i32, usize)>,
+) {
+    let cluster = shared.cluster.lock();
+    let n_conn = n_conn.max(1);
+    for rec in chunk {
+        if !cluster.topic_fresh(rec.topic.as_ref(), max_age) {
+            continue;
+        }
+        let Some(np) = cluster.partition_count(rec.topic.as_ref()) else {
+            continue;
+        };
+        if np <= 0 {
+            continue;
+        }
+        let partition = match rec.partition {
+            Some(partition) => partition,
+            None => pick_part(rec, np, shared.partitioner.as_ref()),
+        };
+        let Ok(node) = cluster.leader_id(rec.topic.as_ref(), partition) else {
+            continue;
+        };
+        let slot = usize::try_from(partition).unwrap_or(0) % n_conn;
+        let _ = slots.insert((node, slot));
     }
 }
 
@@ -12880,6 +12946,55 @@ mod tests {
                 .map(Vec::len),
             Ok(1)
         );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn looking_up_many_missing_leaders_does_not_hold_the_caller() {
+        let batch: Vec<Pending> = (0..2_000_000)
+            .map(|index| queued("orders", Some(index)))
+            .collect();
+        let cluster = parking_lot::Mutex::new(Cluster::default());
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = collect_retry_leader_slots(&cluster, &batch, 1) => {}
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        assert!(
+            started.elapsed() < std::time::Duration::from_millis(80),
+            "looking up missing leaders held the caller for {:?}",
+            started.elapsed()
+        );
+        let mut known = Cluster::default();
+        let mut image = MetadataResponse::blank();
+        image.brokers = vec![crate::protocol::api::Broker::new(
+            4,
+            "127.0.0.1",
+            9092,
+            None,
+        )];
+        image.topics = vec![crate::protocol::api::TopicMetadata::new(
+            0,
+            "orders",
+            false,
+            vec![crate::protocol::api::PartitionMetadata {
+                error_code: 0,
+                partition_index: 0,
+                leader_id: 4,
+                leader_epoch: 1,
+                replica_nodes: Vec::new(),
+                isr_nodes: Vec::new(),
+                offline_replicas: Vec::new(),
+            }],
+        )];
+        known.apply_image(&image, 1).await;
+        let found = collect_retry_leader_slots(
+            &parking_lot::Mutex::new(known),
+            &[queued("orders", Some(0)), queued("orders", None)],
+            1,
+        )
+        .await;
+        assert!(found.contains(&(4, 0)));
+        assert_eq!(found.len(), 1);
     }
 
     #[tokio::test(flavor = "current_thread")]
