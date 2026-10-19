@@ -23,7 +23,7 @@ use crate::cluster::{Cluster, LeaderList};
 use crate::error::{self, Error, Result};
 use crate::net::{BrokerConn, TlsConfig};
 use crate::protocol::acl::{
-    decode_create_acls_response, decode_delete_acls_filter_results,
+    decode_create_acls_response, decode_delete_acls_filter_results_cooperative,
     decode_describe_acls_response_cooperative, encode_create_acls_request,
     encode_delete_acls_request, encode_describe_acls_request,
 };
@@ -11069,7 +11069,8 @@ impl Admin {
                 timeout,
             )
             .await?;
-        let (results, ..) = decode_delete_acls_filter_results(&mut body.clone(), version)?;
+        let (results, ..) =
+            decode_delete_acls_filter_results_cooperative(&mut body.clone(), version).await?;
         Ok(results)
     }
 
@@ -19099,6 +19100,83 @@ mod tests {
         );
         assert_eq!(coop.0.first().map(|item| item.topic_id), Some([4; 16]));
         assert_eq!(coop.0.first().map(|item| item.num_partitions), Some(-1));
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn decoding_many_deleted_acls_does_not_hold_the_caller() {
+        let matching: Vec<AclBinding> = (0..200_000)
+            .map(|index| AclBinding::allow_topic(format!("topic-{index}"), "User:alice"))
+            .collect();
+        let mut body = bytes::BytesMut::new();
+        crate::protocol::acl::encode_delete_acls_response(&mut body, 3, 0, &matching)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let started = std::time::Instant::now();
+        tokio::select! {
+            decoded = decode_delete_acls_filter_results_cooperative(&mut body, 3) => {
+                let (decoded, throttle) = decoded.unwrap_or_else(|error| panic!("{error}"));
+                assert_eq!(throttle, 0);
+                assert_eq!(decoded.first().map(|item| item.matching.len()), Some(200_000));
+                assert_eq!(
+                    decoded.first().and_then(|item| item.matching.first()).map(|item| item.resource_name.as_str()),
+                    Some("topic-0")
+                );
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "decoding deleted acls held the caller for {elapsed:?}"
+        );
+        let filters = [
+            crate::protocol::acl::DeletedAclsFilterResult {
+                error_code: 0,
+                error_message: Some("busy".to_string()),
+                matching: vec![crate::protocol::acl::DeleteAclsMatchingAcl {
+                    error_code: 0,
+                    error_message: None,
+                    resource_type: 2,
+                    resource_name: "orders".to_string(),
+                    pattern_type: 3,
+                    principal: "User:alice".to_string(),
+                    host: "10.0.0.1".to_string(),
+                    operation: 3,
+                    permission: 3,
+                }],
+            },
+            crate::protocol::acl::DeletedAclsFilterResult {
+                error_code: 7,
+                error_message: None,
+                matching: Vec::new(),
+            },
+        ];
+        let mut encoded = bytes::BytesMut::new();
+        crate::protocol::acl::encode_delete_acls_filter_results(&mut encoded, 3, &filters)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let mut once = encoded.clone();
+        let mut paced = encoded;
+        let sync = crate::protocol::acl::decode_delete_acls_filter_results(&mut once, 3)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let coop = decode_delete_acls_filter_results_cooperative(&mut paced, 3)
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(sync.0, coop.0);
+        assert_eq!(sync.1, coop.1);
+        assert_eq!(coop.0.len(), 2);
+        assert_eq!(
+            coop.0
+                .first()
+                .and_then(|item| item.error_message.as_deref()),
+            Some("busy")
+        );
+        assert_eq!(
+            coop.0
+                .first()
+                .and_then(|item| item.matching.first())
+                .map(|item| item.host.as_str()),
+            Some("10.0.0.1")
+        );
+        assert_eq!(coop.0.get(1).map(|item| item.error_code), Some(7));
     }
 
     #[tokio::test(flavor = "current_thread")]

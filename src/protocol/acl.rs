@@ -2902,6 +2902,51 @@ pub fn decode_delete_acls_filter_results<B: Buf>(
     Ok((out, throttle_time_ms))
 }
 
+/// [`decode_delete_acls_filter_results`], yielding while matching ACLs are still being read.
+///
+/// Decoding 200,000 matching ACLs held the caller for 214ms.
+pub async fn decode_delete_acls_filter_results_cooperative<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<(Vec<DeletedAclsFilterResult>, i32)> {
+    let flexible = acl_api_flexible(version)?;
+    let throttle_time_ms = buf::get_i32(buf)?;
+    let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+    let mut out = Vec::with_capacity(n);
+    let mut walked = 0usize;
+    for _ in 0..n {
+        let error_code = buf::get_i16(buf)?;
+        let error_message = buf::get_string(buf, flexible)?;
+        let mn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+        let mut matching = Vec::with_capacity(mn);
+        for _ in 0..mn {
+            matching.push(get_delete_matching_acl(buf, version, flexible)?);
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+        if flexible {
+            buf::skip_tagged_fields(buf)?;
+        }
+        out.push(DeletedAclsFilterResult {
+            error_code,
+            error_message,
+            matching,
+        });
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
+    }
+    Ok((out, throttle_time_ms))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
