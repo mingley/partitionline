@@ -61,12 +61,12 @@ use crate::protocol::admin::{
     encode_alter_replica_log_dirs_request, encode_alter_share_group_offsets_request,
     encode_alter_user_scram_credentials_named, encode_assign_replicas_to_dirs_request,
     encode_consumer_group_describe_ids, encode_create_delegation_token_request,
-    encode_create_partitions_named, encode_create_topics_named, encode_delete_groups_ids,
-    encode_delete_records_named_topics_cooperative, encode_delete_records_owned_topics_cooperative,
-    encode_delete_share_group_offsets_request, encode_describe_client_quotas_request,
-    encode_describe_cluster_request, encode_describe_configs_named,
-    encode_describe_delegation_token_request, encode_describe_groups_ids,
-    encode_describe_log_dirs_named, encode_describe_log_dirs_request,
+    encode_create_partitions_named, encode_create_topics_named,
+    encode_delete_groups_ids_cooperative, encode_delete_records_named_topics_cooperative,
+    encode_delete_records_owned_topics_cooperative, encode_delete_share_group_offsets_request,
+    encode_describe_client_quotas_request, encode_describe_cluster_request,
+    encode_describe_configs_named, encode_describe_delegation_token_request,
+    encode_describe_groups_ids, encode_describe_log_dirs_named, encode_describe_log_dirs_request,
     encode_describe_producers_named_topics, encode_describe_share_group_offsets_request_refs,
     encode_describe_topic_partitions_names, encode_describe_transactions_ids,
     encode_describe_user_scram_credentials_ids, encode_expire_delegation_token_hmac,
@@ -12642,13 +12642,21 @@ impl Admin {
             nodes.sort_unstable();
             let mut still = Vec::new();
             if nodes.len() > 1 {
+                let mut prepared = HashMap::new();
+                for node in &nodes {
+                    let idxs = by_node.get(node).map(Vec::as_slice).unwrap_or(&[]);
+                    let subset = borrowed_ids(ids, idxs);
+                    let mut payload = BytesMut::new();
+                    encode_delete_groups_ids_cooperative(&mut payload, version, &subset).await?;
+                    let _previous = prepared.insert(*node, payload.freeze());
+                }
                 let mut finished = self
                     .exchange_leaders(&nodes, deadline, |_admin, node, _conn, _timeout| {
-                        let idxs = by_node.get(&node).map(Vec::as_slice).unwrap_or(&[]);
-                        let subset = borrowed_ids(ids, idxs);
-                        let mut payload = BytesMut::new();
-                        encode_delete_groups_ids(&mut payload, version, &subset)?;
-                        Ok(LeaderFrame::ready(DELETE_GROUPS, version, payload.freeze()))
+                        let payload = prepared
+                            .get(&node)
+                            .cloned()
+                            .ok_or_else(|| Error::protocol("missing delete groups request"))?;
+                        Ok(LeaderFrame::ready(DELETE_GROUPS, version, payload))
                     })
                     .await;
                 for node in &nodes {
@@ -15451,13 +15459,18 @@ impl Admin {
     ) -> Result<Vec<(usize, DeletableGroupResult)>> {
         let subset = borrowed_ids(ids, idxs);
         let timeout = startup_remaining(deadline)?;
+        let mut encoded = BytesMut::new();
+        encode_delete_groups_ids_cooperative(&mut encoded, version, &subset).await?;
         let body = self
             .roundtrip_known_node(
                 node,
                 deadline,
                 DELETE_GROUPS,
                 version,
-                |buf| encode_delete_groups_ids(buf, version, &subset),
+                |buf| {
+                    buf.extend_from_slice(&encoded);
+                    Ok(())
+                },
                 timeout,
             )
             .await?;

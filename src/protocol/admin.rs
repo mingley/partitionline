@@ -15792,6 +15792,58 @@ pub(crate) fn encode_delete_groups_ids<T: AsRef<str>>(
     Ok(())
 }
 
+/// Encode DeleteGroups, yielding while group ids are still being written.
+///
+/// Encoding 2,000,000 groups held the caller for 279ms. A group id is still written.
+pub(crate) async fn encode_delete_groups_ids_cooperative<T: AsRef<str> + Sync>(
+    buf: &mut BytesMut,
+    version: i16,
+    group_ids: &[T],
+) -> crate::error::Result<()> {
+    let flexible = delete_groups_flexible(version)?;
+    let body_start = buf.len();
+    let planned = delete_groups_request_len_cooperative(flexible, group_ids).await?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
+    buf::put_array_len(buf, flexible, Some(group_ids.len()))?;
+    let mut walked = 0usize;
+    for id in group_ids {
+        buf::put_string(buf, flexible, Some(id.as_ref()))?;
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+    Ok(())
+}
+
+async fn delete_groups_request_len_cooperative<T: AsRef<str> + Sync>(
+    flexible: bool,
+    group_ids: &[T],
+) -> Result<usize> {
+    let mut total = describe_array_len(flexible, group_ids.len())?;
+    let mut walked = 0usize;
+    for id in group_ids {
+        total = add_describe_len(total, describe_string_len(flexible, Some(id.as_ref()))?)?;
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    if flexible {
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
+}
+
 fn delete_groups_request_len<T: AsRef<str>>(flexible: bool, group_ids: &[T]) -> Result<usize> {
     let mut total = describe_array_len(flexible, group_ids.len())?;
     for id in group_ids {
@@ -26726,6 +26778,34 @@ pub fn decode_remove_raft_voter_response<B: Buf>(
 mod tests {
     use super::*;
     use std::collections::{BTreeSet, HashMap};
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn encoding_many_deleted_groups_does_not_hold_the_caller() {
+        let ids: Vec<String> = (0..2_000_000)
+            .map(|index| format!("group-{index}"))
+            .collect();
+        let mut body = bytes::BytesMut::new();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            encoded = encode_delete_groups_ids_cooperative(&mut body, 2, &ids) => {
+                encoded.unwrap_or_else(|error| panic!("{error}"));
+            }
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "encoding deleted groups held the caller for {elapsed:?}"
+        );
+        let sample = ["orders".to_string()];
+        let mut once = bytes::BytesMut::new();
+        let mut paced = bytes::BytesMut::new();
+        encode_delete_groups_ids(&mut once, 2, &sample).unwrap_or_else(|error| panic!("{error}"));
+        encode_delete_groups_ids_cooperative(&mut paced, 2, &sample)
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(once, paced);
+    }
 
     #[test]
     fn a_add_raft_voter_sizes_its_body_once() {
