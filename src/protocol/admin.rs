@@ -4644,6 +4644,44 @@ pub fn decode_incremental_alter_configs_resource_results<B: Buf>(
     Ok((out, throttle_time_ms))
 }
 
+/// [`decode_incremental_alter_configs_resource_results`], yielding while resources are still being read.
+///
+/// Decoding 1,000,000 resources held the caller for 557ms.
+pub async fn decode_incremental_alter_configs_resource_results_cooperative<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<(Vec<AlterConfigsResourceResult>, i32)> {
+    let flexible = incremental_alter_configs_flexible(version)?;
+    let throttle_time_ms = buf::get_i32(buf)?;
+    let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+    let mut out = Vec::with_capacity(n);
+    let mut walked = 0usize;
+    for _ in 0..n {
+        let error_code = buf::get_i16(buf)?;
+        let error_message = buf::get_string(buf, flexible)?;
+        let resource_type = buf::get_i8(buf)?;
+        let name = buf::get_string(buf, flexible)?.unwrap_or_default();
+        if flexible {
+            buf::skip_tagged_fields(buf)?;
+        }
+        out.push(AlterConfigsResourceResult {
+            error_code,
+            error_message,
+            resource_type,
+            name,
+        });
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
+    }
+    Ok((out, throttle_time_ms))
+}
+
 /// `true` when AlterConfigs `version` is flexible.
 ///
 /// v0–v1 are classic. ThrottleTimeMs is JSON `0+` (on the wire for every

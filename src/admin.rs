@@ -46,7 +46,8 @@ use crate::protocol::admin::{
     decode_describe_topic_partitions_response_cooperative,
     decode_describe_transactions_response_cooperative,
     decode_describe_user_scram_credentials_response, decode_expire_delegation_token_response,
-    decode_get_telemetry_subscriptions_response, decode_incremental_alter_configs_resource_results,
+    decode_get_telemetry_subscriptions_response,
+    decode_incremental_alter_configs_resource_results_cooperative,
     decode_list_config_resources_response_cooperative, decode_list_groups_response_cooperative,
     decode_list_partition_reassignments_response_cooperative, decode_list_transactions_response,
     decode_push_telemetry_response, decode_renew_delegation_token_response,
@@ -6306,8 +6307,11 @@ impl Admin {
                 }
                 Err(e) => return Err(e),
             };
-            let (results, ..) =
-                decode_incremental_alter_configs_resource_results(&mut body.clone(), version)?;
+            let (results, ..) = decode_incremental_alter_configs_resource_results_cooperative(
+                &mut body.clone(),
+                version,
+            )
+            .await?;
             if results
                 .iter()
                 .any(|r| r.error_code == error::NOT_CONTROLLER)
@@ -19876,6 +19880,68 @@ mod tests {
                 .map(|item| item.low_watermark),
             Some(11)
         );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn decoding_many_altered_configs_does_not_hold_the_caller() {
+        let results: Vec<AlterConfigsResourceResult> = (0..1_000_000)
+            .map(|index| AlterConfigsResourceResult {
+                error_code: 0,
+                error_message: None,
+                resource_type: 2,
+                name: format!("topic-{index}"),
+            })
+            .collect();
+        let mut body = bytes::BytesMut::new();
+        crate::protocol::admin::encode_incremental_alter_configs_resource_results(
+            &mut body, 1, &results,
+        )
+        .unwrap_or_else(|error| panic!("{error}"));
+        let started = std::time::Instant::now();
+        tokio::select! {
+            decoded = decode_incremental_alter_configs_resource_results_cooperative(&mut body, 1) => {
+                let (decoded, throttle) = decoded.unwrap_or_else(|error| panic!("{error}"));
+                assert_eq!(throttle, 0);
+                assert_eq!(decoded.len(), 1_000_000);
+                assert_eq!(decoded.first().map(|item| item.name.as_str()), Some("topic-0"));
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "decoding altered configs held the caller for {elapsed:?}"
+        );
+        let results = [AlterConfigsResourceResult {
+            error_code: 7,
+            error_message: Some("busy".to_string()),
+            resource_type: 2,
+            name: "orders".to_string(),
+        }];
+        let mut encoded = bytes::BytesMut::new();
+        crate::protocol::admin::encode_incremental_alter_configs_resource_results(
+            &mut encoded,
+            1,
+            &results,
+        )
+        .unwrap_or_else(|error| panic!("{error}"));
+        let mut once = encoded.clone();
+        let mut paced = encoded;
+        let sync =
+            crate::protocol::admin::decode_incremental_alter_configs_resource_results(&mut once, 1)
+                .unwrap_or_else(|error| panic!("{error}"));
+        let coop = decode_incremental_alter_configs_resource_results_cooperative(&mut paced, 1)
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(sync.0, coop.0);
+        assert_eq!(sync.1, coop.1);
+        assert_eq!(
+            coop.0
+                .first()
+                .and_then(|item| item.error_message.as_deref()),
+            Some("busy")
+        );
+        assert_eq!(coop.0.first().map(|item| item.resource_type), Some(2));
     }
 
     #[tokio::test(flavor = "current_thread")]
