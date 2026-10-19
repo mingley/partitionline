@@ -88,6 +88,7 @@ These walks include:
 - summing stored share acquisition metadata before a poll
 - clearing and pruning the share leader plan
 - resolving share leader addresses before a dial
+- opening a KIP-848 group assignment into topic partitions
 - copying a changed consumer or share heartbeat subscription or assignment
 - opening one result slot, and its index, for each item in an admin batch
 - copying transactional ids before fencing producers
