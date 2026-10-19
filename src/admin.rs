@@ -75,7 +75,7 @@ use crate::protocol::admin::{
     encode_list_config_resources_request, encode_list_groups_filters,
     encode_list_partition_reassignments_named, encode_list_transactions_states,
     encode_push_telemetry_metrics, encode_renew_delegation_token_hmac,
-    encode_renew_delegation_token_request, encode_share_group_describe_ids,
+    encode_renew_delegation_token_request, encode_share_group_describe_ids_cooperative,
     encode_unregister_broker_request, encode_update_features_named, AlterConfigsResource,
     BorrowedAlterConfig, BorrowedAlterConfigsResource, BorrowedAlterReplicaLogDir,
     BorrowedAlterReplicaLogDirTopic, BorrowedAlterableResource, BorrowedCreatableTopic,
@@ -13141,22 +13141,26 @@ impl Admin {
             nodes.sort_unstable();
             let mut still = Vec::new();
             if nodes.len() > 1 {
+                let mut prepared = HashMap::new();
+                for node in &nodes {
+                    let idxs = by_node.get(node).map(Vec::as_slice).unwrap_or(&[]);
+                    let subset = borrowed_ids(ids, idxs);
+                    let mut payload = BytesMut::new();
+                    encode_share_group_describe_ids_cooperative(
+                        &mut payload,
+                        version,
+                        &subset,
+                        include_authorized_operations,
+                    )
+                    .await?;
+                    let _previous = prepared.insert(*node, payload.freeze());
+                }
                 let mut finished = self
                     .exchange_leaders(&nodes, deadline, |_admin, node, _conn, _timeout| {
-                        let idxs = by_node.get(&node).map(Vec::as_slice).unwrap_or(&[]);
-                        let subset = borrowed_ids(ids, idxs);
-                        let mut payload = BytesMut::new();
-                        encode_share_group_describe_ids(
-                            &mut payload,
-                            version,
-                            &subset,
-                            include_authorized_operations,
-                        )?;
-                        Ok(LeaderFrame::ready(
-                            SHARE_GROUP_DESCRIBE,
-                            version,
-                            payload.freeze(),
-                        ))
+                        let payload = prepared.get(&node).cloned().ok_or_else(|| {
+                            Error::protocol("missing share group describe request")
+                        })?;
+                        Ok(LeaderFrame::ready(SHARE_GROUP_DESCRIBE, version, payload))
                     })
                     .await;
                 for node in &nodes {
@@ -15596,6 +15600,14 @@ impl Admin {
     ) -> Result<Vec<(usize, DescribedShareGroup)>> {
         let subset = borrowed_ids(ids, idxs);
         let timeout = startup_remaining(deadline)?;
+        let mut encoded = BytesMut::new();
+        encode_share_group_describe_ids_cooperative(
+            &mut encoded,
+            version,
+            &subset,
+            include_authorized_operations,
+        )
+        .await?;
         let body = self
             .roundtrip_known_node(
                 node,
@@ -15603,12 +15615,8 @@ impl Admin {
                 SHARE_GROUP_DESCRIBE,
                 version,
                 |buf| {
-                    encode_share_group_describe_ids(
-                        buf,
-                        version,
-                        &subset,
-                        include_authorized_operations,
-                    )
+                    buf.extend_from_slice(&encoded);
+                    Ok(())
                 },
                 timeout,
             )
