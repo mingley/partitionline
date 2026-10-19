@@ -2551,6 +2551,13 @@ pub enum ShareAcquireMode {
 /// `FENCED_STATE_EPOCH`). Official Java
 /// `KafkaRaftClient` writes this when a VOTE or BEGIN_QUORUM_EPOCH
 /// request carries a voter key that does not match the local key.
+/// Top-level `DUPLICATE_VOTER` still fails that poll
+/// and does not request Metadata, including when `ErrorMessage` is
+/// set (Java `handleShareFetchSuccess` only `requestUpdate`s for
+/// `UNKNOWN_TOPIC_ID`; this is not top-level
+/// `INVALID_VOTER_KEY`). Official Java
+/// `AddVoterHandler` writes this when the AddRaftVoter request
+/// names a voter id that is already part of the set of voters.
 /// Top-level
 /// `SHARE_SESSION_LIMIT_REACHED` resets the share session and does
 /// not request Metadata, including when `ErrorMessage` is set or
@@ -6067,6 +6074,15 @@ impl ShareGroup {
     /// `KafkaRaftClient` writes this when a VOTE or
     /// BEGIN_QUORUM_EPOCH request carries a voter key that does not
     /// match the local key.
+    /// Top-level
+    /// `DUPLICATE_VOTER` still fails that poll without
+    /// Metadata, including when `ErrorMessage` is set (Java
+    /// `handleShareFetchSuccess` only `requestUpdate`s for
+    /// `UNKNOWN_TOPIC_ID`; this is not top-level
+    /// `INVALID_VOTER_KEY`). Official Java
+    /// `AddVoterHandler` writes this when the AddRaftVoter
+    /// request names a voter id that is already part of the set of
+    /// voters.
     /// Top-level
     /// `SHARE_SESSION_LIMIT_REACHED` resets the share session and
     /// does not request Metadata, including when `ErrorMessage` is
