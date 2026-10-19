@@ -33,10 +33,11 @@ use crate::protocol::admin::{
     decode_alter_partition_reassignments_response_data,
     decode_alter_replica_log_dirs_response_cooperative,
     decode_alter_share_group_offsets_response_cooperative,
-    decode_alter_user_scram_credentials_response, decode_assign_replicas_to_dirs_response,
-    decode_consumer_group_describe_response_cooperative, decode_create_delegation_token_response,
-    decode_create_partitions_response_cooperative, decode_create_topics_response_cooperative,
-    decode_delete_groups_response_cooperative, decode_delete_records_topics_response_cooperative,
+    decode_alter_user_scram_credentials_response_cooperative,
+    decode_assign_replicas_to_dirs_response, decode_consumer_group_describe_response_cooperative,
+    decode_create_delegation_token_response, decode_create_partitions_response_cooperative,
+    decode_create_topics_response_cooperative, decode_delete_groups_response_cooperative,
+    decode_delete_records_topics_response_cooperative,
     decode_delete_share_group_offsets_response_cooperative,
     decode_delete_topics_response_cooperative, decode_describe_client_quotas_response_cooperative,
     decode_describe_cluster_response_cooperative, decode_describe_configs_response_cooperative,
@@ -7108,7 +7109,8 @@ impl Admin {
                 }
                 Err(e) => return Err(e),
             };
-            let (results, ..) = decode_alter_user_scram_credentials_response(&mut body.clone())?;
+            let (results, ..) =
+                decode_alter_user_scram_credentials_response_cooperative(&mut body.clone()).await?;
             if results
                 .iter()
                 .any(|r| r.error_code == error::NOT_CONTROLLER)
@@ -20197,6 +20199,60 @@ mod tests {
                 .and_then(|item| item.error_message.as_deref()),
             Some("not controller")
         );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn decoding_many_altered_scram_users_does_not_hold_the_caller() {
+        let results: Vec<crate::protocol::admin::AlterUserScramCredentialsResult> = (0..400_000)
+            .map(
+                |index| crate::protocol::admin::AlterUserScramCredentialsResult {
+                    user: format!("user-{index}"),
+                    error_code: 0,
+                    error_message: None,
+                },
+            )
+            .collect();
+        let mut body = bytes::BytesMut::new();
+        crate::protocol::admin::encode_alter_user_scram_credentials_response(&mut body, &results)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let started = std::time::Instant::now();
+        tokio::select! {
+            decoded = decode_alter_user_scram_credentials_response_cooperative(&mut body) => {
+                let (decoded, throttle) = decoded.unwrap_or_else(|error| panic!("{error}"));
+                assert_eq!(throttle, 0);
+                assert_eq!(decoded.len(), 400_000);
+                assert_eq!(decoded.first().map(|item| item.user.as_str()), Some("user-0"));
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "decoding altered scram users held the caller for {elapsed:?}"
+        );
+        let sample = [crate::protocol::admin::AlterUserScramCredentialsResult {
+            user: "alice".to_string(),
+            error_code: 41,
+            error_message: Some("busy".to_string()),
+        }];
+        let mut encoded = bytes::BytesMut::new();
+        crate::protocol::admin::encode_alter_user_scram_credentials_response(&mut encoded, &sample)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let mut once = encoded.clone();
+        let mut paced = encoded;
+        let sync = crate::protocol::admin::decode_alter_user_scram_credentials_response(&mut once)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let coop = decode_alter_user_scram_credentials_response_cooperative(&mut paced)
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(sync, coop);
+        assert_eq!(
+            coop.0
+                .first()
+                .and_then(|item| item.error_message.as_deref()),
+            Some("busy")
+        );
+        assert_eq!(coop.0.first().map(|item| item.user.as_str()), Some("alice"));
     }
 
     #[tokio::test(flavor = "current_thread")]
