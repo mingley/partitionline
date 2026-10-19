@@ -1271,7 +1271,9 @@ pub fn decode_list_offsets_topics_response<B: Buf>(
     Ok((topics, throttle_time_ms))
 }
 
-/// [`decode_list_offsets_topics_response`], yielding while a long partition list is decoded.
+/// [`decode_list_offsets_topics_response`], yielding while topics and long partition lists are decoded.
+///
+/// Decoding 2,000,000 topics held the caller for 984ms. A topic name and an offset are still read.
 pub(crate) async fn decode_list_offsets_topics_response_cooperative<B: Buf>(
     buf: &mut B,
     version: i16,
@@ -1280,6 +1282,7 @@ pub(crate) async fn decode_list_offsets_topics_response_cooperative<B: Buf>(
     let throttle_time_ms = if version >= 2 { buf::get_i32(buf)? } else { 0 };
     let tn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut topics = Vec::with_capacity(tn);
+    let mut walked = 0usize;
     for _ in 0..tn {
         let name = buf::get_string(buf, flexible)?.unwrap_or_default();
         let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
@@ -1297,6 +1300,11 @@ pub(crate) async fn decode_list_offsets_topics_response_cooperative<B: Buf>(
             buf::skip_tagged_fields(buf)?;
         }
         topics.push(ListOffsetsTopicResponse { name, partitions });
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
     }
     if flexible {
         buf::skip_tagged_fields(buf)?;
@@ -1379,6 +1387,49 @@ mod tests {
             .await
             .unwrap_or_else(|error| panic!("{error}"));
         assert_eq!(one, two);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn decoding_many_list_offset_topics_does_not_hold_the_caller() {
+        let topics: Vec<ListOffsetsTopicResponse> = (0..2_000_000)
+            .map(|index| {
+                ListOffsetsTopicResponse::new(
+                    format!("topic-{index}"),
+                    vec![ListOffsetsResponsePartition::error(0, 0)],
+                )
+            })
+            .collect();
+        let mut body = bytes::BytesMut::new();
+        encode_list_offsets_topics_response(&mut body, 4, &topics)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let mut cursor: &[u8] = &body;
+        let started = std::time::Instant::now();
+        tokio::select! {
+            decoded = decode_list_offsets_topics_response_cooperative(&mut cursor, 4) => {
+                let _decoded = decoded.unwrap_or_else(|error| panic!("{error}"));
+            }
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        assert!(
+            started.elapsed() < std::time::Duration::from_millis(80),
+            "decoding list offset topics held the caller for {:?}",
+            started.elapsed()
+        );
+        let sample = [ListOffsetsTopicResponse::new(
+            "orders",
+            vec![ListOffsetsResponsePartition::error(0, 0)],
+        )];
+        let mut once = bytes::BytesMut::new();
+        encode_list_offsets_topics_response(&mut once, 4, &sample)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let mut sync_cursor: &[u8] = &once;
+        let mut paced_cursor: &[u8] = &once;
+        let sync = decode_list_offsets_topics_response(&mut sync_cursor, 4)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let paced = decode_list_offsets_topics_response_cooperative(&mut paced_cursor, 4)
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(sync, paced);
     }
 
     #[tokio::test(flavor = "current_thread")]
