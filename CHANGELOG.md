@@ -554,6 +554,12 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `metadata.requestUpdate`; this is not top-level
   `TRANSACTIONAL_ID_NOT_FOUND`). Official Java `ReplicationControlManager`
   writes this when AlterPartition specifies an ISR containing an ineligible replica.
+  A top-level ShareAcknowledge `NEW_LEADER_ELECTED` completes
+  without retry and does not request Metadata, including when
+  `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+  `metadata.requestUpdate`; this is not top-level
+  `INELIGIBLE_REPLICA`). Official Java `ReplicationControlManager`
+  writes this when AlterPartition completes a reassignment and the leader changes.
   A piggybacked ShareFetch
   `AcknowledgeErrorMessage` that is empty uses
   `ShareFetch acknowledgement {topic}-{partition}`. A piggybacked
