@@ -38,7 +38,8 @@ use crate::protocol::admin::{
     decode_describe_client_quotas_response, decode_describe_cluster_response,
     decode_describe_configs_response_cooperative, decode_describe_delegation_token_response,
     decode_describe_groups_response_cooperative, decode_describe_log_dirs_response_cooperative,
-    decode_describe_producers_response, decode_describe_share_group_offsets_response_versioned,
+    decode_describe_producers_response_cooperative,
+    decode_describe_share_group_offsets_response_versioned,
     decode_describe_topic_partitions_response_cooperative,
     decode_describe_transactions_response_cooperative,
     decode_describe_user_scram_credentials_response, decode_expire_delegation_token_response,
@@ -10862,7 +10863,7 @@ impl Admin {
         body: Bytes,
         pin_broker: bool,
     ) -> Result<DescribeProducersNodeOutcome> {
-        let resp = decode_describe_producers_response(&mut body.clone())?;
+        let resp = decode_describe_producers_response_cooperative(&mut body.clone()).await?;
         let mut by_tp = index_described_producers(resp.topics).await;
         let mut order = Vec::with_capacity(idxs.len());
         let mut walked = 0usize;
@@ -18597,6 +18598,73 @@ mod tests {
                 .and_then(|item| item.partitions.first())
                 .map(|item| item.is_future_key),
             Some(true)
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn decoding_many_described_producers_does_not_hold_the_caller() {
+        let partitions: Vec<DescribeProducersPartition> = (0..2_000_000)
+            .map(|index| DescribeProducersPartition::new(index, 0, None, Vec::new()))
+            .collect();
+        let topic = DescribeProducersTopic::new("orders", partitions);
+        let resp = crate::protocol::admin::DescribeProducersResponse::new(vec![topic]);
+        let mut body = bytes::BytesMut::new();
+        crate::protocol::admin::encode_describe_producers_response(&mut body, &resp)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let started = std::time::Instant::now();
+        tokio::select! {
+            decoded = decode_describe_producers_response_cooperative(&mut body) => {
+                let decoded = decoded.unwrap_or_else(|error| panic!("{error}"));
+                assert_eq!(decoded.throttle_time_ms, 0);
+                assert_eq!(
+                    decoded.topics.first().map(|item| item.partitions.len()),
+                    Some(2_000_000)
+                );
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "decoding described producers held the caller for {elapsed:?}"
+        );
+        let producer = ActiveProducer {
+            producer_id: 9,
+            producer_epoch: 2,
+            last_sequence: 4,
+            last_timestamp: 8,
+            coordinator_epoch: 1,
+            current_txn_start_offset: 3,
+        };
+        let partition =
+            DescribeProducersPartition::new(7, 5, Some("busy".to_string()), vec![producer]);
+        let topic = DescribeProducersTopic::new("orders", vec![partition]);
+        let resp = crate::protocol::admin::DescribeProducersResponse::new(vec![topic]);
+        let mut encoded = bytes::BytesMut::new();
+        crate::protocol::admin::encode_describe_producers_response(&mut encoded, &resp)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let mut once = encoded.clone();
+        let mut paced = encoded;
+        let sync = crate::protocol::admin::decode_describe_producers_response(&mut once)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let coop = decode_describe_producers_response_cooperative(&mut paced)
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(sync, coop);
+        assert_eq!(
+            coop.topics
+                .first()
+                .and_then(|item| item.partitions.first())
+                .and_then(|item| item.error_message.as_deref()),
+            Some("busy")
+        );
+        assert_eq!(
+            coop.topics
+                .first()
+                .and_then(|item| item.partitions.first())
+                .and_then(|item| item.active_producers.first())
+                .map(|item| item.producer_id),
+            Some(9)
         );
     }
 

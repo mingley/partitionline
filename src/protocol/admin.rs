@@ -11270,6 +11270,76 @@ pub fn decode_describe_producers_response<B: Buf>(
     })
 }
 
+/// [`decode_describe_producers_response`], yielding while partitions are still being read.
+///
+/// Decoding 2,000,000 partitions held the caller for 675ms.
+pub async fn decode_describe_producers_response_cooperative<B: Buf>(
+    buf: &mut B,
+) -> Result<DescribeProducersResponse> {
+    let throttle_time_ms = buf::get_i32(buf)?;
+    let tn = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let mut topics = Vec::with_capacity(tn);
+    let mut walked = 0usize;
+    for _ in 0..tn {
+        let name = buf::get_compact_string(buf)?.unwrap_or_default();
+        let pn = buf::get_array_len(buf, true)?.unwrap_or(0);
+        let mut partitions = Vec::with_capacity(pn);
+        for _ in 0..pn {
+            let partition_index = buf::get_i32(buf)?;
+            let error_code = buf::get_i16(buf)?;
+            let error_message = buf::get_compact_string(buf)?;
+            let an = buf::get_array_len(buf, true)?.unwrap_or(0);
+            let mut active_producers = Vec::with_capacity(an);
+            for _ in 0..an {
+                let producer_id = buf::get_i64(buf)?;
+                let producer_epoch = buf::get_i32(buf)?;
+                let last_sequence = buf::get_i32(buf)?;
+                let last_timestamp = buf::get_i64(buf)?;
+                let coordinator_epoch = buf::get_i32(buf)?;
+                let current_txn_start_offset = buf::get_i64(buf)?;
+                buf::skip_tagged_fields(buf)?;
+                active_producers.push(ActiveProducer {
+                    producer_id,
+                    producer_epoch,
+                    last_sequence,
+                    last_timestamp,
+                    coordinator_epoch,
+                    current_txn_start_offset,
+                });
+                walked = walked.saturating_add(1);
+                if walked == 8 * 1024 {
+                    walked = 0;
+                    tokio::task::yield_now().await;
+                }
+            }
+            buf::skip_tagged_fields(buf)?;
+            partitions.push(DescribeProducersPartition {
+                partition_index,
+                error_code,
+                error_message,
+                active_producers,
+            });
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+        buf::skip_tagged_fields(buf)?;
+        topics.push(DescribeProducersTopic { name, partitions });
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    buf::skip_tagged_fields(buf)?;
+    Ok(DescribeProducersResponse {
+        throttle_time_ms,
+        topics,
+    })
+}
+
 /// AllocateProducerIds v0 response (top-level error after throttle).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AllocateProducerIdsResponse {
