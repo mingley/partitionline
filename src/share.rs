@@ -2516,6 +2516,13 @@ pub enum ShareAcquireMode {
 /// `UNKNOWN_SUBSCRIPTION_ID`). Official Java
 /// `ClientMetricsManager` writes this when a PushTelemetry payload
 /// exceeds `clientTelemetryMaxBytes`.
+/// Top-level `INVALID_REGISTRATION` still fails that poll
+/// and does not request Metadata, including when `ErrorMessage` is
+/// set (Java `handleShareFetchSuccess` only `requestUpdate`s for
+/// `UNKNOWN_TOPIC_ID`; this is not top-level
+/// `TELEMETRY_TOO_LARGE`). Official Java
+/// `ClusterControlManager` writes this when a BrokerRegistration
+/// request specifies no directories.
 /// Top-level
 /// `SHARE_SESSION_LIMIT_REACHED` resets the share session and does
 /// not request Metadata, including when `ErrorMessage` is set or
@@ -5957,6 +5964,14 @@ impl ShareGroup {
     /// `UNKNOWN_SUBSCRIPTION_ID`). Official Java
     /// `ClientMetricsManager` writes this when a PushTelemetry
     /// payload exceeds `clientTelemetryMaxBytes`.
+    /// Top-level
+    /// `INVALID_REGISTRATION` still fails that poll without
+    /// Metadata, including when `ErrorMessage` is set (Java
+    /// `handleShareFetchSuccess` only `requestUpdate`s for
+    /// `UNKNOWN_TOPIC_ID`; this is not top-level
+    /// `TELEMETRY_TOO_LARGE`). Official Java
+    /// `ClusterControlManager` writes this when a
+    /// BrokerRegistration request specifies no directories.
     /// Top-level
     /// `SHARE_SESSION_LIMIT_REACHED` resets the share session and
     /// does not request Metadata, including when `ErrorMessage` is

@@ -2304,6 +2304,12 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `UNKNOWN_TOPIC_ID`; this is not top-level
   `UNKNOWN_SUBSCRIPTION_ID`). Official Java `ClientMetricsManager`
   writes this when a PushTelemetry payload exceeds `clientTelemetryMaxBytes`.
+  Top-level `INVALID_REGISTRATION` still fails that poll
+  without Metadata, including when `ErrorMessage` is set (Java
+  `handleShareFetchSuccess` only `requestUpdate`s for top-level
+  `UNKNOWN_TOPIC_ID`; this is not top-level
+  `TELEMETRY_TOO_LARGE`). Official Java `ClusterControlManager`
+  writes this when a BrokerRegistration request specifies no directories.
   A non-empty
   throwable partition or top-level ShareFetch `ErrorMessage` is
   preferred; empty uses `ShareFetch {topic}-{partition}` or
