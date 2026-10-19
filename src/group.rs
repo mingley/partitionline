@@ -181,6 +181,11 @@ fn assign_sticky_from<'a>(
 }
 
 /// Move partitions until every member has `floor(n/m)` or `ceil(n/m)`.
+/// Preparing 2,000,000 sticky members held the caller for 10.91s.
+fn sticky_member_chunk() -> usize {
+    8 * 1024
+}
+
 fn rebalance_counts<T: Clone>(out: &mut HashMap<String, Vec<T>>) {
     let mut load: BTreeSet<(usize, String)> = out
         .iter()
@@ -211,6 +216,50 @@ fn rebalance_counts<T: Clone>(out: &mut HashMap<String, Vec<T>>) {
         let _ = load.remove(&(min_n, min_id.clone()));
         let _ = load.insert((max_n.saturating_sub(1), max_id));
         let _ = load.insert((min_n.saturating_add(1), min_id));
+    }
+}
+
+async fn rebalance_counts_cooperative<T: Clone>(out: &mut HashMap<String, Vec<T>>) {
+    let mut load: BTreeSet<(usize, String)> = BTreeSet::new();
+    let mut walked = 0usize;
+    for (member, parts) in out.iter() {
+        let _ = load.insert((parts.len(), member.clone()));
+        walked = walked.saturating_add(1);
+        if walked == sticky_member_chunk() {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    while let Some((max_n, max_id)) = load
+        .iter()
+        .next_back()
+        .map(|(count, member)| (*count, member.clone()))
+    {
+        let Some((min_n, min_id)) = load
+            .iter()
+            .next()
+            .map(|(count, member)| (*count, member.clone()))
+        else {
+            break;
+        };
+        if max_id == min_id || max_n <= min_n.saturating_add(1) {
+            break;
+        }
+        let Some(moved) = out.get_mut(&max_id).and_then(Vec::pop) else {
+            break;
+        };
+        if let Some(slot) = out.get_mut(&min_id) {
+            slot.push(moved);
+        }
+        let _ = load.remove(&(max_n, max_id.clone()));
+        let _ = load.remove(&(min_n, min_id.clone()));
+        let _ = load.insert((max_n.saturating_sub(1), max_id));
+        let _ = load.insert((min_n.saturating_add(1), min_id));
+        walked = walked.saturating_add(1);
+        if walked == sticky_member_chunk() {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
     }
 }
 
@@ -685,9 +734,18 @@ async fn assign_sticky_from_cooperative<'a>(
     partitions: &[i32],
     prev: impl IntoIterator<Item = (&'a str, &'a [i32])>,
 ) -> HashMap<String, Vec<i32>> {
-    let member_set: std::collections::HashSet<&str> = members.iter().copied().collect();
-    let mut part_set: std::collections::HashSet<i32> = std::collections::HashSet::new();
+    let mut member_set = std::collections::HashSet::new();
     let mut walked = 0usize;
+    for member in members {
+        let _ = member_set.insert(*member);
+        walked = walked.saturating_add(1);
+        if walked == sticky_member_chunk() {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    let mut part_set: std::collections::HashSet<i32> = std::collections::HashSet::new();
+    walked = 0;
     for partition in partitions
         .iter()
         .copied()
@@ -701,8 +759,14 @@ async fn assign_sticky_from_cooperative<'a>(
         }
     }
     let mut out: HashMap<String, Vec<i32>> = HashMap::new();
+    walked = 0;
     for member in members {
         let _ = out.insert((*member).to_owned(), Vec::new());
+        walked = walked.saturating_add(1);
+        if walked == sticky_member_chunk() {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
     }
     let mut used = std::collections::HashSet::new();
     walked = 0;
@@ -736,11 +800,17 @@ async fn assign_sticky_from_cooperative<'a>(
         }
     }
     remaining.sort();
-    let mut load: BTreeSet<(usize, &str)> = members
-        .iter()
-        .copied()
-        .map(|member| (out.get(member).map(Vec::len).unwrap_or(0), member))
-        .collect();
+    let mut load: BTreeSet<(usize, &str)> = BTreeSet::new();
+    walked = 0;
+    for member in members {
+        let member = *member;
+        let _ = load.insert((out.get(member).map(Vec::len).unwrap_or(0), member));
+        walked = walked.saturating_add(1);
+        if walked == sticky_member_chunk() {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
     walked = 0;
     for partition in remaining {
         let Some(&(count, member)) = load.iter().next() else {
@@ -757,7 +827,7 @@ async fn assign_sticky_from_cooperative<'a>(
             tokio::task::yield_now().await;
         }
     }
-    rebalance_counts(&mut out);
+    rebalance_counts_cooperative(&mut out).await;
     out
 }
 
@@ -9982,6 +10052,31 @@ mod tests {
         assert_eq!(assigned.len(), 2);
         assert_eq!(assigned.get("m1").map(Vec::len), Some(0));
         assert_eq!(assigned.get("m2").map(Vec::len), Some(0));
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn preparing_many_sticky_members_does_not_hold_the_caller() {
+        let names: Vec<String> = (0..2_000_000)
+            .map(|index| format!("member-{index}"))
+            .collect();
+        let members: Vec<&str> = names.iter().map(String::as_str).collect();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = assign_sticky_from_cooperative(&members, &[], std::iter::empty()) => {}
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        assert!(
+            started.elapsed() < std::time::Duration::from_millis(80),
+            "preparing sticky members held the caller for {:?}",
+            started.elapsed()
+        );
+        let members = ["b", "a"];
+        let partitions = [2, 0, 1, -1];
+        let prev = [("b", &[0i32][..])];
+        assert_eq!(
+            assign_sticky_from_cooperative(&members, &partitions, prev).await,
+            assign_sticky_from(&members, &partitions, prev)
+        );
     }
 
     #[tokio::test(flavor = "current_thread")]
