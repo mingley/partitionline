@@ -6847,6 +6847,27 @@ pub fn encode_offset_fetch_request(
     )
 }
 
+pub(crate) async fn encode_offset_fetch_request_cooperative(
+    buf: &mut BytesMut,
+    version: i16,
+    group_id: &str,
+    member_id: Option<&str>,
+    member_epoch: i32,
+    require_stable: bool,
+    topics: Option<&[OffsetFetchTopic]>,
+) -> crate::error::Result<()> {
+    encode_offset_fetch_topic_views_cooperative(
+        buf,
+        version,
+        group_id,
+        member_id,
+        member_epoch,
+        require_stable,
+        topics,
+    )
+    .await
+}
+
 /// Encode OffsetFetch topics whose names are borrowed from the caller.
 ///
 /// `topics = None` fetches every committed partition (v2+).
@@ -8728,6 +8749,30 @@ mod tests {
         encode_sync_group_request_cooperative(&mut paced, 5, &once_request)
             .await
             .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(once, paced);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn owned_offset_fetch_request_matches_the_sync_encoder() {
+        let topics = [OffsetFetchTopic {
+            topic: "orders".to_string(),
+            partitions: vec![0],
+        }];
+        let mut once = bytes::BytesMut::new();
+        let mut paced = bytes::BytesMut::new();
+        encode_offset_fetch_request(&mut once, 8, "group", None, -1, false, Some(&topics))
+            .unwrap_or_else(|error| panic!("{error}"));
+        encode_offset_fetch_request_cooperative(
+            &mut paced,
+            8,
+            "group",
+            None,
+            -1,
+            false,
+            Some(&topics),
+        )
+        .await
+        .unwrap_or_else(|error| panic!("{error}"));
         assert_eq!(once, paced);
     }
 

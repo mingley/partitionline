@@ -35,7 +35,8 @@ use crate::protocol::group::{
     decode_sync_group_response, encode_find_coordinator_request_typed, encode_heartbeat_request,
     encode_join_group_protocols_request, encode_leave_group_request_members,
     encode_offset_commit_request, encode_offset_commit_request_cooperative,
-    encode_offset_fetch_request, encode_sync_group_request, encode_sync_group_request_cooperative,
+    encode_offset_fetch_request, encode_offset_fetch_request_cooperative,
+    encode_sync_group_request, encode_sync_group_request_cooperative,
     encode_tp_assignment_cooperative, BorrowedOffsetPartition, BorrowedOffsetTopic,
     ConsumerProtocol, ConsumerProtocolSubscription, FetchedOffset, FetchedOffsetTopic,
     JoinGroupProtocol, JoinGroupProtocolsRequest, JoinGroupRequest, JoinGroupResponse,
@@ -1774,6 +1775,20 @@ impl ConsumerGroup {
         };
         let bootstrap_keys = self.consumer.copy_api_keys();
         let address_keys = self.consumer.copy_learned_broker_keys();
+        let prepared_version = negotiated_coord_version(&self.coord, OFFSET_FETCH).ok();
+        let mut payload = BytesMut::new();
+        if let Some(version) = prepared_version {
+            encode_offset_fetch_request_cooperative(
+                &mut payload,
+                version,
+                &self.group_id,
+                member_id,
+                member_epoch,
+                require_stable,
+                Some(topics),
+            )
+            .await?;
+        }
         let (version, body) = coord_roundtrip_with_bootstrap(
             &mut self.coord,
             &self.cfg,
@@ -1781,15 +1796,20 @@ impl ConsumerGroup {
             COORDINATOR_GROUP,
             OFFSET_FETCH,
             |version, buf| {
-                encode_offset_fetch_request(
-                    buf,
-                    version,
-                    &self.group_id,
-                    member_id,
-                    member_epoch,
-                    require_stable,
-                    Some(topics),
-                )
+                if prepared_version == Some(version) {
+                    buf.extend_from_slice(&payload);
+                    Ok(())
+                } else {
+                    encode_offset_fetch_request(
+                        buf,
+                        version,
+                        &self.group_id,
+                        member_id,
+                        member_epoch,
+                        require_stable,
+                        Some(topics),
+                    )
+                }
             },
             &bootstrap_keys,
             &address_keys,
@@ -3835,6 +3855,20 @@ impl ConsumerGroup {
                 let group_id = self.group_id.clone();
                 let bootstrap_keys = self.consumer.copy_api_keys();
                 let address_keys = self.consumer.copy_learned_broker_keys();
+                let prepared_version = negotiated_coord_version(&self.coord, OFFSET_FETCH).ok();
+                let mut payload = BytesMut::new();
+                if let Some(version) = prepared_version {
+                    encode_offset_fetch_request_cooperative(
+                        &mut payload,
+                        version,
+                        &group_id,
+                        member_id.as_deref(),
+                        member_epoch,
+                        require_stable,
+                        Some(&topics),
+                    )
+                    .await?;
+                }
                 let fetched = {
                     let refresh_fut = self
                         .consumer
@@ -3846,15 +3880,20 @@ impl ConsumerGroup {
                         COORDINATOR_GROUP,
                         OFFSET_FETCH,
                         |version, buf| {
-                            encode_offset_fetch_request(
-                                buf,
-                                version,
-                                &group_id,
-                                member_id.as_deref(),
-                                member_epoch,
-                                require_stable,
-                                Some(&topics),
-                            )
+                            if prepared_version == Some(version) {
+                                buf.extend_from_slice(&payload);
+                                Ok(())
+                            } else {
+                                encode_offset_fetch_request(
+                                    buf,
+                                    version,
+                                    &group_id,
+                                    member_id.as_deref(),
+                                    member_epoch,
+                                    require_stable,
+                                    Some(&topics),
+                                )
+                            }
                         },
                         &bootstrap_keys,
                         &address_keys,
@@ -3958,6 +3997,20 @@ impl ConsumerGroup {
                 let group_id = self.group_id.clone();
                 let bootstrap_keys = self.consumer.copy_api_keys();
                 let address_keys = self.consumer.copy_learned_broker_keys();
+                let prepared_version = negotiated_coord_version(&self.coord, OFFSET_FETCH).ok();
+                let mut payload = BytesMut::new();
+                if let Some(version) = prepared_version {
+                    encode_offset_fetch_request_cooperative(
+                        &mut payload,
+                        version,
+                        &group_id,
+                        member_id.as_deref(),
+                        member_epoch,
+                        require_stable,
+                        Some(&topics),
+                    )
+                    .await?;
+                }
                 let fetched = {
                     let fetch_fut = coord_roundtrip_with_bootstrap(
                         &mut self.coord,
@@ -3966,15 +4019,20 @@ impl ConsumerGroup {
                         COORDINATOR_GROUP,
                         OFFSET_FETCH,
                         |version, buf| {
-                            encode_offset_fetch_request(
-                                buf,
-                                version,
-                                &group_id,
-                                member_id.as_deref(),
-                                member_epoch,
-                                require_stable,
-                                Some(&topics),
-                            )
+                            if prepared_version == Some(version) {
+                                buf.extend_from_slice(&payload);
+                                Ok(())
+                            } else {
+                                encode_offset_fetch_request(
+                                    buf,
+                                    version,
+                                    &group_id,
+                                    member_id.as_deref(),
+                                    member_epoch,
+                                    require_stable,
+                                    Some(&topics),
+                                )
+                            }
                         },
                         &bootstrap_keys,
                         &address_keys,
