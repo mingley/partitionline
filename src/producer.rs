@@ -5572,13 +5572,18 @@ async fn record_unfresh_topics(
         return;
     }
     let slots = index_metadata_image_cooperative(&shared.metadata_image).await;
+    let mut noted = 0usize;
     for topic in pending {
         let error = match slots.get(topic.as_ref()) {
             Some((code, _)) if *code != 0 => Error::broker(*code, topic.to_string()),
-            Some((_, true)) => continue,
+            Some((_, true)) => {
+                pause_metadata_result(&mut noted).await;
+                continue;
+            }
             _ => Error::UnknownTopic(topic.to_string()),
         };
         let _ = failed.insert(Arc::clone(topic), error);
+        pause_metadata_result(&mut noted).await;
     }
 }
 
@@ -5598,18 +5603,7 @@ async fn refresh_queued_topics(
         Err(error) => return Some(Err(error)),
     };
     let slots = index_metadata_image_cooperative(&shared.metadata_image).await;
-    let mut last = Ok(());
-    for topic in &requested {
-        match slots.get(topic.as_ref()) {
-            None => last = Err(Error::UnknownTopic(topic.to_string())),
-            Some((code, _)) if *code != 0 => {
-                last = Err(Error::broker(*code, topic.to_string()));
-            }
-            Some((_, false)) => last = Err(Error::UnknownTopic(topic.to_string())),
-            Some((_, true)) => last = Ok(()),
-        }
-    }
-    Some(last)
+    Some(last_metadata_topic_result(&slots, &requested).await)
 }
 
 /// One idle poll. A queued response leaves the socket connected.
@@ -5726,6 +5720,35 @@ async fn collect_stale_metadata_topics(
         pause_stale_topic(&mut walked).await;
     }
     requested
+}
+
+/// The last requested topic decides the result. An earlier error is replaced.
+///
+/// Noting 4,000,000 metadata results held the caller for 269ms. A topic name is still stored.
+async fn last_metadata_topic_result(
+    slots: &HashMap<String, (i16, bool)>,
+    requested: &[Arc<str>],
+) -> Result<()> {
+    let mut last = Ok(());
+    let mut walked = 0usize;
+    for topic in requested {
+        last = match slots.get(topic.as_ref()) {
+            None => Err(Error::UnknownTopic(topic.to_string())),
+            Some((code, _)) if *code != 0 => Err(Error::broker(*code, topic.to_string())),
+            Some((_, false)) => Err(Error::UnknownTopic(topic.to_string())),
+            Some((_, true)) => Ok(()),
+        };
+        pause_metadata_result(&mut walked).await;
+    }
+    last
+}
+
+async fn pause_metadata_result(walked: &mut usize) {
+    *walked = walked.saturating_add(1);
+    if *walked == 8 * 1024 {
+        *walked = 0;
+        tokio::task::yield_now().await;
+    }
 }
 
 async fn pause_stale_topic(walked: &mut usize) {
@@ -10881,6 +10904,54 @@ mod tests {
             .build()
             .unwrap_or_else(|error| panic!("{error}"));
         runtime.block_on(index_produce_groups(groups, scratch));
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn noting_many_metadata_results_does_not_hold_the_caller() {
+        let requested: Vec<Arc<str>> = (0..4_000_000)
+            .map(|index| Arc::from(format!("topic-{index}")))
+            .collect();
+        let slots = HashMap::new();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = last_metadata_topic_result(&slots, &requested) => {}
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        assert!(
+            started.elapsed() < std::time::Duration::from_millis(80),
+            "noting metadata results held the caller for {:?}",
+            started.elapsed()
+        );
+        let orders: Arc<str> = Arc::from("orders");
+        let payments: Arc<str> = Arc::from("payments");
+        let kept: Arc<str> = Arc::from("kept");
+        let mut sample_slots = HashMap::new();
+        let _ = sample_slots.insert("payments".to_string(), (7i16, false));
+        let _ = sample_slots.insert("kept".to_string(), (0, true));
+        let noted = last_metadata_topic_result(
+            &sample_slots,
+            &[
+                Arc::clone(&orders),
+                Arc::clone(&payments),
+                Arc::clone(&kept),
+            ],
+        )
+        .await;
+        assert!(noted.is_ok());
+        let replaced = last_metadata_topic_result(
+            &sample_slots,
+            &[
+                Arc::clone(&kept),
+                Arc::clone(&payments),
+                Arc::clone(&orders),
+            ],
+        )
+        .await;
+        assert!(matches!(replaced, Err(Error::UnknownTopic(name)) if name == "orders"));
+        let broker = last_metadata_topic_result(&sample_slots, &[Arc::clone(&payments)])
+            .await
+            .expect_err("payments");
+        assert_eq!(broker.broker_code(), Some(7));
     }
 
     #[tokio::test(flavor = "current_thread")]
