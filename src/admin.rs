@@ -3448,21 +3448,27 @@ fn borrowed_ids<'a, T: AsRef<str>>(ids: &'a [T], idxs: &[usize]) -> Vec<&'a str>
         .collect()
 }
 
-fn group_named<T>(
+async fn group_named<T>(
     items: impl IntoIterator<Item = T>,
     name: impl Fn(&T) -> &str,
 ) -> HashMap<String, VecDeque<T>> {
     let mut grouped: HashMap<String, VecDeque<T>> = HashMap::new();
+    let mut walked = 0usize;
     for item in items {
         let key = name(&item);
         if let Some(queue) = grouped.get_mut(key) {
             queue.push_back(item);
-            continue;
+        } else {
+            let owned = key.to_owned();
+            let mut queue = VecDeque::new();
+            queue.push_back(item);
+            let _ = grouped.insert(owned, queue);
         }
-        let owned = key.to_owned();
-        let mut queue = VecDeque::new();
-        queue.push_back(item);
-        let _ = grouped.insert(owned, queue);
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
     }
     grouped
 }
@@ -8001,7 +8007,8 @@ impl Admin {
                         }
                         Err(error) => return Err(error),
                         Ok(body) => {
-                            let done = Self::apply_describe_transactions_body(ids, &idxs, body)?;
+                            let done =
+                                Self::apply_describe_transactions_body(ids, &idxs, body).await?;
                             for (i, t) in done {
                                 if error::coordinator_retriable(t.error_code) {
                                     self.invalidate_txn_coord_idxs(ids, &[i], *node).await;
@@ -11984,7 +11991,8 @@ impl Admin {
                         Err(error) => return Err(error),
                         Ok(body) => {
                             let done =
-                                Self::apply_consumer_group_describe_body(spoken, ids, &idxs, body)?;
+                                Self::apply_consumer_group_describe_body(spoken, ids, &idxs, body)
+                                    .await?;
                             for (i, g) in done {
                                 if error::coordinator_retriable(g.error_code) {
                                     self.invalidate_group_coord_idxs(ids, &[i], *node).await;
@@ -12134,7 +12142,8 @@ impl Admin {
                         }
                         Err(error) => return Err(error),
                         Ok(body) => {
-                            let done = Self::apply_describe_groups_body(spoken, ids, &idxs, body)?;
+                            let done =
+                                Self::apply_describe_groups_body(spoken, ids, &idxs, body).await?;
                             for (i, g) in done {
                                 if error::coordinator_retriable(g.error_code) {
                                     self.invalidate_group_coord_idxs(ids, &[i], *node).await;
@@ -12575,7 +12584,8 @@ impl Admin {
                         }
                         Err(error) => return Err(error),
                         Ok(body) => {
-                            let done = Self::apply_delete_groups_body(spoken, ids, &idxs, body)?;
+                            let done =
+                                Self::apply_delete_groups_body(spoken, ids, &idxs, body).await?;
                             for (i, g) in done {
                                 if error::coordinator_retriable(g.error_code) {
                                     self.invalidate_group_coord_idxs(ids, &[i], *node).await;
@@ -13059,7 +13069,8 @@ impl Admin {
                         Err(error) => return Err(error),
                         Ok(body) => {
                             let done =
-                                Self::apply_share_group_describe_body(spoken, ids, &idxs, body)?;
+                                Self::apply_share_group_describe_body(spoken, ids, &idxs, body)
+                                    .await?;
                             for (i, g) in done {
                                 if error::coordinator_retriable(g.error_code) {
                                     self.invalidate_group_coord_idxs(ids, &[i], *node).await;
@@ -13286,7 +13297,8 @@ impl Admin {
                         Ok(body) => {
                             let done = Self::apply_describe_share_group_offsets_body(
                                 spoken, groups, &idxs, body,
-                            )?;
+                            )
+                            .await?;
                             for (i, g) in done {
                                 if error::coordinator_retriable(g.error_code) {
                                     self.invalidate_group_coord_idxs(&ids, &[i], *node).await;
@@ -15300,17 +15312,17 @@ impl Admin {
                 timeout,
             )
             .await?;
-        Self::apply_describe_groups_body(version, ids, idxs, body)
+        Self::apply_describe_groups_body(version, ids, idxs, body).await
     }
 
-    fn apply_describe_groups_body<T: AsRef<str>>(
+    async fn apply_describe_groups_body<T: AsRef<str>>(
         version: i16,
         ids: &[T],
         idxs: &[usize],
         body: Bytes,
     ) -> Result<Vec<(usize, DescribedGroup)>> {
         let (results, ..) = decode_describe_groups_response(&mut body.clone(), version)?;
-        let mut by_id = group_named(results, |group| group.group_id.as_str());
+        let mut by_id = group_named(results, |group| group.group_id.as_str()).await;
         let mut out = Vec::new();
         for &i in idxs {
             let id = ids
@@ -15346,17 +15358,17 @@ impl Admin {
                 timeout,
             )
             .await?;
-        Self::apply_delete_groups_body(version, ids, idxs, body)
+        Self::apply_delete_groups_body(version, ids, idxs, body).await
     }
 
-    fn apply_delete_groups_body<T: AsRef<str>>(
+    async fn apply_delete_groups_body<T: AsRef<str>>(
         version: i16,
         ids: &[T],
         idxs: &[usize],
         body: Bytes,
     ) -> Result<Vec<(usize, DeletableGroupResult)>> {
         let (results, ..) = decode_delete_groups_response(&mut body.clone(), version)?;
-        let mut by_id = group_named(results, |group| group.group_id.as_str());
+        let mut by_id = group_named(results, |group| group.group_id.as_str()).await;
         let mut out = Vec::new();
         for &i in idxs {
             let id = ids
@@ -15400,17 +15412,17 @@ impl Admin {
                 timeout,
             )
             .await?;
-        Self::apply_consumer_group_describe_body(version, ids, idxs, body)
+        Self::apply_consumer_group_describe_body(version, ids, idxs, body).await
     }
 
-    fn apply_consumer_group_describe_body<T: AsRef<str>>(
+    async fn apply_consumer_group_describe_body<T: AsRef<str>>(
         version: i16,
         ids: &[T],
         idxs: &[usize],
         body: Bytes,
     ) -> Result<Vec<(usize, DescribedConsumerGroup)>> {
         let (results, ..) = decode_consumer_group_describe_response(&mut body.clone(), version)?;
-        let mut by_id = group_named(results, |group| group.group_id.as_str());
+        let mut by_id = group_named(results, |group| group.group_id.as_str()).await;
         let mut out = Vec::new();
         for &i in idxs {
             let id = ids
@@ -15454,17 +15466,17 @@ impl Admin {
                 timeout,
             )
             .await?;
-        Self::apply_share_group_describe_body(version, ids, idxs, body)
+        Self::apply_share_group_describe_body(version, ids, idxs, body).await
     }
 
-    fn apply_share_group_describe_body<T: AsRef<str>>(
+    async fn apply_share_group_describe_body<T: AsRef<str>>(
         version: i16,
         ids: &[T],
         idxs: &[usize],
         body: Bytes,
     ) -> Result<Vec<(usize, DescribedShareGroup)>> {
         let (results, ..) = decode_share_group_describe_response(&mut body.clone(), version)?;
-        let mut by_id = group_named(results, |group| group.group_id.as_str());
+        let mut by_id = group_named(results, |group| group.group_id.as_str()).await;
         let mut out = Vec::new();
         for &i in idxs {
             let id = ids
@@ -15501,10 +15513,10 @@ impl Admin {
                 timeout,
             )
             .await?;
-        Self::apply_describe_share_group_offsets_body(version, groups, idxs, body)
+        Self::apply_describe_share_group_offsets_body(version, groups, idxs, body).await
     }
 
-    fn apply_describe_share_group_offsets_body(
+    async fn apply_describe_share_group_offsets_body(
         version: i16,
         groups: &[DescribeShareGroupOffsetsGroup],
         idxs: &[usize],
@@ -15518,7 +15530,7 @@ impl Admin {
                 "DescribeShareGroupOffsets trailing response bytes",
             ));
         }
-        let mut by_id = group_named(results, |group| group.group_id.as_str());
+        let mut by_id = group_named(results, |group| group.group_id.as_str()).await;
         let mut out = Vec::new();
         for &i in idxs {
             let id = groups
@@ -15556,16 +15568,16 @@ impl Admin {
                 timeout,
             )
             .await?;
-        Self::apply_describe_transactions_body(ids, idxs, body)
+        Self::apply_describe_transactions_body(ids, idxs, body).await
     }
 
-    fn apply_describe_transactions_body<T: AsRef<str>>(
+    async fn apply_describe_transactions_body<T: AsRef<str>>(
         ids: &[T],
         idxs: &[usize],
         body: Bytes,
     ) -> Result<Vec<(usize, TransactionState)>> {
         let (results, ..) = decode_describe_transactions_response(&mut body.clone())?;
-        let mut by_id = group_named(results, |txn| txn.transactional_id.as_str());
+        let mut by_id = group_named(results, |txn| txn.transactional_id.as_str()).await;
         let mut out = Vec::new();
         for &i in idxs {
             let id = ids
@@ -17824,8 +17836,27 @@ mod tests {
         );
     }
 
-    #[test]
-    fn a_repeated_group_id_stays_in_arrival_order() {
+    #[tokio::test(flavor = "current_thread")]
+    async fn grouping_many_named_results_does_not_hold_the_caller() {
+        // 500_000 names: recording each one held the caller 572ms.
+        let ids: Vec<String> = (0..500_000).map(|index| format!("group-{index}")).collect();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            grouped = group_named(ids, |id| id.as_str()) => {
+                assert_eq!(grouped.len(), 500_000);
+                assert!(grouped.contains_key("group-0"));
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "grouping named results held the caller for {elapsed:?}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn a_repeated_group_id_stays_in_arrival_order() {
         let grouped = group_named(
             [
                 ("orders".to_owned(), 1),
@@ -17833,7 +17864,8 @@ mod tests {
                 ("payments".to_owned(), 3),
             ],
             |item| item.0.as_str(),
-        );
+        )
+        .await;
         assert_eq!(grouped.len(), 2);
         let orders = grouped
             .get("orders")
