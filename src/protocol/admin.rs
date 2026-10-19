@@ -4294,6 +4294,7 @@ pub fn encode_incremental_alter_configs_resources_request(
 }
 
 /// Encode IncrementalAlterConfigs resources whose names and config values are borrowed.
+#[cfg(test)]
 pub(crate) fn encode_incremental_alter_configs_named(
     buf: &mut BytesMut,
     version: i16,
@@ -4371,6 +4372,123 @@ fn incremental_alter_configs_request_len<T: AlterableResourceView>(
         }
         if flexible {
             total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    total = add_describe_len(total, 1)?;
+    if flexible {
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
+}
+
+/// Encode IncrementalAlterConfigs, yielding while resources are still being written.
+///
+/// Encoding 2,000,000 resources held the caller for 1470ms. A resource name and a config value are still written.
+pub(crate) async fn encode_incremental_alter_configs_named_cooperative(
+    buf: &mut BytesMut,
+    version: i16,
+    resources: &[BorrowedAlterableResource<'_>],
+    validate_only: bool,
+) -> crate::error::Result<()> {
+    encode_alterable_resource_views_cooperative(buf, version, resources, validate_only).await
+}
+
+async fn encode_alterable_resource_views_cooperative<T: AlterableResourceView + Sync>(
+    buf: &mut BytesMut,
+    version: i16,
+    resources: &[T],
+    validate_only: bool,
+) -> crate::error::Result<()>
+where
+    T::Config: Sync,
+{
+    let flexible = incremental_alter_configs_flexible(version)?;
+    let body_start = buf.len();
+    let planned = incremental_alter_configs_request_len_cooperative(flexible, resources).await?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
+    buf::put_array_len(buf, flexible, Some(resources.len()))?;
+    let mut walked = 0usize;
+    for resource in resources {
+        buf.put_i8(resource.alterable_type());
+        buf::put_string(buf, flexible, Some(resource.alterable_name()))?;
+        let configs = resource.alterable_configs();
+        buf::put_array_len(buf, flexible, Some(configs.len()))?;
+        for config in configs {
+            buf::put_string(buf, flexible, Some(config.alter_config_name()))?;
+            buf.put_i8(config.alter_config_op());
+            buf::put_string(buf, flexible, config.alter_config_value())?;
+            if flexible {
+                buf::put_empty_tagged_fields(buf);
+            }
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    buf.put_u8(u8::from(validate_only));
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+    Ok(())
+}
+
+async fn incremental_alter_configs_request_len_cooperative<T: AlterableResourceView + Sync>(
+    flexible: bool,
+    resources: &[T],
+) -> Result<usize>
+where
+    T::Config: Sync,
+{
+    let mut total = describe_array_len(flexible, resources.len())?;
+    let mut walked = 0usize;
+    for resource in resources {
+        total = add_describe_len(total, 1)?;
+        total = add_describe_len(
+            total,
+            describe_string_len(flexible, Some(resource.alterable_name()))?,
+        )?;
+        let configs = resource.alterable_configs();
+        total = add_describe_len(total, describe_array_len(flexible, configs.len())?)?;
+        for config in configs {
+            total = add_describe_len(
+                total,
+                describe_string_len(flexible, Some(config.alter_config_name()))?,
+            )?;
+            total = add_describe_len(total, 1)?;
+            total = add_describe_len(
+                total,
+                describe_string_len(flexible, config.alter_config_value())?,
+            )?;
+            if flexible {
+                total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+            }
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+        if flexible {
+            total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
         }
     }
     total = add_describe_len(total, 1)?;
@@ -27795,6 +27913,60 @@ mod tests {
         encode_alter_share_group_offsets_request(&mut once, "g", &sample)
             .unwrap_or_else(|error| panic!("{error}"));
         encode_alter_share_group_offsets_request_cooperative(&mut paced, "g", &sample)
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(once, paced);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn encoding_many_incremental_configs_does_not_hold_the_caller() {
+        let owned: Vec<String> = (0..2_000_000)
+            .map(|index| format!("topic-{index}"))
+            .collect();
+        let resources: Vec<BorrowedAlterableResource<'_>> = owned
+            .iter()
+            .map(|name| BorrowedAlterableResource {
+                resource_type: 2,
+                name: name.as_str(),
+                configs: vec![BorrowedAlterConfig {
+                    name: "retention.ms",
+                    op: ALTER_CONFIG_SET,
+                    value: Some("1000"),
+                }],
+            })
+            .collect();
+        let mut body = bytes::BytesMut::new();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            encoded = encode_incremental_alter_configs_named_cooperative(
+                &mut body,
+                1,
+                &resources,
+                false,
+            ) => {
+                encoded.unwrap_or_else(|error| panic!("{error}"));
+            }
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "encoding incremental configs held the caller for {elapsed:?}"
+        );
+        let sample = [BorrowedAlterableResource {
+            resource_type: 2,
+            name: "orders",
+            configs: vec![BorrowedAlterConfig {
+                name: "retention.ms",
+                op: ALTER_CONFIG_SET,
+                value: Some("1000"),
+            }],
+        }];
+        let mut once = bytes::BytesMut::new();
+        let mut paced = bytes::BytesMut::new();
+        encode_incremental_alter_configs_named(&mut once, 1, &sample, false)
+            .unwrap_or_else(|error| panic!("{error}"));
+        encode_incremental_alter_configs_named_cooperative(&mut paced, 1, &sample, false)
             .await
             .unwrap_or_else(|error| panic!("{error}"));
         assert_eq!(once, paced);

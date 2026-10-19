@@ -74,7 +74,7 @@ use crate::protocol::admin::{
     encode_describe_transactions_ids_cooperative,
     encode_describe_user_scram_credentials_ids_cooperative, encode_expire_delegation_token_hmac,
     encode_expire_delegation_token_request, encode_get_telemetry_subscriptions_request,
-    encode_incremental_alter_configs_named, encode_list_config_resources_request,
+    encode_incremental_alter_configs_named_cooperative, encode_list_config_resources_request,
     encode_list_groups_filters, encode_list_partition_reassignments_named,
     encode_list_transactions_states, encode_push_telemetry_metrics,
     encode_renew_delegation_token_hmac, encode_renew_delegation_token_request,
@@ -6282,6 +6282,14 @@ impl Admin {
         let resources = borrowed_alterable_resources(updates);
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
+        let mut encoded = BytesMut::new();
+        encode_incremental_alter_configs_named_cooperative(
+            &mut encoded,
+            version,
+            &resources,
+            validate_only,
+        )
+        .await?;
         loop {
             if self.cluster.controller().is_err() {
                 self.refresh_broker_directory(deadline).await?;
@@ -6294,12 +6302,8 @@ impl Admin {
                     INCREMENTAL_ALTER_CONFIGS,
                     version,
                     |buf| {
-                        encode_incremental_alter_configs_named(
-                            buf,
-                            version,
-                            &resources,
-                            validate_only,
-                        )
+                        buf.extend_from_slice(&encoded);
+                        Ok(())
                     },
                     deadline.saturating_duration_since(Instant::now()),
                 )
