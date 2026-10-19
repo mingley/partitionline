@@ -35,7 +35,7 @@ use crate::protocol::admin::{
     decode_alter_user_scram_credentials_response, decode_assign_replicas_to_dirs_response,
     decode_consumer_group_describe_response_cooperative, decode_create_delegation_token_response,
     decode_create_partitions_response_cooperative, decode_create_topics_response_cooperative,
-    decode_delete_groups_response_cooperative, decode_delete_records_topics_response,
+    decode_delete_groups_response_cooperative, decode_delete_records_topics_response_cooperative,
     decode_delete_share_group_offsets_response_cooperative,
     decode_delete_topics_response_cooperative, decode_describe_client_quotas_response_cooperative,
     decode_describe_cluster_response, decode_describe_configs_response_cooperative,
@@ -9659,7 +9659,8 @@ impl Admin {
         idxs: &[usize],
         body: Bytes,
     ) -> Result<(Vec<(usize, i64, i16)>, Vec<usize>)> {
-        let (resp, ..) = decode_delete_records_topics_response(&mut body.clone(), version)?;
+        let (resp, ..) =
+            decode_delete_records_topics_response_cooperative(&mut body.clone(), version).await?;
         let mut by_key = index_deleted_records(resp).await;
         let mut order = Vec::with_capacity(idxs.len());
         let mut walked = 0usize;
@@ -19804,6 +19805,76 @@ mod tests {
                 .and_then(|item| item.partitions.first())
                 .map(|item| item.error_code),
             Some(7)
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn decoding_many_deleted_records_does_not_hold_the_caller() {
+        let partitions: Vec<crate::protocol::admin::DeletedRecordsPartition> = (0..1_000_000)
+            .map(|index| crate::protocol::admin::DeletedRecordsPartition {
+                partition: index,
+                low_watermark: 8,
+                error_code: 0,
+            })
+            .collect();
+        let topics = [crate::protocol::admin::DeletedRecordsTopic {
+            topic: "orders".to_string(),
+            partitions,
+        }];
+        let mut body = bytes::BytesMut::new();
+        crate::protocol::admin::encode_delete_records_topics_response(&mut body, 2, &topics)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let started = std::time::Instant::now();
+        tokio::select! {
+            decoded = decode_delete_records_topics_response_cooperative(&mut body, 2) => {
+                let (decoded, throttle) = decoded.unwrap_or_else(|error| panic!("{error}"));
+                assert_eq!(throttle, 0);
+                assert_eq!(decoded.first().map(|item| item.partitions.len()), Some(1_000_000));
+                assert_eq!(
+                    decoded.first().and_then(|item| item.partitions.first()).map(|item| item.low_watermark),
+                    Some(8)
+                );
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "decoding deleted records held the caller for {elapsed:?}"
+        );
+        let topics = [crate::protocol::admin::DeletedRecordsTopic {
+            topic: "orders".to_string(),
+            partitions: vec![crate::protocol::admin::DeletedRecordsPartition {
+                partition: 4,
+                low_watermark: 11,
+                error_code: 7,
+            }],
+        }];
+        let mut encoded = bytes::BytesMut::new();
+        crate::protocol::admin::encode_delete_records_topics_response(&mut encoded, 2, &topics)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let mut once = encoded.clone();
+        let mut paced = encoded;
+        let sync = crate::protocol::admin::decode_delete_records_topics_response(&mut once, 2)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let coop = decode_delete_records_topics_response_cooperative(&mut paced, 2)
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(sync.0, coop.0);
+        assert_eq!(sync.1, coop.1);
+        assert_eq!(
+            coop.0
+                .first()
+                .and_then(|item| item.partitions.first())
+                .map(|item| item.error_code),
+            Some(7)
+        );
+        assert_eq!(
+            coop.0
+                .first()
+                .and_then(|item| item.partitions.first())
+                .map(|item| item.low_watermark),
+            Some(11)
         );
     }
 
