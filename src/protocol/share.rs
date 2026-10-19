@@ -3712,6 +3712,99 @@ pub fn decode_share_acknowledge_topics_response_with_lock_timeout<B: Buf>(
     ))
 }
 
+/// [`decode_share_acknowledge_topics_response_with_lock_timeout`], yielding while partitions are still being read.
+///
+/// Decoding 500,000 topics held the caller for 369ms.
+pub async fn decode_share_acknowledge_topics_response_with_lock_timeout_cooperative<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<(
+    i16,
+    Vec<ShareAcknowledgeResponseTopic>,
+    Vec<NodeEndpoint>,
+    i32,
+    Option<String>,
+    i32,
+)> {
+    let flexible = share_acknowledge_flexible(version)?;
+    let throttle_time_ms = buf::get_i32(buf)?;
+    let error_code = buf::get_i16(buf)?;
+    let error_message = buf::get_string(buf, flexible)?;
+    let acquisition_lock_timeout_ms = if version >= 2 { buf::get_i32(buf)? } else { 0 };
+    let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+    let mut topics = Vec::with_capacity(n);
+    let mut walked = 0usize;
+    for _ in 0..n {
+        let topic_id = buf::get_uuid(buf)?;
+        let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+        let mut partitions = Vec::with_capacity(pn);
+        for _ in 0..pn {
+            let partition = buf::get_i32(buf)?;
+            let part_error = buf::get_i16(buf)?;
+            let error_message = buf::get_string(buf, flexible)?;
+            let (current_leader_id, current_leader_epoch) = decode_leader(buf)?;
+            if flexible {
+                buf::skip_tagged_fields(buf)?;
+            }
+            partitions.push(ShareAcknowledgeResponsePartition {
+                partition,
+                error_code: part_error,
+                error_message,
+                current_leader_id,
+                current_leader_epoch,
+            });
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+        if flexible {
+            buf::skip_tagged_fields(buf)?;
+        }
+        topics.push(ShareAcknowledgeResponseTopic {
+            topic_id,
+            partitions,
+        });
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    let en = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let mut endpoints = Vec::with_capacity(en);
+    for _ in 0..en {
+        let node_id = buf::get_i32(buf)?;
+        let host = buf::get_string(buf, true)?.unwrap_or_default();
+        let port = buf::get_i32(buf)?;
+        let rack = buf::get_string(buf, true)?;
+        buf::skip_tagged_fields(buf)?;
+        endpoints.push(NodeEndpoint {
+            node_id,
+            host,
+            port,
+            rack,
+        });
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
+    }
+    Ok((
+        error_code,
+        topics,
+        endpoints,
+        throttle_time_ms,
+        error_message,
+        acquisition_lock_timeout_ms,
+    ))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

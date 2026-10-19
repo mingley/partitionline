@@ -28,7 +28,7 @@ use crate::protocol::records::{
     TimestampType,
 };
 use crate::protocol::share::{
-    decode_share_acknowledge_response, decode_share_acknowledge_topics_response_with_lock_timeout,
+    decode_share_acknowledge_topics_response_with_lock_timeout_cooperative,
     decode_share_fetch_response_reusing_cooperative,
     decode_share_group_heartbeat_response_cooperative, encode_one_share_acknowledge_cooperative,
     encode_share_acknowledge_request, encode_share_acknowledge_topics_cooperative,
@@ -4910,7 +4910,11 @@ impl ShareGroup {
             }
         };
         let (code, responses, endpoints, _, _, lock_timeout) =
-            match decode_share_acknowledge_topics_response_with_lock_timeout(&mut body, version) {
+            match decode_share_acknowledge_topics_response_with_lock_timeout_cooperative(
+                &mut body, version,
+            )
+            .await
+            {
                 Ok(reply) => reply,
                 Err(error) => {
                     self.reset_node_session(node).await;
@@ -5472,7 +5476,11 @@ impl ShareGroup {
             }
         };
         let (code, responses, endpoints, _, _, lock_timeout) =
-            match decode_share_acknowledge_topics_response_with_lock_timeout(&mut body, version) {
+            match decode_share_acknowledge_topics_response_with_lock_timeout_cooperative(
+                &mut body, version,
+            )
+            .await
+            {
                 Ok(reply) => reply,
                 Err(error) => {
                     self.reset_node_session(node).await;
@@ -5652,15 +5660,21 @@ impl ShareGroup {
     ///
     /// A transport failure, including a timeout, is share-session-not-found:
     /// the broker already dropped the session, so close does not fail the leave.
-    fn share_close_error(sent: Result<Bytes>, version: i16) -> Option<Error> {
+    async fn share_close_error(sent: Result<Bytes>, version: i16) -> Option<Error> {
         let code = match sent {
-            Ok(mut body) => match decode_share_acknowledge_response(&mut body, version) {
-                Ok(code) if body.is_empty() => code,
-                Ok(_) => {
-                    return Some(Error::protocol("trailing ShareAcknowledge close bytes"));
+            Ok(mut body) => {
+                match decode_share_acknowledge_topics_response_with_lock_timeout_cooperative(
+                    &mut body, version,
+                )
+                .await
+                {
+                    Ok((code, ..)) if body.is_empty() => code,
+                    Ok(_) => {
+                        return Some(Error::protocol("trailing ShareAcknowledge close bytes"));
+                    }
+                    Err(error) => return Some(error),
                 }
-                Err(error) => return Some(error),
-            },
+            }
             Err(_) => error::SHARE_SESSION_NOT_FOUND,
         };
         if code != 0 && code != error::SHARE_SESSION_NOT_FOUND {
@@ -5771,7 +5785,7 @@ impl ShareGroup {
         while let Some(joined) = set.join_next().await {
             match joined {
                 Ok((sent, version)) => {
-                    if let Some(error) = Self::share_close_error(sent, version) {
+                    if let Some(error) = Self::share_close_error(sent, version).await {
                         last = Err(error);
                     }
                 }
@@ -5869,7 +5883,7 @@ impl ShareGroup {
                 };
                 continue;
             }
-            if let Some(error) = Self::share_close_error(sent, version) {
+            if let Some(error) = Self::share_close_error(sent, version).await {
                 last = Err(error);
             }
         }
@@ -5961,7 +5975,7 @@ impl ShareGroup {
         while let Some(joined) = set.join_next().await {
             match joined {
                 Ok((index, sent, version)) => {
-                    if let Some(error) = Self::share_close_error(sent, version) {
+                    if let Some(error) = Self::share_close_error(sent, version).await {
                         if let Some(slot) = decided.get_mut(index) {
                             *slot = Some(error);
                         }
@@ -7832,6 +7846,88 @@ mod tests {
                 .and_then(|items| items.first())
                 .map(|item| item.topic_id),
             Some([0x11; 16])
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn decoding_many_share_acks_does_not_hold_the_caller() {
+        let topics: Vec<crate::protocol::share::ShareAcknowledgeResponseTopic> = (0..500_000)
+            .map(|index: usize| {
+                let mut topic_id = [0u8; 16];
+                topic_id[..8].copy_from_slice(&index.to_le_bytes());
+                crate::protocol::share::ShareAcknowledgeResponseTopic {
+                    topic_id,
+                    partitions: vec![crate::protocol::share::ShareAcknowledgeResponsePartition {
+                        partition: index as i32,
+                        error_code: 0,
+                        error_message: None,
+                        current_leader_id: 1,
+                        current_leader_epoch: 2,
+                    }],
+                }
+            })
+            .collect();
+        let mut body = bytes::BytesMut::new();
+        crate::protocol::share::encode_share_acknowledge_topics_response(&mut body, 1, 0, &topics)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let started = std::time::Instant::now();
+        tokio::select! {
+            decoded = decode_share_acknowledge_topics_response_with_lock_timeout_cooperative(&mut body, 1) => {
+                let decoded = decoded.unwrap_or_else(|error| panic!("{error}"));
+                assert_eq!(decoded.0, 0);
+                assert_eq!(decoded.1.len(), 500_000);
+                assert_eq!(decoded.1.first().and_then(|item| item.partitions.first()).map(|item| item.partition), Some(0));
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "decoding share acks held the caller for {elapsed:?}"
+        );
+        let sample = [crate::protocol::share::ShareAcknowledgeResponseTopic {
+            topic_id: [0x11; 16],
+            partitions: vec![crate::protocol::share::ShareAcknowledgeResponsePartition {
+                partition: 9,
+                error_code: 6,
+                error_message: Some("busy".to_string()),
+                current_leader_id: 3,
+                current_leader_epoch: 4,
+            }],
+        }];
+        let mut encoded = bytes::BytesMut::new();
+        crate::protocol::share::encode_share_acknowledge_topics_response(
+            &mut encoded,
+            1,
+            7,
+            &sample,
+        )
+        .unwrap_or_else(|error| panic!("{error}"));
+        let mut once = encoded.clone();
+        let mut paced = encoded;
+        let sync =
+            crate::protocol::share::decode_share_acknowledge_topics_response_with_lock_timeout(
+                &mut once, 1,
+            )
+            .unwrap_or_else(|error| panic!("{error}"));
+        let coop =
+            decode_share_acknowledge_topics_response_with_lock_timeout_cooperative(&mut paced, 1)
+                .await
+                .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(sync, coop);
+        assert_eq!(
+            coop.1
+                .first()
+                .and_then(|item| item.partitions.first())
+                .and_then(|item| item.error_message.as_deref()),
+            Some("busy")
+        );
+        assert_eq!(
+            coop.1
+                .first()
+                .and_then(|item| item.partitions.first())
+                .map(|item| item.current_leader_id),
+            Some(3)
         );
     }
 
