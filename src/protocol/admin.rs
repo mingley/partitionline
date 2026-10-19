@@ -9044,6 +9044,7 @@ pub fn encode_alter_user_scram_credentials_request(
 }
 
 /// Encode AlterUserScramCredentials deletions and upsertions from borrowed bytes.
+#[cfg(test)]
 pub(crate) fn encode_alter_user_scram_credentials_named(
     buf: &mut BytesMut,
     deletions: &[BorrowedScramDeletion<'_>],
@@ -9112,6 +9113,109 @@ fn alter_user_scram_request_len<D: ScramDeletionView, U: ScramUpsertionView>(
             describe_bytes_len(true, upsertion.scram_upsertion_password())?,
         )?;
         total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    add_describe_len(total, buf::unsigned_varint_size(0))
+}
+
+/// Encode AlterUserScramCredentials, yielding while users are still being written.
+///
+/// Encoding 2,000,000 users held the caller for 1003ms. A user name, a salt, and a salted password are still written.
+pub(crate) async fn encode_alter_user_scram_credentials_named_cooperative(
+    buf: &mut BytesMut,
+    deletions: &[BorrowedScramDeletion<'_>],
+    upsertions: &[BorrowedScramUpsertion<'_>],
+) -> crate::error::Result<()> {
+    encode_scram_credential_views_cooperative(buf, deletions, upsertions).await
+}
+
+async fn encode_scram_credential_views_cooperative<
+    D: ScramDeletionView + Sync,
+    U: ScramUpsertionView + Sync,
+>(
+    buf: &mut BytesMut,
+    deletions: &[D],
+    upsertions: &[U],
+) -> crate::error::Result<()> {
+    let body_start = buf.len();
+    let planned = alter_user_scram_request_len_cooperative(deletions, upsertions).await?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
+    buf::put_array_len(buf, true, Some(deletions.len()))?;
+    let mut walked = 0usize;
+    for deletion in deletions {
+        buf::put_compact_string(buf, Some(deletion.scram_deletion_name()))?;
+        buf.put_i8(deletion.scram_deletion_mechanism());
+        buf::put_empty_tagged_fields(buf);
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    buf::put_array_len(buf, true, Some(upsertions.len()))?;
+    for upsertion in upsertions {
+        buf::put_compact_string(buf, Some(upsertion.scram_upsertion_name()))?;
+        buf.put_i8(upsertion.scram_upsertion_mechanism());
+        buf.put_i32(upsertion.scram_upsertion_iterations());
+        buf::put_compact_bytes(buf, Some(upsertion.scram_upsertion_salt()))?;
+        buf::put_compact_bytes(buf, Some(upsertion.scram_upsertion_password()))?;
+        buf::put_empty_tagged_fields(buf);
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    buf::put_empty_tagged_fields(buf);
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+    Ok(())
+}
+
+async fn alter_user_scram_request_len_cooperative<
+    D: ScramDeletionView + Sync,
+    U: ScramUpsertionView + Sync,
+>(
+    deletions: &[D],
+    upsertions: &[U],
+) -> Result<usize> {
+    let mut total = describe_array_len(true, deletions.len())?;
+    let mut walked = 0usize;
+    for deletion in deletions {
+        total = add_describe_len(
+            total,
+            describe_string_len(true, Some(deletion.scram_deletion_name()))?,
+        )?;
+        total = add_describe_len(total, 1)?;
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    total = add_describe_len(total, describe_array_len(true, upsertions.len())?)?;
+    for upsertion in upsertions {
+        total = add_describe_len(
+            total,
+            describe_string_len(true, Some(upsertion.scram_upsertion_name()))?,
+        )?;
+        total = add_describe_len(total, 5)?;
+        total = add_describe_len(
+            total,
+            describe_bytes_len(true, upsertion.scram_upsertion_salt())?,
+        )?;
+        total = add_describe_len(
+            total,
+            describe_bytes_len(true, upsertion.scram_upsertion_password())?,
+        )?;
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
     }
     add_describe_len(total, buf::unsigned_varint_size(0))
 }
@@ -27691,6 +27795,59 @@ mod tests {
         encode_alter_share_group_offsets_request(&mut once, "g", &sample)
             .unwrap_or_else(|error| panic!("{error}"));
         encode_alter_share_group_offsets_request_cooperative(&mut paced, "g", &sample)
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(once, paced);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn encoding_many_altered_scram_users_does_not_hold_the_caller() {
+        let owned: Vec<String> = (0..2_000_000)
+            .map(|index| format!("user-{index}"))
+            .collect();
+        let salt = [1u8, 2, 3, 4];
+        let password = [5u8, 6, 7, 8];
+        let upsertions: Vec<BorrowedScramUpsertion<'_>> = owned
+            .iter()
+            .map(|name| BorrowedScramUpsertion {
+                name: name.as_str(),
+                mechanism: 1,
+                iterations: 4096,
+                salt: &salt,
+                salted_password: &password,
+            })
+            .collect();
+        let mut body = bytes::BytesMut::new();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            encoded = encode_alter_user_scram_credentials_named_cooperative(
+                &mut body,
+                &[],
+                &upsertions,
+            ) => {
+                encoded.unwrap_or_else(|error| panic!("{error}"));
+            }
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "encoding altered scram users held the caller for {elapsed:?}"
+        );
+        let salt = [9u8];
+        let password = [8u8];
+        let sample = [BorrowedScramUpsertion {
+            name: "alice",
+            mechanism: 1,
+            iterations: 4096,
+            salt: &salt,
+            salted_password: &password,
+        }];
+        let mut once = bytes::BytesMut::new();
+        let mut paced = bytes::BytesMut::new();
+        encode_alter_user_scram_credentials_named(&mut once, &[], &sample)
+            .unwrap_or_else(|error| panic!("{error}"));
+        encode_alter_user_scram_credentials_named_cooperative(&mut paced, &[], &sample)
             .await
             .unwrap_or_else(|error| panic!("{error}"));
         assert_eq!(once, paced);
