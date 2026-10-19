@@ -2463,7 +2463,7 @@ pub enum ShareAcquireMode {
 /// member epoch is ahead of or behind the coordinator's stored epoch.
 /// Top-level `UNRELEASED_INSTANCE_ID` still fails that poll
 /// and does not request Metadata, including when `ErrorMessage` is
-/// set (Java `handleShareFetchSuccess` only `requestUpdate`s for
+/// set or empty (Java `handleShareFetchSuccess` only `requestUpdate`s for
 /// `UNKNOWN_TOPIC_ID`; this is not top-level
 /// `FENCED_MEMBER_EPOCH`). Official Java
 /// `GroupMetadataManager` writes this when a static member joins
@@ -5783,7 +5783,7 @@ impl ShareGroup {
     /// member epoch is ahead of or behind the coordinator's stored
     /// epoch. Top-level
     /// `UNRELEASED_INSTANCE_ID` still fails that poll without
-    /// Metadata, including when `ErrorMessage` is set (Java
+    /// Metadata, including when `ErrorMessage` is set or empty (Java
     /// `handleShareFetchSuccess` only `requestUpdate`s for
     /// `UNKNOWN_TOPIC_ID`; this is not top-level
     /// `FENCED_MEMBER_EPOCH`). Official Java
