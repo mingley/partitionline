@@ -3995,7 +3995,7 @@
 //! writes this when a consumer-protocol OffsetCommit or OffsetFetch member epoch does not match the coordinator's stored epoch.
 //! Top-level ShareAcknowledge `MISMATCHED_ENDPOINT_TYPE` completes
 //! without retry and does not request Metadata, including when
-//! `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+//! `ErrorMessage` is set or empty (Java `handleShareAcknowledgeSuccess` has no
 //! `metadata.requestUpdate`; this is not top-level
 //! `STALE_MEMBER_EPOCH`). Official Java `AuthHelper`
 //! writes this when DescribeCluster names an endpoint type that does not match the endpoint that received the request.

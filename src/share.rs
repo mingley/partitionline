@@ -2982,7 +2982,7 @@ pub enum ShareAcquireMode {
 /// A top-level
 /// ShareAcknowledge `MISMATCHED_ENDPOINT_TYPE` completes without
 /// retry and does not request Metadata, including when `ErrorMessage`
-/// is set (Java `handleShareAcknowledgeSuccess` has no
+/// is set or empty (Java `handleShareAcknowledgeSuccess` has no
 /// `metadata.requestUpdate`; this is not top-level
 /// `STALE_MEMBER_EPOCH`). Official Java
 /// `AuthHelper` writes this when DescribeCluster names an endpoint type
@@ -6665,7 +6665,7 @@ impl ShareGroup {
     /// does not match the coordinator's stored epoch.
     /// A top-level ShareAcknowledge `MISMATCHED_ENDPOINT_TYPE`
     /// completes without retry and does not request Metadata,
-    /// including when `ErrorMessage` is set (Java
+    /// including when `ErrorMessage` is set or empty (Java
     /// `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`;
     /// this is not top-level `STALE_MEMBER_EPOCH`).
     /// Official Java `AuthHelper` writes this when DescribeCluster
