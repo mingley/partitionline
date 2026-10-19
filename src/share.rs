@@ -3113,7 +3113,7 @@ impl ShareGroup {
     ///
     /// Records acquired under the previous id belong to the deleted topic.
     /// A zero metadata id does not clear a stored id.
-    fn refresh_share_topic_ids(&mut self) {
+    async fn refresh_share_topic_ids(&mut self) {
         if share_topic_ids_current(
             &self.topic_ids,
             &self.assigned,
@@ -3145,7 +3145,7 @@ impl ShareGroup {
             }
             let _previous = self.topic_ids.insert(topic, id);
         }
-        drop_share_records_for_topics(&mut self.pending_delivery, &recreated);
+        drop_share_records_for_topics(&mut self.pending_delivery, &recreated).await;
     }
 
     async fn apply_pending_assignment(&mut self) {
@@ -4366,7 +4366,7 @@ impl ShareGroup {
         deadline: Instant,
         max_wait_ms: i32,
     ) -> Result<Vec<ShareRecord>> {
-        self.refresh_share_topic_ids();
+        self.refresh_share_topic_ids().await;
         if !self.pending_delivery.is_empty() {
             return Ok(self.drain_pending_delivery());
         }
@@ -5104,7 +5104,7 @@ impl ShareGroup {
         if self.share_epochs.is_empty() {
             return Err(reject_java_acknowledge_before_poll());
         }
-        self.refresh_share_topic_ids();
+        self.refresh_share_topic_ids().await;
         self.prune_expired_acquisitions().await;
         reject_stale_share_acks(&self.acquisitions, recs).await?;
         let mut partitions = std::mem::take(&mut self.ack_partitions);
@@ -6886,12 +6886,27 @@ fn share_node_addresses(
     addresses
 }
 
-fn drop_share_records_for_topics(records: &mut Vec<ShareRecord>, topics: &[Arc<str>]) {
+/// Remove records whose topic was deleted and created again.
+///
+/// The walk pauses every 8,192 records. Without that pause, dropping
+/// 2,000,000 records for a recreated topic held the caller for 353 milliseconds.
+///
+/// A topic that is not listed stays, in its original order.
+async fn drop_share_records_for_topics(records: &mut Vec<ShareRecord>, topics: &[Arc<str>]) {
     if records.is_empty() || topics.is_empty() {
         return;
     }
-    let dropped: HashSet<&str> = topics.iter().map(|topic| topic.as_ref()).collect();
-    records.retain(|record| !dropped.contains(record.topic.as_str()));
+    let mut dropped = HashSet::with_capacity(topics.len());
+    let mut walked = 0usize;
+    for topic in topics {
+        let _inserted = dropped.insert(topic.as_ref());
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    retain_pending_share(records, |record| !dropped.contains(record.topic.as_str())).await;
 }
 
 fn share_record_bytes(rec: &ShareRecord) -> u64 {
@@ -9820,8 +9835,38 @@ mod tests {
         );
     }
 
-    #[test]
-    fn dropping_many_recreated_share_records_does_not_hold_the_caller() {
+    #[tokio::test(flavor = "current_thread")]
+    async fn dropping_a_large_recreated_share_buffer_does_not_hold_the_caller() {
+        let topic: Arc<str> = Arc::from("orders");
+        let topics = [Arc::clone(&topic)];
+        let mut records: Vec<ShareRecord> = (0..2_000_000)
+            .map(|offset| ShareRecord {
+                topic: crate::consumer::TopicName::from(topic.as_ref()),
+                partition: 0,
+                offset,
+                timestamp: 0,
+                timestamp_type: TimestampType::CreateTime,
+                key: None,
+                value: None,
+                headers: Vec::new(),
+                delivery_count: 1,
+                leader_epoch: None,
+            })
+            .collect();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = drop_share_records_for_topics(&mut records, &topics) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "dropping recreated share records held the caller for {elapsed:?}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn dropping_many_recreated_share_records_does_not_hold_the_caller() {
         // 8_192 topics: scanning the buffer for each topic held the caller 1.20s.
         let topics: Vec<Arc<str>> = (0..8_192)
             .map(|index| Arc::from(format!("t{index}")))
@@ -9854,7 +9899,7 @@ mod tests {
             leader_epoch: None,
         });
         let started = std::time::Instant::now();
-        drop_share_records_for_topics(&mut records, &topics);
+        drop_share_records_for_topics(&mut records, &topics).await;
         let elapsed = started.elapsed();
         assert_eq!(records.len(), 1);
         assert_eq!(records.first().map(|record| record.offset), Some(2));
