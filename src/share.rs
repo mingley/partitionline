@@ -2864,6 +2864,13 @@ pub enum ShareAcquireMode {
 /// `BROKER_ID_NOT_REGISTERED`). Official Java
 /// `ClusterControlManager` writes this when a broker registration
 /// cluster id does not match. A top-level
+/// ShareAcknowledge `TRANSACTIONAL_ID_NOT_FOUND` completes without
+/// retry and does not request Metadata, including when `ErrorMessage`
+/// is set (Java `handleShareAcknowledgeSuccess` has no
+/// `metadata.requestUpdate`; this is not top-level
+/// `INCONSISTENT_CLUSTER_ID`). Official Java
+/// `TransactionCoordinator` writes this when the transactional id has
+/// no transaction state. A top-level
 /// ShareAcknowledge `SHARE_SESSION_LIMIT_REACHED` completes without
 /// retry and does not request Metadata, including when `ErrorMessage`
 /// is set or empty (Java `handleShareAcknowledgeSuccess` has no
@@ -6418,6 +6425,13 @@ impl ShareGroup {
     /// this is not top-level `BROKER_ID_NOT_REGISTERED`).
     /// Official Java `ClusterControlManager` writes this when a broker
     /// registration cluster id does not match.
+    /// A top-level ShareAcknowledge `TRANSACTIONAL_ID_NOT_FOUND`
+    /// completes without retry and does not request Metadata,
+    /// including when `ErrorMessage` is set (Java
+    /// `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`;
+    /// this is not top-level `INCONSISTENT_CLUSTER_ID`).
+    /// Official Java `TransactionCoordinator` writes this when the
+    /// transactional id has no transaction state.
     /// Top-level `SHARE_SESSION_LIMIT_REACHED`
     /// completes without retry and advances the session epoch (Java
     /// `ShareSessionHandler.handleResponse` `nextEpoch`), including
