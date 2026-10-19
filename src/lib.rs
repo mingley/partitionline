@@ -3954,6 +3954,12 @@
 //! `metadata.requestUpdate`; this is not top-level
 //! `OFFSET_MOVED_TO_TIERED_STORAGE`). Official Java `GroupMetadataManager`
 //! writes this when a share-group heartbeat member epoch is ahead of or behind the coordinator's stored epoch.
+//! Top-level ShareAcknowledge `UNRELEASED_INSTANCE_ID` completes
+//! without retry and does not request Metadata, including when
+//! `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+//! `metadata.requestUpdate`; this is not top-level
+//! `FENCED_MEMBER_EPOCH`). Official Java `GroupMetadataManager`
+//! writes this when a static member joins while the instance id is still owned.
 //! Top-level ShareAcknowledge
 //! `SHARE_SESSION_LIMIT_REACHED` completes without retry and advances
 //! the session epoch (Java `ShareSessionHandler.handleResponse`
