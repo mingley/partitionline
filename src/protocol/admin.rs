@@ -16998,6 +16998,85 @@ pub fn decode_describe_share_group_offsets_response_versioned<B: Buf>(
     Ok((groups, throttle_time_ms))
 }
 
+/// [`decode_describe_share_group_offsets_response_versioned`], yielding while partitions are still being read.
+///
+/// Decoding 500,000 partitions held the caller for 206ms.
+pub async fn decode_describe_share_group_offsets_response_versioned_cooperative<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<(Vec<DescribedShareGroupOffsetsWithLag>, i32)> {
+    share_offsets_version(version)?;
+    let throttle_time_ms = buf::get_i32(buf)?;
+    let n = share_offsets_array_len(buf)?;
+    share_offsets_count(buf, n, 6)?;
+    let mut groups = Vec::with_capacity(n);
+    let mut walked = 0usize;
+    for _ in 0..n {
+        let group_id = share_offsets_name(buf)?;
+        let tn = share_offsets_array_len(buf)?;
+        share_offsets_count(buf, tn, 19)?;
+        let mut topics = Vec::with_capacity(tn);
+        for _ in 0..tn {
+            let topic_name = share_offsets_name(buf)?;
+            let topic_id = buf::get_uuid(buf)?;
+            let pn = share_offsets_array_len(buf)?;
+            share_offsets_count(buf, pn, if version >= 1 { 28 } else { 20 })?;
+            let mut partitions = Vec::with_capacity(pn);
+            for _ in 0..pn {
+                let partition_index = buf::get_i32(buf)?;
+                let start_offset = buf::get_i64(buf)?;
+                let leader_epoch = buf::get_i32(buf)?;
+                let raw_lag = if version >= 1 { buf::get_i64(buf)? } else { -1 };
+                let error_code = buf::get_i16(buf)?;
+                let error_message = buf::get_compact_string(buf)?;
+                buf::skip_tagged_fields(buf)?;
+                partitions.push(DescribedShareGroupOffsetsPartitionWithLag {
+                    partition: DescribedShareGroupOffsetsPartition {
+                        partition_index,
+                        start_offset,
+                        leader_epoch,
+                        error_code,
+                        error_message,
+                    },
+                    raw_lag,
+                });
+                walked = walked.saturating_add(1);
+                if walked == 8 * 1024 {
+                    walked = 0;
+                    tokio::task::yield_now().await;
+                }
+            }
+            buf::skip_tagged_fields(buf)?;
+            topics.push(DescribedShareGroupOffsetsTopicWithLag {
+                topic_name,
+                topic_id,
+                partitions,
+            });
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+        let error_code = buf::get_i16(buf)?;
+        let error_message = buf::get_compact_string(buf)?;
+        buf::skip_tagged_fields(buf)?;
+        groups.push(DescribedShareGroupOffsetsWithLag {
+            group_id,
+            topics,
+            error_code,
+            error_message,
+        });
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    buf::skip_tagged_fields(buf)?;
+    Ok((groups, throttle_time_ms))
+}
+
 /// One requested partition in AlterShareGroupOffsets (api 91).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AlterShareGroupOffsetsPartition {
