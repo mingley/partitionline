@@ -2482,6 +2482,13 @@ pub enum ShareAcquireMode {
 /// `UNSUPPORTED_ASSIGNOR`). Official Java
 /// `ConsumerGroup` writes this when a consumer-protocol OffsetCommit
 /// or OffsetFetch member epoch does not match the coordinator's stored epoch.
+/// Top-level `MISMATCHED_ENDPOINT_TYPE` still fails that poll
+/// and does not request Metadata, including when `ErrorMessage` is
+/// set (Java `handleShareFetchSuccess` only `requestUpdate`s for
+/// `UNKNOWN_TOPIC_ID`; this is not top-level
+/// `STALE_MEMBER_EPOCH`). Official Java
+/// `AuthHelper` writes this when DescribeCluster names an endpoint type
+/// that does not match the endpoint that received the request.
 /// Top-level
 /// `SHARE_SESSION_LIMIT_REACHED` resets the share session and does
 /// not request Metadata, including when `ErrorMessage` is set or
@@ -5843,6 +5850,14 @@ impl ShareGroup {
     /// `ConsumerGroup` writes this when a consumer-protocol OffsetCommit
     /// or OffsetFetch member epoch does not match the coordinator's stored
     /// epoch.
+    /// Top-level
+    /// `MISMATCHED_ENDPOINT_TYPE` still fails that poll without
+    /// Metadata, including when `ErrorMessage` is set (Java
+    /// `handleShareFetchSuccess` only `requestUpdate`s for
+    /// `UNKNOWN_TOPIC_ID`; this is not top-level
+    /// `STALE_MEMBER_EPOCH`). Official Java
+    /// `AuthHelper` writes this when DescribeCluster names an endpoint
+    /// type that does not match the endpoint that received the request.
     /// Top-level
     /// `SHARE_SESSION_LIMIT_REACHED` resets the share session and
     /// does not request Metadata, including when `ErrorMessage` is
