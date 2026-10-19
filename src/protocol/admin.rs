@@ -10672,6 +10672,114 @@ fn alter_client_quotas_request_len(
     Ok(total)
 }
 
+/// Encode AlterClientQuotas, yielding while alterations are still being written.
+///
+/// Encoding 2,000,000 alterations held the caller for 1690ms. An entity name and a quota key are still written.
+pub(crate) async fn encode_alter_client_quotas_request_cooperative(
+    buf: &mut BytesMut,
+    version: i16,
+    entries: &[ClientQuotaAlteration],
+    validate_only: bool,
+) -> crate::error::Result<()> {
+    let flexible = alter_client_quotas_flexible(version)?;
+    let body_start = buf.len();
+    let planned = alter_client_quotas_request_len_cooperative(flexible, entries).await?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
+    buf::put_array_len(buf, flexible, Some(entries.len()))?;
+    let mut walked = 0usize;
+    for entry in entries {
+        buf::put_array_len(buf, flexible, Some(entry.entity.len()))?;
+        for entity in &entry.entity {
+            buf::put_string(buf, flexible, Some(&entity.entity_type))?;
+            buf::put_string(buf, flexible, entity.name.as_deref())?;
+            if flexible {
+                buf::put_empty_tagged_fields(buf);
+            }
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+        buf::put_array_len(buf, flexible, Some(entry.ops.len()))?;
+        for op in &entry.ops {
+            buf::put_string(buf, flexible, Some(&op.key))?;
+            buf.put_f64(op.value);
+            buf.put_u8(u8::from(op.remove));
+            if flexible {
+                buf::put_empty_tagged_fields(buf);
+            }
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    buf.put_u8(u8::from(validate_only));
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+    Ok(())
+}
+
+async fn alter_client_quotas_request_len_cooperative(
+    flexible: bool,
+    entries: &[ClientQuotaAlteration],
+) -> Result<usize> {
+    let mut total = describe_array_len(flexible, entries.len())?;
+    let mut walked = 0usize;
+    for entry in entries {
+        total = add_describe_len(total, describe_array_len(flexible, entry.entity.len())?)?;
+        for entity in &entry.entity {
+            total = add_describe_len(total, client_quota_entity_len(flexible, entity)?)?;
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+        total = add_describe_len(total, describe_array_len(flexible, entry.ops.len())?)?;
+        for op in &entry.ops {
+            total = add_describe_len(total, describe_string_len(flexible, Some(&op.key))?)?;
+            total = add_describe_len(total, 9)?;
+            if flexible {
+                total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+            }
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+        if flexible {
+            total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    total = add_describe_len(total, 1)?;
+    if flexible {
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
+}
+
 fn client_quota_entity_len(flexible: bool, entity: &ClientQuotaEntity) -> Result<usize> {
     let mut total = describe_string_len(flexible, Some(&entity.entity_type))?;
     total = add_describe_len(
@@ -27480,6 +27588,46 @@ mod tests {
         encode_alter_share_group_offsets_request(&mut once, "g", &sample)
             .unwrap_or_else(|error| panic!("{error}"));
         encode_alter_share_group_offsets_request_cooperative(&mut paced, "g", &sample)
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(once, paced);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn encoding_many_altered_quotas_does_not_hold_the_caller() {
+        let entries: Vec<ClientQuotaAlteration> = (0..2_000_000)
+            .map(|index| {
+                ClientQuotaAlteration::new(
+                    vec![ClientQuotaEntity::new(
+                        "client-id",
+                        Some(format!("client-{index}")),
+                    )],
+                    vec![ClientQuotaOp::set("producer_byte_rate", 1.0)],
+                )
+            })
+            .collect();
+        let mut body = bytes::BytesMut::new();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            encoded = encode_alter_client_quotas_request_cooperative(&mut body, 1, &entries, false) => {
+                encoded.unwrap_or_else(|error| panic!("{error}"));
+            }
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "encoding altered quotas held the caller for {elapsed:?}"
+        );
+        let sample = [ClientQuotaAlteration::new(
+            vec![ClientQuotaEntity::new("client-id", Some("orders".into()))],
+            vec![ClientQuotaOp::set("producer_byte_rate", 1.0)],
+        )];
+        let mut once = bytes::BytesMut::new();
+        let mut paced = bytes::BytesMut::new();
+        encode_alter_client_quotas_request(&mut once, 1, &sample, false)
+            .unwrap_or_else(|error| panic!("{error}"));
+        encode_alter_client_quotas_request_cooperative(&mut paced, 1, &sample, false)
             .await
             .unwrap_or_else(|error| panic!("{error}"));
         assert_eq!(once, paced);

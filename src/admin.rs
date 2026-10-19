@@ -56,7 +56,7 @@ use crate::protocol::admin::{
     decode_push_telemetry_response, decode_renew_delegation_token_response,
     decode_share_group_describe_response_cooperative, decode_unregister_broker_response,
     decode_update_features_response_cooperative, encode_allocate_producer_ids_request,
-    encode_alter_client_quotas_request, encode_alter_configs_named,
+    encode_alter_client_quotas_request_cooperative, encode_alter_configs_named,
     encode_alter_partition_reassignments_named, encode_alter_replica_log_dirs_named,
     encode_alter_replica_log_dirs_request, encode_alter_share_group_offsets_request_cooperative,
     encode_alter_user_scram_credentials_named, encode_assign_replicas_to_dirs_request,
@@ -7464,6 +7464,14 @@ impl Admin {
         })?;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
+        let mut encoded = BytesMut::new();
+        encode_alter_client_quotas_request_cooperative(
+            &mut encoded,
+            version,
+            entries,
+            validate_only,
+        )
+        .await?;
         loop {
             if self.cluster.controller().is_err() {
                 self.refresh_broker_directory(deadline).await?;
@@ -7475,7 +7483,10 @@ impl Admin {
                     deadline,
                     ALTER_CLIENT_QUOTAS,
                     version,
-                    |buf| encode_alter_client_quotas_request(buf, version, entries, validate_only),
+                    |buf| {
+                        buf.extend_from_slice(&encoded);
+                        Ok(())
+                    },
                     deadline.saturating_duration_since(Instant::now()),
                 )
                 .await
