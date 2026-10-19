@@ -2812,7 +2812,7 @@ pub enum ShareAcquireMode {
 /// writes this when the requested snapshot id does not exist. A top-level
 /// ShareAcknowledge `POSITION_OUT_OF_RANGE` completes without
 /// retry and does not request Metadata, including when `ErrorMessage`
-/// is set (Java `handleShareAcknowledgeSuccess` has no
+/// is set or empty (Java `handleShareAcknowledgeSuccess` has no
 /// `metadata.requestUpdate`; this is not top-level
 /// `SNAPSHOT_NOT_FOUND`). Official Java `KafkaRaftClient`
 /// writes this when the requested snapshot offset is out of range. A top-level
@@ -6316,7 +6316,7 @@ impl ShareGroup {
     /// snapshot id does not exist.
     /// A top-level ShareAcknowledge `POSITION_OUT_OF_RANGE`
     /// completes without retry and does not request Metadata,
-    /// including when `ErrorMessage` is set (Java
+    /// including when `ErrorMessage` is set or empty (Java
     /// `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`;
     /// this is not top-level `SNAPSHOT_NOT_FOUND`).
     /// Official Java `KafkaRaftClient` writes this when the requested
