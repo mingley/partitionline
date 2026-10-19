@@ -3120,6 +3120,14 @@ pub enum ShareAcquireMode {
 /// `KafkaRaftClient` writes this when a VOTE or BEGIN_QUORUM_EPOCH
 /// request carries a voter key that does not match the local key.
 /// A top-level
+/// ShareAcknowledge `DUPLICATE_VOTER` completes without
+/// retry and does not request Metadata, including when `ErrorMessage`
+/// is set (Java `handleShareAcknowledgeSuccess` has no
+/// `metadata.requestUpdate`; this is not top-level
+/// `INVALID_VOTER_KEY`). Official Java
+/// `AddVoterHandler` writes this when the AddRaftVoter request
+/// names a voter id that is already part of the set of voters.
+/// A top-level
 /// ShareAcknowledge `SHARE_SESSION_LIMIT_REACHED` completes without
 /// retry and does not request Metadata, including when `ErrorMessage`
 /// is set or empty (Java `handleShareAcknowledgeSuccess` has no
@@ -6947,6 +6955,14 @@ impl ShareGroup {
     /// Official Java `KafkaRaftClient` writes this when a VOTE or
     /// BEGIN_QUORUM_EPOCH request carries a voter key that does not
     /// match the local key.
+    /// A top-level ShareAcknowledge `DUPLICATE_VOTER`
+    /// completes without retry and does not request Metadata,
+    /// including when `ErrorMessage` is set (Java
+    /// `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`;
+    /// this is not top-level `INVALID_VOTER_KEY`).
+    /// Official Java `AddVoterHandler` writes this when the
+    /// AddRaftVoter request names a voter id that is already part of
+    /// the set of voters.
     /// Top-level `SHARE_SESSION_LIMIT_REACHED`
     /// completes without retry and advances the session epoch (Java
     /// `ShareSessionHandler.handleResponse` `nextEpoch`), including
