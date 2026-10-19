@@ -3941,6 +3941,12 @@
 //! `NEW_LEADER_ELECTED`). Official Java `ReplicaManager`
 //! writes this when a follower fetch offset is below `localLogStartOffset`
 //! but at or above `logStartOffset`.
+//! Top-level ShareAcknowledge `FENCED_MEMBER_EPOCH` completes
+//! without retry and does not request Metadata, including when
+//! `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+//! `metadata.requestUpdate`; this is not top-level
+//! `OFFSET_MOVED_TO_TIERED_STORAGE`). Official Java `GroupMetadataManager`
+//! writes this when a share-group heartbeat member epoch is ahead of or behind the coordinator's stored epoch.
 //! Top-level ShareAcknowledge
 //! `SHARE_SESSION_LIMIT_REACHED` completes without retry and advances
 //! the session epoch (Java `ShareSessionHandler.handleResponse`
