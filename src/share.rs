@@ -3137,7 +3137,7 @@ pub enum ShareAcquireMode {
 /// A top-level
 /// ShareAcknowledge `VOTER_NOT_FOUND` completes without
 /// retry and does not request Metadata, including when `ErrorMessage`
-/// is set (Java `handleShareAcknowledgeSuccess` has no
+/// is set or empty (Java `handleShareAcknowledgeSuccess` has no
 /// `metadata.requestUpdate`; this is not top-level
 /// `DUPLICATE_VOTER`). Official Java
 /// `RemoveVoterHandler` writes this when RemoveRaftVoter cannot
@@ -6989,7 +6989,7 @@ impl ShareGroup {
     /// the set of voters.
     /// A top-level ShareAcknowledge `VOTER_NOT_FOUND`
     /// completes without retry and does not request Metadata,
-    /// including when `ErrorMessage` is set (Java
+    /// including when `ErrorMessage` is set or empty (Java
     /// `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`;
     /// this is not top-level `DUPLICATE_VOTER`).
     /// Official Java `RemoveVoterHandler` writes this when

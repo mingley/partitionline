@@ -4132,7 +4132,7 @@
 //! writes this when the AddRaftVoter request names a voter id that is already part of the set of voters.
 //! Top-level ShareAcknowledge `VOTER_NOT_FOUND` completes
 //! without retry and does not request Metadata, including when
-//! `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+//! `ErrorMessage` is set or empty (Java `handleShareAcknowledgeSuccess` has no
 //! `metadata.requestUpdate`; this is not top-level
 //! `DUPLICATE_VOTER`). Official Java `RemoveVoterHandler`
 //! writes this when RemoveRaftVoter cannot remove the named voter from the current voter set.
