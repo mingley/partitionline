@@ -4001,7 +4001,7 @@ impl ConsumerGroup {
         deadline: Instant,
         overlap_metadata: bool,
     ) -> Result<Vec<(String, i32)>> {
-        let identities = self.consumer.topic_name_ids().clone();
+        let identities = clone_topic_ids(self.consumer.topic_name_ids()).await;
         let all_current = self.consumer.assigned_offsets().to_vec();
         let mut current: HashMap<String, HashMap<i32, i64>> = HashMap::new();
         let mut walked = 0usize;
@@ -5524,6 +5524,26 @@ fn new_kip848_member_id() -> Result<String> {
         &base64::engine::general_purpose::URL_SAFE_NO_PAD,
         raw,
     ))
+}
+
+/// Snapshot of topic name to id.
+///
+/// The walk pauses every 8,192 topics. Without that pause, cloning
+/// 2,000,000 topic ids held the caller for 480 milliseconds.
+///
+/// Each cached name stays on its existing allocation.
+async fn clone_topic_ids(ids: &HashMap<Arc<str>, [u8; 16]>) -> HashMap<Arc<str>, [u8; 16]> {
+    let mut out = HashMap::with_capacity(ids.len());
+    let mut walked = 0usize;
+    for (name, id) in ids {
+        let _stored = out.insert(Arc::clone(name), *id);
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    out
 }
 
 /// True when a KIP-848 assignment names a topic id metadata has not indexed.
@@ -10295,6 +10315,37 @@ mod tests {
         let topics = collect_topics(["orders", "payments", "orders"]).unwrap();
         assert_eq!(topics, vec!["orders".to_string(), "payments".to_string()]);
         assert!(collect_topics(Vec::<String>::new()).is_err());
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn cloning_many_topic_ids_does_not_hold_the_caller() {
+        let identities: HashMap<Arc<str>, [u8; 16]> = (0..2_000_000)
+            .map(|index| {
+                let mut id = [0u8; 16];
+                id[..8].copy_from_slice(&(index as u64).to_le_bytes());
+                (Arc::from(format!("topic-{index}")), id)
+            })
+            .collect();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = clone_topic_ids(&identities) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "cloning topic ids held the caller for {elapsed:?}"
+        );
+        let name: Arc<str> = Arc::from("orders-topic-name-longer-than-inline");
+        let one = HashMap::from([(Arc::clone(&name), [1u8; 16])]);
+        let cloned = clone_topic_ids(&one).await;
+        assert_eq!(cloned.get(name.as_ref()).copied(), Some([1u8; 16]));
+        assert_eq!(
+            cloned
+                .get_key_value(name.as_ref())
+                .map(|(key, _)| Arc::as_ptr(key)),
+            Some(Arc::as_ptr(&name))
+        );
     }
 
     #[tokio::test(flavor = "current_thread")]
