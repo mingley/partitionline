@@ -36,7 +36,7 @@ use crate::protocol::admin::{
     decode_create_partitions_response_cooperative, decode_create_topics_response_cooperative,
     decode_delete_groups_response_cooperative, decode_delete_records_topics_response,
     decode_delete_share_group_offsets_response_cooperative,
-    decode_delete_topics_response_cooperative, decode_describe_client_quotas_response,
+    decode_delete_topics_response_cooperative, decode_describe_client_quotas_response_cooperative,
     decode_describe_cluster_response, decode_describe_configs_response_cooperative,
     decode_describe_delegation_token_response_cooperative,
     decode_describe_groups_response_cooperative, decode_describe_log_dirs_response_cooperative,
@@ -7349,7 +7349,8 @@ impl Admin {
                 timeout,
             )
             .await?;
-        let resp = decode_describe_client_quotas_response(&mut body.clone(), version)?;
+        let resp =
+            decode_describe_client_quotas_response_cooperative(&mut body.clone(), version).await?;
         if resp.error_code != 0 {
             return Err(Error::broker(resp.error_code, "DescribeClientQuotas"));
         }
@@ -19606,6 +19607,75 @@ mod tests {
         assert_eq!(
             coop.config_resources.first().map(|item| item.resource_type),
             Some(2)
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn decoding_many_client_quotas_does_not_hold_the_caller() {
+        let entries: Vec<ClientQuotaEntry> = (0..200_000)
+            .map(|index| ClientQuotaEntry {
+                entity: vec![ClientQuotaEntity {
+                    entity_type: "client-id".to_string(),
+                    name: Some(format!("client-{index}")),
+                }],
+                values: vec![ClientQuotaValue::new("producer_byte_rate", 1.0)],
+            })
+            .collect();
+        let resp =
+            crate::protocol::admin::DescribeClientQuotasResponse::new(0, None, Some(entries));
+        let mut body = bytes::BytesMut::new();
+        crate::protocol::admin::encode_describe_client_quotas_response(&mut body, 1, &resp)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let started = std::time::Instant::now();
+        tokio::select! {
+            decoded = decode_describe_client_quotas_response_cooperative(&mut body, 1) => {
+                let decoded = decoded.unwrap_or_else(|error| panic!("{error}"));
+                assert_eq!(decoded.throttle_time_ms, 0);
+                assert_eq!(decoded.entries.as_ref().map(Vec::len), Some(200_000));
+                assert_eq!(
+                    decoded.entries.as_ref().and_then(|items| items.first()).and_then(|item| item.entity.first()).and_then(|item| item.name.as_deref()),
+                    Some("client-0")
+                );
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "decoding client quotas held the caller for {elapsed:?}"
+        );
+        let mut resp = crate::protocol::admin::DescribeClientQuotasResponse::new(
+            7,
+            Some("busy".to_string()),
+            Some(vec![ClientQuotaEntry {
+                entity: vec![ClientQuotaEntity {
+                    entity_type: "user".to_string(),
+                    name: Some("alice".to_string()),
+                }],
+                values: vec![ClientQuotaValue::new("producer_byte_rate", 2.5)],
+            }]),
+        );
+        resp.throttle_time_ms = 4;
+        let mut encoded = bytes::BytesMut::new();
+        crate::protocol::admin::encode_describe_client_quotas_response(&mut encoded, 1, &resp)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let mut once = encoded.clone();
+        let mut paced = encoded;
+        let sync = crate::protocol::admin::decode_describe_client_quotas_response(&mut once, 1)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let coop = decode_describe_client_quotas_response_cooperative(&mut paced, 1)
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(sync, coop);
+        assert_eq!(coop.error_message.as_deref(), Some("busy"));
+        assert_eq!(coop.throttle_time_ms, 4);
+        assert_eq!(
+            coop.entries
+                .as_ref()
+                .and_then(|items| items.first())
+                .and_then(|item| item.values.first())
+                .map(|item| item.value),
+            Some(2.5)
         );
     }
 
