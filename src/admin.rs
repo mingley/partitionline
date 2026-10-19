@@ -3226,6 +3226,7 @@ async fn listed_group_offsets(
     }
 }
 
+#[cfg(test)]
 fn unique_names<'a, I>(names: I) -> Vec<&'a str>
 where
     I: IntoIterator<Item = &'a str>,
@@ -3235,6 +3236,32 @@ where
     for name in names {
         if seen.insert(name) {
             topics.push(name);
+        }
+    }
+    topics
+}
+
+fn unique_name_chunk() -> usize {
+    8 * 1024
+}
+
+/// Collecting 2,000,000 topic names held the caller for 1.55s.
+/// The first copy of a name is still kept.
+async fn unique_names_cooperative<'a, I>(names: I) -> Vec<&'a str>
+where
+    I: IntoIterator<Item = &'a str>,
+{
+    let mut seen: HashSet<&str> = HashSet::new();
+    let mut topics = Vec::new();
+    let mut walked = 0usize;
+    for name in names {
+        walked = walked.saturating_add(1);
+        if seen.insert(name) {
+            topics.push(name);
+        }
+        if walked == unique_name_chunk() {
+            walked = 0;
+            tokio::task::yield_now().await;
         }
     }
     topics
@@ -9696,11 +9723,12 @@ impl Admin {
                     self.cluster.invalidate_topic(&tp.topic);
                 }
             }
-            let topics = unique_names(
+            let topics = unique_names_cooperative(
                 pending
                     .iter()
                     .filter_map(|&i| records.get(i).map(|(tp, _)| tp.topic.as_str())),
-            );
+            )
+            .await;
             if !topics.is_empty() {
                 self.refresh_topics_while_dialing(&topics, &known_nodes, deadline)
                     .await?;
@@ -10013,11 +10041,12 @@ impl Admin {
                     self.cluster.invalidate_topic(&tp.topic);
                 }
             }
-            let topics = unique_names(
+            let topics = unique_names_cooperative(
                 pending
                     .iter()
                     .filter_map(|&i| queries.get(i).map(|(tp, _)| tp.topic.as_str())),
-            );
+            )
+            .await;
             if !topics.is_empty() {
                 self.refresh_topics_while_dialing(&topics, &known_nodes, deadline)
                     .await?;
@@ -10916,11 +10945,12 @@ impl Admin {
                     self.cluster.invalidate_topic(&tp.topic);
                 }
             }
-            let topics = unique_names(
+            let topics = unique_names_cooperative(
                 pending
                     .iter()
                     .filter_map(|&i| partitions.get(i).map(|tp| tp.topic.as_str())),
-            );
+            )
+            .await;
             if !topics.is_empty() {
                 self.refresh_topics_while_dialing(&topics, &known_nodes, deadline)
                     .await?;
@@ -17164,6 +17194,25 @@ mod tests {
         CreatedTopicConfig, ListConfigResourcesResponse, TopicConfig,
     };
     use bytes::BytesMut;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn collecting_many_unique_topic_names_does_not_hold_the_caller() {
+        let names: Vec<String> = (0..2_000_000)
+            .map(|index| format!("topic-{index}"))
+            .collect();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = unique_names_cooperative(names.iter().map(String::as_str)) => {}
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        assert!(
+            started.elapsed() < std::time::Duration::from_millis(80),
+            "collecting unique topic names held the caller for {:?}",
+            started.elapsed()
+        );
+        let sample = ["orders", "payments", "orders"];
+        assert_eq!(unique_names_cooperative(sample).await, unique_names(sample));
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn describing_one_huge_partition_page_does_not_hold_the_caller() {
