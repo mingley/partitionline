@@ -4577,7 +4577,9 @@ impl Consumer {
     }
 
     pub(crate) async fn invalidate_topics_cooperative(&mut self, topics: &[String]) {
-        self.cluster.invalidate_topics_cooperative(topics).await;
+        self.cluster
+            .invalidate_topics_cooperative(topics.iter().map(String::as_str))
+            .await;
     }
 
     pub(crate) async fn drop_node(&mut self, node: i32) {
@@ -6747,7 +6749,9 @@ impl Consumer {
                 .await;
                 let cached = self.cached_fetch_nodes(completed).await;
                 let nodes = self.fetch_redial_nodes(cached);
-                self.cluster.invalidate_topics_cooperative(&topics).await;
+                self.cluster
+                    .invalidate_topics_cooperative(topics.iter().map(String::as_str))
+                    .await;
                 let refreshed = self
                     .refresh_metadata_while_dialing(&topics, &nodes, deadline)
                     .await;

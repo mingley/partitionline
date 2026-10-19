@@ -574,7 +574,10 @@ impl Cluster {
 
     /// Invalidating 2,000,000 cached topics held the caller for 2.24s.
     /// A cached leader list is still dropped.
-    pub(crate) async fn invalidate_topics_cooperative(&mut self, topics: &[String]) {
+    pub(crate) async fn invalidate_topics_cooperative<'a>(
+        &mut self,
+        topics: impl IntoIterator<Item = &'a str>,
+    ) {
         let mut walked = 0usize;
         for topic in topics {
             self.invalidate_topic(topic);
@@ -1074,7 +1077,7 @@ mod tests {
         }
         let started = std::time::Instant::now();
         tokio::select! {
-            () = cluster.invalidate_topics_cooperative(&names) => {}
+            () = cluster.invalidate_topics_cooperative(names.iter().map(String::as_str)) => {}
             () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
         }
         assert!(
@@ -1085,7 +1088,7 @@ mod tests {
         let _orders = cluster.leaders.insert(Arc::from("orders"), vec![4]);
         let _payments = cluster.leaders.insert(Arc::from("payments"), vec![5]);
         cluster
-            .invalidate_topics_cooperative(&["orders".to_string()])
+            .invalidate_topics_cooperative(std::iter::once("orders"))
             .await;
         assert!(cluster.leaders.get("orders").is_none());
         assert_eq!(

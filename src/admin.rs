@@ -9722,17 +9722,15 @@ impl Admin {
                         .map(|(tp, _)| (tp.topic.as_str(), tp.partition))
                 }))
                 .await;
-            for &i in &pending {
-                if let Some((tp, _)) = records.get(i) {
-                    self.cluster.invalidate_topic(&tp.topic);
-                }
-            }
             let topics = unique_names_cooperative(
                 pending
                     .iter()
                     .filter_map(|&i| records.get(i).map(|(tp, _)| tp.topic.as_str())),
             )
             .await;
+            self.cluster
+                .invalidate_topics_cooperative(topics.iter().copied())
+                .await;
             if !topics.is_empty() {
                 self.refresh_topics_while_dialing(&topics, &known_nodes, deadline)
                     .await?;
@@ -10044,17 +10042,15 @@ impl Admin {
                         .map(|(tp, _)| (tp.topic.as_str(), tp.partition))
                 }))
                 .await;
-            for &i in &pending {
-                if let Some((tp, _)) = queries.get(i) {
-                    self.cluster.invalidate_topic(&tp.topic);
-                }
-            }
             let topics = unique_names_cooperative(
                 pending
                     .iter()
                     .filter_map(|&i| queries.get(i).map(|(tp, _)| tp.topic.as_str())),
             )
             .await;
+            self.cluster
+                .invalidate_topics_cooperative(topics.iter().copied())
+                .await;
             if !topics.is_empty() {
                 self.refresh_topics_while_dialing(&topics, &known_nodes, deadline)
                     .await?;
@@ -10967,17 +10963,15 @@ impl Admin {
                         .map(|tp| (tp.topic.as_str(), tp.partition))
                 }))
                 .await;
-            for &i in &pending {
-                if let Some(tp) = partitions.get(i) {
-                    self.cluster.invalidate_topic(&tp.topic);
-                }
-            }
             let topics = unique_names_cooperative(
                 pending
                     .iter()
                     .filter_map(|&i| partitions.get(i).map(|tp| tp.topic.as_str())),
             )
             .await;
+            self.cluster
+                .invalidate_topics_cooperative(topics.iter().copied())
+                .await;
             if !topics.is_empty() {
                 self.refresh_topics_while_dialing(&topics, &known_nodes, deadline)
                     .await?;
