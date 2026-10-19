@@ -1647,6 +1647,9 @@ pub struct ShareGroup {
     /// CurrentLeader values from the latest share response. A metadata refresh
     /// drops cached leaders, and these patches are put back afterward.
     leader_patches: Vec<ShareLeaderPatch>,
+    /// Slot of each saved leader patch. A later response for the same
+    /// partition replaces that slot instead of scanning the list.
+    leader_patch_slots: HashMap<String, HashMap<i32, usize>>,
     /// Share leaders whose socket was dropped after a retriable fetch error.
     ///
     /// Dialed again while metadata reloads. Broker addresses in
@@ -2359,6 +2362,7 @@ impl ShareGroup {
             share_addresses: HashMap::new(),
             share_api_keys: HashMap::new(),
             leader_patches: Vec::new(),
+            leader_patch_slots: HashMap::new(),
             share_redial_nodes: Vec::new(),
             share_redial_seen: HashSet::new(),
             prior_coords: HashMap::new(),
@@ -2982,6 +2986,7 @@ impl ShareGroup {
                         } else {
                             if share_leader_retriable(&e) {
                                 let patches = std::mem::take(&mut self.leader_patches);
+                                self.leader_patch_slots.clear();
                                 let refreshed = self
                                     .refresh_assigned_metadata(
                                         deadline.saturating_duration_since(Instant::now()),
@@ -2995,6 +3000,7 @@ impl ShareGroup {
                                 }
                             } else {
                                 self.leader_patches.clear();
+                                self.leader_patch_slots.clear();
                             }
                             continue;
                         }
@@ -3572,6 +3578,7 @@ impl ShareGroup {
             share_addresses: HashMap::new(),
             share_api_keys: HashMap::new(),
             leader_patches: Vec::new(),
+            leader_patch_slots: HashMap::new(),
             share_redial_nodes: Vec::new(),
             share_redial_seen: HashSet::new(),
             prior_coords: HashMap::new(),
@@ -4517,12 +4524,17 @@ impl ShareGroup {
                         part.current_leader_id,
                         part.current_leader_epoch,
                     ) {
-                        remember_share_leader_patch(&mut self.leader_patches, patch);
+                        remember_share_leader_patch(
+                            &mut self.leader_patches,
+                            &mut self.leader_patch_slots,
+                            patch,
+                        );
                     } else if share_ack_ownership_lost(part.error_code) {
                         self.consumer.invalidate_topic(name);
                         self.leader_patches.retain(|patch| {
                             patch.topic != name || patch.partition != part.partition
                         });
+                        self.leader_patch_slots = index_share_leader_patches(&self.leader_patches);
                     }
                     let error = Error::broker(
                         part.error_code,
@@ -4886,7 +4898,11 @@ impl ShareGroup {
                 part.current_leader_id,
                 part.current_leader_epoch,
             ) {
-                remember_share_leader_patch(&mut self.leader_patches, patch);
+                remember_share_leader_patch(
+                    &mut self.leader_patches,
+                    &mut self.leader_patch_slots,
+                    patch,
+                );
             }
         }
         let sent_batches = partitions
@@ -5466,7 +5482,11 @@ impl ShareGroup {
                         part.current_leader_id,
                         part.current_leader_epoch,
                     ) {
-                        remember_share_leader_patch(&mut self.leader_patches, patch);
+                        remember_share_leader_patch(
+                            &mut self.leader_patches,
+                            &mut self.leader_patch_slots,
+                            patch,
+                        );
                     }
                 }
                 let sent = sent_batches
@@ -6575,17 +6595,46 @@ fn share_leader_patch(
     }
 }
 
-fn remember_share_leader_patch(patches: &mut Vec<ShareLeaderPatch>, patch: ShareLeaderPatch) {
-    if let Some(existing) = patches
-        .iter_mut()
-        .find(|saved| saved.topic == patch.topic && saved.partition == patch.partition)
-    {
-        if patch.leader_epoch >= existing.leader_epoch {
-            *existing = patch;
+fn remember_share_leader_patch(
+    patches: &mut Vec<ShareLeaderPatch>,
+    slots: &mut HashMap<String, HashMap<i32, usize>>,
+    patch: ShareLeaderPatch,
+) {
+    if let Some(parts) = slots.get_mut(patch.topic.as_str()) {
+        if let Some(&slot) = parts.get(&patch.partition) {
+            if let Some(existing) = patches.get_mut(slot) {
+                if patch.leader_epoch >= existing.leader_epoch {
+                    *existing = patch;
+                }
+            }
+            return;
         }
-    } else {
+        let slot = patches.len();
+        let _stored = parts.insert(patch.partition, slot);
         patches.push(patch);
+        return;
     }
+    let mut parts = HashMap::new();
+    let slot = patches.len();
+    let _stored = parts.insert(patch.partition, slot);
+    let _stored_topic = slots.insert(patch.topic.clone(), parts);
+    patches.push(patch);
+}
+
+fn index_share_leader_patches(
+    patches: &[ShareLeaderPatch],
+) -> HashMap<String, HashMap<i32, usize>> {
+    let mut slots: HashMap<String, HashMap<i32, usize>> = HashMap::new();
+    for (slot, patch) in patches.iter().enumerate() {
+        if let Some(parts) = slots.get_mut(patch.topic.as_str()) {
+            let _stored = parts.insert(patch.partition, slot);
+            continue;
+        }
+        let mut parts = HashMap::new();
+        let _stored = parts.insert(patch.partition, slot);
+        let _stored_topic = slots.insert(patch.topic.clone(), parts);
+    }
+    slots
 }
 
 fn reapply_share_leader_patches(consumer: &mut Consumer, patches: &[ShareLeaderPatch]) {
@@ -9688,6 +9737,55 @@ mod tests {
     }
 
     #[test]
+    fn remembering_many_share_leaders_does_not_hold_the_caller() {
+        // 20_000 partitions: scanning the saved patches for each one held the caller 1.33s.
+        let mut patches = Vec::new();
+        let mut slots = HashMap::new();
+        let started = std::time::Instant::now();
+        for partition in 0..20_000 {
+            remember_share_leader_patch(
+                &mut patches,
+                &mut slots,
+                ShareLeaderPatch {
+                    topic: "orders".to_owned(),
+                    partition,
+                    leader_id: 1,
+                    leader_epoch: 4,
+                },
+            );
+        }
+        let elapsed = started.elapsed();
+        assert_eq!(patches.len(), 20_000);
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "remembering share leaders held the caller for {elapsed:?}"
+        );
+        remember_share_leader_patch(
+            &mut patches,
+            &mut slots,
+            ShareLeaderPatch {
+                topic: "orders".to_owned(),
+                partition: 0,
+                leader_id: 2,
+                leader_epoch: 9,
+            },
+        );
+        assert_eq!(patches.len(), 20_000);
+        assert_eq!(patches.first().map(|patch| patch.leader_epoch), Some(9));
+        remember_share_leader_patch(
+            &mut patches,
+            &mut slots,
+            ShareLeaderPatch {
+                topic: "orders".to_owned(),
+                partition: 0,
+                leader_id: 3,
+                leader_epoch: 3,
+            },
+        );
+        assert_eq!(patches.first().map(|patch| patch.leader_epoch), Some(9));
+    }
+
+    #[test]
     fn share_current_leader_survives_a_metadata_refresh() {
         use crate::protocol::api::NodeEndpoint;
         let mut cluster = crate::cluster::Cluster::default();
@@ -9703,19 +9801,20 @@ mod tests {
         assert!(share_leader_patch(true, "orders", 0, error::INVALID_RECORD_STATE, 2, 5).is_none());
         assert!(!cluster.apply_current_leader("orders", 0, 3, 6));
         let mut patches = Vec::new();
+        let mut slots = HashMap::new();
         if let Some(patch) = patch {
-            remember_share_leader_patch(&mut patches, patch);
+            remember_share_leader_patch(&mut patches, &mut slots, patch);
         }
         if let Some(older) =
             share_leader_patch(true, "orders", 0, error::NOT_LEADER_OR_FOLLOWER, 2, 4)
         {
-            remember_share_leader_patch(&mut patches, older);
+            remember_share_leader_patch(&mut patches, &mut slots, older);
         }
         assert_eq!(patches.first().map(|patch| patch.leader_epoch), Some(5));
         if let Some(newer) =
             share_leader_patch(true, "orders", 0, error::LEADER_NOT_AVAILABLE, 2, 8)
         {
-            remember_share_leader_patch(&mut patches, newer);
+            remember_share_leader_patch(&mut patches, &mut slots, newer);
         }
         assert_eq!(patches.len(), 1);
         assert_eq!(patches.first().map(|patch| patch.leader_epoch), Some(8));
