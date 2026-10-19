@@ -75,6 +75,8 @@ These walks include:
 - indexing metadata topic names and recording topic ids
 - finding recreated topics
 - grouping preferred replicas, and dropping one whose leader epoch changed, before metadata is applied
+- clearing and pruning the fetch plan
+- checking whether assigned fetches are paused or already finished
 - copying a changed consumer or share heartbeat subscription or assignment
 - opening one result slot, and its index, for each item in an admin batch
 - copying transactional ids before fencing producers

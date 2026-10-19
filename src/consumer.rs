@@ -6700,6 +6700,112 @@ impl Consumer {
         false
     }
 
+    /// Clear every planned partition list.
+    ///
+    /// The walk pauses every 8,192 topics. Clearing and pruning 2,000,000
+    /// planned topics in one pass held the caller for 521 milliseconds.
+    ///
+    /// Topic names stay in the map so the next plan can reuse them.
+    async fn clear_fetch_plan(plan: &mut HashMap<i32, HashMap<Arc<str>, Vec<FetchPartition>>>) {
+        let mut walked = 0usize;
+        for topics in plan.values_mut() {
+            for parts in topics.values_mut() {
+                parts.clear();
+                walked = walked.saturating_add(1);
+                if walked == Self::place_fetch_chunk() {
+                    walked = 0;
+                    tokio::task::yield_now().await;
+                }
+            }
+        }
+    }
+
+    /// Drop topics that this plan left empty, and leaders that have none left.
+    ///
+    /// The walk pauses every 8,192 topics. Clearing and pruning 2,000,000
+    /// planned topics in one pass held the caller for 521 milliseconds.
+    ///
+    /// A topic that still has partitions stays, including its list allocation.
+    async fn prune_fetch_plan(plan: &mut HashMap<i32, HashMap<Arc<str>, Vec<FetchPartition>>>) {
+        let nodes: Vec<i32> = plan.keys().copied().collect();
+        let mut drop_nodes = Vec::new();
+        for node in nodes {
+            if let Some(topics) = plan.get_mut(&node) {
+                Self::prune_empty_topics(topics).await;
+                if topics.is_empty() {
+                    drop_nodes.push(node);
+                }
+            }
+        }
+        for node in drop_nodes {
+            let _removed = plan.remove(&node);
+        }
+    }
+
+    async fn prune_empty_topics(topics: &mut HashMap<Arc<str>, Vec<FetchPartition>>) {
+        let mut pending = std::mem::take(topics);
+        let mut kept = Vec::new();
+        loop {
+            let keys: Vec<Arc<str>> = pending
+                .keys()
+                .take(Self::place_fetch_chunk())
+                .cloned()
+                .collect();
+            if keys.is_empty() {
+                break;
+            }
+            let full = keys.len() == Self::place_fetch_chunk();
+            for key in keys {
+                if let Some(parts) = pending.remove(&key) {
+                    if !parts.is_empty() {
+                        kept.push((key, parts));
+                    }
+                }
+            }
+            if !full {
+                break;
+            }
+            tokio::task::yield_now().await;
+        }
+        if topics.capacity() < pending.capacity() {
+            *topics = pending;
+        }
+        let mut walked = 0usize;
+        for (topic, parts) in kept {
+            let _stored = topics.insert(topic, parts);
+            walked = walked.saturating_add(1);
+            if walked == Self::place_fetch_chunk() {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+    }
+
+    /// True when every assigned partition is paused or already fetched.
+    ///
+    /// The walk pauses every 8,192 partitions. Without that pause, finishing
+    /// 2,000,000 assigned fetches held the caller for 1.12 seconds.
+    ///
+    /// The first partition that is still fetching stops the walk.
+    async fn assigned_fetches_finished(
+        assigned: &[(Arc<str>, i32, i64)],
+        paused: &PartitionMap<()>,
+        completed: &PartitionMap<()>,
+    ) -> bool {
+        let mut walked = 0usize;
+        for (topic, partition, _) in assigned {
+            if !paused.contains(topic, *partition) && !completed.contains(topic, *partition) {
+                return false;
+            }
+            walked = walked.saturating_add(1);
+            if walked == Self::place_fetch_chunk() {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+        true
+    }
+
     async fn fetch_assigned_loop(
         &mut self,
         completed: &mut PartitionMap<()>,
@@ -6770,16 +6876,9 @@ impl Consumer {
                 }
             }
             let mut by_leader = std::mem::take(&mut self.fetch_plan);
-            for topics in by_leader.values_mut() {
-                for parts in topics.values_mut() {
-                    parts.clear();
-                }
-            }
+            Self::clear_fetch_plan(&mut by_leader).await;
             let missing_leader = self.place_assigned_fetches(&mut by_leader, completed).await;
-            by_leader.retain(|_, topics| {
-                topics.retain(|_, parts| !parts.is_empty());
-                !topics.is_empty()
-            });
+            Self::prune_fetch_plan(&mut by_leader).await;
             if missing_leader {
                 if Instant::now() >= deadline {
                     self.fetch_plan = by_leader;
@@ -7050,10 +7149,8 @@ impl Consumer {
             if budget_reached {
                 return Ok(self.finish_fetch(out).await);
             }
-            let all_done = self
-                .assigned
-                .iter()
-                .all(|(t, p, _)| self.paused.contains(t, *p) || completed.contains(t, *p));
+            let all_done =
+                Self::assigned_fetches_finished(&self.assigned, &self.paused, completed).await;
             if !all_done && retry.should_retry() {
                 if Instant::now() >= deadline {
                     return if !out.is_empty() {
@@ -15539,6 +15636,111 @@ mod tests {
         reused.sort();
         assert_eq!(reused, vec!["orders".to_owned()]);
         assert!(reused.capacity() >= capacity);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn clearing_many_fetch_plan_topics_does_not_hold_the_caller() {
+        let mut topics: HashMap<std::sync::Arc<str>, Vec<FetchPartition>> = HashMap::new();
+        for index in 0..2_000_000 {
+            let _stored = topics.insert(std::sync::Arc::from(format!("topic-{index}")), Vec::new());
+        }
+        let mut plan = HashMap::new();
+        let _stored = plan.insert(1, topics);
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = Consumer::clear_fetch_plan(&mut plan) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let clear_elapsed = started.elapsed();
+        let started = std::time::Instant::now();
+        let task = tokio::spawn(async move {
+            Consumer::prune_fetch_plan(&mut plan).await;
+        });
+        tokio::time::sleep(std::time::Duration::from_millis(30)).await;
+        let prune_elapsed = started.elapsed();
+        task.abort();
+        assert!(
+            clear_elapsed < std::time::Duration::from_millis(80)
+                && prune_elapsed < std::time::Duration::from_millis(80),
+            "clearing a fetch plan held the caller for {clear_elapsed:?}; pruning it held the caller for {prune_elapsed:?}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn finishing_many_assigned_fetches_does_not_hold_the_caller() {
+        let mut assigned = Vec::with_capacity(2_000_000);
+        let paused: PartitionMap<()> = PartitionMap::new();
+        let mut completed: PartitionMap<()> = PartitionMap::new();
+        for index in 0..2_000_000 {
+            let name: std::sync::Arc<str> = std::sync::Arc::from(format!("topic-{index}"));
+            let _stored = completed.insert_shared(&name, 0, ());
+            assigned.push((name, 0, 0i64));
+        }
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = Consumer::assigned_fetches_finished(&assigned, &paused, &completed) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "finishing assigned fetches held the caller for {elapsed:?}"
+        );
+    }
+
+    #[tokio::test]
+    async fn a_fetch_plan_drops_empty_topics_and_keeps_filled_ones() {
+        let mut plan: HashMap<i32, HashMap<std::sync::Arc<str>, Vec<FetchPartition>>> =
+            HashMap::new();
+        let mut topics = HashMap::new();
+        let _stored = topics.insert(
+            std::sync::Arc::<str>::from("orders"),
+            vec![FetchPartition::partition_data(0, 4, -1, 1, Some(1), None)],
+        );
+        let _stored = topics.insert(std::sync::Arc::<str>::from("idle"), Vec::new());
+        let _stored = plan.insert(1, topics);
+        let _stored = plan.insert(2, HashMap::new());
+        Consumer::prune_fetch_plan(&mut plan).await;
+        assert!(plan.get(&2).is_none());
+        let kept = plan.get(&1).and_then(|topics| topics.get("orders"));
+        assert_eq!(kept.map(|parts| parts.len()), Some(1));
+        assert_eq!(
+            kept.and_then(|parts| parts.first())
+                .map(|part| part.fetch_offset),
+            Some(4)
+        );
+        assert!(plan
+            .get(&1)
+            .is_some_and(|topics| topics.get("idle").is_none()));
+        Consumer::clear_fetch_plan(&mut plan).await;
+        assert!(plan
+            .get(&1)
+            .is_some_and(|topics| topics.get("orders").is_some_and(|parts| parts.is_empty())));
+    }
+
+    #[tokio::test]
+    async fn an_unfinished_partition_stops_the_fetch_check() {
+        let paused = PartitionMap::new();
+        let mut completed = PartitionMap::new();
+        let orders: std::sync::Arc<str> = std::sync::Arc::from("orders");
+        let payments: std::sync::Arc<str> = std::sync::Arc::from("payments");
+        let _stored = completed.insert_shared(&orders, 0, ());
+        let assigned = vec![
+            (std::sync::Arc::clone(&orders), 0, 1),
+            (std::sync::Arc::clone(&payments), 1, 2),
+        ];
+        assert!(
+            !Consumer::assigned_fetches_finished(&assigned, &paused, &completed).await,
+            "payments is still fetching"
+        );
+        let _stored = completed.insert_shared(&payments, 1, ());
+        assert!(Consumer::assigned_fetches_finished(&assigned, &paused, &completed).await);
+        let assigned = vec![(std::sync::Arc::clone(&payments), 1, 2)];
+        let mut paused = PartitionMap::new();
+        let _stored = paused.insert_shared(&payments, 1, ());
+        assert!(
+            Consumer::assigned_fetches_finished(&assigned, &paused, &PartitionMap::new()).await
+        );
     }
 
     #[tokio::test(flavor = "current_thread")]
