@@ -58,18 +58,19 @@ use crate::protocol::admin::{
     decode_update_features_response_cooperative, encode_allocate_producer_ids_request,
     encode_alter_client_quotas_request_cooperative, encode_alter_configs_named_cooperative,
     encode_alter_partition_reassignments_named, encode_alter_replica_log_dirs_named_cooperative,
-    encode_alter_replica_log_dirs_request, encode_alter_share_group_offsets_request_cooperative,
+    encode_alter_replica_log_dirs_request_cooperative,
+    encode_alter_share_group_offsets_request_cooperative,
     encode_alter_user_scram_credentials_named_cooperative, encode_assign_replicas_to_dirs_request,
-    encode_consumer_group_describe_ids_cooperative, encode_create_delegation_token_request,
-    encode_create_partitions_named_cooperative, encode_create_topics_named_cooperative,
-    encode_delete_groups_ids_cooperative, encode_delete_records_named_topics_cooperative,
-    encode_delete_records_owned_topics_cooperative,
+    encode_consumer_group_describe_ids_cooperative,
+    encode_create_delegation_token_request_cooperative, encode_create_partitions_named_cooperative,
+    encode_create_topics_named_cooperative, encode_delete_groups_ids_cooperative,
+    encode_delete_records_named_topics_cooperative, encode_delete_records_owned_topics_cooperative,
     encode_delete_share_group_offsets_request_cooperative, encode_delete_topic_list_cooperative,
-    encode_describe_client_quotas_request, encode_describe_cluster_request,
-    encode_describe_configs_named_cooperative, encode_describe_delegation_token_request,
-    encode_describe_groups_ids_cooperative, encode_describe_log_dirs_named,
-    encode_describe_log_dirs_named_cooperative, encode_describe_log_dirs_request,
-    encode_describe_producers_named_topics_cooperative,
+    encode_describe_client_quotas_request_cooperative, encode_describe_cluster_request,
+    encode_describe_configs_named_cooperative,
+    encode_describe_delegation_token_request_cooperative, encode_describe_groups_ids_cooperative,
+    encode_describe_log_dirs_named, encode_describe_log_dirs_named_cooperative,
+    encode_describe_log_dirs_request, encode_describe_producers_named_topics_cooperative,
     encode_describe_share_group_offsets_request_refs_cooperative,
     encode_describe_topic_partitions_names_cooperative,
     encode_describe_transactions_ids_cooperative,
@@ -7409,11 +7410,22 @@ impl Admin {
         let version = self.describe_client_quotas_version.ok_or_else(|| {
             Error::Unsupported("broker does not support DescribeClientQuotas v0-1".into())
         })?;
+        let mut payload = BytesMut::new();
+        encode_describe_client_quotas_request_cooperative(
+            &mut payload,
+            version,
+            components,
+            strict,
+        )
+        .await?;
         let body = self
             .roundtrip_bootstrap(
                 DESCRIBE_CLIENT_QUOTAS,
                 version,
-                |buf| encode_describe_client_quotas_request(buf, version, components, strict),
+                |buf| {
+                    buf.extend_from_slice(&payload);
+                    Ok(())
+                },
                 timeout,
             )
             .await?;
@@ -14338,11 +14350,16 @@ impl Admin {
             Error::Unsupported("broker does not support AlterReplicaLogDirs".into())
         })?;
         let req = AlterReplicaLogDirsRequest::new(dirs);
+        let mut payload = BytesMut::new();
+        encode_alter_replica_log_dirs_request_cooperative(&mut payload, version, &req).await?;
         let body = self
             .roundtrip_bootstrap(
                 ALTER_REPLICA_LOG_DIRS,
                 version,
-                |buf| encode_alter_replica_log_dirs_request(buf, version, &req),
+                |buf| {
+                    buf.extend_from_slice(&payload);
+                    Ok(())
+                },
                 timeout,
             )
             .await?;
@@ -14986,11 +15003,16 @@ impl Admin {
         let version = self.create_delegation_token_version.ok_or_else(|| {
             Error::Unsupported("broker does not support CreateDelegationToken".into())
         })?;
+        let mut payload = BytesMut::new();
+        encode_create_delegation_token_request_cooperative(&mut payload, version, &req).await?;
         let body = self
             .roundtrip_bootstrap(
                 CREATE_DELEGATION_TOKEN,
                 version,
-                |buf| encode_create_delegation_token_request(buf, version, &req),
+                |buf| {
+                    buf.extend_from_slice(&payload);
+                    Ok(())
+                },
                 timeout,
             )
             .await?;
@@ -15260,11 +15282,16 @@ impl Admin {
         let version = self.describe_delegation_token_version.ok_or_else(|| {
             Error::Unsupported("broker does not support DescribeDelegationToken".into())
         })?;
+        let mut payload = BytesMut::new();
+        encode_describe_delegation_token_request_cooperative(&mut payload, version, &req).await?;
         let body = self
             .roundtrip_bootstrap(
                 DESCRIBE_DELEGATION_TOKEN,
                 version,
-                |buf| encode_describe_delegation_token_request(buf, version, &req),
+                |buf| {
+                    buf.extend_from_slice(&payload);
+                    Ok(())
+                },
                 timeout,
             )
             .await?;
