@@ -101,7 +101,7 @@ use crate::protocol::api_keys::{
 use crate::protocol::group::{
     decode_find_coordinator_response, decode_find_coordinator_response_coordinators_cooperative,
     decode_leave_group_response_version, decode_offset_commit_response_cooperative,
-    decode_offset_delete_response_cooperative, decode_offset_fetch_groups_response,
+    decode_offset_delete_response_cooperative, decode_offset_fetch_groups_response_cooperative,
     decode_offset_fetch_response_cooperative, encode_find_coordinator_request_keys,
     encode_find_coordinator_request_typed, encode_leave_group_request_members,
     encode_offset_commit_named, encode_offset_delete_named_topics,
@@ -11567,10 +11567,12 @@ impl Admin {
                                 }
                                 Err(e) => return Err(e),
                             };
-                            let results = match decode_offset_fetch_groups_response(
+                            let results = match decode_offset_fetch_groups_response_cooperative(
                                 &mut body.clone(),
                                 version,
-                            ) {
+                            )
+                            .await
+                            {
                                 Ok((r, ..)) => r,
                                 Err(e)
                                     if e.broker_code()
@@ -11666,17 +11668,19 @@ impl Admin {
             Vec<(crate::TopicPartition, crate::OffsetAndMetadata)>,
         )],
     ) -> Result<bool> {
-        let results = match decode_offset_fetch_groups_response(&mut body.clone(), version) {
-            Ok((results, ..)) => results,
-            Err(error)
-                if error
-                    .broker_code()
-                    .is_some_and(error::coordinator_retriable) =>
+        let results =
+            match decode_offset_fetch_groups_response_cooperative(&mut body.clone(), version).await
             {
-                return Ok(true);
-            }
-            Err(error) => return Err(error),
-        };
+                Ok((results, ..)) => results,
+                Err(error)
+                    if error
+                        .broker_code()
+                        .is_some_and(error::coordinator_retriable) =>
+                {
+                    return Ok(true);
+                }
+                Err(error) => return Err(error),
+            };
         if results
             .iter()
             .any(|result| error::coordinator_retriable(result.error_code))
@@ -18452,6 +18456,84 @@ mod tests {
                 .and_then(|item| item.synonyms.first())
                 .map(|item| item.name.as_str()),
             Some("log.retention.ms")
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn decoding_many_fetched_offsets_does_not_hold_the_caller() {
+        let topics: Vec<crate::protocol::group::FetchedOffsetTopic> = (0..200_000)
+            .map(|index| crate::protocol::group::FetchedOffsetTopic {
+                topic: format!("topic-{index}"),
+                partitions: vec![crate::protocol::group::FetchedOffset::new(0, 1, 0)],
+            })
+            .collect();
+        let groups = [crate::protocol::group::OffsetFetchGroupResult {
+            group_id: "orders".to_string(),
+            topics,
+            error_code: 0,
+        }];
+        let mut body = bytes::BytesMut::new();
+        crate::protocol::group::encode_offset_fetch_groups_response(&mut body, 8, &groups)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let started = std::time::Instant::now();
+        tokio::select! {
+            decoded = decode_offset_fetch_groups_response_cooperative(&mut body, 8) => {
+                let (decoded, throttle) = decoded.unwrap_or_else(|error| panic!("{error}"));
+                assert_eq!(throttle, 0);
+                assert_eq!(decoded.first().map(|item| item.topics.len()), Some(200_000));
+                assert_eq!(
+                    decoded.first().and_then(|item| item.topics.first()).map(|item| item.topic.as_str()),
+                    Some("topic-0")
+                );
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "decoding fetched offsets held the caller for {elapsed:?}"
+        );
+        let groups = [crate::protocol::group::OffsetFetchGroupResult {
+            group_id: "orders".to_string(),
+            topics: vec![crate::protocol::group::FetchedOffsetTopic {
+                topic: "orders".to_string(),
+                partitions: vec![crate::protocol::group::FetchedOffset::partition_data(
+                    4,
+                    9,
+                    Some(3),
+                    "mark",
+                    0,
+                )],
+            }],
+            error_code: 0,
+        }];
+        let mut encoded = bytes::BytesMut::new();
+        crate::protocol::group::encode_offset_fetch_groups_response(&mut encoded, 8, &groups)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let mut once = encoded.clone();
+        let mut paced = encoded;
+        let sync = crate::protocol::group::decode_offset_fetch_groups_response(&mut once, 8)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let coop = decode_offset_fetch_groups_response_cooperative(&mut paced, 8)
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(sync.0, coop.0);
+        assert_eq!(sync.1, coop.1);
+        assert_eq!(
+            coop.0
+                .first()
+                .and_then(|item| item.topics.first())
+                .and_then(|item| item.partitions.first())
+                .map(|item| item.metadata.as_str()),
+            Some("mark")
+        );
+        assert_eq!(
+            coop.0
+                .first()
+                .and_then(|item| item.topics.first())
+                .and_then(|item| item.partitions.first())
+                .map(|item| item.leader_epoch),
+            Some(3)
         );
     }
 

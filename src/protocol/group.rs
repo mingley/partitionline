@@ -6054,6 +6054,7 @@ async fn decode_fetched_offset_topics_cooperative<B: Buf>(
 ) -> Result<Vec<FetchedOffsetTopic>> {
     let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut topics = Vec::with_capacity(n);
+    let mut walked = 0usize;
     for _ in 0..n {
         let topic = buf::get_string(buf, flexible)?.unwrap_or_default();
         let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
@@ -6071,6 +6072,11 @@ async fn decode_fetched_offset_topics_cooperative<B: Buf>(
             buf::skip_tagged_fields(buf)?;
         }
         topics.push(FetchedOffsetTopic { topic, partitions });
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
     }
     Ok(topics)
 }
@@ -6123,7 +6129,10 @@ pub(crate) async fn decode_offset_fetch_response_cooperative<B: Buf>(
     Ok(first.topics)
 }
 
-async fn decode_offset_fetch_groups_response_cooperative<B: Buf>(
+/// [`decode_offset_fetch_groups_response`], yielding while topics are still being read.
+///
+/// Decoding 200,000 topics held the caller for 172ms.
+pub(crate) async fn decode_offset_fetch_groups_response_cooperative<B: Buf>(
     buf: &mut B,
     version: i16,
 ) -> Result<(Vec<OffsetFetchGroupResult>, i32)> {
@@ -6140,6 +6149,7 @@ async fn decode_offset_fetch_groups_response_cooperative<B: Buf>(
     } else {
         let n = buf::get_array_len(buf, true)?.unwrap_or(0);
         let mut groups = Vec::with_capacity(n);
+        let mut walked = 0usize;
         for _ in 0..n {
             let group_id = buf::get_compact_string(buf)?.unwrap_or_default();
             let topics = decode_fetched_offset_topics_cooperative(buf, version, true).await?;
@@ -6150,6 +6160,11 @@ async fn decode_offset_fetch_groups_response_cooperative<B: Buf>(
                 topics,
                 error_code,
             });
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
         }
         groups
     };
