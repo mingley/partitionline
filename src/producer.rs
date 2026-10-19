@@ -6547,19 +6547,36 @@ struct AckIndex {
 }
 
 impl AckIndex {
-    fn fill(&mut self, groups: &[(Arc<str>, i32, Vec<Pending>)]) {
+    async fn fill(&mut self, groups: &[(Arc<str>, i32, Vec<Pending>)]) {
         self.generation = self.generation.wrapping_add(1);
         let generation = self.generation;
-        let one_topic = groups.first().is_some_and(|(topic, _, _)| {
-            groups.iter().all(|(name, _, _)| Arc::ptr_eq(name, topic))
-        });
+        let one_topic = match groups.first() {
+            Some((topic, _, _)) => {
+                let mut same = true;
+                let mut walked = 0usize;
+                for (name, _, _) in groups {
+                    if !Arc::ptr_eq(name, topic) {
+                        same = false;
+                        break;
+                    }
+                    walked = walked.saturating_add(1);
+                    if walked == 8 * 1024 {
+                        walked = 0;
+                        tokio::task::yield_now().await;
+                    }
+                }
+                same
+            }
+            None => false,
+        };
         if one_topic {
             if let Some(topic) = groups.first().map(|(topic, _, _)| Arc::clone(topic)) {
                 if !self.topics.contains_key(topic.as_ref()) {
                     let _ = self.topics.insert(Arc::clone(&topic), HashMap::new());
                 }
-                if let Some(parts) = self.topics.get_mut(topic.as_ref()) {
-                    for (slot, (_, part, _)) in groups.iter().enumerate() {
+                let mut walked = 0usize;
+                for (slot, (_, part, _)) in groups.iter().enumerate() {
+                    if let Some(parts) = self.topics.get_mut(topic.as_ref()) {
                         match parts.get_mut(part) {
                             Some(entry) if entry.1 == generation => {}
                             Some(entry) => *entry = (slot, generation),
@@ -6568,9 +6585,15 @@ impl AckIndex {
                             }
                         }
                     }
+                    walked = walked.saturating_add(1);
+                    if walked == 8 * 1024 {
+                        walked = 0;
+                        tokio::task::yield_now().await;
+                    }
                 }
             }
         } else {
+            let mut walked = 0usize;
             for (slot, (topic, part, _)) in groups.iter().enumerate() {
                 if let Some(parts) = self.topics.get_mut(topic.as_ref()) {
                     match parts.get_mut(part) {
@@ -6580,17 +6603,55 @@ impl AckIndex {
                             let _ = parts.insert(*part, (slot, generation));
                         }
                     }
-                    continue;
+                } else {
+                    let mut parts = HashMap::new();
+                    let _ = parts.insert(*part, (slot, generation));
+                    let _ = self.topics.insert(Arc::clone(topic), parts);
                 }
-                let mut parts = HashMap::new();
-                let _ = parts.insert(*part, (slot, generation));
-                let _ = self.topics.insert(Arc::clone(topic), parts);
+                walked = walked.saturating_add(1);
+                if walked == 8 * 1024 {
+                    walked = 0;
+                    tokio::task::yield_now().await;
+                }
             }
         }
-        self.topics.retain(|_, parts| {
-            parts.retain(|_, entry| entry.1 == generation);
-            !parts.is_empty()
-        });
+        self.drop_previous_generation(generation).await;
+    }
+
+    async fn drop_previous_generation(&mut self, generation: u64) {
+        let names: Vec<Arc<str>> = self.topics.keys().cloned().collect();
+        for name in names {
+            let partitions: Vec<i32> = self
+                .topics
+                .get(name.as_ref())
+                .map(|parts| parts.keys().copied().collect())
+                .unwrap_or_default();
+            let mut walked = 0usize;
+            for partition in partitions {
+                let remove = self
+                    .topics
+                    .get(name.as_ref())
+                    .and_then(|parts| parts.get(&partition))
+                    .is_some_and(|entry| entry.1 != generation);
+                if remove {
+                    if let Some(parts) = self.topics.get_mut(name.as_ref()) {
+                        let _ = parts.remove(&partition);
+                    }
+                }
+                walked = walked.saturating_add(1);
+                if walked == 8 * 1024 {
+                    walked = 0;
+                    tokio::task::yield_now().await;
+                }
+            }
+            if self
+                .topics
+                .get(name.as_ref())
+                .is_some_and(|parts| parts.is_empty())
+            {
+                let _ = self.topics.remove(name.as_ref());
+            }
+        }
     }
 
     fn get(&self, topic: &str, partition: i32) -> Option<usize> {
@@ -7796,7 +7857,7 @@ impl Worker {
             };
             slots.push(found);
         } else {
-            self.ack_index.fill(&inf.groups);
+            self.ack_index.fill(&inf.groups).await;
             slots.resize_with(inf.groups.len(), || None);
             let ack_ids =
                 (version >= 13 && inf.topic_ids.len() > 1).then_some(&self.ack_index.by_uuid);
@@ -12362,6 +12423,36 @@ mod tests {
     }
 
     #[tokio::test(flavor = "current_thread")]
+    async fn indexing_many_produce_acks_does_not_hold_the_caller() {
+        // 2_000_000 partitions: recording each acknowledgement slot held the caller 1.50s.
+        let topic: Arc<str> = Arc::from("orders");
+        let groups: Vec<(Arc<str>, i32, Vec<Pending>)> = (0..2_000_000)
+            .map(|index| (Arc::clone(&topic), index, Vec::new()))
+            .collect();
+        let mut index = AckIndex::default();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = index.fill(&groups) => {
+                assert_eq!(index.get("orders", 0), Some(0));
+                assert_eq!(index.get("orders", 1_999_999), Some(1_999_999));
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "indexing produce acks held the caller for {elapsed:?}"
+        );
+        let repeated = vec![
+            (Arc::clone(&topic), 4, Vec::new()),
+            (Arc::clone(&topic), 4, Vec::new()),
+        ];
+        index.fill(&repeated).await;
+        assert_eq!(index.get("orders", 4), Some(0));
+        assert_eq!(index.get("orders", 0), None);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
     async fn grouping_many_produce_records_does_not_hold_the_caller() {
         // 2_000_000 records: grouping held the caller 1.18s.
         let topic: Arc<str> = Arc::from("orders");
@@ -12879,8 +12970,8 @@ mod tests {
         assert_eq!(*throttle.until.lock(), None);
     }
 
-    #[test]
-    fn ack_index_keeps_the_first_slot_and_drops_the_previous_response() {
+    #[tokio::test(flavor = "current_thread")]
+    async fn ack_index_keeps_the_first_slot_and_drops_the_previous_response() {
         let topic = Arc::<str>::from("t");
         let groups = vec![
             (Arc::clone(&topic), 0, Vec::new()),
@@ -12888,11 +12979,11 @@ mod tests {
             (Arc::clone(&topic), 1, Vec::new()),
         ];
         let mut index = AckIndex::default();
-        index.fill(&groups);
+        index.fill(&groups).await;
         assert_eq!(index.get("t", 0), Some(0));
         assert_eq!(index.get("t", 1), Some(2));
         let next = vec![(Arc::clone(&topic), 1, Vec::new())];
-        index.fill(&next);
+        index.fill(&next).await;
         assert_eq!(index.get("t", 1), Some(0));
         assert_eq!(index.get("t", 0), None);
         assert_eq!(index.topics.get("t").map(|parts| parts.len()), Some(1));
