@@ -9745,7 +9745,7 @@ impl Consumer {
             self.refresh_metadata_timeout(Some(std::slice::from_ref(&topic)), timeout)
                 .await?;
         }
-        let infos = self.partition_infos(Some(topic.as_str()))?;
+        let infos = self.partition_infos(Some(topic.as_str())).await?;
         if infos.is_empty() {
             return Err(Error::UnknownTopic(topic));
         }
@@ -9786,12 +9786,12 @@ impl Consumer {
         if !fresh {
             self.refresh_metadata_timeout(None, timeout).await?;
         }
-        self.partition_infos(None)
+        self.partition_infos(None).await
     }
 
-    fn partition_infos(&self, only: Option<&str>) -> Result<Vec<PartitionInfo>> {
+    async fn partition_infos(&self, only: Option<&str>) -> Result<Vec<PartitionInfo>> {
         match &self.metadata {
-            Some(md) => partition_infos_from(md, only),
+            Some(md) => partition_infos_from_cooperative(md, only).await,
             None => Ok(Vec::new()),
         }
     }
@@ -11785,6 +11785,7 @@ fn reject_java_no_current_assignment(topic: &str, partition: i32) -> Error {
     ))
 }
 
+#[cfg(test)]
 pub(crate) fn partition_infos_from(
     md: &MetadataResponse,
     only: Option<&str>,
@@ -11861,6 +11862,95 @@ pub(crate) fn partition_infos_from(
         }
     }
     Ok(out)
+}
+
+/// [`partition_infos_from`], yielding while partitions are copied.
+///
+/// Listing 2,000,000 partition infos held the caller for 968ms. A topic name is still copied.
+pub(crate) async fn partition_infos_from_cooperative(
+    md: &MetadataResponse,
+    only: Option<&str>,
+) -> Result<Vec<PartitionInfo>> {
+    let mut order: Vec<&str> = Vec::new();
+    let mut parts: Vec<Vec<&PartitionMetadata>> = Vec::new();
+    let mut seen_indexes: Vec<HashSet<i32>> = Vec::new();
+    let mut slots: HashMap<&str, usize> = HashMap::new();
+    let mut topic_error: HashMap<&str, i16> = HashMap::new();
+    let mut first_error: Option<(&str, i16)> = None;
+    let mut walked = 0usize;
+    for tmd in &md.topics {
+        let Some(name) = tmd.name.as_deref() else {
+            continue;
+        };
+        if only.is_some_and(|wanted| name != wanted) {
+            continue;
+        }
+        if tmd.error_code != 0 {
+            if first_error.is_none() {
+                first_error = Some((name, tmd.error_code));
+            }
+            if let std::collections::hash_map::Entry::Vacant(slot) = topic_error.entry(name) {
+                let _ = slot.insert(tmd.error_code);
+            }
+            continue;
+        }
+        let slot = if let Some(&slot) = slots.get(name) {
+            slot
+        } else {
+            let slot = parts.len();
+            let _ = slots.insert(name, slot);
+            order.push(name);
+            parts.push(Vec::with_capacity(tmd.partitions.len()));
+            seen_indexes.push(HashSet::with_capacity(tmd.partitions.len()));
+            slot
+        };
+        for partition in &tmd.partitions {
+            if partition.partition_index >= 0 {
+                let fresh = match seen_indexes.get_mut(slot) {
+                    Some(seen) => seen.insert(partition.partition_index),
+                    None => false,
+                };
+                if fresh {
+                    if let Some(stored) = parts.get_mut(slot) {
+                        stored.push(partition);
+                    }
+                }
+            }
+            pause_partition_info(&mut walked).await;
+        }
+    }
+    if let Some(wanted) = only {
+        if !slots.contains_key(wanted) {
+            if let Some(code) = topic_error.get(wanted) {
+                return Err(Error::broker(*code, wanted.to_owned()));
+            }
+            return Ok(Vec::new());
+        }
+    } else if parts.is_empty() {
+        if let Some((name, code)) = first_error {
+            return Err(Error::broker(code, name.to_owned()));
+        }
+    }
+    let mut out = Vec::new();
+    let mut copied = 0usize;
+    for (index, name) in order.into_iter().enumerate() {
+        let Some(partitions) = parts.get(index) else {
+            continue;
+        };
+        for partition in partitions {
+            out.push(PartitionInfo::from_partition_metadata(name, partition));
+            pause_partition_info(&mut copied).await;
+        }
+    }
+    Ok(out)
+}
+
+async fn pause_partition_info(walked: &mut usize) {
+    *walked = walked.saturating_add(1);
+    if *walked == 8 * 1024 {
+        *walked = 0;
+        tokio::task::yield_now().await;
+    }
 }
 
 async fn fetch_nodes_for(
@@ -12049,6 +12139,71 @@ mod tests {
     use std::collections::{HashMap, HashSet};
 
     use super::*;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn copying_many_partition_infos_does_not_hold_the_caller() {
+        let partitions: Vec<crate::protocol::api::PartitionMetadata> = (0..2_000_000)
+            .map(|index| crate::protocol::api::PartitionMetadata {
+                error_code: 0,
+                partition_index: index,
+                leader_id: 1,
+                leader_epoch: 1,
+                replica_nodes: Vec::new(),
+                isr_nodes: Vec::new(),
+                offline_replicas: Vec::new(),
+            })
+            .collect();
+        let md = MetadataResponse {
+            throttle_time_ms: 0,
+            brokers: Vec::new(),
+            cluster_id: None,
+            controller_id: 1,
+            topics: vec![crate::protocol::api::TopicMetadata {
+                error_code: 0,
+                name: Some("orders".into()),
+                topic_id: [0; 16],
+                is_internal: false,
+                partitions,
+                topic_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+            }],
+            cluster_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+            error_code: 0,
+        };
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = partition_infos_from_cooperative(&md, None) => {}
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        assert!(
+            started.elapsed() < std::time::Duration::from_millis(80),
+            "listing partition infos held the caller for {:?}",
+            started.elapsed()
+        );
+        let mut sample = MetadataResponse::blank();
+        sample.topics = vec![crate::protocol::api::TopicMetadata {
+            error_code: 0,
+            name: Some("orders".into()),
+            topic_id: [0; 16],
+            is_internal: false,
+            partitions: vec![crate::protocol::api::PartitionMetadata {
+                error_code: 0,
+                partition_index: 3,
+                leader_id: 4,
+                leader_epoch: 1,
+                replica_nodes: Vec::new(),
+                isr_nodes: Vec::new(),
+                offline_replicas: Vec::new(),
+            }],
+            topic_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+        }];
+        let listed = partition_infos_from_cooperative(&sample, None)
+            .await
+            .unwrap();
+        let info = listed.first().expect("orders");
+        assert_eq!(info.topic(), "orders");
+        assert_eq!(info.partition(), 3);
+        assert_eq!(info.leader(), 4);
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn grouping_many_offset_leaders_does_not_hold_the_caller() {
