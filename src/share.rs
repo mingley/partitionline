@@ -2692,10 +2692,12 @@ impl ShareGroup {
                 .await;
             // The heartbeat carries topic names. A stale image loads on the
             // member socket while the coordinator answers.
-            let stale = self
-                .topics
-                .iter()
-                .any(|topic| !self.consumer.topic_metadata_fresh(topic));
+            let consumer = &self.consumer;
+            let stale = !crate::consumer::topics_metadata_fresh(
+                self.topics.iter().map(String::as_str),
+                |topic| consumer.topic_metadata_fresh(topic),
+            )
+            .await;
             let (version, body, metadata_refresh) = if stale {
                 let bootstrap_keys = self.consumer.copy_api_keys();
                 let address_keys = self.consumer.copy_learned_broker_keys();
@@ -2829,9 +2831,10 @@ impl ShareGroup {
         deadline: Instant,
     ) -> Result<()> {
         if topics.is_empty()
-            || topics
-                .iter()
-                .all(|topic| consumer.topic_metadata_fresh(topic))
+            || crate::consumer::topics_metadata_fresh(topics.iter().map(String::as_str), |topic| {
+                consumer.topic_metadata_fresh(topic)
+            })
+            .await
         {
             return Ok(());
         }
@@ -2956,10 +2959,12 @@ impl ShareGroup {
                 .await;
             // The heartbeat carries topic names. A stale image loads on the
             // member socket while the coordinator answers.
-            let stale = self
-                .topics
-                .iter()
-                .any(|topic| !self.consumer.topic_metadata_fresh(topic));
+            let consumer = &self.consumer;
+            let stale = !crate::consumer::topics_metadata_fresh(
+                self.topics.iter().map(String::as_str),
+                |topic| consumer.topic_metadata_fresh(topic),
+            )
+            .await;
             let (version, body, metadata_refresh) = if stale {
                 let bootstrap_keys = self.consumer.copy_api_keys();
                 let address_keys = self.consumer.copy_learned_broker_keys();
@@ -4494,9 +4499,12 @@ impl ShareGroup {
                 .filter(|(_, epoch)| **epoch > 0)
                 .map(|(node, _)| *node)
                 .collect();
-            let metadata_stale = topics
-                .iter()
-                .any(|topic| !self.consumer.topic_metadata_fresh(topic));
+            let consumer = &self.consumer;
+            let metadata_stale = !crate::consumer::topics_metadata_fresh(
+                topics.iter().map(String::as_str),
+                |topic| consumer.topic_metadata_fresh(topic),
+            )
+            .await;
             let coord_idle = self.coord.idle_expired(self.cfg.connections_max_idle);
             let targets = if (metadata_stale || coord_idle) && !open.is_empty() {
                 self.share_dial_targets(&open).await

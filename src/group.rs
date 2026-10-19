@@ -3105,9 +3105,12 @@ impl ConsumerGroup {
                     if timeout.is_zero() {
                         return Err(Error::Timeout);
                     }
-                    let stale = topics
-                        .iter()
-                        .any(|topic| !self.consumer.topic_metadata_fresh(topic));
+                    let consumer = &self.consumer;
+                    let stale = !crate::consumer::topics_metadata_fresh(
+                        topics.iter().map(String::as_str),
+                        |topic| consumer.topic_metadata_fresh(topic),
+                    )
+                    .await;
                     if stale {
                         self.commit_offsets_while_refreshing(&to_commit, &topics, timeout)
                             .await?;
@@ -3441,11 +3444,13 @@ impl ConsumerGroup {
             if timeout.is_zero() {
                 return Err(Error::Timeout);
             }
+            let consumer = &self.consumer;
             let prefetch = metadata_prefetch.is_none()
-                && self
-                    .topics
-                    .iter()
-                    .any(|topic| !self.consumer.topic_metadata_fresh(topic));
+                && !crate::consumer::topics_metadata_fresh(
+                    self.topics.iter().map(String::as_str),
+                    |topic| consumer.topic_metadata_fresh(topic),
+                )
+                .await;
             let (version, body) = if prefetch {
                 let bootstrap_keys = self.consumer.copy_api_keys();
                 let address_keys = self.consumer.copy_learned_broker_keys();
@@ -3575,9 +3580,12 @@ impl ConsumerGroup {
         // Any missing or stale name refreshes the whole set: a subset response
         // would replace the image `partition_ids` reads.
         let mut by_topic = Vec::with_capacity(topic_set.len());
-        let mut loaded = topic_set
-            .iter()
-            .all(|topic| self.consumer.topic_metadata_fresh(topic));
+        let consumer = &self.consumer;
+        let mut loaded =
+            crate::consumer::topics_metadata_fresh(topic_set.iter().map(String::as_str), |topic| {
+                consumer.topic_metadata_fresh(topic)
+            })
+            .await;
         if loaded {
             match self.consumer.partition_ids_all(&topic_set) {
                 Ok(lists) => {
@@ -3750,10 +3758,12 @@ impl ConsumerGroup {
         // Topic names are already on the heartbeat. Metadata only has to be
         // ready when the assignment is resolved, so a stale image loads while
         // the coordinator join is in flight.
-        let stale = self
-            .topics
-            .iter()
-            .any(|topic| !self.consumer.topic_metadata_fresh(topic));
+        let consumer = &self.consumer;
+        let stale = !crate::consumer::topics_metadata_fresh(
+            self.topics.iter().map(String::as_str),
+            |topic| consumer.topic_metadata_fresh(topic),
+        )
+        .await;
         let mut metadata_refresh = None;
         let (version, body) = if stale {
             let bootstrap_keys = self.consumer.copy_api_keys();
@@ -3943,10 +3953,12 @@ impl ConsumerGroup {
                 .iter()
                 .any(|topic| !names.contains_key(&topic.topic_id))
         };
-        let stale = self
-            .topics
-            .iter()
-            .any(|topic| !self.consumer.topic_metadata_fresh(topic));
+        let consumer = &self.consumer;
+        let stale = !crate::consumer::topics_metadata_fresh(
+            self.topics.iter().map(String::as_str),
+            |topic| consumer.topic_metadata_fresh(topic),
+        )
+        .await;
         // Topic ids have to be known before the assignment can be named.
         // A stale image can reload while OffsetFetch runs.
         let overlap_metadata = stale && !missing_topic;
