@@ -657,6 +657,12 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `metadata.requestUpdate`; this is not top-level
   `DUPLICATE_VOTER`). Official Java `RemoveVoterHandler`
   writes this when RemoveRaftVoter cannot remove the named voter from the current voter set.
+  A top-level ShareAcknowledge `INVALID_REGULAR_EXPRESSION` completes
+  without retry and does not request Metadata, including when
+  `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+  `metadata.requestUpdate`; this is not top-level
+  `VOTER_NOT_FOUND`). Official Java `GroupMetadataManager`
+  writes this when a consumer-group member first subscribes a topic regex that is not a valid regular expression.
   A piggybacked ShareFetch
   `AcknowledgeErrorMessage` that is empty uses
   `ShareFetch acknowledgement {topic}-{partition}`. A piggybacked
