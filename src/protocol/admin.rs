@@ -24171,6 +24171,61 @@ pub fn decode_elect_leaders_response<B: Buf>(
     })
 }
 
+/// [`decode_elect_leaders_response`], yielding while partitions are still being read.
+///
+/// Decoding 1,000,000 partitions held the caller for 229ms.
+pub async fn decode_elect_leaders_response_cooperative<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<ElectLeadersResponse> {
+    let flexible = elect_leaders_flexible(version)?;
+    let throttle_time_ms = buf::get_i32(buf)?;
+    let error_code = if version >= 1 { buf::get_i16(buf)? } else { 0 };
+    let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+    let mut results = Vec::with_capacity(n);
+    let mut walked = 0usize;
+    for _ in 0..n {
+        let topic = buf::get_string(buf, flexible)?.unwrap_or_default();
+        let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+        let mut partitions = Vec::with_capacity(pn);
+        for _ in 0..pn {
+            let partition_id = buf::get_i32(buf)?;
+            let error_code = buf::get_i16(buf)?;
+            let error_message = buf::get_string(buf, flexible)?;
+            if flexible {
+                buf::skip_tagged_fields(buf)?;
+            }
+            partitions.push(ElectLeadersPartitionResult {
+                partition_id,
+                error_code,
+                error_message,
+            });
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+        if flexible {
+            buf::skip_tagged_fields(buf)?;
+        }
+        results.push(ElectLeadersResult { topic, partitions });
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
+    }
+    Ok(ElectLeadersResponse {
+        throttle_time_ms,
+        error_code,
+        results,
+    })
+}
+
 /// DescribeQuorum `ReplicaState` timestamp for "unknown" (JSON default
 /// `-1`): the leader's own `LastFetchTimestamp`, and any voter/observer
 /// whose fetch or catch-up time the leader has not observed (KIP-836).

@@ -4297,8 +4297,11 @@ impl Admin {
                 }
                 Err(err) => return Err(err),
             };
-            let mut response =
-                crate::protocol::admin::decode_elect_leaders_response(&mut body.clone(), version)?;
+            let mut response = crate::protocol::admin::decode_elect_leaders_response_cooperative(
+                &mut body.clone(),
+                version,
+            )
+            .await?;
             throttle_time_ms = throttle_time_ms.max(response.throttle_time_ms);
             if response.error_code == error::NOT_CONTROLLER {
                 self.drop_node_conn(node).await;
@@ -18898,6 +18901,77 @@ mod tests {
                 .and_then(|item| item.topics.first())
                 .and_then(|item| item.partitions.first())
                 .and_then(|item| item.partition.error_message.as_deref()),
+            Some("busy")
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn decoding_many_election_results_does_not_hold_the_caller() {
+        let partitions: Vec<ElectLeadersPartitionResult> = (0..1_000_000)
+            .map(|index| ElectLeadersPartitionResult {
+                partition_id: index,
+                error_code: 0,
+                error_message: None,
+            })
+            .collect();
+        let resp = ElectLeadersResponse::new(
+            0,
+            0,
+            vec![ElectLeadersResult {
+                topic: "orders".to_string(),
+                partitions,
+            }],
+        );
+        let mut body = bytes::BytesMut::new();
+        crate::protocol::admin::encode_elect_leaders_response(&mut body, 2, &resp)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let started = std::time::Instant::now();
+        tokio::select! {
+            decoded = crate::protocol::admin::decode_elect_leaders_response_cooperative(&mut body, 2) => {
+                let decoded = decoded.unwrap_or_else(|error| panic!("{error}"));
+                assert_eq!(decoded.throttle_time_ms, 0);
+                assert_eq!(
+                    decoded.results.first().map(|item| item.partitions.len()),
+                    Some(1_000_000)
+                );
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "decoding election results held the caller for {elapsed:?}"
+        );
+        let resp = ElectLeadersResponse::new(
+            4,
+            7,
+            vec![ElectLeadersResult {
+                topic: "orders".to_string(),
+                partitions: vec![ElectLeadersPartitionResult {
+                    partition_id: 3,
+                    error_code: 5,
+                    error_message: Some("busy".to_string()),
+                }],
+            }],
+        );
+        let mut encoded = bytes::BytesMut::new();
+        crate::protocol::admin::encode_elect_leaders_response(&mut encoded, 2, &resp)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let mut once = encoded.clone();
+        let mut paced = encoded;
+        let sync = crate::protocol::admin::decode_elect_leaders_response(&mut once, 2)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let coop = crate::protocol::admin::decode_elect_leaders_response_cooperative(&mut paced, 2)
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(sync, coop);
+        assert_eq!(coop.error_code, 7);
+        assert_eq!(coop.throttle_time_ms, 4);
+        assert_eq!(
+            coop.results
+                .first()
+                .and_then(|item| item.partitions.first())
+                .and_then(|item| item.error_message.as_deref()),
             Some("busy")
         );
     }
