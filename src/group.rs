@@ -3104,12 +3104,14 @@ impl ConsumerGroup {
         } else {
             self.assignors.clone()
         };
-        let metadata = ConsumerProtocol::serialize_subscription(&ConsumerProtocolSubscription {
-            topics: self.topics.clone(),
-            owned_partitions: owned,
-            generation_id: self.generation_id,
-            rack_id: self.cfg.rack.clone(),
-        })?;
+        let metadata =
+            ConsumerProtocol::serialize_subscription_cooperative(&ConsumerProtocolSubscription {
+                topics: self.topics.clone(),
+                owned_partitions: owned,
+                generation_id: self.generation_id,
+                rack_id: self.cfg.rack.clone(),
+            })
+            .await?;
         let mut out = Vec::with_capacity(names.len());
         for name in names {
             out.push((name, metadata.clone()));
