@@ -3499,7 +3499,7 @@
 //! writes this when AlterPartition completes a reassignment and the leader changes.
 //! Top-level
 //! `OFFSET_MOVED_TO_TIERED_STORAGE` still fails that poll without
-//! Metadata, including when `ErrorMessage` is set (Java
+//! Metadata, including when `ErrorMessage` is set or empty (Java
 //! `handleShareFetchSuccess` only `requestUpdate`s for
 //! `UNKNOWN_TOPIC_ID`; this is not top-level
 //! `NEW_LEADER_ELECTED`). Official Java `ReplicaManager`
