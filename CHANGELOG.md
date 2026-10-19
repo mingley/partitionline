@@ -603,6 +603,12 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `metadata.requestUpdate`; this is not top-level
   `MISMATCHED_ENDPOINT_TYPE`). Official Java `AuthHelper`
   writes this when DescribeCluster names an unknown endpoint type.
+  A top-level ShareAcknowledge `UNKNOWN_CONTROLLER_ID` completes
+  without retry and does not request Metadata, including when
+  `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+  `metadata.requestUpdate`; this is not top-level
+  `UNSUPPORTED_ENDPOINT_TYPE`). Official Java `Errors`
+  writes this KIP-919 code when a controller ID is not known.
   A piggybacked ShareFetch
   `AcknowledgeErrorMessage` that is empty uses
   `ShareFetch acknowledgement {topic}-{partition}`. A piggybacked
