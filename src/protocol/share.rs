@@ -2549,7 +2549,9 @@ pub(crate) fn decode_share_fetch_response_reusing<B: Buf>(
 
 /// [`decode_share_fetch_response_reusing`], yielding while partitions and record sets are decoded.
 ///
-/// Decoding 200,000 topics held the caller for 216ms. One record-set slice is
+/// Decoding 200,000 topics held the caller for 216ms. Decoding 2,000,000
+/// endpoints on an empty topic list held the caller for 1062ms. A broker host
+/// is still read. One record-set slice is
 /// at most 64 KiB of framed batches. A single batch larger than that slice is
 /// still decoded whole; the next slice waits so a caller can run.
 pub(crate) async fn decode_share_fetch_response_reusing_cooperative<B: Buf>(
@@ -2844,6 +2846,36 @@ fn decode_share_fetch_response_reusing_inner<B: Buf>(
     ))
 }
 
+/// Compact NodeEndpoints on an empty ShareFetch topic list.
+///
+/// Decoding 2,000,000 endpoints held the caller for 1062ms. A broker host is still read.
+async fn decode_share_fetch_endpoints_cooperative<B: Buf>(
+    buf: &mut B,
+) -> Result<Vec<NodeEndpoint>> {
+    let count = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let mut endpoints = Vec::with_capacity(count);
+    let mut walked = 0usize;
+    for _ in 0..count {
+        let node_id = buf::get_i32(buf)?;
+        let host = buf::get_string(buf, true)?.unwrap_or_default();
+        let port = buf::get_i32(buf)?;
+        let rack = buf::get_string(buf, true)?;
+        buf::skip_tagged_fields(buf)?;
+        endpoints.push(NodeEndpoint {
+            node_id,
+            host,
+            port,
+            rack,
+        });
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    Ok(endpoints)
+}
+
 /// [`decode_share_fetch_response_reusing_inner`], yielding while partitions are still being read.
 async fn decode_share_fetch_response_reusing_inner_cooperative<B: Buf>(
     buf: &mut B,
@@ -2868,7 +2900,7 @@ async fn decode_share_fetch_response_reusing_inner_cooperative<B: Buf>(
     let used = max_decode_bytes.min(records::DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES)
         - remaining_decode_bytes;
     if n == 0 {
-        let endpoints = super::api::get_compact_node_endpoints(buf)?;
+        let endpoints = decode_share_fetch_endpoints_cooperative(buf).await?;
         if flexible {
             buf::skip_tagged_fields(buf)?;
         }
@@ -4316,6 +4348,69 @@ mod tests {
     use crate::protocol::records::Record;
     use bytes::{Buf, Bytes};
     use std::collections::HashMap;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn decoding_many_share_fetch_endpoints_does_not_hold_the_caller() {
+        let endpoints: Vec<NodeEndpoint> = (0..2_000_000)
+            .map(|index| NodeEndpoint::new(index, "h", 9092, None))
+            .collect();
+        let mut body = BytesMut::new();
+        body.put_i32(0);
+        body.put_i16(0);
+        buf::put_string(&mut body, true, None).unwrap();
+        body.put_i32(0);
+        buf::put_array_len(&mut body, true, Some(0)).unwrap();
+        buf::put_array_len(&mut body, true, Some(endpoints.len())).unwrap();
+        for endpoint in &endpoints {
+            body.put_i32(endpoint.node_id);
+            buf::put_string(&mut body, true, Some(endpoint.host.as_str())).unwrap();
+            body.put_i32(endpoint.port);
+            buf::put_string(&mut body, true, endpoint.rack.as_deref()).unwrap();
+            buf::put_empty_tagged_fields(&mut body);
+        }
+        buf::put_empty_tagged_fields(&mut body);
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = decode_share_fetch_response_reusing_cooperative(
+                &mut body,
+                1,
+                records::DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES,
+                Vec::new(),
+            ) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        assert!(
+            started.elapsed() < std::time::Duration::from_millis(80),
+            "decoding share-fetch endpoints held the caller for {:?}",
+            started.elapsed()
+        );
+        let mut sample = BytesMut::new();
+        sample.put_i32(0);
+        sample.put_i16(0);
+        buf::put_string(&mut sample, true, None).unwrap();
+        sample.put_i32(15_000);
+        buf::put_array_len(&mut sample, true, Some(0)).unwrap();
+        buf::put_array_len(&mut sample, true, Some(1)).unwrap();
+        sample.put_i32(2);
+        buf::put_string(&mut sample, true, Some("broker-2")).unwrap();
+        sample.put_i32(9092);
+        buf::put_string(&mut sample, true, None).unwrap();
+        buf::put_empty_tagged_fields(&mut sample);
+        buf::put_empty_tagged_fields(&mut sample);
+        let (decoded, ..) = decode_share_fetch_response_reusing_cooperative(
+            &mut sample,
+            1,
+            records::DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES,
+            Vec::new(),
+        )
+        .await
+        .unwrap();
+        let endpoint = decoded.1.first().expect("endpoint");
+        assert_eq!(endpoint.node_id, 2);
+        assert_eq!(endpoint.host, "broker-2");
+        assert_eq!(endpoint.port, 9092);
+        assert_eq!(decoded.4, 15_000);
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn encoding_many_share_fetches_does_not_hold_the_caller() {
