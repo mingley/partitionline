@@ -3889,7 +3889,7 @@
 //! writes this when a broker registration cluster id does not match.
 //! Top-level ShareAcknowledge `TRANSACTIONAL_ID_NOT_FOUND` completes
 //! without retry and does not request Metadata, including when
-//! `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+//! `ErrorMessage` is set or empty (Java `handleShareAcknowledgeSuccess` has no
 //! `metadata.requestUpdate`; this is not top-level
 //! `INCONSISTENT_CLUSTER_ID`). Official Java `TransactionCoordinator`
 //! writes this when the transactional id has no transaction state.

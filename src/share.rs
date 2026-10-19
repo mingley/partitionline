@@ -2866,7 +2866,7 @@ pub enum ShareAcquireMode {
 /// cluster id does not match. A top-level
 /// ShareAcknowledge `TRANSACTIONAL_ID_NOT_FOUND` completes without
 /// retry and does not request Metadata, including when `ErrorMessage`
-/// is set (Java `handleShareAcknowledgeSuccess` has no
+/// is set or empty (Java `handleShareAcknowledgeSuccess` has no
 /// `metadata.requestUpdate`; this is not top-level
 /// `INCONSISTENT_CLUSTER_ID`). Official Java
 /// `TransactionCoordinator` writes this when the transactional id has
@@ -6427,7 +6427,7 @@ impl ShareGroup {
     /// registration cluster id does not match.
     /// A top-level ShareAcknowledge `TRANSACTIONAL_ID_NOT_FOUND`
     /// completes without retry and does not request Metadata,
-    /// including when `ErrorMessage` is set (Java
+    /// including when `ErrorMessage` is set or empty (Java
     /// `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`;
     /// this is not top-level `INCONSISTENT_CLUSTER_ID`).
     /// Official Java `TransactionCoordinator` writes this when the
