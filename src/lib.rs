@@ -3485,7 +3485,7 @@
 //! writes this when the transactional id has no transaction state.
 //! Top-level
 //! `INELIGIBLE_REPLICA` still fails that poll without
-//! Metadata, including when `ErrorMessage` is set (Java
+//! Metadata, including when `ErrorMessage` is set or empty (Java
 //! `handleShareFetchSuccess` only `requestUpdate`s for
 //! `UNKNOWN_TOPIC_ID`; this is not top-level
 //! `TRANSACTIONAL_ID_NOT_FOUND`). Official Java `ReplicationControlManager`
