@@ -39,7 +39,7 @@ use crate::protocol::admin::{
     decode_describe_configs_response, decode_describe_delegation_token_response,
     decode_describe_groups_response_cooperative, decode_describe_log_dirs_response,
     decode_describe_producers_response, decode_describe_share_group_offsets_response_versioned,
-    decode_describe_topic_partitions_response, decode_describe_transactions_response,
+    decode_describe_topic_partitions_response, decode_describe_transactions_response_cooperative,
     decode_describe_user_scram_credentials_response, decode_expire_delegation_token_response,
     decode_get_telemetry_subscriptions_response, decode_incremental_alter_configs_resource_results,
     decode_list_config_resources_response, decode_list_groups_response_cooperative,
@@ -15629,7 +15629,8 @@ impl Admin {
         idxs: &[usize],
         body: Bytes,
     ) -> Result<Vec<(usize, TransactionState)>> {
-        let (results, ..) = decode_describe_transactions_response(&mut body.clone())?;
+        let (results, ..) =
+            decode_describe_transactions_response_cooperative(&mut body.clone()).await?;
         let mut by_id = group_named(results, |txn| txn.transactional_id.as_str()).await;
         let mut out = Vec::new();
         for &i in idxs {
@@ -18236,6 +18237,74 @@ mod tests {
                 .and_then(|item| item.partitions.first())
                 .copied(),
             Some(3)
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn decoding_many_transactions_does_not_hold_the_caller() {
+        let states: Vec<TransactionState> = (0..200_000)
+            .map(|index| {
+                let mut state = TransactionState::error(format!("txn-{index}"), 0);
+                state.transaction_state = "Ongoing".to_string();
+                state.producer_id = 9;
+                state.producer_epoch = 2;
+                state
+            })
+            .collect();
+        let mut body = bytes::BytesMut::new();
+        crate::protocol::admin::encode_describe_transactions_response(&mut body, &states)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let started = std::time::Instant::now();
+        tokio::select! {
+            decoded = decode_describe_transactions_response_cooperative(&mut body) => {
+                let (decoded, throttle) = decoded.unwrap_or_else(|error| panic!("{error}"));
+                assert_eq!(throttle, 0);
+                assert_eq!(decoded.len(), 200_000);
+                assert_eq!(
+                    decoded.first().map(|item| item.transactional_id.as_str()),
+                    Some("txn-0")
+                );
+                assert_eq!(
+                    decoded.first().map(|item| item.transaction_state.as_str()),
+                    Some("Ongoing")
+                );
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "decoding transactions held the caller for {elapsed:?}"
+        );
+        let mut state = TransactionState::error("orders", 7);
+        state.transaction_state = "Ongoing".to_string();
+        state.producer_id = 11;
+        state.producer_epoch = 3;
+        state.topics = vec![TransactionTopic {
+            name: "orders".to_string(),
+            partitions: vec![4],
+        }];
+        let states = [state];
+        let mut encoded = bytes::BytesMut::new();
+        crate::protocol::admin::encode_describe_transactions_response(&mut encoded, &states)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let mut once = encoded.clone();
+        let mut paced = encoded;
+        let sync = crate::protocol::admin::decode_describe_transactions_response(&mut once)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let coop = decode_describe_transactions_response_cooperative(&mut paced)
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(sync.0, coop.0);
+        assert_eq!(sync.1, coop.1);
+        assert_eq!(coop.0.first().map(|item| item.producer_epoch), Some(3));
+        assert_eq!(
+            coop.0
+                .first()
+                .and_then(|item| item.topics.first())
+                .and_then(|item| item.partitions.first())
+                .copied(),
+            Some(4)
         );
     }
 
