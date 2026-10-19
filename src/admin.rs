@@ -34,7 +34,7 @@ use crate::protocol::admin::{
     decode_alter_user_scram_credentials_response, decode_assign_replicas_to_dirs_response,
     decode_consumer_group_describe_response_cooperative, decode_create_delegation_token_response,
     decode_create_partitions_response, decode_create_topics_response,
-    decode_delete_groups_response, decode_delete_records_topics_response,
+    decode_delete_groups_response_cooperative, decode_delete_records_topics_response,
     decode_delete_share_group_offsets_response, decode_delete_topics_response,
     decode_describe_client_quotas_response, decode_describe_cluster_response,
     decode_describe_configs_response_cooperative, decode_describe_delegation_token_response,
@@ -15431,7 +15431,8 @@ impl Admin {
         idxs: &[usize],
         body: Bytes,
     ) -> Result<Vec<(usize, DeletableGroupResult)>> {
-        let (results, ..) = decode_delete_groups_response(&mut body.clone(), version)?;
+        let (results, ..) =
+            decode_delete_groups_response_cooperative(&mut body.clone(), version).await?;
         let mut by_id = group_named(results, |group| group.group_id.as_str()).await;
         let mut out = Vec::new();
         for &i in idxs {
@@ -18740,6 +18741,49 @@ mod tests {
         assert!(sync_failed.0.is_empty());
         assert!(coop_failed.0.is_empty());
         assert_eq!(coop_failed.3, 7);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn decoding_many_deleted_groups_does_not_hold_the_caller() {
+        let results: Vec<DeletableGroupResult> = (0..2_000_000)
+            .map(|index| DeletableGroupResult::new(format!("group-{index}"), 0))
+            .collect();
+        let mut body = bytes::BytesMut::new();
+        crate::protocol::admin::encode_delete_groups_response(&mut body, 2, &results)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let started = std::time::Instant::now();
+        tokio::select! {
+            decoded = decode_delete_groups_response_cooperative(&mut body, 2) => {
+                let (decoded, throttle) = decoded.unwrap_or_else(|error| panic!("{error}"));
+                assert_eq!(throttle, 0);
+                assert_eq!(decoded.len(), 2_000_000);
+                assert_eq!(decoded.first().map(|item| item.group_id.as_str()), Some("group-0"));
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "decoding deleted groups held the caller for {elapsed:?}"
+        );
+        let small = [
+            DeletableGroupResult::new("orders", 0),
+            DeletableGroupResult::new("orders", 7),
+        ];
+        let mut encoded = bytes::BytesMut::new();
+        crate::protocol::admin::encode_delete_groups_response(&mut encoded, 2, &small)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let mut once = encoded.clone();
+        let mut paced = encoded;
+        let sync = crate::protocol::admin::decode_delete_groups_response(&mut once, 2)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let coop = decode_delete_groups_response_cooperative(&mut paced, 2)
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(sync.0, coop.0);
+        assert_eq!(sync.1, coop.1);
+        assert_eq!(coop.0.len(), 2);
+        assert_eq!(coop.0.get(1).map(|item| item.error_code), Some(7));
     }
 
     #[tokio::test(flavor = "current_thread")]
