@@ -14,8 +14,8 @@ use crate::cluster::Cluster;
 use crate::error::{self, Error, Result};
 use crate::net::BrokerConn;
 use crate::protocol::api::{
-    decode_metadata_response_into_cooperative, encode_metadata_request_ref, metadata_v0_names_ref,
-    ApiVersion, ApiVersionsResponse, MetadataResponse, PartitionMetadata,
+    decode_metadata_response_into_cooperative, encode_metadata_request_ref_cooperative,
+    metadata_v0_names_ref, ApiVersion, ApiVersionsResponse, MetadataResponse, PartitionMetadata,
 };
 use crate::protocol::api_keys::{
     pick_version, FETCH, GET_TELEMETRY_SUBSCRIPTIONS, LIST_OFFSETS, METADATA,
@@ -4305,7 +4305,7 @@ impl Consumer {
     }
 
     /// [`Self::refresh_metadata_timeout`] for caller-owned topic names.
-    pub(crate) async fn refresh_metadata_timeout_ref<T: AsRef<str>>(
+    pub(crate) async fn refresh_metadata_timeout_ref<T: AsRef<str> + Sync>(
         &mut self,
         topics: Option<&[T]>,
         timeout: Duration,
@@ -4314,7 +4314,7 @@ impl Consumer {
         self.refresh_metadata_until(topics, deadline).await
     }
 
-    async fn refresh_metadata_until<T: AsRef<str>>(
+    async fn refresh_metadata_until<T: AsRef<str> + Sync>(
         &mut self,
         topics: Option<&[T]>,
         deadline: Instant,
@@ -4332,12 +4332,17 @@ impl Consumer {
         }
         let mut version = self.metadata_version;
         let allow = self.cfg.allow_auto_topic_creation || version < 4 && topics.is_none();
+        let mut encoded = bytes::BytesMut::new();
+        encode_metadata_request_ref_cooperative(&mut encoded, version, topics, allow).await?;
         let mut body = match self
             .conn
             .roundtrip(
                 METADATA,
                 version,
-                |buf| encode_metadata_request_ref(buf, version, topics, allow),
+                |buf| {
+                    buf.extend_from_slice(&encoded);
+                    Ok(())
+                },
                 startup_remaining(deadline)?,
             )
             .await
@@ -4347,11 +4352,17 @@ impl Consumer {
                 self.reconnect_bootstrap(deadline).await?;
                 version = self.metadata_version;
                 let allow = self.cfg.allow_auto_topic_creation || version < 4 && topics.is_none();
+                encoded.clear();
+                encode_metadata_request_ref_cooperative(&mut encoded, version, topics, allow)
+                    .await?;
                 self.conn
                     .roundtrip(
                         METADATA,
                         version,
-                        |buf| encode_metadata_request_ref(buf, version, topics, allow),
+                        |buf| {
+                            buf.extend_from_slice(&encoded);
+                            Ok(())
+                        },
                         startup_remaining(deadline)?,
                     )
                     .await?
@@ -8855,7 +8866,7 @@ impl Consumer {
     }
 
     /// Reload metadata while known leaders reconnect under `deadline`.
-    async fn refresh_metadata_while_dialing<T: AsRef<str>>(
+    async fn refresh_metadata_while_dialing<T: AsRef<str> + Sync>(
         &mut self,
         topics: &[T],
         nodes: &[i32],

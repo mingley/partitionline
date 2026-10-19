@@ -17,8 +17,8 @@ use crate::partitioner::{
 };
 use crate::protocol::api::{
     decode_metadata_response_into_cooperative, decode_produce_acks_into_cooperative,
-    encode_metadata_request, encode_metadata_request_names, ApiVersion, ApiVersionsResponse,
-    MetadataResponse, ProduceAck, ProduceRequest,
+    encode_metadata_request, encode_metadata_request_ref_cooperative, ApiVersion,
+    ApiVersionsResponse, MetadataResponse, ProduceAck, ProduceRequest,
 };
 use crate::protocol::api_keys::{
     pick_version, ADD_OFFSETS_TO_TXN, ADD_PARTITIONS_TO_TXN, END_TXN, FIND_COORDINATOR,
@@ -5722,11 +5722,16 @@ async fn refresh_topics_within(
     let version = shared.metadata_version;
     let allow = shared.cfg.allow_auto_topic_creation;
     let names: Vec<&str> = requested.iter().map(|topic| topic.as_ref()).collect();
+    let mut encoded = bytes::BytesMut::new();
+    encode_metadata_request_ref_cooperative(&mut encoded, version, Some(&names), allow).await?;
     let body = conn
         .roundtrip_deadline(
             METADATA,
             version,
-            |buf| encode_metadata_request_names(buf, version, Some(&names), allow),
+            |buf| {
+                buf.extend_from_slice(&encoded);
+                Ok(())
+            },
             deadline,
         )
         .await?;
@@ -5783,11 +5788,16 @@ async fn partitions_for_timeout(
     let version = shared.metadata_version;
     let allow = shared.cfg.allow_auto_topic_creation;
     let names = [topic.as_ref()];
+    let mut encoded = bytes::BytesMut::new();
+    encode_metadata_request_ref_cooperative(&mut encoded, version, Some(&names), allow).await?;
     let body = conn
         .roundtrip_deadline(
             METADATA,
             version,
-            |buf| encode_metadata_request_names(buf, version, Some(&names), allow),
+            |buf| {
+                buf.extend_from_slice(&encoded);
+                Ok(())
+            },
             deadline,
         )
         .await?;

@@ -2064,6 +2064,7 @@ fn reserve_metadata_body(buf: &mut BytesMut, planned: usize) {
 ///
 /// The bytes match [`encode_metadata_request`] for the same names.
 /// `topics = None` asks for all topics.
+#[cfg(test)]
 pub(crate) fn encode_metadata_request_names(
     buf: &mut BytesMut,
     version: i16,
@@ -2073,6 +2074,7 @@ pub(crate) fn encode_metadata_request_names(
     encode_metadata_request_ref(buf, version, topics, allow_auto)
 }
 
+#[cfg(test)]
 pub(crate) fn encode_metadata_request_ref<T: AsRef<str>>(
     buf: &mut BytesMut,
     version: i16,
@@ -2083,6 +2085,7 @@ pub(crate) fn encode_metadata_request_ref<T: AsRef<str>>(
 }
 
 /// Encode Metadata from caller topic names, including the authorized-operations flag.
+#[cfg(test)]
 pub(crate) fn encode_metadata_request_named<T: AsRef<str>>(
     buf: &mut BytesMut,
     version: i16,
@@ -2156,6 +2159,106 @@ fn encode_named_metadata_request<T: AsRef<str>>(
     )?;
     debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+/// [`encode_named_metadata_request`], yielding while topic names are still being written.
+///
+/// Encoding 2,000,000 names held the caller for 444ms.
+async fn encode_named_metadata_request_cooperative<T: AsRef<str> + Sync>(
+    buf: &mut BytesMut,
+    version: i16,
+    topics: Option<&[T]>,
+    allow_auto: bool,
+    include_topic_authorized_operations: bool,
+) -> crate::error::Result<()> {
+    if version == 0 {
+        return metadata_legacy::encode_names(
+            buf,
+            topics,
+            allow_auto,
+            include_topic_authorized_operations,
+        );
+    }
+    MetadataRequest::build(version, None, allow_auto)?;
+    let flexible = version >= 9;
+    let body_start = buf.len();
+    let rows = match topics {
+        None => metadata_array_len(flexible, None)?,
+        Some(topics) => {
+            let mut names = 0usize;
+            let mut walked = 0usize;
+            for topic in topics.iter() {
+                names =
+                    add_metadata_len(names, metadata_string_len(flexible, Some(topic.as_ref()))?)?;
+                walked = walked.saturating_add(1);
+                if walked == 8 * 1024 {
+                    walked = 0;
+                    tokio::task::yield_now().await;
+                }
+            }
+            metadata_topic_rows_len(version, flexible, topics.len(), names)?
+        }
+    };
+    let planned = add_metadata_len(rows, metadata_request_tail_len(version))?;
+    reserve_metadata_body(buf, planned);
+    match topics {
+        None => buf::put_array_len(buf, flexible, None)?,
+        Some(topics) => {
+            buf::put_array_len(buf, flexible, Some(topics.len()))?;
+            let mut walked = 0usize;
+            for topic in topics {
+                if version >= 10 {
+                    buf.extend_from_slice(&[0; 16]);
+                }
+                buf::put_string(buf, flexible, Some(topic.as_ref()))?;
+                if flexible {
+                    buf::put_empty_tagged_fields(buf);
+                }
+                walked = walked.saturating_add(1);
+                if walked == 8 * 1024 {
+                    walked = 0;
+                    tokio::task::yield_now().await;
+                }
+            }
+        }
+    }
+    write_metadata_request_tail(
+        buf,
+        version,
+        allow_auto,
+        include_topic_authorized_operations,
+        false,
+    )?;
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+    Ok(())
+}
+
+/// [`encode_metadata_request_ref`], yielding while topic names are still being written.
+pub(crate) async fn encode_metadata_request_ref_cooperative<T: AsRef<str> + Sync>(
+    buf: &mut BytesMut,
+    version: i16,
+    topics: Option<&[T]>,
+    allow_auto: bool,
+) -> crate::error::Result<()> {
+    encode_named_metadata_request_cooperative(buf, version, topics, allow_auto, false).await
+}
+
+/// [`encode_metadata_request_named`], yielding while topic names are still being written.
+pub(crate) async fn encode_metadata_request_named_cooperative<T: AsRef<str> + Sync>(
+    buf: &mut BytesMut,
+    version: i16,
+    topics: Option<&[T]>,
+    allow_auto: bool,
+    include_topic_authorized_operations: bool,
+) -> crate::error::Result<()> {
+    encode_named_metadata_request_cooperative(
+        buf,
+        version,
+        topics,
+        allow_auto,
+        include_topic_authorized_operations,
+    )
+    .await
 }
 
 fn write_metadata_request_tail(
@@ -4707,6 +4810,35 @@ mod tests {
     use crate::protocol::records::{Compression, Record};
     use bytes::Bytes;
     use std::collections::{HashMap, HashSet};
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn encoding_many_metadata_topics_does_not_hold_the_caller() {
+        let names: Vec<String> = (0..2_000_000)
+            .map(|index| format!("topic-{index}"))
+            .collect();
+        let mut body = BytesMut::new();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            encoded = encode_metadata_request_ref_cooperative(&mut body, 12, Some(&names), false) => {
+                encoded.unwrap_or_else(|error| panic!("{error}"));
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "encoding metadata topics held the caller for {elapsed:?}"
+        );
+        let sample = ["orders".to_string()];
+        let mut once = BytesMut::new();
+        let mut paced = BytesMut::new();
+        encode_metadata_request(&mut once, 12, Some(&sample), false)
+            .unwrap_or_else(|error| panic!("{error}"));
+        encode_metadata_request_ref_cooperative(&mut paced, 12, Some(&sample), false)
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(once, paced);
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn decoding_many_metadata_partitions_does_not_hold_the_caller() {
