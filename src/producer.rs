@@ -7755,7 +7755,7 @@ impl Worker {
         if version >= 13 {
             if let Some(inf) = guard.inf.as_ref() {
                 if inf.topic_ids.len() > 1 {
-                    fill_ids_by_uuid(inf.topic_ids.as_slice(), &mut self.ack_index.by_uuid);
+                    fill_ids_by_uuid(inf.topic_ids.as_slice(), &mut self.ack_index.by_uuid).await;
                 }
             }
         }
@@ -9530,11 +9530,17 @@ fn topic_id_for<'a>(
 }
 
 /// First name for each non-zero topic id.
-fn fill_ids_by_uuid(ids: &[(Arc<str>, [u8; 16])], index: &mut HashMap<[u8; 16], Arc<str>>) {
+async fn fill_ids_by_uuid(ids: &[(Arc<str>, [u8; 16])], index: &mut HashMap<[u8; 16], Arc<str>>) {
     index.clear();
+    let mut walked = 0usize;
     for (name, id) in ids {
         if *id != [0; 16] && !index.contains_key(id) {
             let _ = index.insert(*id, Arc::clone(name));
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
         }
     }
 }
@@ -12504,6 +12510,45 @@ mod tests {
     }
 
     #[tokio::test(flavor = "current_thread")]
+    async fn remembering_many_produce_ids_by_uuid_does_not_hold_the_caller() {
+        // 500_000 ids: recording each name held the caller 470ms.
+        let ids: Vec<(Arc<str>, [u8; 16])> = (0..500_000u32)
+            .map(|index| {
+                let mut id = [0u8; 16];
+                id[..4].copy_from_slice(&index.to_be_bytes());
+                if id == [0; 16] {
+                    id[15] = 1;
+                }
+                (Arc::<str>::from(format!("topic-{index}")), id)
+            })
+            .collect();
+        let mut index = HashMap::new();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = fill_ids_by_uuid(&ids, &mut index) => {
+                assert_eq!(index.len(), 500_000);
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "remembering produce ids by uuid held the caller for {elapsed:?}"
+        );
+        let orders: Arc<str> = Arc::from("orders");
+        let payments: Arc<str> = Arc::from("payments");
+        let repeated = vec![
+            (Arc::clone(&orders), [0; 16]),
+            (Arc::clone(&orders), [1; 16]),
+            (Arc::clone(&payments), [1; 16]),
+        ];
+        let mut index = HashMap::new();
+        fill_ids_by_uuid(&repeated, &mut index).await;
+        assert!(index.get(&[0; 16]).is_none());
+        assert_eq!(index.get(&[1; 16]).map(Arc::as_ref), Some("orders"));
+    }
+
+    #[tokio::test(flavor = "current_thread")]
     async fn remembering_many_produce_topic_ids_does_not_hold_the_caller() {
         // 500_000 topics: recording each id held the caller 419ms.
         let ids: Vec<(Arc<str>, [u8; 16])> = (0..500_000u32)
@@ -13230,10 +13275,10 @@ mod tests {
         assert_eq!(topic_id_for(&only_zero, None, &payments), None);
 
         let mut by_uuid = HashMap::new();
-        fill_ids_by_uuid(&ids, &mut by_uuid);
+        fill_ids_by_uuid(&ids, &mut by_uuid).await;
         let uuid_capacity = by_uuid.capacity();
         assert!(uuid_capacity > 0);
-        fill_ids_by_uuid(&ids, &mut by_uuid);
+        fill_ids_by_uuid(&ids, &mut by_uuid).await;
         assert!(by_uuid.capacity() >= uuid_capacity);
         assert_eq!(
             name_for_topic_id(&ids, Some(&by_uuid), [2; 16]),
@@ -13255,7 +13300,7 @@ mod tests {
             (Arc::clone(&payments), [7; 16]),
         ];
         let mut shared = HashMap::new();
-        fill_ids_by_uuid(&shared_id, &mut shared);
+        fill_ids_by_uuid(&shared_id, &mut shared).await;
         assert_eq!(
             name_for_topic_id(&shared_id, Some(&shared), [7; 16]),
             Some("orders")
