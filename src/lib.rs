@@ -3471,7 +3471,7 @@
 //! writes this when the requested broker id is not currently
 //! registered. Top-level
 //! `INCONSISTENT_CLUSTER_ID` still fails that poll without
-//! Metadata, including when `ErrorMessage` is set (Java
+//! Metadata, including when `ErrorMessage` is set or empty (Java
 //! `handleShareFetchSuccess` only `requestUpdate`s for
 //! `UNKNOWN_TOPIC_ID`; this is not top-level
 //! `BROKER_ID_NOT_REGISTERED`). Official Java `ClusterControlManager`

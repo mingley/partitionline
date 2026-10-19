@@ -2135,7 +2135,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `DUPLICATE_BROKER_REGISTRATION`). Official Java `ReplicationControlManager`
   writes this when the requested broker id is not currently registered.
   Top-level `INCONSISTENT_CLUSTER_ID` still fails that poll
-  without Metadata, including when `ErrorMessage` is set (Java
+  without Metadata, including when `ErrorMessage` is set or empty (Java
   `handleShareFetchSuccess` only `requestUpdate`s for top-level
   `UNKNOWN_TOPIC_ID`; this is not top-level
   `BROKER_ID_NOT_REGISTERED`). Official Java `ClusterControlManager`
