@@ -3448,6 +3448,32 @@ fn borrowed_ids<'a, T: AsRef<str>>(ids: &'a [T], idxs: &[usize]) -> Vec<&'a str>
         .collect()
 }
 
+type CoordinatorSlot = (i16, i32, String, i32);
+
+async fn index_coordinators(
+    coords: Vec<crate::protocol::group::CoordinatorResult>,
+) -> HashMap<String, CoordinatorSlot> {
+    let mut by_key = HashMap::new();
+    let mut walked = 0usize;
+    for coordinator in coords {
+        let _previous = by_key.insert(
+            coordinator.key,
+            (
+                coordinator.error_code,
+                coordinator.node_id,
+                coordinator.host,
+                coordinator.port,
+            ),
+        );
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    by_key
+}
+
 async fn group_named<T>(
     items: impl IntoIterator<Item = T>,
     name: impl Fn(&T) -> &str,
@@ -15109,10 +15135,7 @@ impl Admin {
             };
             let (coords, ..) =
                 decode_find_coordinator_response_coordinators(&mut body.clone(), version)?;
-            let mut by_key: HashMap<String, (i16, i32, String, i32)> = HashMap::new();
-            for c in coords {
-                let _prev = by_key.insert(c.key, (c.error_code, c.node_id, c.host, c.port));
-            }
+            let mut by_key = index_coordinators(coords).await;
             let mut retry = false;
             let mut out = HashMap::new();
             for k in &uniq {
@@ -17833,6 +17856,59 @@ mod tests {
         assert_eq!(
             selection.names.first().map(|name| name.as_ptr()),
             Some(orders_ptr)
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn indexing_many_coordinators_does_not_hold_the_caller() {
+        // 500_000 coordinators: recording each one held the caller 458ms.
+        let coords: Vec<crate::protocol::group::CoordinatorResult> = (0..500_000)
+            .map(|index| crate::protocol::group::CoordinatorResult {
+                key: format!("group-{index}"),
+                node_id: index % 8,
+                host: "127.0.0.1".to_string(),
+                port: 9092,
+                error_code: 0,
+                error_message: None,
+            })
+            .collect();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            indexed = index_coordinators(coords) => {
+                assert_eq!(indexed.len(), 500_000);
+                assert_eq!(indexed.get("group-0").map(|slot| slot.1), Some(0));
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "indexing coordinators held the caller for {elapsed:?}"
+        );
+        let repeated = vec![
+            crate::protocol::group::CoordinatorResult {
+                key: "orders".to_string(),
+                node_id: 1,
+                host: "a".to_string(),
+                port: 1,
+                error_code: 0,
+                error_message: Some("ignored".to_string()),
+            },
+            crate::protocol::group::CoordinatorResult {
+                key: "orders".to_string(),
+                node_id: 4,
+                host: "b".to_string(),
+                port: 2,
+                error_code: 7,
+                error_message: None,
+            },
+        ];
+        let indexed = index_coordinators(repeated).await;
+        assert_eq!(
+            indexed
+                .get("orders")
+                .map(|slot| (slot.0, slot.1, slot.2.as_str(), slot.3)),
+            Some((7, 4, "b", 2))
         );
     }
 
