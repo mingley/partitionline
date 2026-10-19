@@ -2134,6 +2134,12 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `UNKNOWN_TOPIC_ID`; this is not top-level
   `DUPLICATE_BROKER_REGISTRATION`). Official Java `ReplicationControlManager`
   writes this when the requested broker id is not currently registered.
+  Top-level `INCONSISTENT_CLUSTER_ID` still fails that poll
+  without Metadata, including when `ErrorMessage` is set (Java
+  `handleShareFetchSuccess` only `requestUpdate`s for top-level
+  `UNKNOWN_TOPIC_ID`; this is not top-level
+  `BROKER_ID_NOT_REGISTERED`). Official Java `ClusterControlManager`
+  writes this when a broker registration cluster id does not match.
   A non-empty
   throwable partition or top-level ShareFetch `ErrorMessage` is
   preferred; empty uses `ShareFetch {topic}-{partition}` or
