@@ -116,7 +116,7 @@ use crate::protocol::group::{
     decode_offset_delete_response_cooperative, decode_offset_fetch_groups_response_cooperative,
     decode_offset_fetch_response_cooperative, encode_find_coordinator_request_keys_cooperative,
     encode_find_coordinator_request_typed, encode_leave_group_request_members_cooperative,
-    encode_offset_commit_named, encode_offset_delete_named_topics,
+    encode_offset_commit_named_cooperative, encode_offset_delete_named_topics,
     encode_offset_fetch_groups_named, encode_offset_fetch_groups_named_cooperative,
     encode_offset_fetch_named_cooperative, BorrowedOffsetFetchRequestGroup, LeaveGroupMember,
     COORDINATOR_GROUP, COORDINATOR_TRANSACTION, DEFAULT_RETENTION_TIME,
@@ -12009,6 +12009,18 @@ impl Admin {
             if timeout.is_zero() {
                 return Err(Error::Timeout);
             }
+            let mut encoded = BytesMut::new();
+            encode_offset_commit_named_cooperative(
+                &mut encoded,
+                version,
+                group_id,
+                -1,
+                "",
+                None,
+                DEFAULT_RETENTION_TIME,
+                &topics,
+            )
+            .await?;
             let body = {
                 self.roundtrip_known_node(
                     node,
@@ -12016,16 +12028,8 @@ impl Admin {
                     OFFSET_COMMIT,
                     version,
                     |buf| {
-                        encode_offset_commit_named(
-                            buf,
-                            version,
-                            group_id,
-                            -1,
-                            "",
-                            None,
-                            DEFAULT_RETENTION_TIME,
-                            &topics,
-                        )
+                        buf.extend_from_slice(&encoded);
+                        Ok(())
                     },
                     timeout,
                 )

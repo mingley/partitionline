@@ -34,13 +34,13 @@ use crate::protocol::group::{
     decode_offset_fetch_response, decode_offset_fetch_response_cooperative,
     decode_sync_group_response, encode_find_coordinator_request_typed, encode_heartbeat_request,
     encode_join_group_protocols_request, encode_leave_group_request_members,
-    encode_offset_commit_request, encode_offset_fetch_request, encode_sync_group_request,
-    encode_tp_assignment_cooperative, BorrowedOffsetPartition, BorrowedOffsetTopic,
-    ConsumerProtocol, ConsumerProtocolSubscription, FetchedOffset, FetchedOffsetTopic,
-    JoinGroupProtocol, JoinGroupProtocolsRequest, JoinGroupRequest, JoinGroupResponse,
-    LeaveGroupMember, OffsetCommitRequestData, OffsetFetchRequestData, OffsetFetchTopic,
-    OffsetPartition, OffsetTopic, SyncGroupRequest, Topic, COORDINATOR_GROUP,
-    DEFAULT_RETENTION_TIME,
+    encode_offset_commit_request, encode_offset_commit_request_cooperative,
+    encode_offset_fetch_request, encode_sync_group_request, encode_tp_assignment_cooperative,
+    BorrowedOffsetPartition, BorrowedOffsetTopic, ConsumerProtocol, ConsumerProtocolSubscription,
+    FetchedOffset, FetchedOffsetTopic, JoinGroupProtocol, JoinGroupProtocolsRequest,
+    JoinGroupRequest, JoinGroupResponse, LeaveGroupMember, OffsetCommitRequestData,
+    OffsetFetchRequestData, OffsetFetchTopic, OffsetPartition, OffsetTopic, SyncGroupRequest,
+    Topic, COORDINATOR_GROUP, DEFAULT_RETENTION_TIME,
 };
 use crate::protocol::sasl;
 
@@ -2290,6 +2290,21 @@ impl ConsumerGroup {
     ) -> Result<()> {
         let bootstrap_keys = self.consumer.copy_api_keys();
         let address_keys = self.consumer.copy_learned_broker_keys();
+        let prepared = negotiated_coord_version(&self.coord, OFFSET_COMMIT).ok();
+        let mut encoded = bytes::BytesMut::new();
+        if let Some(version) = prepared {
+            encode_offset_commit_request_cooperative(
+                &mut encoded,
+                version,
+                &self.group_id,
+                self.generation_id,
+                &self.member_id,
+                self.cfg.group_instance_id.as_deref(),
+                DEFAULT_RETENTION_TIME,
+                topics,
+            )
+            .await?;
+        }
         let (version, body) = coord_roundtrip_with_bootstrap(
             &mut self.coord,
             &self.cfg,
@@ -2297,16 +2312,21 @@ impl ConsumerGroup {
             COORDINATOR_GROUP,
             OFFSET_COMMIT,
             |version, buf| {
-                encode_offset_commit_request(
-                    buf,
-                    version,
-                    &self.group_id,
-                    self.generation_id,
-                    &self.member_id,
-                    self.cfg.group_instance_id.as_deref(),
-                    DEFAULT_RETENTION_TIME,
-                    topics,
-                )
+                if prepared == Some(version) {
+                    buf.extend_from_slice(&encoded);
+                    Ok(())
+                } else {
+                    encode_offset_commit_request(
+                        buf,
+                        version,
+                        &self.group_id,
+                        self.generation_id,
+                        &self.member_id,
+                        self.cfg.group_instance_id.as_deref(),
+                        DEFAULT_RETENTION_TIME,
+                        topics,
+                    )
+                }
             },
             &bootstrap_keys,
             &address_keys,
@@ -2472,6 +2492,21 @@ impl ConsumerGroup {
         let cfg = &self.cfg;
         let consumer = &mut self.consumer;
         let prior = &mut self.prior_coords;
+        let prepared = negotiated_coord_version(coord, OFFSET_COMMIT).ok();
+        let mut encoded = bytes::BytesMut::new();
+        if let Some(version) = prepared {
+            encode_offset_commit_request_cooperative(
+                &mut encoded,
+                version,
+                &group_id,
+                generation_id,
+                &member_id,
+                instance.as_deref(),
+                DEFAULT_RETENTION_TIME,
+                &topics,
+            )
+            .await?;
+        }
         let (committed, fetched) = tokio::join!(
             coord_roundtrip_with_bootstrap(
                 coord,
@@ -2480,16 +2515,21 @@ impl ConsumerGroup {
                 COORDINATOR_GROUP,
                 OFFSET_COMMIT,
                 |version, buf| {
-                    encode_offset_commit_request(
-                        buf,
-                        version,
-                        &group_id,
-                        generation_id,
-                        &member_id,
-                        instance.as_deref(),
-                        DEFAULT_RETENTION_TIME,
-                        &topics,
-                    )
+                    if prepared == Some(version) {
+                        buf.extend_from_slice(&encoded);
+                        Ok(())
+                    } else {
+                        encode_offset_commit_request(
+                            buf,
+                            version,
+                            &group_id,
+                            generation_id,
+                            &member_id,
+                            instance.as_deref(),
+                            DEFAULT_RETENTION_TIME,
+                            &topics,
+                        )
+                    }
                 },
                 &bootstrap_keys,
                 &address_keys,

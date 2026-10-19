@@ -5309,6 +5309,7 @@ pub(crate) struct BorrowedOffsetTopic<'a> {
     clippy::too_many_arguments,
     reason = "OffsetCommit request body needs version, group, generation, member, instance, retention, and topics together"
 )]
+#[cfg(test)]
 pub(crate) fn encode_offset_commit_named(
     buf: &mut BytesMut,
     version: i16,
@@ -5515,6 +5516,212 @@ fn offset_commit_request_len<T: OffsetCommitTopicView>(
         }
         if flexible {
             total = add_group_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    if flexible {
+        total = add_group_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
+}
+
+/// Encode OffsetCommit, yielding while topics are still being written.
+///
+/// Encoding 2,000,000 topics held the caller for 1100ms. A topic name and a committed offset are still written.
+#[expect(
+    clippy::too_many_arguments,
+    reason = "OffsetCommit request body needs version, group, generation, member, instance, retention, and topics together"
+)]
+pub(crate) async fn encode_offset_commit_request_cooperative(
+    buf: &mut BytesMut,
+    version: i16,
+    group_id: &str,
+    generation_id: i32,
+    member_id: &str,
+    group_instance_id: Option<&str>,
+    retention_time_ms: i64,
+    topics: &[OffsetTopic],
+) -> crate::error::Result<()> {
+    encode_offset_commit_topic_views_cooperative(
+        buf,
+        version,
+        group_id,
+        generation_id,
+        member_id,
+        group_instance_id,
+        retention_time_ms,
+        topics,
+    )
+    .await
+}
+
+/// Encode borrowed OffsetCommit topics, yielding while topics are still being written.
+#[expect(
+    clippy::too_many_arguments,
+    reason = "OffsetCommit request body needs version, group, generation, member, instance, retention, and topics together"
+)]
+pub(crate) async fn encode_offset_commit_named_cooperative(
+    buf: &mut BytesMut,
+    version: i16,
+    group_id: &str,
+    generation_id: i32,
+    member_id: &str,
+    group_instance_id: Option<&str>,
+    retention_time_ms: i64,
+    topics: &[BorrowedOffsetTopic<'_>],
+) -> crate::error::Result<()> {
+    encode_offset_commit_topic_views_cooperative(
+        buf,
+        version,
+        group_id,
+        generation_id,
+        member_id,
+        group_instance_id,
+        retention_time_ms,
+        topics,
+    )
+    .await
+}
+
+#[expect(
+    clippy::too_many_arguments,
+    reason = "OffsetCommit request body needs version, group, generation, member, instance, retention, and topics together"
+)]
+async fn encode_offset_commit_topic_views_cooperative<T: OffsetCommitTopicView + Sync>(
+    buf: &mut BytesMut,
+    version: i16,
+    group_id: &str,
+    generation_id: i32,
+    member_id: &str,
+    group_instance_id: Option<&str>,
+    retention_time_ms: i64,
+    topics: &[T],
+) -> crate::error::Result<()>
+where
+    T::Part: Sync,
+{
+    let flexible = offset_commit_flexible(version)?;
+    let body_start = buf.len();
+    let planned = offset_commit_request_len_cooperative(
+        version,
+        flexible,
+        group_id,
+        member_id,
+        group_instance_id,
+        topics,
+    )
+    .await?;
+    reserve_group_body(buf, planned);
+    buf::put_string(buf, flexible, Some(group_id))?;
+    buf.put_i32(generation_id);
+    buf::put_string(buf, flexible, Some(member_id))?;
+    if version >= 7 {
+        buf::put_string(buf, flexible, group_instance_id)?;
+    }
+    if (2..=4).contains(&version) {
+        buf.put_i64(retention_time_ms);
+    }
+    buf::put_array_len(buf, flexible, Some(topics.len()))?;
+    let mut walked = 0usize;
+    for topic in topics {
+        buf::put_string(buf, flexible, Some(topic.commit_topic()))?;
+        let partitions = topic.commit_parts();
+        buf::put_array_len(buf, flexible, Some(partitions.len()))?;
+        for partition in partitions {
+            buf.put_i32(partition.commit_partition());
+            buf.put_i64(partition.commit_offset());
+            if version >= 6 {
+                buf.put_i32(partition.commit_epoch());
+            }
+            let metadata = partition.commit_metadata();
+            let meta = if metadata.is_empty() {
+                None
+            } else {
+                Some(metadata)
+            };
+            buf::put_string(buf, flexible, meta)?;
+            if flexible {
+                buf::put_empty_tagged_fields(buf);
+            }
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+    Ok(())
+}
+
+async fn offset_commit_request_len_cooperative<T: OffsetCommitTopicView + Sync>(
+    version: i16,
+    flexible: bool,
+    group_id: &str,
+    member_id: &str,
+    group_instance_id: Option<&str>,
+    topics: &[T],
+) -> Result<usize>
+where
+    T::Part: Sync,
+{
+    let mut total = group_string_len(flexible, Some(group_id))?;
+    total = add_group_len(total, 4)?;
+    total = add_group_len(total, group_string_len(flexible, Some(member_id))?)?;
+    if version >= 7 {
+        total = add_group_len(total, group_string_len(flexible, group_instance_id)?)?;
+    }
+    if (2..=4).contains(&version) {
+        total = add_group_len(total, 8)?;
+    }
+    total = add_group_len(total, group_array_len(flexible, topics.len())?)?;
+    let mut walked = 0usize;
+    for topic in topics {
+        total = add_group_len(
+            total,
+            group_string_len(flexible, Some(topic.commit_topic()))?,
+        )?;
+        let partitions = topic.commit_parts();
+        total = add_group_len(total, group_array_len(flexible, partitions.len())?)?;
+        for partition in partitions {
+            let mut fixed = 12usize;
+            if version >= 6 {
+                fixed += 4;
+            }
+            total = add_group_len(total, fixed)?;
+            let metadata = partition.commit_metadata();
+            let metadata = if metadata.is_empty() {
+                None
+            } else {
+                Some(metadata)
+            };
+            total = add_group_len(total, group_string_len(flexible, metadata)?)?;
+            if flexible {
+                total = add_group_len(total, buf::unsigned_varint_size(0))?;
+            }
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+        if flexible {
+            total = add_group_len(total, buf::unsigned_varint_size(0))?;
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
         }
     }
     if flexible {
@@ -8333,6 +8540,64 @@ async fn group_owned_assignment_cooperative(parts: Vec<(String, i32)>) -> Vec<(S
 mod tests {
     use super::*;
     use std::collections::HashMap;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn encoding_many_offset_commits_does_not_hold_the_caller() {
+        let owned: Vec<String> = (0..2_000_000)
+            .map(|index| format!("topic-{index}"))
+            .collect();
+        let topics: Vec<BorrowedOffsetTopic<'_>> = owned
+            .iter()
+            .map(|name| BorrowedOffsetTopic {
+                topic: name.as_str(),
+                partitions: vec![BorrowedOffsetPartition {
+                    partition: 0,
+                    offset: 1,
+                    leader_epoch: -1,
+                    metadata: "",
+                }],
+            })
+            .collect();
+        let mut body = bytes::BytesMut::new();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            encoded = encode_offset_commit_named_cooperative(
+                &mut body,
+                8,
+                "g",
+                1,
+                "m",
+                None,
+                -1,
+                &topics,
+            ) => {
+                encoded.unwrap_or_else(|error| panic!("{error}"));
+            }
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "encoding offset commits held the caller for {elapsed:?}"
+        );
+        let sample = [BorrowedOffsetTopic {
+            topic: "orders",
+            partitions: vec![BorrowedOffsetPartition {
+                partition: 0,
+                offset: 4,
+                leader_epoch: -1,
+                metadata: "",
+            }],
+        }];
+        let mut once = bytes::BytesMut::new();
+        let mut paced = bytes::BytesMut::new();
+        encode_offset_commit_named(&mut once, 8, "g", 1, "m", None, -1, &sample)
+            .unwrap_or_else(|error| panic!("{error}"));
+        encode_offset_commit_named_cooperative(&mut paced, 8, "g", 1, "m", None, -1, &sample)
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(once, paced);
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn encoding_many_offset_fetch_topics_does_not_hold_the_caller() {
