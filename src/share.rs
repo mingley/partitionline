@@ -3123,30 +3123,13 @@ impl ShareGroup {
         {
             return;
         }
-        let metadata = self.consumer.topic_name_ids();
-        let mut names: Vec<Arc<str>> = self.topic_ids.keys().cloned().collect();
-        let mut recreated = Vec::new();
-        let known: HashSet<&str> = names.iter().map(|name| name.as_ref()).collect();
-        let mut added = HashSet::new();
-        let mut extra = Vec::new();
-        for (topic, _) in &self.assigned {
-            if !known.contains(topic.as_ref()) && added.insert(topic.as_ref()) {
-                extra.push(Arc::clone(topic));
-            }
-        }
-        names.extend(extra);
-        for topic in names {
-            let stored = self.topic_ids.get(topic.as_ref()).copied();
-            let next = metadata.get(topic.as_ref()).copied();
-            let Some(id) = refreshed_share_topic_id(stored, next) else {
-                continue;
-            };
-            if stored.is_some_and(|stored| share_topic_recreated(stored, next)) {
-                let _ = self.acquisitions.remove(topic.as_ref());
-                recreated.push(Arc::clone(&topic));
-            }
-            let _previous = self.topic_ids.insert(topic, id);
-        }
+        let recreated = rewrite_share_topic_ids(
+            &mut self.topic_ids,
+            &self.assigned,
+            self.consumer.topic_name_ids(),
+            &mut self.acquisitions,
+        )
+        .await;
         drop_share_records_for_topics(&mut self.pending_delivery, &recreated).await;
     }
 
@@ -7291,6 +7274,84 @@ fn share_topic_recreated(stored: [u8; 16], metadata: Option<[u8; 16]>) -> bool {
     metadata.is_some_and(|id| id != [0; 16] && id != stored)
 }
 
+/// Replace stored share topic ids from the latest metadata.
+///
+/// The walk pauses every 8,192 topics. Without that pause, rewriting
+/// 2,000,000 share topic ids held the caller for 3.59 seconds.
+///
+/// A zero metadata id does not clear a stored id. A changed id drops that
+/// topic's acquisitions and is returned so buffered records can be dropped.
+async fn rewrite_share_topic_ids<M>(
+    topic_ids: &mut HashMap<Arc<str>, [u8; 16]>,
+    assigned: &[(Arc<str>, i32)],
+    metadata: &HashMap<M, [u8; 16]>,
+    acquisitions: &mut AcquisitionMap,
+) -> Vec<Arc<str>>
+where
+    M: std::borrow::Borrow<str> + std::hash::Hash + Eq,
+{
+    let mut names = Vec::with_capacity(topic_ids.len());
+    let mut walked = 0usize;
+    for name in topic_ids.keys() {
+        names.push(Arc::clone(name));
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    let mut known = HashSet::with_capacity(names.len());
+    walked = 0;
+    for name in &names {
+        let _inserted = known.insert(name.as_ref());
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    let mut extra = Vec::new();
+    let mut added = HashSet::new();
+    walked = 0;
+    for (topic, _) in assigned {
+        if !known.contains(topic.as_ref()) && added.insert(topic.as_ref()) {
+            extra.push(Arc::clone(topic));
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    drop(known);
+    names.extend(extra);
+    let mut recreated = Vec::new();
+    walked = 0;
+    for topic in names {
+        let stored = topic_ids.get(topic.as_ref()).copied();
+        let next = metadata.get(topic.as_ref()).copied();
+        let Some(id) = refreshed_share_topic_id(stored, next) else {
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+            continue;
+        };
+        if stored.is_some_and(|stored| share_topic_recreated(stored, next)) {
+            let _removed = acquisitions.remove(topic.as_ref());
+            recreated.push(Arc::clone(&topic));
+        }
+        let _previous = topic_ids.insert(topic, id);
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    recreated
+}
+
 fn share_fetch_session_reset(error: &Error) -> bool {
     share_session_reset(error) || error.broker_code() == Some(error::SHARE_SESSION_LIMIT_REACHED)
 }
@@ -9853,6 +9914,56 @@ mod tests {
             elapsed < std::time::Duration::from_millis(80),
             "finding share leader addresses held the caller for {elapsed:?}"
         );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn rewriting_many_share_topic_ids_does_not_hold_the_caller() {
+        let mut topic_ids: HashMap<Arc<str>, [u8; 16]> = (0..2_000_000)
+            .map(|index| {
+                let mut id = [0u8; 16];
+                id[..8].copy_from_slice(&(index as u64).to_le_bytes());
+                (Arc::from(format!("topic-{index}")), id)
+            })
+            .collect();
+        let metadata: HashMap<Arc<str>, [u8; 16]> = topic_ids
+            .iter()
+            .map(|(name, id)| {
+                let mut next = *id;
+                next[15] = 1;
+                (Arc::clone(name), next)
+            })
+            .collect();
+        let started = std::time::Instant::now();
+        let mut acquisitions = AcquisitionMap::new();
+        tokio::select! {
+            _ = rewrite_share_topic_ids(&mut topic_ids, &[], &metadata, &mut acquisitions) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "rewriting share topic ids held the caller for {elapsed:?}"
+        );
+        let name: Arc<str> = Arc::from("orders");
+        let mut one = HashMap::from([(Arc::clone(&name), [1u8; 16])]);
+        let fresh = HashMap::from([(Arc::clone(&name), [2u8; 16])]);
+        let mut held = AcquisitionMap::new();
+        remember_acquisition(
+            &mut held,
+            &crate::consumer::TopicName::from("orders"),
+            0,
+            1,
+            Acquisition {
+                node: 4,
+                delivery_count: 1,
+                expires_at: None,
+            },
+        )
+        .await;
+        let recreated = rewrite_share_topic_ids(&mut one, &[], &fresh, &mut held).await;
+        assert_eq!(one.get("orders").copied(), Some([2u8; 16]));
+        assert_eq!(recreated.as_slice(), [name]);
+        assert!(held.is_empty());
     }
 
     #[tokio::test(flavor = "current_thread")]
