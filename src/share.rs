@@ -562,6 +562,35 @@ impl TopicRuns {
     }
 }
 
+/// Keep pending share records selected by `keep`, in their original order.
+///
+/// The walk pauses every 8,192 records. Without that pause, filtering
+/// 2,000,000 pending records held the caller for 969 milliseconds.
+async fn retain_pending_share(
+    pending: &mut Vec<ShareRecord>,
+    mut keep: impl FnMut(&ShareRecord) -> bool,
+) {
+    let mut write = 0usize;
+    let mut index = 0usize;
+    while index < pending.len() {
+        let end = index.saturating_add(8 * 1024).min(pending.len());
+        while index < end {
+            let keep_record = pending.get(index).is_some_and(&mut keep);
+            if keep_record {
+                if write != index {
+                    pending.swap(write, index);
+                }
+                write = write.saturating_add(1);
+            }
+            index = index.saturating_add(1);
+        }
+        if index < pending.len() {
+            tokio::task::yield_now().await;
+        }
+    }
+    pending.truncate(write);
+}
+
 async fn retain_topic_runs(
     map: &mut AcquisitionMap,
     mut keep: impl FnMut(&crate::consumer::TopicName, &AcquisitionRun) -> bool,
@@ -3073,9 +3102,11 @@ impl ShareGroup {
             still_assigned.contains(&(topic.as_str(), run.partition))
         })
         .await;
-        self.pending_delivery.retain(|r| {
-            acquisition_at(&self.acquisitions, &r.topic, r.partition, r.offset).is_some()
-        });
+        let acquisitions = &self.acquisitions;
+        retain_pending_share(&mut self.pending_delivery, |record| {
+            acquisition_at(acquisitions, &record.topic, record.partition, record.offset).is_some()
+        })
+        .await;
     }
 
     /// Replace a stored topic id when metadata has a new one.
@@ -3462,10 +3493,12 @@ impl ShareGroup {
             run.acquisition.expires_at.is_none_or(|expiry| expiry > now)
         })
         .await;
-        self.pending_delivery.retain(|r| {
-            acquisition_at(&self.acquisitions, &r.topic, r.partition, r.offset)
-                .is_some_and(|a| a.delivery_count == r.delivery_count)
-        });
+        let acquisitions = &self.acquisitions;
+        retain_pending_share(&mut self.pending_delivery, |record| {
+            acquisition_at(acquisitions, &record.topic, record.partition, record.offset)
+                .is_some_and(|found| found.delivery_count == record.delivery_count)
+        })
+        .await;
     }
 
     fn drain_pending_delivery(&mut self) -> Vec<ShareRecord> {
@@ -3971,9 +4004,11 @@ impl ShareGroup {
             run.acquisition.node != node
         })
         .await;
-        self.pending_delivery.retain(|r| {
-            acquisition_at(&self.acquisitions, &r.topic, r.partition, r.offset).is_some()
-        });
+        let acquisitions = &self.acquisitions;
+        retain_pending_share(&mut self.pending_delivery, |record| {
+            acquisition_at(acquisitions, &record.topic, record.partition, record.offset).is_some()
+        })
+        .await;
         self.consumer.drop_node(node).await;
     }
 
@@ -10473,6 +10508,57 @@ mod tests {
         ])
         .await;
         assert_eq!(merged, vec![(0, 4)]);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn filtering_many_pending_share_records_does_not_hold_the_caller() {
+        let topic = crate::consumer::TopicName::from("orders");
+        let mut pending: Vec<ShareRecord> = (0..2_000_000)
+            .map(|offset| share_rec(&topic, offset))
+            .collect();
+        let mut acquisitions = AcquisitionMap::new();
+        remember_acquisition(
+            &mut acquisitions,
+            &topic,
+            0,
+            0,
+            Acquisition {
+                node: 1,
+                delivery_count: 1,
+                expires_at: None,
+            },
+        )
+        .await;
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = retain_pending_share(&mut pending, |record| {
+                acquisition_at(&acquisitions, &record.topic, record.partition, record.offset)
+                    .is_some()
+            }) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "filtering pending share records held the caller for {elapsed:?}"
+        );
+        let mut few = vec![
+            share_rec(&topic, 0),
+            share_rec(&topic, 4),
+            share_rec(&topic, 1),
+        ];
+        retain_pending_share(&mut few, |record| {
+            acquisition_at(
+                &acquisitions,
+                &record.topic,
+                record.partition,
+                record.offset,
+            )
+            .is_some()
+        })
+        .await;
+        assert_eq!(few.len(), 1);
+        assert_eq!(few.first().map(|record| record.offset), Some(0));
     }
 
     #[tokio::test(flavor = "current_thread")]
