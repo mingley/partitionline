@@ -77,6 +77,7 @@ These walks include:
 - grouping preferred replicas, and dropping one whose leader epoch changed, before metadata is applied
 - clearing and pruning the fetch plan
 - checking whether assigned fetches are paused or already finished
+- dropping fetched records that fall at or after a recovered cursor
 - copying a changed consumer or share heartbeat subscription or assignment
 - opening one result slot, and its index, for each item in an admin batch
 - copying transactional ids before fencing producers
