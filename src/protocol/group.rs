@@ -931,6 +931,41 @@ fn group_sorted_owned_partitions(owned: &[(String, i32)]) -> Vec<(&str, Vec<i32>
     by_topic
 }
 
+/// Group owned partitions, yielding while topic names are still being ordered.
+///
+/// Grouping 2,000,000 owned partitions held the caller for 404ms. A topic name and a partition are still written.
+async fn group_sorted_owned_partitions_cooperative(
+    owned: &[(String, i32)],
+) -> Vec<(&str, Vec<i32>)> {
+    let order = stable_sorted_indexes(owned.len(), |left, right| {
+        let left = owned
+            .get(left)
+            .map(|(topic, partition)| (topic.as_str(), *partition));
+        let right = owned
+            .get(right)
+            .map(|(topic, partition)| (topic.as_str(), *partition));
+        left.cmp(&right)
+    })
+    .await;
+    let mut by_topic: Vec<(&str, Vec<i32>)> = Vec::new();
+    let mut walked = 0usize;
+    for index in order {
+        let Some((topic, part)) = owned.get(index) else {
+            continue;
+        };
+        match by_topic.last_mut() {
+            Some((name, partitions)) if *name == topic.as_str() => partitions.push(*part),
+            _ => by_topic.push((topic.as_str(), vec![*part])),
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    by_topic
+}
+
 /// `true` when FindCoordinator `version` is flexible (v3+).
 ///
 /// v1–v2 are classic (Key + KeyType). v3 is compact strings plus tagged
@@ -8558,7 +8593,7 @@ async fn write_subscription_cooperative(
     })
     .await;
     let by_topic = if version >= 1 {
-        group_sorted_owned_partitions(owned)
+        group_sorted_owned_partitions_cooperative(owned).await
     } else {
         Vec::new()
     };
@@ -8927,6 +8962,48 @@ async fn group_owned_assignment_cooperative(parts: Vec<(String, i32)>) -> Vec<(S
 mod tests {
     use super::*;
     use std::collections::HashMap;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn grouping_many_owned_partitions_does_not_hold_the_caller() {
+        let owned: Vec<(String, i32)> = (0..2_000_000)
+            .map(|index| (format!("topic-{index}"), 0))
+            .collect();
+        let subscription = ConsumerProtocolSubscription {
+            topics: vec!["orders".to_string()],
+            owned_partitions: owned,
+            generation_id: -1,
+            rack_id: None,
+        };
+        let started = std::time::Instant::now();
+        tokio::select! {
+            encoded = ConsumerProtocol::serialize_subscription_cooperative(&subscription) => {
+                let _encoded = encoded.unwrap_or_else(|error| panic!("{error}"));
+            }
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        assert!(
+            started.elapsed() < std::time::Duration::from_millis(80),
+            "grouping owned partitions held the caller for {:?}",
+            started.elapsed()
+        );
+        let sample = ConsumerProtocolSubscription {
+            topics: vec!["b".to_string(), "a".to_string()],
+            owned_partitions: vec![
+                ("b".to_string(), 1),
+                ("a".to_string(), 2),
+                ("b".to_string(), 0),
+                ("a".to_string(), 2),
+            ],
+            generation_id: 3,
+            rack_id: None,
+        };
+        let once = ConsumerProtocol::serialize_subscription(&sample)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let paced = ConsumerProtocol::serialize_subscription_cooperative(&sample)
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(once, paced);
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn encoding_many_subscriptions_does_not_hold_the_caller() {
