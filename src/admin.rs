@@ -58,7 +58,7 @@ use crate::protocol::admin::{
     decode_update_features_response_cooperative, encode_allocate_producer_ids_request,
     encode_alter_client_quotas_request, encode_alter_configs_named,
     encode_alter_partition_reassignments_named, encode_alter_replica_log_dirs_named,
-    encode_alter_replica_log_dirs_request, encode_alter_share_group_offsets_request,
+    encode_alter_replica_log_dirs_request, encode_alter_share_group_offsets_request_cooperative,
     encode_alter_user_scram_credentials_named, encode_assign_replicas_to_dirs_request,
     encode_consumer_group_describe_ids_cooperative, encode_create_delegation_token_request,
     encode_create_partitions_named, encode_create_topics_named,
@@ -13553,6 +13553,9 @@ impl Admin {
         })?;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
+        let mut encoded = BytesMut::new();
+        encode_alter_share_group_offsets_request_cooperative(&mut encoded, group_id, topics)
+            .await?;
         loop {
             let stale = self.group_coord.as_ref().is_none_or(|(g, _)| g != group_id);
             if stale {
@@ -13570,7 +13573,10 @@ impl Admin {
                     deadline,
                     ALTER_SHARE_GROUP_OFFSETS,
                     version,
-                    |buf| encode_alter_share_group_offsets_request(buf, group_id, topics),
+                    |buf| {
+                        buf.extend_from_slice(&encoded);
+                        Ok(())
+                    },
                     deadline.saturating_duration_since(Instant::now()),
                 )
                 .await
