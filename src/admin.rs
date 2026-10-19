@@ -10808,30 +10808,41 @@ impl Admin {
     ) -> Result<DescribeProducersNodeOutcome> {
         let resp = decode_describe_producers_response(&mut body.clone())?;
         let mut by_tp = index_described_producers(resp.topics).await;
-        let mut done = Vec::new();
-        let mut retry = Vec::new();
+        let mut order = Vec::with_capacity(idxs.len());
+        let mut walked = 0usize;
         for &i in idxs {
             let tp = partitions
                 .get(i)
                 .ok_or_else(|| Error::protocol("missing DescribeProducers query"))?;
-            let part = by_tp
-                .get_mut(tp.topic.as_str())
-                .and_then(|parts| parts.remove(&tp.partition))
-                .ok_or_else(|| {
-                    Error::protocol(format!(
-                        "DescribeProducers missing {}-{}",
-                        tp.topic, tp.partition
-                    ))
-                })?;
+            order.push((i, tp.topic.as_str(), tp.partition));
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+        let popped = pop_described_producers(&mut by_tp, &order).await;
+        let mut done = Vec::new();
+        let mut retry = Vec::new();
+        let mut walked = 0usize;
+        for ((i, topic, partition), part) in order.into_iter().zip(popped) {
+            let part = part.ok_or_else(|| {
+                Error::protocol(format!("DescribeProducers missing {topic}-{partition}"))
+            })?;
             if part.error_code == 0 {
                 done.push((i, part));
-                continue;
-            }
-            let e = Error::broker(part.error_code, format!("{}-{}", tp.topic, tp.partition));
-            if !pin_broker && e.is_retriable() {
-                retry.push(i);
             } else {
-                done.push((i, part));
+                let e = Error::broker(part.error_code, format!("{topic}-{partition}"));
+                if !pin_broker && e.is_retriable() {
+                    retry.push(i);
+                } else {
+                    done.push((i, part));
+                }
+            }
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
             }
         }
         Ok((done, retry))
@@ -15781,10 +15792,31 @@ async fn index_deleted_records(
     by_key
 }
 
-async fn index_described_producers(
-    topics: Vec<DescribeProducersTopic>,
-) -> HashMap<String, HashMap<i32, DescribeProducersPartition>> {
-    let mut by_tp: HashMap<String, HashMap<i32, DescribeProducersPartition>> = HashMap::new();
+type DescribedProducerIndex = HashMap<String, HashMap<i32, DescribeProducersPartition>>;
+
+async fn pop_described_producers(
+    indexed: &mut DescribedProducerIndex,
+    order: &[(usize, &str, i32)],
+) -> Vec<Option<DescribeProducersPartition>> {
+    let mut out = Vec::with_capacity(order.len());
+    let mut walked = 0usize;
+    for (_, topic, partition) in order {
+        out.push(
+            indexed
+                .get_mut(*topic)
+                .and_then(|parts| parts.remove(partition)),
+        );
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    out
+}
+
+async fn index_described_producers(topics: Vec<DescribeProducersTopic>) -> DescribedProducerIndex {
+    let mut by_tp: DescribedProducerIndex = HashMap::new();
     let mut walked = 0usize;
     for topic in topics {
         let parts = by_tp.entry(topic.name).or_default();
@@ -19946,6 +19978,42 @@ mod tests {
         assert_eq!(topics.len(), 1);
         assert_eq!(topics[0].0, "orders");
         assert_eq!(topics[0].1, vec![0, 0, 1]);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn matching_many_described_producers_does_not_hold_the_caller() {
+        // 2_000_000 partitions: taking each producer result held the caller 1.27s.
+        let partitions: Vec<DescribeProducersPartition> = (0..2_000_000)
+            .map(|index| DescribeProducersPartition::error(index, 0))
+            .collect();
+        let topics = vec![DescribeProducersTopic::new("orders", partitions)];
+        let mut indexed = index_described_producers(topics).await;
+        let order: Vec<(usize, &str, i32)> = (0..2_000_000i32)
+            .map(|index| (index as usize, "orders", index))
+            .collect();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            popped = pop_described_producers(&mut indexed, &order) => {
+                assert_eq!(popped.len(), 2_000_000);
+                assert_eq!(popped.first().and_then(|part| part.as_ref()).map(|part| part.partition_index), Some(0));
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "matching described producers held the caller for {elapsed:?}"
+        );
+        let repeated = vec![DescribeProducersTopic::new(
+            "orders",
+            vec![DescribeProducersPartition::error(0, 3)],
+        )];
+        let mut indexed = index_described_producers(repeated).await;
+        let order = [(0usize, "orders", 0), (1, "orders", 0), (2, "missing", 1)];
+        let popped = pop_described_producers(&mut indexed, &order).await;
+        assert_eq!(popped[0].as_ref().map(|part| part.error_code), Some(3));
+        assert!(popped[1].is_none());
+        assert!(popped[2].is_none());
     }
 
     #[tokio::test(flavor = "current_thread")]
