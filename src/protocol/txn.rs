@@ -1050,6 +1050,78 @@ pub fn decode_add_partitions_to_txn_topics_response<B: Buf>(
     Ok((topics, throttle_time_ms))
 }
 
+/// [`decode_add_partitions_to_txn_topics_response`], yielding while topics are still being read.
+///
+/// Decoding 200,000 topics held the caller for 140ms.
+pub async fn decode_add_partitions_to_txn_topics_response_cooperative<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<(Vec<AddPartitionsToTxnTopicResult>, i32)> {
+    let flexible = add_partitions_to_txn_flexible(version)?;
+    let throttle_time_ms = buf::get_i32(buf)?;
+    let tn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+    let mut topics = Vec::with_capacity(tn);
+    let mut walked = 0usize;
+    for _ in 0..tn {
+        let topic = buf::get_string(buf, flexible)?.unwrap_or_default();
+        let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+        let mut partitions = Vec::with_capacity(pn);
+        for _ in 0..pn {
+            let partition = buf::get_i32(buf)?;
+            let error_code = buf::get_i16(buf)?;
+            if flexible {
+                buf::skip_tagged_fields(buf)?;
+            }
+            partitions.push(AddPartitionsToTxnPartitionResult {
+                partition,
+                error_code,
+            });
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+        if flexible {
+            buf::skip_tagged_fields(buf)?;
+        }
+        topics.push(AddPartitionsToTxnTopicResult { topic, partitions });
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
+    }
+    Ok((topics, throttle_time_ms))
+}
+
+/// [`decode_add_partitions_to_txn_response`], yielding while topics are still being read.
+pub async fn decode_add_partitions_to_txn_response_cooperative<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<i16> {
+    let (topics, ..) =
+        decode_add_partitions_to_txn_topics_response_cooperative(buf, version).await?;
+    let mut first_err = 0i16;
+    let mut walked = 0usize;
+    for topic in &topics {
+        for partition in &topic.partitions {
+            if first_err == 0 && partition.error_code != 0 {
+                first_err = partition.error_code;
+            }
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+    }
+    Ok(first_err)
+}
+
 /// `true` when AddOffsetsToTxn `version` is flexible (v3+).
 ///
 /// v0–v2 are classic. v3–v4 are compact strings plus tagged fields

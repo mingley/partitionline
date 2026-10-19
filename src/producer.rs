@@ -1,5 +1,7 @@
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::fmt;
+use std::future::Future;
+use std::pin::Pin;
 use std::sync::atomic::{AtomicBool, AtomicI16, AtomicI64, AtomicU64, AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
@@ -37,7 +39,7 @@ use crate::protocol::txn::{
     can_handle_abortable_error, classify_add_offsets_error, classify_add_partitions_error,
     classify_end_txn_error, classify_produce_error, classify_txn_offset_commit_error,
     client_epoch_bump_capable, decode_add_offsets_to_txn_response,
-    decode_add_partitions_to_txn_response, decode_end_txn_response,
+    decode_add_partitions_to_txn_response_cooperative, decode_end_txn_response,
     decode_txn_offset_commit_response, encode_add_offsets_to_txn_request,
     encode_add_partitions_to_txn_borrowed, encode_end_txn_request,
     encode_txn_offset_commit_borrowed, BorrowedTxnOffsetPartition, BorrowedTxnOffsetTopic,
@@ -3573,11 +3575,13 @@ impl Producer {
                         },
                         timeout_remaining(deadline)?,
                         |body| {
-                            Ok(decode_add_offsets_to_txn_response(
-                                &mut { body },
-                                add_offsets_version,
-                            )?
-                            .0)
+                            Box::pin(async move {
+                                Ok(decode_add_offsets_to_txn_response(
+                                    &mut { body },
+                                    add_offsets_version,
+                                )?
+                                .0)
+                            })
                         },
                     )
                     .await?;
@@ -3680,7 +3684,11 @@ impl Producer {
                 end_txn_version,
                 |buf| encode_end_txn_request(buf, end_txn_version, &tid, pid, epoch, committed),
                 timeout_remaining(deadline)?,
-                |body| Ok(decode_end_txn_response(&mut { body }, end_txn_version)?.0),
+                |body| {
+                    Box::pin(async move {
+                        Ok(decode_end_txn_response(&mut { body }, end_txn_version)?.0)
+                    })
+                },
             )
             .await?;
             let (err, new_pid, new_epoch, ..) =
@@ -5275,7 +5283,7 @@ async fn txn_roundtrip(
     api_version: i16,
     encode_body: impl Fn(&mut BytesMut) -> Result<()>,
     request_timeout: Duration,
-    error_of: impl Fn(&[u8]) -> Result<i16>,
+    error_of: impl for<'a> Fn(&'a [u8]) -> Pin<Box<dyn Future<Output = Result<i16>> + Send + 'a>>,
 ) -> Result<Bytes> {
     let deadline = Instant::now() + request_timeout;
     let tid = shared
@@ -5294,7 +5302,7 @@ async fn txn_roundtrip(
             .await
     };
     match first {
-        Ok(body) if !error::coordinator_retriable(error_of(&body)?) => return Ok(body),
+        Ok(body) if !error::coordinator_retriable(error_of(&body).await?) => return Ok(body),
         Ok(_) => {}
         // `Closed` is a dead socket, not a dead producer: rediscover and
         // retry once like any other transport failure (KL03-10). Without
@@ -8160,7 +8168,12 @@ impl Worker {
                     encode_add_partitions_to_txn_borrowed(buf, version, &tid, pid, epoch, &topics)
                 },
                 remaining,
-                |body| decode_add_partitions_to_txn_response(&mut { body }, version),
+                |body| {
+                    Box::pin(async move {
+                        decode_add_partitions_to_txn_response_cooperative(&mut { body }, version)
+                            .await
+                    })
+                },
             )
             .await
             {
@@ -8173,16 +8186,19 @@ impl Worker {
                     return Err(e);
                 }
             };
-            let err = match decode_add_partitions_to_txn_response(&mut body.clone(), version) {
-                Ok(e) => e,
-                Err(e) => {
-                    let mut set = self.shared.txn_partitions.lock();
-                    for (topic, part) in &added {
-                        forget_txn_part(&mut set, topic, *part);
+            let err =
+                match decode_add_partitions_to_txn_response_cooperative(&mut body.clone(), version)
+                    .await
+                {
+                    Ok(e) => e,
+                    Err(e) => {
+                        let mut set = self.shared.txn_partitions.lock();
+                        for (topic, part) in &added {
+                            forget_txn_part(&mut set, topic, *part);
+                        }
+                        return Err(e);
                     }
-                    return Err(e);
-                }
-            };
+                };
             if err == 0 {
                 break;
             }
@@ -10626,6 +10642,60 @@ fn record_metadata(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn decoding_many_added_partitions_does_not_hold_the_caller() {
+        let topics: Vec<crate::protocol::txn::TxnPartitionsTopic> = (0..200_000)
+            .map(|index| crate::protocol::txn::TxnPartitionsTopic {
+                topic: format!("topic-{index}"),
+                partitions: vec![index as i32],
+            })
+            .collect();
+        let mut body = bytes::BytesMut::new();
+        crate::protocol::txn::encode_add_partitions_to_txn_response(&mut body, 3, &topics, 0)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let started = std::time::Instant::now();
+        tokio::select! {
+            decoded = decode_add_partitions_to_txn_response_cooperative(&mut body, 3) => {
+                let decoded = decoded.unwrap_or_else(|error| panic!("{error}"));
+                assert_eq!(decoded, 0);
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "decoding added partitions held the caller for {elapsed:?}"
+        );
+        let sample = [crate::protocol::txn::TxnPartitionsTopic {
+            topic: "orders".to_string(),
+            partitions: vec![4],
+        }];
+        let mut encoded = bytes::BytesMut::new();
+        crate::protocol::txn::encode_add_partitions_to_txn_response(&mut encoded, 3, &sample, 6)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let mut once = encoded.clone();
+        let mut paced = encoded;
+        let sync = crate::protocol::txn::decode_add_partitions_to_txn_topics_response(&mut once, 3)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let coop = crate::protocol::txn::decode_add_partitions_to_txn_topics_response_cooperative(
+            &mut paced, 3,
+        )
+        .await
+        .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(sync, coop);
+        assert_eq!(
+            coop.0.first().map(|item| item.topic.as_str()),
+            Some("orders")
+        );
+        assert_eq!(
+            coop.0
+                .first()
+                .and_then(|item| item.partitions.first())
+                .map(|item| item.error_code),
+            Some(6)
+        );
+    }
 
     fn group_pending_now(
         batch: Vec<Pending>,
