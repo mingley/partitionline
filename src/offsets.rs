@@ -1352,16 +1352,29 @@ async fn validate_fetch_response(
             continue;
         }
         let mut topics = HashSet::<&OffsetTopicIdentity>::new();
+        let expected_topics = match &requested.topics {
+            None => None,
+            Some(wanted) => {
+                let mut index = HashMap::with_capacity(wanted.len());
+                for topic in wanted {
+                    if let std::collections::hash_map::Entry::Vacant(slot) =
+                        index.entry(&topic.identity)
+                    {
+                        let _stored = slot.insert(topic);
+                    }
+                }
+                Some(index)
+            }
+        };
         for topic in &group.topics {
             if !topics.insert(&topic.identity) {
                 return Err(Error::protocol("duplicate fetched topic"));
             }
-            let expected = match &requested.topics {
+            let expected = match &expected_topics {
                 None => None,
-                Some(wanted) => Some(
-                    wanted
-                        .iter()
-                        .find(|wanted| wanted.identity == topic.identity)
+                Some(index) => Some(
+                    *index
+                        .get(&topic.identity)
                         .ok_or_else(|| Error::protocol("unexpected fetched topic identity"))?,
                 ),
             };
@@ -1586,6 +1599,79 @@ mod tests {
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "validating an offset fetch request held the caller for {elapsed:?}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn matching_many_fetched_topics_does_not_hold_the_caller() {
+        // 8_192 topics: matching each name against the request held the caller 309ms.
+        use crate::protocol::group::{
+            OffsetFetchGroupData, OffsetFetchGroupResponseData, OffsetFetchPartitionData,
+            OffsetFetchRequestData, OffsetFetchResponseData, OffsetFetchTopicData,
+            OffsetFetchTopicResponseData, OffsetTopicIdentity,
+        };
+        let topics: Vec<_> = (0..8_192)
+            .map(|index| OffsetFetchTopicData {
+                identity: OffsetTopicIdentity::Name(format!("topic-{index}")),
+                partition_indexes: vec![0],
+            })
+            .collect();
+        let response_topics: Vec<_> = topics
+            .iter()
+            .map(|topic| OffsetFetchTopicResponseData {
+                identity: topic.identity.clone(),
+                partitions: vec![OffsetFetchPartitionData {
+                    partition_index: 0,
+                    committed_offset: 1,
+                    committed_leader_epoch: -1,
+                    metadata: None,
+                    error_code: 0,
+                }],
+            })
+            .collect();
+        let request = OffsetFetchRequestData {
+            groups: vec![OffsetFetchGroupData {
+                group_id: "g".into(),
+                member_id: None,
+                member_epoch: -1,
+                topics: Some(topics),
+            }],
+            require_stable: false,
+        };
+        let response = OffsetFetchResponseData {
+            throttle_time_ms: 0,
+            groups: vec![OffsetFetchGroupResponseData {
+                group_id: "g".into(),
+                topics: response_topics,
+                error_code: 0,
+            }],
+        };
+        let started = std::time::Instant::now();
+        tokio::select! {
+            result = super::validate_fetch_response(&request, &response) => {
+                result.unwrap_or_else(|error| panic!("{error}"));
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "matching fetched topics held the caller for {elapsed:?}"
+        );
+        let mut unexpected = response;
+        if let Some(topic) = unexpected
+            .groups
+            .first_mut()
+            .and_then(|group| group.topics.first_mut())
+        {
+            topic.identity = OffsetTopicIdentity::Name("missing".into());
+        }
+        let error = super::validate_fetch_response(&request, &unexpected)
+            .await
+            .expect_err("unexpected topic");
+        assert!(
+            error.to_string().contains("unexpected fetched topic"),
+            "{error}"
         );
     }
 
