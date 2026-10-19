@@ -2351,6 +2351,89 @@ fn delete_topics_request_len<T: DeleteTopicView>(
     Ok(total)
 }
 
+/// Encode DeleteTopics, yielding while topics are still being written.
+///
+/// Encoding 2,000,000 topics held the caller for 495ms. A topic name is still written.
+pub(crate) async fn encode_delete_topic_list_cooperative<T: DeleteTopicView + Sync>(
+    buf: &mut BytesMut,
+    version: i16,
+    topics: &[T],
+    timeout_ms: i32,
+) -> crate::error::Result<()> {
+    let flexible = delete_topics_flexible(version)?;
+    let body_start = buf.len();
+    let planned = delete_topics_request_len_cooperative(version, flexible, topics).await?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
+    let mut walked = 0usize;
+    if version >= 6 {
+        buf::put_array_len(buf, true, Some(topics.len()))?;
+        for topic in topics {
+            buf::put_compact_string(buf, topic.delete_topic_name())?;
+            buf.extend_from_slice(&topic.delete_topic_id());
+            buf::put_empty_tagged_fields(buf);
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+    } else {
+        buf::put_array_len(buf, flexible, Some(topics.len()))?;
+        for topic in topics {
+            buf::put_string(buf, flexible, topic.delete_topic_name())?;
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+    }
+    buf.put_i32(timeout_ms);
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+    Ok(())
+}
+
+async fn delete_topics_request_len_cooperative<T: DeleteTopicView + Sync>(
+    version: i16,
+    flexible: bool,
+    topics: &[T],
+) -> Result<usize> {
+    let mut total = if version >= 6 {
+        describe_array_len(true, topics.len())?
+    } else {
+        describe_array_len(flexible, topics.len())?
+    };
+    let mut walked = 0usize;
+    for topic in topics {
+        if version >= 6 {
+            total = add_describe_len(total, describe_string_len(true, topic.delete_topic_name())?)?;
+            total = add_describe_len(total, 16)?;
+            total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+        } else {
+            total = add_describe_len(
+                total,
+                describe_string_len(flexible, topic.delete_topic_name())?,
+            )?;
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    total = add_describe_len(total, 4)?;
+    if flexible {
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
+}
+
 /// Decode a DeleteTopics request: `(names, timeout_ms)`.
 ///
 /// v6 Topics entries with a null Name are skipped (id-based deletes).
@@ -2784,6 +2867,7 @@ pub fn encode_describe_configs_request(
 }
 
 /// Encode DescribeConfigs resources whose names and keys are borrowed.
+#[cfg(test)]
 pub(crate) fn encode_describe_configs_named(
     buf: &mut BytesMut,
     version: i16,
@@ -2854,6 +2938,140 @@ fn describe_configs_request_len<T: DescribeConfigsResourceView>(
         )?;
         if flexible {
             total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    if version >= 1 {
+        total = add_describe_len(total, 1)?;
+    }
+    if version >= 3 {
+        total = add_describe_len(total, 1)?;
+    }
+    if flexible {
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
+}
+
+/// Encode DescribeConfigs, yielding while resources are still being written.
+///
+/// Encoding 2,000,000 resources held the caller for 955ms. A resource name and a config key are still written.
+pub(crate) async fn encode_describe_configs_named_cooperative(
+    buf: &mut BytesMut,
+    version: i16,
+    resources: &[BorrowedDescribeConfigsResource<'_>],
+    include_synonyms: bool,
+    include_documentation: bool,
+) -> crate::error::Result<()> {
+    encode_describe_configs_resource_views_cooperative(
+        buf,
+        version,
+        resources,
+        include_synonyms,
+        include_documentation,
+    )
+    .await
+}
+
+async fn encode_describe_configs_resource_views_cooperative<
+    T: DescribeConfigsResourceView + Sync,
+>(
+    buf: &mut BytesMut,
+    version: i16,
+    resources: &[T],
+    include_synonyms: bool,
+    include_documentation: bool,
+) -> crate::error::Result<()> {
+    let flexible = describe_configs_flexible(version)?;
+    let body_start = buf.len();
+    let planned = describe_configs_request_len_cooperative(version, flexible, resources).await?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
+    buf::put_array_len(buf, flexible, Some(resources.len()))?;
+    let mut walked = 0usize;
+    for resource in resources {
+        buf.put_i8(resource.describe_configs_type());
+        buf::put_string(buf, flexible, Some(resource.describe_configs_name()))?;
+        match resource.describe_configs_keys() {
+            None => buf::put_array_len(buf, flexible, None)?,
+            Some(keys) => {
+                buf::put_array_len(buf, flexible, Some(keys.len()))?;
+                for key in keys {
+                    buf::put_string(buf, flexible, Some(key))?;
+                    walked = walked.saturating_add(1);
+                    if walked == 8 * 1024 {
+                        walked = 0;
+                        tokio::task::yield_now().await;
+                    }
+                }
+            }
+        }
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    if version >= 1 {
+        buf.put_u8(u8::from(include_synonyms));
+    }
+    if version >= 3 {
+        buf.put_u8(u8::from(include_documentation));
+    }
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+    Ok(())
+}
+
+async fn describe_configs_request_len_cooperative<T: DescribeConfigsResourceView + Sync>(
+    version: i16,
+    flexible: bool,
+    resources: &[T],
+) -> Result<usize> {
+    let mut total = describe_array_len(flexible, resources.len())?;
+    let mut walked = 0usize;
+    for resource in resources {
+        total = add_describe_len(total, 1)?;
+        total = add_describe_len(
+            total,
+            describe_string_len(flexible, Some(resource.describe_configs_name()))?,
+        )?;
+        match resource.describe_configs_keys() {
+            None => {
+                total = add_describe_len(
+                    total,
+                    if flexible {
+                        buf::unsigned_varint_size(0)
+                    } else {
+                        4
+                    },
+                )?;
+            }
+            Some(keys) => {
+                total = add_describe_len(total, describe_array_len(flexible, keys.len())?)?;
+                for key in keys {
+                    total = add_describe_len(total, describe_string_len(flexible, Some(key))?)?;
+                    walked = walked.saturating_add(1);
+                    if walked == 8 * 1024 {
+                        walked = 0;
+                        tokio::task::yield_now().await;
+                    }
+                }
+            }
+        }
+        if flexible {
+            total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
         }
     }
     if version >= 1 {
@@ -3536,6 +3754,7 @@ pub fn encode_create_partitions_request(
 }
 
 /// Encode CreatePartitions topics whose names and assignments are borrowed.
+#[cfg(test)]
 pub(crate) fn encode_create_partitions_named(
     buf: &mut BytesMut,
     version: i16,
@@ -3673,6 +3892,140 @@ fn create_partitions_assignments_len(
         if flexible {
             total = add_describe_len(total, buf::unsigned_varint_size(0))?;
         }
+    }
+    Ok(total)
+}
+
+/// Encode CreatePartitions, yielding while topics are still being written.
+///
+/// Encoding 2,000,000 topics held the caller for 595ms. A topic name is still written.
+pub(crate) async fn encode_create_partitions_named_cooperative(
+    buf: &mut BytesMut,
+    version: i16,
+    topics: &[BorrowedCreatePartitionsTopic<'_>],
+    timeout_ms: i32,
+    validate_only: bool,
+) -> crate::error::Result<()> {
+    encode_create_partitions_topic_views_cooperative(
+        buf,
+        version,
+        topics,
+        timeout_ms,
+        validate_only,
+    )
+    .await
+}
+
+async fn encode_create_partitions_topic_views_cooperative<T: CreatePartitionsTopicView + Sync>(
+    buf: &mut BytesMut,
+    version: i16,
+    topics: &[T],
+    timeout_ms: i32,
+    validate_only: bool,
+) -> crate::error::Result<()> {
+    let flexible = create_partitions_flexible(version)?;
+    let body_start = buf.len();
+    let planned = create_partitions_request_len_cooperative(flexible, topics).await?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
+    buf::put_array_len(buf, flexible, Some(topics.len()))?;
+    let mut walked = 0usize;
+    for topic in topics {
+        buf::put_string(buf, flexible, Some(topic.create_partitions_name()))?;
+        buf.put_i32(topic.create_partitions_count());
+        match topic.create_partitions_assignments() {
+            None => buf::put_array_len(buf, flexible, None)?,
+            Some(assignments) => {
+                buf::put_array_len(buf, flexible, Some(assignments.len()))?;
+                for brokers in assignments {
+                    put_i32_array(buf, flexible, brokers)?;
+                    if flexible {
+                        buf::put_empty_tagged_fields(buf);
+                    }
+                    walked = walked.saturating_add(1);
+                    if walked == 8 * 1024 {
+                        walked = 0;
+                        tokio::task::yield_now().await;
+                    }
+                }
+            }
+        }
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    buf.put_i32(timeout_ms);
+    buf.put_u8(u8::from(validate_only));
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+    Ok(())
+}
+
+async fn create_partitions_request_len_cooperative<T: CreatePartitionsTopicView + Sync>(
+    flexible: bool,
+    topics: &[T],
+) -> Result<usize> {
+    let mut total = describe_array_len(flexible, topics.len())?;
+    let mut walked = 0usize;
+    for topic in topics {
+        total = add_describe_len(
+            total,
+            describe_string_len(flexible, Some(topic.create_partitions_name()))?,
+        )?;
+        total = add_describe_len(total, 4)?;
+        match topic.create_partitions_assignments() {
+            None => {
+                total = add_describe_len(
+                    total,
+                    if flexible {
+                        buf::unsigned_varint_size(0)
+                    } else {
+                        4
+                    },
+                )?;
+            }
+            Some(assignments) => {
+                total = add_describe_len(total, describe_array_len(flexible, assignments.len())?)?;
+                for brokers in assignments {
+                    total = add_describe_len(total, describe_array_len(flexible, brokers.len())?)?;
+                    total = add_describe_len(
+                        total,
+                        brokers.len().checked_mul(4).ok_or_else(|| {
+                            Error::protocol("create partitions request size overflow")
+                        })?,
+                    )?;
+                    if flexible {
+                        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+                    }
+                    walked = walked.saturating_add(1);
+                    if walked == 8 * 1024 {
+                        walked = 0;
+                        tokio::task::yield_now().await;
+                    }
+                }
+            }
+        }
+        if flexible {
+            total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    total = add_describe_len(total, 5)?;
+    if flexible {
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
     }
     Ok(total)
 }
@@ -28194,6 +28547,140 @@ mod tests {
         encode_alter_share_group_offsets_request(&mut once, "g", &sample)
             .unwrap_or_else(|error| panic!("{error}"));
         encode_alter_share_group_offsets_request_cooperative(&mut paced, "g", &sample)
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(once, paced);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn encoding_many_described_configs_does_not_hold_the_caller() {
+        let owned: Vec<String> = (0..2_000_000)
+            .map(|index| format!("topic-{index}"))
+            .collect();
+        let key = vec!["retention.ms".to_string()];
+        let resources: Vec<BorrowedDescribeConfigsResource<'_>> = owned
+            .iter()
+            .map(|name| BorrowedDescribeConfigsResource {
+                resource_type: 2,
+                name: name.as_str(),
+                keys: Some(key.as_slice()),
+            })
+            .collect();
+        let mut body = bytes::BytesMut::new();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            encoded = encode_describe_configs_named_cooperative(
+                &mut body,
+                4,
+                &resources,
+                false,
+                false,
+            ) => {
+                encoded.unwrap_or_else(|error| panic!("{error}"));
+            }
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "encoding described configs held the caller for {elapsed:?}"
+        );
+        let sample = [BorrowedDescribeConfigsResource {
+            resource_type: 2,
+            name: "orders",
+            keys: Some(key.as_slice()),
+        }];
+        let mut once = bytes::BytesMut::new();
+        let mut paced = bytes::BytesMut::new();
+        encode_describe_configs_named(&mut once, 4, &sample, false, false)
+            .unwrap_or_else(|error| panic!("{error}"));
+        encode_describe_configs_named_cooperative(&mut paced, 4, &sample, false, false)
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(once, paced);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn encoding_many_created_partitions_does_not_hold_the_caller() {
+        let owned: Vec<String> = (0..2_000_000)
+            .map(|index| format!("topic-{index}"))
+            .collect();
+        let topics: Vec<BorrowedCreatePartitionsTopic<'_>> = owned
+            .iter()
+            .map(|name| BorrowedCreatePartitionsTopic {
+                name: name.as_str(),
+                count: 3,
+                assignments: None,
+            })
+            .collect();
+        let mut body = bytes::BytesMut::new();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            encoded = encode_create_partitions_named_cooperative(
+                &mut body,
+                3,
+                &topics,
+                1_000,
+                false,
+            ) => {
+                encoded.unwrap_or_else(|error| panic!("{error}"));
+            }
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "encoding created partitions held the caller for {elapsed:?}"
+        );
+        let sample = [BorrowedCreatePartitionsTopic {
+            name: "orders",
+            count: 3,
+            assignments: None,
+        }];
+        let mut once = bytes::BytesMut::new();
+        let mut paced = bytes::BytesMut::new();
+        encode_create_partitions_named(&mut once, 3, &sample, 1_000, false)
+            .unwrap_or_else(|error| panic!("{error}"));
+        encode_create_partitions_named_cooperative(&mut paced, 3, &sample, 1_000, false)
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(once, paced);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn encoding_many_deleted_topics_does_not_hold_the_caller() {
+        let owned: Vec<String> = (0..2_000_000)
+            .map(|index| format!("topic-{index}"))
+            .collect();
+        let topics: Vec<BorrowedDeleteTopic<'_>> = owned
+            .iter()
+            .map(|name| BorrowedDeleteTopic {
+                name: Some(name.as_str()),
+                topic_id: [0; 16],
+            })
+            .collect();
+        let mut body = bytes::BytesMut::new();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            encoded = encode_delete_topic_list_cooperative(&mut body, 6, &topics, 1_000) => {
+                encoded.unwrap_or_else(|error| panic!("{error}"));
+            }
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "encoding deleted topics held the caller for {elapsed:?}"
+        );
+        let sample = [BorrowedDeleteTopic {
+            name: Some("orders"),
+            topic_id: [0; 16],
+        }];
+        let mut once = bytes::BytesMut::new();
+        let mut paced = bytes::BytesMut::new();
+        encode_delete_topic_list(&mut once, 6, &sample, 1_000)
+            .unwrap_or_else(|error| panic!("{error}"));
+        encode_delete_topic_list_cooperative(&mut paced, 6, &sample, 1_000)
             .await
             .unwrap_or_else(|error| panic!("{error}"));
         assert_eq!(once, paced);

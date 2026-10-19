@@ -61,14 +61,15 @@ use crate::protocol::admin::{
     encode_alter_replica_log_dirs_request, encode_alter_share_group_offsets_request_cooperative,
     encode_alter_user_scram_credentials_named_cooperative, encode_assign_replicas_to_dirs_request,
     encode_consumer_group_describe_ids_cooperative, encode_create_delegation_token_request,
-    encode_create_partitions_named, encode_create_topics_named_cooperative,
+    encode_create_partitions_named_cooperative, encode_create_topics_named_cooperative,
     encode_delete_groups_ids_cooperative, encode_delete_records_named_topics_cooperative,
     encode_delete_records_owned_topics_cooperative,
-    encode_delete_share_group_offsets_request_cooperative, encode_describe_client_quotas_request,
-    encode_describe_cluster_request, encode_describe_configs_named,
-    encode_describe_delegation_token_request, encode_describe_groups_ids_cooperative,
-    encode_describe_log_dirs_named, encode_describe_log_dirs_named_cooperative,
-    encode_describe_log_dirs_request, encode_describe_producers_named_topics,
+    encode_delete_share_group_offsets_request_cooperative, encode_delete_topic_list_cooperative,
+    encode_describe_client_quotas_request, encode_describe_cluster_request,
+    encode_describe_configs_named_cooperative, encode_describe_delegation_token_request,
+    encode_describe_groups_ids_cooperative, encode_describe_log_dirs_named,
+    encode_describe_log_dirs_named_cooperative, encode_describe_log_dirs_request,
+    encode_describe_producers_named_topics,
     encode_describe_share_group_offsets_request_refs_cooperative,
     encode_describe_topic_partitions_names_cooperative,
     encode_describe_transactions_ids_cooperative,
@@ -5474,7 +5475,7 @@ impl Admin {
             .await
     }
 
-    async fn delete_topics_states_with<T: DeleteTopicView>(
+    async fn delete_topics_states_with<T: DeleteTopicView + Sync>(
         &mut self,
         topics: &[T],
         timeout_ms: i32,
@@ -5493,6 +5494,13 @@ impl Admin {
                 self.refresh_broker_directory(deadline).await?;
             }
             let node = self.cluster.controller()?;
+            let requested: Vec<&T> = pending
+                .iter()
+                .filter_map(|&index| original.get(index))
+                .collect();
+            let mut payload = BytesMut::new();
+            encode_delete_topic_list_cooperative(&mut payload, version, &requested, timeout_ms)
+                .await?;
             let body = self
                 .roundtrip_known_node(
                     node,
@@ -5500,13 +5508,8 @@ impl Admin {
                     DELETE_TOPICS,
                     version,
                     |buf| {
-                        let requested: Vec<&T> = pending
-                            .iter()
-                            .filter_map(|&index| original.get(index))
-                            .collect();
-                        crate::protocol::admin::encode_delete_topic_list(
-                            buf, version, &requested, timeout_ms,
-                        )
+                        buf.extend_from_slice(&payload);
+                        Ok(())
                     },
                     deadline.saturating_duration_since(Instant::now()),
                 )
@@ -5981,18 +5984,22 @@ impl Admin {
         let version = self.describe_version.ok_or_else(|| {
             Error::Unsupported("broker does not support DescribeConfigs v0-4".into())
         })?;
+        let mut payload = BytesMut::new();
+        encode_describe_configs_named_cooperative(
+            &mut payload,
+            version,
+            &req,
+            include_synonyms,
+            include_documentation,
+        )
+        .await?;
         let body = self
             .roundtrip_bootstrap(
                 DESCRIBE_CONFIGS,
                 version,
                 |buf| {
-                    encode_describe_configs_named(
-                        buf,
-                        version,
-                        &req,
-                        include_synonyms,
-                        include_documentation,
-                    )
+                    buf.extend_from_slice(&payload);
+                    Ok(())
                 },
                 timeout,
             )
@@ -6107,6 +6114,15 @@ impl Admin {
         loop {
             let encoded =
                 partitions_from_new(pending.iter().filter_map(|&index| topics.get(index)));
+            let mut payload = BytesMut::new();
+            encode_create_partitions_named_cooperative(
+                &mut payload,
+                version,
+                &encoded,
+                timeout_ms,
+                validate_only,
+            )
+            .await?;
             if self.cluster.controller().is_err() {
                 self.refresh_broker_directory(deadline).await?;
             }
@@ -6118,13 +6134,8 @@ impl Admin {
                     CREATE_PARTITIONS,
                     version,
                     |buf| {
-                        encode_create_partitions_named(
-                            buf,
-                            version,
-                            &encoded,
-                            timeout_ms,
-                            validate_only,
-                        )
+                        buf.extend_from_slice(&payload);
+                        Ok(())
                     },
                     deadline.saturating_duration_since(Instant::now()),
                 )
