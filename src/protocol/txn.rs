@@ -659,6 +659,7 @@ pub fn encode_add_partitions_to_txn_request(
 }
 
 /// Encode AddPartitionsToTxn from topic names the caller already holds.
+#[cfg(test)]
 pub(crate) fn encode_add_partitions_to_txn_borrowed(
     buf: &mut BytesMut,
     version: i16,
@@ -712,6 +713,110 @@ fn encode_add_partitions_to_txn_views<T: AddPartitionsTopicView>(
     }
     debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+/// Encode AddPartitionsToTxn, yielding while topics are still being written.
+///
+/// Encoding 2,000,000 topics held the caller for 659ms. A topic name and a partition are still written.
+pub(crate) async fn encode_add_partitions_to_txn_borrowed_cooperative(
+    buf: &mut BytesMut,
+    version: i16,
+    transactional_id: &str,
+    producer_id: i64,
+    producer_epoch: i16,
+    topics: &[BorrowedTxnTopic<'_>],
+) -> crate::error::Result<()> {
+    encode_add_partitions_to_txn_views_cooperative(
+        buf,
+        version,
+        transactional_id,
+        producer_id,
+        producer_epoch,
+        topics,
+    )
+    .await
+}
+
+async fn encode_add_partitions_to_txn_views_cooperative<T: AddPartitionsTopicView + Sync>(
+    buf: &mut BytesMut,
+    version: i16,
+    transactional_id: &str,
+    producer_id: i64,
+    producer_epoch: i16,
+    topics: &[T],
+) -> crate::error::Result<()> {
+    let flexible = add_partitions_to_txn_flexible(version)?;
+    let body_start = buf.len();
+    let planned =
+        add_partitions_request_len_cooperative(flexible, transactional_id, topics).await?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
+    buf::put_string(buf, flexible, Some(transactional_id))?;
+    buf.put_i64(producer_id);
+    buf.put_i16(producer_epoch);
+    buf::put_array_len(buf, flexible, Some(topics.len()))?;
+    let mut walked = 0usize;
+    for topic in topics {
+        buf::put_string(buf, flexible, Some(topic.add_partitions_topic()))?;
+        let partitions = topic.add_partitions();
+        buf::put_array_len(buf, flexible, Some(partitions.len()))?;
+        for partition in partitions {
+            buf.put_i32(*partition);
+        }
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+    Ok(())
+}
+
+async fn add_partitions_request_len_cooperative<T: AddPartitionsTopicView + Sync>(
+    flexible: bool,
+    transactional_id: &str,
+    topics: &[T],
+) -> Result<usize> {
+    let mut total = txn_string_len(flexible, transactional_id)?;
+    total = add_txn_len(total, 8 + 2)?;
+    total = add_txn_len(total, txn_array_len(flexible, topics.len())?)?;
+    let mut walked = 0usize;
+    for topic in topics {
+        total = add_txn_len(
+            total,
+            txn_string_len(flexible, topic.add_partitions_topic())?,
+        )?;
+        let partitions = topic.add_partitions();
+        total = add_txn_len(total, txn_array_len(flexible, partitions.len())?)?;
+        total = add_txn_len(
+            total,
+            partitions
+                .len()
+                .checked_mul(4)
+                .ok_or_else(|| Error::protocol("add partitions request size overflow"))?,
+        )?;
+        if flexible {
+            total = add_txn_len(total, buf::unsigned_varint_size(0))?;
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    if flexible {
+        total = add_txn_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
 }
 
 /// Decode AddPartitionsToTxn: `(transactional_id, producer_id, producer_epoch, topics)`.
@@ -2132,6 +2237,7 @@ pub fn encode_txn_offset_commit_request(
 }
 
 /// Encode TxnOffsetCommit from topic names and metadata the caller already holds.
+#[cfg(test)]
 #[expect(
     clippy::too_many_arguments,
     reason = "TxnOffsetCommit request body needs version, ids, member identity, and topics together"
@@ -2276,6 +2382,191 @@ fn txn_offset_commit_request_len<T: TxnOffsetTopicView>(
         }
         if flexible {
             total = add_txn_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    if flexible {
+        total = add_txn_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
+}
+
+/// Encode TxnOffsetCommit, yielding while topics are still being written.
+///
+/// Encoding 2,000,000 topics held the caller for 1099ms. A topic name and a committed offset are still written.
+#[expect(
+    clippy::too_many_arguments,
+    reason = "TxnOffsetCommit request body needs version, ids, member identity, and topics together"
+)]
+pub(crate) async fn encode_txn_offset_commit_borrowed_cooperative(
+    buf: &mut BytesMut,
+    version: i16,
+    transactional_id: &str,
+    group_id: &str,
+    producer_id: i64,
+    producer_epoch: i16,
+    member: &TxnOffsetCommitMember,
+    topics: &[BorrowedTxnOffsetTopic<'_>],
+) -> crate::error::Result<()> {
+    encode_txn_offset_commit_views_cooperative(
+        buf,
+        version,
+        transactional_id,
+        group_id,
+        producer_id,
+        producer_epoch,
+        member,
+        topics,
+    )
+    .await
+}
+
+#[expect(
+    clippy::too_many_arguments,
+    reason = "TxnOffsetCommit request body needs version, ids, member identity, and topics together"
+)]
+async fn encode_txn_offset_commit_views_cooperative<T: TxnOffsetTopicView + Sync>(
+    buf: &mut BytesMut,
+    version: i16,
+    transactional_id: &str,
+    group_id: &str,
+    producer_id: i64,
+    producer_epoch: i16,
+    member: &TxnOffsetCommitMember,
+    topics: &[T],
+) -> crate::error::Result<()>
+where
+    T::Partition: Sync,
+{
+    let flexible = txn_offset_commit_flexible(version)?;
+    if version < 3 && member.group_metadata_set() {
+        return Err(Error::Unsupported(format!(
+            "Broker doesn't support group metadata commit API on version {version}, minimum supported request version is 3 which requires brokers to be on version 2.5 or above."
+        )));
+    }
+    let body_start = buf.len();
+    let planned = txn_offset_commit_request_len_cooperative(
+        version,
+        flexible,
+        transactional_id,
+        group_id,
+        member,
+        topics,
+    )
+    .await?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
+    buf::put_string(buf, flexible, Some(transactional_id))?;
+    buf::put_string(buf, flexible, Some(group_id))?;
+    buf.put_i64(producer_id);
+    buf.put_i16(producer_epoch);
+    if version >= 3 {
+        buf.put_i32(member.generation_id);
+        buf::put_string(buf, flexible, Some(&member.member_id))?;
+        buf::put_string(buf, flexible, member.group_instance_id.as_deref())?;
+    }
+    buf::put_array_len(buf, flexible, Some(topics.len()))?;
+    let mut walked = 0usize;
+    for topic in topics {
+        buf::put_string(buf, flexible, Some(topic.txn_offset_topic()))?;
+        let partitions = topic.txn_offset_partitions();
+        buf::put_array_len(buf, flexible, Some(partitions.len()))?;
+        for partition in partitions {
+            buf.put_i32(partition.txn_offset_partition());
+            buf.put_i64(partition.txn_offset_offset());
+            if version >= 2 {
+                buf.put_i32(partition.txn_offset_leader_epoch());
+            }
+            let metadata = partition.txn_offset_metadata();
+            let metadata = if metadata.is_empty() {
+                None
+            } else {
+                Some(metadata)
+            };
+            buf::put_string(buf, flexible, metadata)?;
+            if flexible {
+                buf::put_empty_tagged_fields(buf);
+            }
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+    Ok(())
+}
+
+async fn txn_offset_commit_request_len_cooperative<T: TxnOffsetTopicView + Sync>(
+    version: i16,
+    flexible: bool,
+    transactional_id: &str,
+    group_id: &str,
+    member: &TxnOffsetCommitMember,
+    topics: &[T],
+) -> Result<usize>
+where
+    T::Partition: Sync,
+{
+    let mut total = txn_string_len(flexible, transactional_id)?;
+    total = add_txn_len(total, txn_string_len(flexible, group_id)?)?;
+    total = add_txn_len(total, 10)?;
+    if version >= 3 {
+        total = add_txn_len(total, 4)?;
+        total = add_txn_len(total, txn_string_len(flexible, &member.member_id)?)?;
+        total = add_txn_len(
+            total,
+            txn_nullable_string_len(flexible, member.group_instance_id.as_deref())?,
+        )?;
+    }
+    total = add_txn_len(total, txn_array_len(flexible, topics.len())?)?;
+    let mut walked = 0usize;
+    for topic in topics {
+        total = add_txn_len(total, txn_string_len(flexible, topic.txn_offset_topic())?)?;
+        let partitions = topic.txn_offset_partitions();
+        total = add_txn_len(total, txn_array_len(flexible, partitions.len())?)?;
+        for partition in partitions {
+            let mut fixed = 12usize;
+            if version >= 2 {
+                fixed += 4;
+            }
+            total = add_txn_len(total, fixed)?;
+            let metadata = partition.txn_offset_metadata();
+            let metadata = if metadata.is_empty() {
+                None
+            } else {
+                Some(metadata)
+            };
+            total = add_txn_len(total, txn_nullable_string_len(flexible, metadata)?)?;
+            if flexible {
+                total = add_txn_len(total, buf::unsigned_varint_size(0))?;
+            }
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+        if flexible {
+            total = add_txn_len(total, buf::unsigned_varint_size(0))?;
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
         }
     }
     if flexible {
@@ -3966,6 +4257,99 @@ pub const fn can_handle_abortable_error(
 mod tests {
     use super::*;
     use std::collections::HashMap;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn encoding_many_added_partitions_does_not_hold_the_caller() {
+        let owned: Vec<String> = (0..2_000_000)
+            .map(|index| format!("topic-{index}"))
+            .collect();
+        let topics: Vec<BorrowedTxnTopic<'_>> = owned
+            .iter()
+            .map(|name| BorrowedTxnTopic {
+                topic: name.as_str(),
+                partitions: vec![0],
+            })
+            .collect();
+        let mut body = bytes::BytesMut::new();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            encoded = encode_add_partitions_to_txn_borrowed_cooperative(&mut body, 3, "tx", 1, 1, &topics) => {
+                encoded.unwrap_or_else(|error| panic!("{error}"));
+            }
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        assert!(
+            started.elapsed() < std::time::Duration::from_millis(80),
+            "encoding added partitions held the caller for {:?}",
+            started.elapsed()
+        );
+        let sample = [BorrowedTxnTopic {
+            topic: "orders",
+            partitions: vec![0],
+        }];
+        let mut once = bytes::BytesMut::new();
+        let mut paced = bytes::BytesMut::new();
+        encode_add_partitions_to_txn_borrowed(&mut once, 3, "tx", 1, 1, &sample)
+            .unwrap_or_else(|error| panic!("{error}"));
+        encode_add_partitions_to_txn_borrowed_cooperative(&mut paced, 3, "tx", 1, 1, &sample)
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(once, paced);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn encoding_many_txn_offsets_does_not_hold_the_caller() {
+        let owned: Vec<String> = (0..2_000_000)
+            .map(|index| format!("topic-{index}"))
+            .collect();
+        let topics: Vec<BorrowedTxnOffsetTopic<'_>> = owned
+            .iter()
+            .map(|name| BorrowedTxnOffsetTopic {
+                topic: name.as_str(),
+                partitions: vec![BorrowedTxnOffsetPartition {
+                    partition: 0,
+                    offset: 1,
+                    leader_epoch: -1,
+                    metadata: "",
+                }],
+            })
+            .collect();
+        let member = TxnOffsetCommitMember::unknown();
+        let mut body = bytes::BytesMut::new();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            encoded = encode_txn_offset_commit_borrowed_cooperative(
+                &mut body, 3, "tx", "group", 1, 1, &member, &topics,
+            ) => {
+                encoded.unwrap_or_else(|error| panic!("{error}"));
+            }
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        assert!(
+            started.elapsed() < std::time::Duration::from_millis(80),
+            "encoding txn offsets held the caller for {:?}",
+            started.elapsed()
+        );
+        let sample = [BorrowedTxnOffsetTopic {
+            topic: "orders",
+            partitions: vec![BorrowedTxnOffsetPartition {
+                partition: 0,
+                offset: 1,
+                leader_epoch: -1,
+                metadata: "",
+            }],
+        }];
+        let mut once = bytes::BytesMut::new();
+        let mut paced = bytes::BytesMut::new();
+        encode_txn_offset_commit_borrowed(&mut once, 3, "tx", "group", 1, 1, &member, &sample)
+            .unwrap_or_else(|error| panic!("{error}"));
+        encode_txn_offset_commit_borrowed_cooperative(
+            &mut paced, 3, "tx", "group", 1, 1, &member, &sample,
+        )
+        .await
+        .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(once, paced);
+    }
 
     #[test]
     fn transaction_v2_version_caps_match_java() {

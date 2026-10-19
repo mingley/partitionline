@@ -41,10 +41,10 @@ use crate::protocol::txn::{
     client_epoch_bump_capable, decode_add_offsets_to_txn_response,
     decode_add_partitions_to_txn_response_cooperative, decode_end_txn_response,
     decode_txn_offset_commit_response_cooperative, encode_add_offsets_to_txn_request,
-    encode_add_partitions_to_txn_borrowed, encode_end_txn_request,
-    encode_txn_offset_commit_borrowed, BorrowedTxnOffsetPartition, BorrowedTxnOffsetTopic,
-    BorrowedTxnTopic, EndTxnRequest, TransactionResult, TxnErrorDisposition, TxnOffsetCommitMember,
-    TxnOffsetCommitRequest,
+    encode_add_partitions_to_txn_borrowed_cooperative, encode_end_txn_request,
+    encode_txn_offset_commit_borrowed_cooperative, BorrowedTxnOffsetPartition,
+    BorrowedTxnOffsetTopic, BorrowedTxnTopic, EndTxnRequest, TransactionResult,
+    TxnErrorDisposition, TxnOffsetCommitMember, TxnOffsetCommitRequest,
 };
 
 /// Pre-send failure injection point for testing buffer ownership and resource contracts.
@@ -3622,15 +3622,26 @@ impl Producer {
         let grouped = group_txn_offsets(&offsets, &self.inner.shared.cluster).await;
         let mut attempt = 0u32;
         loop {
+            let mut payload = BytesMut::new();
+            encode_txn_offset_commit_borrowed_cooperative(
+                &mut payload,
+                version,
+                &tid,
+                group_id,
+                pid,
+                epoch,
+                member,
+                &grouped,
+            )
+            .await?;
             let body = group_coord_roundtrip(
                 &self.inner.shared,
                 group_id,
                 TXN_OFFSET_COMMIT,
                 version,
                 |buf| {
-                    encode_txn_offset_commit_borrowed(
-                        buf, version, &tid, group_id, pid, epoch, member, &grouped,
-                    )
+                    buf.extend_from_slice(&payload);
+                    Ok(())
                 },
                 timeout_remaining(deadline)?,
                 |body| {
@@ -8175,12 +8186,23 @@ impl Worker {
                     return Err(error);
                 }
             };
+            let mut payload = BytesMut::new();
+            encode_add_partitions_to_txn_borrowed_cooperative(
+                &mut payload,
+                version,
+                &tid,
+                pid,
+                epoch,
+                &topics,
+            )
+            .await?;
             let body = match txn_roundtrip(
                 &self.shared,
                 ADD_PARTITIONS_TO_TXN,
                 version,
                 |buf| {
-                    encode_add_partitions_to_txn_borrowed(buf, version, &tid, pid, epoch, &topics)
+                    buf.extend_from_slice(&payload);
+                    Ok(())
                 },
                 remaining,
                 |body| {

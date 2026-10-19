@@ -1715,6 +1715,189 @@ fn encode_share_fetch_request_fields(
     Ok(())
 }
 
+async fn share_fetch_contains_renew(topics: &[ShareFetchTopic]) -> bool {
+    let mut walked = 0usize;
+    for topic in topics {
+        for partition in &topic.partitions {
+            for batch in &partition.acknowledgements {
+                if batch.types.contains(&ACK_RENEW) {
+                    return true;
+                }
+                walked = walked.saturating_add(1);
+                if walked == 8 * 1024 {
+                    walked = 0;
+                    tokio::task::yield_now().await;
+                }
+            }
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+    }
+    false
+}
+
+/// Encode ShareFetch, yielding while topics are still being written.
+///
+/// Encoding 2,000,000 topics held the caller for 868ms. A topic id and a partition are still written.
+#[expect(
+    clippy::too_many_arguments,
+    reason = "ShareFetch fields form one wire request"
+)]
+pub async fn encode_share_fetch_request_with_options_cooperative(
+    buf: &mut BytesMut,
+    version: i16,
+    group_id: &str,
+    member_id: &str,
+    share_session_epoch: i32,
+    max_wait_ms: i32,
+    min_bytes: i32,
+    max_bytes: i32,
+    max_records: i32,
+    topics: &[ShareFetchTopic],
+    forgotten: &[ShareForgottenTopic],
+    batch_size: i32,
+    options: ShareFetchRequestOptions,
+) -> crate::error::Result<()> {
+    let flexible = share_fetch_flexible(version)?;
+    let is_renew_ack = options.is_renew_ack || share_fetch_contains_renew(topics).await;
+    check_renew_version(version, is_renew_ack)?;
+    let body_start = buf.len();
+    let planned =
+        share_fetch_request_len_cooperative(version, group_id, member_id, topics, forgotten)
+            .await?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
+    buf::put_string(buf, flexible, Some(group_id))?;
+    buf::put_string(buf, flexible, Some(member_id))?;
+    buf.put_i32(share_session_epoch);
+    buf.put_i32(max_wait_ms);
+    buf.put_i32(min_bytes);
+    buf.put_i32(max_bytes);
+    if version >= 1 {
+        buf.put_i32(max_records);
+        buf.put_i32(batch_size);
+    }
+    if version >= 2 {
+        buf.put_i8(options.acquire_mode);
+        buf.put_u8(u8::from(is_renew_ack));
+    }
+    buf::put_array_len(buf, flexible, Some(topics.len()))?;
+    let mut walked = 0usize;
+    for topic in topics {
+        buf.extend_from_slice(&topic.topic_id);
+        buf::put_array_len(buf, flexible, Some(topic.partitions.len()))?;
+        for partition in &topic.partitions {
+            buf.put_i32(partition.partition);
+            if version == 0 {
+                buf.put_i32(partition.partition_max_bytes);
+            }
+            encode_ack_batches(buf, &partition.acknowledgements)?;
+            if flexible {
+                buf::put_empty_tagged_fields(buf);
+            }
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    buf::put_array_len(buf, flexible, Some(forgotten.len()))?;
+    for topic in forgotten {
+        buf.extend_from_slice(&topic.topic_id);
+        buf::put_array_len(buf, flexible, Some(topic.partitions.len()))?;
+        for partition in &topic.partitions {
+            buf.put_i32(*partition);
+        }
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+    Ok(())
+}
+
+async fn share_fetch_request_len_cooperative(
+    version: i16,
+    group_id: &str,
+    member_id: &str,
+    topics: &[ShareFetchTopic],
+    forgotten: &[ShareForgottenTopic],
+) -> Result<usize> {
+    let mut total = share_string_len(group_id)?;
+    total = add_share_len(total, share_string_len(member_id)?)?;
+    total = add_share_len(total, 16)?;
+    if version >= 1 {
+        total = add_share_len(total, 8)?;
+    }
+    if version >= 2 {
+        total = add_share_len(total, 2)?;
+    }
+    total = add_share_len(total, share_array_len(topics.len())?)?;
+    let mut walked = 0usize;
+    for topic in topics {
+        total = add_share_len(total, 16)?;
+        total = add_share_len(total, share_array_len(topic.partitions.len())?)?;
+        for partition in &topic.partitions {
+            total = add_share_len(total, if version == 0 { 8 } else { 4 })?;
+            total = add_share_len(total, ack_batches_len(&partition.acknowledgements)?)?;
+            total = add_share_len(total, buf::unsigned_varint_size(0))?;
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+        total = add_share_len(total, buf::unsigned_varint_size(0))?;
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    total = add_share_len(total, share_array_len(forgotten.len())?)?;
+    for topic in forgotten {
+        total = add_share_len(total, 16)?;
+        total = add_share_len(total, share_array_len(topic.partitions.len())?)?;
+        total = add_share_len(
+            total,
+            topic
+                .partitions
+                .len()
+                .checked_mul(4)
+                .ok_or_else(|| Error::protocol("share fetch request size overflow"))?,
+        )?;
+        total = add_share_len(total, buf::unsigned_varint_size(0))?;
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    add_share_len(total, buf::unsigned_varint_size(0))
+}
+
 /// Decode a ShareFetch request (`version` 0–2):
 /// `(group_id, member_id, epoch, max_records, topics, forgotten,
 /// batch_size, max_wait_ms, min_bytes, max_bytes)`.
@@ -4115,6 +4298,83 @@ mod tests {
     use crate::protocol::records::Record;
     use bytes::{Buf, Bytes};
     use std::collections::HashMap;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn encoding_many_share_fetches_does_not_hold_the_caller() {
+        let topics: Vec<ShareFetchTopic> = (0..2_000_000)
+            .map(|index| ShareFetchTopic {
+                topic_id: (index as u128).to_le_bytes(),
+                partitions: vec![ShareFetchPartition {
+                    partition: 0,
+                    partition_max_bytes: 0,
+                    acknowledgements: Vec::new(),
+                }],
+            })
+            .collect();
+        let options = ShareFetchRequestOptions {
+            acquire_mode: 0,
+            is_renew_ack: false,
+        };
+        let mut body = bytes::BytesMut::new();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            encoded = encode_share_fetch_request_with_options_cooperative(
+                &mut body, 1, "group", "member", 0, 100, 1, 1_048_576, 0, &topics, &[], 0, options,
+            ) => {
+                encoded.unwrap_or_else(|error| panic!("{error}"));
+            }
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        assert!(
+            started.elapsed() < std::time::Duration::from_millis(80),
+            "encoding share fetches held the caller for {:?}",
+            started.elapsed()
+        );
+        let sample = [ShareFetchTopic {
+            topic_id: [1; 16],
+            partitions: vec![ShareFetchPartition {
+                partition: 0,
+                partition_max_bytes: 0,
+                acknowledgements: Vec::new(),
+            }],
+        }];
+        let mut once = bytes::BytesMut::new();
+        let mut paced = bytes::BytesMut::new();
+        encode_share_fetch_request_with_options(
+            &mut once,
+            1,
+            "group",
+            "member",
+            0,
+            100,
+            1,
+            1_048_576,
+            0,
+            &sample,
+            &[],
+            0,
+            options,
+        )
+        .unwrap_or_else(|error| panic!("{error}"));
+        encode_share_fetch_request_with_options_cooperative(
+            &mut paced,
+            1,
+            "group",
+            "member",
+            0,
+            100,
+            1,
+            1_048_576,
+            0,
+            &sample,
+            &[],
+            0,
+            options,
+        )
+        .await
+        .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(once, paced);
+    }
 
     #[test]
     fn a_share_group_heartbeat_response_sizes_its_body_once() {

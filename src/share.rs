@@ -32,7 +32,7 @@ use crate::protocol::share::{
     decode_share_fetch_response_reusing_cooperative,
     decode_share_group_heartbeat_response_cooperative, encode_one_share_acknowledge_cooperative,
     encode_share_acknowledge_request, encode_share_acknowledge_topics_cooperative,
-    encode_share_fetch_request_with_options, encode_share_group_heartbeat_request,
+    encode_share_fetch_request_with_options_cooperative, encode_share_group_heartbeat_request,
     encode_share_group_heartbeat_request_cooperative, AcknowledgementBatch, ShareAckTopic,
     ShareFetchPartition, ShareFetchRequestOptions, ShareFetchTopic, ShareFetchedTopic,
     ShareGroupHeartbeatRequest, ShareTopicPartitions, ACK_ACCEPT, ACK_REJECT, ACK_RELEASE,
@@ -1847,13 +1847,13 @@ fn shared_text(cached: &mut Arc<str>, current: &str) -> Arc<str> {
     Arc::clone(cached)
 }
 
-fn encode_prepared_share_fetch(
+async fn encode_prepared_share_fetch_cooperative(
     buf: &mut BytesMut,
     job: &PreparedShareFetch,
     group_id: &str,
     member_id: &str,
 ) -> Result<()> {
-    encode_share_fetch_request_with_options(
+    encode_share_fetch_request_with_options_cooperative(
         buf,
         job.version,
         group_id,
@@ -1871,6 +1871,7 @@ fn encode_prepared_share_fetch(
             is_renew_ack: false,
         },
     )
+    .await
 }
 
 struct ShareAssignmentUpdate {
@@ -3995,15 +3996,30 @@ impl ShareGroup {
                     },
                 );
                 let handle = set.spawn(async move {
-                    let result = peer
-                        .conn
-                        .roundtrip(
-                            SHARE_FETCH,
-                            version,
-                            |buf| encode_prepared_share_fetch(buf, &job, &group_id, &member_id),
-                            timeout,
-                        )
-                        .await;
+                    let mut payload = BytesMut::new();
+                    let result = match encode_prepared_share_fetch_cooperative(
+                        &mut payload,
+                        &job,
+                        &group_id,
+                        &member_id,
+                    )
+                    .await
+                    {
+                        Ok(()) => {
+                            peer.conn
+                                .roundtrip(
+                                    SHARE_FETCH,
+                                    version,
+                                    |buf| {
+                                        buf.extend_from_slice(&payload);
+                                        Ok(())
+                                    },
+                                    timeout,
+                                )
+                                .await
+                        }
+                        Err(error) => Err(error),
+                    };
                     (node, peer, result, job.topics)
                 });
                 self.inflight_share_tasks.push(handle);
@@ -4229,12 +4245,23 @@ impl ShareGroup {
                 self.keep_share_ready(ready);
                 return Err(Error::protocol("missing share connection"));
             };
+            let mut payload = BytesMut::new();
+            encode_prepared_share_fetch_cooperative(
+                &mut payload,
+                &job,
+                &self.group_id,
+                &self.member_id,
+            )
+            .await?;
             let body = peer
                 .conn
                 .roundtrip(
                     SHARE_FETCH,
                     job.version,
-                    |buf| encode_prepared_share_fetch(buf, &job, &self.group_id, &self.member_id),
+                    |buf| {
+                        buf.extend_from_slice(&payload);
+                        Ok(())
+                    },
                     timeout,
                 )
                 .await;
