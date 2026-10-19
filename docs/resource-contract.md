@@ -74,6 +74,7 @@ These walks include:
 - checking whether assigned or subscribed topics are fresh
 - indexing metadata topic names and recording topic ids
 - finding recreated topics
+- grouping preferred replicas, and dropping one whose leader epoch changed, before metadata is applied
 - copying a changed consumer or share heartbeat subscription or assignment
 - opening one result slot, and its index, for each item in an admin batch
 - copying transactional ids before fencing producers
