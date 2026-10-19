@@ -2773,6 +2773,105 @@ fn delete_acls_request_len(
     Ok(total)
 }
 
+/// Encode DeleteAcls, yielding while filters are still being written.
+///
+/// Encoding 2,000,000 filters held the caller for 1133ms. A resource name and a principal are still written.
+pub(crate) async fn encode_delete_acls_request_cooperative(
+    buf: &mut BytesMut,
+    version: i16,
+    filters: &[AclBindingFilter],
+) -> Result<()> {
+    let flexible = acl_api_flexible(version)?;
+    reject_delete_acls_v0_patterns_cooperative(version, filters).await?;
+    reject_delete_acls_unknown_elements_cooperative(filters).await?;
+    let body_start = buf.len();
+    let planned = delete_acls_request_len_cooperative(version, flexible, filters).await?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
+    buf::put_array_len(buf, flexible, Some(filters.len()))?;
+    let mut walked = 0usize;
+    for filter in filters {
+        put_acl_filter_fields(buf, version, flexible, filter)?;
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+    Ok(())
+}
+
+async fn delete_acls_request_len_cooperative(
+    version: i16,
+    flexible: bool,
+    filters: &[AclBindingFilter],
+) -> Result<usize> {
+    let mut total = acl_array_len(flexible, filters.len())?;
+    let mut walked = 0usize;
+    for filter in filters {
+        total = add_acl_len(total, describe_acls_request_len(version, flexible, filter)?)?;
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    if flexible {
+        total = add_acl_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
+}
+
+async fn reject_delete_acls_v0_patterns_cooperative(
+    version: i16,
+    filters: &[AclBindingFilter],
+) -> Result<()> {
+    if version != 0 {
+        return Ok(());
+    }
+    let mut walked = 0usize;
+    for filter in filters {
+        if filter.pattern_type != ACL_PATTERN_LITERAL && filter.pattern_type != ACL_PATTERN_ANY {
+            return Err(Error::Unsupported(format!(
+                "Version 0 does not support pattern type {} (only LITERAL and ANY are supported)",
+                AclPatternType::from_id(filter.pattern_type)
+            )));
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    Ok(())
+}
+
+async fn reject_delete_acls_unknown_elements_cooperative(
+    filters: &[AclBindingFilter],
+) -> Result<()> {
+    let mut walked = 0usize;
+    for filter in filters {
+        if filter.is_unknown() {
+            return Err(Error::protocol("Filters contain UNKNOWN elements"));
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    Ok(())
+}
+
 /// Decode DeleteAcls: every filter.
 pub fn decode_delete_acls_request<B: Buf>(
     buf: &mut B,
@@ -3127,6 +3226,42 @@ pub async fn decode_delete_acls_filter_results_cooperative<B: Buf>(
 mod tests {
     use super::*;
     use std::collections::HashMap;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn encoding_many_deleted_acls_does_not_hold_the_caller() {
+        let filters: Vec<AclBindingFilter> = (0..2_000_000)
+            .map(|index| AclBindingFilter {
+                resource_type: ACL_RESOURCE_TOPIC,
+                resource_name: Some(format!("topic-{index}")),
+                pattern_type: ACL_PATTERN_LITERAL,
+                principal: Some(format!("User:{index}")),
+                host: None,
+                operation: ACL_OPERATION_ALL,
+                permission: ACL_PERMISSION_ALLOW,
+            })
+            .collect();
+        let mut body = bytes::BytesMut::new();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            encoded = encode_delete_acls_request_cooperative(&mut body, 3, &filters) => {
+                encoded.unwrap_or_else(|error| panic!("{error}"));
+            }
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "encoding deleted acls held the caller for {elapsed:?}"
+        );
+        let sample = [AclBindingFilter::resource_type(ACL_RESOURCE_TOPIC)];
+        let mut once = bytes::BytesMut::new();
+        let mut paced = bytes::BytesMut::new();
+        encode_delete_acls_request(&mut once, 3, &sample).unwrap_or_else(|error| panic!("{error}"));
+        encode_delete_acls_request_cooperative(&mut paced, 3, &sample)
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(once, paced);
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn encoding_many_created_acls_does_not_hold_the_caller() {

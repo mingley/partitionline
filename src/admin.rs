@@ -25,7 +25,7 @@ use crate::net::{BrokerConn, TlsConfig};
 use crate::protocol::acl::{
     decode_create_acls_response_cooperative, decode_delete_acls_filter_results_cooperative,
     decode_describe_acls_response_cooperative, encode_create_acls_request_cooperative,
-    encode_delete_acls_request, encode_describe_acls_request,
+    encode_delete_acls_request_cooperative, encode_describe_acls_request,
 };
 use crate::protocol::admin::{
     decode_allocate_producer_ids_response, decode_alter_client_quotas_response_cooperative,
@@ -11095,11 +11095,16 @@ impl Admin {
         let version = self
             .delete_acls_version
             .ok_or_else(|| Error::Unsupported("broker does not support DeleteAcls v0-3".into()))?;
+        let mut encoded = BytesMut::new();
+        encode_delete_acls_request_cooperative(&mut encoded, version, filters).await?;
         let body = self
             .roundtrip_bootstrap(
                 DELETE_ACLS,
                 version,
-                |buf| encode_delete_acls_request(buf, version, filters),
+                |buf| {
+                    buf.extend_from_slice(&encoded);
+                    Ok(())
+                },
                 timeout,
             )
             .await?;
