@@ -4052,23 +4052,16 @@ impl ConsumerGroup {
             // `(String, i32)` set would copy each name again on insert and
             // once more for every position that asks.
             let revoked_parts = index_revoked(&revoked).await;
-            let to_commit: Vec<(TopicPartition, OffsetAndMetadata)> = self
-                .consumer
-                .positions_cooperative()
-                .await
-                .into_iter()
-                .filter(|(tp, offset)| {
-                    position_is_committable(*offset)
+            let positions = self.consumer.positions_cooperative().await;
+            let to_commit = revoked_commits(
+                positions,
+                |topic, partition| self.consumer.position_epoch(topic, partition),
+                |tp, offset| {
+                    position_is_committable(offset)
                         && revoked_contains(&revoked_parts, &tp.topic, tp.partition)
-                })
-                .map(|(tp, offset)| {
-                    let epoch = self.consumer.position_epoch(&tp.topic, tp.partition);
-                    (
-                        tp,
-                        OffsetAndMetadata::from_wire(offset, epoch, String::new()),
-                    )
-                })
-                .collect();
+                },
+            )
+            .await;
             if !to_commit.is_empty() {
                 let timeout = deadline.saturating_duration_since(Instant::now());
                 if timeout.is_zero() {
@@ -5866,6 +5859,36 @@ fn collect_commit_offsets(
 
 /// A negative position is the reset marker after a topic is recreated.
 /// It is not an offset that can be committed.
+/// Commits for positions that `include` still wants.
+///
+/// The walk pauses every 8,192 positions. Without that pause, collecting
+/// 2,000,000 revoked commits held the caller for 338 milliseconds.
+///
+/// A position that is not included is dropped. Kept positions stay in order.
+async fn revoked_commits(
+    positions: Vec<(TopicPartition, i64)>,
+    mut epoch_of: impl FnMut(&str, i32) -> i32,
+    mut include: impl FnMut(&TopicPartition, i64) -> bool,
+) -> Vec<(TopicPartition, OffsetAndMetadata)> {
+    let mut out = Vec::new();
+    let mut walked = 0usize;
+    for (tp, offset) in positions {
+        if include(&tp, offset) {
+            let epoch = epoch_of(&tp.topic, tp.partition);
+            out.push((
+                tp,
+                OffsetAndMetadata::from_wire(offset, epoch, String::new()),
+            ));
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    out
+}
+
 fn position_is_committable(offset: i64) -> bool {
     offset >= 0
 }
@@ -10345,6 +10368,40 @@ mod tests {
         let topics = collect_topics(["orders", "payments", "orders"]).unwrap();
         assert_eq!(topics, vec!["orders".to_string(), "payments".to_string()]);
         assert!(collect_topics(Vec::<String>::new()).is_err());
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn collecting_many_revoked_commits_does_not_hold_the_caller() {
+        let positions: Vec<(TopicPartition, i64)> = (0..2_000_000)
+            .map(|partition| (TopicPartition::new("orders", partition), 1))
+            .collect();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = revoked_commits(positions, |_topic, _partition| 4, |_tp, offset| offset >= 0) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "collecting revoked commits held the caller for {elapsed:?}"
+        );
+        let sample = vec![
+            (TopicPartition::new("orders", 0), 3),
+            (TopicPartition::new("orders", 1), -1),
+        ];
+        let commits =
+            revoked_commits(sample, |_topic, _partition| 7, |_tp, offset| offset >= 0).await;
+        assert_eq!(commits.len(), 1);
+        assert_eq!(
+            commits
+                .first()
+                .map(|(tp, offset)| (tp.partition, offset.offset)),
+            Some((0, 3))
+        );
+        assert_eq!(
+            commits.first().map(|(_, offset)| offset.leader_epoch),
+            Some(Some(7))
+        );
     }
 
     #[tokio::test(flavor = "current_thread")]
