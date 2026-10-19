@@ -4021,7 +4021,7 @@
 //! writes this when DescribeCluster names an unknown endpoint type.
 //! Top-level ShareAcknowledge `UNKNOWN_CONTROLLER_ID` completes
 //! without retry and does not request Metadata, including when
-//! `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+//! `ErrorMessage` is set or empty (Java `handleShareAcknowledgeSuccess` has no
 //! `metadata.requestUpdate`; this is not top-level
 //! `UNSUPPORTED_ENDPOINT_TYPE`). Official Java `Errors`
 //! writes this KIP-919 code when a controller ID is not known.
