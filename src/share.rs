@@ -2567,7 +2567,7 @@ pub enum ShareAcquireMode {
 /// remove the named voter from the current voter set.
 /// Top-level `INVALID_REGULAR_EXPRESSION` still fails that poll
 /// and does not request Metadata, including when `ErrorMessage` is
-/// set (Java `handleShareFetchSuccess` only `requestUpdate`s for
+/// set or empty (Java `handleShareFetchSuccess` only `requestUpdate`s for
 /// `UNKNOWN_TOPIC_ID`; this is not top-level
 /// `VOTER_NOT_FOUND`). Official Java
 /// `GroupMetadataManager` writes this when a consumer-group member
@@ -6123,7 +6123,7 @@ impl ShareGroup {
     /// cannot remove the named voter from the current voter set.
     /// Top-level
     /// `INVALID_REGULAR_EXPRESSION` still fails that poll without
-    /// Metadata, including when `ErrorMessage` is set (Java
+    /// Metadata, including when `ErrorMessage` is set or empty (Java
     /// `handleShareFetchSuccess` only `requestUpdate`s for
     /// `UNKNOWN_TOPIC_ID`; this is not top-level
     /// `VOTER_NOT_FOUND`). Official Java

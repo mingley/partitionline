@@ -3619,7 +3619,7 @@
 //! writes this when RemoveRaftVoter cannot remove the named voter from the current voter set.
 //! Top-level
 //! `INVALID_REGULAR_EXPRESSION` still fails that poll without
-//! Metadata, including when `ErrorMessage` is set (Java
+//! Metadata, including when `ErrorMessage` is set or empty (Java
 //! `handleShareFetchSuccess` only `requestUpdate`s for
 //! `UNKNOWN_TOPIC_ID`; this is not top-level
 //! `VOTER_NOT_FOUND`). Official Java `GroupMetadataManager`
