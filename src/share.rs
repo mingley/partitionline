@@ -2952,7 +2952,7 @@ pub enum ShareAcquireMode {
 /// A top-level
 /// ShareAcknowledge `UNSUPPORTED_ASSIGNOR` completes without
 /// retry and does not request Metadata, including when `ErrorMessage`
-/// is set (Java `handleShareAcknowledgeSuccess` has no
+/// is set or empty (Java `handleShareAcknowledgeSuccess` has no
 /// `metadata.requestUpdate`; this is not top-level
 /// `UNRELEASED_INSTANCE_ID`). Official Java
 /// `GroupCoordinatorService` writes this when ConsumerGroupHeartbeat
@@ -6602,7 +6602,7 @@ impl ShareGroup {
     /// static member joins while the instance id is still owned.
     /// A top-level ShareAcknowledge `UNSUPPORTED_ASSIGNOR`
     /// completes without retry and does not request Metadata,
-    /// including when `ErrorMessage` is set (Java
+    /// including when `ErrorMessage` is set or empty (Java
     /// `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`;
     /// this is not top-level `UNRELEASED_INSTANCE_ID`).
     /// Official Java `GroupCoordinatorService` writes this when
