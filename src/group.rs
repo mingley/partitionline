@@ -333,7 +333,7 @@ pub async fn assign_range_subscribed_cooperative(
     for (member, _) in member_subs {
         let _ = out.insert(member.clone(), Vec::new());
     }
-    let members_by_topic = members_by_topic(member_subs);
+    let members_by_topic = members_by_topic_cooperative(member_subs).await;
     for (topic, parts) in topics {
         let members = members_by_topic
             .get(topic.as_str())
@@ -660,7 +660,7 @@ pub async fn assign_sticky_subscribed_cooperative(
     for (m, _) in member_subs {
         let _ = out.insert(m.clone(), Vec::new());
     }
-    let members_by_topic = members_by_topic(member_subs);
+    let members_by_topic = members_by_topic_cooperative(member_subs).await;
     let previous = previous_partitions_by_topic(prev);
     for (topic, parts) in topics {
         let members = members_by_topic
@@ -837,6 +837,40 @@ fn members_by_topic(member_subs: &[(String, Vec<String>)]) -> HashMap<&str, Vec<
                 members.push(id.as_str());
             } else {
                 let _ = out.insert(topic.as_str(), vec![id.as_str()]);
+            }
+        }
+    }
+    out
+}
+
+fn subscription_index_chunk() -> usize {
+    8 * 1024
+}
+
+/// [`members_by_topic`], yielding while subscriptions are indexed.
+///
+/// Indexing one member's 2,000,000 subscriptions held the caller for 4.43s.
+/// A repeated topic on the same member is still stored once, and the first
+/// member that names a topic stays first in that topic's list.
+async fn members_by_topic_cooperative(
+    member_subs: &[(String, Vec<String>)],
+) -> HashMap<&str, Vec<&str>> {
+    let mut out: HashMap<&str, Vec<&str>> = HashMap::new();
+    for (id, subs) in member_subs {
+        let mut seen = HashSet::new();
+        let mut walked = 0usize;
+        for topic in subs {
+            walked = walked.saturating_add(1);
+            if seen.insert(topic.as_str()) {
+                if let Some(members) = out.get_mut(topic.as_str()) {
+                    members.push(id.as_str());
+                } else {
+                    let _ = out.insert(topic.as_str(), vec![id.as_str()]);
+                }
+            }
+            if walked == subscription_index_chunk() {
+                walked = 0;
+                tokio::task::yield_now().await;
             }
         }
     }
@@ -9801,6 +9835,39 @@ mod tests {
         let topics = collect_topics(["orders", "payments", "orders"]).unwrap();
         assert_eq!(topics, vec!["orders".to_string(), "payments".to_string()]);
         assert!(collect_topics(Vec::<String>::new()).is_err());
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn indexing_many_subscribed_members_does_not_hold_the_caller() {
+        let topics: Vec<String> = (0..2_000_000)
+            .map(|index| format!("topic-{index}"))
+            .collect();
+        let members = [("member-1".to_string(), topics)];
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = members_by_topic_cooperative(&members) => {}
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        assert!(
+            started.elapsed() < std::time::Duration::from_millis(80),
+            "indexing subscribed members held the caller for {:?}",
+            started.elapsed()
+        );
+        let sample = [
+            (
+                "m1".to_string(),
+                vec![
+                    "orders".to_string(),
+                    "orders".to_string(),
+                    "payments".to_string(),
+                ],
+            ),
+            ("m2".to_string(), vec!["orders".to_string()]),
+        ];
+        assert_eq!(
+            members_by_topic_cooperative(&sample).await,
+            members_by_topic(&sample)
+        );
     }
 
     #[tokio::test(flavor = "current_thread")]
