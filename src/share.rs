@@ -3040,7 +3040,7 @@ pub enum ShareAcquireMode {
 /// A top-level
 /// ShareAcknowledge `TELEMETRY_TOO_LARGE` completes without
 /// retry and does not request Metadata, including when `ErrorMessage`
-/// is set (Java `handleShareAcknowledgeSuccess` has no
+/// is set or empty (Java `handleShareAcknowledgeSuccess` has no
 /// `metadata.requestUpdate`; this is not top-level
 /// `UNKNOWN_SUBSCRIPTION_ID`). Official Java
 /// `ClientMetricsManager` writes this when a PushTelemetry payload
@@ -6786,7 +6786,7 @@ impl ShareGroup {
     /// stored subscription id.
     /// A top-level ShareAcknowledge `TELEMETRY_TOO_LARGE`
     /// completes without retry and does not request Metadata,
-    /// including when `ErrorMessage` is set (Java
+    /// including when `ErrorMessage` is set or empty (Java)
     /// `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`;
     /// this is not top-level `UNKNOWN_SUBSCRIPTION_ID`).
     /// Official Java `ClientMetricsManager` writes this when a

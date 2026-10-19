@@ -4047,7 +4047,7 @@
 //! writes this when a PushTelemetry subscription id does not match the instance's stored subscription id.
 //! Top-level ShareAcknowledge `TELEMETRY_TOO_LARGE` completes
 //! without retry and does not request Metadata, including when
-//! `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+//! `ErrorMessage` is set or empty (Java `handleShareAcknowledgeSuccess` has no
 //! `metadata.requestUpdate`; this is not top-level
 //! `UNKNOWN_SUBSCRIPTION_ID`). Official Java `ClientMetricsManager`
 //! writes this when a PushTelemetry payload exceeds `clientTelemetryMaxBytes`.
