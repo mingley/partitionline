@@ -45,7 +45,7 @@ use crate::protocol::admin::{
     decode_list_config_resources_response, decode_list_groups_response_cooperative,
     decode_list_partition_reassignments_response, decode_list_transactions_response,
     decode_push_telemetry_response, decode_renew_delegation_token_response,
-    decode_share_group_describe_response, decode_unregister_broker_response,
+    decode_share_group_describe_response_cooperative, decode_unregister_broker_response,
     decode_update_features_response, encode_allocate_producer_ids_request,
     encode_alter_client_quotas_request, encode_alter_configs_named,
     encode_alter_partition_reassignments_named, encode_alter_replica_log_dirs_named,
@@ -15527,7 +15527,8 @@ impl Admin {
         idxs: &[usize],
         body: Bytes,
     ) -> Result<Vec<(usize, DescribedShareGroup)>> {
-        let (results, ..) = decode_share_group_describe_response(&mut body.clone(), version)?;
+        let (results, ..) =
+            decode_share_group_describe_response_cooperative(&mut body.clone(), version).await?;
         let mut by_id = group_named(results, |group| group.group_id.as_str()).await;
         let mut out = Vec::new();
         for &i in idxs {
@@ -18161,6 +18162,80 @@ mod tests {
                 .and_then(|item| item.partitions.first())
                 .copied(),
             Some(7)
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn decoding_many_share_group_members_does_not_hold_the_caller() {
+        let members: Vec<ShareGroupMember> = (0..200_000)
+            .map(|index| ShareGroupMember::new(format!("member-{index}"), 1, "client", "127.0.0.1"))
+            .collect();
+        let mut group = DescribedShareGroup::new("orders", 0);
+        group.members = members;
+        let groups = [group];
+        let mut body = bytes::BytesMut::new();
+        crate::protocol::admin::encode_share_group_describe_response(&mut body, 1, &groups)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let started = std::time::Instant::now();
+        tokio::select! {
+            decoded = decode_share_group_describe_response_cooperative(&mut body, 1) => {
+                let (decoded, throttle) = decoded.unwrap_or_else(|error| panic!("{error}"));
+                assert_eq!(throttle, 0);
+                assert_eq!(decoded.first().map(|item| item.members.len()), Some(200_000));
+                assert_eq!(
+                    decoded.first().and_then(|item| item.members.first()).map(|item| item.member_id.as_str()),
+                    Some("member-0")
+                );
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "decoding share group members held the caller for {elapsed:?}"
+        );
+        let mut member = ShareGroupMember::new("m", 4, "client", "127.0.0.1");
+        member.rack_id = Some("rack-a".to_string());
+        member.assignment = ShareGroupAssignment::new(vec![
+            crate::protocol::admin::ShareGroupTopicPartitions::new([2; 16], "orders", vec![3]),
+        ]);
+        let mut group = DescribedShareGroup::new("orders", 7);
+        group.error_message = Some("busy".to_string());
+        group.members = vec![member];
+        let groups = [group];
+        let mut encoded = bytes::BytesMut::new();
+        crate::protocol::admin::encode_share_group_describe_response(&mut encoded, 1, &groups)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let mut once = encoded.clone();
+        let mut paced = encoded;
+        let sync = crate::protocol::admin::decode_share_group_describe_response(&mut once, 1)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let coop = decode_share_group_describe_response_cooperative(&mut paced, 1)
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(sync.0, coop.0);
+        assert_eq!(sync.1, coop.1);
+        assert_eq!(
+            coop.0
+                .first()
+                .and_then(|item| item.error_message.as_deref()),
+            Some("busy")
+        );
+        assert_eq!(
+            coop.0
+                .first()
+                .and_then(|item| item.members.first())
+                .and_then(|item| item.rack_id.as_deref()),
+            Some("rack-a")
+        );
+        assert_eq!(
+            coop.0
+                .first()
+                .and_then(|item| item.members.first())
+                .and_then(|item| item.assignment.topic_partitions.first())
+                .and_then(|item| item.partitions.first())
+                .copied(),
+            Some(3)
         );
     }
 
