@@ -180,8 +180,7 @@ fn assign_sticky_from<'a>(
     out
 }
 
-/// Move partitions until every member has `floor(n/m)` or `ceil(n/m)`.
-/// Preparing 2,000,000 sticky members held the caller for 10.91s.
+/// How many sticky members to prepare before yielding.
 fn sticky_member_chunk() -> usize {
     8 * 1024
 }
@@ -512,7 +511,12 @@ async fn dedup_member_names_cooperative(order: &mut Vec<&str>) {
     order.truncate(write);
 }
 
-/// Ordering 2,000,000 range members held the caller for 3.42s.
+/// Sort range members, drop duplicate names, and assign partitions.
+///
+/// The walk pauses every 8,192 members. Without that pause, ordering
+/// 2,000,000 members held the caller for 3.42 seconds.
+///
+/// Each member id is still copied. Duplicate names are still dropped.
 async fn assign_range_names_cooperative(
     members: &[&str],
     partitions: &[i32],
@@ -854,6 +858,12 @@ pub async fn assign_sticky_subscribed_cooperative(
     out
 }
 
+/// Assign partitions with the sticky assignor.
+///
+/// Member setup pauses every 8,192 members. Without that pause, preparing
+/// 2,000,000 members held the caller for 10.91 seconds.
+///
+/// Each member id is still copied. A member is stored once.
 async fn assign_sticky_from_cooperative<'a>(
     members: &[&str],
     partitions: &[i32],
@@ -1042,8 +1052,10 @@ fn assignment_member_chunk() -> usize {
 
 /// Open one empty assignment list per member.
 ///
-/// Opening 2,000,000 assignment members held the caller for 2.32s. A member
-/// id is still copied.
+/// The walk pauses every 8,192 members. Without that pause, opening
+/// 2,000,000 members held the caller for 2.32 seconds.
+///
+/// Each member id is still copied.
 async fn open_assignment_members(
     member_subs: &[(String, Vec<String>)],
 ) -> HashMap<String, Vec<(String, i32)>> {
@@ -1060,11 +1072,13 @@ async fn open_assignment_members(
     out
 }
 
-/// [`members_by_topic`], yielding while subscriptions are indexed.
+/// Index each subscribed topic to the members that named it.
 ///
-/// Indexing one member's 2,000,000 subscriptions held the caller for 4.43s.
-/// A repeated topic on the same member is still stored once, and the first
-/// member that names a topic stays first in that topic's list.
+/// The walk pauses every 8,192 subscriptions. Without that pause, indexing
+/// one member's 2,000,000 subscriptions held the caller for 4.43 seconds.
+///
+/// A repeated topic on the same member is stored once. The first member that
+/// names a topic stays first in that topic's list.
 async fn members_by_topic_cooperative(
     member_subs: &[(String, Vec<String>)],
 ) -> HashMap<&str, Vec<&str>> {
@@ -1118,10 +1132,12 @@ fn previous_index_chunk() -> usize {
     8 * 1024
 }
 
-/// [`previous_partitions_by_topic`], yielding while owned partitions are indexed.
+/// Index previously owned partitions by topic and member.
 ///
-/// Indexing 2,000,000 previous partitions held the caller for 4.49s. Every
-/// partition is still stored under the member that owned it.
+/// The walk pauses every 8,192 partitions. Without that pause, indexing
+/// 2,000,000 partitions held the caller for 4.49 seconds.
+///
+/// Every partition stays under the member that owned it.
 async fn previous_partitions_by_topic_cooperative(
     prev: &HashMap<String, Vec<(String, i32)>>,
 ) -> HashMap<&str, HashMap<&str, Vec<i32>>> {
@@ -5461,7 +5477,10 @@ pub(crate) fn collect_topics(
 
 /// Copy subscribed topic names.
 ///
-/// Cloning 2,000,000 subscribed topics held the caller for 150ms. A topic name is still copied.
+/// The walk pauses every 8,192 names. Without that pause, copying 2,000,000
+/// names held the caller for 150 milliseconds.
+///
+/// Each topic name is still copied.
 pub(crate) async fn clone_names(names: &[String]) -> Vec<String> {
     let mut out = Vec::with_capacity(names.len());
     let mut walked = 0usize;
@@ -5480,9 +5499,13 @@ fn matching_topic_chunk() -> usize {
     8 * 1024
 }
 
-/// [`filter_matching_topics`], yielding while names are kept and sorted.
+/// Keep topic names that match a subscription, then sort them.
 ///
-/// Filtering 2,000,000 matching topics held the caller for 2870ms. A topic name is still stored.
+/// The walk pauses every 8,192 names. Without that pause, filtering
+/// 2,000,000 names held the caller for 2.87 seconds.
+///
+/// Each kept name is still stored. Empty names and internal topics are
+/// still skipped.
 pub(crate) async fn filter_matching_topics_cooperative(
     topics: impl IntoIterator<Item = impl AsRef<str>>,
     pred: impl Fn(&str) -> bool,

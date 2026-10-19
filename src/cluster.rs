@@ -572,8 +572,13 @@ impl Cluster {
         8 * 1024
     }
 
-    /// Invalidating 2,000,000 cached topics held the caller for 2.24s.
-    /// A cached leader list is still dropped.
+    /// Drop cached metadata for each topic.
+    ///
+    /// The walk pauses every 8,192 topics. Without that pause, dropping
+    /// 2,000,000 cached topics held the caller for 2.24 seconds.
+    ///
+    /// A cached leader list is still removed. A topic that is not cached is
+    /// left unchanged.
     pub(crate) async fn invalidate_topics_cooperative<'a>(
         &mut self,
         topics: impl IntoIterator<Item = &'a str>,

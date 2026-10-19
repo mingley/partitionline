@@ -6566,8 +6566,13 @@ impl Consumer {
         8 * 1024
     }
 
-    /// Placing 2,000,000 assigned fetches held the caller for 776ms.
-    /// A partition is still planned, and the first missing leader still stops the walk.
+    /// Plan one fetch for each assigned partition.
+    ///
+    /// The walk pauses every 8,192 partitions. Without that pause, placing
+    /// 2,000,000 fetches held the caller for 776 milliseconds.
+    ///
+    /// A paused, completed, or retained partition is skipped. The first
+    /// missing leader stops the walk and returns true.
     async fn place_assigned_fetches(
         &self,
         by_leader: &mut HashMap<i32, HashMap<Arc<str>, Vec<FetchPartition>>>,
@@ -11093,8 +11098,13 @@ fn reused_topic_chunk() -> usize {
     8 * 1024
 }
 
-/// Filling 2,000,000 topic names held the caller for 2.10s. The first copy of
-/// a name is still stored, and a slot that already holds that name is kept.
+/// Store the first copy of each topic name, reusing existing string buffers.
+///
+/// The walk pauses every 8,192 names. Without that pause, filling 2,000,000
+/// names held the caller for 2.10 seconds.
+///
+/// A later copy of the same name is dropped. A buffer that already holds the
+/// name is left as it is.
 async fn fill_reused_topics_cooperative<'a>(
     topics: &mut Vec<String>,
     names: impl IntoIterator<Item = &'a str>,

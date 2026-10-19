@@ -384,6 +384,12 @@ admin.close().await?;
 # }
 ```
 
+A long partition list is prepared in slices of 8,192. Delete-records,
+list-offsets, and describe-producers copy topic names that way. A retry looks
+up leaders the same way. The timeout can fire between slices, and finished
+slices are kept. See the
+[resource contract](resource-contract.md#caller-deadlines).
+
 Reassignment options control whether a replica move may change replication
 factor. The default allows it. Explicit `false` requires API45 version1 and
 fails before reassignment on a version0 controller. Per-partition errors stay
@@ -433,7 +439,7 @@ admin.close().await?;
 
 Nonempty patterns require ListTransactions v2 on every selected broker. Null or
 empty patterns mean no filter. The broker evaluates the regex and returns any
-invalid-pattern error. Pattern text is limited to256 KiB; filter arrays and
+invalid-pattern error. Pattern text is limited to 256 KiB; filter arrays and
 returned listings use the bounds documented on the Admin methods.
 
 ## TLS and SASL

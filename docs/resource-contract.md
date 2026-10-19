@@ -54,6 +54,24 @@ Delivered positions and commits do not advance solely because a record was
 prefetched. Applications remain responsible for releasing their own returned
 batches and for their chosen commit policy.
 
+## Caller deadlines
+
+A timeout covers the whole call, including preparation. A long list is walked
+in slices of 8,192 items. Between slices the runtime can notice the deadline,
+so one collection cannot occupy the caller for the entire list.
+
+Finished slices are kept. The next slice starts only after the caller has had
+a chance to time out. The work itself does not change: names are still copied,
+leaders are still looked up, and a repeated name is still stored once.
+
+These walks include:
+
+- copying topic partitions for delete-records, list-offsets, and describe-producers
+- finding, listing, and grouping leaders during an admin retry
+- listing and grouping group and transaction coordinators
+- dropping cached topic metadata before a refresh
+- placing assigned fetches and collecting topic names for metadata
+
 ## Outcomes and shutdown
 
 | Outcome | Meaning |

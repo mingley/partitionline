@@ -3245,8 +3245,13 @@ fn pending_leader_chunk() -> usize {
     8 * 1024
 }
 
-/// Grouping 4,000,000 pending partitions held the caller for 1.77s.
-/// The first time a leader is seen, it stays first.
+/// Group each pending partition under its cached leader.
+///
+/// The walk pauses every 8,192 partitions. Without that pause, grouping
+/// 4,000,000 partitions held the caller for 1.77 seconds.
+///
+/// The first time a leader is seen, it stays first. A missing leader stops
+/// the walk and returns an error.
 async fn group_pending_by_leader<'a>(
     cluster: &Cluster,
     parts: impl IntoIterator<Item = (usize, &'a str, i32)>,
@@ -3279,8 +3284,13 @@ fn missing_leader_chunk() -> usize {
     8 * 1024
 }
 
-/// Listing missing leaders for 4,000,000 partitions held the caller for 881ms.
-/// The first missing topic is still kept once.
+/// List topics that do not have a cached leader.
+///
+/// The walk pauses every 8,192 partitions. Without that pause, listing
+/// 4,000,000 partitions held the caller for 881 milliseconds.
+///
+/// A topic is kept once, the first time it is missing. A topic that already
+/// has a leader is skipped.
 async fn topics_missing_leaders<'a>(
     cluster: &Cluster,
     parts: impl IntoIterator<Item = (&'a str, i32)>,
@@ -3306,8 +3316,12 @@ fn unique_name_chunk() -> usize {
     8 * 1024
 }
 
-/// Collecting 2,000,000 topic names held the caller for 1.55s.
-/// The first copy of a name is still kept.
+/// Keep the first copy of each topic name.
+///
+/// The walk pauses every 8,192 names. Without that pause, collecting
+/// 2,000,000 names held the caller for 1.55 seconds.
+///
+/// Later copies of the same name are dropped. Order follows the first copy.
 async fn unique_names_cooperative<'a, I>(names: I) -> Vec<&'a str>
 where
     I: IntoIterator<Item = &'a str>,
@@ -9559,12 +9573,16 @@ impl Admin {
 
     /// Delete records on several partitions (Java `deleteRecords(Map)`).
     ///
-    /// Each item is a [`crate::TopicPartition`] and an offset
-    /// ([`RecordsToDelete`] or INT64). One DeleteRecords RPC per
-    /// Metadata partition leader, sent together. Empty input is a no-op. Returns
-    /// [`DeletedRecords`] per partition. TimeoutMs and
-    /// the RPC deadline are [`AdminConfig::request_timeout`]. For a
-    /// one-shot timeout, use [`Self::delete_records_for_timeout`].
+    /// Each item is a topic partition and an offset ([`RecordsToDelete`] or
+    /// INT64). Partitions that share a leader are sent together. An empty list
+    /// does nothing.
+    ///
+    /// Topic names are copied in slices of 8,192, so the timeout can still
+    /// fire while a long list is prepared. Finished slices are kept.
+    ///
+    /// TimeoutMs and the RPC deadline are [`AdminConfig::request_timeout`].
+    /// For a one-shot timeout, use [`Self::delete_records_for_timeout`].
+    /// Each result is [`DeletedRecords`].
     pub async fn delete_records_for<Tp, Off>(
         &mut self,
         records: impl IntoIterator<Item = (Tp, Off)>,
@@ -9881,12 +9899,15 @@ impl Admin {
     /// ListOffsets for these partitions (Java `Admin.listOffsets`).
     ///
     /// Isolation is read-uncommitted. See
-    /// [`Self::list_offsets_with_isolation`] for Java
-    /// `ListOffsetsOptions.isolationLevel`. Waits up to
-    /// [`AdminConfig::request_timeout`]. For a one-shot timeout, use
-    /// [`Self::list_offsets_timeout`]. Each timestamp is
-    /// [`crate::OffsetSpec`] or INT64 (see
-    /// [`Self::list_offsets_with_isolation`]).
+    /// [`Self::list_offsets_with_isolation`] for
+    /// `ListOffsetsOptions.isolationLevel`. Each timestamp is
+    /// [`crate::OffsetSpec`] or an INT64.
+    ///
+    /// Topic names are copied in slices of 8,192, so the timeout can still
+    /// fire while a long list is prepared. Finished slices are kept.
+    ///
+    /// The call waits up to [`AdminConfig::request_timeout`]. For a one-shot
+    /// timeout, use [`Self::list_offsets_timeout`].
     pub async fn list_offsets<Tp, Ts>(
         &mut self,
         queries: impl IntoIterator<Item = (Tp, Ts)>,
@@ -10102,10 +10123,13 @@ impl Admin {
         8 * 1024
     }
 
-    /// Leaders already cached for these topic partitions.
+    /// Return each cached leader once.
     ///
-    /// Finding leaders for 4,000,000 partitions held the caller for 246ms.
-    /// A cached leader is still returned once.
+    /// The walk pauses every 8,192 partitions. Without that pause, finding
+    /// leaders for 4,000,000 partitions held the caller for 246 milliseconds.
+    ///
+    /// A leader that is already in the result is not added again. A partition
+    /// with no cached leader is skipped.
     async fn known_leader_nodes<'a>(
         &self,
         parts: impl IntoIterator<Item = (&'a str, i32)>,
@@ -10773,11 +10797,15 @@ impl Admin {
     /// [`Self::describe_producers`] for several partitions (Java
     /// `describeProducers(Collection)`; DescribeProducers Topics of N).
     ///
-    /// Groups by Metadata leader and sends those RPCs together. Empty
-    /// `partitions` is a no-op. To pin every partition to one broker
-    /// (Java `DescribeProducersOptions.brokerId`), use
-    /// [`Self::describe_producers_for_on_broker`]. DescribeProducers has
-    /// no TimeoutMs; the RPC deadline is
+    /// Partitions that share a leader are sent together. An empty list does
+    /// nothing. To pin every partition to one broker
+    /// (`DescribeProducersOptions.brokerId`), use
+    /// [`Self::describe_producers_for_on_broker`].
+    ///
+    /// Topic names are copied in slices of 8,192, so the deadline can still
+    /// fire while a long list is prepared. Finished slices are kept.
+    ///
+    /// DescribeProducers has no TimeoutMs. The RPC deadline is
     /// [`AdminConfig::request_timeout`]. For a one-shot deadline, use
     /// [`Self::describe_producers_for_timeout`].
     pub async fn describe_producers_for(
@@ -16653,8 +16681,12 @@ fn topic_record_chunk() -> usize {
     8 * 1024
 }
 
-/// Collecting 2,000,000 topic partitions held the caller for 269ms.
-/// A topic name is still copied.
+/// Copy topic names and offsets into owned topic partitions.
+///
+/// The walk pauses every 8,192 partitions. Without that pause, copying
+/// 2,000,000 names held the caller for 269 milliseconds.
+///
+/// Each topic name is still copied.
 async fn collect_topic_pairs<Tp, Off>(
     records: impl IntoIterator<Item = (Tp, Off)>,
 ) -> Vec<(crate::TopicPartition, i64)>
@@ -16675,8 +16707,12 @@ where
     out
 }
 
-/// Collecting 2,000,000 topic partitions held the caller for 269ms.
-/// A topic name is still copied.
+/// Copy topic names into owned topic partitions.
+///
+/// The walk pauses every 8,192 partitions. Without that pause, copying
+/// 2,000,000 names held the caller for 269 milliseconds.
+///
+/// Each topic name is still copied.
 async fn collect_topic_partitions<Tp>(
     partitions: impl IntoIterator<Item = Tp>,
 ) -> Vec<crate::TopicPartition>
@@ -16700,8 +16736,12 @@ fn coordinator_group_chunk() -> usize {
     8 * 1024
 }
 
-/// Grouping 2,000,000 coordinators held the caller for 1.11s.
-/// An id is still filed under its coordinator.
+/// File each id under its cached coordinator.
+///
+/// The walk pauses every 8,192 ids. Without that pause, grouping 2,000,000
+/// coordinators held the caller for 1.11 seconds.
+///
+/// A missing id or a missing coordinator stops the walk and returns an error.
 async fn group_ids_by_coordinator<T: AsRef<str>>(
     ids: &[T],
     pending: &[usize],
@@ -16732,8 +16772,13 @@ fn missing_id_chunk() -> usize {
     8 * 1024
 }
 
-/// Listing 2,000,000 missing coordinators held the caller for 1.76s.
-/// The first copy of an id is still kept.
+/// List ids that do not have a cached coordinator.
+///
+/// The walk pauses every 8,192 ids. Without that pause, listing 2,000,000
+/// ids held the caller for 1.76 seconds.
+///
+/// The first copy of an id is kept. A later copy, and an id that already has
+/// a coordinator, are skipped.
 async fn first_seen_missing_ids_cooperative<'a, T: AsRef<str>>(
     ids: &'a [T],
     pending: &[usize],
