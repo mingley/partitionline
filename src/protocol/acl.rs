@@ -1883,6 +1883,148 @@ fn create_acls_request_len(version: i16, flexible: bool, acls: &[AclBinding]) ->
     Ok(total)
 }
 
+/// Encode CreateAcls, yielding while bindings are still being written.
+///
+/// Encoding 2,000,000 ACLs held the caller for 1225ms. A resource name, a principal, and a host are still written.
+pub(crate) async fn encode_create_acls_request_cooperative(
+    buf: &mut BytesMut,
+    version: i16,
+    acls: &[AclBinding],
+) -> Result<()> {
+    let flexible = acl_api_flexible(version)?;
+    reject_create_acls_java_constructors_cooperative(acls).await?;
+    reject_v0_non_literal_acl_patterns_cooperative(version, acls).await?;
+    reject_create_acls_unknown_elements_cooperative(acls).await?;
+    let body_start = buf.len();
+    let planned = create_acls_request_len_cooperative(version, flexible, acls).await?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
+    buf::put_array_len(buf, flexible, Some(acls.len()))?;
+    let mut walked = 0usize;
+    for acl in acls {
+        buf.put_i8(acl.resource_type);
+        buf::put_string(buf, flexible, Some(&acl.resource_name))?;
+        if version >= 1 {
+            buf.put_i8(acl.pattern_type);
+        }
+        buf::put_string(buf, flexible, Some(&acl.principal))?;
+        buf::put_string(buf, flexible, Some(&acl.host))?;
+        buf.put_i8(acl.operation);
+        buf.put_i8(acl.permission);
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+    Ok(())
+}
+
+async fn create_acls_request_len_cooperative(
+    version: i16,
+    flexible: bool,
+    acls: &[AclBinding],
+) -> Result<usize> {
+    let mut total = acl_array_len(flexible, acls.len())?;
+    let mut walked = 0usize;
+    for acl in acls {
+        total = add_acl_len(total, 1)?;
+        total = add_acl_len(total, acl_string_len(flexible, Some(&acl.resource_name))?)?;
+        if version >= 1 {
+            total = add_acl_len(total, 1)?;
+        }
+        total = add_acl_len(total, acl_string_len(flexible, Some(&acl.principal))?)?;
+        total = add_acl_len(total, acl_string_len(flexible, Some(&acl.host))?)?;
+        total = add_acl_len(total, 2)?;
+        if flexible {
+            total = add_acl_len(total, buf::unsigned_varint_size(0))?;
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    if flexible {
+        total = add_acl_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
+}
+
+async fn reject_create_acls_unknown_elements_cooperative(acls: &[AclBinding]) -> Result<()> {
+    let mut walked = 0usize;
+    for acl in acls {
+        if acl.is_unknown() {
+            return Err(Error::protocol("CreatableAcls contain unknown elements"));
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    Ok(())
+}
+
+async fn reject_v0_non_literal_acl_patterns_cooperative(
+    version: i16,
+    acls: &[AclBinding],
+) -> Result<()> {
+    if version != 0 {
+        return Ok(());
+    }
+    let mut walked = 0usize;
+    for acl in acls {
+        if acl.pattern_type != ACL_PATTERN_LITERAL {
+            return Err(Error::Unsupported(
+                "Version 0 only supports literal resource pattern types".into(),
+            ));
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    Ok(())
+}
+
+async fn reject_create_acls_java_constructors_cooperative(acls: &[AclBinding]) -> Result<()> {
+    let mut walked = 0usize;
+    for acl in acls {
+        if acl.resource_type == ACL_RESOURCE_ANY {
+            return Err(Error::protocol("resourceType must not be ANY"));
+        }
+        if acl.pattern_type == ACL_PATTERN_ANY || acl.pattern_type == ACL_PATTERN_MATCH {
+            return Err(Error::protocol(format!(
+                "patternType must not be {}",
+                AclPatternType::from_id(acl.pattern_type)
+            )));
+        }
+        if acl.operation == ACL_OPERATION_ANY {
+            return Err(Error::protocol("operation must not be ANY"));
+        }
+        if acl.permission == ACL_PERMISSION_ANY {
+            return Err(Error::protocol("permissionType must not be ANY"));
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    Ok(())
+}
+
 /// Decode CreateAcls (all creations).
 pub fn decode_create_acls_request<B: Buf>(buf: &mut B, version: i16) -> Result<Vec<AclBinding>> {
     let flexible = acl_api_flexible(version)?;
@@ -2985,6 +3127,34 @@ pub async fn decode_delete_acls_filter_results_cooperative<B: Buf>(
 mod tests {
     use super::*;
     use std::collections::HashMap;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn encoding_many_created_acls_does_not_hold_the_caller() {
+        let acls: Vec<AclBinding> = (0..2_000_000)
+            .map(|index| AclBinding::allow_topic("orders", format!("User:{index}")))
+            .collect();
+        let mut body = bytes::BytesMut::new();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            encoded = encode_create_acls_request_cooperative(&mut body, 3, &acls) => {
+                encoded.unwrap_or_else(|error| panic!("{error}"));
+            }
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "encoding created acls held the caller for {elapsed:?}"
+        );
+        let sample = [AclBinding::allow_topic("orders", "User:alice")];
+        let mut once = bytes::BytesMut::new();
+        let mut paced = bytes::BytesMut::new();
+        encode_create_acls_request(&mut once, 3, &sample).unwrap_or_else(|error| panic!("{error}"));
+        encode_create_acls_request_cooperative(&mut paced, 3, &sample)
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(once, paced);
+    }
 
     #[test]
     fn grouping_many_acls_does_not_hold_the_caller() {

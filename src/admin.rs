@@ -24,7 +24,7 @@ use crate::error::{self, Error, Result};
 use crate::net::{BrokerConn, TlsConfig};
 use crate::protocol::acl::{
     decode_create_acls_response_cooperative, decode_delete_acls_filter_results_cooperative,
-    decode_describe_acls_response_cooperative, encode_create_acls_request,
+    decode_describe_acls_response_cooperative, encode_create_acls_request_cooperative,
     encode_delete_acls_request, encode_describe_acls_request,
 };
 use crate::protocol::admin::{
@@ -6368,6 +6368,8 @@ impl Admin {
             .ok_or_else(|| Error::Unsupported("broker does not support CreateAcls v0-3".into()))?;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
+        let mut encoded = BytesMut::new();
+        encode_create_acls_request_cooperative(&mut encoded, version, acls).await?;
         loop {
             if self.cluster.controller().is_err() {
                 self.refresh_broker_directory(deadline).await?;
@@ -6379,7 +6381,10 @@ impl Admin {
                     deadline,
                     CREATE_ACLS,
                     version,
-                    |buf| encode_create_acls_request(buf, version, acls),
+                    |buf| {
+                        buf.extend_from_slice(&encoded);
+                        Ok(())
+                    },
                     deadline.saturating_duration_since(Instant::now()),
                 )
                 .await
