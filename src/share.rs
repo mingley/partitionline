@@ -1032,11 +1032,126 @@ fn span_len(first: i64, last: i64) -> usize {
     }
 }
 
+const COVER_CHUNK: usize = 8 * 1024;
+
+async fn copy_i128s(src: &[i128]) -> Vec<i128> {
+    let mut out = Vec::with_capacity(src.len());
+    let mut index = 0usize;
+    while index < src.len() {
+        let end = index.saturating_add(COVER_CHUNK).min(src.len());
+        if let Some(slice) = src.get(index..end) {
+            out.extend_from_slice(slice);
+        }
+        index = end;
+        if index < src.len() {
+            tokio::task::yield_now().await;
+        }
+    }
+    out
+}
+
+async fn merge_i128_coords(coords: &mut [i128], start: usize, mid: usize, end: usize) {
+    let left = copy_i128s(coords.get(start..mid).unwrap_or(&[])).await;
+    let right = copy_i128s(coords.get(mid..end).unwrap_or(&[])).await;
+    let mut left_index = 0usize;
+    let mut right_index = 0usize;
+    let mut write = start;
+    let mut walked = 0usize;
+    while left_index < left.len() || right_index < right.len() {
+        let take_left = match (left.get(left_index), right.get(right_index)) {
+            (Some(left_value), Some(right_value)) => left_value <= right_value,
+            (Some(_), None) => true,
+            _ => false,
+        };
+        let value = if take_left {
+            let value = left.get(left_index).copied().unwrap_or(0);
+            left_index = left_index.saturating_add(1);
+            value
+        } else {
+            let value = right.get(right_index).copied().unwrap_or(0);
+            right_index = right_index.saturating_add(1);
+            value
+        };
+        if let Some(slot) = coords.get_mut(write) {
+            *slot = value;
+        }
+        write = write.saturating_add(1);
+        walked = walked.saturating_add(1);
+        if walked == COVER_CHUNK {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+}
+
+async fn sort_i128_coords(coords: &mut [i128]) {
+    if coords.len() <= COVER_CHUNK {
+        coords.sort_unstable();
+        return;
+    }
+    let mut start = 0usize;
+    while start < coords.len() {
+        let end = start.saturating_add(COVER_CHUNK).min(coords.len());
+        if let Some(slice) = coords.get_mut(start..end) {
+            slice.sort_unstable();
+        }
+        start = end;
+        if start < coords.len() {
+            tokio::task::yield_now().await;
+        }
+    }
+    let mut width = COVER_CHUNK;
+    while width < coords.len() {
+        let mut start = 0usize;
+        while start < coords.len() {
+            let mid = start.saturating_add(width).min(coords.len());
+            let end = mid.saturating_add(width).min(coords.len());
+            if mid > start && end > mid {
+                merge_i128_coords(coords, start, mid, end).await;
+            }
+            start = end;
+        }
+        if width >= coords.len() || width > usize::MAX / 2 {
+            break;
+        }
+        width = width.saturating_mul(2);
+    }
+}
+
+async fn dedup_i128_coords(coords: &mut Vec<i128>) {
+    if coords.len() <= 1 {
+        return;
+    }
+    let mut write = 1usize;
+    let mut index = 1usize;
+    while index < coords.len() {
+        let end = index.saturating_add(COVER_CHUNK).min(coords.len());
+        while index < end {
+            let previous = coords.get(write.saturating_sub(1)).copied();
+            let current = coords.get(index).copied();
+            if current != previous {
+                if let (Some(value), Some(slot)) = (current, coords.get_mut(write)) {
+                    *slot = value;
+                }
+                write = write.saturating_add(1);
+            }
+            index = index.saturating_add(1);
+        }
+        if index < coords.len() {
+            tokio::task::yield_now().await;
+        }
+    }
+    coords.truncate(write);
+}
+
 /// Sum of each acknowledgement's overlap with each range.
+///
+/// The walk pauses every 8,192 batches. Without that pause, covering
+/// 2,000,000 acknowledgements held the caller for 2.97 seconds.
 ///
 /// Overlapping batches stack. The coordinate sweep answers every range together
 /// so one partition's runs do not each rescan the whole batch list.
-fn covered_lengths(ranges: &[(i64, i64)], sent: &[AcknowledgementBatch]) -> Vec<usize> {
+async fn covered_lengths(ranges: &[(i64, i64)], sent: &[AcknowledgementBatch]) -> Vec<usize> {
     if ranges.is_empty() {
         return Vec::new();
     }
@@ -1044,23 +1159,33 @@ fn covered_lengths(ranges: &[(i64, i64)], sent: &[AcknowledgementBatch]) -> Vec<
         return vec![0; ranges.len()];
     }
     let mut coords = Vec::with_capacity(ranges.len().saturating_add(sent.len()).saturating_mul(2));
+    let mut walked = 0usize;
     for &(first, last) in ranges {
-        if last < first {
-            continue;
+        if last >= first {
+            coords.push(i128::from(first));
+            coords.push(i128::from(last) + 1);
         }
-        coords.push(i128::from(first));
-        coords.push(i128::from(last) + 1);
+        walked = walked.saturating_add(1);
+        if walked == COVER_CHUNK {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
     }
     for batch in sent {
-        if batch.last_offset < batch.first_offset {
-            continue;
+        if batch.last_offset >= batch.first_offset {
+            coords.push(i128::from(batch.first_offset));
+            coords.push(i128::from(batch.last_offset) + 1);
         }
-        coords.push(i128::from(batch.first_offset));
-        coords.push(i128::from(batch.last_offset) + 1);
+        walked = walked.saturating_add(1);
+        if walked == COVER_CHUNK {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
     }
-    coords.sort_unstable();
-    coords.dedup();
+    sort_i128_coords(&mut coords).await;
+    dedup_i128_coords(&mut coords).await;
     let mut diff = vec![0_i128; coords.len()];
+    walked = 0;
     for batch in sent {
         if batch.last_offset < batch.first_offset {
             continue;
@@ -1075,6 +1200,11 @@ fn covered_lengths(ranges: &[(i64, i64)], sent: &[AcknowledgementBatch]) -> Vec<
         if let Some(slot) = diff.get_mut(right) {
             *slot = slot.saturating_sub(1);
         }
+        walked = walked.saturating_add(1);
+        if walked == COVER_CHUNK {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
     }
     let mut coverage = 0_i128;
     let mut prefix = vec![0_i128; coords.len()];
@@ -1087,13 +1217,16 @@ fn covered_lengths(ranges: &[(i64, i64)], sent: &[AcknowledgementBatch]) -> Vec<
         if let Some(slot) = prefix.get_mut(index.saturating_add(1)) {
             *slot = previous.saturating_add(gap);
         }
+        if index.saturating_add(1) % COVER_CHUNK == 0 {
+            tokio::task::yield_now().await;
+        }
     }
-    ranges
-        .iter()
-        .map(|&(first, last)| {
-            if last < first {
-                return 0usize;
-            }
+    let mut out = Vec::with_capacity(ranges.len());
+    walked = 0;
+    for &(first, last) in ranges {
+        if last < first {
+            out.push(0);
+        } else {
             let start = i128::from(first);
             let end = i128::from(last) + 1;
             let left = coords.partition_point(|&point| point < start);
@@ -1103,9 +1236,15 @@ fn covered_lengths(ranges: &[(i64, i64)], sent: &[AcknowledgementBatch]) -> Vec<
                 .copied()
                 .unwrap_or(0)
                 .saturating_sub(prefix.get(left).copied().unwrap_or(0));
-            usize::try_from(total).unwrap_or(usize::MAX)
-        })
-        .collect()
+            out.push(usize::try_from(total).unwrap_or(usize::MAX));
+        }
+        walked = walked.saturating_add(1);
+        if walked == COVER_CHUNK {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    out
 }
 
 fn merged_sent_cuts(sent: &[AcknowledgementBatch]) -> Vec<(i64, i64)> {
@@ -1177,13 +1316,13 @@ fn replace_acquisition_runs(runs: &mut Vec<AcquisitionRun>, kept: Vec<Acquisitio
     }
 }
 
-fn drop_covered_runs(
+async fn drop_covered_runs(
     runs: &mut Vec<AcquisitionRun>,
     partition: i32,
     sent: &[AcknowledgementBatch],
 ) {
     let ranges: Vec<(i64, i64)> = runs.iter().map(|run| (run.first, run.last)).collect();
-    let covered_by_run = covered_lengths(&ranges, sent);
+    let covered_by_run = covered_lengths(&ranges, sent).await;
     let cuts = merged_sent_cuts(sent);
     let mut kept = Vec::new();
     for (run, covered) in runs.iter().copied().zip(covered_by_run) {
@@ -1210,23 +1349,23 @@ fn drop_covered_runs(
     replace_acquisition_runs(runs, kept);
 }
 
-fn drop_covered_acquisitions(
+async fn drop_covered_acquisitions(
     topic_runs: &mut TopicRuns,
     partition: i32,
     sent: &[AcknowledgementBatch],
 ) {
-    drop_covered_runs(&mut topic_runs.runs, partition, sent);
+    drop_covered_runs(&mut topic_runs.runs, partition, sent).await;
     topic_runs.reindex();
 }
 
-fn renew_covered_runs(
+async fn renew_covered_runs(
     runs: &mut Vec<AcquisitionRun>,
     partition: i32,
     sent: &[AcknowledgementBatch],
     expiry: Option<Instant>,
 ) {
     let ranges: Vec<(i64, i64)> = runs.iter().map(|run| (run.first, run.last)).collect();
-    let covered_by_run = covered_lengths(&ranges, sent);
+    let covered_by_run = covered_lengths(&ranges, sent).await;
     let cuts = merged_sent_cuts(sent);
     let mut kept = Vec::new();
     for (run, covered) in runs.iter().copied().zip(covered_by_run) {
@@ -1256,17 +1395,17 @@ fn renew_covered_runs(
     replace_acquisition_runs(runs, kept);
 }
 
-fn renew_covered_acquisitions(
+async fn renew_covered_acquisitions(
     topic_runs: &mut TopicRuns,
     partition: i32,
     sent: &[AcknowledgementBatch],
     expiry: Option<Instant>,
 ) {
-    renew_covered_runs(&mut topic_runs.runs, partition, sent, expiry);
+    renew_covered_runs(&mut topic_runs.runs, partition, sent, expiry).await;
     topic_runs.reindex();
 }
 
-fn count_covered_acquisitions(
+async fn count_covered_acquisitions(
     topic_runs: &TopicRuns,
     partition: i32,
     sent: &[AcknowledgementBatch],
@@ -1280,6 +1419,7 @@ fn count_covered_acquisitions(
         .filter_map(|&index| topic_runs.runs.get(index).map(|run| (run.first, run.last)))
         .collect();
     covered_lengths(&ranges, sent)
+        .await
         .into_iter()
         .fold(0usize, usize::saturating_add)
 }
@@ -5077,11 +5217,11 @@ impl ShareGroup {
             .map(|item| item.2.as_slice())
             .unwrap_or(&[]);
         if part.error_code == 0 {
-            let count = self
-                .acquisitions
-                .get(name.as_ref())
-                .map(|parts| count_covered_acquisitions(parts, part.partition, sent_batches))
-                .unwrap_or(0);
+            let count = if let Some(parts) = self.acquisitions.get(name.as_ref()) {
+                count_covered_acquisitions(parts, part.partition, sent_batches).await
+            } else {
+                0
+            };
             if ack == ACK_RENEW {
                 if lock_timeout <= 0 {
                     return Err(Error::protocol(
@@ -5092,11 +5232,11 @@ impl ShareGroup {
                     u64::try_from(lock_timeout).unwrap_or(0),
                 ));
                 if let Some(parts) = self.acquisitions.get_mut(name.as_ref()) {
-                    renew_covered_acquisitions(parts, part.partition, sent_batches, expiry);
+                    renew_covered_acquisitions(parts, part.partition, sent_batches, expiry).await;
                 }
             } else {
                 let empty = if let Some(parts) = self.acquisitions.get_mut(name.as_ref()) {
-                    drop_covered_acquisitions(parts, part.partition, sent_batches);
+                    drop_covered_acquisitions(parts, part.partition, sent_batches).await;
                     parts.is_empty()
                 } else {
                     false
@@ -5125,7 +5265,7 @@ impl ShareGroup {
                 || share_ack_ownership_lost(part.error_code)
             {
                 let empty = if let Some(parts) = self.acquisitions.get_mut(name.as_ref()) {
-                    drop_covered_acquisitions(parts, part.partition, sent_batches);
+                    drop_covered_acquisitions(parts, part.partition, sent_batches).await;
                     parts.is_empty()
                 } else {
                     false
@@ -5665,11 +5805,11 @@ impl ShareGroup {
                     .copied()
                     .unwrap_or(&[]);
                 if part.error_code == 0 {
-                    let count = self
-                        .acquisitions
-                        .get(name.as_ref())
-                        .map(|parts| count_covered_acquisitions(parts, part.partition, sent))
-                        .unwrap_or(0);
+                    let count = if let Some(parts) = self.acquisitions.get(name.as_ref()) {
+                        count_covered_acquisitions(parts, part.partition, sent).await
+                    } else {
+                        0
+                    };
                     if ack == ACK_RENEW {
                         if lock_timeout <= 0 {
                             drop_empty_ack_partitions(partitions, cleared).await;
@@ -5681,11 +5821,11 @@ impl ShareGroup {
                             u64::try_from(lock_timeout).unwrap_or(0),
                         ));
                         if let Some(parts) = self.acquisitions.get_mut(name.as_ref()) {
-                            renew_covered_acquisitions(parts, part.partition, sent, expiry);
+                            renew_covered_acquisitions(parts, part.partition, sent, expiry).await;
                         }
                     } else {
                         let empty = if let Some(parts) = self.acquisitions.get_mut(name.as_ref()) {
-                            drop_covered_acquisitions(parts, part.partition, sent);
+                            drop_covered_acquisitions(parts, part.partition, sent).await;
                             parts.is_empty()
                         } else {
                             false
@@ -5713,7 +5853,7 @@ impl ShareGroup {
                         || share_ack_ownership_lost(part.error_code)
                     {
                         let empty = if let Some(parts) = self.acquisitions.get_mut(name.as_ref()) {
-                            drop_covered_acquisitions(parts, part.partition, sent);
+                            drop_covered_acquisitions(parts, part.partition, sent).await;
                             parts.is_empty()
                         } else {
                             false
@@ -9082,7 +9222,7 @@ mod tests {
             .collect();
         let started = std::time::Instant::now();
         tokio::select! {
-            () = async { drop_covered_runs(&mut runs, 0, &sent); } => {
+            () = async { drop_covered_runs(&mut runs, 0, &sent).await; } => {
                 assert_eq!(runs.len(), 6_000);
                 assert_eq!(runs.first().map(|run| (run.first, run.last)), Some((1, 1)));
                 assert_eq!(
@@ -9124,7 +9264,7 @@ mod tests {
             .collect();
         let started = std::time::Instant::now();
         tokio::select! {
-            () = async { drop_covered_runs(&mut runs, 0, &sent); } => {
+            () = async { drop_covered_runs(&mut runs, 0, &sent).await; } => {
                 assert!(runs.is_empty());
             }
             () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
@@ -9136,8 +9276,8 @@ mod tests {
         );
     }
 
-    #[test]
-    fn stacked_ack_batches_cover_a_run() {
+    #[tokio::test]
+    async fn stacked_ack_batches_cover_a_run() {
         let mut runs = vec![AcquisitionRun {
             partition: 0,
             first: 0,
@@ -9153,7 +9293,7 @@ mod tests {
             last_offset: 1,
             types: vec![ACK_ACCEPT],
         };
-        drop_covered_runs(&mut runs, 0, &[batch.clone(), batch]);
+        drop_covered_runs(&mut runs, 0, &[batch.clone(), batch]).await;
         assert!(runs.is_empty());
     }
 
@@ -9182,7 +9322,8 @@ mod tests {
                         last_offset: 10,
                         types: vec![ACK_ACCEPT],
                     }],
-                );
+                )
+                .await;
             } => {
                 assert_eq!(runs.len(), 2);
                 assert_eq!(runs.first().map(|run| (run.first, run.last)), Some((0, 9)));
@@ -9226,8 +9367,8 @@ mod tests {
         );
     }
 
-    #[test]
-    fn a_partial_ack_keeps_the_acquisition_buffer() {
+    #[tokio::test]
+    async fn a_partial_ack_keeps_the_acquisition_buffer() {
         let acquisition = Acquisition {
             node: 1,
             delivery_count: 1,
@@ -9249,7 +9390,8 @@ mod tests {
                 last_offset: 3,
                 types: vec![ACK_ACCEPT],
             }],
-        );
+        )
+        .await;
         assert_eq!(runs.as_ptr(), stored);
         assert_eq!(runs.len(), 2);
         assert_eq!(runs.first().map(|run| (run.first, run.last)), Some((1, 1)));
@@ -9274,7 +9416,8 @@ mod tests {
                 types: vec![ACK_ACCEPT],
             }],
             renewed,
-        );
+        )
+        .await;
         assert_eq!(
             live.iter()
                 .map(|run| (run.first, run.last, run.acquisition.expires_at))
@@ -10178,6 +10321,47 @@ mod tests {
             first.to_string(),
             "ConsumerRecord(topic = t, partition = 0, leaderEpoch = null, offset = 1, CreateTime = 0, deliveryCount = 1, serialized key size = -1, serialized value size = -1, headers = RecordHeaders(headers = [], isReadOnly = true), key = null, value = null)"
         );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn covering_many_share_acks_does_not_hold_the_caller() {
+        let sent: Vec<AcknowledgementBatch> = (0..2_000_000)
+            .map(|index| AcknowledgementBatch {
+                first_offset: index,
+                last_offset: index,
+                types: Vec::new(),
+            })
+            .collect();
+        let ranges = [(0_i64, 1_999_999_i64)];
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = async {
+                let _covered = covered_lengths(&ranges, &sent).await;
+            } => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "covering share acknowledgements held the caller for {elapsed:?}"
+        );
+        let covered = covered_lengths(
+            &[(0, 3)],
+            &[
+                AcknowledgementBatch {
+                    first_offset: 0,
+                    last_offset: 1,
+                    types: Vec::new(),
+                },
+                AcknowledgementBatch {
+                    first_offset: 1,
+                    last_offset: 1,
+                    types: Vec::new(),
+                },
+            ],
+        )
+        .await;
+        assert_eq!(covered, vec![3]);
     }
 
     #[test]
