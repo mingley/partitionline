@@ -3596,6 +3596,13 @@
 //! `UNKNOWN_TOPIC_ID`; this is not top-level
 //! `INVALID_RECORD_STATE`). Official Java `ShareCoordinatorShard`
 //! writes this when a WriteShareGroupState request state epoch is smaller than the last recorded epoch.
+//! Top-level
+//! `INVALID_VOTER_KEY` still fails that poll without
+//! Metadata, including when `ErrorMessage` is set (Java
+//! `handleShareFetchSuccess` only `requestUpdate`s for
+//! `UNKNOWN_TOPIC_ID`; this is not top-level
+//! `FENCED_STATE_EPOCH`). Official Java `KafkaRaftClient`
+//! writes this when a VOTE or BEGIN_QUORUM_EPOCH request carries a voter key that does not match the local key.
 //! Partition
 //! `INCONSISTENT_TOPIC_ID` / `UNKNOWN_TOPIC_OR_PARTITION` /
 //! `UNKNOWN_TOPIC_ID` / `REPLICA_NOT_AVAILABLE` /

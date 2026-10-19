@@ -2544,6 +2544,13 @@ pub enum ShareAcquireMode {
 /// `INVALID_RECORD_STATE`). Official Java
 /// `ShareCoordinatorShard` writes this when a WriteShareGroupState
 /// request state epoch is smaller than the last recorded epoch.
+/// Top-level `INVALID_VOTER_KEY` still fails that poll
+/// and does not request Metadata, including when `ErrorMessage` is
+/// set (Java `handleShareFetchSuccess` only `requestUpdate`s for
+/// `UNKNOWN_TOPIC_ID`; this is not top-level
+/// `FENCED_STATE_EPOCH`). Official Java
+/// `KafkaRaftClient` writes this when a VOTE or BEGIN_QUORUM_EPOCH
+/// request carries a voter key that does not match the local key.
 /// Top-level
 /// `SHARE_SESSION_LIMIT_REACHED` resets the share session and does
 /// not request Metadata, including when `ErrorMessage` is set or
@@ -6043,6 +6050,15 @@ impl ShareGroup {
     /// `ShareCoordinatorShard` writes this when a
     /// WriteShareGroupState request state epoch is smaller than the
     /// last recorded epoch.
+    /// Top-level
+    /// `INVALID_VOTER_KEY` still fails that poll without
+    /// Metadata, including when `ErrorMessage` is set (Java
+    /// `handleShareFetchSuccess` only `requestUpdate`s for
+    /// `UNKNOWN_TOPIC_ID`; this is not top-level
+    /// `FENCED_STATE_EPOCH`). Official Java
+    /// `KafkaRaftClient` writes this when a VOTE or
+    /// BEGIN_QUORUM_EPOCH request carries a voter key that does not
+    /// match the local key.
     /// Top-level
     /// `SHARE_SESSION_LIMIT_REACHED` resets the share session and
     /// does not request Metadata, including when `ErrorMessage` is
