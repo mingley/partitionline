@@ -3987,17 +3987,12 @@ impl Producer {
         drop(conn);
         let mut body = body;
         decode_shared_metadata(&self.inner.shared, &mut body, version).await?;
-        let snap = {
-            let image = self.inner.shared.metadata_image.lock();
-            let mut snap = MetadataResponse::blank();
-            snap.topics = image
-                .topics
-                .iter()
-                .filter(|topic_meta| topic_meta.name.as_deref() == Some(topic.as_str()))
-                .cloned()
-                .collect();
-            snap
-        };
+        let mut snap = MetadataResponse::blank();
+        snap.topics = crate::consumer::snapshot_named_topics(
+            &self.inner.shared.metadata_image,
+            topic.as_str(),
+        )
+        .await;
         let infos =
             crate::consumer::partition_infos_from_cooperative(&snap, Some(topic.as_str())).await?;
         if infos.is_empty() {

@@ -11867,6 +11867,69 @@ pub(crate) fn partition_infos_from(
 /// [`partition_infos_from`], yielding while partitions are copied.
 ///
 /// Listing 2,000,000 partition infos held the caller for 968ms. A topic name is still copied.
+/// Copy topics named `name` without holding `image` across a pause.
+///
+/// Cloning 2,000,000 topic partitions held the caller for 261ms. A partition is still copied.
+pub(crate) async fn snapshot_named_topics(
+    image: &parking_lot::Mutex<MetadataResponse>,
+    name: &str,
+) -> Vec<crate::protocol::api::TopicMetadata> {
+    let mut out = Vec::new();
+    let mut topic_at = 0usize;
+    let mut copied = 0usize;
+    loop {
+        let more = {
+            let guard = image.lock();
+            let found = guard
+                .topics
+                .iter()
+                .enumerate()
+                .skip(topic_at)
+                .find(|(_, topic)| topic.name.as_deref() == Some(name))
+                .map(|(index, _)| index);
+            if let Some(index) = found {
+                if index != topic_at {
+                    topic_at = index;
+                    copied = 0;
+                }
+                if let Some(topic) = guard.topics.get(topic_at) {
+                    if copied == 0 {
+                        out.push(crate::protocol::api::TopicMetadata {
+                            error_code: topic.error_code,
+                            name: topic.name.clone(),
+                            topic_id: topic.topic_id,
+                            is_internal: topic.is_internal,
+                            partitions: Vec::with_capacity(topic.partitions.len()),
+                            topic_authorized_operations: topic.topic_authorized_operations,
+                        });
+                    }
+                    let end = copied.saturating_add(8 * 1024).min(topic.partitions.len());
+                    if let Some(slice) = topic.partitions.get(copied..end) {
+                        if let Some(dest) = out.last_mut() {
+                            dest.partitions.extend_from_slice(slice);
+                        }
+                    }
+                    copied = end;
+                    if copied >= topic.partitions.len() {
+                        topic_at = topic_at.saturating_add(1);
+                        copied = 0;
+                    }
+                    topic_at < guard.topics.len() || copied != 0
+                } else {
+                    false
+                }
+            } else {
+                false
+            }
+        };
+        if !more {
+            break;
+        }
+        tokio::task::yield_now().await;
+    }
+    out
+}
+
 pub(crate) async fn partition_infos_from_cooperative(
     md: &MetadataResponse,
     only: Option<&str>,
@@ -12139,6 +12202,75 @@ mod tests {
     use std::collections::{HashMap, HashSet};
 
     use super::*;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn cloning_many_topic_partitions_does_not_hold_the_caller() {
+        let partitions: Vec<crate::protocol::api::PartitionMetadata> = (0..2_000_000)
+            .map(|index| crate::protocol::api::PartitionMetadata {
+                error_code: 0,
+                partition_index: index,
+                leader_id: 1,
+                leader_epoch: 1,
+                replica_nodes: Vec::new(),
+                isr_nodes: Vec::new(),
+                offline_replicas: Vec::new(),
+            })
+            .collect();
+        let topic = crate::protocol::api::TopicMetadata {
+            error_code: 0,
+            name: Some("orders".into()),
+            topic_id: [0; 16],
+            is_internal: false,
+            partitions,
+            topic_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+        };
+        let mut image = MetadataResponse::blank();
+        image.topics = vec![topic];
+        let stored = parking_lot::Mutex::new(image);
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = snapshot_named_topics(&stored, "orders") => {}
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        assert!(
+            started.elapsed() < std::time::Duration::from_millis(80),
+            "cloning topic partitions held the caller for {:?}",
+            started.elapsed()
+        );
+        let mut sample = MetadataResponse::blank();
+        sample.topics = vec![crate::protocol::api::TopicMetadata {
+            error_code: 0,
+            name: Some("orders".into()),
+            topic_id: [1; 16],
+            is_internal: false,
+            partitions: vec![crate::protocol::api::PartitionMetadata {
+                error_code: 0,
+                partition_index: 3,
+                leader_id: 4,
+                leader_epoch: 1,
+                replica_nodes: Vec::new(),
+                isr_nodes: Vec::new(),
+                offline_replicas: Vec::new(),
+            }],
+            topic_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+        }];
+        let copied = snapshot_named_topics(&parking_lot::Mutex::new(sample), "orders").await;
+        let kept = copied.first().expect("orders");
+        assert_eq!(kept.name.as_deref(), Some("orders"));
+        assert_eq!(kept.topic_id, [1; 16]);
+        assert_eq!(kept.partitions.len(), 1);
+        assert_eq!(
+            kept.partitions.first().map(|part| part.partition_index),
+            Some(3)
+        );
+        assert_eq!(kept.partitions.first().map(|part| part.leader_id), Some(4));
+        assert!(snapshot_named_topics(
+            &parking_lot::Mutex::new(MetadataResponse::blank()),
+            "orders"
+        )
+        .await
+        .is_empty());
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn copying_many_partition_infos_does_not_hold_the_caller() {
