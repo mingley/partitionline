@@ -3587,7 +3587,7 @@ impl ConsumerGroup {
             })
             .await;
         if loaded {
-            match self.consumer.partition_ids_all(&topic_set) {
+            match self.consumer.partition_ids_all(&topic_set).await {
                 Ok(lists) => {
                     for (topic, ids) in topic_set.iter().zip(lists) {
                         by_topic.push((topic.clone(), ids));
@@ -3601,7 +3601,7 @@ impl ConsumerGroup {
                 .refresh_metadata_timeout(Some(&topic_set), timeout)
                 .await?;
             by_topic.clear();
-            let lists = self.consumer.partition_ids_all(&topic_set)?;
+            let lists = self.consumer.partition_ids_all(&topic_set).await?;
             for (topic, ids) in topic_set.iter().zip(lists) {
                 by_topic.push((topic.clone(), ids));
             }
