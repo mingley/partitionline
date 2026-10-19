@@ -160,13 +160,22 @@ impl ConsumerGroup {
         self.consumer
             .fill_delivered_positions_shared(&mut positions);
         let mut ids = std::mem::take(&mut self.last_delivered_topic_ids);
-        super::clear_delivered_topic_ids(&mut ids);
-        for (topic, partition, _) in &positions {
-            if let Some(id) = self.consumer.assigned_topic_id(topic, *partition) {
-                super::remember_shared_topic_id(&mut ids, topic, *partition, id);
-            }
-        }
-        ids.retain(|_, parts| !parts.is_empty());
+        super::refresh_delivered_topic_ids(&mut ids, &positions, |topic, partition| {
+            self.consumer.assigned_topic_id(topic, partition)
+        });
+        self.last_delivered_topic_ids = ids;
+        self.last_delivered_positions = Some(positions);
+    }
+
+    pub(super) async fn snapshot_delivered_positions_cooperative(&mut self) {
+        let mut positions = self.last_delivered_positions.take().unwrap_or_default();
+        self.consumer
+            .fill_delivered_positions_shared(&mut positions);
+        let mut ids = std::mem::take(&mut self.last_delivered_topic_ids);
+        super::refresh_delivered_topic_ids_cooperative(&mut ids, &positions, |topic, partition| {
+            self.consumer.assigned_topic_id(topic, partition)
+        })
+        .await;
         self.last_delivered_topic_ids = ids;
         self.last_delivered_positions = Some(positions);
     }

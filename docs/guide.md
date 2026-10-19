@@ -350,8 +350,10 @@ group.leave().await?;
 Assigning committed offsets walks the assignment in slices of 8,192.
 List-offset resets are written into those slots the same way, and empty
 slots are dropped between slices. The revoked and assigned lists passed to
-a rebalance callback are copied the same way. The timeout can fire between
-slices, and finished slices are kept. See the
+a rebalance callback are copied the same way. After a poll or commit, the
+topic ids stored for those delivered positions are refreshed in the same
+slices. The timeout can fire between slices, and finished slices are kept.
+See the
 [resource contract](resource-contract.md#caller-deadlines).
 
 Also: sticky / cooperative-sticky, KIP-848 (`join_consumer` /

@@ -2197,7 +2197,7 @@ impl ConsumerGroup {
             }
         }
         if !recs.is_empty() {
-            self.snapshot_delivered_positions();
+            self.snapshot_delivered_positions_cooperative().await;
         }
         Ok(self.consumer.deliver_consumed(recs))
     }
@@ -2469,7 +2469,7 @@ impl ConsumerGroup {
         )?;
         self.commit_prepared_offsets(&offsets, timeout.saturating_sub(started.elapsed()))
             .await?;
-        self.snapshot_delivered_positions();
+        self.snapshot_delivered_positions_cooperative().await;
         self.last_auto_commit = Instant::now();
         Ok(())
     }
@@ -6577,6 +6577,89 @@ fn clear_delivered_topic_ids(map: &mut DeliveredTopicIds) {
     }
 }
 
+/// Replace stored topic ids with the ids for `positions`.
+///
+/// Empty topic maps are dropped. A position with no assigned id is skipped.
+fn refresh_delivered_topic_ids(
+    ids: &mut DeliveredTopicIds,
+    positions: &[(Arc<str>, i32, i64)],
+    mut topic_id: impl FnMut(&str, i32) -> Option<[u8; 16]>,
+) {
+    clear_delivered_topic_ids(ids);
+    for (topic, partition, _) in positions {
+        if let Some(id) = topic_id(topic, *partition) {
+            remember_shared_topic_id(ids, topic, *partition, id);
+        }
+    }
+    ids.retain(|_, parts| !parts.is_empty());
+}
+
+/// Replace stored topic ids with the ids for `positions`.
+///
+/// The walk pauses every 8,192 partitions. Without that pause, refreshing
+/// 2,000,000 delivered topic ids held the caller for 1,983 milliseconds.
+///
+/// Empty topic maps are dropped. A position with no assigned id is skipped.
+async fn refresh_delivered_topic_ids_cooperative(
+    ids: &mut DeliveredTopicIds,
+    positions: &[(Arc<str>, i32, i64)],
+    mut topic_id: impl FnMut(&str, i32) -> Option<[u8; 16]>,
+) {
+    clear_delivered_topic_ids_cooperative(ids).await;
+    let mut walked = 0usize;
+    for (topic, partition, _) in positions {
+        if let Some(id) = topic_id(topic, *partition) {
+            remember_shared_topic_id(ids, topic, *partition, id);
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    drop_empty_delivered_topic_ids(ids).await;
+}
+
+async fn clear_delivered_topic_ids_cooperative(map: &mut DeliveredTopicIds) {
+    let pending = std::mem::take(map);
+    let mut walked = 0usize;
+    for (topic, mut parts) in pending {
+        if parts.len() > 8 * 1024 {
+            let taken = std::mem::take(&mut parts);
+            for _entry in taken {
+                walked = walked.saturating_add(1);
+                if walked == 8 * 1024 {
+                    walked = 0;
+                    tokio::task::yield_now().await;
+                }
+            }
+        } else {
+            parts.clear();
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+        let _ = map.insert(topic, parts);
+    }
+}
+
+async fn drop_empty_delivered_topic_ids(ids: &mut DeliveredTopicIds) {
+    let pending = std::mem::take(ids);
+    let mut walked = 0usize;
+    for (topic, parts) in pending {
+        if !parts.is_empty() {
+            let _ = ids.insert(topic, parts);
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+}
+
 fn remember_shared_topic_id(
     map: &mut DeliveredTopicIds,
     topic: &Arc<str>,
@@ -10405,6 +10488,59 @@ mod tests {
         assert!(committed_starts(&wanted, &fetched, AutoOffsetReset::None).is_err());
         assert!(committed_starts(&wanted, &fetched, AutoOffsetReset::Earliest).is_err());
         assert!(committed_starts(&wanted, &fetched, AutoOffsetReset::Latest).is_err());
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn refreshing_many_delivered_topic_ids_does_not_hold_the_caller() {
+        let topic: Arc<str> = Arc::from("orders");
+        let mut stored_parts = HashMap::new();
+        for partition in 0..2_000_000 {
+            let _ = stored_parts.insert(partition, [1u8; 16]);
+        }
+        let mut stored = HashMap::new();
+        let _ = stored.insert(Arc::clone(&topic), stored_parts);
+        let positions: Vec<(Arc<str>, i32, i64)> = (0..2_000_000)
+            .map(|partition| (Arc::clone(&topic), partition, 4))
+            .collect();
+        let mut ids = stored.clone();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = refresh_delivered_topic_ids_cooperative(
+                &mut ids,
+                &positions,
+                |name, partition| {
+                    stored
+                        .get(name)
+                        .and_then(|parts| parts.get(&partition))
+                        .copied()
+                },
+            ) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "refreshing delivered topic ids held the caller for {elapsed:?}"
+        );
+        let topic: Arc<str> = Arc::from("orders");
+        let mut sample = HashMap::new();
+        refresh_delivered_topic_ids_cooperative(
+            &mut sample,
+            &[(Arc::clone(&topic), 3, 9), (Arc::clone(&topic), 4, 1)],
+            |_, partition| (partition == 3).then_some([2u8; 16]),
+        )
+        .await;
+        assert_eq!(
+            sample
+                .get("orders")
+                .and_then(|parts| parts.get(&3))
+                .copied(),
+            Some([2u8; 16])
+        );
+        assert!(sample
+            .get("orders")
+            .and_then(|parts| parts.get(&4))
+            .is_none());
     }
 
     #[test]
