@@ -3241,6 +3241,33 @@ where
     topics
 }
 
+fn missing_leader_chunk() -> usize {
+    8 * 1024
+}
+
+/// Listing missing leaders for 4,000,000 partitions held the caller for 881ms.
+/// The first missing topic is still kept once.
+async fn topics_missing_leaders<'a>(
+    cluster: &Cluster,
+    parts: impl IntoIterator<Item = (&'a str, i32)>,
+) -> Vec<&'a str> {
+    let mut need = Vec::new();
+    let mut seen = HashSet::new();
+    let mut leaders = LeaderList::new();
+    let mut walked = 0usize;
+    for (topic, partition) in parts {
+        walked = walked.saturating_add(1);
+        if leaders.node(cluster, topic, partition).is_err() && seen.insert(topic) {
+            need.push(topic);
+        }
+        if walked == missing_leader_chunk() {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    need
+}
+
 fn unique_name_chunk() -> usize {
     8 * 1024
 }
@@ -9583,21 +9610,15 @@ impl Admin {
             if pending.is_empty() {
                 break;
             }
-            let mut need: Vec<&str> = Vec::new();
-            let mut seen_topics = HashSet::new();
-            let mut leaders = LeaderList::new();
-            for &i in &pending {
-                let Some((tp, _)) = records.get(i) else {
-                    continue;
-                };
-                if leaders
-                    .node(&self.cluster, &tp.topic, tp.partition)
-                    .is_err()
-                    && seen_topics.insert(tp.topic.as_str())
-                {
-                    need.push(tp.topic.as_str());
-                }
-            }
+            let need = topics_missing_leaders(
+                &self.cluster,
+                pending.iter().filter_map(|&i| {
+                    records
+                        .get(i)
+                        .map(|(tp, _)| (tp.topic.as_str(), tp.partition))
+                }),
+            )
+            .await;
             if !need.is_empty() {
                 let known_nodes = self
                     .known_leader_nodes(pending.iter().filter_map(|&i| {
@@ -9954,21 +9975,15 @@ impl Admin {
             if pending.is_empty() {
                 break;
             }
-            let mut need: Vec<&str> = Vec::new();
-            let mut seen_topics = HashSet::new();
-            let mut leaders = LeaderList::new();
-            for &i in &pending {
-                let Some((tp, _)) = queries.get(i) else {
-                    continue;
-                };
-                if leaders
-                    .node(&self.cluster, &tp.topic, tp.partition)
-                    .is_err()
-                    && seen_topics.insert(tp.topic.as_str())
-                {
-                    need.push(tp.topic.as_str());
-                }
-            }
+            let need = topics_missing_leaders(
+                &self.cluster,
+                pending.iter().filter_map(|&i| {
+                    queries
+                        .get(i)
+                        .map(|(tp, _)| (tp.topic.as_str(), tp.partition))
+                }),
+            )
+            .await;
             if !need.is_empty() {
                 let known_nodes = self
                     .known_leader_nodes(pending.iter().filter_map(|&i| {
@@ -10825,21 +10840,15 @@ impl Admin {
                 break;
             }
             if !pin_broker {
-                let mut need: Vec<&str> = Vec::new();
-                let mut seen_topics = HashSet::new();
-                let mut leaders = LeaderList::new();
-                for &i in &pending {
-                    let Some(tp) = partitions.get(i) else {
-                        continue;
-                    };
-                    if leaders
-                        .node(&self.cluster, &tp.topic, tp.partition)
-                        .is_err()
-                        && seen_topics.insert(tp.topic.as_str())
-                    {
-                        need.push(tp.topic.as_str());
-                    }
-                }
+                let need = topics_missing_leaders(
+                    &self.cluster,
+                    pending.iter().filter_map(|&i| {
+                        partitions
+                            .get(i)
+                            .map(|tp| (tp.topic.as_str(), tp.partition))
+                    }),
+                )
+                .await;
                 if !need.is_empty() {
                     let known_nodes = self
                         .known_leader_nodes(pending.iter().filter_map(|&i| {
@@ -17215,6 +17224,30 @@ mod tests {
         CreatedTopicConfig, ListConfigResourcesResponse, TopicConfig,
     };
     use bytes::BytesMut;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn listing_many_missing_leaders_does_not_hold_the_caller() {
+        let cluster = Cluster::default();
+        let parts: Vec<i32> = (0..4_000_000).collect();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = topics_missing_leaders(&cluster, parts.iter().map(|part| ("orders", *part))) => {}
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        assert!(
+            started.elapsed() < std::time::Duration::from_millis(80),
+            "listing missing leaders held the caller for {:?}",
+            started.elapsed()
+        );
+        let mut known = Cluster::default();
+        let _broker = known.brokers.insert(4, "127.0.0.1:9092".to_string());
+        let _leaders = known
+            .leaders
+            .insert(std::sync::Arc::from("payments"), vec![4]);
+        let need =
+            topics_missing_leaders(&known, [("orders", 0), ("orders", 1), ("payments", 0)]).await;
+        assert_eq!(need, vec!["orders"]);
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn finding_many_known_leaders_does_not_hold_the_caller() {
