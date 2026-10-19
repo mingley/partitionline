@@ -6579,7 +6579,7 @@ impl Consumer {
                     self.restore_metadata_topics(topics);
                     return self.fetched_or_timeout(out, Error::Timeout).await;
                 }
-                let cached = self.cached_fetch_nodes(completed);
+                let cached = self.cached_fetch_nodes(completed).await;
                 let nodes = self.fetch_redial_nodes(cached);
                 // Known leaders reconnect while this metadata request runs.
                 // A leader that moves is dialed again when the fetch plan is built.
@@ -6694,7 +6694,7 @@ impl Consumer {
                     &mut topics,
                     self.assigned.iter().map(|(topic, _, _)| topic.as_ref()),
                 );
-                let cached = self.cached_fetch_nodes(completed);
+                let cached = self.cached_fetch_nodes(completed).await;
                 let nodes = self.fetch_redial_nodes(cached);
                 for topic in &topics {
                     self.cluster.invalidate_topic(topic);
@@ -8871,19 +8871,8 @@ impl Consumer {
         refreshed
     }
 
-    fn cached_fetch_nodes(&self, completed: &PartitionMap<()>) -> Vec<i32> {
-        let mut nodes = Vec::new();
-        let mut seen = HashSet::new();
-        for (topic, partition, _) in &self.assigned {
-            if completed.contains(topic, *partition) || self.paused.contains(topic, *partition) {
-                continue;
-            }
-            let Ok(node) = self.cluster.leader_id(topic.as_ref(), *partition) else {
-                continue;
-            };
-            Self::remember_node(&mut nodes, &mut seen, node);
-        }
-        nodes
+    async fn cached_fetch_nodes(&self, completed: &PartitionMap<()>) -> Vec<i32> {
+        fetch_nodes_for(&self.assigned, completed, &self.paused, &self.cluster).await
     }
 
     pub(crate) fn remember_node(nodes: &mut Vec<i32>, seen: &mut HashSet<i32>, node: i32) {
@@ -11769,6 +11758,30 @@ pub(crate) fn partition_infos_from(
     Ok(out)
 }
 
+async fn fetch_nodes_for(
+    assigned: &[(Arc<str>, i32, i64)],
+    completed: &PartitionMap<()>,
+    paused: &PartitionMap<()>,
+    cluster: &Cluster,
+) -> Vec<i32> {
+    let mut nodes = Vec::new();
+    let mut seen = HashSet::new();
+    let mut walked = 0usize;
+    for (topic, partition, _) in assigned {
+        if !completed.contains(topic, *partition) && !paused.contains(topic, *partition) {
+            if let Ok(node) = cluster.leader_id(topic.as_ref(), *partition) {
+                Consumer::remember_node(&mut nodes, &mut seen, node);
+            }
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    nodes
+}
+
 async fn build_cursor_index(assigned: &[(Arc<str>, i32, i64)]) -> CursorIndex {
     let mut built: HashMap<Arc<str>, HashMap<i32, usize>> = HashMap::new();
     let mut walked = 0usize;
@@ -14349,6 +14362,37 @@ mod tests {
         assert_eq!(reset_position(0), Some(0));
         assert_eq!(reset_position(4), Some(4));
         assert_eq!(reset_position(-1), None);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn reading_many_fetch_leaders_does_not_hold_the_caller() {
+        // 2_000_000 leader ids: reading them in one pass held the caller 939ms.
+        let mut cluster = crate::cluster::Cluster::default();
+        for node in 0..8 {
+            let _ = cluster
+                .brokers
+                .insert(node, format!("127.0.0.1:{}", 9092 + node));
+        }
+        let _ = cluster.leaders.insert(
+            std::sync::Arc::from("orders"),
+            (0..2_000_000).map(|index| index % 8).collect(),
+        );
+        let topic: std::sync::Arc<str> = std::sync::Arc::from("orders");
+        let assigned: Vec<(std::sync::Arc<str>, i32, i64)> = (0..2_000_000)
+            .map(|partition| (std::sync::Arc::clone(&topic), partition, 0))
+            .collect();
+        let completed = PartitionMap::new();
+        let paused = PartitionMap::new();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = fetch_nodes_for(&assigned, &completed, &paused, &cluster) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "reading fetch leaders held the caller for {elapsed:?}"
+        );
     }
 
     #[tokio::test(flavor = "current_thread")]
