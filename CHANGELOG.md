@@ -2098,6 +2098,12 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `UNKNOWN_TOPIC_ID`; this is not top-level
   `PRINCIPAL_DESERIALIZATION_FAILURE`). Official Java `KafkaRaftClient`
   writes this when the requested snapshot id does not exist.
+  Top-level `POSITION_OUT_OF_RANGE` still fails that poll
+  without Metadata, including when `ErrorMessage` is set (Java
+  `handleShareFetchSuccess` only `requestUpdate`s for top-level
+  `UNKNOWN_TOPIC_ID`; this is not top-level
+  `SNAPSHOT_NOT_FOUND`). Official Java `KafkaRaftClient`
+  writes this when the requested snapshot offset is out of range.
   A non-empty
   throwable partition or top-level ShareFetch `ErrorMessage` is
   preferred; empty uses `ShareFetch {topic}-{partition}` or
