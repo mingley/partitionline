@@ -3107,7 +3107,7 @@ pub enum ShareAcquireMode {
 /// A top-level
 /// ShareAcknowledge `INVALID_VOTER_KEY` completes without
 /// retry and does not request Metadata, including when `ErrorMessage`
-/// is set (Java `handleShareAcknowledgeSuccess` has no
+/// is set or empty (Java `handleShareAcknowledgeSuccess` has no
 /// `metadata.requestUpdate`; this is not top-level
 /// `FENCED_STATE_EPOCH`). Official Java
 /// `KafkaRaftClient` writes this when a VOTE or BEGIN_QUORUM_EPOCH
@@ -6925,7 +6925,7 @@ impl ShareGroup {
     /// last recorded epoch.
     /// A top-level ShareAcknowledge `INVALID_VOTER_KEY`
     /// completes without retry and does not request Metadata,
-    /// including when `ErrorMessage` is set (Java
+    /// including when `ErrorMessage` is set or empty (Java
     /// `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`;
     /// this is not top-level `FENCED_STATE_EPOCH`).
     /// Official Java `KafkaRaftClient` writes this when a VOTE or
