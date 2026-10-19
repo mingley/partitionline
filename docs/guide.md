@@ -374,6 +374,11 @@ On 4.0/4.1 also set `group.share.enable=true` until that temporary flag is
 removed upstream. Default `share.auto.offset.reset` is **latest** — produce
 while the share member is already polling.
 
+A share fetch or acknowledgement names each topic from an index built in
+slices of 8,192. A topic id that belongs to two names is still an error.
+An empty name is still not used. See the
+[resource contract](resource-contract.md#caller-deadlines).
+
 ## Exactly-once (transactions)
 
 Use `transactional_id`, `init_transactions`, and

@@ -4945,12 +4945,17 @@ impl ShareGroup {
         self.fetch_cursors.clear();
         let mut spilled_offsets: HashMap<i32, HashSet<i64>> = HashMap::new();
         let mut noted = 0usize;
+        let topic_names = index_share_topic_ids(&self.topic_ids).await;
+        // Naming 2,000,000 indexed topics held the caller for 779 milliseconds.
+        // One partition per topic never reaches the partition pause, so this
+        // walk pauses every 8,192 topics as well.
+        let mut topics_named = 0usize;
         for topic in fetched.iter_mut() {
             let requested = by_id
                 .get(&topic.topic_id)
                 .ok_or_else(|| Error::protocol("ShareFetch returned an unrequested topic id"))?;
             let allowed = share_partition_set(requested).await;
-            let topic_name = self.fetched_topic_name(topic.topic_id)?;
+            let topic_name = share_topic_name_from_index(&topic_names, topic.topic_id)?;
             let name = topic_name.as_str();
             let mut walked = 0usize;
             for part in &mut topic.partitions {
@@ -5093,6 +5098,11 @@ impl ShareGroup {
                 }
                 acquired.clear();
             }
+            topics_named = topics_named.saturating_add(1);
+            if topics_named == 8 * 1024 {
+                topics_named = 0;
+                tokio::task::yield_now().await;
+            }
         }
         let retained_bytes = share_delivery_accounted_bytes(&incoming, &self.acquisitions).await;
         *remaining = match remaining.checked_sub(retained_bytes.max(decoded_bytes)) {
@@ -5131,10 +5141,6 @@ impl ShareGroup {
         Ok(())
     }
 
-    fn fetched_topic_name(&self, id: [u8; 16]) -> Result<crate::consumer::TopicName> {
-        topic_name_for_fetch(&self.topic_ids, id)
-    }
-
     fn reclaim_ack_types(&mut self, topics: Vec<crate::protocol::share::ShareAckTopic>) {
         for topic in topics {
             for (_, batches) in topic.partitions {
@@ -5145,10 +5151,6 @@ impl ShareGroup {
                 }
             }
         }
-    }
-
-    fn name_for_topic_id(&self, id: [u8; 16]) -> Result<Arc<str>> {
-        share_topic_by_id(&self.topic_ids, id).map(Arc::clone)
     }
 
     async fn send_acknowledgements(&mut self, recs: &[ShareRecord], ack: i8) -> Result<()> {
@@ -5345,7 +5347,8 @@ impl ShareGroup {
         if version >= 2 && lock_timeout > 0 {
             self.acquisition_lock_timeout_ms = Some(lock_timeout);
         }
-        let name = self.name_for_topic_id(topic_id)?;
+        let topic_names = index_share_topic_ids(&self.topic_ids).await;
+        let name = share_topic_from_index(&topic_names, topic_id)?;
         if part.error_code != 0 && !name.is_empty() && share_leader_moved(part.error_code) {
             let patched = self.consumer.apply_share_leader(
                 &name,
@@ -5925,9 +5928,10 @@ impl ShareGroup {
         if version >= 2 && lock_timeout > 0 {
             self.acquisition_lock_timeout_ms = Some(lock_timeout);
         }
+        let topic_names = index_share_topic_ids(&self.topic_ids).await;
         let mut applied = 0usize;
         for topic in responses {
-            let name = match self.name_for_topic_id(topic.topic_id) {
+            let name = match share_topic_from_index(&topic_names, topic.topic_id) {
                 Ok(name) => name,
                 Err(error) => {
                     drop_empty_ack_partitions(partitions, cleared).await;
@@ -7252,13 +7256,67 @@ fn share_topic_name<'a>(
 ///
 /// An id that matches nothing is not guessed from the first subscription.
 /// An id that matches two names is ambiguous and must not label records.
+#[cfg(test)]
 fn share_topic_by_id(topic_ids: &HashMap<Arc<str>, [u8; 16]>, id: [u8; 16]) -> Result<&Arc<str>> {
     share_named(topic_ids.iter(), id, |name| name.is_empty())
+}
+
+/// Index topic ids once so each later name lookup is one map read.
+///
+/// The walk pauses every 8,192 names. Without that pause, indexing
+/// 2,000,000 share topic ids held the caller for 1,638 milliseconds.
+/// Naming 20,000 topics by scanning the whole map held the caller for
+/// 4,782 milliseconds.
+///
+/// A topic id stored for two names stays a duplicate. An empty name stays
+/// unusable. Names that are already stored keep their allocation.
+async fn index_share_topic_ids(
+    ids: &HashMap<Arc<str>, [u8; 16]>,
+) -> HashMap<[u8; 16], Option<Arc<str>>> {
+    let mut by_id = HashMap::with_capacity(ids.len());
+    let mut walked = 0usize;
+    for (name, id) in ids {
+        match by_id.entry(*id) {
+            std::collections::hash_map::Entry::Vacant(slot) => {
+                let _stored = slot.insert(Some(Arc::clone(name)));
+            }
+            std::collections::hash_map::Entry::Occupied(mut slot) => {
+                let _stored = slot.insert(None);
+            }
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    by_id
+}
+
+fn share_topic_from_index(
+    index: &HashMap<[u8; 16], Option<Arc<str>>>,
+    id: [u8; 16],
+) -> Result<Arc<str>> {
+    match index.get(&id) {
+        Some(Some(name)) if !name.is_empty() => Ok(Arc::clone(name)),
+        Some(None) => Err(Error::protocol("share topic id is assigned to two names")),
+        _ => Err(Error::protocol("share topic id has no subscribed name")),
+    }
+}
+
+fn share_topic_name_from_index(
+    index: &HashMap<[u8; 16], Option<Arc<str>>>,
+    id: [u8; 16],
+) -> Result<crate::consumer::TopicName> {
+    Ok(crate::consumer::TopicName::shared(&share_topic_from_index(
+        index, id,
+    )?))
 }
 
 /// Topic stored for a fetched share record.
 ///
 /// A short name is copied inline. A long name clones the assignment's allocation.
+#[cfg(test)]
 fn topic_name_for_fetch(
     topic_ids: &HashMap<Arc<str>, [u8; 16]>,
     id: [u8; 16],
@@ -7268,6 +7326,7 @@ fn topic_name_for_fetch(
     )?))
 }
 
+#[cfg(test)]
 fn share_named<'a, N>(
     names: impl IntoIterator<Item = (N, &'a [u8; 16])>,
     id: [u8; 16],
@@ -10339,6 +10398,64 @@ mod tests {
             delivery_count: 1,
             leader_epoch: None,
         }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn naming_many_share_topics_does_not_hold_the_caller() {
+        let mut ids = HashMap::new();
+        let mut wanted = Vec::with_capacity(2_000_000);
+        for index in 0..2_000_000 {
+            let mut id = [0u8; 16];
+            id[..4].copy_from_slice(&u32::try_from(index).unwrap_or(0).to_le_bytes());
+            let name: Arc<str> = Arc::from(format!("orders-{index}"));
+            let _ = ids.insert(name, id);
+            wanted.push(id);
+        }
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = index_share_topic_ids(&ids) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "indexing share topic ids held the caller for {elapsed:?}"
+        );
+        let index = index_share_topic_ids(&ids).await;
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = async {
+                let mut named = 0usize;
+                for id in &wanted {
+                    let _named = share_topic_from_index(&index, *id);
+                    named = named.saturating_add(1);
+                    if named == 8 * 1024 {
+                        named = 0;
+                        tokio::task::yield_now().await;
+                    }
+                }
+            } => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let lookup_elapsed = started.elapsed();
+        assert!(
+            lookup_elapsed < std::time::Duration::from_millis(80),
+            "naming indexed share topics held the caller for {lookup_elapsed:?}"
+        );
+        let mut sample = HashMap::new();
+        let orders: Arc<str> = Arc::from("orders");
+        let payments: Arc<str> = Arc::from("payments");
+        let _ = sample.insert(Arc::clone(&orders), [1u8; 16]);
+        let _ = sample.insert(Arc::clone(&payments), [1u8; 16]);
+        let indexed = index_share_topic_ids(&sample).await;
+        assert!(share_topic_from_index(&indexed, [1u8; 16]).is_err());
+        let _ = sample.remove(payments.as_ref());
+        let indexed = index_share_topic_ids(&sample).await;
+        assert_eq!(
+            share_topic_from_index(&indexed, [1u8; 16]).expect("orders"),
+            orders
+        );
+        assert!(share_topic_from_index(&indexed, [2u8; 16]).is_err());
     }
 
     #[test]
