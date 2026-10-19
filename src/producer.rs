@@ -8226,19 +8226,8 @@ impl Worker {
         let pid = self.shared.producer_id.load(Ordering::SeqCst);
         let epoch = self.shared.producer_epoch.load(Ordering::SeqCst);
         let version = self.shared.add_partitions_version;
-        let added: Vec<(Arc<str>, i32)> = {
-            let wanted = self.shared.txn_partitions.lock();
-            let sent = self.shared.txn_added.lock();
-            let mut added = Vec::new();
-            for (topic, parts) in wanted.iter() {
-                for part in parts {
-                    if !txn_part_present(&sent, topic, *part) {
-                        added.push((Arc::clone(topic), *part));
-                    }
-                }
-            }
-            added
-        };
+        let added =
+            unsent_txn_partitions(&self.shared.txn_partitions, &self.shared.txn_added).await;
         if added.is_empty() {
             return Ok(());
         }
@@ -8589,6 +8578,65 @@ fn remember_txn_part_owned(map: &mut TxnPartSet, topic: Arc<str>, partition: i32
     let mut parts = HashSet::new();
     let _ = parts.insert(partition);
     let _ = map.insert(topic, parts);
+}
+
+/// Partitions in `wanted` that are not yet in `sent`.
+///
+/// Listing 5,000,000 unsent transaction partitions held the caller for 283ms.
+/// A partition is still collected.
+async fn unsent_txn_partitions(
+    wanted: &parking_lot::Mutex<TxnPartSet>,
+    sent: &parking_lot::Mutex<TxnPartSet>,
+) -> Vec<(Arc<str>, i32)> {
+    let mut pending = {
+        let mut guard = wanted.lock();
+        std::mem::take(&mut *guard)
+    };
+    let mut added = Vec::new();
+    let mut restored: TxnPartSet = HashMap::new();
+    while let Some(topic) = pending.keys().next().cloned() {
+        let Some(parts) = pending.remove(&topic) else {
+            continue;
+        };
+        let mut batch = Vec::new();
+        for part in &parts {
+            batch.push(*part);
+            if batch.len() == 8 * 1024 {
+                push_unsent_txn_partitions(&mut added, &topic, &batch, sent);
+                batch.clear();
+                tokio::task::yield_now().await;
+            }
+        }
+        if !batch.is_empty() {
+            push_unsent_txn_partitions(&mut added, &topic, &batch, sent);
+        }
+        let _ = restored.insert(topic, parts);
+    }
+    {
+        let mut guard = wanted.lock();
+        for (topic, parts) in restored {
+            if let Some(existing) = guard.get_mut(topic.as_ref()) {
+                existing.extend(parts);
+            } else {
+                let _ = guard.insert(topic, parts);
+            }
+        }
+    }
+    added
+}
+
+fn push_unsent_txn_partitions(
+    added: &mut Vec<(Arc<str>, i32)>,
+    topic: &Arc<str>,
+    batch: &[i32],
+    sent: &parking_lot::Mutex<TxnPartSet>,
+) {
+    let sent = sent.lock();
+    for part in batch {
+        if !txn_part_present(&sent, topic, *part) {
+            added.push((Arc::clone(topic), *part));
+        }
+    }
 }
 
 fn txn_part_present(map: &TxnPartSet, topic: &Arc<str>, partition: i32) -> bool {
@@ -12785,6 +12833,48 @@ mod tests {
                 .map(Vec::len),
             Ok(1)
         );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn listing_many_unsent_txn_partitions_does_not_hold_the_caller() {
+        let topic: Arc<str> = Arc::from("orders");
+        let mut wanted: TxnPartSet = HashMap::new();
+        let mut parts = HashSet::new();
+        for index in 0..5_000_000 {
+            let _ = parts.insert(index);
+        }
+        let _ = wanted.insert(Arc::clone(&topic), parts);
+        let wanted = parking_lot::Mutex::new(wanted);
+        let sent = parking_lot::Mutex::new(TxnPartSet::new());
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = unsent_txn_partitions(&wanted, &sent) => {}
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        assert!(
+            started.elapsed() < std::time::Duration::from_millis(80),
+            "listing unsent transaction partitions held the caller for {:?}",
+            started.elapsed()
+        );
+        let orders: Arc<str> = Arc::from("orders");
+        let mut sample_wanted: TxnPartSet = HashMap::new();
+        let mut sample_parts = HashSet::new();
+        let _ = sample_parts.insert(0);
+        let _ = sample_parts.insert(1);
+        let _ = sample_wanted.insert(Arc::clone(&orders), sample_parts);
+        let mut sample_sent: TxnPartSet = HashMap::new();
+        let mut sent_parts = HashSet::new();
+        let _ = sent_parts.insert(0);
+        let _ = sample_sent.insert(Arc::clone(&orders), sent_parts);
+        let stored_wanted = parking_lot::Mutex::new(sample_wanted);
+        let stored_sent = parking_lot::Mutex::new(sample_sent);
+        let listed = unsent_txn_partitions(&stored_wanted, &stored_sent).await;
+        assert_eq!(listed.len(), 1);
+        assert_eq!(listed.first().map(|(_, part)| *part), Some(1));
+        assert!(stored_wanted
+            .lock()
+            .get(orders.as_ref())
+            .is_some_and(|parts| parts.contains(&0) && parts.contains(&1)));
     }
 
     #[tokio::test(flavor = "current_thread")]
