@@ -2997,7 +2997,7 @@ pub(crate) async fn decode_fetch_response_raw_cooperative<B: Buf>(
         let mut part_index = 0usize;
         while part_index < pn {
             let end = part_index.saturating_add(8 * 1024).min(pn);
-            read_fetch_partitions(
+            read_fetch_partitions_cooperative(
                 buf,
                 version,
                 flexible,
@@ -3005,7 +3005,8 @@ pub(crate) async fn decode_fetch_response_raw_cooperative<B: Buf>(
                 &mut raw_partitions,
                 part_index,
                 end,
-            )?;
+            )
+            .await?;
             part_index = end;
             if part_index < pn {
                 tokio::task::yield_now().await;
@@ -3092,6 +3093,115 @@ fn read_fetch_partitions<B: Buf>(
                 buf::skip_tagged_fields(buf)?;
             }
             aborted_transactions.push((pid, first));
+        }
+        let preferred_read_replica = if version >= 11 {
+            buf::get_i32(buf)?
+        } else {
+            FetchedPartition::INVALID_PREFERRED_REPLICA_ID
+        };
+        let rec_bytes = if flexible {
+            buf::take_compact_bytes(buf)?.unwrap_or_else(Bytes::new)
+        } else {
+            buf::take_classic_bytes(buf)?.unwrap_or_else(Bytes::new)
+        };
+        raw_partitions.push(rec_bytes);
+        let (
+            diverging_epoch,
+            diverging_end_offset,
+            current_leader_id,
+            current_leader_epoch,
+            snapshot_end_offset,
+            snapshot_epoch,
+        ) = if flexible {
+            decode_fetch_partition_tags(buf)?
+        } else {
+            (
+                EpochEndOffset::UNDEFINED_EPOCH,
+                EpochEndOffset::UNDEFINED_EPOCH_OFFSET,
+                MetadataResponse::NO_LEADER_ID,
+                RecordBatch::NO_PARTITION_LEADER_EPOCH,
+                EpochEndOffset::UNDEFINED_EPOCH_OFFSET,
+                EpochEndOffset::UNDEFINED_EPOCH,
+            )
+        };
+        let built = FetchedPartition {
+            partition,
+            error_code,
+            high_watermark,
+            last_stable_offset,
+            log_start_offset,
+            aborted_transactions,
+            preferred_read_replica,
+            current_leader_id,
+            current_leader_epoch,
+            diverging_epoch,
+            diverging_end_offset,
+            snapshot_end_offset,
+            snapshot_epoch,
+            records: Vec::new(),
+        };
+        if part_index < partitions.len() {
+            if let Some(slot) = partitions.get_mut(part_index) {
+                *slot = built;
+            }
+        } else {
+            partitions.push(built);
+        }
+    }
+    Ok(())
+}
+
+/// [`read_fetch_partitions`], yielding while aborted transactions are still being read.
+///
+/// Decoding 1,000,000 aborted transactions held the caller for 170ms.
+async fn read_fetch_partitions_cooperative<B: Buf>(
+    buf: &mut B,
+    version: i16,
+    flexible: bool,
+    partitions: &mut Vec<FetchedPartition>,
+    raw_partitions: &mut SlotList<Bytes>,
+    start: usize,
+    end: usize,
+) -> Result<()> {
+    let mut walked = 0usize;
+    for part_index in start..end {
+        let partition = buf::get_i32(buf)?;
+        let error_code = buf::get_i16(buf)?;
+        let high_watermark = buf::get_i64(buf)?;
+        let last_stable_offset = buf::get_i64(buf)?;
+        let log_start_offset = if version >= 5 {
+            buf::get_i64(buf)?
+        } else {
+            FetchedPartition::INVALID_LOG_START_OFFSET
+        };
+        let aborted_len = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+        let mut aborted_transactions = if part_index < partitions.len() {
+            partitions
+                .get_mut(part_index)
+                .map_or_else(Vec::new, |part| {
+                    std::mem::take(&mut part.aborted_transactions)
+                })
+        } else {
+            Vec::new()
+        };
+        aborted_transactions.clear();
+        if aborted_len > aborted_transactions.capacity() {
+            aborted_transactions
+                .try_reserve(aborted_len)
+                .map_err(|_| Error::protocol("aborted transaction reserve"))?;
+        }
+        for _ in 0..aborted_len {
+            let pid = buf::get_i64(buf)?;
+            let first = buf::get_i64(buf)?;
+            if flexible {
+                buf::skip_tagged_fields(buf)?;
+            }
+            aborted_transactions.push((pid, first));
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
         }
         let preferred_read_replica = if version >= 11 {
             buf::get_i32(buf)?
@@ -3248,6 +3358,68 @@ mod tests {
                 .and_then(|item| item.partitions.first())
                 .map(|item| item.error_code),
             Some(6)
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn decoding_many_aborted_transactions_does_not_hold_the_caller() {
+        let mut partition = FetchedPartition::partition_response(0, 0);
+        partition.aborted_transactions = (0..1_000_000).map(|index| (index, index)).collect();
+        let topics = [FetchedTopic {
+            topic: "orders".to_string(),
+            topic_id: [0; 16],
+            partitions: vec![partition],
+        }];
+        let mut body = bytes::BytesMut::new();
+        encode_fetch_response(&mut body, 12, &topics).unwrap_or_else(|error| panic!("{error}"));
+        let started = std::time::Instant::now();
+        tokio::select! {
+            decoded = decode_fetch_response_raw_cooperative(&mut body, 12, Vec::new()) => {
+                let (decoded, ..) = decoded.unwrap_or_else(|error| panic!("{error}"));
+                assert_eq!(
+                    decoded.first().and_then(|item| item.partitions.first()).map(|item| item.aborted_transactions.len()),
+                    Some(1_000_000)
+                );
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "decoding aborted transactions held the caller for {elapsed:?}"
+        );
+        let mut one = FetchedPartition::partition_response(3, 0);
+        one.aborted_transactions = vec![(9, 4)];
+        let sample = [FetchedTopic {
+            topic: "orders".to_string(),
+            topic_id: [0; 16],
+            partitions: vec![one],
+        }];
+        let mut encoded = bytes::BytesMut::new();
+        encode_fetch_response(&mut encoded, 12, &sample).unwrap_or_else(|error| panic!("{error}"));
+        let mut once = encoded.clone();
+        let mut paced = encoded;
+        let sync = decode_fetch_response_raw(&mut once, 12, Vec::new())
+            .unwrap_or_else(|error| panic!("{error}"));
+        let coop = decode_fetch_response_raw_cooperative(&mut paced, 12, Vec::new())
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(
+            sync.0
+                .first()
+                .and_then(|item| item.partitions.first())
+                .map(|item| item.aborted_transactions.as_slice()),
+            coop.0
+                .first()
+                .and_then(|item| item.partitions.first())
+                .map(|item| item.aborted_transactions.as_slice())
+        );
+        assert_eq!(
+            coop.0
+                .first()
+                .and_then(|item| item.partitions.first())
+                .map(|item| item.aborted_transactions.as_slice()),
+            Some([(9, 4)].as_slice())
         );
     }
 
