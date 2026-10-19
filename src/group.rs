@@ -35,12 +35,13 @@ use crate::protocol::group::{
     decode_sync_group_response, encode_find_coordinator_request_typed, encode_heartbeat_request,
     encode_join_group_protocols_request, encode_leave_group_request_members,
     encode_offset_commit_request, encode_offset_commit_request_cooperative,
-    encode_offset_fetch_request, encode_sync_group_request, encode_tp_assignment_cooperative,
-    BorrowedOffsetPartition, BorrowedOffsetTopic, ConsumerProtocol, ConsumerProtocolSubscription,
-    FetchedOffset, FetchedOffsetTopic, JoinGroupProtocol, JoinGroupProtocolsRequest,
-    JoinGroupRequest, JoinGroupResponse, LeaveGroupMember, OffsetCommitRequestData,
-    OffsetFetchRequestData, OffsetFetchTopic, OffsetPartition, OffsetTopic, SyncGroupRequest,
-    Topic, COORDINATOR_GROUP, DEFAULT_RETENTION_TIME,
+    encode_offset_fetch_request, encode_sync_group_request, encode_sync_group_request_cooperative,
+    encode_tp_assignment_cooperative, BorrowedOffsetPartition, BorrowedOffsetTopic,
+    ConsumerProtocol, ConsumerProtocolSubscription, FetchedOffset, FetchedOffsetTopic,
+    JoinGroupProtocol, JoinGroupProtocolsRequest, JoinGroupRequest, JoinGroupResponse,
+    LeaveGroupMember, OffsetCommitRequestData, OffsetFetchRequestData, OffsetFetchTopic,
+    OffsetPartition, OffsetTopic, SyncGroupRequest, Topic, COORDINATOR_GROUP,
+    DEFAULT_RETENTION_TIME,
 };
 use crate::protocol::sasl;
 
@@ -3325,6 +3326,20 @@ impl ConsumerGroup {
         } else {
             Some(self.consumer.start_leader_dials(&leaders, deadline).await)
         };
+        let prepared_version = negotiated_coord_version(&self.coord, SYNC_GROUP).ok();
+        let sync_request = SyncGroupRequest {
+            group_id: &self.group_id,
+            generation_id: self.generation_id,
+            member_id: &self.member_id,
+            group_instance_id: self.cfg.group_instance_id.as_deref(),
+            protocol_type: ConsumerProtocol::PROTOCOL_TYPE,
+            protocol_name: &self.protocol,
+            assignments: &assignments,
+        };
+        let mut payload = BytesMut::new();
+        if let Some(version) = prepared_version {
+            encode_sync_group_request_cooperative(&mut payload, version, &sync_request).await?;
+        }
         let sync_fut = coord_roundtrip_with_bootstrap(
             &mut self.coord,
             &self.cfg,
@@ -3332,19 +3347,12 @@ impl ConsumerGroup {
             COORDINATOR_GROUP,
             SYNC_GROUP,
             |version, buf| {
-                encode_sync_group_request(
-                    buf,
-                    version,
-                    &SyncGroupRequest {
-                        group_id: &self.group_id,
-                        generation_id: self.generation_id,
-                        member_id: &self.member_id,
-                        group_instance_id: self.cfg.group_instance_id.as_deref(),
-                        protocol_type: ConsumerProtocol::PROTOCOL_TYPE,
-                        protocol_name: &self.protocol,
-                        assignments: &assignments,
-                    },
-                )
+                if prepared_version == Some(version) {
+                    buf.extend_from_slice(&payload);
+                    Ok(())
+                } else {
+                    encode_sync_group_request(buf, version, &sync_request)
+                }
             },
             &bootstrap_keys,
             &address_keys,

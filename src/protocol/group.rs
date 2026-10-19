@@ -2765,6 +2765,84 @@ pub fn encode_sync_group_request(
     Ok(())
 }
 
+/// Encode SyncGroup, yielding while member assignments are still being written.
+///
+/// Encoding 2,000,000 assignments held the caller for 635ms. A member id and an assignment are still written.
+pub(crate) async fn encode_sync_group_request_cooperative(
+    buf: &mut BytesMut,
+    version: i16,
+    req: &SyncGroupRequest<'_>,
+) -> crate::error::Result<()> {
+    let flexible = sync_group_flexible(version)?;
+    let body_start = buf.len();
+    let planned = sync_group_request_len_cooperative(version, flexible, req).await?;
+    reserve_group_body(buf, planned);
+    buf::put_string(buf, flexible, Some(req.group_id))?;
+    buf.put_i32(req.generation_id);
+    buf::put_string(buf, flexible, Some(req.member_id))?;
+    if version >= 3 {
+        buf::put_string(buf, flexible, req.group_instance_id)?;
+    }
+    if version >= 5 {
+        buf::put_string(buf, true, Some(req.protocol_type))?;
+        buf::put_string(buf, true, Some(req.protocol_name))?;
+    }
+    buf::put_array_len(buf, flexible, Some(req.assignments.len()))?;
+    let mut walked = 0usize;
+    for (id, bytes) in req.assignments {
+        buf::put_string(buf, flexible, Some(id))?;
+        buf::put_bytes(buf, flexible, Some(bytes))?;
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+    Ok(())
+}
+
+async fn sync_group_request_len_cooperative(
+    version: i16,
+    flexible: bool,
+    req: &SyncGroupRequest<'_>,
+) -> Result<usize> {
+    let mut total = group_string_len(flexible, Some(req.group_id))?;
+    total = add_group_len(total, 4)?;
+    total = add_group_len(total, group_string_len(flexible, Some(req.member_id))?)?;
+    if version >= 3 {
+        total = add_group_len(total, group_string_len(flexible, req.group_instance_id)?)?;
+    }
+    if version >= 5 {
+        total = add_group_len(total, group_string_len(true, Some(req.protocol_type))?)?;
+        total = add_group_len(total, group_string_len(true, Some(req.protocol_name))?)?;
+    }
+    total = add_group_len(total, group_array_len(flexible, req.assignments.len())?)?;
+    let mut walked = 0usize;
+    for (id, bytes) in req.assignments {
+        total = add_group_len(total, group_string_len(flexible, Some(id))?)?;
+        total = add_group_len(total, group_bytes_len(flexible, bytes)?)?;
+        if flexible {
+            total = add_group_len(total, buf::unsigned_varint_size(0))?;
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    if flexible {
+        total = add_group_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
+}
+
 /// Decode SyncGroup: `(group_id, member_id, assignments, group_instance_id,
 /// protocol_type, protocol_name, generation_id)`.
 ///
@@ -8610,6 +8688,48 @@ async fn group_owned_assignment_cooperative(parts: Vec<(String, i32)>) -> Vec<(S
 mod tests {
     use super::*;
     use std::collections::HashMap;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn encoding_many_sync_group_assignments_does_not_hold_the_caller() {
+        let assignments: Vec<(String, Vec<u8>)> = (0..2_000_000)
+            .map(|index| (format!("member-{index}"), vec![0]))
+            .collect();
+        let request = SyncGroupRequest {
+            group_id: "group",
+            generation_id: 1,
+            member_id: "leader",
+            group_instance_id: None,
+            protocol_type: "consumer",
+            protocol_name: "range",
+            assignments: &assignments,
+        };
+        let mut body = bytes::BytesMut::new();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            encoded = encode_sync_group_request_cooperative(&mut body, 5, &request) => {
+                encoded.unwrap_or_else(|error| panic!("{error}"));
+            }
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        assert!(
+            started.elapsed() < std::time::Duration::from_millis(80),
+            "encoding sync group assignments held the caller for {:?}",
+            started.elapsed()
+        );
+        let sample = [("m1".to_string(), vec![0])];
+        let once_request = SyncGroupRequest {
+            assignments: &sample,
+            ..request
+        };
+        let mut once = bytes::BytesMut::new();
+        let mut paced = bytes::BytesMut::new();
+        encode_sync_group_request(&mut once, 5, &once_request)
+            .unwrap_or_else(|error| panic!("{error}"));
+        encode_sync_group_request_cooperative(&mut paced, 5, &once_request)
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(once, paced);
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn encoding_many_offset_commits_does_not_hold_the_caller() {
