@@ -15611,7 +15611,7 @@ impl Admin {
         pending: &[usize],
         deadline: Instant,
     ) -> Result<HashMap<i32, Vec<usize>>> {
-        let need = first_seen_missing_ids(ids, pending, &self.group_coords);
+        let need = first_seen_missing_ids_cooperative(ids, pending, &self.group_coords).await;
         if !need.is_empty() {
             let mut known_nodes = Vec::new();
             let mut seen_nodes = HashSet::new();
@@ -15686,7 +15686,7 @@ impl Admin {
         pending: &[usize],
         deadline: Instant,
     ) -> Result<HashMap<i32, Vec<usize>>> {
-        let need = first_seen_missing_ids(ids, pending, &self.txn_coords);
+        let need = first_seen_missing_ids_cooperative(ids, pending, &self.txn_coords).await;
         if !need.is_empty() {
             let mut known_nodes = Vec::new();
             let mut seen_nodes = HashSet::new();
@@ -16659,6 +16659,7 @@ async fn unique_in_order<'a>(keys: &[&'a str]) -> Vec<&'a str> {
     uniq
 }
 
+#[cfg(test)]
 fn first_seen_missing_ids<'a, T: AsRef<str>>(
     ids: &'a [T],
     pending: &[usize],
@@ -16675,6 +16676,36 @@ fn first_seen_missing_ids<'a, T: AsRef<str>>(
             continue;
         }
         need.push(id);
+    }
+    need
+}
+
+fn missing_id_chunk() -> usize {
+    8 * 1024
+}
+
+/// Listing 2,000,000 missing coordinators held the caller for 1.76s.
+/// The first copy of an id is still kept.
+async fn first_seen_missing_ids_cooperative<'a, T: AsRef<str>>(
+    ids: &'a [T],
+    pending: &[usize],
+    known: &HashMap<String, i32>,
+) -> Vec<&'a str> {
+    let mut need = Vec::new();
+    let mut seen = HashSet::new();
+    let mut walked = 0usize;
+    for &index in pending {
+        walked = walked.saturating_add(1);
+        if let Some(id) = ids.get(index) {
+            let id = id.as_ref();
+            if !known.contains_key(id) && seen.insert(id) {
+                need.push(id);
+            }
+        }
+        if walked == missing_id_chunk() {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
     }
     need
 }
@@ -17268,6 +17299,37 @@ mod tests {
         let need =
             topics_missing_leaders(&known, [("orders", 0), ("orders", 1), ("payments", 0)]).await;
         assert_eq!(need, vec!["orders"]);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn listing_many_missing_coordinators_does_not_hold_the_caller() {
+        let ids: Vec<String> = (0..2_000_000)
+            .map(|index| format!("group-{index}"))
+            .collect();
+        let pending: Vec<usize> = (0..ids.len()).collect();
+        let known = HashMap::<String, i32>::new();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = first_seen_missing_ids_cooperative(&ids, &pending, &known) => {}
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        assert!(
+            started.elapsed() < std::time::Duration::from_millis(80),
+            "listing missing coordinators held the caller for {:?}",
+            started.elapsed()
+        );
+        let sample = [
+            "orders".to_string(),
+            "payments".to_string(),
+            "orders".to_string(),
+        ];
+        let sample_pending = [0usize, 1, 2];
+        let mut sample_known = HashMap::new();
+        let _stored = sample_known.insert("payments".to_string(), 5);
+        assert_eq!(
+            first_seen_missing_ids_cooperative(&sample, &sample_pending, &sample_known).await,
+            first_seen_missing_ids(&sample, &sample_pending, &sample_known)
+        );
     }
 
     #[tokio::test(flavor = "current_thread")]
