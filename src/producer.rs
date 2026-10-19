@@ -7785,6 +7785,7 @@ impl Worker {
                     } else {
                         fill_ack_topics(&inf.groups, Some(name), requested).await;
                         clear_ack_parts(seen);
+                        let mut walked = 0usize;
                         for ack in &acks {
                             if *sent == [0; 16] || ack.topic_id == [0; 16] || ack.topic_id != *sent
                             {
@@ -7799,6 +7800,11 @@ impl Worker {
                                 Err(Error::protocol(
                                     "Produce v13 unsolicited or duplicate partition response",
                                 ))?;
+                            }
+                            walked = walked.saturating_add(1);
+                            if walked == 8 * 1024 {
+                                walked = 0;
+                                tokio::task::yield_now().await;
                             }
                         }
                     }
@@ -9682,6 +9688,16 @@ async fn solicited_v13_acks(
 ) -> Result<()> {
     fill_ack_topics(groups, None, requested).await;
     clear_ack_parts(seen);
+    accept_solicited_acks(acks, by_id, requested, seen).await
+}
+
+async fn accept_solicited_acks(
+    acks: &[ProduceAck],
+    by_id: &HashMap<[u8; 16], Arc<str>>,
+    requested: &HashMap<Arc<str>, HashSet<i32>>,
+    seen: &mut HashMap<Arc<str>, HashSet<i32>>,
+) -> Result<()> {
+    let mut walked = 0usize;
     for ack in acks {
         let Some(name) = by_id.get(&ack.topic_id) else {
             return Err(Error::protocol(
@@ -9695,6 +9711,11 @@ async fn solicited_v13_acks(
             return Err(Error::protocol(
                 "Produce v13 unsolicited or duplicate partition response",
             ));
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
         }
     }
     Ok(())
@@ -12450,6 +12471,90 @@ mod tests {
         assert_eq!(
             block_on_take(take_count_in(&same_base, 10, usize::MAX, &mut bases)),
             2
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn checking_many_solicited_acks_does_not_hold_the_caller() {
+        // 2_000_000 acknowledgements: checking each one held the caller 2.65s.
+        let topic: Arc<str> = Arc::from("orders");
+        let groups: Vec<(Arc<str>, i32, Vec<Pending>)> = (0..2_000_000)
+            .map(|index| (Arc::clone(&topic), index, Vec::new()))
+            .collect();
+        let mut requested = HashMap::new();
+        fill_ack_topics(&groups, None, &mut requested).await;
+        let id = [1u8; 16];
+        let mut by_id = HashMap::new();
+        let _ = by_id.insert(id, Arc::clone(&topic));
+        let acks: Vec<ProduceAck> = (0..2_000_000)
+            .map(|partition| ProduceAck {
+                topic: bytes::Bytes::new(),
+                topic_id: id,
+                partition,
+                error_code: 0,
+                base_offset: 0,
+                log_append_time_ms: 0,
+                current_leader_id: -1,
+                current_leader_epoch: -1,
+            })
+            .collect();
+        let mut seen = HashMap::new();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            checked = accept_solicited_acks(&acks, &by_id, &requested, &mut seen) => {
+                checked.unwrap_or_else(|error| panic!("{error}"));
+                assert_eq!(seen.get(topic.as_ref()).map(HashSet::len), Some(2_000_000));
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "checking solicited acks held the caller for {elapsed:?}"
+        );
+        let duplicate = ProduceAck {
+            topic: bytes::Bytes::new(),
+            topic_id: id,
+            partition: 0,
+            error_code: 0,
+            base_offset: 0,
+            log_append_time_ms: 0,
+            current_leader_id: -1,
+            current_leader_epoch: -1,
+        };
+        let again = ProduceAck {
+            topic: bytes::Bytes::new(),
+            topic_id: id,
+            partition: 0,
+            error_code: 0,
+            base_offset: 1,
+            log_append_time_ms: 0,
+            current_leader_id: -1,
+            current_leader_epoch: -1,
+        };
+        let mut seen = HashMap::new();
+        accept_solicited_acks(&[duplicate], &by_id, &requested, &mut seen)
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert!(
+            accept_solicited_acks(&[again], &by_id, &requested, &mut seen)
+                .await
+                .is_err()
+        );
+        let unknown = ProduceAck {
+            topic: bytes::Bytes::new(),
+            topic_id: [9; 16],
+            partition: 0,
+            error_code: 0,
+            base_offset: 0,
+            log_append_time_ms: 0,
+            current_leader_id: -1,
+            current_leader_epoch: -1,
+        };
+        assert!(
+            accept_solicited_acks(&[unknown], &by_id, &requested, &mut seen)
+                .await
+                .is_err()
         );
     }
 
