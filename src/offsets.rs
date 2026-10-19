@@ -12,7 +12,7 @@ use crate::protocol::api_keys::{
 };
 use crate::protocol::group::{
     decode_find_coordinator_response_coordinators, decode_offset_commit_response_data,
-    decode_offset_fetch_response_data, encode_find_coordinator_request_keys,
+    decode_offset_fetch_response_data, encode_find_coordinator_request_keys_cooperative,
     encode_find_coordinator_request_typed, encode_offset_commit_request_into,
     encode_offset_fetch_request_into, validate_offset_commit_request_data,
     validate_offset_fetch_request_data, validate_offset_fetch_response_data,
@@ -680,11 +680,22 @@ impl OffsetClient {
             return Ok(routes);
         }
         let keys: Vec<&str> = groups.iter().map(|group| group.group_id.as_str()).collect();
+        let mut encoded = bytes::BytesMut::new();
+        encode_find_coordinator_request_keys_cooperative(
+            &mut encoded,
+            version,
+            &keys,
+            COORDINATOR_GROUP,
+        )
+        .await?;
         let body = conn
             .roundtrip_deadline(
                 FIND_COORDINATOR,
                 version,
-                |buf| encode_find_coordinator_request_keys(buf, version, &keys, COORDINATOR_GROUP),
+                |buf| {
+                    buf.extend_from_slice(&encoded);
+                    Ok(())
+                },
                 deadline,
             )
             .await?;

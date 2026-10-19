@@ -1073,6 +1073,79 @@ pub fn encode_find_coordinator_request_keys(
     Ok(())
 }
 
+/// Encode FindCoordinator, yielding while coordinator keys are still being written.
+///
+/// Encoding 2,000,000 keys held the caller for 249ms. A coordinator key is still written.
+pub(crate) async fn encode_find_coordinator_request_keys_cooperative(
+    buf: &mut BytesMut,
+    version: i16,
+    keys: &[&str],
+    key_type: i8,
+) -> crate::error::Result<()> {
+    let flexible = find_coordinator_flexible(version)?;
+    if version == 0 && key_type != COORDINATOR_GROUP {
+        return Err(Error::Unsupported(
+            "FindCoordinator v0 only supports GROUP".into(),
+        ));
+    }
+    if find_coordinator_batched(version) {
+        let body_start = buf.len();
+        let planned = find_coordinator_batched_request_len_cooperative(keys).await?;
+        reserve_group_body(buf, planned);
+        buf.put_i8(key_type);
+        buf::put_array_len(buf, true, Some(keys.len()))?;
+        let mut walked = 0usize;
+        for key in keys {
+            buf::put_compact_string(buf, Some(key))?;
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+        buf::put_empty_tagged_fields(buf);
+        debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+        return Ok(());
+    }
+    if keys.len() > 1 {
+        return Err(Error::Unsupported(format!(
+            "Cannot create a v{version} FindCoordinator request because we require features supported only in {MIN_BATCHED_VERSION} or later."
+        )));
+    }
+    let Some(key) = keys.first().copied() else {
+        return Err(Error::protocol(format!(
+            "FindCoordinator version {version} does not support CoordinatorKeys"
+        )));
+    };
+    let body_start = buf.len();
+    let planned = find_coordinator_single_request_len(version, flexible, key)?;
+    reserve_group_body(buf, planned);
+    buf::put_string(buf, flexible, Some(key))?;
+    if version >= 1 {
+        buf.put_i8(key_type);
+    }
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+    Ok(())
+}
+
+async fn find_coordinator_batched_request_len_cooperative(keys: &[&str]) -> Result<usize> {
+    let mut total = 1usize;
+    total = add_group_len(total, group_array_len(true, keys.len())?)?;
+    let mut walked = 0usize;
+    for key in keys {
+        total = add_group_len(total, group_string_len(true, Some(key))?)?;
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    add_group_len(total, buf::unsigned_varint_size(0))
+}
+
 fn find_coordinator_batched_request_len(keys: &[&str]) -> Result<usize> {
     let mut total = 1usize;
     total = add_group_len(total, group_array_len(true, keys.len())?)?;
@@ -7842,6 +7915,41 @@ async fn group_owned_assignment_cooperative(parts: Vec<(String, i32)>) -> Vec<(S
 mod tests {
     use super::*;
     use std::collections::HashMap;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn encoding_many_coordinator_keys_does_not_hold_the_caller() {
+        let owned: Vec<String> = (0..2_000_000)
+            .map(|index| format!("group-{index}"))
+            .collect();
+        let keys: Vec<&str> = owned.iter().map(String::as_str).collect();
+        let mut body = bytes::BytesMut::new();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            encoded = encode_find_coordinator_request_keys_cooperative(
+                &mut body,
+                4,
+                &keys,
+                COORDINATOR_GROUP,
+            ) => {
+                encoded.unwrap_or_else(|error| panic!("{error}"));
+            }
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "encoding coordinator keys held the caller for {elapsed:?}"
+        );
+        let sample = ["orders"];
+        let mut once = bytes::BytesMut::new();
+        let mut paced = bytes::BytesMut::new();
+        encode_find_coordinator_request_keys(&mut once, 4, &sample, COORDINATOR_GROUP)
+            .unwrap_or_else(|error| panic!("{error}"));
+        encode_find_coordinator_request_keys_cooperative(&mut paced, 4, &sample, COORDINATOR_GROUP)
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(once, paced);
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn decoding_a_large_subscription_does_not_hold_the_caller() {

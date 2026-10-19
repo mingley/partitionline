@@ -113,7 +113,7 @@ use crate::protocol::group::{
     decode_find_coordinator_response, decode_find_coordinator_response_coordinators_cooperative,
     decode_leave_group_response_version_cooperative, decode_offset_commit_response_cooperative,
     decode_offset_delete_response_cooperative, decode_offset_fetch_groups_response_cooperative,
-    decode_offset_fetch_response_cooperative, encode_find_coordinator_request_keys,
+    decode_offset_fetch_response_cooperative, encode_find_coordinator_request_keys_cooperative,
     encode_find_coordinator_request_typed, encode_leave_group_request_members,
     encode_offset_commit_named, encode_offset_delete_named_topics,
     encode_offset_fetch_groups_named, encode_offset_fetch_named, BorrowedOffsetFetchRequestGroup,
@@ -15231,6 +15231,9 @@ impl Admin {
             return Ok(out);
         }
         let mut attempt = 0u32;
+        let mut encoded = BytesMut::new();
+        encode_find_coordinator_request_keys_cooperative(&mut encoded, version, &uniq, key_type)
+            .await?;
         loop {
             if Instant::now() >= deadline {
                 return Err(Error::Timeout);
@@ -15239,7 +15242,10 @@ impl Admin {
                 .roundtrip_bootstrap(
                     FIND_COORDINATOR,
                     version,
-                    |buf| encode_find_coordinator_request_keys(buf, version, &uniq, key_type),
+                    |buf| {
+                        buf.extend_from_slice(&encoded);
+                        Ok(())
+                    },
                     deadline.saturating_duration_since(Instant::now()),
                 )
                 .await;
