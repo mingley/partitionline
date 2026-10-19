@@ -9626,10 +9626,7 @@ impl Admin {
         Tp: Into<crate::TopicPartition>,
         Off: Into<i64>,
     {
-        let records: Vec<(crate::TopicPartition, i64)> = records
-            .into_iter()
-            .map(|(tp, off)| (tp.into(), off.into()))
-            .collect();
+        let records = collect_topic_pairs(records).await;
         if records.is_empty() {
             return Ok(Vec::new());
         }
@@ -9980,10 +9977,7 @@ impl Admin {
         Tp: Into<crate::TopicPartition>,
         Ts: Into<i64>,
     {
-        let queries: Vec<(crate::TopicPartition, i64)> = queries
-            .into_iter()
-            .map(|(tp, ts)| (tp.into(), ts.into()))
-            .collect();
+        let queries = collect_topic_pairs(queries).await;
         if queries.is_empty() {
             return Ok(Vec::new());
         }
@@ -10846,8 +10840,7 @@ impl Admin {
         timeout: Duration,
         broker_id: Option<i32>,
     ) -> Result<Vec<DescribeProducersTopic>> {
-        let partitions: Vec<crate::TopicPartition> =
-            partitions.into_iter().map(Into::into).collect();
+        let partitions = collect_topic_partitions(partitions).await;
         if partitions.is_empty() {
             return Ok(Vec::new());
         }
@@ -16656,6 +16649,53 @@ fn first_seen_missing_ids<'a, T: AsRef<str>>(
     need
 }
 
+fn topic_record_chunk() -> usize {
+    8 * 1024
+}
+
+/// Collecting 2,000,000 topic partitions held the caller for 269ms.
+/// A topic name is still copied.
+async fn collect_topic_pairs<Tp, Off>(
+    records: impl IntoIterator<Item = (Tp, Off)>,
+) -> Vec<(crate::TopicPartition, i64)>
+where
+    Tp: Into<crate::TopicPartition>,
+    Off: Into<i64>,
+{
+    let mut out = Vec::new();
+    let mut walked = 0usize;
+    for (topic, offset) in records {
+        out.push((topic.into(), offset.into()));
+        walked = walked.saturating_add(1);
+        if walked == topic_record_chunk() {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    out
+}
+
+/// Collecting 2,000,000 topic partitions held the caller for 269ms.
+/// A topic name is still copied.
+async fn collect_topic_partitions<Tp>(
+    partitions: impl IntoIterator<Item = Tp>,
+) -> Vec<crate::TopicPartition>
+where
+    Tp: Into<crate::TopicPartition>,
+{
+    let mut out = Vec::new();
+    let mut walked = 0usize;
+    for topic in partitions {
+        out.push(topic.into());
+        walked = walked.saturating_add(1);
+        if walked == topic_record_chunk() {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    out
+}
+
 fn coordinator_group_chunk() -> usize {
     8 * 1024
 }
@@ -17307,6 +17347,34 @@ mod tests {
         let need =
             topics_missing_leaders(&known, [("orders", 0), ("orders", 1), ("payments", 0)]).await;
         assert_eq!(need, vec!["orders"]);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn collecting_many_topic_partitions_does_not_hold_the_caller() {
+        let names: Vec<String> = (0..2_000_000)
+            .map(|index| format!("topic-{index}"))
+            .collect();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = collect_topic_pairs(names.iter().enumerate().map(|(index, name)| {
+                ((name.as_str(), i32::try_from(index).unwrap_or(0)), 0i64)
+            })) => {}
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        assert!(
+            started.elapsed() < std::time::Duration::from_millis(80),
+            "collecting topic partitions held the caller for {:?}",
+            started.elapsed()
+        );
+        let collected = collect_topic_pairs([(("orders", 3), 9i64), (("payments", 1), 4i64)]).await;
+        assert_eq!(collected[0].0.topic(), "orders");
+        assert_eq!(collected[0].0.partition(), 3);
+        assert_eq!(collected[0].1, 9);
+        assert_eq!(collected[1].0.topic(), "payments");
+        assert_eq!(collected[1].1, 4);
+        let partitions = collect_topic_partitions([("orders", 3), ("payments", 1)]).await;
+        assert_eq!(partitions[0].topic(), "orders");
+        assert_eq!(partitions[1].partition(), 1);
     }
 
     #[tokio::test(flavor = "current_thread")]
