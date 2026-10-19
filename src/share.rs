@@ -2447,6 +2447,13 @@ pub enum ShareAcquireMode {
 /// `INELIGIBLE_REPLICA`). Official Java
 /// `ReplicationControlManager` writes this when AlterPartition
 /// completes a reassignment and the leader changes.
+/// Top-level `OFFSET_MOVED_TO_TIERED_STORAGE` still fails that poll
+/// and does not request Metadata, including when `ErrorMessage` is
+/// set (Java `handleShareFetchSuccess` only `requestUpdate`s for
+/// `UNKNOWN_TOPIC_ID`; this is not top-level
+/// `NEW_LEADER_ELECTED`). Official Java
+/// `ReplicaManager` writes this when a follower fetch offset is below
+/// `localLogStartOffset` but at or above `logStartOffset`.
 /// Top-level
 /// `SHARE_SESSION_LIMIT_REACHED` resets the share session and does
 /// not request Metadata, including when `ErrorMessage` is set or
@@ -5729,6 +5736,14 @@ impl ShareGroup {
     /// `INELIGIBLE_REPLICA`). Official Java
     /// `ReplicationControlManager` writes this when AlterPartition
     /// completes a reassignment and the leader changes. Top-level
+    /// `OFFSET_MOVED_TO_TIERED_STORAGE` still fails that poll without
+    /// Metadata, including when `ErrorMessage` is set (Java
+    /// `handleShareFetchSuccess` only `requestUpdate`s for
+    /// `UNKNOWN_TOPIC_ID`; this is not top-level
+    /// `NEW_LEADER_ELECTED`). Official Java
+    /// `ReplicaManager` writes this when a follower fetch offset is
+    /// below `localLogStartOffset` but at or above `logStartOffset`.
+    /// Top-level
     /// `SHARE_SESSION_LIMIT_REACHED` resets the share session and
     /// does not request Metadata, including when `ErrorMessage` is
     /// set or empty (Java `handleShareFetchSuccess` only

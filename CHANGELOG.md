@@ -2183,6 +2183,13 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `UNKNOWN_TOPIC_ID`; this is not top-level
   `INELIGIBLE_REPLICA`). Official Java `ReplicationControlManager`
   writes this when AlterPartition completes a reassignment and the leader changes.
+  Top-level `OFFSET_MOVED_TO_TIERED_STORAGE` still fails that poll
+  without Metadata, including when `ErrorMessage` is set (Java
+  `handleShareFetchSuccess` only `requestUpdate`s for top-level
+  `UNKNOWN_TOPIC_ID`; this is not top-level
+  `NEW_LEADER_ELECTED`). Official Java `ReplicaManager`
+  writes this when a follower fetch offset is below `localLogStartOffset`
+  but at or above `logStartOffset`.
   A non-empty
   throwable partition or top-level ShareFetch `ErrorMessage` is
   preferred; empty uses `ShareFetch {topic}-{partition}` or
