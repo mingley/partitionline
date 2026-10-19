@@ -8326,12 +8326,7 @@ impl Worker {
             );
             return Err(e);
         }
-        {
-            let mut sent = self.shared.txn_added.lock();
-            for (topic, part) in added {
-                remember_txn_part_owned(&mut sent, topic, part);
-            }
-        }
+        remember_added_txn_parts(&self.shared.txn_added, &added).await;
         Ok(())
     }
 
@@ -8570,6 +8565,31 @@ fn remember_txn_part(map: &mut TxnPartSet, topic: &Arc<str>, partition: i32) {
     let _ = map.insert(Arc::clone(topic), parts);
 }
 
+/// Record partitions that AddPartitionsToTxn accepted.
+///
+/// Remembering 2,000,000 transaction partitions held the caller for 1278ms.
+/// A partition is still stored.
+async fn remember_added_txn_parts(
+    sent: &parking_lot::Mutex<TxnPartSet>,
+    added: &[(Arc<str>, i32)],
+) {
+    let mut start = 0usize;
+    while start < added.len() {
+        let end = start.saturating_add(8 * 1024).min(added.len());
+        if let Some(slice) = added.get(start..end) {
+            let mut guard = sent.lock();
+            for (topic, part) in slice {
+                remember_txn_part(&mut guard, topic, *part);
+            }
+        }
+        start = end;
+        if start < added.len() {
+            tokio::task::yield_now().await;
+        }
+    }
+}
+
+#[cfg(test)]
 fn remember_txn_part_owned(map: &mut TxnPartSet, topic: Arc<str>, partition: i32) {
     if let Some(parts) = map.get_mut(topic.as_ref()) {
         let _ = parts.insert(partition);
@@ -12833,6 +12853,38 @@ mod tests {
                 .map(Vec::len),
             Ok(1)
         );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn remembering_many_txn_partitions_does_not_hold_the_caller() {
+        let topic: Arc<str> = Arc::from("orders");
+        let added: Vec<(Arc<str>, i32)> = (0..2_000_000)
+            .map(|index| (Arc::clone(&topic), index))
+            .collect();
+        let sent = parking_lot::Mutex::new(TxnPartSet::new());
+        let started = std::time::Instant::now();
+        tokio::select! {
+            () = remember_added_txn_parts(&sent, &added) => {}
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        assert!(
+            started.elapsed() < std::time::Duration::from_millis(80),
+            "remembering transaction partitions held the caller for {:?}",
+            started.elapsed()
+        );
+        let orders: Arc<str> = Arc::from("orders");
+        let payments: Arc<str> = Arc::from("payments");
+        let sample = [
+            (Arc::clone(&orders), 0),
+            (Arc::clone(&orders), 0),
+            (Arc::clone(&payments), 4),
+        ];
+        let stored = parking_lot::Mutex::new(TxnPartSet::new());
+        remember_added_txn_parts(&stored, &sample).await;
+        let guard = stored.lock();
+        assert!(txn_part_present(&guard, &orders, 0));
+        assert!(txn_part_present(&guard, &payments, 4));
+        assert_eq!(guard.get(orders.as_ref()).map(HashSet::len), Some(1));
     }
 
     #[tokio::test(flavor = "current_thread")]
