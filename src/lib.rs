@@ -3526,6 +3526,13 @@
 //! `UNKNOWN_TOPIC_ID`; this is not top-level
 //! `UNRELEASED_INSTANCE_ID`). Official Java `GroupCoordinatorService`
 //! writes this when ConsumerGroupHeartbeat names a ServerAssignor the coordinator does not support.
+//! Top-level
+//! `STALE_MEMBER_EPOCH` still fails that poll without
+//! Metadata, including when `ErrorMessage` is set (Java
+//! `handleShareFetchSuccess` only `requestUpdate`s for
+//! `UNKNOWN_TOPIC_ID`; this is not top-level
+//! `UNSUPPORTED_ASSIGNOR`). Official Java `ConsumerGroup`
+//! writes this when a consumer-protocol OffsetCommit or OffsetFetch member epoch does not match the coordinator's stored epoch.
 //! Partition
 //! `INCONSISTENT_TOPIC_ID` / `UNKNOWN_TOPIC_OR_PARTITION` /
 //! `UNKNOWN_TOPIC_ID` / `REPLICA_NOT_AVAILABLE` /
