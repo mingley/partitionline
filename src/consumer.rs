@@ -7811,31 +7811,25 @@ impl Consumer {
                 }
             }
         } else if fetched.len() > 16 {
-            let mut once = HashSet::new();
-            for topic in &fetched {
-                match self.fetch_topic_arc(&topic.topic, topic.topic_id) {
-                    Ok(Some(name)) => {
-                        if !once.insert(Arc::clone(&name)) {
-                            let _ = repeated_topics.insert(name);
-                        }
-                    }
-                    Ok(None) => {}
-                    Err(_) => {
-                        trust_unique = false;
-                        break;
-                    }
-                }
-            }
+            trust_unique = note_repeated_fetch_topics(
+                &fetched,
+                |name, id| self.fetch_topic_arc(name, id),
+                &mut repeated_topics,
+            )
+            .await;
         }
         let mut seen_partitions: HashMap<Arc<str>, HashSet<i32>> = HashMap::new();
         let mut topic_batches_iter = batches.into_iter();
+        let mut topics_walked = 0usize;
         for topic in &fetched {
             let Some(topic_batches) = topic_batches_iter.next() else {
                 break;
             };
             let Some(name) = self.fetch_topic_arc(&topic.topic, topic.topic_id)? else {
+                pause_fetch_topic_note(&mut topics_walked).await;
                 continue;
             };
+            pause_fetch_topic_note(&mut topics_walked).await;
             let increasing = partitions_strictly_increase(&topic.partitions);
             let repeated = trust_unique && repeated_topics.contains(name.as_ref());
             let mut topic_seen = if sole_partition || (trust_unique && increasing && !repeated) {
@@ -11490,6 +11484,42 @@ fn session_topic_name<'a>(
     }
 }
 
+/// Names that appear more than once in one fetch response.
+///
+/// Noting 2,000,000 topics held the caller for 2110ms. A topic name is still stored.
+async fn note_repeated_fetch_topics<F>(
+    fetched: &[FetchedTopic],
+    mut resolve: F,
+    repeated: &mut HashSet<Arc<str>>,
+) -> bool
+where
+    F: FnMut(&str, [u8; 16]) -> Result<Option<Arc<str>>>,
+{
+    let mut once = HashSet::new();
+    let mut walked = 0usize;
+    for topic in fetched {
+        match resolve(topic.topic.as_str(), topic.topic_id) {
+            Ok(Some(name)) => {
+                if !once.insert(Arc::clone(&name)) {
+                    let _ = repeated.insert(name);
+                }
+            }
+            Ok(None) => {}
+            Err(_) => return false,
+        }
+        pause_fetch_topic_note(&mut walked).await;
+    }
+    true
+}
+
+async fn pause_fetch_topic_note(walked: &mut usize) {
+    *walked = walked.saturating_add(1);
+    if *walked == 8 * 1024 {
+        *walked = 0;
+        tokio::task::yield_now().await;
+    }
+}
+
 fn partitions_strictly_increase(parts: &[crate::protocol::fetch::FetchedPartition]) -> bool {
     let mut previous = None;
     for part in parts {
@@ -12477,6 +12507,72 @@ mod tests {
             elapsed < std::time::Duration::from_millis(80),
             "copying fetched epochs held the caller for {elapsed:?}"
         );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn noting_many_fetch_topics_does_not_hold_the_caller() {
+        let topics: Vec<FetchedTopic> = (0..2_000_000)
+            .map(|index| FetchedTopic {
+                topic: format!("topic-{index}"),
+                topic_id: [0; 16],
+                partitions: Vec::new(),
+            })
+            .collect();
+        let mut repeated = HashSet::new();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = note_repeated_fetch_topics(
+                &topics,
+                |name, _| Ok(Some(Arc::<str>::from(name))),
+                &mut repeated,
+            ) => {}
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        assert!(
+            started.elapsed() < std::time::Duration::from_millis(80),
+            "noting fetch topics held the caller for {:?}",
+            started.elapsed()
+        );
+        let sample = [
+            FetchedTopic {
+                topic: "orders".into(),
+                topic_id: [0; 16],
+                partitions: Vec::new(),
+            },
+            FetchedTopic {
+                topic: "orders".into(),
+                topic_id: [0; 16],
+                partitions: Vec::new(),
+            },
+            FetchedTopic {
+                topic: "payments".into(),
+                topic_id: [0; 16],
+                partitions: Vec::new(),
+            },
+        ];
+        let mut noted = HashSet::new();
+        let trust = note_repeated_fetch_topics(
+            &sample,
+            |name, _| Ok(Some(Arc::<str>::from(name))),
+            &mut noted,
+        )
+        .await;
+        assert!(trust);
+        assert!(noted.contains("orders"));
+        assert!(!noted.contains("payments"));
+        let mut rejected = HashSet::new();
+        let mismatched = note_repeated_fetch_topics(
+            &sample,
+            |_, _| {
+                Err(Error::protocol(
+                    "fetch topic id does not match the topic name",
+                ))
+            },
+            &mut rejected,
+        )
+        .await;
+        assert!(!mismatched);
+        assert!(rejected.is_empty());
     }
 
     #[tokio::test(flavor = "current_thread")]
