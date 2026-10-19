@@ -106,7 +106,7 @@ use crate::protocol::api_keys::{
 };
 use crate::protocol::group::{
     decode_find_coordinator_response, decode_find_coordinator_response_coordinators_cooperative,
-    decode_leave_group_response_version, decode_offset_commit_response_cooperative,
+    decode_leave_group_response_version_cooperative, decode_offset_commit_response_cooperative,
     decode_offset_delete_response_cooperative, decode_offset_fetch_groups_response_cooperative,
     decode_offset_fetch_response_cooperative, encode_find_coordinator_request_keys,
     encode_find_coordinator_request_typed, encode_leave_group_request_members,
@@ -13027,7 +13027,7 @@ impl Admin {
                 Err(e) => return Err(e),
             };
             let (err, results, ..) =
-                decode_leave_group_response_version(&mut body.clone(), version)?;
+                decode_leave_group_response_version_cooperative(&mut body.clone(), version).await?;
             if error::coordinator_retriable(err) {
                 self.group_coord = None;
                 self.drop_node_conn(node).await;
@@ -20075,6 +20075,63 @@ mod tests {
         assert_eq!(
             coop.brokers.first().and_then(|item| item.rack.as_deref()),
             Some("rack-a")
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn decoding_many_left_members_does_not_hold_the_caller() {
+        let members: Vec<crate::protocol::group::LeaveGroupMemberResult> = (0..200_000)
+            .map(|index| crate::protocol::group::LeaveGroupMemberResult {
+                member_id: format!("member-{index}"),
+                group_instance_id: Some(format!("instance-{index}")),
+                error_code: 0,
+            })
+            .collect();
+        let mut body = bytes::BytesMut::new();
+        crate::protocol::group::encode_leave_group_response_version(&mut body, 4, 0, &members)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let started = std::time::Instant::now();
+        tokio::select! {
+            decoded = decode_leave_group_response_version_cooperative(&mut body, 4) => {
+                let (error_code, decoded, throttle) = decoded.unwrap_or_else(|error| panic!("{error}"));
+                assert_eq!(error_code, 0);
+                assert_eq!(throttle, 0);
+                assert_eq!(decoded.len(), 200_000);
+                assert_eq!(decoded.first().map(|item| item.member_id.as_str()), Some("member-0"));
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "decoding left members held the caller for {elapsed:?}"
+        );
+        let sample = [crate::protocol::group::LeaveGroupMemberResult {
+            member_id: "member-a".to_string(),
+            group_instance_id: Some("instance-a".to_string()),
+            error_code: 25,
+        }];
+        let mut encoded = bytes::BytesMut::new();
+        crate::protocol::group::encode_leave_group_response_version(&mut encoded, 4, 7, &sample)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let mut once = encoded.clone();
+        let mut paced = encoded;
+        let sync = crate::protocol::group::decode_leave_group_response_version(&mut once, 4)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let coop = decode_leave_group_response_version_cooperative(&mut paced, 4)
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(sync, coop);
+        assert_eq!(coop.0, 7);
+        assert_eq!(
+            coop.1.first().map(|item| item.member_id.as_str()),
+            Some("member-a")
+        );
+        assert_eq!(
+            coop.1
+                .first()
+                .and_then(|item| item.group_instance_id.as_deref()),
+            Some("instance-a")
         );
     }
 

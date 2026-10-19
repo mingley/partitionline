@@ -28,10 +28,10 @@ use crate::protocol::cgheartbeat::{
 };
 use crate::protocol::group::{
     decode_assignment_cooperative, decode_find_coordinator_response, decode_heartbeat_response,
-    decode_join_group_response, decode_leave_group_response_version, decode_offset_commit_response,
-    decode_offset_commit_response_cooperative, decode_offset_fetch_response,
-    decode_offset_fetch_response_cooperative, decode_sync_group_response,
-    encode_find_coordinator_request_typed, encode_heartbeat_request,
+    decode_join_group_response, decode_leave_group_response_version_cooperative,
+    decode_offset_commit_response, decode_offset_commit_response_cooperative,
+    decode_offset_fetch_response, decode_offset_fetch_response_cooperative,
+    decode_sync_group_response, encode_find_coordinator_request_typed, encode_heartbeat_request,
     encode_join_group_protocols_request, encode_leave_group_request_members,
     encode_offset_commit_request, encode_offset_fetch_request, encode_sync_group_request,
     encode_tp_assignment_cooperative, BorrowedOffsetPartition, BorrowedOffsetTopic,
@@ -2985,7 +2985,8 @@ impl ConsumerGroup {
             timeout,
         )
         .await?;
-        let (err, results, ..) = decode_leave_group_response_version(&mut body.clone(), version)?;
+        let (err, results, ..) =
+            decode_leave_group_response_version_cooperative(&mut body.clone(), version).await?;
         if err != 0 {
             return Err(Error::broker(err, "LeaveGroup"));
         }
