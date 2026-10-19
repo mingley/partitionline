@@ -8,6 +8,7 @@
 
 use crate::journal::Journal;
 use crate::{journal, records};
+use std::collections::HashMap;
 use std::fmt;
 
 /// Positive total-work, key-map and operation-scratch ceilings.
@@ -1031,11 +1032,12 @@ fn plan_matches_source(
     policy: Policy,
     records: &[Retained],
 ) -> Result<(), CleanError> {
+    let decided = index_decisions(decisions);
     let lso = source
         .iter()
         .enumerate()
         .position(|(index, record)| {
-            transactional(record) && decision(decisions, record, index).is_none()
+            transactional(record) && decision(&decided, record, index).is_none()
         })
         .unwrap_or(source.len());
     let mut last = std::collections::BTreeMap::<&[u8], i64>::new();
@@ -1043,7 +1045,7 @@ fn plan_matches_source(
         if record.role != Role::Ordinary && record.role != Role::TransactionData {
             continue;
         }
-        if decision(decisions, record, index) == Some(false) {
+        if decision(&decided, record, index) == Some(false) {
             continue;
         }
         if let Some(key) = record.key.as_deref() {
@@ -1058,7 +1060,7 @@ fn plan_matches_source(
             .as_deref()
             .is_some_and(|key| last.get(key) == Some(&record.offset))
             && (record.role == Role::Ordinary || record.role == Role::TransactionData)
-            && decision(decisions, record, index) != Some(false);
+            && decision(&decided, record, index) != Some(false);
         if index >= lso || (latest && record.value.is_some()) {
             if next != Some(record) {
                 return Err(CleanError::InvalidRecord);
@@ -1105,11 +1107,12 @@ fn plan(
             return Err(CleanError::BudgetExceeded(Budget::ScanBytes));
         }
     }
+    let decided = index_decisions(decisions);
     let lso = source
         .iter()
         .enumerate()
         .position(|(index, record)| {
-            transactional(record) && decision(decisions, record, index).is_none()
+            transactional(record) && decision(&decided, record, index).is_none()
         })
         .unwrap_or(source.len());
     let mut last = std::collections::BTreeMap::<Vec<u8>, i64>::new();
@@ -1121,7 +1124,7 @@ fn plan(
         if record.role != Role::Ordinary && record.role != Role::TransactionData {
             continue;
         }
-        if decision(decisions, record, index) == Some(false) {
+        if decision(&decided, record, index) == Some(false) {
             continue;
         }
         let Some(key) = record.key.clone() else {
@@ -1151,7 +1154,7 @@ fn plan(
         if record.role == Role::ControlCommit || record.role == Role::ControlAbort {
             continue;
         }
-        if decision(decisions, record, index) == Some(false) {
+        if decision(&decided, record, index) == Some(false) {
             continue;
         }
         let Some(key) = &record.key else {
@@ -1172,19 +1175,28 @@ fn transactional(record: &Retained) -> bool {
     record.role != Role::Ordinary
 }
 
-fn decision(decisions: &[EpochDecision], record: &Retained, index: usize) -> Option<bool> {
-    if record.role == Role::Ordinary {
-        Some(true)
-    } else {
-        decisions
-            .iter()
-            .find(|decision| {
-                decision.producer_id == record.producer_id
-                    && decision.epoch == record.epoch
-                    && index < decision.through
-            })
-            .map(|decision| decision.commit)
+fn index_decisions(decisions: &[EpochDecision]) -> HashMap<(i64, i16), Vec<(usize, bool)>> {
+    let mut index: HashMap<(i64, i16), Vec<(usize, bool)>> = HashMap::new();
+    for decision in decisions {
+        index
+            .entry((decision.producer_id, decision.epoch))
+            .or_default()
+            .push((decision.through, decision.commit));
     }
+    index
+}
+
+fn decision(
+    index: &HashMap<(i64, i16), Vec<(usize, bool)>>,
+    record: &Retained,
+    at: usize,
+) -> Option<bool> {
+    if record.role == Role::Ordinary {
+        return Some(true);
+    }
+    let spans = index.get(&(record.producer_id, record.epoch))?;
+    let pos = spans.partition_point(|(through, _)| *through <= at);
+    spans.get(pos).map(|(_, commit)| *commit)
 }
 
 fn tombstone_visible(timestamp: i64, policy: Policy, now_ms: i64) -> Result<bool, CleanError> {
@@ -1541,6 +1553,76 @@ mod cleaner_tests {
             cleaner.replay(&decided),
             Err(CleanError::InvalidRecord)
         ));
+    }
+
+    #[test]
+    fn planning_many_transactional_records_does_not_hold_the_caller() {
+        // 8_000 epochs: finding each decision held the caller 258ms.
+        let limits = Limits::new(1_000_000, 8_000, 8_000, 16, 4_096, 100_000, 4, 1_000_000)
+            .unwrap_or_else(|_| panic!("limits"));
+        let policy = Policy::new(0, limits).unwrap_or_else(|_| panic!("policy"));
+        let source: Vec<Retained> = (0..8_000)
+            .map(|index| Retained {
+                offset: i64::from(index),
+                timestamp: 0,
+                producer_id: 4,
+                epoch: i16::try_from(index).unwrap_or(0),
+                role: Role::TransactionData,
+                key: Some(b"k".to_vec()),
+                value: Some(b"v".to_vec()),
+            })
+            .collect();
+        let decisions: Vec<EpochDecision> = (0..8_000usize)
+            .map(|index| EpochDecision {
+                producer_id: 4,
+                epoch: i16::try_from(index).unwrap_or(0),
+                commit: true,
+                through: index.saturating_add(1),
+            })
+            .collect();
+        let started = std::time::Instant::now();
+        let retained =
+            plan(&source, &decisions, policy, 0).unwrap_or_else(|error| panic!("{error:?}"));
+        let elapsed = started.elapsed();
+        assert_eq!(retained.len(), 1);
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "planning transactional records held the caller for {elapsed:?}"
+        );
+        let mixed: Vec<Retained> = (0..2)
+            .map(|index| Retained {
+                offset: i64::from(index),
+                timestamp: 0,
+                producer_id: 4,
+                epoch: 1,
+                role: Role::TransactionData,
+                key: Some(vec![b'a' + u8::try_from(index).unwrap_or(0)]),
+                value: Some(b"v".to_vec()),
+            })
+            .collect();
+        let decisions = [
+            EpochDecision {
+                producer_id: 4,
+                epoch: 1,
+                commit: true,
+                through: 1,
+            },
+            EpochDecision {
+                producer_id: 4,
+                epoch: 1,
+                commit: false,
+                through: 2,
+            },
+        ];
+        let retained =
+            plan(&mixed, &decisions, policy, 0).unwrap_or_else(|error| panic!("{error:?}"));
+        assert_eq!(
+            retained
+                .iter()
+                .map(|record| record.offset)
+                .collect::<Vec<_>>(),
+            vec![0]
+        );
     }
 
     #[test]
