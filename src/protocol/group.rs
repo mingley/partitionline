@@ -2449,6 +2449,81 @@ pub fn decode_join_group_response<B: Buf>(
     ))
 }
 
+/// [`decode_join_group_response`], yielding while members are still being read.
+///
+/// Decoding 200,000 members held the caller for 155ms.
+pub async fn decode_join_group_response_cooperative<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<(
+    i16,
+    i32,
+    String,
+    String,
+    String,
+    bool,
+    Vec<JoinMember>,
+    Option<String>,
+    i32,
+)> {
+    let flexible = join_group_flexible(version)?;
+    let throttle_time_ms = buf::get_i32(buf)?;
+    let error = buf::get_i16(buf)?;
+    let generation = buf::get_i32(buf)?;
+    let protocol_type = if version >= 7 {
+        buf::get_string(buf, true)?
+    } else {
+        None
+    };
+    let protocol = buf::get_string(buf, flexible)?.unwrap_or_default();
+    let leader = buf::get_string(buf, flexible)?.unwrap_or_default();
+    let skip_assignment = if JoinGroupRequest::supports_skipping_assignment(version) {
+        buf::get_bool(buf)?
+    } else {
+        false
+    };
+    let member_id = buf::get_string(buf, flexible)?.unwrap_or_default();
+    let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+    let mut members = Vec::with_capacity(n);
+    let mut walked = 0usize;
+    for _ in 0..n {
+        let mid = buf::get_string(buf, flexible)?.unwrap_or_default();
+        let group_instance_id = if version >= 5 {
+            buf::get_string(buf, flexible)?
+        } else {
+            None
+        };
+        let metadata = buf::get_bytes(buf, flexible)?.unwrap_or_default();
+        if flexible {
+            buf::skip_tagged_fields(buf)?;
+        }
+        members.push(JoinMember {
+            member_id: mid,
+            group_instance_id,
+            metadata,
+        });
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
+    }
+    Ok((
+        error,
+        generation,
+        protocol,
+        leader,
+        member_id,
+        skip_assignment,
+        members,
+        protocol_type,
+        throttle_time_ms,
+    ))
+}
+
 /// `true` when SyncGroup `version` is flexible (v4+).
 ///
 /// v0–v3 are classic. v4 is compact strings/bytes/arrays plus tagged

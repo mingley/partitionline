@@ -28,7 +28,7 @@ use crate::protocol::cgheartbeat::{
 };
 use crate::protocol::group::{
     decode_assignment_cooperative, decode_find_coordinator_response, decode_heartbeat_response,
-    decode_join_group_response, decode_leave_group_response_version_cooperative,
+    decode_join_group_response_cooperative, decode_leave_group_response_version_cooperative,
     decode_offset_commit_response, decode_offset_commit_response_cooperative,
     decode_offset_fetch_response, decode_offset_fetch_response_cooperative,
     decode_sync_group_response, encode_find_coordinator_request_typed, encode_heartbeat_request,
@@ -3141,7 +3141,8 @@ impl ConsumerGroup {
                 )
                 .await?
             };
-            let decoded = decode_join_group_response(&mut body.clone(), version)
+            let decoded = decode_join_group_response_cooperative(&mut body.clone(), version)
+                .await
                 .map_err(|e| group_decode_context(e, "JoinGroup", version, body.len()))?;
             if decoded.0 == error::MEMBER_ID_REQUIRED
                 && self.member_id == JoinGroupRequest::UNKNOWN_MEMBER_ID
@@ -7447,6 +7448,84 @@ mod tests {
     use std::time::Duration;
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
     use tokio::net::TcpListener;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn decoding_many_join_members_does_not_hold_the_caller() {
+        let members: Vec<crate::protocol::group::JoinMember> = (0..200_000)
+            .map(|index| crate::protocol::group::JoinMember {
+                member_id: format!("member-{index}"),
+                group_instance_id: Some(format!("instance-{index}")),
+                metadata: b"sub".to_vec(),
+            })
+            .collect();
+        let mut body = bytes::BytesMut::new();
+        crate::protocol::group::encode_join_group_response(
+            &mut body, 6, 0, 1, "range", "member-0", "member-0", &members,
+        )
+        .unwrap_or_else(|error| panic!("{error}"));
+        let started = std::time::Instant::now();
+        tokio::select! {
+            decoded = decode_join_group_response_cooperative(&mut body, 6) => {
+                let decoded = decoded.unwrap_or_else(|error| panic!("{error}"));
+                assert_eq!(decoded.0, 0);
+                assert_eq!(decoded.6.len(), 200_000);
+                assert_eq!(decoded.6.first().map(|item| item.member_id.as_str()), Some("member-0"));
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "decoding join members held the caller for {elapsed:?}"
+        );
+        let sample = [crate::protocol::group::JoinMember {
+            member_id: "member-a".to_string(),
+            group_instance_id: Some("instance-a".to_string()),
+            metadata: b"sub".to_vec(),
+        }];
+        let mut encoded = bytes::BytesMut::new();
+        crate::protocol::group::encode_join_group_response(
+            &mut encoded,
+            6,
+            7,
+            3,
+            "range",
+            "leader",
+            "member-a",
+            &sample,
+        )
+        .unwrap_or_else(|error| panic!("{error}"));
+        let mut once = encoded.clone();
+        let mut paced = encoded;
+        let sync = crate::protocol::group::decode_join_group_response(&mut once, 6)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let coop = decode_join_group_response_cooperative(&mut paced, 6)
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(sync.0, coop.0);
+        assert_eq!(sync.1, coop.1);
+        assert_eq!(sync.2, coop.2);
+        assert_eq!(sync.3, coop.3);
+        assert_eq!(sync.4, coop.4);
+        assert_eq!(sync.5, coop.5);
+        assert_eq!(sync.7, coop.7);
+        assert_eq!(sync.8, coop.8);
+        assert_eq!(sync.6.len(), coop.6.len());
+        assert_eq!(
+            coop.6.first().map(|item| item.member_id.as_str()),
+            Some("member-a")
+        );
+        assert_eq!(
+            coop.6
+                .first()
+                .and_then(|item| item.group_instance_id.as_deref()),
+            Some("instance-a")
+        );
+        assert_eq!(
+            coop.6.first().map(|item| item.metadata.as_slice()),
+            Some(&b"sub"[..])
+        );
+    }
 
     fn offset_map(count: i32) -> HashMap<String, HashMap<i32, OffsetAndMetadata>> {
         let mut parts = HashMap::new();
