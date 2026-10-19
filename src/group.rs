@@ -329,10 +329,7 @@ pub async fn assign_range_subscribed_cooperative(
     member_subs: &[(String, Vec<String>)],
     topics: &[(String, Vec<i32>)],
 ) -> HashMap<String, Vec<(String, i32)>> {
-    let mut out: HashMap<String, Vec<(String, i32)>> = HashMap::new();
-    for (member, _) in member_subs {
-        let _ = out.insert(member.clone(), Vec::new());
-    }
+    let mut out = open_assignment_members(member_subs).await;
     let members_by_topic = members_by_topic_cooperative(member_subs).await;
     for (topic, parts) in topics {
         let members = members_by_topic
@@ -656,10 +653,7 @@ pub async fn assign_sticky_subscribed_cooperative(
     topics: &[(String, Vec<i32>)],
     prev: &HashMap<String, Vec<(String, i32)>>,
 ) -> HashMap<String, Vec<(String, i32)>> {
-    let mut out: HashMap<String, Vec<(String, i32)>> = HashMap::new();
-    for (m, _) in member_subs {
-        let _ = out.insert(m.clone(), Vec::new());
-    }
+    let mut out = open_assignment_members(member_subs).await;
     let members_by_topic = members_by_topic_cooperative(member_subs).await;
     let previous = previous_partitions_by_topic_cooperative(prev).await;
     for (topic, parts) in topics {
@@ -847,6 +841,30 @@ fn subscription_index_chunk() -> usize {
     8 * 1024
 }
 
+fn assignment_member_chunk() -> usize {
+    8 * 1024
+}
+
+/// Open one empty assignment list per member.
+///
+/// Opening 2,000,000 assignment members held the caller for 2.32s. A member
+/// id is still copied.
+async fn open_assignment_members(
+    member_subs: &[(String, Vec<String>)],
+) -> HashMap<String, Vec<(String, i32)>> {
+    let mut out = HashMap::new();
+    let mut walked = 0usize;
+    for (member, _) in member_subs {
+        let _ = out.insert(member.clone(), Vec::new());
+        walked = walked.saturating_add(1);
+        if walked == assignment_member_chunk() {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    out
+}
+
 /// [`members_by_topic`], yielding while subscriptions are indexed.
 ///
 /// Indexing one member's 2,000,000 subscriptions held the caller for 4.43s.
@@ -856,6 +874,7 @@ async fn members_by_topic_cooperative(
     member_subs: &[(String, Vec<String>)],
 ) -> HashMap<&str, Vec<&str>> {
     let mut out: HashMap<&str, Vec<&str>> = HashMap::new();
+    let mut members_walked = 0usize;
     for (id, subs) in member_subs {
         let mut seen = HashSet::new();
         let mut walked = 0usize;
@@ -872,6 +891,11 @@ async fn members_by_topic_cooperative(
                 walked = 0;
                 tokio::task::yield_now().await;
             }
+        }
+        members_walked = members_walked.saturating_add(1);
+        if members_walked == assignment_member_chunk() {
+            members_walked = 0;
+            tokio::task::yield_now().await;
         }
     }
     out
@@ -9933,6 +9957,31 @@ mod tests {
             previous_partitions_by_topic_cooperative(&sample).await,
             previous_partitions_by_topic(&sample)
         );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn opening_many_assignment_members_does_not_hold_the_caller() {
+        let members: Vec<(String, Vec<String>)> = (0..2_000_000)
+            .map(|index| (format!("member-{index}"), Vec::new()))
+            .collect();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = assign_range_subscribed_cooperative(&members, &[]) => {}
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        assert!(
+            started.elapsed() < std::time::Duration::from_millis(80),
+            "opening assignment members held the caller for {:?}",
+            started.elapsed()
+        );
+        let sample = [
+            ("m1".to_string(), Vec::new()),
+            ("m2".to_string(), Vec::new()),
+        ];
+        let assigned = assign_range_subscribed_cooperative(&sample, &[]).await;
+        assert_eq!(assigned.len(), 2);
+        assert_eq!(assigned.get("m1").map(Vec::len), Some(0));
+        assert_eq!(assigned.get("m2").map(Vec::len), Some(0));
     }
 
     #[tokio::test(flavor = "current_thread")]
