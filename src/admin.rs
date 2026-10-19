@@ -3224,30 +3224,35 @@ where
     topics
 }
 
-fn delete_records_topics<'a>(
+async fn delete_records_topics<'a>(
     records: &'a [(crate::TopicPartition, i64)],
     idxs: &[usize],
 ) -> Vec<(&'a str, Vec<DeleteRecordsPartition>)> {
     let mut groups: Vec<(&str, Vec<DeleteRecordsPartition>)> = Vec::new();
     let mut slots: HashMap<&str, usize> = HashMap::new();
+    let mut walked = 0usize;
     for &i in idxs {
-        let Some((tp, offset)) = records.get(i) else {
-            continue;
-        };
-        let part = DeleteRecordsPartition {
-            partition: tp.partition,
-            offset: *offset,
-        };
-        let topic = tp.topic.as_str();
-        if let Some(&slot) = slots.get(topic) {
-            if let Some((_, parts)) = groups.get_mut(slot) {
-                parts.push(part);
-                continue;
+        if let Some((tp, offset)) = records.get(i) {
+            let part = DeleteRecordsPartition {
+                partition: tp.partition,
+                offset: *offset,
+            };
+            let topic = tp.topic.as_str();
+            if let Some(&slot) = slots.get(topic) {
+                if let Some((_, parts)) = groups.get_mut(slot) {
+                    parts.push(part);
+                }
+            } else {
+                let slot = groups.len();
+                let _ = slots.insert(topic, slot);
+                groups.push((topic, vec![part]));
             }
         }
-        let slot = groups.len();
-        let _ = slots.insert(topic, slot);
-        groups.push((topic, vec![part]));
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
     }
     groups
 }
@@ -9407,13 +9412,19 @@ impl Admin {
             }
             let mut still = Vec::new();
             if nodes.len() > 1 {
+                let mut grouped = HashMap::new();
+                for &node in &nodes {
+                    let idxs = by_node.get(&node).map(Vec::as_slice).unwrap_or(&[]);
+                    let topics = delete_records_topics(&records, idxs)
+                        .await
+                        .into_iter()
+                        .map(|(name, parts)| (name.to_owned(), parts))
+                        .collect::<Vec<_>>();
+                    let _ = grouped.insert(node, topics);
+                }
                 let mut finished = self
                     .exchange_leaders(&nodes, deadline, |_admin, node, _conn, _timeout| {
-                        let idxs = by_node.get(&node).map(Vec::as_slice).unwrap_or(&[]);
-                        let topics = delete_records_topics(&records, idxs)
-                            .into_iter()
-                            .map(|(name, parts)| (name.to_owned(), parts))
-                            .collect::<Vec<_>>();
+                        let topics = grouped.remove(&node).unwrap_or_default();
                         Ok(LeaderFrame::deferred(
                             DELETE_RECORDS,
                             version,
@@ -9525,7 +9536,7 @@ impl Admin {
         idxs: &[usize],
         deadline: Instant,
     ) -> Result<(Vec<(usize, i64, i16)>, Vec<usize>)> {
-        let topics = delete_records_topics(records, idxs);
+        let topics = delete_records_topics(records, idxs).await;
         let timeout = deadline.saturating_duration_since(Instant::now());
         if timeout.is_zero() {
             return Err(Error::Timeout);
@@ -19450,6 +19461,28 @@ mod tests {
     }
 
     #[tokio::test(flavor = "current_thread")]
+    async fn grouping_many_delete_records_does_not_hold_the_caller() {
+        // 2_000_000 partitions: grouping them held the caller 362ms.
+        let topic = crate::TopicPartition::new("orders", 0);
+        let records: Vec<(crate::TopicPartition, i64)> = (0..2_000_000)
+            .map(|index| (crate::TopicPartition::new(topic.topic.as_str(), index), 1))
+            .collect();
+        let idxs: Vec<usize> = (0..records.len()).collect();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            topics = delete_records_topics(&records, &idxs) => {
+                assert_eq!(topics.first().map(|(_, parts)| parts.len()), Some(2_000_000));
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "grouping delete records held the caller for {elapsed:?}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
     async fn encoding_many_delete_records_does_not_hold_the_caller() {
         // 2_000_000 partitions: encoding them in one pass held the caller 275ms.
         use crate::protocol::admin::{
@@ -19499,14 +19532,14 @@ mod tests {
         assert_eq!(paced, once);
     }
 
-    #[test]
-    fn delete_records_topics_keeps_duplicate_partitions() {
+    #[tokio::test(flavor = "current_thread")]
+    async fn delete_records_topics_keeps_duplicate_partitions() {
         let records = [
             (crate::TopicPartition::new("t", 0), 10),
             (crate::TopicPartition::new("t", 0), 20),
             (crate::TopicPartition::new("t", 1), 30),
         ];
-        let topics = delete_records_topics(&records, &[0, 1, 2]);
+        let topics = delete_records_topics(&records, &[0, 1, 2]).await;
         assert_eq!(topics.len(), 1);
         assert_eq!(topics[0].0, "t");
         assert_eq!(topics[0].1.len(), 3);
