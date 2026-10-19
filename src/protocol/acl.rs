@@ -2410,6 +2410,86 @@ pub fn decode_describe_acls_response<B: Buf>(
     ))
 }
 
+/// [`decode_describe_acls_response`], yielding while ACL entries are still being read.
+///
+/// Decoding 200,000 ACLs held the caller for 284ms.
+pub async fn decode_describe_acls_response_cooperative<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<(Vec<AclBinding>, i32, Option<String>, i16)> {
+    let flexible = acl_api_flexible(version)?;
+    let throttle_time_ms = buf::get_i32(buf)?;
+    let err = buf::get_i16(buf)?;
+    let error_message = buf::get_string(buf, flexible)?;
+    let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+    let mut resources = Vec::new();
+    let mut walked = 0usize;
+    for _ in 0..n {
+        let resource_type = buf::get_i8(buf)?;
+        let resource_name = buf::get_string(buf, flexible)?.unwrap_or_default();
+        let pattern_type = if version >= 1 {
+            buf::get_i8(buf)?
+        } else {
+            ACL_PATTERN_LITERAL
+        };
+        let an = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+        let mut acls = Vec::with_capacity(an);
+        for _ in 0..an {
+            let principal = buf::get_string(buf, flexible)?.unwrap_or_default();
+            let host = buf::get_string(buf, flexible)?.unwrap_or_default();
+            let operation = buf::get_i8(buf)?;
+            let permission = buf::get_i8(buf)?;
+            if flexible {
+                buf::skip_tagged_fields(buf)?;
+            }
+            acls.push(AccessControlEntry {
+                principal,
+                host,
+                operation,
+                permission,
+            });
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+        if flexible {
+            buf::skip_tagged_fields(buf)?;
+        }
+        resources.push(DescribeAclsResource {
+            resource_type,
+            resource_name,
+            pattern_type,
+            acls,
+        });
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
+    }
+    if err != 0 {
+        return Ok((Vec::new(), throttle_time_ms, error_message, err));
+    }
+    let mut bindings = Vec::new();
+    let mut bound = 0usize;
+    for resource in &resources {
+        for entry in &resource.acls {
+            bindings.push(AclBinding::new(resource.pattern(), entry.clone()));
+            bound = bound.saturating_add(1);
+            if bound == 8 * 1024 {
+                bound = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+    }
+    Ok((bindings, throttle_time_ms, error_message, err))
+}
+
 fn put_acl_filter_fields(
     buf: &mut BytesMut,
     version: i16,

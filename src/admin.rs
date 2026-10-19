@@ -23,8 +23,9 @@ use crate::cluster::{Cluster, LeaderList};
 use crate::error::{self, Error, Result};
 use crate::net::{BrokerConn, TlsConfig};
 use crate::protocol::acl::{
-    decode_create_acls_response, decode_delete_acls_filter_results, decode_describe_acls_response,
-    encode_create_acls_request, encode_delete_acls_request, encode_describe_acls_request,
+    decode_create_acls_response, decode_delete_acls_filter_results,
+    decode_describe_acls_response_cooperative, encode_create_acls_request,
+    encode_delete_acls_request, encode_describe_acls_request,
 };
 use crate::protocol::admin::{
     decode_allocate_producer_ids_response, decode_alter_client_quotas_response,
@@ -8638,7 +8639,8 @@ impl Admin {
                 timeout,
             )
             .await?;
-        let (acls, ..) = decode_describe_acls_response(&mut body.clone(), version)?;
+        let (acls, ..) =
+            decode_describe_acls_response_cooperative(&mut body.clone(), version).await?;
         Ok(acls)
     }
 
@@ -18666,6 +18668,78 @@ mod tests {
                 .map(|item| item.producer_id),
             Some(9)
         );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn decoding_many_acls_does_not_hold_the_caller() {
+        let acls: Vec<AclBinding> = (0..200_000)
+            .map(|index| AclBinding::allow_topic(format!("topic-{index}"), "User:alice"))
+            .collect();
+        let mut body = bytes::BytesMut::new();
+        crate::protocol::acl::encode_describe_acls_response(&mut body, 3, &acls)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let started = std::time::Instant::now();
+        tokio::select! {
+            decoded = decode_describe_acls_response_cooperative(&mut body, 3) => {
+                let (decoded, throttle, message, error_code) =
+                    decoded.unwrap_or_else(|error| panic!("{error}"));
+                assert_eq!(throttle, 0);
+                assert_eq!(error_code, 0);
+                assert_eq!(message, None);
+                assert_eq!(decoded.len(), 200_000);
+                assert_eq!(decoded.first().map(|item| item.resource_name.as_str()), Some("topic-0"));
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "decoding acls held the caller for {elapsed:?}"
+        );
+        let mut kept = AclBinding::allow_topic("orders", "User:alice");
+        kept.host = "10.0.0.1".to_string();
+        let mut encoded = bytes::BytesMut::new();
+        crate::protocol::acl::encode_describe_acls_response_with_error_message(
+            &mut encoded,
+            3,
+            &[kept],
+            Some("busy"),
+        )
+        .unwrap_or_else(|error| panic!("{error}"));
+        let mut once = encoded.clone();
+        let mut paced = encoded;
+        let sync = crate::protocol::acl::decode_describe_acls_response(&mut once, 3)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let coop = decode_describe_acls_response_cooperative(&mut paced, 3)
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(sync.0, coop.0);
+        assert_eq!(sync.1, coop.1);
+        assert_eq!(sync.2.as_deref(), Some("busy"));
+        assert_eq!(coop.2.as_deref(), Some("busy"));
+        assert_eq!(
+            coop.0.first().map(|item| item.host.as_str()),
+            Some("10.0.0.1")
+        );
+        let rejected = [AclBinding::allow_topic("orders", "User:alice")];
+        let mut failed = bytes::BytesMut::new();
+        crate::protocol::acl::encode_describe_acls_response_with_error_code(
+            &mut failed,
+            3,
+            &rejected,
+            7,
+        )
+        .unwrap_or_else(|error| panic!("{error}"));
+        let mut failed_once = failed.clone();
+        let mut failed_paced = failed;
+        let sync_failed = crate::protocol::acl::decode_describe_acls_response(&mut failed_once, 3)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let coop_failed = decode_describe_acls_response_cooperative(&mut failed_paced, 3)
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert!(sync_failed.0.is_empty());
+        assert!(coop_failed.0.is_empty());
+        assert_eq!(coop_failed.3, 7);
     }
 
     #[tokio::test(flavor = "current_thread")]
