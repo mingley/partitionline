@@ -4503,14 +4503,6 @@ impl Consumer {
         Ok(Some(Arc::<str>::from(resolved)))
     }
 
-    pub(crate) fn leader_ids_of(&self, topic: &str) -> Result<&[i32]> {
-        self.cluster
-            .leaders
-            .get(topic)
-            .map(Vec::as_slice)
-            .ok_or_else(|| Error::UnknownTopic(topic.to_string()))
-    }
-
     pub(crate) fn broker_known(&self, node: i32) -> bool {
         self.cluster.brokers.contains_key(&node)
     }

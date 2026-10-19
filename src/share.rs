@@ -2029,6 +2029,7 @@ fn refill_stale_names(dest: &mut Vec<String>, names: &[String], fresh: impl Fn(&
     dest.truncate(used);
 }
 
+#[cfg(test)]
 fn fill_unique_names<'a>(names: &mut Vec<String>, topics: impl Iterator<Item = &'a str>) {
     let mut seen: HashSet<String> = HashSet::new();
     let mut used = 0usize;
@@ -2048,6 +2049,100 @@ fn fill_unique_names<'a>(names: &mut Vec<String>, topics: impl Iterator<Item = &
         used = used.saturating_add(1);
     }
     names.truncate(used);
+}
+
+async fn share_nodes_for(
+    assigned: &[(Arc<str>, i32)],
+    leaders: &HashMap<Arc<str>, Vec<i32>>,
+) -> Vec<i32> {
+    let mut nodes = Vec::new();
+    let mut seen = HashSet::new();
+    let mut walked = 0usize;
+    for (topic, partition) in assigned {
+        let node = leaders
+            .get(topic.as_ref())
+            .and_then(|ids| {
+                usize::try_from(*partition)
+                    .ok()
+                    .and_then(|index| ids.get(index))
+            })
+            .copied()
+            .filter(|node| *node >= 0);
+        if let Some(node) = node {
+            Consumer::remember_node(&mut nodes, &mut seen, node);
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    nodes
+}
+
+async fn fill_unique_topic_names(names: &mut Vec<String>, assigned: &[(Arc<str>, i32)]) {
+    let mut seen: HashSet<String> = HashSet::new();
+    let mut used = 0usize;
+    let mut walked = 0usize;
+    for (topic, _) in assigned {
+        let topic = topic.as_ref();
+        if !seen.contains(topic) {
+            let _ = seen.insert(topic.to_string());
+            if let Some(slot) = names.get_mut(used) {
+                if slot != topic {
+                    slot.clear();
+                    slot.push_str(topic);
+                }
+            } else {
+                names.push(topic.to_string());
+            }
+            used = used.saturating_add(1);
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    names.truncate(used);
+}
+
+async fn build_share_leader_plan(
+    assigned: &[(Arc<str>, i32)],
+    cluster: &crate::cluster::Cluster,
+    plan: &mut ShareLeaderPlan,
+    leader_topic: &mut Option<Arc<str>>,
+    leader_ids: &mut Vec<i32>,
+) -> Result<()> {
+    clear_share_leader_plan(plan);
+    *leader_topic = None;
+    let mut walked = 0usize;
+    for (topic, partition) in assigned {
+        if remember_share_leader_topic(leader_topic, topic) {
+            let ids = cluster
+                .leaders
+                .get(topic.as_ref())
+                .map(Vec::as_slice)
+                .ok_or_else(|| Error::UnknownTopic(topic.as_ref().to_string()))?;
+            leader_ids.clear();
+            leader_ids.extend_from_slice(ids);
+        }
+        let node = share_partition_leader(topic, *partition, leader_ids)?;
+        if !cluster.brokers.contains_key(&node) {
+            return Err(Error::NoLeader {
+                topic: topic.as_ref().to_owned(),
+                partition: *partition,
+            });
+        }
+        remember_share_leader(plan, node, topic, *partition);
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    prune_share_leader_plan(plan);
+    Ok(())
 }
 
 fn clear_share_leader_plan(plan: &mut ShareLeaderPlan) {
@@ -3113,25 +3208,8 @@ impl ShareGroup {
 
     /// Open missing share-leader sockets together. Failures stay for the
     /// per-node lookup, which reports them on the same deadline.
-    fn cached_share_nodes(&self) -> Vec<i32> {
-        let mut nodes = Vec::new();
-        let mut seen = HashSet::new();
-        for (topic, partition) in &self.assigned {
-            let Ok(ids) = self.consumer.leader_ids_of(topic) else {
-                continue;
-            };
-            let Some(node) = usize::try_from(*partition)
-                .ok()
-                .and_then(|index| ids.get(index))
-                .copied()
-            else {
-                continue;
-            };
-            if node >= 0 {
-                Consumer::remember_node(&mut nodes, &mut seen, node);
-            }
-        }
-        nodes
+    async fn cached_share_nodes(&self) -> Vec<i32> {
+        share_nodes_for(&self.assigned, &self.consumer.cluster().leaders).await
     }
 
     async fn share_dial_targets(&mut self, nodes: &[i32]) -> Vec<(i32, String)> {
@@ -3640,7 +3718,7 @@ impl ShareGroup {
             return Err(Error::Timeout);
         }
         let deadline = Instant::now().checked_add(timeout).ok_or(Error::Timeout)?;
-        let mut nodes = self.cached_share_nodes();
+        let mut nodes = self.cached_share_nodes().await;
         let mut seen: HashSet<i32> = nodes.iter().copied().collect();
         for node in self.share_redial_nodes.drain(..) {
             Consumer::remember_node(&mut nodes, &mut seen, node);
@@ -3725,10 +3803,7 @@ impl ShareGroup {
     async fn leaders_of(&mut self, deadline: Instant) -> Result<()> {
         // One stored name per topic. A fresh topic skips the metadata RPC
         // without copying that name again.
-        fill_unique_names(
-            &mut self.metadata_names,
-            self.assigned.iter().map(|(topic, _)| topic.as_ref()),
-        );
+        fill_unique_topic_names(&mut self.metadata_names, &self.assigned).await;
         let mut stale = std::mem::take(&mut self.stale_metadata_names);
         refill_stale_names(&mut stale, &self.metadata_names, |topic| {
             self.consumer.topic_metadata_fresh(topic)
@@ -3741,7 +3816,7 @@ impl ShareGroup {
             }
             // Cached leaders can be dialed while metadata reloads. A leader
             // that moves is opened afterward by the normal warm path.
-            let cached = self.cached_share_nodes();
+            let cached = self.cached_share_nodes().await;
             let targets = self.share_dial_targets(&cached).await;
             if targets.is_empty() {
                 let refreshed = self
@@ -3769,25 +3844,14 @@ impl ShareGroup {
         } else {
             self.stale_metadata_names = stale;
         }
-        clear_share_leader_plan(&mut self.leader_plan);
-        self.leader_topic = None;
-        for (topic, partition) in &self.assigned {
-            if remember_share_leader_topic(&mut self.leader_topic, topic) {
-                let ids = self.consumer.leader_ids_of(topic)?;
-                self.leader_ids.clear();
-                self.leader_ids.extend_from_slice(ids);
-            }
-            let node = share_partition_leader(topic, *partition, &self.leader_ids)?;
-            if !self.consumer.broker_known(node) {
-                return Err(Error::NoLeader {
-                    topic: topic.as_ref().to_owned(),
-                    partition: *partition,
-                });
-            }
-            remember_share_leader(&mut self.leader_plan, node, topic, *partition);
-        }
-        prune_share_leader_plan(&mut self.leader_plan);
-        Ok(())
+        build_share_leader_plan(
+            &self.assigned,
+            self.consumer.cluster(),
+            &mut self.leader_plan,
+            &mut self.leader_topic,
+            &mut self.leader_ids,
+        )
+        .await
     }
 
     /// Test hook: share fetches whose replies have not been applied yet.
@@ -8911,6 +8975,132 @@ mod tests {
             delivery_count: 1,
             leader_epoch: None,
         }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn reading_many_share_nodes_does_not_hold_the_caller() {
+        // 2_000_000 partitions: reading each leader held the caller 612ms.
+        let mut leaders = HashMap::new();
+        let _ = leaders.insert(
+            Arc::<str>::from("orders"),
+            (0..2_000_000).map(|index| index % 8).collect(),
+        );
+        let topic: Arc<str> = Arc::from("orders");
+        let assigned: Vec<(Arc<str>, i32)> = (0..2_000_000)
+            .map(|partition| (Arc::clone(&topic), partition))
+            .collect();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = share_nodes_for(&assigned, &leaders) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "reading share nodes held the caller for {elapsed:?}"
+        );
+        let small = [
+            (Arc::clone(&topic), 3),
+            (Arc::clone(&topic), 3),
+            (Arc::clone(&topic), 1),
+        ];
+        let nodes = share_nodes_for(&small, &leaders).await;
+        assert_eq!(nodes, vec![3, 1]);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn planning_many_share_leaders_does_not_hold_the_caller() {
+        // 2_000_000 partitions: grouping each leader held the caller 918ms.
+        let mut cluster = crate::cluster::Cluster::default();
+        for node in 0..8 {
+            let _ = cluster
+                .brokers
+                .insert(node, format!("127.0.0.1:{}", 9092 + node));
+        }
+        let _ = cluster.leaders.insert(
+            Arc::<str>::from("orders"),
+            (0..2_000_000).map(|index| index % 8).collect(),
+        );
+        let topic: Arc<str> = Arc::from("orders");
+        let assigned: Vec<(Arc<str>, i32)> = (0..2_000_000)
+            .map(|partition| (Arc::clone(&topic), partition))
+            .collect();
+        let mut plan = ShareLeaderPlan::new();
+        let mut leader_topic = None;
+        let mut leader_ids = Vec::new();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            result = build_share_leader_plan(
+                &assigned,
+                &cluster,
+                &mut plan,
+                &mut leader_topic,
+                &mut leader_ids,
+            ) => {
+                result.unwrap_or_else(|error| panic!("{error}"));
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "planning share leaders held the caller for {elapsed:?}"
+        );
+        let missing = [(Arc::<str>::from("none"), 0)];
+        let error = build_share_leader_plan(
+            &missing,
+            &cluster,
+            &mut plan,
+            &mut leader_topic,
+            &mut leader_ids,
+        )
+        .await
+        .expect_err("missing topic");
+        assert!(error.to_string().contains("none"), "{error}");
+        let known = [(Arc::clone(&topic), 0), (Arc::clone(&topic), 1)];
+        build_share_leader_plan(
+            &known,
+            &cluster,
+            &mut plan,
+            &mut leader_topic,
+            &mut leader_ids,
+        )
+        .await
+        .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(
+            plan.get(&0).and_then(|topics| topics.get(topic.as_ref())),
+            Some(&vec![0])
+        );
+        assert_eq!(
+            plan.get(&1).and_then(|topics| topics.get(topic.as_ref())),
+            Some(&vec![1])
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn collecting_many_share_topic_names_does_not_hold_the_caller() {
+        // 2_000_000 partitions: collecting each topic name held the caller 319ms.
+        let topic: Arc<str> = Arc::from("orders");
+        let assigned: Vec<(Arc<str>, i32)> = (0..2_000_000)
+            .map(|partition| (Arc::clone(&topic), partition))
+            .collect();
+        let mut names = vec!["orders".to_string()];
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = fill_unique_topic_names(&mut names, &assigned) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "collecting share topic names held the caller for {elapsed:?}"
+        );
+        names.clear();
+        names.push("orders".to_string());
+        let kept = names.first().map(|name| name.as_ptr());
+        fill_unique_topic_names(&mut names, &assigned[..2]).await;
+        assert_eq!(names, vec!["orders".to_string()]);
+        assert_eq!(names.first().map(|name| name.as_ptr()), kept);
     }
 
     #[test]
