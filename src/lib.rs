@@ -3980,6 +3980,12 @@
 //! `metadata.requestUpdate`; this is not top-level
 //! `UNRELEASED_INSTANCE_ID`). Official Java `GroupCoordinatorService`
 //! writes this when ConsumerGroupHeartbeat names a ServerAssignor the coordinator does not support.
+//! Top-level ShareAcknowledge `STALE_MEMBER_EPOCH` completes
+//! without retry and does not request Metadata, including when
+//! `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+//! `metadata.requestUpdate`; this is not top-level
+//! `UNSUPPORTED_ASSIGNOR`). Official Java `ConsumerGroup`
+//! writes this when a consumer-protocol OffsetCommit or OffsetFetch member epoch does not match the coordinator's stored epoch.
 //! Top-level ShareAcknowledge
 //! `SHARE_SESSION_LIMIT_REACHED` completes without retry and advances
 //! the session epoch (Java `ShareSessionHandler.handleResponse`
