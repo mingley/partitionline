@@ -100,7 +100,7 @@ use crate::protocol::api_keys::{
 use crate::protocol::group::{
     decode_find_coordinator_response, decode_find_coordinator_response_coordinators,
     decode_leave_group_response_version, decode_offset_commit_response_cooperative,
-    decode_offset_delete_response, decode_offset_fetch_groups_response,
+    decode_offset_delete_response_cooperative, decode_offset_fetch_groups_response,
     decode_offset_fetch_response_cooperative, encode_find_coordinator_request_keys,
     encode_find_coordinator_request_typed, encode_leave_group_request_members,
     encode_offset_commit_named, encode_offset_delete_named_topics,
@@ -11079,7 +11079,8 @@ impl Admin {
                 }
                 Err(e) => return Err(e),
             };
-            let (top, results, ..) = decode_offset_delete_response(&mut body.clone())?;
+            let (top, results, ..) =
+                decode_offset_delete_response_cooperative(&mut body.clone()).await?;
             if error::coordinator_retriable(top) {
                 // 14/15/16: FindCoordinator, then the new group coordinator.
                 self.group_coord = None;
@@ -19653,6 +19654,63 @@ mod tests {
             elapsed < std::time::Duration::from_millis(80),
             "grouping delete records held the caller for {elapsed:?}"
         );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn decoding_many_offset_deletes_does_not_hold_the_caller() {
+        use crate::protocol::group::{
+            decode_offset_delete_response, decode_offset_delete_response_cooperative,
+            encode_offset_delete_response, OffsetDeleteResult,
+        };
+        use bytes::BufMut;
+        // 2_000_000 partitions: copying the topic name for each held the caller 300ms.
+        let partitions = 2_000_000i32;
+        let mut body = bytes::BytesMut::new();
+        body.put_i16(0);
+        body.put_i32(0);
+        body.put_i32(1);
+        body.put_i16(6);
+        body.extend_from_slice(b"orders");
+        body.put_i32(partitions);
+        for index in 0..partitions {
+            body.put_i32(index);
+            body.put_i16(0);
+        }
+        let started = std::time::Instant::now();
+        tokio::select! {
+            decoded = decode_offset_delete_response_cooperative(&mut body) => {
+                let (_top, results, _throttle) = decoded.unwrap_or_else(|error| panic!("{error}"));
+                assert_eq!(results.len(), partitions as usize);
+                assert_eq!(results.first().map(|result| result.topic.as_str()), Some("orders"));
+                assert_eq!(results.first().map(|result| result.partition), Some(0));
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "decoding offset deletes held the caller for {elapsed:?}"
+        );
+        let small = [
+            OffsetDeleteResult::new("orders", 0, 0),
+            OffsetDeleteResult::new("orders", 1, 3),
+            OffsetDeleteResult::new("payments", 4, 0),
+        ];
+        let mut encoded = bytes::BytesMut::new();
+        encode_offset_delete_response(&mut encoded, 0, &small)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let mut once = encoded.clone();
+        let mut paced = encoded;
+        let sync =
+            decode_offset_delete_response(&mut once).unwrap_or_else(|error| panic!("{error}"));
+        let coop = decode_offset_delete_response_cooperative(&mut paced)
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(sync, coop);
+        assert_eq!(coop.1[0].topic, "orders");
+        assert_eq!(coop.1[1].topic, "orders");
+        assert_eq!(coop.1[1].error_code, 3);
+        assert_eq!(coop.1[2].topic, "payments");
     }
 
     #[tokio::test(flavor = "current_thread")]

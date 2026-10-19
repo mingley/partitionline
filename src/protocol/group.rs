@@ -7237,6 +7237,43 @@ pub fn decode_offset_delete_response<B: Buf>(
     Ok((error_code, out, throttle_time_ms))
 }
 
+/// [`decode_offset_delete_response`], yielding while partitions are still being read.
+///
+/// Decoding 2,000,000 partitions of one topic held the caller for 300ms.
+pub async fn decode_offset_delete_response_cooperative<B: Buf>(
+    buf: &mut B,
+) -> Result<(i16, Vec<OffsetDeleteResult>, i32)> {
+    let error_code = buf::get_i16(buf)?;
+    let throttle_time_ms = buf::get_i32(buf)?;
+    let n = buf::get_array_len(buf, false)?.unwrap_or(0);
+    let mut out = Vec::new();
+    let mut walked = 0usize;
+    for _ in 0..n {
+        let mut topic = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
+        let pn = buf::get_array_len(buf, false)?.unwrap_or(0);
+        for index in 0..pn {
+            let partition = buf::get_i32(buf)?;
+            let part_err = buf::get_i16(buf)?;
+            let name = if index.saturating_add(1) == pn {
+                std::mem::take(&mut topic)
+            } else {
+                topic.clone()
+            };
+            out.push(OffsetDeleteResult {
+                topic: name,
+                partition,
+                error_code: part_err,
+            });
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+    }
+    Ok((error_code, out, throttle_time_ms))
+}
+
 /// ConsumerProtocol subscription at [`ConsumerProtocol::HIGHEST_SUPPORTED_VERSION`]
 /// (Java `serializeSubscription`; topics only, default generation, no rack).
 pub fn encode_subscription(topics: &[String]) -> Result<Vec<u8>> {
