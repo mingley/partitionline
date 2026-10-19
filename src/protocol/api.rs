@@ -2780,7 +2780,9 @@ pub(crate) fn decode_metadata_response_into<B: Buf>(
     Ok(())
 }
 
-/// [`decode_metadata_response_into`], yielding while a long partition list is decoded.
+/// [`decode_metadata_response_into`], yielding while topics and long partition lists are decoded.
+///
+/// Decoding 2,000,000 topics held the caller for 708ms. A topic name is still read.
 pub(crate) async fn decode_metadata_response_into_cooperative<B: Buf>(
     buf: &mut B,
     version: i16,
@@ -2852,6 +2854,7 @@ pub(crate) async fn decode_metadata_response_into_cooperative<B: Buf>(
     }
     let new_topics = topic_count.saturating_sub(out.topics.len());
     reserve_additional(&mut out.topics, new_topics)?;
+    let mut walked = 0usize;
     for index in 0..topic_count {
         let error_code = buf::get_i16(buf)?;
         if out.topics.get(index).is_some() {
@@ -2908,6 +2911,11 @@ pub(crate) async fn decode_metadata_response_into_cooperative<B: Buf>(
         }
         if flexible {
             buf::skip_tagged_fields(buf)?;
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
         }
     }
     out.cluster_authorized_operations = if (8..=10).contains(&version) {
@@ -5002,6 +5010,62 @@ mod tests {
             .await
             .unwrap_or_else(|error| panic!("{error}"));
         assert_eq!(once, paced);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn decoding_many_metadata_topics_does_not_hold_the_caller() {
+        let topics = 2_000_000i32;
+        let mut body = BytesMut::new();
+        body.put_i32(0);
+        body.put_i32(1);
+        body.put_i32(topics);
+        for index in 0..topics {
+            let name = format!("topic-{index}");
+            body.put_i16(0);
+            body.put_i16(i16::try_from(name.len()).unwrap_or(0));
+            body.extend_from_slice(name.as_bytes());
+            body.put_u8(0);
+            body.put_i32(0);
+        }
+        let mut cursor: &[u8] = &body;
+        let mut image = MetadataResponse::blank();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            decoded = decode_metadata_response_into_cooperative(&mut cursor, 1, &mut image) => {
+                decoded.unwrap_or_else(|error| panic!("{error}"));
+            }
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        assert!(
+            started.elapsed() < std::time::Duration::from_millis(80),
+            "decoding metadata topics held the caller for {:?}",
+            started.elapsed()
+        );
+        let mut sample = BytesMut::new();
+        sample.put_i32(0);
+        sample.put_i32(1);
+        sample.put_i32(1);
+        sample.put_i16(0);
+        sample.put_i16(6);
+        sample.extend_from_slice(b"orders");
+        sample.put_u8(0);
+        sample.put_i32(0);
+        let bytes = sample.freeze();
+        let mut sync_cursor: &[u8] = &bytes;
+        let mut paced_cursor: &[u8] = &bytes;
+        let mut sync_image = MetadataResponse::blank();
+        let mut paced_image = MetadataResponse::blank();
+        decode_metadata_response_into(&mut sync_cursor, 1, &mut sync_image)
+            .unwrap_or_else(|error| panic!("{error}"));
+        decode_metadata_response_into_cooperative(&mut paced_cursor, 1, &mut paced_image)
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(sync_image.topics.len(), paced_image.topics.len());
+        for (left, right) in sync_image.topics.iter().zip(paced_image.topics.iter()) {
+            assert_eq!(left.name, right.name);
+            assert_eq!(left.error_code, right.error_code);
+            assert_eq!(left.partitions.len(), right.partitions.len());
+        }
     }
 
     #[tokio::test(flavor = "current_thread")]
