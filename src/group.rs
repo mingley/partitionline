@@ -3329,12 +3329,13 @@ impl ConsumerGroup {
         let mut seen_leaders = HashSet::new();
         if assigning {
             if let Some(parts) = self.prev_assignment.get(&self.member_id) {
-                for (topic, partition) in parts {
-                    let Ok(node) = self.consumer.cluster().leader_id(topic, *partition) else {
-                        continue;
-                    };
-                    crate::consumer::Consumer::remember_node(&mut leaders, &mut seen_leaders, node);
-                }
+                remember_partition_leaders(
+                    self.consumer.cluster(),
+                    parts,
+                    &mut leaders,
+                    &mut seen_leaders,
+                )
+                .await;
             }
         }
         let timeout = deadline.saturating_duration_since(Instant::now());
@@ -3840,12 +3841,13 @@ impl ConsumerGroup {
             } else if overlap_metadata {
                 let mut leaders = Vec::new();
                 let mut seen_leaders = HashSet::new();
-                for (topic, partition) in &added {
-                    let Ok(node) = self.consumer.cluster().leader_id(topic, *partition) else {
-                        continue;
-                    };
-                    crate::consumer::Consumer::remember_node(&mut leaders, &mut seen_leaders, node);
-                }
+                remember_partition_leaders(
+                    self.consumer.cluster(),
+                    &added,
+                    &mut leaders,
+                    &mut seen_leaders,
+                )
+                .await;
                 let mut dials = self.consumer.start_leader_dials(&leaders, deadline).await;
                 let require_stable = self.cfg.isolation_level == IsolationLevel::ReadCommitted;
                 let member_epoch = if self.kip848 { self.generation_id } else { -1 };
@@ -3982,12 +3984,13 @@ impl ConsumerGroup {
             } else {
                 let mut leaders = Vec::new();
                 let mut seen_leaders = HashSet::new();
-                for (topic, partition) in &added {
-                    let Ok(node) = self.consumer.cluster().leader_id(topic, *partition) else {
-                        continue;
-                    };
-                    crate::consumer::Consumer::remember_node(&mut leaders, &mut seen_leaders, node);
-                }
+                remember_partition_leaders(
+                    self.consumer.cluster(),
+                    &added,
+                    &mut leaders,
+                    &mut seen_leaders,
+                )
+                .await;
                 let mut dials = self.consumer.start_leader_dials(&leaders, deadline).await;
                 let require_stable = self.cfg.isolation_level == IsolationLevel::ReadCommitted;
                 let member_epoch = if self.kip848 { self.generation_id } else { -1 };
@@ -5761,6 +5764,29 @@ fn remember_partition(map: &mut HashMap<String, HashSet<i32>>, topic: &str, part
     let mut parts = HashSet::new();
     let _ = parts.insert(partition);
     let _ = map.insert(topic.to_owned(), parts);
+}
+
+/// Dial targets for an assignment. A missing leader is skipped.
+///
+/// Remembering 2,000,000 assignment leaders held the caller for 200ms.
+/// A known leader is still stored once.
+async fn remember_partition_leaders<T: AsRef<str>>(
+    cluster: &crate::cluster::Cluster,
+    parts: &[(T, i32)],
+    leaders: &mut Vec<i32>,
+    seen: &mut HashSet<i32>,
+) {
+    let mut walked = 0usize;
+    for (topic, partition) in parts {
+        if let Ok(node) = cluster.leader_id(topic.as_ref(), *partition) {
+            crate::consumer::Consumer::remember_node(leaders, seen, node);
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
 }
 
 fn remember_i64(
@@ -7637,6 +7663,71 @@ mod tests {
     use std::time::Duration;
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
     use tokio::net::TcpListener;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn remembering_many_assignment_leaders_does_not_hold_the_caller() {
+        let parts: Vec<(&str, i32)> = (0..2_000_000).map(|index| ("orders", index)).collect();
+        let cluster = crate::cluster::Cluster::default();
+        let mut leaders = Vec::new();
+        let mut seen = HashSet::new();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            () = remember_partition_leaders(&cluster, &parts, &mut leaders, &mut seen) => {}
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        assert!(
+            started.elapsed() < std::time::Duration::from_millis(80),
+            "remembering assignment leaders held the caller for {:?}",
+            started.elapsed()
+        );
+        let mut known = crate::cluster::Cluster::default();
+        let mut image = crate::protocol::api::MetadataResponse::blank();
+        image.brokers = vec![
+            crate::protocol::api::Broker::new(4, "127.0.0.1", 9092, None),
+            crate::protocol::api::Broker::new(5, "10.0.0.8", 9093, None),
+        ];
+        image.topics = vec![
+            crate::protocol::api::TopicMetadata::new(
+                0,
+                "orders",
+                false,
+                vec![crate::protocol::api::PartitionMetadata {
+                    error_code: 0,
+                    partition_index: 0,
+                    leader_id: 4,
+                    leader_epoch: 1,
+                    replica_nodes: Vec::new(),
+                    isr_nodes: Vec::new(),
+                    offline_replicas: Vec::new(),
+                }],
+            ),
+            crate::protocol::api::TopicMetadata::new(
+                0,
+                "payments",
+                false,
+                vec![crate::protocol::api::PartitionMetadata {
+                    error_code: 0,
+                    partition_index: 0,
+                    leader_id: 5,
+                    leader_epoch: 1,
+                    replica_nodes: Vec::new(),
+                    isr_nodes: Vec::new(),
+                    offline_replicas: Vec::new(),
+                }],
+            ),
+        ];
+        known.apply_image(&image, 1).await;
+        let sample = [
+            ("orders", 0),
+            ("orders", 0),
+            ("payments", 0),
+            ("missing", 0),
+        ];
+        let mut found = Vec::new();
+        let mut found_seen = HashSet::new();
+        remember_partition_leaders(&known, &sample, &mut found, &mut found_seen).await;
+        assert_eq!(found, vec![4, 5]);
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn decoding_many_join_members_does_not_hold_the_caller() {
