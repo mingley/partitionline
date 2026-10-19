@@ -57,7 +57,7 @@ use crate::protocol::admin::{
     decode_share_group_describe_response_cooperative, decode_unregister_broker_response,
     decode_update_features_response_cooperative, encode_allocate_producer_ids_request,
     encode_alter_client_quotas_request_cooperative, encode_alter_configs_named,
-    encode_alter_partition_reassignments_named, encode_alter_replica_log_dirs_named,
+    encode_alter_partition_reassignments_named, encode_alter_replica_log_dirs_named_cooperative,
     encode_alter_replica_log_dirs_request, encode_alter_share_group_offsets_request_cooperative,
     encode_alter_user_scram_credentials_named, encode_assign_replicas_to_dirs_request,
     encode_consumer_group_describe_ids_cooperative, encode_create_delegation_token_request,
@@ -14355,20 +14355,20 @@ impl Admin {
             for id in &ids {
                 self.ensure_broker(*id, deadline).await?;
             }
+            let mut prepared = HashMap::new();
+            for (broker_id, dirs) in &grouped {
+                let mut payload = BytesMut::new();
+                encode_alter_replica_log_dirs_named_cooperative(&mut payload, version, dirs)
+                    .await?;
+                let _previous = prepared.insert(*broker_id, payload.freeze());
+            }
             let mut finished = self
                 .exchange_leaders(&ids, deadline, |_admin, node, _conn, _timeout| {
-                    let dirs = grouped
-                        .iter()
-                        .find(|(broker_id, _)| *broker_id == node)
-                        .map(|(_, dirs)| dirs.as_slice())
-                        .unwrap_or(&[]);
-                    let mut payload = BytesMut::new();
-                    encode_alter_replica_log_dirs_named(&mut payload, version, dirs)?;
-                    Ok(LeaderFrame::ready(
-                        ALTER_REPLICA_LOG_DIRS,
-                        version,
-                        payload.freeze(),
-                    ))
+                    let payload = prepared
+                        .get(&node)
+                        .cloned()
+                        .ok_or_else(|| Error::protocol("missing alter replica log dirs request"))?;
+                    Ok(LeaderFrame::ready(ALTER_REPLICA_LOG_DIRS, version, payload))
                 })
                 .await;
             for (broker_id, dirs) in grouped {
@@ -14828,6 +14828,8 @@ impl Admin {
         })?;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
+        let mut encoded = BytesMut::new();
+        encode_alter_replica_log_dirs_named_cooperative(&mut encoded, version, dirs).await?;
         loop {
             let body = {
                 self.roundtrip_known_node(
@@ -14835,7 +14837,10 @@ impl Admin {
                     deadline,
                     ALTER_REPLICA_LOG_DIRS,
                     version,
-                    |buf| encode_alter_replica_log_dirs_named(buf, version, dirs),
+                    |buf| {
+                        buf.extend_from_slice(&encoded);
+                        Ok(())
+                    },
                     deadline.saturating_duration_since(Instant::now()),
                 )
                 .await

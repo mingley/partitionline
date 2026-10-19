@@ -21963,6 +21963,7 @@ impl<'a> AlterReplicaLogDirView for BorrowedAlterReplicaLogDir<'a> {
 }
 
 /// Encode AlterReplicaLogDirs directories whose paths and topic names are borrowed.
+#[cfg(test)]
 pub(crate) fn encode_alter_replica_log_dirs_named(
     buf: &mut BytesMut,
     version: i16,
@@ -22033,6 +22034,108 @@ fn alter_replica_log_dirs_request_len<T: AlterReplicaLogDirView>(
             )?;
             if flexible {
                 total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+            }
+        }
+        if flexible {
+            total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    if flexible {
+        total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
+}
+
+/// Encode AlterReplicaLogDirs, yielding while topics are still being written.
+///
+/// Encoding 2,000,000 topics held the caller for 696ms. A topic name and a partition are still written.
+pub(crate) async fn encode_alter_replica_log_dirs_named_cooperative(
+    buf: &mut BytesMut,
+    version: i16,
+    dirs: &[BorrowedAlterReplicaLogDir<'_>],
+) -> crate::error::Result<()> {
+    encode_alter_replica_log_dir_views_cooperative(buf, version, dirs).await
+}
+
+async fn encode_alter_replica_log_dir_views_cooperative<T: AlterReplicaLogDirView + Sync>(
+    buf: &mut BytesMut,
+    version: i16,
+    dirs: &[T],
+) -> crate::error::Result<()> {
+    let flexible = alter_replica_log_dirs_flexible(version)?;
+    let body_start = buf.len();
+    let planned = alter_replica_log_dirs_request_len_cooperative(flexible, dirs).await?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
+    buf::put_array_len(buf, flexible, Some(dirs.len()))?;
+    let mut walked = 0usize;
+    for directory in dirs {
+        buf::put_string(buf, flexible, Some(directory.alter_log_dir_path()))?;
+        let topics = directory.alter_log_dir_topics();
+        buf::put_array_len(buf, flexible, Some(topics.len()))?;
+        for topic in topics {
+            buf::put_string(buf, flexible, Some(topic.alter_log_dir_topic_name()))?;
+            let partitions = topic.alter_log_dir_partitions();
+            buf::put_array_len(buf, flexible, Some(partitions.len()))?;
+            for part in partitions {
+                buf.put_i32(*part);
+                walked = walked.saturating_add(1);
+                if walked == 8 * 1024 {
+                    walked = 0;
+                    tokio::task::yield_now().await;
+                }
+            }
+            if flexible {
+                buf::put_empty_tagged_fields(buf);
+            }
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+    }
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+    Ok(())
+}
+
+async fn alter_replica_log_dirs_request_len_cooperative<T: AlterReplicaLogDirView + Sync>(
+    flexible: bool,
+    dirs: &[T],
+) -> Result<usize> {
+    let mut total = describe_array_len(flexible, dirs.len())?;
+    let mut walked = 0usize;
+    for directory in dirs {
+        total = add_describe_len(
+            total,
+            describe_string_len(flexible, Some(directory.alter_log_dir_path()))?,
+        )?;
+        let topics = directory.alter_log_dir_topics();
+        total = add_describe_len(total, describe_array_len(flexible, topics.len())?)?;
+        for topic in topics {
+            total = add_describe_len(
+                total,
+                describe_string_len(flexible, Some(topic.alter_log_dir_topic_name()))?,
+            )?;
+            total = add_describe_len(
+                total,
+                replica_log_dirs_i32s_len(flexible, topic.alter_log_dir_partitions())?,
+            )?;
+            if flexible {
+                total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+            }
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
             }
         }
         if flexible {
@@ -27588,6 +27691,52 @@ mod tests {
         encode_alter_share_group_offsets_request(&mut once, "g", &sample)
             .unwrap_or_else(|error| panic!("{error}"));
         encode_alter_share_group_offsets_request_cooperative(&mut paced, "g", &sample)
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(once, paced);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn encoding_many_altered_replica_log_dirs_does_not_hold_the_caller() {
+        let owned: Vec<String> = (0..2_000_000)
+            .map(|index| format!("topic-{index}"))
+            .collect();
+        let topics: Vec<BorrowedAlterReplicaLogDirTopic<'_>> = owned
+            .iter()
+            .map(|name| BorrowedAlterReplicaLogDirTopic {
+                name: name.as_str(),
+                partitions: vec![0],
+            })
+            .collect();
+        let dirs = [BorrowedAlterReplicaLogDir {
+            path: "/data",
+            topics,
+        }];
+        let mut body = bytes::BytesMut::new();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            encoded = encode_alter_replica_log_dirs_named_cooperative(&mut body, 2, &dirs) => {
+                encoded.unwrap_or_else(|error| panic!("{error}"));
+            }
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "encoding altered replica log dirs held the caller for {elapsed:?}"
+        );
+        let sample = [BorrowedAlterReplicaLogDir {
+            path: "/data",
+            topics: vec![BorrowedAlterReplicaLogDirTopic {
+                name: "orders",
+                partitions: vec![0],
+            }],
+        }];
+        let mut once = bytes::BytesMut::new();
+        let mut paced = bytes::BytesMut::new();
+        encode_alter_replica_log_dirs_named(&mut once, 2, &sample)
+            .unwrap_or_else(|error| panic!("{error}"));
+        encode_alter_replica_log_dirs_named_cooperative(&mut paced, 2, &sample)
             .await
             .unwrap_or_else(|error| panic!("{error}"));
         assert_eq!(once, paced);
