@@ -4093,7 +4093,7 @@
 //! writes this when AddPartitionsToTxn verify finds a partition that is not already in the transaction.
 //! Top-level ShareAcknowledge `FENCED_STATE_EPOCH` completes
 //! without retry and does not request Metadata, including when
-//! `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+//! `ErrorMessage` is set or empty (Java `handleShareAcknowledgeSuccess` has no
 //! `metadata.requestUpdate`; this is not top-level
 //! `TRANSACTION_ABORTABLE`). Official Java `ShareCoordinatorShard`
 //! writes this when a WriteShareGroupState request state epoch is smaller than the last recorded epoch.
