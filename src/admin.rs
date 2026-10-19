@@ -70,22 +70,22 @@ use crate::protocol::admin::{
     encode_describe_log_dirs_named, encode_describe_log_dirs_request,
     encode_describe_producers_named_topics,
     encode_describe_share_group_offsets_request_refs_cooperative,
-    encode_describe_topic_partitions_names, encode_describe_transactions_ids_cooperative,
-    encode_describe_user_scram_credentials_ids, encode_expire_delegation_token_hmac,
-    encode_expire_delegation_token_request, encode_get_telemetry_subscriptions_request,
-    encode_incremental_alter_configs_named, encode_list_config_resources_request,
-    encode_list_groups_filters, encode_list_partition_reassignments_named,
-    encode_list_transactions_states, encode_push_telemetry_metrics,
-    encode_renew_delegation_token_hmac, encode_renew_delegation_token_request,
-    encode_share_group_describe_ids_cooperative, encode_unregister_broker_request,
-    encode_update_features_named, AlterConfigsResource, BorrowedAlterConfig,
-    BorrowedAlterConfigsResource, BorrowedAlterReplicaLogDir, BorrowedAlterReplicaLogDirTopic,
-    BorrowedAlterableResource, BorrowedCreatableTopic, BorrowedCreatePartitionsTopic,
-    BorrowedDeleteTopic, BorrowedDescribeConfigsResource, BorrowedFeatureUpdate,
-    BorrowedReassignmentPartition, BorrowedReplicaAssignment, BorrowedScramDeletion,
-    BorrowedScramUpsertion, BorrowedTopicConfig, CreateTopicsRequest, DeleteRecordsPartition,
-    DeleteTopicView, DescribeConfigsResult, TopicResult, RESOURCE_BROKER, RESOURCE_BROKER_LOGGER,
-    RESOURCE_CLIENT_METRICS, RESOURCE_GROUP, RESOURCE_TOPIC,
+    encode_describe_topic_partitions_names_cooperative,
+    encode_describe_transactions_ids_cooperative, encode_describe_user_scram_credentials_ids,
+    encode_expire_delegation_token_hmac, encode_expire_delegation_token_request,
+    encode_get_telemetry_subscriptions_request, encode_incremental_alter_configs_named,
+    encode_list_config_resources_request, encode_list_groups_filters,
+    encode_list_partition_reassignments_named, encode_list_transactions_states,
+    encode_push_telemetry_metrics, encode_renew_delegation_token_hmac,
+    encode_renew_delegation_token_request, encode_share_group_describe_ids_cooperative,
+    encode_unregister_broker_request, encode_update_features_named, AlterConfigsResource,
+    BorrowedAlterConfig, BorrowedAlterConfigsResource, BorrowedAlterReplicaLogDir,
+    BorrowedAlterReplicaLogDirTopic, BorrowedAlterableResource, BorrowedCreatableTopic,
+    BorrowedCreatePartitionsTopic, BorrowedDeleteTopic, BorrowedDescribeConfigsResource,
+    BorrowedFeatureUpdate, BorrowedReassignmentPartition, BorrowedReplicaAssignment,
+    BorrowedScramDeletion, BorrowedScramUpsertion, BorrowedTopicConfig, CreateTopicsRequest,
+    DeleteRecordsPartition, DeleteTopicView, DescribeConfigsResult, TopicResult, RESOURCE_BROKER,
+    RESOURCE_BROKER_LOGGER, RESOURCE_CLIENT_METRICS, RESOURCE_GROUP, RESOURCE_TOPIC,
 };
 use crate::protocol::api::{
     decode_api_versions_response, decode_metadata_response,
@@ -13739,7 +13739,7 @@ impl Admin {
             .await
     }
 
-    async fn describe_topic_partitions_once<T: AsRef<str>>(
+    async fn describe_topic_partitions_once<T: AsRef<str> + Sync>(
         &mut self,
         names: &[T],
         response_partition_limit: i32,
@@ -13749,17 +13749,21 @@ impl Admin {
         let version = self.describe_topic_partitions_version.ok_or_else(|| {
             Error::Unsupported("broker does not support DescribeTopicPartitions".into())
         })?;
+        let mut encoded = BytesMut::new();
+        encode_describe_topic_partitions_names_cooperative(
+            &mut encoded,
+            names,
+            response_partition_limit,
+            cursor,
+        )
+        .await?;
         let body = self
             .roundtrip_bootstrap(
                 DESCRIBE_TOPIC_PARTITIONS,
                 version,
                 |buf| {
-                    encode_describe_topic_partitions_names(
-                        buf,
-                        names,
-                        response_partition_limit,
-                        cursor,
-                    )
+                    buf.extend_from_slice(&encoded);
+                    Ok(())
                 },
                 timeout,
             )
@@ -13767,7 +13771,7 @@ impl Admin {
         decode_describe_topic_partitions_response_cooperative(&mut body.clone()).await
     }
 
-    async fn describe_topics_dtp<T: AsRef<str>>(
+    async fn describe_topics_dtp<T: AsRef<str> + Sync>(
         &mut self,
         names: &[T],
         include_authorized_operations: bool,
