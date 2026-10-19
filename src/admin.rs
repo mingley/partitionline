@@ -3257,26 +3257,31 @@ async fn delete_records_topics<'a>(
     groups
 }
 
-fn describe_producers_topics<'a>(
+async fn describe_producers_topics<'a>(
     partitions: &'a [crate::TopicPartition],
     idxs: &[usize],
 ) -> Vec<(&'a str, Vec<i32>)> {
     let mut groups: Vec<(&str, Vec<i32>)> = Vec::new();
     let mut slots: HashMap<&str, usize> = HashMap::new();
+    let mut walked = 0usize;
     for &i in idxs {
-        let Some(tp) = partitions.get(i) else {
-            continue;
-        };
-        let topic = tp.topic.as_str();
-        if let Some(&slot) = slots.get(topic) {
-            if let Some((_, parts)) = groups.get_mut(slot) {
-                parts.push(tp.partition);
-                continue;
+        if let Some(tp) = partitions.get(i) {
+            let topic = tp.topic.as_str();
+            if let Some(&slot) = slots.get(topic) {
+                if let Some((_, parts)) = groups.get_mut(slot) {
+                    parts.push(tp.partition);
+                }
+            } else {
+                let slot = groups.len();
+                let _ = slots.insert(topic, slot);
+                groups.push((topic, vec![tp.partition]));
             }
         }
-        let slot = groups.len();
-        let _ = slots.insert(topic, slot);
-        groups.push((topic, vec![tp.partition]));
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
     }
     groups
 }
@@ -10632,12 +10637,17 @@ impl Admin {
             }
             let mut still = Vec::new();
             if nodes.len() > 1 {
+                let mut grouped = HashMap::new();
+                for &node in &nodes {
+                    let idxs = by_node.get(&node).map(Vec::as_slice).unwrap_or(&[]);
+                    let topics = describe_producers_topics(&partitions, idxs).await;
+                    let _ = grouped.insert(node, topics);
+                }
                 let mut finished = self
                     .exchange_leaders(&nodes, deadline, |_admin, node, _conn, _timeout| {
-                        let idxs = by_node.get(&node).map(Vec::as_slice).unwrap_or(&[]);
-                        let topics = describe_producers_topics(&partitions, idxs);
+                        let topics = grouped.get(&node).map(Vec::as_slice).unwrap_or(&[]);
                         let mut payload = BytesMut::new();
-                        encode_describe_producers_named_topics(&mut payload, &topics)?;
+                        encode_describe_producers_named_topics(&mut payload, topics)?;
                         Ok(LeaderFrame::ready(
                             DESCRIBE_PRODUCERS,
                             version,
@@ -10752,7 +10762,7 @@ impl Admin {
         deadline: Instant,
         pin_broker: bool,
     ) -> Result<DescribeProducersNodeOutcome> {
-        let topics = describe_producers_topics(partitions, idxs);
+        let topics = describe_producers_topics(partitions, idxs).await;
         let timeout = deadline.saturating_duration_since(Instant::now());
         if timeout.is_zero() {
             return Err(Error::Timeout);
@@ -19447,14 +19457,36 @@ mod tests {
         assert_eq!(topics[0].1, vec![0, 0, 1]);
     }
 
-    #[test]
-    fn describe_producers_topics_keeps_duplicate_partitions() {
+    #[tokio::test(flavor = "current_thread")]
+    async fn grouping_many_describe_producers_does_not_hold_the_caller() {
+        // 2_000_000 partitions: grouping them held the caller 354ms.
+        let topic = crate::TopicPartition::new("orders", 0);
+        let partitions: Vec<crate::TopicPartition> = (0..2_000_000)
+            .map(|index| crate::TopicPartition::new(topic.topic.as_str(), index))
+            .collect();
+        let idxs: Vec<usize> = (0..partitions.len()).collect();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            topics = describe_producers_topics(&partitions, &idxs) => {
+                assert_eq!(topics.first().map(|(_, parts)| parts.len()), Some(2_000_000));
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "grouping describe producers held the caller for {elapsed:?}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn describe_producers_topics_keeps_duplicate_partitions() {
         let partitions = [
             crate::TopicPartition::new("t", 0),
             crate::TopicPartition::new("t", 0),
             crate::TopicPartition::new("t", 1),
         ];
-        let topics = describe_producers_topics(&partitions, &[0, 1, 2]);
+        let topics = describe_producers_topics(&partitions, &[0, 1, 2]).await;
         assert_eq!(topics.len(), 1);
         assert_eq!(topics[0].0, "t");
         assert_eq!(topics[0].1, vec![0, 0, 1]);
