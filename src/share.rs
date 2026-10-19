@@ -2558,6 +2558,13 @@ pub enum ShareAcquireMode {
 /// `INVALID_VOTER_KEY`). Official Java
 /// `AddVoterHandler` writes this when the AddRaftVoter request
 /// names a voter id that is already part of the set of voters.
+/// Top-level `VOTER_NOT_FOUND` still fails that poll
+/// and does not request Metadata, including when `ErrorMessage` is
+/// set (Java `handleShareFetchSuccess` only `requestUpdate`s for
+/// `UNKNOWN_TOPIC_ID`; this is not top-level
+/// `DUPLICATE_VOTER`). Official Java
+/// `RemoveVoterHandler` writes this when RemoveRaftVoter cannot
+/// remove the named voter from the current voter set.
 /// Top-level
 /// `SHARE_SESSION_LIMIT_REACHED` resets the share session and does
 /// not request Metadata, including when `ErrorMessage` is set or
@@ -6091,6 +6098,14 @@ impl ShareGroup {
     /// `AddVoterHandler` writes this when the AddRaftVoter
     /// request names a voter id that is already part of the set of
     /// voters.
+    /// Top-level
+    /// `VOTER_NOT_FOUND` still fails that poll without
+    /// Metadata, including when `ErrorMessage` is set (Java
+    /// `handleShareFetchSuccess` only `requestUpdate`s for
+    /// `UNKNOWN_TOPIC_ID`; this is not top-level
+    /// `DUPLICATE_VOTER`). Official Java
+    /// `RemoveVoterHandler` writes this when RemoveRaftVoter
+    /// cannot remove the named voter from the current voter set.
     /// Top-level
     /// `SHARE_SESSION_LIMIT_REACHED` resets the share session and
     /// does not request Metadata, including when `ErrorMessage` is
