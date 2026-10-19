@@ -2980,6 +2980,14 @@ pub enum ShareAcquireMode {
 /// `ConsumerGroup` writes this when a consumer-protocol OffsetCommit
 /// or OffsetFetch member epoch does not match the coordinator's stored epoch.
 /// A top-level
+/// ShareAcknowledge `MISMATCHED_ENDPOINT_TYPE` completes without
+/// retry and does not request Metadata, including when `ErrorMessage`
+/// is set (Java `handleShareAcknowledgeSuccess` has no
+/// `metadata.requestUpdate`; this is not top-level
+/// `STALE_MEMBER_EPOCH`). Official Java
+/// `AuthHelper` writes this when DescribeCluster names an endpoint type
+/// that does not match the endpoint that received the request.
+/// A top-level
 /// ShareAcknowledge `SHARE_SESSION_LIMIT_REACHED` completes without
 /// retry and does not request Metadata, including when `ErrorMessage`
 /// is set or empty (Java `handleShareAcknowledgeSuccess` has no
@@ -6655,6 +6663,14 @@ impl ShareGroup {
     /// Official Java `ConsumerGroup` writes this when a
     /// consumer-protocol OffsetCommit or OffsetFetch member epoch
     /// does not match the coordinator's stored epoch.
+    /// A top-level ShareAcknowledge `MISMATCHED_ENDPOINT_TYPE`
+    /// completes without retry and does not request Metadata,
+    /// including when `ErrorMessage` is set (Java
+    /// `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`;
+    /// this is not top-level `STALE_MEMBER_EPOCH`).
+    /// Official Java `AuthHelper` writes this when DescribeCluster
+    /// names an endpoint type that does not match the endpoint that
+    /// received the request.
     /// Top-level `SHARE_SESSION_LIMIT_REACHED`
     /// completes without retry and advances the session epoch (Java
     /// `ShareSessionHandler.handleResponse` `nextEpoch`), including
