@@ -2239,21 +2239,36 @@ where
     })
 }
 
-fn refill_stale_names(dest: &mut Vec<String>, names: &[String], fresh: impl Fn(&str) -> bool) {
+/// Copy topic names that metadata no longer considers fresh.
+///
+/// The walk pauses every 8,192 names. Without that pause, refilling
+/// 4,000,000 stale topics held the caller for 216 milliseconds.
+///
+/// A name already in the buffer is kept. A fresh name is skipped.
+async fn refill_stale_names(
+    dest: &mut Vec<String>,
+    names: &[String],
+    fresh: impl Fn(&str) -> bool,
+) {
     let mut used = 0usize;
+    let mut walked = 0usize;
     for topic in names {
-        if fresh(topic) {
-            continue;
-        }
-        if let Some(slot) = dest.get_mut(used) {
-            if slot != topic {
-                slot.clear();
-                slot.push_str(topic);
+        if !fresh(topic) {
+            if let Some(slot) = dest.get_mut(used) {
+                if slot != topic {
+                    slot.clear();
+                    slot.push_str(topic);
+                }
+            } else {
+                dest.push(topic.clone());
             }
-        } else {
-            dest.push(topic.clone());
+            used = used.saturating_add(1);
         }
-        used = used.saturating_add(1);
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
     }
     dest.truncate(used);
 }
@@ -4098,7 +4113,8 @@ impl ShareGroup {
         let mut stale = std::mem::take(&mut self.stale_metadata_names);
         refill_stale_names(&mut stale, &self.metadata_names, |topic| {
             self.consumer.topic_metadata_fresh(topic)
-        });
+        })
+        .await;
         if !stale.is_empty() {
             let rest = deadline.saturating_duration_since(Instant::now());
             if rest.is_zero() {
@@ -9914,6 +9930,32 @@ mod tests {
             elapsed < std::time::Duration::from_millis(80),
             "finding share leader addresses held the caller for {elapsed:?}"
         );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn refilling_many_stale_share_topics_does_not_hold_the_caller() {
+        let names: Vec<String> = (0..4_000_000)
+            .map(|index| format!("topic-{index}"))
+            .collect();
+        let mut dest = Vec::new();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = refill_stale_names(&mut dest, &names, |_| false) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "refilling stale share topics held the caller for {elapsed:?}"
+        );
+        let mut reused = vec!["old".to_string(), "extra".to_string()];
+        refill_stale_names(
+            &mut reused,
+            &["keep".to_string(), "fresh".to_string(), "next".to_string()],
+            |topic| topic == "fresh",
+        )
+        .await;
+        assert_eq!(reused, vec!["keep".to_string(), "next".to_string()]);
     }
 
     #[tokio::test(flavor = "current_thread")]
