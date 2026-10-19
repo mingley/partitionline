@@ -4498,13 +4498,13 @@ impl ConsumerGroup {
         }
         let starts: Vec<(String, i32, i64)> = starts.into_iter().flatten().collect();
         self.consumer.assign_all(&starts).await?;
-        if wanted.iter().any(|(topic, partition)| {
-            self.consumer.assigned_topic_id(topic, *partition)
-                != identities
-                    .get(topic.as_str())
-                    .copied()
-                    .filter(|id| *id != [0; 16])
-        }) {
+        if assignment_topic_ids_changed(
+            wanted,
+            |topic, partition| self.consumer.assigned_topic_id(topic, partition),
+            &identities,
+        )
+        .await
+        {
             self.consumer.clear_assignment();
             return Err(Error::protocol(
                 "topic identity changed while assigning committed offsets",
@@ -5524,6 +5524,36 @@ fn new_kip848_member_id() -> Result<String> {
         &base64::engine::general_purpose::URL_SAFE_NO_PAD,
         raw,
     ))
+}
+
+/// True when an assigned topic id no longer matches the snapshot.
+///
+/// The walk pauses every 8,192 partitions. Without that pause, comparing
+/// 2,000,000 assigned topic ids held the caller for 2.21 seconds.
+///
+/// The first changed id stops the walk. A zero snapshot id is ignored.
+async fn assignment_topic_ids_changed(
+    wanted: &[(String, i32)],
+    mut assigned_id: impl FnMut(&str, i32) -> Option<[u8; 16]>,
+    identities: &HashMap<Arc<str>, [u8; 16]>,
+) -> bool {
+    let mut walked = 0usize;
+    for (topic, partition) in wanted {
+        if assigned_id(topic, *partition)
+            != identities
+                .get(topic.as_str())
+                .copied()
+                .filter(|id| *id != [0; 16])
+        {
+            return true;
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    false
 }
 
 /// Snapshot of topic name to id.
@@ -10315,6 +10345,61 @@ mod tests {
         let topics = collect_topics(["orders", "payments", "orders"]).unwrap();
         assert_eq!(topics, vec!["orders".to_string(), "payments".to_string()]);
         assert!(collect_topics(Vec::<String>::new()).is_err());
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn comparing_many_assigned_topic_ids_does_not_hold_the_caller() {
+        let mut assigned_ids: HashMap<Arc<str>, HashMap<i32, [u8; 16]>> = HashMap::new();
+        let mut identities: HashMap<Arc<str>, [u8; 16]> = HashMap::new();
+        let mut wanted = Vec::with_capacity(2_000_000);
+        for index in 0..2_000_000 {
+            let name: Arc<str> = Arc::from(format!("topic-{index}"));
+            let mut parts = HashMap::new();
+            let _stored = parts.insert(0, [1u8; 16]);
+            let _stored = assigned_ids.insert(Arc::clone(&name), parts);
+            let _stored = identities.insert(Arc::clone(&name), [1u8; 16]);
+            wanted.push((name.to_string(), 0));
+        }
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = assignment_topic_ids_changed(
+                &wanted,
+                |topic, partition| {
+                    assigned_ids
+                        .get(topic)
+                        .and_then(|parts| parts.get(&partition))
+                        .copied()
+                },
+                &identities,
+            ) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "comparing assigned topic ids held the caller for {elapsed:?}"
+        );
+        let identities = HashMap::from([
+            (Arc::<str>::from("orders"), [1u8; 16]),
+            (Arc::<str>::from("payments"), [1u8; 16]),
+        ]);
+        let wanted = [("orders".to_string(), 0), ("payments".to_string(), 1)];
+        let mut calls = 0usize;
+        let changed = assignment_topic_ids_changed(
+            &wanted,
+            |topic, _partition| {
+                calls = calls.saturating_add(1);
+                if topic == "orders" {
+                    Some([2u8; 16])
+                } else {
+                    Some([1u8; 16])
+                }
+            },
+            &identities,
+        )
+        .await;
+        assert!(changed);
+        assert_eq!(calls, 1);
     }
 
     #[tokio::test(flavor = "current_thread")]

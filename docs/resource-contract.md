@@ -91,6 +91,7 @@ These walks include:
 - opening a KIP-848 group assignment into topic partitions
 - checking a group assignment for an unknown topic id
 - copying topic ids before assigning committed offsets
+- comparing assigned topic ids with that snapshot
 - copying a changed consumer or share heartbeat subscription or assignment
 - opening one result slot, and its index, for each item in an admin batch
 - copying transactional ids before fencing producers
