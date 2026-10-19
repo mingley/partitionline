@@ -2440,6 +2440,13 @@ pub enum ShareAcquireMode {
 /// `TRANSACTIONAL_ID_NOT_FOUND`). Official Java
 /// `ReplicationControlManager` writes this when AlterPartition
 /// specifies an ISR containing an ineligible replica.
+/// Top-level `NEW_LEADER_ELECTED` still fails that poll
+/// and does not request Metadata, including when `ErrorMessage` is
+/// set (Java `handleShareFetchSuccess` only `requestUpdate`s for
+/// `UNKNOWN_TOPIC_ID`; this is not top-level
+/// `INELIGIBLE_REPLICA`). Official Java
+/// `ReplicationControlManager` writes this when AlterPartition
+/// completes a reassignment and the leader changes.
 /// Top-level
 /// `SHARE_SESSION_LIMIT_REACHED` resets the share session and does
 /// not request Metadata, including when `ErrorMessage` is set or
@@ -5708,6 +5715,13 @@ impl ShareGroup {
     /// `TRANSACTIONAL_ID_NOT_FOUND`). Official Java
     /// `ReplicationControlManager` writes this when AlterPartition
     /// specifies an ISR containing an ineligible replica. Top-level
+    /// `NEW_LEADER_ELECTED` still fails that poll without
+    /// Metadata, including when `ErrorMessage` is set (Java
+    /// `handleShareFetchSuccess` only `requestUpdate`s for
+    /// `UNKNOWN_TOPIC_ID`; this is not top-level
+    /// `INELIGIBLE_REPLICA`). Official Java
+    /// `ReplicationControlManager` writes this when AlterPartition
+    /// completes a reassignment and the leader changes. Top-level
     /// `SHARE_SESSION_LIMIT_REACHED` resets the share session and
     /// does not request Metadata, including when `ErrorMessage` is
     /// set or empty (Java `handleShareFetchSuccess` only
