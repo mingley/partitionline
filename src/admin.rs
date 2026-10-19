@@ -67,8 +67,8 @@ use crate::protocol::admin::{
     encode_delete_share_group_offsets_request_cooperative, encode_describe_client_quotas_request,
     encode_describe_cluster_request, encode_describe_configs_named,
     encode_describe_delegation_token_request, encode_describe_groups_ids_cooperative,
-    encode_describe_log_dirs_named, encode_describe_log_dirs_request,
-    encode_describe_producers_named_topics,
+    encode_describe_log_dirs_named, encode_describe_log_dirs_named_cooperative,
+    encode_describe_log_dirs_request, encode_describe_producers_named_topics,
     encode_describe_share_group_offsets_request_refs_cooperative,
     encode_describe_topic_partitions_names_cooperative,
     encode_describe_transactions_ids_cooperative,
@@ -14431,9 +14431,28 @@ impl Admin {
         if ids.len() <= 1 {
             for broker_id in ids {
                 let topics = describable_topics_for_broker_cooperative(&replicas, broker_id).await;
+                let deadline = Instant::now()
+                    .checked_add(timeout)
+                    .ok_or_else(|| Error::protocol("DescribeLogDirs deadline overflow"))?;
+                self.ensure_broker(broker_id, deadline).await?;
+                let prepared = self.negotiated_on(broker_id, DESCRIBE_LOG_DIRS, 1, 5);
+                let mut encoded = BytesMut::new();
+                if let Some(version) = prepared {
+                    encode_describe_log_dirs_named_cooperative(
+                        &mut encoded,
+                        version,
+                        Some(topics.as_slice()),
+                    )
+                    .await?;
+                }
                 let resp = self
                     .describe_log_dirs_with(Some(broker_id), timeout, |output, version| {
-                        encode_describe_log_dirs_named(output, version, Some(topics.as_slice()))
+                        if prepared == Some(version) {
+                            output.extend_from_slice(&encoded);
+                            Ok(())
+                        } else {
+                            encode_describe_log_dirs_named(output, version, Some(topics.as_slice()))
+                        }
                     })
                     .await?;
                 remember_replica_dirs_cooperative(&mut infos, &replicas, broker_id, &resp).await?;
@@ -14452,11 +14471,31 @@ impl Admin {
                     describable_topics_for_broker_cooperative(&replicas, *id).await,
                 );
             }
+            let mut prepared = HashMap::new();
+            for id in &ids {
+                let Some(version) = self.negotiated_on(*id, DESCRIBE_LOG_DIRS, 1, 5) else {
+                    continue;
+                };
+                let topics = topics_of.get(id).map(Vec::as_slice).unwrap_or(&[]);
+                let mut payload = BytesMut::new();
+                encode_describe_log_dirs_named_cooperative(&mut payload, version, Some(topics))
+                    .await?;
+                let _previous = prepared.insert(*id, (version, payload.freeze()));
+            }
             let mut finished = self
                 .exchange_leaders(&ids, deadline, |_admin, node, conn, _timeout| {
                     let version = conn.negotiated(DESCRIBE_LOG_DIRS, 1, 5).ok_or_else(|| {
                         Error::Unsupported("broker does not support DescribeLogDirs v1-5".into())
                     })?;
+                    if let Some((prepared_version, payload)) = prepared.get(&node) {
+                        if *prepared_version == version {
+                            return Ok(LeaderFrame::ready(
+                                DESCRIBE_LOG_DIRS,
+                                version,
+                                payload.clone(),
+                            ));
+                        }
+                    }
                     let topics = topics_of.get(&node).map(Vec::as_slice).unwrap_or(&[]);
                     let mut payload = BytesMut::new();
                     encode_describe_log_dirs_named(&mut payload, version, Some(topics))?;
@@ -14476,8 +14515,27 @@ impl Admin {
                         self.discard_node_conn(broker_id).await;
                         let topics =
                             describable_topics_for_broker_cooperative(&replicas, broker_id).await;
+                        let prepared = self.negotiated_on(broker_id, DESCRIBE_LOG_DIRS, 1, 5);
+                        let mut encoded = BytesMut::new();
+                        if let Some(version) = prepared {
+                            encode_describe_log_dirs_named_cooperative(
+                                &mut encoded,
+                                version,
+                                Some(topics.as_slice()),
+                            )
+                            .await?;
+                        }
                         self.describe_log_dirs_with(Some(broker_id), timeout, |output, version| {
-                            encode_describe_log_dirs_named(output, version, Some(topics.as_slice()))
+                            if prepared == Some(version) {
+                                output.extend_from_slice(&encoded);
+                                Ok(())
+                            } else {
+                                encode_describe_log_dirs_named(
+                                    output,
+                                    version,
+                                    Some(topics.as_slice()),
+                                )
+                            }
                         })
                         .await?
                     }
