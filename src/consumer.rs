@@ -4443,7 +4443,7 @@ impl Consumer {
             }
         }
         self.metadata = Some(md);
-        self.refresh_topic_identities();
+        self.refresh_topic_identities().await;
         self.adopt_recreated_topics();
         Ok(())
     }
@@ -4488,16 +4488,15 @@ impl Consumer {
         &self.name_to_id
     }
 
-    fn refresh_topic_identities(&mut self) {
+    async fn refresh_topic_identities(&mut self) {
         if let Some(md) = self.metadata.as_ref() {
             resolved_topic_identities(
-                md.topics
-                    .iter()
-                    .filter_map(|topic| topic.name.as_deref().map(|name| (name, topic.topic_id))),
+                &md.topics,
                 &self.cluster.topic_ids,
                 &mut self.name_to_id,
                 &mut self.id_to_name,
-            );
+            )
+            .await;
         } else {
             self.name_to_id.clear();
             self.id_to_name.clear();
@@ -10812,8 +10811,19 @@ fn cap_fetch_cursor(next: i64, high_watermark: i64) -> i64 {
 type NameIds = HashMap<Arc<str>, [u8; 16]>;
 type IdNames = HashMap<[u8; 16], Arc<str>>;
 
-fn resolved_topic_identities<'a>(
-    topics: impl IntoIterator<Item = (&'a str, [u8; 16])>,
+fn identity_chunk() -> usize {
+    8 * 1024
+}
+
+/// Record each topic's id and the name for each id.
+///
+/// The walk pauses every 8,192 topics. Without that pause, resolving
+/// 2,000,000 topics held the caller for 12.40 seconds.
+///
+/// A cached name stays on its existing allocation. An id shared by two names
+/// is not recorded.
+async fn resolved_topic_identities(
+    topics: &[crate::protocol::api::TopicMetadata],
     cached: &NameIds,
     names: &mut NameIds,
     ids: &mut IdNames,
@@ -10821,7 +10831,17 @@ fn resolved_topic_identities<'a>(
     let mut seen_names: ShortSet<&str> = ShortSet::new();
     let mut seen_ids: ShortSet<[u8; 16]> = ShortSet::new();
     let mut ambiguous = HashSet::new();
-    for (name, metadata_id) in topics {
+    let mut walked = 0usize;
+    for topic in topics {
+        walked = walked.saturating_add(1);
+        let Some(name) = topic.name.as_deref() else {
+            if walked == identity_chunk() {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+            continue;
+        };
+        let metadata_id = topic.topic_id;
         let id = cached
             .get(name)
             .copied()
@@ -10864,12 +10884,65 @@ fn resolved_topic_identities<'a>(
                 let _ = seen_ids.insert(id);
             }
         }
+        if walked == identity_chunk() {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
     }
-    names.retain(|name, _| {
-        let text = name.as_ref();
-        seen_names.contains(&text)
-    });
-    ids.retain(|id, _| seen_ids.contains(id) && !ambiguous.contains(id));
+    retain_seen_names(names, &seen_names).await;
+    retain_seen_ids(ids, &seen_ids, &ambiguous).await;
+}
+
+async fn retain_seen_names(names: &mut NameIds, seen: &ShortSet<&str>) {
+    let mut keys = Vec::new();
+    let mut walked = 0usize;
+    for key in names.keys() {
+        keys.push(Arc::clone(key));
+        walked = walked.saturating_add(1);
+        if walked == identity_chunk() {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    walked = 0;
+    for key in keys {
+        if !seen.contains(&key.as_ref()) {
+            let _removed = names.remove(key.as_ref());
+        }
+        walked = walked.saturating_add(1);
+        if walked == identity_chunk() {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+}
+
+async fn retain_seen_ids(
+    ids: &mut IdNames,
+    seen: &ShortSet<[u8; 16]>,
+    ambiguous: &HashSet<[u8; 16]>,
+) {
+    let mut keys = Vec::new();
+    let mut walked = 0usize;
+    for key in ids.keys() {
+        keys.push(*key);
+        walked = walked.saturating_add(1);
+        if walked == identity_chunk() {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    walked = 0;
+    for key in keys {
+        if !seen.contains(&key) || ambiguous.contains(&key) {
+            let _removed = ids.remove(&key);
+        }
+        walked = walked.saturating_add(1);
+        if walked == identity_chunk() {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
 }
 
 /// Name to use for one Fetch topic.
@@ -14884,16 +14957,20 @@ mod tests {
         ));
     }
 
-    #[test]
-    fn a_topic_id_shared_by_two_names_is_not_resolved() {
+    #[tokio::test]
+    async fn a_topic_id_shared_by_two_names_is_not_resolved() {
         let mut by_name = HashMap::new();
         let mut by_id = HashMap::new();
         resolved_topic_identities(
-            [("orders", [7u8; 16]), ("trades", [7u8; 16])],
+            &[
+                crate::protocol::api::TopicMetadata::error(0, Some("orders"), [7u8; 16]),
+                crate::protocol::api::TopicMetadata::error(0, Some("trades"), [7u8; 16]),
+            ],
             &HashMap::new(),
             &mut by_name,
             &mut by_id,
-        );
+        )
+        .await;
         assert_eq!(by_name.get("orders").copied(), Some([7u8; 16]));
         assert_eq!(by_name.get("trades").copied(), Some([7u8; 16]));
         assert!(by_id.get(&[7u8; 16]).is_none());
@@ -14924,19 +15001,24 @@ mod tests {
         }
     }
 
-    #[test]
-    fn resolved_topic_identities_share_the_cached_name() {
+    #[tokio::test]
+    async fn resolved_topic_identities_share_the_cached_name() {
         let name: Arc<str> = Arc::from("topic-name-longer-than-twenty-three");
         let stored = Arc::as_ptr(&name);
         let cached = HashMap::from([(Arc::clone(&name), [1u8; 16])]);
         let mut by_name = HashMap::new();
         let mut by_id = HashMap::new();
         resolved_topic_identities(
-            [(name.as_ref(), [1u8; 16])],
+            &[crate::protocol::api::TopicMetadata::error(
+                0,
+                Some(name.as_ref()),
+                [1u8; 16],
+            )],
             &cached,
             &mut by_name,
             &mut by_id,
-        );
+        )
+        .await;
         assert_eq!(
             by_name
                 .get_key_value(name.as_ref())
@@ -14946,27 +15028,36 @@ mod tests {
         assert_eq!(by_id.get(&[1u8; 16]).map(Arc::as_ptr), Some(stored));
     }
 
-    #[test]
-    fn a_later_zero_topic_id_does_not_erase_the_cached_id() {
+    #[tokio::test]
+    async fn a_later_zero_topic_id_does_not_erase_the_cached_id() {
         let cached = HashMap::from([(std::sync::Arc::<str>::from("t"), [1u8; 16])]);
         let mut by_name = HashMap::new();
         let mut by_id = HashMap::new();
         resolved_topic_identities(
-            [("t", [1u8; 16]), ("t", [0u8; 16]), ("u", [2u8; 16])],
+            &[
+                crate::protocol::api::TopicMetadata::error(0, Some("t"), [1u8; 16]),
+                crate::protocol::api::TopicMetadata::error(0, Some("t"), [0u8; 16]),
+                crate::protocol::api::TopicMetadata::error(0, Some("u"), [2u8; 16]),
+            ],
             &cached,
             &mut by_name,
             &mut by_id,
-        );
+        )
+        .await;
         assert_eq!(by_name.get("t").copied(), Some([1u8; 16]));
         assert_eq!(by_name.get("u").copied(), Some([2u8; 16]));
         assert_eq!(by_id.get(&[1u8; 16]).map(|name| name.as_ref()), Some("t"));
         let mut by_name = HashMap::new();
         resolved_topic_identities(
-            [("t", [4u8; 16]), ("t", [0u8; 16])],
+            &[
+                crate::protocol::api::TopicMetadata::error(0, Some("t"), [4u8; 16]),
+                crate::protocol::api::TopicMetadata::error(0, Some("t"), [0u8; 16]),
+            ],
             &HashMap::new(),
             &mut by_name,
             &mut HashMap::new(),
-        );
+        )
+        .await;
         assert_eq!(
             by_name.get("t").copied(),
             Some([4u8; 16]),
@@ -14975,11 +15066,16 @@ mod tests {
         let mut names = HashMap::new();
         let mut ids = HashMap::new();
         resolved_topic_identities(
-            [("orders", [1u8; 16])],
+            &[crate::protocol::api::TopicMetadata::error(
+                0,
+                Some("orders"),
+                [1u8; 16],
+            )],
             &HashMap::new(),
             &mut names,
             &mut ids,
-        );
+        )
+        .await;
         let name_ptr = names
             .get_key_value("orders")
             .map(|(name, _)| name.as_ptr())
@@ -14990,11 +15086,16 @@ mod tests {
             .unwrap_or(std::ptr::null());
         let buckets = names.capacity();
         resolved_topic_identities(
-            [("orders", [1u8; 16])],
+            &[crate::protocol::api::TopicMetadata::error(
+                0,
+                Some("orders"),
+                [1u8; 16],
+            )],
             &HashMap::new(),
             &mut names,
             &mut ids,
-        );
+        )
+        .await;
         assert!(names.capacity() >= buckets);
         assert_eq!(
             names.get_key_value("orders").map(|(name, _)| name.as_ptr()),
@@ -15369,6 +15470,53 @@ mod tests {
         reused.sort();
         assert_eq!(reused, vec!["orders".to_owned()]);
         assert!(reused.capacity() >= capacity);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn resolving_many_topic_identities_does_not_hold_the_caller() {
+        let topics: Vec<(String, [u8; 16])> = (0..2_000_000)
+            .map(|index| {
+                let mut topic_id = [0u8; 16];
+                topic_id[..8].copy_from_slice(&(index as u64).to_le_bytes());
+                (format!("topic-{index}"), topic_id)
+            })
+            .collect();
+        let cached: HashMap<std::sync::Arc<str>, [u8; 16]> = HashMap::new();
+        let listed: Vec<crate::protocol::api::TopicMetadata> = topics
+            .iter()
+            .map(|(name, id)| crate::protocol::api::TopicMetadata::error(0, Some(name), *id))
+            .collect();
+        let started = std::time::Instant::now();
+        let task = tokio::spawn(async move {
+            let mut names = HashMap::new();
+            let mut ids = HashMap::new();
+            resolved_topic_identities(&listed, &cached, &mut names, &mut ids).await;
+        });
+        tokio::time::sleep(std::time::Duration::from_millis(30)).await;
+        let elapsed = started.elapsed();
+        task.abort();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "resolving topic identities held the caller for {elapsed:?}"
+        );
+        let mut names = HashMap::new();
+        let mut ids = HashMap::new();
+        resolved_topic_identities(
+            &[crate::protocol::api::TopicMetadata::error(
+                0,
+                Some("orders"),
+                [1u8; 16],
+            )],
+            &HashMap::new(),
+            &mut names,
+            &mut ids,
+        )
+        .await;
+        assert_eq!(names.get("orders").copied(), Some([1u8; 16]));
+        assert_eq!(
+            ids.get(&[1u8; 16]).map(|name| name.as_ref()),
+            Some("orders")
+        );
     }
 
     #[tokio::test(flavor = "current_thread")]
