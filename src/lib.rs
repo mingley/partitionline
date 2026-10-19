@@ -3462,7 +3462,14 @@
 //! `UNKNOWN_TOPIC_ID`; this is not top-level
 //! `POSITION_OUT_OF_RANGE`). Official Java `ClusterControlManager`
 //! writes this when another broker is already registered with that
-//! broker id. Partition
+//! broker id. Top-level
+//! `BROKER_ID_NOT_REGISTERED` still fails that poll without
+//! Metadata, including when `ErrorMessage` is set (Java
+//! `handleShareFetchSuccess` only `requestUpdate`s for
+//! `UNKNOWN_TOPIC_ID`; this is not top-level
+//! `DUPLICATE_BROKER_REGISTRATION`). Official Java `ReplicationControlManager`
+//! writes this when the requested broker id is not currently
+//! registered. Partition
 //! `INCONSISTENT_TOPIC_ID` / `UNKNOWN_TOPIC_OR_PARTITION` /
 //! `UNKNOWN_TOPIC_ID` / `REPLICA_NOT_AVAILABLE` /
 //! `OFFSET_NOT_AVAILABLE` / `KAFKA_STORAGE_ERROR` skip without throwing,

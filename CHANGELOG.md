@@ -2122,6 +2122,12 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `UNKNOWN_TOPIC_ID`; this is not top-level
   `POSITION_OUT_OF_RANGE`). Official Java `ClusterControlManager`
   writes this when another broker is already registered with that broker id.
+  Top-level `BROKER_ID_NOT_REGISTERED` still fails that poll
+  without Metadata, including when `ErrorMessage` is set (Java
+  `handleShareFetchSuccess` only `requestUpdate`s for top-level
+  `UNKNOWN_TOPIC_ID`; this is not top-level
+  `DUPLICATE_BROKER_REGISTRATION`). Official Java `ReplicationControlManager`
+  writes this when the requested broker id is not currently registered.
   A non-empty
   throwable partition or top-level ShareFetch `ErrorMessage` is
   preferred; empty uses `ShareFetch {topic}-{partition}` or
