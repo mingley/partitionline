@@ -3582,6 +3582,13 @@
 //! `UNKNOWN_TOPIC_ID`; this is not top-level
 //! `INVALID_REGISTRATION`). Official Java `TransactionCoordinator`
 //! writes this when AddPartitionsToTxn verify finds a partition that is not already in the transaction.
+//! Top-level
+//! `INVALID_RECORD_STATE` still fails that poll without
+//! Metadata, including when `ErrorMessage` is set (Java
+//! `handleShareFetchSuccess` only `requestUpdate`s for
+//! `UNKNOWN_TOPIC_ID`; this is not top-level
+//! `TRANSACTION_ABORTABLE`). Official Java `SharePartition`
+//! writes this when an acknowledgement batch is not in the acquired state.
 //! Partition
 //! `INCONSISTENT_TOPIC_ID` / `UNKNOWN_TOPIC_OR_PARTITION` /
 //! `UNKNOWN_TOPIC_ID` / `REPLICA_NOT_AVAILABLE` /
