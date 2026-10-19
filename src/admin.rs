@@ -6609,7 +6609,10 @@ impl Admin {
         timeout_ms: i32,
         timeout: Duration,
     ) -> Result<Vec<OngoingReassignment>> {
-        let topics = partitions.map(group_list_reassignments);
+        let topics = match partitions {
+            Some(partitions) => Some(group_list_reassignments(partitions).await),
+            None => None,
+        };
         let version = self.list_reassign_version.ok_or_else(|| {
             Error::Unsupported("broker does not support ListPartitionReassignments".into())
         })?;
@@ -15654,20 +15657,26 @@ fn group_reassignments(
     groups
 }
 
-fn group_list_reassignments(partitions: &[crate::TopicPartition]) -> Vec<(&str, Vec<i32>)> {
+async fn group_list_reassignments(partitions: &[crate::TopicPartition]) -> Vec<(&str, Vec<i32>)> {
     let mut groups: Vec<(&str, Vec<i32>)> = Vec::new();
     let mut slots: HashMap<&str, usize> = HashMap::new();
+    let mut walked = 0usize;
     for tp in partitions {
         let topic = tp.topic.as_str();
         if let Some(&slot) = slots.get(topic) {
             if let Some((_, parts)) = groups.get_mut(slot) {
                 parts.push(tp.partition);
-                continue;
             }
+        } else {
+            let slot = groups.len();
+            let _ = slots.insert(topic, slot);
+            groups.push((topic, vec![tp.partition]));
         }
-        let slot = groups.len();
-        let _ = slots.insert(topic, slot);
-        groups.push((topic, vec![tp.partition]));
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
     }
     groups
 }
@@ -19437,14 +19446,14 @@ mod tests {
         assert_eq!(topics[0].1[2].replicas, Some(&[3][..]));
     }
 
-    #[test]
-    fn group_list_reassignments_keeps_duplicate_partitions() {
+    #[tokio::test(flavor = "current_thread")]
+    async fn group_list_reassignments_keeps_duplicate_partitions() {
         let partitions = [
             crate::TopicPartition::new("t", 0),
             crate::TopicPartition::new("t", 0),
             crate::TopicPartition::new("t", 1),
         ];
-        let topics = group_list_reassignments(&partitions);
+        let topics = group_list_reassignments(&partitions).await;
         assert_eq!(topics.len(), 1);
         assert_eq!(topics[0].0, "t");
         assert_eq!(topics[0].1, vec![0, 0, 1]);
@@ -19467,6 +19476,27 @@ mod tests {
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "grouping offset deletes held the caller for {elapsed:?}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn grouping_many_list_reassignments_does_not_hold_the_caller() {
+        // 2_000_000 partitions: grouping them held the caller 339ms.
+        let topic = crate::TopicPartition::new("orders", 0);
+        let partitions: Vec<crate::TopicPartition> = (0..2_000_000)
+            .map(|index| crate::TopicPartition::new(topic.topic.as_str(), index))
+            .collect();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            topics = group_list_reassignments(&partitions) => {
+                assert_eq!(topics.first().map(|(_, parts)| parts.len()), Some(2_000_000));
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "grouping list reassignments held the caller for {elapsed:?}"
         );
     }
 
