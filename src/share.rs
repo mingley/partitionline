@@ -2502,6 +2502,13 @@ pub enum ShareAcquireMode {
 /// `UNKNOWN_TOPIC_ID`; this is not top-level
 /// `UNSUPPORTED_ENDPOINT_TYPE`). Official Java
 /// `Errors` writes this KIP-919 code when a controller ID is not known.
+/// Top-level `UNKNOWN_SUBSCRIPTION_ID` still fails that poll
+/// and does not request Metadata, including when `ErrorMessage` is
+/// set (Java `handleShareFetchSuccess` only `requestUpdate`s for
+/// `UNKNOWN_TOPIC_ID`; this is not top-level
+/// `UNKNOWN_CONTROLLER_ID`). Official Java
+/// `ClientMetricsManager` writes this when a PushTelemetry subscription
+/// id does not match the instance's stored subscription id.
 /// Top-level
 /// `SHARE_SESSION_LIMIT_REACHED` resets the share session and does
 /// not request Metadata, including when `ErrorMessage` is set or
@@ -5910,6 +5917,15 @@ impl ShareGroup {
     /// `UNSUPPORTED_ENDPOINT_TYPE`). Official Java
     /// `Errors` writes this KIP-919 code when a controller ID is
     /// not known.
+    /// Top-level
+    /// `UNKNOWN_SUBSCRIPTION_ID` still fails that poll without
+    /// Metadata, including when `ErrorMessage` is set (Java
+    /// `handleShareFetchSuccess` only `requestUpdate`s for
+    /// `UNKNOWN_TOPIC_ID`; this is not top-level
+    /// `UNKNOWN_CONTROLLER_ID`). Official Java
+    /// `ClientMetricsManager` writes this when a PushTelemetry
+    /// subscription id does not match the instance's stored
+    /// subscription id.
     /// Top-level
     /// `SHARE_SESSION_LIMIT_REACHED` resets the share session and
     /// does not request Metadata, including when `ErrorMessage` is
