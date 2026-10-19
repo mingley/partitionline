@@ -3570,7 +3570,7 @@
 //! writes this when a PushTelemetry payload exceeds `clientTelemetryMaxBytes`.
 //! Top-level
 //! `INVALID_REGISTRATION` still fails that poll without
-//! Metadata, including when `ErrorMessage` is set (Java
+//! Metadata, including when `ErrorMessage` is set or empty (Java
 //! `handleShareFetchSuccess` only `requestUpdate`s for
 //! `UNKNOWN_TOPIC_ID`; this is not top-level
 //! `TELEMETRY_TOO_LARGE`). Official Java `ClusterControlManager`

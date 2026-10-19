@@ -2518,7 +2518,7 @@ pub enum ShareAcquireMode {
 /// exceeds `clientTelemetryMaxBytes`.
 /// Top-level `INVALID_REGISTRATION` still fails that poll
 /// and does not request Metadata, including when `ErrorMessage` is
-/// set (Java `handleShareFetchSuccess` only `requestUpdate`s for
+/// set or empty (Java `handleShareFetchSuccess` only `requestUpdate`s for
 /// `UNKNOWN_TOPIC_ID`; this is not top-level
 /// `TELEMETRY_TOO_LARGE`). Official Java
 /// `ClusterControlManager` writes this when a BrokerRegistration
@@ -5966,7 +5966,7 @@ impl ShareGroup {
     /// payload exceeds `clientTelemetryMaxBytes`.
     /// Top-level
     /// `INVALID_REGISTRATION` still fails that poll without
-    /// Metadata, including when `ErrorMessage` is set (Java
+    /// Metadata, including when `ErrorMessage` is set or empty (Java
     /// `handleShareFetchSuccess` only `requestUpdate`s for
     /// `UNKNOWN_TOPIC_ID`; this is not top-level
     /// `TELEMETRY_TOO_LARGE`). Official Java
