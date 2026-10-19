@@ -1783,6 +1783,342 @@ where
     Ok(())
 }
 
+/// [`fetch_request_body_len`], yielding while partition tags are still being measured.
+#[expect(
+    clippy::too_many_arguments,
+    reason = "Fetch request length needs the same version, topic, rack, and replica inputs as the encoder"
+)]
+async fn fetch_request_body_len_cooperative<T, F>(
+    version: i16,
+    flexible: bool,
+    topics: &[T],
+    rack_id: Option<&str>,
+    forgotten: &[F],
+    replica_state_replica_id: i32,
+    replica_state_replica_epoch: i64,
+    cluster_id: Option<&str>,
+    high_watermarks: Option<&[Vec<i64>]>,
+) -> Result<usize>
+where
+    T: FetchRequestTopic,
+    F: FetchForgottenTopic,
+{
+    let mut total = if version <= 14 { 4usize } else { 0 };
+    total = add_fetch_len(total, 12 + 1)?;
+    if version >= 7 {
+        total = add_fetch_len(total, 8)?;
+    }
+    total = add_fetch_len(total, fetch_array_len(flexible, topics.len())?)?;
+    let mut walked = 0usize;
+    for (topic_index, topic) in topics.iter().enumerate() {
+        total = add_fetch_len(
+            total,
+            fetch_topic_len(version, flexible, topic.request_topic_name())?,
+        )?;
+        let partitions = topic.request_partitions();
+        total = add_fetch_len(total, fetch_array_len(flexible, partitions.len())?)?;
+        let mut partition: usize = 4 + 8 + 4;
+        if version >= 9 {
+            partition += 4;
+        }
+        if version >= 12 {
+            partition += 4;
+        }
+        if version >= 5 {
+            partition += 8;
+        }
+        total = add_fetch_len(
+            total,
+            partition
+                .checked_mul(partitions.len())
+                .ok_or_else(|| Error::protocol("fetch request size overflow"))?,
+        )?;
+        if flexible {
+            for (partition_index, part) in partitions.iter().enumerate() {
+                let high_watermark = high_watermarks
+                    .and_then(|values| values.get(topic_index))
+                    .and_then(|values| values.get(partition_index))
+                    .copied()
+                    .unwrap_or(REPLICA_HIGH_WATERMARK_NOT_SUPPORTED);
+                total = add_fetch_len(
+                    total,
+                    fetch_partition_tag_len(version, part.replica_directory_id, high_watermark)?,
+                )?;
+                walked = walked.saturating_add(1);
+                if walked == 8 * 1024 {
+                    walked = 0;
+                    tokio::task::yield_now().await;
+                }
+            }
+        }
+        if flexible {
+            total = add_fetch_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    if version >= 7 {
+        total = add_fetch_len(total, fetch_array_len(flexible, forgotten.len())?)?;
+        for topic in forgotten {
+            total = add_fetch_len(
+                total,
+                fetch_topic_len(version, flexible, topic.forgotten_name())?,
+            )?;
+            let partitions = topic.forgotten_partitions();
+            total = add_fetch_len(total, fetch_array_len(flexible, partitions.len())?)?;
+            total = add_fetch_len(
+                total,
+                partitions
+                    .len()
+                    .checked_mul(4)
+                    .ok_or_else(|| Error::protocol("fetch request size overflow"))?,
+            )?;
+            if flexible {
+                total = add_fetch_len(total, buf::unsigned_varint_size(0))?;
+            }
+            walked = walked.saturating_add(partitions.len());
+            if walked >= 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+    }
+    if version >= 11 {
+        total = add_fetch_len(total, fetch_string_len(flexible, rack_id.unwrap_or(""))?)?;
+    }
+    if flexible {
+        let cluster = version >= 12 && cluster_id.is_some();
+        let replica = version >= 15
+            && (replica_state_replica_id != CONSUMER_REPLICA_ID
+                || replica_state_replica_epoch != -1);
+        total = add_fetch_len(
+            total,
+            match (cluster, replica) {
+                (false, false) => buf::unsigned_varint_size(0),
+                (true, false) => {
+                    fetch_tagged_len(&[(0, fetch_string_len(true, cluster_id.unwrap_or(""))?)])?
+                }
+                (false, true) => fetch_tagged_len(&[(1, 13)])?,
+                (true, true) => fetch_tagged_len(&[
+                    (0, fetch_string_len(true, cluster_id.unwrap_or(""))?),
+                    (1, 13),
+                ])?,
+            },
+        )?;
+    }
+    Ok(total)
+}
+
+/// [`encode_fetch_request_body`], yielding while partitions are still being written.
+///
+/// Encoding 2,000,000 partitions held the caller for 573ms.
+#[expect(
+    clippy::too_many_arguments,
+    reason = "Fetch request body needs version, wait/min/max bytes, isolation, topics, rack, and replica id together"
+)]
+async fn encode_fetch_request_body_cooperative<T, F>(
+    buf: &mut BytesMut,
+    version: i16,
+    max_wait_ms: i32,
+    min_bytes: i32,
+    max_bytes: i32,
+    isolation_level: i8,
+    topics: &[T],
+    rack_id: Option<&str>,
+    session: FetchMetadata,
+    forgotten: &[F],
+    replica_id: i32,
+    replica_state_replica_id: i32,
+    replica_state_replica_epoch: i64,
+    cluster_id: Option<&str>,
+    high_watermarks: Option<&[Vec<i64>]>,
+) -> crate::error::Result<()>
+where
+    T: FetchRequestTopic,
+    F: FetchForgottenTopic,
+{
+    let flexible = fetch_flexible(version)?;
+    if let Some(values) = high_watermarks {
+        if values.len() != topics.len()
+            || values
+                .iter()
+                .zip(topics)
+                .any(|(values, topic)| values.len() != topic.request_partitions().len())
+        {
+            return Err(Error::protocol(
+                "Fetch HighWatermark sidecar shape does not match topics",
+            ));
+        }
+    }
+    let body_start = buf.len();
+    let planned = fetch_request_body_len_cooperative(
+        version,
+        flexible,
+        topics,
+        rack_id,
+        forgotten,
+        replica_state_replica_id,
+        replica_state_replica_epoch,
+        cluster_id,
+        high_watermarks,
+    )
+    .await?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
+    if version <= 14 {
+        buf.put_i32(replica_id);
+    }
+    buf.put_i32(max_wait_ms);
+    buf.put_i32(min_bytes);
+    buf.put_i32(max_bytes);
+    buf.put_i8(isolation_level);
+    if version >= 7 {
+        buf.put_i32(session.session_id());
+        buf.put_i32(session.epoch());
+    }
+    buf::put_array_len(buf, flexible, Some(topics.len()))?;
+    let mut walked = 0usize;
+    for (topic_index, t) in topics.iter().enumerate() {
+        put_fetch_topic_identity(
+            buf,
+            version,
+            flexible,
+            t.request_topic_name(),
+            t.request_topic_id(),
+        )?;
+        buf::put_array_len(buf, flexible, Some(t.request_partitions().len()))?;
+        for (partition_index, p) in t.request_partitions().iter().enumerate() {
+            buf.put_i32(p.partition);
+            if version >= 9 {
+                buf.put_i32(p.current_leader_epoch);
+            }
+            buf.put_i64(p.fetch_offset);
+            if version >= 12 {
+                buf.put_i32(p.last_fetched_epoch);
+            }
+            if version >= 5 {
+                buf.put_i64(p.log_start_offset);
+            }
+            buf.put_i32(p.partition_max_bytes);
+            if flexible {
+                let high_watermark = high_watermarks
+                    .and_then(|values| values.get(topic_index))
+                    .and_then(|values| values.get(partition_index))
+                    .copied()
+                    .unwrap_or(REPLICA_HIGH_WATERMARK_NOT_SUPPORTED);
+                put_fetch_request_partition_tags(
+                    buf,
+                    version,
+                    p.replica_directory_id,
+                    high_watermark,
+                )?;
+            }
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+    }
+    if version >= 7 {
+        buf::put_array_len(buf, flexible, Some(forgotten.len()))?;
+        for t in forgotten {
+            put_fetch_topic_identity(buf, version, flexible, t.forgotten_name(), t.forgotten_id())?;
+            buf::put_array_len(buf, flexible, Some(t.forgotten_partitions().len()))?;
+            for p in t.forgotten_partitions() {
+                buf.put_i32(*p);
+                walked = walked.saturating_add(1);
+                if walked == 8 * 1024 {
+                    walked = 0;
+                    tokio::task::yield_now().await;
+                }
+            }
+            if flexible {
+                buf::put_empty_tagged_fields(buf);
+            }
+        }
+    }
+    if version >= 11 {
+        buf::put_string(buf, flexible, Some(rack_id.unwrap_or("")))?;
+    }
+    if flexible {
+        let cluster = version >= 12 && cluster_id.is_some();
+        let replica = version >= 15
+            && (replica_state_replica_id != CONSUMER_REPLICA_ID
+                || replica_state_replica_epoch != -1);
+        match (cluster, replica) {
+            (false, false) => buf::put_empty_tagged_fields(buf),
+            (true, false) => {
+                let cluster_id = cluster_id.unwrap_or("");
+                let payload = fetch_string_len(true, cluster_id)?;
+                put_fetch_tag_count(buf, 1);
+                put_fetch_tag(buf, 0, payload)?;
+                buf::put_compact_string(buf, Some(cluster_id))?;
+            }
+            (false, true) => {
+                put_fetch_tag_count(buf, 1);
+                put_fetch_tag(buf, 1, 13)?;
+                write_replica_state(buf, replica_state_replica_id, replica_state_replica_epoch);
+            }
+            (true, true) => {
+                let cluster_id = cluster_id.unwrap_or("");
+                let payload = fetch_string_len(true, cluster_id)?;
+                put_fetch_tag_count(buf, 2);
+                put_fetch_tag(buf, 0, payload)?;
+                buf::put_compact_string(buf, Some(cluster_id))?;
+                put_fetch_tag(buf, 1, 13)?;
+                write_replica_state(buf, replica_state_replica_id, replica_state_replica_epoch);
+            }
+        }
+    }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+    Ok(())
+}
+
+/// [`encode_fetch_request_topics`], yielding while partitions are still being written.
+#[expect(
+    clippy::too_many_arguments,
+    reason = "Fetch request body needs version, wait/min/max bytes, isolation, topics, rack, and session together"
+)]
+pub(crate) async fn encode_fetch_request_topics_cooperative<T, F>(
+    buf: &mut BytesMut,
+    version: i16,
+    max_wait_ms: i32,
+    min_bytes: i32,
+    max_bytes: i32,
+    isolation_level: i8,
+    topics: &[T],
+    rack_id: Option<&str>,
+    session: FetchMetadata,
+    forgotten: &[F],
+) -> crate::error::Result<()>
+where
+    T: FetchRequestTopic,
+    F: FetchForgottenTopic,
+{
+    encode_fetch_request_body_cooperative(
+        buf,
+        version,
+        max_wait_ms,
+        min_bytes,
+        max_bytes,
+        isolation_level,
+        topics,
+        rack_id,
+        session,
+        forgotten,
+        CONSUMER_REPLICA_ID,
+        CONSUMER_REPLICA_ID,
+        -1,
+        None,
+        None,
+    )
+    .await
+}
+
 fn put_fetch_tag_count(buf: &mut BytesMut, count: u32) {
     buf::put_unsigned_varint(buf, count);
 }
@@ -3421,6 +3757,66 @@ mod tests {
                 .map(|item| item.aborted_transactions.as_slice()),
             Some([(9, 4)].as_slice())
         );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn encoding_many_fetch_partitions_does_not_hold_the_caller() {
+        let partitions: Vec<FetchPartition> = (0..2_000_000)
+            .map(|index| FetchPartition::partition_data(index, 0, -1, 1_048_576, None, None))
+            .collect();
+        let topics = [FetchTopic {
+            topic: "orders".to_string(),
+            topic_id: [0; 16],
+            partitions,
+        }];
+        let mut body = bytes::BytesMut::new();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            encoded = encode_fetch_request_topics_cooperative(
+                &mut body,
+                12,
+                100,
+                1,
+                1_048_576,
+                0,
+                &topics,
+                None,
+                FetchMetadata::LEGACY,
+                &[] as &[ForgottenTopic],
+            ) => {
+                encoded.unwrap_or_else(|error| panic!("{error}"));
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "encoding fetch partitions held the caller for {elapsed:?}"
+        );
+        let sample = [FetchTopic {
+            topic: "orders".to_string(),
+            topic_id: [0; 16],
+            partitions: vec![FetchPartition::partition_data(4, 9, -1, 100, Some(3), None)],
+        }];
+        let mut once = bytes::BytesMut::new();
+        let mut paced = bytes::BytesMut::new();
+        encode_fetch_request(&mut once, 12, 100, 1, 1_048_576, 0, &sample, None)
+            .unwrap_or_else(|error| panic!("{error}"));
+        encode_fetch_request_topics_cooperative(
+            &mut paced,
+            12,
+            100,
+            1,
+            1_048_576,
+            0,
+            &sample,
+            None,
+            FetchMetadata::LEGACY,
+            &[] as &[ForgottenTopic],
+        )
+        .await
+        .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(once, paced);
     }
 
     #[test]

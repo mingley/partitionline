@@ -27,9 +27,9 @@ use crate::protocol::epoch::{
     OffsetForLeaderTopicResult,
 };
 use crate::protocol::fetch::{
-    decode_fetch_response_raw_cooperative, encode_fetch_request_topics, FetchForgottenTopic,
-    FetchMetadata, FetchPartition, FetchRequestTopic, FetchedTopic, FETCH_CRATE_MAX_VERSION,
-    INVALID_LOG_START_OFFSET,
+    decode_fetch_response_raw_cooperative, encode_fetch_request_topics,
+    encode_fetch_request_topics_cooperative, FetchForgottenTopic, FetchMetadata, FetchPartition,
+    FetchRequestTopic, FetchedTopic, FETCH_CRATE_MAX_VERSION, INVALID_LOG_START_OFFSET,
 };
 use crate::protocol::group::Topic;
 use crate::protocol::offsets::{
@@ -7275,19 +7275,23 @@ impl Consumer {
                         .or_default()
                         .prepare(topics.as_slice(), fetch_version)
                         .await;
+                    let mut encoded = bytes::BytesMut::new();
+                    encode_fetch_request_topics_cooperative(
+                        &mut encoded,
+                        fetch_version,
+                        max_wait,
+                        min_bytes,
+                        max_bytes,
+                        isolation_level,
+                        &request.topics,
+                        rack.as_deref(),
+                        request.metadata,
+                        &request.forgotten,
+                    )
+                    .await?;
                     let encode = |buf: &mut bytes::BytesMut| {
-                        encode_fetch_request_topics(
-                            buf,
-                            fetch_version,
-                            max_wait,
-                            min_bytes,
-                            max_bytes,
-                            isolation_level,
-                            &request.topics,
-                            rack.as_deref(),
-                            request.metadata,
-                            &request.forgotten,
-                        )
+                        buf.extend_from_slice(&encoded);
+                        Ok(())
                     };
                     let body = if reuse_bootstrap {
                         self.conn
@@ -7360,7 +7364,28 @@ impl Consumer {
                 .or_default()
                 .prepare(topics.as_slice(), fetch_version)
                 .await;
-            let rack = rack.clone();
+            let mut encoded = bytes::BytesMut::new();
+            if let Err(error) = encode_fetch_request_topics_cooperative(
+                &mut encoded,
+                fetch_version,
+                max_wait,
+                min_bytes,
+                max_bytes,
+                isolation_level,
+                &request.topics,
+                rack.as_deref(),
+                request.metadata,
+                &request.forgotten,
+            )
+            .await
+            {
+                if let Some(session) = self.fetch_sessions.get_mut(&node) {
+                    session.reclaim_request_partitions(request);
+                }
+                self.park_connected(nodes);
+                self.abandon_fetch_flight(inflight).await;
+                return Err(error);
+            }
             let _ = inflight.pending.insert(node);
             let Some(set) = inflight.set.as_mut() else {
                 if let Some(session) = self.fetch_sessions.get_mut(&node) {
@@ -7376,18 +7401,8 @@ impl Consumer {
                         FETCH,
                         fetch_version,
                         |buf| {
-                            encode_fetch_request_topics(
-                                buf,
-                                fetch_version,
-                                max_wait,
-                                min_bytes,
-                                max_bytes,
-                                isolation_level,
-                                &request.topics,
-                                rack.as_deref(),
-                                request.metadata,
-                                &request.forgotten,
-                            )
+                            buf.extend_from_slice(&encoded);
+                            Ok(())
                         },
                         timeout,
                     )
