@@ -10684,12 +10684,9 @@ impl Admin {
                         }
                         Err(error) => return Err(error),
                         Ok(body) => {
-                            let (done, retry) = self.apply_describe_producers_body(
-                                &partitions,
-                                &idxs,
-                                body,
-                                pin_broker,
-                            )?;
+                            let (done, retry) = self
+                                .apply_describe_producers_body(&partitions, &idxs, body, pin_broker)
+                                .await?;
                             for (i, part) in done {
                                 if let Some(slot) = out.get_mut(i) {
                                     *slot = Some(part);
@@ -10793,9 +10790,10 @@ impl Admin {
             )
             .await?;
         self.apply_describe_producers_body(partitions, idxs, body, pin_broker)
+            .await
     }
 
-    fn apply_describe_producers_body(
+    async fn apply_describe_producers_body(
         &mut self,
         partitions: &[crate::TopicPartition],
         idxs: &[usize],
@@ -10803,13 +10801,7 @@ impl Admin {
         pin_broker: bool,
     ) -> Result<DescribeProducersNodeOutcome> {
         let resp = decode_describe_producers_response(&mut body.clone())?;
-        let mut by_tp: HashMap<String, HashMap<i32, DescribeProducersPartition>> = HashMap::new();
-        for topic in resp.topics {
-            let parts = by_tp.entry(topic.name).or_default();
-            for part in topic.partitions {
-                let _ = parts.insert(part.partition_index, part);
-            }
-        }
+        let mut by_tp = index_described_producers(resp.topics).await;
         let mut done = Vec::new();
         let mut retry = Vec::new();
         for &i in idxs {
@@ -15694,6 +15686,25 @@ async fn group_list_reassignments(partitions: &[crate::TopicPartition]) -> Vec<(
     groups
 }
 
+async fn index_described_producers(
+    topics: Vec<DescribeProducersTopic>,
+) -> HashMap<String, HashMap<i32, DescribeProducersPartition>> {
+    let mut by_tp: HashMap<String, HashMap<i32, DescribeProducersPartition>> = HashMap::new();
+    let mut walked = 0usize;
+    for topic in topics {
+        let parts = by_tp.entry(topic.name).or_default();
+        for part in topic.partitions {
+            let _ = parts.insert(part.partition_index, part);
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+    }
+    by_tp
+}
+
 async fn flatten_list_reassignments(
     topics: &[crate::protocol::admin::OngoingTopicReassignment],
 ) -> Vec<OngoingReassignment> {
@@ -19840,6 +19851,53 @@ mod tests {
         assert_eq!(topics.len(), 1);
         assert_eq!(topics[0].0, "orders");
         assert_eq!(topics[0].1, vec![0, 0, 1]);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn indexing_many_described_producers_does_not_hold_the_caller() {
+        // 2_000_000 partitions: recording each producer result held the caller 1.37s.
+        let partitions: Vec<DescribeProducersPartition> = (0..2_000_000)
+            .map(|index| DescribeProducersPartition::error(index, 0))
+            .collect();
+        let topics = vec![DescribeProducersTopic::new("orders", partitions)];
+        let started = std::time::Instant::now();
+        tokio::select! {
+            indexed = index_described_producers(topics) => {
+                assert_eq!(indexed.get("orders").map(std::collections::HashMap::len), Some(2_000_000));
+                assert_eq!(indexed.get("orders").and_then(|parts| parts.get(&0)).map(|part| part.partition_index), Some(0));
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "indexing described producers held the caller for {elapsed:?}"
+        );
+        let repeated = vec![
+            DescribeProducersTopic::new(
+                "orders",
+                vec![
+                    DescribeProducersPartition::error(0, 1),
+                    DescribeProducersPartition::error(0, 3),
+                ],
+            ),
+            DescribeProducersTopic::new("payments", vec![DescribeProducersPartition::error(4, 0)]),
+        ];
+        let indexed = index_described_producers(repeated).await;
+        assert_eq!(
+            indexed
+                .get("orders")
+                .and_then(|parts| parts.get(&0))
+                .map(|part| part.error_code),
+            Some(3)
+        );
+        assert_eq!(
+            indexed
+                .get("payments")
+                .and_then(|parts| parts.get(&4))
+                .map(|part| part.partition_index),
+            Some(4)
+        );
     }
 
     #[tokio::test(flavor = "current_thread")]
