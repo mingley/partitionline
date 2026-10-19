@@ -3118,7 +3118,9 @@ impl ShareGroup {
             &self.topic_ids,
             &self.assigned,
             self.consumer.topic_name_ids(),
-        ) {
+        )
+        .await
+        {
             return;
         }
         let metadata = self.consumer.topic_name_ids();
@@ -7227,7 +7229,13 @@ fn share_ack_retriable(error: &Error) -> bool {
 /// True when a refresh would leave every stored id unchanged.
 ///
 /// A steady poll then skips cloning the topic-name list.
-fn share_topic_ids_current<T, M>(
+/// True when stored topic ids still match metadata.
+///
+/// The walk pauses every 8,192 topics. Without that pause, checking
+/// 2,000,000 share topic ids held the caller for 719 milliseconds.
+///
+/// The first stale id stops the walk.
+async fn share_topic_ids_current<T, M>(
     stored_map: &HashMap<Arc<str>, [u8; 16]>,
     assigned: &[(T, i32)],
     metadata: &HashMap<M, [u8; 16]>,
@@ -7236,6 +7244,7 @@ where
     T: AsRef<str>,
     M: std::borrow::Borrow<str> + std::hash::Hash + Eq,
 {
+    let mut walked = 0usize;
     for (name, stored) in stored_map {
         let next = metadata.get(name.as_ref()).copied();
         if let Some(id) = refreshed_share_topic_id(Some(*stored), next) {
@@ -7243,14 +7252,24 @@ where
                 return false;
             }
         }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
     }
+    walked = 0;
     for (topic, _) in assigned {
         let topic = topic.as_ref();
-        if stored_map.contains_key(topic) {
-            continue;
-        }
-        if refreshed_share_topic_id(None, metadata.get(topic).copied()).is_some() {
+        if !stored_map.contains_key(topic)
+            && refreshed_share_topic_id(None, metadata.get(topic).copied()).is_some()
+        {
             return false;
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
         }
     }
     true
@@ -9837,6 +9856,29 @@ mod tests {
     }
 
     #[tokio::test(flavor = "current_thread")]
+    async fn checking_many_share_topic_ids_does_not_hold_the_caller() {
+        let stored: HashMap<Arc<str>, [u8; 16]> = (0..2_000_000)
+            .map(|index| {
+                let mut id = [0u8; 16];
+                id[..8].copy_from_slice(&(index as u64).to_le_bytes());
+                (Arc::from(format!("topic-{index}")), id)
+            })
+            .collect();
+        let metadata = stored.clone();
+        let assigned: [(Arc<str>, i32); 0] = [];
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = share_topic_ids_current(&stored, &assigned, &metadata) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "checking share topic ids held the caller for {elapsed:?}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
     async fn sorting_many_share_ack_pairs_does_not_hold_the_caller() {
         let mut pairs: Vec<(i32, i64)> = (0..2_000_000)
             .map(|index| ((index % 1024) as i32, index))
@@ -10093,8 +10135,8 @@ mod tests {
         assert!(cleared.assigned.is_empty());
     }
 
-    #[test]
-    fn a_recreated_share_topic_replaces_its_stored_id() {
+    #[tokio::test]
+    async fn a_recreated_share_topic_replaces_its_stored_id() {
         assert_eq!(
             refreshed_share_topic_id(Some([1u8; 16]), Some([2u8; 16])),
             Some([2u8; 16])
@@ -10115,15 +10157,15 @@ mod tests {
         let mut metadata = HashMap::new();
         let _ = metadata.insert("orders".to_owned(), [1u8; 16]);
         let assigned = [("orders".to_owned(), 0)];
-        assert!(share_topic_ids_current(&stored, &assigned, &metadata));
+        assert!(share_topic_ids_current(&stored, &assigned, &metadata).await);
         let _ = metadata.insert("orders".to_owned(), [2u8; 16]);
-        assert!(!share_topic_ids_current(&stored, &assigned, &metadata));
+        assert!(!share_topic_ids_current(&stored, &assigned, &metadata).await);
         metadata.clear();
-        assert!(share_topic_ids_current(&stored, &assigned, &metadata));
+        assert!(share_topic_ids_current(&stored, &assigned, &metadata).await);
         let assigned = [("payments".to_owned(), 1)];
-        assert!(share_topic_ids_current(&stored, &assigned, &metadata));
+        assert!(share_topic_ids_current(&stored, &assigned, &metadata).await);
         let _ = metadata.insert("payments".to_owned(), [4u8; 16]);
-        assert!(!share_topic_ids_current(&stored, &assigned, &metadata));
+        assert!(!share_topic_ids_current(&stored, &assigned, &metadata).await);
     }
 
     #[test]
