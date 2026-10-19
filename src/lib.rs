@@ -3982,7 +3982,7 @@
 //! writes this when ConsumerGroupHeartbeat names a ServerAssignor the coordinator does not support.
 //! Top-level ShareAcknowledge `STALE_MEMBER_EPOCH` completes
 //! without retry and does not request Metadata, including when
-//! `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+//! `ErrorMessage` is set or empty (Java `handleShareAcknowledgeSuccess` has no
 //! `metadata.requestUpdate`; this is not top-level
 //! `UNSUPPORTED_ASSIGNOR`). Official Java `ConsumerGroup`
 //! writes this when a consumer-protocol OffsetCommit or OffsetFetch member epoch does not match the coordinator's stored epoch.
