@@ -24,7 +24,8 @@ use crate::protocol::api_keys::{
 };
 use crate::protocol::cgheartbeat::{
     decode_consumer_group_heartbeat_response_cooperative, encode_consumer_group_heartbeat_request,
-    ConsumerGroupHeartbeatRequest, TopicPartitions,
+    encode_consumer_group_heartbeat_request_cooperative, ConsumerGroupHeartbeatRequest,
+    TopicPartitions,
 };
 use crate::protocol::group::{
     decode_assignment_cooperative, decode_find_coordinator_response, decode_heartbeat_response,
@@ -2945,13 +2946,26 @@ impl ConsumerGroup {
                 server_assignor: None,
                 topic_partitions: None,
             };
+            let prepared = negotiated_coord_version(coord, CONSUMER_GROUP_HEARTBEAT).ok();
+            let mut encoded = bytes::BytesMut::new();
+            if let Some(version) = prepared {
+                encode_consumer_group_heartbeat_request_cooperative(&mut encoded, version, &req)
+                    .await?;
+            }
             let (version, body) = coord_roundtrip_with_bootstrap(
                 coord,
                 cfg,
                 group_id,
                 COORDINATOR_GROUP,
                 CONSUMER_GROUP_HEARTBEAT,
-                |version, buf| encode_consumer_group_heartbeat_request(buf, version, &req),
+                |version, buf| {
+                    if prepared == Some(version) {
+                        buf.extend_from_slice(&encoded);
+                        Ok(())
+                    } else {
+                        encode_consumer_group_heartbeat_request(buf, version, &req)
+                    }
+                },
                 bootstrap_keys,
                 address_keys,
                 prior,
@@ -3379,13 +3393,26 @@ impl ConsumerGroup {
             let topics = &self.topics;
             let prior = &mut self.prior_coords;
             let refresh = consumer.refresh_metadata_timeout(Some(topics), timeout);
+            let prepared = negotiated_coord_version(coord, CONSUMER_GROUP_HEARTBEAT).ok();
+            let mut encoded = bytes::BytesMut::new();
+            if let Some(version) = prepared {
+                encode_consumer_group_heartbeat_request_cooperative(&mut encoded, version, &req)
+                    .await?;
+            }
             let rpc = coord_roundtrip_with_bootstrap(
                 coord,
                 cfg,
                 group_id,
                 COORDINATOR_GROUP,
                 CONSUMER_GROUP_HEARTBEAT,
-                |version, buf| encode_consumer_group_heartbeat_request(buf, version, &req),
+                |version, buf| {
+                    if prepared == Some(version) {
+                        buf.extend_from_slice(&encoded);
+                        Ok(())
+                    } else {
+                        encode_consumer_group_heartbeat_request(buf, version, &req)
+                    }
+                },
                 &bootstrap_keys,
                 &address_keys,
                 prior,
@@ -3401,13 +3428,26 @@ impl ConsumerGroup {
             }
             let bootstrap_keys = self.consumer.copy_api_keys();
             let address_keys = self.consumer.copy_learned_broker_keys();
+            let prepared = negotiated_coord_version(&self.coord, CONSUMER_GROUP_HEARTBEAT).ok();
+            let mut encoded = bytes::BytesMut::new();
+            if let Some(version) = prepared {
+                encode_consumer_group_heartbeat_request_cooperative(&mut encoded, version, &req)
+                    .await?;
+            }
             coord_roundtrip_with_bootstrap(
                 &mut self.coord,
                 &self.cfg,
                 &self.group_id,
                 COORDINATOR_GROUP,
                 CONSUMER_GROUP_HEARTBEAT,
-                |version, buf| encode_consumer_group_heartbeat_request(buf, version, &req),
+                |version, buf| {
+                    if prepared == Some(version) {
+                        buf.extend_from_slice(&encoded);
+                        Ok(())
+                    } else {
+                        encode_consumer_group_heartbeat_request(buf, version, &req)
+                    }
+                },
                 &bootstrap_keys,
                 &address_keys,
                 &mut self.prior_coords,
@@ -4294,11 +4334,28 @@ impl ConsumerGroup {
                     heartbeat.subscribed_topic_names = None;
                     reuse_topic_partitions(&mut heartbeat.topic_partitions, &hb_ack.lock());
                 }
+                let mut encoded = bytes::BytesMut::new();
+                if encode_consumer_group_heartbeat_request_cooperative(
+                    &mut encoded,
+                    version,
+                    &heartbeat,
+                )
+                .await
+                .is_err()
+                {
+                    let retry_delay = cfg.retry_backoff.max(Duration::from_millis(50));
+                    next_hb_deadline = Instant::now() + retry_delay;
+                    *hb_deadline.lock() = Some(next_hb_deadline);
+                    continue;
+                }
                 let res = c
                     .roundtrip(
                         CONSUMER_GROUP_HEARTBEAT,
                         version,
-                        |buf| encode_consumer_group_heartbeat_request(buf, version, &heartbeat),
+                        |buf| {
+                            buf.extend_from_slice(&encoded);
+                            Ok(())
+                        },
                         timeout,
                     )
                     .await;
@@ -4758,15 +4815,24 @@ async fn leave_if_max_poll(
                     server_assignor: None,
                     topic_partitions: None,
                 };
-                drop(
-                    c.roundtrip(
-                        CONSUMER_GROUP_HEARTBEAT,
-                        version,
-                        |buf| encode_consumer_group_heartbeat_request(buf, version, &req),
-                        timeout,
-                    )
-                    .await,
-                );
+                let mut encoded = bytes::BytesMut::new();
+                if encode_consumer_group_heartbeat_request_cooperative(&mut encoded, version, &req)
+                    .await
+                    .is_ok()
+                {
+                    drop(
+                        c.roundtrip(
+                            CONSUMER_GROUP_HEARTBEAT,
+                            version,
+                            |buf| {
+                                buf.extend_from_slice(&encoded);
+                                Ok(())
+                            },
+                            timeout,
+                        )
+                        .await,
+                    );
+                }
             }
         } else if let Ok(version) = spoken_leave_group(c.leave_group_version) {
             let gid = group_id.to_string();
