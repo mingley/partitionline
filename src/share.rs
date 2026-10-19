@@ -1034,7 +1034,7 @@ fn span_len(first: i64, last: i64) -> usize {
 
 const COVER_CHUNK: usize = 8 * 1024;
 
-async fn copy_i128s(src: &[i128]) -> Vec<i128> {
+async fn copy_chunked<T: Copy>(src: &[T]) -> Vec<T> {
     let mut out = Vec::with_capacity(src.len());
     let mut index = 0usize;
     while index < src.len() {
@@ -1050,9 +1050,9 @@ async fn copy_i128s(src: &[i128]) -> Vec<i128> {
     out
 }
 
-async fn merge_i128_coords(coords: &mut [i128], start: usize, mid: usize, end: usize) {
-    let left = copy_i128s(coords.get(start..mid).unwrap_or(&[])).await;
-    let right = copy_i128s(coords.get(mid..end).unwrap_or(&[])).await;
+async fn merge_sorted<T: Copy + Ord>(items: &mut [T], start: usize, mid: usize, end: usize) {
+    let left = copy_chunked(items.get(start..mid).unwrap_or(&[])).await;
+    let right = copy_chunked(items.get(mid..end).unwrap_or(&[])).await;
     let mut left_index = 0usize;
     let mut right_index = 0usize;
     let mut write = start;
@@ -1064,15 +1064,15 @@ async fn merge_i128_coords(coords: &mut [i128], start: usize, mid: usize, end: u
             _ => false,
         };
         let value = if take_left {
-            let value = left.get(left_index).copied().unwrap_or(0);
+            let value = left.get(left_index).copied();
             left_index = left_index.saturating_add(1);
             value
         } else {
-            let value = right.get(right_index).copied().unwrap_or(0);
+            let value = right.get(right_index).copied();
             right_index = right_index.saturating_add(1);
             value
         };
-        if let Some(slot) = coords.get_mut(write) {
+        if let (Some(value), Some(slot)) = (value, items.get_mut(write)) {
             *slot = value;
         }
         write = write.saturating_add(1);
@@ -1084,34 +1084,34 @@ async fn merge_i128_coords(coords: &mut [i128], start: usize, mid: usize, end: u
     }
 }
 
-async fn sort_i128_coords(coords: &mut [i128]) {
-    if coords.len() <= COVER_CHUNK {
-        coords.sort_unstable();
+async fn sort_chunked<T: Copy + Ord>(items: &mut [T]) {
+    if items.len() <= COVER_CHUNK {
+        items.sort_unstable();
         return;
     }
     let mut start = 0usize;
-    while start < coords.len() {
-        let end = start.saturating_add(COVER_CHUNK).min(coords.len());
-        if let Some(slice) = coords.get_mut(start..end) {
+    while start < items.len() {
+        let end = start.saturating_add(COVER_CHUNK).min(items.len());
+        if let Some(slice) = items.get_mut(start..end) {
             slice.sort_unstable();
         }
         start = end;
-        if start < coords.len() {
+        if start < items.len() {
             tokio::task::yield_now().await;
         }
     }
     let mut width = COVER_CHUNK;
-    while width < coords.len() {
+    while width < items.len() {
         let mut start = 0usize;
-        while start < coords.len() {
-            let mid = start.saturating_add(width).min(coords.len());
-            let end = mid.saturating_add(width).min(coords.len());
+        while start < items.len() {
+            let mid = start.saturating_add(width).min(items.len());
+            let end = mid.saturating_add(width).min(items.len());
             if mid > start && end > mid {
-                merge_i128_coords(coords, start, mid, end).await;
+                merge_sorted(items, start, mid, end).await;
             }
             start = end;
         }
-        if width >= coords.len() || width > usize::MAX / 2 {
+        if width >= items.len() || width > usize::MAX / 2 {
             break;
         }
         width = width.saturating_mul(2);
@@ -1182,7 +1182,7 @@ async fn covered_lengths(ranges: &[(i64, i64)], sent: &[AcknowledgementBatch]) -
             tokio::task::yield_now().await;
         }
     }
-    sort_i128_coords(&mut coords).await;
+    sort_chunked(&mut coords).await;
     dedup_i128_coords(&mut coords).await;
     let mut diff = vec![0_i128; coords.len()];
     walked = 0;
@@ -1247,25 +1247,46 @@ async fn covered_lengths(ranges: &[(i64, i64)], sent: &[AcknowledgementBatch]) -
     out
 }
 
-fn merged_sent_cuts(sent: &[AcknowledgementBatch]) -> Vec<(i64, i64)> {
+/// Merge acknowledgement ranges that touch or overlap.
+///
+/// The walk pauses every 8,192 batches. Without that pause, merging
+/// 5,000,000 acknowledgements held the caller for 171 milliseconds.
+///
+/// A gap stays two ranges. Touching ranges become one.
+async fn merged_sent_cuts(sent: &[AcknowledgementBatch]) -> Vec<(i64, i64)> {
     let mut cuts = Vec::new();
+    let mut walked = 0usize;
     for batch in sent {
         if batch.last_offset >= batch.first_offset {
             cuts.push((batch.first_offset, batch.last_offset));
         }
+        walked = walked.saturating_add(1);
+        if walked == COVER_CHUNK {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
     }
-    cuts.sort_unstable();
+    sort_chunked(&mut cuts).await;
     let mut merged: Vec<(i64, i64)> = Vec::new();
+    walked = 0;
     for (start, end) in cuts {
-        if let Some((_, prev_end)) = merged.last_mut() {
-            if start <= prev_end.saturating_add(1) {
+        let touching = merged
+            .last()
+            .is_some_and(|(_, prev_end)| start <= prev_end.saturating_add(1));
+        if touching {
+            if let Some((_, prev_end)) = merged.last_mut() {
                 if end > *prev_end {
                     *prev_end = end;
                 }
-                continue;
             }
+        } else {
+            merged.push((start, end));
         }
-        merged.push((start, end));
+        walked = walked.saturating_add(1);
+        if walked == COVER_CHUNK {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
     }
     merged
 }
@@ -1323,7 +1344,7 @@ async fn drop_covered_runs(
 ) {
     let ranges: Vec<(i64, i64)> = runs.iter().map(|run| (run.first, run.last)).collect();
     let covered_by_run = covered_lengths(&ranges, sent).await;
-    let cuts = merged_sent_cuts(sent);
+    let cuts = merged_sent_cuts(sent).await;
     let mut kept = Vec::new();
     for (run, covered) in runs.iter().copied().zip(covered_by_run) {
         if run.partition != partition {
@@ -1366,7 +1387,7 @@ async fn renew_covered_runs(
 ) {
     let ranges: Vec<(i64, i64)> = runs.iter().map(|run| (run.first, run.last)).collect();
     let covered_by_run = covered_lengths(&ranges, sent).await;
-    let cuts = merged_sent_cuts(sent);
+    let cuts = merged_sent_cuts(sent).await;
     let mut kept = Vec::new();
     for (run, covered) in runs.iter().copied().zip(covered_by_run) {
         if run.partition != partition {
@@ -10362,6 +10383,48 @@ mod tests {
         )
         .await;
         assert_eq!(covered, vec![3]);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn merging_many_share_ack_cuts_does_not_hold_the_caller() {
+        let sent: Vec<AcknowledgementBatch> = (0..5_000_000)
+            .map(|index| AcknowledgementBatch {
+                first_offset: index,
+                last_offset: index,
+                types: Vec::new(),
+            })
+            .collect();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = async {
+                let _merged = merged_sent_cuts(&sent).await;
+            } => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "merging share acknowledgement cuts held the caller for {elapsed:?}"
+        );
+        let merged = merged_sent_cuts(&[
+            AcknowledgementBatch {
+                first_offset: 0,
+                last_offset: 1,
+                types: Vec::new(),
+            },
+            AcknowledgementBatch {
+                first_offset: 3,
+                last_offset: 4,
+                types: Vec::new(),
+            },
+            AcknowledgementBatch {
+                first_offset: 2,
+                last_offset: 2,
+                types: Vec::new(),
+            },
+        ])
+        .await;
+        assert_eq!(merged, vec![(0, 4)]);
     }
 
     #[test]
