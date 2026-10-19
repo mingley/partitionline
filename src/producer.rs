@@ -9891,6 +9891,7 @@ async fn encode_produce_body_async(
             .map(Vec::len)
             .unwrap_or(0);
         crate::protocol::buf::put_array_len(buf, flexible, Some(part_count))?;
+        let mut walked = 0usize;
         for part_slot in 0..part_count {
             let Some(i) = groups_scratch
                 .parts
@@ -9948,6 +9949,11 @@ async fn encode_produce_body_async(
                     buf.truncate(mark);
                     return Err(error);
                 }
+            }
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
             }
         }
         if flexible {
@@ -12489,6 +12495,94 @@ mod tests {
             block_on_take(take_count_in(&same_base, 10, usize::MAX, &mut bases)),
             2
         );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn encoding_many_produce_partitions_does_not_hold_the_caller() {
+        // 200_000 partitions: encoding each one-record batch held the caller 394ms.
+        let topic: Arc<str> = Arc::from("orders");
+        let groups: Vec<(Arc<str>, i32, Vec<Pending>)> = (0..200_000)
+            .map(|index| {
+                let mut pending = queued("orders", Some(index));
+                pending.rec.topic = Arc::clone(&topic);
+                (Arc::clone(&topic), index, vec![pending])
+            })
+            .collect();
+        let mut buf = bytes::BytesMut::new();
+        let mut scratch = CompressScratch::default();
+        let mut groups_scratch = ProduceGroupScratch::default();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            encoded = encode_produce_body_async(
+                &mut buf,
+                9,
+                1,
+                1_000,
+                &groups,
+                &[],
+                Compression::None,
+                0,
+                -1,
+                -1,
+                None,
+                &mut scratch,
+                &mut groups_scratch,
+            ) => {
+                encoded.unwrap_or_else(|error| panic!("{error}"));
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "encoding produce partitions held the caller for {elapsed:?}"
+        );
+        let mut first = queued("orders", Some(0));
+        first.rec.topic = Arc::clone(&topic);
+        let mut second = queued("orders", Some(7));
+        second.rec.topic = Arc::clone(&topic);
+        let small = vec![
+            (Arc::clone(&topic), 0, vec![first]),
+            (Arc::clone(&topic), 7, vec![second]),
+        ];
+        let mut once = bytes::BytesMut::new();
+        let mut twice = bytes::BytesMut::new();
+        encode_produce_body_async(
+            &mut once,
+            9,
+            1,
+            1_000,
+            &small,
+            &[],
+            Compression::None,
+            0,
+            -1,
+            -1,
+            None,
+            &mut scratch,
+            &mut groups_scratch,
+        )
+        .await
+        .unwrap_or_else(|error| panic!("{error}"));
+        encode_produce_body_async(
+            &mut twice,
+            9,
+            1,
+            1_000,
+            &small,
+            &[],
+            Compression::None,
+            0,
+            -1,
+            -1,
+            None,
+            &mut scratch,
+            &mut groups_scratch,
+        )
+        .await
+        .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(once, twice);
+        assert!(once.windows(4).any(|bytes| bytes == 7i32.to_be_bytes()));
     }
 
     #[tokio::test(flavor = "current_thread")]
