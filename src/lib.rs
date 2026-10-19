@@ -3900,6 +3900,12 @@
 //! `metadata.requestUpdate`; this is not top-level
 //! `INCONSISTENT_CLUSTER_ID`). Official Java `TransactionCoordinator`
 //! writes this when the transactional id has no transaction state.
+//! Top-level ShareAcknowledge `INELIGIBLE_REPLICA` completes
+//! without retry and does not request Metadata, including when
+//! `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+//! `metadata.requestUpdate`; this is not top-level
+//! `TRANSACTIONAL_ID_NOT_FOUND`). Official Java `ReplicationControlManager`
+//! writes this when AlterPartition specifies an ISR containing an ineligible replica.
 //! Top-level ShareAcknowledge
 //! `SHARE_SESSION_LIMIT_REACHED` completes without retry and advances
 //! the session epoch (Java `ShareSessionHandler.handleResponse`
