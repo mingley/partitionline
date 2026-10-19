@@ -15669,7 +15669,7 @@ async fn group_list_reassignments(partitions: &[crate::TopicPartition]) -> Vec<(
     groups
 }
 
-async fn index_listed_offsets(
+pub(crate) async fn index_listed_offsets(
     topics: Vec<crate::protocol::offsets::ListOffsetsTopicResponse>,
 ) -> HashMap<String, HashMap<i32, VecDeque<ListOffsetsResponsePartition>>> {
     let mut by_key: HashMap<String, HashMap<i32, VecDeque<ListOffsetsResponsePartition>>> =

@@ -9428,16 +9428,7 @@ impl Consumer {
         if !cursor.is_empty() {
             return Err(Error::protocol("trailing ListOffsets response bytes"));
         }
-        let mut by_topic: HashMap<String, HashMap<i32, VecDeque<_>>> = HashMap::new();
-        for topic in response {
-            let parts = by_topic.entry(topic.name).or_default();
-            for partition in topic.partitions {
-                parts
-                    .entry(partition.partition_index)
-                    .or_default()
-                    .push_back(partition);
-            }
-        }
+        let mut by_topic = crate::admin::index_listed_offsets(response).await;
         let mut read = ListOffsetRead {
             fenced: Vec::new(),
             fenced_indexes: Vec::new(),
