@@ -71,21 +71,22 @@ use crate::protocol::admin::{
     encode_describe_producers_named_topics,
     encode_describe_share_group_offsets_request_refs_cooperative,
     encode_describe_topic_partitions_names_cooperative,
-    encode_describe_transactions_ids_cooperative, encode_describe_user_scram_credentials_ids,
-    encode_expire_delegation_token_hmac, encode_expire_delegation_token_request,
-    encode_get_telemetry_subscriptions_request, encode_incremental_alter_configs_named,
-    encode_list_config_resources_request, encode_list_groups_filters,
-    encode_list_partition_reassignments_named, encode_list_transactions_states,
-    encode_push_telemetry_metrics, encode_renew_delegation_token_hmac,
-    encode_renew_delegation_token_request, encode_share_group_describe_ids_cooperative,
-    encode_unregister_broker_request, encode_update_features_named, AlterConfigsResource,
-    BorrowedAlterConfig, BorrowedAlterConfigsResource, BorrowedAlterReplicaLogDir,
-    BorrowedAlterReplicaLogDirTopic, BorrowedAlterableResource, BorrowedCreatableTopic,
-    BorrowedCreatePartitionsTopic, BorrowedDeleteTopic, BorrowedDescribeConfigsResource,
-    BorrowedFeatureUpdate, BorrowedReassignmentPartition, BorrowedReplicaAssignment,
-    BorrowedScramDeletion, BorrowedScramUpsertion, BorrowedTopicConfig, CreateTopicsRequest,
-    DeleteRecordsPartition, DeleteTopicView, DescribeConfigsResult, TopicResult, RESOURCE_BROKER,
-    RESOURCE_BROKER_LOGGER, RESOURCE_CLIENT_METRICS, RESOURCE_GROUP, RESOURCE_TOPIC,
+    encode_describe_transactions_ids_cooperative,
+    encode_describe_user_scram_credentials_ids_cooperative, encode_expire_delegation_token_hmac,
+    encode_expire_delegation_token_request, encode_get_telemetry_subscriptions_request,
+    encode_incremental_alter_configs_named, encode_list_config_resources_request,
+    encode_list_groups_filters, encode_list_partition_reassignments_named,
+    encode_list_transactions_states, encode_push_telemetry_metrics,
+    encode_renew_delegation_token_hmac, encode_renew_delegation_token_request,
+    encode_share_group_describe_ids_cooperative, encode_unregister_broker_request,
+    encode_update_features_named, AlterConfigsResource, BorrowedAlterConfig,
+    BorrowedAlterConfigsResource, BorrowedAlterReplicaLogDir, BorrowedAlterReplicaLogDirTopic,
+    BorrowedAlterableResource, BorrowedCreatableTopic, BorrowedCreatePartitionsTopic,
+    BorrowedDeleteTopic, BorrowedDescribeConfigsResource, BorrowedFeatureUpdate,
+    BorrowedReassignmentPartition, BorrowedReplicaAssignment, BorrowedScramDeletion,
+    BorrowedScramUpsertion, BorrowedTopicConfig, CreateTopicsRequest, DeleteRecordsPartition,
+    DeleteTopicView, DescribeConfigsResult, TopicResult, RESOURCE_BROKER, RESOURCE_BROKER_LOGGER,
+    RESOURCE_CLIENT_METRICS, RESOURCE_GROUP, RESOURCE_TOPIC,
 };
 use crate::protocol::api::{
     decode_api_versions_response, decode_metadata_response,
@@ -7175,6 +7176,8 @@ impl Admin {
         })?;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
+        let mut encoded = BytesMut::new();
+        encode_describe_user_scram_credentials_ids_cooperative(&mut encoded, users_wire).await?;
         loop {
             if self.cluster.controller().is_err() {
                 self.refresh_broker_directory(deadline).await?;
@@ -7186,7 +7189,10 @@ impl Admin {
                     deadline,
                     DESCRIBE_USER_SCRAM_CREDENTIALS,
                     version,
-                    |buf| encode_describe_user_scram_credentials_ids(buf, users_wire),
+                    |buf| {
+                        buf.extend_from_slice(&encoded);
+                        Ok(())
+                    },
                     deadline.saturating_duration_since(Instant::now()),
                 )
                 .await

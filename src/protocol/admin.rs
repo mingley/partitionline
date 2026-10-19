@@ -9523,6 +9523,60 @@ pub(crate) fn encode_describe_user_scram_credentials_ids<T: AsRef<str>>(
     Ok(())
 }
 
+/// Encode DescribeUserScramCredentials, yielding while user names are still being written.
+///
+/// Encoding 2,000,000 users held the caller for 361ms. A user name is still written.
+pub(crate) async fn encode_describe_user_scram_credentials_ids_cooperative<T: AsRef<str> + Sync>(
+    buf: &mut BytesMut,
+    users: Option<&[T]>,
+) -> crate::error::Result<()> {
+    let body_start = buf.len();
+    let planned = describe_user_scram_request_len_cooperative(users).await?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
+    buf::put_array_len(buf, true, users.map(<[_]>::len))?;
+    if let Some(users) = users {
+        let mut walked = 0usize;
+        for name in users {
+            buf::put_compact_string(buf, Some(name.as_ref()))?;
+            buf::put_empty_tagged_fields(buf);
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+    }
+    buf::put_empty_tagged_fields(buf);
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+    Ok(())
+}
+
+async fn describe_user_scram_request_len_cooperative<T: AsRef<str> + Sync>(
+    users: Option<&[T]>,
+) -> Result<usize> {
+    let total = match users {
+        None => buf::unsigned_varint_size(0),
+        Some(users) => {
+            let mut total = describe_array_len(true, users.len())?;
+            let mut walked = 0usize;
+            for name in users {
+                total = add_describe_len(total, describe_string_len(true, Some(name.as_ref()))?)?;
+                total = add_describe_len(total, buf::unsigned_varint_size(0))?;
+                walked = walked.saturating_add(1);
+                if walked == 8 * 1024 {
+                    walked = 0;
+                    tokio::task::yield_now().await;
+                }
+            }
+            total
+        }
+    };
+    add_describe_len(total, buf::unsigned_varint_size(0))
+}
+
 fn describe_user_scram_request_len<T: AsRef<str>>(users: Option<&[T]>) -> Result<usize> {
     let total = match users {
         None => buf::unsigned_varint_size(0),
@@ -27190,6 +27244,38 @@ pub fn decode_remove_raft_voter_response<B: Buf>(
 mod tests {
     use super::*;
     use std::collections::{BTreeSet, HashMap};
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn encoding_many_described_scram_users_does_not_hold_the_caller() {
+        let users: Vec<String> = (0..2_000_000)
+            .map(|index| format!("user-{index}"))
+            .collect();
+        let mut body = bytes::BytesMut::new();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            encoded = encode_describe_user_scram_credentials_ids_cooperative(
+                &mut body,
+                Some(users.as_slice()),
+            ) => {
+                encoded.unwrap_or_else(|error| panic!("{error}"));
+            }
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "encoding described scram users held the caller for {elapsed:?}"
+        );
+        let sample = ["alice".to_string()];
+        let mut once = bytes::BytesMut::new();
+        let mut paced = bytes::BytesMut::new();
+        encode_describe_user_scram_credentials_ids(&mut once, Some(sample.as_slice()))
+            .unwrap_or_else(|error| panic!("{error}"));
+        encode_describe_user_scram_credentials_ids_cooperative(&mut paced, Some(sample.as_slice()))
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(once, paced);
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn encoding_many_described_topic_partitions_does_not_hold_the_caller() {
