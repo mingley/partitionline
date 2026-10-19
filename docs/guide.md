@@ -867,6 +867,8 @@ session. Session-not-found and invalid-epoch responses retry with a full map
 within the original request deadline; a topic-ID error also refreshes metadata.
 The consumer checks the session identity and partition set before applying any
 records. Reassigning a recreated topic discards buffered records from its old ID.
+Finding those partitions pauses every 8,192 items, so a metadata refresh can
+still reach its deadline. Finished slices are kept.
 Buffered records, delivered positions and commits retain their existing contracts.
 
 Pausing every partition, moving to another broker, or replacing the assignment

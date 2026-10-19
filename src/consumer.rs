@@ -4444,7 +4444,7 @@ impl Consumer {
         }
         self.metadata = Some(md);
         self.refresh_topic_identities().await;
-        self.adopt_recreated_topics();
+        self.adopt_recreated_topics().await;
         Ok(())
     }
 
@@ -4455,24 +4455,43 @@ impl Consumer {
     /// the deleted topic are dropped. Fetch refuses the mismatched id, and the
     /// next group assignment resolves the new log. ListOffsets is not called
     /// here: that lookup refreshes metadata and would recurse.
-    fn adopt_recreated_topics(&mut self) {
+    ///
+    /// The search pauses every 8,192 partitions. Finished slices are kept, so
+    /// a deadline can fire between them.
+    async fn adopt_recreated_topics(&mut self) {
         let changed = recreated_topic_partitions(
             &self.assigned,
             &self.assigned_topic_ids,
             self.topic_name_ids(),
-        );
-        let drop_parts: Vec<(&str, i32)> = changed
-            .iter()
-            .map(|(topic, partition, _)| (topic.as_str(), *partition))
-            .collect();
-        self.drop_pending_many(&drop_parts);
-        for (topic, partition, _) in &changed {
-            let _removed = self.preferred.remove(topic.as_str(), *partition);
-            self.set_last_fetched_epoch(
-                topic,
-                *partition,
-                crate::RecordBatch::NO_PARTITION_LEADER_EPOCH,
-            );
+        )
+        .await;
+        if changed.is_empty() {
+            return;
+        }
+        self.ensure_cursor_index().await;
+        let mut index = 0usize;
+        while index < changed.len() {
+            let end = index.saturating_add(recreated_chunk()).min(changed.len());
+            let Some(slice) = changed.get(index..end) else {
+                break;
+            };
+            let drop_parts: Vec<(&str, i32)> = slice
+                .iter()
+                .map(|(topic, partition, _)| (topic.as_str(), *partition))
+                .collect();
+            self.drop_pending_many(&drop_parts);
+            for (topic, partition, _) in slice {
+                let _removed = self.preferred.remove(topic.as_str(), *partition);
+                self.set_last_fetched_epoch(
+                    topic,
+                    *partition,
+                    crate::RecordBatch::NO_PARTITION_LEADER_EPOCH,
+                );
+            }
+            index = end;
+            if index < changed.len() {
+                tokio::task::yield_now().await;
+            }
         }
     }
 
@@ -10799,15 +10818,6 @@ fn cap_fetch_cursor(next: i64, high_watermark: i64) -> i64 {
     }
 }
 
-/// Partitions whose stored topic id disagrees with the latest Metadata id.
-///
-/// A missing stored id is the first time the assignment learns the id, not a
-/// recreation. A zero metadata id does not replace a stored id.
-/// Name-to-id and id-to-name maps for one Metadata response.
-///
-/// `cached` is the leader cache's topic id. It replaces a zero id written by
-/// a later copy of the same name. A zero id does not erase an id already
-/// taken from an earlier copy.
 type NameIds = HashMap<Arc<str>, [u8; 16]>;
 type IdNames = HashMap<[u8; 16], Arc<str>>;
 
@@ -10820,8 +10830,9 @@ fn identity_chunk() -> usize {
 /// The walk pauses every 8,192 topics. Without that pause, resolving
 /// 2,000,000 topics held the caller for 12.40 seconds.
 ///
-/// A cached name stays on its existing allocation. An id shared by two names
-/// is not recorded.
+/// A cached name stays on its existing allocation. A later copy with id zero
+/// does not erase an id already recorded for that name. An id shared by two
+/// names is not recorded.
 async fn resolved_topic_identities(
     topics: &[crate::protocol::api::TopicMetadata],
     cached: &NameIds,
@@ -11413,26 +11424,41 @@ fn listed_partition_indexes<'a>(
     ListedPartitions::Indexes(indexes)
 }
 
-fn recreated_topic_partitions<K: std::borrow::Borrow<str> + std::hash::Hash + Eq>(
+fn recreated_chunk() -> usize {
+    8 * 1024
+}
+
+/// Partitions whose topic id changed since they were assigned.
+///
+/// The walk pauses every 8,192 partitions. Without that pause, finding
+/// 2,000,000 recreated topics held the caller for 4.40 seconds.
+///
+/// A topic id of zero is ignored. The first stored id is not a recreation.
+async fn recreated_topic_partitions<K: std::borrow::Borrow<str> + std::hash::Hash + Eq>(
     assigned: &[(Arc<str>, i32, i64)],
     assigned_ids: &HashMap<Arc<str>, HashMap<i32, [u8; 16]>>,
     metadata_ids: &HashMap<K, [u8; 16]>,
 ) -> Vec<(String, i32, [u8; 16])> {
     let mut changed = Vec::new();
+    let mut walked = 0usize;
     for (topic, partition, _) in assigned {
-        let Some(id) = metadata_ids
+        walked = walked.saturating_add(1);
+        if let Some(id) = metadata_ids
             .get(topic.as_ref())
             .copied()
             .filter(|id| *id != [0; 16])
-        else {
-            continue;
-        };
-        if assigned_ids
-            .get(topic.as_ref())
-            .and_then(|parts| parts.get(partition))
-            .is_some_and(|current| *current != id)
         {
-            changed.push((topic.to_string(), *partition, id));
+            if assigned_ids
+                .get(topic.as_ref())
+                .and_then(|parts| parts.get(partition))
+                .is_some_and(|current| *current != id)
+            {
+                changed.push((topic.to_string(), *partition, id));
+            }
+        }
+        if walked == recreated_chunk() {
+            walked = 0;
+            tokio::task::yield_now().await;
         }
     }
     changed
@@ -15104,8 +15130,8 @@ mod tests {
         assert_eq!(ids.get(&[1u8; 16]).map(|name| name.as_ptr()), Some(id_ptr));
     }
 
-    #[test]
-    fn a_changed_topic_id_is_a_new_log() {
+    #[tokio::test]
+    async fn a_changed_topic_id_is_a_new_log() {
         let assigned = vec![(Arc::<str>::from("t"), 0, 4), (Arc::<str>::from("u"), 1, 0)];
         let mut assigned_ids: HashMap<Arc<str>, HashMap<i32, [u8; 16]>> = HashMap::new();
         let _ = assigned_ids
@@ -15120,15 +15146,21 @@ mod tests {
         let _ = metadata_ids.insert("t".to_string(), [2u8; 16]);
         let _ = metadata_ids.insert("u".to_string(), [4u8; 16]);
         assert_eq!(
-            recreated_topic_partitions(&assigned, &assigned_ids, &metadata_ids),
+            recreated_topic_partitions(&assigned, &assigned_ids, &metadata_ids).await,
             vec![("t".to_string(), 0, [2u8; 16])]
         );
         let _ = metadata_ids.insert("t".to_string(), [0u8; 16]);
-        assert!(recreated_topic_partitions(&assigned, &assigned_ids, &metadata_ids).is_empty());
+        assert!(
+            recreated_topic_partitions(&assigned, &assigned_ids, &metadata_ids)
+                .await
+                .is_empty()
+        );
         assigned_ids.clear();
         let _ = metadata_ids.insert("t".to_string(), [2u8; 16]);
         assert!(
-            recreated_topic_partitions(&assigned, &assigned_ids, &metadata_ids).is_empty(),
+            recreated_topic_partitions(&assigned, &assigned_ids, &metadata_ids)
+                .await
+                .is_empty(),
             "the first stored id is not a recreation"
         );
     }
@@ -15470,6 +15502,33 @@ mod tests {
         reused.sort();
         assert_eq!(reused, vec!["orders".to_owned()]);
         assert!(reused.capacity() >= capacity);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn finding_many_recreated_topics_does_not_hold_the_caller() {
+        let mut assigned = Vec::with_capacity(2_000_000);
+        let mut assigned_ids: HashMap<std::sync::Arc<str>, HashMap<i32, [u8; 16]>> = HashMap::new();
+        let mut metadata_ids: HashMap<std::sync::Arc<str>, [u8; 16]> = HashMap::new();
+        for index in 0..2_000_000 {
+            let name: std::sync::Arc<str> = std::sync::Arc::from(format!("topic-{index}"));
+            let mut parts = HashMap::new();
+            let _stored = parts.insert(0, [1u8; 16]);
+            let _stored = assigned_ids.insert(std::sync::Arc::clone(&name), parts);
+            let _stored = metadata_ids.insert(std::sync::Arc::clone(&name), [2u8; 16]);
+            assigned.push((name, 0, 0));
+        }
+        let started = std::time::Instant::now();
+        let task = tokio::spawn(async move {
+            let _changed =
+                recreated_topic_partitions(&assigned, &assigned_ids, &metadata_ids).await;
+        });
+        tokio::time::sleep(std::time::Duration::from_millis(30)).await;
+        let elapsed = started.elapsed();
+        task.abort();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "finding recreated topics held the caller for {elapsed:?}"
+        );
     }
 
     #[tokio::test(flavor = "current_thread")]
