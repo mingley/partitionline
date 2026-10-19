@@ -2644,7 +2644,7 @@ impl BrokerFetchSession {
         Ok(())
     }
 
-    fn prepare(&mut self, topics: &[PlannedFetch<'_>], version: i16) -> SessionFetchRequest {
+    async fn prepare(&mut self, topics: &[PlannedFetch<'_>], version: i16) -> SessionFetchRequest {
         if version < 7 {
             *self = Self::default();
             return SessionFetchRequest {
@@ -2670,6 +2670,7 @@ impl BrokerFetchSession {
         let stamp = self.stamp;
         let full = self.metadata.is_full();
         let mut replaced: Vec<(Arc<str>, [u8; 16], i32)> = Vec::new();
+        let mut walked = 0usize;
         for topic in topics {
             if !self.partitions.contains_key(topic.topic.as_ref()) {
                 let _ = self
@@ -2680,6 +2681,11 @@ impl BrokerFetchSession {
             let mut replaced_here: Vec<([u8; 16], i32)> = Vec::new();
             if let Some(slot) = self.partitions.get_mut(topic.topic.as_ref()) {
                 for partition in topic.partitions {
+                    walked = walked.saturating_add(1);
+                    if walked == 8 * 1024 {
+                        walked = 0;
+                        tokio::task::yield_now().await;
+                    }
                     if let Some(stored) = slot.get_mut(&partition.partition) {
                         let from_before = stored.stamp != stamp;
                         if from_before && stored.id == topic.topic_id && stored.data == *partition {
@@ -7267,7 +7273,8 @@ impl Consumer {
                         .fetch_sessions
                         .entry(node)
                         .or_default()
-                        .prepare(topics.as_slice(), fetch_version);
+                        .prepare(topics.as_slice(), fetch_version)
+                        .await;
                     let encode = |buf: &mut bytes::BytesMut| {
                         encode_fetch_request_topics(
                             buf,
@@ -7351,7 +7358,8 @@ impl Consumer {
                 .fetch_sessions
                 .entry(node)
                 .or_default()
-                .prepare(topics.as_slice(), fetch_version);
+                .prepare(topics.as_slice(), fetch_version)
+                .await;
             let rack = rack.clone();
             let _ = inflight.pending.insert(node);
             let Some(set) = inflight.set.as_mut() else {
@@ -11926,6 +11934,34 @@ mod tests {
     use super::*;
 
     #[tokio::test(flavor = "current_thread")]
+    async fn preparing_many_fetch_partitions_does_not_hold_the_caller() {
+        let topic = Arc::<str>::from("orders");
+        let partitions: Vec<crate::protocol::fetch::FetchPartition> = (0..200_000)
+            .map(|index| {
+                crate::protocol::fetch::FetchPartition::partition_data(
+                    index, 0, -1, 1_048_576, None, None,
+                )
+            })
+            .collect();
+        let plan = [PlannedFetch {
+            topic: &topic,
+            topic_id: [0; 16],
+            partitions: &partitions,
+        }];
+        let mut session = BrokerFetchSession::default();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = session.prepare(&plan, 12) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "preparing fetch partitions held the caller for {elapsed:?}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
     async fn scheduling_many_parallel_dials_does_not_hold_the_caller() {
         // 8_192 leaders: scanning dials held the caller 125ms. 20_000 held it 782ms.
         let queue: Vec<i32> = (0..20_000).collect();
@@ -13575,6 +13611,18 @@ mod tests {
         }
     }
 
+    fn prepare_session(
+        session: &mut BrokerFetchSession,
+        topics: &[PlannedFetch<'_>],
+        version: i16,
+    ) -> SessionFetchRequest {
+        let runtime = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap_or_else(|error| panic!("{error}"));
+        runtime.block_on(session.prepare(topics, version))
+    }
+
     fn prepare_topic(
         session: &mut BrokerFetchSession,
         id: [u8; 16],
@@ -13582,7 +13630,7 @@ mod tests {
         version: i16,
     ) -> SessionFetchRequest {
         let topic = session_topic(id, offset);
-        session.prepare(&[topic.as_plan()], version)
+        prepare_session(session, &[topic.as_plan()], version)
     }
 
     fn session_topic(id: [u8; 16], offset: i64) -> OwnedPlan {
@@ -14740,12 +14788,12 @@ mod tests {
     fn a_fetch_session_reuses_the_topic_allocation() {
         let topic = session_topic([1; 16], 4);
         let mut session = BrokerFetchSession::default();
-        let legacy = session.prepare(&[topic.as_plan()], 4);
+        let legacy = prepare_session(&mut session, &[topic.as_plan()], 4);
         assert_eq!(
             legacy.topics.first().map(|item| Arc::as_ptr(&item.topic)),
             Some(Arc::as_ptr(&topic.topic))
         );
-        let full = session.prepare(&[topic.as_plan()], 12);
+        let full = prepare_session(&mut session, &[topic.as_plan()], 12);
         assert_eq!(
             full.topics.first().map(|item| Arc::as_ptr(&item.topic)),
             Some(Arc::as_ptr(&topic.topic))
@@ -14753,7 +14801,7 @@ mod tests {
         session.response(&session_header(0, 91), 12).unwrap();
         let mut moved = session_topic([1; 16], 5);
         moved.topic = Arc::clone(&topic.topic);
-        let incremental = session.prepare(&[moved.as_plan()], 12);
+        let incremental = prepare_session(&mut session, &[moved.as_plan()], 12);
         assert_eq!(
             incremental
                 .topics
@@ -14771,7 +14819,7 @@ mod tests {
         session.reclaim_request_partitions(incremental);
         let mut again = session_topic([1; 16], 6);
         again.topic = Arc::clone(&topic.topic);
-        let next = session.prepare(&[again.as_plan()], 12);
+        let next = prepare_session(&mut session, &[again.as_plan()], 12);
         assert_eq!(
             next.topics.first().map(|item| item.partitions.as_ptr()),
             Some(kept)
@@ -14783,14 +14831,14 @@ mod tests {
     fn a_steady_fetch_session_keeps_the_topic_id_index() {
         let topic = session_topic([1; 16], 4);
         let mut session = BrokerFetchSession::default();
-        let _ = session.prepare(&[topic.as_plan()], 13);
+        let _ = prepare_session(&mut session, &[topic.as_plan()], 13);
         let first = session
             .id_names
             .get(&[1; 16])
             .cloned()
             .unwrap_or_else(|| panic!("topic id"));
         assert!(Arc::ptr_eq(&first, &topic.topic));
-        let _ = session.prepare(&[topic.as_plan()], 13);
+        let _ = prepare_session(&mut session, &[topic.as_plan()], 13);
         let second = session
             .id_names
             .get(&[1; 16])
@@ -14804,14 +14852,14 @@ mod tests {
     fn fetch_session_abandoned_request_requires_full_map_and_closes_known_session() {
         let topic = session_topic([1; 16], 0);
         let mut session = BrokerFetchSession::default();
-        let first = session.prepare(&[topic.as_plan()], 17);
+        let first = prepare_session(&mut session, &[topic.as_plan()], 17);
         assert_eq!(first.metadata, FetchMetadata::INITIAL);
         session.response(&session_header(0, 91), 17).unwrap();
-        let second = session.prepare(&[topic.as_plan()], 17);
+        let second = prepare_session(&mut session, &[topic.as_plan()], 17);
         assert_eq!(second.metadata, FetchMetadata::new(91, 1));
         assert!(second.topics.is_empty());
         // No response was observed; an outer future may have been canceled.
-        let third = session.prepare(&[topic.as_plan()], 17);
+        let third = prepare_session(&mut session, &[topic.as_plan()], 17);
         assert_eq!(third.metadata, FetchMetadata::new(91, 0));
         assert_eq!(third.topics.len(), 1);
         assert!(third.forgotten.is_empty());
