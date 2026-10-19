@@ -53,10 +53,11 @@ use crate::protocol::admin::{
     encode_alter_user_scram_credentials_named, encode_assign_replicas_to_dirs_request,
     encode_consumer_group_describe_ids, encode_create_delegation_token_request,
     encode_create_partitions_named, encode_create_topics_named, encode_delete_groups_ids,
-    encode_delete_records_named_topics, encode_delete_share_group_offsets_request,
-    encode_describe_client_quotas_request, encode_describe_cluster_request,
-    encode_describe_configs_named, encode_describe_delegation_token_request,
-    encode_describe_groups_ids, encode_describe_log_dirs_named, encode_describe_log_dirs_request,
+    encode_delete_records_named_topics_cooperative, encode_delete_records_owned_topics_cooperative,
+    encode_delete_share_group_offsets_request, encode_describe_client_quotas_request,
+    encode_describe_cluster_request, encode_describe_configs_named,
+    encode_describe_delegation_token_request, encode_describe_groups_ids,
+    encode_describe_log_dirs_named, encode_describe_log_dirs_request,
     encode_describe_producers_named_topics, encode_describe_share_group_offsets_request_refs,
     encode_describe_topic_partitions_names, encode_describe_transactions_ids,
     encode_describe_user_scram_credentials_ids, encode_expire_delegation_token_hmac,
@@ -9409,18 +9410,24 @@ impl Admin {
                 let mut finished = self
                     .exchange_leaders(&nodes, deadline, |_admin, node, _conn, _timeout| {
                         let idxs = by_node.get(&node).map(Vec::as_slice).unwrap_or(&[]);
-                        let topics = delete_records_topics(&records, idxs);
-                        let mut payload = BytesMut::new();
-                        encode_delete_records_named_topics(
-                            &mut payload,
-                            version,
-                            &topics,
-                            timeout_ms,
-                        )?;
-                        Ok(LeaderFrame::ready(
+                        let topics = delete_records_topics(&records, idxs)
+                            .into_iter()
+                            .map(|(name, parts)| (name.to_owned(), parts))
+                            .collect::<Vec<_>>();
+                        Ok(LeaderFrame::deferred(
                             DELETE_RECORDS,
                             version,
-                            payload.freeze(),
+                            Box::pin(async move {
+                                let mut payload = BytesMut::new();
+                                encode_delete_records_owned_topics_cooperative(
+                                    &mut payload,
+                                    version,
+                                    &topics,
+                                    timeout_ms,
+                                )
+                                .await?;
+                                Ok(payload.freeze())
+                            }),
                         ))
                     })
                     .await;
@@ -9523,13 +9530,19 @@ impl Admin {
         if timeout.is_zero() {
             return Err(Error::Timeout);
         }
+        let mut payload = BytesMut::new();
+        encode_delete_records_named_topics_cooperative(&mut payload, version, &topics, timeout_ms)
+            .await?;
         let body = self
             .roundtrip_known_node(
                 node,
                 deadline,
                 DELETE_RECORDS,
                 version,
-                |buf| encode_delete_records_named_topics(buf, version, &topics, timeout_ms),
+                |buf| {
+                    buf.extend_from_slice(&payload);
+                    Ok(())
+                },
                 timeout,
             )
             .await?;
@@ -19434,6 +19447,56 @@ mod tests {
         assert_eq!(topics.len(), 1);
         assert_eq!(topics[0].0, "t");
         assert_eq!(topics[0].1, vec![0, 0, 1]);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn encoding_many_delete_records_does_not_hold_the_caller() {
+        // 2_000_000 partitions: encoding them in one pass held the caller 275ms.
+        use crate::protocol::admin::{
+            encode_delete_records_named_topics, encode_delete_records_named_topics_cooperative,
+            DeleteRecordsPartition,
+        };
+        let partitions: Vec<DeleteRecordsPartition> = (0..2_000_000)
+            .map(|index| DeleteRecordsPartition {
+                partition: index,
+                offset: 1,
+            })
+            .collect();
+        let topics = [("orders", partitions)];
+        let mut buf = bytes::BytesMut::new();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            result = encode_delete_records_named_topics_cooperative(&mut buf, 2, &topics, 1_000) => {
+                result.unwrap_or_else(|error| panic!("{error}"));
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "encoding delete records held the caller for {elapsed:?}"
+        );
+        let small = [(
+            "orders",
+            vec![
+                DeleteRecordsPartition {
+                    partition: 0,
+                    offset: 4,
+                },
+                DeleteRecordsPartition {
+                    partition: 1,
+                    offset: 9,
+                },
+            ],
+        )];
+        let mut paced = bytes::BytesMut::new();
+        encode_delete_records_named_topics_cooperative(&mut paced, 2, &small, 1_000)
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        let mut once = bytes::BytesMut::new();
+        encode_delete_records_named_topics(&mut once, 2, &small, 1_000)
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(paced, once);
     }
 
     #[test]
