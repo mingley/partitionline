@@ -37,7 +37,7 @@ use crate::protocol::admin::{
     decode_delete_share_group_offsets_response, decode_delete_topics_response,
     decode_describe_client_quotas_response, decode_describe_cluster_response,
     decode_describe_configs_response_cooperative, decode_describe_delegation_token_response,
-    decode_describe_groups_response_cooperative, decode_describe_log_dirs_response,
+    decode_describe_groups_response_cooperative, decode_describe_log_dirs_response_cooperative,
     decode_describe_producers_response, decode_describe_share_group_offsets_response_versioned,
     decode_describe_topic_partitions_response_cooperative,
     decode_describe_transactions_response_cooperative,
@@ -14383,7 +14383,9 @@ impl Admin {
                     Err(error) => return Err(error),
                     Ok(body) => {
                         let mut cursor = body.as_ref();
-                        let response = decode_describe_log_dirs_response(&mut cursor, version)?;
+                        let response =
+                            decode_describe_log_dirs_response_cooperative(&mut cursor, version)
+                                .await?;
                         if !cursor.is_empty() {
                             return Err(Error::protocol("trailing DescribeLogDirs response bytes"));
                         }
@@ -14484,7 +14486,8 @@ impl Admin {
                 Err(error) => return Err(error),
                 Ok(body) => {
                     let mut cursor = body.as_ref();
-                    let response = decode_describe_log_dirs_response(&mut cursor, version)?;
+                    let response =
+                        decode_describe_log_dirs_response_cooperative(&mut cursor, version).await?;
                     if !cursor.is_empty() {
                         return Err(Error::protocol("trailing DescribeLogDirs response bytes"));
                     }
@@ -14575,7 +14578,8 @@ impl Admin {
                         .await?
                 };
                 let mut cursor = body.as_ref();
-                let response = decode_describe_log_dirs_response(&mut cursor, version)?;
+                let response =
+                    decode_describe_log_dirs_response_cooperative(&mut cursor, version).await?;
                 if !cursor.is_empty() {
                     return Err(Error::protocol("trailing DescribeLogDirs response bytes"));
                 }
@@ -18534,6 +18538,65 @@ mod tests {
                 .and_then(|item| item.partitions.first())
                 .map(|item| item.leader_epoch),
             Some(3)
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn decoding_many_log_dir_partitions_does_not_hold_the_caller() {
+        let partitions: Vec<DescribeLogDirsPartition> = (0..2_000_000)
+            .map(|index| DescribeLogDirsPartition::new(index, 64, 1, false))
+            .collect();
+        let topic = DescribeLogDirsTopic::new("orders", partitions);
+        let result = DescribeLogDirsResult::new(0, "/var/lib/kafka", vec![topic], 100, 50);
+        let resp = DescribeLogDirsResponse::new(0, vec![result]);
+        let mut body = bytes::BytesMut::new();
+        crate::protocol::admin::encode_describe_log_dirs_response(&mut body, 4, &resp)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let started = std::time::Instant::now();
+        tokio::select! {
+            decoded = decode_describe_log_dirs_response_cooperative(&mut body, 4) => {
+                let decoded = decoded.unwrap_or_else(|error| panic!("{error}"));
+                assert_eq!(decoded.throttle_time_ms, 0);
+                assert_eq!(
+                    decoded.results.first().and_then(|item| item.topics.first()).map(|item| item.partitions.len()),
+                    Some(2_000_000)
+                );
+                assert_eq!(
+                    decoded.results.first().and_then(|item| item.topics.first()).and_then(|item| item.partitions.first()).map(|item| item.partition_size),
+                    Some(64)
+                );
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "decoding log directory partitions held the caller for {elapsed:?}"
+        );
+        let partition = DescribeLogDirsPartition::new(4, 64, 2, true);
+        let topic = DescribeLogDirsTopic::new("orders", vec![partition]);
+        let result = DescribeLogDirsResult::new(0, "/var/lib/kafka", vec![topic], 100, 50);
+        let resp = DescribeLogDirsResponse::new(7, vec![result]);
+        let mut encoded = bytes::BytesMut::new();
+        crate::protocol::admin::encode_describe_log_dirs_response(&mut encoded, 4, &resp)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let mut once = encoded.clone();
+        let mut paced = encoded;
+        let sync = crate::protocol::admin::decode_describe_log_dirs_response(&mut once, 4)
+            .unwrap_or_else(|error| panic!("{error}"));
+        let coop = decode_describe_log_dirs_response_cooperative(&mut paced, 4)
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(sync, coop);
+        assert_eq!(coop.error_code, 7);
+        assert_eq!(coop.results.first().map(|item| item.total_bytes), Some(100));
+        assert_eq!(
+            coop.results
+                .first()
+                .and_then(|item| item.topics.first())
+                .and_then(|item| item.partitions.first())
+                .map(|item| item.is_future_key),
+            Some(true)
         );
     }
 
