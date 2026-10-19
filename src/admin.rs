@@ -117,8 +117,9 @@ use crate::protocol::group::{
     decode_offset_fetch_response_cooperative, encode_find_coordinator_request_keys_cooperative,
     encode_find_coordinator_request_typed, encode_leave_group_request_members_cooperative,
     encode_offset_commit_named, encode_offset_delete_named_topics,
-    encode_offset_fetch_groups_named, encode_offset_fetch_named, BorrowedOffsetFetchRequestGroup,
-    LeaveGroupMember, COORDINATOR_GROUP, COORDINATOR_TRANSACTION, DEFAULT_RETENTION_TIME,
+    encode_offset_fetch_groups_named, encode_offset_fetch_groups_named_cooperative,
+    encode_offset_fetch_named, BorrowedOffsetFetchRequestGroup, LeaveGroupMember,
+    COORDINATOR_GROUP, COORDINATOR_TRANSACTION, DEFAULT_RETENTION_TIME,
 };
 use crate::protocol::idem::{decode_init_producer_id_response, encode_init_producer_id_request};
 use crate::protocol::offsets::{
@@ -11542,10 +11543,38 @@ impl Admin {
                             let _ = prepared
                                 .insert(*node, borrowed_offset_fetch_groups(&jobs, idxs).await?);
                         }
+                        let mut encoded_groups = HashMap::new();
+                        for node in &nodes {
+                            let Ok(version) = self.offset_version_on(*node, OFFSET_FETCH, 8, 9)
+                            else {
+                                continue;
+                            };
+                            let groups = prepared.get(node).map(Vec::as_slice).unwrap_or(&[]);
+                            let mut payload = BytesMut::new();
+                            encode_offset_fetch_groups_named_cooperative(
+                                &mut payload,
+                                version,
+                                groups,
+                                require_stable,
+                            )
+                            .await?;
+                            let _previous =
+                                encoded_groups.insert(*node, (version, payload.freeze()));
+                        }
                         let mut finished = self
                             .exchange_leaders(&nodes, deadline, |_admin, node, conn, _timeout| {
-                                let groups = prepared.get(&node).map(Vec::as_slice).unwrap_or(&[]);
                                 let version = conn.offset_version(OFFSET_FETCH, 8, 9)?;
+                                if let Some((prepared_version, payload)) = encoded_groups.get(&node)
+                                {
+                                    if *prepared_version == version {
+                                        return Ok(LeaderFrame::ready(
+                                            OFFSET_FETCH,
+                                            version,
+                                            payload.clone(),
+                                        ));
+                                    }
+                                }
+                                let groups = prepared.get(&node).map(Vec::as_slice).unwrap_or(&[]);
                                 let mut payload = BytesMut::new();
                                 encode_offset_fetch_groups_named(
                                     &mut payload,
@@ -11597,6 +11626,14 @@ impl Admin {
                             if timeout.is_zero() {
                                 return Err(Error::Timeout);
                             }
+                            let mut encoded = BytesMut::new();
+                            encode_offset_fetch_groups_named_cooperative(
+                                &mut encoded,
+                                version,
+                                &groups,
+                                require_stable,
+                            )
+                            .await?;
                             let body = {
                                 self.roundtrip_known_node(
                                     node,
@@ -11604,12 +11641,8 @@ impl Admin {
                                     OFFSET_FETCH,
                                     version,
                                     |buf| {
-                                        encode_offset_fetch_groups_named(
-                                            buf,
-                                            version,
-                                            &groups,
-                                            require_stable,
-                                        )
+                                        buf.extend_from_slice(&encoded);
+                                        Ok(())
                                     },
                                     timeout,
                                 )

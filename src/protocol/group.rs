@@ -6726,6 +6726,102 @@ fn encode_offset_fetch_request_group_views<G: OffsetFetchRequestGroupView>(
     Ok(())
 }
 
+/// Encode OffsetFetch groups, yielding while group ids are still being written.
+///
+/// Encoding 2,000,000 groups held the caller for 546ms. A group id is still written.
+#[cfg(test)]
+pub(crate) async fn encode_offset_fetch_groups_request_cooperative(
+    buf: &mut BytesMut,
+    version: i16,
+    groups: &[OffsetFetchGroup],
+    require_stable: bool,
+) -> crate::error::Result<()> {
+    encode_offset_fetch_request_group_views_cooperative(buf, version, groups, require_stable).await
+}
+
+/// Encode borrowed OffsetFetch groups, yielding while group ids are still being written.
+pub(crate) async fn encode_offset_fetch_groups_named_cooperative(
+    buf: &mut BytesMut,
+    version: i16,
+    groups: &[BorrowedOffsetFetchRequestGroup<'_>],
+    require_stable: bool,
+) -> crate::error::Result<()> {
+    encode_offset_fetch_request_group_views_cooperative(buf, version, groups, require_stable).await
+}
+
+async fn encode_offset_fetch_request_group_views_cooperative<
+    G: OffsetFetchRequestGroupView + Sync,
+>(
+    buf: &mut BytesMut,
+    version: i16,
+    groups: &[G],
+    require_stable: bool,
+) -> crate::error::Result<()> {
+    let _flexible = offset_fetch_flexible(version)?;
+    if version < 8 {
+        if groups.len() > 1 {
+            return Err(Error::Unsupported(format!(
+                "Broker does not support batching groups for fetch offset request on version {version}"
+            )));
+        }
+        return Err(Error::protocol(format!(
+            "OffsetFetch version {version} does not support Groups"
+        )));
+    }
+    let body_start = buf.len();
+    let planned = offset_fetch_groups_request_len_cooperative(version, groups).await?;
+    reserve_group_body(buf, planned);
+    buf::put_array_len(buf, true, Some(groups.len()))?;
+    let mut walked = 0usize;
+    for group in groups {
+        encode_offset_fetch_group_item(
+            buf,
+            version,
+            false,
+            group.offset_fetch_group_id(),
+            group.offset_fetch_member_id(),
+            group.offset_fetch_member_epoch(),
+            group.offset_fetch_group_topics(),
+        )?;
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    buf.put_u8(u8::from(require_stable));
+    buf::put_empty_tagged_fields(buf);
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+    Ok(())
+}
+
+async fn offset_fetch_groups_request_len_cooperative<G: OffsetFetchRequestGroupView + Sync>(
+    version: i16,
+    groups: &[G],
+) -> Result<usize> {
+    let mut total = group_array_len(true, groups.len())?;
+    let mut walked = 0usize;
+    for group in groups {
+        total = add_group_len(
+            total,
+            offset_fetch_group_item_len(
+                version,
+                false,
+                group.offset_fetch_group_id(),
+                group.offset_fetch_member_id(),
+                group.offset_fetch_group_topics(),
+            )?,
+        )?;
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    total = add_group_len(total, 1)?;
+    add_group_len(total, buf::unsigned_varint_size(0))
+}
+
 fn offset_fetch_topics_len<T: OffsetFetchTopicView>(
     flexible: bool,
     topics: Option<&[T]>,
@@ -8008,6 +8104,35 @@ async fn group_owned_assignment_cooperative(parts: Vec<(String, i32)>) -> Vec<(S
 mod tests {
     use super::*;
     use std::collections::HashMap;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn encoding_many_offset_fetch_groups_does_not_hold_the_caller() {
+        let groups: Vec<OffsetFetchGroup> = (0..2_000_000)
+            .map(|index| OffsetFetchGroup::new(format!("group-{index}"), None))
+            .collect();
+        let mut body = bytes::BytesMut::new();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            encoded = encode_offset_fetch_groups_request_cooperative(&mut body, 8, &groups, false) => {
+                encoded.unwrap_or_else(|error| panic!("{error}"));
+            }
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "encoding offset fetch groups held the caller for {elapsed:?}"
+        );
+        let sample = [OffsetFetchGroup::new("orders", None)];
+        let mut once = bytes::BytesMut::new();
+        let mut paced = bytes::BytesMut::new();
+        encode_offset_fetch_groups_request(&mut once, 8, &sample, true)
+            .unwrap_or_else(|error| panic!("{error}"));
+        encode_offset_fetch_groups_request_cooperative(&mut paced, 8, &sample, true)
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(once, paced);
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn encoding_many_left_members_does_not_hold_the_caller() {
