@@ -629,7 +629,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   writes this when a BrokerRegistration request specifies no directories.
   A top-level ShareAcknowledge `TRANSACTION_ABORTABLE` completes
   without retry and does not request Metadata, including when
-  `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+  `ErrorMessage` is set or empty (Java `handleShareAcknowledgeSuccess` has no
   `metadata.requestUpdate`; this is not top-level
   `INVALID_REGISTRATION`). Official Java `TransactionCoordinator`
   writes this when AddPartitionsToTxn verify finds a partition that is not already in the transaction.
