@@ -597,6 +597,12 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   `metadata.requestUpdate`; this is not top-level
   `STALE_MEMBER_EPOCH`). Official Java `AuthHelper`
   writes this when DescribeCluster names an endpoint type that does not match the endpoint that received the request.
+  A top-level ShareAcknowledge `UNSUPPORTED_ENDPOINT_TYPE` completes
+  without retry and does not request Metadata, including when
+  `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+  `metadata.requestUpdate`; this is not top-level
+  `MISMATCHED_ENDPOINT_TYPE`). Official Java `AuthHelper`
+  writes this when DescribeCluster names an unknown endpoint type.
   A piggybacked ShareFetch
   `AcknowledgeErrorMessage` that is empty uses
   `ShareFetch acknowledgement {topic}-{partition}`. A piggybacked

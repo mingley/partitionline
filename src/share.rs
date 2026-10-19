@@ -2995,6 +2995,14 @@ pub enum ShareAcquireMode {
 /// `AuthHelper` writes this when DescribeCluster names an endpoint type
 /// that does not match the endpoint that received the request.
 /// A top-level
+/// ShareAcknowledge `UNSUPPORTED_ENDPOINT_TYPE` completes without
+/// retry and does not request Metadata, including when `ErrorMessage`
+/// is set (Java `handleShareAcknowledgeSuccess` has no
+/// `metadata.requestUpdate`; this is not top-level
+/// `MISMATCHED_ENDPOINT_TYPE`). Official Java
+/// `AuthHelper` writes this when DescribeCluster names an unknown
+/// endpoint type.
+/// A top-level
 /// ShareAcknowledge `SHARE_SESSION_LIMIT_REACHED` completes without
 /// retry and does not request Metadata, including when `ErrorMessage`
 /// is set or empty (Java `handleShareAcknowledgeSuccess` has no
@@ -6686,6 +6694,13 @@ impl ShareGroup {
     /// Official Java `AuthHelper` writes this when DescribeCluster
     /// names an endpoint type that does not match the endpoint that
     /// received the request.
+    /// A top-level ShareAcknowledge `UNSUPPORTED_ENDPOINT_TYPE`
+    /// completes without retry and does not request Metadata,
+    /// including when `ErrorMessage` is set (Java
+    /// `handleShareAcknowledgeSuccess` has no `metadata.requestUpdate`;
+    /// this is not top-level `MISMATCHED_ENDPOINT_TYPE`).
+    /// Official Java `AuthHelper` writes this when DescribeCluster
+    /// names an unknown endpoint type.
     /// Top-level `SHARE_SESSION_LIMIT_REACHED`
     /// completes without retry and advances the session epoch (Java
     /// `ShareSessionHandler.handleResponse` `nextEpoch`), including

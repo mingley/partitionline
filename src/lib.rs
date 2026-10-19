@@ -4006,6 +4006,12 @@
 //! `metadata.requestUpdate`; this is not top-level
 //! `STALE_MEMBER_EPOCH`). Official Java `AuthHelper`
 //! writes this when DescribeCluster names an endpoint type that does not match the endpoint that received the request.
+//! Top-level ShareAcknowledge `UNSUPPORTED_ENDPOINT_TYPE` completes
+//! without retry and does not request Metadata, including when
+//! `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+//! `metadata.requestUpdate`; this is not top-level
+//! `MISMATCHED_ENDPOINT_TYPE`). Official Java `AuthHelper`
+//! writes this when DescribeCluster names an unknown endpoint type.
 //! Top-level ShareAcknowledge
 //! `SHARE_SESSION_LIMIT_REACHED` completes without retry and advances
 //! the session epoch (Java `ShareSessionHandler.handleResponse`
