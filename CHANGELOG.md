@@ -532,7 +532,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   writes this when another broker is already registered with that broker id.
   A top-level ShareAcknowledge `BROKER_ID_NOT_REGISTERED` completes
   without retry and does not request Metadata, including when
-  `ErrorMessage` is set (Java `handleShareAcknowledgeSuccess` has no
+  `ErrorMessage` is set or empty (Java `handleShareAcknowledgeSuccess` has no
   `metadata.requestUpdate`; this is not top-level
   `DUPLICATE_BROKER_REGISTRATION`). Official Java `ReplicationControlManager`
   writes this when the requested broker id is not currently registered.
