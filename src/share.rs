@@ -2523,6 +2523,13 @@ pub enum ShareAcquireMode {
 /// `TELEMETRY_TOO_LARGE`). Official Java
 /// `ClusterControlManager` writes this when a BrokerRegistration
 /// request specifies no directories.
+/// Top-level `TRANSACTION_ABORTABLE` still fails that poll
+/// and does not request Metadata, including when `ErrorMessage` is
+/// set (Java `handleShareFetchSuccess` only `requestUpdate`s for
+/// `UNKNOWN_TOPIC_ID`; this is not top-level
+/// `INVALID_REGISTRATION`). Official Java
+/// `TransactionCoordinator` writes this when AddPartitionsToTxn
+/// verify finds a partition that is not already in the transaction.
 /// Top-level
 /// `SHARE_SESSION_LIMIT_REACHED` resets the share session and does
 /// not request Metadata, including when `ErrorMessage` is set or
@@ -5980,6 +5987,15 @@ impl ShareGroup {
     /// `TELEMETRY_TOO_LARGE`). Official Java
     /// `ClusterControlManager` writes this when a
     /// BrokerRegistration request specifies no directories.
+    /// Top-level
+    /// `TRANSACTION_ABORTABLE` still fails that poll without
+    /// Metadata, including when `ErrorMessage` is set (Java
+    /// `handleShareFetchSuccess` only `requestUpdate`s for
+    /// `UNKNOWN_TOPIC_ID`; this is not top-level
+    /// `INVALID_REGISTRATION`). Official Java
+    /// `TransactionCoordinator` writes this when
+    /// AddPartitionsToTxn verify finds a partition that is not already
+    /// in the transaction.
     /// Top-level
     /// `SHARE_SESSION_LIMIT_REACHED` resets the share session and
     /// does not request Metadata, including when `ErrorMessage` is

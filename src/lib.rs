@@ -3575,6 +3575,13 @@
 //! `UNKNOWN_TOPIC_ID`; this is not top-level
 //! `TELEMETRY_TOO_LARGE`). Official Java `ClusterControlManager`
 //! writes this when a BrokerRegistration request specifies no directories.
+//! Top-level
+//! `TRANSACTION_ABORTABLE` still fails that poll without
+//! Metadata, including when `ErrorMessage` is set (Java
+//! `handleShareFetchSuccess` only `requestUpdate`s for
+//! `UNKNOWN_TOPIC_ID`; this is not top-level
+//! `INVALID_REGISTRATION`). Official Java `TransactionCoordinator`
+//! writes this when AddPartitionsToTxn verify finds a partition that is not already in the transaction.
 //! Partition
 //! `INCONSISTENT_TOPIC_ID` / `UNKNOWN_TOPIC_OR_PARTITION` /
 //! `UNKNOWN_TOPIC_ID` / `REPLICA_NOT_AVAILABLE` /
