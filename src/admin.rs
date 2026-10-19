@@ -5759,7 +5759,7 @@ impl Admin {
         let topics = MetadataRequestTopic::convert_from_ids(ids.iter().copied());
         self.fetch_metadata_request_with(Some(&topics), include_authorized_operations, timeout)
             .await?;
-        Ok(topic_descriptions_including_unnamed(&self.metadata_image))
+        Ok(topic_descriptions_including_unnamed(&self.metadata_image).await)
     }
 
     /// Java `describeTopics(TopicCollection)`.
@@ -13678,7 +13678,7 @@ impl Admin {
             },
         )
         .await?;
-        Ok(topic_descriptions_for_names(&self.metadata_image, names))
+        Ok(topic_descriptions_for_names(&self.metadata_image, names).await)
     }
 
     /// List configuration resources (ListConfigResources api 74,
@@ -15784,11 +15784,15 @@ fn topic_listings_from(md: &MetadataResponse, list_internal: bool) -> Vec<TopicL
         .collect()
 }
 
-fn topic_descriptions_including_unnamed(md: &MetadataResponse) -> Vec<TopicDescription> {
-    md.topics.iter().map(topic_description_from).collect()
+async fn topic_descriptions_including_unnamed(md: &MetadataResponse) -> Vec<TopicDescription> {
+    let mut out = Vec::with_capacity(md.topics.len());
+    for topic in &md.topics {
+        out.push(topic_description_from(topic).await);
+    }
+    out
 }
 
-fn topic_descriptions_for_names<T: AsRef<str>>(
+async fn topic_descriptions_for_names<T: AsRef<str>>(
     md: &MetadataResponse,
     names: &[T],
 ) -> Vec<TopicDescription> {
@@ -15802,37 +15806,43 @@ fn topic_descriptions_for_names<T: AsRef<str>>(
         }
         let _ = slots.insert(name, index);
     }
-    names
-        .iter()
-        .map(|name| {
-            let name = name.as_ref();
-            slots
-                .get(name)
-                .and_then(|index| md.topics.get(*index))
-                .map(topic_description_from)
-                .unwrap_or_else(|| {
-                    TopicDescription::new(
-                        name,
-                        [0; 16],
-                        false,
-                        error::UNKNOWN_TOPIC_OR_PARTITION,
-                        Vec::new(),
-                    )
-                })
-        })
-        .collect()
+    let mut out = Vec::with_capacity(names.len());
+    for name in names {
+        let name = name.as_ref();
+        out.push(
+            match slots.get(name).and_then(|index| md.topics.get(*index)) {
+                Some(topic) => topic_description_from(topic).await,
+                None => TopicDescription::new(
+                    name,
+                    [0; 16],
+                    false,
+                    error::UNKNOWN_TOPIC_OR_PARTITION,
+                    Vec::new(),
+                ),
+            },
+        );
+    }
+    out
 }
 
-fn topic_description_from(t: &crate::protocol::api::TopicMetadata) -> TopicDescription {
+async fn topic_description_from(t: &crate::protocol::api::TopicMetadata) -> TopicDescription {
     let name = t.name.clone().unwrap_or_default();
-    let partitions = if t.error_code == 0 {
-        t.partitions
-            .iter()
-            .map(|p| crate::PartitionInfo::from_partition_metadata(name.as_str(), p))
-            .collect()
-    } else {
-        Vec::new()
-    };
+    let mut partitions = Vec::new();
+    if t.error_code == 0 {
+        partitions.reserve(t.partitions.len());
+        let mut walked = 0usize;
+        for partition in &t.partitions {
+            partitions.push(crate::PartitionInfo::from_partition_metadata(
+                name.as_str(),
+                partition,
+            ));
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+    }
     TopicDescription {
         name,
         topic_id: t.topic_id,
@@ -16571,8 +16581,66 @@ mod tests {
     };
     use bytes::BytesMut;
 
-    #[test]
-    fn describing_many_named_topics_does_not_hold_the_caller() {
+    #[tokio::test(flavor = "current_thread")]
+    async fn describing_one_huge_topic_does_not_hold_the_caller() {
+        // 2_000_000 partitions: copying the topic name onto each held the caller 290ms.
+        let partitions: Vec<crate::protocol::api::PartitionMetadata> = (0..2_000_000)
+            .map(|index| {
+                crate::protocol::api::PartitionMetadata::new(
+                    0,
+                    index,
+                    Some(1),
+                    Some(1),
+                    Vec::new(),
+                    Vec::new(),
+                    Vec::new(),
+                )
+            })
+            .collect();
+        let topic = crate::protocol::api::TopicMetadata::new(0, "orders", false, partitions);
+        let started = std::time::Instant::now();
+        tokio::select! {
+            described = topic_description_from(&topic) => {
+                assert_eq!(described.partitions.len(), 2_000_000);
+                assert_eq!(described.partitions.first().map(|info| info.topic.as_str()), Some("orders"));
+                assert_eq!(described.partitions.first().map(|info| info.partition), Some(0));
+                assert_eq!(described.partitions.first().map(|info| info.leader), Some(1));
+            }
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "describing one topic held the caller for {elapsed:?}"
+        );
+        let mut replica = crate::protocol::api::PartitionMetadata::new(
+            0,
+            4,
+            Some(2),
+            Some(9),
+            vec![2, 3],
+            vec![2],
+            vec![3],
+        );
+        replica.error_code = 0;
+        let errored =
+            crate::protocol::api::TopicMetadata::new(5, "orders", false, vec![replica.clone()]);
+        let hidden = topic_description_from(&errored).await;
+        assert!(hidden.partitions.is_empty());
+        assert_eq!(hidden.error_code, 5);
+        let stored = crate::protocol::api::TopicMetadata::new(0, "orders", false, vec![replica]);
+        let described = topic_description_from(&stored).await;
+        assert_eq!(described.partitions.len(), 1);
+        assert_eq!(described.partitions[0].topic, "orders");
+        assert_eq!(described.partitions[0].replicas, vec![2, 3]);
+        assert_eq!(described.partitions[0].isr, vec![2]);
+        assert_eq!(described.partitions[0].offline_replicas, vec![3]);
+        assert_eq!(described.partitions[0].leader_epoch, 9);
+        assert_eq!(stored.partitions[0].replica_nodes, vec![2, 3]);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn describing_many_named_topics_does_not_hold_the_caller() {
         // 20_000 names: scanning the image for each name held the caller 1.84s.
         let mut md = MetadataResponse::blank();
         md.topics = (0..20_000)
@@ -16588,7 +16656,7 @@ mod tests {
         ));
         let names: Vec<String> = (0..20_000).map(|index| format!("t{index}")).collect();
         let started = std::time::Instant::now();
-        let described = topic_descriptions_for_names(&md, &names);
+        let described = topic_descriptions_for_names(&md, &names).await;
         let elapsed = started.elapsed();
         assert_eq!(described.len(), 20_000);
         assert!(
@@ -16596,7 +16664,7 @@ mod tests {
             "describing named topics held the caller for {elapsed:?}"
         );
         assert_eq!(described.first().map(|topic| topic.error_code), Some(0));
-        let missing = topic_descriptions_for_names(&md, &["other".to_string()]);
+        let missing = topic_descriptions_for_names(&md, &["other".to_string()]).await;
         assert_eq!(
             missing.first().map(|topic| topic.error_code),
             Some(error::UNKNOWN_TOPIC_OR_PARTITION)
@@ -19175,8 +19243,8 @@ mod tests {
         );
     }
 
-    #[test]
-    fn topic_listings_skip_errors_and_unnamed() {
+    #[tokio::test(flavor = "current_thread")]
+    async fn topic_listings_skip_errors_and_unnamed() {
         use crate::protocol::api::{PartitionMetadata, TopicMetadata};
 
         let md = MetadataResponse {
@@ -19250,7 +19318,7 @@ mod tests {
         let listed = topic_listings_from(&md, false);
         assert_eq!(listed.len(), 1);
         assert_eq!(listed[0].name, "ok");
-        let described = topic_descriptions_including_unnamed(&md);
+        let described = topic_descriptions_including_unnamed(&md).await;
         assert_eq!(described.len(), 4);
         assert_eq!(described[0].name, "ok");
         assert_eq!(described[0].partitions.len(), 1);
@@ -19276,7 +19344,8 @@ mod tests {
         let named = topic_descriptions_for_names(
             &md,
             &["ok".to_string(), "gone".to_string(), "missing".to_string()],
-        );
+        )
+        .await;
         assert_eq!(named.len(), 3);
         assert_eq!(named[0].name, "ok");
         assert_eq!(named[0].error_code, 0);
