@@ -170,7 +170,8 @@ impl ConsumerGroup {
     pub(super) async fn snapshot_delivered_positions_cooperative(&mut self) {
         let mut positions = self.last_delivered_positions.take().unwrap_or_default();
         self.consumer
-            .fill_delivered_positions_shared(&mut positions);
+            .fill_delivered_positions_shared_cooperative(&mut positions)
+            .await;
         let mut ids = std::mem::take(&mut self.last_delivered_topic_ids);
         super::refresh_delivered_topic_ids_cooperative(&mut ids, &positions, |topic, partition| {
             self.consumer.assigned_topic_id(topic, partition)

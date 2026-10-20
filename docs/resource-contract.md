@@ -125,6 +125,7 @@ These walks include:
 - pausing assigned partitions, and resuming them
 - listing the assigned partitions that are paused
 - reading delivered offsets before a queued commit
+- filling delivered positions after a poll or commit
 - copying a changed consumer or share heartbeat subscription or assignment
 - opening one result slot, and its index, for each item in an admin batch
 - copying transactional ids before fencing producers

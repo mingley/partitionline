@@ -4106,6 +4106,41 @@ impl Consumer {
         }
     }
 
+    /// Fill delivered positions, pausing every 8,192 assigned partitions.
+    ///
+    /// Filling 5,000,000 positions held the caller for 218 milliseconds. A
+    /// negative position is still omitted. Order stays the assignment order.
+    pub(crate) async fn fill_delivered_positions_shared_cooperative(
+        &self,
+        out: &mut Vec<(Arc<str>, i32, i64)>,
+    ) {
+        out.clear();
+        let mut cached_topic = std::ptr::null::<u8>();
+        let mut cached_name: Option<&str> = None;
+        let mut pending_parts: Option<&HashMap<i32, VecDeque<FetchedRecord>>> = None;
+        let mut walked = 0usize;
+        for (topic, partition, offset) in &self.assigned {
+            if !reuse_topic_cache(&mut cached_topic, &mut cached_name, topic) {
+                pending_parts = self.pending.partitions.topic_partitions(topic.as_ref());
+            }
+            let front = pending_parts
+                .and_then(|parts| parts.get(partition))
+                .and_then(|records| records.front());
+            let delivered = front.map(|record| record.offset).unwrap_or(*offset);
+            if let Some(position) = defined_position(delivered) {
+                out.push((Arc::clone(topic), *partition, position));
+            }
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                cached_topic = std::ptr::null();
+                cached_name = None;
+                pending_parts = None;
+                tokio::task::yield_now().await;
+            }
+        }
+    }
+
     pub(crate) async fn delivered_commit_offsets_cooperative(
         &self,
     ) -> Vec<(TopicPartition, OffsetAndMetadata)> {
@@ -17216,6 +17251,49 @@ mod tests {
         fill_reused_topics_cooperative(&mut got, ["orders"]).await;
         assert_eq!(got, vec!["orders".to_string()]);
         assert!(got.capacity() >= capacity);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn filling_many_delivered_positions_does_not_hold_the_caller() {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let address = listener.local_addr().unwrap().to_string();
+        let accept = tokio::spawn(async move {
+            let _held = listener.accept().await;
+            std::future::pending::<()>().await;
+        });
+        let conn =
+            crate::net::BrokerConn::connect(&address, "plan", std::time::Duration::from_secs(2))
+                .await
+                .unwrap();
+        let mut consumer = Consumer::test_holding(ConsumerConfig::default(), conn);
+        let topic: Arc<str> = Arc::from("orders");
+        consumer.assigned = (0..5_000_000)
+            .map(|partition| (Arc::clone(&topic), partition, 4))
+            .collect();
+        let mut positions = Vec::new();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            () = consumer.fill_delivered_positions_shared_cooperative(&mut positions) => {}
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "filling delivered positions held the caller for {elapsed:?}"
+        );
+        consumer.assigned = vec![(Arc::from("orders"), 1, 4), (Arc::from("payments"), 2, -1)];
+        let mut positions = Vec::new();
+        consumer
+            .fill_delivered_positions_shared_cooperative(&mut positions)
+            .await;
+        assert_eq!(
+            positions
+                .iter()
+                .map(|(topic, partition, offset)| (topic.as_ref(), *partition, *offset))
+                .collect::<Vec<_>>(),
+            vec![("orders", 1, 4)]
+        );
+        drop(accept);
     }
 
     #[tokio::test(flavor = "current_thread")]
