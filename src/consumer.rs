@@ -2137,7 +2137,7 @@ impl PendingRecords {
         self.drop_many(&[(topic, partition)])
     }
 
-    fn drop_many(&mut self, parts: &[(&str, i32)]) -> usize {
+    fn drop_queues(&mut self, parts: &[(&str, i32)]) -> usize {
         if parts.is_empty() {
             return 0;
         }
@@ -2151,9 +2151,43 @@ impl PendingRecords {
                     .fold(removed_bytes, usize::saturating_add);
             }
         }
+        removed_bytes
+    }
+
+    fn drop_many(&mut self, parts: &[(&str, i32)]) -> usize {
+        let removed = self.drop_queues(parts);
+        if parts.is_empty() {
+            return removed;
+        }
+        let drop_set: HashSet<(&str, i32)> = parts.iter().copied().collect();
         self.order
             .retain(|run| !drop_set.contains(&(run.topic.as_str(), run.partition)));
-        removed_bytes
+        removed
+    }
+
+    /// Drop queued runs for these partitions.
+    ///
+    /// The walk pauses every 8,192 runs. Without that pause, dropping
+    /// 2,000,000 queued runs held the caller for 520 milliseconds.
+    ///
+    /// A run that is not listed stays, in its original order.
+    async fn drop_order_runs(&mut self, parts: &[(&str, i32)]) {
+        if parts.is_empty() {
+            return;
+        }
+        let drop_set: HashSet<(&str, i32)> = parts.iter().copied().collect();
+        let pending = std::mem::take(&mut self.order);
+        let mut walked = 0usize;
+        for run in pending {
+            if !drop_set.contains(&(run.topic.as_str(), run.partition)) {
+                self.order.push_back(run);
+            }
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
     }
 
     fn retain_assigned(&mut self, assigned: &PartitionMap<()>) -> usize {
@@ -3534,7 +3568,8 @@ impl Consumer {
         self.reject_pending_wakeup()?;
         self.finish_inflight_fetches(self.cfg.request_timeout).await;
         self.refresh_topic_metadata(&topic_name).await?;
-        self.drop_pending_for(&topic_name, partition);
+        self.drop_pending_for_cooperative(&topic_name, partition)
+            .await;
         if let Some(pos) = self
             .assigned
             .iter()
@@ -3664,7 +3699,7 @@ impl Consumer {
             .iter()
             .map(|partition| (topic.as_str(), *partition))
             .collect();
-        self.drop_pending_many(&drop_parts);
+        self.drop_pending_many(&drop_parts).await;
         for p in parts {
             self.push_assigned(Arc::clone(&name), p, offset);
         }
@@ -4215,7 +4250,7 @@ impl Consumer {
                 tokio::task::yield_now().await;
             }
         }
-        self.drop_pending_many(&drop_parts);
+        self.drop_pending_many(&drop_parts).await;
         self.retain_pending_assigned().await;
         self.capture_assigned_topic_ids().await;
         Ok(())
@@ -4552,7 +4587,7 @@ impl Consumer {
                 .iter()
                 .map(|(topic, partition, _)| (topic.as_str(), *partition))
                 .collect();
-            self.drop_pending_many(&drop_parts);
+            self.drop_pending_many(&drop_parts).await;
             for (topic, partition, _) in slice {
                 let _removed = self.preferred.remove(topic.as_str(), *partition);
                 self.set_last_fetched_epoch(
@@ -5882,7 +5917,7 @@ impl Consumer {
             .iter()
             .map(|(topic, partition)| (topic.as_str(), *partition))
             .collect();
-        self.drop_pending_many(&drop_parts);
+        self.drop_pending_many(&drop_parts).await;
         outcome
     }
 
@@ -7132,7 +7167,7 @@ impl Consumer {
                 let mut dropped = Vec::with_capacity(need_offsets.len());
                 for ((topic, partition, _), found) in need_offsets.iter().zip(&listed.values) {
                     let Some(offset) = reset_position(found.0) else {
-                        self.drop_pending_many(&dropped);
+                        self.drop_pending_many(&dropped).await;
                         self.park_fetch_records(out);
                         return Err(Error::protocol(format!(
                             "ListOffsets returned no reset offset for {topic}-{partition}"
@@ -7147,7 +7182,7 @@ impl Consumer {
                     dropped.push((topic.as_ref(), *partition));
                     let _ = completed.insert_shared(topic, *partition, ());
                 }
-                self.drop_pending_many(&dropped);
+                self.drop_pending_many(&dropped).await;
                 if let Some(error) = listed.error {
                     // Records already fetched stay delivered. Partitions
                     // still out of range are placed on the next poll.
@@ -8158,7 +8193,8 @@ impl Consumer {
                             dropped: &mut dropped_pending,
                         },
                     ) {
-                        self.drop_pending_partitions(name.as_ref(), &mut dropped_pending);
+                        self.drop_pending_partitions(name.as_ref(), &mut dropped_pending)
+                            .await;
                         return Err(error);
                     }
                     continue;
@@ -8194,7 +8230,8 @@ impl Consumer {
                         }
                         continue;
                     }
-                    self.drop_pending_partitions(name.as_ref(), &mut dropped_pending);
+                    self.drop_pending_partitions(name.as_ref(), &mut dropped_pending)
+                        .await;
                     return Err(e);
                 }
                 if part.is_diverging_epoch() && part.diverging_end_offset >= 0 {
@@ -8231,7 +8268,8 @@ impl Consumer {
                             dropped: &mut dropped_pending,
                         },
                     ) {
-                        self.drop_pending_partitions(name.as_ref(), &mut dropped_pending);
+                        self.drop_pending_partitions(name.as_ref(), &mut dropped_pending)
+                            .await;
                         return Err(error);
                     }
                     continue;
@@ -8338,12 +8376,14 @@ impl Consumer {
                         {
                             Ok(visited) => visited,
                             Err(error) => {
-                                self.drop_pending_partitions(name.as_ref(), &mut dropped_pending);
+                                self.drop_pending_partitions(name.as_ref(), &mut dropped_pending)
+                                    .await;
                                 return Err(error);
                             }
                         };
                         if cursor_overflow {
-                            self.drop_pending_partitions(name.as_ref(), &mut dropped_pending);
+                            self.drop_pending_partitions(name.as_ref(), &mut dropped_pending)
+                                .await;
                             return Err(Error::protocol("fetch cursor overflow"));
                         }
                         if let Some(meta) = visited {
@@ -8381,7 +8421,8 @@ impl Consumer {
                                     self.drop_pending_partitions(
                                         name.as_ref(),
                                         &mut dropped_pending,
-                                    );
+                                    )
+                                    .await;
                                     return Err(error);
                                 }
                             };
@@ -8405,7 +8446,8 @@ impl Consumer {
                     let batch = match encoded.decode_shared_cooperative().await {
                         Ok(batch) => batch,
                         Err(error) => {
-                            self.drop_pending_partitions(name.as_ref(), &mut dropped_pending);
+                            self.drop_pending_partitions(name.as_ref(), &mut dropped_pending)
+                                .await;
                             return Err(error);
                         }
                     };
@@ -8438,7 +8480,8 @@ impl Consumer {
                     ) {
                         Ok(batch_next) => batch_next,
                         Err(error) => {
-                            self.drop_pending_partitions(name.as_ref(), &mut dropped_pending);
+                            self.drop_pending_partitions(name.as_ref(), &mut dropped_pending)
+                                .await;
                             return Err(error);
                         }
                     };
@@ -8520,7 +8563,8 @@ impl Consumer {
                         }
                         if offset >= req_offset {
                             let Some(exclusive) = exclusive_fetch_offset(offset) else {
-                                self.drop_pending_partitions(name.as_ref(), &mut dropped_pending);
+                                self.drop_pending_partitions(name.as_ref(), &mut dropped_pending)
+                                    .await;
                                 return Err(Error::protocol("fetch cursor overflow"));
                             };
                             let advanced = cap_fetch_cursor(exclusive, part.high_watermark);
@@ -8595,7 +8639,8 @@ impl Consumer {
                     break;
                 }
             }
-            self.drop_pending_partitions(name.as_ref(), &mut dropped_pending);
+            self.drop_pending_partitions(name.as_ref(), &mut dropped_pending)
+                .await;
             self.add_fetch_totals(&name, topic_records, topic_bytes);
             if let Some(parts) = topic_seen {
                 if !parts.is_empty() {
@@ -10201,7 +10246,16 @@ impl Consumer {
         let _state = self.aborted.remove(topic, partition);
     }
 
-    fn drop_pending_partitions(&mut self, topic: &str, parts: &mut Vec<i32>) {
+    async fn drop_pending_for_cooperative(&mut self, topic: &str, partition: i32) {
+        self.buffered_bytes = self
+            .buffered_bytes
+            .saturating_sub(self.pending.drop_queues(&[(topic, partition)]));
+        self.pending.drop_order_runs(&[(topic, partition)]).await;
+        self.drop_retained_for(topic, partition);
+        let _state = self.aborted.remove(topic, partition);
+    }
+
+    async fn drop_pending_partitions(&mut self, topic: &str, parts: &mut Vec<i32>) {
         if parts.is_empty() {
             return;
         }
@@ -10209,13 +10263,14 @@ impl Consumer {
             .drain(..)
             .map(|partition| (topic, partition))
             .collect();
-        self.drop_pending_many(&pairs);
+        self.drop_pending_many(&pairs).await;
     }
 
-    fn drop_pending_many(&mut self, parts: &[(&str, i32)]) {
+    async fn drop_pending_many(&mut self, parts: &[(&str, i32)]) {
         self.buffered_bytes = self
             .buffered_bytes
-            .saturating_sub(self.pending.drop_many(parts));
+            .saturating_sub(self.pending.drop_queues(parts));
+        self.pending.drop_order_runs(parts).await;
         for &(topic, partition) in parts {
             self.drop_retained_for(topic, partition);
             let _state = self.aborted.remove(topic, partition);
@@ -13032,6 +13087,49 @@ mod tests {
             });
         }
         records
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn scanning_many_pending_runs_does_not_hold_the_caller() {
+        let topic = TopicName::from("orders");
+        let mut pending = PendingRecords::new();
+        pending.order = (0..2_000_000)
+            .map(|partition| PendingRun {
+                topic: topic.clone(),
+                partition,
+                count: 1,
+            })
+            .collect();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = pending.drop_order_runs(&[("orders", 0)]) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "dropping pending runs held the caller for {elapsed:?}"
+        );
+        let mut few = PendingRecords::new();
+        few.order.push_back(PendingRun {
+            topic: TopicName::from("orders"),
+            partition: 1,
+            count: 1,
+        });
+        few.order.push_back(PendingRun {
+            topic: TopicName::from("payments"),
+            partition: 0,
+            count: 1,
+        });
+        few.order.push_back(PendingRun {
+            topic: TopicName::from("orders"),
+            partition: 3,
+            count: 1,
+        });
+        few.drop_order_runs(&[("orders", 1)]).await;
+        assert_eq!(few.order.len(), 2);
+        assert_eq!(few.order.front().map(|run| run.partition), Some(0));
+        assert_eq!(few.order.back().map(|run| run.partition), Some(3));
     }
 
     #[tokio::test(flavor = "current_thread")]
