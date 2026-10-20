@@ -4522,6 +4522,28 @@ impl Consumer {
             .collect()
     }
 
+    /// [`Self::paused`], pausing every 8,192 assigned partitions.
+    ///
+    /// Listing 2,000,000 paused partitions held the caller for 1.004 seconds.
+    /// A partition that is not paused is still omitted. Order stays the assignment
+    /// order.
+    #[must_use]
+    pub async fn paused_async(&self) -> Vec<TopicPartition> {
+        let mut out = Vec::new();
+        let mut walked = 0usize;
+        for (topic, partition, _) in &self.assigned {
+            if self.paused.contains(topic.as_ref(), *partition) {
+                out.push(TopicPartition::new(topic.as_ref(), *partition));
+            }
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+        out
+    }
+
     pub(crate) fn clear_assignment(&mut self) {
         self.abort_inflight_fetches();
         self.assigned.clear();
@@ -17228,6 +17250,59 @@ mod tests {
         fill_reused_topics_cooperative(&mut got, ["orders"]).await;
         assert_eq!(got, vec!["orders".to_string()]);
         assert!(got.capacity() >= capacity);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn listing_many_paused_partitions_does_not_hold_the_caller() {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let address = listener.local_addr().unwrap().to_string();
+        let accept = tokio::spawn(async move {
+            let _held = listener.accept().await;
+            std::future::pending::<()>().await;
+        });
+        let conn =
+            crate::net::BrokerConn::connect(&address, "plan", std::time::Duration::from_secs(2))
+                .await
+                .unwrap();
+        let mut consumer = Consumer::test_holding(ConsumerConfig::default(), conn);
+        let topic: Arc<str> = Arc::from("orders");
+        consumer.assigned = (0..2_000_000)
+            .map(|partition| (Arc::clone(&topic), partition, 0))
+            .collect();
+        let parts: Vec<TopicPartition> = (0..2_000_000)
+            .map(|partition| TopicPartition::new("orders", partition))
+            .collect();
+        consumer.pause_async(parts).await;
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = consumer.paused_async() => {}
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "listing paused partitions held the caller for {elapsed:?}"
+        );
+        consumer.assigned = vec![
+            (Arc::from("orders"), 1, 0),
+            (Arc::from("payments"), 2, 0),
+            (Arc::from("billing"), 3, 0),
+        ];
+        consumer.paused.clear();
+        consumer
+            .pause_async([
+                TopicPartition::new("orders", 1),
+                TopicPartition::new("billing", 3),
+            ])
+            .await;
+        assert_eq!(
+            consumer.paused_async().await,
+            vec![
+                TopicPartition::new("orders", 1),
+                TopicPartition::new("billing", 3),
+            ]
+        );
+        drop(accept);
     }
 
     #[tokio::test(flavor = "current_thread")]

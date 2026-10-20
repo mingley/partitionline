@@ -373,7 +373,8 @@ same way. Reading the next offset of each returned partition pauses every
 A fetch or produce metrics snapshot copies its topic rows in those same slices.
 Copying an assignment, or the delivered position of each partition, pauses
 the same way. A negative position is still omitted. Pausing or resuming
-those partitions pauses the same way.
+those partitions pauses the same way. Listing the partitions that are paused
+does too.
 See the
 [resource contract](resource-contract.md#caller-deadlines).
 
