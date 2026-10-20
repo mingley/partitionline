@@ -10136,6 +10136,11 @@ fn reserve_len<T>(items: &mut Vec<T>, count: usize) {
     }
 }
 
+/// Index groups for a Produce body.
+///
+/// Filling 12,000,000 partitions of one topic held the caller for 190
+/// milliseconds. That fill pauses every 8,192 partitions. A second topic
+/// still starts a fresh index.
 async fn index_produce_groups(
     groups: &[(Arc<str>, i32, Vec<Pending>)],
     scratch: &mut ProduceGroupScratch,
@@ -10153,12 +10158,18 @@ async fn index_produce_groups(
         let mut same = true;
         if let Some(parts) = scratch.parts.first_mut() {
             reserve_len(parts, groups.len());
+            let mut walked = 0usize;
             for (index, (topic, _, _)) in groups.iter().enumerate() {
                 if !Arc::ptr_eq(topic, first) {
                     same = false;
                     break;
                 }
                 parts.push(index);
+                walked = walked.saturating_add(1);
+                if walked == 8 * 1024 {
+                    walked = 0;
+                    tokio::task::yield_now().await;
+                }
             }
             if !same {
                 parts.clear();
@@ -13622,6 +13633,35 @@ mod tests {
         let aliased = vec![(Arc::clone(&orders), 0, Vec::new()), (alias, 3, Vec::new())];
         let mut scratch = ProduceGroupScratch::default();
         index_produce_groups(&aliased, &mut scratch).await;
+        assert_eq!(scratch.topics, vec![0]);
+        assert_eq!(scratch.parts.first().map(Vec::as_slice), Some(&[0, 1][..]));
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn indexing_many_same_topic_groups_does_not_hold_the_caller() {
+        // 12_000_000 partitions of one topic: filling the index held the caller 190ms.
+        let topic: Arc<str> = Arc::from("orders");
+        let groups: Vec<(Arc<str>, i32, Vec<Pending>)> = (0..12_000_000)
+            .map(|index| (Arc::clone(&topic), index, Vec::new()))
+            .collect();
+        let mut scratch = ProduceGroupScratch::default();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = index_produce_groups(&groups, &mut scratch) => {}
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "indexing one produce topic held the caller for {elapsed:?}"
+        );
+        let orders: Arc<str> = Arc::from("orders");
+        let same = vec![
+            (Arc::clone(&orders), 1, Vec::new()),
+            (Arc::clone(&orders), 4, Vec::new()),
+        ];
+        let mut scratch = ProduceGroupScratch::default();
+        index_produce_groups(&same, &mut scratch).await;
         assert_eq!(scratch.topics, vec![0]);
         assert_eq!(scratch.parts.first().map(Vec::as_slice), Some(&[0, 1][..]));
     }

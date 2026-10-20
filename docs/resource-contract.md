@@ -117,6 +117,7 @@ These walks include:
 - dropping framed batches kept for a later poll
 - reading the next offset, and the partition list, of a returned batch
 - queuing records passed to a multi-record produce
+- indexing many partitions of one topic in a produce batch
 - splitting queued sends that still need topic metadata
 - copying topic rows for a fetch metrics snapshot
 - copying topic rows for a produce metrics snapshot
