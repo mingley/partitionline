@@ -98,6 +98,7 @@ These walks include:
 - refreshing delivered topic ids after a poll or commit
 - copying delivered positions before an interval commit, and keeping the ones that are still assigned
 - indexing share topic ids before a fetch or acknowledgement names them
+- recording an overlapped share acquisition
 - copying a changed consumer or share heartbeat subscription or assignment
 - opening one result slot, and its index, for each item in an admin batch
 - copying transactional ids before fencing producers

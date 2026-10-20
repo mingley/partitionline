@@ -655,6 +655,16 @@ async fn remember_acquisition(
     }
 }
 
+/// Record one offset on a partition whose ranges already overlap.
+///
+/// Each scan pauses every 8,192 runs. Without that pause, remembering one
+/// offset among 2,000,000 overlapped runs held the caller for 1,244
+/// milliseconds.
+///
+/// A following offset extends the earlier run. A preceding offset pulls the
+/// next run backward. An offset already stored with the same acquisition is
+/// left in place. Any other overlap is split. A gap is stored as its own run,
+/// in insertion order.
 async fn remember_overlapped(
     topic_runs: &mut TopicRuns,
     partition: i32,
@@ -666,85 +676,89 @@ async fn remember_overlapped(
         .get(&partition)
         .map(|part| part.order.len())
         .unwrap_or(0);
+    let mut walked = 0usize;
     for slot in 0..slots {
-        let Some(index) = topic_runs
+        let extend = topic_runs
             .by_partition
             .get(&partition)
             .and_then(|part| part.order.get(slot))
-            .copied()
-        else {
+            .copied();
+        let Some(index) = extend else {
             break;
         };
-        let Some(run) = topic_runs.runs.get_mut(index) else {
-            continue;
-        };
-        if run.partition == partition
-            && run.last < i64::MAX
-            && run.last.saturating_add(1) == offset
-            && same_acquisition(&run.acquisition, &acquisition)
-        {
-            run.last = offset;
-            return;
+        if let Some(run) = topic_runs.runs.get_mut(index) {
+            if run.partition == partition
+                && run.last < i64::MAX
+                && run.last.saturating_add(1) == offset
+                && same_acquisition(&run.acquisition, &acquisition)
+            {
+                run.last = offset;
+                return;
+            }
         }
+        pause_overlapped_scan(&mut walked).await;
     }
+    walked = 0;
     for slot in 0..slots {
-        let Some(index) = topic_runs
+        let prepend = topic_runs
             .by_partition
             .get(&partition)
             .and_then(|part| part.order.get(slot))
-            .copied()
-        else {
+            .copied();
+        let Some(index) = prepend else {
             break;
         };
-        let Some(run) = topic_runs.runs.get_mut(index) else {
-            continue;
-        };
-        if run.partition == partition
-            && run.first > i64::MIN
-            && run.first.saturating_sub(1) == offset
-            && same_acquisition(&run.acquisition, &acquisition)
-        {
-            run.first = offset;
-            return;
+        if let Some(run) = topic_runs.runs.get_mut(index) {
+            if run.partition == partition
+                && run.first > i64::MIN
+                && run.first.saturating_sub(1) == offset
+                && same_acquisition(&run.acquisition, &acquisition)
+            {
+                run.first = offset;
+                return;
+            }
         }
+        pause_overlapped_scan(&mut walked).await;
     }
+    walked = 0;
     for slot in 0..slots {
-        let Some(index) = topic_runs
+        let same = topic_runs
             .by_partition
             .get(&partition)
             .and_then(|part| part.order.get(slot))
-            .copied()
-        else {
+            .copied();
+        let Some(index) = same else {
             break;
         };
-        let Some(run) = topic_runs.runs.get(index) else {
-            continue;
-        };
-        if run.partition == partition
-            && run.first <= offset
-            && offset <= run.last
-            && same_acquisition(&run.acquisition, &acquisition)
-        {
-            return;
+        if let Some(run) = topic_runs.runs.get(index) {
+            if run.partition == partition
+                && run.first <= offset
+                && offset <= run.last
+                && same_acquisition(&run.acquisition, &acquisition)
+            {
+                return;
+            }
         }
+        pause_overlapped_scan(&mut walked).await;
     }
     let mut cover = None;
+    walked = 0;
     for slot in 0..slots {
-        let Some(index) = topic_runs
+        let found = topic_runs
             .by_partition
             .get(&partition)
             .and_then(|part| part.order.get(slot))
-            .copied()
-        else {
+            .copied();
+        let Some(index) = found else {
             break;
         };
-        let Some(run) = topic_runs.runs.get(index) else {
-            continue;
-        };
-        if run.partition == partition && run.first <= offset && offset <= run.last {
-            cover = Some(index);
-            break;
+        if let Some(run) = topic_runs.runs.get(index) {
+            if run.partition == partition && run.first <= offset && offset <= run.last {
+                cover = Some(index);
+                break;
+            }
         }
+        pause_overlapped_scan(&mut walked).await;
     }
     if let Some(position) = cover {
         replace_acquired_offset(topic_runs, position, offset, acquisition).await;
@@ -763,6 +777,14 @@ async fn remember_overlapped(
         .or_default()
         .order
         .push(index);
+}
+
+async fn pause_overlapped_scan(walked: &mut usize) {
+    *walked = walked.saturating_add(1);
+    if *walked == 8 * 1024 {
+        *walked = 0;
+        tokio::task::yield_now().await;
+    }
 }
 
 async fn remember_indexed(
@@ -11138,6 +11160,64 @@ mod tests {
         .await;
         assert_eq!(few.len(), 1);
         assert_eq!(few.first().map(|record| record.offset), Some(0));
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn remembering_many_overlapped_runs_does_not_hold_the_caller() {
+        let acquisition = Acquisition {
+            node: 1,
+            delivery_count: 1,
+            expires_at: None,
+        };
+        let mut runs = TopicRuns::new();
+        runs.runs = (0..2_000_000)
+            .map(|index: i64| AcquisitionRun {
+                partition: 0,
+                first: index.saturating_mul(10),
+                last: index.saturating_mul(10),
+                acquisition,
+            })
+            .collect();
+        let _ = runs.by_partition.insert(
+            0,
+            PartitionIndex {
+                order: (0..2_000_000).collect(),
+                by_first: std::collections::BTreeMap::new(),
+                overlapped: true,
+            },
+        );
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = remember_overlapped(&mut runs, 0, 5, acquisition) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "remembering overlapped runs held the caller for {elapsed:?}"
+        );
+        let mut one = TopicRuns::new();
+        one.runs.push(AcquisitionRun {
+            partition: 0,
+            first: 0,
+            last: 0,
+            acquisition,
+        });
+        let _ = one.by_partition.insert(
+            0,
+            PartitionIndex {
+                order: vec![0],
+                by_first: std::collections::BTreeMap::new(),
+                overlapped: true,
+            },
+        );
+        remember_overlapped(&mut one, 0, 1, acquisition).await;
+        assert_eq!(one.runs.first().map(|run| run.last), Some(1));
+        remember_overlapped(&mut one, 0, 5, acquisition).await;
+        assert_eq!(
+            one.runs.get(1).map(|run| (run.first, run.last)),
+            Some((5, 5))
+        );
     }
 
     #[tokio::test(flavor = "current_thread")]
