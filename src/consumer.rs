@@ -2236,22 +2236,49 @@ impl PendingRecords {
         }
     }
 
-    fn retain_assigned(&mut self, assigned: &PartitionMap<()>) -> usize {
+    /// Drop queued records for partitions that are no longer assigned.
+    ///
+    /// The walk pauses every 8,192 records. Without that pause, releasing
+    /// 4,000,000 unassigned records held the caller for 255 milliseconds.
+    ///
+    /// A partition that is still assigned keeps its queue. A partition that
+    /// is not assigned is removed, and its bytes are returned.
+    async fn retain_assigned(&mut self, assigned: &PartitionMap<()>) -> usize {
+        let topics = std::mem::take(&mut self.partitions.topics);
         let mut removed_bytes = 0usize;
-        self.partitions.topics.retain(|topic, partitions| {
-            partitions.retain(|partition, records| {
-                if assigned.contains(topic, *partition) {
-                    true
+        let mut walked = 0usize;
+        for (mut topic, partitions) in topics {
+            let mut kept = Vec::new();
+            for (partition, records) in partitions {
+                if assigned.contains(topic.as_str(), partition) {
+                    kept.push((partition, records));
                 } else {
-                    removed_bytes = records
-                        .iter()
-                        .map(record_bytes)
-                        .fold(removed_bytes, usize::saturating_add);
-                    false
+                    for record in records {
+                        removed_bytes = removed_bytes.saturating_add(record_bytes(&record));
+                        walked = walked.saturating_add(1);
+                        if walked == 8 * 1024 {
+                            walked = 0;
+                            tokio::task::yield_now().await;
+                        }
+                    }
                 }
-            });
-            !partitions.is_empty()
-        });
+            }
+            let count = kept.len();
+            let mut restored = 0usize;
+            for (index, (partition, records)) in kept.into_iter().enumerate() {
+                let name = if index.saturating_add(1) == count {
+                    std::mem::replace(&mut topic, TopicName::from(""))
+                } else {
+                    topic.clone()
+                };
+                let _previous = self.partitions.insert_owned(name, partition, records);
+                restored = restored.saturating_add(1);
+                if restored == 8 * 1024 {
+                    restored = 0;
+                    tokio::task::yield_now().await;
+                }
+            }
+        }
         removed_bytes
     }
 
@@ -10368,7 +10395,7 @@ impl Consumer {
     async fn retain_pending_assigned(&mut self) {
         let mut assigned = PartitionMap::new();
         Self::extend_assigned_rows(&mut assigned, &self.assigned, |_| ()).await;
-        let removed = self.pending.retain_assigned(&assigned);
+        let removed = self.pending.retain_assigned(&assigned).await;
         self.pending.retain_assigned_runs(&assigned).await;
         self.buffered_bytes = self.buffered_bytes.saturating_sub(removed);
         self.retain_held_assigned(&assigned).await;
@@ -13185,6 +13212,44 @@ mod tests {
             });
         }
         records
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn releasing_many_unassigned_records_does_not_hold_the_caller() {
+        let mut pending = PendingRecords::new();
+        let records = many_fetched(4_000_000);
+        let _ = pending.partitions.insert_owned(
+            TopicName::from("orders"),
+            0,
+            std::collections::VecDeque::from(records),
+        );
+        let assigned = PartitionMap::new();
+        let started = std::time::Instant::now();
+        let worker = tokio::spawn(async move { pending.retain_assigned(&assigned).await });
+        tokio::time::sleep(std::time::Duration::from_millis(30)).await;
+        worker.abort();
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "releasing unassigned records held the caller for {elapsed:?}"
+        );
+        let mut few = PendingRecords::new();
+        let _ = few.partitions.insert_owned(
+            TopicName::from("orders"),
+            1,
+            std::collections::VecDeque::from(many_fetched(1)),
+        );
+        let _ = few.partitions.insert_owned(
+            TopicName::from("payments"),
+            2,
+            std::collections::VecDeque::from(many_fetched(1)),
+        );
+        let mut keep = PartitionMap::new();
+        let _ = keep.insert("orders", 1, ());
+        let removed = few.retain_assigned(&keep).await;
+        assert_eq!(removed, 1);
+        assert!(few.partitions.contains("orders", 1));
+        assert!(!few.partitions.contains("payments", 2));
     }
 
     #[tokio::test(flavor = "current_thread")]
