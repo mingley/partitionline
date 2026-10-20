@@ -377,7 +377,8 @@ while the share member is already polling.
 A share fetch or acknowledgement names each topic from an index built in
 slices of 8,192. A topic id that belongs to two names is still an error.
 An empty name is still not used. An overlapped acquisition is recorded in
-those same slices. See the
+those same slices. Acquisitions that are no longer kept are dropped the same
+way. See the
 [resource contract](resource-contract.md#caller-deadlines).
 
 ## Exactly-once (transactions)

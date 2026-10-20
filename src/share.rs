@@ -591,20 +591,38 @@ async fn retain_pending_share(
     pending.truncate(write);
 }
 
+/// Keep acquisition topics selected by `keep`.
+///
+/// The walk pauses every 8,192 topics. Without that pause, keeping
+/// 500,000 acquisition topics held the caller for 1,757 milliseconds.
+///
+/// A topic with no remaining runs is dropped. Topics that stay keep their runs.
 async fn retain_topic_runs(
     map: &mut AcquisitionMap,
     mut keep: impl FnMut(&crate::consumer::TopicName, &AcquisitionRun) -> bool,
 ) {
     let pending = std::mem::take(map);
     let mut kept = Vec::new();
+    let mut walked = 0usize;
     for (topic, mut parts) in pending {
         parts.retain_runs(|run| keep(&topic, run)).await;
         if !parts.is_empty() {
             kept.push((topic, parts));
         }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
     }
+    walked = 0;
     for (topic, parts) in kept {
         let _stored = map.insert(topic, parts);
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
     }
 }
 
@@ -11160,6 +11178,60 @@ mod tests {
         .await;
         assert_eq!(few.len(), 1);
         assert_eq!(few.first().map(|record| record.offset), Some(0));
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn retaining_many_acquisition_topics_does_not_hold_the_caller() {
+        let acquisition = Acquisition {
+            node: 1,
+            delivery_count: 1,
+            expires_at: None,
+        };
+        let mut map = AcquisitionMap::new();
+        for index in 0..500_000 {
+            let mut parts = TopicRuns::new();
+            parts.runs.push(AcquisitionRun {
+                partition: 0,
+                first: 0,
+                last: 0,
+                acquisition,
+            });
+            let _ = map.insert(crate::consumer::TopicName::from(format!("t{index}")), parts);
+        }
+        let started = std::time::Instant::now();
+        let worker = tokio::spawn(async move {
+            retain_topic_runs(&mut map, |_, _| true).await;
+        });
+        tokio::time::sleep(std::time::Duration::from_millis(30)).await;
+        worker.abort();
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "retaining acquisition topics held the caller for {elapsed:?}"
+        );
+        let mut sample = AcquisitionMap::new();
+        let mut orders = TopicRuns::new();
+        orders.runs.push(AcquisitionRun {
+            partition: 0,
+            first: 0,
+            last: 1,
+            acquisition,
+        });
+        let mut payments = TopicRuns::new();
+        payments.runs.push(AcquisitionRun {
+            partition: 1,
+            first: 4,
+            last: 4,
+            acquisition,
+        });
+        let _ = sample.insert(crate::consumer::TopicName::from("orders"), orders);
+        let _ = sample.insert(crate::consumer::TopicName::from("payments"), payments);
+        retain_topic_runs(&mut sample, |topic, run| {
+            topic.as_str() == "orders" && run.first == 0
+        })
+        .await;
+        assert!(sample.get("orders").is_some());
+        assert!(sample.get("payments").is_none());
     }
 
     #[tokio::test(flavor = "current_thread")]
