@@ -2979,7 +2979,7 @@ impl ConsumerGroup {
             self.topics.clear();
             self.publish_hb_topics().await;
             self.topic_match = None;
-            self.consumer.clear_assignment();
+            self.consumer.clear_assignment_cooperative().await;
             if let Some(heartbeat) = heartbeat {
                 finish_heartbeat_task(heartbeat, deadline).await;
             }
@@ -3022,7 +3022,7 @@ impl ConsumerGroup {
         if !revoked.is_empty() {
             self.cfg.rebalance.call(&revoked, &[]);
         }
-        self.consumer.clear_assignment();
+        self.consumer.clear_assignment_cooperative().await;
         self.topics.clear();
         self.publish_hb_topics().await;
         self.topic_match = None;
@@ -3116,7 +3116,7 @@ impl ConsumerGroup {
                 }
             }
             let revoked = self.consumer.assignment_cooperative().await;
-            self.consumer.clear_assignment();
+            self.consumer.clear_assignment_cooperative().await;
             if !revoked.is_empty() {
                 self.cfg.rebalance.call(&revoked, &[]);
             }
@@ -4480,7 +4480,7 @@ impl ConsumerGroup {
         )
         .await
         {
-            self.consumer.clear_assignment();
+            self.consumer.clear_assignment_cooperative().await;
             return Err(Error::protocol(
                 "topic identity changed while assigning committed offsets",
             ));
