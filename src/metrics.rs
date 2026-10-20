@@ -732,6 +732,7 @@ where
     topics
 }
 
+#[cfg(test)]
 pub(crate) fn accumulate_fetch_topics<'a, K>(
     map: &mut HashMap<K, FetchTopicTracker>,
     recs: impl IntoIterator<Item = (&'a str, u64)>,

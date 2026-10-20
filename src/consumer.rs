@@ -6072,13 +6072,7 @@ impl Consumer {
                 ) {
                     bytes
                 } else {
-                    let bytes = recs.iter().map(fetched_bytes).fold(0, u64::saturating_add);
-                    crate::metrics::accumulate_fetch_topics(
-                        &mut self.topic_metrics,
-                        recs.iter().map(|r| (r.topic.as_str(), fetched_bytes(r))),
-                        elapsed,
-                    );
-                    bytes
+                    account_fetched_delivery(&mut self.topic_metrics, &recs, elapsed).await
                 };
                 let _ = self.m_bytes.fetch_add(bytes, Ordering::Relaxed);
                 let recs = if intercept {
@@ -12275,6 +12269,47 @@ fn batch_records_bytes(records: &[crate::protocol::records::Record]) -> usize {
         .fold(0, usize::saturating_add)
 }
 
+/// Count returned records once for the fetch total and the topic metrics.
+///
+/// The walk pauses every 8,192 records. Without that pause, summing
+/// 4,000,000 returned records held the caller for 948 milliseconds.
+///
+/// Each record is counted once. Topic totals keep the same record and byte counts.
+async fn account_fetched_delivery(
+    metrics: &mut HashMap<Arc<str>, crate::metrics::FetchTopicTracker>,
+    recs: &[FetchedRecord],
+    latency: Duration,
+) -> u64 {
+    let mut totals: HashMap<&str, (u64, u64)> = HashMap::new();
+    let mut sum = 0u64;
+    let mut walked = 0usize;
+    for record in recs {
+        let bytes = fetched_bytes(record);
+        sum = sum.saturating_add(bytes);
+        let entry = totals.entry(record.topic.as_str()).or_insert((0, 0));
+        entry.0 = entry.0.saturating_add(1);
+        entry.1 = entry.1.saturating_add(bytes);
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    walked = 0;
+    for (topic, (count, bytes)) in totals {
+        metrics
+            .entry(Arc::from(topic))
+            .or_insert_with(crate::metrics::FetchTopicTracker::new)
+            .note_fetched(count, bytes, latency);
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    sum
+}
+
 fn fetched_bytes(rec: &FetchedRecord) -> u64 {
     let k = rec.key.as_ref().map(|key| key.len()).unwrap_or(0);
     let v = rec.value.as_ref().map(Bytes::len).unwrap_or(0);
@@ -13230,6 +13265,34 @@ mod tests {
             });
         }
         records
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn summing_many_returned_records_does_not_hold_the_caller() {
+        let recs = many_fetched(4_000_000);
+        let started = std::time::Instant::now();
+        let worker = tokio::spawn(async move {
+            let mut metrics: HashMap<Arc<str>, crate::metrics::FetchTopicTracker> = HashMap::new();
+            account_fetched_delivery(&mut metrics, &recs, std::time::Duration::from_millis(1)).await
+        });
+        tokio::time::sleep(std::time::Duration::from_millis(30)).await;
+        worker.abort();
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "summing returned records held the caller for {elapsed:?}"
+        );
+        let one = many_fetched(1);
+        let mut metrics: HashMap<Arc<str>, crate::metrics::FetchTopicTracker> = HashMap::new();
+        let bytes =
+            account_fetched_delivery(&mut metrics, &one, std::time::Duration::from_millis(1)).await;
+        assert_eq!(bytes, 1);
+        assert_eq!(
+            metrics
+                .get("orders")
+                .map(|tracker| tracker.snapshot(String::new()).records_fetched),
+            Some(1)
+        );
     }
 
     #[tokio::test(flavor = "current_thread")]
