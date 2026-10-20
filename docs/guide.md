@@ -349,7 +349,8 @@ group.leave().await?;
 
 Assigning committed offsets walks the assignment in slices of 8,192.
 A range or sticky assignment that gives many members one partition each
-pauses the same way.
+pauses the same way. Indexing partitions those members already own pauses
+the same way.
 List-offset resets are written into those slots the same way, and empty
 slots are dropped between slices. The revoked and assigned lists passed to
 a rebalance callback are copied the same way. After a poll or commit, those delivered positions are filled in slices of

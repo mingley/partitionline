@@ -1139,15 +1139,24 @@ fn previous_index_chunk() -> usize {
 /// Index previously owned partitions by topic and member.
 ///
 /// The walk pauses every 8,192 partitions. Without that pause, indexing
-/// 2,000,000 partitions held the caller for 4.49 seconds.
+/// 2,000,000 partitions held the caller for 4.49 seconds. Indexing 160,000
+/// members that each owned one partition held the caller for 208 milliseconds,
+/// because the pause restarted on every member.
 ///
 /// Every partition stays under the member that owned it.
 async fn previous_partitions_by_topic_cooperative(
     prev: &HashMap<String, Vec<(String, i32)>>,
 ) -> HashMap<&str, HashMap<&str, Vec<i32>>> {
     let mut out: HashMap<&str, HashMap<&str, Vec<i32>>> = HashMap::new();
+    let mut walked = 0usize;
     for (member, owned) in prev {
-        let mut walked = 0usize;
+        if owned.is_empty() {
+            walked = walked.saturating_add(1);
+            if walked == previous_index_chunk() {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
         for (topic, partition) in owned {
             if let Some(owners) = out.get_mut(topic.as_str()) {
                 owners.entry(member.as_str()).or_default().push(*partition);
@@ -11053,6 +11062,42 @@ mod tests {
         assert_eq!(
             members_by_topic_cooperative(&sample).await,
             members_by_topic(&sample)
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn indexing_many_previous_members_does_not_hold_the_caller() {
+        // 160_000 members: indexing one partition each held the caller 208ms.
+        let mut prev = HashMap::new();
+        for index in 0..160_000 {
+            let _ = prev.insert(format!("m{index}"), vec![(format!("topic-{index}"), index)]);
+        }
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = previous_partitions_by_topic_cooperative(&prev) => {}
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "indexing previous members held the caller for {elapsed:?}"
+        );
+        let mut sample = HashMap::new();
+        let _ = sample.insert("m1".to_string(), vec![("orders".to_string(), 1)]);
+        let _ = sample.insert("m2".to_string(), vec![("orders".to_string(), 2)]);
+        let indexed = previous_partitions_by_topic_cooperative(&sample).await;
+        let orders = indexed.get("orders");
+        assert_eq!(
+            orders
+                .and_then(|owners| owners.get("m1"))
+                .map(Vec::as_slice),
+            Some(&[1][..])
+        );
+        assert_eq!(
+            orders
+                .and_then(|owners| owners.get("m2"))
+                .map(Vec::as_slice),
+            Some(&[2][..])
         );
     }
 
