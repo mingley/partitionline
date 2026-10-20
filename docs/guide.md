@@ -354,8 +354,8 @@ a rebalance callback are copied the same way. After a poll or commit, the
 topic ids stored for those delivered positions are refreshed in the same
 slices. An interval commit copies those positions, then keeps the ones that
 are still assigned, in the same slices. The timeout can fire between slices,
-and finished slices are kept.
-See the
+and finished slices are kept. Pending fetch runs that are no longer assigned
+are dropped in those same slices. See the
 [resource contract](resource-contract.md#caller-deadlines).
 
 Also: sticky / cooperative-sticky, KIP-848 (`join_consumer` /
@@ -378,7 +378,7 @@ A share fetch or acknowledgement names each topic from an index built in
 slices of 8,192. A topic id that belongs to two names is still an error.
 An empty name is still not used. An overlapped acquisition is recorded in
 those same slices. Acquisitions that are no longer kept are dropped the same
-way. See the
+way. A covered acquisition is dropped in those same slices. See the
 [resource contract](resource-contract.md#caller-deadlines).
 
 ## Exactly-once (transactions)

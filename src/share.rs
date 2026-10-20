@@ -1263,7 +1263,7 @@ async fn covered_lengths(ranges: &[(i64, i64)], sent: &[AcknowledgementBatch]) -
         return Vec::new();
     }
     if sent.is_empty() {
-        return vec![0; ranges.len()];
+        return zero_cover_lengths(ranges.len()).await;
     }
     let mut coords = Vec::with_capacity(ranges.len().saturating_add(sent.len()).saturating_mul(2));
     let mut walked = 0usize;
@@ -1444,34 +1444,72 @@ fn replace_acquisition_runs(runs: &mut Vec<AcquisitionRun>, kept: Vec<Acquisitio
     }
 }
 
+/// Copy each run's offsets before coverage is measured.
+///
+/// The walk pauses every 8,192 runs. Without that pause, dropping
+/// 2,000,000 covered runs held the caller for 261 milliseconds.
+async fn acquisition_ranges(runs: &[AcquisitionRun]) -> Vec<(i64, i64)> {
+    let mut ranges = Vec::with_capacity(runs.len());
+    let mut walked = 0usize;
+    for run in runs {
+        ranges.push((run.first, run.last));
+        walked = walked.saturating_add(1);
+        if walked == COVER_CHUNK {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    ranges
+}
+
+async fn zero_cover_lengths(len: usize) -> Vec<usize> {
+    let mut out = Vec::with_capacity(len);
+    let mut walked = 0usize;
+    while out.len() < len {
+        out.push(0);
+        walked = walked.saturating_add(1);
+        if walked == COVER_CHUNK {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    out
+}
+
 async fn drop_covered_runs(
     runs: &mut Vec<AcquisitionRun>,
     partition: i32,
     sent: &[AcknowledgementBatch],
 ) {
-    let ranges: Vec<(i64, i64)> = runs.iter().map(|run| (run.first, run.last)).collect();
+    let ranges = acquisition_ranges(runs).await;
     let covered_by_run = covered_lengths(&ranges, sent).await;
     let cuts = merged_sent_cuts(sent).await;
     let mut kept = Vec::new();
+    let mut walked = 0usize;
     for (run, covered) in runs.iter().copied().zip(covered_by_run) {
         if run.partition != partition {
             kept.push(run);
-            continue;
-        }
-        let whole = span_len(run.first, run.last);
-        if covered == 0 {
-            kept.push(run);
-        } else if covered < whole {
-            for (first, last, is_covered) in partial_ack_spans(run.first, run.last, &cuts) {
-                if !is_covered {
-                    kept.push(AcquisitionRun {
-                        partition,
-                        first,
-                        last,
-                        acquisition: run.acquisition,
-                    });
+        } else {
+            let whole = span_len(run.first, run.last);
+            if covered == 0 {
+                kept.push(run);
+            } else if covered < whole {
+                for (first, last, is_covered) in partial_ack_spans(run.first, run.last, &cuts) {
+                    if !is_covered {
+                        kept.push(AcquisitionRun {
+                            partition,
+                            first,
+                            last,
+                            acquisition: run.acquisition,
+                        });
+                    }
                 }
             }
+        }
+        walked = walked.saturating_add(1);
+        if walked == COVER_CHUNK {
+            walked = 0;
+            tokio::task::yield_now().await;
         }
     }
     replace_acquisition_runs(runs, kept);
@@ -1492,32 +1530,38 @@ async fn renew_covered_runs(
     sent: &[AcknowledgementBatch],
     expiry: Option<Instant>,
 ) {
-    let ranges: Vec<(i64, i64)> = runs.iter().map(|run| (run.first, run.last)).collect();
+    let ranges = acquisition_ranges(runs).await;
     let covered_by_run = covered_lengths(&ranges, sent).await;
     let cuts = merged_sent_cuts(sent).await;
     let mut kept = Vec::new();
+    let mut walked = 0usize;
     for (run, covered) in runs.iter().copied().zip(covered_by_run) {
         if run.partition != partition {
             kept.push(run);
-            continue;
-        }
-        let whole = span_len(run.first, run.last);
-        if covered == 0 {
-            kept.push(run);
-        } else if covered >= whole {
-            let mut renewed = run;
-            renewed.acquisition.expires_at = expiry;
-            kept.push(renewed);
         } else {
-            for (first, last, is_covered) in partial_ack_spans(run.first, run.last, &cuts) {
-                let mut piece = run;
-                piece.first = first;
-                piece.last = last;
-                if is_covered {
-                    piece.acquisition.expires_at = expiry;
+            let whole = span_len(run.first, run.last);
+            if covered == 0 {
+                kept.push(run);
+            } else if covered >= whole {
+                let mut renewed = run;
+                renewed.acquisition.expires_at = expiry;
+                kept.push(renewed);
+            } else {
+                for (first, last, is_covered) in partial_ack_spans(run.first, run.last, &cuts) {
+                    let mut piece = run;
+                    piece.first = first;
+                    piece.last = last;
+                    if is_covered {
+                        piece.acquisition.expires_at = expiry;
+                    }
+                    kept.push(piece);
                 }
-                kept.push(piece);
             }
+        }
+        walked = walked.saturating_add(1);
+        if walked == COVER_CHUNK {
+            walked = 0;
+            tokio::task::yield_now().await;
         }
     }
     replace_acquisition_runs(runs, kept);
@@ -11178,6 +11222,59 @@ mod tests {
         .await;
         assert_eq!(few.len(), 1);
         assert_eq!(few.first().map(|record| record.offset), Some(0));
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn dropping_many_covered_runs_does_not_hold_the_caller() {
+        let acquisition = Acquisition {
+            node: 1,
+            delivery_count: 1,
+            expires_at: None,
+        };
+        let mut runs: Vec<AcquisitionRun> = (0..2_000_000)
+            .map(|offset: i64| AcquisitionRun {
+                partition: 0,
+                first: offset,
+                last: offset,
+                acquisition,
+            })
+            .collect();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = drop_covered_runs(&mut runs, 0, &[]) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "dropping covered runs held the caller for {elapsed:?}"
+        );
+        let mut few = vec![
+            AcquisitionRun {
+                partition: 0,
+                first: 1,
+                last: 2,
+                acquisition,
+            },
+            AcquisitionRun {
+                partition: 1,
+                first: 5,
+                last: 5,
+                acquisition,
+            },
+        ];
+        drop_covered_runs(
+            &mut few,
+            0,
+            &[AcknowledgementBatch {
+                first_offset: 1,
+                last_offset: 2,
+                types: vec![1, 1],
+            }],
+        )
+        .await;
+        assert_eq!(few.len(), 1);
+        assert_eq!(few.first().map(|run| run.partition), Some(1));
     }
 
     #[tokio::test(flavor = "current_thread")]

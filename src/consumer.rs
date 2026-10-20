@@ -2172,9 +2172,28 @@ impl PendingRecords {
             });
             !partitions.is_empty()
         });
-        self.order
-            .retain(|run| assigned.contains(&run.topic, run.partition));
         removed_bytes
+    }
+
+    /// Keep queued runs that are still assigned.
+    ///
+    /// The walk pauses every 8,192 runs. Without that pause, keeping
+    /// 2,000,000 pending runs held the caller for 977 milliseconds.
+    ///
+    /// A run that is no longer assigned is dropped. Runs that stay keep their order.
+    async fn retain_assigned_runs(&mut self, assigned: &PartitionMap<()>) {
+        let pending = std::mem::take(&mut self.order);
+        let mut walked = 0usize;
+        for run in pending {
+            if assigned.contains(run.topic.as_str(), run.partition) {
+                self.order.push_back(run);
+            }
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
     }
 
     async fn drain(
@@ -10222,9 +10241,9 @@ impl Consumer {
     async fn retain_pending_assigned(&mut self) {
         let mut assigned = PartitionMap::new();
         Self::extend_assigned_rows(&mut assigned, &self.assigned, |_| ()).await;
-        self.buffered_bytes = self
-            .buffered_bytes
-            .saturating_sub(self.pending.retain_assigned(&assigned));
+        let removed = self.pending.retain_assigned(&assigned);
+        self.pending.retain_assigned_runs(&assigned).await;
+        self.buffered_bytes = self.buffered_bytes.saturating_sub(removed);
         self.retain_held_assigned(&assigned);
     }
 
@@ -13013,6 +13032,56 @@ mod tests {
             });
         }
         records
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn retaining_many_pending_runs_does_not_hold_the_caller() {
+        let topic = TopicName::from("orders");
+        let mut pending = PendingRecords::new();
+        pending.order = (0..2_000_000)
+            .map(|partition| PendingRun {
+                topic: topic.clone(),
+                partition,
+                count: 1,
+            })
+            .collect();
+        let mut assigned = PartitionMap::new();
+        for partition in 0..2_000_000 {
+            let _ = assigned.insert("orders", partition, ());
+        }
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = pending.retain_assigned_runs(&assigned) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "retaining pending runs held the caller for {elapsed:?}"
+        );
+        let mut few = PendingRecords::new();
+        few.order.push_back(PendingRun {
+            topic: TopicName::from("orders"),
+            partition: 1,
+            count: 1,
+        });
+        few.order.push_back(PendingRun {
+            topic: TopicName::from("payments"),
+            partition: 2,
+            count: 1,
+        });
+        few.order.push_back(PendingRun {
+            topic: TopicName::from("orders"),
+            partition: 3,
+            count: 1,
+        });
+        let mut keep = PartitionMap::new();
+        let _ = keep.insert("orders", 1, ());
+        let _ = keep.insert("orders", 3, ());
+        few.retain_assigned_runs(&keep).await;
+        assert_eq!(few.order.len(), 2);
+        assert_eq!(few.order.front().map(|run| run.partition), Some(1));
+        assert_eq!(few.order.back().map(|run| run.partition), Some(3));
     }
 
     #[tokio::test(flavor = "current_thread")]
