@@ -3559,17 +3559,8 @@ impl ShareGroup {
             self.fetch_rounds = self.fetch_rounds.saturating_add(1);
             let n = u64::try_from(recs.len()).unwrap_or(u64::MAX);
             self.records_fetched = self.records_fetched.saturating_add(n);
-            let bytes = recs
-                .iter()
-                .map(share_record_bytes)
-                .fold(0, u64::saturating_add);
+            let bytes = account_share_delivery(&mut self.topic_metrics, &recs, elapsed).await;
             self.bytes_fetched = self.bytes_fetched.saturating_add(bytes);
-            crate::metrics::accumulate_fetch_topics(
-                &mut self.topic_metrics,
-                recs.iter()
-                    .map(|r| (r.topic.as_str(), share_record_bytes(r))),
-                elapsed,
-            );
             return Ok(ShareRecords::from(recs));
         }
     }
@@ -7075,6 +7066,47 @@ async fn drop_share_records_for_topics(records: &mut Vec<ShareRecord>, topics: &
     retain_pending_share(records, |record| !dropped.contains(record.topic.as_str())).await;
 }
 
+/// Count returned share records once for the poll total and the topic metrics.
+///
+/// The walk pauses every 8,192 records. Without that pause, summing
+/// 4,000,000 share records held the caller for 888 milliseconds.
+///
+/// Each record is counted once. Topic totals keep the same record and byte counts.
+async fn account_share_delivery(
+    metrics: &mut HashMap<String, crate::metrics::FetchTopicTracker>,
+    recs: &[ShareRecord],
+    latency: std::time::Duration,
+) -> u64 {
+    let mut totals: HashMap<&str, (u64, u64)> = HashMap::new();
+    let mut sum = 0u64;
+    let mut walked = 0usize;
+    for record in recs {
+        let bytes = share_record_bytes(record);
+        sum = sum.saturating_add(bytes);
+        let entry = totals.entry(record.topic.as_str()).or_insert((0, 0));
+        entry.0 = entry.0.saturating_add(1);
+        entry.1 = entry.1.saturating_add(bytes);
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    walked = 0;
+    for (topic, (count, bytes)) in totals {
+        metrics
+            .entry(topic.to_owned())
+            .or_insert_with(crate::metrics::FetchTopicTracker::new)
+            .note_fetched(count, bytes, latency);
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    sum
+}
+
 fn share_record_bytes(rec: &ShareRecord) -> u64 {
     let k = rec.key.as_ref().map(Bytes::len).unwrap_or(0);
     let v = rec.value.as_ref().map(Bytes::len).unwrap_or(0);
@@ -10007,6 +10039,34 @@ mod tests {
         assert!(super::note_share_offset(&mut cursors, &mut spilled, 0, 3));
         assert!(super::note_share_offset(&mut cursors, &mut spilled, 0, 4));
         assert!(!super::note_share_offset(&mut cursors, &mut spilled, 0, 5));
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn summing_many_share_records_does_not_hold_the_caller() {
+        let topic = crate::consumer::TopicName::from("orders");
+        let recs: Vec<ShareRecord> = (0..4_000_000)
+            .map(|offset| share_rec(&topic, offset))
+            .collect();
+        let started = std::time::Instant::now();
+        let worker = tokio::spawn(async move {
+            let mut metrics: HashMap<String, crate::metrics::FetchTopicTracker> = HashMap::new();
+            account_share_delivery(&mut metrics, &recs, std::time::Duration::from_millis(1)).await
+        });
+        tokio::time::sleep(std::time::Duration::from_millis(30)).await;
+        worker.abort();
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "summing share records held the caller for {elapsed:?}"
+        );
+        let one = share_rec(&topic, 7);
+        let mut metrics: HashMap<String, crate::metrics::FetchTopicTracker> = HashMap::new();
+        let bytes =
+            account_share_delivery(&mut metrics, &[one], std::time::Duration::from_millis(1)).await;
+        assert_eq!(bytes, 0);
+        let topics = crate::metrics::snapshot_fetch_topics(&metrics);
+        assert_eq!(topics.len(), 1);
+        assert_eq!(topics.first().map(|topic| topic.records_fetched), Some(1));
     }
 
     fn share_rec(topic: &crate::consumer::TopicName, offset: i64) -> ShareRecord {

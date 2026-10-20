@@ -109,6 +109,7 @@ These walks include:
 - counting bytes in queued records that are leaving the fetch buffer
 - releasing queued records for partitions that are no longer assigned
 - counting bytes before a fetched batch is put back
+- counting returned share records for the poll total and topic metrics
 - copying a changed consumer or share heartbeat subscription or assignment
 - opening one result slot, and its index, for each item in an admin batch
 - copying transactional ids before fencing producers
