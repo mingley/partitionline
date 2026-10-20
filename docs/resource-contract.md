@@ -118,6 +118,7 @@ These walks include:
 - reading the next offset, and the partition list, of a returned batch
 - queuing records passed to a multi-record produce
 - indexing many partitions of one topic in a produce batch
+- assembling produce groups when a batch names many topics
 - splitting queued sends that still need topic metadata
 - copying topic rows for a fetch metrics snapshot
 - copying topic rows for a produce metrics snapshot

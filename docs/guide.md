@@ -302,7 +302,7 @@ producer.close().await?;
 ```
 
 - `send` — one offset future per record.
-- `send_all` — queue many, wait for all. Queuing those records pauses every 8,192. Records that still need metadata are split the same way. Indexing many partitions of one topic pauses the same way.
+- `send_all` — queue many, wait for all. Queuing those records pauses every 8,192. Records that still need metadata are split the same way. Indexing many partitions of one topic pauses the same way. A batch that names many topics is assembled in those same slices.
 - `try_send` + `flush` — throughput path (see `examples/bench_produce.rs`).
 
 ## Fetch (manual assignment)

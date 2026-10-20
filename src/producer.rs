@@ -9274,6 +9274,26 @@ async fn group_pending(
         }
     }
     scratch.record_counts = counts;
+    scratch.spare_parts = spare_parts;
+    scratch.spare_slots = spare_slots;
+    scratch.spare_orders = spare_orders;
+    let out = assemble_mixed_groups(scratch, order).await;
+    (ProduceGroups::from_vec(out), batch)
+}
+
+/// Build produce groups after a mixed batch has been counted.
+///
+/// Draining 200,000 topics held the caller for 119 milliseconds. The walk
+/// pauses every 8,192 partitions. Topic order and partition order stay the
+/// same. Empty partition lists are kept for the next batch, up to the spare
+/// cap.
+async fn assemble_mixed_groups(
+    scratch: &mut ProduceGroupScratch,
+    mut order: Vec<Arc<str>>,
+) -> Vec<(Arc<str>, i32, Vec<Pending>)> {
+    let spare_parts = std::mem::take(&mut scratch.spare_parts);
+    let mut spare_slots = std::mem::take(&mut scratch.spare_slots);
+    let mut spare_orders = std::mem::take(&mut scratch.spare_orders);
     let mut total = 0usize;
     for topic in &order {
         total = total.saturating_add(
@@ -9286,12 +9306,18 @@ async fn group_pending(
     }
     let mut out = take_group_shell(scratch);
     reserve_len(&mut out, total);
+    let mut walked = 0usize;
     for topic in order.drain(..) {
         let Some(mut groups) = scratch.buckets.remove(topic.as_ref()) else {
             continue;
         };
         for (partition, pending) in groups.order.drain(..) {
             out.push((Arc::clone(&topic), partition, pending));
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
         }
         groups.slots.clear();
         if spare_slots.len() < 64 {
@@ -9306,7 +9332,7 @@ async fn group_pending(
     scratch.spare_slots = spare_slots;
     scratch.spare_orders = spare_orders;
     scratch.spare_topic_order = order;
-    (ProduceGroups::from_vec(out), batch)
+    out
 }
 
 /// Partition groups for one Produce request.
@@ -13994,6 +14020,94 @@ mod tests {
         assert!(opened
             .first()
             .is_some_and(|(name, _, _)| Arc::ptr_eq(name, &topic)));
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn assembling_many_produce_topics_does_not_hold_the_caller() {
+        // 200_000 topics: draining each group held the caller 119ms.
+        let mut scratch = ProduceGroupScratch::default();
+        let mut order = Vec::with_capacity(200_000);
+        for index in 0..200_000 {
+            let topic: Arc<str> = Arc::from(format!("topic-{index}"));
+            order.push(Arc::clone(&topic));
+            let mut pending = queued("orders", Some(0));
+            pending.rec.topic = Arc::clone(&topic);
+            let mut slots = HashMap::new();
+            let _ = slots.insert(0i32, 0usize);
+            let _ = scratch.buckets.insert(
+                topic,
+                PendingParts {
+                    order: vec![(0, vec![pending])],
+                    slots,
+                },
+            );
+        }
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = assemble_mixed_groups(&mut scratch, order) => {}
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "assembling produce topics held the caller for {elapsed:?}"
+        );
+        let orders: Arc<str> = Arc::from("orders");
+        let payments: Arc<str> = Arc::from("payments");
+        let mut scratch = ProduceGroupScratch::default();
+        let mut order_slots = HashMap::new();
+        let _ = order_slots.insert(3i32, 0usize);
+        let _ = order_slots.insert(1i32, 1usize);
+        let mut pay_slots = HashMap::new();
+        let _ = pay_slots.insert(2i32, 0usize);
+        let mut first = queued("orders", Some(3));
+        first.rec.topic = Arc::clone(&orders);
+        let _ = scratch.buckets.insert(
+            Arc::clone(&orders),
+            PendingParts {
+                order: vec![(3, vec![first]), (1, Vec::new())],
+                slots: order_slots,
+            },
+        );
+        let _ = scratch.buckets.insert(
+            Arc::clone(&payments),
+            PendingParts {
+                order: vec![(2, Vec::new())],
+                slots: pay_slots,
+            },
+        );
+        let grouped = assemble_mixed_groups(
+            &mut scratch,
+            vec![Arc::clone(&orders), Arc::clone(&payments)],
+        )
+        .await;
+        assert_eq!(grouped.len(), 3);
+        assert_eq!(
+            grouped.first().map(|(topic, partition, records)| (
+                topic.as_ref(),
+                *partition,
+                records.len()
+            )),
+            Some(("orders", 3, 1))
+        );
+        assert!(grouped
+            .first()
+            .is_some_and(|(topic, _, _)| Arc::ptr_eq(topic, &orders)));
+        assert_eq!(
+            grouped.get(1).map(|(topic, partition, records)| (
+                topic.as_ref(),
+                *partition,
+                records.len()
+            )),
+            Some(("orders", 1, 0))
+        );
+        assert_eq!(
+            grouped
+                .get(2)
+                .map(|(topic, partition, _)| (topic.as_ref(), *partition)),
+            Some(("payments", 2))
+        );
+        assert!(scratch.buckets.is_empty());
     }
 
     #[tokio::test(flavor = "current_thread")]
