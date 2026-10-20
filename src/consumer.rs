@@ -4037,9 +4037,7 @@ impl Consumer {
             self.unassign();
             return Ok(());
         }
-        for tp in &tps {
-            Topic::validate(&tp.topic)?;
-        }
+        validate_topic_partitions(&tps).await?;
         let timestamp = match self.cfg.auto_offset_reset {
             crate::AutoOffsetReset::Earliest => crate::EARLIEST_TIMESTAMP,
             crate::AutoOffsetReset::Latest => crate::LATEST_TIMESTAMP,
@@ -10462,11 +10460,12 @@ impl Consumer {
     }
 
     async fn seek_assigned(&mut self, timestamp: i64) -> Result<()> {
-        require_unique_offset_partitions(
+        require_unique_offset_partitions_cooperative(
             self.assigned
                 .iter()
                 .map(|(topic, partition, _)| (topic.as_ref(), *partition)),
-        )?;
+        )
+        .await?;
         // The in-flight fetch still carries the pre-seek offset. Abort only
         // schedules cancellation, so wait until that read has left the runtime
         // before ListOffsets uses the leader socket.
@@ -10503,11 +10502,12 @@ impl Consumer {
     }
 
     async fn seek_listed(&mut self, timestamp: i64, partitions: Vec<(String, i32)>) -> Result<()> {
-        require_unique_offset_partitions(
+        require_unique_offset_partitions_cooperative(
             partitions
                 .iter()
                 .map(|(topic, partition)| (topic.as_str(), *partition)),
-        )?;
+        )
+        .await?;
         // Same as `seek_assigned`: a blocked fetch must stop before ListOffsets.
         self.finish_inflight_fetches(self.cfg.request_timeout).await;
         let deadline = offset_lookup_deadline(self.cfg.request_timeout)?;
@@ -10718,11 +10718,12 @@ impl Consumer {
                 )));
             }
         }
-        require_unique_offset_partitions(
+        require_unique_offset_partitions_cooperative(
             queries
                 .iter()
                 .map(|(tp, _)| (tp.topic.as_str(), tp.partition)),
-        )?;
+        )
+        .await?;
         let deadline = offset_lookup_deadline(timeout)?;
         let looked: Vec<(&str, i32, i64)> = queries
             .iter()
@@ -10755,11 +10756,12 @@ impl Consumer {
         timeout: Duration,
     ) -> Result<Vec<(TopicPartition, i64)>> {
         let partitions: Vec<TopicPartition> = partitions.into_iter().map(Into::into).collect();
-        require_unique_offset_partitions(
+        require_unique_offset_partitions_cooperative(
             partitions
                 .iter()
                 .map(|tp| (tp.topic.as_str(), tp.partition)),
-        )?;
+        )
+        .await?;
         let deadline = offset_lookup_deadline(timeout)?;
         let queries: Vec<(&str, i32, i64)> = partitions
             .iter()
@@ -12340,6 +12342,7 @@ fn claim_topic_partition<'a>(
     true
 }
 
+#[cfg(test)]
 fn require_unique_offset_partitions<'a>(
     partitions: impl IntoIterator<Item = (&'a str, i32)>,
 ) -> Result<()> {
@@ -12348,6 +12351,47 @@ fn require_unique_offset_partitions<'a>(
         require_list_offset_target(topic, partition)?;
         if !claim_topic_partition(&mut seen, topic, partition) {
             return Err(Error::protocol("duplicate offset partition"));
+        }
+    }
+    Ok(())
+}
+
+/// Check topic names, pausing every 8,192 partitions.
+///
+/// Validating 2,000,000 assigned topic names held the caller for 235
+/// milliseconds. An illegal name is still an error.
+async fn validate_topic_partitions(partitions: &[TopicPartition]) -> Result<()> {
+    let mut walked = 0usize;
+    for partition in partitions {
+        Topic::validate(&partition.topic)?;
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    Ok(())
+}
+
+/// Reject a duplicate partition, pausing every 8,192.
+///
+/// Checking 2,000,000 assigned partitions held the caller for 1.556 seconds.
+/// A repeated partition is still an error. A negative partition is still an
+/// error.
+async fn require_unique_offset_partitions_cooperative<'a>(
+    partitions: impl IntoIterator<Item = (&'a str, i32)>,
+) -> Result<()> {
+    let mut seen: HashMap<&str, HashSet<i32>> = HashMap::new();
+    let mut walked = 0usize;
+    for (topic, partition) in partitions {
+        require_list_offset_target(topic, partition)?;
+        if !claim_topic_partition(&mut seen, topic, partition) {
+            return Err(Error::protocol("duplicate offset partition"));
+        }
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
         }
     }
     Ok(())
@@ -17359,6 +17403,60 @@ mod tests {
         fill_reused_topics_cooperative(&mut got, ["orders"]).await;
         assert_eq!(got, vec!["orders".to_string()]);
         assert!(got.capacity() >= capacity);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn validating_many_assigned_partitions_does_not_hold_the_caller() {
+        let raw: Vec<(String, i32)> = (0..2_000_000i32)
+            .map(|partition| ("orders".to_string(), partition))
+            .collect();
+        let tps: Vec<TopicPartition> = raw.into_iter().map(Into::into).collect();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            result = validate_topic_partitions(&tps) => {
+                result.unwrap_or(());
+            }
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let validate_elapsed = started.elapsed();
+        assert!(
+            validate_elapsed < std::time::Duration::from_millis(80),
+            "validating assigned partitions held the caller for {validate_elapsed:?}"
+        );
+        let started = std::time::Instant::now();
+        tokio::select! {
+            result = require_unique_offset_partitions_cooperative(
+                tps.iter().map(|tp| (tp.topic.as_str(), tp.partition)),
+            ) => {
+                result.unwrap_or(());
+            }
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let unique_elapsed = started.elapsed();
+        assert!(
+            unique_elapsed < std::time::Duration::from_millis(80),
+            "checking unique assigned partitions held the caller for {unique_elapsed:?}"
+        );
+        assert!(
+            validate_topic_partitions(&[TopicPartition::new("bad name", 0)])
+                .await
+                .is_err()
+        );
+        assert!(
+            validate_topic_partitions(&[TopicPartition::new("orders", 0)])
+                .await
+                .is_ok()
+        );
+        assert!(
+            require_unique_offset_partitions_cooperative([("orders", 0), ("orders", 0)])
+                .await
+                .is_err()
+        );
+        assert!(
+            require_unique_offset_partitions_cooperative([("orders", 0), ("orders", 1)])
+                .await
+                .is_ok()
+        );
     }
 
     #[tokio::test(flavor = "current_thread")]

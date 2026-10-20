@@ -132,6 +132,7 @@ These walks include:
 - rebuilding the fetch-session topic-id index
 - clearing fetch-session prepare generations when they wrap
 - copying fetch partitions into a session request
+- validating topic names and checking duplicate partitions in an assignment
 - copying a changed consumer or share heartbeat subscription or assignment
 - opening one result slot, and its index, for each item in an admin batch
 - copying transactional ids before fencing producers
