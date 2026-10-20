@@ -385,21 +385,37 @@ pub async fn assign_range_subscribed_cooperative(
             .map(Vec::as_slice)
             .unwrap_or(&[]);
         let assigned = assign_range_names_cooperative(members, parts).await;
-        for (member, ps) in assigned {
-            if let Some(slot) = out.get_mut(&member) {
-                let mut walked = 0usize;
-                for partition in ps {
-                    slot.push((topic.clone(), partition));
-                    walked = walked.saturating_add(1);
-                    if walked == 8 * 1024 {
-                        walked = 0;
-                        tokio::task::yield_now().await;
-                    }
-                }
+        copy_topic_assignment(&mut out, topic, assigned).await;
+    }
+    out
+}
+
+/// Copy one topic's assignment into each member's list.
+///
+/// Copying 350,000 members with one partition each held the caller for 212
+/// milliseconds. The pause counted partitions inside one member, so a member
+/// with one partition never paused. It now pauses every 8,192 partitions
+/// across members. Each topic name is still copied. A member that is not in
+/// the assignment is still skipped.
+async fn copy_topic_assignment(
+    out: &mut HashMap<String, Vec<(String, i32)>>,
+    topic: &str,
+    assigned: HashMap<String, Vec<i32>>,
+) {
+    let mut walked = 0usize;
+    for (member, partitions) in assigned {
+        let Some(slot) = out.get_mut(&member) else {
+            continue;
+        };
+        for partition in partitions {
+            slot.push((topic.to_owned(), partition));
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
             }
         }
     }
-    out
 }
 
 fn range_member_chunk() -> usize {
@@ -841,19 +857,7 @@ pub async fn assign_sticky_subscribed_cooperative(
             .unwrap_or(&[]);
         let prev_for_topic = sticky_previous(previous.get(topic.as_str()));
         let assigned = assign_sticky_from_cooperative(members, parts, prev_for_topic).await;
-        for (member, ps) in assigned {
-            if let Some(slot) = out.get_mut(&member) {
-                let mut walked = 0usize;
-                for p in ps {
-                    slot.push((topic.clone(), p));
-                    walked = walked.saturating_add(1);
-                    if walked == 8 * 1024 {
-                        walked = 0;
-                        tokio::task::yield_now().await;
-                    }
-                }
-            }
-        }
+        copy_topic_assignment(&mut out, topic, assigned).await;
     }
     out
 }
@@ -9298,6 +9302,46 @@ mod tests {
             elapsed < std::time::Duration::from_millis(80),
             "assigning cooperative-sticky partitions held the caller for {elapsed:?}"
         );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn copying_many_assigned_members_does_not_hold_the_caller() {
+        // 350_000 members: copying one partition each held the caller 212ms.
+        let count = 350_000i32;
+        let mut out = HashMap::new();
+        let mut assigned = HashMap::new();
+        for index in 0..count {
+            let member = format!("m{index}");
+            let _ = out.insert(member.clone(), Vec::new());
+            let _ = assigned.insert(member, vec![index]);
+        }
+        let started = std::time::Instant::now();
+        tokio::select! {
+            () = copy_topic_assignment(&mut out, "orders", assigned) => {}
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "copying assigned members held the caller for {elapsed:?}"
+        );
+        let mut out = HashMap::new();
+        let _ = out.insert("a".to_string(), Vec::new());
+        let _ = out.insert("b".to_string(), Vec::new());
+        let mut assigned = HashMap::new();
+        let _ = assigned.insert("a".to_string(), vec![1, 2]);
+        let _ = assigned.insert("b".to_string(), vec![4]);
+        let _ = assigned.insert("c".to_string(), vec![9]);
+        copy_topic_assignment(&mut out, "orders", assigned).await;
+        assert_eq!(
+            out.get("a").map(Vec::as_slice),
+            Some(&[("orders".to_string(), 1), ("orders".to_string(), 2)][..])
+        );
+        assert_eq!(
+            out.get("b").map(Vec::as_slice),
+            Some(&[("orders".to_string(), 4)][..])
+        );
+        assert_eq!(out.get("c"), None);
     }
 
     #[tokio::test(flavor = "current_thread")]

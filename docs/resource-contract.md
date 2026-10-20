@@ -137,6 +137,7 @@ These walks include:
 - clearing fetch-session prepare generations when they wrap
 - copying fetch partitions into a session request
 - validating topic names and checking duplicate partitions in an assignment
+- copying a range or sticky assignment onto many members
 - seeking assigned partitions to list-offset results
 - copying a changed consumer or share heartbeat subscription or assignment
 - opening one result slot, and its index, for each item in an admin batch
