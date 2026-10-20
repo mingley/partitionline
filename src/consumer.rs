@@ -2170,6 +2170,36 @@ impl PendingRecords {
         removed_bytes
     }
 
+    /// Count bytes in queues that are leaving the fetch buffer.
+    ///
+    /// The walk pauses every 8,192 records. Without that pause, accounting
+    /// for 4,000,000 dropped records held the caller for 262 milliseconds.
+    ///
+    /// Each listed partition is removed. A partition that is not queued
+    /// contributes nothing.
+    async fn account_dropped_queues(&mut self, parts: &[(&str, i32)]) -> usize {
+        if parts.is_empty() {
+            return 0;
+        }
+        let drop_set: HashSet<(&str, i32)> = parts.iter().copied().collect();
+        let mut removed_bytes = 0usize;
+        let mut walked = 0usize;
+        for &(topic, partition) in &drop_set {
+            let Some(queue) = self.partitions.remove(topic, partition) else {
+                continue;
+            };
+            for record in queue {
+                removed_bytes = removed_bytes.saturating_add(record_bytes(&record));
+                walked = walked.saturating_add(1);
+                if walked == 8 * 1024 {
+                    walked = 0;
+                    tokio::task::yield_now().await;
+                }
+            }
+        }
+        removed_bytes
+    }
+
     fn drop_many(&mut self, parts: &[(&str, i32)]) -> usize {
         let removed = self.drop_queues(parts);
         if parts.is_empty() {
@@ -10287,9 +10317,11 @@ impl Consumer {
     }
 
     async fn drop_pending_for_cooperative(&mut self, topic: &str, partition: i32) {
-        self.buffered_bytes = self
-            .buffered_bytes
-            .saturating_sub(self.pending.drop_queues(&[(topic, partition)]));
+        self.buffered_bytes = self.buffered_bytes.saturating_sub(
+            self.pending
+                .account_dropped_queues(&[(topic, partition)])
+                .await,
+        );
         self.pending.drop_order_runs(&[(topic, partition)]).await;
         self.drop_retained_for(topic, partition);
         let _state = self.aborted.remove(topic, partition);
@@ -10309,7 +10341,7 @@ impl Consumer {
     async fn drop_pending_many(&mut self, parts: &[(&str, i32)]) {
         self.buffered_bytes = self
             .buffered_bytes
-            .saturating_sub(self.pending.drop_queues(parts));
+            .saturating_sub(self.pending.account_dropped_queues(parts).await);
         self.pending.drop_order_runs(parts).await;
         for &(topic, partition) in parts {
             self.drop_retained_for(topic, partition);
@@ -13153,6 +13185,42 @@ mod tests {
             });
         }
         records
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn accounting_many_dropped_records_does_not_hold_the_caller() {
+        let mut pending = PendingRecords::new();
+        let records = many_fetched(4_000_000);
+        let _ = pending.partitions.insert_owned(
+            TopicName::from("orders"),
+            0,
+            std::collections::VecDeque::from(records),
+        );
+        let started = std::time::Instant::now();
+        let worker =
+            tokio::spawn(async move { pending.account_dropped_queues(&[("orders", 0)]).await });
+        tokio::time::sleep(std::time::Duration::from_millis(30)).await;
+        worker.abort();
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "accounting dropped records held the caller for {elapsed:?}"
+        );
+        let mut few = PendingRecords::new();
+        let _ = few.partitions.insert_owned(
+            TopicName::from("orders"),
+            0,
+            std::collections::VecDeque::from(vec![many_fetched(1).remove(0)]),
+        );
+        let _ = few.partitions.insert_owned(
+            TopicName::from("payments"),
+            1,
+            std::collections::VecDeque::from(many_fetched(1)),
+        );
+        let removed = few.account_dropped_queues(&[("orders", 0)]).await;
+        assert_eq!(removed, 1);
+        assert!(few.partitions.contains("payments", 1));
+        assert!(!few.partitions.contains("orders", 0));
     }
 
     #[tokio::test(flavor = "current_thread")]
