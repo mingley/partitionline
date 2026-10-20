@@ -2208,6 +2208,12 @@ impl ConsumerGroup {
         self.consumer.metrics()
     }
 
+    /// [`Self::metrics`], pausing while topic rows are copied.
+    #[must_use]
+    pub async fn metrics_async(&self) -> crate::ConsumerMetrics {
+        self.consumer.metrics_async().await
+    }
+
     /// Rebalance and offset-commit counts since join. No group or member labels.
     #[must_use]
     pub fn outcomes(&self) -> crate::metrics::GroupOutcomes {
