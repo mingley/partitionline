@@ -122,6 +122,7 @@ These walks include:
 - copying topic rows for a produce metrics snapshot
 - copying an assignment into topic partitions
 - copying delivered positions into topic partitions
+- pausing assigned partitions, and resuming them
 - copying a changed consumer or share heartbeat subscription or assignment
 - opening one result slot, and its index, for each item in an admin batch
 - copying transactional ids before fencing producers

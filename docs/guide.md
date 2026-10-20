@@ -372,7 +372,8 @@ same way. Reading the next offset of each returned partition pauses every
 8,192 records. The last offset plus one and its leader epoch stay the same.
 A fetch or produce metrics snapshot copies its topic rows in those same slices.
 Copying an assignment, or the delivered position of each partition, pauses
-the same way. A negative position is still omitted.
+the same way. A negative position is still omitted. Pausing or resuming
+those partitions pauses the same way.
 See the
 [resource contract](resource-contract.md#caller-deadlines).
 
@@ -670,14 +671,14 @@ async fn run() -> partitionline::Result<()> {
                 continue;
             }
             let paused = group.assignment_async().await;
-            group.pause(paused.clone());
+            group.pause_async(paused.clone()).await;
             for record in &batch {
                 println!("processed {}-{}@{}", record.topic, record.partition, record.offset);
             }
             let committed = group
                 .commit_with_metadata_timeout(batch.next_offsets_async().await, Duration::from_secs(2))
                 .await;
-            group.resume(paused);
+            group.resume_async(paused).await;
             committed?;
             println!("committed returned batch only");
             return Ok(());

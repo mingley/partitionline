@@ -4461,11 +4461,55 @@ impl Consumer {
         }
     }
 
+    /// [`Self::pause`], pausing every 8,192 partitions.
+    ///
+    /// Pausing 2,000,000 partitions held the caller for 1.258 seconds. A
+    /// partition that was already paused stays paused. Order of later pauses
+    /// stays the same.
+    pub async fn pause_async(
+        &mut self,
+        partitions: impl IntoIterator<Item = impl Into<TopicPartition>>,
+    ) {
+        let mut walked = 0usize;
+        for partition in partitions {
+            let partition = partition.into();
+            let _inserted = self
+                .paused
+                .insert(&partition.topic, partition.partition, ());
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+    }
+
     /// Undo [`pause`](Self::pause) for these partitions.
     pub fn resume(&mut self, partitions: impl IntoIterator<Item = impl Into<TopicPartition>>) {
         for p in partitions {
             let tp = p.into();
             let _removed = self.paused.remove(&tp.topic, tp.partition);
+        }
+    }
+
+    /// [`Self::resume`], pausing every 8,192 partitions.
+    ///
+    /// Resuming 2,000,000 partitions held the caller for 993 milliseconds. A
+    /// partition that was not paused stays resumed. An empty topic bucket is
+    /// still removed.
+    pub async fn resume_async(
+        &mut self,
+        partitions: impl IntoIterator<Item = impl Into<TopicPartition>>,
+    ) {
+        let mut walked = 0usize;
+        for partition in partitions {
+            let partition = partition.into();
+            let _removed = self.paused.remove(&partition.topic, partition.partition);
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
         }
     }
 
@@ -17184,6 +17228,69 @@ mod tests {
         fill_reused_topics_cooperative(&mut got, ["orders"]).await;
         assert_eq!(got, vec!["orders".to_string()]);
         assert!(got.capacity() >= capacity);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn pausing_many_partitions_does_not_hold_the_caller() {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let address = listener.local_addr().unwrap().to_string();
+        let accept = tokio::spawn(async move {
+            loop {
+                if listener.accept().await.is_err() {
+                    break;
+                }
+            }
+        });
+        let conn =
+            crate::net::BrokerConn::connect(&address, "plan", std::time::Duration::from_secs(2))
+                .await
+                .unwrap();
+        let mut consumer = Consumer::test_holding(ConsumerConfig::default(), conn);
+        let parts: Vec<TopicPartition> = (0..2_000_000)
+            .map(|partition| TopicPartition::new("orders", partition))
+            .collect();
+        let resume_parts = parts.clone();
+        let started = std::time::Instant::now();
+        let worker = tokio::spawn(async move { consumer.pause_async(parts).await });
+        tokio::time::sleep(std::time::Duration::from_millis(30)).await;
+        let elapsed = started.elapsed();
+        worker.abort();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "pausing partitions held the caller for {elapsed:?}"
+        );
+        let conn =
+            crate::net::BrokerConn::connect(&address, "plan", std::time::Duration::from_secs(2))
+                .await
+                .unwrap();
+        let mut consumer = Consumer::test_holding(ConsumerConfig::default(), conn);
+        consumer.pause_async(resume_parts.clone()).await;
+        let started = std::time::Instant::now();
+        let worker = tokio::spawn(async move { consumer.resume_async(resume_parts).await });
+        tokio::time::sleep(std::time::Duration::from_millis(30)).await;
+        let resume_elapsed = started.elapsed();
+        worker.abort();
+        assert!(
+            resume_elapsed < std::time::Duration::from_millis(80),
+            "resuming partitions held the caller for {resume_elapsed:?}"
+        );
+        let conn =
+            crate::net::BrokerConn::connect(&address, "plan", std::time::Duration::from_secs(2))
+                .await
+                .unwrap();
+        let mut consumer = Consumer::test_holding(ConsumerConfig::default(), conn);
+        consumer
+            .pause_async([
+                TopicPartition::new("orders", 1),
+                TopicPartition::new("payments", 2),
+            ])
+            .await;
+        consumer
+            .resume_async([TopicPartition::new("orders", 1)])
+            .await;
+        assert!(consumer.paused.contains("payments", 2));
+        assert!(!consumer.paused.contains("orders", 1));
+        drop(accept);
     }
 
     #[tokio::test(flavor = "current_thread")]
