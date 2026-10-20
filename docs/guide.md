@@ -370,7 +370,7 @@ without copying each record. Dropping an assignment clears queued records
 in those same slices. Framed batches kept for a later poll are dropped the
 same way. Reading the next offset of each returned partition pauses every
 8,192 records. The last offset plus one and its leader epoch stay the same.
-A fetch metrics snapshot copies its topic rows in those same slices.
+A fetch or produce metrics snapshot copies its topic rows in those same slices.
 See the
 [resource contract](resource-contract.md#caller-deadlines).
 
