@@ -367,7 +367,8 @@ Returned records are counted for the fetch total in those same slices when
 saved totals do not match the batch. Saved per-topic totals are applied the
 same way. A poll with no consume interceptor returns the fetched batch
 without copying each record. Dropping an assignment clears queued records
-in those same slices. See the
+in those same slices. Framed batches kept for a later poll are dropped the
+same way. See the
 [resource contract](resource-contract.md#caller-deadlines).
 
 Also: sticky / cooperative-sticky, KIP-848 (`join_consumer` /

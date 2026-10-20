@@ -4282,7 +4282,7 @@ impl Consumer {
         self.cursor_slots = None;
         self.assigned_topic_ids.clear();
         self.pending.clear_records().await;
-        self.retained.clear();
+        drop_held_fetches(&mut self.retained).await;
         self.retained_bytes = 0;
         self.buffered_bytes = 0;
         self.fetched_epochs.clear();
@@ -4325,7 +4325,7 @@ impl Consumer {
         let previous_aborted = std::mem::replace(&mut self.aborted, PartitionMap::new());
         if starts.is_empty() {
             self.pending.clear_records().await;
-            self.retained.clear();
+            drop_held_fetches(&mut self.retained).await;
             self.retained_bytes = 0;
             self.buffered_bytes = 0;
             return Ok(());
@@ -11435,6 +11435,27 @@ fn unique_assigned_topics(assigned: &[(Arc<str>, i32, i64)]) -> Vec<String> {
     topics
 }
 
+/// Drop every framed batch kept for a later poll.
+///
+/// The walk pauses every 8,192 batches. Without that pause, dropping
+/// 16,000,000 framed batches held the caller for 360 milliseconds.
+async fn drop_held_fetches(retained: &mut PartitionMap<HeldFetch>) {
+    let topics = std::mem::take(&mut retained.topics);
+    let mut walked = 0usize;
+    for (_, partitions) in topics {
+        for (_, held) in partitions {
+            for batch in held.batches {
+                drop(batch);
+                walked = walked.saturating_add(1);
+                if walked == 8 * 1024 {
+                    walked = 0;
+                    tokio::task::yield_now().await;
+                }
+            }
+        }
+    }
+}
+
 /// Refill `topics` with the first copy of each name, in iterator order.
 ///
 /// A name that is already in its slot is left on that allocation. A different
@@ -13346,6 +13367,45 @@ mod tests {
             });
         }
         records
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn dropping_many_held_fetches_does_not_hold_the_caller() {
+        let mut retained = PartitionMap::new();
+        let batches: std::collections::VecDeque<crate::protocol::records::EncodedBatch> = (0
+            ..16_000_000)
+            .map(|_| crate::protocol::records::EncodedBatch::test_tiny())
+            .collect();
+        let _ = retained.insert_owned(
+            TopicName::from("orders"),
+            0,
+            HeldFetch {
+                last_stable_offset: 1,
+                batches,
+            },
+        );
+        let started = std::time::Instant::now();
+        let worker = tokio::spawn(async move { drop_held_fetches(&mut retained).await });
+        tokio::time::sleep(std::time::Duration::from_millis(30)).await;
+        worker.abort();
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "dropping held fetches held the caller for {elapsed:?}"
+        );
+        let mut few = PartitionMap::new();
+        let _ = few.insert_owned(
+            TopicName::from("orders"),
+            1,
+            HeldFetch {
+                last_stable_offset: 2,
+                batches: std::collections::VecDeque::from([
+                    crate::protocol::records::EncodedBatch::test_tiny(),
+                ]),
+            },
+        );
+        drop_held_fetches(&mut few).await;
+        assert!(few.topics.is_empty());
     }
 
     #[tokio::test(flavor = "current_thread")]

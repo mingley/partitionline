@@ -114,6 +114,7 @@ These walks include:
 - applying saved per-topic totals after a fetch
 - returning a fetched batch when no consume interceptor is installed
 - clearing queued records when an assignment is dropped
+- dropping framed batches kept for a later poll
 - copying a changed consumer or share heartbeat subscription or assignment
 - opening one result slot, and its index, for each item in an admin batch
 - copying transactional ids before fencing producers

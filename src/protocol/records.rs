@@ -3232,6 +3232,16 @@ pub(crate) struct EncodedBatch {
 }
 
 impl EncodedBatch {
+    /// A one-byte body for tests that need many batches.
+    #[cfg(test)]
+    pub(crate) fn test_tiny() -> Self {
+        Self {
+            base_offset: 0,
+            attributes: 0,
+            body: bytes::Bytes::from_static(b"x"),
+        }
+    }
+
     /// Batch attribute transactional bit.
     pub(crate) fn is_transactional(&self) -> bool {
         self.attributes & ATTR_TRANSACTIONAL != 0
