@@ -2236,20 +2236,22 @@ impl PendingRecords {
         cap: usize,
         buffered_bytes: &mut usize,
     ) -> Vec<FetchedRecord> {
-        let available = self
-            .order
-            .iter()
-            .filter(|run| !paused.contains(&run.topic, run.partition))
-            .fold(0usize, |sum, run| sum.saturating_add(run.count));
+        let available = self.count_runnable(paused).await;
         let mut out = Vec::with_capacity(available.min(cap));
         let mut index = 0;
         let mut walked = 0usize;
+        let mut skipped = 0usize;
         while out.len() < cap {
             let Some(run) = self.order.get(index) else {
                 break;
             };
             if paused.contains(&run.topic, run.partition) {
                 index += 1;
+                skipped = skipped.saturating_add(1);
+                if skipped == 8 * 1024 {
+                    skipped = 0;
+                    tokio::task::yield_now().await;
+                }
                 continue;
             }
             let topic = run.topic.clone();
@@ -2288,6 +2290,28 @@ impl PendingRecords {
             }
         }
         out
+    }
+
+    /// Count records a drain can return.
+    ///
+    /// The walk pauses every 8,192 runs. Without that pause, counting
+    /// 2,000,000 paused runs held the caller for 895 milliseconds.
+    ///
+    /// A paused run is not counted.
+    async fn count_runnable(&self, paused: &PartitionMap<()>) -> usize {
+        let mut sum = 0usize;
+        let mut walked = 0usize;
+        for run in &self.order {
+            if !paused.contains(run.topic.as_str(), run.partition) {
+                sum = sum.saturating_add(run.count);
+            }
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+        sum
     }
 }
 
@@ -13087,6 +13111,48 @@ mod tests {
             });
         }
         records
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn counting_many_pending_runs_does_not_hold_the_caller() {
+        let topic = TopicName::from("orders");
+        let mut pending = PendingRecords::new();
+        pending.order = (0..2_000_000)
+            .map(|partition| PendingRun {
+                topic: topic.clone(),
+                partition,
+                count: 1,
+            })
+            .collect();
+        let mut paused = PartitionMap::new();
+        for partition in 0..2_000_000 {
+            let _ = paused.insert("orders", partition, ());
+        }
+        let mut bytes = 0usize;
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = pending.drain(&paused, 0, &mut bytes) => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "counting pending runs held the caller for {elapsed:?}"
+        );
+        let mut few = PendingRecords::new();
+        few.order.push_back(PendingRun {
+            topic: TopicName::from("orders"),
+            partition: 1,
+            count: 4,
+        });
+        few.order.push_back(PendingRun {
+            topic: TopicName::from("orders"),
+            partition: 2,
+            count: 3,
+        });
+        let mut paused_few = PartitionMap::new();
+        let _ = paused_few.insert("orders", 2, ());
+        assert_eq!(few.count_runnable(&paused_few).await, 4);
     }
 
     #[tokio::test(flavor = "current_thread")]

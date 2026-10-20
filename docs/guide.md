@@ -356,7 +356,8 @@ slices. An interval commit copies those positions, then keeps the ones that
 are still assigned, in the same slices. The timeout can fire between slices,
 and finished slices are kept. Pending fetch runs that are no longer assigned
 are dropped in those same slices. Queued runs for a partition that moved
-are dropped the same way. See the
+are dropped the same way. Counting the records a poll can return pauses
+the same way when many partitions are paused. See the
 [resource contract](resource-contract.md#caller-deadlines).
 
 Also: sticky / cooperative-sticky, KIP-848 (`join_consumer` /
