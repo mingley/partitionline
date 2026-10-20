@@ -3145,11 +3145,7 @@ impl BrokerFetchSession {
         self.recycle_changed();
         self.stamp = self.stamp.wrapping_add(1);
         if self.stamp == 0 {
-            for parts in self.partitions.values_mut() {
-                for stored in parts.values_mut() {
-                    stored.stamp = 0;
-                }
-            }
+            self.clear_session_stamps().await;
             self.stamp = 1;
         }
         let stamp = self.stamp;
@@ -3351,6 +3347,25 @@ impl BrokerFetchSession {
             }
         }
         (dropped, membership_changed)
+    }
+
+    /// Zero every stored prepare generation, pausing every 8,192 partitions.
+    ///
+    /// Clearing 5,000,000 session stamps held the caller for 171 milliseconds.
+    /// This runs when the prepare generation wraps. Each stored partition is
+    /// still kept.
+    async fn clear_session_stamps(&mut self) {
+        let mut walked = 0usize;
+        for parts in self.partitions.values_mut() {
+            for stored in parts.values_mut() {
+                stored.stamp = 0;
+                walked = walked.saturating_add(1);
+                if walked == 8 * 1024 {
+                    walked = 0;
+                    tokio::task::yield_now().await;
+                }
+            }
+        }
     }
 
     /// Rebuild the topic-id index, pausing every 8,192 partitions.
@@ -17326,6 +17341,62 @@ mod tests {
         fill_reused_topics_cooperative(&mut got, ["orders"]).await;
         assert_eq!(got, vec!["orders".to_string()]);
         assert!(got.capacity() >= capacity);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn clearing_many_session_stamps_does_not_hold_the_caller() {
+        let mut session_for_stamps = BrokerFetchSession::default();
+        let mut parts = SessionParts::new();
+        for partition in 0..5_000_000i32 {
+            let _ = parts.insert(
+                partition,
+                SessionPartition {
+                    id: [1u8; 16],
+                    data: FetchPartition::partition_data(partition, 0, -1, 1, None, None),
+                    stamp: 1,
+                },
+            );
+        }
+        let _stored = session_for_stamps
+            .partitions
+            .insert(Arc::from("orders"), parts);
+        let started = std::time::Instant::now();
+        tokio::select! {
+            () = session_for_stamps.clear_session_stamps() => {}
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert_eq!(
+            session_for_stamps
+                .partitions
+                .values()
+                .map(HashMap::len)
+                .sum::<usize>(),
+            5_000_000
+        );
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "clearing session stamps held the caller for {elapsed:?}"
+        );
+        let mut few = BrokerFetchSession::default();
+        let mut one = SessionParts::new();
+        let _ = one.insert(
+            3,
+            SessionPartition {
+                id: [1u8; 16],
+                data: FetchPartition::partition_data(3, 0, -1, 1, None, None),
+                stamp: 9,
+            },
+        );
+        let _stored = few.partitions.insert(Arc::from("orders"), one);
+        few.clear_session_stamps().await;
+        assert_eq!(
+            few.partitions
+                .get("orders")
+                .and_then(|parts| parts.get(&3))
+                .map(|stored| stored.stamp),
+            Some(0)
+        );
     }
 
     #[tokio::test(flavor = "current_thread")]
