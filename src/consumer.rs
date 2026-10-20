@@ -3230,7 +3230,7 @@ impl BrokerFetchSession {
         if membership_changed {
             self.id_names_dirty = true;
         }
-        self.refresh_id_names();
+        self.refresh_id_names().await;
         let mut forgotten: HashMap<Arc<str>, HashMap<[u8; 16], Vec<i32>>> = HashMap::new();
         if !full {
             record_session_forgotten(&mut forgotten, replaced.into_iter().chain(dropped)).await;
@@ -3353,14 +3353,25 @@ impl BrokerFetchSession {
         (dropped, membership_changed)
     }
 
-    fn refresh_id_names(&mut self) {
+    /// Rebuild the topic-id index, pausing every 8,192 partitions.
+    ///
+    /// Refreshing 2,000,000 session topic ids held the caller for 1.507
+    /// seconds. The last stored name for an id wins. A clean index is left
+    /// unchanged.
+    async fn refresh_id_names(&mut self) {
         if !self.id_names_dirty {
             return;
         }
         self.id_names.clear();
+        let mut walked = 0usize;
         for (name, parts) in &self.partitions {
             for stored in parts.values() {
-                let _ = self.id_names.insert(stored.id, Arc::clone(name));
+                let _stored = self.id_names.insert(stored.id, Arc::clone(name));
+                walked = walked.saturating_add(1);
+                if walked == 8 * 1024 {
+                    walked = 0;
+                    tokio::task::yield_now().await;
+                }
             }
         }
         self.id_names_dirty = false;
@@ -17315,6 +17326,72 @@ mod tests {
         fill_reused_topics_cooperative(&mut got, ["orders"]).await;
         assert_eq!(got, vec!["orders".to_string()]);
         assert!(got.capacity() >= capacity);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn refreshing_many_session_topic_ids_does_not_hold_the_caller() {
+        let topic: Arc<str> = Arc::from("orders");
+        let mut session = BrokerFetchSession::default();
+        session.id_names_dirty = true;
+        let mut parts = SessionParts::new();
+        for partition in 0..2_000_000i32 {
+            let mut id = [0u8; 16];
+            id[..4].copy_from_slice(&partition.to_le_bytes());
+            let _ = parts.insert(
+                partition,
+                SessionPartition {
+                    id,
+                    data: FetchPartition::partition_data(partition, 0, -1, 1, None, None),
+                    stamp: 1,
+                },
+            );
+        }
+        let _stored = session.partitions.insert(topic, parts);
+        let started = std::time::Instant::now();
+        tokio::select! {
+            () = session.refresh_id_names() => {}
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "refreshing session topic ids held the caller for {elapsed:?}"
+        );
+        let mut clean = BrokerFetchSession::default();
+        clean.id_names_dirty = false;
+        let _ = clean.id_names.insert([9u8; 16], Arc::from("kept"));
+        clean.refresh_id_names().await;
+        assert_eq!(
+            clean.id_names.get(&[9u8; 16]).map(Arc::as_ref),
+            Some("kept")
+        );
+        let topic: Arc<str> = Arc::from("orders");
+        let mut fresh = BrokerFetchSession::default();
+        fresh.id_names_dirty = true;
+        let mut parts = SessionParts::new();
+        let _ = parts.insert(
+            1,
+            SessionPartition {
+                id: [1u8; 16],
+                data: FetchPartition::partition_data(1, 0, -1, 1, None, None),
+                stamp: 1,
+            },
+        );
+        let _ = parts.insert(
+            2,
+            SessionPartition {
+                id: [1u8; 16],
+                data: FetchPartition::partition_data(2, 0, -1, 1, None, None),
+                stamp: 1,
+            },
+        );
+        let _stored = fresh.partitions.insert(Arc::clone(&topic), parts);
+        fresh.refresh_id_names().await;
+        assert_eq!(
+            fresh.id_names.get(&[1u8; 16]).map(Arc::as_ref),
+            Some(topic.as_ref())
+        );
+        assert!(!fresh.id_names_dirty);
     }
 
     #[tokio::test(flavor = "current_thread")]

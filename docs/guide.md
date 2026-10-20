@@ -908,7 +908,8 @@ The consumer checks the session identity and partition set before applying any
 records. Reassigning a recreated topic discards buffered records from its old ID.
 Finding those partitions pauses every 8,192 items, so a metadata refresh can
 still reach its deadline. Partitions missing from the next incremental request
-are dropped in those same slices. Finished slices are kept.
+are dropped in those same slices. The topic-id index is rebuilt the same way.
+Finished slices are kept.
 Buffered records, delivered positions and commits retain their existing contracts.
 
 Pausing every partition, moving to another broker, or replacing the assignment

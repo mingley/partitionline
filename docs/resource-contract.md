@@ -129,6 +129,7 @@ These walks include:
 - keeping stored topic ids for partitions that are still assigned
 - dropping fetch-session partitions that were not in this request
 - recording forgotten fetch-session partitions
+- rebuilding the fetch-session topic-id index
 - copying a changed consumer or share heartbeat subscription or assignment
 - opening one result slot, and its index, for each item in an admin batch
 - copying transactional ids before fencing producers
