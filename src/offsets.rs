@@ -1341,6 +1341,16 @@ async fn validate_commit_response(
     Ok(())
 }
 
+fn offset_fetch_topic_chunk() -> usize {
+    8 * 1024
+}
+
+/// Check an OffsetFetch response against the request.
+///
+/// Checking 80,000 topics of one partition each held the caller for 172
+/// milliseconds. The partition pause restarted on every topic. The topic
+/// index and the partition check now pause every 8,192 topics. A repeated
+/// partition is still an error.
 async fn validate_fetch_response(
     request: &OffsetFetchRequestData,
     response: &OffsetFetchResponseData,
@@ -1367,16 +1377,23 @@ async fn validate_fetch_response(
             None => None,
             Some(wanted) => {
                 let mut index = HashMap::with_capacity(wanted.len());
+                let mut walked = 0usize;
                 for topic in wanted {
                     if let std::collections::hash_map::Entry::Vacant(slot) =
                         index.entry(&topic.identity)
                     {
                         let _stored = slot.insert(topic);
                     }
+                    walked = walked.saturating_add(1);
+                    if walked == offset_fetch_topic_chunk() {
+                        walked = 0;
+                        tokio::task::yield_now().await;
+                    }
                 }
                 Some(index)
             }
         };
+        let mut checked = 0usize;
         for topic in &group.topics {
             if !topics.insert(&topic.identity) {
                 return Err(Error::protocol("duplicate fetched topic"));
@@ -1402,16 +1419,22 @@ async fn validate_fetch_response(
                 }
             }
             let mut partitions = HashSet::new();
-            let mut walked = 0usize;
+            if topic.partitions.is_empty() {
+                checked = checked.saturating_add(1);
+                if checked == offset_fetch_topic_chunk() {
+                    checked = 0;
+                    tokio::task::yield_now().await;
+                }
+            }
             for partition in &topic.partitions {
                 let unexpected =
                     expected.is_some() && !expected_indexes.contains(&partition.partition_index);
                 if !partitions.insert(partition.partition_index) || unexpected {
                     return Err(Error::protocol("unexpected or duplicate fetched partition"));
                 }
-                walked = walked.saturating_add(1);
-                if walked == 8 * 1024 {
-                    walked = 0;
+                checked = checked.saturating_add(1);
+                if checked == offset_fetch_topic_chunk() {
+                    checked = 0;
                     tokio::task::yield_now().await;
                 }
             }
@@ -1436,7 +1459,116 @@ async fn validate_fetch_response(
 
 #[cfg(test)]
 mod tests {
-    use super::{collect_bounded_commits, collect_bounded_partitions};
+    use super::{collect_bounded_commits, collect_bounded_partitions, validate_fetch_response};
+    use crate::protocol::group::{
+        OffsetFetchGroupData, OffsetFetchGroupResponseData, OffsetFetchPartitionData,
+        OffsetFetchRequestData, OffsetFetchResponseData, OffsetFetchTopicData,
+        OffsetFetchTopicResponseData,
+    };
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn validating_many_fetched_offset_topics_does_not_hold_the_caller() {
+        // 80_000 topics: checking one partition each held the caller 172ms.
+        let count = 80_000;
+        let mut requested = Vec::with_capacity(count);
+        let mut fetched = Vec::with_capacity(count);
+        for index in 0..count {
+            let name = format!("topic-{index}");
+            requested.push(OffsetFetchTopicData {
+                identity: OffsetTopicIdentity::Name(name.clone()),
+                partition_indexes: vec![0],
+            });
+            fetched.push(OffsetFetchTopicResponseData {
+                identity: OffsetTopicIdentity::Name(name),
+                partitions: vec![OffsetFetchPartitionData {
+                    partition_index: 0,
+                    ..OffsetFetchPartitionData::default()
+                }],
+            });
+        }
+        let request = OffsetFetchRequestData {
+            groups: vec![OffsetFetchGroupData {
+                group_id: "group".to_string(),
+                topics: Some(requested),
+                ..OffsetFetchGroupData::default()
+            }],
+            ..OffsetFetchRequestData::default()
+        };
+        let response = OffsetFetchResponseData {
+            groups: vec![OffsetFetchGroupResponseData {
+                group_id: "group".to_string(),
+                topics: fetched,
+                error_code: 0,
+            }],
+            ..OffsetFetchResponseData::default()
+        };
+        let started = std::time::Instant::now();
+        tokio::select! {
+            checked = validate_fetch_response(&request, &response) => {
+                checked.unwrap_or(());
+            }
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "validating fetched offset topics held the caller for {elapsed:?}"
+        );
+        let request = OffsetFetchRequestData {
+            groups: vec![OffsetFetchGroupData {
+                group_id: "group".to_string(),
+                topics: Some(vec![OffsetFetchTopicData {
+                    identity: OffsetTopicIdentity::Name("orders".to_string()),
+                    partition_indexes: vec![0, 1],
+                }]),
+                ..OffsetFetchGroupData::default()
+            }],
+            ..OffsetFetchRequestData::default()
+        };
+        let response = OffsetFetchResponseData {
+            groups: vec![OffsetFetchGroupResponseData {
+                group_id: "group".to_string(),
+                topics: vec![OffsetFetchTopicResponseData {
+                    identity: OffsetTopicIdentity::Name("orders".to_string()),
+                    partitions: vec![
+                        OffsetFetchPartitionData {
+                            partition_index: 0,
+                            ..OffsetFetchPartitionData::default()
+                        },
+                        OffsetFetchPartitionData {
+                            partition_index: 1,
+                            ..OffsetFetchPartitionData::default()
+                        },
+                    ],
+                }],
+                error_code: 0,
+            }],
+            ..OffsetFetchResponseData::default()
+        };
+        assert!(validate_fetch_response(&request, &response).await.is_ok());
+        let duplicate = OffsetFetchResponseData {
+            groups: vec![OffsetFetchGroupResponseData {
+                group_id: "group".to_string(),
+                topics: vec![OffsetFetchTopicResponseData {
+                    identity: OffsetTopicIdentity::Name("orders".to_string()),
+                    partitions: vec![
+                        OffsetFetchPartitionData {
+                            partition_index: 0,
+                            ..OffsetFetchPartitionData::default()
+                        },
+                        OffsetFetchPartitionData {
+                            partition_index: 0,
+                            ..OffsetFetchPartitionData::default()
+                        },
+                    ],
+                }],
+                error_code: 0,
+            }],
+            ..OffsetFetchResponseData::default()
+        };
+        assert!(validate_fetch_response(&request, &duplicate).await.is_err());
+    }
+
     use crate::consumer::{OffsetAndMetadata, TopicPartition};
     use crate::protocol::group::{
         OffsetCommitPartitionData, OffsetCommitPartitionResponseData, OffsetCommitRequestData,
