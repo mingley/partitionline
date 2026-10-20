@@ -4106,40 +4106,6 @@ impl Consumer {
         }
     }
 
-    pub(crate) fn delivered_commit_offsets(&self) -> Vec<(TopicPartition, OffsetAndMetadata)> {
-        let mut cached_topic = std::ptr::null::<u8>();
-        let mut cached_name: Option<&str> = None;
-        let mut epochs: &[i32] = &[];
-        let mut pending_parts: Option<&HashMap<i32, VecDeque<FetchedRecord>>> = None;
-        let mut out = Vec::new();
-        for (slot, (topic, partition, offset)) in self.assigned.iter().enumerate() {
-            if !reuse_topic_cache(&mut cached_topic, &mut cached_name, topic) {
-                epochs = self.cluster.leader_epochs_of(topic.as_ref());
-                pending_parts = self.pending.partitions.topic_partitions(topic.as_ref());
-            }
-            let front = pending_parts
-                .and_then(|parts| parts.get(partition))
-                .and_then(|records| records.front());
-            let delivered = front.map(|record| record.offset).unwrap_or(*offset);
-            let Some(position) = defined_position(delivered) else {
-                continue;
-            };
-            let epoch = crate::group::commit_position_epoch(
-                front.and_then(|record| record.leader_epoch),
-                self.fetched_epochs
-                    .get(slot)
-                    .copied()
-                    .unwrap_or(crate::RecordBatch::NO_PARTITION_LEADER_EPOCH),
-                cached_epoch(epochs, *partition),
-            );
-            out.push((
-                TopicPartition::new(topic.as_ref(), *partition),
-                OffsetAndMetadata::from_wire(position, epoch, String::new()),
-            ));
-        }
-        out
-    }
-
     pub(crate) async fn delivered_commit_offsets_cooperative(
         &self,
     ) -> Vec<(TopicPartition, OffsetAndMetadata)> {
@@ -17250,6 +17216,47 @@ mod tests {
         fill_reused_topics_cooperative(&mut got, ["orders"]).await;
         assert_eq!(got, vec!["orders".to_string()]);
         assert!(got.capacity() >= capacity);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn reading_many_commit_offsets_does_not_hold_the_caller() {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let address = listener.local_addr().unwrap().to_string();
+        let accept = tokio::spawn(async move {
+            let _held = listener.accept().await;
+            std::future::pending::<()>().await;
+        });
+        let conn =
+            crate::net::BrokerConn::connect(&address, "plan", std::time::Duration::from_secs(2))
+                .await
+                .unwrap();
+        let mut consumer = Consumer::test_holding(ConsumerConfig::default(), conn);
+        let topic: Arc<str> = Arc::from("orders");
+        consumer.assigned = (0..2_000_000)
+            .map(|partition| (Arc::clone(&topic), partition, 4))
+            .collect();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = consumer.delivered_commit_offsets_cooperative() => {}
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "reading commit offsets held the caller for {elapsed:?}"
+        );
+        consumer.assigned = vec![(Arc::from("orders"), 1, 4), (Arc::from("payments"), 2, -1)];
+        let offsets = consumer.delivered_commit_offsets_cooperative().await;
+        let first = offsets.first().map(|(partition, metadata)| {
+            (
+                partition.topic.clone(),
+                partition.partition,
+                metadata.offset(),
+            )
+        });
+        assert_eq!(first, Some(("orders".to_string(), 1, 4)));
+        assert_eq!(offsets.len(), 1);
+        drop(accept);
     }
 
     #[tokio::test(flavor = "current_thread")]

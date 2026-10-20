@@ -683,9 +683,11 @@ async fn old_async_commit_keeps_its_uuid_after_metadata_refresh() {
         .await
         .unwrap();
     let (tx, rx) = tokio::sync::oneshot::channel();
-    group.commit_async_with(move |result| {
-        tx.send(result).unwrap();
-    });
+    group
+        .commit_async_with(move |result| {
+            tx.send(result).unwrap();
+        })
+        .await;
     peer.state.lock().await.metadata_id = [2; 16];
     let _topics = group.list_topics().await.unwrap();
     group.close().await.unwrap();

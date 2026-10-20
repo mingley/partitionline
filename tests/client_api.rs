@@ -1395,7 +1395,7 @@ async fn commit_async_does_not_send_until_poll() {
     let recs = group.poll().await.unwrap();
     assert_eq!(recs.len(), 1);
     let before = mock.offset_commit_calls();
-    group.commit_async();
+    group.commit_async().await;
     assert_eq!(
         mock.offset_commit_calls(),
         before,
@@ -1435,9 +1435,11 @@ async fn commit_async_with_callback_and_leave_flushes() {
     assert_eq!(recs.len(), 1);
     let got = std::sync::Arc::new(parking_lot::Mutex::new(None));
     let got_cb = std::sync::Arc::clone(&got);
-    group.commit_async_with(move |result| {
-        *got_cb.lock() = Some(result.map(|o| o.len()));
-    });
+    group
+        .commit_async_with(move |result| {
+            *got_cb.lock() = Some(result.map(|o| o.len()));
+        })
+        .await;
     let before = mock.offset_commit_calls();
     group.leave().await.unwrap();
     assert_eq!(

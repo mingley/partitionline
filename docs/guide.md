@@ -374,7 +374,7 @@ A fetch or produce metrics snapshot copies its topic rows in those same slices.
 Copying an assignment, or the delivered position of each partition, pauses
 the same way. A negative position is still omitted. Pausing or resuming
 those partitions pauses the same way. Listing the partitions that are paused
-does too.
+does too. A queued commit reads those delivered offsets in the same slices.
 See the
 [resource contract](resource-contract.md#caller-deadlines).
 

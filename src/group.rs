@@ -2725,8 +2725,12 @@ impl ConsumerGroup {
     /// The RPC is sent on the next [`Self::poll`], [`Self::leave`], [`Self::close`],
     /// or [`Self::unsubscribe`]. Does not spawn a task. Failures are not returned from
     /// poll; use [`Self::commit_async_with`] for a callback.
-    pub fn commit_async(&mut self) {
-        let offsets = self.assigned_commit_offsets();
+    ///
+    /// Reading 2,000,000 delivered positions held the caller for 282 milliseconds,
+    /// so that snapshot pauses every 8,192 partitions. The RPC is still queued,
+    /// not waited for.
+    pub async fn commit_async(&mut self) {
+        let offsets = self.consumer.delivered_commit_offsets_cooperative().await;
         self.queue_async_commit(offsets, None);
     }
 
@@ -2734,11 +2738,14 @@ impl ConsumerGroup {
     ///
     /// `callback` runs on the next poll / leave with the snapshotted delivered
     /// positions or the OffsetCommit error. Poll still returns the fetch result.
-    pub fn commit_async_with<F>(&mut self, callback: F)
+    ///
+    /// The delivered-position snapshot pauses every 8,192 partitions. The RPC
+    /// is still queued, not waited for.
+    pub async fn commit_async_with<F>(&mut self, callback: F)
     where
         F: FnOnce(Result<Vec<(TopicPartition, OffsetAndMetadata)>>) + Send + 'static,
     {
-        let offsets = self.assigned_commit_offsets();
+        let offsets = self.consumer.delivered_commit_offsets_cooperative().await;
         self.queue_async_commit(offsets, Some(Box::new(callback)));
     }
 
@@ -2764,10 +2771,6 @@ impl ConsumerGroup {
     {
         let offsets = collect_commit_offsets(offsets);
         self.queue_async_commit(offsets, Some(Box::new(callback)));
-    }
-
-    fn assigned_commit_offsets(&self) -> Vec<(TopicPartition, OffsetAndMetadata)> {
-        self.consumer.delivered_commit_offsets()
     }
 
     async fn flush_async_commits(&mut self, deadline: Instant) {
