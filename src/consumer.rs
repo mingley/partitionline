@@ -8839,7 +8839,16 @@ impl Consumer {
                 let mut reached_lso = false;
 
                 let mut encoded_iter = part_batches.into_iter();
+                // 250,000 one-record batches held the caller for 289 milliseconds.
+                // The record pause restarts on every batch, so one record never
+                // pauses. This counts batches across the partition.
+                let mut batches_walked = 0usize;
                 while let Some(encoded) = encoded_iter.next() {
+                    batches_walked = batches_walked.saturating_add(1);
+                    if batches_walked == 8 * 1024 {
+                        batches_walked = 0;
+                        tokio::task::yield_now().await;
+                    }
                     let header_end = encoded.header_exclusive_end();
                     let is_control = encoded.is_control_batch();
                     let is_first_batch = out.is_empty() && self.pending.is_empty();
@@ -15339,6 +15348,135 @@ mod tests {
         drop(consumer);
         leader_peer.abort();
         other_peer.abort();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn applying_many_one_record_fetch_batches_does_not_hold_the_caller() {
+        // 250_000 one-record batches: applying them held the caller 289ms.
+        use crate::protocol::records::{
+            encode_record_batch, split_record_batches, BatchList, Record, RecordBatch, SlotList,
+        };
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let _accept = tokio::spawn(async move {
+            loop {
+                if listener.accept().await.is_err() {
+                    break;
+                }
+            }
+        });
+        let conn = crate::net::BrokerConn::connect(&addr, "fetch-batches", Duration::from_secs(2))
+            .await
+            .unwrap();
+        let mut consumer = Consumer::test_holding(ConsumerConfig::default(), conn);
+        consumer.push_assigned(Arc::<str>::from("orders"), 0, 0);
+        let count = 250_000i64;
+        let mut buf = bytes::BytesMut::new();
+        let template = Record {
+            offset: 0,
+            timestamp: 1,
+            key: None,
+            value: Some(bytes::Bytes::from_static(b"n")),
+            headers: Vec::new(),
+        };
+        for offset in 0..count {
+            let mut rec = template.clone();
+            rec.offset = offset;
+            let mut batch = RecordBatch::from_records(vec![rec]);
+            batch.base_offset = offset;
+            encode_record_batch(&mut buf, &batch).unwrap();
+        }
+        let BatchList::Many(batches) = split_record_batches(buf.freeze()).unwrap() else {
+            panic!("many batches");
+        };
+        let mut parts = SlotList::with_capacity(1);
+        parts.push(BatchList::Many(batches));
+        let mut topics = SlotList::with_capacity(1);
+        topics.push(parts);
+        let body = FetchBody {
+            topics: vec![crate::protocol::fetch::FetchedTopic {
+                topic: "orders".to_string(),
+                topic_id: [0; 16],
+                partitions: vec![
+                    crate::protocol::fetch::FetchedPartition::partition_response(0, 0),
+                ],
+            }],
+            batches: topics,
+            endpoints: Vec::new(),
+        };
+        let mut out = Vec::new();
+        let mut out_bytes = 0usize;
+        let mut fenced = Vec::new();
+        let mut need_offsets = Vec::new();
+        let mut completed = PartitionMap::new();
+        let mut budget_reached = false;
+        let started = std::time::Instant::now();
+        tokio::select! {
+            applied = consumer.apply_fetch_body(
+                1,
+                body,
+                &mut out,
+                &mut out_bytes,
+                &mut fenced,
+                &mut need_offsets,
+                &mut completed,
+                &mut budget_reached,
+            ) => {
+                let _applied = applied.unwrap_or(FetchRetry::None);
+            }
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "applying one-record fetch batches held the caller for {elapsed:?}"
+        );
+        if let Some(slot) = consumer.assigned.get_mut(0) {
+            slot.2 = 0;
+        }
+        let mut few_buf = bytes::BytesMut::new();
+        for offset in 0..2i64 {
+            let mut rec = template.clone();
+            rec.offset = offset;
+            let mut batch = RecordBatch::from_records(vec![rec]);
+            batch.base_offset = offset;
+            encode_record_batch(&mut few_buf, &batch).unwrap();
+        }
+        let BatchList::Many(few) = split_record_batches(few_buf.freeze()).unwrap() else {
+            panic!("two batches");
+        };
+        let mut parts = SlotList::with_capacity(1);
+        parts.push(BatchList::Many(few));
+        let mut topics = SlotList::with_capacity(1);
+        topics.push(parts);
+        let body = FetchBody {
+            topics: vec![crate::protocol::fetch::FetchedTopic {
+                topic: "orders".to_string(),
+                topic_id: [0; 16],
+                partitions: vec![
+                    crate::protocol::fetch::FetchedPartition::partition_response(0, 0),
+                ],
+            }],
+            batches: topics,
+            endpoints: Vec::new(),
+        };
+        out.clear();
+        let applied = consumer
+            .apply_fetch_body(
+                1,
+                body,
+                &mut out,
+                &mut out_bytes,
+                &mut fenced,
+                &mut need_offsets,
+                &mut completed,
+                &mut budget_reached,
+            )
+            .await;
+        assert!(applied.is_ok());
+        assert_eq!(out.len(), 2);
+        assert_eq!(out.first().map(|record| record.offset), Some(0));
+        assert_eq!(out.get(1).map(|record| record.offset), Some(1));
     }
 
     #[tokio::test(flavor = "current_thread")]

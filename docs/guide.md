@@ -320,7 +320,8 @@ let recs = consumer.fetch().await?;
 ```
 
 `assign_topic` assigns every partition. `seek` / `pause` / `resume` / `wakeup`
-match the Java consumer shapes.
+match the Java consumer shapes. A partition that returns many one-record
+batches pauses every 8,192 batches. Batches already applied stay.
 
 When a fetch round has several leaders, `fetch` returns after the first
 leader responds and about 10 ms have passed for the others. A slower

@@ -130,6 +130,7 @@ These walks include:
 - listing the assigned partitions that are paused
 - reading delivered offsets before a queued commit
 - filling delivered positions after a poll or commit
+- applying many one-record fetch batches from one partition
 - keeping stored topic ids for partitions that are still assigned
 - dropping fetch-session partitions that were not in this request
 - recording forgotten fetch-session partitions
