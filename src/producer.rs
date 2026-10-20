@@ -10314,7 +10314,52 @@ async fn encode_produce_body_async(
     if version >= 13 && topic_ids.len() > 1 {
         fill_topic_ids(topic_ids, &mut groups_scratch.topic_ids).await;
     }
+    write_indexed_produce_topics(
+        buf,
+        version,
+        groups,
+        topic_ids,
+        compression,
+        now,
+        producer_id,
+        producer_epoch,
+        transactional,
+        scratch,
+        groups_scratch,
+    )
+    .await?;
+    if flexible {
+        crate::protocol::buf::put_empty_tagged_fields(buf);
+    }
+    Ok(())
+}
+
+/// Write one indexed produce topic after another.
+///
+/// Encoding 80,000 topics of one record each held the caller for 180
+/// milliseconds. The pause counts partitions across topics, every 8,192.
+/// Partitions already written stay in the buffer. A topic with no
+/// partitions still counts once.
+#[expect(
+    clippy::too_many_arguments,
+    reason = "produce body needs pid, epoch, seq, and batch knobs together"
+)]
+async fn write_indexed_produce_topics(
+    buf: &mut BytesMut,
+    version: i16,
+    groups: &[(Arc<str>, i32, Vec<Pending>)],
+    topic_ids: &[(Arc<str>, [u8; 16])],
+    compression: Compression,
+    now: i64,
+    producer_id: i64,
+    producer_epoch: i16,
+    transactional: bool,
+    scratch: &mut CompressScratch,
+    groups_scratch: &ProduceGroupScratch,
+) -> Result<()> {
+    let flexible = version >= 9;
     let topic_count = groups_scratch.topics.len();
+    let mut walked = 0usize;
     for topic_slot in 0..topic_count {
         let Some(group_at) = groups_scratch.topics.get(topic_slot).copied() else {
             continue;
@@ -10337,7 +10382,13 @@ async fn encode_produce_body_async(
             .map(Vec::len)
             .unwrap_or(0);
         crate::protocol::buf::put_array_len(buf, flexible, Some(part_count))?;
-        let mut walked = 0usize;
+        if part_count == 0 {
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
         for part_slot in 0..part_count {
             let Some(i) = groups_scratch
                 .parts
@@ -10405,9 +10456,6 @@ async fn encode_produce_body_async(
         if flexible {
             crate::protocol::buf::put_empty_tagged_fields(buf);
         }
-    }
-    if flexible {
-        crate::protocol::buf::put_empty_tagged_fields(buf);
     }
     Ok(())
 }
@@ -13632,6 +13680,96 @@ mod tests {
         .unwrap_or_else(|error| panic!("{error}"));
         assert_eq!(once, twice);
         assert!(once.windows(4).any(|bytes| bytes == 7i32.to_be_bytes()));
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn encoding_many_produce_topics_does_not_hold_the_caller() {
+        // 80_000 topics: encoding each one-record batch held the caller 180ms.
+        let groups: Vec<(Arc<str>, i32, Vec<Pending>)> = (0..80_000)
+            .map(|index| {
+                let topic: Arc<str> = Arc::from(format!("topic-{index}"));
+                let mut pending = queued("orders", Some(0));
+                pending.rec.topic = Arc::clone(&topic);
+                (topic, 0, vec![pending])
+            })
+            .collect();
+        let mut buf = bytes::BytesMut::new();
+        let mut scratch = CompressScratch::default();
+        let mut groups_scratch = ProduceGroupScratch::default();
+        index_produce_groups(&groups, &mut groups_scratch).await;
+        let started = std::time::Instant::now();
+        tokio::select! {
+            encoded = write_indexed_produce_topics(
+                &mut buf,
+                9,
+                &groups,
+                &[],
+                Compression::None,
+                0,
+                -1,
+                -1,
+                false,
+                &mut scratch,
+                &groups_scratch,
+            ) => {
+                encoded.unwrap_or_else(|error| panic!("{error}"));
+            }
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "encoding produce topics held the caller for {elapsed:?}"
+        );
+        let orders: Arc<str> = Arc::from("orders");
+        let payments: Arc<str> = Arc::from("payments");
+        let mut orders_record = queued("orders", Some(1));
+        orders_record.rec.topic = Arc::clone(&orders);
+        let mut payments_record = queued("payments", Some(4));
+        payments_record.rec.topic = Arc::clone(&payments);
+        let few = vec![
+            (Arc::clone(&orders), 1, vec![orders_record]),
+            (Arc::clone(&payments), 4, vec![payments_record]),
+        ];
+        let mut once = bytes::BytesMut::new();
+        let mut twice = bytes::BytesMut::new();
+        encode_produce_body_async(
+            &mut once,
+            9,
+            1,
+            1_000,
+            &few,
+            &[],
+            Compression::None,
+            0,
+            -1,
+            -1,
+            None,
+            &mut scratch,
+            &mut groups_scratch,
+        )
+        .await
+        .unwrap_or_else(|error| panic!("{error}"));
+        encode_produce_body_async(
+            &mut twice,
+            9,
+            1,
+            1_000,
+            &few,
+            &[],
+            Compression::None,
+            0,
+            -1,
+            -1,
+            None,
+            &mut scratch,
+            &mut groups_scratch,
+        )
+        .await
+        .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(once, twice);
+        assert!(once.windows(6).any(|bytes| bytes == b"orders"));
+        assert!(once.windows(8).any(|bytes| bytes == b"payments"));
     }
 
     #[tokio::test(flavor = "current_thread")]
