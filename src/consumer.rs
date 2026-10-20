@@ -4699,13 +4699,7 @@ impl Consumer {
 
     async fn capture_assigned_topic_ids(&mut self) {
         let live = Self::index_live_partitions(&self.assigned).await;
-        self.assigned_topic_ids.retain(|topic, parts| {
-            let Some(kept) = live.get(topic.as_ref()) else {
-                return false;
-            };
-            parts.retain(|partition, _| kept.contains(partition));
-            !parts.is_empty()
-        });
+        Self::retain_assigned_topic_ids(&mut self.assigned_topic_ids, &live).await;
         let mut captured = Vec::new();
         let mut walked = 0usize;
         for (topic, partition, _) in &self.assigned {
@@ -4735,6 +4729,35 @@ impl Consumer {
             if walked == 8 * 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
+            }
+        }
+    }
+
+    /// Drop stored topic ids for partitions that are no longer assigned.
+    ///
+    /// Keeping 2,000,000 stored ids held the caller for 424 milliseconds. A
+    /// partition that is still assigned keeps its id. An empty topic is dropped.
+    async fn retain_assigned_topic_ids(
+        stored: &mut HashMap<Arc<str>, HashMap<i32, [u8; 16]>>,
+        live: &HashMap<Arc<str>, HashSet<i32>>,
+    ) {
+        let taken = std::mem::take(stored);
+        let mut walked = 0usize;
+        for (topic, parts) in taken {
+            let kept = live.get(topic.as_ref());
+            let mut next = HashMap::new();
+            for (partition, id) in parts {
+                if kept.is_some_and(|kept| kept.contains(&partition)) {
+                    let _stored = next.insert(partition, id);
+                }
+                walked = walked.saturating_add(1);
+                if walked == 8 * 1024 {
+                    walked = 0;
+                    tokio::task::yield_now().await;
+                }
+            }
+            if !next.is_empty() {
+                let _stored = stored.insert(topic, next);
             }
         }
     }
@@ -17251,6 +17274,65 @@ mod tests {
         fill_reused_topics_cooperative(&mut got, ["orders"]).await;
         assert_eq!(got, vec!["orders".to_string()]);
         assert!(got.capacity() >= capacity);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn retaining_many_assigned_topic_ids_does_not_hold_the_caller() {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let address = listener.local_addr().unwrap().to_string();
+        let accept = tokio::spawn(async move {
+            let _held = listener.accept().await;
+            std::future::pending::<()>().await;
+        });
+        let conn =
+            crate::net::BrokerConn::connect(&address, "plan", std::time::Duration::from_secs(2))
+                .await
+                .unwrap();
+        let mut consumer = Consumer::test_holding(ConsumerConfig::default(), conn);
+        let topic: Arc<str> = Arc::from("orders");
+        let mut parts = HashMap::new();
+        for partition in 0..2_000_000 {
+            let _ = parts.insert(partition, [1u8; 16]);
+        }
+        let _stored = consumer
+            .assigned_topic_ids
+            .insert(Arc::clone(&topic), parts);
+        consumer.assigned = (0..2_000_000)
+            .map(|partition| (Arc::clone(&topic), partition, 4))
+            .collect();
+        let live = Consumer::index_live_partitions(&consumer.assigned).await;
+        let started = std::time::Instant::now();
+        tokio::select! {
+            () = Consumer::retain_assigned_topic_ids(&mut consumer.assigned_topic_ids, &live) => {}
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "retaining assigned topic ids held the caller for {elapsed:?}"
+        );
+        let payments: Arc<str> = Arc::from("payments");
+        let mut stored = HashMap::new();
+        let _ = stored.insert(
+            Arc::clone(&topic),
+            HashMap::from([(1, [1u8; 16]), (2, [2u8; 16])]),
+        );
+        let _ = stored.insert(Arc::clone(&payments), HashMap::from([(4, [4u8; 16])]));
+        let mut live = HashMap::new();
+        let _ = live.insert(Arc::clone(&topic), HashSet::from([1]));
+        Consumer::retain_assigned_topic_ids(&mut stored, &live).await;
+        assert_eq!(
+            stored
+                .get(topic.as_ref())
+                .and_then(|parts| parts.get(&1))
+                .copied(),
+            Some([1u8; 16])
+        );
+        assert!(stored
+            .get(topic.as_ref())
+            .is_none_or(|parts| parts.get(&2).is_none()));
+        assert!(!stored.contains_key(payments.as_ref()));
+        drop(accept);
     }
 
     #[tokio::test(flavor = "current_thread")]

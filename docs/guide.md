@@ -351,7 +351,8 @@ Assigning committed offsets walks the assignment in slices of 8,192.
 List-offset resets are written into those slots the same way, and empty
 slots are dropped between slices. The revoked and assigned lists passed to
 a rebalance callback are copied the same way. After a poll or commit, those delivered positions are filled in slices of
-8,192, and the topic ids stored for them are refreshed in the same slices. An interval commit copies those positions, then keeps the ones that
+8,192, and the topic ids stored for them are refreshed in the same slices.
+Stored ids for partitions that are no longer assigned are dropped the same way. An interval commit copies those positions, then keeps the ones that
 are still assigned, in the same slices. The timeout can fire between slices,
 and finished slices are kept. Pending fetch runs that are no longer assigned
 are dropped in those same slices. Queued runs for a partition that moved
