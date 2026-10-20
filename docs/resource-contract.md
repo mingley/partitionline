@@ -112,6 +112,7 @@ These walks include:
 - counting returned share records for the poll total and topic metrics
 - counting returned fetch records when saved totals do not match the batch
 - applying saved per-topic totals after a fetch
+- returning a fetched batch when no consume interceptor is installed
 - copying a changed consumer or share heartbeat subscription or assignment
 - opening one result slot, and its index, for each item in an admin batch
 - copying transactional ids before fencing producers

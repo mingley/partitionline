@@ -6578,12 +6578,11 @@ impl Consumer {
     }
 
     /// Run fetch interceptors once, when a group poll actually returns records.
+    ///
+    /// No interceptor returns the fetched batch as it is, without copying
+    /// each record.
     pub(crate) fn deliver_consumed(&self, records: ConsumerRecords) -> ConsumerRecords {
-        ConsumerRecords::from(
-            self.cfg
-                .interceptors
-                .on_consume(records.into_iter().collect()),
-        )
+        deliver_records(&self.cfg.interceptors, records)
     }
 
     /// Put a poll batch back in front of any records still buffered.
@@ -12046,6 +12045,21 @@ async fn sum_fetched_bytes(records: &[FetchedRecord]) -> usize {
 }
 
 /// A ListOffsets reset position. Offset `-1` means the broker has no offset.
+/// Return `records` to the caller, running consume interceptors when any are installed.
+///
+/// An empty interceptor list does not copy the records. A list runs each
+/// interceptor in order. The records stay in the order the last interceptor returned.
+pub(crate) fn deliver_records(
+    interceptors: &crate::interceptor::ConsumerInterceptors,
+    records: ConsumerRecords,
+) -> ConsumerRecords {
+    if interceptors.is_empty() {
+        records
+    } else {
+        ConsumerRecords::from(interceptors.on_consume(records.records))
+    }
+}
+
 pub(crate) fn reset_position(offset: i64) -> Option<i64> {
     (offset >= 0).then_some(offset)
 }
@@ -13294,6 +13308,38 @@ mod tests {
             });
         }
         records
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn delivering_many_records_does_not_hold_the_caller() {
+        let records = ConsumerRecords::from(many_fetched(4_000_000));
+        let started = std::time::Instant::now();
+        let delivered = deliver_records(
+            &crate::interceptor::ConsumerInterceptors::default(),
+            records,
+        );
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "delivering records held the caller for {elapsed:?}"
+        );
+        assert_eq!(delivered.count(), 4_000_000);
+        drop(delivered);
+        struct KeepFirst;
+        impl crate::interceptor::ConsumerInterceptor for KeepFirst {
+            fn on_consume(&self, mut recs: Vec<FetchedRecord>) -> Vec<FetchedRecord> {
+                recs.truncate(1);
+                recs
+            }
+        }
+        let mut interceptors = crate::interceptor::ConsumerInterceptors::default();
+        interceptors.push(KeepFirst);
+        let delivered = deliver_records(&interceptors, ConsumerRecords::from(many_fetched(2)));
+        assert_eq!(delivered.count(), 1);
+        assert_eq!(
+            delivered.records.first().map(|record| record.offset),
+            Some(0)
+        );
     }
 
     #[tokio::test(flavor = "current_thread")]
