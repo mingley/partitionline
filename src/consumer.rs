@@ -2969,6 +2969,25 @@ struct SessionFetchRequest {
     forgotten: Vec<SessionForgottenTopic>,
 }
 
+/// Record forgotten session partitions, pausing every 8,192.
+///
+/// Recording 2,000,000 forgotten partitions held the caller for 786
+/// milliseconds. Each partition is still stored under its topic and id.
+async fn record_session_forgotten(
+    forgotten: &mut HashMap<Arc<str>, HashMap<[u8; 16], Vec<i32>>>,
+    items: impl IntoIterator<Item = (Arc<str>, [u8; 16], i32)>,
+) {
+    let mut walked = 0usize;
+    for (topic, id, partition) in items {
+        remember_forgotten(forgotten, topic, id, partition);
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+}
+
 fn remember_forgotten(
     forgotten: &mut HashMap<Arc<str>, HashMap<[u8; 16], Vec<i32>>>,
     topic: Arc<str>,
@@ -3207,30 +3226,14 @@ impl BrokerFetchSession {
                 }
             }
         }
-        let mut dropped: Vec<(Arc<str>, [u8; 16], i32)> = Vec::new();
-        let mut membership_changed = false;
-        self.partitions.retain(|topic, parts| {
-            parts.retain(|partition, stored| {
-                if stored.stamp == stamp {
-                    return true;
-                }
-                membership_changed = true;
-                if !full {
-                    dropped.push((Arc::clone(topic), stored.id, *partition));
-                }
-                false
-            });
-            !parts.is_empty()
-        });
+        let (dropped, membership_changed) = self.drop_unprepared_partitions(stamp, full).await;
         if membership_changed {
             self.id_names_dirty = true;
         }
         self.refresh_id_names();
         let mut forgotten: HashMap<Arc<str>, HashMap<[u8; 16], Vec<i32>>> = HashMap::new();
         if !full {
-            for (topic, id, partition) in replaced.into_iter().chain(dropped) {
-                remember_forgotten(&mut forgotten, topic, id, partition);
-            }
+            record_session_forgotten(&mut forgotten, replaced.into_iter().chain(dropped)).await;
         }
         let mut built = self.take_request_topics();
         if full {
@@ -3310,6 +3313,44 @@ impl BrokerFetchSession {
             self.park_changed_parts(topic.partitions);
         }
         self.park_request_topics(request.topics);
+    }
+
+    /// Drop stored partitions that this prepare did not list.
+    ///
+    /// Dropping 2,000,000 unprepared session partitions held the caller for
+    /// 182 milliseconds. A partition listed in this request stays. An empty
+    /// topic is removed.
+    async fn drop_unprepared_partitions(
+        &mut self,
+        stamp: u64,
+        full: bool,
+    ) -> (Vec<(Arc<str>, [u8; 16], i32)>, bool) {
+        let taken = std::mem::take(&mut self.partitions);
+        let mut dropped = Vec::new();
+        let mut membership_changed = false;
+        let mut walked = 0usize;
+        for (topic, parts) in taken {
+            let mut next = SessionParts::new();
+            for (partition, stored) in parts {
+                if stored.stamp == stamp {
+                    let _kept = next.insert(partition, stored);
+                } else {
+                    membership_changed = true;
+                    if !full {
+                        dropped.push((Arc::clone(&topic), stored.id, partition));
+                    }
+                }
+                walked = walked.saturating_add(1);
+                if walked == 8 * 1024 {
+                    walked = 0;
+                    tokio::task::yield_now().await;
+                }
+            }
+            if !next.is_empty() {
+                let _stored = self.partitions.insert(topic, next);
+            }
+        }
+        (dropped, membership_changed)
     }
 
     fn refresh_id_names(&mut self) {
@@ -17274,6 +17315,102 @@ mod tests {
         fill_reused_topics_cooperative(&mut got, ["orders"]).await;
         assert_eq!(got, vec!["orders".to_string()]);
         assert!(got.capacity() >= capacity);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn dropping_many_unprepared_session_partitions_does_not_hold_the_caller() {
+        let topic: Arc<str> = Arc::from("orders");
+        let mut session = BrokerFetchSession::default();
+        session.version = Some(12);
+        session.metadata = FetchMetadata::new(7, 1);
+        session.stamp = 1;
+        let mut parts = SessionParts::new();
+        for partition in 0..2_000_000 {
+            let _ = parts.insert(
+                partition,
+                SessionPartition {
+                    id: [1u8; 16],
+                    data: FetchPartition::partition_data(partition, 0, -1, 1, None, None),
+                    stamp: 1,
+                },
+            );
+        }
+        let _stored = session.partitions.insert(Arc::clone(&topic), parts);
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = session.prepare(&[], 12) => {}
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "dropping unprepared session partitions held the caller for {elapsed:?}"
+        );
+        let topic: Arc<str> = Arc::from("orders");
+        let mut session = BrokerFetchSession::default();
+        session.version = Some(12);
+        session.metadata = FetchMetadata::new(7, 1);
+        session.stamp = 1;
+        let kept = FetchPartition::partition_data(1, 0, -1, 1, None, None);
+        let mut parts = SessionParts::new();
+        let _ = parts.insert(
+            1,
+            SessionPartition {
+                id: [1u8; 16],
+                data: kept.clone(),
+                stamp: 1,
+            },
+        );
+        let _ = parts.insert(
+            2,
+            SessionPartition {
+                id: [1u8; 16],
+                data: FetchPartition::partition_data(2, 0, -1, 1, None, None),
+                stamp: 1,
+            },
+        );
+        let _stored = session.partitions.insert(Arc::clone(&topic), parts);
+        let planned = PlannedFetch {
+            topic: &topic,
+            topic_id: [1u8; 16],
+            partitions: std::slice::from_ref(&kept),
+        };
+        let request = session.prepare(std::slice::from_ref(&planned), 12).await;
+        assert!(session
+            .partitions
+            .get(topic.as_ref())
+            .is_some_and(|parts| parts.contains_key(&1)));
+        assert!(session
+            .partitions
+            .get(topic.as_ref())
+            .is_none_or(|parts| !parts.contains_key(&2)));
+        assert!(request
+            .forgotten
+            .iter()
+            .any(|topic| topic.partitions.contains(&2)));
+        let topic: Arc<str> = Arc::from("orders");
+        let items: Vec<(Arc<str>, [u8; 16], i32)> = (0..2_000_000)
+            .map(|partition| (Arc::clone(&topic), [1u8; 16], partition))
+            .collect();
+        let mut forgotten = HashMap::new();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            () = record_session_forgotten(&mut forgotten, items) => {}
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let forgotten_elapsed = started.elapsed();
+        assert!(
+            forgotten_elapsed < std::time::Duration::from_millis(80),
+            "recording forgotten session partitions held the caller for {forgotten_elapsed:?}"
+        );
+        let mut ids: Vec<i32> = (0..2_000_000).collect();
+        let started = std::time::Instant::now();
+        ids.sort_unstable();
+        let sort_elapsed = started.elapsed();
+        assert!(
+            sort_elapsed < std::time::Duration::from_millis(80),
+            "sorting forgotten partitions held the caller for {sort_elapsed:?}"
+        );
     }
 
     #[tokio::test(flavor = "current_thread")]
