@@ -6193,6 +6193,11 @@ pub fn decode_offset_commit_topics_response<B: Buf>(
 }
 
 /// [`decode_offset_commit_topics_response`], yielding while partitions are still being read.
+///
+/// Reading 550,000 topics of one partition each held the caller for 196
+/// milliseconds. The pause restarted on every topic. It now pauses every
+/// 8,192 partitions across topics. A topic with no partitions still counts
+/// once. Partition order stays the response order.
 pub async fn decode_offset_commit_topics_response_cooperative<B: Buf>(
     buf: &mut B,
     version: i16,
@@ -6201,11 +6206,18 @@ pub async fn decode_offset_commit_topics_response_cooperative<B: Buf>(
     let throttle_time_ms = if version >= 3 { buf::get_i32(buf)? } else { 0 };
     let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut topics = Vec::with_capacity(n);
+    let mut walked = 0usize;
     for _ in 0..n {
         let topic = buf::get_string(buf, flexible)?.unwrap_or_default();
         let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
         let mut partitions = Vec::with_capacity(pn);
-        let mut walked = 0usize;
+        if pn == 0 {
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
         for _ in 0..pn {
             let partition = buf::get_i32(buf)?;
             let error_code = buf::get_i16(buf)?;
@@ -13428,6 +13440,68 @@ mod tests {
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "decoding an offset commit held the caller for {elapsed:?}"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn decoding_many_offset_commit_topics_does_not_hold_the_caller() {
+        // 550_000 topics: reading one partition each held the caller 196ms.
+        use bytes::BufMut;
+        let count = 550_000i32;
+        let mut raw = bytes::BytesMut::new();
+        raw.put_i32(count);
+        for index in 0..count {
+            raw.put_i16(5);
+            raw.extend_from_slice(b"topic");
+            raw.put_i32(1);
+            raw.put_i32(index);
+            raw.put_i16(0);
+        }
+        let started = std::time::Instant::now();
+        let mut cursor: &[u8] = &raw;
+        tokio::select! {
+            decoded = decode_offset_commit_topics_response_cooperative(&mut cursor, 2) => {
+                let _decoded = decoded.unwrap_or_default();
+            }
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "decoding offset commit topics held the caller for {elapsed:?}"
+        );
+        let mut raw = bytes::BytesMut::new();
+        raw.put_i32(2);
+        raw.put_i16(1);
+        raw.extend_from_slice(b"a");
+        raw.put_i32(1);
+        raw.put_i32(3);
+        raw.put_i16(7);
+        raw.put_i16(1);
+        raw.extend_from_slice(b"b");
+        raw.put_i32(1);
+        raw.put_i32(4);
+        raw.put_i16(0);
+        let (topics, throttle) = decode_offset_commit_topics_response_cooperative(&mut &raw[..], 2)
+            .await
+            .unwrap();
+        assert_eq!(throttle, 0);
+        assert_eq!(topics.len(), 2);
+        assert_eq!(topics.first().map(|topic| topic.topic.as_str()), Some("a"));
+        assert_eq!(
+            topics
+                .first()
+                .and_then(|topic| topic.partitions.first())
+                .map(|partition| (partition.partition, partition.error_code)),
+            Some((3, 7))
+        );
+        assert_eq!(topics.get(1).map(|topic| topic.topic.as_str()), Some("b"));
+        assert_eq!(
+            topics
+                .get(1)
+                .and_then(|topic| topic.partitions.first())
+                .map(|partition| (partition.partition, partition.error_code)),
+            Some((4, 0))
         );
     }
 

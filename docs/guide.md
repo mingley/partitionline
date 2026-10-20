@@ -379,6 +379,8 @@ Copying an assignment, or the delivered position of each partition, pauses
 the same way. A negative position is still omitted. Pausing or resuming
 those partitions pauses the same way. Listing the partitions that are paused
 does too. A queued commit reads those delivered offsets in the same slices.
+An offset-commit response that names many topics pauses every 8,192
+partitions.
 Topic names in an assignment are checked the same way, and a repeated
 partition is still an error. Seeking every assigned partition to a
 list-offset result pauses the same way. Each partition is found in the
