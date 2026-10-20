@@ -376,7 +376,9 @@ the same way. A negative position is still omitted. Pausing or resuming
 those partitions pauses the same way. Listing the partitions that are paused
 does too. A queued commit reads those delivered offsets in the same slices.
 Topic names in an assignment are checked the same way, and a repeated
-partition is still an error.
+partition is still an error. Seeking every assigned partition to a
+list-offset result pauses the same way. Each partition is found in the
+cursor index. An unknown partition is still an error.
 See the
 [resource contract](resource-contract.md#caller-deadlines).
 

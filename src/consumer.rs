@@ -10431,6 +10431,96 @@ impl Consumer {
         Err(reject_java_no_current_assignment(topic, partition))
     }
 
+    /// Write ListOffsets results back as seeks.
+    ///
+    /// Seeking 20,000 assigned partitions one at a time held the caller for
+    /// 2.8 seconds. Each seek scanned the assignment from the start. The
+    /// cursor index finds the slot, and the walk pauses every 8,192
+    /// partitions. Offsets already written stay when the deadline fires.
+    /// An unknown partition is still an error.
+    async fn apply_listed_seeks<T: AsRef<str>>(
+        &mut self,
+        queries: &[(T, i32, i64)],
+        values: &[(i64, i64, i32)],
+    ) -> Result<()> {
+        let count = queries.len().min(values.len());
+        if count == 0 {
+            return Ok(());
+        }
+        self.ensure_cursor_index().await;
+        let mut aborted = false;
+        let mut walked = 0usize;
+        let mut dropping: Vec<(Arc<str>, i32)> = Vec::new();
+        for index in 0..count {
+            let Some((topic, partition, _)) = queries.get(index) else {
+                break;
+            };
+            let Some((offset, _, _)) = values.get(index) else {
+                break;
+            };
+            require_partition(*partition)?;
+            require_fetch_offset(*offset)?;
+            if !aborted {
+                self.abort_inflight_fetches();
+                aborted = true;
+            }
+            let name = topic.as_ref();
+            let Some(slot) = self.cursor_slot(name, *partition) else {
+                let error = reject_java_no_current_assignment(name, *partition);
+                self.drop_seek_batch(&mut dropping).await;
+                return Err(error);
+            };
+            let matches = self
+                .assigned
+                .get(slot)
+                .is_some_and(|(assigned_name, part, _)| {
+                    assigned_name.as_ref() == name && *part == *partition
+                });
+            if !matches {
+                let error = reject_java_no_current_assignment(name, *partition);
+                self.drop_seek_batch(&mut dropping).await;
+                return Err(error);
+            }
+            if let Some(entry) = self.assigned.get_mut(slot) {
+                entry.2 = *offset;
+            }
+            if let Some(epoch) = self.fetched_epochs.get_mut(slot) {
+                *epoch = crate::RecordBatch::NO_PARTITION_LEADER_EPOCH;
+            }
+            if let Some((assigned_name, _, _)) = self.assigned.get(slot) {
+                dropping.push((Arc::clone(assigned_name), *partition));
+            }
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                self.drop_seek_batch(&mut dropping).await;
+                tokio::task::yield_now().await;
+            }
+        }
+        self.drop_seek_batch(&mut dropping).await;
+        Ok(())
+    }
+
+    /// Drop queued records for one slice of seeks.
+    async fn drop_seek_batch(&mut self, batch: &mut Vec<(Arc<str>, i32)>) {
+        if batch.is_empty() {
+            return;
+        }
+        let pairs: Vec<(&str, i32)> = batch
+            .iter()
+            .map(|(topic, partition)| (topic.as_ref(), *partition))
+            .collect();
+        self.buffered_bytes = self
+            .buffered_bytes
+            .saturating_sub(self.pending.account_dropped_queues(&pairs).await);
+        self.pending.drop_order_runs(&pairs).await;
+        for (topic, partition) in &pairs {
+            self.drop_retained_for(topic, *partition);
+            let _state = self.aborted.remove(topic, *partition);
+        }
+        batch.clear();
+    }
+
     /// Seek every assigned partition to the log start (`ListOffsets` earliest).
     pub async fn seek_to_beginning(&mut self) -> Result<()> {
         self.seek_assigned(crate::EARLIEST_TIMESTAMP).await
@@ -10477,9 +10567,7 @@ impl Consumer {
             .map(|(topic, partition, _)| (Arc::clone(topic), *partition, timestamp))
             .collect();
         let listed = self.list_offset_queries(&queries, deadline).await;
-        for ((topic, partition, _), (offset, _, _)) in queries.iter().zip(&listed.values) {
-            self.seek(topic.as_ref(), *partition, *offset)?;
-        }
+        self.apply_listed_seeks(&queries, &listed.values).await?;
         match listed.error {
             Some(error) => Err(error),
             None => Ok(()),
@@ -10516,9 +10604,7 @@ impl Consumer {
             .map(|(topic, partition)| (topic, partition, timestamp))
             .collect();
         let listed = self.list_offset_queries(&queries, deadline).await;
-        for ((topic, partition, _), (offset, _, _)) in queries.iter().zip(&listed.values) {
-            self.seek(topic, *partition, *offset)?;
-        }
+        self.apply_listed_seeks(&queries, &listed.values).await?;
         match listed.error {
             Some(error) => Err(error),
             None => Ok(()),
@@ -17457,6 +17543,73 @@ mod tests {
                 .await
                 .is_ok()
         );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn seeking_many_assigned_partitions_does_not_hold_the_caller() {
+        // 20_000 one-at-a-time seeks held the caller for 2.8s.
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let _accept = tokio::spawn(async move {
+            loop {
+                if listener.accept().await.is_err() {
+                    break;
+                }
+            }
+        });
+        let conn = crate::net::BrokerConn::connect(&addr, "seek-hold", Duration::from_secs(2))
+            .await
+            .unwrap();
+        let mut consumer = Consumer::test_holding(ConsumerConfig::default(), conn);
+        let topic: Arc<str> = Arc::from("orders");
+        let count = 2_000_000i32;
+        for partition in 0..count {
+            consumer.push_assigned(Arc::clone(&topic), partition, 0);
+        }
+        consumer.ensure_cursor_index().await;
+        let queries: Vec<(&str, i32, i64)> = (0..count)
+            .map(|partition| ("orders", partition, 0))
+            .collect();
+        let values: Vec<(i64, i64, i32)> = (0..count).map(|_| (3, 0, 0)).collect();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            result = consumer.apply_listed_seeks(&queries, &values) => {
+                result.unwrap_or(());
+            }
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "seeking assigned partitions held the caller for {elapsed:?}"
+        );
+        consumer
+            .apply_listed_seeks(
+                &[("orders", 0i32, 0i64), ("orders", 1, 0)],
+                &[(11i64, 0, 0), (12, 0, 0)],
+            )
+            .await
+            .unwrap();
+        assert_eq!(consumer.assigned_offset("orders", 0), Some(11));
+        assert_eq!(consumer.assigned_offset("orders", 1), Some(12));
+        assert_eq!(
+            consumer.fetched_epochs.first().copied(),
+            Some(crate::RecordBatch::NO_PARTITION_LEADER_EPOCH)
+        );
+        let before = consumer.assigned_offset("orders", 4);
+        assert!(consumer
+            .apply_listed_seeks(&[("orders", 4i32, 0i64)], &[(-1i64, 0, 0)])
+            .await
+            .is_err());
+        assert_eq!(consumer.assigned_offset("orders", 4), before);
+        assert!(consumer
+            .apply_listed_seeks(&[("orders", -1i32, 0i64)], &[(1i64, 0, 0)])
+            .await
+            .is_err());
+        assert!(consumer
+            .apply_listed_seeks(&[("missing", 0i32, 0i64)], &[(1i64, 0, 0)])
+            .await
+            .is_err());
     }
 
     #[tokio::test(flavor = "current_thread")]
