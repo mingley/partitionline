@@ -364,7 +364,8 @@ records that are leaving the buffer are counted the same way. Records for a
 partition that is no longer assigned are released in those same slices.
 Bytes counted before a fetched batch is put back are walked the same way.
 Returned records are counted for the fetch total in those same slices when
-saved totals do not match the batch. See the
+saved totals do not match the batch. Saved per-topic totals are applied the
+same way. See the
 [resource contract](resource-contract.md#caller-deadlines).
 
 Also: sticky / cooperative-sticky, KIP-848 (`join_consumer` /

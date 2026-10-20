@@ -6069,7 +6069,9 @@ impl Consumer {
                     &mut self.topic_metrics,
                     recs.len(),
                     elapsed,
-                ) {
+                )
+                .await
+                {
                     bytes
                 } else {
                     account_fetched_delivery(&mut self.topic_metrics, &recs, elapsed).await
@@ -10758,11 +10760,14 @@ fn reset_fetch_totals(totals: &mut FetchTotals) {
 
 /// Record per-topic fetch totals when they match `record_count`.
 ///
+/// The walk pauses every 8,192 topics. Without that pause, noting
+/// 500,000 returned totals held the caller for 9,742 milliseconds.
+///
 /// Matching totals keep each topic key and reset the counts, so the next poll
 /// updates the same map entry. An empty poll keeps every key. A poll that
 /// returned records drops topics that contributed nothing. A mismatch zeros
 /// the counts and returns none; the caller sums the returned records instead.
-fn note_returned_totals(
+async fn note_returned_totals(
     totals: &mut FetchTotals,
     metrics: &mut HashMap<Arc<str>, crate::metrics::FetchTopicTracker>,
     record_count: usize,
@@ -10770,43 +10775,67 @@ fn note_returned_totals(
 ) -> Option<u64> {
     let mut staged_records = 0u64;
     let mut staged_bytes = 0u64;
+    let mut walked = 0usize;
     for (count, topic_bytes) in totals.values() {
         staged_records = staged_records.saturating_add(*count);
         staged_bytes = staged_bytes.saturating_add(*topic_bytes);
+        pause_returned_totals(&mut walked).await;
     }
     if staged_records != u64::try_from(record_count).unwrap_or(u64::MAX) {
-        reset_fetch_totals(totals);
+        zero_fetch_totals(totals).await;
         return None;
     }
     let mut fresh = Vec::new();
+    walked = 0;
     for (topic, (count, topic_bytes)) in totals.iter() {
-        if *count == 0 {
-            continue;
+        if *count != 0 {
+            if let Some(tracker) = metrics.get_mut(topic.as_ref()) {
+                tracker.note_fetched(*count, *topic_bytes, elapsed);
+            } else {
+                fresh.push((Arc::clone(topic), *count, *topic_bytes));
+            }
         }
-        if let Some(tracker) = metrics.get_mut(topic.as_ref()) {
-            tracker.note_fetched(*count, *topic_bytes, elapsed);
-        } else {
-            fresh.push((Arc::clone(topic), *count, *topic_bytes));
-        }
+        pause_returned_totals(&mut walked).await;
     }
+    walked = 0;
     for (topic, count, topic_bytes) in fresh {
         let tracker = crate::metrics::FetchTopicTracker::new();
         tracker.note_fetched(count, topic_bytes, elapsed);
         let _ = metrics.insert(topic, tracker);
+        pause_returned_totals(&mut walked).await;
     }
     if staged_records == 0 {
         return Some(staged_bytes);
     }
-    totals.retain(|_, value| {
-        let keep = value.0 > 0;
-        *value = (0, 0);
-        keep
-    });
+    let pending = std::mem::take(totals);
+    walked = 0;
+    for (topic, value) in pending {
+        if value.0 > 0 {
+            let _ = totals.insert(topic, (0, 0));
+        }
+        pause_returned_totals(&mut walked).await;
+    }
     Some(staged_bytes)
 }
 
-#[test]
-fn fetch_totals_keep_their_buckets() {
+async fn pause_returned_totals(walked: &mut usize) {
+    *walked = walked.saturating_add(1);
+    if *walked == 8 * 1024 {
+        *walked = 0;
+        tokio::task::yield_now().await;
+    }
+}
+
+async fn zero_fetch_totals(totals: &mut FetchTotals) {
+    let mut walked = 0usize;
+    for value in totals.values_mut() {
+        *value = (0, 0);
+        pause_returned_totals(&mut walked).await;
+    }
+}
+
+#[tokio::test]
+async fn fetch_totals_keep_their_buckets() {
     let mut totals = HashMap::new();
     let orders: Arc<str> = Arc::from("orders");
     let payments: Arc<str> = Arc::from("payments");
@@ -10817,7 +10846,7 @@ fn fetch_totals_keep_their_buckets() {
         .get_key_value(orders.as_ref())
         .map(|(key, _)| Arc::clone(key));
     let mut metrics = HashMap::new();
-    let bytes = note_returned_totals(&mut totals, &mut metrics, 3, Duration::from_millis(1));
+    let bytes = note_returned_totals(&mut totals, &mut metrics, 3, Duration::from_millis(1)).await;
     assert_eq!(bytes, Some(12));
     assert!(totals.capacity() >= capacity);
     assert_eq!(totals.get(orders.as_ref()), Some(&(0, 0)));
@@ -10832,12 +10861,12 @@ fn fetch_totals_keep_their_buckets() {
         Some(2)
     );
     let kept = totals.capacity();
-    let bytes = note_returned_totals(&mut totals, &mut metrics, 0, Duration::from_millis(1));
+    let bytes = note_returned_totals(&mut totals, &mut metrics, 0, Duration::from_millis(1)).await;
     assert_eq!(bytes, Some(0));
     assert_eq!(totals.get(orders.as_ref()), Some(&(0, 0)));
     assert_eq!(totals.get(payments.as_ref()), Some(&(0, 0)));
     assert!(totals.capacity() >= kept);
-    let bytes = note_returned_totals(&mut totals, &mut metrics, 1, Duration::from_millis(1));
+    let bytes = note_returned_totals(&mut totals, &mut metrics, 1, Duration::from_millis(1)).await;
     assert_eq!(bytes, None);
     assert_eq!(totals.get(orders.as_ref()), Some(&(0, 0)));
     assert!(totals.capacity() >= kept);
@@ -13265,6 +13294,33 @@ mod tests {
             });
         }
         records
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn noting_many_returned_totals_does_not_hold_the_caller() {
+        let mut totals = HashMap::new();
+        for index in 0..500_000 {
+            let name: Arc<str> = Arc::from(format!("t{index}"));
+            let _ = totals.insert(name, (1u64, 1u64));
+        }
+        let mut metrics = HashMap::new();
+        let started = std::time::Instant::now();
+        let worker = tokio::spawn(async move {
+            note_returned_totals(
+                &mut totals,
+                &mut metrics,
+                500_000,
+                std::time::Duration::from_millis(1),
+            )
+            .await
+        });
+        tokio::time::sleep(std::time::Duration::from_millis(30)).await;
+        worker.abort();
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "noting returned totals held the caller for {elapsed:?}"
+        );
     }
 
     #[tokio::test(flavor = "current_thread")]
