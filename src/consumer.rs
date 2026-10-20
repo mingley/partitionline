@@ -995,7 +995,7 @@ impl ConsumerRecords {
     /// record's offset plus one, with that record's leader epoch and
     /// [`OffsetAndMetadata::NO_METADATA`]. Partitions appear in first-seen
     /// order. A record at [`i64::MAX`] has no next offset, so that partition
-    /// is omitted.
+    /// is omitted. A large batch should use [`Self::next_offsets_async`].
     #[must_use]
     pub fn next_offsets(&self) -> Vec<(TopicPartition, OffsetAndMetadata)> {
         next_offsets_from(
@@ -1005,6 +1005,33 @@ impl ConsumerRecords {
             |rec| rec.offset,
             |rec| rec.leader_epoch,
         )
+    }
+
+    /// Distinct partitions in this batch, pausing every 8,192 records.
+    ///
+    /// This is the same first-run scan as [`Self::next_offsets_async`].
+    /// First-seen order stays the same.
+    #[must_use]
+    pub async fn partitions_async(&self) -> Vec<TopicPartition> {
+        partitions_from_cooperative(&self.records, |rec| &rec.topic, |rec| rec.partition).await
+    }
+
+    /// Next offset to consume per partition, pausing every 8,192 records.
+    ///
+    /// Reading 4,000,000 records of one partition held the caller for 192
+    /// milliseconds. The last offset plus one, the leader epoch, and omission
+    /// of [`i64::MAX`] stay the same. A later run of a partition still replaces
+    /// the offset. Partitions stay in first-seen order.
+    #[must_use]
+    pub async fn next_offsets_async(&self) -> Vec<(TopicPartition, OffsetAndMetadata)> {
+        next_offsets_from_cooperative(
+            &self.records,
+            |rec| &rec.topic,
+            |rec| rec.partition,
+            |rec| rec.offset,
+            |rec| rec.leader_epoch,
+        )
+        .await
     }
 }
 
@@ -1139,14 +1166,186 @@ pub(crate) fn next_offsets_from<T>(
     }
     last.into_iter()
         .filter_map(|(topic, partition, offset, epoch)| {
-            let next = exclusive_fetch_offset(offset)?;
-            let mut metadata = OffsetAndMetadata::new(next);
-            if let Some(epoch) = epoch {
-                metadata = metadata.with_leader_epoch(epoch);
-            }
-            Some((TopicPartition::new(topic.clone(), partition), metadata))
+            next_offset_row(topic, partition, offset, epoch)
         })
         .collect()
+}
+
+/// Count one scanned record and pause every 8,192.
+///
+/// Reading 4,000,000 records of one partition held the caller for 192
+/// milliseconds.
+async fn pause_scanned_record(walked: &mut usize) {
+    *walked = walked.saturating_add(1);
+    if *walked == 8 * 1024 {
+        tokio::task::yield_now().await;
+        *walked = 0;
+    }
+}
+
+fn next_offset_row(
+    topic: &TopicName,
+    partition: i32,
+    offset: i64,
+    epoch: Option<i32>,
+) -> Option<(TopicPartition, OffsetAndMetadata)> {
+    let next = exclusive_fetch_offset(offset)?;
+    let mut metadata = OffsetAndMetadata::new(next);
+    if let Some(epoch) = epoch {
+        metadata = metadata.with_leader_epoch(epoch);
+    }
+    Some((TopicPartition::new(topic.clone(), partition), metadata))
+}
+
+/// Distinct partitions in first-seen order, pausing every 8,192 records.
+///
+/// The first run is the same scan as [`next_offsets_from_cooperative`].
+pub(crate) async fn partitions_from_cooperative<T>(
+    records: &[T],
+    topic_of: impl Fn(&T) -> &TopicName,
+    partition_of: impl Fn(&T) -> i32,
+) -> Vec<TopicPartition> {
+    let Some(first) = records.first() else {
+        return Vec::new();
+    };
+    let topic = topic_of(first);
+    let partition = partition_of(first);
+    let mut cursor = 1usize;
+    let mut walked = 0usize;
+    pause_scanned_record(&mut walked).await;
+    while let Some(record) = records.get(cursor) {
+        if partition_of(record) != partition || topic_of(record) != topic {
+            break;
+        }
+        cursor = cursor.saturating_add(1);
+        pause_scanned_record(&mut walked).await;
+    }
+    if cursor == records.len() {
+        return vec![TopicPartition::new(topic.clone(), partition)];
+    }
+    let mut seen_order: Vec<(&TopicName, i32)> = Vec::new();
+    let mut seen: HashSet<(&TopicName, i32)> = HashSet::new();
+    let _ = seen.insert((topic, partition));
+    seen_order.push((topic, partition));
+    let mut index = cursor;
+    while index < records.len() {
+        let Some(first) = records.get(index) else {
+            break;
+        };
+        let topic = topic_of(first);
+        let partition = partition_of(first);
+        pause_scanned_record(&mut walked).await;
+        let mut cursor = index.saturating_add(1);
+        while let Some(record) = records.get(cursor) {
+            if partition_of(record) != partition || topic_of(record) != topic {
+                break;
+            }
+            cursor = cursor.saturating_add(1);
+            pause_scanned_record(&mut walked).await;
+        }
+        if seen.insert((topic, partition)) {
+            seen_order.push((topic, partition));
+        }
+        index = cursor;
+    }
+    let mut out = Vec::with_capacity(seen_order.len());
+    let mut built = 0usize;
+    for (topic, partition) in seen_order {
+        out.push(TopicPartition::new(topic.clone(), partition));
+        pause_scanned_record(&mut built).await;
+    }
+    out
+}
+
+/// Last offset plus one for each partition, pausing every 8,192 records.
+///
+/// Reading 4,000,000 records of one partition held the caller for 192
+/// milliseconds. A later run of a partition still replaces the offset.
+/// [`i64::MAX`] still omits that partition. First-seen order stays the same.
+pub(crate) async fn next_offsets_from_cooperative<T>(
+    records: &[T],
+    topic_of: impl Fn(&T) -> &TopicName,
+    partition_of: impl Fn(&T) -> i32,
+    offset_of: impl Fn(&T) -> i64,
+    epoch_of: impl Fn(&T) -> Option<i32>,
+) -> Vec<(TopicPartition, OffsetAndMetadata)> {
+    let Some(first) = records.first() else {
+        return Vec::new();
+    };
+    let topic = topic_of(first);
+    let partition = partition_of(first);
+    let mut end = 0usize;
+    let mut cursor = 1usize;
+    let mut walked = 0usize;
+    pause_scanned_record(&mut walked).await;
+    while let Some(record) = records.get(cursor) {
+        if partition_of(record) != partition || topic_of(record) != topic {
+            break;
+        }
+        end = cursor;
+        cursor = cursor.saturating_add(1);
+        pause_scanned_record(&mut walked).await;
+    }
+    if cursor == records.len() {
+        let Some(tail) = records.get(end) else {
+            return Vec::new();
+        };
+        return match next_offset_row(topic, partition, offset_of(tail), epoch_of(tail)) {
+            Some(row) => vec![row],
+            None => Vec::new(),
+        };
+    }
+    let Some(tail) = records.get(end) else {
+        return Vec::new();
+    };
+    let mut last: Vec<(&TopicName, i32, i64, Option<i32>)> = Vec::new();
+    let mut slots: HashMap<(&TopicName, i32), usize> = HashMap::new();
+    last.push((topic, partition, offset_of(tail), epoch_of(tail)));
+    let _ = slots.insert((topic, partition), 0);
+    let mut index = cursor;
+    while index < records.len() {
+        let Some(first) = records.get(index) else {
+            break;
+        };
+        let topic = topic_of(first);
+        let partition = partition_of(first);
+        pause_scanned_record(&mut walked).await;
+        let mut end = index;
+        let mut cursor = index.saturating_add(1);
+        while let Some(record) = records.get(cursor) {
+            if partition_of(record) != partition || topic_of(record) != topic {
+                break;
+            }
+            end = cursor;
+            cursor = cursor.saturating_add(1);
+            pause_scanned_record(&mut walked).await;
+        }
+        let Some(tail) = records.get(end) else {
+            break;
+        };
+        let offset = offset_of(tail);
+        let epoch = epoch_of(tail);
+        if let Some(&slot) = slots.get(&(topic, partition)) {
+            if let Some(existing) = last.get_mut(slot) {
+                existing.2 = offset;
+                existing.3 = epoch;
+            }
+        } else {
+            let slot = last.len();
+            let _ = slots.insert((topic, partition), slot);
+            last.push((topic, partition, offset, epoch));
+        }
+        index = cursor;
+    }
+    let mut out = Vec::with_capacity(last.len());
+    let mut built = 0usize;
+    for (topic, partition, offset, epoch) in last {
+        if let Some(row) = next_offset_row(topic, partition, offset, epoch) {
+            out.push(row);
+        }
+        pause_scanned_record(&mut built).await;
+    }
+    out
 }
 
 impl Deref for ConsumerRecords {
@@ -13406,6 +13605,54 @@ mod tests {
         );
         drop_held_fetches(&mut few).await;
         assert!(few.topics.is_empty());
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn reading_many_next_offsets_does_not_hold_the_caller() {
+        let records = ConsumerRecords::from(many_fetched(4_000_000));
+        let started = std::time::Instant::now();
+        let finished = tokio::select! {
+            offsets = records.next_offsets_async() => Some(offsets),
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => None,
+        };
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "reading next offsets held the caller for {elapsed:?}"
+        );
+        let offsets = match finished {
+            Some(offsets) => offsets,
+            None => records.next_offsets_async().await,
+        };
+        let next = offsets.first().map(|(partition, metadata)| {
+            (
+                partition.partition,
+                metadata.offset(),
+                metadata.leader_epoch(),
+            )
+        });
+        assert_eq!(next, Some((0, 4_000_000, Some(4))));
+        let parts = records.partitions_async().await;
+        assert_eq!(parts.len(), 1);
+        let mut later = rec("a", 0, 8);
+        later.leader_epoch = Some(9);
+        let interleaved = ConsumerRecords::from(vec![rec("a", 0, 1), rec("b", 0, 4), later]);
+        assert_eq!(
+            interleaved.next_offsets_async().await,
+            vec![
+                (
+                    TopicPartition::new("a", 0),
+                    OffsetAndMetadata::new(9).with_leader_epoch(9)
+                ),
+                (TopicPartition::new("b", 0), OffsetAndMetadata::new(5)),
+            ]
+        );
+        let at_end = ConsumerRecords::from(vec![rec("a", 0, i64::MAX)]);
+        assert!(at_end.next_offsets_async().await.is_empty());
+        assert_eq!(
+            at_end.partitions_async().await,
+            vec![TopicPartition::new("a", 0)]
+        );
     }
 
     #[tokio::test(flavor = "current_thread")]

@@ -418,7 +418,7 @@ impl ShareRecords {
     /// record's offset plus one, with that record's leader epoch and
     /// [`crate::OffsetAndMetadata::NO_METADATA`]. Partitions appear in
     /// first-seen order. A record at [`i64::MAX`] has no next offset, so that
-    /// partition is omitted.
+    /// partition is omitted. A large batch should use [`Self::next_offsets_async`].
     #[must_use]
     pub fn next_offsets(&self) -> Vec<(crate::TopicPartition, crate::OffsetAndMetadata)> {
         crate::consumer::next_offsets_from(
@@ -428,6 +428,39 @@ impl ShareRecords {
             |rec| rec.offset,
             |rec| rec.leader_epoch,
         )
+    }
+
+    /// Distinct partitions in this batch, pausing every 8,192 records.
+    ///
+    /// First-seen order stays the same.
+    #[must_use]
+    pub async fn partitions_async(&self) -> Vec<crate::TopicPartition> {
+        crate::consumer::partitions_from_cooperative(
+            &self.records,
+            |rec| &rec.topic,
+            |rec| rec.partition,
+        )
+        .await
+    }
+
+    /// Next offset to consume per partition, pausing every 8,192 records.
+    ///
+    /// Reading 4,000,000 records of one partition held the caller for 192
+    /// milliseconds. The last offset plus one, the leader epoch, and omission
+    /// of [`i64::MAX`] stay the same. A later run of a partition still replaces
+    /// the offset. Partitions stay in first-seen order.
+    #[must_use]
+    pub async fn next_offsets_async(
+        &self,
+    ) -> Vec<(crate::TopicPartition, crate::OffsetAndMetadata)> {
+        crate::consumer::next_offsets_from_cooperative(
+            &self.records,
+            |rec| &rec.topic,
+            |rec| rec.partition,
+            |rec| rec.offset,
+            |rec| rec.leader_epoch,
+        )
+        .await
     }
 }
 

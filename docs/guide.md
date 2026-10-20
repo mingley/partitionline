@@ -191,7 +191,7 @@ async fn run() -> partitionline::Result<()> {
                 );
             }
             group
-                .commit_with_metadata_timeout(records.next_offsets(), Duration::from_secs(5))
+                .commit_with_metadata_timeout(records.next_offsets_async().await, Duration::from_secs(5))
                 .await?;
             let committed = group.committed_timeout(Duration::from_secs(5)).await?;
             let expected_next = md.offset + 1;
@@ -341,7 +341,7 @@ let mut group = ConsumerGroup::join_topics(
 )
 .await?;
 let recs = group.poll().await?;
-group.commit_with_metadata(recs.next_offsets()).await?;
+group.commit_with_metadata(recs.next_offsets_async().await).await?;
 group.leave().await?;
 # Ok(())
 # }
@@ -368,7 +368,9 @@ saved totals do not match the batch. Saved per-topic totals are applied the
 same way. A poll with no consume interceptor returns the fetched batch
 without copying each record. Dropping an assignment clears queued records
 in those same slices. Framed batches kept for a later poll are dropped the
-same way. See the
+same way. Reading the next offset of each returned partition pauses every
+8,192 records. The last offset plus one and its leader epoch stay the same.
+See the
 [resource contract](resource-contract.md#caller-deadlines).
 
 Also: sticky / cooperative-sticky, KIP-848 (`join_consumer` /
@@ -670,7 +672,7 @@ async fn run() -> partitionline::Result<()> {
                 println!("processed {}-{}@{}", record.topic, record.partition, record.offset);
             }
             let committed = group
-                .commit_with_metadata_timeout(batch.next_offsets(), Duration::from_secs(2))
+                .commit_with_metadata_timeout(batch.next_offsets_async().await, Duration::from_secs(2))
                 .await;
             group.resume(paused);
             committed?;
