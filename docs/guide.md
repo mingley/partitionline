@@ -667,7 +667,7 @@ async fn run() -> partitionline::Result<()> {
             if batch.is_empty() {
                 continue;
             }
-            let paused = group.assignment();
+            let paused = group.assignment_async().await;
             group.pause(paused.clone());
             for record in &batch {
                 println!("processed {}-{}@{}", record.topic, record.partition, record.offset);
