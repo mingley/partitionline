@@ -10339,7 +10339,7 @@ impl Consumer {
         let removed = self.pending.retain_assigned(&assigned);
         self.pending.retain_assigned_runs(&assigned).await;
         self.buffered_bytes = self.buffered_bytes.saturating_sub(removed);
-        self.retain_held_assigned(&assigned);
+        self.retain_held_assigned(&assigned).await;
     }
 
     fn drop_retained_for(&mut self, topic: &str, partition: i32) {
@@ -10351,22 +10351,8 @@ impl Consumer {
         }
     }
 
-    fn retain_held_assigned(&mut self, assigned: &PartitionMap<()>) {
-        let topics = std::mem::take(&mut self.retained.topics);
-        for (topic, partitions) in topics {
-            let mut kept = Vec::new();
-            for (partition, held) in partitions {
-                if assigned.contains(&topic, partition) {
-                    kept.push((partition, held));
-                } else {
-                    for batch in held.batches {
-                        self.retained_bytes =
-                            self.retained_bytes.saturating_sub(batch.framed_len());
-                    }
-                }
-            }
-            restore_kept_held(&mut self.retained, topic, kept);
-        }
+    async fn retain_held_assigned(&mut self, assigned: &PartitionMap<()>) {
+        retain_held_topics(&mut self.retained, &mut self.retained_bytes, assigned).await;
     }
 
     /// Keep framed batches so a later poll can decode them without another fetch.
@@ -10857,8 +10843,8 @@ fn a_fetch_completion_map_keeps_its_buckets() {
     assert!(slot.topics.capacity() >= capacity);
 }
 
-#[test]
-fn retained_topics_share_a_long_name() {
+#[tokio::test]
+async fn retained_topics_share_a_long_name() {
     let mut retained = PartitionMap::new();
     let long = TopicName::from("topic-name-longer-than-twenty-three");
     let TopicName::Heap(stored) = &long else {
@@ -10869,7 +10855,7 @@ fn retained_topics_share_a_long_name() {
         last_stable_offset: 1,
         batches: std::collections::VecDeque::new(),
     };
-    restore_kept_held(&mut retained, long, vec![(0, held()), (1, held())]);
+    restore_kept_held(&mut retained, long, vec![(0, held()), (1, held())]).await;
     let groups = retained.topic_groups();
     let Some((topic, partitions)) = groups.first() else {
         panic!("missing topic");
@@ -11336,12 +11322,47 @@ fn unique_assigned_topics(assigned: &[(Arc<str>, i32, i64)]) -> Vec<String> {
 ///
 /// A name that is already in its slot is left on that allocation. A different
 /// name reuses the slot's buffer.
-fn restore_kept_held(
+/// Keep framed fetches whose partitions are still assigned.
+///
+/// The walk pauses every 8,192 partitions. Without that pause, keeping
+/// 2,000,000 held fetches held the caller for 2,927 milliseconds.
+///
+/// A partition that is no longer assigned drops its framed batches. Partitions
+/// that stay keep those batches, including a shared long topic name.
+async fn retain_held_topics(
+    retained: &mut PartitionMap<HeldFetch>,
+    retained_bytes: &mut usize,
+    assigned: &PartitionMap<()>,
+) {
+    let topics = std::mem::take(&mut retained.topics);
+    let mut walked = 0usize;
+    for (topic, partitions) in topics {
+        let mut kept = Vec::new();
+        for (partition, held) in partitions {
+            if assigned.contains(&topic, partition) {
+                kept.push((partition, held));
+            } else {
+                for batch in held.batches {
+                    *retained_bytes = retained_bytes.saturating_sub(batch.framed_len());
+                }
+            }
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+        restore_kept_held(retained, topic, kept).await;
+    }
+}
+
+async fn restore_kept_held(
     retained: &mut PartitionMap<HeldFetch>,
     mut topic: TopicName,
     kept: Vec<(i32, HeldFetch)>,
 ) {
     let count = kept.len();
+    let mut walked = 0usize;
     for (index, (partition, held)) in kept.into_iter().enumerate() {
         let name = if index.saturating_add(1) == count {
             std::mem::replace(&mut topic, TopicName::from(""))
@@ -11349,6 +11370,11 @@ fn restore_kept_held(
             topic.clone()
         };
         let _previous = retained.insert_owned(name, partition, held);
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
     }
 }
 
@@ -13127,6 +13153,61 @@ mod tests {
             });
         }
         records
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn retaining_many_held_fetches_does_not_hold_the_caller() {
+        let name = TopicName::from("orders");
+        let mut retained = PartitionMap::new();
+        for partition in 0..2_000_000 {
+            let _ = retained.insert_owned(
+                name.clone(),
+                partition,
+                HeldFetch {
+                    last_stable_offset: 1,
+                    batches: std::collections::VecDeque::new(),
+                },
+            );
+        }
+        let mut assigned = PartitionMap::new();
+        for partition in 0..2_000_000 {
+            let _ = assigned.insert("orders", partition, ());
+        }
+        let mut retained_bytes = 0usize;
+        let started = std::time::Instant::now();
+        let worker = tokio::spawn(async move {
+            retain_held_topics(&mut retained, &mut retained_bytes, &assigned).await;
+        });
+        tokio::time::sleep(std::time::Duration::from_millis(30)).await;
+        worker.abort();
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "retaining held fetches held the caller for {elapsed:?}"
+        );
+        let mut sample = PartitionMap::new();
+        let _ = sample.insert_owned(
+            TopicName::from("orders"),
+            1,
+            HeldFetch {
+                last_stable_offset: 1,
+                batches: std::collections::VecDeque::new(),
+            },
+        );
+        let _ = sample.insert_owned(
+            TopicName::from("orders"),
+            2,
+            HeldFetch {
+                last_stable_offset: 1,
+                batches: std::collections::VecDeque::new(),
+            },
+        );
+        let mut keep = PartitionMap::new();
+        let _ = keep.insert("orders", 1, ());
+        let mut bytes = 0usize;
+        retain_held_topics(&mut sample, &mut bytes, &keep).await;
+        assert!(sample.contains("orders", 1));
+        assert!(!sample.contains("orders", 2));
     }
 
     #[tokio::test(flavor = "current_thread")]

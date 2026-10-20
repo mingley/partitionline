@@ -358,7 +358,8 @@ and finished slices are kept. Pending fetch runs that are no longer assigned
 are dropped in those same slices. Queued runs for a partition that moved
 are dropped the same way. Counting the records a poll can return pauses
 the same way when many partitions are paused. Putting a returned batch back
-in front of the buffer pauses the same way. See the
+in front of the buffer pauses the same way. Framed fetches for partitions
+that are still assigned are kept in those same slices. See the
 [resource contract](resource-contract.md#caller-deadlines).
 
 Also: sticky / cooperative-sticky, KIP-848 (`join_consumer` /
