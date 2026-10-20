@@ -120,6 +120,7 @@ These walks include:
 - indexing many partitions of one topic in a produce batch
 - assembling produce groups when a batch names many topics
 - encoding many topics into one produce request
+- dropping acknowledgement slots from the previous produce batch
 - splitting queued sends that still need topic metadata
 - copying topic rows for a fetch metrics snapshot
 - copying topic rows for a produce metrics snapshot

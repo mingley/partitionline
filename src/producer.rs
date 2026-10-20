@@ -6851,15 +6851,28 @@ impl AckIndex {
         self.drop_previous_generation(generation).await;
     }
 
+    /// Drop acknowledgement slots from the previous batch.
+    ///
+    /// Dropping 100,000 topics held the caller for 167 milliseconds. One
+    /// partition per topic never reached the partition pause. The walk now
+    /// pauses every 8,192 partitions across topics. A topic left empty is
+    /// still removed. The current batch stays.
     async fn drop_previous_generation(&mut self, generation: u64) {
         let names: Vec<Arc<str>> = self.topics.keys().cloned().collect();
+        let mut walked = 0usize;
         for name in names {
             let partitions: Vec<i32> = self
                 .topics
                 .get(name.as_ref())
                 .map(|parts| parts.keys().copied().collect())
                 .unwrap_or_default();
-            let mut walked = 0usize;
+            if partitions.is_empty() {
+                walked = walked.saturating_add(1);
+                if walked == 8 * 1024 {
+                    walked = 0;
+                    tokio::task::yield_now().await;
+                }
+            }
             for partition in partitions {
                 let remove = self
                     .topics
@@ -14059,6 +14072,41 @@ mod tests {
         index.fill(&repeated).await;
         assert_eq!(index.get("orders", 4), Some(0));
         assert_eq!(index.get("orders", 0), None);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn dropping_many_ack_topics_does_not_hold_the_caller() {
+        // 100_000 topics: dropping the previous batch held the caller 167ms.
+        let groups: Vec<(Arc<str>, i32, Vec<Pending>)> = (0..100_000)
+            .map(|index| (Arc::<str>::from(format!("topic-{index}")), 0, Vec::new()))
+            .collect();
+        let mut index = AckIndex::default();
+        index.fill(&groups).await;
+        let topic: Arc<str> = Arc::from("orders");
+        let again = [(Arc::clone(&topic), 0, Vec::new())];
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = index.fill(&again) => {}
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "dropping previous ack topics held the caller for {elapsed:?}"
+        );
+        let mut index = AckIndex::default();
+        let alpha: Arc<str> = Arc::from("alpha");
+        let beta: Arc<str> = Arc::from("beta");
+        index
+            .fill(&[
+                (Arc::clone(&alpha), 1, Vec::new()),
+                (Arc::clone(&beta), 2, Vec::new()),
+            ])
+            .await;
+        index.fill(&again).await;
+        assert_eq!(index.get("orders", 0), Some(0));
+        assert_eq!(index.get("alpha", 1), None);
+        assert_eq!(index.get("beta", 2), None);
     }
 
     #[tokio::test(flavor = "current_thread")]
