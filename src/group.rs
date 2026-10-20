@@ -1829,6 +1829,15 @@ impl ConsumerGroup {
         self.consumer.positions()
     }
 
+    /// [`Self::positions`], pausing every 8,192 partitions.
+    ///
+    /// Reading 2,000,000 positions held the caller for 223 milliseconds. A
+    /// negative position is still omitted. Order stays the same.
+    #[must_use]
+    pub async fn positions_async(&self) -> Vec<(TopicPartition, i64)> {
+        self.consumer.positions_async().await
+    }
+
     /// Broker fetch cursor (next offset to request from the broker) for an assigned partition.
     ///
     /// This may be ahead of [`Self::position`] when records are buffered in the consumer

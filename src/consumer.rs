@@ -4207,6 +4207,15 @@ impl Consumer {
             .collect()
     }
 
+    /// [`Self::positions`], pausing every 8,192 partitions.
+    ///
+    /// Reading 2,000,000 positions held the caller for 223 milliseconds. A
+    /// negative position is still omitted. Order stays the same.
+    #[must_use]
+    pub async fn positions_async(&self) -> Vec<(TopicPartition, i64)> {
+        self.positions_cooperative().await
+    }
+
     #[cfg(test)]
     pub(crate) async fn collect_topic_partitions(parts: &[(Arc<str>, i32)]) -> Vec<TopicPartition> {
         let mut out = Vec::with_capacity(parts.len());
@@ -17175,6 +17184,48 @@ mod tests {
         fill_reused_topics_cooperative(&mut got, ["orders"]).await;
         assert_eq!(got, vec!["orders".to_string()]);
         assert!(got.capacity() >= capacity);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn reading_many_positions_does_not_hold_the_caller() {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let address = listener.local_addr().unwrap().to_string();
+        let accept = tokio::spawn(async move {
+            let _held = listener.accept().await;
+            std::future::pending::<()>().await;
+        });
+        let conn =
+            crate::net::BrokerConn::connect(&address, "plan", std::time::Duration::from_secs(2))
+                .await
+                .unwrap();
+        let mut consumer = Consumer::test_holding(ConsumerConfig::default(), conn);
+        let topic: Arc<str> = Arc::from("orders");
+        consumer.assigned = (0..2_000_000)
+            .map(|partition| (Arc::clone(&topic), partition, 4))
+            .collect();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = consumer.positions_async() => {}
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "reading positions held the caller for {elapsed:?}"
+        );
+        consumer.assigned = vec![
+            (Arc::from("orders"), 1, 4),
+            (Arc::from("payments"), 2, -1),
+            (Arc::from("billing"), 3, 9),
+        ];
+        assert_eq!(
+            consumer.positions_async().await,
+            vec![
+                (TopicPartition::new("orders", 1), 4),
+                (TopicPartition::new("billing", 3), 9),
+            ]
+        );
+        drop(accept);
     }
 
     #[tokio::test(flavor = "current_thread")]

@@ -371,6 +371,8 @@ in those same slices. Framed batches kept for a later poll are dropped the
 same way. Reading the next offset of each returned partition pauses every
 8,192 records. The last offset plus one and its leader epoch stay the same.
 A fetch or produce metrics snapshot copies its topic rows in those same slices.
+Copying an assignment, or the delivered position of each partition, pauses
+the same way. A negative position is still omitted.
 See the
 [resource contract](resource-contract.md#caller-deadlines).
 
