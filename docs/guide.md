@@ -275,15 +275,18 @@ processing idempotent when it changes
 external state. Transactions are the separate recipe below when broker
 records and consumed offsets need one atomic outcome.
 
-Consumer-group coordinator discovery retries errors 14, 15, and 16 using
-`retry_backoff` and `retry_backoff_max`. Connection setup, authentication,
-requests, and retry waits share one `request_timeout` budget. Authorization
-errors fail immediately. This applies to classic and KIP-848 discovery.
+Consumer-group coordinator discovery retries
+`COORDINATOR_LOAD_IN_PROGRESS` (14), `COORDINATOR_NOT_AVAILABLE` (15), and
+`NOT_COORDINATOR` (16) using `retry_backoff` and `retry_backoff_max`.
+Connection setup, authentication, requests, and retry waits share one
+`request_timeout` budget. Authorization errors fail immediately. This
+applies to classic and KIP-848 discovery.
 
-Producer initialization also retries errors 14, 15, and 16. Transaction
-coordinator discovery, producer-ID allocation and their backoff share one
-`request_timeout` budget. Authorization, invalid transaction state and fencing
-errors stop initialization. These retries do not resend application records.
+Producer initialization retries the same three coordinator errors.
+Transaction coordinator discovery, producer-id allocation, and their
+backoff share one `request_timeout` budget. Authorization, invalid
+transaction state, and fencing stop initialization. These retries do not
+resend application records.
 
 InitProducerId negotiates v0–v6. Ordinary producers keep both v6 two-phase
 flags false and use the regular returned producer ID and epoch. Typed codecs
