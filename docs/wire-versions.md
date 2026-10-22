@@ -885,276 +885,150 @@ Kafka 4.0 `validVersions` is `0-2`.
 
 ### AlterConfigs
 
-Spoken versions: 0–2.
+Spoken versions: 0–2. Version 3 and above are not spoken.
 
-AlterConfigs (legacy api 33) v0–v1 are classic.
+This is legacy api 33. v0–v1 are classic. v2 is flexible. Request header version 2, response header version 1. `ThrottleTimeMs` is JSON `0+` on every spoken version. `shouldClientThrottle` applies from v1 (KIP-219).
 
-ThrottleTimeMs is JSON `0+` (on the wire for v0–v2).
-
-`shouldClientThrottle` is v1+ (KIP-219).
-
-v2 is flexible (compact arrays/strings plus tagged fields; request header 2, response header 1).
-
-`alter_configs_for` is Java `alterConfigs(Map)` (Resources of N).
-
-`alter_configs_timeout` is Java `AlterConfigsOptions.timeoutMs` (RPC deadline; AlterConfigs has no TimeoutMs).
+`alter_configs_for` sends N resources (Java `alterConfigs(Map)`). `alter_configs_timeout` is the RPC deadline. The request has no `TimeoutMs` field.
 
 Kafka 4.0 `validVersions` is `0-2`.
-
-v3+ is not spoken.
 
 ### DeleteRecords
 
-Spoken versions: 0–2.
+Spoken versions: 0–2. Version 3 and above are not spoken.
 
-DeleteRecords v0–v1 are classic.
+v0–v1 are classic. v2 is flexible. Request header version 2, response header version 1. `ThrottleTimeMs` is JSON `0+` on every spoken version. `shouldClientThrottle` applies from v1 (KIP-219).
 
-ThrottleTimeMs is JSON `0+` (on the wire for v0–v2).
-
-`shouldClientThrottle` is v1+ (KIP-219).
-
-v2 is flexible (compact arrays/strings plus tagged fields; request header 2, response header 1).
-
-`delete_records_for` sends one Topics/Partitions array per leader (Java `deleteRecords(Map)` of `RecordsToDelete`).
-
-`delete_records_timeout` / `delete_records_for_timeout` are Java `DeleteRecordsOptions.timeoutMs` (RPC deadline and TimeoutMs).
+`delete_records_for` sends one topics-and-partitions array per leader (Java `deleteRecords(Map)` of `RecordsToDelete`). `delete_records_timeout` and `delete_records_for_timeout` are both the RPC deadline and `TimeoutMs`.
 
 Kafka 4.0 `validVersions` is `0-2`.
-
-v3+ is not spoken.
 
 ### DescribeProducers
 
-Spoken versions: 0.
+Spoken versions: 0. Version 1 and above are not spoken.
 
-DescribeProducers v0 is flexible (compact arrays/strings plus tagged fields; request header 2, response header 1).
+v0 is flexible. Request header version 2, response header version 1. There is one empty-topics body and no top-level error code. `ThrottleTimeMs` is JSON `0+`. `::new` fills `0`.
 
-ThrottleTimeMs is JSON `0+` (`DescribeProducersResponse.throttle_time_ms`; encode previously always wrote `0` and decode discarded; `::new` fills `0`).
-
-Empty-topics only one version.
-
-There is no top-level ErrorCode.
-
-`describe_producers_for` sends one Topics/PartitionIndexes array per leader (Java `describeProducers(Collection)`).
-
-`describe_producers_for_on_broker` is Java `DescribeProducersOptions.brokerId` (one RPC to that broker; `NOT_LEADER_OR_FOLLOWER` is not retried on the Metadata leader).
-
-`describe_producers_timeout` / `describe_producers_for_timeout` are Java `DescribeProducersOptions.timeoutMs` (RPC deadline; DescribeProducers has no TimeoutMs).
+`describe_producers_for` sends one topics-and-partition-indexes array per leader (Java `describeProducers(Collection)`). Without `brokerId`, a `NOT_LEADER_OR_FOLLOWER` answer is the end of the attempt. The call does not move to the metadata leader, the controller, or the transaction coordinator. `describe_producers_for_on_broker` sends one RPC to that broker (Java `DescribeProducersOptions.brokerId`) and does not retry `NOT_LEADER_OR_FOLLOWER` against the metadata leader. The timeouts are the RPC deadline. The request has no `TimeoutMs` field.
 
 Kafka 4.0 `validVersions` is `0`.
 
-v1+ is not spoken.
-
-Partition-leader hop only (`NOT_LEADER_OR_FOLLOWER`) unless `brokerId` is set; not a controller hop and not a transaction-coordinator hop.
-
 ### AllocateProducerIds
 
-Spoken versions: 0.
+Spoken versions: 0. Version 1 and above are not spoken.
 
-AllocateProducerIds v0 is flexible (compact tagged fields; request header 2, response header 1).
+v0 is flexible: compact tagged fields. Request header version 2, response header version 1. The top-level error code is at bytes 4–5. `ThrottleTimeMs` is JSON `0+`. `::new` fills `0`.
 
-ThrottleTimeMs is JSON `0+` (`AllocateProducerIdsResponse.throttle_time_ms`; encode previously always wrote `0` and decode discarded; `::new` fills `0`).
-
-Top-level ErrorCode is at bytes 4–5.
-
-`AllocateProducerIdsResponse.error_counts` is Java `AllocateProducerIdsResponse.errorCounts` (top-level ErrorCode only, including `NONE`; Java `Collections.singletonMap`; ProducerIdStart / ProducerIdLen are not counted).
-
-`AllocateProducerIdsRequest.error_response` is Java `AllocateProducerIdsRequest.getErrorResponse` (ProducerIdStart / ProducerIdLen JSON default `0`; ThrottleTimeMs JSON `0+`; convenience fills `0`; official Java sets `throttleTimeMs` from the argument; request BrokerId / BrokerEpoch are not copied).
+`error_counts` counts that code only, including `NONE`. `ProducerIdStart` and `ProducerIdLen` are not counted. Java `getErrorResponse` leaves both at the JSON default `0` and does not copy `BrokerId` or `BrokerEpoch`.
 
 Kafka 4.0 `validVersions` is `"0"`.
-
-v1+ is not spoken.
 
 ### UnregisterBroker
 
-Spoken versions: 0.
+Spoken versions: 0. Version 1 and above are not spoken.
 
-UnregisterBroker v0 is flexible (compact strings plus tagged fields; request header 2, response header 1).
+v0 is flexible. Request header version 2, response header version 1. There is one empty-`ErrorMessage` body. The top-level error code is at bytes 4–5. `ThrottleTimeMs` is JSON `0+`. `::new` fills `0`.
 
-ThrottleTimeMs is JSON `0+` (`UnregisterBrokerResponse.throttle_time_ms`; encode previously always wrote `0` and decode discarded; `::new` fills `0`).
-
-Empty-ErrorMessage only one version.
-
-Top-level ErrorCode is at bytes 4–5.
-
-`UnregisterBrokerRequest.error_response` is Java `UnregisterBrokerRequest.getErrorResponse` (ErrorMessage JSON-null; ThrottleTimeMs JSON `0+`; convenience fills `0`; official Java sets `throttleTimeMs` from the argument; request BrokerId is not copied).
+Java `getErrorResponse` sets `ErrorMessage` to JSON null and does not copy `BrokerId`.
 
 Kafka 4.0 `validVersions` is `"0"`.
 
-v1+ is not spoken.
-
 ### DescribeCluster
 
-Spoken versions: 0–2.
+Spoken versions: 0–2. Version 3 and above are not spoken.
 
-DescribeCluster v0–v2 are flexible from v0 (compact strings/arrays plus tagged fields; request header 2, response header 1).
+v0–v2 are flexible from v0. Request header version 2, response header version 1. The empty-brokers body differs between v0 and v1. v1 and v2 share one body. The top-level error code is at bytes 4–5.
 
-v1 EndpointType.
+v1 adds `EndpointType`. v2 adds `IsFenced`. `ThrottleTimeMs` is JSON `0+`. `ClusterDescription::new` fills `0`. `error_counts` counts the top-level error code only, including `NONE`. Brokers are not counted.
 
-v2 IsFenced.
-
-ThrottleTimeMs is JSON `0+` (`ClusterDescription.throttle_time_ms`; encode previously always wrote `0` and decode discarded; `::new` fills `0`).
-
-Empty-Brokers v0 and v1 bodies differ; v1 and v2 bodies match.
-
-Top-level ErrorCode is at bytes 4–5.
-
-`DescribeClusterResponse.error_counts` is Java `DescribeClusterResponse.errorCounts` (top-level ErrorCode only, including `NONE`; Java `Collections.singletonMap`; brokers are not counted).
-
-`DescribeClusterRequest.error_response` is Java `DescribeClusterRequest.getErrorResponse` (empty Brokers; ClusterId / ControllerId / EndpointType / ClusterAuthorizedOperations JSON defaults; ErrorMessage JSON-null; ThrottleTimeMs JSON `0+`; convenience fills `0`; official Java does not set `throttleTimeMs` from the argument; request IncludeClusterAuthorizedOperations / EndpointType / IncludeFencedBrokers are not copied).
+Java `getErrorResponse` leaves `Brokers` empty, uses the JSON defaults for `ClusterId`, `ControllerId`, `EndpointType`, and `ClusterAuthorizedOperations`, sets `ErrorMessage` to JSON null, and does not copy `throttleTimeMs` from its argument. It also does not copy `IncludeClusterAuthorizedOperations`, `EndpointType`, or `IncludeFencedBrokers`.
 
 Kafka 4.0 `validVersions` is `0-2`.
 
-v3+ is not spoken.
-
 ### CreateAcls, DescribeAcls, DeleteAcls
 
-Spoken versions: 0–3.
+Spoken versions: 0–3. Version 4 and above are not spoken.
 
-CreateAcls / DescribeAcls / DeleteAcls v0–v1 are classic.
+v0–v1 are classic. v2–v3 are flexible. Request header version 2, response header version 1. v3 is the same layout as v2 and adds the user resource type. v1 adds `ResourcePatternType` and `PatternTypeFilter`. Create uses `LITERAL`. Describe and delete filters use `ANY`.
 
-v1 adds ResourcePatternType / PatternTypeFilter (LITERAL on create; ANY on describe/delete filters).
+| API | Throttle and errors |
+|---|---|
+| CreateAcls | `ThrottleTimeMs` is JSON `0+` (`encode_create_acls_response_with_throttle`). The convenience encoder writes `0`. v0 and v1 share one empty-results body. v2 and v3 share another. There is no top-level error code. |
+| DescribeAcls | `ThrottleTimeMs` and the top-level error code are JSON `0+`. The convenience encoder writes `0` and a null `ErrorMessage`. v0 and v1 share one empty-resources body. v2 and v3 share another. The error code is at bytes 4–5. `error_counts` counts that code only, including `NONE`. `error` is an `ApiError` from the code and the message. This error code is not a CreateAcls result code, a DeleteAcls filter code, a DeleteAcls matching code, or the Metadata error code. |
+| DeleteAcls | `ThrottleTimeMs` is JSON `0+` (`encode_delete_acls_filter_results_with_throttle`). The convenience encoder writes `0`. v0 and v1 share one empty-filter-results body. v2 and v3 share another. There is no top-level error code. Each matching ACL has its own nullable `ErrorMessage` (`DeletedAclsFilterResult.matching` is `DeleteAclsMatchingAcl`). `encode_delete_acls_response` writes that message null. It is not the DescribeAcls message, the CreateAcls result message, or the DeleteAcls filter message. |
 
-v2–v3 are flexible (compact arrays/strings plus tagged fields; request header 2, response header 1).
+`describe_acls_with` is Java `describeAcls(AclBindingFilter)`, with a null name, principal, and host, and `ANY` operation and permission. `describe_acls_any` is `AclBindingFilter.ANY`. `delete_acls_with` sends N filters (Java `deleteAcls(Collection)`). The three timeouts are RPC deadlines. None of these requests has a `TimeoutMs` field.
 
-v3 is the same layout (user resource type).
-
-CreateAcls ThrottleTimeMs is JSON `0+` (`encode_create_acls_response_with_throttle`; encode previously always wrote `0` and decode discarded; convenience encode still writes `0`).
-
-Empty-Results v0 and v1 bodies match; v2 and v3 bodies match.
-
-There is no top-level ErrorCode.
-
-DescribeAcls ThrottleTimeMs is JSON `0+` (`encode_describe_acls_response_with_throttle`; encode previously always wrote `0` and decode discarded; convenience encode still writes `0`).
-
-DescribeAcls ErrorCode is JSON `0+` (`encode_describe_acls_response_with_error_code`; encode previously always wrote `0` and decode read it without returning it; convenience encode still writes `0`; not CreateAcls result ErrorCode / DeleteAcls filter ErrorCode / DeleteAcls matching ErrorCode / Metadata ErrorCode).
-
-`DescribeAclsResponse.error_counts` is Java `DescribeAclsResponse.errorCounts` (top-level ErrorCode only, including `NONE`; Java `Collections.singletonMap`).
-
-`DescribeAclsResponse.error` is Java `DescribeAclsResponse.error` (`ApiError` from top-level ErrorCode and ErrorMessage).
-
-DescribeAcls ErrorMessage is JSON `0+` (nullable STRING; `encode_describe_acls_response_with_error_message`; encode previously always wrote null and decode discarded; convenience encode still writes null; not CreateAcls result ErrorMessage / DeleteAcls filter ErrorMessage / DeleteAcls matching ErrorMessage).
-
-Empty-Resources v0 and v1 bodies match; v2 and v3 bodies match.
-
-Top-level ErrorCode is at bytes 4–5.
-
-DeleteAcls ThrottleTimeMs is JSON `0+` (`encode_delete_acls_filter_results_with_throttle`; encode previously always wrote `0` and decode discarded; convenience encode still writes `0`).
-
-DeleteAcls matching ErrorMessage is JSON `0+` (nullable STRING on each MatchingAcl; `DeletedAclsFilterResult.matching` is `DeleteAclsMatchingAcl`; encode previously always wrote null via `ApiError::NONE` and decode discarded; `encode_delete_acls_response` still writes null; not DescribeAcls ErrorMessage / CreateAcls result ErrorMessage / DeleteAcls filter ErrorMessage).
-
-Empty-FilterResults v0 and v1 bodies match; v2 and v3 bodies match.
-
-There is no top-level ErrorCode.
-
-`describe_acls_with` is Java `describeAcls(AclBindingFilter)` (null name/principal/host; Operation and Permission ANY).
-
-`describe_acls_any` is Java `describeAcls(AclBindingFilter.ANY)`.
-
-`delete_acls_with` is Java `deleteAcls(Collection)` (Filters of N).
-
-`create_acls_timeout` / `describe_acls_timeout` / `delete_acls_timeout` are Java `CreateAclsOptions` / `DescribeAclsOptions` / `DeleteAclsOptions.timeoutMs` (RPC deadline; these RPCs have no TimeoutMs).
-
-Kafka 4.0 `validVersions` is `1-3` (v0 removed).
-
-v4+ is not spoken.
+Kafka 4.0 `validVersions` is `1-3`. It removed v0. This crate still speaks v0.
 
 ### Metadata
 
-Spoken versions: 0–13.
+Spoken versions: 0–13. Version 14 and above are not spoken.
 
-Metadata v0–v8 are classic; v9–v13 are flexible (compact arrays/strings plus tagged fields; request header 2, response header 1).
+v0–v8 are classic. v9–v13 are flexible. Request header version 2, response header version 1. Producer, consumer, and admin negotiate 0–13.
 
-v0 has no controller id, topic id, or rack. An empty topic array means every topic. A named v0 request requires automatic topic creation. Producer, consumer, and admin negotiate 0–13.
+v0 has no controller id, topic id, or rack. An empty topic array means every topic. A named v0 request requires automatic topic creation.
 
-v10 TopicId (name-based describes send a zero UUID; `describe_topics_by_id` is Java `describeTopics(TopicCollection.ofTopicIds)` with null Name).
+| Version | What changed |
+|---|---|
+| 8–10 | `ClusterAuthorizedOperations` and `IncludeClusterAuthorizedOperations`. Outside that range the encoder omits them and the decoder fills `AUTHORIZED_OPERATIONS_OMITTED` and `false`. The convenience encoder writes `false` for the include flag. These are not topic authorized operations and not the DescribeCluster fields of the same names. |
+| 10 | `TopicId`. A name-based describe sends a zero UUID. `describe_topics_by_id` sends a null name (Java `describeTopics(TopicCollection.ofTopicIds)`). |
+| 12 | Topic id is supported on the describe path. |
+| 13 | Top-level error code, an INT16 after `Topics` and, on v8–v10, after `ClusterAuthorizedOperations`, before the tagged fields. |
 
-v12 supports topicId.
-
-ClusterAuthorizedOperations is JSON `8-10` (`MetadataResponse.cluster_authorized_operations`; encode previously always wrote `AUTHORIZED_OPERATIONS_OMITTED` and decode discarded; below v8 and above v10 omit even when non-default and decode fills `AUTHORIZED_OPERATIONS_OMITTED`; `::error_response` fills the JSON default; not TopicAuthorizedOperations / DescribeCluster `cluster_authorized_operations` / IncludeTopicAuthorizedOperations).
-
-IncludeClusterAuthorizedOperations is JSON `8-10` (`encode_metadata_request_topics_with_include_cluster_authorized_operations`; encode previously always wrote `false` and decode discarded; below v8 and above v10 omit even when true and decode fills `false`; convenience encode still writes `false`; official Java `MetadataRequestData.includeClusterAuthorizedOperations`; not IncludeTopicAuthorizedOperations / ClusterAuthorizedOperations / DescribeCluster `cluster_authorized_operations`).
-
-v13 adds top-level ErrorCode INT16 after Topics (and after ClusterAuthorizedOperations on v8–v10) and before tagged fields.
-
-Name-based `describe_topics` / `describe_topics_with` / `describe_topics_with_partition_limit` are Java `describeTopics(TopicCollection.ofTopicNames)` via DescribeTopicPartitions api 75 (KIP-966; `ResponsePartitionLimit` default 2000, `DescribeTopicsOptions.partitionSizeLimitPerResponse`, and `NextCursor` pages); TopicAuthorizedOperations is stored when `describe_topics_with(true)` (DTP has no IncludeTopicAuthorizedOperations request flag).
-
-`describe_topic_partitions_timeout` is the crate-first RPC deadline (DescribeTopicPartitions has no TimeoutMs).
-
-Java `describeTopics` is `describe_topics_timeout`.
+Name-based `describe_topics`, `describe_topics_with`, and `describe_topics_with_partition_limit` go through DescribeTopicPartitions, api 75 (KIP-966, Java `describeTopics(TopicCollection.ofTopicNames)`). `ResponsePartitionLimit` defaults to 2000 (`DescribeTopicsOptions.partitionSizeLimitPerResponse`), and `NextCursor` pages the rest. `describe_topics_with(true)` stores `TopicAuthorizedOperations`. DescribeTopicPartitions has no `IncludeTopicAuthorizedOperations` request flag. `describe_topic_partitions_timeout` is the RPC deadline. Java `describeTopics` is `describe_topics_timeout`.
 
 Kafka 4.0 `validVersions` is `0-13`.
 
-v14+ is not spoken.
-
 ### WriteTxnMarkers
 
-Spoken versions: 0–2.
+Spoken versions: 0–2. Version 3 and above are not spoken.
 
-v0 is classic. v1 and v2 are flexible (request header 2, response header 1).
-
-v2 adds a signed TransactionVersion after CoordinatorEpoch. `Admin::abort_transaction` negotiates 0–2.
-
-v3+ is not spoken.
+v0 is classic. v1 and v2 are flexible. Request header version 2, response header version 1. v2 adds a signed `TransactionVersion` after `CoordinatorEpoch`. `Admin::abort_transaction` negotiates 0–2.
 
 ### ElectLeaders
 
-Spoken versions: 0–2.
+Spoken versions: 0–2. Version 3 and above are not spoken.
 
-v0 and v1 are classic. v2 is flexible (request header 2, response header 1).
-
-v1 adds ElectionType and a top-level response ErrorCode. v0 omits ElectionType even when the request sets one. Admin negotiates 0–2.
-
-v3+ is not spoken.
+v0 and v1 are classic. v2 is flexible. Request header version 2, response header version 1. v1 adds `ElectionType` and a top-level response error code. v0 omits `ElectionType` even when the request sets one. Admin negotiates 0–2.
 
 ### DescribeQuorum
 
-Spoken versions: 0–2.
+Spoken versions: 0–2. Version 3 and above are not spoken.
 
-Every version is flexible (request header 2, response header 1). The request fields stay the same.
-
-v1 adds replica fetch and catch-up timestamps. v2 adds error messages, Nodes, and ReplicaDirectoryId. Admin negotiates 0–2.
-
-v3+ is not spoken.
+Every version is flexible. Request header version 2, response header version 1. The request fields stay the same. v1 adds replica fetch and catch-up timestamps. v2 adds error messages, `Nodes`, and `ReplicaDirectoryId`. Admin negotiates 0–2.
 
 ### AddRaftVoter
 
-Spoken versions: 0–1.
+Spoken versions: 0–1. Version 2 and above are not spoken.
 
-Both versions use a flexible header. The default acknowledgement waits for a committed voter set and can use v0. An explicit local append requires v1 and is rejected before I/O on a v0-only broker.
-
-v2+ is not spoken.
+Both versions use a flexible header. The default acknowledgement waits for a committed voter set and can use v0. An explicit local append requires v1 and is rejected before I/O on a broker that only speaks v0.
 
 ### RemoveRaftVoter
 
-Spoken versions: 0.
+Spoken versions: 0. Version 1 and above are not spoken.
 
 The request uses a flexible header. Removal stays on v0.
 
-v1+ is not spoken.
-
 ### ApiVersions
 
-Spoken versions: 0–4 and sends v4 on connect.
+Spoken versions: 0–4. Version 5 and above are not spoken. Connect sends v4.
 
-ApiVersions v0–v2 are classic (empty request; v1+ ThrottleTimeMs).
+v0–v2 are classic. The request is empty. `ThrottleTimeMs` is present from v1. v3–v4 are flexible in the body only: compact strings and tagged fields, request header version 2. The response header stays version 0 (KIP-482).
 
-v3–v4 are flexible in the body only (compact strings plus tagged fields; request header 2; response header stays 0, KIP-482).
+v3 adds `ClientSoftwareName` and `ClientSoftwareVersion`. v4 is the same request and allows `SupportedFeatures.MinVersion` 0 (KAFKA-17011 / KAFKA-17492). v0–v3 omit those features.
 
-v3 adds ClientSoftwareName / ClientSoftwareVersion.
+Tagged fields, in order:
 
-v4 is the same request as v3 and allows SupportedFeatures.MinVersion 0 (KAFKA-17011 / KAFKA-17492; v0–v3 omit those features).
+| Tag | Field |
+|---|---|
+| 0 | `supportedFeatures`: name, min, max. |
+| 1 | `finalizedFeaturesEpoch`, INT64. `-1` is omitted. |
+| 2 | `finalizedFeatures`: name, then **max**, then min. |
+| 3 | `zkMigrationReady`. |
 
-Tagged fields: 0 `supportedFeatures` (name, min, max), 1 `finalizedFeaturesEpoch` INT64 (`-1` omitted), 2 `finalizedFeatures` (name, **max** then min), 3 `zkMigrationReady`.
-
-Empty/default tags are omitted.
-
-`ApiVersionsResponse.error_counts` is Java `ApiVersionsResponse.errorCounts` (top-level ErrorCode only, including `NONE`; Java `Collections.singletonMap`; api keys / features are not counted).
-
-`describe_features_timeout` is Java `DescribeFeaturesOptions.timeoutMs` (RPC deadline; ApiVersions has no TimeoutMs).
+Empty and default tags are omitted. `error_counts` counts the top-level error code only, including `NONE`. Api keys and features are not counted. `describe_features_timeout` is the RPC deadline (Java `DescribeFeaturesOptions.timeoutMs`). The request has no `TimeoutMs` field.
 
 Kafka 4.0 `validVersions` is `0-4`.
 
-When the broker returns `UNSUPPORTED_VERSION` (KIP-511, brokers 2.4+), the error body is v0 and lists the supported ApiVersions range; the client retries at `pick_version(broker_min, broker_max, 0, 4)`.
-
-v5+ is not spoken.
+When the broker returns `UNSUPPORTED_VERSION` (KIP-511, brokers 2.4 and newer), the error body is v0 and lists the supported ApiVersions range. The client retries at `pick_version(broker_min, broker_max, 0, 4)`.
