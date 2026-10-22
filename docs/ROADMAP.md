@@ -418,9 +418,12 @@ version bump is implied by finishing a feature checklist.
 **Depends on:** KL-04 contract and result format; KL-03 for consumer
 optimizations; KL-04 campaigns before any claim.
 
-The [performance leadership program](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/plan/performance-leadership.md) holds
-the strategy, hot-path map and worker protocol. Cards are KL09-01 through
-KL09-70 in [tasks.json](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/plan/tasks.json).
+The [performance leadership program](plan/performance-leadership.md) holds
+the strategy, hot-path map, and worker protocol. Status is
+[tasks.json](plan/tasks.json). 51 of 74 KL09 cards are done. KL09-13,
+ranking the hotspot hypotheses, is in progress. Suite HOLD remains. The
+hot-path notes on that page name the pending cards. Do not read an older
+blob of either file as the current queue.
 
 1. Freeze the claim gate: peer set (librdkafka C, Java, franz-go,
    rust-rdkafka, Rust client peer), per-profile metrics and claim types. A
@@ -434,7 +437,7 @@ KL09-70 in [tasks.json](https://github.com/mingley/partitionline/blob/917d877d7b
    profiler script and a pinned local baseline. Optimization no longer
    waits for the multi-host campaign critical path.
 3. Land one measured hotspot per card across the producer, codecs,
-   consumer (after KL03-22), transport and runtime. Measure first; a
+   consumer (KL03-22 is done), transport and runtime. Measure first; a
    measured rejection with reverted code is a valid outcome. Only additive
    APIs; no unsafe code; no new runtime dependencies.
 4. Join KL-04: add franz-go, measure every peer's client ceiling, re-profile
