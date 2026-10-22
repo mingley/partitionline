@@ -123,6 +123,8 @@ A few rules apply across APIs:
 | ConsumerGroupDescribe | 0–1 |
 | ShareGroupHeartbeat | 0–1 |
 | ShareGroupDescribe | 0–1 |
+| StreamsGroupHeartbeat | 0 |
+| StreamsGroupDescribe | 0 |
 | ShareFetch | 0–2 |
 | ShareAcknowledge | 0–2 |
 | DescribeShareGroupOffsets | 0 |

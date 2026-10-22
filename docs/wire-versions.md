@@ -587,6 +587,22 @@ Official Java `DescribeShareGroupsHandler` uses `CoordinatorType.GROUP`.
 
 `share_group_describe_timeout` / `describe_share_groups_timeout` are Java `DescribeShareGroupsOptions.timeoutMs` (RPC deadline; ShareGroupDescribe has no TimeoutMs).
 
+### StreamsGroupHeartbeat
+
+Spoken versions: 0.
+
+The body is flexible (request header 2, response header 1). This is the Streams broker protocol, separate from consumer and share groups. `StreamsClient` sends a caller-driven v0 heartbeat. It does not run a Streams execution engine.
+
+v1+ is not spoken.
+
+### StreamsGroupDescribe
+
+Spoken versions: 0.
+
+The body is flexible (request header 2, response header 1). Admin describe uses this v0 body and keeps the typed group, member, and topology fields.
+
+v1+ is not spoken.
+
 ### ShareFetch
 
 Spoken versions: 0–2.

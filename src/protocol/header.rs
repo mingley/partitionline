@@ -1207,6 +1207,14 @@ mod tests {
     }
 
     #[test]
+    fn streams_group_v0_headers_are_flexible() {
+        assert_eq!(request_header_version(STREAMS_GROUP_HEARTBEAT, 0), 2);
+        assert_eq!(response_header_version(STREAMS_GROUP_HEARTBEAT, 0), 1);
+        assert_eq!(request_header_version(STREAMS_GROUP_DESCRIBE, 0), 2);
+        assert_eq!(response_header_version(STREAMS_GROUP_DESCRIBE, 0), 1);
+    }
+
+    #[test]
     fn share_group_describe_v0_and_v1_are_flexible() {
         // Official Kafka 4.0 JSON: validVersions "0", flexibleVersions "0+".
         // Official Kafka 4.1 JSON: validVersions "1" (v0 removed).
