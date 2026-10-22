@@ -8,73 +8,94 @@ production codec tests qualify finite offline families.
 
 Run `bash scripts/check-schema-companion-scaffold.sh` to check the crate boundary.
 
-## Lookup client (KL05-23, landed)
+## Lookup client
 
-The companion now ships a bounded read-only Schema Registry client
-(`partitionline-schema::registry`, default feature `registry`):
+`partitionline-schema::registry` is a read-only Schema Registry client.
+It is the default `registry` feature. The companion does not depend on
+the core `partitionline` crate. `default-features = false` keeps the
+wire-framing core with no registry dependencies. `publish = false` is
+unchanged.
 
-- `GET /schemas/ids/{id}`, `GET /subjects/{subject}/versions/{version}`,
-  and reference resolution. No registration, mutation, delete, or
-  compatibility APIs exist in this module, and the companion never
-  depends on the core `partitionline` client crate.
-- `GET`-only HTTP/1.1 over `tokio` + `rustls` (Mozilla webpki roots, or
-  a custom PEM CA bundle), full hostname verification, no insecure
-  escape hatch. No `serde`/`url` dependencies: URLs and the small JSON
-  responses are parsed by hand, mirroring the core OIDC token fetch.
-- Auth: none, HTTP Basic, or bearer token. Credentials travel only in
-  the `Authorization` header, are rejected in `base_url` userinfo, and
-  are redacted from every `Debug` impl and error message (covered by
-  redaction tests).
-- Explicit bounds: per-connect/per-handshake timeout, an overall
-  `request_timeout` per call (retries included), 1-8 attempts, doubling
-  backoff with a ceiling (also capping honored `Retry-After`), 1 KiB -
-  64 MiB response bodies, at most 1024 references per batch. Retried:
-  429, 500/502/503/504, transient transport failures. Never retried:
-  401/403/404, other statuses, TLS/JSON/size/config failures.
-- Typed `RegistryError` (`../partitionline-schema/src/registry.rs`):
-  `NotFound` (with registry `error_code`), `Unauthorized`, `Forbidden`,
-  `RateLimited`, `Server`, `UnexpectedStatus`, `Malformed`, `TooLarge`,
-  `Timeout`, `Tls`, `Transport`, `InvalidConfig`. Messages never embed
-  response bodies, URLs, or credentials.
-- `default-features = false` keeps the dep-free wire-framing core;
-  `publish = false` is unchanged.
+The client sends `GET /schemas/ids/{id}`,
+`GET /subjects/{subject}/versions/{version}`, and resolves references.
+It does not register, change, delete, or check compatibility.
 
-## Bounded cache (KL05-24, landed)
+Transport is HTTP/1.1 with tokio and rustls. Roots are Mozilla's, or a
+PEM CA bundle you supply. Hostnames are verified. There is no switch
+that skips that check. URLs and the small JSON bodies are parsed by
+hand, the same way the OIDC token fetch works. The crate does not use
+`serde` or `url`.
 
-`RegistryClientConfig::cache(RegistryCacheConfig)` controls a cache shared by
-clones of one client. Separately constructed clients keep credentials and cache
-results isolated. Defaults: 256 completed entries, 8 MiB charged retained bytes,
-16 active distinct keys, 1024 UTF-8 bytes per subject; five-minute IDs/pinned
-versions, five-second `latest`, one-second typed 404s. Latest and pinned versions
-use different keys. Other failures, malformed data, over-limit responses and
-reference lists never become cached successes.
+Auth is none, HTTP Basic, or a bearer token. The credential is only the
+`Authorization` header. A `user:pass@` userinfo on `base_url` is
+rejected. `Debug` and errors redact the credential. They also omit
+response bodies and URLs.
 
-Eviction is least recently used, subject to both entry and byte limits. Expiry
-is lazy on lookups/statistics; idle storage remains within those limits.
-Oversized valid successes bypass caching without evicting existing entries.
-Zero freshness disables that class; `disabled()` disables completed caching.
-Hard maxima are 4096 entries, 64 MiB charged bytes, 128 active distinct keys,
-4096 subject bytes and 24-hour freshness. Entry and byte limits must both be
-zero or both positive. Charged bytes include retained string/vector capacities
-and inline entry/Arc storage, excluding hash-bucket/allocator overhead and
-caller-owned clones/futures. This is a cache budget, not a process RSS bound.
+| Bound | Value |
+|---|---|
+| Attempts | 1 through 8, with doubling backoff and a ceiling |
+| `Retry-After` | Honored, and still capped by that ceiling |
+| Body | 1 KiB through 64 MiB |
+| References in one batch | At most 1,024 |
+| Deadline | Connect and handshake timeouts, plus one `request_timeout` for the whole call, retries included |
 
-Same-key misses coalesce without holding an async lock during network I/O.
-Dropping a follower preserves its owner's request; dropping an owner closes its
-connection and wakes followers to take over the read-only lookup within their
-original deadlines. Capacity waits, coalescing and retries share each call's
-overall timeout. The cache creates no background tasks. Applications must still
-limit their own caller count and retained results. `cache_stats()` exposes
-aggregate counts without subjects, credentials or schema payloads.
+Retries cover 429, 500, 502, 503, 504, and a transient transport
+failure. 401, 403, 404, any other status, and TLS, JSON, size, or
+config failures are not retried.
 
-Reference resolution remains one level with input order and duplicates
-preserved, so cyclic declarations do not recurse. Input reference counts and
-subject sizes are validated before I/O; returned reference lists are checked
-before cache admission. The entire reference batch now has one
-`request_timeout`, replacing KL05-23's per-entry budget. The first failure
-returns an error without a partial vector; successful earlier individual
-lookups may remain cached. Deterministic loopback tests cover cancellation,
-coalescing, eviction, expiry and failed fetches; no live registry is claimed.
+`RegistryError` in `partitionline-schema/src/registry.rs` is `NotFound`
+(with the registry `error_code`), `Unauthorized`, `Forbidden`,
+`RateLimited`, `Server`, `UnexpectedStatus`, `Malformed`, `TooLarge`,
+`Timeout`, `Tls`, `Transport`, or `InvalidConfig`.
+
+## Bounded cache
+
+`RegistryClientConfig::cache` shares one cache among clones of one client.
+A second client keeps its own credentials and its own cache.
+
+| Setting | Default | Hard maximum |
+|---|---|---|
+| Completed entries | 256 | 4,096 |
+| Charged retained bytes | 8 MiB | 64 MiB |
+| Active distinct keys | 16 | 128 |
+| Subject length | 1,024 UTF-8 bytes | 4,096 |
+| ID or pinned version | 5 minutes | 24 hours |
+| `latest` | 5 seconds | 24 hours |
+| Typed 404 | 1 second | 24 hours |
+
+`latest` and a pinned version use different keys. Entry and byte limits
+are both zero or both positive. Zero freshness turns that class off.
+`disabled()` turns completed caching off.
+
+Eviction is least recently used, and it honors both the entry cap and
+the byte cap. Expiry is checked on lookup and on statistics. Idle
+storage stays inside those limits. A valid response that is too large
+is not cached, and it does not evict what is already there. Failures
+other than a typed 404, malformed data, and over-limit reference lists
+are not stored as successes.
+
+Charged bytes include retained string and vector capacity and the inline
+entry storage. They exclude hash buckets, allocator overhead, and clones
+or futures the caller still holds. This is a cache budget, not process
+RSS.
+
+Misses for the same key share one request. The cache does not hold an
+async lock across the network read. Dropping a follower leaves the
+owner's request running. Dropping the owner closes that connection and
+wakes a follower to finish the read-only lookup inside the follower's
+original deadline. Capacity waits, coalescing, and retries share the
+call's `request_timeout`. The cache starts no background task. The
+application still limits how many callers it creates and how long it
+keeps results. `cache_stats` returns counts only. It does not return
+subjects, credentials, or schema bytes.
+
+References resolve one level. Input order and duplicates are kept, so a
+cycle does not recurse. Counts and subject sizes are checked before
+I/O. The returned reference list is checked before it enters the cache.
+The whole reference batch uses one `request_timeout`. The first failure
+returns an error and no partial vector. Lookups that already succeeded
+can stay cached. Loopback tests cover cancellation, coalescing,
+eviction, expiry, and failed fetches. No live registry is claimed.
 
 ## Protobuf message indexes and adapter (KL05-26)
 
