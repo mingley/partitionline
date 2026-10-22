@@ -135,6 +135,9 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 - The operator guide lists Produce version selection and broker throttle
   in tables. Transactional Produce still stays at v11 unless
   `transaction.version` 2 and EndTxn v5 are both finalized.
+- The operator guide lists Fetch v18 and incremental Fetch sessions in
+  tables. Ordinary consumers still omit the high-watermark tag. Sessions
+  still run on Fetch v7–v18.
 - The gateway profile names zstd as an optional codec that has shipped.
   Its measured cells remain gzip and lz4.
 

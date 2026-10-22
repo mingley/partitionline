@@ -924,40 +924,39 @@ The mock for this budget is `tests/fetch_buffer_budget.rs`.
 
 ### Fetch version 18
 
-Each broker connection negotiates Fetch up to version 18. KIP-1166 adds a
-request partition HighWatermark tag; ordinary consumers omit its i64MAX
-default. The added `encode_fetch_request_with_replica_high_watermarks` and
-`decode_fetch_request_with_high_watermarks` helpers use a sidecar aligned with
-topic and partition order, preserving `FetchPartition` and existing signatures.
-They encode replica values, including unknown `-1`, without implementing follower
-acknowledgment or quorum-commit behavior. Older versions omit this ignorable
-field, and response layouts remain unchanged.
+Each broker connection negotiates Fetch up to version 18.
+
+| Piece | Behavior |
+|---|---|
+| Ordinary consumer | Omits the KIP-1166 partition high-watermark tag. The default is `i64::MAX`. |
+| Replica helpers | `encode_fetch_request_with_replica_high_watermarks` and the matching decoder use a sidecar in topic and partition order. `FetchPartition` and the existing signatures stay as they are. Unknown is `-1`. |
+| What those helpers do not do | Follower acknowledgment or quorum commit |
+| Older Fetch versions | Omit the field. Response layouts stay the same. |
 
 ### Incremental Fetch sessions
 
-The consumer keeps one Fetch session per active broker on v7–v18, sends changed
-partitions and removes forgotten partitions, and retains full requests on v4–v6.
-Session metadata is bounded by the active assignment. Each completed response
-advances its broker epoch even when the record buffer budget discards the body.
-A failed, abandoned or canceled request requires a full map before reusing the
-session. Session-not-found and invalid-epoch responses retry with a full map
-within the original request deadline; a topic-ID error also refreshes metadata.
-The consumer checks the session identity and partition set before applying any
-records. Reassigning a recreated topic discards buffered records from its old ID.
-Finding, dropping, and copying session partitions runs 8,192 items at a
-time, so a metadata refresh can still reach its deadline. The topic-id
-index is rebuilt the same way. Prepare generations are cleared the same
-way when they wrap. Finished slices are kept.
-Buffered records, delivered positions and commits retain their existing contracts.
+The consumer keeps one Fetch session per active broker. Session metadata
+is bounded by the assignment. Records are applied only after the session
+identity and the partition set match. Buffered records, delivered
+positions, and commits keep their existing contracts. Finding, dropping,
+and copying session partitions runs 8,192 items at a time, and finished
+slices are kept.
 
-Pausing every partition, moving to another broker, or replacing the assignment
-retires inactive known sessions on the next fetch. `unassign()` is synchronous;
-retirement happens on the next assigned fetch or close. Manual and group close
-send a best-effort terminal epoch for known sessions within one total remaining
-budget. Terminal requests also respect broker quotas; a connection is dropped
-when the mute exceeds the remaining budget. `close_timeout(Duration::ZERO)`
-immediately drops manual connections.
-Session retirement never commits offsets.
+| Situation | What happens |
+|---|---|
+| Fetch v7–v18 | Send changed partitions and remove forgotten ones |
+| Fetch v4–v6 | Send a full request |
+| A response completes | The broker epoch advances, even when the buffer budget discards the body |
+| The request fails, is abandoned, or is canceled | A full map is required before the session is reused |
+| Session not found, or the epoch is invalid | Retry with a full map inside the original deadline |
+| Topic-id error | Refresh metadata |
+| A recreated topic is assigned again | Discard buffered records from the old id |
+| Every partition is paused, the leader moves, or the assignment is replaced | Retire inactive sessions on the next fetch |
+| `unassign()` | Returns immediately. Retirement happens on the next assigned fetch or on close |
+| `close` | Best-effort terminal epoch within the remaining budget. A mute longer than that budget drops the connection |
+| `close_timeout(Duration::ZERO)` | Drops manual connections immediately |
+
+Session retirement does not commit offsets.
 
 With 128 unchanged partitions, measured Fetch v17 request bodies shrink from
 4,268 to 25 bytes, matching Apache Java 4.3.1 serialization; this is a request-byte
