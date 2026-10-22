@@ -5962,6 +5962,39 @@ pub fn encode_offset_commit_response(
     encode_offset_commit_error_response(buf, version, topics, error, 0)
 }
 
+/// [`encode_offset_commit_response`], yielding while topics are still being measured and written.
+///
+/// Encoding 800,000 topics held the caller for 209ms. A topic name is still written.
+pub async fn encode_offset_commit_response_cooperative(
+    buf: &mut BytesMut,
+    version: i16,
+    topics: &[OffsetTopic],
+    error: i16,
+) -> Result<()> {
+    let flexible = offset_commit_flexible(version)?;
+    let body_start = buf.len();
+    let mut planned = if version >= 3 { 4usize } else { 0 };
+    planned = add_group_len(planned, group_array_len(flexible, topics.len())?)?;
+    planned = add_group_len(
+        planned,
+        offset_commit_error_topics_len(flexible, topics).await?,
+    )?;
+    if flexible {
+        planned = add_group_len(planned, buf::unsigned_varint_size(0))?;
+    }
+    reserve_group_body(buf, planned);
+    if version >= 3 {
+        buf.put_i32(0);
+    }
+    buf::put_array_len(buf, flexible, Some(topics.len()))?;
+    write_offset_commit_error_topics(buf, flexible, topics, error).await?;
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+    Ok(())
+}
+
 /// Encode OffsetCommit v2–v9 from response Topics.
 ///
 /// Throttle is the JSON default (`0`) on v3+. Nested body is
@@ -6034,18 +6067,7 @@ fn encode_offset_commit_error_response(
     }
     buf::put_array_len(buf, flexible, Some(topics.len()))?;
     for topic in topics {
-        buf::put_string(buf, flexible, Some(&topic.topic))?;
-        buf::put_array_len(buf, flexible, Some(topic.partitions.len()))?;
-        for partition in &topic.partitions {
-            buf.put_i32(partition.partition);
-            buf.put_i16(error_code);
-            if flexible {
-                buf::put_empty_tagged_fields(buf);
-            }
-        }
-        if flexible {
-            buf::put_empty_tagged_fields(buf);
-        }
+        write_offset_commit_error_topic(buf, flexible, topic, error_code)?;
     }
     if flexible {
         buf::put_empty_tagged_fields(buf);
@@ -6054,30 +6076,157 @@ fn encode_offset_commit_error_response(
     Ok(())
 }
 
+fn write_offset_commit_error_topic(
+    buf: &mut BytesMut,
+    flexible: bool,
+    topic: &OffsetTopic,
+    error_code: i16,
+) -> Result<()> {
+    buf::put_string(buf, flexible, Some(&topic.topic))?;
+    buf::put_array_len(buf, flexible, Some(topic.partitions.len()))?;
+    for partition in &topic.partitions {
+        write_offset_commit_error_partition(buf, flexible, partition.partition, error_code)?;
+    }
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
+    Ok(())
+}
+
+fn write_offset_commit_error_partition(
+    buf: &mut BytesMut,
+    flexible: bool,
+    partition: i32,
+    error_code: i16,
+) -> Result<()> {
+    buf.put_i32(partition);
+    buf.put_i16(error_code);
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
+    Ok(())
+}
+
 fn offset_commit_error_len(version: i16, flexible: bool, topics: &[OffsetTopic]) -> Result<usize> {
     let mut total = if version >= 3 { 4usize } else { 0 };
     total = add_group_len(total, group_array_len(flexible, topics.len())?)?;
     for topic in topics {
-        total = add_group_len(total, group_string_len(flexible, Some(&topic.topic))?)?;
-        total = add_group_len(total, group_array_len(flexible, topic.partitions.len())?)?;
-        let mut partition = 6usize;
-        if flexible {
-            partition += buf::unsigned_varint_size(0);
-        }
-        total = add_group_len(
-            total,
-            partition
-                .checked_mul(topic.partitions.len())
-                .ok_or_else(|| Error::protocol("offset commit response size overflow"))?,
-        )?;
-        if flexible {
-            total = add_group_len(total, buf::unsigned_varint_size(0))?;
-        }
+        total = add_group_len(total, offset_commit_error_topic_len(flexible, topic)?)?;
     }
     if flexible {
         total = add_group_len(total, buf::unsigned_varint_size(0))?;
     }
     Ok(total)
+}
+
+fn offset_commit_error_topic_len(flexible: bool, topic: &OffsetTopic) -> Result<usize> {
+    let mut total = group_string_len(flexible, Some(&topic.topic))?;
+    total = add_group_len(total, group_array_len(flexible, topic.partitions.len())?)?;
+    let mut partition = 6usize;
+    if flexible {
+        partition += buf::unsigned_varint_size(0);
+    }
+    total = add_group_len(
+        total,
+        partition
+            .checked_mul(topic.partitions.len())
+            .ok_or_else(|| Error::protocol("offset commit response size overflow"))?,
+    )?;
+    if flexible {
+        total = add_group_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
+}
+
+/// OffsetCommit error topics measured or written before the caller is paused.
+const OFFSET_COMMIT_ERROR_CHUNK: usize = 8 * 1024;
+
+async fn offset_commit_error_topics_len(flexible: bool, topics: &[OffsetTopic]) -> Result<usize> {
+    let mut total = 0usize;
+    let mut start = 0usize;
+    while start < topics.len() {
+        let end = start
+            .saturating_add(OFFSET_COMMIT_ERROR_CHUNK)
+            .min(topics.len());
+        let Some(slice) = topics.get(start..end) else {
+            return Err(Error::protocol("offset commit error topic slice"));
+        };
+        for topic in slice {
+            total = add_group_len(total, offset_commit_error_topic_len(flexible, topic)?)?;
+        }
+        start = end;
+        if start < topics.len() {
+            tokio::task::yield_now().await;
+        }
+    }
+    Ok(total)
+}
+
+async fn write_offset_commit_error_topics(
+    buf: &mut BytesMut,
+    flexible: bool,
+    topics: &[OffsetTopic],
+    error_code: i16,
+) -> Result<()> {
+    let mut start = 0usize;
+    while start < topics.len() {
+        let end = start
+            .saturating_add(OFFSET_COMMIT_ERROR_CHUNK)
+            .min(topics.len());
+        let Some(slice) = topics.get(start..end) else {
+            return Err(Error::protocol("offset commit error topic slice"));
+        };
+        for topic in slice {
+            buf::put_string(buf, flexible, Some(&topic.topic))?;
+            buf::put_array_len(buf, flexible, Some(topic.partitions.len()))?;
+            if topic.partitions.len() > OFFSET_COMMIT_ERROR_CHUNK {
+                write_offset_commit_error_partitions(buf, flexible, &topic.partitions, error_code)
+                    .await?;
+            } else {
+                for partition in &topic.partitions {
+                    write_offset_commit_error_partition(
+                        buf,
+                        flexible,
+                        partition.partition,
+                        error_code,
+                    )?;
+                }
+            }
+            if flexible {
+                buf::put_empty_tagged_fields(buf);
+            }
+        }
+        start = end;
+        if start < topics.len() {
+            tokio::task::yield_now().await;
+        }
+    }
+    Ok(())
+}
+
+async fn write_offset_commit_error_partitions(
+    buf: &mut BytesMut,
+    flexible: bool,
+    partitions: &[OffsetPartition],
+    error_code: i16,
+) -> Result<()> {
+    let mut start = 0usize;
+    while start < partitions.len() {
+        let end = start
+            .saturating_add(OFFSET_COMMIT_ERROR_CHUNK)
+            .min(partitions.len());
+        let Some(slice) = partitions.get(start..end) else {
+            return Err(Error::protocol("offset commit error partition slice"));
+        };
+        for partition in slice {
+            write_offset_commit_error_partition(buf, flexible, partition.partition, error_code)?;
+        }
+        start = end;
+        if start < partitions.len() {
+            tokio::task::yield_now().await;
+        }
+    }
+    Ok(())
 }
 
 fn offset_commit_grouped_error_len(
@@ -9497,6 +9646,51 @@ mod tests {
             encode_offset_fetch_response(&mut once, version, "payments", &sample, 7)
                 .unwrap_or_else(|error| panic!("{error}"));
             encode_offset_fetch_response_cooperative(&mut paced, version, "payments", &sample, 7)
+                .await
+                .unwrap_or_else(|error| panic!("{error}"));
+            assert_eq!(once, paced, "version {version}");
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn encoding_many_offset_commit_error_topics_does_not_hold_the_caller() {
+        let topics: Vec<OffsetTopic> = (0..800_000)
+            .map(|_| OffsetTopic {
+                topic: "t".to_string(),
+                partitions: vec![OffsetPartition::new(0, 0)],
+            })
+            .collect();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = async {
+                let mut body = BytesMut::new();
+                encode_offset_commit_response_cooperative(&mut body, 2, &topics, 1)
+                    .await
+                    .unwrap_or_else(|error| panic!("{error}"));
+            } => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "encoding offset commit error topics held the caller for {elapsed:?}"
+        );
+        let sample = [
+            OffsetTopic {
+                topic: "orders".to_string(),
+                partitions: vec![OffsetPartition::new(0, 10), OffsetPartition::new(1, 11)],
+            },
+            OffsetTopic {
+                topic: "billing".to_string(),
+                partitions: vec![OffsetPartition::new(4, 0)],
+            },
+        ];
+        for version in [2i16, 3, 8] {
+            let mut once = BytesMut::new();
+            let mut paced = BytesMut::new();
+            encode_offset_commit_response(&mut once, version, &sample, 7)
+                .unwrap_or_else(|error| panic!("{error}"));
+            encode_offset_commit_response_cooperative(&mut paced, version, &sample, 7)
                 .await
                 .unwrap_or_else(|error| panic!("{error}"));
             assert_eq!(once, paced, "version {version}");
