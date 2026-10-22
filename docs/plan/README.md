@@ -143,8 +143,9 @@ busy polling loop or mark a launched job passed.
 
 ## Boundaries that never change implicitly
 
-- **Correctness first:** the five reproduced consumer defects stay open until
-  their maintained regression tests and fixes land. Current CI is not a waiver.
+- **Correctness first:** the five baseline consumer defects are fixed
+  (KL03-01 through KL03-07). Independent replay of those histories is
+  still KL01-22. Current CI is not a waiver of that replay.
 - **Named scope:** core client, transactional, group/share, secure, full-admin
   and ecosystem profiles have different gates. Broker-internal replication
   APIs, Streams, Connect and a drop-in C ABI are not silently added to scope.
