@@ -32,35 +32,40 @@ have separate tests, and the companion remains unpublished.
 
 ## Cache limits and freshness
 
-Client clones share a cache scoped to their fixed URL and credentials. Separate
-clients have separate caches. `RegistryClientConfig::cache` accepts a
-`RegistryCacheConfig`; defaults retain at most 256 entries and 8 MiB of charged
-key/schema storage, with at most 16 active distinct-key requests. IDs and pinned
-versions are fresh for five minutes, `latest` for five seconds, and typed 404s
-for one second. Other errors never enter the completed cache. Expiry is lazy;
-eviction removes the least recently used entries. Oversized successful schemas
-are returned without caching. `disabled()` disables completed caching while
-keeping bounded request coalescing.
+Clones of one client share a cache for that URL and those credentials. A
+second client has its own cache. `disabled()` turns completed caching off
+and keeps request coalescing. The client starts no background tasks.
+Hard maximums are in [the companion guide](../docs/schema-companion.md).
 
-Same-key misses share a request; unrelated keys can proceed independently.
-Dropping a follower leaves its owner alive. Dropping an owner closes its request
-and lets a follower retry the read-only lookup within its original deadline.
-Waiting for capacity, coalescing and retries all count toward `request_timeout`.
-The client starts no background tasks.
+| Setting | Default |
+|---|---|
+| Completed entries | 256 |
+| Charged retained bytes | 8 MiB |
+| Active distinct keys | 16 |
+| Subject length | 1,024 UTF-8 bytes, checked before I/O |
+| ID or pinned version | 5 minutes |
+| `latest` | 5 seconds |
+| Typed 404 | 1 second |
 
-Subject keys are limited to 1024 UTF-8 bytes by default, before path allocation
-or I/O. Reference counts and subjects are checked before batch I/O and before
-cache admission. Reference resolution is one level, preserves duplicates and
-input order, and uses one overall batch deadline; cyclic declarations cannot
-cause recursive traversal. A failed batch returns no partial vector, though
-earlier successful lookups may remain cached.
+Other errors are not cached. Expiry is lazy. Eviction drops the least
+recently used entries. A successful schema that does not fit is returned
+and not stored.
 
-`cache_stats()` returns entry, charged-byte, active-key and coalesced-waiter
-counts without subject labels or credentials. Charged bytes include retained
-string/vector capacities and inline entries; hash-table/allocator overhead and
-caller-owned result clones/futures are separate. Applications must bound their
-own callers and retained results. Configuration limits and maximums are in the
-Rustdoc for `RegistryCacheConfig`.
+Two misses for the same key share one request. A different key proceeds
+on its own. Dropping a follower leaves the owner running. Dropping the
+owner closes that request, and a follower may retry inside its original
+deadline. Waiting, coalescing, and retries all count toward
+`request_timeout`.
+
+Reference resolution is one level. It keeps duplicates and input order,
+and it uses one deadline for the batch. A cycle does not recurse. A
+failed batch returns no partial vector. An earlier successful lookup can
+remain cached.
+
+`cache_stats()` reports entries, charged bytes, active keys, and waiters.
+It does not include subject names or credentials. Charged bytes are
+retained string and vector capacity, plus inline entries. Hash buckets,
+allocator overhead, and clones the caller still holds are separate.
 
 ## Protobuf bounds and schema selection
 
