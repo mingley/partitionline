@@ -3196,6 +3196,18 @@ impl WriteTxnMarkersRequest {
         encode_write_txn_markers_error_response(buf, version, markers, error_code)
     }
 
+    /// [`Self::encode_error_response`], yielding while partitions are still being grouped and written.
+    ///
+    /// Encoding 400,000 partitions held the caller for 237ms. A partition is still recorded.
+    pub async fn encode_error_response_cooperative(
+        buf: &mut BytesMut,
+        version: i16,
+        markers: &[WritableTxnMarker],
+        error_code: i16,
+    ) -> Result<()> {
+        encode_write_txn_markers_error_response_cooperative(buf, version, markers, error_code).await
+    }
+
     /// Java `WriteTxnMarkersRequest.Builder(List markers)`.
     ///
     /// Pins oldest and latest to 1 (`AbstractRequest.Builder(ApiKeys,
@@ -3942,6 +3954,159 @@ fn encode_write_txn_markers_error_response(
     Ok(())
 }
 
+/// Partitions grouped or written into a WriteTxnMarkers error response before the caller is paused.
+const TXN_MARKER_ERROR_PARTITION_CHUNK: usize = 8 * 1024;
+
+async fn encode_write_txn_markers_error_response_cooperative(
+    buf: &mut BytesMut,
+    version: i16,
+    markers: &[WritableTxnMarker],
+    error_code: i16,
+) -> Result<()> {
+    let flexible = write_txn_markers_flexible(version)?;
+    let mut producer_order: Vec<i64> = Vec::new();
+    let mut by_producer: HashMap<i64, Vec<(&str, i32)>> = HashMap::new();
+    let mut walked = 0usize;
+    for marker in markers {
+        let mut partition_order: Vec<(&str, i32)> = Vec::new();
+        let mut seen_parts: HashMap<&str, HashSet<i32>> = HashMap::new();
+        for topic in &marker.topics {
+            let name = topic.name.as_str();
+            if !seen_parts.contains_key(name) {
+                let _ = seen_parts.insert(name, HashSet::new());
+            }
+            let Some(parts) = seen_parts.get_mut(name) else {
+                continue;
+            };
+            for &partition in &topic.partitions {
+                if parts.insert(partition) {
+                    partition_order.push((name, partition));
+                }
+                walked = walked.saturating_add(1);
+                if walked == TXN_MARKER_ERROR_PARTITION_CHUNK {
+                    walked = 0;
+                    tokio::task::yield_now().await;
+                }
+            }
+        }
+        if by_producer
+            .insert(marker.producer_id, partition_order)
+            .is_none()
+        {
+            producer_order.push(marker.producer_id);
+        }
+    }
+    let mut grouped = Vec::new();
+    walked = 0;
+    for producer_id in producer_order {
+        let Some(parts) = by_producer.remove(&producer_id) else {
+            continue;
+        };
+        let mut topics: Vec<(&str, Vec<(i32, i16)>)> = Vec::new();
+        let mut slots: HashMap<&str, usize> = HashMap::new();
+        for (topic, partition) in parts {
+            if let Some(&slot) = slots.get(topic) {
+                if let Some((_, stored)) = topics.get_mut(slot) {
+                    stored.push((partition, error_code));
+                }
+            } else {
+                let slot = topics.len();
+                let _ = slots.insert(topic, slot);
+                topics.push((topic, vec![(partition, error_code)]));
+            }
+            walked = walked.saturating_add(1);
+            if walked == TXN_MARKER_ERROR_PARTITION_CHUNK {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+        grouped.push(BorrowedTxnMarkerError {
+            producer_id,
+            topics,
+        });
+    }
+    let body_start = buf.len();
+    let planned = write_txn_markers_error_len_cooperative(flexible, &grouped).await?;
+    let needed = body_start.saturating_add(planned);
+    if buf.capacity() < needed {
+        buf.reserve(needed - buf.capacity());
+    }
+    buf::put_array_len(buf, flexible, Some(grouped.len()))?;
+    walked = 0;
+    for marker in &grouped {
+        buf.put_i64(marker.producer_id);
+        buf::put_array_len(buf, flexible, Some(marker.topics.len()))?;
+        for (name, parts) in &marker.topics {
+            buf::put_string(buf, flexible, Some(name))?;
+            buf::put_array_len(buf, flexible, Some(parts.len()))?;
+            for (partition, code) in parts {
+                buf.put_i32(*partition);
+                buf.put_i16(*code);
+                if flexible {
+                    buf::put_empty_tagged_fields(buf);
+                }
+                walked = walked.saturating_add(1);
+                if walked == TXN_MARKER_ERROR_PARTITION_CHUNK {
+                    walked = 0;
+                    tokio::task::yield_now().await;
+                }
+            }
+            if flexible {
+                buf::put_empty_tagged_fields(buf);
+            }
+        }
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+    }
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+    Ok(())
+}
+
+async fn write_txn_markers_error_len_cooperative(
+    flexible: bool,
+    markers: &[BorrowedTxnMarkerError<'_>],
+) -> Result<usize> {
+    let mut total = txn_array_len(flexible, markers.len())?;
+    let mut walked = 0usize;
+    for marker in markers {
+        total = add_txn_len(total, 8)?;
+        total = add_txn_len(total, txn_array_len(flexible, marker.topics.len())?)?;
+        for (name, parts) in &marker.topics {
+            total = add_txn_len(total, txn_string_len(flexible, name)?)?;
+            total = add_txn_len(total, txn_array_len(flexible, parts.len())?)?;
+            let mut partition = 6usize;
+            if flexible {
+                partition += buf::unsigned_varint_size(0);
+            }
+            total = add_txn_len(
+                total,
+                partition
+                    .checked_mul(parts.len())
+                    .ok_or_else(|| Error::protocol("write txn markers response size overflow"))?,
+            )?;
+            if flexible {
+                total = add_txn_len(total, buf::unsigned_varint_size(0))?;
+            }
+            walked = walked.saturating_add(parts.len());
+            if walked >= TXN_MARKER_ERROR_PARTITION_CHUNK {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+        if flexible {
+            total = add_txn_len(total, buf::unsigned_varint_size(0))?;
+        }
+    }
+    if flexible {
+        total = add_txn_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
+}
+
 fn write_txn_markers_error_len(
     flexible: bool,
     markers: &[BorrowedTxnMarkerError<'_>],
@@ -4489,6 +4654,65 @@ pub const fn can_handle_abortable_error(
 mod tests {
     use super::*;
     use std::collections::HashMap;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn encoding_many_txn_marker_error_partitions_does_not_hold_the_caller() {
+        let markers = [WritableTxnMarker {
+            producer_id: 1,
+            producer_epoch: 0,
+            transaction_result: true,
+            topics: vec![WritableTxnMarkerTopic {
+                name: "orders".to_string(),
+                partitions: (0..400_000i32).collect(),
+            }],
+            coordinator_epoch: 1,
+        }];
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = async {
+                let mut body = BytesMut::new();
+                WriteTxnMarkersRequest::encode_error_response_cooperative(
+                    &mut body, 0, &markers, 42,
+                )
+                .await
+                .unwrap_or_else(|error| panic!("{error}"));
+            } => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "encoding transaction marker errors held the caller for {elapsed:?}"
+        );
+        let sample = [WritableTxnMarker {
+            producer_id: 9,
+            producer_epoch: 1,
+            transaction_result: false,
+            topics: vec![
+                WritableTxnMarkerTopic {
+                    name: "orders".to_string(),
+                    partitions: vec![0, 1, 0],
+                },
+                WritableTxnMarkerTopic {
+                    name: "billing".to_string(),
+                    partitions: vec![3],
+                },
+            ],
+            coordinator_epoch: 4,
+        }];
+        for version in [0i16, 1] {
+            let mut once = BytesMut::new();
+            let mut paced = BytesMut::new();
+            WriteTxnMarkersRequest::encode_error_response(&mut once, version, &sample, 7)
+                .unwrap_or_else(|error| panic!("{error}"));
+            WriteTxnMarkersRequest::encode_error_response_cooperative(
+                &mut paced, version, &sample, 7,
+            )
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+            assert_eq!(once, paced, "version {version}");
+        }
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn encoding_many_txn_marker_response_topics_does_not_hold_the_caller() {

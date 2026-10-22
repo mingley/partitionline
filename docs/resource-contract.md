@@ -139,6 +139,7 @@ leaders are still looked up, and a repeated name is still stored once.
 
 - Write transaction-marker topics. A topic name is still copied.
 - Write transaction-marker response topics. A topic name is still copied.
+- Group and write transaction-marker error partitions. A partition is still recorded.
 
 ### Metadata and admin
 

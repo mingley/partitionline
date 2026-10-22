@@ -7,6 +7,9 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ## [Unreleased]
 
+- Encoding a WriteTxnMarkers error response pauses every 8,192
+  partitions. Writing 400,000 partitions held the caller for 237ms before
+  that pause. The encoded bytes are unchanged.
 - Encoding a WriteTxnMarkers response pauses every 8,192 topics. Writing
   800,000 topics held the caller for 208ms before that pause. The encoded
   bytes are unchanged.
