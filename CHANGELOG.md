@@ -40,6 +40,8 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   and what stays outside it.
 - The operator guide describes the fetch buffer as one cap across partitions,
   with framed batches held until decode fits.
+- The operator guide splits metrics, Produce version selection, and broker
+  throttle into separate sections.
 
 - The broker SASL reauthentication page matches the listener profile: opt-in
   lifetime, Handshake v1, and the deadline that does not move after the
