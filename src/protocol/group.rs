@@ -8769,6 +8769,28 @@ pub fn encode_offset_delete_response(
     encode_offset_delete_response_with_throttle(buf, error_code, results, 0)
 }
 
+/// [`encode_offset_delete_response`], yielding while results are grouped and written.
+///
+/// Grouping 400,000 topics held the caller for 429ms. A topic name is still written.
+pub async fn encode_offset_delete_response_cooperative(
+    buf: &mut BytesMut,
+    error_code: i16,
+    results: &[OffsetDeleteResult],
+) -> Result<()> {
+    let groups = group_offset_delete_results(results).await?;
+    let body_start = buf.len();
+    let mut planned = 6usize;
+    planned = add_group_len(planned, group_array_len(false, groups.len())?)?;
+    planned = add_group_len(planned, offset_delete_topics_len(&groups).await?)?;
+    reserve_group_body(buf, planned);
+    buf.put_i16(error_code);
+    buf.put_i32(0);
+    buf::put_array_len(buf, false, Some(groups.len()))?;
+    write_offset_delete_topics(buf, &groups).await?;
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+    Ok(())
+}
+
 /// Encode OffsetDelete v0 with ThrottleTimeMs.
 ///
 /// ThrottleTimeMs is JSON `0+` (INT32, ignorable) but **after** ErrorCode
@@ -8786,16 +8808,7 @@ pub fn encode_offset_delete_response_with_throttle(
     let mut groups: Vec<(&str, Vec<(i32, i16)>)> = Vec::new();
     let mut slots: HashMap<&str, usize> = HashMap::new();
     for result in results {
-        let topic = result.topic.as_str();
-        if let Some(&slot) = slots.get(topic) {
-            if let Some((_, parts)) = groups.get_mut(slot) {
-                parts.push((result.partition, result.error_code));
-                continue;
-            }
-        }
-        let slot = groups.len();
-        let _ = slots.insert(topic, slot);
-        groups.push((topic, vec![(result.partition, result.error_code)]));
+        remember_offset_delete_result(&mut groups, &mut slots, result);
     }
     let body_start = buf.len();
     let planned = offset_delete_response_len(&groups)?;
@@ -8804,32 +8817,162 @@ pub fn encode_offset_delete_response_with_throttle(
     buf.put_i32(throttle_time_ms);
     buf::put_array_len(buf, false, Some(groups.len()))?;
     for (name, parts) in &groups {
-        buf::put_classic_nullable_string(buf, Some(name))?;
-        buf::put_array_len(buf, false, Some(parts.len()))?;
-        for (partition, err) in parts {
-            buf.put_i32(*partition);
-            buf.put_i16(*err);
-        }
+        write_offset_delete_topic(buf, name, parts)?;
     }
     debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
     Ok(())
+}
+
+fn remember_offset_delete_result<'a>(
+    groups: &mut Vec<(&'a str, Vec<(i32, i16)>)>,
+    slots: &mut HashMap<&'a str, usize>,
+    result: &'a OffsetDeleteResult,
+) {
+    let topic = result.topic.as_str();
+    if let Some(&slot) = slots.get(topic) {
+        if let Some((_, parts)) = groups.get_mut(slot) {
+            parts.push((result.partition, result.error_code));
+            return;
+        }
+    }
+    let slot = groups.len();
+    let _ = slots.insert(topic, slot);
+    groups.push((topic, vec![(result.partition, result.error_code)]));
+}
+
+fn write_offset_delete_topic(buf: &mut BytesMut, name: &str, parts: &[(i32, i16)]) -> Result<()> {
+    buf::put_classic_nullable_string(buf, Some(name))?;
+    buf::put_array_len(buf, false, Some(parts.len()))?;
+    for (partition, err) in parts {
+        write_offset_delete_partition(buf, *partition, *err);
+    }
+    Ok(())
+}
+
+fn write_offset_delete_partition(buf: &mut BytesMut, partition: i32, error_code: i16) {
+    buf.put_i32(partition);
+    buf.put_i16(error_code);
 }
 
 fn offset_delete_response_len(groups: &[(&str, Vec<(i32, i16)>)]) -> Result<usize> {
     let mut total = 6usize;
     total = add_group_len(total, group_array_len(false, groups.len())?)?;
     for (name, parts) in groups {
-        total = add_group_len(total, group_string_len(false, Some(name))?)?;
-        total = add_group_len(total, group_array_len(false, parts.len())?)?;
-        total = add_group_len(
-            total,
-            parts
-                .len()
-                .checked_mul(6)
-                .ok_or_else(|| Error::protocol("offset delete response size overflow"))?,
-        )?;
+        total = add_group_len(total, offset_delete_topic_len(name, parts)?)?;
     }
     Ok(total)
+}
+
+fn offset_delete_topic_len(name: &str, parts: &[(i32, i16)]) -> Result<usize> {
+    let mut total = group_string_len(false, Some(name))?;
+    total = add_group_len(total, group_array_len(false, parts.len())?)?;
+    total = add_group_len(
+        total,
+        parts
+            .len()
+            .checked_mul(6)
+            .ok_or_else(|| Error::protocol("offset delete response size overflow"))?,
+    )?;
+    Ok(total)
+}
+
+/// OffsetDelete results grouped or written before the caller is paused.
+const OFFSET_DELETE_RESPONSE_CHUNK: usize = 8 * 1024;
+
+async fn group_offset_delete_results(
+    results: &[OffsetDeleteResult],
+) -> Result<Vec<(&str, Vec<(i32, i16)>)>> {
+    let mut groups = Vec::new();
+    let mut slots = HashMap::new();
+    let mut start = 0usize;
+    while start < results.len() {
+        let end = start
+            .saturating_add(OFFSET_DELETE_RESPONSE_CHUNK)
+            .min(results.len());
+        let Some(slice) = results.get(start..end) else {
+            return Err(Error::protocol("offset delete result slice"));
+        };
+        for result in slice {
+            remember_offset_delete_result(&mut groups, &mut slots, result);
+        }
+        start = end;
+        if start < results.len() {
+            tokio::task::yield_now().await;
+        }
+    }
+    Ok(groups)
+}
+
+async fn offset_delete_topics_len(groups: &[(&str, Vec<(i32, i16)>)]) -> Result<usize> {
+    let mut total = 0usize;
+    let mut start = 0usize;
+    while start < groups.len() {
+        let end = start
+            .saturating_add(OFFSET_DELETE_RESPONSE_CHUNK)
+            .min(groups.len());
+        let Some(slice) = groups.get(start..end) else {
+            return Err(Error::protocol("offset delete topic slice"));
+        };
+        for (name, parts) in slice {
+            total = add_group_len(total, offset_delete_topic_len(name, parts)?)?;
+        }
+        start = end;
+        if start < groups.len() {
+            tokio::task::yield_now().await;
+        }
+    }
+    Ok(total)
+}
+
+async fn write_offset_delete_topics(
+    buf: &mut BytesMut,
+    groups: &[(&str, Vec<(i32, i16)>)],
+) -> Result<()> {
+    let mut start = 0usize;
+    while start < groups.len() {
+        let end = start
+            .saturating_add(OFFSET_DELETE_RESPONSE_CHUNK)
+            .min(groups.len());
+        let Some(slice) = groups.get(start..end) else {
+            return Err(Error::protocol("offset delete topic slice"));
+        };
+        for (name, parts) in slice {
+            buf::put_classic_nullable_string(buf, Some(name))?;
+            buf::put_array_len(buf, false, Some(parts.len()))?;
+            if parts.len() > OFFSET_DELETE_RESPONSE_CHUNK {
+                write_offset_delete_partitions(buf, parts).await?;
+            } else {
+                for (partition, err) in parts {
+                    write_offset_delete_partition(buf, *partition, *err);
+                }
+            }
+        }
+        start = end;
+        if start < groups.len() {
+            tokio::task::yield_now().await;
+        }
+    }
+    Ok(())
+}
+
+async fn write_offset_delete_partitions(buf: &mut BytesMut, parts: &[(i32, i16)]) -> Result<()> {
+    let mut start = 0usize;
+    while start < parts.len() {
+        let end = start
+            .saturating_add(OFFSET_DELETE_RESPONSE_CHUNK)
+            .min(parts.len());
+        let Some(slice) = parts.get(start..end) else {
+            return Err(Error::protocol("offset delete partition slice"));
+        };
+        for (partition, err) in slice {
+            write_offset_delete_partition(buf, *partition, *err);
+        }
+        start = end;
+        if start < parts.len() {
+            tokio::task::yield_now().await;
+        }
+    }
+    Ok(())
 }
 
 /// Decode OffsetDelete: `(error_code, results, throttle_time_ms)`.
@@ -9695,6 +9838,41 @@ mod tests {
                 .unwrap_or_else(|error| panic!("{error}"));
             assert_eq!(once, paced, "version {version}");
         }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn encoding_many_offset_delete_results_does_not_hold_the_caller() {
+        let results: Vec<OffsetDeleteResult> = (0..400_000)
+            .map(|index| OffsetDeleteResult::new(format!("t{index}"), 0, 0))
+            .collect();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = async {
+                let mut body = BytesMut::new();
+                encode_offset_delete_response_cooperative(&mut body, 0, &results)
+                    .await
+                    .unwrap_or_else(|error| panic!("{error}"));
+            } => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "encoding offset delete results held the caller for {elapsed:?}"
+        );
+        let sample = [
+            OffsetDeleteResult::new("orders", 0, 0),
+            OffsetDeleteResult::new("billing", 1, 3),
+            OffsetDeleteResult::new("orders", 2, 0),
+        ];
+        let mut once = BytesMut::new();
+        let mut paced = BytesMut::new();
+        encode_offset_delete_response(&mut once, 5, &sample)
+            .unwrap_or_else(|error| panic!("{error}"));
+        encode_offset_delete_response_cooperative(&mut paced, 5, &sample)
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(once, paced);
     }
 
     #[tokio::test(flavor = "current_thread")]

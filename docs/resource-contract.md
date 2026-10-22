@@ -121,6 +121,7 @@ leaders are still looked up, and a repeated name is still stored once.
 - Read an offset-commit response, and check an offset-fetch response, when either names many topics.
 - Write OffsetCommit response topics. A topic name is still copied.
 - Write OffsetCommit error topics from the request. A topic name is still copied.
+- Group and write OffsetDelete results. A topic name is still written.
 - Write OffsetFetch response topics. A topic name and commit metadata are still copied.
 - Pause or resume assigned partitions, and list the ones that are paused.
 - Copy an assignment, or the delivered position of each partition.
