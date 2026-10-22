@@ -279,9 +279,9 @@ v6+ is not spoken.
 
 ### FindCoordinator
 
-Spoken versions: 1–6.
+Spoken versions: 0–6.
 
-FindCoordinator v1–v2 are classic (Key + KeyType).
+FindCoordinator v0 is classic and has no KeyType. It accepts only the GROUP coordinator. v1–v2 are classic (Key + KeyType).
 
 v3 is flexible (compact key plus tagged fields; request header 2, response header 1).
 
@@ -299,9 +299,9 @@ Official Java `getErrorResponse` sets `throttleTimeMs` from the argument on v2+;
 
 `list_consumer_group_offsets_for_groups`, `describe_groups`, `delete_groups`, `consumer_group_describe`, `share_group_describe`, `describe_share_group_offsets`, and `describe_transactions` send CoordinatorKeys of N on v4+ (one FindCoordinator per coordinator-discovery retry) and one subsequent RPC per coordinator.
 
-Brokers that only speak v1–v3 get one FindCoordinator per key.
+Brokers that only speak v0–v3 get one FindCoordinator per key.
 
-v0 (no KeyType) and v7+ are not spoken.
+v7+ is not spoken.
 
 ### OffsetCommit
 
@@ -1553,9 +1553,11 @@ v4+ is not spoken.
 
 ### Metadata
 
-Spoken versions: 1–13.
+Spoken versions: 0–13.
 
-Metadata v1–v8 are classic; v9–v13 are flexible (compact arrays/strings plus tagged fields; request header 2, response header 1).
+Metadata v0–v8 are classic; v9–v13 are flexible (compact arrays/strings plus tagged fields; request header 2, response header 1).
+
+v0 has no controller id, topic id, or rack. An empty topic array means every topic. A named v0 request requires automatic topic creation. Producer, consumer, and admin negotiate 0–13.
 
 v10 TopicId (name-based describes send a zero UUID; `describe_topics_by_id` is Java `describeTopics(TopicCollection.ofTopicIds)` with null Name).
 
@@ -1575,7 +1577,7 @@ Java `describeTopics` is `describe_topics_timeout`.
 
 Kafka 4.0 `validVersions` is `0-13`.
 
-v0 (empty array means all topics) and v14+ are not spoken.
+v14+ is not spoken.
 
 ### ApiVersions
 

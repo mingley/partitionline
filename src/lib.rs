@@ -164,7 +164,7 @@
 //! empty; top-level ErrorCode is the same code; Java
 //! `hasReliableLeaderEpochs` is `true` even below Metadata v9).
 //! Name-based [`Admin::describe_topics`] uses DescribeTopicPartitions (api 75).
-//! Groups and transactions negotiate FindCoordinator v1–v6 (v3+ flexible;
+//! Groups and transactions negotiate FindCoordinator v0–v6 (v0 has no KeyType and accepts only GROUP; v3+ flexible;
 //! v4+ KIP-699 CoordinatorKeys; v5 TRANSACTION_ABORTABLE; v6 share groups;
 //! ThrottleTimeMs is JSON `1+` on spoken v1–v6;
 //! [`protocol::group::encode_find_coordinator_response_coordinators_with_throttle`];

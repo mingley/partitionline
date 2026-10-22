@@ -106,7 +106,7 @@ A few rules apply across APIs:
 | AddOffsetsToTxn | 0–4 |
 | EndTxn | 0–5 |
 | TxnOffsetCommit | 0–5 |
-| FindCoordinator | 1–6 |
+| FindCoordinator | 0–6 |
 | OffsetCommit | 2–10 |
 | OffsetFetch | 1–10 |
 | OffsetDelete | 0 |
@@ -160,7 +160,7 @@ A few rules apply across APIs:
 | UnregisterBroker | 0 |
 | DescribeCluster | 0–2 |
 | CreateAcls, DescribeAcls, DeleteAcls | 0–3 |
-| Metadata | 1–13 |
+| Metadata | 0–13 |
 | ApiVersions | 0–4 and sends v4 on connect |
 
 Kafka 4.0 removed some older versions. When a spoken range still includes them, this crate accepts them. The detail page names the versions this crate does not send.
