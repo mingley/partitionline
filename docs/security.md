@@ -102,25 +102,17 @@ advisories when enabled). Do not open a public issue with exploit details.
 
 ## Verification posture
 
-- Mock protocol tests exercise encode/decode extensively.
-- Real-broker smoke (`scripts/ci-broker-smoke.sh`) checks live produce/fetch
-  against Apache Kafka in CI when Docker is available.
-- Auth smoke (`scripts/ci-auth-smoke.sh`) boots an isolated KRaft broker with
-  SASL_SSL + PLAIN + SCRAM-SHA-256/512 + OAUTHBEARER (Kafka unsecured JWT validator),
-  produces via `examples/sasl` and `examples/oauth` (rustls), and checks
-  that TLS-without-SASL fails closed. Soft-skips without Java/openssl/Kafka
-  unless `REQUIRE_AUTH=1`.
-- Dependency advisories: CI `audit` job (`cargo audit`) and `deny` job
-  (`cargo deny` via `deny.toml` / `scripts/ci-deny.sh`). Mock TLS uses the
-  `openssl` CLI (not `rcgen`), so `RUSTSEC-2026-0009` (`time`) is not ignored.
-- Supply-chain bans: `rdkafka` / `rdkafka-sys`, OpenSSL, `native-tls`,
-  `zstd-sys`, and archived `rustls-pemfile` are denied so C Kafka / TLS /
-  zstd cannot land quietly.
-- TLS PEM: `rustls-pki-types::pem::PemObject` (no `rustls-pemfile`).
-- Decode allocation guards: `get_array_len` / tagged-field counts reject
-  lengths greater than remaining buffer bytes (untrusted broker DoS).
-- Adversarial decode smoke: `tests/fuzz_decode_smoke.rs` (pseudo-random
-  blobs must not panic).
-- libFuzzer targets under `fuzz/` (`decode_fetch_response`,
-  `decode_produce_response`, `decode_metadata_response`,
-  `decode_record_batches`); CI `fuzz-smoke` runs a short wall-clock budget.
+| Check | What it covers |
+|---|---|
+| Mock protocol tests | Encode and decode |
+| `scripts/ci-broker-smoke.sh` | Live produce and fetch against Apache Kafka when Docker is available |
+| `scripts/ci-auth-smoke.sh` | An isolated KRaft broker with SASL_SSL, PLAIN, SCRAM-SHA-256/512, and OAUTHBEARER. `examples/sasl` and `examples/oauth` produce over rustls. TLS without SASL fails closed. The job soft-skips without Java, OpenSSL, or Kafka unless `REQUIRE_AUTH=1`. |
+| `cargo audit` and `cargo deny` | Advisories, and a ban on `rdkafka`, `rdkafka-sys`, OpenSSL, `native-tls`, `zstd-sys`, and archived `rustls-pemfile` |
+| PEM loading | `rustls-pki-types::pem::PemObject`. The crate does not use `rustls-pemfile`. |
+| Decode length checks | Array and tagged-field counts that exceed the remaining buffer are rejected |
+| `tests/fuzz_decode_smoke.rs` | Pseudo-random blobs must not panic |
+| `fuzz/` libFuzzer targets | Fetch, Produce, Metadata, and record-batch decode. CI `fuzz-smoke` runs a short wall-clock budget |
+
+Mock TLS uses the `openssl` CLI, not `rcgen`, so `RUSTSEC-2026-0009`
+(`time`) is not ignored. These checks do not qualify GSSAPI, a live OIDC
+rotation soak, or a signed benchmark. Suite HOLD remains.
