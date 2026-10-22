@@ -139,6 +139,9 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   tables. Ordinary consumers still omit the high-watermark tag. Sessions
   still run on Fetch v7–v18. The 128-partition figure is a request-size
   measurement, from 4,268 bytes to 25 bytes.
+- The one-batch consumer recipe lists what to do when a commit fails,
+  when pause is on, and when a cooperative rejoin revokes partitions.
+  A failed commit can still have stored an offset.
 - The gateway profile names zstd as an optional codec that has shipped.
   Its measured cells remain gzip and lz4.
 

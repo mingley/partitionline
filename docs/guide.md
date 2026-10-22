@@ -726,19 +726,17 @@ the leader epoch. Prefetched records past `max_poll_records` stay
 uncommitted. `leave`, `close`, and `unsubscribe` do not auto-commit work
 you have not finished.
 
-A failed or cancelled commit can still have stored an offset. On restart,
-read the committed offsets. When an effect can run twice, key it by
-`(topic, partition, offset)`. Restart from the stored group offset. Commit
-only the batch you processed.
+| Situation | What to do |
+|---|---|
+| The commit failed or was cancelled | The offset may already be stored. Read the committed offsets before processing again. |
+| The effect can run twice | Key it by `(topic, partition, offset)`. Restart from the stored group offset. Commit only the batch you processed. |
+| The partition is paused | Buffered bytes stay. Delivery stops. Pause does not block a rebalance, and it does not extend `max_poll_interval`. |
+| Membership or fencing failed | Do not commit as the old member. |
+| Cooperative rejoin | Keep pending records for partitions this member still owns. Drop the revoked ones. The new owner starts from the stored group offsets. |
 
-Pause keeps buffered bytes and stops delivery for those partitions. It does
-not block a rebalance, and it does not extend `max_poll_interval`. Bound the
-processing, handle revoke and assign, and stop work whose partitions were
-revoked. After a membership or fencing error, skip a commit from the old
-member. A cooperative rejoin keeps pending records for partitions the member
-still owns and drops the revoked ones. The new owner starts from the stored
-group offsets. The pause in this example does not give the process exclusive
-ownership for an outside operation of any length.
+The pause in this example does not give the process exclusive ownership
+for an outside operation of any length. Bound the processing, handle
+revoke and assign, and stop work whose partitions were revoked.
 
 The regressions are
 `consumer_close_commit::commit_after_capped_poll_must_not_commit_buffered_records`,
