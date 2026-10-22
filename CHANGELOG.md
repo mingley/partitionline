@@ -107,6 +107,8 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   the declared minimum.
 - The operator troubleshooting table says a SASL session expiry closes the
   connection. Client loops do not reauthenticate on a timer.
+- The zstd page opens with the feature switch and the byte limits. The
+  feature stays off by default. Levels remain 1 through 19, default 3.
 - The gateway profile names zstd as an optional codec that has shipped.
   Its measured cells remain gzip and lz4.
 

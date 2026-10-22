@@ -1,9 +1,19 @@
 # zstd codec
 
-Enable `zstd` for compression-ID-4 encoding and decoding. The feature adds the pinned
-`zstd-rs = "=0.1.0"` backend and is disabled by default. Encoding supports explicitly validated levels 1 through 19, with level 3 as
-the default.
-All current checks use the latest stable Rust.
+The `zstd` feature is off by default. Turn it on to encode and decode Kafka
+compression id 4. The backend is the pinned crate `zstd-rs` 0.1.0. Levels
+are 1 through 19, and the default is 3. Build and test with the latest
+stable Rust.
+
+| Limit | Value |
+|---|---|
+| Decoded record section | The caller's budget, and never more than 64 MiB |
+| Declared window on decode | 64 MiB |
+| Frames in one batch | 1,024, including skippable frames |
+| Encoder window | At most 8 MiB |
+| Record section before compression | 64 MiB |
+| Compressed output | 64 MiB plus 64 KiB |
+| Oldest Produce version | 7. Older versions are rejected before any bytes are sent. |
 
 ```sh
 cargo test --locked --features zstd --test zstd_decode --test zstd_encode --test fuzz_decode_smoke
@@ -61,9 +71,10 @@ corruption and bounded mutations of inner frames with repaired outer CRCs.
 
 Fixtures and peer pins are in [the manifest](../tests/fixtures/zstd-decode/manifest.json).
 Decoder evidence in the repository under `docs/evidence/codecs/zstd-decode/`
-records commands, source hashes and native process closure. The encoder checks all 19 levels and record/block boundaries with independent
-Java decoding of actual Rust frames. Fresh native Kafka readback uses both Java
-and librdkafka for 128 Rust records at levels 1, 3 and 19. Encoder evidence is in
+records commands, source hashes and native process closure. The encoder
+checks all 19 levels and the record and block boundaries. Java decodes the
+Rust frames. A live Kafka readback uses both Java and librdkafka for 128
+Rust records at levels 1, 3, and 19. Encoder evidence is in
 `docs/evidence/codecs/zstd-encode/`.
 
 The codec matrix covers none, gzip, Snappy, LZ4 and zstd with Rust, Java and C
@@ -102,7 +113,7 @@ The backend has no runtime or build dependencies and uses the existing
 MIT/Apache license policy. Its archive SHA-256 is
 `41514ccc30389f95bb9e6ab6d5634f17121c7b4fead6722a5fceec1c7891d78f`;
 upstream revision is `bac4c37d86e5307537c145823a106f7ed8f386d7`.
-The earlier comparison and independent backend experiment remain in
-[KL05-02 evidence](https://github.com/mingley/partitionline/blob/b58b01955544eceba8bd97b0b5615fc63bc1dc99/docs/evidence/codecs/KL05-02/candidates.json). Their historical toolchain
-results do not set the current supported Rust version. The backend's short
-maintenance history still limits production confidence.
+The earlier comparison and the independent backend experiment remain in
+[KL05-02 evidence](https://github.com/mingley/partitionline/blob/b58b01955544eceba8bd97b0b5615fc63bc1dc99/docs/evidence/codecs/KL05-02/candidates.json).
+Those toolchain results do not set the current supported Rust version.
+The backend's short maintenance history still limits production confidence.
