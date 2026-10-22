@@ -7,6 +7,9 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ## [Unreleased]
 
+- Encoding a Fetch response pauses every 8,192 partitions. Writing
+  500,000 partitions held the caller for 219ms before that pause. The
+  encoded bytes are unchanged.
 - Encoding a Produce response pauses every 8,192 partitions. Writing
   600,000 partitions held the caller for 212ms before that pause. The
   encoded bytes are unchanged.
