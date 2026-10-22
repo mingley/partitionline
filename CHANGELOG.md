@@ -156,6 +156,10 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 - The same table notes that incremental Fetch, pre-sized decompression,
   and prefetch-within-budget have landed. The zero-copy batch view is
   still KL09-37 through KL09-39.
+- Share fetch limits, overlapped leaders, and range indexes are done.
+  Reused RPC buffers, pre-encoded headers, a shared TLS config, and a
+  shared OIDC manager are done. Write-shape and socket-buffer cards stay
+  pending.
 - The gateway profile names zstd as an optional codec that has shipped.
   Its measured cells remain gzip and lz4.
 

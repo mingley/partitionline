@@ -222,7 +222,9 @@ Fetch v7–v18 uses incremental sessions, and v4–v6 stays a full request.
 KL09-42 is done: the next round is prefetched within the byte budget. The
 "legacy Fetch every round" and "no prefetch overlap" rows describe the
 2026-09-26 code. KL09-37 through KL09-39, the zero-copy batch view, are
-still pending.
+still pending. KL09-49, KL09-50, and KL09-51 are done: share fetch honors
+configured limits, overlaps leaders, and indexes acquisition ranges. The
+share-fetch row below is that date's description.
 
 | Step | Location | Observed cost | Card |
 |---|---|---|---|
@@ -241,6 +243,14 @@ still pending.
 | Share fetch | `share.rs` ~1132–1258 | Hard-coded 16 records/1 MiB; serial leaders; linear range search per record | KL09-49/50/51 |
 
 ### Shared transport
+
+These rows are the same dated hypothesis. KL09-52, KL09-53, KL09-56, and
+KL09-59 are done: RPC buffers are reused, immutable header bytes are
+pre-encoded, one TLS configuration is shared per client, and connection
+opens reuse one OIDC token manager. The rows for a fresh buffer, a
+re-encoded header, a rebuilt TLS config, and a fresh token fetch describe
+the 2026-09-26 code. KL09-54, KL09-55, KL09-57, and KL09-58 are still
+pending.
 
 | Location | Observed cost | Card |
 |---|---|---|
