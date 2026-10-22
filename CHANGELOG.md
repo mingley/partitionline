@@ -176,6 +176,9 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 - The gateway produce profiles used miniz_oxide. The default gzip backend
   is now zlib-rs. The 24.3 µs and 477k records/s figures have not been
   re-measured on that backend.
+- The gateway codec table labels miniz_oxide as the 2026-09-30 default
+  and zlib-rs as the default now. The feed-gap card KL10-04 is still
+  pending. The 2026-09-26 example-binary CI failure was fixed by KL10-01.
 - The gateway profile names zstd as an optional codec that has shipped.
   Its measured cells remain gzip and lz4.
 

@@ -129,30 +129,32 @@ re-measured those two numbers.
 
 | Codec and backend | Compress | Decompress | Ratio |
 |---|---|---|---|
-| gzip, miniz_oxide 0.9.1 (current) | 101–122 MB/s | 1.06–1.10 GB/s | 6.7–7.2 |
+| gzip, miniz_oxide 0.9.1 (the 2026-09-30 default) | 101–122 MB/s | 1.06–1.10 GB/s | 6.7–7.2 |
 | gzip, system zlib 1.2.12 (librdkafka) | 92–122 MB/s | 1.82–2.15 GB/s | 6.7–7.3 |
-| gzip, zlib-rs 0.6.8 | **178–218 MB/s** | 1.12–1.43 GB/s | 6.8–7.2 |
+| gzip, zlib-rs 0.6.8 (now the default) | **178–218 MB/s** | 1.12–1.43 GB/s | 6.8–7.2 |
 | lz4, lz4_flex (current) | 1.6–2.2 GB/s | 7.8–8.3 GB/s | 3.9–4.2 |
 | lz4, C liblz4 | 1.7–2.1 GB/s | 7.6–7.9 GB/s | 3.9–4.2 |
 | zstd level 3, C libzstd 1.5.7 (reference only) | 714–842 MB/s | 2.3–3.1 GB/s | 7.7–7.8 |
 
-**Reading:**
+**Reading, as of this 2026-09-30 microbenchmark:**
 
-- lz4_flex is already at parity with C.
-- miniz compresses at the same speed as librdkafka's zlib. Yet the client
-  spends about 18 µs per record in deflate, against about 10 µs when the
-  same backend compresses the same bytes in one call. That feed overhead
-  needs explaining (KL10-04).
-- zlib-rs compresses 1.8× faster. It uses internal `unsafe` code and SIMD
-  internally, so adopting it is a policy decision (KL10-05).
-- zstd is a potential migration path for workloads that can change codec,
-  subject to end-to-end consumer compatibility (KL05-02..05).
+- lz4_flex matched C on these cells. It is still the lz4 backend.
+- miniz_oxide compressed at about the same speed as librdkafka's zlib. The
+  client spent about 18 µs per record in deflate, against about 10 µs when
+  the same backend compressed the same bytes in one call. That feed gap is
+  KL10-04, which is still pending, and it was measured on miniz_oxide.
+- zlib-rs compressed about 1.8× faster on these cells. It is now the
+  default (KL10-05 and KL10-06). It uses `unsafe` and SIMD inside the
+  dependency. The gateway produce rows above have not been re-run on it.
+- zstd encode and decode have shipped as an optional feature (KL05-02
+  through KL05-05). This row is C libzstd only. Required client benchmark
+  cells for zstd are `not_run`.
 
 ### Repository health
 
 - **Recorded CI failure (2026-09-26).** Runs at `848e58c` failed because
   verifiable tests expected example binaries that `cargo test --all-targets`
-  did not build under those names. Later local stable suites pass; the
+  did not build under those names. KL10-01 later fixed that failure. The
   [resource driver evidence](../evidence/resource-soak/KL02-09/README.md)
   records 2,002 default and 2,014 all-feature tests. This does not establish
   a new hosted CI result.
