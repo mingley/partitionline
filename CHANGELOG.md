@@ -30,6 +30,8 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   platform lanes, and items that are not promised are separate sections.
 - The roadmap opens on the current task queue. The 2026-09-21 audit
   stays a frozen baseline, and the first consumer cards are marked done.
+- The civilization plan is labeled as history and points at the current
+  task queue. Its capability table is not a qualification result.
 
 - The broker SASL reauthentication page matches the listener profile: opt-in
   lifetime, Handshake v1, and the deadline that does not move after the

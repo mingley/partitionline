@@ -1,28 +1,29 @@
 # Civilization plan for partitionline
 
-**Historical foundation plan.** Current execution is
-[one task per session](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/plan/README.md), with status/dependencies in
-[tasks.json](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/plan/tasks.json) and profile gates in [ROADMAP.md](ROADMAP.md).
-The [2026-09-21 audit](https://github.com/mingley/partitionline/blob/917d877d7b049f3da5af90bd2a5804b85080ed2b/docs/audits/2026-09-21.md) supersedes broad completion
-inferences from this file's capability checklist.
+This file is the older foundation plan. The work packages below are history.
+They are not the queue for new work.
 
-**Goal:** A Kafka client with documented behavior, reliable operation and
-reproducible performance measurements. TLS uses rustls/ring, whose build
-includes native code.
+Current work is one card at a time in [tasks.json](plan/tasks.json). The
+[task workflow](plan/README.md) says how to pick a card. Profile gates are in
+[ROADMAP.md](ROADMAP.md). The [2026-09-21 audit](audits/2026-09-21.md)
+supersedes any completion claim read out of the checklist below.
 
-The older WP packages below preserve foundation history; do not pick them
-as new session assignments. Do not lift
-Suite HOLD claims in `STATUS.md` / `benchmark.md` without signed Lab A
-evidence. Do not add librdkafka, OpenSSL, libzstd, or Cyrus SASL as default
-dependencies. `unsafe_code` stays forbidden.
+The client goal is documented behavior, reliable operation, and measurements
+that can be repeated. TLS uses rustls and Ring. That build compiles native
+code.
 
-## Why this matters
+Suite HOLD stays until there is signed Lab A evidence. See
+[STATUS.md](STATUS.md) and [benchmark.md](benchmark.md). Default features do
+not add librdkafka, OpenSSL, libzstd, or Cyrus SASL. `unsafe_code` stays
+forbidden.
 
-partitionline provides producer, consumer, group, transaction, Admin and share
-group APIs. The current task registry tracks correctness, compatibility and
-operational gaps. `benchmark.md` records the available produce, fetch and
-latency measurements. Lab A and local VM results have different qualification
-requirements; the local latency samples do not establish a performance win.
+## What this plan was aiming at
+
+The client has producer, consumer, group, transaction, Admin, and share-group
+APIs. Correctness, compatibility, and operational gaps are tracked in the
+task registry. Produce, fetch, and latency numbers are in `benchmark.md`.
+A Lab A result and a local VM sample are different kinds of evidence. A local
+latency sample is not a performance win.
 
 ## Non-negotiable constraints
 
@@ -36,7 +37,10 @@ requirements; the local latency samples do not establish a performance win.
 5. Schema Registry stays out of this crate’s default surface (`gaps.md`); a
    companion crate is allowed later.
 
-## Historical capability baseline (not qualification)
+## Historical capability baseline
+
+This table records what existed when the plan was written. A **done** cell
+is not a qualification result.
 
 | Area | State |
 |---|---|
