@@ -783,54 +783,56 @@ before deciding whether to retry processing.
 
 ### Produce cancellation and shutdown
 
-Once `send` / `try_send` has accepted a record into `buffer_memory`, dropping the
-caller future does **not** mean the record was never written. Delivery may still
-reach the broker; treat the caller outcome as **ambiguous** until you retain the delivery result or settle queued work with `flush`.
-Closing stops workers, but a successful `close` is not a replacement for
-retaining a send/flush delivery error.
+After `send` or `try_send` has accepted a record into `buffer_memory`,
+dropping that future leaves delivery ambiguous. The worker may still write
+the record. Keep the delivery result, or settle the queue with `flush`,
+before treating the outcome as final. `close` stops workers. A successful
+`close` does not replace the send or flush error you still need to keep.
 
 | Stage | Typical signals | Caller outcome |
 |---|---|---|
 | Before enqueue | unpolled `send`; rejected `try_send` (`QueueFull`, `RecordTooLarge`); known admission failure | **Not accepted** |
-| Buffered (queued, not yet on the wire) | `metrics().bytes_buffered > 0`; drop `send` future | **Ambiguous** — worker may still deliver |
-| After send / before ack | in flight to broker; drop `send` future | **Ambiguous** |
-| After broker ack | `Ok(RecordMetadata)` or accepted `try_send` plus successful `flush`, with `acks=1/all` | **Acknowledged**; `acks=0` cannot prove an acknowledged offset |
-| After `close` / `close_timeout` | further `send`/`try_send` on any clone | **Failed** with `Error::Closed` |
+| Buffered (queued, not yet on the wire) | `metrics().bytes_buffered > 0`; drop `send` future | **Ambiguous.** The worker may still deliver. |
+| After send / before ack | in flight to the broker; drop `send` future | **Ambiguous** |
+| After broker ack | `Ok(RecordMetadata)`, or accepted `try_send` plus a successful `flush`, with `acks=1` or `all` | **Acknowledged.** `acks=0` cannot prove an offset. |
+| After `close` / `close_timeout` | further `send` or `try_send` on any clone | **Failed** with `Error::Closed` |
 
-Prefer an explicit `close` (or `close_timeout`) over dropping the last `Producer`
-handle: drop alone does not wait for in-flight produce outcomes. Producer
-shutdown is bounded: `close_timeout` enforces its deadline against stalled
-brokers and retry queues, failing in-flight batches with `Error::Timeout`
-(preserving ambiguous delivery after transmission) and immediately returning
-`Error::Closed` to concurrent sends across all clones. Dropping the last
-`Producer` handle aborts worker and background tasks without leaking buffer
-permits or connections. Mock coverage: `tests/produce_cancel.rs`.
+Call `close` or `close_timeout` instead of dropping the last `Producer`.
+Drop alone does not wait for in-flight produce. `close_timeout` applies its
+deadline to a stalled broker and to the retry queue. In-flight batches then
+fail with `Error::Timeout`, and a record already transmitted stays
+ambiguous. Concurrent sends on every clone get `Error::Closed` immediately.
+Dropping the last handle aborts the worker and background tasks. Buffer
+permits and connections are released. The mock is `tests/produce_cancel.rs`.
 
-Run the bounded cancellation recipe against an existing topic:
+Run the recipe against an existing topic:
 
 ```bash
 KAFKA_TOPIC=events cargo run --example produce_cancel
 ```
 
-It polls one send wait for 20 ms, drops that wait, explicitly flushes queued
-work, then closes within a 15-second process deadline. A lazy, unpolled send
-has accepted nothing. Once polled, an outer timeout may happen before or
-after admission; a delivery timeout after transmission remains ambiguous.
-The recipe retains the flush result separately from close and never resends
-the cancelled record. Aggregate settlement cannot reconstruct its missing
-per-record receipt. Retrying a fresh send after such ambiguity can duplicate
-a record even when idempotence was enabled on the original producer.
+It polls one send for 20 ms, drops that wait, flushes queued work, and
+closes inside a 15-second process deadline. An unpolled send has accepted
+nothing. Once the send has been polled, an outer timeout can land before or
+after admission. A delivery timeout after the bytes were transmitted stays
+ambiguous. The recipe keeps the flush result separate from close and does
+not send that record again. A later aggregate result cannot rebuild the
+missing per-record receipt. A fresh send after that ambiguity can duplicate
+the record, including when the original producer had idempotence on.
 
-For backpressure, rejected `try_send` has not admitted that record: wait for
-other work to settle within a deadline, then retry admission. `send` already
-waits up to `max_block` for admission and uses its delivery deadline after
-admission. Do not spin or move overload into an unbounded application queue.
-For overload/byte ownership, run `cargo test --locked --test buffer_ownership`;
-for stalled shutdown and cancellation, run
-`cargo test --locked --test produce_cancel`. Named cases include
-`dropping_send_future_while_buffered_is_ambiguous_but_still_delivers`,
-`stalled_broker_close_timeout_terminates_boundedly_and_completes_inflight`, and
-`concurrent_sends_during_close_do_not_hang_and_observe_closed`.
+A rejected `try_send` has not admitted that record. Wait for other work to
+settle inside a deadline, then retry admission. `send` already waits up to
+`max_block` for admission and uses its delivery deadline after that. Keep
+the application queue bounded.
+
+```bash
+cargo test --locked --test buffer_ownership
+cargo test --locked --test produce_cancel
+```
+
+Named cases: `dropping_send_future_while_buffered_is_ambiguous_but_still_delivers`,
+`stalled_broker_close_timeout_terminates_boundedly_and_completes_inflight`,
+and `concurrent_sends_during_close_do_not_hang_and_observe_closed`.
 
 
 

@@ -44,6 +44,8 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   throttle into separate sections.
 - The operator guide introduces group kinds before the 8,192-item walks,
   and the integrity scripts are described as checks that do not lift Suite HOLD.
+- The produce cancellation recipe states when a dropped send is ambiguous
+  and when close returns `Error::Closed`.
 
 - The broker SASL reauthentication page matches the listener profile: opt-in
   lifetime, Handshake v1, and the deadline that does not move after the
