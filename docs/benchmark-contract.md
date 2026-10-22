@@ -180,10 +180,35 @@ shared cargo cache. Its timings are diagnostics. They never rank a client.
 ## One fully specified comparison
 
 Scenario `matched-bulk-acks-all-6p-uncompressed`. Profile `bulk`, required
-tier, status `not_run`.
+tier, status `not_run`. The commands below are the checked-in invocations
+from [scenarios.json](../benchmarks/scenarios.json). Running one of them
+once does not fill the cell.
 
-Idempotent produce of 8,000,000 uncompressed records, 6 partitions,
-`acks=-1`, at most 5 in-flight requests.
+The workload is idempotent produce of 8,000,000 uncompressed records,
+6 partitions, `acks=-1`, at most 5 in-flight requests, and 5 repetitions
+alternated with the other peers. Historical Lab A used 1,000,000 batch
+bytes and no warmup. This cell uses 1,048,576 batch bytes and 10,000
+warmup records. Do not mix those tables. The Lab A numbers are in
+[benchmark.md](benchmark.md#results).
+
+The partitionline command leaves several frozen knobs to process defaults:
+
+| Knob | Frozen value | What the printed command does |
+|---|---|---|
+| Record seed | `0x5EED0001` | Unset. `bench_produce` defaults to that seed. A different `RECORD_SEED` is a different workload. |
+| Payload and key | Seeded 100-byte values, 16-byte id keys | Unset. Defaults are `PAYLOAD_MODE=seeded` and `KEY_MODE=id`. |
+| Connections per broker | 1 | Unset. `bench_produce` defaults to 8. |
+| Partitions | 6, on topic `plbench-matched` | Unset. With id keys the example uses whatever partitions the broker already has. The command does not create the topic. |
+| Repetitions | 5, alternating clients | One process. |
+
+The current Java peer driver is `unsupported` for this cell in
+`scenarios.json`. It does not match the frozen 32,768-record batch cap
+or the key distribution. The `ProducerPerformance` command further down
+is the historical reference. It does not qualify the cell. franz-go
+v1.22.0 is checked in under `benchmarks/peers/franz-go` (KL09-65). Its
+cell status is still `not_run`. rust-rdkafka in this scenario is a
+wrapper around librdkafka, not the C tool, and that disposition is
+`not_run` as well.
 
 | Knob | Value |
 |---|---|
@@ -281,14 +306,14 @@ met. Until then every cell stays `not_run` and no summary claim exists.
 runnable driver. A peer without a driver, or without the feature, is
 excluded. It is not counted as a loss.
 
-| Peer | Client | Standing |
+| Peer | What is already in the tree | What is still missing before a sentence |
 |---|---|---|
-| partitionline | This repository | Subject under test |
-| librdkafka | C client, pinned release, with 2.15.0 as the historical bar | Driver pending |
-| kafka-clients | Apache Java, pinned release | Driver pending |
-| franz-go | Go client, pinned release | Driver pending |
-| rust-rdkafka | Rust bindings over librdkafka, reported separately from the C tool | Adapter pending |
-| Another Rust client | Chosen when that comparison is specified | Selection pending |
+| partitionline | This repository | A campaign that actually matches the frozen knobs, including one connection per broker |
+| librdkafka C 2.15.0 | The command in the matched scenario, plus the dated samples in [benchmark.md](benchmark.md#results) | Those samples are not the matched cell. The cell is `not_run` |
+| Java kafka-clients | Historical `ProducerPerformance` command. The current peer driver is marked `unsupported` for this cell | A driver that matches the batch-record cap and the key distribution |
+| franz-go v1.22.0 | `benchmarks/peers/franz-go` (KL09-65) | The matched cell is `not_run` |
+| rust-rdkafka 0.39.0 | Reported separately from the C tool. Fetch and latency samples are in [benchmark.md](benchmark.md) | Those samples are not the matched cell |
+| Another pure-Rust client | Not selected | A named peer, chosen before any comparison |
 
 For throughput, the paired 95% confidence interval’s lower bound on the
 partitionline/peer ratio must be above 1.0. For latency, the upper bound

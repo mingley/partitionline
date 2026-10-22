@@ -77,6 +77,12 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 - The benchmark page opens its historical produce samples with one map.
   The four uncompressed medians stay dated samples. Fetch `RackId` and
   the admin APIs are no longer described in the middle of those tables.
+- The measurement contract says the matched bulk cell is `not_run`.
+  The printed `bench_produce` command leaves connections at the default
+  of 8, and the historical Java command does not qualify that cell.
+- The benchmark page maps the two fetch samples and the latency sample
+  before the per-run tables. The latency sample remains a loss against
+  rust-rdkafka 0.39.0.
 - The gateway profile names zstd as an optional codec that has shipped.
   Its measured cells remain gzip and lz4.
 

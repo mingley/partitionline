@@ -552,23 +552,25 @@ table measures.
 | 3 | 6,022,825 | 8,000,000 | 4,220,885 | 8,000,000 |
 | **median** | **5,693,694** | 8,000,000 | **3,598,852** | 8,000,000 |
 
-## Historical fetch sample
+## Historical fetch and latency samples
 
-Fetch is consumed records/second from a topic this crate already filled.
-Produce-ack / fetch-request latency is a separate writeup later in this
-file. Do not copy those microseconds into this throughput table.
+Fetch counts records an independent consumer read. Latency counts
+microseconds. Neither table is a produce row, and neither table is the
+matched cell in the [measurement contract](benchmark-contract.md#one-fully-specified-comparison).
+Suite HOLD stays on. See [STATUS.md](STATUS.md).
 
-A mock-broker e2e is not a fetch vs-C win. This writeup is the run executed
-on the recording agent, labeled as that run. It is **unsigned** until
-Kernel Integrity signs. Suite HOLD stands. See [STATUS.md](STATUS.md).
+| Sample | Date | Peer | What the median says |
+|---|---|---|---|
+| [This VM, fetch](#2026-08-28-this-vm-unsigned) | 2026-08-28 | rust-rdkafka 0.39.0, one `poll` per record | 5,282,935 vs 897,080 consumed rec/s. Not the C 2.15.0 tool. |
+| [Lab A fetch](#historical-lab-a-fetch-not-this-agent-unsigned-here) | 2026-08-24 | librdkafka C 2.15.0 `rdkafka_performance -C` | 4,381,010 vs 3,119,810 consumed rec/s. Not reproduced on the VM above. |
+| [This VM, produce-ack latency](#2026-08-28-this-vm-latency-unsigned) | 2026-08-28 | rust-rdkafka 0.39.0 `FutureProducer::send` | p50 62 vs 58 µs; p99 95 vs 90 µs. The partitionline side was slower. |
 
 ### 2026-08-28 this-VM (unsigned)
 
-Same locked knobs as the produce table (8,000,000 × 100 B, `plbench`, 6
-partitions). Load with this crate (linger 5 ms, `acks=1`). Both consumers
-read from offset 0. Completeness: records consumed **equal** records sent
-(8,000,000). High watermark summed to **8,000,000** before and after the
-pairs.
+8,000,000 records of 100 bytes on `plbench`, 6 partitions. Loaded with this
+crate at linger 5 ms and `acks=1`. Both consumers read from offset 0.
+Records consumed equal records sent (8,000,000). The high watermark summed
+to 8,000,000 before and after the pairs.
 
 This run compares a separate rust-rdkafka **0.39.0** binary (`rdkafka-sys`
 4.10.0+2.12.1, `cmake-build`, bundled librdkafka **2.12.1**). It is a separate
@@ -668,18 +670,13 @@ Load HW was **8,000,000** before each pair. Both consumers read the same log.
 
 ## Historical latency sample
 
-This is **not** the produce or fetch throughput tables above. It is
-sequential produce-ack and already-on-log fetch-request latency, p50/p99
-in microseconds. A mock-broker e2e is not a latency win. This writeup is
-the run executed on the recording agent, labeled as that run. It is
-**unsigned** until Kernel Integrity signs. Suite HOLD stands. See
-[STATUS.md](STATUS.md).
+This section is the third row of the map above: sequential produce-ack
+latency, plus a partitionline-only fetch-request latency. It is not the
+produce throughput map and not the Lab A fetch row.
 
-`rdkafka_performance` C 2.15.0 was **not** present on this VM and was
-**not** run. Do not copy Lab A C numbers into this table. Do not treat
-the historical 4.38M vs 3.12M Lab A fetch-vs-C row as this writeup.
+`rdkafka_performance` C 2.15.0 was not present on this VM and was not run.
 
-### 2026-08-28 this-VM (unsigned)
+### 2026-08-28 this-VM latency (unsigned)
 
 Sequential `Producer::send` (enqueue to Produce ack) vs rust-rdkafka
 **0.39.0** `FutureProducer::send`. Linger **0**, `acks=1`, 100 B payload,
