@@ -60,6 +60,8 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   store positions. Metadata v0 and GROUP FindCoordinator v0 are spelled out.
 - The resource-soak page separates the local rehearsal, resume, and the
   controlled-host profile. A short run is not a 24-hour qualification.
+- The open-loop latency page separates the schedule, the four latency
+  distributions, and the outcomes a JSONL file does not qualify.
 
 - The broker SASL reauthentication page matches the listener profile: opt-in
   lifetime, Handshake v1, and the deadline that does not move after the
