@@ -596,11 +596,13 @@ Lock these on **both** consumers:
 | Start | offset 0 / `Offset::Beginning` |
 | Partitions | all 6 (`assign_topic` / assign 0..5) |
 
-Load JSON (this-VM, not a produce claim):
+The topic was filled before either consumer ran. That fill is a load step, not a produce comparison. Compression was `none`. Idempotence, TLS, SCRAM, and OAUTHBEARER were off.
 
-```
-{"acked":8000000,"elapsed_s":2.378476,"acked_rec_s":3363498.136,"payload_bytes":100,"acks":1,"linger_ms":5,"compression":"none","idempotent":false,"tls":false,"scram":false,"scram512":false,"oauthbearer":false}
-```
+| Acked records | Elapsed | Acked rec/s | Payload | Acks | Linger |
+|---|---|---|---|---|---|
+| 8,000,000 | 2.378476 s | 3,363,498.136 | 100 bytes | 1 | 5 ms |
+
+Both consumers then read that log from offset 0.
 
 | Run | partitionline rec/s | partitionline consumed | rdkafka 0.39.0 rec/s | rdkafka consumed |
 |---|---|---|---|---|
@@ -609,24 +611,18 @@ Load JSON (this-VM, not a produce claim):
 | 3 | 5,402,792 | 8,000,000 | 900,952 | 8,000,000 |
 | **median** | **5,282,935** | 8,000,000 | **897,080** | 8,000,000 |
 
-Exact JSON from the three pairs (do not invent other digits):
+Source rows. The summary table rounds `consumed_rec_s` to the nearest record per second. The median is the middle run. Every row consumed 8,000,000 records on 6 partitions, with `max_wait_ms` 100 and `max_bytes` 16,777,216.
 
-```
-{"consumed":8000000,"elapsed_s":1.539759,"consumed_rec_s":5195617.624,"partitions":6,"max_wait_ms":100,"max_bytes":16777216}
-{"client":"rdkafka-0.39.0","consumed":8000000,"elapsed_s":9.044263,"consumed_rec_s":884538.645,"partitions":6,"max_wait_ms":100,"max_bytes":16777216}
-{"consumed":8000000,"elapsed_s":1.514310,"consumed_rec_s":5282934.557,"partitions":6,"max_wait_ms":100,"max_bytes":16777216}
-{"client":"rdkafka-0.39.0","consumed":8000000,"elapsed_s":8.917826,"consumed_rec_s":897079.652,"partitions":6,"max_wait_ms":100,"max_bytes":16777216}
-{"consumed":8000000,"elapsed_s":1.480716,"consumed_rec_s":5402792.049,"partitions":6,"max_wait_ms":100,"max_bytes":16777216}
-{"client":"rdkafka-0.39.0","consumed":8000000,"elapsed_s":8.879495,"consumed_rec_s":900952.157,"partitions":6,"max_wait_ms":100,"max_bytes":16777216}
-```
+| Run | Client | Elapsed | Exact consumed rec/s |
+|---|---|---|---|
+| 1 | partitionline | 1.539759 s | 5,195,617.624 |
+| 1 | rust-rdkafka 0.39.0 | 9.044263 s | 884,538.645 |
+| 2 | partitionline | 1.514310 s | 5,282,934.557 |
+| 2 | rust-rdkafka 0.39.0 | 8.917826 s | 897,079.652 |
+| 3 | partitionline | 1.480716 s | 5,402,792.049 |
+| 3 | rust-rdkafka 0.39.0 | 8.879495 s | 900,952.157 |
 
-Table integers are the JSON `consumed_rec_s` values rounded to nearest
-record/s. Median is the middle run, not a mean. partitionline was higher
-on every pair of **this** run. That is a same-hardware measurement vs
-rust-rdkafka 0.39.0 `BaseConsumer::poll` on this VM. It is **not** signed.
-It is **not** a vs-C 2.15.0 claim. It is **not** a Suite HOLD lift.
-The peer called `poll` once per record. Fetch `RackId` encoding is
-described with the Fetch versions in [wire versions](wire-versions.md).
+The peer called `poll` once per record. On this VM, partitionline’s median was 5,282,935 consumed records/s and rust-rdkafka 0.39.0’s median was 897,080. The sample is unsigned. The C 2.15.0 consumer tool was not on this machine. Suite HOLD stays on.
 
 #### Run again
 
@@ -725,25 +721,21 @@ returned 8 extra records past the 10,000 stop).
 | 3 | 62 | 95 | 58 | 95 | 11,000 |
 | **median** | **62** | **95** | **58** | **90** | 11,000 |
 
-Median is the middle run of each column, not a mean. partitionline
-produce-ack was **not** lower than rust-rdkafka 0.39.0 on this VM (p50
-median 62 vs 58; p99 median 95 vs 90). That is not a same-hardware win.
-It is **not** signed. It is **not** a vs-C 2.15.0 claim. It is **not** a
-Suite HOLD lift. Do not say “faster than librdkafka”.
+The median is the middle run of each column. On this unsigned sample, partitionline’s produce-ack median was p50 62 µs and p99 95 µs. rust-rdkafka 0.39.0’s median was p50 58 µs and p99 90 µs. Partitionline was slower. The C 2.15.0 tool was not on this machine. Suite HOLD stays on.
 
-Exact JSON from the three pairs (do not invent other digits):
+Source rows. Every produce-ack row has 10,000 samples, a 100-byte payload, `acks` 1, and linger 0. Every fetch-request row is partitionline only: 417 samples, 10,008 records consumed, `max_wait_ms` 100, `max_bytes` 4096, `min_bytes` 1.
 
-```
-{"kind":"produce_ack","samples":10000,"p50_us":77,"p99_us":216,"min_us":44,"max_us":2651,"mean_us":86,"payload_bytes":100,"acks":1,"linger_ms":0,"client":"partitionline"}
-{"kind":"fetch_rpc","samples":417,"p50_us":245,"p99_us":1979,"min_us":120,"max_us":3443,"mean_us":323,"consumed":10008,"max_wait_ms":100,"max_bytes":4096,"min_bytes":1,"client":"partitionline"}
-{"kind":"produce_ack","samples":10000,"p50_us":53,"p99_us":86,"min_us":46,"max_us":8473,"mean_us":57,"payload_bytes":100,"acks":1,"linger_ms":0,"client":"rdkafka-0.39.0"}
-{"kind":"produce_ack","samples":10000,"p50_us":56,"p99_us":85,"min_us":46,"max_us":2490,"mean_us":58,"payload_bytes":100,"acks":1,"linger_ms":0,"client":"partitionline"}
-{"kind":"fetch_rpc","samples":417,"p50_us":121,"p99_us":751,"min_us":84,"max_us":4208,"mean_us":159,"consumed":10008,"max_wait_ms":100,"max_bytes":4096,"min_bytes":1,"client":"partitionline"}
-{"kind":"produce_ack","samples":10000,"p50_us":60,"p99_us":90,"min_us":47,"max_us":5757,"mean_us":62,"payload_bytes":100,"acks":1,"linger_ms":0,"client":"rdkafka-0.39.0"}
-{"kind":"produce_ack","samples":10000,"p50_us":62,"p99_us":95,"min_us":50,"max_us":1767,"mean_us":63,"payload_bytes":100,"acks":1,"linger_ms":0,"client":"partitionline"}
-{"kind":"fetch_rpc","samples":417,"p50_us":108,"p99_us":422,"min_us":62,"max_us":4326,"mean_us":132,"consumed":10008,"max_wait_ms":100,"max_bytes":4096,"min_bytes":1,"client":"partitionline"}
-{"kind":"produce_ack","samples":10000,"p50_us":58,"p99_us":95,"min_us":48,"max_us":3663,"mean_us":60,"payload_bytes":100,"acks":1,"linger_ms":0,"client":"rdkafka-0.39.0"}
-```
+| Run | Client | Kind | p50 µs | p99 µs | min µs | max µs | mean µs |
+|---|---|---|---|---|---|---|---|
+| 1 | partitionline | produce-ack | 77 | 216 | 44 | 2,651 | 86 |
+| 1 | partitionline | fetch request | 245 | 1,979 | 120 | 3,443 | 323 |
+| 1 | rust-rdkafka 0.39.0 | produce-ack | 53 | 86 | 46 | 8,473 | 57 |
+| 2 | partitionline | produce-ack | 56 | 85 | 46 | 2,490 | 58 |
+| 2 | partitionline | fetch request | 121 | 751 | 84 | 4,208 | 159 |
+| 2 | rust-rdkafka 0.39.0 | produce-ack | 60 | 90 | 47 | 5,757 | 62 |
+| 3 | partitionline | produce-ack | 62 | 95 | 50 | 1,767 | 63 |
+| 3 | partitionline | fetch request | 108 | 422 | 62 | 4,326 | 132 |
+| 3 | rust-rdkafka 0.39.0 | produce-ack | 58 | 95 | 48 | 3,663 | 60 |
 
 Fetch-request (partitionline only; not vs rdkafka):
 

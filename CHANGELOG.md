@@ -7,6 +7,9 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ## [Unreleased]
 
+- The benchmark page prints the 2026-08-28 fetch and latency source rows
+  as tables. Every recorded digit stays. The fetch sample is an unsigned
+  comparison with rust-rdkafka 0.39.0 polling one record at a time.
 - The session guide names the broker lane, KL11, and no longer describes
   gateway work as a red CI failure. The broker plan opens on that lane
   and keeps the production list separate from the open-card table.
