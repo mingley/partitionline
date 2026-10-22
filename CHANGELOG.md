@@ -212,6 +212,9 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 - The support matrix lists quorum admin behavior in a table. A local Raft
   append is not committed membership. The live credential matrix is still
   KL06-06.
+- The support matrix lists Produce and Fetch quota versions, incremental
+  Fetch sessions, and Fetch v18 in tables. No live quota deployment or
+  throughput claim is made.
 - The gateway profile names zstd as an optional codec that has shipped.
   Its measured cells remain gzip and lz4.
 

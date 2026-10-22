@@ -175,10 +175,28 @@ This matrix does not close KL-08. Still open: two independent adopter 24-hour an
 
 ### Quotas and incremental fetch
 
-Produce quota scheduling supports negotiated v6–v13 on every connection to one broker. v3–v5 keep server throttling. Positive waits share the existing delivery deadline and close budget. The fixed-size `ProducerMetrics.throttle` snapshot reports requested time and an invalid negative response. Deterministic peer tests cover broker isolation, in-flight acknowledgements, reconnection, version boundaries, expiry, and shutdown. No live quota deployment is claimed. Admin and heartbeat or group quota scheduling are separate.
+No live quota deployment is claimed. Admin, heartbeat, and group quotas
+are separate from Produce and Fetch.
 
-Fetch quota scheduling supports negotiated v8–v18 per broker, with a completion clock on each response. v4–v7 keep server throttling. Other brokers and buffered records keep delivering while one peer is muted. An all-muted wait shares the poll long-poll and the original request budget, and it accepts wakeup and caller cancellation. `ConsumerMetrics.throttle` uses fixed-size requested-time counters. Deterministic peer tests cover mixed versions, zero and negative durations, discarding a response at the buffer cap, deadline expiry, cancellation, and idle reconnection. The Apache Java 4.3.1 scheduling reference is executed separately. No live quota deployment or throughput improvement is claimed.
+| Path | Versions the client delays | Versions left to the broker | What a positive wait uses |
+|---|---|---|---|
+| Produce | v6–v13, every connection to that broker | v3–v5 | The existing delivery deadline and close budget |
+| Fetch | v8–v18, per broker, timed from response completion | v4–v7 | The poll long-poll and the original request budget. Wakeup and caller cancellation interrupt it. |
 
-Incremental Fetch covers broker-local sessions on v7–v18 and a full fetch fallback on v4–v6, plus partition and identity checks, bounded session-error recovery, assignment and topic-ID changes, and a terminal close. Tests and the strict 32-partition live runner cover a named reconnect reset with 65 exact Rust and Java records. The Apache 4.3.1 handler executes 80 state transitions on its own. Request-byte reduction is measured. No throughput, latency, or sustained broker-fault result is claimed.
+`ProducerMetrics.throttle` and `ConsumerMetrics.throttle` are fixed-size
+snapshots of requested time. A negative Produce throttle is invalid and is
+counted, not applied. While one Fetch peer is muted, other brokers and
+buffered records keep delivering. Peer tests cover isolation, in-flight
+acknowledgements, reconnection, version boundaries, zero and negative
+durations, a discarded response at the buffer cap, expiry, cancellation,
+and shutdown. The Apache Java 4.3.1 Fetch scheduling reference is executed
+separately. No throughput improvement is claimed.
 
-Fetch v18 (KIP-1166) carries replica HighWatermark sidecars, with strict lengths for known tags. Ordinary consumers omit the tag. Existing public partition layouts and helper signatures stay the same. Apache 4.1.0, 4.1.2, 4.2.1, and 4.3.1 serialize the same request bytes. Named A01–A05 regressions run at the observed v18. Replica acknowledgement and quorum commit are outside this client codec.
+| Fetch behavior | What is true |
+|---|---|
+| Sessions | One broker-local session on v7–v18. v4–v6 sends a full fetch. |
+| Checks | Partition and identity checks, bounded session-error recovery, assignment and topic-id changes, and a terminal close |
+| 32-partition runner | One named reconnect reset and 65 exact Rust and Java records |
+| Apache 4.3.1 handler | 80 state transitions, executed separately |
+| Request size | Reduction is measured. Throughput, latency, and a sustained broker-fault result are not. |
+| Fetch v18 | Replica high-watermark sidecars with strict lengths for known tags. Ordinary consumers omit the tag. Public partition layouts stay the same. Apache 4.1.0, 4.1.2, 4.2.1, and 4.3.1 serialize the same request bytes. A01–A05 regressions run at the observed v18. Replica acknowledgement and quorum commit are outside this codec. |
