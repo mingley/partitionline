@@ -145,6 +145,9 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 - The exactly-once recipe lists each transaction outcome. A lost commit
   stays ambiguous and is retried as the same commit. Fencing stops that
   producer instance.
+- The produce-cancellation table includes `close_timeout` and a later
+  send. A record already transmitted stays ambiguous, and a new send can
+  duplicate it even when idempotence is on.
 - The gateway profile names zstd as an optional codec that has shipped.
   Its measured cells remain gzip and lz4.
 

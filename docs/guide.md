@@ -820,14 +820,14 @@ before treating the outcome as final. `close` stops workers. A successful
 | After send / before ack | in flight to the broker; drop `send` future | **Ambiguous** |
 | After broker ack | `Ok(RecordMetadata)`, or accepted `try_send` plus a successful `flush`, with `acks=1` or `all` | **Acknowledged.** `acks=0` cannot prove an offset. |
 | After `close` / `close_timeout` | further `send` or `try_send` on any clone | **Failed** with `Error::Closed` |
+| `close_timeout` while a batch is in flight | The deadline hits a stalled broker or the retry queue | In-flight batches return `Error::Timeout`. A record already transmitted stays ambiguous. |
+| A later send after an ambiguous result | The earlier per-record receipt is missing | Can duplicate the record, including when idempotence was on. |
 
 Call `close` or `close_timeout` instead of dropping the last `Producer`.
-Drop alone does not wait for in-flight produce. `close_timeout` applies its
-deadline to a stalled broker and to the retry queue. In-flight batches then
-fail with `Error::Timeout`, and a record already transmitted stays
-ambiguous. Concurrent sends on every clone get `Error::Closed` immediately.
-Dropping the last handle aborts the worker and background tasks. Buffer
-permits and connections are released. The mock is `tests/produce_cancel.rs`.
+Drop alone does not wait for in-flight produce. Concurrent sends on every
+clone get `Error::Closed` immediately. Dropping the last handle aborts the
+worker and background tasks, and releases buffer permits and connections.
+The mock is `tests/produce_cancel.rs`.
 
 Run the recipe against an existing topic:
 
@@ -837,17 +837,14 @@ KAFKA_TOPIC=events cargo run --example produce_cancel
 
 It polls one send for 20 ms, drops that wait, flushes queued work, and
 closes inside a 15-second process deadline. An unpolled send has accepted
-nothing. Once the send has been polled, an outer timeout can land before or
-after admission. A delivery timeout after the bytes were transmitted stays
-ambiguous. The recipe keeps the flush result separate from close and does
-not send that record again. A later aggregate result cannot rebuild the
-missing per-record receipt. A fresh send after that ambiguity can duplicate
-the record, including when the original producer had idempotence on.
+nothing. Once the send has been polled, an outer timeout can land before
+or after admission. The recipe keeps the flush result separate from close
+and does not send that record again.
 
-A rejected `try_send` has not admitted that record. Wait for other work to
-settle inside a deadline, then retry admission. `send` already waits up to
-`max_block` for admission and uses its delivery deadline after that. Keep
-the application queue bounded.
+A rejected `try_send` has not admitted that record. Wait for other work
+to settle inside a deadline, then retry admission. `send` already waits up
+to `max_block` for admission and uses its delivery deadline after that.
+Keep the application queue bounded.
 
 ```bash
 cargo test --locked --test buffer_ownership
