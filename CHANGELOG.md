@@ -7,6 +7,9 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ## [Unreleased]
 
+- The session guide names the broker lane, KL11, and no longer describes
+  gateway work as a red CI failure. The broker plan opens on that lane
+  and keeps the production list separate from the open-card table.
 - The performance plan leads with what has changed since the 2026-09-26
   snapshot. Hot-path rows carry the card status. Observed costs stay that
   day's hypothesis. Suite HOLD remains.

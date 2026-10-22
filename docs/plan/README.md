@@ -12,9 +12,11 @@ task status and dependencies**; the other documents are navigation and context.
 ## Task contract
 
 Each task has a stable ID, priority, kind, dependencies, starting files,
-one deliverable, explicit acceptance criteria and focused checks. All tasks
-start `pending`, with no owner or completion evidence. A passing existing
-suite or a merged preparatory harness does not complete its dependent task.
+one deliverable, explicit acceptance criteria and focused checks. A new
+card starts `pending`, with no owner and no completion evidence. Cards
+already in the file may be pending, in progress, or done. A passing
+existing suite, or a merged preparatory harness, does not complete its
+dependent task.
 
 | Priority | Meaning |
 |---|---|
@@ -35,7 +37,8 @@ The prefixes retain the existing roadmap packages:
 | KL07 | Documentation, diagnostics and adoption ergonomics |
 | KL08 | Releases, support and production qualification |
 | KL09 | Performance leadership: fast local evidence loop, measured optimization and the fastest-client claim gate |
-| KL10 | Gateway adoption: close the gaps a same-settings gateway workload exposes (gzip, mTLS, per-record acks, gzip consume, red CI) |
+| KL10 | Gateway adoption: gzip, mTLS, one acknowledgement per record, and gzip consume. The 2026-09-26 CI failure is KL10-01, which is done. Dated measurements are in the [gateway plan](gateway-adoption.md). |
+| KL11 | Broker: transport, storage, replication, coordinators, and server qualification. The open cards are in the [broker plan](broker-implementation.md). |
 
 **Size rule:** one observable behavior, one fixture family, one adapter, one
 documentation outcome, or one evidence job per task. Aim for one or two

@@ -1,16 +1,15 @@
-# Full Rust Kafka client and broker goal
+# Broker implementation
 
-The user's 2026-10-02 goal covers a fully featured Rust Kafka client **and**
-broker, production qualification, and reproducible client/server performance
-leadership. Work continues in successive small, owned tasks, with direct pushes
-to `main`. The earlier client-only scope does not exclude broker/control-plane
-APIs from this expanded goal. Existing client tasks and evidence remain intact.
+This page is the broker half of the client-and-broker program. KL01–KL10
+are the client. KL11 is the broker. [tasks.json](tasks.json) is the only
+status list. Finished work is pushed to `main`.
 
-`tasks.json` remains the only status database. KL01–KL10 cover the client;
-KL11 adds the broker. Finish independent ready cards while respecting active
-hot-file claims. Split any large subsystem contract into dependent children
-before implementation. A measured rejected optimization is a completed study,
-but does not implement its rejected behavior or prove performance leadership.
+The earlier client-only scope does not drop broker and control-plane APIs.
+Existing client tasks and evidence stay. Finish one ready card at a time,
+and leave a card that already has an owner. Split a large subsystem into
+dependent children before implementing it. A measured rejected optimization
+is a completed study. It does not implement the rejected behavior, and it
+does not prove performance leadership.
 
 ## Crate and protocol boundary
 
@@ -87,6 +86,11 @@ delegation tokens. The cards that are not done are these:
 Do not claim a second in-progress card. KL11-37 and KL11-71 already have owners.
 
 ## Full server behavior
+
+This list is the lane's scope. It is not a list of missing features. The
+table above is what is still open. Retention, compaction, metadata election,
+failover, cooperative and static group histories, and delegation tokens are
+already done.
 
 The queue covers segment/index recovery, retention and compaction; durable
 metadata quorum election/replication/snapshots and broker fencing; replica
