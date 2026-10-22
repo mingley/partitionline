@@ -7,6 +7,9 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ## [Unreleased]
 
+- Encoding a ShareFetch response pauses every 8,192 partitions. Writing
+  300,000 partitions held the caller for 214ms before that pause. The
+  encoded bytes are unchanged.
 - Encoding a Produce request pauses every 8,192 partitions. Writing
   400,000 empty batches held the caller for 516ms before that pause. The
   encoded bytes are unchanged.

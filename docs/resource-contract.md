@@ -91,6 +91,7 @@ leaders are still looked up, and a repeated name is still stored once.
 - Return a fetched batch without copying each record when no consume interceptor is installed.
 - Write aborted transactions into a Fetch response. The response bytes stay the same.
 - Write Fetch response partitions. A partition row is still copied.
+- Write ShareFetch response partitions. A partition row is still copied.
 - Measure and write node endpoints into a Produce or Fetch response tag. A host is still copied.
 - Measure and write Metadata response topics. A topic name is still copied.
 - Measure and write Metadata response brokers. A broker host is still copied.
