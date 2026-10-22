@@ -958,14 +958,17 @@ slices are kept.
 
 Session retirement does not commit offsets.
 
-With 128 unchanged partitions, measured Fetch v17 request bodies shrink from
-4,268 to 25 bytes, matching Apache Java 4.3.1 serialization; this is a request-byte
-measurement. It does not establish a throughput or latency improvement. The
-KL05-07 runner observes Fetch IDs, epochs, offsets and forgotten partitions over
-32 partitions, pause/resume, an idle reconnect reset and terminal close, then
-compares all 65 records with the digest-pinned Apache 4.1.2 Java console consumer.
-The Apache 4.3.1 handler provides a separate executed recovery reference. These
-bounded scenarios do not establish a long-running broker fault campaign.
+With 128 unchanged partitions, Fetch v17 request bodies in that measurement
+shrank from 4,268 bytes to 25 bytes, matching Apache Java 4.3.1
+serialization. That is a request-size measurement. It is not a throughput
+or latency result.
+
+The KL05-07 runner observes Fetch ids, epochs, offsets, and forgotten
+partitions over 32 partitions, including pause, resume, an idle reconnect
+reset, and terminal close. It then compares all 65 records with the
+digest-pinned Apache 4.1.2 Java console consumer. The Apache 4.3.1 handler
+is a separate recovery reference. These scenarios are not a long-running
+broker fault campaign.
 
 ### Rebalance
 
