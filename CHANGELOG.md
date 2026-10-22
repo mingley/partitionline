@@ -215,6 +215,8 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 - The support matrix lists Produce and Fetch quota versions, incremental
   Fetch sessions, and Fetch v18 in tables. No live quota deployment or
   throughput claim is made.
+- The support matrix lists Produce v13, ListOffsets v11, offset v10, and
+  Streams v0 in one table, with the live cases each row does not qualify.
 - The gateway profile names zstd as an optional codec that has shipped.
   Its measured cells remain gzip and lz4.
 

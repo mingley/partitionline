@@ -109,33 +109,17 @@ stay separate.
 
 These notes describe the working source. They do not by themselves qualify a live multi-broker deployment.
 
-### Produce topic IDs
+### Wire behavior added in current source
 
-Produce v13 topic IDs are checked against independent Apache 4.1.2, 4.2.1, and 4.3.1 serialization, live Java decoding of fresh Rust requests and responses, and deterministic peers for topic recreation, immutable response identity, missing IDs, delivery-budget retries, and the v3–v12 fallback. Transaction version 1 stays on Produce v11. Finalized `transaction.version` of 2 or higher, with EndTxn v5, enables v12 and v13. That choice is fixed when the producer starts.
-
-### ListOffsets
-
-ListOffsets supports v1–v11, including KIP-1023 earliest pending upload (`-6`, `OffsetSpec::earliest_pending_upload`). Admin and manual consumers refresh each selected leader’s range and reject an unsupported selector or isolation level before the request. The caller deadline covers metadata, connect, negotiation, the RPC, and retries. Independent Apache bytes and mock paths cover this delta. No live tiered-storage deployment or pending-upload boundary is qualified.
-
-### ListTransactions
-
-ListTransactions supports v0–v2, with a complete listing and a per-broker listing. Typed options keep the duration filter and the transaction-ID pattern. A nonempty pattern requires v2. It is not dropped on an older broker. Three Apache SDKs check selected wire and public-call behavior against bounded scripted peers. Live transaction-state recovery is separate work.
-
-### Metadata and coordinator discovery
-
-Metadata and GROUP coordinator discovery include v0. A named v0 metadata request requires automatic topic creation. Unsupported options are refused. Missing controller, UUID, and rack fields keep their sentinel values. This wire support differs from the current Java Metadata builder, which refuses v0.
-
-### Offset commit and fetch
-
-OffsetCommit and OffsetFetch support v10 topic UUIDs on typed requests, on `ConsumerGroup`, and on Admin. Name-based calls keep the older wire formats. A UUID-only request refuses an older coordinator. Metadata snapshots and assignment IDs keep offsets tied to the original topic when a topic of the same name is recreated. Selected checks use three pinned Apache SDKs and scripted peers. Live coordinator persistence and cluster failover are not qualified.
-
-### DescribeLogDirs
-
-DescribeLogDirs negotiates each selected broker’s v1–v5 range. Typed `IsCordoned` appears at v5. Older versions default it to false. Each attempt adds one ApiVersions control RPC inside that broker hop’s deadline. Independent Apache 4.3.1 bytes and mixed-version mock brokers cover this delta. Live v5 broker behavior is not qualified. A public struct literal for `DescribeLogDirsResult` needs the `is_cordoned` field. The existing constructor defaults it to false.
-
-### Streams
-
-Streams v0 codecs and caller-driven heartbeats keep typed topology, tasks, offsets, endpoints, and status fields. Heartbeats use GROUP coordinator discovery, the connection’s actual capabilities, and one caller deadline. v0 is explicit. Three pinned Apache SDKs check selected public Rust socket histories and typed responses. This client does not include a Streams execution engine, and the broker does not include a Streams coordinator. Typed Admin descriptions keep every group, member, and topology field, including caller order and duplicates. Discovery or capability failures are reported per group.
+| Area | What the source does | What is not qualified |
+|---|---|---|
+| Produce v13 | Topic ids. Checked against Apache 4.1.2, 4.2.1, and 4.3.1 serialization, live Java decode, topic recreation, a frozen identity snapshot, missing ids, delivery-budget retries, and the v3–v12 fallback. Transaction version 1 stays at Produce v11. Finalized `transaction.version` of 2 or higher, with EndTxn v5, enables v12 and v13. That choice is fixed when the producer starts. | A live multi-broker deployment |
+| ListOffsets v1–v11 | Includes earliest pending upload, `-6`. An unsupported selector or isolation level is rejected before the request. The deadline covers metadata, connect, negotiation, the RPC, and retries. | A live tiered-storage deployment and the pending-upload boundary |
+| ListTransactions v0–v2 | A complete listing and a per-broker listing. A nonempty id pattern requires v2 and is not dropped on an older broker. | Live transaction-state recovery |
+| Metadata v0 and GROUP FindCoordinator v0 | Spoken. A named v0 metadata request requires automatic topic creation. Missing controller, UUID, and rack fields keep their sentinels. The current Java Metadata builder refuses v0. | |
+| OffsetCommit and OffsetFetch v10 | Topic UUIDs on typed requests, on `ConsumerGroup`, and on Admin. Name-based calls keep the older formats. A UUID-only request refuses an older coordinator. A recreated topic name does not receive the old commit. | Live coordinator persistence and cluster failover |
+| DescribeLogDirs v1–v5 | `IsCordoned` appears at v5. Older versions default it to false. One ApiVersions RPC is inside that broker hop's deadline. A struct literal needs `is_cordoned`. The constructor defaults it to false. | Live v5 broker behavior |
+| Streams v0 | Caller-driven heartbeats and typed Admin descriptions, including caller order and duplicates. Failures are reported per group. This client has no Streams engine, and the broker has no Streams coordinator. | A Streams runtime |
 
 ### Quorum admin
 
