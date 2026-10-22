@@ -6845,29 +6845,49 @@ fn encode_fetched_offset_topics(
     topics: &[FetchedOffsetTopic],
 ) -> crate::error::Result<()> {
     buf::put_array_len(buf, flexible, Some(topics.len()))?;
-    for t in topics {
-        buf::put_string(buf, flexible, Some(&t.topic))?;
-        buf::put_array_len(buf, flexible, Some(t.partitions.len()))?;
-        for p in &t.partitions {
-            buf.put_i32(p.partition);
-            buf.put_i64(p.offset);
-            if version >= 5 {
-                buf.put_i32(p.leader_epoch);
-            }
-            let meta = if p.metadata.is_empty() {
-                None
-            } else {
-                Some(p.metadata.as_str())
-            };
-            buf::put_string(buf, flexible, meta)?;
-            buf.put_i16(p.error_code);
-            if flexible {
-                buf::put_empty_tagged_fields(buf);
-            }
-        }
-        if flexible {
-            buf::put_empty_tagged_fields(buf);
-        }
+    for topic in topics {
+        write_fetched_offset_topic(buf, version, flexible, topic)?;
+    }
+    Ok(())
+}
+
+fn write_fetched_offset_topic(
+    buf: &mut BytesMut,
+    version: i16,
+    flexible: bool,
+    topic: &FetchedOffsetTopic,
+) -> Result<()> {
+    buf::put_string(buf, flexible, Some(&topic.topic))?;
+    buf::put_array_len(buf, flexible, Some(topic.partitions.len()))?;
+    for partition in &topic.partitions {
+        write_fetched_offset_partition(buf, version, flexible, partition)?;
+    }
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
+    Ok(())
+}
+
+fn write_fetched_offset_partition(
+    buf: &mut BytesMut,
+    version: i16,
+    flexible: bool,
+    partition: &FetchedOffset,
+) -> Result<()> {
+    buf.put_i32(partition.partition);
+    buf.put_i64(partition.offset);
+    if version >= 5 {
+        buf.put_i32(partition.leader_epoch);
+    }
+    let metadata = if partition.metadata.is_empty() {
+        None
+    } else {
+        Some(partition.metadata.as_str())
+    };
+    buf::put_string(buf, flexible, metadata)?;
+    buf.put_i16(partition.error_code);
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
     }
     Ok(())
 }
@@ -7746,6 +7766,63 @@ pub fn encode_offset_fetch_response(
     encode_offset_fetch_group_views(buf, version, std::slice::from_ref(&group), 0)
 }
 
+/// [`encode_offset_fetch_response`], yielding while topics are still being measured and written.
+///
+/// Encoding 800,000 topics held the caller for 343ms. A topic name is still written.
+pub async fn encode_offset_fetch_response_cooperative(
+    buf: &mut BytesMut,
+    version: i16,
+    group_id: &str,
+    topics: &[FetchedOffsetTopic],
+    error: i16,
+) -> Result<()> {
+    let flexible = offset_fetch_flexible(version)?;
+    let body_start = buf.len();
+    let mut planned = if version >= 3 { 4usize } else { 0 };
+    if version <= 7 {
+        planned = add_group_len(
+            planned,
+            fetched_offset_topics_len_cooperative(version, flexible, topics).await?,
+        )?;
+        if version >= 2 {
+            planned = add_group_len(planned, 2)?;
+        }
+    } else {
+        planned = add_group_len(planned, group_array_len(true, 1)?)?;
+        planned = add_group_len(planned, group_string_len(true, Some(group_id))?)?;
+        planned = add_group_len(
+            planned,
+            fetched_offset_topics_len_cooperative(version, true, topics).await?,
+        )?;
+        planned = add_group_len(planned, 2)?;
+        planned = add_group_len(planned, buf::unsigned_varint_size(0))?;
+    }
+    if flexible {
+        planned = add_group_len(planned, buf::unsigned_varint_size(0))?;
+    }
+    reserve_group_body(buf, planned);
+    if version >= 3 {
+        buf.put_i32(0);
+    }
+    if version <= 7 {
+        write_fetched_offset_topics_cooperative(buf, version, flexible, topics).await?;
+        if version >= 2 {
+            buf.put_i16(error);
+        }
+    } else {
+        buf::put_array_len(buf, true, Some(1))?;
+        buf::put_compact_string(buf, Some(group_id))?;
+        write_fetched_offset_topics_cooperative(buf, version, true, topics).await?;
+        buf.put_i16(error);
+        buf::put_empty_tagged_fields(buf);
+    }
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
+    debug_assert_eq!(buf.len().saturating_sub(body_start), planned);
+    Ok(())
+}
+
 struct BorrowedOffsetFetchGroup<'a> {
     group_id: &'a str,
     topics: &'a [FetchedOffsetTopic],
@@ -7864,29 +7941,188 @@ fn fetched_offset_topics_len(
 ) -> Result<usize> {
     let mut total = group_array_len(flexible, topics.len())?;
     for topic in topics {
-        total = add_group_len(total, group_string_len(flexible, Some(&topic.topic))?)?;
-        total = add_group_len(total, group_array_len(flexible, topic.partitions.len())?)?;
-        for partition in &topic.partitions {
-            let mut fixed = 14usize;
-            if version >= 5 {
-                fixed += 4;
-            }
-            total = add_group_len(total, fixed)?;
-            let metadata = if partition.metadata.is_empty() {
-                None
+        total = add_group_len(total, fetched_offset_topic_len(version, flexible, topic)?)?;
+    }
+    Ok(total)
+}
+
+fn fetched_offset_topic_header_len(flexible: bool, topic: &FetchedOffsetTopic) -> Result<usize> {
+    let mut total = group_string_len(flexible, Some(&topic.topic))?;
+    total = add_group_len(total, group_array_len(flexible, topic.partitions.len())?)?;
+    Ok(total)
+}
+
+fn fetched_offset_topic_len(
+    version: i16,
+    flexible: bool,
+    topic: &FetchedOffsetTopic,
+) -> Result<usize> {
+    let mut total = fetched_offset_topic_header_len(flexible, topic)?;
+    for partition in &topic.partitions {
+        total = add_group_len(
+            total,
+            fetched_offset_partition_len(version, flexible, partition)?,
+        )?;
+    }
+    if flexible {
+        total = add_group_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
+}
+
+fn fetched_offset_partition_len(
+    version: i16,
+    flexible: bool,
+    partition: &FetchedOffset,
+) -> Result<usize> {
+    let mut total = 14usize;
+    if version >= 5 {
+        total += 4;
+    }
+    let metadata = if partition.metadata.is_empty() {
+        None
+    } else {
+        Some(partition.metadata.as_str())
+    };
+    total = add_group_len(total, group_string_len(flexible, metadata)?)?;
+    if flexible {
+        total = add_group_len(total, buf::unsigned_varint_size(0))?;
+    }
+    Ok(total)
+}
+
+/// OffsetFetch response topics measured or written before the caller is paused.
+const OFFSET_FETCH_RESPONSE_CHUNK: usize = 8 * 1024;
+
+async fn fetched_offset_partitions_len(
+    version: i16,
+    flexible: bool,
+    partitions: &[FetchedOffset],
+) -> Result<usize> {
+    let mut total = 0usize;
+    let mut start = 0usize;
+    while start < partitions.len() {
+        let end = start
+            .saturating_add(OFFSET_FETCH_RESPONSE_CHUNK)
+            .min(partitions.len());
+        let Some(slice) = partitions.get(start..end) else {
+            return Err(Error::protocol("offset fetch response partition slice"));
+        };
+        for partition in slice {
+            total = add_group_len(
+                total,
+                fetched_offset_partition_len(version, flexible, partition)?,
+            )?;
+        }
+        start = end;
+        if start < partitions.len() {
+            tokio::task::yield_now().await;
+        }
+    }
+    Ok(total)
+}
+
+async fn write_fetched_offset_partitions(
+    buf: &mut BytesMut,
+    version: i16,
+    flexible: bool,
+    partitions: &[FetchedOffset],
+) -> Result<()> {
+    let mut start = 0usize;
+    while start < partitions.len() {
+        let end = start
+            .saturating_add(OFFSET_FETCH_RESPONSE_CHUNK)
+            .min(partitions.len());
+        let Some(slice) = partitions.get(start..end) else {
+            return Err(Error::protocol("offset fetch response partition slice"));
+        };
+        for partition in slice {
+            write_fetched_offset_partition(buf, version, flexible, partition)?;
+        }
+        start = end;
+        if start < partitions.len() {
+            tokio::task::yield_now().await;
+        }
+    }
+    Ok(())
+}
+
+async fn fetched_offset_topics_len_cooperative(
+    version: i16,
+    flexible: bool,
+    topics: &[FetchedOffsetTopic],
+) -> Result<usize> {
+    let mut total = group_array_len(flexible, topics.len())?;
+    let mut start = 0usize;
+    while start < topics.len() {
+        let end = start
+            .saturating_add(OFFSET_FETCH_RESPONSE_CHUNK)
+            .min(topics.len());
+        let Some(slice) = topics.get(start..end) else {
+            return Err(Error::protocol("offset fetch response topic slice"));
+        };
+        for topic in slice {
+            total = add_group_len(total, fetched_offset_topic_header_len(flexible, topic)?)?;
+            if topic.partitions.len() > OFFSET_FETCH_RESPONSE_CHUNK {
+                total = add_group_len(
+                    total,
+                    fetched_offset_partitions_len(version, flexible, &topic.partitions).await?,
+                )?;
             } else {
-                Some(partition.metadata.as_str())
-            };
-            total = add_group_len(total, group_string_len(flexible, metadata)?)?;
+                for partition in &topic.partitions {
+                    total = add_group_len(
+                        total,
+                        fetched_offset_partition_len(version, flexible, partition)?,
+                    )?;
+                }
+            }
             if flexible {
                 total = add_group_len(total, buf::unsigned_varint_size(0))?;
             }
         }
-        if flexible {
-            total = add_group_len(total, buf::unsigned_varint_size(0))?;
+        start = end;
+        if start < topics.len() {
+            tokio::task::yield_now().await;
         }
     }
     Ok(total)
+}
+
+async fn write_fetched_offset_topics_cooperative(
+    buf: &mut BytesMut,
+    version: i16,
+    flexible: bool,
+    topics: &[FetchedOffsetTopic],
+) -> Result<()> {
+    buf::put_array_len(buf, flexible, Some(topics.len()))?;
+    let mut start = 0usize;
+    while start < topics.len() {
+        let end = start
+            .saturating_add(OFFSET_FETCH_RESPONSE_CHUNK)
+            .min(topics.len());
+        let Some(slice) = topics.get(start..end) else {
+            return Err(Error::protocol("offset fetch response topic slice"));
+        };
+        for topic in slice {
+            buf::put_string(buf, flexible, Some(&topic.topic))?;
+            buf::put_array_len(buf, flexible, Some(topic.partitions.len()))?;
+            if topic.partitions.len() > OFFSET_FETCH_RESPONSE_CHUNK {
+                write_fetched_offset_partitions(buf, version, flexible, &topic.partitions).await?;
+            } else {
+                for partition in &topic.partitions {
+                    write_fetched_offset_partition(buf, version, flexible, partition)?;
+                }
+            }
+            if flexible {
+                buf::put_empty_tagged_fields(buf);
+            }
+        }
+        start = end;
+        if start < topics.len() {
+            tokio::task::yield_now().await;
+        }
+    }
+    Ok(())
 }
 
 fn offset_fetch_response_len<G: OffsetFetchGroupView>(
@@ -9189,6 +9425,78 @@ mod tests {
             encode_offset_commit_topics_response(&mut once, version, &sample)
                 .unwrap_or_else(|error| panic!("{error}"));
             encode_offset_commit_topics_response_cooperative(&mut paced, version, &sample)
+                .await
+                .unwrap_or_else(|error| panic!("{error}"));
+            assert_eq!(once, paced, "version {version}");
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn encoding_many_offset_fetch_response_topics_does_not_hold_the_caller() {
+        let topics: Vec<FetchedOffsetTopic> = (0..800_000)
+            .map(|_| FetchedOffsetTopic {
+                topic: "t".to_string(),
+                partitions: vec![FetchedOffset {
+                    partition: 0,
+                    offset: 0,
+                    leader_epoch: -1,
+                    metadata: String::new(),
+                    error_code: 0,
+                }],
+            })
+            .collect();
+        let started = std::time::Instant::now();
+        tokio::select! {
+            _ = async {
+                let mut body = BytesMut::new();
+                encode_offset_fetch_response_cooperative(&mut body, 1, "g", &topics, 0)
+                    .await
+                    .unwrap_or_else(|error| panic!("{error}"));
+            } => {}
+            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < std::time::Duration::from_millis(80),
+            "encoding offset fetch response topics held the caller for {elapsed:?}"
+        );
+        let sample = [
+            FetchedOffsetTopic {
+                topic: "orders".to_string(),
+                partitions: vec![
+                    FetchedOffset {
+                        partition: 0,
+                        offset: 10,
+                        leader_epoch: 2,
+                        metadata: String::new(),
+                        error_code: 0,
+                    },
+                    FetchedOffset {
+                        partition: 1,
+                        offset: -1,
+                        leader_epoch: -1,
+                        metadata: "retry".to_string(),
+                        error_code: 3,
+                    },
+                ],
+            },
+            FetchedOffsetTopic {
+                topic: "billing".to_string(),
+                partitions: vec![FetchedOffset {
+                    partition: 4,
+                    offset: 0,
+                    leader_epoch: 1,
+                    metadata: String::new(),
+                    error_code: 0,
+                }],
+            },
+        ];
+        for version in [1i16, 5, 8] {
+            let mut once = BytesMut::new();
+            let mut paced = BytesMut::new();
+            encode_offset_fetch_response(&mut once, version, "payments", &sample, 7)
+                .unwrap_or_else(|error| panic!("{error}"));
+            encode_offset_fetch_response_cooperative(&mut paced, version, "payments", &sample, 7)
                 .await
                 .unwrap_or_else(|error| panic!("{error}"));
             assert_eq!(once, paced, "version {version}");
